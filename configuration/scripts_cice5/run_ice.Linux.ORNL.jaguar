@@ -1,0 +1,18 @@
+#PBS -N cice
+#PBS -l size=2
+#PBS -l mem=2G
+#PBS -l walltime=00:30:00
+#PBS -j oe
+#PBS -m e
+#PBS -A CLI017ocn
+
+setenv MPICH_UNEX_BUFFER_SIZE 150000000
+
+#setenv SYSTEM_USERDIR /tmp/work/eclare
+
+set  stamp   = `date -u '+%y%m%d%H%M%S'`
+setenv ICE_LOG_FILE ice.log.${stamp}
+
+cd $SYSTEM_USERDIR/rundir4
+yod -small_pages -sz 4 ./cice >&! $ICE_LOG_FILE
+

@@ -1,0 +1,65 @@
+#==============================================================================
+# Makefile macros for "conejo," Linux cluster at LANL
+#==============================================================================
+
+INCLDIR    := -I. -I/usr/include
+SLIBS      := -L/usr/lib
+ULIBS      := 
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional
+CPPDEFS    := -DLINUX
+CFLAGS     := -c -O2
+ifeq ($(COMMDIR), mpi)
+   FC         := mpif90
+else
+   FC         := gfortran
+endif
+FIXEDFLAGS := -132
+FREEFLAGS  := 
+#FFLAGS     :=  -O0 -w -g -Wall -finit-real=nan -ffree-line-length-none -fconvert=big-endian -pedantic -std=gnu
+#FFLAGS     :=  -O0 -w -g -finit-real=nan -ffree-line-length-none -fconvert=big-endian -pedantic -Wunused
+FFLAGS     :=  -O2 -ffree-line-length-none -fconvert=big-endian -finit-real=nan
+#FFLAGS     := -r8 -i4 -O2 -align all -w -ftz -convert big_endian -assume byterecl 
+#FFLAGS     := -r8 -i4  -align all -w -ftz -convert big_endian -assume byterecl -g
+#FFLAGS     := -r8 -i4 -align all -w -ftz -convert big_endian -assume byterecl -fpe0 -CB -traceback 
+#FFLAGS     := -r8 -i4 -align all -w -ftz -convert big_endian -assume byterecl -fpe0 -CB -g
+MOD_SUFFIX := mod
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS) -v
+
+    CPPDEFS :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB) \
+                -DBLCKX=$(BLCKX) -DBLCKY=$(BLCKY) -DMXBLCKS=$(MXBLCKS) \
+                -DNICELYR=$(NICELYR) -DNSNWLYR=$(NSNWLYR) -DNICECAT=$(NICECAT) \
+                -DTRAGE=$(TRAGE) -DTRFY=$(TRFY) -DTRLVL=$(TRLVL) -DTRPND=$(TRPND) \
+                -DTRBRI=$(TRBRI) -DNTRAERO=$(NTRAERO) -DTRZS=$(TRZS) \
+                -DNBGCLYR=$(NBGCLYR) -DTRALG=$(TRALG) -DTRBGCZ=$(TRBGCZ) \
+                -DTRDOC=$(TRDOC) -DTRDOC=$(TRDOC) -DTRDIC=$(TRDIC) \
+                -DTRDON=$(TRDON) -DTRFED=$(TRFED) -DTRFEP=$(TRFEP) \
+                -DTRZAERO=$(TRZAERO)  \
+                -DTRBGCS=$(TRBGCS) -DNUMIN=$(NUMIN) -DNUMAX=$(NUMAX)
+#   CPPDEFS :=  $(CPPDEFS) -DAOMIP
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+   INCLDIR := $(INCLDIR) -I/Users/akt/Work/libraries/netcdf/netcdf/include
+   SLIBS   := $(SLIBS) -L/Users/akt/Work/libraries/netcdf/netcdf/lib -lnetcdff
+endif
+
+### if using parallel I/O, load all 3 libraries.  PIO must be first!
+ifeq ($(IO_TYPE), pio)
+   INCLDIR := $(INCLDIR) -I/usr/projects/climate/SHARED_CLIMATE/software/conejo/intel_openmpi/pio-1.4.0
+   SLIBS   := $(SLIBS) -L/usr/projects/climate/SHARED_CLIMATE/software/conejo/intel_openmpi/pio-1.4.0 -lpio
+
+   INCLDIR := $(INCLDIR) -I/usr/projects/climate/SHARED_CLIMATE/software/conejo/intel_openmpi/parallel-netcdf-1.2.0/include
+   SLIBS   := $(SLIBS) -L/usr/projects/climate/SHARED_CLIMATE/software/conejo/intel_openmpi/parallel-netcdf-1.2.0/lib -lpnetcdf
+
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+   INCLDIR := $(INCLDIR) -I/usr/projects/climate/SHARED_CLIMATE/software/conejo/intel_openmpi/netcdf-3.6.3/include
+   SLIBS   := $(SLIBS) -L/usr/projects/climate/SHARED_CLIMATE/software/conejo/intel_openmpi/netcdf-3.6.3/lib -lnetcdf
+
+endif
+

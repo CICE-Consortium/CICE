@@ -1,0 +1,78 @@
+CICE version 5.1
+  March 2015
+
+This directory contains files needed to run version 5.1 of CICE, the LANL sea 
+ice model, in standalone mode on a 3 degree grid.  As currently configured, the 
+model runs on 4 processors.  MPI is used for message passing between processors, 
+and OpenMP threading is available.  The grid provided here is too small for the 
+code to scale well beyond about 8 processors. A 1 degree grid is provided also, 
+without forcing data.  If you want to run on a single processor without using MPI, 
+edit comp_ice.
+
+For additional information, please consult the CICE documentation 'cicedoc.pdf', 
+found at http://oceans11.lanl.gov/trac/CICE/wiki or in the code distribution, in
+the directory doc/.  This README file contains introductory material only.  
+
+--- To compile and run the model ---
+
+For further details, consult Section 4 of doc/cicedoc.pdf.  For troubleshooting, 
+see Section 5.
+
+ In the source directory:
+1. Create Macros.<OS>* and run_ice.<OS>* files for your particular platform, 
+   if they do not already exist (type 'uname -s' at the prompt to get <OS>).
+2. Alter directories in the script comp_ice.
+3. Run comp_ice to set up the run directory and make the executable 'cice'.
+ In the run directory:
+4. Alter atm_data_dir in the namelist file ice_in.
+5. Alter the script run_ice for your system.
+6. Execute run_ice (see forcing data information below).
+7. To clean the compile directory and start fresh, execute '/bin/rm -rf compile'.
+
+Output files (in the run directory):
+ice.log*       diagnostic output normally written to the screen, if 
+               using the run_ice script or one like it
+restart/iced*  restart files written at the "dump" frequency in ice_in
+hist/iceh*     output of numerous model variables as instructed by ice_in
+
+When restart files are written, the filename is written into the file
+          restart/ice.restart_file
+
+--- Forcing data ---
+
+The code is currently configured to run in standalone mode on a 3 degree grid using 
+atmospheric data from 1997, available from http://oceans11.lanl.gov/trac/CICE/wiki.
+These data files are designed only for testing the code, not for use in production 
+runs or as observational data.  Please do not publish results based on these data
+sets.  Module source/ice_forcing.F90 can be modified to change the forcing data. 
+
+--- Online resources ---
+
+The CICE wiki includes an FAQ, a list of known development projects and 
+collaborations, instructions for developers, and a list of code users and their 
+publications using CICE.  Two mailing lists are available, for general users and 
+for developers.
+
+primary wiki page:
+http://oceans11.lanl.gov/trac/CICE/wiki
+
+FAQ:
+http://oceans11.lanl.gov/trac/CICE/wiki/FrequentlyAskedQuestions
+
+instructions for code developers:
+http://oceans11.lanl.gov/trac/CICE/wiki/CiceCodeModifications
+
+ongoing or planned development projects:
+http://oceans11.lanl.gov/trac/CICE/wiki/CiceDev
+
+list of users and publications:
+http://oceans11.lanl.gov/trac/CICE/wiki/CiceUsers
+
+Please send references to your publications using the CICE model to Elizabeth.
+
+--- Authors ---
+
+Please report any bugs to 
+Elizabeth Hunke (eclare@lanl.gov)
+ 
+Good luck!

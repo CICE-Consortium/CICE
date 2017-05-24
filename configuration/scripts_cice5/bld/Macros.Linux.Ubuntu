@@ -1,0 +1,41 @@
+#==============================================================================
+# Makefile macros for Ubuntu 10.04 Linux w/ repository OpenMPI and libnetcdf-dev
+# Geophysical Institute, University of Alaska Fairbanks
+#==============================================================================
+
+INCLDIR    :=
+SLIBS      :=
+ULIBS      := 
+CPP        := cpp
+CPPFLAGS   := -P -traditional
+CPPDEFS    := -DLINUX
+CFLAGS     := -c -O2
+ifeq ($(COMMDIR), mpi)
+   FC         := mpif90
+else
+   FC         := gfortran
+endif
+FIXEDFLAGS := -132
+FREEFLAGS  := 
+# work-around for gcc to ensure that denormailzed numbers are 
+# flushed to zero: -march=pentium4 -msse2 -mfpmath=sse
+FFLAGS     := -O2 -w -march=pentium4 -msse2 -mfpmath=sse -fconvert=big-endian
+MOD_SUFFIX := mod
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS) -v
+
+    CPPDEFS :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB) \
+                -DBLCKX=$(BLCKX) -DBLCKY=$(BLCKY) -DMXBLCKS=$(MXBLCKS)
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+   INCLDIR := $(INCLDIR) -I/usr/include
+   SLIBS   := $(SLIBS) -lnetcdf -lnetcdff
+endif
+
+### note this file does not include PIO capability
+### see Macros.Linux.LANL.conejo

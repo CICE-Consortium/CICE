@@ -1,0 +1,26 @@
+#! /bin/csh -f
+#===============================================================================
+#  This is a CICE batch job script for yellowstone
+#===============================================================================
+
+#BSUB -n 4
+#BSUB -R "span[ptile=16]"
+#BSUB -q caldera
+#BSUB -N
+###BSUB -x
+#BSUB -a poe
+#BSUB -o poe.stdout.%J
+#BSUB -e poe.stderr.%J
+#BSUB -J cice
+#BSUB -W 0:30
+#BSUB -P P93300606
+
+set  stamp   = `date -u '+%y%m%d%H%M%S'`
+setenv ICE_LOG_FILE ice.log.${stamp}
+
+echo $ICE_LOG_FILE
+
+cd /glade/scratch/tcraig/CESM_CICE5/rundir
+tar -xvf /glade/scratch/tcraig/data1997.tar
+cp -f /glade/p/work/tcraig/cesm13.a16cice/models/ice/cice_dev/src/input_templates/gx3/ice_in .
+mpirun.lsf ./cice >&! $ICE_LOG_FILE

@@ -1,0 +1,40 @@
+#==============================================================================
+# Makefile macros for "jaguar," an ORNL Cray XT3 running Linux
+#==============================================================================
+
+INCLDIR    := -I.
+SLIBS      := 
+ULIBS      := 
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional-cpp -DPOSIX
+CPPDEFS    := -DLINUX 
+CFLAGS     := -c -fastsse -tp k8-64
+FIXEDFLAGS := -Mfixed
+FREEFLAGS  := -Mfree
+FC         := ftn
+#FFLAGS     := $(INCLDIR) -O3 -byteswapio
+FFLAGS     := $(INCLDIR) -g -O3 -byteswapio -fastsse -tp k8-64 -Knoieee -Mextend -Mdaz 
+#FFLAGS     := $(INCLDIR) -O3 -byteswapio -Ktrap=inv,divz,ovf,unf
+#FFLAGS     := $(INCLDIR) -O3 -byteswapio -Mflushz
+MOD_SUFFIX := mod
+LD         := ftn
+LDFLAGS    := 
+
+    CPPDEFS :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB) \
+                -DBLCKX=$(BLCKX) -DBLCKY=$(BLCKY) -DMXBLCKS=$(MXBLCKS)
+#   CPPDEFS :=  $(CPPDEFS) -DAOMIP
+
+ifeq ($(COMMDIR), mpi)
+#   SLIBS   :=  $(SLIBS) -lmpich
+endif
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS := $(CPPDEFS) -Dncdf
+   INCLDIR := $(INCLDIR) -I/apps/netcdf/prod/jaguar/include 
+   SLIBS   := $(SLIBS) -L/apps/netcdf/prod/jaguar/lib -lnetcdf 
+endif
+

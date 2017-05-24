@@ -1,0 +1,13 @@
+#!/bin/bash
+
+stamp=`/bin/date -u '+%y%m%d%H%M%S'`
+export ICE_LOG_FILE=ice.log.$stamp
+
+echo "output to $ICE_LOG_FILE"
+#cd /opt/cice/user/rundir4
+
+#./cice &> $ICE_LOG_FILE
+/usr/bin/mpirun -np 4 ./cice &> $ICE_LOG_FILE
+
+exit 0
+

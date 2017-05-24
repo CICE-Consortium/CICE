@@ -1,0 +1,78 @@
+#! /bin/csh -f
+
+setenv CICE_MACHINE    undefined
+setenv CICE_CASENAME   undefined
+setenv CICE_SANDBOX    undefined
+setenv CICE_CASEDIR    undefined
+setenv CICE_RUNDIR     /glade/scratch/tcraig/CICE_RUNS/${CICE_CASENAME}
+setenv CICE_OBJDIR     ${CICE_RUNDIR}/compile
+setenv CICE_RSTDIR     ${CICE_RUNDIR}/restart
+setenv CICE_HSTDIR     ${CICE_RUNDIR}/history
+setenv CICE_LOGDIR     ${CICE_CASEDIR}/logs
+setenv CICE_RSTPFILE   undefined
+setenv CICE_DRVOPT     cice
+setenv CICE_CONSTOPT   cice
+setenv CICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
+setenv CICE_CLEANBUILD true
+setenv CICE_GRID       gx3
+setenv CICE_NXGLOB     100
+setenv CICE_NYGLOB     116
+setenv CICE_NTASKS     4
+setenv CICE_NTHRDS     1
+setenv CICE_BLCKX      25
+setenv CICE_BLCKY      29
+setenv CICE_MXBLCKS    4
+setenv CICE_DECOMP     cartesian
+setenv CICE_DSHAPE     slenderX2
+
+#======================================================
+
+setenv CICE_THREADED   false
+if (${CICE_NTHRDS} > 1) setenv CICE_THREADED  true
+
+### Layers
+setenv NICELYR   7         # number of vertical layers in the ice
+setenv NSNWLYR   1         # number of vertical layers in the snow
+setenv NICECAT   5         # number of ice thickness categories
+
+### Tracers                # match ice_in tracer_nml to conserve memory
+setenv TRAGE     1         # set to 1 for ice age tracer
+setenv TRFY      1         # set to 1 for first-year ice area tracer
+setenv TRLVL     1         # set to 1 for level and deformed ice tracers
+setenv TRPND     1         # set to 1 for melt pond tracers
+setenv NTRAERO   1         # number of aerosol tracers 
+                           # (up to max_aero in ice_domain_size.F90) 
+                           # CESM uses 3 aerosol tracers
+setenv TRBRI     0         # set to 1 for brine height tracer
+setenv TRZS      0         # set to 1 for zsalinity tracer
+                           # (needs TRBRI = 1)
+setenv TRBGCS    0         # set to 1 for skeletal layer tracers  
+                           # (needs TRBGCZ = 0) 
+setenv TRBGCZ    0         # set to 1 for zbgc tracers
+                           # (needs TRBGCS = 0 and TRBRI = 1)         
+setenv NBGCLYR   7         # number of zbgc layers
+setenv TRZAERO   0         # number of z aerosol tracers 
+                           # (up to max_aero = 6)
+setenv TRALG     0         # number of algal tracers
+                           # (up to max_algae = 3)
+setenv TRDOC     0         # number of dissolve organic carbon 
+                           # (up to max_doc = 3)
+setenv TRDIC     0         # number of dissolve inorganic carbon 
+                           # (up to max_dic = 1)
+setenv TRDON     0         # number of dissolve organic nitrogen
+                           # (up to max_don = 1)
+setenv TRFEP     0         # number of particulate iron tracers 
+                           # (up to max_fe  = 2) 
+setenv TRFED     0         # number of dissolved iron tracers 
+                           # (up to max_fe  = 2)
+
+### Specialty code
+setenv CAM_ICE  no           # set to yes for CAM runs (single column) 
+setenv DITTO    no           # reproducible diagnostics
+setenv BARRIERS no           # prevent MPI buffer overflow during gather/scatter 
+setenv CICE_BLDDEBUG  false  # build debug flags
+
+### File unit numbers
+setenv NUMIN    11         # minimum file unit number
+setenv NUMAX    99         # maximum file unit number
+

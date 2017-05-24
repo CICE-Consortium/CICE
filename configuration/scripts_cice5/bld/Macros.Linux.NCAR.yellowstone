@@ -1,0 +1,82 @@
+#==============================================================================
+# Makefile macros for "yellowstone" an NCAR Linux Cluster
+#==============================================================================
+# For use with intel compiler
+#==============================================================================
+
+CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL
+CFLAGS     := -c -O2 -fp-model precise   -xHost
+
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
+FFLAGS     := -O2 -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(COMMDIR), mpi)
+  FC         := mpif90
+else
+  FC         := ifort
+endif
+
+MPICC:= mpicc
+
+MPIFC:= mpif90
+LD:= $(MPIFC)
+
+NETCDF_PATH := $(NETCDF)
+
+PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+
+#PNETCDF_PATH := $(PNETCDF)
+PNETCDF_PATH := /glade/apps/opt/pnetcdf/1.3.0/intel/default
+
+LAPACK_LIBDIR := /glade/apps/opt/lapack/3.4.2/intel/12.1.5/lib
+
+INCLDIR := $(INCLDIR)
+
+LIB_NETCDF := $(NETCDF_PATH)/lib
+LIB_PNETCDF := $(PNETCDF_PATH)/lib
+LIB_MPI := $(IMPILIBDIR)
+
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf -L$(LAPACK_LIBDIR) -llapack -lblas
+
+SCC:= icc 
+
+SFC:= ifort 
+
+#   CPPDEFS :=  $(CPPDEFS)  -Dfcd_coupled -Dcoupled
+
+    CPPDEFS :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB) \
+                -DBLCKX=$(BLCKX) -DBLCKY=$(BLCKY) -DMXBLCKS=$(MXBLCKS) \
+                -DNICELYR=$(NICELYR) -DNSNWLYR=$(NSNWLYR) -DNICECAT=$(NICECAT) \
+                -DTRAGE=$(TRAGE) -DTRFY=$(TRFY) -DTRLVL=$(TRLVL) -DTRPND=$(TRPND) \
+                -DTRBRI=$(TRBRI) -DNTRAERO=$(NTRAERO)  -DTRZS=$(TRZS) \
+                -DNBGCLYR=$(NBGCLYR) -DTRALG=$(TRALG) -DTRBGCZ=$(TRBGCZ) \
+                -DTRDOC=$(TRDOC) -DTRDOC=$(TRDOC) -DTRDIC=$(TRDIC) \
+                -DTRDON=$(TRDON) -DTRFED=$(TRFED) -DTRFEP=$(TRFEP) \
+                -DTRZAERO=$(TRZAERO)  \
+                -DTRBGCS=$(TRBGCS) -DNUMIN=$(NUMIN) -DNUMAX=$(NUMAX)
+
+ifeq ($(compile_threaded), true) 
+   LDFLAGS += -openmp 
+   CFLAGS += -openmp 
+   FFLAGS += -openmp 
+endif
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+### if using parallel I/O, load all 3 libraries.  PIO must be first!
+ifeq ($(IO_TYPE), pio)
+   PIO_PATH:=/glade/u/home/jedwards/pio1_6_5/pio
+   INCLDIR += -I$(PIO_PATH)
+   SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpio
+
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif
+
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif

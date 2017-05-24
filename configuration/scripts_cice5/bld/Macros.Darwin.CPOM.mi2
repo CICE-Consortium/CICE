@@ -1,0 +1,56 @@
+#==============================================================================
+# Makefile macros for mi2 - UNIX Cluster at CPOM
+# David Schroeder (7 JAN 2011) 
+#==============================================================================
+
+INCLDIR    := -I. -I/usr/include -I/usr/local/bin
+SLIBS      := -L/usr/local/lib -L/usr/lib 
+ULIBS      := 
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional
+CPPDEFS    := -DLINUX
+CFLAGS     := -c -O2 
+ifeq ($(COMMDIR), mpi)
+   FC         := /usr/local/bin/mpif90 
+else
+   FC         := gfortran 
+endif
+FIXEDFLAGS := -132
+FREEFLAGS  := 
+FFLAGS     := -r8 -i4 -O2 -align all -w -ftz -assume byterecl -fpe0 -traceback -g
+#FFLAGS     := -O3 -w  
+#FFLAGS     := -r8 -i4  -align all -w -ftz -convert big_endian -assume byterecl -g
+#FFLAGS     := -r8 -i4 -align all -w -ftz -convert big_endian -assume byterecl -fpe0 -CB -traceback 
+#FFLAGS     := -r8 -i4 -align all -w -ftz -convert big_endian -assume byterecl -fpe0 -CB 
+MOD_SUFFIX := mod
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS) -v
+
+    CPPDEFS :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB) \
+                -DBLCKX=$(BLCKX) -DBLCKY=$(BLCKY) -DMXBLCKS=$(MXBLCKS) \
+                -DNICELYR=$(NICELYR) -DNSNWLYR=$(NSNWLYR) -DNICECAT=$(NICECAT) \
+                -DTRAGE=$(TRAGE) -DTRFY=$(TRFY) -DTRLVL=$(TRLVL) -DTRPND=$(TRPND) \
+                -DTRBRI=$(TRBRI) -DNTRAERO=$(NTRAERO)  -DTRZS=$(TRZS) \
+                -DNBGCLYR=$(NBGCLYR)  -DTRALG=$(TRALG) -DTRBGCZ=$(TRBGCZ) \
+                -DTRDOC=$(TRDOC) -DTRDOC=$(TRDOC) -DTRDIC=$(TRDIC) \
+                -DTRDON=$(TRDON)  -DTRFED=$(TRFED) -DTRFEP=$(TRFEP) \
+                -DTRZAERO=$(TRZAERO)  \
+                -DTRBGCS=$(TRBGCS) -DNUMIN=$(NUMIN) -DNUMAX=$(NUMAX)
+
+#   CPPDEFS :=  $(CPPDEFS) -DAOMIP
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+   INCLDIR := -I/opt/netcdf/include/ $(INCLDIR) 
+   SLIBS   := /opt/netcdf/lib/libnetcdf.a -lcurl $(SLIBS)
+#   INCLDIR := $(INCLDIR) -I/usr/projects/climate/bzhao/netcdf-3.6.1/include
+#   SLIBS   := $(SLIBS) -L/usr/projects/climate/bzhao/netcdf-3.6.1/lib -lnetcdf
+endif
+
+### note this file does not include PIO capability
+### see Macros.Linux.LANL.conejo
+

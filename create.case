@@ -1,0 +1,342 @@
+#!/bin/csh -f
+
+echo " "
+echo "${0}:"
+
+set CICE_SANDBOX = `pwd`
+set CICE_SCRDIR = ${CICE_SANDBOX}/configuration/scripts
+set initargv = ( $argv[*] ) 
+
+set helpheader = 0
+set dash = "-"
+set spval = "UnDeFiNeD"
+set mach = $spval
+set case = $spval
+set test = $spval
+set grid = gx3
+set pesx = 4x1
+set sets = ""
+set baseline = 0
+set bdir = $spval
+
+if ($#argv < 1) then
+  set helpheader = 1
+endif
+
+# check for -h
+while (1)
+  if ($#argv < 1) break;
+  if ("$argv[1]" =~ ${dash}h* ) then
+    set helpheader = 1
+  endif
+  shift argv
+end
+
+#------------------------------------------------------------
+# Help output
+
+if ( $helpheader ) then
+cat << EOF1
+
+NAME   
+      create.case - creates a CICE case directory
+        -h help
+        -c case, case directory/name (required)
+        -m machine, machine name (required)
+        -p tasks x threads, mxn (default is 4x1)
+        -g grid, grid (default = gx3)
+        -s build and namelist mod files, comma separated with no spaces (default = " ")
+
+        -- For testing purposes --
+        -t test, test name (cannot be selected if -c is selected)
+           Available tests:
+             - "smoke": Compiles code and performs 1 day run
+             - "10day": Compiles code and performs 10 day run
+             - "annual": Compiles code and performs annual run
+             - "restart": Compiles code and performs an exact restart test
+        -b baseline, generate baseline data
+        -bd baseline dir, location of baseline dataset (required if -t is used without -b)
+
+      EXAMPLES:
+      create.case -h
+      create.case -c ~/caseA -m yellowstone 
+      create.case -p 32x4 -g gx1 -m gordon -c caseB
+      create.case -c ~/caseC -m spirit -s diag1,writeicf
+
+EOF1
+exit -1
+endif
+
+#------------------------------------------------------------
+# Read in command line arguments
+
+set argv = ( $initargv[*] )
+
+while (1)
+  if ( $#argv < 1 ) break;
+  set option = $argv[1];
+  if ("$option" == "-b") then
+    set baseline = 1
+    shift argv
+    continue
+  endif
+  shift argv
+  if ( $#argv < 1 ) then
+    echo "${0}: ERROR1 in $option"
+    exit -1
+  endif
+  if ($argv[1] =~ $dash* ) then
+    echo "${0}: ERROR2 in $option"
+    exit -1
+  endif
+
+  switch ( $option )
+    case "-m":
+      set mach = $argv[1]
+      breaksw
+    case "-c":
+      set case = $argv[1]
+      breaksw
+    case "-t":
+      set test = $argv[1]
+      breaksw
+    case "-g":
+      set grid = $argv[1]
+      breaksw
+    case "-p":
+      set pesx = $argv[1]
+      breaksw
+    case "-s":
+      set sets = $argv[1]
+      breaksw
+    case "-bd":
+      set bdir = $argv[1]
+      breaksw
+    default:
+      echo "${0}: ERROR unknown option $option, use -h for help"
+      exit -1
+      breaksw
+  endsw
+  shift argv
+end
+
+if ($mach == $spval) then
+  echo "${0}: ERROR in arguments, -m required"
+  exit -1
+endif
+
+if ($case == $spval && $test == $spval) then
+  echo "${0}: ERROR in arguments, -c or -t required"
+  exit -1
+endif
+
+if ($case != $spval && $test != $spval) then
+  echo "${0}: ERROR in arguments, cannot use both -c and -t"
+  exit -1
+endif
+
+if ($test != $spval && $baseline == 0 && $bdir == $spval) then
+  echo "${0}: ERROR in arguments, when using -t either -b or -bd required"
+  exit -1
+endif
+
+set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
+if (${chck} == OK) then
+  set task = `echo ${pesx} | sed s/x.\*//`
+  set thrd = `echo ${pesx} | sed s/.\*x//`
+else
+  echo "${0}: ERROR in -p argument, ${pesx}, must be mxn"
+  exit -1
+endif
+
+if ($case != $spval) then
+  if (-d $case) then
+    echo "${0}: ERROR, case $case already exists"
+    exit -1
+  endif
+  mkdir -p $case
+  echo "`date`${0} $initargv[*]" > $case/README.case
+else
+  if ($sets != "") then
+    set soptions = `echo $sets | sed 's/,/_/g'`
+    if ($baseline == 1) then
+      set testname = "${test}_baseline_${grid}_${mach}_${pesx}_$soptions"
+    else
+      set testname = "${test}_${grid}_${mach}_${pesx}_$soptions"
+    endif
+  else
+    if ($baseline == 1) then
+      set testname = "${test}_baseline_${grid}_${mach}_$pesx"
+    else
+      set testname = "${test}_${grid}_${mach}_$pesx"
+    endif
+  endif
+  if (-d $testname) then
+    echo "${0}: ERROR, test $testname already exists"
+    exit -1
+  endif
+  mkdir -p $testname
+  echo "`date`${0} $initargv[*]" > $testname/README.test
+  set case = $testname
+endif
+
+#------------------------------------------------------------
+# Setup case directory, copy files to case directory
+
+cd ${case}
+set casedir = `pwd`
+set casescr = "${casedir}/casescripts"
+if !( -d ${casescr}) mkdir ${casescr}
+
+# from basic script dir to case
+foreach file (cice.build cice.settings Makefile ice_in makdep.c)
+  if !(-e ${CICE_SCRDIR}/$file) then
+    echo "${0}: ERROR, ${CICE_SCRDIR}/$file not found"
+    exit -1
+  endif
+  cp -f -p ${CICE_SCRDIR}/$file ${casedir}
+end
+
+# from machines dir to case
+foreach file (env.${mach} Macros.${mach})
+  if !(-e ${CICE_SCRDIR}/machines/$file) then
+    echo "${0}: ERROR, ${CICE_SCRDIR}/machines/$file not found"
+    exit -1
+  endif
+  cp -f -p ${CICE_SCRDIR}/machines/$file ${casedir}
+end
+
+# from basic script dir to casescr
+foreach file (parse_namelist.sh parse_settings.sh cice_decomp.csh cice.run.setup.csh)
+  if !(-e ${CICE_SCRDIR}/$file) then
+    echo "${0}: ERROR, ${CICE_SCRDIR}/$file not found"
+    exit -1
+  endif
+  cp -f -p ${CICE_SCRDIR}/$file ${casescr}
+end
+
+if ($case =~ */*) then
+  set casename = $case:t
+else
+  set casename = $case
+endif
+
+cd ${casedir}
+source ./env.${mach} || exit 2
+
+echo CICE_SANDBOX  = ${CICE_SANDBOX}
+echo CICE_CASENAME = ${casename}
+echo CICE_CASEDIR  = ${casedir}
+echo CICE_MACHINE  = ${mach}
+
+#------------------------------------------------------------
+# Compute a default blocksize
+
+setenv CICE_DECOMP_GRID  ${grid}
+setenv CICE_DECOMP_NTASK ${task}
+setenv CICE_DECOMP_NTHRD ${thrd}
+
+source ${casescr}/cice_decomp.csh
+
+#------------------------------------------------------------
+# Copy in and update cice.settings and ice_in files
+
+set fimods = ${casescr}/ice_in.mods
+set fsmods = ${casescr}/cice.settings.mods
+
+cp ice_in ${casescr}/ice_in.base
+cp cice.settings ${casescr}/cice.settings.base
+if (-e ${fimods}) rm ${fimods}
+if (-e ${fsmods}) rm ${fsmods}
+
+cat >! ${fimods} << EOF1
+nprocs = ${task}
+atm_data_dir = '${CICE_MACHINE_INPUTDATA}/'
+distribution_type = '${CICE_DECOMP_DECOMP}'
+processor_shape   = '${CICE_DECOMP_DSHAPE}'
+ice_ic            = '${CICE_DECOMP_INITFILE}'
+grid_file         = '${CICE_DECOMP_GRIDFILE}'
+kmt_file          = '${CICE_DECOMP_KMTFILE}'
+EOF1
+
+cat >! ${fsmods} << EOF1
+setenv CICE_SANDBOX  ${CICE_SANDBOX}
+setenv CICE_CASENAME ${casename}
+setenv CICE_CASEDIR  ${casedir}
+setenv CICE_MACHINE  ${mach}
+setenv CICE_RUNDIR   ${CICE_MACHINE_WKDIR}/${casename}
+setenv CICE_GRID     ${grid}
+setenv CICE_NXGLOB   ${CICE_DECOMP_NXGLOB}
+setenv CICE_NYGLOB   ${CICE_DECOMP_NYGLOB}
+setenv CICE_NTASKS   ${task}
+setenv CICE_NTHRDS   ${thrd}
+setenv CICE_DECOMP   ${CICE_DECOMP_DECOMP}
+setenv CICE_DSHAPE   ${CICE_DECOMP_DSHAPE}
+setenv CICE_MXBLCKS  ${CICE_DECOMP_MXBLCKS}
+setenv CICE_BLCKX    ${CICE_DECOMP_BLCKX}
+setenv CICE_BLCKY    ${CICE_DECOMP_BLCKY}
+setenv CICE_RSTPFILE ${CICE_DECOMP_RSTPFILE}
+EOF1
+
+if ($#sets > 0) then
+set setssplit = `echo $sets | sed 's/,/ /g'`
+foreach name ($setssplit)
+  set found = 0
+  if (-e ${CICE_SCRDIR}/options/set_nml.${name}) then
+    cat ${CICE_SCRDIR}/options/set_nml.${name} >> ${fimods}
+    echo "adding namelist mods set_nml.${name}"
+    set found = 1
+  endif
+  if (-e ${CICE_SCRDIR}/options/set_env.${name}) then
+    cat ${CICE_SCRDIR}/options/set_env.${name} >> ${fsmods}
+    echo "adding env mods set_env.${name}"
+    set found = 1
+  endif
+  if (${found} == 0) then
+    echo "${0}: ERROR, ${CICE_SCRDIR}/options/set_[nml,env].${name} not found"
+    exit -1
+  endif
+end
+endif
+
+if ($test != $spval) then
+  if (-e ${CICE_SCRDIR}/options/test_nml.${test}) then
+    cat ${CICE_SCRDIR}/options/test_nml.${test} >> ${fimods}
+    echo "adding namelist mods test_nml.${test}"
+    set found = 1
+  endif
+  if (${found} == 0) then
+    echo "${0}: ERROR, ${CICE_SCRDIR}/options/test_nml.${name} not found"
+    exit -1
+  endif
+endif
+
+${casescr}/parse_settings.sh cice.settings ${fsmods}
+${casescr}/parse_namelist.sh ice_in ${fimods}
+
+#------------------------------------------------------------
+# Generate run script
+
+source ./cice.settings
+source ./env.${mach} || exit 2
+
+${casescr}/cice.run.setup.csh
+
+#------------------------------------------------------------
+
+if ($test != $spval) then
+  # Generate test script
+  source ./cice.settings
+  source ./env.${mach} || exit 2
+
+  if ($baseline == 0) then
+    ${CICE_SCRDIR}/tests/cice.${test}.csh $bdir
+  else
+    # Generate baseline dataset
+    ${CICE_SCRDIR}/tests/cice.${test}.csh
+  endif
+endif
+
+echo "${0} done"
+echo " "
+
