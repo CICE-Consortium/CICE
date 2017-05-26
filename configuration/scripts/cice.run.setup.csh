@@ -74,24 +74,29 @@ EOFB
 
 else if (${CICE_MACHINE} =~ wolf*) then
 cat >> ${jobfile} << EOFB
-#MSUB -A climateacme
-#MSUB -l walltime=01:00:00
-#MSUB -l nodes=1:ppn=4
-#MSUB -N cice
+#SBATCH -J ${CICE_CASENAME}
+#SBATCH -t 0:45:00
+#SBATCH -A ${acct}
+#SBATCH -N ${nnodes}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+#SBATCH --mail-type END,FAIL
+#SBATCH --mail-user=eclare@lanl.gov
+#SBATCH --qos=low
 EOFB
-#cat >> ${jobfile} << EOFB
-##SBATCH -J ${CICE_CASENAME}
-####SBATCH -p tossdev
-##SBATCH -t 0:45:00
-##SBATCH -A ${acct}
-##SBATCH -N ${nnodes}
-####SBATCH -L SCRATCH
-####SBATCH -C haswell
-##SBATCH -e slurm%j.err
-##SBATCH -o slurm%j.out
-####SBATCH --mail-type FAIL
-####SBATCH --mail-user username@domain.com
-#EOFB
+
+else if (${CICE_MACHINE} =~ pinto*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${CICE_CASENAME}
+#SBATCH -t 0:45:00
+#SBATCH -A ${acct}
+#SBATCH -N ${nnodes}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+###SBATCH --mail-type END,FAIL
+###SBATCH --mail-user=eclare@lanl.gov
+#SBATCH --qos=standby
+EOFB
 
 endif
 
@@ -156,6 +161,11 @@ srun -n ${ntasks} -c ${nthrds} ./cice >&! \$CICE_RUNLOG_FILE
 EOFR
 
 else if (${CICE_MACHINE} =~ wolf*) then
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$CICE_RUNLOG_FILE
+EOFR
+
+else if (${CICE_MACHINE} =~ pinto*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$CICE_RUNLOG_FILE
 EOFR
