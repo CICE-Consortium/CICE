@@ -45,6 +45,20 @@ cat >> ${jobfile} << EOFB
 #BSUB -P ${acct}
 EOFB
 
+#==========================================
+
+elseif (${CICE_MACHINE} =~ cheyenne*) then
+cat >> ${jobfile} << EOFB
+#PBS -j oe 
+#PBS -m ae 
+#PBS -V
+#PBS -q regular
+#PBS -N ${CICE_CASENAME}
+#PBS -A ${CICE_ACCT}
+#PBS -l select=${nnodes}:ncpus=${ntasks}:mpiprocs=${ntasks}
+#PBS -l walltime=02:00:00
+EOFB
+
 else if (${CICE_MACHINE} =~ thunder* || ${CICE_MACHINE} =~ gordon* || ${CICE_MACHINE} =~ conrad*) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${CICE_CASENAME}
@@ -143,6 +157,11 @@ if (${CICE_MACHINE} =~ yellowstone*) then
 cat >> ${jobfile} << EOFR
 setenv MP_TASK_AFFINITY core:\${OMP_NUM_THREADS}
 mpirun.lsf ./cice >&! \$CICE_RUNLOG_FILE
+EOFR
+
+elseif (${CICE_MACHINE} =~ cheyenne*) then
+cat >> ${jobfile} << EOFR
+mpiexec_mpt -n ${ntasks} ./cice >&! \$CICE_RUNLOG_FILE
 EOFR
 
 else if (${CICE_MACHINE} =~ thunder*) then
