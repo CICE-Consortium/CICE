@@ -320,7 +320,7 @@ ${casescr}/parse_namelist.sh ice_in ${fimods}
 source ./cice.settings
 source ./env.${mach} || exit 2
 
-${casescr}/cice.run.setup.csh
+${casescr}/cice.run.setup.csh ${CICE_SCRDIR}
 
 #------------------------------------------------------------
 
@@ -330,10 +330,10 @@ if ($test != $spval) then
   source ./env.${mach} || exit 2
 
   if ($baseline == 0) then
-    ${CICE_SCRDIR}/tests/cice.test.csh $bdir
+    ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $bdir
   else
     # Generate baseline dataset
-    ${CICE_SCRDIR}/tests/cice.test.csh
+    ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR}
   endif
 endif
 
