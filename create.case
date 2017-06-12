@@ -135,11 +135,6 @@ if ($case != $spval && $test != $spval) then
   exit -1
 endif
 
-if ($test != $spval && $baseline == 0 && $bdir == $spval) then
-  echo "${0}: ERROR in arguments, when using -t either -b or -bd required"
-  exit -1
-endif
-
 set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
 if (${chck} == OK) then
   set task = `echo ${pesx} | sed s/x.\*//`
