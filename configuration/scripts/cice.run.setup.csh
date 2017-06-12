@@ -205,10 +205,21 @@ echo " "
 if !(-d \${CICE_LOGDIR}) mkdir -p \${CICE_LOGDIR}
 cp -p \${CICE_RUNLOG_FILE} \${CICE_LOGDIR}
 
-grep ' CICE COMPLETED SUCCESSFULLY' \${CICE_RUNLOG_FILE}  || echo "CICE run did not complete - see \${CICE_LOGDIR}/\${CICE_RUNLOG_FILE}" && exit -1
+grep ' CICE COMPLETED SUCCESSFULLY' \${CICE_RUNLOG_FILE}
+if ( \$? != 0 ) then
+  echo "CICE run did not complete - see \${CICE_LOGDIR}/\${CICE_RUNLOG_FILE}"
+  if ( \$?CICE_TEST ) then
+    echo "FAIL \${CICE_CASENAME} run" >> \${CICE_CASEDIR}/test_output
+  endif
+  exit -1
+endif
 
 echo "\`date\` \${0}: \${CICE_CASENAME} run completed \${CICE_RUNLOG_FILE}"  >> \${CICE_CASEDIR}/README.case
 echo "done \${0}"
+
+if ( \$?CICE_TEST ) then
+  echo "PASS \${CICE_CASENAME} run" >> \${CICE_CASEDIR}/test_output
+endif
 
 EOFE
 
