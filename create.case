@@ -176,7 +176,7 @@ else
     exit -1
   endif
   mkdir -p $testname
-  echo "`date`${0} $initargv[*]" > $testname/README.test
+  echo "`date`${0} $initargv[*]" > $testname/README.case
   set case = $testname
 endif
 
@@ -330,10 +330,10 @@ if ($test != $spval) then
   source ./env.${mach} || exit 2
 
   if ($baseline == 0) then
-    ${CICE_SCRDIR}/tests/cice.${test}.csh $bdir
+    ${CICE_SCRDIR}/tests/cice.test.csh $bdir
   else
     # Generate baseline dataset
-    ${CICE_SCRDIR}/tests/cice.${test}.csh
+    ${CICE_SCRDIR}/tests/cice.test.csh
   endif
 endif
 
