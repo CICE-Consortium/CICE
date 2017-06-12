@@ -18,6 +18,7 @@ set pesx = 4x1
 set sets = ""
 set baseline = 0
 set bdir = $spval
+set testid = $spval
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -55,7 +56,8 @@ NAME
              - "annual": Compiles code and performs annual run
              - "restart": Compiles code and performs an exact restart test
         -b baseline, generate baseline data
-        -bd baseline dir, location of baseline dataset (required if -t is used without -b)
+        -bd baseline dir, location of baseline dataset
+        -testid test ID, user-defined indentifier for test
 
       EXAMPLES:
       create.case -h
@@ -112,6 +114,9 @@ while (1)
     case "-bd":
       set bdir = $argv[1]
       breaksw
+    case "-testid":
+      set testid = $argv[1]
+      breaksw
     default:
       echo "${0}: ERROR unknown option $option, use -h for help"
       exit -1
@@ -155,15 +160,31 @@ else
   if ($sets != "") then
     set soptions = `echo $sets | sed 's/,/_/g'`
     if ($baseline == 1) then
-      set testname = "${test}_baseline_${grid}_${mach}_${pesx}_$soptions"
+      if ( $testid != $spval ) then
+        set testname = "${test}_baseline_${grid}_${mach}_${pesx}_${soptions}.${testid}"
+      else
+        set testname = "${test}_baseline_${grid}_${mach}_${pesx}_$soptions"
+      endif
     else
-      set testname = "${test}_${grid}_${mach}_${pesx}_$soptions"
+      if ( $testid != $spval ) then
+        set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
+      else
+        set testname = "${test}_${grid}_${mach}_${pesx}_$soptions"
+      endif
     endif
   else
     if ($baseline == 1) then
-      set testname = "${test}_baseline_${grid}_${mach}_$pesx"
+      if ( $testid != $spval ) then
+        set testname = "${test}_baseline_${grid}_${mach}_${pesx}.${testid}"
+      else
+        set testname = "${test}_baseline_${grid}_${mach}_$pesx"
+      endif
     else
-      set testname = "${test}_${grid}_${mach}_$pesx"
+      if ( $testid != $spval ) then
+        set testname = "${test}_${grid}_${mach}_${pesx}.${testid}"
+      else
+        set testname = "${test}_${grid}_${mach}_$pesx"
+      endif
     endif
   endif
   if (-d $testname) then
