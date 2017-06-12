@@ -2,17 +2,10 @@
 
 echo ${0}
 
-# Define this as a test case in the cice.settings file
-cat >> ./cice.settings << EOF
-
-# Add variable defining this case_dir as a test
-setenv CICE_TEST true
-EOF
-
 source ./cice.settings
 source ${CICE_CASEDIR}/env.${CICE_MACHINE} || exit 2
 
-set jobfile = cice.test
+set jobfile = cice.smoke
 set subfile = cice.submit
 
 set ntasks = ${CICE_NTASKS}
@@ -31,7 +24,7 @@ if ($ptile > ${maxtpn} / 2) @ ptile = ${maxtpn} / 2
 
 #==========================================
 
-# Create test script that runs cice.run, and validates
+# Create test script that runs cice.build, cice.run, and validates
 #==========================================
 
 cat >! ${jobfile} << EOF0
@@ -102,15 +95,13 @@ cd ${CICE_CASEDIR}
 source ./cice.settings || exit 2
 source ./env.\${CICE_MACHINE} || exit 2
 
-# Check to see if executable exists in CICE_RUNDIR
-if ( ! -f \${CICE_RUNDIR}/cice ) then
-  echo "cice executable does not exist in \${CICE_RUNDIR}.  "
-  echo "Please run cice.build before this test."
-  exit 99
-endif
+# Compile the CICE code
+./cice.build
+set rc_build = \$?
 
 # Run the CICE model
 ./cice.run
+set rc_run = \$?
 
 EOF2
 
@@ -123,15 +114,38 @@ cat >> ${jobfile} << EOF3
   
   set baseline_data = $1/\$test_data:t
 
-  echo "Performing binary comparison between files:"
-  echo "baseline: \$baseline_data"
-  echo "test:     \$test_data"
   if ( { cmp -s \$test_data \$baseline_data } ) then
-    echo "PASS \${CICE_CASENAME} test" >> ${CICE_CASEDIR}/test_output
+    set rc_valid = 0
   else
-    echo "FAIL \${CICE_CASENAME} test" >> ${CICE_CASEDIR}/test_output
+    set rc_valid = 1
   endif
 EOF3
+endif
+
+cat >> ${jobfile} << EOF4
+
+if (\$rc_build == 0) then
+  echo "Build:      [0;92mPASS[0;0m"
+else
+  echo "Build:      [0;41mFAIL[0;0m"
+endif
+
+if (\$rc_run == 0) then
+  echo "Run:        [0;92mPASS[0;0m"
+else
+  echo "Run:        [0;41mFAIL[0;0m"
+endif
+EOF4
+
+if ($1 != "") then
+cat >> ${jobfile} << EOF5
+
+if (\$rc_valid == 0) then
+  echo "Validation: [0;92mPASS[0;0m"
+else
+  echo "Validation: [0;41mFAIL[0;0m"
+endif
+EOF5
 endif
 
 #==========================================
@@ -144,7 +158,7 @@ cat >! ${subfile} << EOFS
 #!/bin/csh -f 
 
 ${CICE_MACHINE_SUBMIT} ${jobfile}
-echo "\`date\` \${0}: ${CICE_CASENAME} job submitted"  >> ${CICE_CASEDIR}/README.case
+echo "\`date\` \${0}: ${CICE_CASENAME} job submitted"  >> ${CICE_CASEDIR}/README.test
 
 EOFS
 
