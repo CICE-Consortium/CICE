@@ -345,10 +345,9 @@ if ($test != $spval) then
   source ./cice.settings
   source ./env.${mach} || exit 2
 
-  if ($baseline == 0) then
+  if ($bdir != $spval) then
     ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $bdir
   else
-    # Generate baseline dataset
     ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR}
   endif
 endif

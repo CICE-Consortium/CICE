@@ -1,6 +1,10 @@
 #! /bin/csh -f
 
-echo ${0}
+if ( $1 != "" ) then
+  echo ${0} ${1}
+else
+  echo ${0}
+endif
 
 source ./cice.settings
 source ${CICE_CASEDIR}/env.${CICE_MACHINE} || exit 2
