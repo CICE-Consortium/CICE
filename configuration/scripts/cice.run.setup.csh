@@ -37,7 +37,7 @@ if !(-d \${CICE_RUNDIR}) mkdir -p \${CICE_RUNDIR}
 if !(-d \${CICE_HSTDIR}) mkdir -p \${CICE_HSTDIR}
 if !(-d \${CICE_RSTDIR}) mkdir -p \${CICE_RSTDIR}
 
-if !(-e ice.restart_file) cp \${CICE_RSTPFILE} \${CICE_RUNDIR}
+if !(-e \${CICE_RUNDIR}/ice.restart_file) cp \${CICE_RSTPFILE} \${CICE_RUNDIR}
 
 #--------------------------------------------
 cd \${CICE_RUNDIR}
