@@ -348,10 +348,9 @@ ${casescr}/cice.run.setup.csh ${CICE_SCRDIR}
 
 if ($test != $spval) then
   # Generate test script
-  source ./cice.settings
-  source ./env.${mach} || exit 2
-
-  if ($bdir != $spval) then
+  if ($test == 'restart') then
+    ${CICE_SCRDIR}/tests/cice.restart.csh ${CICE_SCRDIR}
+  else if ($bdir != $spval) then
     ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $bdir
   else
     ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR}
