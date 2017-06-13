@@ -1,0 +1,55 @@
+CICE version 6 testing
+  June 2017
+
+This README file documents how to use the testing suite developed for the
+CICE Consortium sea ice model.  The tests currently supported are:
+  1. "Smoke" test  - Ensures that the model compiles successfully and runs
+                     to completion for a 1 day simulation.  Validation is
+                     determined by performing a binary comparison on restart
+                     files to a baseline dataset.
+  2. 10-day test   - Ensures that the model compiles successfully and runs
+                     to completion for a 10 day simulation.  Validation is
+                     determined by performing a binary comparison on restart
+                     files to a baseline dataset.
+  3. Exact restart - Ensures that the output from a cold-start simulation
+                     and a restart simulation provide bit-for-bit identical
+                     results.
+  4. Annual test   - Ensures that the model compiles successfully and runs
+                     to completion for an annual simulation.  Validation is
+                     determined by performing a binary comparison on restart
+                     files to a baseline dataset.
+
+--- To generate a baseline dataset for a test case ---
+
+Quickstart (example):
+
+./create.case -t smoke -m conrad -b
+cd smoke_baseline_gx3_conrad_4x1
+./cice.build
+./cice.submit
+# After job finishes, check output
+cat test_output
+
+
+--- To run a test case and compare to a baseline dataset ---
+
+Quickstart (example):
+
+./create.case -t smoke -m conrad -bd /path/to/baseline/restart
+cd smoke_gx3_conrad_4x1
+./cice.build
+./cice.submit
+# After job finishes, check output
+cat test_output
+
+
+--- To run a test case without comparing to a baseline ---
+
+Quickstart (example):
+
+./create.case -t smoke -m conrad
+cd smoke_gx3_conrad_4x1
+./cice.build
+./cice.submit
+# After job finishes, check output
+cat test_output
