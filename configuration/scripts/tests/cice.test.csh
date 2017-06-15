@@ -2,12 +2,9 @@
 
 echo ${0}
 
-# Define this as a test case in the cice.settings file
-cat >> ./cice.settings << EOF
-
-# Add variable defining this case_dir as a test
-setenv CICE_TEST true
-EOF
+# $1 = ${CICE_SCRDIR}
+# $2 = $baseline
+# $3 = baseline (compare) directory
 
 source ./cice.settings
 source ${CICE_CASEDIR}/env.${CICE_MACHINE} || exit 2
@@ -19,11 +16,27 @@ set nthrds = ${CICE_NTHRDS}
 
 #==========================================
 
+# Print information about this test to stdout
+echo ""
+echo "Test case directory: ${CICE_CASEDIR}"
+if ($2 == 1) then
+  # This is a baseline generating run
+  echo "This is a baseline-generating test."
+  echo "Baseline datasets will be stored in: ${CICE_RUNDIR}"
+else
+  # This is not a baseline-generating run
+  echo "This is not a baseline-generating run."
+  echo "Test data will be compared to data in $3"
+endif
+
 # Create test script that runs cice.run, and validates
 #==========================================
 
 # Write the batch code into the job file
 $1/cice.batch.csh ${jobfile}
+if ($? == -1) then
+  exit -1
+endif
 
 cat >> ${jobfile} << EOF2
 cd ${CICE_CASEDIR}
@@ -39,10 +52,19 @@ endif
 
 # Run the CICE model
 ./cice.run
+if ( \$? != 0 ) then
+  # Run failed
+  echo "FAIL \${CICE_CASENAME} run" >> \${CICE_CASEDIR}/test_output
+  exit 99
+else
+  # Run succeeded
+  echo "PASS \${CICE_CASENAME} run" >> \${CICE_CASEDIR}/test_output
+endif
 
 EOF2
 
-if ($2 != "") then
+if ($2 == 0) then
+  # Not a baseline-generating test
 cat >> ${jobfile} << EOF3
   # Get the final output filename
   foreach file (\${CICE_RUNDIR}/restart/*)
@@ -60,6 +82,21 @@ cat >> ${jobfile} << EOF3
     echo "FAIL \${CICE_CASENAME} test" >> ${CICE_CASEDIR}/test_output
   endif
 EOF3
+else
+  # Baseline generating run
+cat >> ${jobfile} << EOF3
+  # Get the final output filename
+  foreach file (\${CICE_RUNDIR}/restart/*)
+    set test_data = \$file
+  end
+  
+  if ( \$test_data != "" ) then
+    echo "PASS \${CICE_CASENAME} generate" >> ${CICE_CASEDIR}/test_output
+  else
+    echo "FAIL \${CICE_CASENAME} generate" >> ${CICE_CASEDIR}/test_output
+  endif
+EOF3
+
 endif
 
 #==========================================
