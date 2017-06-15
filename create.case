@@ -158,6 +158,11 @@ if ($test != $spval && $test != 'smoke' && $test != '10day' && $test != 'annual'
   exit -1
 endif
 
+# If both -bg and -bc were used, set baseline to 2 (regression test)
+if ($baseGen != $spval && $baseCom != $spval) then
+  set baseline = 2
+endif
+
 set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
 if (${chck} == OK) then
   set task = `echo ${pesx} | sed s/x.\*//`
@@ -180,14 +185,18 @@ else
     # Only include $testid in testname if this is not a baseline-generating run
     if ($baseline == 0) then
       set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
+      set testname_noid = "${test}_${grid}_${mach}_${pesx}_${soptions}"
     else
       set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}"
+      set testname_noid = $testname
     endif
   else
     if ($baseline == 0) then
       set testname = "${test}_${grid}_${mach}_${pesx}.${testid}"
+      set testname_noid = "${test}_${grid}_${mach}_${pesx}"
     else
       set testname = "${test}_${grid}_${mach}_${pesx}"
+      set testname_noid = $testname
     endif
   endif
   if (-d $testname) then
@@ -288,7 +297,7 @@ kmt_file          = '${CICE_DECOMP_KMTFILE}'
 EOF1
 
 # If this is a baseline generating test, and baseGen is passed, modify CICE_RUNDIR
-if ($test != $spval && $baseline == 1) then
+if ($test != $spval && $baseline != 0) then
   if ($baseGen != $spval) then
     if ($bdir != $spval) then
       setenv rundir_tmp ${bdir}/$baseGen
@@ -307,7 +316,7 @@ else
 endif
 
 # If this is a baseline-compare test, modify CICE_RUNDIR
-if ($test != $spval && $baseline == 0) then
+if ($test != $spval) then
   if ($baseCom != $spval)then
     if ($bdir != $spval) then
       setenv basedir_tmp ${bdir}/$baseCom
@@ -321,6 +330,8 @@ if ($test != $spval && $baseline == 0) then
       setenv basedir_tmp ${CICE_MACHINE_BASELINE}
     endif
   endif
+else
+  setenv basedir_tmp ${CICE_MACHINE_BASELINE}
 endif
 
 cat >! ${fsmods} << EOF1
@@ -396,11 +407,7 @@ if ($test != $spval) then
   echo "Creating scripts for $test test"
 
   # Generate test script
-  if ($test == 'restart') then
-    ${CICE_SCRDIR}/tests/cice.restart.csh ${CICE_SCRDIR}
-  else
-    ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $baseline ${CICE_BASELINE}/$casename
-  endif
+  ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $baseline ${CICE_BASELINE}/$testname_noid $test
 endif
 
 echo " "
