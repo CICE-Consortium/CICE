@@ -40,7 +40,10 @@ endif
 # Run the CICE model for the 2-day simulation
 ./cice.run
 if ( \$? != 0 ) then
+  echo "FAIL \${CICE_CASENAME} 2-day-run" >> \${CICE_CASEDIR}/test_output
   exit 99
+else
+  echo "PASS \${CICE_CASENAME} 2-day-run" >> \${CICE_CASEDIR}/test_output
 endif
 
 # Prepend 'baseline_' to the final restart file to save for comparison
@@ -54,15 +57,18 @@ mv \$test_data \$baseline_data
 perl -i -pe's/(\d{4})-(\d{2})-(\d{2})/sprintf("%04d-%02d-%02d",\$1,\$2,\$3-1)/e' \${CICE_RUNDIR}/ice.restart_file
 
 # Modify the namelist for the restart simulation
-cp ice_in ice_in.restart_full
-perl -i -pe"s/(npt\s+=)\s(\d+)/\1 24/" ice_in  # replace npt = 48 with npt = 24
-perl -i -pe"s/(dumpfreq_n\s+=)\s(\d+)/\1 1/" ice_in   # replace dump freq with 1
-perl -i -pe"s/(runtype\s+=)\s(\S+)/\1 'continue'/" ice_in   # runtype with continuation
+cp ice_in ice_in.2-day
+\${CICE_CASEDIR}/casescripts/parse_namelist.sh ice_in \${CICE_CASEDIR}/casescripts/test_nml.restart2
 
 # Run the CICE model for the restart simulation
 ./cice.run
+cp ice_in ice_in.restart
+cp ice_in.2-day ice_in
 if ( \$? != 0 ) then
+  echo "FAIL \${CICE_CASENAME} restart-run" >> \${CICE_CASEDIR}/test_output
   exit 99
+else
+  echo "PASS \${CICE_CASENAME} restart-run" >> \${CICE_CASEDIR}/test_output
 endif
 
 EOF2
@@ -72,9 +78,9 @@ echo "Performing binary comparison between files:"
 echo "baseline: \$baseline_data"
 echo "test:     \$test_data"
 if ( { cmp -s \$test_data \$baseline_data } ) then
-  echo "PASS \${CICE_CASENAME} test" >> ${CICE_CASEDIR}/test_output
+  echo "PASS \${CICE_CASENAME} compare" >> ${CICE_CASEDIR}/test_output
 else
-  echo "FAIL \${CICE_CASENAME} test" >> ${CICE_CASEDIR}/test_output
+  echo "FAIL \${CICE_CASENAME} compare" >> ${CICE_CASEDIR}/test_output
 endif
 EOF3
 
