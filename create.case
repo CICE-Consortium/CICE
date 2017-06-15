@@ -18,7 +18,9 @@ set pesx = 4x1
 set sets = ""
 set baseline = 0
 set bdir = $spval
-set testid = $spval
+set testid = "t00"
+set baseCom = $spval  # Baseline compare
+set baseGen = $spval  # Baseline generate
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -42,7 +44,7 @@ cat << EOF1
 NAME   
       create.case - creates a CICE case directory
         -h help
-        -c case, case directory/name (required)
+        -c case, case directory/name
         -m machine, machine name (required)
         -p tasks x threads, mxn (default is 4x1)
         -g grid, grid (default = gx3)
@@ -55,15 +57,19 @@ NAME
              - "10day": Compiles code and performs 10 day run
              - "annual": Compiles code and performs annual run
              - "restart": Compiles code and performs an exact restart test
-        -b baseline, generate baseline data
-        -bd baseline dir, location of baseline dataset
-        -testid test ID, user-defined indentifier for test
+        -b generate baseline data (this does NOT take an argument)
+        -bd baseline directory, high level directory where baselines are stored
+        -bg cice version name for generate, directory under the baseline directory where baselines are stored
+        -bc cice version name for compare, directory under the baseline directory where baselines are stored
+        -testid test ID, user-defined indentifier for test (default = t00)
 
       EXAMPLES:
       create.case -h
       create.case -c ~/caseA -m yellowstone 
       create.case -p 32x4 -g gx1 -m gordon -c caseB
       create.case -c ~/caseC -m spirit -s diag1,writeicf
+   
+      For testing instructions, please view README.test
 
 EOF1
 exit -1
@@ -113,6 +119,12 @@ while (1)
       breaksw
     case "-bd":
       set bdir = $argv[1]
+      breaksw
+    case "-bc":
+      set baseCom = $argv[1]
+      breaksw
+    case "-bg":
+      set baseGen = $argv[1]
       breaksw
     case "-testid":
       set testid = $argv[1]
@@ -165,32 +177,17 @@ if ($case != $spval) then
 else
   if ($sets != "") then
     set soptions = `echo $sets | sed 's/,/_/g'`
-    if ($baseline == 1) then
-      if ( $testid != $spval ) then
-        set testname = "${test}_baseline_${grid}_${mach}_${pesx}_${soptions}.${testid}"
-      else
-        set testname = "${test}_baseline_${grid}_${mach}_${pesx}_$soptions"
-      endif
+    # Only include $testid in testname if this is not a baseline-generating run
+    if ($baseline == 0) then
+      set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
     else
-      if ( $testid != $spval ) then
-        set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
-      else
-        set testname = "${test}_${grid}_${mach}_${pesx}_$soptions"
-      endif
+      set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}"
     endif
   else
-    if ($baseline == 1) then
-      if ( $testid != $spval ) then
-        set testname = "${test}_baseline_${grid}_${mach}_${pesx}.${testid}"
-      else
-        set testname = "${test}_baseline_${grid}_${mach}_$pesx"
-      endif
+    if ($baseline == 0) then
+      set testname = "${test}_${grid}_${mach}_${pesx}.${testid}"
     else
-      if ( $testid != $spval ) then
-        set testname = "${test}_${grid}_${mach}_${pesx}.${testid}"
-      else
-        set testname = "${test}_${grid}_${mach}_$pesx"
-      endif
+      set testname = "${test}_${grid}_${mach}_${pesx}"
     endif
   endif
   if (-d $testname) then
@@ -281,12 +278,48 @@ grid_file         = '${CICE_DECOMP_GRIDFILE}'
 kmt_file          = '${CICE_DECOMP_KMTFILE}'
 EOF1
 
+# If this is a baseline generating test, and baseGen is passed, modify CICE_RUNDIR
+if ($test != $spval && $baseline == 1) then
+  if ($baseGen != $spval) then
+    if ($bdir != $spval) then
+      setenv rundir_tmp ${bdir}/$baseGen
+    else
+      setenv rundir_tmp ${CICE_MACHINE_BASELINE}/$baseGen
+    endif
+  else
+    if ($bdir != $spval) then
+      setenv rundir_tmp ${bdir}
+    else
+      setenv rundir_tmp ${CICE_MACHINE_BASELINE}
+    endif
+  endif
+else
+  setenv rundir_tmp ${CICE_MACHINE_WKDIR}
+endif
+
+# If this is a baseline-compare test, modify CICE_RUNDIR
+if ($test != $spval && $baseline == 0) then
+  if ($baseCom != $spval)then
+    if ($bdir != $spval) then
+      setenv basedir_tmp ${bdir}/$baseCom
+    else
+      setenv basedir_tmp ${CICE_MACHINE_BASELINE}/$baseCom
+    endif
+  else
+    if ($bdir != $spval) then
+      setenv basedir_tmp ${bdir}
+    else
+      setenv basedir_tmp ${CICE_MACHINE_BASELINE}
+    endif
+  endif
+endif
+
 cat >! ${fsmods} << EOF1
 setenv CICE_SANDBOX  ${CICE_SANDBOX}
 setenv CICE_CASENAME ${casename}
 setenv CICE_CASEDIR  ${casedir}
 setenv CICE_MACHINE  ${mach}
-setenv CICE_RUNDIR   ${CICE_MACHINE_WKDIR}/${casename}
+setenv CICE_RUNDIR   ${rundir_tmp}/${casename}
 setenv CICE_GRID     ${grid}
 setenv CICE_NXGLOB   ${CICE_DECOMP_NXGLOB}
 setenv CICE_NYGLOB   ${CICE_DECOMP_NYGLOB}
@@ -298,6 +331,7 @@ setenv CICE_MXBLCKS  ${CICE_DECOMP_MXBLCKS}
 setenv CICE_BLCKX    ${CICE_DECOMP_BLCKX}
 setenv CICE_BLCKY    ${CICE_DECOMP_BLCKY}
 setenv CICE_RSTPFILE ${CICE_DECOMP_RSTPFILE}
+setenv CICE_BASELINE ${basedir_tmp}
 EOF1
 
 if ($#sets > 0) then
@@ -327,6 +361,8 @@ if ($test != $spval) then
     echo "adding namelist mods test_nml.${test}"
     set found = 1
   endif
+  # Define this as a test case
+  echo "setenv CICE_TEST true" >> ${fsmods}
   if (${found} == 0) then
     echo "${0}: ERROR, ${CICE_SCRDIR}/options/test_nml.${name} not found"
     exit -1
@@ -347,16 +383,18 @@ ${casescr}/cice.run.setup.csh ${CICE_SCRDIR}
 #------------------------------------------------------------
 
 if ($test != $spval) then
+  # Print information to stdout
+  echo "Creating scripts for $test test"
+
   # Generate test script
   if ($test == 'restart') then
     ${CICE_SCRDIR}/tests/cice.restart.csh ${CICE_SCRDIR}
-  else if ($bdir != $spval) then
-    ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $bdir
   else
-    ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR}
+    ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $baseline ${CICE_BASELINE}/$casename
   endif
 endif
 
+echo " "
 echo "${0} done"
 echo " "
 
