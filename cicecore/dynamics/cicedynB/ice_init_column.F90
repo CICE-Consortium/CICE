@@ -504,7 +504,8 @@
       logical (kind=log_kind) :: &
          l_print_point, & ! flag to print designated grid point diagnostics
          debug        , & ! prints debugging output if true
-         l_stop           ! if true, print diagnostics and abort on return
+         l_stop       , & ! if true, print diagnostics and abort on return
+         RayleighC
         
       character (char_len) :: stop_label
 
@@ -516,6 +517,9 @@
       
       real(kind=dbl_kind), dimension(nilyr,ncat) :: &
          sicen    
+
+      real(kind=dbl_kind) :: &
+         RayleighR
 
       ! Initialize
 
@@ -532,6 +536,8 @@
       zfswin       (:,:,:,:,:) = c0 ! shortwave flux on bio grid
       trcrn_sw     (:,:,:,:,:) = c0 ! tracers active in the shortwave calculation
       trcrn_bgc    (:,:)       = c0
+      RayleighR                = c0
+      RayleighC                = .false.
 
       !-----------------------------------------------------------------
       ! zsalinity initialization
@@ -550,14 +556,17 @@
 
             do j = jlo, jhi
             do i = ilo, ihi  
-               call icepack_init_zsalinity(nblyr, ntrcr_o, Rayleigh_criteria(i,j,iblk), &
-                      Rayleigh_real(i,j,iblk), trcrn_bgc, nt_bgc_S, ncat, sss(i,j,iblk))
+               call icepack_init_zsalinity(nblyr, ntrcr_o, RayleighC, &
+                      RayleighR, trcrn_bgc, nt_bgc_S, ncat, sss(i,j,iblk))
                if (.not. restart_zsal) then
-               do n = 1,ncat
-                  do k  = 1, nblyr
-                     trcrn(i,j,nt_bgc_S+k-1,n,iblk) = trcrn_bgc(nt_bgc_S-1+k-ntrcr_o,n)
+                  Rayleigh_real    (i,j,iblk) = RayleighR
+                  Rayleigh_criteria(i,j,iblk) = RayleighC
+                  do n = 1,ncat
+                     do k  = 1, nblyr
+                        trcrn    (i,j,nt_bgc_S+k-1,        n,iblk) = &
+                        trcrn_bgc(    nt_bgc_S+k-1-ntrcr_o,n)
+                     enddo
                   enddo
-               enddo
                endif
             enddo      ! i
             enddo      ! j  
