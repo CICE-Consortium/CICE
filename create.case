@@ -215,6 +215,15 @@ foreach file (cice.build cice.settings Makefile ice_in makdep.c)
   endif
   cp -f -p ${CICE_SCRDIR}/$file ${casedir}
 end
+# For restart test case, copy extra namelist modification file to casedir
+if ($test == 'restart') then
+  set file = "options/test_nml.restart2"
+  if !(-e ${CICE_SCRDIR}/$file) then
+    echo "${0}: ERROR, ${CICE_SCRDIR}/$file not found"
+    exit -1
+  endif
+  cp -f -p ${CICE_SCRDIR}/$file ${casescr}
+endif
 
 # from machines dir to case
 foreach file (env.${mach} Macros.${mach})
