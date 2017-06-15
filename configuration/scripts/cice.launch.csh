@@ -17,7 +17,7 @@ setenv MP_TASK_AFFINITY core:\${OMP_NUM_THREADS}
 mpirun.lsf ./cice >&! \$CICE_RUNLOG_FILE
 EOFR
 
-elseif (${CICE_MACHINE} =~ cheyenne*) then
+else if (${CICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFR
 mpiexec_mpt -n ${ntasks} ./cice >&! \$CICE_RUNLOG_FILE
 EOFR
@@ -50,4 +50,7 @@ EOFR
 #srun -n ${ntasks} -c ${nthrds} ./cice >&! \$CICE_RUNLOG_FILE
 #EOFR
 
+else
+  echo "${0} ERROR ${CICE_MACHINE} unknown"
+  exit -1
 endif

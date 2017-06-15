@@ -50,7 +50,7 @@ EOFB
 
 #==========================================
 
-elseif (${CICE_MACHINE} =~ cheyenne*) then
+else if (${CICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFB
 #PBS -j oe 
 #PBS -m ae 
@@ -115,4 +115,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
+else
+  echo "${0} ERROR ${CICE_MACHINE} unknown"
+  exit -1
 endif
