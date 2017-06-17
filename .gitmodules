@@ -1,4 +1,4 @@
 [submodule "icepack"]
 	path = icepack
-	url = https://github.com/eclare108213/Icepack.git
-	branch = icepack_initial_driver
+	url = https://github.com/cice-consortium/Icepack.git
+	branch = master
