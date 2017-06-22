@@ -6,20 +6,24 @@ CICE Consortium sea ice model.  The tests currently supported are:
   1. "Smoke" test  - Ensures that the model compiles successfully and runs
                      to completion for a 1 day simulation.  Validation is
                      determined by performing a binary comparison on restart
-                     files to a baseline dataset.
+                     files to a baseline dataset.  This test is created by
+                     passing 'smoke' to the '-t' argument.
   2. 10-day test   - Ensures that the model compiles successfully and runs
                      to completion for a 10 day simulation.  Validation is
                      determined by performing a binary comparison on restart
-                     files to a baseline dataset.
+                     files to a baseline dataset.  This test is created by 
+                     passing '10day' to the '-t' argument.
   3. Exact restart - Ensures that the output from a cold-start simulation
                      and a restart simulation provide bit-for-bit identical
                      results.  No baseline dataset needs to be created for 
                      this test, as the baseline and test datasets are computed
-                     at the same time.
+                     at the same time.  This test is created by passing 'restart'
+                     to the '-t' argument.
   4. Annual test   - Ensures that the model compiles successfully and runs
                      to completion for an annual simulation.  Validation is
                      determined by performing a binary comparison on restart
-                     files to a baseline dataset.
+                     files to a baseline dataset.  This test is created by 
+                     passing 'annual' to the '-t' argument.
 
 Please run './create.case -h' for additional details.
 
