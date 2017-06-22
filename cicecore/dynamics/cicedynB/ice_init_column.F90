@@ -487,9 +487,10 @@
          max_nbtrcr
 
       ! column package includes
-      use icepack_intfc, only: icepack_init_bgc, icepack_init_zsalinity, icepack_init_ocean_conc 
+      use icepack_intfc, only: icepack_init_bgc, icepack_init_zsalinity, &
+          icepack_init_ocean_conc, icepack_init_OceanConcArray
       use icepack_intfc_tracers, only: nbtrcr, ntrcr, nt_bgc_S, ntrcr_o, &
-           nt_sice, nt_fbri
+          nt_sice, nt_fbri
 
       ! local variables
 
@@ -503,7 +504,8 @@
       logical (kind=log_kind) :: &
          l_print_point, & ! flag to print designated grid point diagnostics
          debug        , & ! prints debugging output if true
-         l_stop           ! if true, print diagnostics and abort on return
+         l_stop       , & ! if true, print diagnostics and abort on return
+         RayleighC
         
       character (char_len) :: stop_label
 
@@ -515,6 +517,9 @@
       
       real(kind=dbl_kind), dimension(nilyr,ncat) :: &
          sicen    
+
+      real(kind=dbl_kind) :: &
+         RayleighR
 
       ! Initialize
 
@@ -530,16 +535,15 @@
       snow_bio_net (:,:,:,:)   = c0 ! integrated snow tracer conc (mmol/m^2 or mg/m^2)
       zfswin       (:,:,:,:,:) = c0 ! shortwave flux on bio grid
       trcrn_sw     (:,:,:,:,:) = c0 ! tracers active in the shortwave calculation
-      trcrn_bgc    (:,:) = c0
-
-      if (.not. solve_zsal) restart_zsal = .false.
-      if (restart_zsal .or. restart_bgc) call read_restart_bgc  
+      trcrn_bgc    (:,:)       = c0
+      RayleighR                = c0
+      RayleighC                = .false.
 
       !-----------------------------------------------------------------
       ! zsalinity initialization
       !-----------------------------------------------------------------
       
-      if (solve_zsal) then
+      if (solve_zsal) then  ! default values 
 
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
@@ -552,54 +556,31 @@
 
             do j = jlo, jhi
             do i = ilo, ihi  
-               call icepack_init_zsalinity(nblyr, ntrcr_o, restart_zsal, Rayleigh_criteria(i,j,iblk), &
-                      Rayleigh_real(i,j,iblk), trcrn_bgc, nt_bgc_S, ncat, sss(i,j,iblk))
+               call icepack_init_zsalinity(nblyr, ntrcr_o, RayleighC, &
+                      RayleighR, trcrn_bgc, nt_bgc_S, ncat, sss(i,j,iblk))
                if (.not. restart_zsal) then
-               do n = 1,ncat
-                 do k  = 1, nblyr
-                   trcrn(i,j,nt_bgc_S+k-1,n,iblk) = trcrn_bgc(nt_bgc_S-1+k-ntrcr_o,n)
-                 enddo
-               enddo
+                  Rayleigh_real    (i,j,iblk) = RayleighR
+                  Rayleigh_criteria(i,j,iblk) = RayleighC
+                  do n = 1,ncat
+                     do k  = 1, nblyr
+                        trcrn    (i,j,nt_bgc_S+k-1,        n,iblk) = &
+                        trcrn_bgc(    nt_bgc_S+k-1-ntrcr_o,n)
+                     enddo
+                  enddo
                endif
             enddo      ! i
             enddo      ! j  
          enddo         ! iblk
       endif ! solve_zsal
 
+      if (.not. solve_zsal) restart_zsal = .false.
+
       !-----------------------------------------------------------------
       ! biogeochemistry initialization
       !-----------------------------------------------------------------
 
-      if (restart_bgc) then       
+      if (.not. restart_bgc) then       
      
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
-         do iblk = 1, nblocks
-
-            this_block = get_block(blocks_ice(iblk),iblk)         
-            ilo = this_block%ilo
-            ihi = this_block%ihi
-            jlo = this_block%jlo
-            jhi = this_block%jhi
-
-            do j = jlo, jhi
-            do i = ilo, ihi  
-                  l_print_point = .false.
-                  debug = .false.
-                  if (debug .and. print_points) then
-                     do ipoint = 1, npnt
-                        if (my_task == pmloc(ipoint) .and. &
-                                  i == piloc(ipoint) .and. &
-                                  j == pjloc(ipoint)) &
-                           l_print_point = .true.
-                           write (nu_diag, *) 'my_task = ',my_task
-                     enddo ! ipoint
-                  endif
-            enddo  ! i
-            enddo  ! j
-         enddo     ! iblk
-
-      else  ! not restarting
-
       !-----------------------------------------------------------------
       ! Initial Ocean Values if not coupled to the ocean bgc
       !-----------------------------------------------------------------
@@ -613,12 +594,13 @@
             jhi = this_block%jhi
 
             do j = jlo, jhi
-            do i = ilo, ihi  
-               call icepack_init_ocean_conc (amm(i,j,  iblk), dmsp(i,j,  iblk), dms(i,j,  iblk), &
-                    algalN(i,j, :, iblk), doc(i,j,:,  iblk), dic(i,j,:,  iblk), don(i,j,:,  iblk), &
-                    fed(i,j,:,  iblk), fep(i,j,:,  iblk), hum(i,j,  iblk),  nit(i,j,  iblk), &
-                    sil(i,j,  iblk), zaeros(i,j, :, iblk), max_dic, max_don, max_fe, max_aero)
-
+            do i = ilo, ihi
+               call icepack_init_ocean_conc ( &
+                    amm   (i,j,  iblk), dmsp(i,j,  iblk), dms(i,j,  iblk), &
+                    algalN(i,j,:,iblk), doc (i,j,:,iblk), dic(i,j,:,iblk), &
+                    don   (i,j,:,iblk), fed (i,j,:,iblk), fep(i,j,:,iblk), &
+                    hum   (i,j,  iblk), nit (i,j,  iblk), sil(i,j,  iblk), &
+                    zaeros(i,j,:,iblk), max_dic, max_don, max_fe, max_aero)
             enddo  ! i
             enddo  ! j
 
@@ -627,11 +609,7 @@
          call init_bgc_data(fed(:,:,1,:),fep(:,:,1,:)) ! input dFe from file
          call get_forcing_bgc                          ! defines nit and sil
 
-      endif     ! restart
-
-      !-----------------------------------------------------------------
-      ! Complete bgc initialization
-      !-----------------------------------------------------------------
+      endif     ! .not. restart
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -654,37 +632,54 @@
             enddo
             enddo
 
-            call icepack_init_bgc(dt, ncat, nblyr, nilyr, &
-               ntrcr_o, &
-               cgrid, igrid, &
-               restart_bgc, ntrcr, nbtrcr, &
-               sicen(:,:), &
-               trcrn_bgc(:,:), &
-               sss(i,j,  iblk), &
-               nit(i,j,  iblk), amm   (i,j,  iblk), &
-               sil(i,j,  iblk), dmsp  (i,j,  iblk), &
-               dms(i,j,  iblk), algalN(i,j,:,iblk), &
-               doc(i,j,:,iblk), don   (i,j,:,iblk), &
-               dic(i,j,:,iblk), fed   (i,j,:,iblk), &
-               fep(i,j,:,iblk), zaeros(i,j,:,iblk), &
-               hum(i,j,  iblk),           &
-               ocean_bio_all(i,j,:,iblk), &
-               max_algae, max_doc, max_dic, max_don,  max_fe, max_nbtrcr, max_aero, &
-               l_stop, stop_label)
+            call icepack_init_OceanConcArray(max_nbtrcr,         &
+                                 max_algae, max_don,  max_doc,   &
+                                 max_dic,   max_aero, max_fe,    &
+                                 nit (i,j,  iblk), amm(i,j,  iblk), sil   (i,j,  iblk), &
+                                 dmsp(i,j,  iblk), dms(i,j,  iblk), algalN(i,j,:,iblk), &
+                                 doc (i,j,:,iblk), don(i,j,:,iblk), dic   (i,j,:,iblk), &  
+                                 fed (i,j,:,iblk), fep(i,j,:,iblk), zaeros(i,j,:,iblk), &
+                                 ocean_bio_all(i,j,:,iblk),         hum   (i,j,  iblk))
 
             if (l_stop) then
                call diagnostic_abort(i, j, iblk, istep1, stop_label)
             endif
-            do n = 1, ncat
-            do k = ntrcr_o+1, ntrcr
-               trcrn(i,j,k,n,iblk) = trcrn_bgc(k-ntrcr_o,n)
-            enddo
-            enddo
 
          enddo  ! i
          enddo  ! j
 
       enddo     ! iblk
+
+      if (.not. restart_bgc) then       
+     
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
+         do iblk = 1, nblocks
+
+            this_block = get_block(blocks_ice(iblk),iblk)         
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
+
+            do j = jlo, jhi
+            do i = ilo, ihi  
+
+            call icepack_init_bgc(dt, ncat, nblyr, nilyr, ntrcr_o, &
+               cgrid, igrid, ntrcr, nbtrcr, &
+               sicen(:,:), trcrn_bgc(:,:), sss(i,j, iblk), &
+               ocean_bio_all(i,j,:,iblk), &
+               l_stop, stop_label)
+            enddo  ! i
+            enddo  ! j
+         enddo     ! iblk
+
+      endif ! .not. restart
+
+      !-----------------------------------------------------------------
+      ! read restart to complete BGC initialization
+      !-----------------------------------------------------------------
+
+      if (restart_zsal .or. restart_bgc) call read_restart_bgc  
 
       end subroutine init_bgc
 
