@@ -1,0 +1,8 @@
+npt            = 24
+dumpfreq       = 'd'
+dumpfreq_n     = 1
+bfbflag        = .true.
+diag_type      = 'stdout'
+print_global   = .true.
+histfreq       = 'd','x','x','x','x'
+runtype        = 'continue'

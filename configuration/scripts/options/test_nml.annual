@@ -1,7 +1,7 @@
 npt            = 8760
 dumpfreq       = 'm'
 dumpfreq_n     = 12
-diagfreq       = 8760
+diagfreq       = 24
 bfbflag        = .true.
 diag_type      = 'stdout'
 print_global   = .true.
