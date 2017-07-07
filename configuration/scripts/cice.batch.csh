@@ -68,7 +68,7 @@ cat >> ${jobfile} << EOFB
 #PBS -q debug
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=0:10:00
+#PBS -l walltime=0:30:00
 #PBS -j oe
 ###PBS -M username@domain.com
 ###PBS -m be
