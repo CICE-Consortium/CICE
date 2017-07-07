@@ -19,6 +19,7 @@ set sets = ""
 set baseline = 0
 set bdir = $spval
 set testid = "t00"
+set testsuite = $spval
 set baseCom = $spval  # Baseline compare
 set baseGen = $spval  # Baseline generate
 
@@ -62,6 +63,8 @@ NAME
         -bg cice version name for generate, directory under the baseline directory where baselines are stored
         -bc cice version name for compare, directory under the baseline directory where baselines are stored
         -testid test ID, user-defined indentifier for test (default = t00)
+        -ts test suite, pre-defined set of tests to run.  Current set of predefined tests:
+             - "base_suite": runs the smoke test (with debug), 10day test, annual test, and restart test
 
       EXAMPLES:
       create.case -h
@@ -126,6 +129,9 @@ while (1)
     case "-bg":
       set baseGen = $argv[1]
       breaksw
+    case "-ts":
+      set testsuite = $argv[1]
+      breaksw
     case "-testid":
       set testid = $argv[1]
       breaksw
@@ -142,8 +148,8 @@ if ($mach == $spval) then
   exit -1
 endif
 
-if ($case == $spval && $test == $spval) then
-  echo "${0}: ERROR in arguments, -c or -t required"
+if ($case == $spval && $test == $spval && $testsuite == $spval) then
+  echo "${0}: ERROR in arguments, -c, -t, or -ts required"
   exit -1
 endif
 
@@ -161,6 +167,8 @@ endif
 # If both -bg and -bc were used, set baseline to 2 (regression test)
 if ($baseGen != $spval && $baseCom != $spval) then
   set baseline = 2
+else if ($baseGen != $spval) then
+  set baseline = 1
 endif
 
 set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
@@ -170,6 +178,24 @@ if (${chck} == OK) then
 else
   echo "${0}: ERROR in -p argument, ${pesx}, must be mxn"
   exit -1
+endif
+
+# Check to see if this is a test-suite run.  If so, loop through the various
+#   tests and create a separate folder for each
+if ( $testsuite != $spval ) then
+  set tsfile = "${CICE_SCRDIR}/tests/${testsuite}.ts"
+  set first_test = 1   # For creating suite.run
+  foreach line ( "`cat $tsfile`" )
+    # Check if line is a comment line
+    if ( $line:q =~ '#'* || $line:q =~ '$'* || $line:q =~ '!'* ) then
+      echo "skipping line: $line"
+      continue
+    endif
+    set test = `echo $line | cut -d' ' -f1`
+    set sets = `echo $line | cut -d' ' -f2`
+    if ( $sets == "none" ) then
+      set sets = ""
+    endif
 endif
 
 if ($case != $spval) then
@@ -184,20 +210,25 @@ else
     set soptions = `echo $sets | sed 's/,/_/g'`
     # Only include $testid in testname if this is not a baseline-generating run
     if ($baseline == 0) then
-      set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
+      set testname_base = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
       set testname_noid = "${test}_${grid}_${mach}_${pesx}_${soptions}"
     else
-      set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}"
-      set testname_noid = $testname
+      set testname_base = "${test}_${grid}_${mach}_${pesx}_${soptions}"
+      set testname_noid = $testname_base
     endif
   else
     if ($baseline == 0) then
-      set testname = "${test}_${grid}_${mach}_${pesx}.${testid}"
+      set testname_base = "${test}_${grid}_${mach}_${pesx}.${testid}"
       set testname_noid = "${test}_${grid}_${mach}_${pesx}"
     else
-      set testname = "${test}_${grid}_${mach}_${pesx}"
-      set testname_noid = $testname
+      set testname_base = "${test}_${grid}_${mach}_${pesx}"
+      set testname_noid = $testname_base
     endif
+  endif
+  if ($testsuite != $spval) then
+    set testname = "${testsuite}/$testname_base"
+  else
+    set testname = "$testname_base"
   endif
   if (-d $testname) then
     echo "${0}: ERROR, test $testname already exists"
@@ -408,6 +439,51 @@ if ($test != $spval) then
 
   # Generate test script
   ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $baseline ${CICE_BASELINE}/$testname_noid $test
+endif
+
+if ( $testsuite != $spval ) then
+    cd $CICE_SANDBOX
+    # Write build and run commands to suite.run
+    if ( $first_test == 1 ) then
+      set first_test = 0
+cat >! ./${testsuite}/suite.run << EOF0
+#!/bin/csh -f
+EOF0
+cat >! ./${testsuite}/results.csh << EOF0
+#!/bin/csh -f
+cat $testname_base/test_output > results.log
+EOF0
+      chmod +x ./${testsuite}/suite.run
+      chmod +x ./${testsuite}/results.csh
+    else
+cat >> ./${testsuite}/results.csh << EOF
+cat $testname_base/test_output >> results.log
+EOF
+    endif
+cat >> ./${testsuite}/suite.run << EOF
+cd $testname_base
+./cice.build
+./cice.submit
+cd ..
+EOF
+    
+    # Reset case for the next test in suite
+    set case = $spval
+
+    echo "" 
+    echo "---" 
+    echo "" 
+  end
+
+  # Add code to results.csh to count the number of failures
+cat >> ./${testsuite}/results.csh << EOF
+set failures = \`cat ./results.log | grep FAIL | wc -l\`
+set success = \`cat ./results.log | grep PASS | wc -l\`
+set total = \`cat ./results.log | wc -l\`
+echo ""
+echo "\$success of \$total tests PASSED"
+echo "\$failures of \$total tests FAILED"
+EOF
 endif
 
 echo " "
