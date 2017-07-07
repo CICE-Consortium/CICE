@@ -85,6 +85,13 @@ cat >> ${jobfile} << EOF3
   
   set baseline_data = $3/restart/\$test_data:t
 
+  # Check to see if files exist
+  if !(-e \$baseline_data) then
+    echo ""
+    echo ""
+    echo "ERROR: Baseline dataset does not exist (\$baseline_data)"
+  endif
+
   echo "Performing binary comparison between files:"
   echo "baseline: \$baseline_data"
   echo "test:     \$test_data"
