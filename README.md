@@ -2,8 +2,7 @@
 
 ## Overview
 
-This repository contains files needed to run versions 6 and higher of the sea ice model CICE, which is now maintained by the CICE Consortium.  Versions prior to v6 are found in the CICE-svn-trunk repository    
-https://github.com/CICE-Consortium/CICE-svn-trunk 
+This repository contains files needed to run versions 6 and higher of the sea ice model CICE, which is now maintained by the CICE Consortium.  Versions prior to v6 are found in the [CICE-svn-trunk repository](https://github.com/CICE-Consortium/CICE-svn-trunk).
 
 CICE consists of a top level driver and dynamical core plus the Icepack column physics code, which is included in CICE as a git submodule.  Because Icepack is a submodule of CICE, Icepack and CICE development are handled independently with respect to the github repositories even though development and testing may be done together. 
 
@@ -37,5 +36,4 @@ The doc directory contains scientific documentation.
 - testing data
 - test results 
 
-The "About-Us" repository includes background and supporting information about the CICE Consortium, including how to interact with it.    
-https://github.com/CICE-Consortium/About-Us
+The ["About-Us" repository](https://github.com/CICE-Consortium/About-Us) includes background and supporting information about the CICE Consortium, including how to interact with it.    
