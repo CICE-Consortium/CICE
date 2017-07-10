@@ -24,6 +24,8 @@ setenv CICE_BLCKY      29
 setenv CICE_MXBLCKS    4
 setenv CICE_DECOMP     cartesian
 setenv CICE_DSHAPE     slenderX2
+setenv CICE_TEST       false       # Define if this is a test case
+setenv CICE_BASELINE   undefined
 
 #======================================================
 
