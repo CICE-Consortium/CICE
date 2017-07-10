@@ -10,12 +10,12 @@ CICE consists of a top level driver and dynamical core plus the Icepack column p
 ## Obtaining CICE
 
 If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories.  Basic instructions for working with CICE and Icepack are found in the Git and Workflow Guide, linked from the wikis in the primary repositories    
-https://github.com/CICE-Consortium/CICE    
-https://github.com/CICE-Consortium/Icepack
+https://github.com/CICE-Consortium/CICE/wiki    
+https://github.com/CICE-Consortium/Icepack/wiki
 
 CICE may be obtained in several different ways:  [not yet tested]    
 1.  clone the full repository    
-See Git and Workflow Guide    
+See [Git and Workflow Guide](https://docs.google.com/document/d/1rR6WAvZQT9iAMUp-m_HZ06AUCCI19mguFialsMCYs9o/edit?usp=sharing)    
 2.  check out only a particular branch, version or tag    
 In the workflow for step 1 above, substitute    
   [check this] git clone -b branch_name --single-branch --recursive https://github.com/CICE-Consortium/CICE.git local_directory_name
