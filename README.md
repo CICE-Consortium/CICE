@@ -28,8 +28,6 @@ where "branch name" can also be a version name
 
 "Quick Start" instructions are available in [README_v6](https://github.com/CICE-Consortium/CICE/blob/master/README_v6), and instructions for setting up standard tests (e.g. regression, restart) are in [README_test](https://github.com/CICE-Consortium/CICE/blob/master/README_v6).  
 
-The [doc](https://github.com/CICE-Consortium/CICE/tree/master/doc) directory contains scientific documentation.
-
  [check this]   The wiki pages for each repository contain links to additional information, e.g.    
 - complete documentation 
 - larger files such as the gx1 grid, land mask, and forcing files
