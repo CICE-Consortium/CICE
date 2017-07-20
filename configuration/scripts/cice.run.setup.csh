@@ -13,7 +13,7 @@ set nthrds = ${CICE_NTHRDS}
 #==========================================
 
 # Write the batch code into the job file
-$1/cice.batch.csh ${jobfile}
+${CICE_SCRDIR}/cice.batch.csh ${jobfile}
 if ($? == -1) then
   exit -1
 endif
@@ -58,7 +58,7 @@ EOF1
 #==========================================
 
 # Write the job launching logic into the job file
-$1/cice.launch.csh ${jobfile}
+${CICE_SCRDIR}/cice.launch.csh ${jobfile}
 if ($? == -1) then
   exit -1
 endif
@@ -77,6 +77,7 @@ cp -p \${CICE_RUNLOG_FILE} \${CICE_LOGDIR}
 grep ' CICE COMPLETED SUCCESSFULLY' \${CICE_RUNLOG_FILE}
 if ( \$? != 0 ) then
   echo "CICE run did not complete - see \${CICE_LOGDIR}/\${CICE_RUNLOG_FILE}"
+  echo "\`date\` \${0}: \${CICE_CASENAME} run did NOT complete \${CICE_RUNLOG_FILE}"  >> \${CICE_CASEDIR}/README.case
   exit -1
 endif
 

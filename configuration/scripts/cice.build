@@ -80,9 +80,9 @@ gmake -j ${CICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${CICE_RUNDIR}/cice CICE_
 if ($status != 0) then
   echo "${0}: COMPILE FAILED, see"
   echo "  cat ${CICE_OBJDIR}/${CICE_BLDLOG_FILE}"
-  if ( $?CICE_TEST ) then
+  if ( ${CICE_TEST} != ${CICE_SPVAL} ) then
     # This is a test case.  Write output to test_output file
-    echo "FAIL $CICE_CASENAME build" >> ${CICE_CASEDIR}/test_output
+    echo "FAIL ${CICE_TESTNAME} build" >> ${CICE_CASEDIR}/test_output
   endif
   exit 99
 endif
@@ -91,7 +91,7 @@ if !(-d ${CICE_LOGDIR}) mkdir -p ${CICE_LOGDIR}
 cp -p ${CICE_BLDLOG_FILE} ${CICE_LOGDIR}/
 echo "`date` ${0}:${CICE_CASENAME} build completed ${CICE_BLDLOG_FILE}"  >> ${CICE_CASEDIR}/README.case
 echo "${0}: COMPILE SUCCESSFUL, ${CICE_LOGDIR}/${CICE_BLDLOG_FILE}"
-if ( $?CICE_TEST ) then
-  echo "PASS $CICE_CASENAME build" >> ${CICE_CASEDIR}/test_output
+if ( ${CICE_TEST} != ${CICE_SPVAL} ) then
+  echo "PASS ${CICE_TESTNAME} build" >> ${CICE_CASEDIR}/test_output
 endif
 

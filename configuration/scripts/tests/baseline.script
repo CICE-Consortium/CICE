@@ -1,0 +1,39 @@
+
+#-----------------------------------------------------------
+# Baseline generating run
+
+if (${CICE_BASEGEN} != ${CICE_SPVAL}) then
+  
+  set baseline_dir = ${CICE_BASELINE}/${CICE_BASEGEN}/${CICE_TESTNAME}
+
+  if (-e ${baseline_dir}) then
+    echo "FAIL ${CICE_TESTNAME} generate" >> ${CICE_CASEDIR}/test_output
+  else
+    mkdir -p ${baseline_dir}
+    cp -p -r ${CICE_RUNDIR}/* ${baseline_dir}/
+    echo "PASS ${CICE_TESTNAME} generate" >> ${CICE_CASEDIR}/test_output
+endif
+
+#-----------------------------------------------------------
+# Baseline comparing run
+
+if (${CICE_BASECOM} != ${CICE_SPVAL}) then
+  foreach file (${CICE_RUNDIR}/restart/*)
+    set test_data = $file
+  end
+
+  set baseline_dir  = ${CICE_BASELINE}/${CICE_BASECOM}/${CICE_TESTNAME}
+  set baseline_data = $test_data:t
+
+  echo "Performing binary comparison between files:"
+  echo "baseline: ${baseline_dir}/restart/${baseline_data}"
+  echo "test:     $test_data"
+  if ( { cmp -s $test_data ${baseline_dir}/${baseline_data} } ) then
+    echo "PASS ${CICE_TESTNAME} compare" >> ${CICE_CASEDIR}/test_output
+  else
+    echo "FAIL ${CICE_TESTNAME} compare" >> ${CICE_CASEDIR}/test_output
+  endif
+endif
+
+#-----------------------------------------------------------
+

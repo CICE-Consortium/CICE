@@ -59,7 +59,7 @@ cat >> ${jobfile} << EOFB
 #PBS -N ${CICE_CASENAME}
 #PBS -A ${CICE_ACCT}
 #PBS -l select=${nnodes}:ncpus=${ntasks}:mpiprocs=${ntasks}
-#PBS -l walltime=02:00:00
+#PBS -l walltime=00:10:00
 EOFB
 
 else if (${CICE_MACHINE} =~ thunder* || ${CICE_MACHINE} =~ gordon* || ${CICE_MACHINE} =~ conrad*) then
