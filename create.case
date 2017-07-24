@@ -167,6 +167,11 @@ if ($test != $spval && $test != 'smoke' && $test != '10day' && $test != 'annual'
   exit -1
 endif
 
+if (($testsuite != $spval || $test != $spval) && $testid == $spval) then
+  echo "${0}: ERROR in arguments.  -testid must be passed if using -ts or -t"
+  exit -1
+endif
+
 set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
 if (${chck} == OK) then
   set task = `echo ${pesx} | sed s/x.\*//`
@@ -188,10 +193,26 @@ if ( $testsuite != $spval ) then
       echo "skipping line: $line"
       continue
     endif
+    # Obtain the test name, sets, grid, and PE information from .ts file
     set test = `echo $line | cut -d' ' -f1`
-    set sets = `echo $line | cut -d' ' -f2`
-    if ( $sets == "none" ) then
-      set sets = ""
+    set grid = `echo $line | cut -d' ' -f2`
+    set pesx = `echo $line | cut -d' ' -f3`
+    set sets_tmp = `echo $line | cut -d' ' -f4`
+    # Create a new sets_base variable to store sets passed to create.case
+    if (! $?sets_base ) then
+      set sets_base = "$sets"
+    endif
+    # Append sets from .ts file to the $sets variable
+    if ( $sets_tmp == "none" ) then
+      set sets = "$sets_base"
+    else
+      if ( $sets_base == "" ) then
+        set sets = "$sets_tmp"
+      else
+        set sets = "$sets_base,$sets_tmp"
+        # Remove duplictes in the sets variable
+        set sets = "`echo $sets | sed -e 's/\b\([a-z]\+\)[ ,\n]\1/\1/g'`"
+      endif
     endif
 endif
 
@@ -431,6 +452,7 @@ EOF
 
   # Add code to results.csh to count the number of failures
 cat >> ./${tsdir}/results.csh << EOF
+cat ./results.log | grep FAIL
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
 set success = \`cat ./results.log | grep PASS | wc -l\`
 set total = \`cat ./results.log | wc -l\`
