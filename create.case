@@ -60,7 +60,7 @@ NAME
         -bd baseline directory, high level directory where baselines are stored
         -bg cice version name for generate, directory under the baseline directory where baselines are stored
         -bc cice version name for compare, directory under the baseline directory where baselines are stored
-        -testid test ID, user-defined indentifier for test (default = t00)
+        -testid test ID, user-defined indentifier for test (REQUIRED if using -t or -ts)
         -ts test suite, pre-defined set of tests to run.  Current set of predefined tests:
              - "base_suite": runs the smoke test (with debug), 10day test, annual test, and restart test
 
@@ -362,6 +362,19 @@ else
   echo "setenv CICE_TESTNAME ${spval}" >> ${fsmods}
 endif
 
+# Add the test namelist optoins to fimods before the sets passed as arguments
+if ($test != $spval) then
+  if (-e ${CICE_SCRDIR}/options/test_nml.${test}) then
+    cat ${CICE_SCRDIR}/options/test_nml.${test} >> ${fimods}
+    echo "adding namelist mods test_nml.${test}"
+    set found = 1
+  endif
+  if (${found} == 0) then
+    echo "${0}: ERROR, ${CICE_SCRDIR}/options/test_nml.${name} not found"
+    exit -1
+  endif
+endif
+
 if ($#sets > 0) then
 set setssplit = `echo $sets | sed 's/,/ /g'`
 foreach name ($setssplit)
@@ -381,18 +394,6 @@ foreach name ($setssplit)
     exit -1
   endif
 end
-endif
-
-if ($test != $spval) then
-  if (-e ${CICE_SCRDIR}/options/test_nml.${test}) then
-    cat ${CICE_SCRDIR}/options/test_nml.${test} >> ${fimods}
-    echo "adding namelist mods test_nml.${test}"
-    set found = 1
-  endif
-  if (${found} == 0) then
-    echo "${0}: ERROR, ${CICE_SCRDIR}/options/test_nml.${name} not found"
-    exit -1
-  endif
 endif
 
 ${casescr}/parse_settings.sh cice.settings ${fsmods}
@@ -421,6 +422,8 @@ if ( $testsuite != $spval ) then
     # Write build and run commands to suite.run
     if ( $first_test == 1 ) then
       set first_test = 0
+      # Copy timeseries.csh to suite directory
+      cp -f ${CICE_SCRDIR}/tests/timeseries.csh ./${tsdir}
 cat >! ./${tsdir}/suite.run << EOF0
 #!/bin/csh -f
 EOF0
