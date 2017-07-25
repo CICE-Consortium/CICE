@@ -455,7 +455,7 @@ EOF
 
   # Add code to results.csh to count the number of failures
 cat >> ./${tsdir}/results.csh << EOF
-cat ./results.log | grep FAIL
+cat ./results.log
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
 set success = \`cat ./results.log | grep PASS | wc -l\`
 set total = \`cat ./results.log | wc -l\`
