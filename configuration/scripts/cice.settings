@@ -3,6 +3,7 @@
 setenv CICE_MACHINE    undefined
 setenv CICE_CASENAME   undefined
 setenv CICE_SANDBOX    undefined
+setenv CICE_SCRDIR     undefined
 setenv CICE_CASEDIR    undefined
 setenv CICE_RUNDIR     /glade/scratch/tcraig/CICE_RUNS/${CICE_CASENAME}
 setenv CICE_OBJDIR     ${CICE_RUNDIR}/compile
@@ -24,8 +25,12 @@ setenv CICE_BLCKY      29
 setenv CICE_MXBLCKS    4
 setenv CICE_DECOMP     cartesian
 setenv CICE_DSHAPE     slenderX2
-setenv CICE_TEST       false       # Define if this is a test case
+setenv CICE_TEST       undefined   # Define if this is a test case
+setenv CICE_TESTNAME   undefined   # Define if this is a test case
 setenv CICE_BASELINE   undefined
+setenv CICE_BASEGEN    undefined
+setenv CICE_BASECOM    undefined
+setenv CICE_SPVAL      undefined
 
 #======================================================
 

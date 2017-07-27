@@ -1,0 +1,15 @@
+
+#----------------------------------------------------
+# Run the CICE model
+# cice.run returns -1 if run did not complete successfully
+
+./cice.run
+
+if ( $? != 0 ) then
+  # Run failed
+  echo "FAIL ${CICE_TESTNAME} run" >> ${CICE_CASEDIR}/test_output
+  exit 99
+else
+  # Run succeeded
+  echo "PASS ${CICE_TESTNAME} run" >> ${CICE_CASEDIR}/test_output
+endif

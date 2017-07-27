@@ -28,11 +28,11 @@ create.case generates a case, use "create.case -h" for help with the tool.
   -p is the task x thread/task values (default is 4x1)
   -s are comma separated optional env or namelist settings (default is "null")
   -t is the test name and location (cannot be used with -c).
-  -b is used to specify that a baseline dataset is to be generated (only used with -t)
   -bd is used to specify the location of the baseline datasets (only used with -t)
   -bg is used to specify the cice version name for generating baseline datasets (only used with -t)
   -bc is used to specify the cice versoin name for comparison. I.e., the version name for the baseline dataset (only used with -t)
-  -testid is used to specify a test ID (used only with -t)
+  -testid is used to specify a test ID (used only with -t or -ts)
+  -ts is used to generate all test cases for a given test suite.
 
 Several files are placed in the case directory
  - env.${machine} defines the environment

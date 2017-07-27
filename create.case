@@ -16,9 +16,9 @@ set test = $spval
 set grid = gx3
 set pesx = 4x1
 set sets = ""
-set baseline = 0
 set bdir = $spval
-set testid = "t00"
+set testid = $spval
+set testsuite = $spval
 set baseCom = $spval  # Baseline compare
 set baseGen = $spval  # Baseline generate
 
@@ -57,11 +57,12 @@ NAME
              - "10day": Compiles code and performs 10 day run
              - "annual": Compiles code and performs annual run
              - "restart": Compiles code and performs an exact restart test
-        -b generate baseline data (this does NOT take an argument)
         -bd baseline directory, high level directory where baselines are stored
         -bg cice version name for generate, directory under the baseline directory where baselines are stored
         -bc cice version name for compare, directory under the baseline directory where baselines are stored
-        -testid test ID, user-defined indentifier for test (default = t00)
+        -testid test ID, user-defined indentifier for test (REQUIRED if using -t or -ts)
+        -ts test suite, pre-defined set of tests to run.  Current set of predefined tests:
+             - "base_suite": runs the smoke test (with debug), 10day test, annual test, and restart test
 
       EXAMPLES:
       create.case -h
@@ -83,11 +84,6 @@ set argv = ( $initargv[*] )
 while (1)
   if ( $#argv < 1 ) break;
   set option = $argv[1];
-  if ("$option" == "-b") then
-    set baseline = 1
-    shift argv
-    continue
-  endif
   shift argv
   if ( $#argv < 1 ) then
     echo "${0}: ERROR1 in $option"
@@ -126,6 +122,9 @@ while (1)
     case "-bg":
       set baseGen = $argv[1]
       breaksw
+    case "-ts":
+      set testsuite = $argv[1]
+      breaksw
     case "-testid":
       set testid = $argv[1]
       breaksw
@@ -142,13 +141,23 @@ if ($mach == $spval) then
   exit -1
 endif
 
-if ($case == $spval && $test == $spval) then
-  echo "${0}: ERROR in arguments, -c or -t required"
+if ($case == $spval && $test == $spval && $testsuite == $spval) then
+  echo "${0}: ERROR in arguments, -c, -t, or -ts required"
   exit -1
 endif
 
 if ($case != $spval && $test != $spval) then
   echo "${0}: ERROR in arguments, cannot use both -c and -t"
+  exit -1
+endif
+
+if ($case != $spval && $testsuite != $spval) then
+  echo "${0}: ERROR in arguments, cannot use both -c and -ts"
+  exit -1
+endif
+
+if ($testsuite != $spval && $test != $spval) then
+  echo "${0}: ERROR in arguments, cannot use both -ts and -t"
   exit -1
 endif
 
@@ -158,9 +167,9 @@ if ($test != $spval && $test != 'smoke' && $test != '10day' && $test != 'annual'
   exit -1
 endif
 
-# If both -bg and -bc were used, set baseline to 2 (regression test)
-if ($baseGen != $spval && $baseCom != $spval) then
-  set baseline = 2
+if (($testsuite != $spval || $test != $spval) && $testid == $spval) then
+  echo "${0}: ERROR in arguments.  -testid must be passed if using -ts or -t"
+  exit -1
 endif
 
 set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
@@ -172,41 +181,65 @@ else
   exit -1
 endif
 
-if ($case != $spval) then
-  if (-d $case) then
-    echo "${0}: ERROR, case $case already exists"
-    exit -1
-  endif
-  mkdir -p $case
-  echo "`date`${0} $initargv[*]" > $case/README.case
-else
+# Check to see if this is a test-suite run.  If so, loop through the various
+#   tests and create a separate folder for each
+if ( $testsuite != $spval ) then
+  set tsdir = "${testsuite}.${testid}"
+  set tsfile = "${CICE_SCRDIR}/tests/${testsuite}.ts"
+  set first_test = 1   # For creating suite.run
+  foreach line ( "`cat $tsfile`" )
+    # Check if line is a comment line
+    if ( $line:q =~ '#'* || $line:q =~ '$'* || $line:q =~ '!'* ) then
+      echo "skipping line: $line"
+      continue
+    endif
+    # Obtain the test name, sets, grid, and PE information from .ts file
+    set test = `echo $line | cut -d' ' -f1`
+    set grid = `echo $line | cut -d' ' -f2`
+    set pesx = `echo $line | cut -d' ' -f3`
+    set sets_tmp = `echo $line | cut -d' ' -f4`
+    # Create a new sets_base variable to store sets passed to create.case
+    if (! $?sets_base ) then
+      set sets_base = "$sets"
+    endif
+    # Append sets from .ts file to the $sets variable
+    if ( $sets_tmp == "none" ) then
+      set sets = "$sets_base"
+    else
+      if ( $sets_base == "" ) then
+        set sets = "$sets_tmp"
+      else
+        set sets = "$sets_base,$sets_tmp"
+        # Remove duplictes in the sets variable
+        set sets = "`echo $sets | sed -e 's/\b\([a-z]\+\)[ ,\n]\1/\1/g'`"
+      endif
+    endif
+endif
+
+if ($case =~ $spval) then
   if ($sets != "") then
     set soptions = `echo $sets | sed 's/,/_/g'`
     # Only include $testid in testname if this is not a baseline-generating run
-    if ($baseline == 0) then
-      set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
-      set testname_noid = "${test}_${grid}_${mach}_${pesx}_${soptions}"
-    else
-      set testname = "${test}_${grid}_${mach}_${pesx}_${soptions}"
-      set testname_noid = $testname
-    endif
+    set testname_noid = "${test}_${grid}_${mach}_${pesx}_${soptions}"
+    set testname_base = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
   else
-    if ($baseline == 0) then
-      set testname = "${test}_${grid}_${mach}_${pesx}.${testid}"
-      set testname_noid = "${test}_${grid}_${mach}_${pesx}"
-    else
-      set testname = "${test}_${grid}_${mach}_${pesx}"
-      set testname_noid = $testname
-    endif
+    set testname_noid = "${test}_${grid}_${mach}_${pesx}"
+    set testname_base = "${test}_${grid}_${mach}_${pesx}.${testid}"
   endif
-  if (-d $testname) then
-    echo "${0}: ERROR, test $testname already exists"
-    exit -1
+  if ($testsuite != $spval) then
+    set testname = "${tsdir}/$testname_base"
+  else
+    set testname = "$testname_base"
   endif
-  mkdir -p $testname
-  echo "`date`${0} $initargv[*]" > $testname/README.case
-  set case = $testname
+  set case = ${testname}
 endif
+
+if (-d $case) then
+  echo "${0}: ERROR, case $case already exists"
+  exit -1
+endif
+mkdir -p $case
+echo "`date`${0} $initargv[*]" > $case/README.case
 
 #------------------------------------------------------------
 # Setup case directory, copy files to case directory
@@ -224,15 +257,6 @@ foreach file (cice.build cice.settings Makefile ice_in makdep.c)
   endif
   cp -f -p ${CICE_SCRDIR}/$file ${casedir}
 end
-# For restart test case, copy extra namelist modification file to casedir
-if ($test == 'restart') then
-  set file = "options/test_nml.restart2"
-  if !(-e ${CICE_SCRDIR}/$file) then
-    echo "${0}: ERROR, ${CICE_SCRDIR}/$file not found"
-    exit -1
-  endif
-  cp -f -p ${CICE_SCRDIR}/$file ${casescr}
-endif
 
 # from machines dir to case
 foreach file (env.${mach} Macros.${mach})
@@ -242,6 +266,9 @@ foreach file (env.${mach} Macros.${mach})
   endif
   cp -f -p ${CICE_SCRDIR}/machines/$file ${casedir}
 end
+
+# For test cases, copy extra namelist modification files to casescr
+cp -f -p $CICE_SCRDIR/options/test_nml.${test}* ${casescr}/
 
 # from basic script dir to casescr
 foreach file (parse_namelist.sh parse_settings.sh cice_decomp.csh cice.run.setup.csh)
@@ -296,50 +323,20 @@ grid_file         = '${CICE_DECOMP_GRIDFILE}'
 kmt_file          = '${CICE_DECOMP_KMTFILE}'
 EOF1
 
-# If this is a baseline generating test, and baseGen is passed, modify CICE_RUNDIR
-if ($test != $spval && $baseline != 0) then
-  if ($baseGen != $spval) then
-    if ($bdir != $spval) then
-      setenv rundir_tmp ${bdir}/$baseGen
-    else
-      setenv rundir_tmp ${CICE_MACHINE_BASELINE}/$baseGen
-    endif
-  else
-    if ($bdir != $spval) then
-      setenv rundir_tmp ${bdir}
-    else
-      setenv rundir_tmp ${CICE_MACHINE_BASELINE}
-    endif
-  endif
-else
-  setenv rundir_tmp ${CICE_MACHINE_WKDIR}
-endif
-
 # If this is a baseline-compare test, modify CICE_RUNDIR
-if ($test != $spval) then
-  if ($baseCom != $spval)then
-    if ($bdir != $spval) then
-      setenv basedir_tmp ${bdir}/$baseCom
-    else
-      setenv basedir_tmp ${CICE_MACHINE_BASELINE}/$baseCom
-    endif
-  else
-    if ($bdir != $spval) then
-      setenv basedir_tmp ${bdir}
-    else
-      setenv basedir_tmp ${CICE_MACHINE_BASELINE}
-    endif
-  endif
+if ($bdir != $spval) then
+  setenv basedir_tmp ${bdir}
 else
   setenv basedir_tmp ${CICE_MACHINE_BASELINE}
 endif
 
 cat >! ${fsmods} << EOF1
 setenv CICE_SANDBOX  ${CICE_SANDBOX}
+setenv CICE_SCRDIR   ${CICE_SCRDIR}
 setenv CICE_CASENAME ${casename}
 setenv CICE_CASEDIR  ${casedir}
 setenv CICE_MACHINE  ${mach}
-setenv CICE_RUNDIR   ${rundir_tmp}/${casename}
+setenv CICE_RUNDIR   ${CICE_MACHINE_WKDIR}/${casename}
 setenv CICE_GRID     ${grid}
 setenv CICE_NXGLOB   ${CICE_DECOMP_NXGLOB}
 setenv CICE_NYGLOB   ${CICE_DECOMP_NYGLOB}
@@ -352,7 +349,31 @@ setenv CICE_BLCKX    ${CICE_DECOMP_BLCKX}
 setenv CICE_BLCKY    ${CICE_DECOMP_BLCKY}
 setenv CICE_RSTPFILE ${CICE_DECOMP_RSTPFILE}
 setenv CICE_BASELINE ${basedir_tmp}
+setenv CICE_BASEGEN  ${baseGen}
+setenv CICE_BASECOM  ${baseCom}
+setenv CICE_SPVAL    ${spval}
 EOF1
+
+if ($test != $spval) then
+  echo "setenv CICE_TEST     ${test}" >> ${fsmods}
+  echo "setenv CICE_TESTNAME ${testname_noid}" >> ${fsmods}
+else
+  echo "setenv CICE_TEST     ${spval}" >> ${fsmods}
+  echo "setenv CICE_TESTNAME ${spval}" >> ${fsmods}
+endif
+
+# Add the test namelist optoins to fimods before the sets passed as arguments
+if ($test != $spval) then
+  if (-e ${CICE_SCRDIR}/options/test_nml.${test}) then
+    cat ${CICE_SCRDIR}/options/test_nml.${test} >> ${fimods}
+    echo "adding namelist mods test_nml.${test}"
+    set found = 1
+  endif
+  if (${found} == 0) then
+    echo "${0}: ERROR, ${CICE_SCRDIR}/options/test_nml.${name} not found"
+    exit -1
+  endif
+endif
 
 if ($#sets > 0) then
 set setssplit = `echo $sets | sed 's/,/ /g'`
@@ -375,20 +396,6 @@ foreach name ($setssplit)
 end
 endif
 
-if ($test != $spval) then
-  if (-e ${CICE_SCRDIR}/options/test_nml.${test}) then
-    cat ${CICE_SCRDIR}/options/test_nml.${test} >> ${fimods}
-    echo "adding namelist mods test_nml.${test}"
-    set found = 1
-  endif
-  # Define this as a test case
-  echo "setenv CICE_TEST true" >> ${fsmods}
-  if (${found} == 0) then
-    echo "${0}: ERROR, ${CICE_SCRDIR}/options/test_nml.${name} not found"
-    exit -1
-  endif
-endif
-
 ${casescr}/parse_settings.sh cice.settings ${fsmods}
 ${casescr}/parse_namelist.sh ice_in ${fimods}
 
@@ -398,7 +405,7 @@ ${casescr}/parse_namelist.sh ice_in ${fimods}
 source ./cice.settings
 source ./env.${mach} || exit 2
 
-${casescr}/cice.run.setup.csh ${CICE_SCRDIR}
+${casescr}/cice.run.setup.csh
 
 #------------------------------------------------------------
 
@@ -407,7 +414,55 @@ if ($test != $spval) then
   echo "Creating scripts for $test test"
 
   # Generate test script
-  ${CICE_SCRDIR}/tests/cice.test.csh ${CICE_SCRDIR} $baseline ${CICE_BASELINE}/$testname_noid $test
+  ${CICE_SCRDIR}/tests/cice.test.csh 
+endif
+
+if ( $testsuite != $spval ) then
+    cd $CICE_SANDBOX
+    # Write build and run commands to suite.run
+    if ( $first_test == 1 ) then
+      set first_test = 0
+      # Copy timeseries.csh to suite directory
+      cp -f ${CICE_SCRDIR}/tests/timeseries.csh ./${tsdir}
+cat >! ./${tsdir}/suite.run << EOF0
+#!/bin/csh -f
+EOF0
+cat >! ./${tsdir}/results.csh << EOF0
+#!/bin/csh -f
+cat $testname_base/test_output > results.log
+EOF0
+      chmod +x ./${tsdir}/suite.run
+      chmod +x ./${tsdir}/results.csh
+    else
+cat >> ./${tsdir}/results.csh << EOF
+cat $testname_base/test_output >> results.log
+EOF
+    endif
+cat >> ./${tsdir}/suite.run << EOF
+cd $testname_base
+./cice.build
+./cice.submit
+cd ..
+EOF
+    
+    # Reset case for the next test in suite
+    set case = $spval
+
+    echo "" 
+    echo "---" 
+    echo "" 
+  end
+
+  # Add code to results.csh to count the number of failures
+cat >> ./${tsdir}/results.csh << EOF
+cat ./results.log
+set failures = \`cat ./results.log | grep FAIL | wc -l\`
+set success = \`cat ./results.log | grep PASS | wc -l\`
+set total = \`cat ./results.log | wc -l\`
+echo ""
+echo "\$success of \$total tests PASSED"
+echo "\$failures of \$total tests FAILED"
+EOF
 endif
 
 echo " "
