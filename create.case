@@ -172,21 +172,35 @@ if (($testsuite != $spval || $test != $spval) && $testid == $spval) then
   exit -1
 endif
 
-set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
-if (${chck} == OK) then
-  set task = `echo ${pesx} | sed s/x.\*//`
-  set thrd = `echo ${pesx} | sed s/.\*x//`
-else
-  echo "${0}: ERROR in -p argument, ${pesx}, must be mxn"
-  exit -1
-endif
-
 # Check to see if this is a test-suite run.  If so, loop through the various
 #   tests and create a separate folder for each
 if ( $testsuite != $spval ) then
   set tsdir = "${testsuite}.${testid}"
-  set tsfile = "${CICE_SCRDIR}/tests/${testsuite}.ts"
-  set first_test = 1   # For creating suite.run
+  if (-e ${testsuite}) then
+    set tsfile = "${testsuite}"
+  else 
+    if (-e ${CICE_SCRDIR}/tests/${testsuite}.ts) then
+      set tsfile = "${CICE_SCRDIR}/tests/${testsuite}.ts"
+    else
+      echo "${0}: ERROR, cannot find testsuite file ${testsuite}, also checked ${CICE_SCRDIR}/tests/${testsuite}.ts"
+      exit -1
+    endif
+  endif
+
+  mkdir ./${tsdir}
+  cp -f ${CICE_SCRDIR}/tests/timeseries.csh ./${tsdir}
+
+cat >! ./${tsdir}/suite.run << EOF0
+#!/bin/csh -f
+EOF0
+
+cat >! ./${tsdir}/results.csh << EOF0
+#!/bin/csh -f
+EOF0
+
+  chmod +x ./${tsdir}/suite.run
+  chmod +x ./${tsdir}/results.csh
+
   foreach line ( "`cat $tsfile`" )
     # Check if line is a comment line
     if ( $line:q =~ '#'* || $line:q =~ '$'* || $line:q =~ '!'* ) then
@@ -295,6 +309,15 @@ echo CICE_MACHINE  = ${mach}
 
 #------------------------------------------------------------
 # Compute a default blocksize
+
+set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
+if (${chck} == OK) then
+  set task = `echo ${pesx} | sed s/x.\*//`
+  set thrd = `echo ${pesx} | sed s/.\*x//`
+else
+  echo "${0}: ERROR in -p argument, ${pesx}, must be mxn"
+  exit -1
+endif
 
 setenv CICE_DECOMP_GRID  ${grid}
 setenv CICE_DECOMP_NTASK ${task}
@@ -420,24 +443,11 @@ endif
 if ( $testsuite != $spval ) then
     cd $CICE_SANDBOX
     # Write build and run commands to suite.run
-    if ( $first_test == 1 ) then
-      set first_test = 0
-      # Copy timeseries.csh to suite directory
-      cp -f ${CICE_SCRDIR}/tests/timeseries.csh ./${tsdir}
-cat >! ./${tsdir}/suite.run << EOF0
-#!/bin/csh -f
-EOF0
-cat >! ./${tsdir}/results.csh << EOF0
-#!/bin/csh -f
-cat $testname_base/test_output > results.log
-EOF0
-      chmod +x ./${tsdir}/suite.run
-      chmod +x ./${tsdir}/results.csh
-    else
+
 cat >> ./${tsdir}/results.csh << EOF
 cat $testname_base/test_output >> results.log
 EOF
-    endif
+
 cat >> ./${tsdir}/suite.run << EOF
 cd $testname_base
 ./cice.build
@@ -451,6 +461,8 @@ EOF
     echo "" 
     echo "---" 
     echo "" 
+
+  # This is the foreach end for the testsuite
   end
 
   # Add code to results.csh to count the number of failures
@@ -463,6 +475,7 @@ echo ""
 echo "\$success of \$total tests PASSED"
 echo "\$failures of \$total tests FAILED"
 EOF
+
 endif
 
 echo " "
