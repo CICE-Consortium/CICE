@@ -47,6 +47,14 @@ NAME
         -h help
         -c case, case directory/name
         -m machine, machine name (required)
+           Available -m options are in configuration/scripts/machines and include:
+EOF1
+      set soptions1 = `ls -1 configuration/scripts/machines | grep Macros | sed 's/Macros.//g' `
+      set soptions = `echo $soptions1 | fmt -1 | sort `
+      foreach sopt ($soptions)
+        echo "             $sopt"
+      end
+cat << EOF1
         -p tasks x threads, mxn (default is 4x1)
         -g grid, grid (default = gx3)
         -s build and namelist mod files, comma separated with no spaces (default = " ")
@@ -62,7 +70,7 @@ cat << EOF1
 
         -- For testing purposes --
         -t test, test name (cannot be selected if -c is selected)
-           Available tests are in configuration/scripts/tests and include::
+           Available tests are in configuration/scripts/tests and include:
 EOF1
       set soptions1 = `ls -1 configuration/scripts/tests | grep test_ | sed 's/test_//g' | sed 's/.script//g' `
       set soptions = `echo $soptions1 | fmt -1 | sort `

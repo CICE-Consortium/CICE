@@ -56,7 +56,7 @@ if (${CICE_BFBCOMP} != ${CICE_SPVAL}) then
   set comp_data = ${CICE_RUNDIR}/../${CICE_BFBCOMP}/restart/${comp_file}
 
   echo ""
-  echo "BFB Compare Mode:
+  echo "BFB Compare Mode:"
   echo "Performing binary comparison between files"
   echo "comp_data: ${comp_data}"
   echo "test_data: ${test_data}"
