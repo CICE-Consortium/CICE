@@ -7,7 +7,7 @@ if (${CICE_BASEGEN} != ${CICE_SPVAL}) then
   set baseline_dir = ${CICE_BASELINE}/${CICE_BASEGEN}/${CICE_TESTNAME}
 
   if (-e ${baseline_dir}) then
-    echo "FAIL ${CICE_TESTNAME} generate" >> ${CICE_CASEDIR}/test_output
+    echo "FAIL ${CICE_TESTNAME} generate baseline-already-exists" >> ${CICE_CASEDIR}/test_output
     echo "Baseline directory (${baseline_dir}) already exists. Exiting..."
   else
     mkdir -p ${baseline_dir}
@@ -20,24 +20,57 @@ endif
 # Baseline comparing run
 
 if (${CICE_BASECOM} != ${CICE_SPVAL}) then
-  foreach file (${CICE_RUNDIR}/restart/*)
-    set test_data = $file
-  end
+  set test_file = `ls -t1 ${CICE_RUNDIR}/restart | head -1`
+  set test_data = ${CICE_RUNDIR}/restart/${test_file}
 
-  set baseline_dir  = ${CICE_BASELINE}/${CICE_BASECOM}/${CICE_TESTNAME}
-  set baseline_data = $test_data:t
+  set baseline_dir  = ${CICE_BASELINE}/${CICE_BASECOM}/${CICE_TESTNAME}/restart
+  set baseline_data = ${baseline_dir}/${test_file}
 
   echo ""
-  echo "Performing binary comparison between files:"
-  echo "baseline: ${baseline_dir}/restart/${baseline_data}"
-  echo "test:     $test_data"
-  if ( { cmp -s $test_data ${baseline_dir}/restart/${baseline_data} } ) then
-    echo "PASS ${CICE_TESTNAME} compare" >> ${CICE_CASEDIR}/test_output
+  echo "Regression Compare Mode:"
+  echo "Performing binary comparison between files"
+  echo "baseline: ${baseline_data}"
+  echo "test:     ${test_data}"
+  if (-e ${baseline_data} ) then
+    if ( { cmp -s ${test_data} ${baseline_data} } ) then
+      echo "PASS ${CICE_TESTNAME} compare" >> ${CICE_CASEDIR}/test_output
+    else
+      echo "FAIL ${CICE_TESTNAME} compare different-data" >> ${CICE_CASEDIR}/test_output
+      echo "Regression baseline and test dataset are different"
+    endif
   else
-    echo "FAIL ${CICE_TESTNAME} compare" >> ${CICE_CASEDIR}/test_output
-    echo "Baseline and test dataset are different!"
+    echo "FAIL ${CICE_TESTNAME} compare baseline-does-not-exist" >> ${CICE_CASEDIR}/test_output
+    echo "Baseline file does not exist"
   endif
 endif
 
 #-----------------------------------------------------------
 
+# BFB Compare runs
+
+if (${CICE_BFBCOMP} != ${CICE_SPVAL}) then
+
+  set test_file = `ls -t1 ${CICE_RUNDIR}/restart | head -1`
+  set test_data = ${CICE_RUNDIR}/restart/${test_file}
+  set comp_file = `ls -t1 ${CICE_RUNDIR}/../${CICE_BFBCOMP}/restart | head -1`
+  set comp_data = ${CICE_RUNDIR}/../${CICE_BFBCOMP}/restart/${comp_file}
+
+  echo ""
+  echo "BFB Compare Mode:
+  echo "Performing binary comparison between files"
+  echo "comp_data: ${comp_data}"
+  echo "test_data: ${test_data}"
+  if (-e ${comp_data} ) then
+    if ( { cmp -s ${test_data} ${comp_data} } ) then
+      echo "PASS ${CICE_TESTNAME} bfbcomp ${CICE_BFBCOMP}" >> ${CICE_CASEDIR}/test_output
+    else
+      echo "FAIL ${CICE_TESTNAME} bfbcomp ${CICE_BFBCOMP} different-data" >> ${CICE_CASEDIR}/test_output
+      echo "bfbcomp and test dataset are different"
+    endif
+  else
+    echo "FAIL ${CICE_TESTNAME} bfbcomp baseline_does-not-exist" >> ${CICE_CASEDIR}/test_output
+    echo "Baseline file does not exist"
+  endif
+endif
+
+#-----------------------------------------------------------

@@ -189,6 +189,7 @@
       use ice_arrays_column, only: dhsn
       use ice_blocks, only: nx_block, ny_block
       use ice_calendar, only: time, calendar
+      use ice_constants, only: c0
       use icepack_intfc, only: icepack_aggregate
       use ice_domain, only: nblocks
       use ice_domain_size, only: ncat, max_ntrcr, n_aero
@@ -346,22 +347,26 @@
       do iblk = 1, nblocks
       do j = 1, ny_block
       do i = 1, nx_block
-         if (tmask(i,j,iblk)) &
-         call icepack_aggregate (ncat,               &
-                                aicen(i,j,:,iblk),  &
-                                trcrn(i,j,:,:,iblk),&
-                                vicen(i,j,:,iblk),  &
-                                vsnon(i,j,:,iblk),  &
-                                aice (i,j,  iblk),  &
-                                trcr (i,j,:,iblk),  &
-                                vice (i,j,  iblk),  &
-                                vsno (i,j,  iblk),  &
-                                aice0(i,j,  iblk),  &
-                                max_ntrcr,          &
-                                trcr_depend,        &
-                                trcr_base,          &
-                                n_trcr_strata,      &
-                                nt_strata)
+         if (tmask(i,j,iblk)) then
+            call icepack_aggregate (ncat,               &
+                                   aicen(i,j,:,iblk),  &
+                                   trcrn(i,j,:,:,iblk),&
+                                   vicen(i,j,:,iblk),  &
+                                   vsnon(i,j,:,iblk),  &
+                                   aice (i,j,  iblk),  &
+                                   trcr (i,j,:,iblk),  &
+                                   vice (i,j,  iblk),  &
+                                   vsno (i,j,  iblk),  &
+                                   aice0(i,j,  iblk),  &
+                                   max_ntrcr,          &
+                                   trcr_depend,        &
+                                   trcr_base,          &
+                                   n_trcr_strata,      &
+                                   nt_strata)
+         else
+            ! tcraig, reset all tracer values on land to zero
+            trcrn(i,j,:,:,iblk) = c0
+         endif
       enddo
       enddo
       enddo

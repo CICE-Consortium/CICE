@@ -1,6 +1,7 @@
 #! /bin/csh -f
 
-echo ${0}
+#echo ${0}
+echo "running cice.launch.csh"
 
 source ./cice.settings
 
@@ -54,3 +55,5 @@ else
   echo "${0} ERROR ${CICE_MACHINE} unknown"
   exit -1
 endif
+
+exit 0

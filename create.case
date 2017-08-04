@@ -4,7 +4,7 @@ echo " "
 echo "${0}:"
 
 set CICE_SANDBOX = `pwd`
-set CICE_SCRDIR = ${CICE_SANDBOX}/configuration/scripts
+set CICE_SCRIPTS = ${CICE_SANDBOX}/configuration/scripts
 set initargv = ( $argv[*] ) 
 
 set helpheader = 0
@@ -21,6 +21,7 @@ set testid = $spval
 set testsuite = $spval
 set baseCom = $spval  # Baseline compare
 set baseGen = $spval  # Baseline generate
+set bfbcomp = $spval  # BFB compare
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -49,30 +50,46 @@ NAME
         -p tasks x threads, mxn (default is 4x1)
         -g grid, grid (default = gx3)
         -s build and namelist mod files, comma separated with no spaces (default = " ")
+           Available -s options are in configuration/scripts/options and include:
+EOF1
+      set soptions1 = `ls -1 configuration/scripts/options | grep set_ | sed 's/set_nml.//g' | sed 's/set_env.//g' `
+      set soptions = `echo $soptions1 | fmt -1 | sort `
+      foreach sopt ($soptions)
+        echo "             $sopt"
+      end
+
+cat << EOF1
 
         -- For testing purposes --
         -t test, test name (cannot be selected if -c is selected)
-           Available tests:
-             - "smoke": Compiles code and performs 1 day run
-             - "10day": Compiles code and performs 10 day run
-             - "annual": Compiles code and performs annual run
-             - "restart": Compiles code and performs an exact restart test
+           Available tests are in configuration/scripts/tests and include::
+EOF1
+      set soptions1 = `ls -1 configuration/scripts/tests | grep test_ | sed 's/test_//g' | sed 's/.script//g' `
+      set soptions = `echo $soptions1 | fmt -1 | sort `
+      foreach sopt ($soptions)
+        echo "             $sopt"
+      end
+
+cat << EOF1
         -bd baseline directory, high level directory where baselines are stored
         -bg cice version name for generate, directory under the baseline directory where baselines are stored
         -bc cice version name for compare, directory under the baseline directory where baselines are stored
         -testid test ID, user-defined indentifier for test (REQUIRED if using -t or -ts)
-        -ts test suite, pre-defined set of tests to run.  Current set of predefined tests:
-             - "base_suite": runs the smoke test (with debug), 10day test, annual test, and restart test
+        -ts test suite, pre-defined set of tests to run in column text format.  Current set of predefined tests:
+             - "base_suite": runs general set of tests including smoke with debug, restart, etc.
+        -td difference output against another case
 
       EXAMPLES:
       create.case -h
       create.case -c ~/caseA -m yellowstone 
       create.case -p 32x4 -g gx1 -m gordon -c caseB
       create.case -c ~/caseC -m spirit -s diag1,writeicf
-   
-      For testing instructions, please view README.test
+      create.case -t restart -p 8x1 -g gx1 -m cheyenne -c diag1,debug -testid myid
+
+      For more testing examples, please view README.test
 
 EOF1
+
 exit -1
 endif
 
@@ -122,6 +139,9 @@ while (1)
     case "-bg":
       set baseGen = $argv[1]
       breaksw
+    case "-td":
+      set bfbcomp = $argv[1]
+      breaksw
     case "-ts":
       set testsuite = $argv[1]
       breaksw
@@ -161,11 +181,12 @@ if ($testsuite != $spval && $test != $spval) then
   exit -1
 endif
 
-if ($test != $spval && $test != 'smoke' && $test != '10day' && $test != 'annual' \
- && $test != 'restart') then
-  echo "${0}: ERROR in arguments.  $test is not a valid test"
-  exit -1
-endif
+# tcraig, lets find another way to validate argument
+#if ($test != $spval && $test != 'smoke' && $test != '10day' && $test != 'annual' \
+# && $test != 'restart') then
+#  echo "${0}: ERROR in arguments.  $test is not a valid test"
+#  exit -1
+#endif
 
 if (($testsuite != $spval || $test != $spval) && $testid == $spval) then
   echo "${0}: ERROR in arguments.  -testid must be passed if using -ts or -t"
@@ -179,16 +200,16 @@ if ( $testsuite != $spval ) then
   if (-e ${testsuite}) then
     set tsfile = "${testsuite}"
   else 
-    if (-e ${CICE_SCRDIR}/tests/${testsuite}.ts) then
-      set tsfile = "${CICE_SCRDIR}/tests/${testsuite}.ts"
+    if (-e ${CICE_SCRIPTS}/tests/${testsuite}.ts) then
+      set tsfile = "${CICE_SCRIPTS}/tests/${testsuite}.ts"
     else
-      echo "${0}: ERROR, cannot find testsuite file ${testsuite}, also checked ${CICE_SCRDIR}/tests/${testsuite}.ts"
+      echo "${0}: ERROR, cannot find testsuite file ${testsuite}, also checked ${CICE_SCRIPTS}/tests/${testsuite}.ts"
       exit -1
     endif
   endif
 
   mkdir ./${tsdir}
-  cp -f ${CICE_SCRDIR}/tests/timeseries.csh ./${tsdir}
+  cp -f ${CICE_SCRIPTS}/tests/timeseries.csh ./${tsdir}
 
 cat >! ./${tsdir}/suite.run << EOF0
 #!/bin/csh -f
@@ -196,6 +217,7 @@ EOF0
 
 cat >! ./${tsdir}/results.csh << EOF0
 #!/bin/csh -f
+rm -f results.log
 EOF0
 
   chmod +x ./${tsdir}/suite.run
@@ -212,6 +234,7 @@ EOF0
     set grid = `echo $line | cut -d' ' -f2`
     set pesx = `echo $line | cut -d' ' -f3`
     set sets_tmp = `echo $line | cut -d' ' -f4`
+    set bfbcomp_tmp = `echo $line | cut -d' ' -f5`
     # Create a new sets_base variable to store sets passed to create.case
     if (! $?sets_base ) then
       set sets_base = "$sets"
@@ -228,17 +251,27 @@ EOF0
         set sets = "`echo $sets | sed -e 's/\b\([a-z]\+\)[ ,\n]\1/\1/g'`"
       endif
     endif
+    # Create a new bfbcomp_base variable to store bfbcomp passed to create.case
+    if (! $?bfbcomp_base ) then
+      set bfbcomp_base = "$bfbcomp"
+    endif
+    # Use bfbcomp_base or bfbcomp_tmp
+    if ( $bfbcomp_tmp == "" ) then
+      set bfbcomp = "$bfbcomp_base"
+    else
+      set bfbcomp = "$bfbcomp_tmp"
+    endif
 endif
 
 if ($case =~ $spval) then
   if ($sets != "") then
     set soptions = `echo $sets | sed 's/,/_/g'`
     # Only include $testid in testname if this is not a baseline-generating run
-    set testname_noid = "${test}_${grid}_${mach}_${pesx}_${soptions}"
-    set testname_base = "${test}_${grid}_${mach}_${pesx}_${soptions}.${testid}"
+    set testname_noid = "${mach}_${test}_${grid}_${pesx}_${soptions}"
+    set testname_base = "${mach}_${test}_${grid}_${pesx}_${soptions}.${testid}"
   else
-    set testname_noid = "${test}_${grid}_${mach}_${pesx}"
-    set testname_base = "${test}_${grid}_${mach}_${pesx}.${testid}"
+    set testname_noid = "${mach}_${test}_${grid}_${pesx}"
+    set testname_base = "${mach}_${test}_${grid}_${pesx}.${testid}"
   endif
   if ($testsuite != $spval) then
     set testname = "${tsdir}/$testname_base"
@@ -265,32 +298,29 @@ if !( -d ${casescr}) mkdir ${casescr}
 
 # from basic script dir to case
 foreach file (cice.build cice.settings Makefile ice_in makdep.c)
-  if !(-e ${CICE_SCRDIR}/$file) then
-    echo "${0}: ERROR, ${CICE_SCRDIR}/$file not found"
+  if !(-e ${CICE_SCRIPTS}/$file) then
+    echo "${0}: ERROR, ${CICE_SCRIPTS}/$file not found"
     exit -1
   endif
-  cp -f -p ${CICE_SCRDIR}/$file ${casedir}
+  cp -f -p ${CICE_SCRIPTS}/$file ${casedir}
 end
 
 # from machines dir to case
 foreach file (env.${mach} Macros.${mach})
-  if !(-e ${CICE_SCRDIR}/machines/$file) then
-    echo "${0}: ERROR, ${CICE_SCRDIR}/machines/$file not found"
+  if !(-e ${CICE_SCRIPTS}/machines/$file) then
+    echo "${0}: ERROR, ${CICE_SCRIPTS}/machines/$file not found"
     exit -1
   endif
-  cp -f -p ${CICE_SCRDIR}/machines/$file ${casedir}
+  cp -f -p ${CICE_SCRIPTS}/machines/$file ${casedir}
 end
 
-# For test cases, copy extra namelist modification files to casescr
-cp -f -p $CICE_SCRDIR/options/test_nml.${test}* ${casescr}/
-
 # from basic script dir to casescr
-foreach file (parse_namelist.sh parse_settings.sh cice_decomp.csh cice.run.setup.csh)
-  if !(-e ${CICE_SCRDIR}/$file) then
-    echo "${0}: ERROR, ${CICE_SCRDIR}/$file not found"
+foreach file (parse_namelist.sh parse_settings.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
+  if !(-e ${CICE_SCRIPTS}/$file) then
+    echo "${0}: ERROR, ${CICE_SCRIPTS}/$file not found"
     exit -1
   endif
-  cp -f -p ${CICE_SCRDIR}/$file ${casescr}
+  cp -f -p ${CICE_SCRIPTS}/$file ${casescr}
 end
 
 if ($case =~ */*) then
@@ -324,6 +354,10 @@ setenv CICE_DECOMP_NTASK ${task}
 setenv CICE_DECOMP_NTHRD ${thrd}
 
 source ${casescr}/cice_decomp.csh
+if ($? != 0) then
+  echo "${0}: ERROR, cice_decomp.csh aborted"
+  exit -1
+endif
 
 #------------------------------------------------------------
 # Copy in and update cice.settings and ice_in files
@@ -355,7 +389,7 @@ endif
 
 cat >! ${fsmods} << EOF1
 setenv CICE_SANDBOX  ${CICE_SANDBOX}
-setenv CICE_SCRDIR   ${CICE_SCRDIR}
+setenv CICE_SCRIPTS  ${CICE_SCRIPTS}
 setenv CICE_CASENAME ${casename}
 setenv CICE_CASEDIR  ${casedir}
 setenv CICE_MACHINE  ${mach}
@@ -377,6 +411,12 @@ setenv CICE_BASECOM  ${baseCom}
 setenv CICE_SPVAL    ${spval}
 EOF1
 
+if ($bfbcomp != $spval) then
+  echo "setenv CICE_BFBCOMP  ${mach}_${bfbcomp}.${testid}" >> ${fsmods}
+else
+  echo "setenv CICE_BFBCOMP  ${spval}" >> ${fsmods}
+endif
+
 if ($test != $spval) then
   echo "setenv CICE_TEST     ${test}" >> ${fsmods}
   echo "setenv CICE_TESTNAME ${testname_noid}" >> ${fsmods}
@@ -385,39 +425,38 @@ else
   echo "setenv CICE_TESTNAME ${spval}" >> ${fsmods}
 endif
 
-# Add the test namelist optoins to fimods before the sets passed as arguments
+if ($sets != "") then
+  set setsx = `echo $sets | sed 's/,/ /g'`
+else
+  set setsx = ""
+endif
 if ($test != $spval) then
-  if (-e ${CICE_SCRDIR}/options/test_nml.${test}) then
-    cat ${CICE_SCRDIR}/options/test_nml.${test} >> ${fimods}
-    echo "adding namelist mods test_nml.${test}"
-    set found = 1
-  endif
-  if (${found} == 0) then
-    echo "${0}: ERROR, ${CICE_SCRDIR}/options/test_nml.${name} not found"
-    exit -1
-  endif
+  set testx = ${test}
+  # from test options to casescr in case any test time changes are applied
+  cp -f -p ${CICE_SCRIPTS}/options/test_nml.${test}* ${casescr}
+else
+  set testx = ""
 endif
 
-if ($#sets > 0) then
-set setssplit = `echo $sets | sed 's/,/ /g'`
-foreach name ($setssplit)
+foreach name ($testx $grid $setsx)
   set found = 0
-  if (-e ${CICE_SCRDIR}/options/set_nml.${name}) then
-    cat ${CICE_SCRDIR}/options/set_nml.${name} >> ${fimods}
+  if (-e ${CICE_SCRIPTS}/options/set_nml.${name}) then
+    cat ${CICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
     echo "adding namelist mods set_nml.${name}"
+    echo "`date`${0} adding namelist modes set_nml.${name}" > ${casedir}/README.case
     set found = 1
   endif
-  if (-e ${CICE_SCRDIR}/options/set_env.${name}) then
-    cat ${CICE_SCRDIR}/options/set_env.${name} >> ${fsmods}
+  if (-e ${CICE_SCRIPTS}/options/set_env.${name}) then
+    cat ${CICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
     echo "adding env mods set_env.${name}"
+    echo "`date`${0} adding namelist modes set_env.${name}" > ${casedir}/README.case
     set found = 1
   endif
   if (${found} == 0) then
-    echo "${0}: ERROR, ${CICE_SCRDIR}/options/set_[nml,env].${name} not found"
+    echo "${0}: ERROR, ${CICE_SCRIPTS}/options/set_[nml,env].${name} not found"
     exit -1
   endif
 end
-endif
 
 ${casescr}/parse_settings.sh cice.settings ${fsmods}
 ${casescr}/parse_namelist.sh ice_in ${fimods}
@@ -429,6 +468,10 @@ source ./cice.settings
 source ./env.${mach} || exit 2
 
 ${casescr}/cice.run.setup.csh
+if ($? != 0) then
+  echo "${0}: ERROR, cice.run.setup.csh aborted"
+  exit -1
+endif
 
 #------------------------------------------------------------
 
@@ -437,11 +480,15 @@ if ($test != $spval) then
   echo "Creating scripts for $test test"
 
   # Generate test script
-  ${CICE_SCRDIR}/tests/cice.test.csh 
+  ${casescr}/cice.test.setup.csh 
+  if ($? != 0) then
+    echo "${0}: ERROR, cice.test.setup.csh aborted"
+    exit -1
+  endif
 endif
 
 if ( $testsuite != $spval ) then
-    cd $CICE_SANDBOX
+    cd ${CICE_SANDBOX}
     # Write build and run commands to suite.run
 
 cat >> ./${tsdir}/results.csh << EOF
@@ -476,9 +523,15 @@ echo "\$success of \$total tests PASSED"
 echo "\$failures of \$total tests FAILED"
 EOF
 
+# build and submit tests
+cd ${tsdir}
+./suite.run
+cd ${CICE_SANDBOX}
+
 endif
 
 echo " "
 echo "${0} done"
 echo " "
+exit 0
 

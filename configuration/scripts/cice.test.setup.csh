@@ -22,8 +22,8 @@ echo "BaseCom      : ${CICE_BASECOM}"
 #==========================================
 
 # Write the batch code into the job file
-${CICE_SCRDIR}/cice.batch.csh ${jobfile}
-if ($? == -1) then
+${CICE_SCRIPTS}/cice.batch.csh ${jobfile}
+if ($? != 0) then
   exit -1
 endif
 
@@ -42,16 +42,14 @@ endif
 
 EOF2
 
-if (${CICE_TEST} == 'restart') then
-  cat >> ${jobfile} < ${CICE_SCRDIR}/tests/${CICE_TEST}.script
-
+if ( -f ${CICE_SCRIPTS}/tests/test_${CICE_TEST}.script) then
+  echo "${0:t} using test_${CICE_TEST}.script"
+  cat >> ${jobfile} < ${CICE_SCRIPTS}/tests/test_${CICE_TEST}.script
 else
-
-  cat >> ${jobfile} < ${CICE_SCRDIR}/tests/simplerun.script
-
+  echo "${0:t} ERROR: ${CICE_SCRIPTS}tests/test_${CICE_TEST}.script not found"
+  exit -1
 endif
-
-cat >> ${jobfile} < ${CICE_SCRDIR}/tests/baseline.script
+cat >> ${jobfile} < ${CICE_SCRIPTS}/tests/baseline.script
 
 chmod +x ${jobfile}
 
@@ -64,3 +62,4 @@ echo "\`date\` \${0}: ${CICE_CASENAME} job submitted"  >> ${CICE_CASEDIR}/README
 EOFS
 
 chmod +x ${subfile}
+exit 0
