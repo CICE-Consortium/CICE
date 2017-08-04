@@ -158,14 +158,14 @@ ls *.png
 
 Quickstart (example):
 
-./create.case -m conrad -t smoke -testid t01 -p 8x2
+./create.case -m cheyenne -t smoke -testid t01 -p 8x2
 cd cheyenne_smoke_gx3_8x2.t01
 ./cice.build
 ./cice.submit
 # After job finishes, check output
 cat test_output
 
-./create.case -m conrad -t smoke -testid t01 -td smoke_gx3_cheyenne_8x2 -s thread -p 4x1
+./create.case -m cheyenne -t smoke -testid t01 -td smoke_gx3_cheyenne_8x2 -s thread -p 4x1
 cd cheyenne_smoke_gx3_4x1_thread.t01
 ./cice.build
 ./cice.submit
@@ -186,5 +186,5 @@ Additional Details:
     use '-bg <version_name>'.  The scripts will then place the baseline dataset
     in $CICE_MACHINE_BASELINE/<version_name>/
 - The '-testid' flag allows users to specify a testing id that will be added to the
-    end of the case directory.  For example, "./create.case -m conrad -t smoke -testid t12"
-    creates the directory smoke_gx3_conrad_4x1.t12.  This flag is REQUIRED if using -t or -ts.
+    end of the case directory.  For example, "./create.case -m conrad -t smoke -testid t12 -p 4x1"
+    creates the directory conrad_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t or -ts.
