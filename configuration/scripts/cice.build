@@ -45,10 +45,14 @@ endif
 ### List of source code directories (in order of importance).
 cat >! Filepath << EOF
 ${CICE_SANDBOX}/cicecore/drivers/${CICE_DRVOPT}
-${CICE_SANDBOX}/cicecore/dynamics/cicedynB
-${CICE_SANDBOX}/cicecore/comm/${CICE_COMMDIR}
-${CICE_SANDBOX}/cicecore/io/$IODIR
-${CICE_SANDBOX}/cicecore/constants/${CICE_CONSTOPT}
+${CICE_SANDBOX}/cicecore/cicedynB/dynamics
+${CICE_SANDBOX}/cicecore/cicedynB/general
+${CICE_SANDBOX}/cicecore/cicedynB/analysis
+${CICE_SANDBOX}/cicecore/cicedynB/infrastructure
+${CICE_SANDBOX}/cicecore/cicedynB/infrastructure/io/$IODIR
+${CICE_SANDBOX}/cicecore/cicedynB/infrastructure/comm/${CICE_COMMDIR}
+${CICE_SANDBOX}/cicecore/shared
+${CICE_SANDBOX}/cicecore/shared/constants/${CICE_CONSTOPT}
 ${CICE_SANDBOX}/icepack/columnphysics
 ${CICE_SANDBOX}/icepack/columnphysics/constants/${CICE_CONSTOPT}
 EOF
