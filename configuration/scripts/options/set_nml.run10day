@@ -1,7 +1,5 @@
 npt            = 240
 dumpfreq       = 'd'
 dumpfreq_n     = 10
-bfbflag        = .true.
-diag_type      = 'stdout'
-print_global   = .true.
 histfreq       = 'd','x','x','x','x'
+

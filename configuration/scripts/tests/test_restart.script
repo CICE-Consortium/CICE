@@ -1,0 +1,56 @@
+
+# Build around a 10 day run with restart at day 5.
+#-----------------------------------------------------------
+# Run the CICE model baseline simulation
+
+cp ice_in ice_in.0
+${CICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${CICE_CASEDIR}/casescripts/test_nml.restart1
+cp ice_in ice_in.1
+
+./cice.run
+
+if ( $? != 0 ) then
+  echo "FAIL ${CICE_TESTNAME} run-initial" >> ${CICE_CASEDIR}/test_output
+  exit 99
+else
+  echo "PASS ${CICE_TESTNAME} run-initial" >> ${CICE_CASEDIR}/test_output
+endif
+
+# Prepend 'baseline_' to the final restart file to save for comparison
+set test_file = `ls -t1 ${CICE_RUNDIR}/restart | head -1`
+set test_data = ${CICE_RUNDIR}/restart/${test_file}
+set base_data = ${CICE_RUNDIR}/restart/base_${test_file}
+mv ${test_data} ${base_data}
+
+#-----------------------------------------------------------
+# Run the CICE model for the restart simulation
+
+# Modify the contents of the pointer file for restart
+perl -i -pe's/(\d{4})-(\d{2})-(\d{2})/sprintf("%04d-%02d-%02d",$1,$2,$3-5)/e' ${CICE_RUNDIR}/ice.restart_file
+
+${CICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${CICE_CASEDIR}/casescripts/test_nml.restart2
+cp ice_in ice_in.2
+
+./cice.run
+
+if ( $? != 0 ) then
+  echo "FAIL ${CICE_TESTNAME} run-restart" >> ${CICE_CASEDIR}/test_output
+  exit 99
+else
+  echo "PASS ${CICE_TESTNAME} run-restart" >> ${CICE_CASEDIR}/test_output
+endif
+
+#-----------------------------------------------------------
+
+echo "Exact Restart Comparison Mode:"
+echo "Performing binary comparison between files:"
+echo "base: $base_data"
+echo "test: $test_data"
+if ( { cmp -s $test_data $base_data } ) then
+  echo "PASS ${CICE_TESTNAME} exact-restart" >> ${CICE_CASEDIR}/test_output
+else
+  echo "FAIL ${CICE_TESTNAME} exact-restart" >> ${CICE_CASEDIR}/test_output
+endif
+
+#-----------------------------------------------------------
+

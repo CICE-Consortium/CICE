@@ -1,6 +1,7 @@
 #! /bin/csh -f
 
-echo ${0}
+#echo ${0}
+echo "running cice.run.setup.csh"
 
 source ./cice.settings
 source ${CICE_CASEDIR}/env.${CICE_MACHINE} || exit 2
@@ -13,8 +14,9 @@ set nthrds = ${CICE_NTHRDS}
 #==========================================
 
 # Write the batch code into the job file
-${CICE_SCRDIR}/cice.batch.csh ${jobfile}
-if ($? == -1) then
+${CICE_SCRIPTS}/cice.batch.csh ${jobfile}
+if ($? != 0) then
+  echo "${0}: ERROR cice.batch.csh aborted"
   exit -1
 endif
 
@@ -58,8 +60,9 @@ EOF1
 #==========================================
 
 # Write the job launching logic into the job file
-${CICE_SCRDIR}/cice.launch.csh ${jobfile}
-if ($? == -1) then
+${CICE_SCRIPTS}/cice.launch.csh ${jobfile}
+if ($? != 0) then
+  echo "${0}: ERROR cice.launch.csh aborted"
   exit -1
 endif
 
@@ -101,3 +104,4 @@ echo "\`date\` \${0}: ${CICE_CASENAME} job submitted"  >> ${CICE_CASEDIR}/README
 EOFS
 
 chmod +x ${subfile}
+exit 0

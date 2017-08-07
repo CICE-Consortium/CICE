@@ -1,9 +1,9 @@
 #! /bin/csh -f
 
 if ( $1 != "" ) then
-  echo ${0} ${1}
+  echo ${0:t} ${1}
 else
-  echo ${0}
+  echo ${0:t}
 endif
 
 source ./cice.settings
@@ -21,6 +21,7 @@ set acct   = ${CICE_MACHINE_ACCT}
 if (${nnodes} * ${taskpernode} < ${ntasks}) @ nnodes = $nnodes + 1
 set taskpernodelimit = ${taskpernode}
 if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
+@ corespernode = ${taskpernodelimit} * ${nthrds}
 
 set ptile = $taskpernode
 if ($ptile > ${maxtpn} / 2) @ ptile = ${maxtpn} / 2
@@ -44,7 +45,7 @@ cat >> ${jobfile} << EOFB
 #BSUB -o poe.stdout.%J
 #BSUB -e poe.stderr.%J
 #BSUB -J ${CICE_CASENAME}
-#BSUB -W 0:10
+#BSUB -W ${CICE_RUNLENGTH}
 #BSUB -P ${acct}
 EOFB
 
@@ -58,8 +59,8 @@ cat >> ${jobfile} << EOFB
 #PBS -q regular
 #PBS -N ${CICE_CASENAME}
 #PBS -A ${CICE_ACCT}
-#PBS -l select=${nnodes}:ncpus=${ntasks}:mpiprocs=${ntasks}
-#PBS -l walltime=00:10:00
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
+#PBS -l walltime=${CICE_RUNLENGTH}
 EOFB
 
 else if (${CICE_MACHINE} =~ thunder* || ${CICE_MACHINE} =~ gordon* || ${CICE_MACHINE} =~ conrad*) then
@@ -68,7 +69,7 @@ cat >> ${jobfile} << EOFB
 #PBS -q debug
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=0:30:00
+#PBS -l walltime=${CICE_RUNLENGTH}
 #PBS -j oe
 ###PBS -M username@domain.com
 ###PBS -m be
@@ -80,7 +81,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -p debug
 ###SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
-#SBATCH -t 0:10:00
+#SBATCH -t ${CICE_RUNLENGTH}
 #SBATCH -L SCRATCH
 #SBATCH -C haswell
 ###SBATCH -e filename
@@ -92,7 +93,7 @@ EOFB
 else if (${CICE_MACHINE} =~ wolf*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${CICE_CASENAME}
-#SBATCH -t 0:45:00
+#SBATCH -t ${CICE_RUNLENGTH}
 #SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
@@ -105,7 +106,7 @@ EOFB
 else if (${CICE_MACHINE} =~ pinto*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${CICE_CASENAME}
-#SBATCH -t 0:45:00
+#SBATCH -t ${CICE_RUNLENGTH}
 #SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
@@ -116,6 +117,8 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else
-  echo "${0} ERROR ${CICE_MACHINE} unknown"
+  echo "${0} ERROR: ${CICE_MACHINE} unknown"
   exit -1
 endif
+
+exit 0

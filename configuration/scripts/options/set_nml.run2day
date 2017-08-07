@@ -1,0 +1,5 @@
+npt            = 48
+dumpfreq       = 'd'
+dumpfreq_n     = 2
+histfreq       = 'd','x','x','x','x'
+

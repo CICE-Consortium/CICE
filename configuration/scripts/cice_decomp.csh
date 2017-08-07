@@ -1,12 +1,10 @@
 #!/bin/csh -f
 
-set toolname = "cice_decomp.csh"
-
 #--- inputs ---
 
-echo "${toolname}  input CICE_DECOMP_GRID  = $CICE_DECOMP_GRID"
-echo "${toolname}  input CICE_DECOMP_NTASK = $CICE_DECOMP_NTASK"
-echo "${toolname}  input CICE_DECOMP_NTHRD = $CICE_DECOMP_NTHRD"
+echo "${0:t}  input CICE_DECOMP_GRID  = $CICE_DECOMP_GRID"
+echo "${0:t}  input CICE_DECOMP_NTASK = $CICE_DECOMP_NTASK"
+echo "${0:t}  input CICE_DECOMP_NTHRD = $CICE_DECOMP_NTHRD"
 
 set grid = $CICE_DECOMP_GRID
 set task = $CICE_DECOMP_NTASK
@@ -76,7 +74,7 @@ else if (${grid} == 'tx1') then
   endif
 
 else
-  echo "${toolname}: ERROR unknown grid ${grid}"
+  echo "${0:t}: ERROR unknown grid ${grid}"
   exit -9
 endif
 
@@ -107,14 +105,16 @@ setenv CICE_DECOMP_KMTFILE  $kmtfile
 setenv CICE_DECOMP_INITFILE $initfile
 setenv CICE_DECOMP_RSTPFILE $rstpfile
 
-echo "${toolname} output CICE_DECOMP_NXGLOB   = $CICE_DECOMP_NXGLOB"
-echo "${toolname} output CICE_DECOMP_NYGLOB   = $CICE_DECOMP_NYGLOB"
-echo "${toolname} output CICE_DECOMP_BLCKX    = $CICE_DECOMP_BLCKX"
-echo "${toolname} output CICE_DECOMP_BLCKY    = $CICE_DECOMP_BLCKY"
-echo "${toolname} output CICE_DECOMP_MXBLCKS  = $CICE_DECOMP_MXBLCKS"
-echo "${toolname} output CICE_DECOMP_DECOMP   = $CICE_DECOMP_DECOMP"
-echo "${toolname} output CICE_DECOMP_DSHAPE   = $CICE_DECOMP_DSHAPE"
-echo "${toolname} output CICE_DECOMP_GRIDFILE = $CICE_DECOMP_GRIDFILE"
-echo "${toolname} output CICE_DECOMP_KMTFILE  = $CICE_DECOMP_KMTFILE"
-echo "${toolname} output CICE_DECOMP_INITFILE = $CICE_DECOMP_INITFILE"
-echo "${toolname} output CICE_DECOMP_RSTPFILE = $CICE_DECOMP_RSTPFILE"
+echo "${0:t} output CICE_DECOMP_NXGLOB   = $CICE_DECOMP_NXGLOB"
+echo "${0:t} output CICE_DECOMP_NYGLOB   = $CICE_DECOMP_NYGLOB"
+echo "${0:t} output CICE_DECOMP_BLCKX    = $CICE_DECOMP_BLCKX"
+echo "${0:t} output CICE_DECOMP_BLCKY    = $CICE_DECOMP_BLCKY"
+echo "${0:t} output CICE_DECOMP_MXBLCKS  = $CICE_DECOMP_MXBLCKS"
+echo "${0:t} output CICE_DECOMP_DECOMP   = $CICE_DECOMP_DECOMP"
+echo "${0:t} output CICE_DECOMP_DSHAPE   = $CICE_DECOMP_DSHAPE"
+echo "${0:t} output CICE_DECOMP_GRIDFILE = $CICE_DECOMP_GRIDFILE"
+echo "${0:t} output CICE_DECOMP_KMTFILE  = $CICE_DECOMP_KMTFILE"
+echo "${0:t} output CICE_DECOMP_INITFILE = $CICE_DECOMP_INITFILE"
+echo "${0:t} output CICE_DECOMP_RSTPFILE = $CICE_DECOMP_RSTPFILE"
+
+exit 0

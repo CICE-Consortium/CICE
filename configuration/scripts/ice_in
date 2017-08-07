@@ -4,7 +4,7 @@
     year_init      = 1997
     istep0         = 0
     dt             = 3600.0
-    npt            = 120
+    npt            = 24
     ndtd           = 1
     runtype        = 'initial'
     ice_ic         = './restart/iced_gx3_v5.nc'
@@ -16,7 +16,7 @@
     restart_dir    = './restart/'
     restart_file   = 'iced'
     pointer_file   = './ice.restart_file'
-    dumpfreq       = 'm'
+    dumpfreq       = 'd'
     dumpfreq_n     = 1
     dump_last      = .false.
     bfbflag        = .false.
