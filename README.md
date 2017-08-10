@@ -1,5 +1,7 @@
 *This repository is under construction, and some resources listed here are not yet available*
 
+Please see the documentation here: https://duvivier.github.io/CICE/
+
 ## Overview
 
 This repository contains files needed to run versions 6 and higher of the sea ice model CICE, which is now maintained by the CICE Consortium.  Versions prior to v6 are found in the [CICE-svn-trunk repository](https://github.com/CICE-Consortium/CICE-svn-trunk).

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# CICE-Consoritum documentation build configuration file, created by
+# CICE-Consortium documentation build configuration file, created by
 # sphinx-quickstart on Thu Jun 29 13:47:09 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -29,11 +29,14 @@ import os
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
+    'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.githubpages',
+    'sphinxcontrib.bibtex',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,8 +54,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'CICE-Consoritum'
-copyright = u'2017, Alice DuVivier'
+project = u'CICE-Consortium'
+copyright = u'2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation)'
 author = u'Alice DuVivier'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -114,7 +117,7 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'alabaster'
+html_theme = 'bizstyle'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -260,7 +263,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'cice-consoritum', u'CICE-Consoritum Documentation',
+    (master_doc, 'cice-consortium', u'CICE-Consortium Documentation',
      [author], 1)
 ]
 
