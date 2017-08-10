@@ -1,0 +1,825 @@
+
+
+<!doctype html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>7. Table of namelist options &mdash; CICE-Consortium 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/bizstyle.js"></script>
+    <link rel="top" title="CICE-Consortium 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="8. Index of primary variables and parameters" href="cice_8_index.html" />
+    <link rel="prev" title="6. Acknowledgments and Copyright" href="cice_6_copyright.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="cice_8_index.html" title="8. Index of primary variables and parameters"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="cice_6_copyright.html" title="6. Acknowledgments and Copyright"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cice_6_copyright.html"
+                        title="previous chapter">6. Acknowledgments and Copyright</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="cice_8_index.html"
+                        title="next chapter">8. Index of primary variables and parameters</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/cice_7_namelist_opts.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="table-of-namelist-options">
+<span id="tabnamelist"></span><h1>7. Table of namelist options<a class="headerlink" href="#table-of-namelist-options" title="Permalink to this headline">¶</a></h1>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="17%" />
+<col width="48%" />
+<col width="17%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">variable</th>
+<th class="head">options/format</th>
+<th class="head">description</th>
+<th class="head">recommended value</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><em>setup_nml</em></td>
+<td>&nbsp;</td>
+<td><em>Time, Diagnostics</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>days_per_year</td>
+<td>360 or 365</td>
+<td>number of days in a model year</td>
+<td>365</td>
+</tr>
+<tr class="row-odd"><td>use_leap_years</td>
+<td>true/false</td>
+<td>if true, include leap days</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>year_init</td>
+<td>yyyy</td>
+<td>the initial year, if not using restart</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>istep0</td>
+<td>integer</td>
+<td>initial time step number</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td>dt</td>
+<td>seconds</td>
+<td>thermodynamics time step length</td>
+<td><ol class="first last arabic simple" start="3600">
+<li></li>
+</ol>
+</td>
+</tr>
+<tr class="row-odd"><td>npt</td>
+<td>integer</td>
+<td>total number of time steps to take</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>ndtd</td>
+<td>integer</td>
+<td>number of dynamics/advection/ridging</td>
+<td>1</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>steps per thermo timestep</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td><em>Initialization/Restarting</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>runtype</td>
+<td>initial</td>
+<td>start from ice_ic</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>continue</td>
+<td>restart using pointer_file</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>ice_ic</td>
+<td>default</td>
+<td>latitude and sst dependent</td>
+<td>default</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>none</td>
+<td>no ice</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>path/file</td>
+<td>restart file name</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>restart</td>
+<td>true/false</td>
+<td>initialize using restart file</td>
+<td>.true.</td>
+</tr>
+<tr class="row-even"><td>use_restart_time</td>
+<td>true/false</td>
+<td>set initial date using restart file</td>
+<td>.true.</td>
+</tr>
+<tr class="row-odd"><td>restart_format</td>
+<td>nc</td>
+<td>read/write &nbsp;restart files (use with PIO)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>bin</td>
+<td>read/write binary restart files</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>lcdf64</td>
+<td>true/false</td>
+<td>if true, use 64-bit &nbsp;format</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>restart_dir</td>
+<td>path/</td>
+<td>path to restart directory</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>restart_ext</td>
+<td>true/false</td>
+<td>read/write halo cells in restart files</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>restart_file</td>
+<td>filename prefix</td>
+<td>output file for restart dump</td>
+<td>‘iced’</td>
+</tr>
+<tr class="row-odd"><td>pointer_file</td>
+<td>pointer filename</td>
+<td>contains restart filename</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>dumpfreq</td>
+<td>y</td>
+<td>write restart every dumpfreq_n years</td>
+<td>y</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>m</td>
+<td>write restart every dumpfreq_n months</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>d</td>
+<td>write restart every dumpfreq_n days</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>dumpfreq_n</td>
+<td>integer</td>
+<td>frequency restart data is written</td>
+<td>1</td>
+</tr>
+<tr class="row-even"><td>dump_last</td>
+<td>true/false</td>
+<td>if true, write restart on last time step of simulation</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td><em>Model Output</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>bfbflag</td>
+<td>true/false</td>
+<td>for bit-for-bit diagnostic output</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>diagfreq</td>
+<td>integer</td>
+<td>frequency of diagnostic output in dt</td>
+<td>24</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td><em>e.g.</em>, 10</td>
+<td>once every 10 time steps</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>diag_type</td>
+<td>stdout</td>
+<td>write diagnostic output to stdout</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>file</td>
+<td>write diagnostic output to file</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>diag_file</td>
+<td>filename</td>
+<td>diagnostic output file (script may reset)</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="17%" />
+<col width="47%" />
+<col width="19%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">variable</th>
+<th class="head">options/format</th>
+<th class="head">description</th>
+<th class="head">recommended value</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td><em>Model Output, continued</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>print_global</td>
+<td>true/false</td>
+<td>print diagnostic data, global sums</td>
+<td>.false.</td>
+</tr>
+<tr class="row-odd"><td>print_points</td>
+<td>true/false</td>
+<td>print diagnostic data for two grid points</td>
+<td>.false.</td>
+</tr>
+<tr class="row-even"><td>latpnt</td>
+<td>real</td>
+<td>latitude of (2) diagnostic points</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>lonpnt</td>
+<td>real</td>
+<td>longitude of (2) diagnostic points</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>dbug</td>
+<td>true/false</td>
+<td>if true, write extra diagnostics</td>
+<td>.false.</td>
+</tr>
+<tr class="row-odd"><td>histfreq</td>
+<td>string array</td>
+<td>defines output frequencies</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>y</td>
+<td>write history every histfreq_n years</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>m</td>
+<td>write history every histfreq_n months</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>d</td>
+<td>write history every histfreq_n days</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>h</td>
+<td>write history every histfreq_n hours</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>write history every time step</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>x</td>
+<td>unused frequency stream (not written)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>histfreq_n</td>
+<td>integer array</td>
+<td>frequency history output is written</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>do not write to history</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>hist_avg</td>
+<td>true</td>
+<td>write time-averaged data</td>
+<td>.true.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>false</td>
+<td>write snapshots of data</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>history_dir</td>
+<td>path/</td>
+<td>path to history output directory</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>history_file</td>
+<td>filename prefix</td>
+<td>output file for history</td>
+<td>‘iceh’</td>
+</tr>
+<tr class="row-even"><td>write_ic</td>
+<td>true/false</td>
+<td>write initial condition</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>incond_dir</td>
+<td>path/</td>
+<td>path to initial condition directory</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>incond_file</td>
+<td>filename prefix</td>
+<td>output file for initial condition</td>
+<td>‘iceh’</td>
+</tr>
+<tr class="row-odd"><td>runid</td>
+<td>string</td>
+<td>label for run (currently CESM only)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><em>grid_nml</em></td>
+<td>&nbsp;</td>
+<td><em>Grid</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>grid_format</td>
+<td>nc</td>
+<td>read &nbsp;grid and kmt files</td>
+<td>‘bin’</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>bin</td>
+<td>read direct access, binary file</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>grid_type</td>
+<td>rectangular</td>
+<td>defined in <em>rectgrid</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>displaced_pole</td>
+<td>read from file in <em>popgrid</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>tripole</td>
+<td>read from file in <em>popgrid</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>regional</td>
+<td>read from file in <em>popgrid</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>grid_file</td>
+<td>filename</td>
+<td>name of grid file to be read</td>
+<td>‘grid’</td>
+</tr>
+<tr class="row-odd"><td>kmt_file</td>
+<td>filename</td>
+<td>name of land mask file to be read</td>
+<td>‘kmt’</td>
+</tr>
+<tr class="row-even"><td>gridcpl_file</td>
+<td>filename</td>
+<td>input file for coupling grid info</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>kcatbound</td>
+<td>0</td>
+<td>original category boundary formula</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>new formula with round numbers</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>2</td>
+<td>WMO standard categories</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>-1</td>
+<td>one category</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td><em>domain_nml</em></td>
+<td>&nbsp;</td>
+<td><em>Domain</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>nprocs</td>
+<td>integer</td>
+<td>number of processors to use</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>processor_shape</td>
+<td>slenderX1</td>
+<td>1 processor in the y direction (tall, thin)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>slenderX2</td>
+<td>2 processors in the y direction (thin)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>square-ice</td>
+<td>more processors in x than y, <span class="math">\sim</span>square</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>square-pop</td>
+<td>more processors in y than x, <span class="math">\sim</span>square</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="26%" />
+<col width="12%" />
+<col width="46%" />
+<col width="16%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">variable</th>
+<th class="head">options/format</th>
+<th class="head">description</th>
+<th class="head">recommended value</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td><em>Forcing, continued</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>atm_data_dir</td>
+<td>path/</td>
+<td>path to atmospheric forcing data directory</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>calc_strair</td>
+<td>true</td>
+<td>calculate wind stress and speed</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>false</td>
+<td>read wind stress and speed from files</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>highfreq</td>
+<td>true/false</td>
+<td>high-frequency atmo coupling</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>natmiter</td>
+<td>integer</td>
+<td>number of atmo boundary layer iterations</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>calc_Tsfc</td>
+<td>true/false</td>
+<td>calculate surface temperature</td>
+<td>.true.</td>
+</tr>
+<tr class="row-even"><td>precip_units</td>
+<td>mks</td>
+<td>liquid precipitation data units</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>mm_per_month</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>mm_per_sec</td>
+<td>(same as MKS units)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>tfrz_option</td>
+<td>minus1p8</td>
+<td>constant ocean freezing temperature (<span class="math">-1.8\degC</span>)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>linear_salt</td>
+<td>linear function of salinity (ktherm=1)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>mushy_layer</td>
+<td>matches mushy-layer thermo (ktherm=2)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>ustar_min</td>
+<td>real</td>
+<td>minimum value of ocean friction velocity</td>
+<td>0.0005 m/s</td>
+</tr>
+<tr class="row-odd"><td>fbot_xfer_type</td>
+<td>constant</td>
+<td>constant ocean heat transfer coefficient</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>Cdn_ocn</td>
+<td>variable ocean heat transfer coefficient</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>update_ocn_f</td>
+<td>true</td>
+<td>include frazil water/salt fluxes in ocn fluxes</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>false</td>
+<td>do not include (when coupling with POP)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>l_mpond_fresh</td>
+<td>true</td>
+<td>retain (topo) pond water until ponds drain</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>false</td>
+<td>release (topo) pond water immediately to ocean</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>oceanmixed_ice</td>
+<td>true/false</td>
+<td>active ocean mixed layer calculation</td>
+<td>.true. (if uncoupled)</td>
+</tr>
+<tr class="row-even"><td>ocn_data_format</td>
+<td>nc</td>
+<td>read &nbsp;ocean forcing files</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>bin</td>
+<td>read direct access, binary files</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>sss_data_type</td>
+<td>default</td>
+<td>constant values defined in the code</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>clim</td>
+<td>climatological data</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>POP ocean forcing data</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>sst_data_type</td>
+<td>default</td>
+<td>constant values defined in the code</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>clim</td>
+<td>climatological data</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>ncar</td>
+<td>POP ocean forcing data</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>ocn_data_dir</td>
+<td>path/</td>
+<td>path to oceanic forcing data directory</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>oceanmixed_file</td>
+<td>filename</td>
+<td>data file containing ocean forcing data</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>restore_sst</td>
+<td>true/false</td>
+<td>restore sst to data</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>trestore</td>
+<td>integer</td>
+<td>sst restoring time scale (days)</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>restore_ice</td>
+<td>true/false</td>
+<td>restore ice state along lateral boundaries</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td><em>icefields_[tracer_]nml</em></td>
+<td>&nbsp;</td>
+<td><em>History Fields</em></td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>f_<span class="math">\left<var\right></span></td>
+<td>string</td>
+<td>frequency units for writing <span class="math">\left<var\right></span> to history</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>y</td>
+<td>write history every histfreq_n years</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>m</td>
+<td>write history every histfreq_n months</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>d</td>
+<td>write history every histfreq_n days</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>h</td>
+<td>write history every histfreq_n hours</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>write history every time step</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>x</td>
+<td>do not write <span class="math">\left<var\right></span> to history</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>md</td>
+<td><em>e.g.,</em> write both monthly and daily files</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>f_<span class="math">\left<var\right></span>_ai</td>
+<td>&nbsp;</td>
+<td>grid cell average of <span class="math">\left<var\right></span> (<span class="math">\times a_i</span>)</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="cice_8_index.html" title="8. Index of primary variables and parameters"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="cice_6_copyright.html" title="6. Acknowledgments and Copyright"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation).
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>

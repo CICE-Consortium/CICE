@@ -3,16 +3,28 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to CICE-Consoritum's documentation!
+===========================================
+Documentation for CICE-Consortium 
+CICE
 ===========================================
 
-Contents:
+Table of Contents:
+==================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
+   :numbered:
 
-
-
+   cice_1_introduction.rst
+   cice_2_coupling.rst
+   cice_3_model_components.rst
+   cice_4_numerical_implementation.rst
+   cice_5_troubleshooting.rst
+   cice_6_copyright.rst
+   cice_7_namelist_opts.rst
+   cice_8_index.rst
+   zreferences.rst
+ 
 Indices and tables
 ==================
 

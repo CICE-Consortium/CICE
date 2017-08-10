@@ -1,0 +1,207 @@
+
+
+<!doctype html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>1. Introduction - CICE5 &mdash; CICE-Consortium 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/bizstyle.js"></script>
+    <link rel="top" title="CICE-Consortium 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="2. Coupling with other climate model components" href="cice_2_coupling.html" />
+    <link rel="prev" title="Table of Contents:" href="index.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="cice_2_coupling.html" title="2. Coupling with other climate model components"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Table of Contents:"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">1. Introduction - CICE5</a><ul>
+<li><a class="reference internal" href="#major-updates-in-v5-1">1.1. Major updates in V5.1</a></li>
+<li><a class="reference internal" href="#major-updates-in-v5-0">1.2. Major updates in V5.0</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Table of Contents:</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="cice_2_coupling.html"
+                        title="next chapter">2. Coupling with other climate model components</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/cice_1_introduction.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="introduction-cice5">
+<h1>1. Introduction - CICE5<a class="headerlink" href="#introduction-cice5" title="Permalink to this headline">¶</a></h1>
+<p>The Los Alamos sea ice model (CICE) is the result of an effort to
+develop a computationally efficient sea ice component for a fully
+coupled atmosphere&#8211;land global climate model. It was
+designed to be compatible with the Parallel Ocean Program
+(POP), an ocean circulation model developed at
+Los Alamos National Laboratory for use on massively parallel computers
+<a class="reference internal" href="zreferences.html#sdm92" id="id1">[61]</a><a class="reference internal" href="zreferences.html#dsm93" id="id2">[13]</a><a class="reference internal" href="zreferences.html#dsm94" id="id3">[14]</a>. The current version of the
+model has been enhanced greatly through collaborations with members of
+the community.</p>
+<p>CICE has several interacting components: a thermodynamic model that
+computes local growth rates of snow and ice due to vertical conductive,
+radiative and turbulent fluxes, along with snowfall; a model of ice
+dynamics, which predicts the velocity field of the ice pack based on
+a model of the material strength of the ice; a transport model that
+describes advection of the areal concentration, ice volumes and other
+state variables; and a ridging parameterization that transfers ice among
+thickness categories based on energetic balances and
+rates of strain.External routines would prepare and execute data exchanges with an
+external &#8220;flux coupler,&#8221; which then passes the data to other climate
+model components such as POP.</p>
+<p>This model release is CICE version 5.1, available from <a class="reference external" href="http://oceans11.lanl.gov/trac/CICE/wiki">http://oceans11.lanl.gov/trac/CICE/wiki</a>.
+It updates CICE5.0, which was released in September 2013. With so many new parameterizations,
+we must admit that all combinations have not been tested.  Also, different parameterizations for
+various sub-processes (e.g., snow infiltration by melt or sea water) have been introduced as part
+of the new code options, which need to be unified or pulled out as separate options.</p>
+<p>This document uses the following text conventions:
+Variable names used in the code are <code class="docutils literal"><span class="pre">typewritten</span></code>.
+Subroutine names are given in <em>italic</em>.
+File and directory names are in <strong>boldface</strong>.
+A comprehensive <a class="reference internal" href="cice_8_index.html#index"><span class="std std-ref">Index of primary variables and parameters</span></a>, including glossary of symbols with many of their values, appears
+at the end of this guide.</p>
+<div class="section" id="major-updates-in-v5-1">
+<h2>1.1. Major updates in V5.1<a class="headerlink" href="#major-updates-in-v5-1" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p class="first">include ice velocity in atm-ice coupling updates (e.g. stress) for high-frequency coupling</p>
+</li>
+<li><p class="first">allow a variable coefficient for the ice-ocean heat flux</p>
+</li>
+<li><dl class="first docutils">
+<dt>several new namelist options improve flexibility, especially for coupled model configurations:</dt>
+<dd><ul class="first last simple">
+<li>ice-ocean heat flux</li>
+<li>&#8216;virtual&#8217; or &#8216;real&#8217; topo melt pond water</li>
+<li>ocean freezing temperature</li>
+<li>high-frequency coupling</li>
+<li>coupling and computational grids may be different</li>
+<li>and more</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">additional software enhancements improve flexibility and compatibility with CESM, Hadley Centre, and U.S. Navy coupled models</p>
+</li>
+<li><p class="first">new diagnostics and updated documentation</p>
+</li>
+<li><p class="first">various bug fixes</p>
+</li>
+</ul>
+</div>
+<div class="section" id="major-updates-in-v5-0">
+<h2>1.2. Major updates in V5.0<a class="headerlink" href="#major-updates-in-v5-0" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>A method for prognosing sea ice salinity, including improved snow-ice formation</li>
+<li>Two new explicit melt pond parameterizations (topo and level-ice)</li>
+<li>Sea ice biogeochemistry</li>
+<li>Elastic-Anisotropic-Plastic rheology</li>
+<li>Improved parameterization of form drag</li>
+<li>The &#8220;revised EVP&#8221; under-damping approach</li>
+<li>Gracefully handles the case when an internal layer melts completely</li>
+<li>Gregorian calendar with leap years</li>
+<li>Reduced memory and floating-point operations for tracer calculations</li>
+<li>Ice and snow enthalpy defined as tracers</li>
+<li>New history variables for melt ponds, ridging diagnostics, biogeochemistry and more</li>
+<li>Read/write variables on the extended grid, including ghost (halo) cells</li>
+<li>Parallelism option via OpenMP threads</li>
+<li>Improved parallel efficiency through halo masks and new block distributions</li>
+<li>Parallel I/O option via the PIO library</li>
+<li>Restarts in binary or netCDF formats</li>
+<li>CPP options for categories, layers and tracers</li>
+<li>Corrected bugs, particularly for nonstandard configurations.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="cice_2_coupling.html" title="2. Coupling with other climate model components"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Table of Contents:"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation).
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>
