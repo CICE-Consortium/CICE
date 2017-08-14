@@ -1,10 +1,4 @@
-[Enter Description of the changes in this Pull Request. It should be 
-enough information for someone not following this development to 
-understand. Please also update the documentation, if necessary, in 
-doc/source/rst and indicate below if you need to have the gh-pages html regenerated.]
-
-Summary:
-PR Creator:
+[Remove this and add a short summary line]:
 Developer(s):
 Updated documentation (Y/N):
 Results (bit for bit, roundoff, climate changing):
