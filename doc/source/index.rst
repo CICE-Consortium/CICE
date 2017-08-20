@@ -4,12 +4,11 @@
    contain the root `toctree` directive.
 
 ===========================================
-Documentation for CICE-Consortium 
-CICE
+CICE Documentation 
 ===========================================
 
 Table of Contents:
-==================
+------------------
 
 .. toctree::
    :maxdepth: 3
@@ -29,6 +28,5 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
 
