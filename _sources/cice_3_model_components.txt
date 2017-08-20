@@ -1504,7 +1504,7 @@ exceeds the midpoint thickness. For :math:`h_n = 0.2` and 0.8,
 :ref:`fig-gplot` : Linear approximation of the thickness distribution
 function :math:`g(h)` for an ice category with left boundary
 :math:`H_L = 0`, right boundary :math:`H_R = 1`, fractional area
-:math:`a_n = 1`, and mean ice thickness :math:`h_n = ` 0.2, 0.4, 0.6, and 0.8.
+:math:`a_n = 1`, and mean ice thickness :math:`h_n = 0.2, 0.4, 0.6,` and :math:`0.8`.
 
 Finally, we remap the thickness distribution to the original boundaries
 by transferring area and volume between categories. We compute the ice

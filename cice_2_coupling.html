@@ -98,7 +98,7 @@
 <p>The sea ice model exchanges information with the other model components
 via a flux coupler. CICE has been coupled into numerous climate models
 with a variety of coupling techniques. This document is oriented
-primarily toward the CESM Flux Coupler <a class="reference internal" href="zreferences.html#kl02" id="id1">[38]</a>
+primarily toward the CESM Flux Coupler <a class="reference internal" href="zreferences.html#kl02" id="id1">[39]</a>
 from NCAR, the first major climate model to incorporate CICE. The flux
 coupler was originally intended to gather state variables from the
 component models, compute fluxes at the model interfaces, and return
@@ -320,7 +320,7 @@ stress and turbulent heat fluxes <span class="math">\(\vec\tau_a\)</span>, <span
 <span class="math">\(F_l\)</span>, as described below. Wind stress is arguably the primary
 forcing mechanism for the ice motion, although the ice–ocean stress,
 Coriolis force, and slope of the ocean surface are also important
-<a class="reference internal" href="zreferences.html#szrs97" id="id2">[64]</a>. The sensible and latent heat fluxes,
+<a class="reference internal" href="zreferences.html#szrs97" id="id2">[65]</a>. The sensible and latent heat fluxes,
 <span class="math">\(F_s\)</span> and <span class="math">\(F_l\)</span>, along with shortwave and longwave
 radiation, <span class="math">\(F_{sw\downarrow}\)</span>, <span class="math">\(F_{L\downarrow}\)</span>
 and <span class="math">\(F_{L\uparrow}\)</span>, are included in the flux balance that
@@ -338,7 +338,7 @@ heat budget of the ice; this version includes two new melt pond
 parameterizations. Rain and all melted snow end up in the ocean.</p>
 <p>Wind stress and transfer coefficients for the
 turbulent heat fluxes are computed in subroutine
-<em>atmo_boundary_layer</em> following <a class="reference internal" href="zreferences.html#kl02" id="id3">[38]</a>. For
+<em>atmo_boundary_layer</em> following <a class="reference internal" href="zreferences.html#kl02" id="id3">[39]</a>. For
 clarity, the equations are reproduced here in the present notation.</p>
 <p>The wind stress and turbulent heat flux calculation accounts for both
 stable and unstable atmosphere–ice boundary layers. Define the
@@ -382,8 +382,8 @@ unstable (<span class="math">\(\Upsilon &lt;0\)</span>) case are given by</p>
          {\pi\over 2}, \\
 \psi_s = &amp;\mbox{}&amp;2\ln\left[0.5(1+\chi^2)\right].\end{aligned}\end{split}\]</div>
 <p>In a departure from the parameterization used in
-<a class="reference internal" href="zreferences.html#kl02" id="id4">[38]</a>, we use profiles for the stable case
-following <a class="reference internal" href="zreferences.html#jam99" id="id5">[37]</a>,</p>
+<a class="reference internal" href="zreferences.html#kl02" id="id4">[39]</a>, we use profiles for the stable case
+following <a class="reference internal" href="zreferences.html#jam99" id="id5">[38]</a>,</p>
 <div class="math">
 \[\psi_m = \psi_s = -\left[0.7\Upsilon + 0.75\left(\Upsilon-14.3\right)
          \exp\left(-0.35\Upsilon\right) + 10.7\right].\]</div>
@@ -406,7 +406,7 @@ C_s&amp;=&amp;\rho_a c_p u^* c_\theta^* + 1, \\
 <p>where <span class="math">\(L_{vap}\)</span> and <span class="math">\(L_{ice}\)</span> are
 latent heats of vaporization and fusion, <span class="math">\(\rho_a\)</span> is the density
 of air and <span class="math">\(c_p\)</span> is its specific heat. Again following
-<a class="reference internal" href="zreferences.html#jam99" id="id6">[37]</a>, we have added a constant to the sensible
+<a class="reference internal" href="zreferences.html#jam99" id="id6">[38]</a>, we have added a constant to the sensible
 heat flux coefficient in order to allow some heat to pass between the
 atmosphere and the ice surface in stable, calm conditions.</p>
 <p>The atmospheric reference temperature <span class="math">\(T_a^{ref}\)</span> is computed from
@@ -432,8 +432,8 @@ ocean emissivity, <span class="math">\(\sigma\)</span> is the Stephan-Boltzman c
 surface air temperature (K). The first term on the right is upwelling
 longwave due to the mean (merged) ice and ocean surface temperature,
 <span class="math">\(T_s\)</span> (K), and the other terms on the right represent the net
-longwave radiation patterned after <a class="reference internal" href="zreferences.html#rm88" id="id7">[55]</a>. The
-downwelling longwave formula of <a class="reference internal" href="zreferences.html#pw79" id="id8">[53]</a> is also
+longwave radiation patterned after <a class="reference internal" href="zreferences.html#rm88" id="id7">[56]</a>. The
+downwelling longwave formula of <a class="reference internal" href="zreferences.html#pw79" id="id8">[54]</a> is also
 available in function <em>longwave_parkinson_washington</em>:</p>
 <div class="math">
 \[F_{lw\downarrow} = \epsilon\sigma T_a^4 (1-0.261 \exp\left(-7.77\times 10^{-4}T_a^2\right)\left(1 + 0.275f_{cld}\right)\]</div>
@@ -535,8 +535,8 @@ with an effective sea ice surface roughness at the ice–atmosphere and
 ice–ocean interfaces. Sea ice (in both Arctic and Antarctic) contains
 pressure ridges as well as floe and melt pond edges that act as discrete
 obstructions to the flow of air or water past the ice, and are a source
-of form drag. Following <a class="reference internal" href="zreferences.html#tfsffklb14" id="id11">[70]</a> and based on
-recent theoretical developments <a class="reference internal" href="zreferences.html#lgha12" id="id12">[45]</a><a class="reference internal" href="zreferences.html#llcl11" id="id13">[44]</a>, the
+of form drag. Following <a class="reference internal" href="zreferences.html#tfsffklb14" id="id11">[71]</a> and based on
+recent theoretical developments <a class="reference internal" href="zreferences.html#lgha12" id="id12">[46]</a><a class="reference internal" href="zreferences.html#llcl11" id="id13">[45]</a>, the
 neutral drag coefficients can now be estimated from properties of the
 ice cover such as ice concentration, vertical extent and area of the
 ridges, freeboard and floe draft, and size of floes and melt ponds. The
@@ -544,7 +544,7 @@ new parameterization allows the drag coefficients to be coupled to the
 sea ice state and therefore to evolve spatially and temporally. This
 parameterization is contained in the subroutine <em>neutral_drag_coeffs</em>
 and is accessed by setting <cite>formdrag</cite> = true in the namelist.</p>
-<p>Following <a class="reference internal" href="zreferences.html#tfsffklb14" id="id14">[70]</a>, consider the general case of
+<p>Following <a class="reference internal" href="zreferences.html#tfsffklb14" id="id14">[71]</a>, consider the general case of
 fluid flow obstructed by N randomly oriented obstacles of height
 <span class="math">\(H\)</span> and transverse length <span class="math">\(L_y\)</span>, distributed on a domain
 surface area <span class="math">\(S_T\)</span>. Under the assumption of a logarithmic fluid
@@ -574,9 +574,9 @@ account for form drag, expressed in terms of various contributions as</p>
 <span class="eqno">(5)</span>\[\tt{Cdn\_ocn}  =  \tt{Cdn\_ocn\_rdg} + \tt{Cdn\_ocn\_floe} + \tt{Cdn\_ocn\_skin}.\]</div>
 <p>The contributions to form drag from ridges (and keels underneath the
 ice), floe edges and melt pond edges can be expressed using the general
-formulation of equation <a href="#equation-formdrag">(2)</a> (see <a class="reference internal" href="zreferences.html#tfsffklb14" id="id15">[70]</a> for
+formulation of equation <a href="#equation-formdrag">(2)</a> (see <a class="reference internal" href="zreferences.html#tfsffklb14" id="id15">[71]</a> for
 details). Individual terms in equation <a href="#equation-Cdw">(5)</a> are fully described in
-<a class="reference internal" href="zreferences.html#tfsffklb14" id="id16">[70]</a>. Following <a class="reference internal" href="zreferences.html#arya75" id="id17">[4]</a>
+<a class="reference internal" href="zreferences.html#tfsffklb14" id="id16">[71]</a>. Following <a class="reference internal" href="zreferences.html#arya75" id="id17">[4]</a>
 the skin drag coefficient is parametrized as</p>
 <div class="math" id="equation-skindrag">
 <span class="eqno">(6)</span>\[{ \tt{Cdn\_(atm/ocn)\_skin}}=a_{i} \left(1-m_{(s/k)} \frac{H_{(s/k)}}{D_{(s/k)}}\right)c_{s(s/k)}, \mbox{       if  $\displaystyle\frac{H_{(s/k)}}{D_{(s/k)}}\ge\frac{1}{m_{(s/k)}}$,}\]</div>
@@ -591,7 +591,7 @@ in the absence of sails (keels) and with complete ice coverage,
 properties of the ice cover be related to average grid cell quantities
 already computed in the sea ice model. These intermediate quantities are
 briefly presented here and described in more detail in
-<a class="reference internal" href="zreferences.html#tfsffklb14" id="id18">[70]</a>. The sail height is given by</p>
+<a class="reference internal" href="zreferences.html#tfsffklb14" id="id18">[71]</a>. The sail height is given by</p>
 <div class="math" id="equation-Hs">
 <span class="eqno">(7)</span>\[H_{s} = \displaystyle 2\frac{v_{rdg}}{a_{rdg}}\left(\frac{\alpha\tan \alpha_{k} R_d+\beta \tan \alpha_{s} R_h}{\phi_r\tan \alpha_{k} R_d+\phi_k \tan \alpha_{s} R_h^2}\right),\]</div>
 <p>and the distance between sails</p>
@@ -614,7 +614,7 @@ as the ocean surface surrounding the floes
 <a class="reference internal" href="zreferences.html#ff07" id="id19">[20]</a><a class="reference internal" href="zreferences.html#fft10" id="id20">[21]</a><a class="reference internal" href="zreferences.html#fsfh12" id="id21">[22]</a> and use the simplification
 <span class="math">\(H_p = H_f\)</span>. Finally to estimate the typical floe size
 <span class="math">\(L_A\)</span>, distance between floes, <span class="math">\(D_F\)</span>, and melt pond size,
-<span class="math">\(L_P\)</span> we use the parameterizations of <a class="reference internal" href="zreferences.html#lgha12" id="id22">[45]</a>
+<span class="math">\(L_P\)</span> we use the parameterizations of <a class="reference internal" href="zreferences.html#lgha12" id="id22">[46]</a>
 to relate these quantities to the ice and pond concentrations. All of
 these intermediate quantities are available as history output, along
 with <cite>Cdn_atm</cite>, <cite>Cdn_ocn</cite> and the ratio <cite>Cdn_atm_ratio_n</cite> between the

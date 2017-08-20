@@ -323,7 +323,7 @@ runs</p>
 <p>space-filling-curves distribution method</p>
 <p>essential arrays to describe the state of the ice</p>
 <p>routines for time stepping the major code components</p>
-<p>zero-layer thermodynamics of <a class="reference internal" href="zreferences.html#semtner76" id="id1">[59]</a></p>
+<p>zero-layer thermodynamics of <a class="reference internal" href="zreferences.html#semtner76" id="id1">[60]</a></p>
 <p>multilayer thermodynamics of <a class="reference internal" href="zreferences.html#bl99" id="id2">[7]</a></p>
 <p>thermodynamic changes mostly related to ice thickness distribution</p>
 <p>mushy-theory thermodynamics of:cite:<cite>THB13</cite></p>
@@ -366,12 +366,12 @@ runs</p>
 <div class="section" id="grid-boundary-conditions-and-masks">
 <h2>4.2. Grid, boundary conditions and masks<a class="headerlink" href="#grid-boundary-conditions-and-masks" title="Permalink to this headline">¶</a></h2>
 <p>The spatial discretization is specialized for a generalized orthogonal
-B-grid as in <a class="reference internal" href="zreferences.html#murray96" id="id3">[50]</a> or
-<a class="reference internal" href="zreferences.html#skm95" id="id4">[62]</a>. The ice and snow area, volume and energy are
+B-grid as in <a class="reference internal" href="zreferences.html#murray96" id="id3">[51]</a> or
+<a class="reference internal" href="zreferences.html#skm95" id="id4">[63]</a>. The ice and snow area, volume and energy are
 given at the center of the cell, velocity is defined at the corners, and
 the internal ice stress tensor takes four different values within a grid
 cell; bilinear approximations are used for the stress tensor and the ice
-velocity across the cell, as described in <a class="reference internal" href="zreferences.html#hd02" id="id5">[32]</a>.
+velocity across the cell, as described in <a class="reference internal" href="zreferences.html#hd02" id="id5">[33]</a>.
 This tends to avoid the grid decoupling problems associated with the
 B-grid. EVP is available on the C-grid through the MITgcm code
 distribution, <a class="reference external" href="http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/">http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/</a>.</p>
@@ -757,10 +757,10 @@ CFL condition, under remapping yields</p>
 </tbody>
 </table>
 <p>As discussed in section&nbsp;<a class="reference internal" href="cice_3_model_components.html#mech-red"><span class="std std-ref">Mechanical redistribution</span></a> and
-<a class="reference internal" href="zreferences.html#lhmj07" id="id7">[43]</a>, the maximum time step in practice is
+<a class="reference internal" href="zreferences.html#lhmj07" id="id7">[44]</a>, the maximum time step in practice is
 usually determined by the time scale for large changes in the ice
 strength (which depends in part on wind strength). Using the strength
-parameterization of <a class="reference internal" href="zreferences.html#rothrock75" id="id8">[56]</a>, as in
+parameterization of <a class="reference internal" href="zreferences.html#rothrock75" id="id8">[57]</a>, as in
 Equation&nbsp;<a href="#equation-roth-strength0">(?)</a>, limits the time step to <span class="math">\(\sim\)</span>30
 minutes for the old ridging scheme (<cite>krdg_partic</cite> = 0), and to
 <span class="math">\(\sim\)</span>2 hours for the new scheme (<cite>krdg_partic</cite> = 1), assuming
@@ -786,7 +786,7 @@ damping timescale <span class="math">\(T\)</span>, described in Section&nbsp;<a 
 <cite>eyc</cite>* <cite>dt_dyn</cite>. The forcing terms are not updated during the subcycling.
 Given the small step (<cite>dte</cite>) at which the EVP dynamics model is subcycled,
 the elastic parameter <span class="math">\(E\)</span> is also limited by stability
-constraints, as discussed in <a class="reference internal" href="zreferences.html#hd97" id="id9">[31]</a>. Linear stability
+constraints, as discussed in <a class="reference internal" href="zreferences.html#hd97" id="id9">[32]</a>. Linear stability
 analysis for the dynamics component shows that the numerical method is
 stable as long as the subcycling time step <span class="math">\(\Delta t_e\)</span>
 sufficiently resolves the damping timescale <span class="math">\(T\)</span>. For the stability
@@ -810,8 +810,8 @@ stability of the dynamics component; <span class="math">\(\Delta t\)</span> does
 the time step may not be tightly limited by stability considerations,
 large time steps (<em>e.g.,</em> <span class="math">\(\Delta t=1\)</span>&nbsp;day, given daily forcing)
 do not produce accurate results in the dynamics component. The reasons
-for this error are discussed in <a class="reference internal" href="zreferences.html#hd97" id="id11">[31]</a>; see
-<a class="reference internal" href="zreferences.html#hz99" id="id12">[35]</a> for its practical effects. The thermodynamics
+for this error are discussed in <a class="reference internal" href="zreferences.html#hd97" id="id11">[32]</a>; see
+<a class="reference internal" href="zreferences.html#hz99" id="id12">[36]</a> for its practical effects. The thermodynamics
 component is stable for any time step, as long as the surface
 temperature <span class="math">\(T_{sfc}\)</span> is computed internally. The
 numerical constraint on the thermodynamics time step is associated with
