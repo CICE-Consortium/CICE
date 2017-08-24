@@ -5,14 +5,15 @@ Index of primary variables and parameters
 
 This index defines many of the symbols used frequently in the ice model
 code. Values appearing in this list are fixed or recommended; most
-namelist parameters are indicated ( :math:`E_\circ` ) with their default
+namelist parameters are indicated ( :math:`E_\circ`) with their default
 values. For other namelist options, see Section :ref:`tab-namelist`. All
 quantities in the code are expressed in MKS units (temperatures may take
 either Celsius or Kelvin units).
 
 .. csv-table:: Alphabetical Index
-   :header: "","",""
-   
+   :header: " ", " ", " "
+   :widths: 15, 30, 15, 1   
+
    "**A**", "", ""
    "a11,a12", "structure tensor components", ""
    "a2D", "history field accumulations, 2d", "" 
@@ -25,7 +26,7 @@ either Celsius or Kelvin units).
    "a_min", "minimum area concentration for computing velocity", "0.001"
    "a_rapid_mode", ":math:`\bullet` brine channel diameter", ""
    "advection", ":math:`\bullet` type of advection algorithm used (‘remap’ or ‘upwind’)", "remap"
-   "ahmax", ":math:`bullet` thickness above which ice albedo is constant", "0.3m"
+   "ahmax", ":math:`\bullet` thickness above which ice albedo is constant", "0.3m"
    "aice_extmin", "minimum value for ice extent diagnostic", "0.15"
    "aice_init", "concentration of ice at beginning of timestep", ""
    "aice0", "fractional open water area", ""
@@ -101,11 +102,11 @@ either Celsius or Kelvin units).
    "congel", "basal ice growth", "m"
    "cosw", "cosine of the turning angle in water", "1."
    "coszen", "cosine of the zenith angle", ""
-   "Cp", "proportionality constant for potential energy", "kg/m:math:`^2`/s:math:`^2`"
+   "Cp", "proportionality constant for potential energy", "kg/m\ :math:`^2`/s\ :math:`^2`"
    "cp_air", "specific heat of air", "1005.0 J/kg/K"
    "cp_ice", "specific heat of fresh ice", "2106. J/kg/K"
    "cp_ocn", "specific heat of sea water", "4218. J/kg/K"
-   "cp_wv", "specific heat of water vapor", "1.81x10 :math:`^3` J/kg/K"
+   "cp_wv", "specific heat of water vapor", "1.81x\ :math:`10^3` J/kg/K"
    "cp063", "diffuse fresnel reflectivity (above)", "0.063"
    "cp455", "diffuse fresnel reflectivity (below)", "0.455"
    "Cs", "fraction of shear energy contributing to ridging", "0.25"
@@ -187,7 +188,7 @@ either Celsius or Kelvin units).
    "fbot_xfer_type", ":math:`\bullet` type of heat transfer coefficient under ice", ""
    "fcondtop(n)(_f)", "conductive heat flux", "W/m\ :math:`^2`"
    "fcor_blk", "Coriolis parameter", "1/s"
-   "ferrmax", "max allowed energy flux error (thermodynamics)", "1x10 :math:`^{-3}`W/m :math:`^2`"
+   "ferrmax", "max allowed energy flux error (thermodynamics)", "1x :math:`10^{-3}` W/m\ :math:`^2`"
    "ffracn", "fraction of fsurfn used to melt pond ice", ""
    "fhocn", "net heat flux to ocean", "W/m\ :math:`^2`"
    "fhocn_ai", "grid-box-mean net heat flux to ocean (fhocn)", "W/m\ :math:`^2`"
