@@ -24,7 +24,7 @@ Table of Contents:
    cice_8_index.rst
    zreferences.rst
  
-Indices and tables
+Useful tools
 ==================
 
 * :ref:`search`
