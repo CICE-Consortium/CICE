@@ -1,7 +1,5 @@
 *This repository is under construction, and some resources listed here are not yet available*
 
-Please see the documentation here: https://duvivier.github.io/CICE/
-
 ## Overview
 
 This repository contains files needed to run versions 6 and higher of the sea ice model CICE, which is now maintained by the CICE Consortium.  Versions prior to v6 are found in the [CICE-svn-trunk repository](https://github.com/CICE-Consortium/CICE-svn-trunk).
@@ -28,7 +26,9 @@ where "branch name" can also be a version name
 
 ## More information
 
-"Quick Start" instructions are available in [README_v6](https://github.com/CICE-Consortium/CICE/blob/master/README_v6), and instructions for setting up standard tests (e.g. regression, restart) are in [README_test](https://github.com/CICE-Consortium/CICE/blob/master/README_v6).  
+"Quick Start" instructions are available in [README_v6](https://github.com/CICE-Consortium/CICE/blob/master/README_v6), and instructions for setting up standard tests (e.g. regression, restart) are in [README_test](https://github.com/CICE-Consortium/CICE/blob/master/README_v6). 
+
+Detailed documentation of CICE can be found at: https://cice-consortium.github.io/CICE/
 
  [check this]   The wiki pages for each repository contain links to additional information, e.g.    
 - complete documentation 
