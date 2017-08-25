@@ -8,7 +8,7 @@ code. Values appearing in this list are fixed or recommended; most
 namelist parameters are indicated ( :math:`E_\circ`) with their default
 values. For other namelist options, see Section :ref:`tab-namelist`. All
 quantities in the code are expressed in MKS units (temperatures may take
-either Celsius or Kelvin units).
+either Celsius or Kelvin units).  
 
 ================================
 Comprehensive Alphabetical Index
