@@ -3710,6 +3710,7 @@ to the temperature, :math:`T`, and the brine volume, :math:`\phi`, by
    q =& \phi q_{br} &+\, (1-\phi) q_{i}
    =& \phi \rho_{w} c_{w} T &+\, (1-\phi) (\rho_i c_i T - \rho_i L_0) 
    \label{enthalpy_definition}\end{aligned}
+   :label: enth-def
 
 where :math:`q_{br}` is the brine enthalpy, :math:`q_i` is the pure ice
 enthalpy, :math:`\rho_i` and :math:`c_i` are density and heat capacity
@@ -3721,11 +3722,11 @@ is the energy required to raise the temperature of the sea ice to ,
 including both sensible and latent heat changes. Since the sea ice
 contains salt, it usually will be fully melted at a temperature below
 :math:`0^{circ}C`.
-Equations :eq:`ice-enthalpy` and :eq:`enthalpy-definition` are
+Equations :eq:`ice-enthalpy` and :eq:`enth-def` are
 equivalent except for the density used in the term representing the
 energy required to bring the melt water temperature to (:math:`\rho_i`
 and :math:`\rho_w` in equations :eq:`ice-enthalpy` and
-:eq:`enthalpy-definition`, respectively).
+:eq:`enth-def`, respectively).
 
 The liquid fraction, :math:`\phi`, of sea ice is given by
 

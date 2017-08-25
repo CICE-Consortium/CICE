@@ -30,7 +30,6 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.intersphinx',
-    'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
@@ -129,7 +128,7 @@ html_theme = 'bizstyle'
 
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
-#html_title = u'CICE-Consoritum v0.0.1'
+#html_title = u'CICE-Consortium v0.0.1'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
@@ -173,7 +172,7 @@ html_theme = 'bizstyle'
 #html_domain_indices = True
 
 # If false, no index is generated.
-#html_use_index = True
+html_use_index = False
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False

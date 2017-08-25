@@ -36,7 +36,7 @@ basic information
 
 **Macros.**\ :math:`\langle`\ OS\ :math:`\rangle`.\ :math:`\langle`\ SITE\ :math:`\rangle`.\ :math:`\langle`\ machine\ :math:`\rangle`
     macro definitions for the given operating system, used by
-    **Makefile.\ :math:`\langle`\ OS\ :math:`\rangle`**
+    **Makefile**.\ :math:`\langle` \ OS\ :math:`\rangle`
 
 **Makefile.**\ :math:`\langle`\ OS\ :math:`\rangle`
     primary makefile for the given operating system
