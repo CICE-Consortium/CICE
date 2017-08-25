@@ -3,6 +3,10 @@
 Table of namelist options
 =========================
 
+==============================
+Comprehensive Namelist Options
+==============================
+
 .. _tab-namelist:
 
 .. csv-table:: Table 7

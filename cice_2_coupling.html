@@ -2,31 +2,28 @@
 
 <!doctype html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>2. Coupling with other climate model components &mdash; CICE-Consortium 0.0.1 documentation</title>
-    
+    <title>2. Coupling with other climate model components &#8212; CICE-Consortium 0.0.1 documentation</title>
     <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
         VERSION:     '0.0.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script type="text/javascript" src="_static/bizstyle.js"></script>
-    <link rel="top" title="CICE-Consortium 0.0.1 documentation" href="index.html" />
+    <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="3. Model components" href="cice_3_model_components.html" />
     <link rel="prev" title="1. Introduction - CICE5" href="cice_1_introduction.html" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -34,20 +31,17 @@
     <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
     <![endif]-->
   </head>
-  <body role="document">
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
           <a href="cice_3_model_components.html" title="3. Model components"
-             accesskey="N">next</a> |</li>
+             accesskey="N">next</a></li>
         <li class="right" >
           <a href="cice_1_introduction.html" title="1. Introduction - CICE5"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &#187;</li> 
       </ul>
     </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
@@ -71,15 +65,15 @@
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/cice_2_coupling.txt"
+      <li><a href="_sources/cice_2_coupling.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
@@ -289,8 +283,8 @@ weighted by (<span class="math">\(1-a_i\)</span>), to obtain the net shortwave f
 ocean over the entire grid cell. The flux coupler requires the fluxes to
 be divided by the total ice area so that the ice and land models are
 treated identically (land also may occupy less than 100% of an
-atmospheric grid cell). These fluxes are “per unit ice area&#8221; rather than
-“per unit grid cell area.&#8221;</p>
+atmospheric grid cell). These fluxes are “per unit ice area” rather than
+“per unit grid cell area.”</p>
 <p>In some coupled climate models (for example, recent versions of the U.K.
 Hadley Centre model) the surface air temperature and fluxes are computed
 within the atmosphere model and are passed to CICE. In this case the
@@ -352,7 +346,7 @@ gravitational acceleration, and <span class="math">\(u^*\)</span>, <span class="
 <span class="math">\(Q^*\)</span> are turbulent scales for velocity, temperature, and humidity,
 respectively:</p>
 <div class="math" id="equation-stars">
-<span class="eqno">(1)</span>\[\begin{split}\begin{aligned}
+<span class="eqno">(1)<a class="headerlink" href="#equation-stars" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{aligned}
 u^*&amp;=&amp;c_u \left|\vec{U}_a\right| \\
 \Theta^*&amp;=&amp; c_\theta\left(\Theta_a-T_{sfc}\right) \\
 Q^*&amp;=&amp;c_q\left(Q_a-Q_{sfc}\right).\end{aligned}\end{split}\]</div>
@@ -395,7 +389,7 @@ c_\theta^\prime&amp;=&amp; {c_\theta\over 1+c_\theta\left(\lambda-\psi_s\right)/
 c_q^\prime&amp;=&amp;c_\theta^\prime\end{aligned}\end{split}\]</div>
 <p>where <span class="math">\(\lambda = \ln\left(z_\circ/z_{ref}\right)\)</span>. The
 first iteration ends with new turbulent scales from
-equations&nbsp;<a href="#equation-stars">(1)</a>. After five iterations the latent and sensible
+equations&nbsp;<a class="reference internal" href="#equation-stars">(1)</a>. After five iterations the latent and sensible
 heat flux coefficients are computed, along with the wind stress:</p>
 <div class="math">
 \[\begin{split}\begin{aligned}
@@ -551,14 +545,14 @@ surface area <span class="math">\(S_T\)</span>. Under the assumption of a logari
 velocity profile, the general formulation of the form drag coefficient
 can be expressed as</p>
 <div class="math" id="equation-formdrag">
-<span class="eqno">(2)</span>\[C_d=\frac{N c S_c^2 \gamma L_y  H}{2 S_T}\left[\frac{\ln(H/z_0)}{\ln(z_{ref}/z_0)}\right]^2,\]</div>
+<span class="eqno">(2)<a class="headerlink" href="#equation-formdrag" title="Permalink to this equation">¶</a></span>\[C_d=\frac{N c S_c^2 \gamma L_y  H}{2 S_T}\left[\frac{\ln(H/z_0)}{\ln(z_{ref}/z_0)}\right]^2,\]</div>
 <p>where <span class="math">\(z_0\)</span> is a roughness length parameter at the top or bottom
 surface of the ice, <span class="math">\(\gamma\)</span> is a geometric factor, <span class="math">\(c\)</span> is
 the resistance coefficient of a single obstacle, and <span class="math">\(S_c\)</span> is a
 sheltering function that takes into account the shielding effect of the
 obstacle,</p>
 <div class="math" id="equation-shelter">
-<span class="eqno">(3)</span>\[S_{c}=\left(1-\exp(-s_l D/H)\right)^{1/2},\]</div>
+<span class="eqno">(3)<a class="headerlink" href="#equation-shelter" title="Permalink to this equation">¶</a></span>\[S_{c}=\left(1-\exp(-s_l D/H)\right)^{1/2},\]</div>
 <p>with <span class="math">\(D\)</span> the distance between two obstacles and <span class="math">\(s_l\)</span> an
 attenuation parameter.</p>
 <p>As in the original drag formulation in CICE (sections <a class="reference internal" href="#atmo"><span class="std std-ref">Atmosphere</span></a> and
@@ -569,17 +563,17 @@ atmosphere–ice and ocean–ice boundary layers. The corresponding neutral
 exchange coefficients are then replaced by coefficients that explicitly
 account for form drag, expressed in terms of various contributions as</p>
 <div class="math" id="equation-Cda">
-<span class="eqno">(4)</span>\[\tt{Cdn\_atm}  = \tt{Cdn\_atm\_rdg} + \tt{Cdn\_atm\_floe} + \tt{Cdn\_atm\_skin} + \tt{Cdn\_atm\_pond} ,\]</div>
+<span class="eqno">(4)<a class="headerlink" href="#equation-Cda" title="Permalink to this equation">¶</a></span>\[\tt{Cdn\_atm}  = \tt{Cdn\_atm\_rdg} + \tt{Cdn\_atm\_floe} + \tt{Cdn\_atm\_skin} + \tt{Cdn\_atm\_pond} ,\]</div>
 <div class="math" id="equation-Cdw">
-<span class="eqno">(5)</span>\[\tt{Cdn\_ocn}  =  \tt{Cdn\_ocn\_rdg} + \tt{Cdn\_ocn\_floe} + \tt{Cdn\_ocn\_skin}.\]</div>
+<span class="eqno">(5)<a class="headerlink" href="#equation-Cdw" title="Permalink to this equation">¶</a></span>\[\tt{Cdn\_ocn}  =  \tt{Cdn\_ocn\_rdg} + \tt{Cdn\_ocn\_floe} + \tt{Cdn\_ocn\_skin}.\]</div>
 <p>The contributions to form drag from ridges (and keels underneath the
 ice), floe edges and melt pond edges can be expressed using the general
-formulation of equation <a href="#equation-formdrag">(2)</a> (see <a class="reference internal" href="zreferences.html#tfsffklb14" id="id15">[71]</a> for
-details). Individual terms in equation <a href="#equation-Cdw">(5)</a> are fully described in
+formulation of equation <a class="reference internal" href="#equation-formdrag">(2)</a> (see <a class="reference internal" href="zreferences.html#tfsffklb14" id="id15">[71]</a> for
+details). Individual terms in equation <a class="reference internal" href="#equation-Cdw">(5)</a> are fully described in
 <a class="reference internal" href="zreferences.html#tfsffklb14" id="id16">[71]</a>. Following <a class="reference internal" href="zreferences.html#arya75" id="id17">[4]</a>
 the skin drag coefficient is parametrized as</p>
 <div class="math" id="equation-skindrag">
-<span class="eqno">(6)</span>\[{ \tt{Cdn\_(atm/ocn)\_skin}}=a_{i} \left(1-m_{(s/k)} \frac{H_{(s/k)}}{D_{(s/k)}}\right)c_{s(s/k)}, \mbox{       if  $\displaystyle\frac{H_{(s/k)}}{D_{(s/k)}}\ge\frac{1}{m_{(s/k)}}$,}\]</div>
+<span class="eqno">(6)<a class="headerlink" href="#equation-skindrag" title="Permalink to this equation">¶</a></span>\[{ \tt{Cdn\_(atm/ocn)\_skin}}=a_{i} \left(1-m_{(s/k)} \frac{H_{(s/k)}}{D_{(s/k)}}\right)c_{s(s/k)}, \mbox{       if  $\displaystyle\frac{H_{(s/k)}}{D_{(s/k)}}\ge\frac{1}{m_{(s/k)}}$,}\]</div>
 <p>where <span class="math">\(m_s\)</span> (<span class="math">\(m_k\)</span>) is a sheltering parameter that depends
 on the average sail (keel) height, <span class="math">\(H_s\)</span> (<span class="math">\(H_k\)</span>), but is
 often assumed constant, <span class="math">\(D_s\)</span> (<span class="math">\(D_k\)</span>) is the average
@@ -587,16 +581,16 @@ distance between sails (keels), and <span class="math">\(c_{ss}\)</span> (<span 
 the unobstructed atmospheric (oceanic) skin drag that would be attained
 in the absence of sails (keels) and with complete ice coverage,
 <span class="math">\(a_{ice}=1\)</span>.</p>
-<p>Calculation of equations <a href="#equation-formdrag">(2)</a> – <a href="#equation-skindrag">(6)</a> requires that small-scale geometrical
+<p>Calculation of equations <a class="reference internal" href="#equation-formdrag">(2)</a> – <a class="reference internal" href="#equation-skindrag">(6)</a> requires that small-scale geometrical
 properties of the ice cover be related to average grid cell quantities
 already computed in the sea ice model. These intermediate quantities are
 briefly presented here and described in more detail in
 <a class="reference internal" href="zreferences.html#tfsffklb14" id="id18">[71]</a>. The sail height is given by</p>
 <div class="math" id="equation-Hs">
-<span class="eqno">(7)</span>\[H_{s} = \displaystyle 2\frac{v_{rdg}}{a_{rdg}}\left(\frac{\alpha\tan \alpha_{k} R_d+\beta \tan \alpha_{s} R_h}{\phi_r\tan \alpha_{k} R_d+\phi_k \tan \alpha_{s} R_h^2}\right),\]</div>
+<span class="eqno">(7)<a class="headerlink" href="#equation-Hs" title="Permalink to this equation">¶</a></span>\[H_{s} = \displaystyle 2\frac{v_{rdg}}{a_{rdg}}\left(\frac{\alpha\tan \alpha_{k} R_d+\beta \tan \alpha_{s} R_h}{\phi_r\tan \alpha_{k} R_d+\phi_k \tan \alpha_{s} R_h^2}\right),\]</div>
 <p>and the distance between sails</p>
 <div class="math" id="equation-Ds">
-<span class="eqno">(8)</span>\[D_{s} = \displaystyle 2 H_s\frac{a_{i}}{a_{rdg}} \left(\frac{\alpha}{\tan \alpha_s}+\frac{\beta}{\tan \alpha_k}\frac{R_h}{R_d}\right),\]</div>
+<span class="eqno">(8)<a class="headerlink" href="#equation-Ds" title="Permalink to this equation">¶</a></span>\[D_{s} = \displaystyle 2 H_s\frac{a_{i}}{a_{rdg}} \left(\frac{\alpha}{\tan \alpha_s}+\frac{\beta}{\tan \alpha_k}\frac{R_h}{R_d}\right),\]</div>
 <p>where <span class="math">\(0&lt;\alpha&lt;1\)</span> and <span class="math">\(0&lt;\beta&lt;1\)</span> are weight functions,
 <span class="math">\(\alpha_{s}\)</span> and <span class="math">\(\alpha_{k}\)</span> are the sail and keel slope,
 <span class="math">\(\phi_s\)</span> and <span class="math">\(\phi_k\)</span> are constant porosities for the sails
@@ -646,20 +640,17 @@ coefficient is 0.006 (<cite>fbot_xfer_type = ’constant’</cite>).</p>
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
           <a href="cice_3_model_components.html" title="3. Model components"
-             >next</a> |</li>
+             >next</a></li>
         <li class="right" >
           <a href="cice_1_introduction.html" title="1. Introduction - CICE5"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &copy; Copyright 2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation).
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+        &#169; Copyright 2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation).
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
     </div>
   </body>
 </html>

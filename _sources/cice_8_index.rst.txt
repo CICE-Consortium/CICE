@@ -10,6 +10,10 @@ values. For other namelist options, see Section :ref:`tab-namelist`. All
 quantities in the code are expressed in MKS units (temperatures may take
 either Celsius or Kelvin units).
 
+================================
+Comprehensive Alphabetical Index
+================================
+
 .. csv-table:: Alphabetical Index
    :header: " ", " ", " "
    :widths: 15, 30, 15, 1   
@@ -24,7 +28,7 @@ either Celsius or Kelvin units).
    "a4Db", "history field accumulations, 4D categories, vertical bio grid", ""
    "a4Ds", "history field accumulations, 4D categories, vertical snow", ""
    "a_min", "minimum area concentration for computing velocity", "0.001"
-   "a_rapid_mode", ":math:`\bullet` brine channel diameter", ""
+   "a_rapid_mode", ":math:`{\bullet}` brine channel diameter", ""
    "advection", ":math:`\bullet` type of advection algorithm used (‘remap’ or ‘upwind’)", "remap"
    "ahmax", ":math:`\bullet` thickness above which ice albedo is constant", "0.3m"
    "aice_extmin", "minimum value for ice extent diagnostic", "0.15"
@@ -41,7 +45,7 @@ either Celsius or Kelvin units).
    "albsno", "snow albedo", ""
    "albsnowi", ":math:`\bullet` near infrared, cold snow albedo", ""
    "albsnowv", ":math:`\bullet` visible, cold snow albedo", ""
-   "algalN", "algal nitrogen concentration", "mmol/m\ :math:`^3`"
+   "algalN", "algal nitrogen concentration", mmol/m\ :math:`^3`
    "alv(n)dr(f)", "albedo: visible (near IR), direct (diffuse)", ""
    "alv(n)dr(f)_ai", "grid-box-mean value of alv(n)dr(f)", ""
    "amm", "ammonia/um concentration", "mmol/m\ :math:`^3`"

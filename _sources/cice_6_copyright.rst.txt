@@ -1,7 +1,9 @@
-
 Acknowledgments and Copyright
 =============================
 
+======================
+Acknowledgements
+======================
 This work has been supported under the Department of Energy’s Climate,
 Ocean and Sea Ice Modeling project through the Computer Hardware Applied
 Mathematics and Model Physics (CHAMMP) program, Climate Change
@@ -35,6 +37,9 @@ following people:
 -  the many researchers who tested beta versions of CICE 5 and waited
    patiently for the official release.
 
+======================
+Copyright
+======================
 © Copyright 2013, LANS LLC. All rights reserved. Unless otherwise
 indicated, this information has been authored by an employee or
 employees of the Los Alamos National Security, LLC (LANS), operator of
