@@ -31,6 +31,9 @@ Most of this is adapted from https://github.com/ESMCI/cime/wiki/CIME-Git-Workflo
 > cd build/html
 > open index.html (or other html code) —> opens html locally to check it quickly
 - iterate on the steps above till you’re happy with the html code
+- note that sometimes the math doesn't render properly the first time you try this. If this is the case, you should do another >make html and check it. If
+that still doesn't work try just touching the *.rst file that isn't rendering properly (open it, save it, close it) and try >make html again. This has worked
+in the past to get the math to render properly. At this time we are unsure why this is necessary.
 > git status  —> gives you list of files that are changed but not yet staged in red
 > git add *.rst   —> add *rst files or whatever else needs to be staged for documentation stuff.
 > git status —> now should show list of changes that have been staged in green
