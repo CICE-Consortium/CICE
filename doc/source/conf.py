@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# CICE-Consoritum documentation build configuration file, created by
+# CICE-Consortium documentation build configuration file, created by
 # sphinx-quickstart on Thu Jun 29 13:47:09 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -29,11 +29,13 @@ import os
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
+    'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.githubpages',
+    'sphinxcontrib.bibtex',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,8 +53,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'CICE-Consoritum'
-copyright = u'2017, Alice DuVivier'
+project = u'CICE-Consortium'
+copyright = u'2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation)'
 author = u'Alice DuVivier'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -114,7 +116,7 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'alabaster'
+html_theme = 'bizstyle'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -126,7 +128,7 @@ html_theme = 'alabaster'
 
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
-#html_title = u'CICE-Consoritum v0.0.1'
+#html_title = u'CICE-Consortium v0.0.1'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
@@ -143,7 +145,7 @@ html_theme = 'alabaster'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -170,7 +172,7 @@ html_static_path = ['_static']
 #html_domain_indices = True
 
 # If false, no index is generated.
-#html_use_index = True
+html_use_index = False
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False
@@ -260,7 +262,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'cice-consoritum', u'CICE-Consoritum Documentation',
+    (master_doc, 'cice-consortium', u'CICE-Consortium Documentation',
      [author], 1)
 ]
 

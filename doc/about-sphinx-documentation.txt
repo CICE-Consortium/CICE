@@ -1,0 +1,85 @@
+Basic information about creating documentation with Sphinx
+Alice DuVivier
+July 14, 2017
+----------------------------------------------------------
+
+INSTALLING SPHINX
+You first need to install sphinx on your local machine. See here for more info on how to do this:
+https://github.com/NCAR/CICE/wiki/Working-with-CICE-documentation-on-github-and-sphinx
+I just had the NCAR ISG folks do it. Note that you will need the sphinxcontrib.bibtex library.
+
+CONVERTING LATEX TO RST CODE
+If you start from a LaTeX (*.tex) document you will need to convert this to the restructured
+text (*.rst) format that sphinx requires. A handy tool to do this is pandoc, which you can 
+install quickly and run from the command line. See here: http://pandoc.org/getting-started.html
+The basic syntax is that at the command line you enter:
+> panda NAMEIN.tex -f latex -t rst -s -ou NAMEOUT.rst
+From here you can just start editing the NAMEOUT.rst files directly for sphinx. Note that this
+did a beautiful job of converting the text, equations, and many tables. However, equation
+numbering, section linking, references, figures, and some tables required more hands on care
+to be sure they render correctly. 
+- Note: pandoc requires that the .tex files be in utf-8 encoding. To easily do this open the *.tex
+document in Emacs then do ctrl-x ctrl-m f and you will be prompted to enter encoding type. Just
+type in utf-8 and hit enter. Then save with ctrl-x ctrl-s . You are done and the document can be
+converted with panda.
+
+CREATING AN ORPHAN BRANCH
+To create documentation for a repository on GitHub we want to create an orphan branch for that
+repository. An orphan branch is a branch that has no history in common with the master repo off
+of which it was forked. In this case, the purpose for this is that the html pages created by 
+sphinx will exist in the orphan branch while the source *.rst code used to create the html exists
+in the master repository. This way changes to the source code go into the evolving repository, but
+changes to the html are isolated to the orphan branch and when you try to merge it avoids conflicts
+related to the html that aren’t always caught by GitHub and could cause the documentation to break.
+
+To create an orphan branch, you will need owner status for a repository. Steps to create orphan branch:
+On GitHub website create personal fork of the repo you’re interested in
+On GitHub website from your fork, get link for the repository
+On local machine:
+> git clone URL
+> git branch --l
+> git checkout --orphan gh-pages
+(creates the orphan branch gh-pages from master. Should have all documents in master to start)
+> git rm -rf .
+(removes everything in this repository. i.e. we are making it so their histories diverge)
+> git status .
+(check if all the files are gone)
+> git echo “Documentation link goes here” > README.md
+(it’s still nice to have a readme file)
+> git add README.md
+(this is all that will be in the branch)
+> git commit -m “Initial commit to create gh-pages branch of repo”
+> git remote --v
+(get list of remote repositories and links. Should show your personal fork as “origin”)
+> git push origin gh-pages
+(adds the orphan branch to your local fork but not the original repo from which you forked)
+> git remote add upstream URL
+(add the URL for the original repository as your “upstream” repository. Get this from Github website)
+> git remote --v
+(verify that you now have an upstream remote URL too)
+> git branch --l
+(verify you are on the gh-pages branch only so that these changes will be pushed)
+**** BE CAREFUL ****
+> git push upstream gh-pages
+(this pushes the gh-pages branch to the upstream repo. You may also want to try doing a pull request instead so that
+others have a chance to look at what you’ve done. I did it both ways, I’d prefer the pull request method for the future).
+
+Now you have set up the orphan branch, but you need to build the sphinx stuff for it:
+> git checkout master 
+(switch to master branch in order to set up doc/source directory it will use and other sphinx stuff)
+> cd doc
+> mkdir source
+> sphinx-quickstart 
+(Your local machine will prompt you with interactive options to choose. I had Alice B.’s guidance to do this but could look at an old conf.py file to see what options were chosen. You only do this once for a repo but conf.py can be changed later on).
+make/copy .gitignore from CICE repo to the main Icepack repository. Want to ignore html code when pushing to master branch. Also want to ignore emacs backup files (*~).
+> git status
+(should show the files conf.py, .gitignore, others? to initialize the sphinx stuff)
+> git add .
+> git commit -m “Initial setup for sphinx documentation”
+> git push origin master
+(push pages to your local master. Then either push upstream if you are an owner or *preferably* do a pull request to merge with the original repository)
+
+Make local gh-pages version for just the html. This is convenient so that you can have the master repo where you make code and another repo for the gh-pages branch from which you push the html.
+> git clone -b gh-pages — single-branch https://github.com/duvivier/Icepack.git Icepack.gh-pages
+(makes local copy of just gh-pages branch)
+

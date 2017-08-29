@@ -26,7 +26,9 @@ where "branch name" can also be a version name
 
 ## More information
 
-"Quick Start" instructions are available in [README_v6](https://github.com/CICE-Consortium/CICE/blob/master/README_v6), and instructions for setting up standard tests (e.g. regression, restart) are in [README_test](https://github.com/CICE-Consortium/CICE/blob/master/README_v6).  
+"Quick Start" instructions are available in [README_v6](https://github.com/CICE-Consortium/CICE/blob/master/README_v6), and instructions for setting up standard tests (e.g. regression, restart) are in [README_test](https://github.com/CICE-Consortium/CICE/blob/master/README_v6). 
+
+Detailed documentation of CICE can be found at: https://cice-consortium.github.io/CICE/
 
  [check this]   The wiki pages for each repository contain links to additional information, e.g.    
 - complete documentation 

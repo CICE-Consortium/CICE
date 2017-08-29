@@ -1,0 +1,72 @@
+Basic workflow for github/sphinx documentation
+Alice DuVivier
+July 14, 2017
+----------------------------------------------------------
+
+Most of this is adapted from https://github.com/ESMCI/cime/wiki/CIME-Git-Workflow, which has Figure 1 that is **VERY** useful
+- Assumes you have sphinx installed on your own, personal machine. This includes the sphinxcontrib.bibtex library. Need to do this first. See the about-sphinx-documentation.txt file for more details.
+
+1. Editing *.rst files, testing html code, etc. in master branch
+* Things to do once: 
+- Remotely: Create fork on personal GitHub area. Just do this once (usually). Use button on website of original repo to create this personal fork.
+- Locally: Switch to your local machine   
+> cd ~/Documents/Research/github/CICE-Consortium/  —> go to local directory where you want to keep GitHub code, make changes, etc.
+> git clone https://github.com/duvivier/CICE.git  —> Clone the fork to your local machine from GitHub. Get the URL from which to clone from personal GitHub repository page, green “clone or download” button.
+-  This has now created a “local” copy of your fork called CICE. From here on you do changes from “local” fork on your local machine and push to your remote repo called “origin”. You can pull from “origin” or the original “upstream” remote repo. Any changes you want to eventually merge need to be pushed to the “origin” before issuing a pull request to “upstream”
+> git status —> check that you’re on the master branch and have checked this out.
+> git remote —v —> check your remote branches. Default will have just “origin” and it will push to your local fork.
+> git remote add upstream https://github.com/CICE-Consortium/CICE  —> add the consortium as the ultimate upstream source. Will need this for daily updates (see below). 
+> git remote —v —> check that the “upstream” branch has been added
+
+* Things you do daily:
+> cd ~/Documents/Research/github/CICE-Consortium/CICE/
+> git status  —> tells you what branch you are on and any commits that need to be made
+> git branch —> tells you what branches are available locally
+> git remote —v —> lists the remote sources. want “origin” to point to personal remote repo and “upstream” to point to the original code you forked from.
+> git pull upstream master —> will fetch+merge any changes to the local master branch since you last stopped working on it. Need to specify “master” branch. If there are not changes it will tell you that you are already up-to-date can also do > git pull —rebase upstream master and the —rebase tells git to move your commits to the tip of the master branch after synchronizing with changes from central repository. Better to rebase than do a merge commit. Rebasing is unlikely to cause problems unless you’re working on the same code or feature as someone else. To stop this process just execute git rebase —abort.
+- Make your local edits to *.rst files, code, etc. Then issue sphinx commands to test these.
+> cd ../    (be in the /doc/ directory, not the source directory. Must be one directory up).
+> make clean   —> gets rid of old html
+> make html  —> makes new html from sphinx *.rst files.
+> cd build/html
+> open index.html (or other html code) —> opens html locally to check it quickly
+- iterate on the steps above till you’re happy with the html code
+- note that sometimes the math doesn't render properly the first time you try this. If this is the case, you should do another >make html and check it. If
+that still doesn't work try just touching the *.rst file that isn't rendering properly (open it, save it, close it) and try >make html again. This has worked
+in the past to get the math to render properly. At this time we are unsure why this is necessary.
+> git status  —> gives you list of files that are changed but not yet staged in red
+> git add *.rst   —> add *rst files or whatever else needs to be staged for documentation stuff.
+> git status —> now should show list of changes that have been staged in green
+> git commit -m “message” —> commit the changes to your local fork. This makes it ready to push to external fork.
+> git push origin —> will push the local code changes to your remote “origin” fork. In this case the master fork with the *.rst files. Note that we set this up so that the push will ignore *.html files.
+* note you may want to add the path for the documentation from gh-pages to the README.md file (or another file). The path is: https://duvivier.github.io/CICE/  (or use CICE-Consortium instead of duvivier for the consortium repository once the pull request is complete)
+
+2. Pushing *.html code in gh-pages branch 
+* Things to do once:
+> cd ~/Documents/Research/github/CICE-Consortium/
+> git clone https://github.com/duvivier/CICE.git CICE.gh-pages
+- note that this checks out the master branch. So we need to switch to the gh-pages branch.
+> git checkout gh-pages
+- This switches to the gh-pages branch, which *only* is used for html pages. 
+
+* Things to do daily: 
+> cd ~/Documents/Research/github/CICE-Consortium/CICE.gh-pages/
+> git status —> check that you are on gh-pages branch with this tag.
+> rm -rf .   —> remove old html files in here
+> cd ~/Documents/Research/github/CICE-Consortium/CICE/doc/  —> change to master branch
+> make clean  —> clean up old html code
+> make html  —> make the correct html code for *rst files you just committed to master branch
+> cd build/html
+> cp -r . ~/Documents/Research/github/CICE-Consortium/CICE.gh-pages/
+> cd ~/Documents/Research/github/CICE-Consortium/CICE.gh-pages/
+> git add .  —> add the files to those needing a commit to local branch
+> git commit -m “updates….”  —> commit *.html files to local fork
+> git push origin  —> will push local changes to remote “origin” fork, which in this case is the gh-pages branch on my personal fork from the consortium. 
+- Check this online at personal pages to make sure it looks right, is pointing to right path, etc. etc.
+
+3. Merging with original repository
+- Once you’ve checked and tested the documentation on your local fork, it’s time for a pull request to the original repository
+- On personal GitHub webpage there is a button on left called “New Pull Request”. Click that. 
+- It then takes you to original repository (CICE-Consoritum/CICE/) from which you forked. It shows the number of changed files and the differences in green (additions) or red (subtractions) in these files with the files that exist on that branch. If you add a new file then everything is green. 
+- Once you’ve checked your code, then click the big, green “Create pull request” button and this will send the changes to the administrators of the CICE-Consoritum repository. (Elizabeth, Tony, Alice, others). 
+- Always issue a pull request to merge with the original repository rather than just merging it yourself. This is the main, well tested branch that we release from so we want multiple eyes to look everything over. This is less crucial for documentation than actual code, but still important.
