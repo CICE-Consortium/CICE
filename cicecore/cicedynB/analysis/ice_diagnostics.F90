@@ -1287,7 +1287,7 @@
 
             if (abs(latpnt(n)) < c360 .and. abs(lonpnt(n)) < c360) then
 
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,latdis,londis,totdis)
+            !!$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,latdis,londis,totdis)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)         
                ilo = this_block%ilo
@@ -1312,7 +1312,7 @@
                enddo            ! i
                enddo            ! j
             enddo               ! iblk
-            !$OMP END PARALLEL DO
+            !!$OMP END PARALLEL DO
 
             endif
 

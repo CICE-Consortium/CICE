@@ -141,8 +141,8 @@
       real(kind= dbl_kind), dimension(ntrcr, ncat) :: &
          ztrcr_sw
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP                     cszn,l_print_point,debug,ipoint)
+      !!$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block, &
+      !!$OMP                     cszn,l_print_point,debug,ipoint)
       do iblk=1,nblocks
 
          ! Initialize
