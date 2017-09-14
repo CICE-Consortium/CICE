@@ -493,6 +493,11 @@ if ($test != $spval) then
     echo "${0}: ERROR, cice.test.setup.csh aborted"
     exit -1
   endif
+
+  # Initial test_output file
+  echo "#---" >! test_output
+  echo "PEND ${testname_noid} " >> test_output
+
 endif
 
 if ( $testsuite != $spval ) then
@@ -523,12 +528,16 @@ EOF
   # Add code to results.csh to count the number of failures
 cat >> ./${tsdir}/results.csh << EOF
 cat ./results.log
+set pends = \`cat ./results.log | grep PEND | wc -l\`
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
 set success = \`cat ./results.log | grep PASS | wc -l\`
-set total = \`cat ./results.log | wc -l\`
+set comments = \`cat ./results.log | grep "#" | wc -l\`
+set alltotal = \`cat ./results.log | wc -l\`
+@ total = \$alltotal - \$comments
 echo ""
 echo "\$success of \$total tests PASSED"
 echo "\$failures of \$total tests FAILED"
+echo "\$pends of \$total tests PENDING"
 EOF
 
 # build and submit tests

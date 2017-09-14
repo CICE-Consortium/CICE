@@ -81,6 +81,7 @@ endif
 if (-e ${CICE_BLDLOG_FILE}) rm ${CICE_BLDLOG_FILE}
 gmake -j ${CICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${CICE_RUNDIR}/cice CICE_CPPDEFSDEFS="${CICE_CPPDEFS}" \
       -f  ${CICE_CASEDIR}/Makefile MACFILE=${CICE_CASEDIR}/Macros.${CICE_MACHINE} | tee ${CICE_BLDLOG_FILE} 
+echo "#---" >! ${CICE_CASEDIR}/test_output
 if ($status != 0) then
   echo "${0}: COMPILE FAILED, see"
   echo "  cat ${CICE_OBJDIR}/${CICE_BLDLOG_FILE}"
