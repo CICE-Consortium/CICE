@@ -2,13 +2,13 @@
 
 #--- inputs ---
 
-echo "${0:t}  input CICE_DECOMP_GRID  = $CICE_DECOMP_GRID"
-echo "${0:t}  input CICE_DECOMP_NTASK = $CICE_DECOMP_NTASK"
-echo "${0:t}  input CICE_DECOMP_NTHRD = $CICE_DECOMP_NTHRD"
+echo "${0:t}  input ICE_DECOMP_GRID  = $ICE_DECOMP_GRID"
+echo "${0:t}  input ICE_DECOMP_NTASK = $ICE_DECOMP_NTASK"
+echo "${0:t}  input ICE_DECOMP_NTHRD = $ICE_DECOMP_NTHRD"
 
-set grid = $CICE_DECOMP_GRID
-set task = $CICE_DECOMP_NTASK
-set thrd = $CICE_DECOMP_NTHRD
+set grid = $ICE_DECOMP_GRID
+set task = $ICE_DECOMP_NTASK
+set thrd = $ICE_DECOMP_NTHRD
 
 #--- computation ---
 
@@ -29,11 +29,11 @@ if (${grid} == 'col') then
   endif
 
 else if (${grid} == 'gx3') then
-  if ($?CICE_SANDBOX) then
-    set initfile = ${CICE_SANDBOX}/configuration/data/gx3/iced_gx3_v5.nc
-    set gridfile = ${CICE_SANDBOX}/configuration/data/gx3/global_gx3.grid
-    set kmtfile  = ${CICE_SANDBOX}/configuration/data/gx3/global_gx3.kmt
-    set rstpfile = ${CICE_SANDBOX}/configuration/data/gx3/ice.restart_file
+  if ($?ICE_SANDBOX) then
+    set initfile = ${ICE_SANDBOX}/configuration/data/gx3/iced_gx3_v5.nc
+    set gridfile = ${ICE_SANDBOX}/configuration/data/gx3/global_gx3.grid
+    set kmtfile  = ${ICE_SANDBOX}/configuration/data/gx3/global_gx3.kmt
+    set rstpfile = ${ICE_SANDBOX}/configuration/data/gx3/ice.restart_file
   endif
   set nxglob = 100
   set nyglob = 116
@@ -46,11 +46,11 @@ else if (${grid} == 'gx3') then
   endif
 
 else if (${grid} == 'gx1') then
-  if ($?CICE_SANDBOX) then
-    set initfile = ${CICE_SANDBOX}/configuration/data/gx1/iced_gx1_v5.nc
-    set gridfile = ${CICE_SANDBOX}/configuration/data/gx1/global_gx1.grid
-    set kmtfile  = ${CICE_SANDBOX}/configuration/data/gx1/global_gx1.kmt
-    set rstpfile = ${CICE_SANDBOX}/configuration/data/gx1/ice.restart_file
+  if ($?ICE_SANDBOX) then
+    set initfile = ${ICE_SANDBOX}/configuration/data/gx1/iced_gx1_v5.nc
+    set gridfile = ${ICE_SANDBOX}/configuration/data/gx1/global_gx1.grid
+    set kmtfile  = ${ICE_SANDBOX}/configuration/data/gx1/global_gx1.kmt
+    set rstpfile = ${ICE_SANDBOX}/configuration/data/gx1/ice.restart_file
   endif
   set nxglob = 320
   set nyglob = 384
@@ -93,28 +93,28 @@ if (${nxglob} % ${cicepes} != 0) set decomp = 'roundrobin'
 
 #--- outputs ---
 
-setenv CICE_DECOMP_NXGLOB $nxglob
-setenv CICE_DECOMP_NYGLOB $nyglob
-setenv CICE_DECOMP_BLCKX  $blckx
-setenv CICE_DECOMP_BLCKY  $blcky
-setenv CICE_DECOMP_MXBLCKS $mxblcks
-setenv CICE_DECOMP_DECOMP $decomp
-setenv CICE_DECOMP_DSHAPE $dshape
-setenv CICE_DECOMP_GRIDFILE $gridfile
-setenv CICE_DECOMP_KMTFILE  $kmtfile
-setenv CICE_DECOMP_INITFILE $initfile
-setenv CICE_DECOMP_RSTPFILE $rstpfile
+setenv ICE_DECOMP_NXGLOB $nxglob
+setenv ICE_DECOMP_NYGLOB $nyglob
+setenv ICE_DECOMP_BLCKX  $blckx
+setenv ICE_DECOMP_BLCKY  $blcky
+setenv ICE_DECOMP_MXBLCKS $mxblcks
+setenv ICE_DECOMP_DECOMP $decomp
+setenv ICE_DECOMP_DSHAPE $dshape
+setenv ICE_DECOMP_GRIDFILE $gridfile
+setenv ICE_DECOMP_KMTFILE  $kmtfile
+setenv ICE_DECOMP_INITFILE $initfile
+setenv ICE_DECOMP_RSTPFILE $rstpfile
 
-echo "${0:t} output CICE_DECOMP_NXGLOB   = $CICE_DECOMP_NXGLOB"
-echo "${0:t} output CICE_DECOMP_NYGLOB   = $CICE_DECOMP_NYGLOB"
-echo "${0:t} output CICE_DECOMP_BLCKX    = $CICE_DECOMP_BLCKX"
-echo "${0:t} output CICE_DECOMP_BLCKY    = $CICE_DECOMP_BLCKY"
-echo "${0:t} output CICE_DECOMP_MXBLCKS  = $CICE_DECOMP_MXBLCKS"
-echo "${0:t} output CICE_DECOMP_DECOMP   = $CICE_DECOMP_DECOMP"
-echo "${0:t} output CICE_DECOMP_DSHAPE   = $CICE_DECOMP_DSHAPE"
-echo "${0:t} output CICE_DECOMP_GRIDFILE = $CICE_DECOMP_GRIDFILE"
-echo "${0:t} output CICE_DECOMP_KMTFILE  = $CICE_DECOMP_KMTFILE"
-echo "${0:t} output CICE_DECOMP_INITFILE = $CICE_DECOMP_INITFILE"
-echo "${0:t} output CICE_DECOMP_RSTPFILE = $CICE_DECOMP_RSTPFILE"
+echo "${0:t} output ICE_DECOMP_NXGLOB   = $ICE_DECOMP_NXGLOB"
+echo "${0:t} output ICE_DECOMP_NYGLOB   = $ICE_DECOMP_NYGLOB"
+echo "${0:t} output ICE_DECOMP_BLCKX    = $ICE_DECOMP_BLCKX"
+echo "${0:t} output ICE_DECOMP_BLCKY    = $ICE_DECOMP_BLCKY"
+echo "${0:t} output ICE_DECOMP_MXBLCKS  = $ICE_DECOMP_MXBLCKS"
+echo "${0:t} output ICE_DECOMP_DECOMP   = $ICE_DECOMP_DECOMP"
+echo "${0:t} output ICE_DECOMP_DSHAPE   = $ICE_DECOMP_DSHAPE"
+echo "${0:t} output ICE_DECOMP_GRIDFILE = $ICE_DECOMP_GRIDFILE"
+echo "${0:t} output ICE_DECOMP_KMTFILE  = $ICE_DECOMP_KMTFILE"
+echo "${0:t} output ICE_DECOMP_INITFILE = $ICE_DECOMP_INITFILE"
+echo "${0:t} output ICE_DECOMP_RSTPFILE = $ICE_DECOMP_RSTPFILE"
 
 exit 0

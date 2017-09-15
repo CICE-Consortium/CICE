@@ -7,52 +7,52 @@ source ./cice.settings
 
 set jobfile = $1
 
-set ntasks = ${CICE_NTASKS}
-set nthrds = ${CICE_NTHRDS}
+set ntasks = ${ICE_NTASKS}
+set nthrds = ${ICE_NTHRDS}
 
 #==========================================
 
-if (${CICE_MACHINE} =~ yellowstone*) then
+if (${ICE_MACHINE} =~ yellowstone*) then
 cat >> ${jobfile} << EOFR
 setenv MP_TASK_AFFINITY core:\${OMP_NUM_THREADS}
-mpirun.lsf ./cice >&! \$CICE_RUNLOG_FILE
+mpirun.lsf ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
-else if (${CICE_MACHINE} =~ cheyenne*) then
+else if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFR
-mpiexec_mpt -n ${ntasks} ./cice >&! \$CICE_RUNLOG_FILE
+mpiexec_mpt -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
-else if (${CICE_MACHINE} =~ thunder*) then
+else if (${ICE_MACHINE} =~ thunder*) then
 cat >> ${jobfile} << EOFR
-mpiexec_mpt -np ${ntasks} omplace ./cice >&! \$CICE_RUNLOG_FILE
+mpiexec_mpt -np ${ntasks} omplace ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
-else if (${CICE_MACHINE} =~ gordon* || ${CICE_MACHINE} =~ conrad*) then
+else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
 cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${ntasks} -d ${nthrds} ./cice >&! \$CICE_RUNLOG_FILE
+aprun -n ${ntasks} -N ${ntasks} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
-else if (${CICE_MACHINE} =~ cori*) then
+else if (${ICE_MACHINE} =~ cori*) then
 cat >> ${jobfile} << EOFR
-srun -n ${ntasks} -c ${nthrds} ./cice >&! \$CICE_RUNLOG_FILE
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
-else if (${CICE_MACHINE} =~ wolf*) then
+else if (${ICE_MACHINE} =~ wolf*) then
 cat >> ${jobfile} << EOFR
-mpirun -np ${ntasks} ./cice >&! \$CICE_RUNLOG_FILE
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
-else if (${CICE_MACHINE} =~ pinto*) then
+else if (${ICE_MACHINE} =~ pinto*) then
 cat >> ${jobfile} << EOFR
-mpirun -np ${ntasks} ./cice >&! \$CICE_RUNLOG_FILE
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 #cat >> ${jobfile} << EOFR
-#srun -n ${ntasks} -c ${nthrds} ./cice >&! \$CICE_RUNLOG_FILE
+#srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 #EOFR
 
 else
-  echo "${0} ERROR ${CICE_MACHINE} unknown"
+  echo "${0} ERROR ${ICE_MACHINE} unknown"
   exit -1
 endif
 
