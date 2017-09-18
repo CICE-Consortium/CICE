@@ -74,7 +74,9 @@ echo "building makdep"
 cc -o makdep ${ICE_CASEDIR}/makdep.c     || exit 2
 
 echo "building cice > ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
-echo "#---" >! ${ICE_CASEDIR}/test_output
+if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
+  echo "#---" >! ${ICE_CASEDIR}/test_output
+endif
 if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
 if !($?ICE_MACHINE_BLDTHRDS) then
   set ICE_MACHINE_BLDTHRDS = 1
