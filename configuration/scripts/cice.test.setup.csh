@@ -23,7 +23,7 @@ echo "BaseCom      : ${ICE_BASECOM}"
 
 # Write the batch code into the job file
 ${ICE_SCRIPTS}/cice.batch.csh ${jobfile}
-if ($? != 0) then
+if ($status != 0) then
   exit -1
 endif
 

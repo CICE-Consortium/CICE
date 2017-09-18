@@ -15,7 +15,7 @@ set nthrds = ${ICE_NTHRDS}
 
 # Write the batch code into the job file
 ${ICE_SCRIPTS}/cice.batch.csh ${jobfile}
-if ($? != 0) then
+if ($status != 0) then
   echo "${0}: ERROR cice.batch.csh aborted"
   exit -1
 endif
@@ -61,7 +61,7 @@ EOF1
 
 # Write the job launching logic into the job file
 ${ICE_SCRIPTS}/cice.launch.csh ${jobfile}
-if ($? != 0) then
+if ($status != 0) then
   echo "${0}: ERROR cice.launch.csh aborted"
   exit -1
 endif
@@ -78,7 +78,7 @@ if !(-d \${ICE_LOGDIR}) mkdir -p \${ICE_LOGDIR}
 cp -p \${ICE_RUNLOG_FILE} \${ICE_LOGDIR}
 
 grep ' CICE COMPLETED SUCCESSFULLY' \${ICE_RUNLOG_FILE}
-if ( \$? != 0 ) then
+if ( \$status != 0 ) then
   echo "CICE run did not complete - see \${ICE_LOGDIR}/\${ICE_RUNLOG_FILE}"
   echo "\`date\` \${0}: \${ICE_CASENAME} run did NOT complete \${ICE_RUNLOG_FILE}"  >> \${ICE_CASEDIR}/README.case
   exit -1

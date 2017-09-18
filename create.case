@@ -348,7 +348,7 @@ echo ICE_MACHINE  = ${mach}
 #------------------------------------------------------------
 # Compute a default blocksize
 
-set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
+set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
 if (${chck} == OK) then
   set task = `echo ${pesx} | sed s/x.\*//`
   set thrd = `echo ${pesx} | sed s/.\*x//`
@@ -362,7 +362,7 @@ setenv ICE_DECOMP_NTASK ${task}
 setenv ICE_DECOMP_NTHRD ${thrd}
 
 source ${casescr}/cice_decomp.csh
-if ($? != 0) then
+if ($status != 0) then
   echo "${0}: ERROR, cice_decomp.csh aborted"
   exit -1
 endif
@@ -476,7 +476,7 @@ source ./cice.settings
 source ./env.${mach} || exit 2
 
 ${casescr}/cice.run.setup.csh
-if ($? != 0) then
+if ($status != 0) then
   echo "${0}: ERROR, cice.run.setup.csh aborted"
   exit -1
 endif
@@ -489,7 +489,7 @@ if ($test != $spval) then
 
   # Generate test script
   ${casescr}/cice.test.setup.csh 
-  if ($? != 0) then
+  if ($status != 0) then
     echo "${0}: ERROR, cice.test.setup.csh aborted"
     exit -1
   endif

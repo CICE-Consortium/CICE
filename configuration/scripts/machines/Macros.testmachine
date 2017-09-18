@@ -1,0 +1,71 @@
+#==============================================================================
+# Makefile macros for NCAR cheyenne, intel compiler
+#==============================================================================
+
+CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise   -xHost
+
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+else
+  FFLAGS     += -O2
+endif
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC         := mpif90
+else
+  FC         := ifort
+endif
+
+MPICC:= mpicc
+
+MPIFC:= mpif90
+LD:= $(MPIFC)
+
+NETCDF_PATH := $(NETCDF)
+
+PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+
+#PNETCDF_PATH := $(PNETCDF)
+PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
+
+INCLDIR := $(INCLDIR)
+
+LIB_NETCDF := $(NETCDF_PATH)/lib
+LIB_PNETCDF := $(PNETCDF_PATH)/lib
+LIB_MPI := $(IMPILIBDIR)
+
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
+
+SCC:= icc 
+
+SFC:= ifort 
+
+ifeq ($(compile_threaded), true) 
+   LDFLAGS += -openmp 
+   CFLAGS += -openmp 
+   FFLAGS += -openmp 
+endif
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+### if using parallel I/O, load all 3 libraries.  PIO must be first!
+ifeq ($(IO_TYPE), pio)
+   PIO_PATH:=/glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
+   INCLDIR += -I/glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/include
+   SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpiof
+
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif
+
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif
