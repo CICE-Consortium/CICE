@@ -441,7 +441,7 @@ endif
 if ($test != $spval) then
   set testx = ${test}
   # from test options to casescr in case any test time changes are applied
-  cp -f -p ${ICE_SCRIPTS}/options/test_nml.${test}* ${casescr}
+  cp -f -p ${ICE_SCRIPTS}/options/test_nml.${test}* ${casescr} >& /dev/null
 else
   set testx = ""
 endif
