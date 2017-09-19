@@ -220,9 +220,9 @@ if ( $testsuite != $spval ) then
   cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ./${tsdir}
 
   if ("$testid" =~ reg*) then
-    cp -f ${CICE_SCRIPTS}/tests/CTest/CTestConfig.cmake ./${tsdir}
-    cp -f ${CICE_SCRIPTS}/tests/CTest/CTestTestfile.cmake ./${tsdir}
-    cp -f ${CICE_SCRIPTS}/tests/CTest/steer.cmake ./${tsdir}
+    cp -f ${ICE_SCRIPTS}/tests/CTest/CTestConfig.cmake ./${tsdir}
+    cp -f ${ICE_SCRIPTS}/tests/CTest/CTestTestfile.cmake ./${tsdir}
+    cp -f ${ICE_SCRIPTS}/tests/CTest/steer.cmake ./${tsdir}
   endif
 
 cat >! ./${tsdir}/suite.run << EOF0
