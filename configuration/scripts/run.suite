@@ -1,0 +1,34 @@
+#!/bin/csh -f
+
+setenv PLATFORM "conrad"
+
+echo " "
+echo "${0}:"
+
+git checkout master
+
+git pull
+
+./create.case -m $PLATFORM -ts base_suite -testid reg99 -bc cicev6.0.0
+
+cd base_suite.reg99
+
+# Get a list of subdirectories
+foreach dir (`ls -d */`)
+  # Check for log file in this directory
+  set dir_trimmed=`echo $dir | sed -e 's#/$##'`
+  echo "dir_trimmed $dir_trimmed"
+  while ( `find $dir -name "${dir_trimmed}.*" -print` == "")
+    echo "waiting on job $dir_trimmed to finish"
+    sleep 10
+  end
+  echo "---------           job $dir_trimmed FINISHED"
+end
+
+./results.csh
+
+ctest -S steer.cmake
+
+cd ..
+
+rm -rf base_suite.reg99
