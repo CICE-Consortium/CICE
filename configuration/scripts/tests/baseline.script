@@ -12,7 +12,7 @@ if (${ICE_BASEGEN} != ${ICE_SPVAL}) then
   else
     mkdir -p ${baseline_dir}
     cp -p -r ${ICE_RUNDIR}/* ${baseline_dir}/
-    echo "PASS ${ICE_TESTNAME} generate" >> ${ICE_CASEDIR}/test_output
+    echo "PASS ${ICE_TESTNAME} generate ${ICE_BASEGEN}" >> ${ICE_CASEDIR}/test_output
   endif
 endif
 
@@ -33,7 +33,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
   echo "test:     ${test_data}"
   if (-e ${baseline_data} ) then
     if ( { cmp -s ${test_data} ${baseline_data} } ) then
-      echo "PASS ${ICE_TESTNAME} compare" >> ${ICE_CASEDIR}/test_output
+      echo "PASS ${ICE_TESTNAME} compare ${ICE_BASECOM}" >> ${ICE_CASEDIR}/test_output
     else
       echo "FAIL ${ICE_TESTNAME} compare different-data" >> ${ICE_CASEDIR}/test_output
       echo "Regression baseline and test dataset are different"
