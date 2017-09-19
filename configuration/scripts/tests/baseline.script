@@ -2,28 +2,28 @@
 #-----------------------------------------------------------
 # Baseline generating run
 
-if (${CICE_BASEGEN} != ${CICE_SPVAL}) then
+if (${ICE_BASEGEN} != ${ICE_SPVAL}) then
   
-  set baseline_dir = ${CICE_BASELINE}/${CICE_BASEGEN}/${CICE_TESTNAME}
+  set baseline_dir = ${ICE_BASELINE}/${ICE_BASEGEN}/${ICE_TESTNAME}
 
   if (-e ${baseline_dir}) then
-    echo "FAIL ${CICE_TESTNAME} generate baseline-already-exists" >> ${CICE_CASEDIR}/test_output
+    echo "FAIL ${ICE_TESTNAME} generate baseline-already-exists" >> ${ICE_CASEDIR}/test_output
     echo "Baseline directory (${baseline_dir}) already exists. Exiting..."
   else
     mkdir -p ${baseline_dir}
-    cp -p -r ${CICE_RUNDIR}/* ${baseline_dir}/
-    echo "PASS ${CICE_TESTNAME} generate" >> ${CICE_CASEDIR}/test_output
+    cp -p -r ${ICE_RUNDIR}/* ${baseline_dir}/
+    echo "PASS ${ICE_TESTNAME} generate ${ICE_BASEGEN}" >> ${ICE_CASEDIR}/test_output
   endif
 endif
 
 #-----------------------------------------------------------
 # Baseline comparing run
 
-if (${CICE_BASECOM} != ${CICE_SPVAL}) then
-  set test_file = `ls -t1 ${CICE_RUNDIR}/restart | head -1`
-  set test_data = ${CICE_RUNDIR}/restart/${test_file}
+if (${ICE_BASECOM} != ${ICE_SPVAL}) then
+  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
+  set test_data = ${ICE_RUNDIR}/restart/${test_file}
 
-  set baseline_dir  = ${CICE_BASELINE}/${CICE_BASECOM}/${CICE_TESTNAME}/restart
+  set baseline_dir  = ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/restart
   set baseline_data = ${baseline_dir}/${test_file}
 
   echo ""
@@ -33,13 +33,13 @@ if (${CICE_BASECOM} != ${CICE_SPVAL}) then
   echo "test:     ${test_data}"
   if (-e ${baseline_data} ) then
     if ( { cmp -s ${test_data} ${baseline_data} } ) then
-      echo "PASS ${CICE_TESTNAME} compare" >> ${CICE_CASEDIR}/test_output
+      echo "PASS ${ICE_TESTNAME} compare ${ICE_BASECOM}" >> ${ICE_CASEDIR}/test_output
     else
-      echo "FAIL ${CICE_TESTNAME} compare different-data" >> ${CICE_CASEDIR}/test_output
+      echo "FAIL ${ICE_TESTNAME} compare different-data" >> ${ICE_CASEDIR}/test_output
       echo "Regression baseline and test dataset are different"
     endif
   else
-    echo "FAIL ${CICE_TESTNAME} compare baseline-does-not-exist" >> ${CICE_CASEDIR}/test_output
+    echo "FAIL ${ICE_TESTNAME} compare baseline-does-not-exist" >> ${ICE_CASEDIR}/test_output
     echo "Baseline file does not exist"
   endif
 endif
@@ -48,12 +48,12 @@ endif
 
 # BFB Compare runs
 
-if (${CICE_BFBCOMP} != ${CICE_SPVAL}) then
+if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
 
-  set test_file = `ls -t1 ${CICE_RUNDIR}/restart | head -1`
-  set test_data = ${CICE_RUNDIR}/restart/${test_file}
-  set comp_file = `ls -t1 ${CICE_RUNDIR}/../${CICE_BFBCOMP}/restart | head -1`
-  set comp_data = ${CICE_RUNDIR}/../${CICE_BFBCOMP}/restart/${comp_file}
+  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
+  set test_data = ${ICE_RUNDIR}/restart/${test_file}
+  set comp_file = `ls -t1 ${ICE_RUNDIR}/../${ICE_BFBCOMP}/restart | head -1`
+  set comp_data = ${ICE_RUNDIR}/../${ICE_BFBCOMP}/restart/${comp_file}
 
   echo ""
   echo "BFB Compare Mode:"
@@ -62,13 +62,13 @@ if (${CICE_BFBCOMP} != ${CICE_SPVAL}) then
   echo "test_data: ${test_data}"
   if (-e ${comp_data} ) then
     if ( { cmp -s ${test_data} ${comp_data} } ) then
-      echo "PASS ${CICE_TESTNAME} bfbcomp ${CICE_BFBCOMP}" >> ${CICE_CASEDIR}/test_output
+      echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
     else
-      echo "FAIL ${CICE_TESTNAME} bfbcomp ${CICE_BFBCOMP} different-data" >> ${CICE_CASEDIR}/test_output
+      echo "FAIL ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} different-data" >> ${ICE_CASEDIR}/test_output
       echo "bfbcomp and test dataset are different"
     endif
   else
-    echo "FAIL ${CICE_TESTNAME} bfbcomp baseline_does-not-exist" >> ${CICE_CASEDIR}/test_output
+    echo "FAIL ${ICE_TESTNAME} bfbcomp baseline_does-not-exist" >> ${ICE_CASEDIR}/test_output
     echo "Baseline file does not exist"
   endif
 endif

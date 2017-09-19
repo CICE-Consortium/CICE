@@ -10,7 +10,7 @@ set basename = `echo $1 | sed -e 's#/$##' | sed -e 's/^\.\///'`
 
 # Determine if BASELINE dataset exists
 source $1/cice.settings
-set basefile_dir = "$CICE_BASELINE/$CICE_BASECOM/$CICE_TESTNAME"
+set basefile_dir = "$ICE_BASELINE/$ICE_BASECOM/$ICE_TESTNAME"
 if ( -d $basefile_dir ) then
   set num_basefile = `ls $basefile_dir | grep cice.runlog | wc -l`
   if ( $num_basefile > 0 ) then

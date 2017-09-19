@@ -4,18 +4,18 @@
 echo "running cice.run.setup.csh"
 
 source ./cice.settings
-source ${CICE_CASEDIR}/env.${CICE_MACHINE} || exit 2
+source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
 
 set jobfile = cice.run
 set subfile = cice.submit
 
-set nthrds = ${CICE_NTHRDS}
+set nthrds = ${ICE_NTHRDS}
 
 #==========================================
 
 # Write the batch code into the job file
-${CICE_SCRIPTS}/cice.batch.csh ${jobfile}
-if ($? != 0) then
+${ICE_SCRIPTS}/cice.batch.csh ${jobfile}
+if ($status != 0) then
   echo "${0}: ERROR cice.batch.csh aborted"
   exit -1
 endif
@@ -26,33 +26,33 @@ cat >> ${jobfile} << EOF1
 
 #--------------------------------------------
 
-cd ${CICE_CASEDIR}
+cd ${ICE_CASEDIR}
 source ./cice.settings || exit 2
-source ./env.\${CICE_MACHINE} || exit 2
+source ./env.\${ICE_MACHINE} || exit 2
 
 echo " "
 echo "\${0}:"
 
 set  stamp   = \`date '+%y%m%d-%H%M%S'\`
-set CICE_RUNLOG_FILE = "cice.runlog.\${stamp}"
+set ICE_RUNLOG_FILE = "cice.runlog.\${stamp}"
 
 #--------------------------------------------
 
-if !(-d \${CICE_RUNDIR}) mkdir -p \${CICE_RUNDIR}
-if !(-d \${CICE_HSTDIR}) mkdir -p \${CICE_HSTDIR}
-if !(-d \${CICE_RSTDIR}) mkdir -p \${CICE_RSTDIR}
+if !(-d \${ICE_RUNDIR}) mkdir -p \${ICE_RUNDIR}
+if !(-d \${ICE_HSTDIR}) mkdir -p \${ICE_HSTDIR}
+if !(-d \${ICE_RSTDIR}) mkdir -p \${ICE_RSTDIR}
 
-if !(-e \${CICE_RUNDIR}/ice.restart_file) cp \${CICE_RSTPFILE} \${CICE_RUNDIR}
+if !(-e \${ICE_RUNDIR}/ice.restart_file) cp \${ICE_RSTPFILE} \${ICE_RUNDIR}
 
 #--------------------------------------------
-cd \${CICE_RUNDIR}
+cd \${ICE_RUNDIR}
 
 setenv OMP_NUM_THREADS ${nthrds}
 
-cp -f \${CICE_CASEDIR}/ice_in \${CICE_RUNDIR}
+cp -f \${ICE_CASEDIR}/ice_in \${ICE_RUNDIR}
 echo " "
-echo "CICE rundir is \${CICE_RUNDIR}"
-echo "CICE log file is \${CICE_RUNLOG_FILE}"
+echo "CICE rundir is \${ICE_RUNDIR}"
+echo "CICE log file is \${ICE_RUNLOG_FILE}"
 echo "CICE run started : \`date\`"
 
 EOF1
@@ -60,8 +60,8 @@ EOF1
 #==========================================
 
 # Write the job launching logic into the job file
-${CICE_SCRIPTS}/cice.launch.csh ${jobfile}
-if ($? != 0) then
+${ICE_SCRIPTS}/cice.launch.csh ${jobfile}
+if ($status != 0) then
   echo "${0}: ERROR cice.launch.csh aborted"
   exit -1
 endif
@@ -74,17 +74,17 @@ echo " "
 
 #--------------------------------------------
 
-if !(-d \${CICE_LOGDIR}) mkdir -p \${CICE_LOGDIR}
-cp -p \${CICE_RUNLOG_FILE} \${CICE_LOGDIR}
+if !(-d \${ICE_LOGDIR}) mkdir -p \${ICE_LOGDIR}
+cp -p \${ICE_RUNLOG_FILE} \${ICE_LOGDIR}
 
-grep ' CICE COMPLETED SUCCESSFULLY' \${CICE_RUNLOG_FILE}
-if ( \$? != 0 ) then
-  echo "CICE run did not complete - see \${CICE_LOGDIR}/\${CICE_RUNLOG_FILE}"
-  echo "\`date\` \${0}: \${CICE_CASENAME} run did NOT complete \${CICE_RUNLOG_FILE}"  >> \${CICE_CASEDIR}/README.case
+grep ' CICE COMPLETED SUCCESSFULLY' \${ICE_RUNLOG_FILE}
+if ( \$status != 0 ) then
+  echo "CICE run did not complete - see \${ICE_LOGDIR}/\${ICE_RUNLOG_FILE}"
+  echo "\`date\` \${0}: \${ICE_CASENAME} run did NOT complete \${ICE_RUNLOG_FILE}"  >> \${ICE_CASEDIR}/README.case
   exit -1
 endif
 
-echo "\`date\` \${0}: \${CICE_CASENAME} run completed \${CICE_RUNLOG_FILE}"  >> \${CICE_CASEDIR}/README.case
+echo "\`date\` \${0}: \${ICE_CASENAME} run completed \${ICE_RUNLOG_FILE}"  >> \${ICE_CASEDIR}/README.case
 echo "done \${0}"
 
 EOFE
@@ -98,8 +98,8 @@ chmod +x ${jobfile}
 cat >! ${subfile} << EOFS
 #!/bin/csh -f 
 
-${CICE_MACHINE_SUBMIT} ${jobfile}
-echo "\`date\` \${0}: ${CICE_CASENAME} job submitted"  >> ${CICE_CASEDIR}/README.case
+${ICE_MACHINE_SUBMIT} ./${jobfile}
+echo "\`date\` \${0}: ${ICE_CASENAME} job submitted"  >> ${ICE_CASEDIR}/README.case
 
 EOFS
 
