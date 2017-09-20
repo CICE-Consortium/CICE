@@ -1,0 +1,223 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>2. Quick Start guide &#8212; CICE-Consortium 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/bizstyle.js"></script>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="3. Coupling with other climate model components" href="cice_3_coupling.html" />
+    <link rel="prev" title="1. Introduction - CICE5" href="cice_1_introduction.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="cice_3_coupling.html" title="3. Coupling with other climate model components"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="cice_1_introduction.html" title="1. Introduction - CICE5"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">2. Quick Start guide</a><ul>
+<li><a class="reference internal" href="#get-the-model">2.1. Get the model</a></li>
+<li><a class="reference internal" href="#running-the-model">2.2. Running the model</a></li>
+<li><a class="reference internal" href="#more-details">2.3. More Details:</a></li>
+<li><a class="reference internal" href="#forcing-data">2.4. Forcing data</a></li>
+<li><a class="reference internal" href="#online-resources">2.5. Online resources</a></li>
+<li><a class="reference internal" href="#authors">2.6. Authors</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cice_1_introduction.html"
+                        title="previous chapter">1. Introduction - CICE5</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="cice_3_coupling.html"
+                        title="next chapter">3. Coupling with other climate model components</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/cice_2_quick_start.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="quick-start-guide">
+<h1>2. Quick Start guide<a class="headerlink" href="#quick-start-guide" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="get-the-model">
+<h2>2.1. Get the model<a class="headerlink" href="#get-the-model" title="Permalink to this headline">¶</a></h2>
+<p>Checkout the model from the CICE-Consortium repository,</p>
+<blockquote>
+<div>github.com/CICE-Consortium</div></blockquote>
+<p>For more details about how to work in github with CICE, a document can be
+found <a class="reference external" href="https://docs.google.com/document/d/1rR6WAvZQT9iAMUp-m_HZ06AUCCI19mguFialsMCYs9o">here</a>.</p>
+</div>
+<div class="section" id="running-the-model">
+<h2>2.2. Running the model<a class="headerlink" href="#running-the-model" title="Permalink to this headline">¶</a></h2>
+<p>&gt; cd consortium</p>
+<p>&gt; ./create.case -c ~/mycase1 -g gx3 -m thunder -s diag1,thread -p 8x1</p>
+<p>&gt; cd ~/mycase1</p>
+<p>&gt; ./cice.build</p>
+<p>&gt; ./cice.submit</p>
+</div>
+<div class="section" id="more-details">
+<h2>2.3. More Details:<a class="headerlink" href="#more-details" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>create.case generates a case, use “create.case -h” for help with the tool.</dt>
+<dd><p class="first">-c is the case name and location (required)</p>
+<p>-m is the machine name (required). Currently, there are working ports for NCAR yellowstone and cheyenne, AFRL thunder, NavyDSRC gordon and conrad, and LANL’s wolf machines.</p>
+<p>-g is the resolution (default is gx3)</p>
+<p>-p is the task x thread/task values (default is 4x1)</p>
+<p>-s are comma separated optional env or namelist settings (default is “null”)</p>
+<p>-t is the test name and location (cannot be used with -c).</p>
+<p>-bd is used to specify the location of the baseline datasets (only used with -t)</p>
+<p>-bg is used to specify the cice version name for generating baseline datasets (only used with -t)</p>
+<p>-bc is used to specify the cice versoin name for comparison. I.e., the version name for the baseline dataset (only used with -t)</p>
+<p>-testid is used to specify a test ID (used only with -t or -ts)</p>
+<p class="last">-ts is used to generate all test cases for a given test suite.</p>
+</dd>
+</dl>
+<p>Several files are placed in the case directory</p>
+<blockquote>
+<div><ul class="simple">
+<li>env.${machine} defines the environment</li>
+<li>cice.settings defines many variables associated with building and running the model</li>
+<li>makdep.c is a tool that will automatically generate the make dependencies</li>
+<li>Macros.${machine} defines the Makefile Macros</li>
+<li>Makefile is the makefile used to build the model</li>
+<li>cice.build is a script that build the model</li>
+<li>ice_in is the namelist file</li>
+<li>cice.run is a batch run script</li>
+<li>cice.submit is a simple script that submits the cice.run script</li>
+</ul>
+</div></blockquote>
+<p>Once the case is created, all scripts and namelist are fully resolved.  Users can edit any
+of the files in the case directory manually to change the model configuration.  The file
+dependency is indicated in the above list.  For instance, if any of the files before
+cice.build in the list are edited, cice.build should be rerun.</p>
+<p>The casescripts directory holds scripts used to create the case and can largely be ignored.</p>
+<p>In general, when cice.build is executed, the model will build from scratch due to the large
+dependence on cpps.  To change this behavior, edit the env variable ICE_CLEANBUILD in
+cice.settings.</p>
+<p>The cice.submit script just submits the cice.run script.  You can use cice.submit or just
+submit the cice.run script on the command line.</p>
+<p>The model will run in the directory defined by the env variable CICE_RUNDIR in cice.settings.
+Build and run logs will be copied into the case logs directory when complete.</p>
+<dl class="docutils">
+<dt>To port, an env.machine and Macros.machine file have to be added to scripts/machines and the cice.run.setup.csh file needs to be modified.</dt>
+<dd><ul class="first last simple">
+<li>cd to consortium/scripts/machines</li>
+<li>Copy an existing env and Macros file to new names for your new machine</li>
+<li>Edit the env and Macros file</li>
+<li>cd to consortium/scripts</li>
+<li>Edit the cice.run.setup.csh script to add a section for your machine for the batch settings and for the job launch settings</li>
+<li>Download and untar the 1997 dataset to the location defined by ICE_MACHINE_INPUTDATA in the env file</li>
+<li>Create a file in your home directory called .cice_proj and add your preferred account name to the first line.</li>
+<li>You can now create a case and test.  If there are problems, you can manually edit the env, Macros, and cice.run files in the case directory until things are working properly.  Then you can copy the env and Macros files back to consortium/scripts/machines.  You will have to manually modify the cice.run.setup.csh script if there any changes needed there.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="forcing-data">
+<h2>2.4. Forcing data<a class="headerlink" href="#forcing-data" title="Permalink to this headline">¶</a></h2>
+<p>The code is currently configured to run in standalone mode on a 3 degree grid using
+atmospheric data from 1997, available as detailed on the <a class="reference external" href="https://github.com/CICE-Consortium/CICE/wiki/Testing-CICE">wiki</a>.
+These data files are designed only for testing the code, not for use in production
+runs or as observational data.  Please do not publish results based on these data
+sets.  Module cicecore/dynamics/cicedynB/ice_forcing.F90 can be modified to change the
+forcing data.</p>
+<p>As currently configured, the model runs on 4 processors.  MPI is used for message passing
+between processors, and OpenMP threading is available.  The grid provided here is too
+small for the code to scale well beyond about 8 processors. A 1 degree grid is provided also,
+and details about this grid can be found on the <a class="reference external" href="https://github.com/CICE-Consortium/CICE/wiki/Testing-CICE">wiki</a>.</p>
+</div>
+<div class="section" id="online-resources">
+<h2>2.5. Online resources<a class="headerlink" href="#online-resources" title="Permalink to this headline">¶</a></h2>
+<p><strong>DO WE WANT TO KEEP THESE?</strong></p>
+<p>primary wiki page:</p>
+<p>FAQ:</p>
+<p>instructions for code developers:</p>
+<p>ongoing or planned development projects:</p>
+<p>list of users and publications:</p>
+<p>Please send references to your publications using the CICE model to …</p>
+</div>
+<div class="section" id="authors">
+<h2>2.6. Authors<a class="headerlink" href="#authors" title="Permalink to this headline">¶</a></h2>
+<p>Please report any bugs to
+Elizabeth Hunke (<a class="reference external" href="mailto:eclare&#37;&#52;&#48;lanl&#46;gov">eclare<span>&#64;</span>lanl<span>&#46;</span>gov</a>)</p>
+<p>Good luck!</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="cice_3_coupling.html" title="3. Coupling with other climate model components"
+             >next</a></li>
+        <li class="right" >
+          <a href="cice_1_introduction.html" title="1. Introduction - CICE5"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation).
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>
