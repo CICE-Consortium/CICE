@@ -1,63 +1,63 @@
 #! /bin/csh -f
 
 source ./cice.settings
-source ${CICE_CASEDIR}/env.${CICE_MACHINE} || exit 2
+source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
 
 set jobfile = cice.test
 set subfile = cice.submit
 
-set nthrds = ${CICE_NTHRDS}
+set nthrds = ${ICE_NTHRDS}
 
 #==========================================
 
 # Print information about this test to stdout
 echo ""
-echo "Test name    : ${CICE_TESTNAME}"
-echo "Test case dir: ${CICE_CASEDIR}"
-echo "Test         : ${CICE_TEST}"
-echo "BaseGen      : ${CICE_BASEGEN}"
-echo "BaseCom      : ${CICE_BASECOM}"
+echo "Test name    : ${ICE_TESTNAME}"
+echo "Test case dir: ${ICE_CASEDIR}"
+echo "Test         : ${ICE_TEST}"
+echo "BaseGen      : ${ICE_BASEGEN}"
+echo "BaseCom      : ${ICE_BASECOM}"
 
 # Create test script that runs cice.run, and validates
 #==========================================
 
 # Write the batch code into the job file
-${CICE_SCRIPTS}/cice.batch.csh ${jobfile}
-if ($? != 0) then
+${ICE_SCRIPTS}/cice.batch.csh ${jobfile}
+if ($status != 0) then
   exit -1
 endif
 
 cat >> ${jobfile} << EOF2
 
-cd ${CICE_CASEDIR}
+cd ${ICE_CASEDIR}
 source ./cice.settings || exit 2
-source ./env.\${CICE_MACHINE} || exit 2
+source ./env.\${ICE_MACHINE} || exit 2
 
-# Check to see if executable exists in CICE_RUNDIR
-if ( ! -f ${CICE_RUNDIR}/cice ) then
-  echo "cice executable does not exist in ${CICE_RUNDIR}  "
+# Check to see if executable exists in ICE_RUNDIR
+if ( ! -f ${ICE_RUNDIR}/cice ) then
+  echo "cice executable does not exist in ${ICE_RUNDIR}  "
   echo "Please run cice.build before this test."
   exit 99
 endif
 
 EOF2
 
-if ( -f ${CICE_SCRIPTS}/tests/test_${CICE_TEST}.script) then
-  echo "${0:t} using test_${CICE_TEST}.script"
-  cat >> ${jobfile} < ${CICE_SCRIPTS}/tests/test_${CICE_TEST}.script
+if ( -f ${ICE_SCRIPTS}/tests/test_${ICE_TEST}.script) then
+  echo "${0:t} using test_${ICE_TEST}.script"
+  cat >> ${jobfile} < ${ICE_SCRIPTS}/tests/test_${ICE_TEST}.script
 else
-  echo "${0:t} ERROR: ${CICE_SCRIPTS}tests/test_${CICE_TEST}.script not found"
+  echo "${0:t} ERROR: ${ICE_SCRIPTS}tests/test_${ICE_TEST}.script not found"
   exit -1
 endif
-cat >> ${jobfile} < ${CICE_SCRIPTS}/tests/baseline.script
+cat >> ${jobfile} < ${ICE_SCRIPTS}/tests/baseline.script
 
 chmod +x ${jobfile}
 
 cat >! ${subfile} << EOFS
 #!/bin/csh -f 
 
-${CICE_MACHINE_SUBMIT} ${jobfile}
-echo "\`date\` \${0}: ${CICE_CASENAME} job submitted"  >> ${CICE_CASEDIR}/README.case
+${ICE_MACHINE_SUBMIT} ${jobfile}
+echo "\`date\` \${0}: ${ICE_CASENAME} job submitted"  >> ${ICE_CASEDIR}/README.case
 
 EOFS
 

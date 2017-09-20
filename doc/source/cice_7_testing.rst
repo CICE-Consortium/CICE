@@ -229,14 +229,14 @@ Additional Details
 - In general, the baseline generation, baseline compare, and test diff are independent.
 - Use the '-bd' flag to specify the location where you want the baseline dataset
     to be written.  Without specifying '-bd', the baseline dataset will be written
-    to the default baseline directory found in the env.<machine> file (CICE_MACHINE_BASELINE).
+    to the default baseline directory found in the env.<machine> file (ICE_MACHINE_BASELINE).
 - If '-bd' is not passed, the scripts will look for baseline datasets in the default 
-    baseline directory found in the env.<machine> file (CICE_MACHINE_BASELINE).
+    baseline directory found in the env.<machine> file (ICE_MACHINE_BASELINE).
     If the '-bd' option is passed, the scripts will look for baseline datasets in the
     location passed to the -bd argument.
 - To generate a baseline dataset for a specific version (for regression testing),
     use '-bg <version_name>'.  The scripts will then place the baseline dataset
-    in $CICE_MACHINE_BASELINE/<version_name>/
+    in $ICE_MACHINE_BASELINE/<version_name>/
 - The '-testid' flag allows users to specify a testing id that will be added to the
     end of the case directory.  For example, "./create.case -m wolf -t smoke -testid t12 -p 4x1"
     creates the directory wolf_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t or -ts.

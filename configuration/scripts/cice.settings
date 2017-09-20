@@ -1,43 +1,43 @@
 #! /bin/csh -f
 
-setenv CICE_MACHINE    undefined
-setenv CICE_CASENAME   undefined
-setenv CICE_SANDBOX    undefined
-setenv CICE_SCRIPTS    undefined
-setenv CICE_CASEDIR    undefined
-setenv CICE_RUNDIR     /glade/scratch/tcraig/CICE_RUNS/${CICE_CASENAME}
-setenv CICE_OBJDIR     ${CICE_RUNDIR}/compile
-setenv CICE_RSTDIR     ${CICE_RUNDIR}/restart
-setenv CICE_HSTDIR     ${CICE_RUNDIR}/history
-setenv CICE_LOGDIR     ${CICE_CASEDIR}/logs
-setenv CICE_RSTPFILE   undefined
-setenv CICE_DRVOPT     cice
-setenv CICE_CONSTOPT   cice
-setenv CICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
-setenv CICE_CLEANBUILD true
-setenv CICE_GRID       gx3
-setenv CICE_NXGLOB     100
-setenv CICE_NYGLOB     116
-setenv CICE_NTASKS     4
-setenv CICE_NTHRDS     1
-setenv CICE_BLCKX      25
-setenv CICE_BLCKY      29
-setenv CICE_MXBLCKS    4
-setenv CICE_DECOMP     cartesian
-setenv CICE_DSHAPE     slenderX2
-setenv CICE_TEST       undefined   # Define if this is a test case
-setenv CICE_TESTNAME   undefined   # Define if this is a test case
-setenv CICE_BASELINE   undefined
-setenv CICE_BASEGEN    undefined
-setenv CICE_BASECOM    undefined
-setenv CICE_BFBCOMP    undefined
-setenv CICE_SPVAL      undefined
-setenv CICE_RUNLENGTH  00:10:00
+setenv ICE_MACHINE    undefined
+setenv ICE_CASENAME   undefined
+setenv ICE_SANDBOX    undefined
+setenv ICE_SCRIPTS    undefined
+setenv ICE_CASEDIR    undefined
+setenv ICE_RUNDIR     /glade/scratch/tcraig/CICE_RUNS/${ICE_CASENAME}
+setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
+setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
+setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
+setenv ICE_LOGDIR     ${ICE_CASEDIR}/logs
+setenv ICE_RSTPFILE   undefined
+setenv ICE_DRVOPT     cice
+setenv ICE_CONSTOPT   cice
+setenv ICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
+setenv ICE_CLEANBUILD true
+setenv ICE_GRID       gx3
+setenv ICE_NXGLOB     100
+setenv ICE_NYGLOB     116
+setenv ICE_NTASKS     4
+setenv ICE_NTHRDS     1
+setenv ICE_BLCKX      25
+setenv ICE_BLCKY      29
+setenv ICE_MXBLCKS    4
+setenv ICE_DECOMP     cartesian
+setenv ICE_DSHAPE     slenderX2
+setenv ICE_TEST       undefined   # Define if this is a test case
+setenv ICE_TESTNAME   undefined   # Define if this is a test case
+setenv ICE_BASELINE   undefined
+setenv ICE_BASEGEN    undefined
+setenv ICE_BASECOM    undefined
+setenv ICE_BFBCOMP    undefined
+setenv ICE_SPVAL      undefined
+setenv ICE_RUNLENGTH  00:10:00
 
 #======================================================
 
-setenv CICE_THREADED   false
-if (${CICE_NTHRDS} > 1) setenv CICE_THREADED  true
+setenv ICE_THREADED   false
+if (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true
 
 ### Layers
 setenv NICELYR   7         # number of vertical layers in the ice
@@ -79,7 +79,7 @@ setenv TRFED     0         # number of dissolved iron tracers
 setenv CAM_ICE  no           # set to yes for CAM runs (single column) 
 setenv DITTO    no           # reproducible diagnostics
 setenv BARRIERS no           # prevent MPI buffer overflow during gather/scatter 
-setenv CICE_BLDDEBUG  false  # build debug flags
+setenv ICE_BLDDEBUG  false  # build debug flags
 
 ### File unit numbers
 setenv NUMIN    11         # minimum file unit number

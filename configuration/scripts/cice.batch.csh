@@ -7,14 +7,14 @@ else
 endif
 
 source ./cice.settings
-source ${CICE_CASEDIR}/env.${CICE_MACHINE} || exit 2
+source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
 
 set jobfile = $1
 
-set ntasks = ${CICE_NTASKS}
-set nthrds = ${CICE_NTHRDS}
-set maxtpn = ${CICE_MACHINE_TPNODE}
-set acct   = ${CICE_MACHINE_ACCT}
+set ntasks = ${ICE_NTASKS}
+set nthrds = ${ICE_NTHRDS}
+set maxtpn = ${ICE_MACHINE_TPNODE}
+set acct   = ${ICE_MACHINE_ACCT}
 
 @ taskpernode = ${maxtpn} / $nthrds
 @ nnodes = ${ntasks} / ${taskpernode}
@@ -34,7 +34,7 @@ EOF0
 
 #==========================================
 
-if (${CICE_MACHINE} =~ yellowstone*) then
+if (${ICE_MACHINE} =~ yellowstone*) then
 cat >> ${jobfile} << EOFB
 #BSUB -n ${ntasks}
 #BSUB -R "span[ptile=${ptile}]"
@@ -44,44 +44,44 @@ cat >> ${jobfile} << EOFB
 #BSUB -a poe
 #BSUB -o poe.stdout.%J
 #BSUB -e poe.stderr.%J
-#BSUB -J ${CICE_CASENAME}
-#BSUB -W ${CICE_RUNLENGTH}
+#BSUB -J ${ICE_CASENAME}
+#BSUB -W ${ICE_RUNLENGTH}
 #BSUB -P ${acct}
 EOFB
 
 #==========================================
 
-else if (${CICE_MACHINE} =~ cheyenne*) then
+else if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFB
 #PBS -j oe 
 #PBS -m ae 
 #PBS -V
 #PBS -q regular
-#PBS -N ${CICE_CASENAME}
-#PBS -A ${CICE_ACCT}
+#PBS -N ${ICE_CASENAME}
+#PBS -A ${ICE_ACCT}
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
-#PBS -l walltime=${CICE_RUNLENGTH}
+#PBS -l walltime=${ICE_RUNLENGTH}
 EOFB
 
-else if (${CICE_MACHINE} =~ thunder* || ${CICE_MACHINE} =~ gordon* || ${CICE_MACHINE} =~ conrad*) then
+else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
 cat >> ${jobfile} << EOFB
-#PBS -N ${CICE_CASENAME}
+#PBS -N ${ICE_CASENAME}
 #PBS -q debug
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=${CICE_RUNLENGTH}
+#PBS -l walltime=${ICE_RUNLENGTH}
 #PBS -j oe
 ###PBS -M username@domain.com
 ###PBS -m be
 EOFB
 
-else if (${CICE_MACHINE} =~ cori*) then
+else if (${ICE_MACHINE} =~ cori*) then
 cat >> ${jobfile} << EOFB
-#SBATCH -J ${CICE_CASENAME}
+#SBATCH -J ${ICE_CASENAME}
 #SBATCH -p debug
 ###SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
-#SBATCH -t ${CICE_RUNLENGTH}
+#SBATCH -t ${ICE_RUNLENGTH}
 #SBATCH -L SCRATCH
 #SBATCH -C haswell
 ###SBATCH -e filename
@@ -90,10 +90,10 @@ cat >> ${jobfile} << EOFB
 ###SBATCH --mail-user username@domain.com
 EOFB
 
-else if (${CICE_MACHINE} =~ wolf*) then
+else if (${ICE_MACHINE} =~ wolf*) then
 cat >> ${jobfile} << EOFB
-#SBATCH -J ${CICE_CASENAME}
-#SBATCH -t ${CICE_RUNLENGTH}
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -t ${ICE_RUNLENGTH}
 #SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
@@ -103,10 +103,10 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=low
 EOFB
 
-else if (${CICE_MACHINE} =~ pinto*) then
+else if (${ICE_MACHINE} =~ pinto*) then
 cat >> ${jobfile} << EOFB
-#SBATCH -J ${CICE_CASENAME}
-#SBATCH -t ${CICE_RUNLENGTH}
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -t ${ICE_RUNLENGTH}
 #SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
@@ -116,8 +116,13 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
+else if (${ICE_MACHINE} =~ testmachine*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
 else
-  echo "${0} ERROR: ${CICE_MACHINE} unknown"
+  echo "${0} ERROR: ${ICE_MACHINE} unknown"
   exit -1
 endif
 

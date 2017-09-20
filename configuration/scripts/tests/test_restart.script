@@ -4,40 +4,40 @@
 # Run the CICE model baseline simulation
 
 cp ice_in ice_in.0
-${CICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${CICE_CASEDIR}/casescripts/test_nml.restart1
+${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/test_nml.restart1
 cp ice_in ice_in.1
 
 ./cice.run
 
 if ( $? != 0 ) then
-  echo "FAIL ${CICE_TESTNAME} run-initial" >> ${CICE_CASEDIR}/test_output
+  echo "FAIL ${ICE_TESTNAME} run-initial" >> ${ICE_CASEDIR}/test_output
   exit 99
 else
-  echo "PASS ${CICE_TESTNAME} run-initial" >> ${CICE_CASEDIR}/test_output
+  echo "PASS ${ICE_TESTNAME} run-initial" >> ${ICE_CASEDIR}/test_output
 endif
 
 # Prepend 'baseline_' to the final restart file to save for comparison
-set test_file = `ls -t1 ${CICE_RUNDIR}/restart | head -1`
-set test_data = ${CICE_RUNDIR}/restart/${test_file}
-set base_data = ${CICE_RUNDIR}/restart/base_${test_file}
+set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
+set test_data = ${ICE_RUNDIR}/restart/${test_file}
+set base_data = ${ICE_RUNDIR}/restart/base_${test_file}
 mv ${test_data} ${base_data}
 
 #-----------------------------------------------------------
 # Run the CICE model for the restart simulation
 
 # Modify the contents of the pointer file for restart
-perl -i -pe's/(\d{4})-(\d{2})-(\d{2})/sprintf("%04d-%02d-%02d",$1,$2,$3-5)/e' ${CICE_RUNDIR}/ice.restart_file
+perl -i -pe's/(\d{4})-(\d{2})-(\d{2})/sprintf("%04d-%02d-%02d",$1,$2,$3-5)/e' ${ICE_RUNDIR}/ice.restart_file
 
-${CICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${CICE_CASEDIR}/casescripts/test_nml.restart2
+${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/test_nml.restart2
 cp ice_in ice_in.2
 
 ./cice.run
 
 if ( $? != 0 ) then
-  echo "FAIL ${CICE_TESTNAME} run-restart" >> ${CICE_CASEDIR}/test_output
+  echo "FAIL ${ICE_TESTNAME} run-restart" >> ${ICE_CASEDIR}/test_output
   exit 99
 else
-  echo "PASS ${CICE_TESTNAME} run-restart" >> ${CICE_CASEDIR}/test_output
+  echo "PASS ${ICE_TESTNAME} run-restart" >> ${ICE_CASEDIR}/test_output
 endif
 
 #-----------------------------------------------------------
@@ -47,9 +47,9 @@ echo "Performing binary comparison between files:"
 echo "base: $base_data"
 echo "test: $test_data"
 if ( { cmp -s $test_data $base_data } ) then
-  echo "PASS ${CICE_TESTNAME} exact-restart" >> ${CICE_CASEDIR}/test_output
+  echo "PASS ${ICE_TESTNAME} exact-restart" >> ${ICE_CASEDIR}/test_output
 else
-  echo "FAIL ${CICE_TESTNAME} exact-restart" >> ${CICE_CASEDIR}/test_output
+  echo "FAIL ${ICE_TESTNAME} exact-restart" >> ${ICE_CASEDIR}/test_output
 endif
 
 #-----------------------------------------------------------

@@ -1,2 +1,2 @@
-setenv CICE_THREADED  true
+setenv ICE_THREADED  true
 
