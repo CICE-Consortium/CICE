@@ -1,8 +1,16 @@
-CICE version 6 testing
-  August 2017
+..
 
-This README file documents how to use the testing features developed for the
-CICE Consortium sea ice model.  
+Testing CICE
+================
+
+Version 6, August 2017
+This documents how to use the testing features developed for the 
+CICE Consortium CICE sea ice model.
+
+.. _basic:
+
+Individual tests and test suites
+--------------------------------
 
 The CICE scripts support both setup of individual tests as well as test suites.  Individual
 tests are run from the command line like
@@ -20,8 +28,11 @@ ${machine}_${test}_${grid}_${pes}_${soptions}.${testid}
 
 To build and run a test, the process is the same as a case,
   cd into the test directory,
+  
   run cice.build
+  
   run cice.submit
+
 The test results will be generated in a local file called "test_output".
 
 When running a test suite, the create.case command line automatically generates all the tests
@@ -41,12 +52,20 @@ Tests are defined under configuration/scripts/tests.  The tests currently suppor
 
 Please run './create.case -h' for additional details.
 
+.. _additional:
+
+Additional testing options
+--------------------------
+
 There are several additional options on the create.case command line for testing that
 provide the ability to regression test and compare tests to each other.
 
   -bd defines a baseline directory where tests can be stored for regression testing
+  
   -bg defines a version name that where the current tests can be saved for regression testing
+  
   -bc defines a version name that the current tests should be compared to for regression testing
+  
   -td provides a way to compare tests with each other
 
 To use -bg,
@@ -73,96 +92,140 @@ and generate a result for that.  It's important that the first test complete bef
 done.  Also, the -td option works only if the testid and the machine are the same for the baseline
 run and the current run.
 
+.. _format:
+
+Test suite format
+-----------------
+
 The format for the test suite file is relatively simple.  It is a text file with white space delimited 
 columns like,
 
-# Test         Grid    PEs        Sets                    BFB-compare
-smoke          gx3     8x2        diag1,run5day
-smoke          gx3     8x2        diag24,run1year,medium
-smoke          gx3     4x1        debug,diag1,run5day
-smoke          gx3     8x2        debug,diag1,run5day
-smoke          gx3     4x2        diag1,run5day          smoke_gx3_8x2_diag1_run5day
-smoke          gx3     4x1        diag1,run5day,thread   smoke_gx3_8x2_diag1_run5day
-smoke          gx3     4x1        diag1,run5day          smoke_gx3_4x1_diag1_run5day_thread
-restart        gx3     8x1        
-restart        gx3     4x2        debug
+.. _tab-test:
+
+.. csv-table:: Table 7
+   :header: "#Test", "Grid", "PEs", "Sets", "BFB-compare"
+   :widths: 7, 7, 7, 15, 15
+
+   "smoke", "gx3", "8x2", "diag1,run5day", ""
+   "smoke", "gx3", "8x2", "diag24,run1year,medium", ""
+   "smoke", "gx3", "4x1", "debug,diag1,run5day", ""
+   "smoke", "gx3", "8x2", "debug,diag1,run5day", ""
+   "smoke", "gx3", "4x2", "diag1,run5day", "smoke_gx3_8x2_diag1_run5day"
+   "smoke", "gx3", "4x1", "diag1,run5day,thread", "smoke_gx3_8x2_diag1_run5day"
+   "smoke", "gx3", "4x1", "diag1,run5day", "smoke_gx3_4x1_diag1_run5day_thread"
+   "restart", "gx3", "8x1", "", ""
+   "restart", "gx3", "4x2", "debug", ""
+
 
 The first column is the test name, the second the grid, the third the pe count, the fourth column is
 the -s options and the fifth column is the -td argument.  The fourth and fifth columns are optional.
 The argument to -ts defines which filename to choose and that argument can contain a path.  create.case 
 will also look for the filename in configuration/scripts/tests where some preset test suites are defined.
 
+Example Tests (Quickstart)
+--------------------------
 
---- To generate a baseline dataset for a test case ---
-
-Quickstart (example):
+To generate a baseline dataset for a test case
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ./create.case -t smoke -m wolf -bg cicev6.0.0 -testid t00
+
 cd wolf_smoke_gx3_4x1.t00
+
 ./cice.build
+
 ./cice.submit
+
 # After job finishes, check output
+
 cat test_output
 
 
---- To run a test case and compare to a baseline dataset ---
-
-Quickstart (example):
+To run a test case and compare to a baseline dataset
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ./create.case -t smoke -m wolf -bc cicev6.0.0 -testid t01
+
 cd wolf_smoke_gx3_4x1.t01
+
 ./cice.build
+
 ./cice.submit
+
 # After job finishes, check output
+
 cat test_output
 
 
---- To run a test suite to generate baseline data ---
-
-Quickstart (example):
+To run a test suite to generate baseline data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ./create.case -m wolf -ts base_suite -testid t02 -bg cicev6.0.0bs
+
 cd base_suite.t02
+
 # Once all jobs finish, concatenate all output
+
 ./results.csh  # All tests results will be stored in results.log
+
 # To plot a timeseries of "total ice extent", "total ice area", and "total ice volume"
+
 ./timeseries.csh <directory>
+
 ls *.png
 
 
---- To run a test suite to compare to baseline data ---
-
-Quickstart (example):
+To run a test suite to compare to baseline data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ./create.case -m wolf -ts base_suite -testid t03 -bc cicev6.0.0bs
+
 cd base_suite.t03
+
 # Once all jobs finish, concatenate all output
+
 ./results.csh  # All tests results will be stored in results.log
+
 # To plot a timeseries of "total ice extent", "total ice area", and "total ice volume"
+
 ./timeseries.csh <directory>
+
 ls *.png
 
 
---- To compare to another test ---
-
-Quickstart (example):
+To compare to another test
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+`First:`
 
 ./create.case -m wolf -t smoke -testid t01 -p 8x2
+
 cd wolf_smoke_gx3_8x2.t01
+
 ./cice.build
+
 ./cice.submit
+
 # After job finishes, check output
+
 cat test_output
+
+`Then, do the comparison:` 
 
 ./create.case -m wolf -t smoke -testid t01 -td smoke_gx3_8x2 -s thread -p 4x1
+
 cd wolf_smoke_gx3_4x1_thread.t01
+
 ./cice.build
+
 ./cice.submit
+
 # After job finishes, check output
+
 cat test_output
 
 
-Additional Details:
+Additional Details
+------------------
 - In general, the baseline generation, baseline compare, and test diff are independent.
 - Use the '-bd' flag to specify the location where you want the baseline dataset
     to be written.  Without specifying '-bd', the baseline dataset will be written

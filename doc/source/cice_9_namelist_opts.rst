@@ -9,7 +9,7 @@ Comprehensive Namelist Options
 
 .. _tab-namelist:
 
-.. csv-table:: Table 7
+.. csv-table:: Table 8
    :header: "variable", "options/format", "description", "recommended value"
    :widths: 15, 15, 30, 15 
 
