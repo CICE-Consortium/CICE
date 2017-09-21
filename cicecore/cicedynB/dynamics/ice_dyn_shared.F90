@@ -18,7 +18,8 @@
       implicit none
       private
       public :: init_evp, set_evp_parameters, stepu, principal_stress, &
-                evp_prep1, evp_prep2, evp_finish
+                evp_prep1, evp_prep2, evp_finish, basal_stress_coeff, &
+                read_basalstress_bathy
       save
 
       ! namelist parameters
@@ -45,6 +46,7 @@
 
       real (kind=dbl_kind), public :: &
          revp     , & ! 0 for classic EVP, 1 for revised EVP
+         e_ratio  , & ! e = EVP ellipse aspect ratio 
          ecci     , & ! 1/e^2
          dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
          dte2T    , & ! dte/2T
@@ -61,6 +63,13 @@
          uvel_init, & ! x-component of velocity (m/s), beginning of timestep
          vvel_init    ! y-component of velocity (m/s), beginning of timestep
 
+      logical (kind=log_kind), public :: &
+         l_basalstress    ! if true, basal stress for landfast on
+
+       ! ice isotropic tensile strength parameter
+      real (kind=dbl_kind), public :: &
+         Ktens         ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)   
+         
 !=======================================================================
 
       contains
@@ -184,9 +193,9 @@
       dtei = c1/dte              ! 1/s
 
       ! major/minor axis length ratio, squared
-      ecc  = c4
-      ecci = p25                  ! 1/ecc
-
+      ecc  = e_ratio**2
+      ecci = c1/ecc               ! 1/ecc
+      
       ! constants for stress equation
       tdamp2 = c2*eyc*dt                    ! s
       dte2T = dte/tdamp2                    ! ellipse (unitless)
@@ -373,7 +382,8 @@
                             stress12_1, stress12_2, & 
                             stress12_3, stress12_4, & 
                             uvel_init,  vvel_init,  &
-                            uvel,       vvel)
+                            uvel,       vvel,       &
+                            Cbu)
 
       use ice_constants, only: c0, c1, gravit
 
@@ -420,6 +430,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), & 
          intent(out) :: &
+         Cbu,      & ! coefficient for basal stress
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
@@ -462,6 +473,7 @@
          forcex   (i,j) = c0
          forcey   (i,j) = c0
          umassdti (i,j) = c0
+         Cbu      (i,j) = c0
 
          if (revp==1) then               ! revised evp
             stressp_1 (i,j) = c0
@@ -600,7 +612,8 @@
                         strocnx,    strocny,  &
                         strintx,    strinty,  &
                         uvel_init,  vvel_init,&
-                        uvel,       vvel)
+                        uvel,       vvel,     &
+                        Cbu)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -612,6 +625,7 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         Cbu,      & ! coefficient for basal stress
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
          aiu     , & ! ice fraction on u-grid
@@ -675,7 +689,7 @@
          tauy = vrel*watery(i,j) ! ocn stress term
 
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*umassdti(i,j) + vrel * cosw ! kg/m^2 s
+         cca = (brlx + revp)*umassdti(i,j) + vrel * cosw + Cbu(i,j) ! kg/m^2 s
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
 
          ab2 = cca**2 + ccb**2
@@ -802,6 +816,148 @@
 
       end subroutine evp_finish
 
+!=======================================================================
+! Computes basal stress Cb coefficients (landfast ice)
+!
+! Lemieux, J. F., B. Tremblay, F. Dupont, M. Plante, G. Smith, D. Dumont (2015). 
+! A basal stress parameterization form modeling landfast ice. J. Geophys. Res. 
+! Oceans, 120, 3157-3173.
+!
+! author: Philippe Blain, CMC (coop summer 2015)
+!
+      subroutine basal_stress_coeff (nx_block, ny_block, icellu, &
+                                     indxui,   indxuj,           &
+                                     vice,     aice,             &
+                                     hwater,                     &
+                                     uold,     vold,             &
+                                     Cbu)
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, &  ! block dimensions
+         icellu                 ! no. of cells where icetmask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+         intent(in) :: &
+         indxui   , & ! compressed index in i-direction
+         indxuj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         aice    , & ! concentration of ice at tracer location
+         vice    , & ! volume per unit area of ice at tracer location
+         hwater  , & ! water depth at tracer location
+         uold    , & ! u component of ice speed at previous iteration
+         vold        ! v component of ice speed at previous iteration
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         Cbu         ! coefficient for basal stress
+
+!
+!EOP
+
+      real (kind=dbl_kind) :: &
+         au,  & ! concentration of ice at u location
+         hu,  & ! volume per unit area of ice at u location (mean thickness)
+         hwu, & ! water depth at u location
+         hcu, & ! critical thickness at u location
+         k1 = 8.0_dbl_kind , &  ! first free parameter for landfast parametrization 
+         k2 = 15.0_dbl_kind, &  ! second free parameter (Nm^-3) for landfast parametrization 
+         u0 = 5e-5_dbl_kind, &  ! residual velocity (m/s)
+         CC = 20.0_dbl_kind     ! CC=Cb factor in Lemieux et al 2015
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      do ij = 1, icellu
+         i = indxui(ij)
+         j = indxuj(ij)
+
+         ! convert quantities to u-location
+         au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
+         hwu = min(hwater(i,j),hwater(i+1,j),hwater(i,j+1),hwater(i+1,j+1))
+         hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
+
+         ! calculate basal stress factor
+         ! 1- calculate critical thickness
+         hcu = au * hwu / k1
+
+         ! 2- calculate stress factor
+         if (au > p01 .and. hu > hcu ) then
+   !       endif
+           Cbu(i,j) = ( k2 / (sqrt(uold(i,j)**2 + vold(i,j)**2) + u0) ) &
+                      * (hu - hcu) * exp(-CC * (1 - au))
+         endif
+
+      enddo                     ! ij
+
+      end subroutine basal_stress_coeff
+
+!=======================================================================
+
+! Read bathymetry data for basal stress calculation (grounding scheme for 
+! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode 
+! (e.g. CICE-NEMO), hwater should be uptated at each time level so that 
+! it varies with ocean dynamics.
+!
+! author: Fred Dupont, CMC
+      
+      subroutine read_basalstress_bathy
+
+      ! use module
+      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
+      use ice_domain_size, only: max_blocks
+      use ice_flux, only: hwater
+      use ice_read_write
+      use ice_fileunits, only: nu_diag
+      use ice_communicate, only: my_task, master_task
+      use ice_constants, only: field_loc_center, field_type_scalar
+
+
+      ! local variables
+      integer (kind=int_kind) :: &
+         i, j,     &     ! index inside block
+         iblk,     &     ! block index
+         fid_init        ! file id for netCDF init file
+      
+      character (char_len_long) :: &        ! input data file names
+         init_file, &
+         fieldname
+
+      logical (kind=log_kind) :: diag=.true.
+
+      init_file='bathymetry.nc'
+
+      if (my_task == master_task) then
+
+          write (nu_diag,*) ' '
+          write (nu_diag,*) 'Initial ice file: ', trim(init_file)
+          write (*,*) 'Initial ice file: ', trim(init_file)
+          call flush(nu_diag)
+
+      endif
+
+      call ice_open_nc(init_file,fid_init)
+
+      fieldname='Bathymetry'
+
+      if (my_task == master_task) then
+         write(nu_diag,*) 'reading ',TRIM(fieldname)
+         write(*,*) 'reading ',TRIM(fieldname)
+         call flush(nu_diag)
+      endif
+      call ice_read_nc(fid_init,1,fieldname,hwater,diag, &
+                    field_loc=field_loc_center, &
+                    field_type=field_type_scalar)
+
+      call ice_close_nc(fid_init)
+
+      if (my_task == master_task) then
+         write(nu_diag,*) 'closing file ',TRIM(init_file)
+         call flush(nu_diag)
+      endif
+
+      end subroutine read_basalstress_bathy
+      
 !=======================================================================
 
 ! Computes principal stresses for comparison with the theoretical
