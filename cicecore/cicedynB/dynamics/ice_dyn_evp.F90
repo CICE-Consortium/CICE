@@ -37,7 +37,7 @@
       use ice_kinds_mod
       use ice_dyn_shared, only: stepu, evp_prep1, evp_prep2, evp_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
-          vvel_init 
+          vvel_init, basal_stress_coeff, l_basalstress, Ktens
 
       implicit none
       private
@@ -77,6 +77,7 @@
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, &
           strocnxT, strocnyT, strax, stray, &
+          Cbu, hwater, tau_bu, tau_bv, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
@@ -263,7 +264,8 @@
                          stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
-                         uvel      (:,:,iblk), vvel      (:,:,iblk))
+                         uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                         Cbu       (:,:,iblk))
 
       !-----------------------------------------------------------------
       ! ice strength
@@ -348,6 +350,20 @@
 !            endif               ! yield_curve
 
       !-----------------------------------------------------------------
+      ! basal stress calculation (landfast ice)
+      !-----------------------------------------------------------------
+      
+            if (l_basalstress) then        
+               call basal_stress_coeff (nx_block,       ny_block,       &
+                                        icellu  (iblk),                 &
+                                        indxui(:,iblk), indxuj(:,iblk), &
+                                        vice(:,:,iblk), aice(:,:,iblk), &
+                                        hwater(:,:,iblk),               &
+                                        uvel(:,:,iblk), vvel(:,:,iblk), &
+                                        Cbu(:,:,iblk)) 
+            endif
+
+      !-----------------------------------------------------------------
       ! momentum equation
       !-----------------------------------------------------------------
 
@@ -363,7 +379,8 @@
                         strocnx  (:,:,iblk), strocny (:,:,iblk), & 
                         strintx  (:,:,iblk), strinty (:,:,iblk), & 
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
-                        uvel     (:,:,iblk), vvel    (:,:,iblk))
+                        uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                        Cbu      (:,:,iblk))
 
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
@@ -388,8 +405,18 @@
             vvel(:,:,iblk) = fld2(:,:,2,iblk)
          enddo
          !$OMP END PARALLEL DO
-
+         
       enddo                     ! subcycling
+      
+      ! calculate basal stress component for outputs
+      if ( l_basalstress ) then
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            tau_bu(:,:,iblk) = Cbu(:,:,iblk)*uvel(:,:,iblk)
+            tau_bv(:,:,iblk) = Cbu(:,:,iblk)*vvel(:,:,iblk)
+         enddo
+         !$OMP END PARALLEL DO
+      endif
 
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
@@ -521,7 +548,7 @@
                          str )
 
       use ice_constants, only: c0, c4, p027, p055, p111, p166, &
-          p2, p222, p25, p333, p5, puny
+          p2, p222, p25, p333, p5, puny, c1
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -683,24 +710,24 @@
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-         stressp_1(i,j) = (stressp_1(i,j) + c1ne*(divune - Deltane)) &
+         stressp_1(i,j) = (stressp_1(i,j) + c1ne*(divune*(c1+Ktens) - Deltane*(c1-Ktens))) &
                           * denom1
-         stressp_2(i,j) = (stressp_2(i,j) + c1nw*(divunw - Deltanw)) &
+         stressp_2(i,j) = (stressp_2(i,j) + c1nw*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))) &
                           * denom1
-         stressp_3(i,j) = (stressp_3(i,j) + c1sw*(divusw - Deltasw)) &
+         stressp_3(i,j) = (stressp_3(i,j) + c1sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))) &
                           * denom1
-         stressp_4(i,j) = (stressp_4(i,j) + c1se*(divuse - Deltase)) &
+         stressp_4(i,j) = (stressp_4(i,j) + c1se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))) &
                           * denom1
 
-         stressm_1(i,j) = (stressm_1(i,j) + c0ne*tensionne) * denom1
-         stressm_2(i,j) = (stressm_2(i,j) + c0nw*tensionnw) * denom1
-         stressm_3(i,j) = (stressm_3(i,j) + c0sw*tensionsw) * denom1
-         stressm_4(i,j) = (stressm_4(i,j) + c0se*tensionse) * denom1
-        
-         stress12_1(i,j) = (stress12_1(i,j) + c0ne*shearne*p5) * denom1
-         stress12_2(i,j) = (stress12_2(i,j) + c0nw*shearnw*p5) * denom1
-         stress12_3(i,j) = (stress12_3(i,j) + c0sw*shearsw*p5) * denom1
-         stress12_4(i,j) = (stress12_4(i,j) + c0se*shearse*p5) * denom1
+         stressm_1(i,j) = (stressm_1(i,j) + c0ne*tensionne*(c1+Ktens)) * denom1
+         stressm_2(i,j) = (stressm_2(i,j) + c0nw*tensionnw*(c1+Ktens)) * denom1
+         stressm_3(i,j) = (stressm_3(i,j) + c0sw*tensionsw*(c1+Ktens)) * denom1
+         stressm_4(i,j) = (stressm_4(i,j) + c0se*tensionse*(c1+Ktens)) * denom1
+
+         stress12_1(i,j) = (stress12_1(i,j) + c0ne*shearne*p5*(c1+Ktens)) * denom1
+         stress12_2(i,j) = (stress12_2(i,j) + c0nw*shearnw*p5*(c1+Ktens)) * denom1
+         stress12_3(i,j) = (stress12_3(i,j) + c0sw*shearsw*p5*(c1+Ktens)) * denom1
+         stress12_4(i,j) = (stress12_4(i,j) + c0se*shearse*p5*(c1+Ktens)) * denom1
 
       !-----------------------------------------------------------------
       ! Eliminate underflows.
