@@ -48,6 +48,11 @@ cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
+else if (${ICE_MACHINE} =~ fram*) then
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
 else if (${ICE_MACHINE} =~ testmachine*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
