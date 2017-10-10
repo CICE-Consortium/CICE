@@ -7,7 +7,7 @@
     npt            = 24
     ndtd           = 1
     runtype        = 'initial'
-    ice_ic         = './restart/iced_gx3_v5.nc'
+    ice_ic         = '/local/drive1/armn/armnjfl/CICE6/CICE/configuration/data/gx3/iced_gx3_v5.nc'
     restart        = .true.
     restart_ext    = .false.
     use_restart_time = .true.
@@ -43,8 +43,8 @@
 &grid_nml
     grid_format  = 'bin'
     grid_type    = 'displaced_pole'
-    grid_file    = 'grid'
-    kmt_file     = 'kmt'
+    grid_file    = '/local/drive1/armn/armnjfl/CICE6/CICE/configuration/data/gx3/global_gx3.grid'
+    kmt_file     = '/local/drive1/armn/armnjfl/CICE6/CICE/configuration/data/gx3/global_gx3.kmt'
     gridcpl_file = 'unknown_gridcpl_file'
     kcatbound    = 0
 /
@@ -292,7 +292,7 @@
     ycycle          = 1
     atm_data_format = 'bin'
     atm_data_type   = 'ncar'
-    atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
+    atm_data_dir    = '/fs/cetus/fs1/cmd/e/afsg/fdu/models/fdm/CICE/code/cice_6.0/CICE/configuration/data/gx3Ncar/'
     calc_strair     = .true.
     highfreq        = .false.
     natmiter        = 5
