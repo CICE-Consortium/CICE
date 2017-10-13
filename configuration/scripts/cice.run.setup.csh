@@ -42,8 +42,6 @@ if !(-d \${ICE_RUNDIR}) mkdir -p \${ICE_RUNDIR}
 if !(-d \${ICE_HSTDIR}) mkdir -p \${ICE_HSTDIR}
 if !(-d \${ICE_RSTDIR}) mkdir -p \${ICE_RSTDIR}
 
-if !(-e \${ICE_RUNDIR}/ice.restart_file) cp \${ICE_RSTPFILE} \${ICE_RUNDIR}
-
 #--------------------------------------------
 cd \${ICE_RUNDIR}
 

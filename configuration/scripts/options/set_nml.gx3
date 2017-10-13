@@ -1,2 +1,12 @@
 dt = 3600.0
+runtype = 'initial'
+ice_ic  = 'ICE_SANDBOX/configuration/data/gx3/iced_gx3_v5.nc'
+grid_format = 'bin'
+grid_type   = 'displaced_pole'
+grid_file   = 'ICE_SANDBOX/configuration/data/gx3/global_gx3.grid'
+kmt_file    = 'ICE_SANDBOX/configuration/data/gx3/global_gx3.kmt'
+fyear_init      = 1997
+atm_data_format = 'bin'
+atm_data_type   = 'ncar'
+atm_data_dir    = 'ICE_MACHINE_INPUTDATA/gx3_data/atm/gx3v2m/NCAR_bulk/'
 
