@@ -4,7 +4,7 @@ source ./cice.settings
 source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
 
 if (${ICE_MACHINE} != ${ICE_MACHINE_ENVNAME}) then
-  echo "WARNING, is ICE_MACHINE setting OK, ${ICE_MACHINE}, ${ICE_MACHINE_ENV}"
+  echo "WARNING, is ICE_MACHINE setting OK, ${ICE_MACHINE}, ${ICE_MACHINE_ENVNAME}"
 endif
 
 echo " "
