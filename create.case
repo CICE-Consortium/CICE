@@ -275,6 +275,7 @@ EOF0
     else
       set bfbcomp = "$bfbcomp_tmp"
     endif
+
 endif
 
 if ($case =~ $spval) then
@@ -521,6 +522,11 @@ cd $testname_base
 cd ..
 EOF
     
+    # If results are to be posted to CDash, build CtestTestfile.cmake
+    if ("$testid" =~ reg*) then
+      ${ICE_SCRIPTS}/tests/CTest/gen_ctestfile.csh ./${tsdir} $testname_noid $bfbcomp $spval
+    endif
+
     # Reset case for the next test in suite
     set case = $spval
 
