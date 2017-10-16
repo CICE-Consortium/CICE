@@ -1,0 +1,63 @@
+#==============================================================================
+# Macros file for NAVYDSRC conrad, intel compiler
+#==============================================================================
+
+CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise   -xHost
+
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+else
+  FFLAGS     += -O2
+endif
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC         := ftn
+else
+  FC         := ftn
+endif
+
+MPICC:= cc
+
+MPIFC:= ftn
+LD:= $(MPIFC)
+
+# defined by module
+#NETCDF_PATH := $(NETCDF)
+#PNETCDF_PATH := $(PNETCDF)
+#PNETCDF_PATH := /glade/apps/opt/pnetcdf/1.3.0/intel/default
+#LAPACK_LIBDIR := /glade/apps/opt/lapack/3.4.2/intel/12.1.5/lib
+
+#PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+
+INCLDIR := $(INCLDIR)
+#INCLDIR += -I$(NETCDF_PATH)/include
+
+#LIB_NETCDF := $(NETCDF_PATH)/lib
+#LIB_PNETCDF := $(PNETCDF_PATH)/lib
+#LIB_MPI := $(IMPILIBDIR)
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+
+SCC:= icc 
+
+SFC:= ifort 
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -openmp
+   CFLAGS += -openmp
+   FFLAGS += -openmp
+endif
+
+### if using parallel I/O, load all 3 libraries.  PIO must be first!
+ifeq ($(ICE_IOTYPE), pio)
+   PIO_PATH:=/glade/u/home/jedwards/pio1_6_5/pio
+   INCLDIR += -I$(PIO_PATH)
+   SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpio
+endif
+

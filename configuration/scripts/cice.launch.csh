@@ -28,6 +28,11 @@ cat >> ${jobfile} << EOFR
 mpiexec_mpt -np ${ntasks} omplace ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
+else if (${ICE_MACHINE} =~ onyx*) then
+cat >> ${jobfile} << EOFR
+aprun -n ${ntasks} -N ${ntasks} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
 else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
 cat >> ${jobfile} << EOFR
 aprun -n ${ntasks} -N ${ntasks} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
