@@ -17,11 +17,18 @@ do
 #    echo "skip $line"
      :
   else
-    vname=`echo $line | sed "s|\(^\s*set\S*\)\s\{1,100\}\(\S*\)\s\{1,100\}\(\S*\).*$|\2|g"`
-    value=`echo $line | sed "s|\(^\s*set\S*\)\s\{1,100\}\(\S*\)\s\{1,100\}\(\S*\).*$|\3|g"`
+    #vname=`echo $line | sed "s|\(^\s*set\S*\)\s\{1,100\}\(\S*\)\s\{1,100\}\(\S*\).*$|\2|g"`
+    #value=`echo $line | sed "s|\(^\s*set\S*\)\s\{1,100\}\(\S*\)\s\{1,100\}\(\S*\).*$|\3|g"`
+    vname=`echo $line | sed "s|\(^[[:space:]]*set[^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\).*$|\2|g"`
+    value=`echo $line | sed "s|\(^[[:space:]]*set[^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\).*$|\3|g"`
 #    echo "$line $vname $value"
 
-    sed -i 's|\(^\s*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
+    #sed -i 's|\(^\s*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
+    sed -i.sedbak -e 's|\(^[[:space:]]*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
+    if [[ -e "${filename}.sedbak" ]]; then
+      rm ${filename}.sedbak
+    fi
+
   fi
 
 done < "$filemods"

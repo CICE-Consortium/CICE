@@ -3,8 +3,8 @@
 echo " "
 echo "${0}:"
 
-set CICE_SANDBOX = `pwd`
-set CICE_SCRIPTS = ${CICE_SANDBOX}/configuration/scripts
+set ICE_SANDBOX = `pwd`
+set ICE_SCRIPTS = ${ICE_SANDBOX}/configuration/scripts
 set initargv = ( $argv[*] ) 
 
 set helpheader = 0
@@ -92,7 +92,7 @@ cat << EOF1
       create.case -c ~/caseA -m yellowstone 
       create.case -p 32x4 -g gx1 -m gordon -c caseB
       create.case -c ~/caseC -m spirit -s diag1,writeicf
-      create.case -t restart -p 8x1 -g gx1 -m cheyenne -c diag1,debug -testid myid
+      create.case -t restart -p 8x1 -g gx1 -m cheyenne -s diag1,debug -testid myid
 
       For more testing examples, please view README.test
 
@@ -208,16 +208,22 @@ if ( $testsuite != $spval ) then
   if (-e ${testsuite}) then
     set tsfile = "${testsuite}"
   else 
-    if (-e ${CICE_SCRIPTS}/tests/${testsuite}.ts) then
-      set tsfile = "${CICE_SCRIPTS}/tests/${testsuite}.ts"
+    if (-e ${ICE_SCRIPTS}/tests/${testsuite}.ts) then
+      set tsfile = "${ICE_SCRIPTS}/tests/${testsuite}.ts"
     else
-      echo "${0}: ERROR, cannot find testsuite file ${testsuite}, also checked ${CICE_SCRIPTS}/tests/${testsuite}.ts"
+      echo "${0}: ERROR, cannot find testsuite file ${testsuite}, also checked ${ICE_SCRIPTS}/tests/${testsuite}.ts"
       exit -1
     endif
   endif
 
   mkdir ./${tsdir}
-  cp -f ${CICE_SCRIPTS}/tests/timeseries.csh ./${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ./${tsdir}
+
+  if ("$testid" =~ reg*) then
+    cp -f ${ICE_SCRIPTS}/tests/CTest/CTestConfig.cmake ./${tsdir}
+    cp -f ${ICE_SCRIPTS}/tests/CTest/CTestTestfile.cmake ./${tsdir}
+    cp -f ${ICE_SCRIPTS}/tests/CTest/steer.cmake ./${tsdir}
+  endif
 
 cat >! ./${tsdir}/suite.run << EOF0
 #!/bin/csh -f
@@ -306,29 +312,29 @@ if !( -d ${casescr}) mkdir ${casescr}
 
 # from basic script dir to case
 foreach file (cice.build cice.settings Makefile ice_in makdep.c)
-  if !(-e ${CICE_SCRIPTS}/$file) then
-    echo "${0}: ERROR, ${CICE_SCRIPTS}/$file not found"
+  if !(-e ${ICE_SCRIPTS}/$file) then
+    echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
     exit -1
   endif
-  cp -f -p ${CICE_SCRIPTS}/$file ${casedir}
+  cp -f -p ${ICE_SCRIPTS}/$file ${casedir}
 end
 
 # from machines dir to case
 foreach file (env.${mach} Macros.${mach})
-  if !(-e ${CICE_SCRIPTS}/machines/$file) then
-    echo "${0}: ERROR, ${CICE_SCRIPTS}/machines/$file not found"
+  if !(-e ${ICE_SCRIPTS}/machines/$file) then
+    echo "${0}: ERROR, ${ICE_SCRIPTS}/machines/$file not found"
     exit -1
   endif
-  cp -f -p ${CICE_SCRIPTS}/machines/$file ${casedir}
+  cp -f -p ${ICE_SCRIPTS}/machines/$file ${casedir}
 end
 
 # from basic script dir to casescr
 foreach file (parse_namelist.sh parse_settings.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
-  if !(-e ${CICE_SCRIPTS}/$file) then
-    echo "${0}: ERROR, ${CICE_SCRIPTS}/$file not found"
+  if !(-e ${ICE_SCRIPTS}/$file) then
+    echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
     exit -1
   endif
-  cp -f -p ${CICE_SCRIPTS}/$file ${casescr}
+  cp -f -p ${ICE_SCRIPTS}/$file ${casescr}
 end
 
 if ($case =~ */*) then
@@ -340,15 +346,15 @@ endif
 cd ${casedir}
 source ./env.${mach} || exit 2
 
-echo CICE_SANDBOX  = ${CICE_SANDBOX}
-echo CICE_CASENAME = ${casename}
-echo CICE_CASEDIR  = ${casedir}
-echo CICE_MACHINE  = ${mach}
+echo ICE_SANDBOX  = ${ICE_SANDBOX}
+echo ICE_CASENAME = ${casename}
+echo ICE_CASEDIR  = ${casedir}
+echo ICE_MACHINE  = ${mach}
 
 #------------------------------------------------------------
 # Compute a default blocksize
 
-set chck = `echo ${pesx} | sed 's/^[0-9]\+x[0-9]\+$/OK/'`
+set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
 if (${chck} == OK) then
   set task = `echo ${pesx} | sed s/x.\*//`
   set thrd = `echo ${pesx} | sed s/.\*x//`
@@ -357,12 +363,12 @@ else
   exit -1
 endif
 
-setenv CICE_DECOMP_GRID  ${grid}
-setenv CICE_DECOMP_NTASK ${task}
-setenv CICE_DECOMP_NTHRD ${thrd}
+setenv ICE_DECOMP_GRID  ${grid}
+setenv ICE_DECOMP_NTASK ${task}
+setenv ICE_DECOMP_NTHRD ${thrd}
 
 source ${casescr}/cice_decomp.csh
-if ($? != 0) then
+if ($status != 0) then
   echo "${0}: ERROR, cice_decomp.csh aborted"
   exit -1
 endif
@@ -380,57 +386,57 @@ if (-e ${fsmods}) rm ${fsmods}
 
 cat >! ${fimods} << EOF1
 nprocs = ${task}
-atm_data_dir = '${CICE_MACHINE_INPUTDATA}/'
-distribution_type = '${CICE_DECOMP_DECOMP}'
-processor_shape   = '${CICE_DECOMP_DSHAPE}'
-ice_ic            = '${CICE_DECOMP_INITFILE}'
-grid_file         = '${CICE_DECOMP_GRIDFILE}'
-kmt_file          = '${CICE_DECOMP_KMTFILE}'
+atm_data_dir = '${ICE_MACHINE_INPUTDATA}/'
+distribution_type = '${ICE_DECOMP_DECOMP}'
+processor_shape   = '${ICE_DECOMP_DSHAPE}'
+ice_ic            = '${ICE_DECOMP_INITFILE}'
+grid_file         = '${ICE_DECOMP_GRIDFILE}'
+kmt_file          = '${ICE_DECOMP_KMTFILE}'
 EOF1
 
-# If this is a baseline-compare test, modify CICE_RUNDIR
+# If this is a baseline-compare test, modify ICE_RUNDIR
 if ($bdir != $spval) then
   setenv basedir_tmp ${bdir}
 else
-  setenv basedir_tmp ${CICE_MACHINE_BASELINE}
+  setenv basedir_tmp ${ICE_MACHINE_BASELINE}
 endif
 
 cat >! ${fsmods} << EOF1
-setenv CICE_SANDBOX  ${CICE_SANDBOX}
-setenv CICE_SCRIPTS  ${CICE_SCRIPTS}
-setenv CICE_CASENAME ${casename}
-setenv CICE_CASEDIR  ${casedir}
-setenv CICE_MACHINE  ${mach}
-setenv CICE_RUNDIR   ${CICE_MACHINE_WKDIR}/${casename}
-setenv CICE_GRID     ${grid}
-setenv CICE_NXGLOB   ${CICE_DECOMP_NXGLOB}
-setenv CICE_NYGLOB   ${CICE_DECOMP_NYGLOB}
-setenv CICE_NTASKS   ${task}
-setenv CICE_NTHRDS   ${thrd}
-setenv CICE_DECOMP   ${CICE_DECOMP_DECOMP}
-setenv CICE_DSHAPE   ${CICE_DECOMP_DSHAPE}
-setenv CICE_MXBLCKS  ${CICE_DECOMP_MXBLCKS}
-setenv CICE_BLCKX    ${CICE_DECOMP_BLCKX}
-setenv CICE_BLCKY    ${CICE_DECOMP_BLCKY}
-setenv CICE_RSTPFILE ${CICE_DECOMP_RSTPFILE}
-setenv CICE_BASELINE ${basedir_tmp}
-setenv CICE_BASEGEN  ${baseGen}
-setenv CICE_BASECOM  ${baseCom}
-setenv CICE_SPVAL    ${spval}
+setenv ICE_SANDBOX  ${ICE_SANDBOX}
+setenv ICE_SCRIPTS  ${ICE_SCRIPTS}
+setenv ICE_CASENAME ${casename}
+setenv ICE_CASEDIR  ${casedir}
+setenv ICE_MACHINE  ${mach}
+setenv ICE_RUNDIR   ${ICE_MACHINE_WKDIR}/${casename}
+setenv ICE_GRID     ${grid}
+setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}
+setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}
+setenv ICE_NTASKS   ${task}
+setenv ICE_NTHRDS   ${thrd}
+setenv ICE_DECOMP   ${ICE_DECOMP_DECOMP}
+setenv ICE_DSHAPE   ${ICE_DECOMP_DSHAPE}
+setenv ICE_MXBLCKS  ${ICE_DECOMP_MXBLCKS}
+setenv ICE_BLCKX    ${ICE_DECOMP_BLCKX}
+setenv ICE_BLCKY    ${ICE_DECOMP_BLCKY}
+setenv ICE_RSTPFILE ${ICE_DECOMP_RSTPFILE}
+setenv ICE_BASELINE ${basedir_tmp}
+setenv ICE_BASEGEN  ${baseGen}
+setenv ICE_BASECOM  ${baseCom}
+setenv ICE_SPVAL    ${spval}
 EOF1
 
 if ($bfbcomp != $spval) then
-  echo "setenv CICE_BFBCOMP  ${mach}_${bfbcomp}.${testid}" >> ${fsmods}
+  echo "setenv ICE_BFBCOMP  ${mach}_${bfbcomp}.${testid}" >> ${fsmods}
 else
-  echo "setenv CICE_BFBCOMP  ${spval}" >> ${fsmods}
+  echo "setenv ICE_BFBCOMP  ${spval}" >> ${fsmods}
 endif
 
 if ($test != $spval) then
-  echo "setenv CICE_TEST     ${test}" >> ${fsmods}
-  echo "setenv CICE_TESTNAME ${testname_noid}" >> ${fsmods}
+  echo "setenv ICE_TEST     ${test}" >> ${fsmods}
+  echo "setenv ICE_TESTNAME ${testname_noid}" >> ${fsmods}
 else
-  echo "setenv CICE_TEST     ${spval}" >> ${fsmods}
-  echo "setenv CICE_TESTNAME ${spval}" >> ${fsmods}
+  echo "setenv ICE_TEST     ${spval}" >> ${fsmods}
+  echo "setenv ICE_TESTNAME ${spval}" >> ${fsmods}
 endif
 
 if ($sets != "") then
@@ -441,27 +447,27 @@ endif
 if ($test != $spval) then
   set testx = ${test}
   # from test options to casescr in case any test time changes are applied
-  cp -f -p ${CICE_SCRIPTS}/options/test_nml.${test}* ${casescr}
+  cp -f -p ${ICE_SCRIPTS}/options/test_nml.${test}* ${casescr} >& /dev/null
 else
   set testx = ""
 endif
 
 foreach name ($testx $grid $setsx)
   set found = 0
-  if (-e ${CICE_SCRIPTS}/options/set_nml.${name}) then
-    cat ${CICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
+  if (-e ${ICE_SCRIPTS}/options/set_nml.${name}) then
+    cat ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
     echo "adding namelist mods set_nml.${name}"
     echo "`date`${0} adding namelist modes set_nml.${name}" > ${casedir}/README.case
     set found = 1
   endif
-  if (-e ${CICE_SCRIPTS}/options/set_env.${name}) then
-    cat ${CICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
+  if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
+    cat ${ICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
     echo "adding env mods set_env.${name}"
     echo "`date`${0} adding namelist modes set_env.${name}" > ${casedir}/README.case
     set found = 1
   endif
   if (${found} == 0) then
-    echo "${0}: ERROR, ${CICE_SCRIPTS}/options/set_[nml,env].${name} not found"
+    echo "${0}: ERROR, ${ICE_SCRIPTS}/options/set_[nml,env].${name} not found"
     exit -1
   endif
 end
@@ -476,7 +482,7 @@ source ./cice.settings
 source ./env.${mach} || exit 2
 
 ${casescr}/cice.run.setup.csh
-if ($? != 0) then
+if ($status != 0) then
   echo "${0}: ERROR, cice.run.setup.csh aborted"
   exit -1
 endif
@@ -489,14 +495,19 @@ if ($test != $spval) then
 
   # Generate test script
   ${casescr}/cice.test.setup.csh 
-  if ($? != 0) then
+  if ($status != 0) then
     echo "${0}: ERROR, cice.test.setup.csh aborted"
     exit -1
   endif
+
+  # Initial test_output file
+  echo "#---" >! test_output
+  echo "PEND ${testname_noid} " >> test_output
+
 endif
 
 if ( $testsuite != $spval ) then
-    cd ${CICE_SANDBOX}
+    cd ${ICE_SANDBOX}
     # Write build and run commands to suite.run
 
 cat >> ./${tsdir}/results.csh << EOF
@@ -523,18 +534,22 @@ EOF
   # Add code to results.csh to count the number of failures
 cat >> ./${tsdir}/results.csh << EOF
 cat ./results.log
+set pends = \`cat ./results.log | grep PEND | wc -l\`
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
 set success = \`cat ./results.log | grep PASS | wc -l\`
-set total = \`cat ./results.log | wc -l\`
+set comments = \`cat ./results.log | grep "#" | wc -l\`
+set alltotal = \`cat ./results.log | wc -l\`
+@ total = \$alltotal - \$comments
 echo ""
 echo "\$success of \$total tests PASSED"
 echo "\$failures of \$total tests FAILED"
+echo "\$pends of \$total tests PENDING"
 EOF
 
 # build and submit tests
 cd ${tsdir}
 ./suite.run
-cd ${CICE_SANDBOX}
+cd ${ICE_SANDBOX}
 
 endif
 

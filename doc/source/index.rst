@@ -15,13 +15,15 @@ Table of Contents:
    :numbered:
 
    cice_1_introduction.rst
-   cice_2_coupling.rst
-   cice_3_model_components.rst
-   cice_4_numerical_implementation.rst
-   cice_5_troubleshooting.rst
-   cice_6_copyright.rst
-   cice_7_namelist_opts.rst
-   cice_8_index.rst
+   cice_2_quick_start.rst
+   cice_3_coupling.rst
+   cice_4_model_components.rst
+   cice_5_numerical_implementation.rst
+   cice_6_troubleshooting.rst
+   cice_7_testing.rst
+   cice_8_copyright.rst
+   cice_9_namelist_opts.rst
+   cice_10_index.rst
    zreferences.rst
  
 Useful tools
