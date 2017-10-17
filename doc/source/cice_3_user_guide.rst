@@ -2045,6 +2045,152 @@ Additional Details
     end of the case directory.  For example, "./create.case -m wolf -t smoke -testid t12 -p 4x1"
     creates the directory wolf_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t or -ts.
 
+~~~~~~~~~~~~~~~~~~~~
+Code compliance test
+~~~~~~~~~~~~~~~~~~~~
+
+Additions and changes to CICE and Icepack are expected to be bit-for-bit
+unless there is a strong justification for non-reproducibility, such as
+a bug-fix or approved scientific alteration to existing code. However,
+situations do arise when additions to CICE or Icepack are not
+bit-for-bit, but are also not expected to change the science of CICE and
+Icepack. In that instant, further evidence is required in the initial
+testing phase to support the premise that code changes have not altered
+the science of the model. To support this testing, a :math:`t`-test is
+being/has been implemented in the CICE testing infrastructure.
+
+******
+Method
+******
+
+Welch’s two-sided :math:`t`-test is used to help determine whether or
+not two different simulations that should be identical are significantly
+different for any grid cell of the CICE gx-1/3 domain for grid-cell
+averaged sea ice thickness, :math:`h`, ice concentration, :math:`c`, and
+pack velocity components :math:`\pmb{u}=\pmb{u}(u,v)`. In this
+circumstance, we seek to determine whether or not the null hypothesis,
+:math:`H_0`, is true. The null hypothesis is: Two simulations that are
+not bit-for-bit identical are ostensibly the same at every model grid
+point. The test begins from the standpoint that two CICE simulations
+*should* be bit-for-bit but are suspected of only being different at the
+level of computational innaccuracy. Therefore, we seek to limit a
+:math:`t`-test Type II error, where a test would erroneously confirm the
+null hypothesis, :math:`H_0`. To that end, we choose to test the
+hypothesis that grid-point means from CICE simulation ‘:math:`a`’ are
+different from CICE simulation ‘:math:`b`’ at a relatively low
+confidence interval. Formally, we test the hypothesis
+:math:`H_0:\bar{x}_a=\bar{x}_b`, :math:`H_1:\bar{x}_a\neq\bar{x}_b` for
+each of the aforementioned variables at every model grid point using a
+two-sided t-test with a 68, 80 and 95% confidence interval. Here,
+:math:`\bar{x}{=}\tfrac{1}{n}\sum_{i=1}^n x_i` is the time series mean
+of :math:`n` samples :math:`x_i` representing :math:`h`, :math:`c`,
+:math:`u` or :math:`v`, and daily samples are used from 5-year
+stand-alone CICE simulations. More frequent output is unnecessary,
+because each of :math:`h`, :math:`c`, :math:`u` and :math:`v` typically
+have a high degree of auto-correlation in sea ice models.
+
+Due to the strong auto-correlation in geo-located sea ice time series,
+we calculate a two-sided :math:`t`-statistic to compare
+:math:`\bar{x}_a` and :math:`\bar{x}_b`, given their respective standard
+deviations, :math:`\sigma_a` and :math:`\sigma_b`, and effective sample
+sizes, :math:`n'_a` and :math:`n'_b`, following
+:cite:`vSZ99` :
+
+.. math::
+   t=\frac{\bar{x}_a - \bar{x}_b}{\sqrt{\frac{\sigma^2_a}{n'_a}+\frac{\sigma^2_b}{n'_b}}}.
+   :label: t-distribution
+
+The null hypothesis :math:`H_0:\bar{x}_a=\bar{x}_b` is true when
+
+.. math::
+   -t_{crit}({1{-}\alpha/2},N)<t<t_{crit}({1{-}\alpha/2},N)
+   :label: t-crit
+
+
+for critical :math:`t`-distribution values, :math:`t_{crit}`, at the
+:math:`\alpha` significance level for effective degrees of freedom
+:math:`N = n'_a + n'_b - 2`. At the 80% confidence interval,
+:math:`\alpha=0.20`, with corresponding tabulated values of
+:math:`t_{crit}(0.9,N)` obtained from a :math:`t`-distribution look-up
+table. From :cite:`Wilks06`, we use an unbiased standard
+deviation estimate,
+
+.. math::
+   \sigma=\sqrt{\frac{1}{n'-1}\sum_{i=1}^{n}(x_i-\bar{x})^2},
+   :label: unbiased-sigma
+
+for the effective sample size,
+
+.. math::
+   n' \approx n \frac{1-r_1}{1+r_1},
+   :label: effective-sample-size
+
+where :math:`r_1` is the lag-1 autocorrelation given by:
+
+.. math::
+   r_1=\frac{\sum\limits_{i=1}^{n-1}\big[(x_i-\bar{x}_{1:n-1})(x_{i+1}-\bar{x}_{2:n})\big]}{\sqrt{\sum\limits_{i=1}^{n-1} (x_i-\bar{x}_{1:n-1})^2 \sum\limits_{i=2}^{n} (x_i-\bar{x}_{2:n})^2 }}.
+   :label: lag-1-auto-correlation
+
+In equation :eq:`lag-1-auto-correlation`, :math:`\bar{x}_{1:n-1}` is
+the mean of all samples except the last, and :math:`\bar{x}_{2:n}` is
+the mean of samples except the first, and both differ from the overall
+mean :math:`\bar{x}` in equations :eq:`t-distribution`
+and :eq:`unbiased-sigma`, which we repeat here for clarity:
+
+.. math::
+   \bar{x}_{1:n-1}=\frac{1}{n{-}1} \sum \limits_{i=1}^{n-1} x_i,\quad 
+   \bar{x}_{2:n}=\frac{1}{n{-}1} \sum \limits_{i=2}^{n} x_i,\quad
+   \bar{x}=\frac{1}{n} \sum \limits_{i=1}^{n} x_i
+   :label: short-means
+
+In applying equations :eq:`t-distribution` through :eq:`short-means`,
+we are accounting for the fact, however imperfectly, that a
+:math:`t`-test should be a comparison of the means from two series of
+independent samples. The typical affect of applying these equations to
+sea ice model output is that :math:`n' \ll n`. For that reason, we need
+a lengthy time series to narrow the range of acceptable values
+in :eq:`t-crit`. There is little point in using more frequent output
+from CICE than daily instantaneous values, since this would have little
+impact on decreasing :math:`r_1` in :eq:`lag-1-auto-correlation`.
+
+Using these equations, a standard procedure in testing for
+science-changing answers in CICE and Icepack is as follows: First, make
+every attempt to obtain bit-for-bit reproducibility in the model code.
+Once all available software-testing options have been exhausted, and the
+source of the bit-for-bit test failure has been pinpointed, proceed with
+the :math:`t`-test documented above if the expectation is that code
+alterations should not be science-changing.
+Equations :eq:`t-distribution` through :eq:`short-means` are
+implemented in the reverse order from which they are presented here, and
+applied individually to daily samples of :math:`h`, :math:`c`, :math:`u`
+and :math:`v` from 5-year time series at every model grid point: i)
+Calculate :math:`\bar{x}_{1:n-1}`, :math:`\bar{x}_{2:n}`, and
+:math:`\bar{x}` in :eq:`short-means` for simulations :math:`a` and
+:math:`b`; ii) Compute :eq:`lag-1-auto-correlation`,
+:eq:`effective-sample-size` and :eq:`unbiased-sigma`, in that order,
+for each simulation :math:`a` and :math:`b`, and finally; iii) Determine
+whether the null hypothesis is true at each model grid point in
+:eq:`t-crit` using equation :eq:`t-distribution` and a lookup
+:math:`t`-distribution table. Should :math:`H_0` be confirmed at each
+grid point, and for each variable :math:`h`, :math:`c`, :math:`u` and
+:math:`v`, this test contributes to evidence that changes to CICE and
+Icepack code are unlikely to alter scientific results. To guard against
+the possibility of a Type II error, the test should be performed for
+several different confidence intervals, nominally set at 68, 80 and 95%,
+the first and last of these values corresponding to :math:`\sigma` and
+:math:`2\sigma` tests.
+
+***************************
+Practical Testing Procedure
+***************************
+
+To be placed here: Write up of how to actually do this test within the
+testing software to be added by Elizabeth, Rick, Matt, Tony et al....
+
+Implementation notes: 1) Provide a pass/fail on each of the confidence
+intervals, 2) Facilitate output of a bitmap for each test so that
+locations of failures can be identified.
+
 
 .. _tabnamelist:
 
