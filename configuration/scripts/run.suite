@@ -1,6 +1,13 @@
 #!/bin/csh -f
 
-setenv PLATFORM "conrad"
+setenv PLATFORM "onyx"
+setenv host `uname -n`
+if ("$host" !~ *"$PLATFORM"*) then
+  echo "Hostname: $host"
+  echo "PLATFORM: $PLATFORM"
+  echo "Host and Platform should be similar.  Ensure that PLATFORM was set correctly"
+  exit -1
+endif
 
 echo " "
 echo "${0}:"
