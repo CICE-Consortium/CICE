@@ -1,6 +1,12 @@
 #!/bin/csh -f
 
-setenv PLATFORM "onyx"
+if ($#argv < 1) then
+  echo "Usage: ./run_suite <platform>"
+  echo "Example: ./run_suite onyx"
+  exit -1
+endif
+
+setenv PLATFORM "$1"
 setenv host `uname -n`
 if ("$host" !~ *"$PLATFORM"*) then
   echo "Hostname: $host"
