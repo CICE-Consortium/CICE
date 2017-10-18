@@ -2112,7 +2112,7 @@ for critical :math:`t`-distribution values, :math:`t_{crit}`, at the
 :math:`N = n'_a + n'_b - 2`. At the 80% confidence interval,
 :math:`\alpha=0.20`, with corresponding tabulated values of
 :math:`t_{crit}(0.9,N)` obtained from a :math:`t`-distribution look-up
-table. From :cite:`Wilks06`, we use an unbiased standard
+table. From :cite:`Wilks06` , we use an unbiased standard
 deviation estimate,
 
 .. math::
