@@ -858,7 +858,7 @@ elastic-viscous-plastic (EVP) ice dynamics scheme of
 <a class="reference internal" href="zreferences.html#hd97" id="id35">[32]</a>, as modified by <a class="reference internal" href="zreferences.html#cghm04" id="id36">[10]</a>,
 <a class="reference internal" href="zreferences.html#hunke01" id="id37">[30]</a>, <a class="reference internal" href="zreferences.html#hd02" id="id38">[33]</a> and
 <a class="reference internal" href="zreferences.html#hd03" id="id39">[34]</a>, or a new elastic-anisotropic-plastic model
-<a class="reference internal" href="zreferences.html#wf06" id="id40">[77]</a><a class="reference internal" href="zreferences.html#ws09" id="id41">[75]</a><a class="reference internal" href="zreferences.html#tfw13" id="id42">[72]</a> to find the velocity, as
+<a class="reference internal" href="zreferences.html#wf06" id="id40">[78]</a><a class="reference internal" href="zreferences.html#ws09" id="id41">[76]</a><a class="reference internal" href="zreferences.html#tfw13" id="id42">[72]</a> to find the velocity, as
 described in Section&nbsp;<a class="reference internal" href="#dynam"><span class="std std-ref">Dynamics</span></a>. Finally, we use a thermodynamic
 model to compute <span class="math">\(f\)</span> (Section&nbsp;<a class="reference internal" href="#thermo"><span class="std std-ref">Thermodynamics</span></a>). The order in which
 these computations are performed in the code itself was chosen so that
@@ -1932,13 +1932,13 @@ elastic-viscous-plastic (EVP) model represents a modification of the
 standard viscous-plastic (VP) model for sea ice dynamics
 <a class="reference internal" href="zreferences.html#hibler79" id="id83">[26]</a>. The elastic-anisotropic-plastic (EAP) model,
 on the other hand, explicitly accounts for the observed sub-continuum
-anisotropy of the sea ice cover <a class="reference internal" href="zreferences.html#wf06" id="id84">[77]</a><a class="reference internal" href="zreferences.html#ws09" id="id85">[75]</a>. If
+anisotropy of the sea ice cover <a class="reference internal" href="zreferences.html#wf06" id="id84">[78]</a><a class="reference internal" href="zreferences.html#ws09" id="id85">[76]</a>. If
 <cite>kdyn</cite>&nbsp;=&nbsp;1 in the namelist then the EVP rheology is used (module
 <strong>ice_dyn_evp.F90</strong>), while <cite>kdyn</cite>&nbsp;=&nbsp;2 is associated with the EAP
 rheology (<strong>ice_dyn_eap.F90</strong>). At times scales associated with the
 wind forcing, the EVP model reduces to the VP model while the EAP model
 reduces to the anisotropic rheology described in detail in
-<a class="reference internal" href="zreferences.html#wf06" id="id86">[77]</a><a class="reference internal" href="zreferences.html#tfw13" id="id87">[72]</a>. At shorter time scales the
+<a class="reference internal" href="zreferences.html#wf06" id="id86">[78]</a><a class="reference internal" href="zreferences.html#tfw13" id="id87">[72]</a>. At shorter time scales the
 adjustment process takes place in both models by a numerically more
 efficient elastic wave mechanism. While retaining the essential physics,
 this elastic wave modification leads to a fully explicit numerical
@@ -2143,7 +2143,7 @@ processes (thermal cracking, melting, freezing together of floes) that
 contribute to a more isotropic nature to the ice cover.
 <span class="math">\(\mathbf F_{frac}\)</span> is a function determining the ice floe
 re-orientation due to fracture, and explicitly depends upon sea ice
-stress (but not its magnitude). Following <a class="reference internal" href="zreferences.html#wf06" id="id106">[77]</a>,
+stress (but not its magnitude). Following <a class="reference internal" href="zreferences.html#wf06" id="id106">[78]</a>,
 based on laboratory experiments by <a class="reference internal" href="zreferences.html#schulson01" id="id107">[58]</a> we
 consider four failure mechanisms for the Arctic sea ice cover. These
 are determined by the ratio of the principal values of the sea ice
@@ -2165,7 +2165,7 @@ effect balances to zero.</p>
 <p class="caption"><span class="caption-text">Figure 5</span></p>
 </div>
 <p><a class="reference internal" href="#fig-eap"><span class="std std-ref">Figure 5</span></a> : Geometry of interlocking diamond-shaped floes (taken from
-<a class="reference internal" href="zreferences.html#wf06" id="id108">[77]</a>). <span class="math">\(\phi\)</span> is half of the acute angle
+<a class="reference internal" href="zreferences.html#wf06" id="id108">[78]</a>). <span class="math">\(\phi\)</span> is half of the acute angle
 of the diamonds. <span class="math">\(L\)</span> is the edge length.
 <span class="math">\(\boldsymbol n_{1}\)</span>, <span class="math">\(\boldsymbol n_{2}\)</span> and
 <span class="math">\(\boldsymbol\tau_{1}\)</span>, <span class="math">\(\boldsymbol\tau_{2}\)</span> are
@@ -2192,7 +2192,7 @@ of two equations:</p>
 <p>where the first terms on the right hand side correspond to the
 isotropic contribution, <span class="math">\(F_{iso}\)</span>, and <span class="math">\(M_{11}\)</span> and
 <span class="math">\(M_{12}\)</span> are the components of the term <span class="math">\(F_{frac}\)</span> in
-Equation <a class="reference internal" href="#equation-evolutionA">(56)</a> that are given in <a class="reference internal" href="zreferences.html#wf06" id="id109">[77]</a> and
+Equation <a class="reference internal" href="#equation-evolutionA">(56)</a> that are given in <a class="reference internal" href="zreferences.html#wf06" id="id109">[78]</a> and
 <a class="reference internal" href="zreferences.html#tfw13" id="id110">[72]</a>. These evolution equations are
 discretized semi-implicitly in time. The degree of anisotropy is
 measured by the largest eigenvalue (<span class="math">\(A_{1}\)</span>) of this tensor
@@ -2202,7 +2202,7 @@ orientation. Note that while we have specified the aspect ratio of the
 diamond floes, through prescribing <span class="math">\(\phi\)</span>, we make no assumption
 about the size of the diamonds so that formally the theory is scale
 invariant.</p>
-<p>As described in greater detail in <a class="reference internal" href="zreferences.html#wf06" id="id111">[77]</a>, the
+<p>As described in greater detail in <a class="reference internal" href="zreferences.html#wf06" id="id111">[78]</a>, the
 internal ice stress for a single orientation of the ice floes can be
 calculated explicitly and decomposed, for an average ice thickness
 <span class="math">\(h\)</span>, into its ridging (r) and sliding (s) contributions</p>
@@ -2251,7 +2251,7 @@ velocities and internal stresses. Finally, to be coherent with our new
 rheology we compute the area loss rate due to ridging as
 <span class="math">\(\vert\dot{\boldsymbol\epsilon}\vert\alpha_{r}(\theta)\)</span>, with
 <span class="math">\(\alpha_r(\theta)\)</span> and <span class="math">\(\alpha_s(\theta)\)</span> given by
-<a class="reference internal" href="zreferences.html#wf04" id="id113">[76]</a>,</p>
+<a class="reference internal" href="zreferences.html#wf04" id="id113">[77]</a>,</p>
 <div class="math">
 \[\begin{aligned}
 \alpha_{r}(\theta)=\frac{\sigma^{r}_{ij}\dot\epsilon_{ij}}{P_{r} \vert\dot{\boldsymbol\epsilon}\vert } , \qquad \alpha_{s}(\theta)=\frac{\sigma^{s}_{ij}\dot\epsilon_{ij}}{P_{s} \vert\dot{\boldsymbol\epsilon}\vert }.\label{alphas}\end{aligned}\]</div>
