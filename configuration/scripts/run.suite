@@ -1,8 +1,8 @@
 #!/bin/csh -f
 
 if ($#argv < 1) then
-  echo "Usage: ./run_suite <platform>"
-  echo "Example: ./run_suite onyx"
+  echo "Usage: ./run.suite <platform>"
+  echo "Example: ./run.suite onyx"
   exit -1
 endif
 
