@@ -75,6 +75,18 @@ cat >> ${jobfile} << EOFB
 ###PBS -m be
 EOFB
 
+else if (${ICE_MACHINE} =~ onyx* ) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -q debug
+#PBS -A ${acct}
+#PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
+#PBS -l walltime=${ICE_RUNLENGTH}
+#PBS -j oe
+###PBS -M username@domain.com
+###PBS -m be
+EOFB
+
 else if (${ICE_MACHINE} =~ cori*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
