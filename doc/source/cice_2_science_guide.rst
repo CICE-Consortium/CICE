@@ -1,6 +1,564 @@
-
-Model components
+Science Guide
 ================
+
+.. _coupl:
+
+--------------------------------------------
+Coupling with other climate model components
+--------------------------------------------
+
+The sea ice model exchanges information with the other model components
+via a flux coupler. CICE has been coupled into numerous climate models
+with a variety of coupling techniques. This document is oriented
+primarily toward the CESM Flux Coupler :cite:`KL02`
+from NCAR, the first major climate model to incorporate CICE. The flux
+coupler was originally intended to gather state variables from the
+component models, compute fluxes at the model interfaces, and return
+these fluxes to the component models for use in the next integration
+period, maintaining conservation of momentum, heat, and fresh water.
+However, several of these fluxes are now computed in the ice model
+itself and provided to the flux coupler for distribution to the other
+components, for two reasons. First, some of the fluxes depend strongly
+on the state of the ice, and vice versa, implying that an implicit,
+simultaneous determination of the ice state and the surface fluxes is
+necessary for consistency and stability. Second, given the various ice
+types in a single grid cell, it is more efficient for the ice model to
+determine the net ice characteristics of the grid cell and provide the
+resulting fluxes, rather than passing several values of the state
+variables for each cell. These considerations are explained in more
+detail below.
+
+The fluxes and state variables passed between the sea ice model and the
+CESM flux coupler are listed in :ref:`tab-flux-cpl`. By convention,
+directional fluxes are positive downward. In CESM, the sea ice model may
+exchange coupling fluxes using a different grid than the computational
+grid. This functionality is activated using the namelist variable
+``gridcpl_file``. Another namelist variable ``highfreq``, allows the
+high-frequency coupling procedure implemented in the Regional Arctic
+System Model (RASM). In particular, the relative atmosphere-ice velocity
+(:math:`\vec{U}_a-\vec{u}`) is used instead of the full atmospheric
+velocity for computing turbulent fluxes in the atmospheric boundary
+layer.
+
+:ref:`tab-flux-cpl`: *Data exchanged between the CESM flux coupler and the sea ice model*
+
+.. _tab-flux-cpl:
+
+.. table:: Table 1
+
+   ===========================   ======================================   =======================================================================================
+   Variable                       Description                              Interaction with flux coupler 
+   ===========================   ======================================   =======================================================================================
+   :math:`z_o`                    Atmosphere level height                  From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`\vec{U}_a`              Wind velocity                            From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`Q_a`                    Specific humidity                        From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`\rho_a`                 Air density                              From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`\Theta_a`               Air potential temperature                From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`T_a`                    Air temperature                          From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`F_{sw\downarrow}`       Incoming shortwave radiation             From *atmosphere model* via flux coupler **to** *sea ice model*
+                                  (4 bands)
+
+   :math:`F_{L\downarrow}`        Incoming longwave radiation              From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`F_{rain}`               Rainfall rate                            From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`F_{snow}`               Snowfall rate                            From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`F_{frzmlt}`             Freezing/melting potential               From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`T_w`                    Sea surface temperature                  From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`S`                      Sea surface salinity                     From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`\nabla H_o`             Sea surface slope                        From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`\vec{U}_w`              Surface ocean currents                   From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`\vec{\tau}_a`           Wind stress                              From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`F_s`                    Sensible heat flux                       From *sea ice model* via flux coupler **to** *atmosphere model*
+ 
+   :math:`F_l`                    Latent heat flux                         From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`F_{L\uparrow}`          Outgoing longwave radiation              From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`F_{evap}`               Evaporated water                         From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`\alpha`                 Surface albedo (4 bands)                 From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`T_{sfc}`                Surface temperature                      From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`F_{sw\Downarrow}`       Penetrating shortwave radiation          From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`F_{water}`              Fresh water flux                         From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`F_{hocn}`               Net heat flux to ocean                   From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`F_{salt}`               Salt flux                                From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`\vec{\tau}_w`           Ice-ocean stress                         From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`F_{bio}`                Biogeochemical fluxes                    From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`a_{i}`                  Ice fraction                             From *sea ice model* via flux coupler **to** both *ocean and atmosphere models*
+
+   :math:`T^{ref}_{a}`            2m reference temperature (diagnostic)    From *sea ice model* via flux coupler **to** both *ocean and atmosphere models*
+
+   :math:`Q^{ref}_{a}`            2m reference humidity (diagnostic)       From *sea ice model* via flux coupler **to** both *ocean and atmosphere models*
+
+   :math:`F_{swabs}`              Absorbed shortwave (diagnostic)          From *sea ice model* via flux coupler **to** both *ocean and atmosphere models*
+   ===========================   ======================================   =======================================================================================
+
+The ice fraction :math:`a_i` (aice) is the total fractional ice
+coverage of a grid cell. That is, in each cell,
+
+.. math::
+   \begin{array}{cl}
+                  a_{i}=0 & \mbox{if there is no ice} \\ 
+                  a_{i}=1 & \mbox{if there is no open water} \\ 
+                  0<a_{i}<1 & \mbox{if there is both ice and open water,}
+   \end{array}
+
+where :math:`a_{i}` is the sum of fractional ice areas for each category
+of ice. The ice fraction is used by the flux coupler to merge fluxes
+from the ice model with fluxes from the other components. For example,
+the penetrating shortwave radiation flux, weighted by :math:`a_i`, is
+combined with the net shortwave radiation flux through ice-free leads,
+weighted by (:math:`1-a_i`), to obtain the net shortwave flux into the
+ocean over the entire grid cell. The flux coupler requires the fluxes to
+be divided by the total ice area so that the ice and land models are
+treated identically (land also may occupy less than 100% of an
+atmospheric grid cell). These fluxes are “per unit ice area" rather than
+“per unit grid cell area."
+
+In some coupled climate models (for example, recent versions of the U.K.
+Hadley Centre model) the surface air temperature and fluxes are computed
+within the atmosphere model and are passed to CICE. In this case the
+logical parameter ``calc_Tsfc`` in *ice_therm_vertical* is set to false.
+The fields ``fsurfn`` (the net surface heat flux from the atmosphere), ``flatn``
+(the surface latent heat flux), and ``fcondtopn`` (the conductive flux at
+the top surface) for each ice thickness category are copied or derived
+from the input coupler fluxes and are passed to the thermodynamic driver
+subroutine, *thermo_vertical*. At the end of the time step, the surface
+temperature and effective conductivity (i.e., thermal conductivity
+divided by thickness) of the top ice/snow layer in each category are
+returned to the atmosphere model via the coupler. Since the ice surface
+temperature is treated explicitly, the effective conductivity may need
+to be limited to ensure stability. As a result, accuracy may be
+significantly reduced, especially for thin ice or snow layers. A more
+stable and accurate procedure would be to compute the temperature
+profiles for both the atmosphere and ice, together with the surface
+fluxes, in a single implicit calculation. This was judged impractical,
+however, given that the atmosphere and sea ice models generally exist on
+different grids and/or processor sets.
+
+.. _atmo:
+
+~~~~~~~~~~
+Atmosphere
+~~~~~~~~~~
+
+The wind velocity, specific humidity, air density and potential
+temperature at the given level height :math:`z_\circ` are used to
+compute transfer coefficients used in formulas for the surface wind
+stress and turbulent heat fluxes :math:`\vec\tau_a`, :math:`F_s`, and
+:math:`F_l`, as described below. Wind stress is arguably the primary
+forcing mechanism for the ice motion, although the ice–ocean stress,
+Coriolis force, and slope of the ocean surface are also important
+:cite:`SZRS97`. The sensible and latent heat fluxes,
+:math:`F_s` and :math:`F_l`, along with shortwave and longwave
+radiation, :math:`F_{sw\downarrow}`, :math:`F_{L\downarrow}`
+and :math:`F_{L\uparrow}`, are included in the flux balance that
+determines the ice or snow surface temperature when calc\_Tsfc = true.
+As described in Section :ref:`thermo`, these fluxes depend nonlinearly
+on the ice surface temperature :math:`T_{sfc}`. The balance
+equation is iterated until convergence, and the resulting fluxes and
+:math:`T_{sfc}` are then passed to the flux coupler.
+
+The snowfall precipitation rate (provided as liquid water equivalent and
+converted by the ice model to snow depth) also contributes to the heat
+and water mass budgets of the ice layer. Melt ponds generally form on
+the ice surface in the Arctic and refreeze later in the fall, reducing
+the total amount of fresh water that reaches the ocean and altering the
+heat budget of the ice; this version includes two new melt pond
+parameterizations. Rain and all melted snow end up in the ocean.
+
+Wind stress and transfer coefficients for the
+turbulent heat fluxes are computed in subroutine
+*atmo\_boundary\_layer* following :cite:`KL02`. For
+clarity, the equations are reproduced here in the present notation.
+
+The wind stress and turbulent heat flux calculation accounts for both
+stable and unstable atmosphere–ice boundary layers. Define the
+“stability”
+
+.. math::
+   \Upsilon = {\kappa g z_\circ\over u^{*2}}
+   \left({\Theta^*\over\Theta_a\left(1+0.606Q_a\right)}  +
+   {Q^*\over 1/0.606 + Q_a}\right),
+
+where :math:`\kappa` is the von Karman constant, :math:`g` is
+gravitational acceleration, and :math:`u^*`, :math:`\Theta^*` and
+:math:`Q^*` are turbulent scales for velocity, temperature, and humidity,
+respectively:
+
+.. math::
+   \begin{aligned}
+   u^*&=&c_u \left|\vec{U}_a\right| \\
+   \Theta^*&=& c_\theta\left(\Theta_a-T_{sfc}\right) \\
+   Q^*&=&c_q\left(Q_a-Q_{sfc}\right).\end{aligned}
+   :label: stars
+
+The wind speed has a minimum value of 1 m/s. We have ignored ice motion
+in :math:`u^*`, and :math:`T_{sfc}` and
+:math:`Q_{sfc}` are the surface temperature and specific
+humidity, respectively. The latter is calculated by assuming a saturated
+surface, as described in Section :ref:`sfc-forcing`.
+
+Neglecting form drag,the exchange coefficients :math:`c_u`,
+:math:`c_\theta` and :math:`c_q` are initialized as
+
+.. math:: 
+   \kappa\over \ln(z_{ref}/z_{ice})
+
+and updated during a short iteration, as they depend upon the turbulent
+scales. The number of iterations is set by the namelist variable
+`natmiter`. (For the case with form drag, see section :ref:`formdrag`.)
+Here, :math:`z_{ref}` is a reference height of 10m and
+:math:`z_{ice}` is the roughness length scale for the given
+sea ice category. :math:`\Upsilon` is constrained to have magnitude less
+than 10. Further, defining
+:math:`\chi = \left(1-16\Upsilon\right)^{0.25}` and :math:`\chi \geq 1`,
+the “integrated flux profiles” for momentum and stability in the
+unstable (:math:`\Upsilon <0`) case are given by
+
+.. math::
+   \begin{aligned}
+   \psi_m = &\mbox{}&2\ln\left[0.5(1+\chi)\right] +
+            \ln\left[0.5(1+\chi^2)\right] -2\tan^{-1}\chi +
+            {\pi\over 2}, \\
+   \psi_s = &\mbox{}&2\ln\left[0.5(1+\chi^2)\right].\end{aligned}
+
+In a departure from the parameterization used in
+:cite:`KL02`, we use profiles for the stable case
+following :cite:`JAM99`,
+
+.. math::
+   \psi_m = \psi_s = -\left[0.7\Upsilon + 0.75\left(\Upsilon-14.3\right)
+            \exp\left(-0.35\Upsilon\right) + 10.7\right].
+
+The coefficients are then updated as
+
+.. math::
+   \begin{aligned}
+   c_u^\prime&=&{c_u\over 1+c_u\left(\lambda-\psi_m\right)/\kappa} \\
+   c_\theta^\prime&=& {c_\theta\over 1+c_\theta\left(\lambda-\psi_s\right)/\kappa}\\
+   c_q^\prime&=&c_\theta^\prime\end{aligned}
+
+where :math:`\lambda = \ln\left(z_\circ/z_{ref}\right)`. The
+first iteration ends with new turbulent scales from
+equations :eq:`stars`. After five iterations the latent and sensible
+heat flux coefficients are computed, along with the wind stress:
+
+.. math::
+   \begin{aligned}
+   \nonumber
+   C_l&=&\rho_a \left(L_{vap}+L_{ice}\right) u^* c_q \\
+   C_s&=&\rho_a c_p u^* c_\theta^* + 1, \\
+   \vec{\tau}_a&=&{\rho_a u^{*2}\vec{U}_a\over |\vec{U}_a|},\end{aligned}
+
+where :math:`L_{vap}` and :math:`L_{ice}` are
+latent heats of vaporization and fusion, :math:`\rho_a` is the density
+of air and :math:`c_p` is its specific heat. Again following
+:cite:`JAM99`, we have added a constant to the sensible
+heat flux coefficient in order to allow some heat to pass between the
+atmosphere and the ice surface in stable, calm conditions.
+
+The atmospheric reference temperature :math:`T_a^{ref}` is computed from
+:math:`T_a` and :math:`T_{sfc}` using the coefficients
+:math:`c_u`, :math:`c_\theta` and :math:`c_q`. Although the sea ice
+model does not use this quantity, it is convenient for the ice model to
+perform this calculation. The atmospheric reference temperature is
+returned to the flux coupler as a climate diagnostic. The same is true
+for the reference humidity, :math:`Q_a^{ref}`.
+
+Additional details about the latent and sensible heat fluxes and other
+quantities referred to here can be found in
+Section :ref:`sfc-forcing`.
+
+For CICE run in stand-alone mode (i.e., uncoupled), the AOMIP shortwave
+and longwave radiation formulas are available in **ice\_forcing.F90**.
+In function *longwave\_rosati\_miyakoda*, downwelling longwave is
+computed as
+
+.. math:: 
+   F_{lw\downarrow} = \epsilon\sigma T_s^4 - \epsilon\sigma T_a^4(0.39-0.05e_a^{1/2})(1-0.8f_{cld}) - 4\epsilon\sigma T_a^3(T_s-T_a)
+
+where the atmospheric vapor pressure (mb) is
+:math:`e_a = 1000 Q_a/(0.622+0.378Q_a)`, :math:`\epsilon=0.97` is the
+ocean emissivity, :math:`\sigma` is the Stephan-Boltzman constant,
+:math:`f_{cld}` is the cloud cover fraction, and :math:`T_a` is the
+surface air temperature (K). The first term on the right is upwelling
+longwave due to the mean (merged) ice and ocean surface temperature,
+:math:`T_s` (K), and the other terms on the right represent the net
+longwave radiation patterned after :cite:`RM88`. The
+downwelling longwave formula of :cite:`PW79` is also
+available in function *longwave\_parkinson\_washington*:
+
+.. math:: 
+   F_{lw\downarrow} = \epsilon\sigma T_a^4 (1-0.261 \exp\left(-7.77\times 10^{-4}T_a^2\right)\left(1 + 0.275f_{cld}\right)
+
+The value of :math:`F_{lw\uparrow}` is different for each ice thickness
+category, while :math:`F_{lw\downarrow}` depends on the mean value of
+surface temperature averaged over all of the thickness categories and
+open water.
+
+The AOMIP shortwave forcing formula (in subroutine *compute\_shortwave*)
+incorporates the cloud fraction and humidity through the atmospheric
+vapor pressure:
+
+.. math:: 
+   F_{sw\downarrow} = {1353 \cos^2 Z \over {10^{-3}(\cos Z+2.7)e_a + 1.085\cos Z + 0.1}}\left(1-0.6 f_{cld}^3\right) > 0
+
+where :math:`\cos Z` is the cosine of the solar zenith angle.
+
+.. _ocean:
+
+~~~~~
+Ocean
+~~~~~
+
+New sea ice forms when the ocean temperature drops below its freezing
+temperature. In the Bitz and Lipscomb thermodynamics,
+:cite:`BL99` :math:`T_f=-\mu S`, where :math:`S` is the
+seawater salinity and :math:`\mu=0.054 \ ^\circ`/ppt is the ratio of the
+freezing temperature of brine to its salinity (linear liquidus
+approximation). For the mushy thermodynamics, :math:`T_f` is given by a
+piecewise linear liquidus relation. The ocean model calculates the new
+ice formation; if the freezing/melting potential
+:math:`F_{frzmlt}` is positive, its value represents a certain
+amount of frazil ice that has formed in one or more layers of the ocean
+and floated to the surface. (The ocean model assumes that the amount of
+new ice implied by the freezing potential actually forms.)
+
+If :math:`F_{frzmlt}` is negative, it is used to heat already
+existing ice from below. In particular, the sea surface temperature and
+salinity are used to compute an oceanic heat flux :math:`F_w`
+(:math:`\left|F_w\right| \leq \left|F_{frzmlt}\right|`) which
+is applied at the bottom of the ice. The portion of the melting
+potential actually used to melt ice is returned to the coupler in
+:math:`F_{hocn}`. The ocean model adjusts its own heat budget
+with this quantity, assuming that the rest of the flux remained in the
+ocean.
+
+In addition to runoff from rain and melted snow, the fresh water flux
+:math:`F_{water}` includes ice melt water from the top surface
+and water frozen (a negative flux) or melted at the bottom surface of
+the ice. This flux is computed as the net change of fresh water in the
+ice and snow volume over the coupling time step, excluding frazil ice
+formation and newly accumulated snow. Setting the namelist option
+update\_ocn\_f to true causes frazil ice to be included in the fresh
+water and salt fluxes.
+
+There is a flux of salt into the ocean under melting conditions, and a
+(negative) flux when sea water is freezing. However, melting sea ice
+ultimately freshens the top ocean layer, since the ocean is much more
+saline than the ice. The ice model passes the net flux of salt
+:math:`F_{salt}` to the flux coupler, based on the net change
+in salt for ice in all categories. In the present configuration,
+ice\_ref\_salinity is used for computing the salt flux, although the ice
+salinity used in the thermodynamic calculation has differing values in
+the ice layers.
+
+A fraction of the incoming shortwave :math:`F_{sw\Downarrow}`
+penetrates the snow and ice layers and passes into the ocean, as
+described in Section :ref:`sfc-forcing`.
+
+Many ice models compute the sea surface slope :math:`\nabla H_\circ`
+from geostrophic ocean currents provided by an ocean model or other data
+source. In our case, the sea surface height :math:`H_\circ` is a
+prognostic variable in POP—the flux coupler can provide the surface
+slope directly, rather than inferring it from the currents. (The option
+of computing it from the currents is provided in subroutine
+*evp\_prep*.) The sea ice model uses the surface layer currents
+:math:`\vec{U}_w` to determine the stress between the ocean and the ice,
+and subsequently the ice velocity :math:`\vec{u}`. This stress, relative
+to the ice,
+
+.. math::
+   \begin{aligned}
+   \vec{\tau}_w&=&c_w\rho_w\left|{\vec{U}_w-\vec{u}}\right|\left[\left(\vec{U}_w-\vec{u}\right)\cos\theta
+   +\hat{k}\times\left(\vec{U}_w-\vec{u}\right)\sin\theta\right] \end{aligned}
+
+is then passed to the flux coupler (relative to the ocean) for use by
+the ocean model. Here, :math:`\theta` is the turning angle between
+geostrophic and surface currents, :math:`c_w` is the ocean drag
+coefficient, :math:`\rho_w` is the density of seawater, and
+:math:`\hat{k}` is the vertical unit vector. The turning angle is
+necessary if the top ocean model layers are not able to resolve the
+Ekman spiral in the boundary layer. If the top layer is sufficiently
+thin compared to the typical depth of the Ekman spiral, then
+:math:`\theta=0` is a good approximation. Here we assume that the top
+layer is thin enough.
+
+For CICE run in stand-alone mode (i.e., uncoupled), a thermodynamic slab
+ocean mixed-layer parameterization is available in **ice\_ocean.F90**.
+The turbulent fluxes are computed above the water surface using the same
+parameterizations as for sea ice, but with parameters appropriate for
+the ocean. The surface flux balance takes into account the turbulent
+fluxes, oceanic heat fluxes from below the mixed layer, and shortwave
+and longwave radiation, including that passing through the sea ice into
+the ocean. If the resulting sea surface temperature falls below the
+salinity-dependent freezing point, then new ice (frazil) forms.
+Otherwise, heat is made available for melting the ice.
+
+.. _formdrag:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Variable exchange coefficients
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the default CICE setup, atmospheric and oceanic neutral drag
+coefficients (:math:`c_u` and :math:`c_w`) are assumed constant in time
+and space. These constants are chosen to reflect friction associated
+with an effective sea ice surface roughness at the ice–atmosphere and
+ice–ocean interfaces. Sea ice (in both Arctic and Antarctic) contains
+pressure ridges as well as floe and melt pond edges that act as discrete
+obstructions to the flow of air or water past the ice, and are a source
+of form drag. Following :cite:`TFSFFKLB14` and based on
+recent theoretical developments :cite:`LGHA12,LLCL11`, the
+neutral drag coefficients can now be estimated from properties of the
+ice cover such as ice concentration, vertical extent and area of the
+ridges, freeboard and floe draft, and size of floes and melt ponds. The
+new parameterization allows the drag coefficients to be coupled to the
+sea ice state and therefore to evolve spatially and temporally. This
+parameterization is contained in the subroutine *neutral\_drag\_coeffs*
+and is accessed by setting `formdrag` = true in the namelist.
+
+Following :cite:`TFSFFKLB14`, consider the general case of
+fluid flow obstructed by N randomly oriented obstacles of height
+:math:`H` and transverse length :math:`L_y`, distributed on a domain
+surface area :math:`S_T`. Under the assumption of a logarithmic fluid
+velocity profile, the general formulation of the form drag coefficient
+can be expressed as
+
+.. math:: 
+   C_d=\frac{N c S_c^2 \gamma L_y  H}{2 S_T}\left[\frac{\ln(H/z_0)}{\ln(z_{ref}/z_0)}\right]^2,
+   :label: formdrag
+
+where :math:`z_0` is a roughness length parameter at the top or bottom
+surface of the ice, :math:`\gamma` is a geometric factor, :math:`c` is
+the resistance coefficient of a single obstacle, and :math:`S_c` is a
+sheltering function that takes into account the shielding effect of the
+obstacle,
+
+.. math:: 
+   S_{c}=\left(1-\exp(-s_l D/H)\right)^{1/2},
+   :label: shelter
+
+with :math:`D` the distance between two obstacles and :math:`s_l` an
+attenuation parameter.
+
+As in the original drag formulation in CICE (sections :ref:`atmo` and
+:ref:`ocean`), :math:`c_u` and :math:`c_w` along with the transfer
+coefficients for sensible heat, :math:`c_{\theta}`, and latent heat,
+:math:`c_{q}`, are initialized to a situation corresponding to neutral
+atmosphere–ice and ocean–ice boundary layers. The corresponding neutral
+exchange coefficients are then replaced by coefficients that explicitly
+account for form drag, expressed in terms of various contributions as
+
+.. math::
+   \tt{Cdn\_atm}  = \tt{Cdn\_atm\_rdg} + \tt{Cdn\_atm\_floe} + \tt{Cdn\_atm\_skin} + \tt{Cdn\_atm\_pond} ,
+   :label: Cda
+
+.. math::
+   \tt{Cdn\_ocn}  =  \tt{Cdn\_ocn\_rdg} + \tt{Cdn\_ocn\_floe} + \tt{Cdn\_ocn\_skin}. 
+   :label: Cdw
+
+The contributions to form drag from ridges (and keels underneath the
+ice), floe edges and melt pond edges can be expressed using the general
+formulation of equation :eq:`formdrag` (see :cite:`TFSFFKLB14` for
+details). Individual terms in equation :eq:`Cdw` are fully described in
+:cite:`TFSFFKLB14`. Following :cite:`Arya75`
+the skin drag coefficient is parametrized as
+
+.. math:: 
+   { \tt{Cdn\_(atm/ocn)\_skin}}=a_{i} \left(1-m_{(s/k)} \frac{H_{(s/k)}}{D_{(s/k)}}\right)c_{s(s/k)}, \mbox{       if  $\displaystyle\frac{H_{(s/k)}}{D_{(s/k)}}\ge\frac{1}{m_{(s/k)}}$,}
+   :label: skindrag
+
+where :math:`m_s` (:math:`m_k`) is a sheltering parameter that depends
+on the average sail (keel) height, :math:`H_s` (:math:`H_k`), but is
+often assumed constant, :math:`D_s` (:math:`D_k`) is the average
+distance between sails (keels), and :math:`c_{ss}` (:math:`c_{sk}`) is
+the unobstructed atmospheric (oceanic) skin drag that would be attained
+in the absence of sails (keels) and with complete ice coverage,
+:math:`a_{ice}=1`.
+
+Calculation of equations :eq:`formdrag` – :eq:`skindrag` requires that small-scale geometrical
+properties of the ice cover be related to average grid cell quantities
+already computed in the sea ice model. These intermediate quantities are
+briefly presented here and described in more detail in
+:cite:`TFSFFKLB14`. The sail height is given by
+
+.. math:: 
+   H_{s} = \displaystyle 2\frac{v_{rdg}}{a_{rdg}}\left(\frac{\alpha\tan \alpha_{k} R_d+\beta \tan \alpha_{s} R_h}{\phi_r\tan \alpha_{k} R_d+\phi_k \tan \alpha_{s} R_h^2}\right),
+   :label: Hs
+
+and the distance between sails\ 
+
+.. math:: 
+   D_{s} = \displaystyle 2 H_s\frac{a_{i}}{a_{rdg}} \left(\frac{\alpha}{\tan \alpha_s}+\frac{\beta}{\tan \alpha_k}\frac{R_h}{R_d}\right),
+   :label: Ds
+
+where :math:`0<\alpha<1` and :math:`0<\beta<1` are weight functions,
+:math:`\alpha_{s}` and :math:`\alpha_{k}` are the sail and keel slope,
+:math:`\phi_s` and :math:`\phi_k` are constant porosities for the sails
+and keels, and we assume constant ratios for the average keel depth and
+sail height (:math:`H_k/H_s=R_h`) and for the average distances between
+keels and between sails (:math:`D_k/D_s=R_d`). With the assumption of
+hydrostatic equilibrium, the effective ice plus snow freeboard is
+:math:`H_{f}=\bar{h_i}(1-\rho_i/\rho_w)+\bar{h_s}(1-\rho_s/\rho_w)`,
+where :math:`\rho_i`, :math:`\rho_w` and :math:`\rho_s` are
+respectively the densities of sea ice, water and snow, :math:`\bar{h_i}`
+is the mean ice thickness and :math:`\bar{h_s}` is the mean snow
+thickness (means taken over the ice covered regions). For the melt pond
+edge elevation we assume that the melt pond surface is at the same level
+as the ocean surface surrounding the floes
+:cite:`FF07,FFT10,FSFH12` and use the simplification
+:math:`H_p = H_f`. Finally to estimate the typical floe size
+:math:`L_A`, distance between floes, :math:`D_F`, and melt pond size,
+:math:`L_P` we use the parameterizations of :cite:`LGHA12`
+to relate these quantities to the ice and pond concentrations. All of
+these intermediate quantities are available as history output, along
+with `Cdn\_atm`, `Cdn\_ocn` and the ratio `Cdn\_atm\_ratio\_n` between the
+total atmospheric drag and the atmospheric neutral drag coefficient.
+
+We assume that the total neutral drag coefficients are thickness
+category independent, but through their dependance on the diagnostic
+variables described above, they vary both spatially and temporally. The
+total drag coefficients and heat transfer coefficients will also depend
+on the type of stratification of the atmosphere and the ocean, and we
+use the parameterization described in section :ref:`atmo` that accounts
+for both stable and unstable atmosphere–ice boundary layers. In contrast
+to the neutral drag coefficients the stability effect of the atmospheric
+boundary layer is calculated separately for each ice thickness category.
+
+The transfer coefficient for oceanic heat flux to the bottom of the ice
+may be varied based on form drag considerations by setting the namelist
+variable `fbot\_xfer\_type` to `Cdn\_ocn`; this is recommended when using
+the form drag parameterization. Its default value of the transfer
+coefficient is 0.006 (`fbot\_xfer\_type = ’constant’`).
+
+
+----------------
+Model components
+----------------
 
 The Arctic and Antarctic sea ice packs are mixtures of open water, thin
 first-year ice, thicker multiyear ice, and thick pressure ridges. The
@@ -166,8 +724,9 @@ computed at the end of the last timestep are scaled for the new forcing.
 
 .. _tracers:
 
+~~~~~~~
 Tracers
--------
+~~~~~~~
 
 The basic conservation equations for ice area fraction :math:`a_{in}`,
 ice volume :math:`v_{in}`, and snow volume :math:`v_{sn}` for each
@@ -233,8 +792,9 @@ guidance on adding tracers.
 
 .. _pondtr:
 
+*******************************************************
 Tracers that depend on other tracers (e.g., melt ponds)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*******************************************************
 
 Tracers may be defined that depend on other tracers. Melt pond tracers
 provide an example (these equations pertain to cesm and topo tracers;
@@ -335,8 +895,9 @@ section :ref:`ponds`.
 
 .. _ice-age:
 
+*******
 Ice age
-~~~~~~~
+*******
 
 The age of the ice, :math:`\tau_{age}`, is treated as an
 ice-volume tracer (`trcr\_depend` = 1). It is initialized at 0 when ice
@@ -359,8 +920,9 @@ is discussed in :cite:`ABTH11`.
 
 .. _ice-bgc:
 
+***********************
 Sea ice biogeochemistry
-~~~~~~~~~~~~~~~~~~~~~~~
+***********************
 
 Ice algal photosynthesis leads to carbon fixation and pigment buildup
 throughout much of the pack ice in springtime, including warm layers in
@@ -587,8 +1149,9 @@ developed for future release in CICE.
 
 .. _aero:
 
+********
 Aerosols
-~~~~~~~~
+********
 
 Aerosols may be deposited on the ice and gradually work their way
 through it until the ice melts and they are passed into the ocean. They
@@ -629,8 +1192,9 @@ oceanic fluxes, for each species.
 
 .. _brine-ht:
 
+************
 Brine height
-~~~~~~~~~~~~
+************
 
 The brine height, :math:`h_b`, is the distance from the ice–ocean
 interface to the brine surface. When `tr\_brine` is set true in
@@ -773,8 +1337,9 @@ where the sums are taken over thickness categories.
 
 .. _horiz-trans:
 
+~~~~~~~~~~~~~~~~~~~~
 Horizontal transport
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 We wish to solve the continuity or transport equation
 (Equation :eq:`transport-ai`) for the fractional ice area in each
@@ -863,8 +1428,9 @@ below.
 
 .. _reconstruct:
 
+*************************************
 Reconstructing area and tracer fields
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*************************************
 
 First, using the known values of the state variables, the ice area and
 tracer fields are reconstructed in each grid cell as linear functions of
@@ -1054,8 +1620,9 @@ for generality.
 
 .. _loc-dep-triangles:
 
+****************************
 Locating departure triangles
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+****************************
 
 The method for locating departure triangles is discussed in detail by
 :cite:`DB00`. The basic idea is illustrated in
@@ -1259,8 +1826,9 @@ trajectory.
 
 .. _integ-flux:
 
+******************
 Integrating fields
-~~~~~~~~~~~~~~~~~~
+******************
 
 Next, we integrate the reconstructed fields over the departure triangles
 to find the total area, volume, and energy transported across each cell
@@ -1328,8 +1896,9 @@ repeatedly.
 
 .. _updating-state-var:
 
+************************
 Updating state variables
-~~~~~~~~~~~~~~~~~~~~~~~~
+************************
 
 Finally, we compute new values of the state variables in each ice
 category and grid cell. The new fractional ice areas
@@ -1366,10 +1935,613 @@ values, with non-negative weights :math:`a` and :math:`ah`. Thus the
 new-time values must lie between the maximum and minimum of the old-time
 values.
 
+.. _dynam:
+
+~~~~~~~~
+Dynamics
+~~~~~~~~
+
+There are now different rheologies available in the CICE code. The
+elastic-viscous-plastic (EVP) model represents a modification of the
+standard viscous-plastic (VP) model for sea ice dynamics
+:cite:`Hibler79`. The elastic-anisotropic-plastic (EAP) model,
+on the other hand, explicitly accounts for the observed sub-continuum
+anisotropy of the sea ice cover :cite:`WF06,WS09`. If
+`kdyn` = 1 in the namelist then the EVP rheology is used (module
+**ice\_dyn\_evp.F90**), while `kdyn` = 2 is associated with the EAP
+rheology (**ice\_dyn\_eap.F90**). At times scales associated with the
+wind forcing, the EVP model reduces to the VP model while the EAP model
+reduces to the anisotropic rheology described in detail in
+:cite:`WF06,TFW13`. At shorter time scales the
+adjustment process takes place in both models by a numerically more
+efficient elastic wave mechanism. While retaining the essential physics,
+this elastic wave modification leads to a fully explicit numerical
+scheme which greatly improves the model’s computational efficiency.
+
+The EVP sea ice dynamics model is thoroughly documented in
+:cite:`HD97`, :cite:`Hunke01`,
+:cite:`HD02` and :cite:`HD03` and the EAP
+dynamics in :cite:`TFW13`. Simulation results and
+performance of the EVP and EAP models have been compared with the VP
+model and with each other in realistic simulations of the Arctic
+respectively in :cite:`HZ99` and
+:cite:`TFW13`. Here we summarize the equations and
+direct the reader to the above references for details. The numerical
+implementation in this code release is that of :cite:`HD02`
+and :cite:`HD03`, with revisions to the numerical solver as
+in :cite:`BFLM13`. The implementation of the EAP sea ice
+dynamics into CICE is described in detail in
+:cite:`TFW13`.
+
+.. _momentum:
+
+********
+Momentum
+********
+
+The force balance per unit area in the ice pack is given by a
+two-dimensional momentum equation :cite:`Hibler79`, obtained
+by integrating the 3D equation through the thickness of the ice in the
+vertical direction:
+
+.. math::
+   m{\partial {\bf u}\over\partial t} = \nabla\cdot{\bf \sigma}
+   + \vec{\tau}_a+\vec{\tau}_w - \hat{k}\times mf{\bf u} - mg\nabla H_\circ,
+   :label: vpmom
+
+where :math:`m` is the combined mass of ice and snow per unit area and
+:math:`\vec{\tau}_a` and :math:`\vec{\tau}_w` are wind and ocean
+stresses, respectively. The strength of the ice is represented by the
+internal stress tensor :math:`\sigma_{ij}`, and the other two terms on
+the right hand side are stresses due to Coriolis effects and the sea
+surface slope. The parameterization for the wind and ice–ocean stress
+terms must contain the ice concentration as a multiplicative factor to
+be consistent with the formal theory of free drift in low ice
+concentration regions. A careful explanation of the issue and its
+continuum solution is provided in :cite:`HD03` and
+:cite:CGHM04`.
+
+The momentum equation is discretized in time as follows, for the classic
+EVP approach. First, for clarity, the two components of Equation :eq:`vpmom` are
+
+.. math::
+   \begin{aligned}
+   m{\partial u\over\partial t} &=& {\partial\sigma_{1j}\over\partial x_j} + \tau_{ax} + 
+     a_i c_w \rho_w
+     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\cos\theta - \left(V_w-v\right)\sin\theta\right]
+     +mfv - mg{\partial H_\circ\over\partial x}, \\
+   m{\partial v\over\partial t} &=& {\partial\sigma_{2j}\over\partial x_j} + \tau_{ay} + 
+     a_i c_w \rho_w
+     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\sin\theta - \left(V_w-v\right)\cos\theta\right]
+     -mfu - mg{\partial H_\circ\over\partial y}. \end{aligned}
+
+In the code,
+:math:`{\tt vrel}=a_i c_w \rho_w\left|{\bf U}_w - {\bf u}^k\right|`,
+where :math:`k` denotes the subcycling step. The following equations
+illustrate the time discretization and define some of the other
+variables used in the code.
+
+.. math::
+   \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca} u^{k+1} 
+   - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{k+1}
+    =  \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx} 
+    + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex}
+     + {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t_e}u^k,
+   :label: umom
+
+.. math::
+    \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{k+1} 
+   + \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca}v^{k+1}
+    =  \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty} 
+    + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey}
+     + {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t_e}v^k,
+   :label: vmom
+
+and vrel\ :math:`\cdot`\ waterx(y) = taux(y).
+
+We solve this system of equations analytically for :math:`u^{k+1}` and
+:math:`v^{k+1}`. Define
+
+.. math::
+   \hat{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t_e}u^k 
+   :label: cevpuhat
+
+.. math::
+   \hat{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} + {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t_e}v^k,
+   :label: cevpvhat
+
+where :math:`{\bf F} = \nabla\cdot\sigma^{k+1}`. Then
+
+.. math::
+   \begin{aligned}
+   \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\right)u^{k+1} - \left(mf + {\tt vrel}\sin\theta\right) v^{k+1} &=& \hat{u}  \\
+   \left(mf + {\tt vrel}\sin\theta\right) u^{k+1} + \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\right)v^{k+1} &=& \hat{v}.\end{aligned}
+
+Solving simultaneously for :math:`u^{k+1}` and :math:`v^{k+1}`,
+
+.. math::
+   \begin{aligned}
+   u^{k+1} = {a \hat{u} + b \hat{v} \over a^2 + b^2} \\
+   v^{k+1} = {a \hat{v} - b \hat{u} \over a^2 + b^2}, \end{aligned}
+
+where
+
+.. math::
+   a = {m\over\Delta t_e} + {\tt vrel}\cos\theta \\
+   :label: cevpa
+
+.. math::
+   b = mf + {\tt vrel}\sin\theta.
+   :label: cevpb
+
+When the subcycling is finished for each (thermodynamic) time step, the
+ice–ocean stress must be constructed from `taux(y)` and the terms
+containing `vrel` on the left hand side of the equations.
+
+The Hibler-Bryan form for the ice-ocean stress :cite:`HB87`
+is included in **ice\_dyn\_shared.F90** but is currently commented out,
+pending further testing.
+
+.. _internal-stress:
+
+***************
+Internal stress
+***************
+
+For convenience we formulate the stress tensor :math:`\bf \sigma` in
+terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
+:math:`\sigma_2=\sigma_{11}-\sigma_{22}`, and introduce the
+divergence, :math:`D_D`, and the horizontal tension and shearing
+strain rates, :math:`D_T` and :math:`D_S` respectively.
+
+*Elastic-Viscous-Plastic*
+
+In the EVP model the internal stress tensor is determined from a
+regularized version of the VP constitutive law,
+
+.. math::
+   {1\over E}{\partial\sigma_1\over\partial t} + {\sigma_1\over 2\zeta} 
+     + {P\over 2\zeta} = D_D, \\
+   :label: sig1 
+
+.. math::
+   {1\over E}{\partial\sigma_2\over\partial t} + {\sigma_2\over 2\eta} = D_T,
+   :label: sig2
+
+.. math::
+   {1\over E}{\partial\sigma_{12}\over\partial t} + {\sigma_{12}\over
+     2\eta} = {1\over 2}D_S,
+   :label: sig12
+
+where
+
+.. math::
+   D_D = \dot{\epsilon}_{11} + \dot{\epsilon}_{22}, 
+
+.. math::
+   D_T = \dot{\epsilon}_{11} - \dot{\epsilon}_{22}, 
+
+.. math::
+   D_S = 2\dot{\epsilon}_{12}, 
+
+.. math::
+   \dot{\epsilon}_{ij} = {1\over 2}\left({{\partial u_i}\over{\partial x_j}} + {{\partial u_j}\over{\partial x_i}}\right), 
+
+.. math::
+   \zeta = {P\over 2\Delta}, 
+
+.. math::
+   \eta  = {P\over {2\Delta e^2}}, 
+
+.. math::
+   \Delta = \left[D_D^2 + {1\over e^2}\left(D_T^2 + D_S^2\right)\right]^{1/2},
+
+and :math:`P` is a function of the ice thickness and concentration,
+described in Section :ref:`mech-red`. The dynamics component
+employs a “replacement pressure” (see :cite:`GHA98`, for
+example), which serves to prevent residual ice motion due to spatial
+variations of :math:`P` when the rates of strain are exactly zero.
+
+Viscosities are updated during the subcycling, so that the entire
+dynamics component is subcycled within the time step, and the elastic
+parameter :math:`E` is defined in terms of a damping timescale :math:`T`
+for elastic waves, :math:`\Delta t_e < T < \Delta t`, as
+
+.. math:: 
+   E = {\zeta\over T},
+
+where :math:`T=E_\circ\Delta t` and :math:`E_\circ` (eyc) is a tunable
+parameter less than one. The stress equations :eq:`sig1`–:eq:`sig12`
+become
+
+.. math::
+   \begin{aligned}
+   {\partial\sigma_1\over\partial t} + {\sigma_1\over 2T} 
+     + {P\over 2T} &=& {P\over 2T\Delta} D_D, \\
+   {\partial\sigma_2\over\partial t} + {e^2\sigma_2\over 2T} &=& {P\over
+     2T\Delta} D_T,\\
+   {\partial\sigma_{12}\over\partial t} + {e^2\sigma_{12}\over  2T} &=&
+     {P\over 4T\Delta}D_S.\end{aligned}
+
+All coefficients on the left-hand side are constant except for
+:math:`P`, which changes only on the longer time step :math:`\Delta t`.
+This modification compensates for the decreased efficiency of including
+the viscosity terms in the subcycling. (Note that the viscosities do not
+appear explicitly.) Choices of the parameters used to define :math:`E`,
+:math:`T` and :math:`\Delta t_e` are discussed in
+Sections :ref:`revp` and :ref:`parameters`.
+
+The bilinear discretization used for the stress terms
+:math:`\partial\sigma_{ij}/\partial x_j` in the momentum equation is
+now used, which enabled the discrete equations to be derived from the
+continuous equations written in curvilinear coordinates. In this
+manner, metric terms associated with the curvature of the grid are
+incorporated into the discretization explicitly. Details pertaining to
+the spatial discretization are found in :cite:`HD02`.
+
+*Elastic-Anisotropic-Plastic*
+
+In the EAP model the internal stress tensor is related to the
+geometrical properties and orientation of underlying virtual diamond
+shaped floes (see :ref:`fig-EAP`). In contrast to the isotropic EVP
+rheology, the anisotropic plastic yield curve within the EAP rheology
+depends on the relative orientation of the diamond shaped floes (unit
+vector :math:`\mathbf r` in :ref:`fig-EAP`), with respect to the
+principal direction of the deformation rate (not shown). Local
+anisotropy of the sea ice cover is accounted for by an additional
+prognostic variable, the structure tensor :math:`\mathbf{A}` defined
+by
+
+.. math:: 
+   {\mathbf A}=\int_{\mathbb{S}}\vartheta(\mathbf r)\mathbf r\mathbf r d\mathbf r\label{structuretensor}.
+
+where :math:`\mathbb{S}` is a unit-radius circle; **A** is a unit
+trace, 2\ :math:`\times`\ 2 matrix. From now on we shall describe the
+orientational distribution of floes using the structure tensor. For
+simplicity we take the probability density function
+:math:`\vartheta(\mathbf r )` to be Gaussian,
+:math:`\vartheta(z)=\omega_{1}\exp(-\omega_{2}z^{2})`, where :math:`z`
+is the ice floe inclination with respect to the axis :math:`x_{1}` of
+preferential alignment of ice floes (see :ref:`fig-EAP`),
+:math:`\vartheta(z)` is periodic with period :math:`\pi`, and the
+positive coefficients :math:`\omega_{1}` and :math:`\omega_{2}` are
+calculated to ensure normalization of :math:`\vartheta(z)`, i.e.
+:math:`\int_{0}^{2\pi}\vartheta(z)dz=1`. The ratio of the principal
+components of :math:`\mathbf{A}`, :math:`A_{1}/A_{2}`, are derived
+from the phenomenological evolution equation for the structure tensor
+:math:`\mathbf A`,
+
+.. math:: 
+   \frac{D\mathbf{A}}{D t}=\mathbf{F}_{iso}(\mathbf{A})+\mathbf{F}_{frac}(\mathbf{A},\boldsymbol\sigma),
+   :label: evolutionA
+
+where :math:`t` is the time, and :math:`D/Dt` is the co-rotational
+time derivative accounting for advection and rigid body rotation
+(:math:`D\mathbf A/Dt = d\mathbf A/dt -\mathbf W \cdot \mathbf A -\mathbf A \cdot \mathbf W^{T}`)
+with :math:`\mathbf W` being the vorticity tensor.
+:math:`\mathbf F_{iso}` is a function that accounts for a variety of
+processes (thermal cracking, melting, freezing together of floes) that
+contribute to a more isotropic nature to the ice cover.
+:math:`\mathbf F_{frac}` is a function determining the ice floe
+re-orientation due to fracture, and explicitly depends upon sea ice
+stress (but not its magnitude). Following :cite:`WF06`,
+based on laboratory experiments by :cite:`Schulson01` we
+consider four failure mechanisms for the Arctic sea ice cover. These
+are determined by the ratio of the principal values of the sea ice
+stress :math:`\sigma_{1}` and :math:`\sigma_{2}`: (i) under biaxial
+tension, fractures form across the perpendicular principal axes and
+therefore counteract any apparent redistribution of the floe
+orientation; (ii) if only one of the principal stresses is
+compressive, failure occurs through axial splitting along the
+compression direction; (iii) under biaxial compression with a low
+confinement ratio, (:math:`\sigma_{1}/\sigma_{2}<R`), sea ice fails
+Coulombically through formation of slip lines delineating new ice
+floes oriented along the largest compressive stress; and finally (iv)
+under biaxial compression with a large confinement ratio,
+(:math:`\sigma_{1}/\sigma_{2}\ge R`), the ice is expected to fail
+along both principal directions so that the cumulative directional
+effect balances to zero.
+
+.. _fig-EAP:
+
+.. figure:: ./figures/EAP.png
+   :align: center
+   :scale: 15%
+
+   Figure 5
+
+:ref:`fig-EAP` : Geometry of interlocking diamond-shaped floes (taken from
+:cite:`WF06`). :math:`\phi` is half of the acute angle
+of the diamonds. :math:`L` is the edge length.
+:math:`\boldsymbol n_{1}`, :math:`\boldsymbol n_{2}` and
+:math:`\boldsymbol\tau_{1}`, :math:`\boldsymbol\tau_{2}` are
+respectively the normal and tangential unit vectors along the diamond edges.
+:math:`\mathbf v=L\boldsymbol\tau_{2}\cdot\dot{\boldsymbol\epsilon}`
+is the relative velocity between the two floes connected by the
+vector :math:`L \boldsymbol \tau_{2}`. :math:`\mathbf r` is the unit
+vector along the main diagonal of the diamond. Note that the diamonds
+illustrated here represent one possible realisation of all possible
+orientations. The angle :math:`z` represents the rotation of the
+diamonds’ main axis relative to their preferential orientation along
+the axis :math:`x_1`.
+
+The new anisotropic rheology requires solving the evolution
+Equation :eq:`evolutionA` for the structure tensor in addition to the momentum
+and stress equations. The evolution equation for :math:`\mathbf{A}` is
+solved within the EVP subcycling loop, and consistently with the
+momentum and stress evolution equations, we neglect the advection term
+for the structure tensor. Equation :eq:`evolutionA` then reduces to the system
+of two equations:
+
+.. math::
+   \begin{aligned}
+   \frac{\partial A_{11}}{\partial t}&=&-k_{t}\left(A_{11}-\frac{1}{2}\right)+M_{11}  \mbox{,} \\ 
+   \frac{\partial A_{12}}{\partial t}&=&-k_{t} A_{12}+M_{12}  \mbox{,}\end{aligned}
+
+where the first terms on the right hand side correspond to the
+isotropic contribution, :math:`F_{iso}`, and :math:`M_{11}` and
+:math:`M_{12}` are the components of the term :math:`F_{frac}` in
+Equation :eq:`evolutionA` that are given in :cite:`WF06` and
+:cite:`TFW13`. These evolution equations are
+discretized semi-implicitly in time. The degree of anisotropy is
+measured by the largest eigenvalue (:math:`A_{1}`) of this tensor
+(:math:`A_{2}=1-A_{1}`). :math:`A_{1}=1` corresponds to perfectly
+aligned floes and :math:`A_{1}=0.5` to a uniform distribution of floe
+orientation. Note that while we have specified the aspect ratio of the
+diamond floes, through prescribing :math:`\phi`, we make no assumption
+about the size of the diamonds so that formally the theory is scale
+invariant.
+
+As described in greater detail in :cite:`WF06`, the
+internal ice stress for a single orientation of the ice floes can be
+calculated explicitly and decomposed, for an average ice thickness
+:math:`h`, into its ridging (r) and sliding (s) contributions
+
+.. math::
+   \boldsymbol \sigma^{b}(\mathbf r,h)=P_{r}(h) \boldsymbol \sigma_{r}^{b}(\mathbf r)+P_{s}(h) \boldsymbol \sigma_{s}^{b}(\mathbf r),
+   :label: stress1
+
+where :math:`P_{r}` and :math:`P_{s}` are the ridging and sliding
+strengths and the ridging and sliding stresses are functions of the
+angle :math:`\theta= \arctan(\dot\epsilon_{II}/\dot\epsilon_{I})`, the
+angle :math:`y` between the major principal axis of the strain rate
+tensor (not shown) and the structure tensor (:math:`x_1` axis in
+:ref:`fig-EAP`, and the angle :math:`z` defined in :ref:`fig-EAP`. In
+the stress expressions above the underlying floes are assumed parallel,
+but in a continuum-scale sea ice region the floes can possess different
+orientations in different places and we take the mean sea ice stress
+over a collection of floes to be given by the average
+
+.. math:: 
+   \boldsymbol\sigma^{EAP}(h)=P_{r}(h)\int_{\mathbb{S}}\vartheta(\mathbf r)\left[\boldsymbol\sigma_{r}^{b}(\mathbf r)+ k \boldsymbol\sigma_{s}^{b}(\mathbf r)\right]d\mathbf r
+   :label: stressaverage
+
+where we have introduced the friction parameter :math:`k=P_{s}/P_{r}`
+and where we identify the ridging ice strength :math:`P_{r}(h)` with the
+strength :math:`P` described in section 1 and used within the EVP
+framework.
+
+As is the case for the EVP rheology, elasticity is included in the EAP
+description not to describe any physical effect, but to make use of the
+efficient, explicit numerical algorithm used to solve the full sea ice
+momentum balance. We use the analogous EAP stress equations,
+
+.. math::
+   \frac{\partial \sigma_{1}}{\partial t}+\frac{\sigma_1}{2T} = \frac{\sigma^{EAP}_{1}}{2T}  \mbox{,}  
+   :label: EAPsigma1
+
+.. math::
+   \frac{\partial \sigma_{2}}{\partial t}+\frac{\sigma_2}{2T} = \frac{\sigma^{EAP}_{2}}{2T} \mbox{,}  
+   :label: EAPsigma2
+
+.. math::
+   \frac{\partial \sigma_{12}}{\partial t}+\frac{\sigma_{12}}{2T} = \frac{\sigma^{EAP}_{12}}{2T} \mbox{,}
+   :label: EAPsigma12
+
+where the anisotropic stress :math:`\boldsymbol\sigma^{EAP}` is defined
+in a look-up table for the current values of strain rate and structure
+tensor. The look-up table is constructed by computing the stress
+(normalized by the strength) from Equations :eq:`EAPsigma1`–:eq:`EAPsigma12`
+for discrete values of the largest eigenvalue of the structure tensor,
+:math:`\frac{1}{2}\le A_{1}\le 1`, the angle :math:`0\le\theta\le2\pi`,
+and the angle :math:`-\pi/2\le y\le\pi/2` between the major principal
+axis of the strain rate tensor and the structure tensor
+:cite:`TFW13`. The updated stress, after the elastic
+relaxation, is then passed to the momentum equation and the sea ice
+velocities are updated in the usual manner within the subcycling loop of
+the EVP rheology. The structure tensor evolution equations are solved
+implicitly at the same frequency, :math:`\Delta t_{e}`, as the ice
+velocities and internal stresses. Finally, to be coherent with our new
+rheology we compute the area loss rate due to ridging as
+:math:`\vert\dot{\boldsymbol\epsilon}\vert\alpha_{r}(\theta)`, with
+:math:`\alpha_r(\theta)` and :math:`\alpha_s(\theta)` given by
+:cite:`WF04`,
+
+.. math::
+   \begin{aligned}
+   \alpha_{r}(\theta)=\frac{\sigma^{r}_{ij}\dot\epsilon_{ij}}{P_{r} \vert\dot{\boldsymbol\epsilon}\vert } , \qquad \alpha_{s}(\theta)=\frac{\sigma^{s}_{ij}\dot\epsilon_{ij}}{P_{s} \vert\dot{\boldsymbol\epsilon}\vert }.\label{alphas}\end{aligned}
+
+Both ridging rate and sea ice strength are computed in the outer loop
+of the dynamics.
+
+.. _revp:
+
+****************
+Revised approach
+****************
+
+A modification of the standard elastic-viscous-plastic (EVP) approach
+for sea ice dynamics has been proposed by :cite:`BFLM13`,
+that generalizes the EVP elastic modulus :math:`E` and the time
+stepping approach for both momentum and stress to use an
+under-relaxation technique. In general terms, the momentum and stress
+equations become
+
+.. math::
+   \begin{aligned}
+   {\bf u}^{k+1} &=& {\bf u}^k + \left(\breve{{\bf u}}^k - {\bf u}^{k+1}\right){1\over\beta} \\
+   \sigma^{k+1} &=& \sigma^k + \left(\breve{\sigma}^k - \sigma^{k+1}\right){1\over\alpha} \end{aligned}
+
+where :math:`\breve{{\bf u}}` and :math:`\breve{\sigma}` represent
+the converged VP solution and :math:`\alpha, \beta < 1`.
+
+*Momentum*
+
+The momentum equations become
+
+.. math::
+   \begin{aligned}
+   \beta{m\over\Delta t} \left(u^{k+1}-u^k\right) &=& \overline{u} + {\tt vrel}\left(-u^{k+1}\cos\theta + v^{k+1}\sin\theta\right) + mfv^{k+1} - {m\over \Delta t} u^{k+1} \\
+   \beta{m\over\Delta t} \left(v^{k+1}-v^k\right) &=& \overline{v} - {\tt vrel}\left(u^{k+1}\sin\theta + v^{k+1}\cos\theta\right) - mfu^{k+1}  - {m\over \Delta t} v^{k+1} \end{aligned}
+
+where
+
+.. math::
+   \overline{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t}u^\circ
+   :label: revpuhat
+
+.. math::
+   \overline{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} +  {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t}v^\circ,
+   :label: revpvhat
+
+:math:`{\bf u}^\circ` is the initial value of velocity at the
+beginning of the subcycling (:math:`k=0`), and we use
+:math:`{\bf u}^{k+1}` for the ice–ocean stress and Coriolis terms.
+Equations :eq:`revpuhat` and :eq:`revpvhat` differ from
+Equations :eq:`cevpuhat` and :eq:`cevpvhat` only in the last term.
+
+Solving simultaneously for :math:`{\bf u}^{k+1}` as before, we have
+
+.. math::
+   \begin{aligned}
+   u^{k+1} = {\tilde{a} \tilde{u} + b \tilde{v} \over \tilde{a}^2 + b^2} \\
+   v^{k+1} = {\tilde{a} \tilde{v} - b \tilde{u} \over \tilde{a}^2 + b^2}, \end{aligned}
+
+where
+
+.. math::
+   \tilde{a} = \left(1+\beta\right){m\over\Delta t} + {\tt vrel}\cos\theta \\
+
+.. math::
+   \tilde{\bf u} = \overline{\bf u} + \beta  {m\over\Delta t}{\bf u}^k,
+   :label: tildeu
+
+and :math:`b` is the same as in Equation :eq:`cevpb`.
+
+*Stress*
+
+In CICE’s classic approach, the update to :math:`\sigma_1` at subcycle
+step :math:`k+1` is
+
+.. math::
+   \sigma_1^{k+1} 
+   = \left(\sigma_1^{k} + {P\over\Delta}{\Delta t_e\over 2T} \left(\dot{\epsilon} - \Delta\right)\right) * \left(1 + {\Delta t_e\over 2T}\right)
+   :label: sig1time
+
+If we set
+
+.. math:: 
+   \alpha_1 = {2T\over \Delta t_e},
+
+then Equation :eq:`sig1time` becomes
+
+.. math:: 
+   \sigma_1^{k+1}\left(1+\alpha_1\right) = \alpha_1\sigma_1^k + {P\over\Delta} \left(\dot{\epsilon} - \Delta\right).
+
+This is equivalent to Eq. (23) in :cite:`BFLM13`, but
+using :math:`\sigma` at the current subcycle :math:`k+1` in the last
+term on the right-hand side. Likewise, setting
+
+.. math:: 
+   \alpha_2 = {2T\over e^2\Delta t_e} = {\alpha_1\over e^2}
+
+produces equations equivalent to Eq. (23) in
+:cite:`BFLM13` for :math:`\sigma_2` and
+:math:`\sigma_{12}`. Therefore the only change needed in the stress
+code is to use :math:`\alpha_1` and :math:`\alpha_2` instead of
+:math:`2T / \Delta t_e` and :math:`2T /e^2 \Delta t_e`.
+
+However, :cite:`BFLM13` introduce another change to the EVP
+stress equations by altering the form of Young’s modulus in the elastic
+term: the coefficient of :math:`\partial\sigma_1/\partial t` is
+:math:`1/E`, but it is :math:`e^2/E` in the :math:`\sigma_2` and
+:math:`\sigma_{12}` equations. This change does not affect the VP
+equations to which the EVP equations should converge, but it does affect
+the transient path taken during the subcycling. Since EVP subcycling is
+finite, the numerical solutions obtained using this method differ from
+the original EVP code.
+
+To implement this second change, we need define only
+:math:`\alpha_1 = {2T/\Delta t_e}` as above and incorporate the factor
+of :math:`e^2` from :math:`\alpha_2` into the equations for
+:math:`\sigma_2` and :math:`\sigma_{12}`:
+
+.. math::
+   \begin{aligned}
+   \sigma_1^{k+1}\left(1+\alpha_1\right) &=&\sigma_1^k +  {\alpha_1}{P\over\Delta} D_D, \\
+   \sigma_2^{k+1}\left(1+\alpha_1\right) &=&\sigma_2^k + {\alpha_1\over e^2}{P\over\Delta}  D_T, \\
+   \sigma_{12}^{k+1}\left(1+\alpha_1\right) &=&\sigma_{12}^k + {\alpha_1\over 2e^2}{P\over\Delta}  D_S.\end{aligned}
+
+To minimize code changes and unify the two approaches, we define and
+apply :math:`1/\alpha_1` and :math:`\beta` in the classic EVP code, and
+modify the elastic stress term. These under-relaxation parameters
+control the rate at which the iteration converges. Thus for classic EVP
+we set
+
+.. math::
+   \begin{aligned}
+   {\tt arlx1i} &=& {1\over\alpha_1} = {\Delta t_e\over 2T} \\
+   {\tt brlx} &=& \beta = {\Delta t\over\Delta t_e}. \end{aligned}
+
+Then
+
+.. math::
+   \begin{aligned}
+   {\tt denom1} &=& {1\over{1+{\tt arlx1i}}} = {1\over{1+1/\alpha_1}} = {1\over{1+\Delta t_e/ 2T}} \\
+   {\tt c1} &=& {P\over\Delta}\,{\tt arlx1i} = {P\over\Delta}{\Delta t_e\over 2T}  \\
+   {\tt c0} &=& {{\tt c1}\over e^2} = {P\over\Delta}{\Delta t_e\over 2Te^2}  .\end{aligned}
+
+The stress equations for `stressp` (:math:`\sigma_1`) are unchanged; the
+modified equations for `stressm` (:math:`\sigma_2`) and `stress12`
+(:math:`\sigma_{12}`) take the form
+
+.. math::
+   \begin{aligned}
+   {\tt stressm} &=& {\tt stressm + c0}\,D_T \,{\tt denom1}\\
+   {\tt stress12} &=& {\tt stress12 + 0.5\,c0}\,D_S \,{\tt denom1}.\end{aligned}
+
+For classic EVP,
+
+.. math:: 
+   {\tt cca} = a = {\tt brlx}\,{m\over\Delta t} + {\tt vrel}\cos\theta ={m\over\Delta t_e} + {\tt vrel}\cos\theta.
+
+For revised EVP, arlx1i and brlx are defined separately from
+:math:`\Delta t`, :math:`\Delta t_e`, :math:`T` and :math:`e`, and
+
+.. math:: 
+   {\tt cca} = \tilde{a} = \left(1+ {\tt brlx}\right){m\over\Delta t} + {\tt vrel}\cos\theta= \left(1+\beta\right){m\over\Delta t} + {\tt vrel}\cos\theta.
+
+:math:`\tilde{\bf u}` must also be defined for revised EVP as in
+Equation :eq:`tildeu`. The extra terms in :math:`\tilde{a}` and
+:math:`\tilde{\bf u}` are multiplied by a flag (revp) that equals 1 for
+revised EVP and 0 for classic EVP. Revised EVP is activated by setting
+the namelist parameter `revised\_evp` = true. Note that in the current
+implementation, only the modified version of the elastic term is
+available for either the classic (`revised\_evp` = false) or the revised
+EVP method. A final difference is that the revised approach initializes
+the stresses to 0 at the beginning of each time step, while the classic
+EVP approach uses the previous time step value.
+
+
+~~~~~~~~~~~~~~~~~~~~
+Thickness changes
+~~~~~~~~~~~~~~~~~~~~
+
 .. _itd-trans:
 
+****************************
 Transport in thickness space
-----------------------------
+****************************
 
 Next we solve the equation for ice transport in thickness space due to
 thermodynamic growth and melt,
@@ -1576,8 +2748,9 @@ and tracer contents to the ocean.
 
 .. _mech-red:
 
+*************************
 Mechanical redistribution
--------------------------
+*************************
 
 The last term on the right-hand side of Equation :eq:`transport-g`
 is :math:`\psi`, which describes the redistribution
@@ -1866,603 +3039,11 @@ given by Equation :eq:`hib-strength`. However, use of Equation :eq:`hib-strength
 less likely to allow numerical instability at a given resolution and
 time step. See :cite:`LHMJ07` for more details.
 
-.. _dynam:
-
-Dynamics
---------
-
-There are now different rheologies available in the CICE code. The
-elastic-viscous-plastic (EVP) model represents a modification of the
-standard viscous-plastic (VP) model for sea ice dynamics
-:cite:`Hibler79`. The elastic-anisotropic-plastic (EAP) model,
-on the other hand, explicitly accounts for the observed sub-continuum
-anisotropy of the sea ice cover :cite:`WF06,WS09`. If
-`kdyn` = 1 in the namelist then the EVP rheology is used (module
-**ice\_dyn\_evp.F90**), while `kdyn` = 2 is associated with the EAP
-rheology (**ice\_dyn\_eap.F90**). At times scales associated with the
-wind forcing, the EVP model reduces to the VP model while the EAP model
-reduces to the anisotropic rheology described in detail in
-:cite:`WF06,TFW13`. At shorter time scales the
-adjustment process takes place in both models by a numerically more
-efficient elastic wave mechanism. While retaining the essential physics,
-this elastic wave modification leads to a fully explicit numerical
-scheme which greatly improves the model’s computational efficiency.
-
-The EVP sea ice dynamics model is thoroughly documented in
-:cite:`HD97`, :cite:`Hunke01`,
-:cite:`HD02` and :cite:`HD03` and the EAP
-dynamics in :cite:`TFW13`. Simulation results and
-performance of the EVP and EAP models have been compared with the VP
-model and with each other in realistic simulations of the Arctic
-respectively in :cite:`HZ99` and
-:cite:`TFW13`. Here we summarize the equations and
-direct the reader to the above references for details. The numerical
-implementation in this code release is that of :cite:`HD02`
-and :cite:`HD03`, with revisions to the numerical solver as
-in :cite:`BFLM13`. The implementation of the EAP sea ice
-dynamics into CICE is described in detail in
-:cite:`TFW13`.
-
-.. _momentum:
-
-Momentum
-~~~~~~~~
-
-The force balance per unit area in the ice pack is given by a
-two-dimensional momentum equation :cite:`Hibler79`, obtained
-by integrating the 3D equation through the thickness of the ice in the
-vertical direction:
-
-.. math::
-   m{\partial {\bf u}\over\partial t} = \nabla\cdot{\bf \sigma}
-   + \vec{\tau}_a+\vec{\tau}_w - \hat{k}\times mf{\bf u} - mg\nabla H_\circ,
-   :label: vpmom
-
-where :math:`m` is the combined mass of ice and snow per unit area and
-:math:`\vec{\tau}_a` and :math:`\vec{\tau}_w` are wind and ocean
-stresses, respectively. The strength of the ice is represented by the
-internal stress tensor :math:`\sigma_{ij}`, and the other two terms on
-the right hand side are stresses due to Coriolis effects and the sea
-surface slope. The parameterization for the wind and ice–ocean stress
-terms must contain the ice concentration as a multiplicative factor to
-be consistent with the formal theory of free drift in low ice
-concentration regions. A careful explanation of the issue and its
-continuum solution is provided in :cite:`HD03` and
-:cite:CGHM04`.
-
-The momentum equation is discretized in time as follows, for the classic
-EVP approach. First, for clarity, the two components of Equation :eq:`vpmom` are
-
-.. math::
-   \begin{aligned}
-   m{\partial u\over\partial t} &=& {\partial\sigma_{1j}\over\partial x_j} + \tau_{ax} + 
-     a_i c_w \rho_w
-     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\cos\theta - \left(V_w-v\right)\sin\theta\right]
-     +mfv - mg{\partial H_\circ\over\partial x}, \\
-   m{\partial v\over\partial t} &=& {\partial\sigma_{2j}\over\partial x_j} + \tau_{ay} + 
-     a_i c_w \rho_w
-     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\sin\theta - \left(V_w-v\right)\cos\theta\right]
-     -mfu - mg{\partial H_\circ\over\partial y}. \end{aligned}
-
-In the code,
-:math:`{\tt vrel}=a_i c_w \rho_w\left|{\bf U}_w - {\bf u}^k\right|`,
-where :math:`k` denotes the subcycling step. The following equations
-illustrate the time discretization and define some of the other
-variables used in the code.
-
-.. math::
-   \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca} u^{k+1} 
-   - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{k+1}
-    =  \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx} 
-    + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex}
-     + {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t_e}u^k,
-   :label: umom
-
-.. math::
-    \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{k+1} 
-   + \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca}v^{k+1}
-    =  \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty} 
-    + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey}
-     + {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t_e}v^k,
-   :label: vmom
-
-and vrel\ :math:`\cdot`\ waterx(y) = taux(y).
-
-We solve this system of equations analytically for :math:`u^{k+1}` and
-:math:`v^{k+1}`. Define
-
-.. math::
-   \hat{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t_e}u^k 
-   :label: cevpuhat
-
-.. math::
-   \hat{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} + {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t_e}v^k,
-   :label: cevpvhat
-
-where :math:`{\bf F} = \nabla\cdot\sigma^{k+1}`. Then
-
-.. math::
-   \begin{aligned}
-   \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\right)u^{k+1} - \left(mf + {\tt vrel}\sin\theta\right) v^{k+1} &=& \hat{u}  \\
-   \left(mf + {\tt vrel}\sin\theta\right) u^{k+1} + \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\right)v^{k+1} &=& \hat{v}.\end{aligned}
-
-Solving simultaneously for :math:`u^{k+1}` and :math:`v^{k+1}`,
-
-.. math::
-   \begin{aligned}
-   u^{k+1} = {a \hat{u} + b \hat{v} \over a^2 + b^2} \\
-   v^{k+1} = {a \hat{v} - b \hat{u} \over a^2 + b^2}, \end{aligned}
-
-where
-
-.. math::
-   a = {m\over\Delta t_e} + {\tt vrel}\cos\theta \\
-   :label: cevpa
-
-.. math::
-   b = mf + {\tt vrel}\sin\theta.
-   :label: cevpb
-
-When the subcycling is finished for each (thermodynamic) time step, the
-ice–ocean stress must be constructed from `taux(y)` and the terms
-containing `vrel` on the left hand side of the equations.
-
-The Hibler-Bryan form for the ice-ocean stress :cite:`HB87`
-is included in **ice\_dyn\_shared.F90** but is currently commented out,
-pending further testing.
-
-.. _internal-stress:
-
-Internal stress
-~~~~~~~~~~~~~~~
-
-For convenience we formulate the stress tensor :math:`\bf \sigma` in
-terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
-:math:`\sigma_2=\sigma_{11}-\sigma_{22}`, and introduce the
-divergence, :math:`D_D`, and the horizontal tension and shearing
-strain rates, :math:`D_T` and :math:`D_S` respectively.
-
-*Elastic-Viscous-Plastic*
-
-In the EVP model the internal stress tensor is determined from a
-regularized version of the VP constitutive law,
-
-.. math::
-   {1\over E}{\partial\sigma_1\over\partial t} + {\sigma_1\over 2\zeta} 
-     + {P\over 2\zeta} = D_D, \\
-   :label: sig1 
-
-.. math::
-   {1\over E}{\partial\sigma_2\over\partial t} + {\sigma_2\over 2\eta} = D_T,
-   :label: sig2
-
-.. math::
-   {1\over E}{\partial\sigma_{12}\over\partial t} + {\sigma_{12}\over
-     2\eta} = {1\over 2}D_S,
-   :label: sig12
-
-where
-
-.. math::
-   D_D = \dot{\epsilon}_{11} + \dot{\epsilon}_{22}, 
-
-.. math::
-   D_T = \dot{\epsilon}_{11} - \dot{\epsilon}_{22}, 
-
-.. math::
-   D_S = 2\dot{\epsilon}_{12}, 
-
-.. math::
-   \dot{\epsilon}_{ij} = {1\over 2}\left({{\partial u_i}\over{\partial x_j}} + {{\partial u_j}\over{\partial x_i}}\right), 
-
-.. math::
-   \zeta = {P\over 2\Delta}, 
-
-.. math::
-   \eta  = {P\over {2\Delta e^2}}, 
-
-.. math::
-   \Delta = \left[D_D^2 + {1\over e^2}\left(D_T^2 + D_S^2\right)\right]^{1/2},
-
-and :math:`P` is a function of the ice thickness and concentration,
-described in Section :ref:`mech-red`. The dynamics component
-employs a “replacement pressure” (see :cite:`GHA98`, for
-example), which serves to prevent residual ice motion due to spatial
-variations of :math:`P` when the rates of strain are exactly zero.
-
-Viscosities are updated during the subcycling, so that the entire
-dynamics component is subcycled within the time step, and the elastic
-parameter :math:`E` is defined in terms of a damping timescale :math:`T`
-for elastic waves, :math:`\Delta t_e < T < \Delta t`, as
-
-.. math:: 
-   E = {\zeta\over T},
-
-where :math:`T=E_\circ\Delta t` and :math:`E_\circ` (eyc) is a tunable
-parameter less than one. The stress equations :eq:`sig1`–:eq:`sig12`
-become
-
-.. math::
-   \begin{aligned}
-   {\partial\sigma_1\over\partial t} + {\sigma_1\over 2T} 
-     + {P\over 2T} &=& {P\over 2T\Delta} D_D, \\
-   {\partial\sigma_2\over\partial t} + {e^2\sigma_2\over 2T} &=& {P\over
-     2T\Delta} D_T,\\
-   {\partial\sigma_{12}\over\partial t} + {e^2\sigma_{12}\over  2T} &=&
-     {P\over 4T\Delta}D_S.\end{aligned}
-
-All coefficients on the left-hand side are constant except for
-:math:`P`, which changes only on the longer time step :math:`\Delta t`.
-This modification compensates for the decreased efficiency of including
-the viscosity terms in the subcycling. (Note that the viscosities do not
-appear explicitly.) Choices of the parameters used to define :math:`E`,
-:math:`T` and :math:`\Delta t_e` are discussed in
-Sections :ref:`revp` and :ref:`parameters`.
-
-The bilinear discretization used for the stress terms
-:math:`\partial\sigma_{ij}/\partial x_j` in the momentum equation is
-now used, which enabled the discrete equations to be derived from the
-continuous equations written in curvilinear coordinates. In this
-manner, metric terms associated with the curvature of the grid are
-incorporated into the discretization explicitly. Details pertaining to
-the spatial discretization are found in :cite:`HD02`.
-
-*Elastic-Anisotropic-Plastic*
-
-In the EAP model the internal stress tensor is related to the
-geometrical properties and orientation of underlying virtual diamond
-shaped floes (see :ref:`fig-EAP`). In contrast to the isotropic EVP
-rheology, the anisotropic plastic yield curve within the EAP rheology
-depends on the relative orientation of the diamond shaped floes (unit
-vector :math:`\mathbf r` in :ref:`fig-EAP`), with respect to the
-principal direction of the deformation rate (not shown). Local
-anisotropy of the sea ice cover is accounted for by an additional
-prognostic variable, the structure tensor :math:`\mathbf{A}` defined
-by
-
-.. math:: 
-   {\mathbf A}=\int_{\mathbb{S}}\vartheta(\mathbf r)\mathbf r\mathbf r d\mathbf r\label{structuretensor}.
-
-where :math:`\mathbb{S}` is a unit-radius circle; **A** is a unit
-trace, 2\ :math:`\times`\ 2 matrix. From now on we shall describe the
-orientational distribution of floes using the structure tensor. For
-simplicity we take the probability density function
-:math:`\vartheta(\mathbf r )` to be Gaussian,
-:math:`\vartheta(z)=\omega_{1}\exp(-\omega_{2}z^{2})`, where :math:`z`
-is the ice floe inclination with respect to the axis :math:`x_{1}` of
-preferential alignment of ice floes (see :ref:`fig-EAP`),
-:math:`\vartheta(z)` is periodic with period :math:`\pi`, and the
-positive coefficients :math:`\omega_{1}` and :math:`\omega_{2}` are
-calculated to ensure normalization of :math:`\vartheta(z)`, i.e.
-:math:`\int_{0}^{2\pi}\vartheta(z)dz=1`. The ratio of the principal
-components of :math:`\mathbf{A}`, :math:`A_{1}/A_{2}`, are derived
-from the phenomenological evolution equation for the structure tensor
-:math:`\mathbf A`,
-
-.. math:: 
-   \frac{D\mathbf{A}}{D t}=\mathbf{F}_{iso}(\mathbf{A})+\mathbf{F}_{frac}(\mathbf{A},\boldsymbol\sigma),
-   :label: evolutionA
-
-where :math:`t` is the time, and :math:`D/Dt` is the co-rotational
-time derivative accounting for advection and rigid body rotation
-(:math:`D\mathbf A/Dt = d\mathbf A/dt -\mathbf W \cdot \mathbf A -\mathbf A \cdot \mathbf W^{T}`)
-with :math:`\mathbf W` being the vorticity tensor.
-:math:`\mathbf F_{iso}` is a function that accounts for a variety of
-processes (thermal cracking, melting, freezing together of floes) that
-contribute to a more isotropic nature to the ice cover.
-:math:`\mathbf F_{frac}` is a function determining the ice floe
-re-orientation due to fracture, and explicitly depends upon sea ice
-stress (but not its magnitude). Following :cite:`WF06`,
-based on laboratory experiments by :cite:`Schulson01` we
-consider four failure mechanisms for the Arctic sea ice cover. These
-are determined by the ratio of the principal values of the sea ice
-stress :math:`\sigma_{1}` and :math:`\sigma_{2}`: (i) under biaxial
-tension, fractures form across the perpendicular principal axes and
-therefore counteract any apparent redistribution of the floe
-orientation; (ii) if only one of the principal stresses is
-compressive, failure occurs through axial splitting along the
-compression direction; (iii) under biaxial compression with a low
-confinement ratio, (:math:`\sigma_{1}/\sigma_{2}<R`), sea ice fails
-Coulombically through formation of slip lines delineating new ice
-floes oriented along the largest compressive stress; and finally (iv)
-under biaxial compression with a large confinement ratio,
-(:math:`\sigma_{1}/\sigma_{2}\ge R`), the ice is expected to fail
-along both principal directions so that the cumulative directional
-effect balances to zero.
-
-.. _fig-EAP:
-
-.. figure:: ./figures/EAP.png
-   :align: center
-   :scale: 15%
-
-   Figure 5
-
-:ref:`fig-EAP` : Geometry of interlocking diamond-shaped floes (taken from
-:cite:`WF06`). :math:`\phi` is half of the acute angle
-of the diamonds. :math:`L` is the edge length.
-:math:`\boldsymbol n_{1}`, :math:`\boldsymbol n_{2}` and
-:math:`\boldsymbol\tau_{1}`, :math:`\boldsymbol\tau_{2}` are
-respectively the normal and tangential unit vectors along the diamond edges.
-:math:`\mathbf v=L\boldsymbol\tau_{2}\cdot\dot{\boldsymbol\epsilon}`
-is the relative velocity between the two floes connected by the
-vector :math:`L \boldsymbol \tau_{2}`. :math:`\mathbf r` is the unit
-vector along the main diagonal of the diamond. Note that the diamonds
-illustrated here represent one possible realisation of all possible
-orientations. The angle :math:`z` represents the rotation of the
-diamonds’ main axis relative to their preferential orientation along
-the axis :math:`x_1`.
-
-The new anisotropic rheology requires solving the evolution
-Equation :eq:`evolutionA` for the structure tensor in addition to the momentum
-and stress equations. The evolution equation for :math:`\mathbf{A}` is
-solved within the EVP subcycling loop, and consistently with the
-momentum and stress evolution equations, we neglect the advection term
-for the structure tensor. Equation :eq:`evolutionA` then reduces to the system
-of two equations:
-
-.. math::
-   \begin{aligned}
-   \frac{\partial A_{11}}{\partial t}&=&-k_{t}\left(A_{11}-\frac{1}{2}\right)+M_{11}  \mbox{,} \\ 
-   \frac{\partial A_{12}}{\partial t}&=&-k_{t} A_{12}+M_{12}  \mbox{,}\end{aligned}
-
-where the first terms on the right hand side correspond to the
-isotropic contribution, :math:`F_{iso}`, and :math:`M_{11}` and
-:math:`M_{12}` are the components of the term :math:`F_{frac}` in
-Equation :eq:`evolutionA` that are given in :cite:`WF06` and
-:cite:`TFW13`. These evolution equations are
-discretized semi-implicitly in time. The degree of anisotropy is
-measured by the largest eigenvalue (:math:`A_{1}`) of this tensor
-(:math:`A_{2}=1-A_{1}`). :math:`A_{1}=1` corresponds to perfectly
-aligned floes and :math:`A_{1}=0.5` to a uniform distribution of floe
-orientation. Note that while we have specified the aspect ratio of the
-diamond floes, through prescribing :math:`\phi`, we make no assumption
-about the size of the diamonds so that formally the theory is scale
-invariant.
-
-As described in greater detail in :cite:`WF06`, the
-internal ice stress for a single orientation of the ice floes can be
-calculated explicitly and decomposed, for an average ice thickness
-:math:`h`, into its ridging (r) and sliding (s) contributions
-
-.. math::
-   \boldsymbol \sigma^{b}(\mathbf r,h)=P_{r}(h) \boldsymbol \sigma_{r}^{b}(\mathbf r)+P_{s}(h) \boldsymbol \sigma_{s}^{b}(\mathbf r),
-   :label: stress1
-
-where :math:`P_{r}` and :math:`P_{s}` are the ridging and sliding
-strengths and the ridging and sliding stresses are functions of the
-angle :math:`\theta= \arctan(\dot\epsilon_{II}/\dot\epsilon_{I})`, the
-angle :math:`y` between the major principal axis of the strain rate
-tensor (not shown) and the structure tensor (:math:`x_1` axis in
-:ref:`fig-EAP`, and the angle :math:`z` defined in :ref:`fig-EAP`. In
-the stress expressions above the underlying floes are assumed parallel,
-but in a continuum-scale sea ice region the floes can possess different
-orientations in different places and we take the mean sea ice stress
-over a collection of floes to be given by the average
-
-.. math:: 
-   \boldsymbol\sigma^{EAP}(h)=P_{r}(h)\int_{\mathbb{S}}\vartheta(\mathbf r)\left[\boldsymbol\sigma_{r}^{b}(\mathbf r)+ k \boldsymbol\sigma_{s}^{b}(\mathbf r)\right]d\mathbf r
-   :label: stressaverage
-
-where we have introduced the friction parameter :math:`k=P_{s}/P_{r}`
-and where we identify the ridging ice strength :math:`P_{r}(h)` with the
-strength :math:`P` described in section 1 and used within the EVP
-framework.
-
-As is the case for the EVP rheology, elasticity is included in the EAP
-description not to describe any physical effect, but to make use of the
-efficient, explicit numerical algorithm used to solve the full sea ice
-momentum balance. We use the analogous EAP stress equations,
-
-.. math::
-   \frac{\partial \sigma_{1}}{\partial t}+\frac{\sigma_1}{2T} = \frac{\sigma^{EAP}_{1}}{2T}  \mbox{,}  
-   :label: EAPsigma1
-
-.. math::
-   \frac{\partial \sigma_{2}}{\partial t}+\frac{\sigma_2}{2T} = \frac{\sigma^{EAP}_{2}}{2T} \mbox{,}  
-   :label: EAPsigma2
-
-.. math::
-   \frac{\partial \sigma_{12}}{\partial t}+\frac{\sigma_{12}}{2T} = \frac{\sigma^{EAP}_{12}}{2T} \mbox{,}
-   :label: EAPsigma12
-
-where the anisotropic stress :math:`\boldsymbol\sigma^{EAP}` is defined
-in a look-up table for the current values of strain rate and structure
-tensor. The look-up table is constructed by computing the stress
-(normalized by the strength) from Equations :eq:`EAPsigma1`–:eq:`EAPsigma12`
-for discrete values of the largest eigenvalue of the structure tensor,
-:math:`\frac{1}{2}\le A_{1}\le 1`, the angle :math:`0\le\theta\le2\pi`,
-and the angle :math:`-\pi/2\le y\le\pi/2` between the major principal
-axis of the strain rate tensor and the structure tensor
-:cite:`TFW13`. The updated stress, after the elastic
-relaxation, is then passed to the momentum equation and the sea ice
-velocities are updated in the usual manner within the subcycling loop of
-the EVP rheology. The structure tensor evolution equations are solved
-implicitly at the same frequency, :math:`\Delta t_{e}`, as the ice
-velocities and internal stresses. Finally, to be coherent with our new
-rheology we compute the area loss rate due to ridging as
-:math:`\vert\dot{\boldsymbol\epsilon}\vert\alpha_{r}(\theta)`, with
-:math:`\alpha_r(\theta)` and :math:`\alpha_s(\theta)` given by
-:cite:`WF04`,
-
-.. math::
-   \begin{aligned}
-   \alpha_{r}(\theta)=\frac{\sigma^{r}_{ij}\dot\epsilon_{ij}}{P_{r} \vert\dot{\boldsymbol\epsilon}\vert } , \qquad \alpha_{s}(\theta)=\frac{\sigma^{s}_{ij}\dot\epsilon_{ij}}{P_{s} \vert\dot{\boldsymbol\epsilon}\vert }.\label{alphas}\end{aligned}
-
-Both ridging rate and sea ice strength are computed in the outer loop
-of the dynamics.
-
-.. _revp:
-
-Revised approach
-~~~~~~~~~~~~~~~~
-
-A modification of the standard elastic-viscous-plastic (EVP) approach
-for sea ice dynamics has been proposed by :cite:`BFLM13`,
-that generalizes the EVP elastic modulus :math:`E` and the time
-stepping approach for both momentum and stress to use an
-under-relaxation technique. In general terms, the momentum and stress
-equations become
-
-.. math::
-   \begin{aligned}
-   {\bf u}^{k+1} &=& {\bf u}^k + \left(\breve{{\bf u}}^k - {\bf u}^{k+1}\right){1\over\beta} \\
-   \sigma^{k+1} &=& \sigma^k + \left(\breve{\sigma}^k - \sigma^{k+1}\right){1\over\alpha} \end{aligned}
-
-where :math:`\breve{{\bf u}}` and :math:`\breve{\sigma}` represent
-the converged VP solution and :math:`\alpha, \beta < 1`.
-
-*Momentum*
-
-The momentum equations become
-
-.. math::
-   \begin{aligned}
-   \beta{m\over\Delta t} \left(u^{k+1}-u^k\right) &=& \overline{u} + {\tt vrel}\left(-u^{k+1}\cos\theta + v^{k+1}\sin\theta\right) + mfv^{k+1} - {m\over \Delta t} u^{k+1} \\
-   \beta{m\over\Delta t} \left(v^{k+1}-v^k\right) &=& \overline{v} - {\tt vrel}\left(u^{k+1}\sin\theta + v^{k+1}\cos\theta\right) - mfu^{k+1}  - {m\over \Delta t} v^{k+1} \end{aligned}
-
-where
-
-.. math::
-   \overline{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t}u^\circ
-   :label: revpuhat
-
-.. math::
-   \overline{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} +  {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t}v^\circ,
-   :label: revpvhat
-
-:math:`{\bf u}^\circ` is the initial value of velocity at the
-beginning of the subcycling (:math:`k=0`), and we use
-:math:`{\bf u}^{k+1}` for the ice–ocean stress and Coriolis terms.
-Equations :eq:`revpuhat` and :eq:`revpvhat` differ from
-Equations :eq:`cevpuhat` and :eq:`cevpvhat` only in the last term.
-
-Solving simultaneously for :math:`{\bf u}^{k+1}` as before, we have
-
-.. math::
-   \begin{aligned}
-   u^{k+1} = {\tilde{a} \tilde{u} + b \tilde{v} \over \tilde{a}^2 + b^2} \\
-   v^{k+1} = {\tilde{a} \tilde{v} - b \tilde{u} \over \tilde{a}^2 + b^2}, \end{aligned}
-
-where
-
-.. math::
-   \tilde{a} = \left(1+\beta\right){m\over\Delta t} + {\tt vrel}\cos\theta \\
-
-.. math::
-   \tilde{\bf u} = \overline{\bf u} + \beta  {m\over\Delta t}{\bf u}^k,
-   :label: tildeu
-
-and :math:`b` is the same as in Equation :eq:`cevpb`.
-
-*Stress*
-
-In CICE’s classic approach, the update to :math:`\sigma_1` at subcycle
-step :math:`k+1` is
-
-.. math::
-   \sigma_1^{k+1} 
-   = \left(\sigma_1^{k} + {P\over\Delta}{\Delta t_e\over 2T} \left(\dot{\epsilon} - \Delta\right)\right) * \left(1 + {\Delta t_e\over 2T}\right)
-   :label: sig1time
-
-If we set
-
-.. math:: 
-   \alpha_1 = {2T\over \Delta t_e},
-
-then Equation :eq:`sig1time` becomes
-
-.. math:: 
-   \sigma_1^{k+1}\left(1+\alpha_1\right) = \alpha_1\sigma_1^k + {P\over\Delta} \left(\dot{\epsilon} - \Delta\right).
-
-This is equivalent to Eq. (23) in :cite:`BFLM13`, but
-using :math:`\sigma` at the current subcycle :math:`k+1` in the last
-term on the right-hand side. Likewise, setting
-
-.. math:: 
-   \alpha_2 = {2T\over e^2\Delta t_e} = {\alpha_1\over e^2}
-
-produces equations equivalent to Eq. (23) in
-:cite:`BFLM13` for :math:`\sigma_2` and
-:math:`\sigma_{12}`. Therefore the only change needed in the stress
-code is to use :math:`\alpha_1` and :math:`\alpha_2` instead of
-:math:`2T / \Delta t_e` and :math:`2T /e^2 \Delta t_e`.
-
-However, :cite:`BFLM13` introduce another change to the EVP
-stress equations by altering the form of Young’s modulus in the elastic
-term: the coefficient of :math:`\partial\sigma_1/\partial t` is
-:math:`1/E`, but it is :math:`e^2/E` in the :math:`\sigma_2` and
-:math:`\sigma_{12}` equations. This change does not affect the VP
-equations to which the EVP equations should converge, but it does affect
-the transient path taken during the subcycling. Since EVP subcycling is
-finite, the numerical solutions obtained using this method differ from
-the original EVP code.
-
-To implement this second change, we need define only
-:math:`\alpha_1 = {2T/\Delta t_e}` as above and incorporate the factor
-of :math:`e^2` from :math:`\alpha_2` into the equations for
-:math:`\sigma_2` and :math:`\sigma_{12}`:
-
-.. math::
-   \begin{aligned}
-   \sigma_1^{k+1}\left(1+\alpha_1\right) &=&\sigma_1^k +  {\alpha_1}{P\over\Delta} D_D, \\
-   \sigma_2^{k+1}\left(1+\alpha_1\right) &=&\sigma_2^k + {\alpha_1\over e^2}{P\over\Delta}  D_T, \\
-   \sigma_{12}^{k+1}\left(1+\alpha_1\right) &=&\sigma_{12}^k + {\alpha_1\over 2e^2}{P\over\Delta}  D_S.\end{aligned}
-
-To minimize code changes and unify the two approaches, we define and
-apply :math:`1/\alpha_1` and :math:`\beta` in the classic EVP code, and
-modify the elastic stress term. These under-relaxation parameters
-control the rate at which the iteration converges. Thus for classic EVP
-we set
-
-.. math::
-   \begin{aligned}
-   {\tt arlx1i} &=& {1\over\alpha_1} = {\Delta t_e\over 2T} \\
-   {\tt brlx} &=& \beta = {\Delta t\over\Delta t_e}. \end{aligned}
-
-Then
-
-.. math::
-   \begin{aligned}
-   {\tt denom1} &=& {1\over{1+{\tt arlx1i}}} = {1\over{1+1/\alpha_1}} = {1\over{1+\Delta t_e/ 2T}} \\
-   {\tt c1} &=& {P\over\Delta}\,{\tt arlx1i} = {P\over\Delta}{\Delta t_e\over 2T}  \\
-   {\tt c0} &=& {{\tt c1}\over e^2} = {P\over\Delta}{\Delta t_e\over 2Te^2}  .\end{aligned}
-
-The stress equations for `stressp` (:math:`\sigma_1`) are unchanged; the
-modified equations for `stressm` (:math:`\sigma_2`) and `stress12`
-(:math:`\sigma_{12}`) take the form
-
-.. math::
-   \begin{aligned}
-   {\tt stressm} &=& {\tt stressm + c0}\,D_T \,{\tt denom1}\\
-   {\tt stress12} &=& {\tt stress12 + 0.5\,c0}\,D_S \,{\tt denom1}.\end{aligned}
-
-For classic EVP,
-
-.. math:: 
-   {\tt cca} = a = {\tt brlx}\,{m\over\Delta t} + {\tt vrel}\cos\theta ={m\over\Delta t_e} + {\tt vrel}\cos\theta.
-
-For revised EVP, arlx1i and brlx are defined separately from
-:math:`\Delta t`, :math:`\Delta t_e`, :math:`T` and :math:`e`, and
-
-.. math:: 
-   {\tt cca} = \tilde{a} = \left(1+ {\tt brlx}\right){m\over\Delta t} + {\tt vrel}\cos\theta= \left(1+\beta\right){m\over\Delta t} + {\tt vrel}\cos\theta.
-
-:math:`\tilde{\bf u}` must also be defined for revised EVP as in
-Equation :eq:`tildeu`. The extra terms in :math:`\tilde{a}` and
-:math:`\tilde{\bf u}` are multiplied by a flag (revp) that equals 1 for
-revised EVP and 0 for classic EVP. Revised EVP is activated by setting
-the namelist parameter `revised\_evp` = true. Note that in the current
-implementation, only the modified version of the elastic term is
-available for either the classic (`revised\_evp` = false) or the revised
-EVP method. A final difference is that the revised approach initializes
-the stresses to 0 at the beginning of each time step, while the classic
-EVP approach uses the previous time step value.
-
 .. _thermo:
 
+**************
 Thermodynamics
---------------
+**************
 
 The current CICE version includes three thermodynamics
 options, the “zero-layer" thermodynamics of :cite:`Semtner76`
@@ -2511,8 +3092,9 @@ surface temperatures.
 
 .. _ponds:
 
+``````````
 Melt ponds
-~~~~~~~~~~
+``````````
 
 Three explicit melt pond parameterizations are available in CICE, and
 all must use the delta-Eddington radiation scheme, described below. The
@@ -3116,8 +3698,9 @@ the newly formed ice area :math:`\Delta a_i = \Delta a_{lvl}`.
 
 .. _sfc-forcing:
 
+`````````````````````````````````````
 Thermodynamic surface forcing balance
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`````````````````````````````````````
 
 The net surface energy flux from the atmosphere to the ice (with all
 fluxes defined as positive downward) is
@@ -3292,8 +3875,9 @@ Section :ref:`thermo-growth`).
 
 .. _thermo-temp:
 
+````````````````
 New temperatures
-~~~~~~~~~~~~~~~~
+````````````````
 
 **Zero-layer thermodynamics** (`ktherm` = 0)
 An option for zero-layer thermodynamics :cite:`Semtner76` is
@@ -4101,8 +4685,9 @@ may reduce ice formation by a small amount afterwards.
 
 .. _thermo-growth:
 
+``````````````````
 Growth and melting
-~~~~~~~~~~~~~~~~~~
+``````````````````
 
 Melting at the top surface is given by
 
