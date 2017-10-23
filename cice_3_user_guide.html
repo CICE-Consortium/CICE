@@ -1,0 +1,3520 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>3. User Guide &#8212; CICE-Consortium 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="4. Index of primary variables and parameters" href="cice_4_index.html" />
+    <link rel="prev" title="2. Science Guide" href="cice_2_science_guide.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="cice_4_index.html" title="4. Index of primary variables and parameters"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="cice_2_science_guide.html" title="2. Science Guide"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="user-guide">
+<h1>3. User Guide<a class="headerlink" href="#user-guide" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="numerical-implementation">
+<h2>3.1. Numerical implementation<a class="headerlink" href="#numerical-implementation" title="Permalink to this headline">¶</a></h2>
+<p>CICE is written in FORTRAN90 and runs on platforms using UNIX, LINUX,
+and other operating systems. The code is parallelized via grid
+decomposition with MPI or OpenMP threads and includes some optimizations
+for vector architectures.</p>
+<p>A second, “external” layer of parallelization involves message passing
+between CICE and the flux coupler, which may be running on different
+processors in a distributed system. The parallelization scheme for CICE
+was designed so that MPI could be used for the coupling along with MPI,
+OpenMP or no parallelization internally. The internal parallelization
+method is set at compile time with the <cite>NTASK</cite> and <cite>THRD</cite> definitions in the
+compile script. Message passing between the ice model and the CESM flux
+coupler is accomplished with MPI, regardless of the type of internal
+parallelization used for CICE, although the ice model may be coupled to
+another system without using MPI.</p>
+<div class="section" id="directory-structure">
+<span id="dirstructure"></span><h3>3.1.1. Directory structure<a class="headerlink" href="#directory-structure" title="Permalink to this headline">¶</a></h3>
+<p>The present code distribution includes make files, several scripts and
+some input files. The main directory is <strong>cice/</strong>, and a run directory
+(<strong>rundir/</strong>) is created upon initial execution of the script
+<strong>comp_ice</strong>. One year of atmospheric forcing data is also available
+from the code distribution web site (see the <strong>README</strong> file for
+details).</p>
+<p>basic information</p>
+<p><strong>bld/</strong> makefiles</p>
+<dl class="docutils">
+<dt><strong>Macros.</strong><span class="math">\(\langle\)</span>OS<span class="math">\(\rangle\)</span>.<span class="math">\(\langle\)</span>SITE<span class="math">\(\rangle\)</span>.<span class="math">\(\langle\)</span>machine<span class="math">\(\rangle\)</span></dt>
+<dd>macro definitions for the given operating system, used by
+<strong>Makefile</strong>.<span class="math">\(\langle\)</span> OS<span class="math">\(\rangle\)</span></dd>
+<dt><strong>Makefile.</strong><span class="math">\(\langle\)</span>OS<span class="math">\(\rangle\)</span></dt>
+<dd>primary makefile for the given operating system
+(<strong>:math:`langle`std:math:`rangle`</strong> works for most systems)</dd>
+<dt><strong>makedep.c</strong></dt>
+<dd>perl script that determines module dependencies</dd>
+</dl>
+<p>script that sets up the run directory and compiles the code</p>
+<p>modules based on “shared&#8221; code in CESM</p>
+<dl class="docutils">
+<dt><strong>shr_orb_mod.F90</strong></dt>
+<dd>orbital parameterizations</dd>
+</dl>
+<p>documentation</p>
+<dl class="docutils">
+<dt><strong>cicedoc.pdf</strong></dt>
+<dd>this document</dd>
+<dt><strong>PDF/</strong></dt>
+<dd>PDF documents of numerous publications related to CICE</dd>
+</dl>
+<p>institution-specific modules</p>
+<dl class="docutils">
+<dt><strong>cice/</strong></dt>
+<dd><p class="first">official driver for CICE v5 (LANL)</p>
+<dl class="last docutils">
+<dt><strong>CICE.F90</strong></dt>
+<dd>main program</dd>
+<dt><strong>CICE_FinalMod.F90</strong></dt>
+<dd>routines for finishing and exiting a run</dd>
+<dt><strong>CICE_InitMod.F90</strong></dt>
+<dd>routines for initializing a run</dd>
+<dt><strong>CICE_RunMod.F90</strong></dt>
+<dd>main driver routines for time stepping</dd>
+<dt><strong>CICE_RunMod.F90_debug</strong></dt>
+<dd>debugging version of <strong>CICE_RunMod.F90</strong></dd>
+<dt><strong>ice_constants.F90</strong></dt>
+<dd>physical and numerical constants and parameters</dd>
+</dl>
+</dd>
+</dl>
+<p>sample diagnostic output files</p>
+<p>input files that may be modified for other CICE configurations</p>
+<dl class="docutils">
+<dt><strong>col/</strong></dt>
+<dd><p class="first">column configuration files</p>
+<dl class="last docutils">
+<dt><strong>ice_in</strong></dt>
+<dd>namelist input data (data paths depend on particular system)</dd>
+</dl>
+</dd>
+<dt><strong>gx1/</strong></dt>
+<dd><p class="first"><span class="math">\(\left&lt;1^\circ\right&gt;\)</span> displaced pole grid files</p>
+<dl class="last docutils">
+<dt><strong>global_gx1.grid</strong></dt>
+<dd><span class="math">\(\left&lt;1^\circ\right&gt;\)</span> displaced pole grid (binary)</dd>
+<dt><strong>global_gx1.kmt</strong></dt>
+<dd><span class="math">\(\left&lt;1^\circ\right&gt;\)</span> land mask (binary)</dd>
+<dt><strong>ice.restart_file</strong></dt>
+<dd>pointer for restart file name</dd>
+<dt><strong>ice_in</strong></dt>
+<dd>namelist input data (data paths depend on particular system)</dd>
+<dt><strong>ice_in_v4.1</strong></dt>
+<dd>namelist input data for default CICE v4.1 configuration</dd>
+<dt><strong>iced_gx1_v5.nc</strong></dt>
+<dd>restart file used for initial condition</dd>
+</dl>
+</dd>
+<dt><strong>gx3/</strong></dt>
+<dd><p class="first"><span class="math">\(\left&lt;3^\circ\right&gt;\)</span> displaced pole grid files</p>
+<dl class="last docutils">
+<dt><strong>global_gx3.grid</strong></dt>
+<dd><span class="math">\(\left&lt;3^\circ\right&gt;\)</span> displaced pole grid (binary)</dd>
+<dt><strong>global_gx3.kmt</strong></dt>
+<dd><span class="math">\(\left&lt;3^\circ\right&gt;\)</span> land mask (binary)</dd>
+<dt><strong>global_gx3.grid.nc</strong></dt>
+<dd><span class="math">\(\left&lt;3^\circ\right&gt;\)</span> displaced pole grid ()</dd>
+<dt><strong>global_gx3.kmt.nc</strong></dt>
+<dd><span class="math">\(\left&lt;3^\circ\right&gt;\)</span> land mask ()</dd>
+<dt><strong>ice.restart_file</strong></dt>
+<dd>pointer for restart file name</dd>
+<dt><strong>ice_in</strong></dt>
+<dd>namelist input data (data paths depend on particular system)</dd>
+<dt><strong>iced_gx3_v5.nc</strong></dt>
+<dd>restart file used for initial condition</dd>
+</dl>
+</dd>
+<dt>convert_restarts.f90</dt>
+<dd>Fortran code to convert restart files from v4.1 to v5 (4 ice layers)</dd>
+<dt><strong>run_ice.</strong><span class="math">\(\langle\)</span>OS<span class="math">\(\rangle\)</span>.<span class="math">\(\langle\)</span>SITE<span class="math">\(\rangle\)</span>.<span class="math">\(\langle\)</span>machine<span class="math">\(\rangle\)</span></dt>
+<dd>sample script for running on the given operating system</dd>
+</dl>
+<p>binary history and restart modules</p>
+<dl class="docutils">
+<dt><strong>ice_history_write.F90</strong></dt>
+<dd>subroutines with binary output</dd>
+<dt><strong>ice_restart.F90</strong></dt>
+<dd>read/write binary restart files</dd>
+</dl>
+<p>&nbsp;history and restart modules</p>
+<dl class="docutils">
+<dt><strong>ice_history_write.F90</strong></dt>
+<dd>subroutines with &nbsp;output</dd>
+<dt><strong>ice_restart.F90</strong></dt>
+<dd>read/write &nbsp; restart files</dd>
+</dl>
+<p>parallel I/O history and restart modules</p>
+<dl class="docutils">
+<dt><strong>ice_history_write.F90</strong></dt>
+<dd>subroutines with &nbsp; output using PIO</dd>
+<dt><strong>ice_pio.F90</strong></dt>
+<dd>subroutines specific to PIO</dd>
+<dt><strong>ice_restart.F90</strong></dt>
+<dd>read/write &nbsp;restart files using PIO</dd>
+</dl>
+<p>modules that require MPI calls</p>
+<dl class="docutils">
+<dt><strong>ice_boundary.F90</strong></dt>
+<dd>boundary conditions</dd>
+<dt><strong>ice_broadcast.F90</strong></dt>
+<dd>routines for broadcasting data across processors</dd>
+<dt><strong>ice_communicate.F90</strong></dt>
+<dd>routines for communicating between processors</dd>
+<dt><strong>ice_exit.F90</strong></dt>
+<dd>aborts or exits the run</dd>
+<dt><strong>ice_gather_scatter.F90</strong></dt>
+<dd>gathers/scatters data to/from one processor from/to all processors</dd>
+<dt><strong>ice_global_reductions.F90</strong></dt>
+<dd>global sums, minvals, maxvals, etc., across processors</dd>
+<dt><strong>ice_timers.F90</strong></dt>
+<dd>timing routines</dd>
+</dl>
+<p>same modules as in <strong>mpi/</strong> but without MPI calls</p>
+<p>general CICE source code</p>
+<p>handles most work associated with the aerosol tracers</p>
+<p>handles most work associated with the age tracer</p>
+<p>skeletal layer biogeochemistry</p>
+<p>stability-based parameterization for calculation of turbulent
+ice–atmosphere fluxes</p>
+<p>for decomposing global domain into blocks</p>
+<p>evolves the brine height tracer</p>
+<p>keeps track of what time it is</p>
+<p>miscellaneous diagnostic and debugging routines</p>
+<p>for distributing blocks across processors</p>
+<p>decompositions, distributions and related parallel processing info</p>
+<p>domain and block sizes</p>
+<p>elastic-anisotropic-plastic dynamics component</p>
+<p>elastic-viscous-plastic dynamics component</p>
+<p>code shared by EVP and EAP dynamics</p>
+<p>unit numbers for I/O</p>
+<p>handles most work associated with the first-year ice area tracer</p>
+<p>fluxes needed/produced by the model</p>
+<p>routines to read and interpolate forcing data for stand-alone ice model
+runs</p>
+<p>grid and land masks</p>
+<p>initialization and accumulation of history output variables</p>
+<p>history output of biogeochemistry variables</p>
+<p>history output of form drag variables</p>
+<p>history output of ridging variables</p>
+<p>history output of melt pond variables</p>
+<p>code shared by all history modules</p>
+<p>namelist and initializations</p>
+<p>utilities for managing ice thickness distribution</p>
+<p>basic definitions of reals, integers, etc.</p>
+<p>handles most work associated with the level ice area and volume tracers</p>
+<p>mechanical redistribution component (ridging)</p>
+<p>CESM melt pond parameterization</p>
+<p>level-ice melt pond parameterization</p>
+<p>topo melt pond parameterization</p>
+<p>mixed layer ocean model</p>
+<p>orbital parameters for Delta-Eddington shortwave parameterization</p>
+<p>utilities for reading and writing files</p>
+<p>driver for reading/writing restart files</p>
+<p>code shared by all restart options</p>
+<p>basic restoring for open boundary conditions</p>
+<p>shortwave and albedo parameterizations</p>
+<p>space-filling-curves distribution method</p>
+<p>essential arrays to describe the state of the ice</p>
+<p>routines for time stepping the major code components</p>
+<p>zero-layer thermodynamics of <a class="reference internal" href="zreferences.html#semtner76" id="id1">[60]</a></p>
+<p>multilayer thermodynamics of <a class="reference internal" href="zreferences.html#bl99" id="id2">[7]</a></p>
+<p>thermodynamic changes mostly related to ice thickness distribution</p>
+<p>mushy-theory thermodynamics of:cite:<cite>THB13</cite></p>
+<p>code shared by all thermodynamics parameterizations</p>
+<p>vertical growth rates and fluxes</p>
+<p>driver for horizontal advection</p>
+<p>horizontal advection via incremental remapping</p>
+<p>driver for ice biogeochemistry and brine tracer motion</p>
+<p>parameters and shared code for biogeochemistry and brine height</p>
+<p>execution or “run” directory created when the code is compiled using the
+<strong>comp_ice</strong> script (gx3)</p>
+<dl class="docutils">
+<dt><strong>cice</strong></dt>
+<dd>code executable</dd>
+<dt><strong>compile/</strong></dt>
+<dd>directory containing object files, etc.</dd>
+<dt><strong>grid</strong></dt>
+<dd>horizontal grid file from <strong>cice/input_templates/gx3/</strong></dd>
+<dt><strong>ice.log.[ID]</strong></dt>
+<dd>diagnostic output file</dd>
+<dt><strong>ice_in</strong></dt>
+<dd>namelist input data from <strong>cice/input_templates/gx3/</strong></dd>
+<dt><strong>history/iceh.[timeID].nc</strong></dt>
+<dd>output history file</dd>
+<dt><strong>kmt</strong></dt>
+<dd>land mask file from <strong>cice/input_templates/gx3/</strong></dd>
+<dt><strong>restart/</strong></dt>
+<dd><p class="first">restart directory</p>
+<dl class="last docutils">
+<dt><strong>iced_gx3_v5.nc</strong></dt>
+<dd>initial condition from <strong>cice/input_templates/gx3/</strong></dd>
+<dt><strong>ice.restart_file</strong></dt>
+<dd>restart pointer from <strong>cice/input_templates/gx3/</strong></dd>
+</dl>
+</dd>
+<dt><strong>run_ice</strong></dt>
+<dd>batch run script file from <strong>cice/input_templates/</strong></dd>
+</dl>
+</div>
+<div class="section" id="grid-boundary-conditions-and-masks">
+<h3>3.1.2. Grid, boundary conditions and masks<a class="headerlink" href="#grid-boundary-conditions-and-masks" title="Permalink to this headline">¶</a></h3>
+<p>The spatial discretization is specialized for a generalized orthogonal
+B-grid as in <a class="reference internal" href="zreferences.html#murray96" id="id3">[51]</a> or
+<a class="reference internal" href="zreferences.html#skm95" id="id4">[63]</a>. The ice and snow area, volume and energy are
+given at the center of the cell, velocity is defined at the corners, and
+the internal ice stress tensor takes four different values within a grid
+cell; bilinear approximations are used for the stress tensor and the ice
+velocity across the cell, as described in <a class="reference internal" href="zreferences.html#hd02" id="id5">[33]</a>.
+This tends to avoid the grid decoupling problems associated with the
+B-grid. EVP is available on the C-grid through the MITgcm code
+distribution, <a class="reference external" href="http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/">http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/</a>.</p>
+<p>Since ice thickness and thermodynamic variables such as temperature are given
+in the center of each cell, the grid cells are referred to as “T cells.”
+We also occasionally refer to “U cells,” which are centered on the
+northeast corner of the corresponding T cells and have velocity in the
+center of each. The velocity components are aligned along grid lines.</p>
+<p>The user has several choices of grid routines: <em>popgrid</em> reads grid
+lengths and other parameters for a nonuniform grid (including tripole
+and regional grids), and <em>rectgrid</em> creates a regular rectangular grid,
+including that used for the column configuration. The input files
+<strong>global_gx3.grid</strong> and <strong>global_gx3.kmt</strong> contain the
+<span class="math">\(\left&lt;3^\circ\right&gt;\)</span> POP grid and land mask;
+<strong>global_gx1.grid</strong> and <strong>global_gx1.kmt</strong> contain the
+<span class="math">\(\left&lt;1^\circ\right&gt;\)</span> grid and land mask. These are binary
+unformatted, direct access files produced on an SGI (Big Endian). If you
+are using an incompatible (Little Endian) architecture, choose
+<cite>rectangular</cite> instead of <cite>displaced_pole</cite> in <strong>ice_in</strong>, or follow
+procedures as for conejo
+(<span class="math">\(\langle\)</span><strong>OS</strong><span class="math">\(\rangle.\langle\)</span><strong>SITE</strong><span class="math">\(\rangle.\langle\)</span><strong>machine</strong><span class="math">\(\rangle\)</span>
+= Linux.LANL.conejo). There are versions of the gx3 grid files
+available.</p>
+<p>In CESM, the sea ice model may exchange coupling fluxes using a
+different grid than the computational grid. This functionality is
+activated using the namelist variable <cite>gridcpl_file</cite>.</p>
+<div class="section" id="grid-domains-and-blocks">
+<h4>3.1.2.1. Grid domains and blocks<a class="headerlink" href="#grid-domains-and-blocks" title="Permalink to this headline">¶</a></h4>
+<p>In general, the global gridded domain is
+<cite>nx_global</cite> <span class="math">\(\times\)</span><cite>ny_global</cite>, while the subdomains used in the
+block distribution are <cite>nx_block</cite> <span class="math">\(\times\)</span><cite>ny_block</cite>. The
+physical portion of a subdomain is indexed as [<cite>ilo:ihi</cite>, <cite>jlo:jhi</cite>], with
+nghost “ghost” or “halo&#8221; cells outside the domain used for boundary
+conditions. These parameters are illustrated in&nbsp;<a class="reference internal" href="#fig-grid"><span class="std std-ref">Figure 8</span></a> in one
+dimension. The routines <em>global_scatter</em> and <em>global_gather</em>
+distribute information from the global domain to the local domains and
+back, respectively. If MPI is not being used for grid decomposition in
+the ice model, these routines simply adjust the indexing on the global
+domain to the single, local domain index coordinates. Although we
+recommend that the user choose the local domains so that the global
+domain is evenly divided, if this is not possible then the furthest east
+and/or north blocks will contain nonphysical points (“padding”). These
+points are excluded from the computation domain and have little effect
+on model performance.</p>
+<div class="figure align-center" id="id24">
+<span id="fig-grid"></span><a class="reference internal image-reference" href="_images/grid.png"><img alt="_images/grid.png" src="_images/grid.png" style="width: 516.8px; height: 416.0px;" /></a>
+<p class="caption"><span class="caption-text">Figure 8</span></p>
+</div>
+<p><a class="reference internal" href="#fig-grid"><span class="std std-ref">Figure 8</span></a> : Grid parameters for a sample one-dimensional, 20-cell
+global domain decomposed into four local subdomains. Each local
+domain has one ghost (halo) cell on each side, and the physical
+portion of the local domains are labeled <cite>ilo:ihi</cite>. The parameter
+<cite>nx_block</cite> is the total number of cells in the local domain, including
+ghost cells, and the same numbering system is applied to each of the
+four subdomains.</p>
+<p>The user chooses a block size <cite>BLCKX</cite> <span class="math">\(\times\)</span><cite>BLCKY</cite> and the
+number of processors <cite>NTASK</cite> in <strong>comp_ice</strong>. Parameters in the
+<em>domain_nml</em> namelist in <strong>ice_in</strong> determine how the blocks are
+distributed across the processors, and how the processors are
+distributed across the grid domain. Recommended combinations of these
+parameters for best performance are given in Section&nbsp;<a class="reference internal" href="#performance"><span class="std std-ref">Performance</span></a>.
+The script <strong>comp_ice</strong> computes the maximum number of blocks on each
+processor for typical Cartesian distributions, but for non-Cartesian
+cases <cite>MXBLCKS</cite> may need to be set in the script. The code will print this
+information to the log file before aborting, and the user will need to
+adjust <cite>MXBLCKS</cite> in <strong>comp_ice</strong> and recompile. The code will also print
+a warning if the maximum number of blocks is too large. Although this is
+not fatal, it does require excess memory.</p>
+<p>A loop at the end of routine <em>create_blocks</em> in module
+<strong>ice_blocks.F90</strong> will print the locations for all of the blocks on
+the global grid if dbug is set to be true. Likewise, a similar loop at
+the end of routine <em>create_local_block_ids</em> in module
+<strong>ice_distribution.F90</strong> will print the processor and local block
+number for each block. With this information, the grid decomposition
+into processors and blocks can be ascertained. The dbug flag must be
+manually set in the code in each case (independently of the dbug flag in
+<strong>ice_in</strong>), as there may be hundreds or thousands of blocks to print
+and this information should be needed only rarely. This information is
+much easier to look at using a debugger such as Totalview.</p>
+<p>Alternatively, a new variable is provided in the history files, <cite>blkmask</cite>,
+which labels the blocks in the grid decomposition according to <cite>blkmask</cite> =
+<cite>my_task</cite> + <cite>iblk/100</cite>.</p>
+</div>
+<div class="section" id="tripole-grids">
+<h4>3.1.2.2. Tripole grids<a class="headerlink" href="#tripole-grids" title="Permalink to this headline">¶</a></h4>
+<p>The tripole grid is a device for constructing a global grid with a
+normal south pole and southern boundary condition, which avoids placing
+a physical boundary or grid singularity in the Arctic Ocean. Instead of
+a single north pole, it has two “poles” in the north, both located on
+land, with a line of grid points between them. This line of points is
+called the “fold,” and it is the “top row” of the physical grid. One
+pole is at the left-hand end of the top row, and the other is in the
+middle of the row. The grid is constructed by “folding” the top row, so
+that the left-hand half and the right-hand half of it coincide. Two
+choices for constructing the tripole grid are available. The one first
+introduced to CICE is called “U-fold”, which means that the poles and
+the grid cells between them are U cells on the grid. Alternatively the
+poles and the cells between them can be grid T cells, making a “T-fold.”
+Both of these options are also supported by the OPA/NEMO ocean model,
+which calls the U-fold an “f-fold” (because it uses the Arakawa C-grid
+in which U cells are on T-rows). The choice of tripole grid is given by
+the namelist variable <cite>ns_boundary_type</cite>, ‘tripole’ for the U-fold and
+‘tripoleT’ for the T-fold grid.</p>
+<p>In the U-fold tripole grid, the poles have U-index
+<span class="math">\({\tt nx\_global}/2\)</span> and <cite>nx_global</cite> on the top U-row of the
+physical grid, and points with U-index i and <span class="math">\({\tt nx\_global-i}\)</span>
+are coincident. Let the fold have U-row index <span class="math">\(n\)</span> on the global
+grid; this will also be the T-row index of the T-row to the south of the
+fold. There are ghost (halo) T- and U-rows to the north, beyond the
+fold, on the logical grid. The point with index i along the ghost T-row
+of index <span class="math">\(n+1\)</span> physically coincides with point
+<span class="math">\({\tt nx\_global}-{\tt i}+1\)</span> on the T-row of index <span class="math">\(n\)</span>. The
+ghost U-row of index <span class="math">\(n+1\)</span> physically coincides with the U-row of
+index <span class="math">\(n-1\)</span>.</p>
+<p>In the T-fold tripole grid, the poles have T-index 1 and and
+<span class="math">\({\tt nx\_global}/2+1\)</span> on the top T-row of the physical grid, and
+points with T-index i and <span class="math">\({\tt nx\_global}-{\tt i}+2\)</span> are
+coincident. Let the fold have T-row index <span class="math">\(n\)</span> on the global grid.
+It is usual for the northernmost row of the physical domain to be a
+U-row, but in the case of the T-fold, the U-row of index <span class="math">\(n\)</span> is
+“beyond” the fold; although it is not a ghost row, it is not physically
+independent, because it coincides with U-row <span class="math">\(n-1\)</span>, and it
+therefore has to be treated like a ghost row. Points i on U-row
+<span class="math">\(n\)</span> coincides with <span class="math">\({\tt nx\_global}-{\tt i}+1\)</span> on U-row
+<span class="math">\(n-1\)</span>. There are still ghost T- and U-rows <span class="math">\(n+1\)</span> to the
+north of U-row <span class="math">\(n\)</span>. Ghost T-row <span class="math">\(n+1\)</span> coincides with T-row
+<span class="math">\(n-1\)</span>, and ghost U-row <span class="math">\(n+1\)</span> coincides with U-row
+<span class="math">\(n-2\)</span>.</p>
+<p>The tripole grid thus requires two special kinds of treatment for
+certain rows, arranged by the halo-update routines. First, within rows
+along the fold, coincident points must always have the same value. This
+is achieved by averaging them in pairs. Second, values for ghost rows
+and the “quasi-ghost” U-row on the T-fold grid are reflected copies of
+the coincident physical rows. Both operations involve the tripole
+buffer, which is used to assemble the data for the affected rows.
+Special treatment is also required in the scattering routine, and when
+computing global sums one of each pair of coincident points has to be
+excluded.</p>
+</div>
+<div class="section" id="bio-grid">
+<span id="id6"></span><h4>3.1.2.3. Bio-grid<a class="headerlink" href="#bio-grid" title="Permalink to this headline">¶</a></h4>
+<p>The bio-grid is a vertical grid used for solving the brine height
+variable <span class="math">\(h_b\)</span>. In the future, it will also be used for
+discretizing the vertical transport equations of biogeochemical tracers.
+The bio-grid is a non-dimensional vertical grid which takes the value
+zero at <span class="math">\(h_b\)</span> and one at the ice–ocean interface. The number of
+grid levels is specified during compilation in <strong>comp_ice</strong> by setting
+the variable <cite>NBGCLYR</cite> equal to an integer (<span class="math">\(n_b\)</span>) .</p>
+<p>Ice tracers and microstructural properties defined on the bio-grid are
+referenced in two ways: as <cite>bgrid</cite> <span class="math">\(=n_b+2\)</span> points and as
+igrid<span class="math">\(=n_b+1\)</span> points. For both bgrid and igrid, the first and
+last points reference <span class="math">\(h_b\)</span> and the ice–ocean interface,
+respectively, and so take the values <span class="math">\(0\)</span> and <span class="math">\(1\)</span>,
+respectively. For bgrid, the interior points <span class="math">\([2, n_b+1]\)</span> are
+spaced at <span class="math">\(1/n_b\)</span> intervals beginning with <cite>bgrid(2)</cite> :math:` =
+1/(2n_b)`. The <cite>igrid</cite> interior points <span class="math">\([2, n_b]\)</span> are also
+equidistant with the same spacing, but physically coincide with points
+midway between those of <cite>bgrid</cite>.</p>
+</div>
+<div class="section" id="column-configuration">
+<h4>3.1.2.4. Column configuration<a class="headerlink" href="#column-configuration" title="Permalink to this headline">¶</a></h4>
+<p>A column modeling capability is available. Because of the boundary
+conditions and other spatial assumptions in the model, this is not a
+single column, but a small array of columns (minimum grid size is 5x5).
+However, the code is set up so that only the single, central column is
+used (all other columns are designated as land). The column is located
+near Barrow (71.35N, 156.5W). Options for choosing the column
+configuration are given in <strong>comp_ice</strong> (choose <cite>RES col</cite>) and in the
+namelist file, <strong>input_templates/col/ice_in</strong>. Here, <cite>istep0</cite> and the
+initial conditions are set such that the run begins September 1 with no
+ice. The grid type is rectangular, dynamics are turned off (<cite>kdyn</cite> = 0) and
+one processor is used.</p>
+<p>History variables available for column output are ice and snow
+temperature, <cite>Tinz</cite> and <cite>Tsnz</cite>. These variables also include thickness
+category as a fourth dimension.</p>
+</div>
+<div class="section" id="boundary-conditions">
+<h4>3.1.2.5. Boundary conditions<a class="headerlink" href="#boundary-conditions" title="Permalink to this headline">¶</a></h4>
+<p>Much of the infrastructure used in CICE, including the boundary
+routines, is adopted from POP. The boundary routines perform boundary
+communications among processors when MPI is in use and among blocks
+whenever there is more than one block per processor.</p>
+<p>Open/cyclic boundary conditions are the default in CICE; the physical
+domain can still be closed using the land mask. In our bipolar,
+displaced-pole grids, one row of grid cells along the north and south
+boundaries is located on land, and along east/west domain boundaries not
+masked by land, periodic conditions wrap the domain around the globe.
+CICE can be run on regional grids with open boundary conditions; except
+for variables describing grid lengths, non-land halo cells along the
+grid edge must be filled by restoring them to specified values. The
+namelist variable <cite>restore_ice</cite> turns this functionality on and off; the
+restoring timescale <cite>trestore</cite> may be used (it is also used for restoring
+ocean sea surface temperature in stand-alone ice runs). This
+implementation is only intended to provide the “hooks&#8221; for a more
+sophisticated treatment; the rectangular grid option can be used to test
+this configuration. The ‘displaced_pole’ grid option should not be used
+unless the regional grid contains land all along the north and south
+boundaries. The current form of the boundary condition routines does not
+allow Neumann boundary conditions, which must be set explicitly. This
+has been done in an unreleased branch of the code; contact Elizabeth for
+more information.</p>
+<p>For exact restarts using restoring, set <cite>restart_ext</cite> = true in namelist
+to use the extended-grid subroutines.</p>
+<p>On tripole grids, the order of operations used for calculating elements
+of the stress tensor can differ on either side of the fold, leading to
+round-off differences. Although restarts using the extended grid
+routines are exact for a given run, the solution will differ from
+another run in which restarts are written at different times. For this
+reason, explicit halo updates of the stress tensor are implemented for
+the tripole grid, both within the dynamics calculation and for restarts.
+This has not been implemented yet for tripoleT grids, pending further
+testing.</p>
+</div>
+<div class="section" id="masks">
+<h4>3.1.2.6. Masks<a class="headerlink" href="#masks" title="Permalink to this headline">¶</a></h4>
+<p>A land mask hm (<span class="math">\(M_h\)</span>) is specified in the cell centers, with 0
+representing land and 1 representing ocean cells. A corresponding mask
+uvm (<span class="math">\(M_u\)</span>) for velocity and other corner quantities is given by</p>
+<div class="math">
+\[M_u(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j),\,(i,j+1),\,(i+1,j+1)\}.\]</div>
+<p>The logical masks <cite>tmask</cite> and <cite>umask</cite> (which correspond to the real masks
+<cite>hm</cite> and <cite>uvm</cite>, respectively) are useful in conditional statements.</p>
+<p>In addition to the land masks, two other masks are implemented in
+<em>evp_prep</em> in order to reduce the dynamics component’s work on a global
+grid. At each time step the logical masks <cite>ice_tmask</cite> and <cite>ice_umask</cite> are
+determined from the current ice extent, such that they have the value
+“true” wherever ice exists. They also include a border of cells around
+the ice pack for numerical purposes. These masks are used in the
+dynamics component to prevent unnecessary calculations on grid points
+where there is no ice. They are not used in the thermodynamics
+component, so that ice may form in previously ice-free cells. Like the
+land masks <cite>hm</cite> and <cite>uvm</cite>, the ice extent masks <cite>ice_tmask</cite> and <cite>ice_umask</cite>
+are for T cells and U cells, respectively.</p>
+<p>Improved parallel performance may result from utilizing halo masks for
+boundary updates of the full ice state, incremental remapping transport,
+or for EVP or EAP dynamics. These options are accessed through the
+logical namelist flags <cite>maskhalo_bound</cite>, <cite>maskhalo_remap</cite>, and
+<cite>maskhalo_dyn</cite>, respectively. Only the halo cells containing needed
+information are communicated.</p>
+<p>Two additional masks are created for the user’s convenience: <cite>lmask_n</cite>
+and <cite>lmask_s</cite> can be used to compute or write data only for the northern
+or southern hemispheres, respectively. Special constants (<cite>spval</cite> and
+<cite>spval_dbl</cite>, each equal to <span class="math">\(10^{30}\)</span>) are used to indicate land
+points in the history files and diagnostics.</p>
+</div>
+</div>
+<div class="section" id="test-configurations">
+<h3>3.1.3. Test configurations<a class="headerlink" href="#test-configurations" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="initialization-and-coupling">
+<span id="init"></span><h3>3.1.4. Initialization and coupling<a class="headerlink" href="#initialization-and-coupling" title="Permalink to this headline">¶</a></h3>
+<p>The ice model’s parameters and variables are initialized in several
+steps. Many constants and physical parameters are set in
+<strong>ice_constants.F90</strong>. Namelist variables (<a class="reference internal" href="#tabnamelist"><span class="std std-ref">Table of namelist options</span></a>),
+whose values can be altered at run time, are handled in <em>input_data</em>
+and other initialization routines. These variables are given default
+values in the code, which may then be changed when the input file
+<strong>ice_in</strong> is read. Other physical constants, numerical parameters, and
+variables are first set in initialization routines for each ice model
+component or module. Then, if the ice model is being restarted from a
+previous run, core variables are read and reinitialized in
+<em>restartfile</em>, while tracer variables needed for specific configurations
+are read in separate restart routines associated with each tracer or
+specialized parameterization. Finally, albedo and other quantities
+dependent on the initial ice state are set. Some of these parameters
+will be described in more detail in <a class="reference internal" href="#tabnamelist"><span class="std std-ref">Table of namelist options</span></a>.</p>
+<p>The restart files supplied with the code release include the core
+variables on the default configuration, that is, with seven vertical
+layers and the ice thickness distribution defined by <cite>kcatbound</cite> = 0.
+Restart information for some tracers is also included in the &nbsp;restart
+files.</p>
+<p>Three namelist variables control model initialization, <cite>ice_ic</cite>, <cite>runtype</cite>,
+and <cite>restart</cite>, as described in <a class="reference internal" href="#tab-ic"><span class="std std-ref">Table 4</span></a>. It is possible to do an
+initial run from a file <strong>filename</strong> in two ways: (1) set runtype =
+‘initial’, restart = true and ice_ic = <strong>filename</strong>, or (2) runtype =
+‘continue’ and pointer_file = <strong>./restart/ice.restart_file</strong> where
+<strong>./restart/ice.restart_file</strong> contains the line
+“./restart/[filename]&#8221;. The first option is convenient when repeatedly
+starting from a given file when subsequent restart files have been
+written. With this arrangement, the tracer restart flags can be set to
+true or false, depending on whether the tracer restart data exist. With
+the second option, tracer restart flags are set to ‘continue’ for all
+active tracers.</p>
+<p>An additional namelist option, <cite>restart_ext</cite> specifies whether halo cells
+are included in the restart files. This option is useful for tripole and
+regional grids, but can not be used with PIO.</p>
+<p>MPI is initialized in <em>init_communicate</em> for both coupled and
+stand-alone MPI runs. The ice component communicates with a flux coupler
+or other climate components via external routiines that handle the
+variables listed in <a class="reference internal" href="cice_2_science_guide.html#tab-flux-cpl"><span class="std std-ref">Table 1</span></a>. For stand-alone runs,
+routines in <strong>ice_forcing.F90</strong> read and interpolate data from files,
+and are intended merely to provide guidance for the user to write his or
+her own routines. Whether the code is to be run in stand-alone or
+coupled mode is determined at compile time, as described below.</p>
+<p><a class="reference internal" href="#tab-ic"><span class="std std-ref">Table 4</span></a> : <em>Ice initial state resulting from combinations of</em>
+<cite>ice_ic</cite>, <cite>runtype</cite> and <cite>restart</cite>. <span class="math">\(^a\)</span><em>If false, restart is reset to
+true.</em> <span class="math">\(^b\)</span><em>restart is reset to false.</em> <span class="math">\(^c\)</span>ice_ic <em>is
+reset to ‘none.’</em></p>
+<table border="1" class="docutils" id="id25">
+<span id="tab-ic"></span><caption><span class="caption-text">Table 4</span><a class="headerlink" href="#id25" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="13%" />
+<col width="22%" />
+<col width="32%" />
+<col width="33%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">ice_ic</th>
+<th class="head">&#160;</th>
+<th class="head">&#160;</th>
+<th class="head">&#160;</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>initial/false</td>
+<td>initial/true</td>
+<td>continue/true (or false<span class="math">\(^a\)</span>)</td>
+</tr>
+<tr class="row-odd"><td>none</td>
+<td>no ice</td>
+<td>no ice<span class="math">\(^b\)</span></td>
+<td>restart using <strong>pointer_file</strong></td>
+</tr>
+<tr class="row-even"><td>default</td>
+<td>SST/latitude dependent</td>
+<td>SST/latitude dependent<span class="math">\(^b\)</span></td>
+<td>restart using <strong>pointer_file</strong></td>
+</tr>
+<tr class="row-odd"><td><strong>filename</strong></td>
+<td>no ice<span class="math">\(^c\)</span></td>
+<td>start from <strong>filename</strong></td>
+<td>restart using <strong>pointer_file</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="choosing-an-appropriate-time-step">
+<span id="parameters"></span><h3>3.1.5. Choosing an appropriate time step<a class="headerlink" href="#choosing-an-appropriate-time-step" title="Permalink to this headline">¶</a></h3>
+<p>The time step is chosen based on stability of the transport component
+(both horizontal and in thickness space) and on resolution of the
+physical forcing. CICE allows the dynamics, advection and ridging
+portion of the code to be run with a shorter timestep,
+<span class="math">\(\Delta t_{dyn}\)</span> (<cite>dt_dyn</cite>), than the thermodynamics timestep
+<span class="math">\(\Delta t\)</span> (<cite>dt</cite>). In this case, <cite>dt</cite> and the integer ndtd are
+specified, and <cite>dt_dyn</cite> = <cite>dt/ndtd</cite>.</p>
+<p>A conservative estimate of the horizontal transport time step bound, or
+CFL condition, under remapping yields</p>
+<div class="math">
+\[\Delta t_{dyn} &lt; {\min\left(\Delta x, \Delta y\right)\over 2\max\left(u, v\right)}.\]</div>
+<p>Numerical estimates for this bound for several POP grids, assuming
+<span class="math">\(\max(u, v)=0.5\)</span>&nbsp;m/s, are as follows:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="22%" />
+<col width="22%" />
+<col width="22%" />
+<col width="22%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>grid label</td>
+<td>N pole singularity</td>
+<td>dimensions</td>
+<td>min <span class="math">\(\sqrt{\Delta x\cdot\Delta y}\)</span></td>
+<td>max <span class="math">\(\Delta t_{dyn}\)</span></td>
+</tr>
+<tr class="row-even"><td>gx3</td>
+<td>Greenland</td>
+<td><span class="math">\(100\times 116\)</span></td>
+<td><span class="math">\(39\times 10^3\)</span> m</td>
+<td>10.8hr</td>
+</tr>
+<tr class="row-odd"><td>gx1</td>
+<td>Greenland</td>
+<td><span class="math">\(320\times 384\)</span></td>
+<td><span class="math">\(18\times 10^3\)</span> m</td>
+<td>5.0hr</td>
+</tr>
+<tr class="row-even"><td>p4</td>
+<td>Canada</td>
+<td><span class="math">\(900\times 600\)</span></td>
+<td><span class="math">\(6.5\times 10^3\)</span> m</td>
+<td>1.8hr</td>
+</tr>
+</tbody>
+</table>
+<p>As discussed in section&nbsp;<a class="reference internal" href="cice_2_science_guide.html#mech-red"><span class="std std-ref">Mechanical redistribution</span></a> and
+<a class="reference internal" href="zreferences.html#lhmj07" id="id7">[44]</a>, the maximum time step in practice is
+usually determined by the time scale for large changes in the ice
+strength (which depends in part on wind strength). Using the strength
+parameterization of <a class="reference internal" href="zreferences.html#rothrock75" id="id8">[57]</a>, as in
+Equation&nbsp;<a class="reference internal" href="cice_2_science_guide.html#equation-roth-strength0">(87)</a>, limits the time step to <span class="math">\(\sim\)</span>30
+minutes for the old ridging scheme (<cite>krdg_partic</cite> = 0), and to
+<span class="math">\(\sim\)</span>2 hours for the new scheme (<cite>krdg_partic</cite> = 1), assuming
+<span class="math">\(\Delta x\)</span> = 10 km. Practical limits may be somewhat less,
+depending on the strength of the atmospheric winds.</p>
+<p>Transport in thickness space imposes a similar restraint on the time
+step, given by the ice growth/melt rate and the smallest range of
+thickness among the categories,
+<span class="math">\(\Delta t&lt;\min(\Delta H)/2\max(f)\)</span>, where <span class="math">\(\Delta H\)</span> is the
+distance between category boundaries and <span class="math">\(f\)</span> is the thermodynamic
+growth rate. For the 5-category ice thickness distribution used as the
+default in this distribution, this is not a stringent limitation:
+<span class="math">\(\Delta t &lt; 19.4\)</span>&nbsp;hr, assuming <span class="math">\(\max(f) = 40\)</span>&nbsp;cm/day.</p>
+<p>In the classic EVP or EAP approach (<cite>kdyn</cite> = 1 or 2, <cite>revised_evp</cite> = false),
+the dynamics component is subcycled ndte (<span class="math">\(N\)</span>) times per dynamics
+time step so that the elastic waves essentially disappear before the
+next time step. The subcycling time step (<span class="math">\(\Delta
+t_e\)</span>) is thus</p>
+<div class="math">
+\[dte = dt\_dyn/ndte.\]</div>
+<p>A second parameter, <span class="math">\(E_\circ\)</span> (<cite>eyc</cite>), defines the elastic wave
+damping timescale <span class="math">\(T\)</span>, described in Section&nbsp;<a class="reference internal" href="cice_2_science_guide.html#dynam"><span class="std std-ref">Dynamics</span></a>, as
+<cite>eyc</cite>* <cite>dt_dyn</cite>. The forcing terms are not updated during the subcycling.
+Given the small step (<cite>dte</cite>) at which the EVP dynamics model is subcycled,
+the elastic parameter <span class="math">\(E\)</span> is also limited by stability
+constraints, as discussed in <a class="reference internal" href="zreferences.html#hd97" id="id9">[32]</a>. Linear stability
+analysis for the dynamics component shows that the numerical method is
+stable as long as the subcycling time step <span class="math">\(\Delta t_e\)</span>
+sufficiently resolves the damping timescale <span class="math">\(T\)</span>. For the stability
+analysis we had to make several simplifications of the problem; hence
+the location of the boundary between stable and unstable regions is
+merely an estimate. In practice, the ratio
+<span class="math">\(\Delta t_e ~:~ T ~:~ \Delta t\)</span> &nbsp;=&nbsp;1&nbsp;:&nbsp;40&nbsp;:&nbsp;120 provides both
+stability and acceptable efficiency for time steps (<span class="math">\(\Delta t\)</span>) on
+the order of 1 hour.</p>
+<p>For the revised EVP approach (<cite>kdyn</cite> = 1, <cite>revised_evp</cite> = true), the
+relaxation parameter <cite>arlx1i</cite> effectively sets the damping timescale in
+the problem, and <cite>brlx</cite> represents the effective subcycling
+<a class="reference internal" href="zreferences.html#bflm13" id="id10">[8]</a>. In practice the parameters <span class="math">\(S_e&gt;0.5\)</span>
+and <span class="math">\(\xi&lt;1\)</span> are set, along with an estimate of the ice strength
+per unit mass, and the damping and subcycling parameters are then
+calculated. With the addition of the revised EVP approach to CICE, the
+code now uses these parameters internally for both classic and revised
+EVP configurations (see Section&nbsp;<a class="reference internal" href="cice_2_science_guide.html#revp"><span class="std std-ref">Revised approach</span></a>).</p>
+<p>Note that only <span class="math">\(T\)</span> and <span class="math">\(\Delta t_e\)</span> figure into the
+stability of the dynamics component; <span class="math">\(\Delta t\)</span> does not. Although
+the time step may not be tightly limited by stability considerations,
+large time steps (<em>e.g.,</em> <span class="math">\(\Delta t=1\)</span>&nbsp;day, given daily forcing)
+do not produce accurate results in the dynamics component. The reasons
+for this error are discussed in <a class="reference internal" href="zreferences.html#hd97" id="id11">[32]</a>; see
+<a class="reference internal" href="zreferences.html#hz99" id="id12">[36]</a> for its practical effects. The thermodynamics
+component is stable for any time step, as long as the surface
+temperature <span class="math">\(T_{sfc}\)</span> is computed internally. The
+numerical constraint on the thermodynamics time step is associated with
+the transport scheme rather than the thermodynamic solver.</p>
+</div>
+<div class="section" id="model-output">
+<h3>3.1.6. Model output<a class="headerlink" href="#model-output" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="history-files">
+<span id="history"></span><h4>3.1.6.1. History files<a class="headerlink" href="#history-files" title="Permalink to this headline">¶</a></h4>
+<p>Model output data is averaged over the period(s) given by <cite>histfreq</cite> and
+<cite>histfreq_n</cite>, and written to binary or &nbsp;files prepended by <cite>history_file</cite>
+in <strong>ice_in</strong>. That is, if <cite>history_file</cite> = ‘iceh’ then the filenames
+will have the form <strong>iceh.[timeID].nc</strong> or <strong>iceh.[timeID].da</strong>,
+depending on the output file format chosen in <strong>comp_ice</strong> (set
+<cite>IO_TYPE</cite>). The &nbsp;history files are CF-compliant; header information for
+data contained in the &nbsp;files is displayed with the command <cite>ncdump -h
+filename.nc</cite>. Parallel &nbsp;output is available using the PIO library; the
+attribute <cite>io_flavor</cite> distinguishes output files written with PIO from
+those written with standard netCDF. With binary files, a separate header
+file is written with equivalent information. Standard fields are output
+according to settings in the <strong>icefields_nml</strong> namelist in <strong>ice_in</strong>.
+The user may add (or subtract) variables not already available in the
+namelist by following the instructions in section&nbsp;<a class="reference internal" href="#addhist"><span class="std std-ref">History fields</span></a>.</p>
+<p>With this release, the history module has been divided into several
+modules based on the desired formatting and on the variables
+themselves. Parameters, variables and routines needed by multiple
+modules is in <strong>ice_history_shared.F90</strong>, while the primary routines
+for initializing and accumulating all of the history variables are in
+<strong>ice_history.F90</strong>. These routines call format-specific code in the
+<strong>io_binary</strong>, <strong>io_netcdf</strong> and <strong>io_pio</strong> directories. History
+variables specific to certain components or parameterizations are
+collected in their own history modules (<strong>ice_history_bgc.F90</strong>,
+<strong>ice_history_drag.F90</strong>, <strong>ice_history_mechred.F90</strong>,
+<strong>ice_history_pond.F90</strong>).</p>
+<p>The history modules allow output at different frequencies. Five output
+frequencies (1, <cite>h</cite>, <cite>d</cite>, <cite>m</cite>, <cite>y</cite>) are available simultaneously during a run.
+The same variable can be output at different frequencies (say daily and
+monthly) via its namelist flag, <cite>f_</cite> <span class="math">\(\left&lt;{var}\right&gt;\)</span>, which
+is now a character string corresponding to <cite>histfreq</cite> or ‘x’ for none.
+(Grid variable flags are still logicals, since they are written to all
+files, no matter what the frequency is.) If there are no namelist flags
+with a given <cite>histfreq</cite> value, or if an element of <cite>histfreq_n</cite> is 0, then
+no file will be written at that frequency. The output period can be
+discerned from the filenames.</p>
+<p>For example, in namelist:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>`histfreq` = ’1’, ’h’, ’d’, ’m’, ’y’
+`histfreq\_n` = 1, 6, 0, 1, 1
+`f\_hi` = ’1’
+`f\_hs` = ’h’
+`f\_Tsfc` = ’d’
+`f\_aice` = ’m’
+`f\_meltb` = ’mh’
+`f\_iage` = ’x’
+</pre></div>
+</div>
+<p>Here, <cite>hi</cite> will be written to a file on every timestep, <cite>hs</cite> will be
+written once every 6 hours, <cite>aice</cite> once a month, <cite>meltb</cite> once a month AND
+once every 6 hours, and <cite>Tsfc</cite> and <cite>iage</cite> will not be written.</p>
+<p>From an efficiency standpoint, it is best to set unused frequencies in
+<cite>histfreq</cite> to ‘x’. Having output at all 5 frequencies takes nearly 5 times
+as long as for a single frequency. If you only want monthly output, the
+most efficient setting is <cite>histfreq</cite> = ’m’,’x’,’x’,’x’,’x’. The code counts
+the number of desired streams (<cite>nstreams</cite>) based on <cite>histfreq</cite>.</p>
+<p>The history variable names must be unique for netcdf, so in cases where
+a variable is written at more than one frequency, the variable name is
+appended with the frequency in files after the first one. In the example
+above, <cite>meltb</cite> is called <cite>meltb</cite> in the monthly file (for backward
+compatibility with the default configuration) and <cite>meltb_h</cite> in the
+6-hourly file.</p>
+<p>Using the same frequency twice in <cite>histfreq</cite> will have unexpected
+consequences and currently will cause the code to abort. It is not
+possible at the moment to output averages once a month and also once
+every 3 months, for example.</p>
+<p>If <cite>write_ic</cite> is set to true in <strong>ice_in</strong>, a snapshot of the same set
+of history fields at the start of the run will be written to the history
+directory in <strong>iceh_ic.[timeID].nc(da)</strong>. Several history variables are
+hard-coded for instantaneous output regardless of the averaging flag, at
+the frequency given by their namelist flag.</p>
+<p>The normalized principal components of internal ice stress are computed
+in <em>principal_stress</em> and written to the history file. This calculation
+is not necessary for the simulation; principal stresses are merely
+computed for diagnostic purposes and included here for the user’s
+convenience.</p>
+<p>Several history variables are available in two forms, a value
+representing an average over the sea ice fraction of the grid cell, and
+another that is multiplied by <span class="math">\(a_i\)</span>, representing an average over
+the grid cell area. Our naming convention attaches the suffix “_ai&#8221; to
+the grid-cell-mean variable names.</p>
+</div>
+<div class="section" id="diagnostic-files">
+<h4>3.1.6.2. Diagnostic files<a class="headerlink" href="#diagnostic-files" title="Permalink to this headline">¶</a></h4>
+<p>Like <cite>histfreq</cite>, the parameter <cite>diagfreq</cite> can be used to regulate how often
+output is written to a log file. The log file unit to which diagnostic
+output is written is set in <strong>ice_fileunits.F90</strong>. If <cite>diag_type</cite> =
+‘stdout’, then it is written to standard out (or to <strong>ice.log.[ID]</strong> if
+you redirect standard out as in <strong>run_ice</strong>); otherwise it is written
+to the file given by <cite>diag_file</cite>. In addition to the standard diagnostic
+output (maximum area-averaged thickness, velocity, average albedo, total
+ice area, and total ice and snow volumes), the namelist options
+<cite>print_points</cite> and <cite>print_global</cite> cause additional diagnostic information
+to be computed and written. <cite>print_global</cite> outputs global sums that are
+useful for checking global conservation of mass and energy.
+<cite>print_points</cite> writes data for two specific grid points. Currently, one
+point is near the North Pole and the other is in the Weddell Sea; these
+may be changed in <strong>ice_in</strong>.</p>
+<p>Timers are declared and initialized in <strong>ice_timers.F90</strong>, and the code
+to be timed is wrapped with calls to <em>ice_timer_start</em> and
+<em>ice_timer_stop</em>. Finally, <em>ice_timer_print</em> writes the results to
+the log file. The optional “stats&#8221; argument (true/false) prints
+additional statistics. Calling <em>ice_timer_print_all</em> prints all of
+the timings at once, rather than having to call each individually.
+Currently, the timers are set up as in <a class="reference internal" href="#timers"><span class="std std-ref">Table 5</span></a>.
+Section&nbsp;<a class="reference internal" href="#addtimer"><span class="std std-ref">Timers</span></a> contains instructions for adding timers.</p>
+<p>The timings provided by these timers are not mutually exclusive. For
+example, the column timer (5) includes the timings from 6–10, and
+subroutine <em>bound</em> (timer 15) is called from many different places in
+the code, including the dynamics and advection routines.</p>
+<p>The timers use <em>MPI_WTIME</em> for parallel runs and the F90 intrinsic
+<em>system_clock</em> for single-processor runs.</p>
+<p><a class="reference internal" href="#timers"><span class="std std-ref">Table 5</span></a> : <em>CICE timers</em></p>
+<table border="1" class="docutils" id="id26">
+<span id="timers"></span><caption><span class="caption-text">Table 5</span><a class="headerlink" href="#id26" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="18%" />
+<col width="16%" />
+<col width="66%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>Timer</strong></td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>Index</strong></td>
+<td><strong>Label</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>1</td>
+<td>Total</td>
+<td>the entire run</td>
+</tr>
+<tr class="row-even"><td>2</td>
+<td>Step</td>
+<td>total minus initialization and exit</td>
+</tr>
+<tr class="row-odd"><td>3</td>
+<td>Dynamics</td>
+<td>EVP</td>
+</tr>
+<tr class="row-even"><td>4</td>
+<td>Advection</td>
+<td>horizontal transport</td>
+</tr>
+<tr class="row-odd"><td>5</td>
+<td>Column</td>
+<td>all vertical (column) processes</td>
+</tr>
+<tr class="row-even"><td>6</td>
+<td>Thermo</td>
+<td>vertical thermodynamics</td>
+</tr>
+<tr class="row-odd"><td>7</td>
+<td>Shortwave</td>
+<td>SW radiation and albedo</td>
+</tr>
+<tr class="row-even"><td>8</td>
+<td>Meltponds</td>
+<td>melt ponds</td>
+</tr>
+<tr class="row-odd"><td>9</td>
+<td>Ridging</td>
+<td>mechanical redistribution</td>
+</tr>
+<tr class="row-even"><td>10</td>
+<td>Cat Conv</td>
+<td>transport in thickness space</td>
+</tr>
+<tr class="row-odd"><td>11</td>
+<td>Coupling</td>
+<td>sending/receiving coupler messages</td>
+</tr>
+<tr class="row-even"><td>12</td>
+<td>ReadWrite</td>
+<td>reading/writing files</td>
+</tr>
+<tr class="row-odd"><td>13</td>
+<td>Diags</td>
+<td>diagnostics (log file)</td>
+</tr>
+<tr class="row-even"><td>14</td>
+<td>History</td>
+<td>history output</td>
+</tr>
+<tr class="row-odd"><td>15</td>
+<td>Bound</td>
+<td>boundary conditions and subdomain communications</td>
+</tr>
+<tr class="row-even"><td>16</td>
+<td>BGC</td>
+<td>biogeochemistry</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="restart-files">
+<h4>3.1.6.3. Restart files<a class="headerlink" href="#restart-files" title="Permalink to this headline">¶</a></h4>
+<p>CICE now provides restart data in binary unformatted or &nbsp;formats, via
+the <cite>IO_TYPE</cite> flag in <strong>comp_ice</strong> and namelist variable
+<cite>restart_format</cite>. Restart and history files must use the same format. As
+with the history output, there is also an option for writing parallel
+restart files using PIO.</p>
+<p>The restart files created by CICE contain all of the variables needed
+for a full, exact restart. The filename begins with the character string
+‘iced.’, and the restart dump frequency is given by the namelist
+variables <cite>dumpfreq</cite> and <cite>dumpfreq_n</cite>. The pointer to the filename from
+which the restart data is to be read for a continuation run is set in
+<cite>pointer_file</cite>. The code assumes that auxiliary binary tracer restart
+files will be identified using the same pointer and file name prefix,
+but with an additional character string in the file name that is
+associated with each tracer set. All variables are included in &nbsp;restart
+files.</p>
+<p>Additional namelist flags provide further control of restart behavior.
+<cite>dump_last</cite> = true causes a set of restart files to be written at the end
+of a run when it is otherwise not scheduled to occur. The flag
+<cite>use_restart_time</cite> enables the user to choose to use the model date
+provided in the restart files. If <cite>use_restart_time</cite> = false then the
+initial model date stamp is determined from the namelist parameters.
+lcdf64 = true sets 64-bit &nbsp;output, allowing larger file sizes with
+version 3.</p>
+<p>Routines for gathering, scattering and (unformatted) reading and writing
+of the “extended&#8221; global grid, including the physical domain and ghost
+(halo) cells around the outer edges, allow exact restarts on regional
+grids with open boundary conditions, and they will also simplify
+restarts on the various tripole grids. They are accessed by setting
+<cite>restart_ext</cite> = true in namelist. Extended grid restarts are not
+available when using PIO; in this case extra halo update calls fill
+ghost cells for tripole grids (do not use PIO for regional grids).</p>
+<p>Two restart files are included with the CICE v5 code distribution, for
+the gx3 and gx1 grids. The were created using the default model
+configuration (settings as in <strong>comp_ice</strong> and <strong>ice_in</strong>), but
+initialized with no ice. The gx3 case was run for 1 year using the 1997
+forcing data provided with the code. The gx1 case was run for 20 years,
+so that the date of restart in the file is 1978-01-01. Note that the
+restart dates provided in the restart files can be overridden using the
+namelist variables <cite>use_restart_time</cite>, <cite>year_init</cite> and <cite>istep0</cite>. The
+forcing time can also be overridden using <cite>fyear_init</cite>.</p>
+<p>Several changes in CICE v5 have made restarting from v4.1 restart files
+difficult. First, the ice and snow enthalpy state variables are now
+carried as tracers instead of separate arrays, and salinity has been
+added as a necessary restart field. Second, the default number of ice
+layers has been increased from 4 to 7. Third, netcdf format is now used
+for all I/O; it is no longer possible to have history output as &nbsp;and
+restart output in binary format. However, some facilities are included
+with CICE v5 for converting v4.1 restart files to the new file structure
+and format, provided that the same number of ice layers and basic
+physics packages will be used for the new runs. See Section
+<a class="reference internal" href="#restarttrouble"><span class="std std-ref">Restarts</span></a> for details.</p>
+</div>
+</div>
+</div>
+<div class="section" id="execution-procedures">
+<h2>3.2. Execution procedures<a class="headerlink" href="#execution-procedures" title="Permalink to this headline">¶</a></h2>
+<p>To compile and execute the code: in the source directory,</p>
+<ol class="arabic">
+<li><p class="first">Download the forcing data used for testing from the CICE-Consortium github page,
+<a class="reference external" href="https://github.com/CICE-Consortium">https://github.com/CICE-Consortium</a> .</p>
+</li>
+<li><p class="first">Create <strong>Macros.*</strong> and <strong>run_ice.*</strong> files for your particular
+platform, if they do not already exist (type ‘uname -s’ at the prompt
+to get <span class="math">\(\langle\)</span>OS<span class="math">\(\rangle\)</span>).</p>
+</li>
+<li><p class="first">Alter directories in the script <strong>comp_ice</strong>.</p>
+</li>
+<li><p class="first">Run <strong>comp_ice</strong> to set up the run directory and make the executable
+‘<strong>cice</strong>’.</p>
+</li>
+<li><div class="first line-block">
+<div class="line">To clean the compile directory and start fresh, simply execute
+‘/bin/rm -rf compile’ from the run directory.</div>
+</div>
+</li>
+</ol>
+<p>In the run directory,</p>
+<ol class="arabic simple">
+<li>Alter <cite>atm_data_dir</cite> and <cite>ocn_data_dir</cite> in the namelist file
+<strong>ice_in</strong>.</li>
+<li>Alter the script <strong>run_ice</strong> for your system.</li>
+<li>Execute <strong>run_ice</strong>.</li>
+</ol>
+<p>If this fails, see Section&nbsp;<a class="reference internal" href="#setup"><span class="std std-ref">Initial setup</span></a>.</p>
+<p>This procedure creates the output log file <strong>ice.log.[ID]</strong>, and if
+<cite>npt</cite> is long enough compared with <cite>dumpfreq</cite> and <cite>histfreq</cite>, dump files
+<strong>iced.[timeID]</strong> and &nbsp; (or binary) history output files
+<strong>iceh_[timeID].nc (.da)</strong>. Using the <span class="math">\(\left&lt;3^\circ\right&gt;\)</span>
+grid, the log file should be similar to
+<strong>ice.log.:math:`langle`OS:math:`rangle`</strong>, provided for the
+user’s convenience. These log files were created using MPI on 4
+processors on the <span class="math">\(\left&lt;3^\circ\right&gt;\)</span> grid.</p>
+<p>Several options are available in <strong>comp_ice</strong> for configuring the run,
+shown in <a class="reference internal" href="#comp-ice"><span class="std std-ref">Table 6</span></a>. If <cite>NTASK</cite> = 1, then the <strong>serial/</strong>
+code is used, otherwise the code in <strong>mpi/</strong> is used. Loops over blocks
+have been threaded throughout the code, so that their work will be
+divided among <cite>OMP_NUM_THREADS</cite> if <cite>THRD</cite> is ‘yes.’ Note that the value of
+<cite>NTASK</cite> in <strong>comp_ice</strong> must equal the value of <cite>nprocs</cite> in <strong>ice_in</strong>.
+Generally the value of <cite>MXBLCKS</cite> computed by <strong>comp_ice</strong> is sufficient,
+but sometimes it will need to be set explicitly, as discussed in
+Section <a class="reference internal" href="#performance"><span class="std std-ref">Performance</span></a>. To conserve memory, match the tracer requests
+in <strong>comp_ice</strong> with those in <strong>ice_in</strong>. CESM uses 3 aerosol tracers;
+the number given in <strong>comp_ice</strong> must be less than or equal to the
+maximum allowed in <strong>ice_domain_size.F90</strong>.</p>
+<p>The scripts define a number of environment variables, mostly as
+directories that you will need to edit for your own environment.
+<cite>$SYSTEM_USERDIR</cite>, which on machines at Oak Ridge National Laboratory
+points automatically to scratch space, is intended to be a disk where
+the run directory resides. <cite>SHRDIR</cite> is a path to the CESM shared code.</p>
+<p><a class="reference internal" href="#comp-ice"><span class="std std-ref">Table 6</span></a> : Configuration options available in <strong>comp_ice</strong>.</p>
+<table border="1" class="docutils" id="id27">
+<span id="comp-ice"></span><caption><span class="caption-text">Table 6</span><a class="headerlink" href="#id27" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="15%" />
+<col width="27%" />
+<col width="59%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">variable</th>
+<th class="head">options</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>RES</td>
+<td>col, gx3, gx1</td>
+<td>grid resolution</td>
+</tr>
+<tr class="row-odd"><td>NTASK</td>
+<td>(integer)</td>
+<td>total number of processors</td>
+</tr>
+<tr class="row-even"><td>BLCKX</td>
+<td>(integer)</td>
+<td>number of grid cells on each block in the x-direction <span class="math">\(^\dagger\)</span></td>
+</tr>
+<tr class="row-odd"><td>BLCKY</td>
+<td>(integer)</td>
+<td>number of grid cells on each block in the y-direction <span class="math">\(^\dagger\)</span></td>
+</tr>
+<tr class="row-even"><td>MXBLCKS</td>
+<td>(integer)</td>
+<td>maximum number of blocks per processor</td>
+</tr>
+<tr class="row-odd"><td>NICELYR</td>
+<td>(integer)</td>
+<td>number of vertical layers in the ice</td>
+</tr>
+<tr class="row-even"><td>NSNWLYR</td>
+<td>(integer)</td>
+<td>number of vertical layers in the snow</td>
+</tr>
+<tr class="row-odd"><td>NICECAT</td>
+<td>(integer)</td>
+<td>number of ice thickness categories</td>
+</tr>
+<tr class="row-even"><td>TRAGE</td>
+<td>0 or 1</td>
+<td>set to 1 for ice age tracer</td>
+</tr>
+<tr class="row-odd"><td>TRFY</td>
+<td>0 or 1</td>
+<td>set to 1 for first-year ice age tracer</td>
+</tr>
+<tr class="row-even"><td>TRLVL</td>
+<td>0 or 1</td>
+<td>set to 1 for level and deformed ice tracers</td>
+</tr>
+<tr class="row-odd"><td>TRPND</td>
+<td>0 or 1</td>
+<td>set to 1 for melt pond tracers</td>
+</tr>
+<tr class="row-even"><td>NTRAERO</td>
+<td>0 or 1</td>
+<td>number of aerosol tracers</td>
+</tr>
+<tr class="row-odd"><td>TRBRINE</td>
+<td>set to 1 for brine height tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>NBGCLYR</td>
+<td>(integer)</td>
+<td>number of vertical layers for biogeochemical transport</td>
+</tr>
+<tr class="row-odd"><td>IO_TYPE</td>
+<td>none/netcdf/pio</td>
+<td>use ‘none’ if &nbsp;library is unavailable,‘pio’ for PIO</td>
+</tr>
+<tr class="row-even"><td>DITTO</td>
+<td>yes/no</td>
+<td>for reproducible diagnostics</td>
+</tr>
+<tr class="row-odd"><td>BARRIERS</td>
+<td>yes/no</td>
+<td>flushes MPI buffers during global scatters and gathers</td>
+</tr>
+<tr class="row-even"><td>THRD</td>
+<td>yes/no</td>
+<td>set to yes for OpenMP threaded parallelism</td>
+</tr>
+<tr class="row-odd"><td>OMP_NUM_THREADS</td>
+<td>(integer)</td>
+<td>the number of OpenMP threads requested</td>
+</tr>
+<tr class="row-even"><td>NUMIN</td>
+<td>(integer)</td>
+<td>smallest unit number assigned to CICE files</td>
+</tr>
+<tr class="row-odd"><td>NUMAX</td>
+<td>(integer)</td>
+<td>largest unit number assigned to CICE files</td>
+</tr>
+</tbody>
+</table>
+<p>The ‘reproducible’ option (<cite>DITTO</cite>) makes diagnostics bit-for-bit when
+varying the number of processors. (The simulation results are
+bit-for-bit regardless, because they do not require global sums or
+max/mins as do the diagnostics.) This was done mainly by increasing the
+precision for the global reduction calculations, except for regular
+double-precision (r8) calculations involving MPI; MPI can not handle
+MPI_REAL16 on some architectures. Instead, these cases perform sums or
+max/min calculations across the global block structure, so that the
+results are bit-for-bit as long as the block distribution is the same
+(the number of processors can be different).</p>
+<p>A more flexible option is available for double-precision MPI
+calculations, using the namelist variable <cite>bfbflag</cite>. When true, this flag
+produces bit-for-bit identical diagnostics with different tasks,
+threads, blocks and grid decompositions.</p>
+<p>CICE namelist variables available for changes after compile time appear
+in <strong>ice.log.*</strong> with values read from the file <strong>ice_in</strong>; their
+definitions are given in Section&nbsp;<a class="reference internal" href="cice_4_index.html#index"><span class="std std-ref">Index of primary variables and parameters</span></a>. For example, to run for a
+different length of time, say three days, set <cite>npt</cite> = 72 in <strong>ice_in</strong>.
+At present, the user supplies the time step <cite>dt</cite>, the number of
+dynamics/advection/ridging subcycles <cite>ndtd</cite>, and for classic EVP, the
+number of EVP subcycles <cite>ndte</cite>; <cite>dte</cite> is then calculated in subroutine
+<em>init_evp</em>. The primary reason for doing it this way is to ensure that
+<cite>ndte</cite> is an integer. (This is done differently for <cite>revised_evp</cite> = true.;
+see Section&nbsp;<a class="reference internal" href="cice_2_science_guide.html#dynam"><span class="std std-ref">Dynamics</span></a>).</p>
+<p>To restart from a previous run, set restart = true in <strong>ice_in</strong>. There
+are two ways of restarting from a given file. The restart pointer file
+<strong>ice.restart_file</strong> (created by the previous run) contains the name of
+the last written data file (<strong>iced.[timeID]</strong>). Alternatively, a
+filename can be assigned to ice_ic in <strong>ice_in</strong>. Consult
+Section&nbsp;<a class="reference internal" href="#init"><span class="std std-ref">Initialization and coupling</span></a> for more details. Restarts are exact for MPI or
+single processor runs.</p>
+<div class="section" id="scripts">
+<h3>3.2.1. Scripts<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="directories">
+<h3>3.2.2. Directories<a class="headerlink" href="#directories" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="local-modifications">
+<h3>3.2.3. Local modifications<a class="headerlink" href="#local-modifications" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="forcing-data">
+<h3>3.2.4. Forcing data<a class="headerlink" href="#forcing-data" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="performance">
+<span id="id13"></span><h2>3.3. Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h2>
+<p>Namelist options (<em>domain_nml</em>) provide considerable flexibility for
+finding the most efficient processor and block configuration. Some of
+these choices are illustration in <a class="reference internal" href="#fig-distrb"><span class="std std-ref">Figure 9</span></a>. <cite>processor_shape</cite>
+chooses between tall, thin processor domains (<cite>slenderX1</cite> or <cite>slenderX2</cite>,
+often better for sea ice simulations on global grids where nearly all of
+the work is at the top and bottom of the grid with little to do in
+between) and close-to-square domains, which maximize the volume to
+surface ratio (and therefore on-processor computations to message
+passing, if there were ice in every grid cell). In cases where the
+number of processors is not a perfect square (4, 9, 16...), the
+<cite>processor_shape</cite> namelist variable allows the user to choose how the
+processors are arranged. Here again, it is better in the sea ice model
+to have more processors in x than in y, for example, 8 processors
+arranged 4x2 (<cite>square-ice</cite>) rather than 2x4 (<cite>square-pop</cite>). The latter
+option is offered for direct-communication compatibility with POP, in
+which this is the default.</p>
+<p>The user provides the total number of processors and the block
+dimensions in the setup script (<strong>comp_ice</strong>). When moving toward
+smaller, more numerous blocks, there is a point where the code becomes
+less efficient; blocks should not have fewer than about 20 grid cells in
+each direction. Squarish blocks optimize the volume-to-surface ratio for
+communications.</p>
+<div class="figure align-center" id="id28">
+<span id="fig-distrb"></span><a class="reference internal image-reference" href="_images/distrb.png"><img alt="_images/distrb.png" src="_images/distrb.png" style="width: 788.0px; height: 565.5px;" /></a>
+<p class="caption"><span class="caption-text">Figure 9</span></p>
+</div>
+<p><a class="reference internal" href="#fig-distrb"><span class="std std-ref">Figure 9</span></a> : Distribution of 256 blocks across 16 processors,
+represented by colors, on the gx1 grid: (a) cartesian, slenderX1, (b)
+cartesian, slenderX2, (c) cartesian, square-ice (square-pop is
+equivalent here), (d) rake with block weighting, (e) rake with
+latitude weighting, (f) spacecurve. Each block consists of 20x24 grid
+cells, and white blocks consist entirely of land cells.</p>
+<p>The <cite>distribution_type</cite> options allow standard Cartesian distribution of
+blocks, redistribution via a ‘rake’ algorithm for improved load
+balancing across processors, and redistribution based on space-filling
+curves. There are also three additional distribution types
+(‘roundrobin,’ ‘sectrobin,’ ‘sectcart’) that improve land-block
+elimination rates and also allow more flexibility in the number of
+processors used. The rake and space-filling curve algorithms are
+primarily helpful when using squarish processor domains where some
+processors (located near the equator) would otherwise have little work
+to do. Processor domains need not be rectangular, however.</p>
+<p><cite>distribution_wght</cite> chooses how the work-per-block estimates are
+weighted. The ‘block’ option is the default in POP, which uses a lot of
+array syntax requiring calculations over entire blocks (whether or not
+land is present), and is provided here for direct-communication
+compatibility with POP. The ‘latitude’ option weights the blocks based
+on latitude and the number of ocean grid cells they contain.</p>
+<p>The rake distribution type is initialized as a standard, Cartesian
+distribution. Using the work-per-block estimates, blocks are “raked&#8221;
+onto neighboring processors as needed to improve load balancing
+characteristics among processors, first in the x direction and then in
+y.</p>
+<p>Space-filling curves reduce a multi-dimensional space (2D, in our case)
+to one dimension. The curve is composed of a string of blocks that is
+snipped into sections, again based on the work per processor, and each
+piece is placed on a processor for optimal load balancing. This option
+requires that the block size be chosen such that the number of blocks in
+the x direction equals the number of blocks in the y direction, and that
+number must be factorable as <span class="math">\(2^n 3^m 5^p\)</span> where <span class="math">\(n, m, p\)</span>
+are integers. For example, a 16x16 array of blocks, each containing
+20x24 grid cells, fills the gx1 grid (<span class="math">\(n=4, m=p=0\)</span>). If either of
+these conditions is not met, a Cartesian distribution is used instead.</p>
+<p>While the Cartesian distribution groups sets of blocks by processor, the
+‘roundrobin’ distribution loops through the blocks and processors
+together, putting one block on each processor until the blocks are gone.
+This provides good load balancing but poor communication characteristics
+due to the number of neighbors and the amount of data needed to
+communicate. The ‘sectrobin’ and ‘sectcart’ algorithms loop similarly,
+but put groups of blocks on each processor to improve the communication
+characteristics. In the ‘sectcart’ case, the domain is divided into two
+(east-west) halves and the loops are done over each, sequentially.
+<a class="reference internal" href="#fig-distribscorecard"><span class="std std-ref">Figure 10</span></a> provides an overview of the pros and cons
+for the distribution types.</p>
+<div class="figure align-center" id="id29">
+<span id="fig-distribscorecard"></span><a class="reference internal image-reference" href="_images/scorecard.png"><img alt="_images/scorecard.png" src="_images/scorecard.png" style="width: 810.0px; height: 610.0px;" /></a>
+<p class="caption"><span class="caption-text">Figure 10</span></p>
+</div>
+<p><a class="reference internal" href="#fig-distribscorecard"><span class="std std-ref">Figure 10</span></a> : Scorecard for block distribution choices in
+CICE, courtesy T. Craig. For more information, see
+<a class="reference external" href="http://www.cesm.ucar.edu/events/ws.2012/Presentations/SEWG2/craig.pdf">http://www.cesm.ucar.edu/events/ws.2012/Presentations/SEWG2/craig.pdf</a></p>
+<p>The <cite>maskhalo</cite> options in the namelist improve performance by removing
+unnecessary halo communications where there is no ice. There is some
+overhead in setting up the halo masks, which is done during the
+timestepping procedure as the ice area changes, but this option
+usually improves timings even for relatively small processor counts.
+T. Craig has found that performance improved by more than 20% for
+combinations of updated decompositions and masked haloes, in CESM’s
+version of CICE. A practical guide for choosing a CICE grid
+decomposition, based on experience in CESM, is available:
+<a class="reference external" href="http://oceans11.lanl.gov/drupal/CICE/DecompositionGuide">http://oceans11.lanl.gov/drupal/CICE/DecompositionGuide</a></p>
+<p>Throughout the code, (i, j) loops have been combined into a single loop,
+often over just ocean cells or those containing sea ice. This was done
+to reduce unnecessary operations and to improve vector performance.</p>
+<p><a class="reference internal" href="#fig-timings"><span class="std std-ref">Figure 11</span></a> illustrates the computational expense of various
+options, relative to the total time (excluding initialization) of a
+7-layer configuration using BL99 thermodynamics, EVP dynamics, and the
+‘ccsm3’ shortwave parameterization on the gx1 grid, run for one year
+from a no-ice initial condition. The block distribution consisted of
+20&nbsp;<span class="math">\(\times\)</span>&nbsp;192 blocks spread over 32 processors (‘slenderX2’)
+with no threads and -O2 optimization. Timings varied by about
+<span class="math">\(\pm3\)</span>% in identically configured runs due to machine load.
+Extra time required for tracers has two components, that needed to carry
+the tracer itself (advection, category conversions) and that needed for
+the calculations associated with the particular tracer. The age tracers
+(FY and iage) require very little extra calculation, so their timings
+represent essentially the time needed just to carry an extra tracer. The
+topo melt pond scheme is slightly faster than the others because it
+calculates pond area and volume once per grid cell, while the others
+calculate it for each thickness category.</p>
+<div class="figure align-center" id="id30">
+<span id="fig-timings"></span><a class="reference internal image-reference" href="_images/histograms.png"><img alt="_images/histograms.png" src="_images/histograms.png" style="width: 543.8px; height: 312.0px;" /></a>
+<p class="caption"><span class="caption-text">Figure 11</span></p>
+</div>
+<p><a class="reference internal" href="#fig-timings"><span class="std std-ref">Figure 11</span></a> : Change in ‘TimeLoop’ timings from the 7-layer
+configuration using BL99 thermodynamics and EVP dynamics. Timings
+were made on a nondedicated machine, with variations of about
+<span class="math">\(\pm3\)</span>% in identically configured runs (light grey). Darker
+grey indicates the time needed for extra required options; The
+Delta-Eddington radiation scheme is required for all melt pond
+schemes and the aerosol tracers, and the level-ice pond
+parameterization additionally requires the level-ice tracers.</p>
+</div>
+<div class="section" id="adding-things">
+<h2>3.4. Adding things<a class="headerlink" href="#adding-things" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="addtimer">
+<span id="id14"></span><h3>3.4.1. Timers<a class="headerlink" href="#addtimer" title="Permalink to this headline">¶</a></h3>
+<p>Timing any section of code, or multiple sections, consists of defining
+the timer and then wrapping the code with start and stop commands for
+that timer. Printing of the timer output is done simultaneously for all
+timers. To add a timer, first declare it (<cite>timer_[tmr]</cite>) at the top of
+<strong>ice_timers.F90</strong> (we recommend doing this in both the <strong>mpi/</strong> and
+<strong>serial/</strong> directories), then add a call to <em>get_ice_timer</em> in the
+subroutine <em>init_ice_timers</em>. In the module containing the code to be
+timed, <cite>call ice_timer_start`(`timer_[tmr]</cite>) at the beginning of the
+section to be timed, and a similar call to <cite>ice_timer_stop</cite> at the end.
+A use <cite>ice_timers</cite> statement may need to be added to the subroutine being
+modified. Be careful not to have one command outside of a loop and the
+other command inside. Timers can be run for individual blocks, if
+desired, by including the block ID in the timer calls.</p>
+</div>
+<div class="section" id="history-fields">
+<span id="addhist"></span><h3>3.4.2. History fields<a class="headerlink" href="#history-fields" title="Permalink to this headline">¶</a></h3>
+<p>To add a variable to be printed in the history output, search for
+‘example’ in <strong>ice_history_shared.F90</strong>:</p>
+<ol class="arabic simple">
+<li>add a frequency flag for the new field</li>
+<li>add the flag to the namelist (here and also in <strong>ice_in</strong>)</li>
+<li>add an index number</li>
+</ol>
+<p>and in <strong>ice_history.F90</strong>:</p>
+<ol class="arabic simple">
+<li>broadcast the flag</li>
+<li>add a call to <cite>define_hist_field</cite></li>
+<li>add a call to <cite>accum_hist_field</cite></li>
+</ol>
+<p>The example is for a standard, two-dimensional (horizontal) field; for
+other array sizes, choose another history variable with a similar shape
+as an example. Some history variables, especially tracers, are grouped
+in other files according to their purpose (bgc, melt ponds, etc.).</p>
+<p>To add an output frequency for an existing variable, see
+section&nbsp;<a class="reference internal" href="#history"><span class="std std-ref">History files</span></a>.</p>
+</div>
+<div class="section" id="tracers">
+<span id="addtrcr"></span><h3>3.4.3. Tracers<a class="headerlink" href="#tracers" title="Permalink to this headline">¶</a></h3>
+<p>Each optional tracer has its own module, <strong>ice_[tracer].F90</strong>, which
+also contains as much of the additional tracer code as possible, and for
+backward compatibility of binary restart files, each new tracer has its
+own binary restart file. We recommend that the logical namelist variable
+<cite>tr_[tracer]</cite> be used for all calls involving the new tracer outside of
+<strong>ice_[tracer].F90</strong>, in case other users do not want to use that
+tracer.</p>
+<p>A number of optional tracers are available in the code, including ice
+age, first-year ice area, melt pond area and volume, brine height,
+aerosols, and level ice area and volume (from which ridged ice
+quantities are derived). Salinity, enthalpies, age, aerosols, level-ice
+volume, brine height and most melt pond quantities are volume-weighted
+tracers, while first-year area, pond area, level-ice area and all of the
+biogeochemistry tracers in this release are area-weighted tracers. In
+the absence of sources and sinks, the total mass of a volume-weighted
+tracer such as aerosol (kg) is conserved under transport in horizontal
+and thickness space (the mass in a given grid cell will change), whereas
+the aerosol concentration (kg/m) is unchanged following the motion, and
+in particular, the concentration is unchanged when there is surface or
+basal melting. The proper units for a volume-weighted mass tracer in the
+tracer array are kg/m.</p>
+<p>In several places in the code, tracer computations must be performed on
+the conserved “tracer volume&#8221; rather than the tracer itself; for
+example, the conserved quantity is <span class="math">\(h_{pnd}a_{pnd}a_{lvl}a_{i}\)</span>,
+not <span class="math">\(h_{pnd}\)</span>. Conserved quantities are thus computed according to
+the tracer dependencies, and code must be included to account for new
+dependencies (e.g., <span class="math">\(a_{lvl}\)</span> and <span class="math">\(a_{pnd}\)</span> in
+<strong>ice_itd.F90</strong> and <strong>ice_mechred.F90</strong>).</p>
+<p>To add a tracer, follow these steps using one of the existing tracers as
+a pattern.</p>
+<ol class="arabic simple">
+<li><strong>ice_domain_size.F90</strong>: increase <cite>max_ntrcr</cite> (can also add option
+to <strong>comp_ice</strong> and <strong>bld/Macros.*</strong>)</li>
+<li><strong>ice_state.F90</strong>: declare <cite>nt_[tracer]</cite> and <cite>tr_[tracer]</cite></li>
+<li><strong>ice_[tracer].F90</strong>: create initialization, physics, restart
+routines</li>
+<li><strong>ice_fileunits.F90</strong>: add new dump and restart file units</li>
+<li><strong>ice_init.F90</strong>: (some of this may be done in <strong>ice_[tracer].F90</strong>
+instead)<ul>
+<li>add new module and <cite>tr_[tracer]</cite> to list of used modules and
+variables</li>
+<li>add logical namelist variable <cite>tr_[tracer]</cite></li>
+<li>initialize namelist variable</li>
+<li>broadcast namelist variable</li>
+<li>print namelist variable to diagnostic output file</li>
+<li>increment number of tracers in use based on namelist input (<cite>ntrcr</cite>)</li>
+<li>define tracer types (<cite>trcr_depend</cite> = 0 for ice area tracers, 1 for
+ice volume, 2 for snow volume, 2+nt_[tracer] for dependence on
+other tracers)</li>
+</ul>
+</li>
+<li><strong>ice_itd.F90</strong>, <strong>ice_mechred.F90</strong>: Account for new dependencies
+if needed.</li>
+<li><strong>CICE_InitMod.F90</strong>: initialize tracer (includes reading restart
+file)</li>
+<li><strong>CICE_RunMod.F90</strong>, <strong>ice_step_mod.F90</strong>:<ul>
+<li>call routine to write tracer restart data</li>
+<li>call physics routines in <strong>ice_[tracer].F90</strong> (often called from
+<strong>ice_step_mod.F90</strong>)</li>
+</ul>
+</li>
+<li><strong>ice_restart.F90</strong>: define restart variables (for binary, &nbsp;and PIO)</li>
+<li><strong>ice_history_[tracer].F90</strong>: add history variables
+(Section&nbsp;<a class="reference internal" href="#addhist"><span class="std std-ref">History fields</span></a>)</li>
+<li><strong>ice_in</strong>: add namelist variables to <em>tracer_nml</em> and
+<em>icefields_nml</em></li>
+<li>If strict conservation is necessary, add diagnostics as noted for
+topo ponds in Section&nbsp;<a class="reference internal" href="cice_2_science_guide.html#ponds"><span class="std std-ref">Melt ponds</span></a>.</li>
+</ol>
+</div>
+</div>
+<div class="section" id="troubleshooting">
+<h2>3.5. Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h2>
+<p>Check the FAQ: <a class="reference external" href="http://oceans11.lanl.gov/drupal/CICE/FAQ">http://oceans11.lanl.gov/drupal/CICE/FAQ</a>.</p>
+<div class="section" id="initial-setup">
+<span id="setup"></span><h3>3.5.1. Initial setup<a class="headerlink" href="#initial-setup" title="Permalink to this headline">¶</a></h3>
+<p>The script <strong>comp_ice</strong> is configured so that the files <strong>grid</strong>,
+<strong>kmt</strong>, <strong>ice_in</strong>, <strong>run_ice</strong>, <strong>iced_gx3_v5.0</strong> and
+<strong>ice.restart_file</strong> are NOT overwritten after the first setup. If you
+wish to make changes to the original files in <strong>input_templates/</strong>
+rather than those in the run directory, either remove the files from the
+run directory before executing <strong>comp_ice</strong> or edit the script.</p>
+<p>The code may abort during the setup phase for any number of reasons, and
+often the buffer containing the diagnostic output fails to print before
+the executable exits. The quickest way to get the diagnostic information
+is to run the code in an interactive shell with just the command <cite>cice</cite>
+for serial runs or “<cite>mpirun -np N cice</cite>” for MPI runs, where N is the
+appropriate number of processors (or a command appropriate for your
+computer’s software).</p>
+<p>If the code fails to compile or run, or if the model configuration is
+changed, try the following:</p>
+<ul class="simple">
+<li>create <strong>Macros.*</strong>. <strong>Makefile.*</strong> and <strong>run_ice.*</strong> files for
+your particular platform, if they do not already exist (type ‘uname
+-s’ at the prompt and compare the result with the file suffixes; we
+rename <cite>UNICOS/mp</cite> as <cite>UNICOS</cite> for simplicity).</li>
+<li>modify the <cite>INCLUDE</cite> directory path and other settings for your system
+in the scripts, <strong>Macros.*</strong> and <strong>Makefile.*</strong> files.</li>
+<li>alter directory paths, file names and the execution command as needed
+in <strong>run_ice</strong> and <strong>ice_in</strong>.</li>
+<li>ensure that <cite>nprocs</cite> in <strong>ice_in</strong> is equal to <cite>NTASK</cite> in <strong>comp_ice</strong>.</li>
+<li>ensure that the block size <cite>NXBLOCK</cite>, <cite>NYBLOCK</cite> in <strong>comp_ice</strong> is
+compatible with the processor_shape and other domain options in
+<strong>ice_in</strong></li>
+<li>if using the rake or space-filling curve algorithms for block
+distribution (<cite>distribution_type</cite> in <strong>ice_in</strong>) the code will abort
+if <cite>MXBLCKS</cite> is not large enough. The correct value is provided in the
+diagnostic output.</li>
+<li>if starting from a restart file, ensure that kcatbound is the same as
+that used to create the file (<cite>kcatbound</cite> = 0 for the files included in
+this code distribution). Other configuration parameters, such as
+<cite>NICELYR</cite>, must also be consistent between runs.</li>
+<li>for stand-alone runs, check that <cite>-Dcoupled</cite> is <em>not</em> set in the
+<strong>Macros.*</strong> file.</li>
+<li>for coupled runs, check that <cite>-Dcoupled</cite> and other
+coupled-model-specific (e.g., CESM, popcice or hadgem) preprocessing
+options are set in the <strong>Macros.*</strong> file.</li>
+<li>edit the grid size and other parameters in <strong>comp_ice</strong>.</li>
+<li>remove the <strong>compile/</strong> directory completely and recompile.</li>
+</ul>
+</div>
+<div class="section" id="restarts">
+<span id="restarttrouble"></span><h3>3.5.2. Restarts<a class="headerlink" href="#restarts" title="Permalink to this headline">¶</a></h3>
+<p>CICE version 5 introduces a new model configuration that makes
+restarting from older simulations difficult. In particular, the number
+of ice categories, the category boundaries, and the number of vertical
+layers within each category must be the same in the restart file and in
+the run restarting from that file. Moreover, significant differences in
+the physics, such as the salinity profile, may cause the code to fail
+upon restart. Therefore, new model configurations may need to be started
+using <cite>runtype</cite> = ‘initial’. Binary restart files that were provided with
+CICE v4.1 were made using the BL99 thermodynamics with 4 layers and 5
+thickness categories (<cite>kcatbound</cite> = 0) and therefore can not be used for
+the default CICE v5 configuration (7 layers). In addition, CICE’s
+default restart file format is now &nbsp;instead of binary.</p>
+<p>Restarting a run using <cite>runtype</cite> = ‘continue’ requires restart data for
+all tracers used in the new run. If tracer restart data is not
+available, use <cite>runtype</cite> = ‘initial’, setting <cite>ice_ic</cite> to the name of the
+core restart file and setting to true the namelist restart flags for
+each tracer that is available. The unavailable tracers will be
+initialized to their default settings.</p>
+<p>On tripole grids, use <cite>restart_ext</cite> = true when using either binary or
+regular (non-PIO) netcdf.</p>
+<p>Provided that the same number of ice layers (default: 4) will be used
+for the new runs, it is possible to convert v4.1 restart files to the
+new file structure and then to &nbsp;format. If the same physical
+parameterizations are used, the code should be able to execute from
+these files. However if different physics is used (for instance, mushy
+thermo instead of BL99), the code may still fail. To convert a v4.1
+restart file:</p>
+<ol class="arabic simple">
+<li>Edit the code <strong>input_templates/convert_restarts.f90</strong> for your
+model configuration and path names. Compile and run this code to
+create a binary restart file that can be read using v5. Copy the
+resulting file to the <strong>restart/</strong> subdirectory in your working
+directory.</li>
+<li>In your working directory, turn off all tracer restart flags in
+<strong>ice_in</strong> and set the following:<ul>
+<li>runtype = ‘initial’</li>
+<li>ice_ic = ‘./restart/[your binary file name]’</li>
+<li>restart = .true.</li>
+<li>use_restart_time = .true.</li>
+</ul>
+</li>
+<li>In <strong>CICE_InitMod.F90</strong>, comment out the call to
+restartfile(ice_ic) and uncomment the call to
+restartfile_v4(ice_ic) immediately below it. This will read the
+v4.1 binary file and write a v5 &nbsp;file containing the same
+information.</li>
+</ol>
+<p>If restart files are taking a long time to be written serially (i.e.,
+not using PIO), see the next section.</p>
+</div>
+<div class="section" id="slow-execution">
+<h3>3.5.3. Slow execution<a class="headerlink" href="#slow-execution" title="Permalink to this headline">¶</a></h3>
+<p>On some architectures, underflows (<span class="math">\(10^{-300}\)</span> for example) are
+not flushed to zero automatically. Usually a compiler flag is available
+to do this, but if not, try uncommenting the block of code at the end of
+subroutine <em>stress</em> in <strong>ice_dyn_evp.F90</strong> or <strong>ice_dyn_eap.F90</strong>.
+You will take a hit for the extra computations, but it will not be as
+bad as running with the underflows.</p>
+<p>In some configurations, multiple calls to scatter or gather global
+variables may overfill MPI’s buffers, causing the code to slow down
+(particularly when writing large output files such as restarts). To
+remedy this problem, set <cite>BARRIERS yes</cite> in <strong>comp_ice</strong>. This
+synchronizes MPI messages, keeping the buffers in check.</p>
+</div>
+<div class="section" id="debugging-hints">
+<h3>3.5.4. Debugging hints<a class="headerlink" href="#debugging-hints" title="Permalink to this headline">¶</a></h3>
+<p>Several utilities are available that can be helpful when debugging the
+code. Not all of these will work everywhere in the code, due to possible
+conflicts in module dependencies.</p>
+<dl class="docutils">
+<dt><em>debug_ice</em> (<strong>CICE.F90</strong>)</dt>
+<dd>A wrapper for <em>print_state</em> that is easily called from numerous
+points during the timestepping loop (see
+<strong>CICE_RunMod.F90_debug</strong>, which can be substituted for
+<strong>CICE_RunMod.F90</strong>).</dd>
+<dt><em>print_state</em> (<strong>ice_diagnostics.F90</strong>)</dt>
+<dd>Print the ice state and forcing fields for a given grid cell.</dd>
+<dt><cite>dbug</cite> = true (<strong>ice_in</strong>)</dt>
+<dd>Print numerous diagnostic quantities.</dd>
+<dt><cite>print_global</cite> (<strong>ice_in</strong>)</dt>
+<dd>If true, compute and print numerous global sums for energy and mass
+balance analysis. This option can significantly degrade code
+efficiency.</dd>
+<dt><cite>print_points</cite> (<strong>ice_in</strong>)</dt>
+<dd>If true, print numerous diagnostic quantities for two grid cells,
+one near the north pole and one in the Weddell Sea. This utility
+also provides the local grid indices and block and processor numbers
+(<cite>ip</cite>, <cite>jp</cite>, <cite>iblkp</cite>, <cite>mtask</cite>) for these points, which can be used in
+conjunction with <cite>check_step</cite>, to call <em>print_state</em>. These flags
+are set in <strong>ice_diagnostics.F90</strong>. This option can be fairly slow,
+due to gathering data from processors.</dd>
+<dt><em>global_minval, global_maxval, global_sum</em> (<strong>ice_global_reductions.F90</strong>)</dt>
+<dd>Compute and print the minimum and maximum values for an individual
+real array, or its global sum.</dd>
+</dl>
+</div>
+<div class="section" id="known-bugs">
+<h3>3.5.5. Known bugs<a class="headerlink" href="#known-bugs" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic simple">
+<li>Fluxes sent to the CESM coupler may have incorrect values in grid
+cells that change from an ice-free state to having ice during the
+given time step, or vice versa, due to scaling by the ice area. The
+authors of the CESM flux coupler insist on the area scaling so that
+the ice and land models are treated consistently in the coupler (but
+note that the land area does not suddenly become zero in a grid cell,
+as does the ice area).</li>
+<li>With the old CCSM radiative scheme (<cite>shortwave</cite> = ‘default’ or
+‘ccsm3’), a sizable fraction (more than 10%) of the total shortwave
+radiation is absorbed at the surface but should be penetrating into
+the ice interior instead. This is due to use of the aggregated,
+effective albedo rather than the bare ice albedo when
+<cite>snowpatch</cite>&nbsp;<span class="math">\(&lt; 1\)</span>.</li>
+<li>The date-of-onset diagnostic variables, <cite>melt_onset</cite> and <cite>frz_onset</cite>,
+are not included in the core restart file, and therefore may be
+incorrect for the current year if the run is restarted after Jan 1.
+Also, these variables were implemented with the Arctic in mind and
+may be incorrect for the Antarctic.</li>
+<li>The single-processor <em>system_clock</em> time may give erratic results on
+some architectures.</li>
+<li>History files that contain time averaged data (<cite>hist_avg</cite> = true in
+<strong>ice_in</strong>) will be incorrect if restarting from midway through an
+averaging period.</li>
+<li>In stand-alone runs, restarts from the end of <cite>ycycle</cite> will not be
+exact.</li>
+<li>Using the same frequency twice in <cite>histfreq</cite> will have unexpected
+consequences and causes the code to abort.</li>
+<li>Latitude and longitude fields in the history output may be wrong when
+using padding.</li>
+</ol>
+</div>
+<div class="section" id="interpretation-of-albedos">
+<h3>3.5.6. Interpretation of albedos<a class="headerlink" href="#interpretation-of-albedos" title="Permalink to this headline">¶</a></h3>
+<p>The snow-and-ice albedo, <cite>albsni</cite>, and diagnostic albedos <cite>albice</cite>, <cite>albsno</cite>,
+and <cite>albpnd</cite> are merged over categories but not scaled (divided) by the
+total ice area. (This is a change from CICE v4.1 for <cite>albsni</cite>.) The latter
+three history variables represent completely bare or completely snow- or
+melt-pond-covered ice; that is, they do not take into account the snow
+or melt pond fraction (<cite>albsni</cite> does, as does the code itself during
+thermodyamic computations). This is to facilitate comparison with
+typical values in measurements or other albedo parameterizations. The
+melt pond albedo <cite>albpnd</cite> is only computed for the Delta-Eddington
+shortwave case.</p>
+<p>With the Delta-Eddington parameterization, the albedo depends on the
+cosine of the zenith angle (<span class="math">\(\cos\varphi\)</span>, <cite>coszen</cite>) and is zero if
+the sun is below the horizon (<span class="math">\(\cos\varphi &lt; 0\)</span>). Therefore
+time-averaged albedo fields would be low if a diurnal solar cycle is
+used, because zero values would be included in the average for half of
+each 24-hour period. To rectify this, a separate counter is used for the
+averaging that is incremented only when <span class="math">\(\cos\varphi &gt; 0\)</span>. The
+albedos will still be zero in the dark, polar winter hemisphere.</p>
+</div>
+<div class="section" id="proliferating-subprocess-parameterizations">
+<h3>3.5.7. Proliferating subprocess parameterizations<a class="headerlink" href="#proliferating-subprocess-parameterizations" title="Permalink to this headline">¶</a></h3>
+<p>With the addition of several alternative parameterizations for sea ice
+processes, a number of subprocesses now appear in multiple parts of the
+code with differing descriptions. For instance, sea ice porosity and
+permeability, along with associated flushing and flooding, are
+calculated separately for mushy thermodynamics, topo and level-ice melt
+ponds, and for the brine height tracer, each employing its own
+equations. Likewise, the BL99 and mushy thermodynamics compute freeboard
+and snow–ice formation differently, and the topo and level-ice melt pond
+schemes both allow fresh ice to grow atop melt ponds, using slightly
+different formulations for Stefan freezing. These various process
+parameterizations will be compared and their subprocess descriptions
+possibly unified in the future.</p>
+</div>
+</div>
+<div class="section" id="testing-cice">
+<h2>3.6. Testing CICE<a class="headerlink" href="#testing-cice" title="Permalink to this headline">¶</a></h2>
+<p>Version 6, August 2017
+This documents how to use the testing features developed for the
+CICE Consortium CICE sea ice model.</p>
+<div class="section" id="individual-tests-and-test-suites">
+<span id="basic"></span><h3>3.6.1. Individual tests and test suites<a class="headerlink" href="#individual-tests-and-test-suites" title="Permalink to this headline">¶</a></h3>
+<p>The CICE scripts support both setup of individual tests as well as test suites.  Individual
+tests are run from the command line like</p>
+<blockquote>
+<div>&gt; create.case -t smoke -m wolf -g gx3 -p 8x2 -s diag1,run5day -testid myid</div></blockquote>
+<p>where -m designates a specific machine.  Test suites are multiple tests that are specified in
+an input file and are started on the command line like</p>
+<blockquote>
+<div>&gt; create.case -ts base_suite -m wolf -testid myid</div></blockquote>
+<p>create.case with -t or -ts require a testid to uniquely name test directories.  The format
+of the case directory name for a test will always be
+${machine}_${test}_${grid}_${pes}_${soptions}.${testid}</p>
+<dl class="docutils">
+<dt>To build and run a test, the process is the same as a case,</dt>
+<dd><p class="first">cd into the test directory,</p>
+<p>run cice.build</p>
+<p class="last">run cice.submit</p>
+</dd>
+</dl>
+<p>The test results will be generated in a local file called &#8220;test_output&#8221;.</p>
+<p>When running a test suite, the create.case command line automatically generates all the tests
+under a directory names ${test_suite}.${testid}.  It then automatically builds and submits all
+tests.  When the tests are complete, run the results.csh script to see the results from all the
+tests.</p>
+<dl class="docutils">
+<dt>Tests are defined under configuration/scripts/tests.  The tests currently supported are:</dt>
+<dd><dl class="first last docutils">
+<dt>smoke   - Runs the model for default length.  The length and options can</dt>
+<dd>be set with the -s commmand line option.  The test passes if the
+model completes successfully.</dd>
+<dt>restart - Runs the model for 10 days, writing a restart file at day 5 and</dt>
+<dd>again at day 10.  Runs the model a second time starting from the
+day 5 restart and writing a restart at day 10 of the model run.
+The test passes if both the 10 day and 5 day restart run complete and
+if the restart files at day 10 from both runs are bit-for-bit identical.</dd>
+</dl>
+</dd>
+</dl>
+<p>Please run &#8216;./create.case -h&#8217; for additional details.</p>
+</div>
+<div class="section" id="additional-testing-options">
+<span id="additional"></span><h3>3.6.2. Additional testing options<a class="headerlink" href="#additional-testing-options" title="Permalink to this headline">¶</a></h3>
+<p>There are several additional options on the create.case command line for testing that
+provide the ability to regression test and compare tests to each other.</p>
+<blockquote>
+<div><p>-bd defines a baseline directory where tests can be stored for regression testing</p>
+<p>-bg defines a version name that where the current tests can be saved for regression testing</p>
+<p>-bc defines a version name that the current tests should be compared to for regression testing</p>
+<p>-td provides a way to compare tests with each other</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>To use -bg,</dt>
+<dd><dl class="first last docutils">
+<dt>&gt; create.case -ts base_suite -m wolf -testid v1 -bg version1 -bd $SCRATCH/CICE_BASELINES</dt>
+<dd>will copy all the results from the test suite to $SCRATCH/CICE_BASELINES/version1.</dd>
+</dl>
+</dd>
+<dt>To use -bc,</dt>
+<dd><dl class="first last docutils">
+<dt>&gt; create.case -ts base_suite -m wolf -testid v2 -bc version1 -bd $SCRATCH/CICE_BASELINES</dt>
+<dd>will compare all the results from this test suite to results saved before in $SCRATCH/CICE_BASELINES/version1.</dd>
+</dl>
+</dd>
+<dt>-bc and -bg can be combined,</dt>
+<dd><dl class="first last docutils">
+<dt>&gt;create.case -ts base_suite -m wolf -testid v2 -bg version2 -bc version1 -bd $SCRATCH/CICE_BASELINES</dt>
+<dd>will save the current results to $SCRATCH/CICE_BASELINES/version2 and compare the current results to
+results save before in $SCRATCH/CICE_BASELINES/version1.</dd>
+</dl>
+</dd>
+</dl>
+<p>-bg, -bc, and -bd are used for regression testing.  There is a default -bd on each machine.</p>
+<dl class="docutils">
+<dt>-td allows a user to compare one test result to another.  For instance,</dt>
+<dd>&gt; create.case -t smoke -m wolf -g gx3 -p 8x2 -s run5day -testid t01
+&gt; create.case -t smoke -m wolf -g gx3 -p 4x2 -s run5day -testid t01 -td smoke_gx3_8x2_run5day</dd>
+</dl>
+<p>An additional check will be done for the second test (because of the -td argument), and it will compare
+the output from the first test &#8220;smoke_gx3_8x2_run5day&#8221; to the output from it&#8217;s test &#8220;smoke_gx3_4x2_run5day&#8221;
+and generate a result for that.  It&#8217;s important that the first test complete before the second test is
+done.  Also, the -td option works only if the testid and the machine are the same for the baseline
+run and the current run.</p>
+</div>
+<div class="section" id="test-suite-format">
+<span id="format"></span><h3>3.6.3. Test suite format<a class="headerlink" href="#test-suite-format" title="Permalink to this headline">¶</a></h3>
+<p>The format for the test suite file is relatively simple.  It is a text file with white space delimited
+columns like,</p>
+<table border="1" class="colwidths-given docutils" id="id31">
+<span id="tab-test"></span><caption><span class="caption-text">Table 7</span><a class="headerlink" href="#id31" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="14%" />
+<col width="14%" />
+<col width="14%" />
+<col width="29%" />
+<col width="29%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">#Test</th>
+<th class="head">Grid</th>
+<th class="head">PEs</th>
+<th class="head">Sets</th>
+<th class="head">BFB-compare</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>smoke</td>
+<td>gx3</td>
+<td>8x2</td>
+<td>diag1,run5day</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>smoke</td>
+<td>gx3</td>
+<td>8x2</td>
+<td>diag24,run1year,medium</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>smoke</td>
+<td>gx3</td>
+<td>4x1</td>
+<td>debug,diag1,run5day</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>smoke</td>
+<td>gx3</td>
+<td>8x2</td>
+<td>debug,diag1,run5day</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>smoke</td>
+<td>gx3</td>
+<td>4x2</td>
+<td>diag1,run5day</td>
+<td>smoke_gx3_8x2_diag1_run5day</td>
+</tr>
+<tr class="row-odd"><td>smoke</td>
+<td>gx3</td>
+<td>4x1</td>
+<td>diag1,run5day,thread</td>
+<td>smoke_gx3_8x2_diag1_run5day</td>
+</tr>
+<tr class="row-even"><td>smoke</td>
+<td>gx3</td>
+<td>4x1</td>
+<td>diag1,run5day</td>
+<td>smoke_gx3_4x1_diag1_run5day_thread</td>
+</tr>
+<tr class="row-odd"><td>restart</td>
+<td>gx3</td>
+<td>8x1</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>restart</td>
+<td>gx3</td>
+<td>4x2</td>
+<td>debug</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<p>The first column is the test name, the second the grid, the third the pe count, the fourth column is
+the -s options and the fifth column is the -td argument.  The fourth and fifth columns are optional.
+The argument to -ts defines which filename to choose and that argument can contain a path.  create.case
+will also look for the filename in configuration/scripts/tests where some preset test suites are defined.</p>
+</div>
+<div class="section" id="example-tests-quickstart">
+<h3>3.6.4. Example Tests (Quickstart)<a class="headerlink" href="#example-tests-quickstart" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="to-generate-a-baseline-dataset-for-a-test-case">
+<h4>3.6.4.1. To generate a baseline dataset for a test case<a class="headerlink" href="#to-generate-a-baseline-dataset-for-a-test-case" title="Permalink to this headline">¶</a></h4>
+<p>./create.case -t smoke -m wolf -bg cicev6.0.0 -testid t00</p>
+<p>cd wolf_smoke_gx3_4x1.t00</p>
+<p>./cice.build</p>
+<p>./cice.submit</p>
+<p># After job finishes, check output</p>
+<p>cat test_output</p>
+</div>
+<div class="section" id="to-run-a-test-case-and-compare-to-a-baseline-dataset">
+<h4>3.6.4.2. To run a test case and compare to a baseline dataset<a class="headerlink" href="#to-run-a-test-case-and-compare-to-a-baseline-dataset" title="Permalink to this headline">¶</a></h4>
+<p>./create.case -t smoke -m wolf -bc cicev6.0.0 -testid t01</p>
+<p>cd wolf_smoke_gx3_4x1.t01</p>
+<p>./cice.build</p>
+<p>./cice.submit</p>
+<p># After job finishes, check output</p>
+<p>cat test_output</p>
+</div>
+<div class="section" id="to-run-a-test-suite-to-generate-baseline-data">
+<h4>3.6.4.3. To run a test suite to generate baseline data<a class="headerlink" href="#to-run-a-test-suite-to-generate-baseline-data" title="Permalink to this headline">¶</a></h4>
+<p>./create.case -m wolf -ts base_suite -testid t02 -bg cicev6.0.0bs</p>
+<p>cd base_suite.t02</p>
+<p># Once all jobs finish, concatenate all output</p>
+<p>./results.csh  # All tests results will be stored in results.log</p>
+<p># To plot a timeseries of &#8220;total ice extent&#8221;, &#8220;total ice area&#8221;, and &#8220;total ice volume&#8221;</p>
+<p>./timeseries.csh &lt;directory&gt;</p>
+<p>ls *.png</p>
+</div>
+<div class="section" id="to-run-a-test-suite-to-compare-to-baseline-data">
+<h4>3.6.4.4. To run a test suite to compare to baseline data<a class="headerlink" href="#to-run-a-test-suite-to-compare-to-baseline-data" title="Permalink to this headline">¶</a></h4>
+<p>./create.case -m wolf -ts base_suite -testid t03 -bc cicev6.0.0bs</p>
+<p>cd base_suite.t03</p>
+<p># Once all jobs finish, concatenate all output</p>
+<p>./results.csh  # All tests results will be stored in results.log</p>
+<p># To plot a timeseries of &#8220;total ice extent&#8221;, &#8220;total ice area&#8221;, and &#8220;total ice volume&#8221;</p>
+<p>./timeseries.csh &lt;directory&gt;</p>
+<p>ls *.png</p>
+</div>
+<div class="section" id="to-compare-to-another-test">
+<h4>3.6.4.5. To compare to another test<a class="headerlink" href="#to-compare-to-another-test" title="Permalink to this headline">¶</a></h4>
+<p><cite>First:</cite></p>
+<p>./create.case -m wolf -t smoke -testid t01 -p 8x2</p>
+<p>cd wolf_smoke_gx3_8x2.t01</p>
+<p>./cice.build</p>
+<p>./cice.submit</p>
+<p># After job finishes, check output</p>
+<p>cat test_output</p>
+<p><cite>Then, do the comparison:</cite></p>
+<p>./create.case -m wolf -t smoke -testid t01 -td smoke_gx3_8x2 -s thread -p 4x1</p>
+<p>cd wolf_smoke_gx3_4x1_thread.t01</p>
+<p>./cice.build</p>
+<p>./cice.submit</p>
+<p># After job finishes, check output</p>
+<p>cat test_output</p>
+</div>
+<div class="section" id="additional-details">
+<h4>3.6.4.6. Additional Details<a class="headerlink" href="#additional-details" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li>In general, the baseline generation, baseline compare, and test diff are independent.</li>
+<li><dl class="first docutils">
+<dt>Use the &#8216;-bd&#8217; flag to specify the location where you want the baseline dataset</dt>
+<dd>to be written.  Without specifying &#8216;-bd&#8217;, the baseline dataset will be written
+to the default baseline directory found in the env.&lt;machine&gt; file (ICE_MACHINE_BASELINE).</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>If &#8216;-bd&#8217; is not passed, the scripts will look for baseline datasets in the default</dt>
+<dd>baseline directory found in the env.&lt;machine&gt; file (ICE_MACHINE_BASELINE).
+If the &#8216;-bd&#8217; option is passed, the scripts will look for baseline datasets in the
+location passed to the -bd argument.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>To generate a baseline dataset for a specific version (for regression testing),</dt>
+<dd>use &#8216;-bg &lt;version_name&gt;&#8217;.  The scripts will then place the baseline dataset
+in $ICE_MACHINE_BASELINE/&lt;version_name&gt;/</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>The &#8216;-testid&#8217; flag allows users to specify a testing id that will be added to the</dt>
+<dd>end of the case directory.  For example, &#8221;./create.case -m wolf -t smoke -testid t12 -p 4x1&#8221;
+creates the directory wolf_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t or -ts.</dd>
+</dl>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="code-compliance-test">
+<h3>3.6.5. Code compliance test<a class="headerlink" href="#code-compliance-test" title="Permalink to this headline">¶</a></h3>
+<p>Additions and changes to CICE and Icepack are expected to be bit-for-bit
+unless there is a strong justification for non-reproducibility, such as
+a bug-fix or approved scientific alteration to existing code. However,
+situations do arise when additions to CICE or Icepack are not
+bit-for-bit, but are also not expected to change the science of CICE and
+Icepack. In that instant, further evidence is required in the initial
+testing phase to support the premise that code changes have not altered
+the science of the model. To support this testing, a <span class="math">\(t\)</span>-test is
+being/has been implemented in the CICE testing infrastructure.</p>
+<div class="section" id="method">
+<h4>3.6.5.1. Method<a class="headerlink" href="#method" title="Permalink to this headline">¶</a></h4>
+<p>Welch’s two-sided <span class="math">\(t\)</span>-test is used to help determine whether or
+not two different simulations that should be identical are significantly
+different for any grid cell of the CICE gx-1/3 domain for grid-cell
+averaged sea ice thickness, <span class="math">\(h\)</span>, ice concentration, <span class="math">\(c\)</span>, and
+pack velocity components <span class="math">\(\pmb{u}=\pmb{u}(u,v)\)</span>. In this
+circumstance, we seek to determine whether or not the null hypothesis,
+<span class="math">\(H_0\)</span>, is true. The null hypothesis is: Two simulations that are
+not bit-for-bit identical are ostensibly the same at every model grid
+point. The test begins from the standpoint that two CICE simulations
+<em>should</em> be bit-for-bit but are suspected of only being different at the
+level of computational innaccuracy. Therefore, we seek to limit a
+<span class="math">\(t\)</span>-test Type II error, where a test would erroneously confirm the
+null hypothesis, <span class="math">\(H_0\)</span>. To that end, we choose to test the
+hypothesis that grid-point means from CICE simulation ‘<span class="math">\(a\)</span>’ are
+different from CICE simulation ‘<span class="math">\(b\)</span>’ at a relatively low
+confidence interval. Formally, we test the hypothesis
+<span class="math">\(H_0:\bar{x}_a=\bar{x}_b\)</span>, <span class="math">\(H_1:\bar{x}_a\neq\bar{x}_b\)</span> for
+each of the aforementioned variables at every model grid point using a
+two-sided t-test with a 68, 80 and 95% confidence interval. Here,
+<span class="math">\(\bar{x}{=}\tfrac{1}{n}\sum_{i=1}^n x_i\)</span> is the time series mean
+of <span class="math">\(n\)</span> samples <span class="math">\(x_i\)</span> representing <span class="math">\(h\)</span>, <span class="math">\(c\)</span>,
+<span class="math">\(u\)</span> or <span class="math">\(v\)</span>, and daily samples are used from 5-year
+stand-alone CICE simulations. More frequent output is unnecessary,
+because each of <span class="math">\(h\)</span>, <span class="math">\(c\)</span>, <span class="math">\(u\)</span> and <span class="math">\(v\)</span> typically
+have a high degree of auto-correlation in sea ice models.</p>
+<p>Due to the strong auto-correlation in geo-located sea ice time series,
+we calculate a two-sided <span class="math">\(t\)</span>-statistic to compare
+<span class="math">\(\bar{x}_a\)</span> and <span class="math">\(\bar{x}_b\)</span>, given their respective standard
+deviations, <span class="math">\(\sigma_a\)</span> and <span class="math">\(\sigma_b\)</span>, and effective sample
+sizes, <span class="math">\(n'_a\)</span> and <span class="math">\(n'_b\)</span>, following
+<a class="reference internal" href="zreferences.html#vsz99" id="id15">[75]</a> :</p>
+<div class="math" id="equation-t-distribution">
+<span class="eqno">(1)<a class="headerlink" href="#equation-t-distribution" title="Permalink to this equation">¶</a></span>\[t=\frac{\bar{x}_a - \bar{x}_b}{\sqrt{\frac{\sigma^2_a}{n'_a}+\frac{\sigma^2_b}{n'_b}}}.\]</div>
+<p>The null hypothesis <span class="math">\(H_0:\bar{x}_a=\bar{x}_b\)</span> is true when</p>
+<div class="math" id="equation-t-crit">
+<span class="eqno">(2)<a class="headerlink" href="#equation-t-crit" title="Permalink to this equation">¶</a></span>\[-t_{crit}({1{-}\alpha/2},N)&lt;t&lt;t_{crit}({1{-}\alpha/2},N)\]</div>
+<p>for critical <span class="math">\(t\)</span>-distribution values, <span class="math">\(t_{crit}\)</span>, at the
+<span class="math">\(\alpha\)</span> significance level for effective degrees of freedom
+<span class="math">\(N = n'_a + n'_b - 2\)</span>. At the 80% confidence interval,
+<span class="math">\(\alpha=0.20\)</span>, with corresponding tabulated values of
+<span class="math">\(t_{crit}(0.9,N)\)</span> obtained from a <span class="math">\(t\)</span>-distribution look-up
+table. From <a class="reference internal" href="zreferences.html#wilks06" id="id16">[79]</a> , we use an unbiased standard
+deviation estimate,</p>
+<div class="math" id="equation-unbiased-sigma">
+<span class="eqno">(3)<a class="headerlink" href="#equation-unbiased-sigma" title="Permalink to this equation">¶</a></span>\[\sigma=\sqrt{\frac{1}{n'-1}\sum_{i=1}^{n}(x_i-\bar{x})^2},\]</div>
+<p>for the effective sample size,</p>
+<div class="math" id="equation-effective-sample-size">
+<span class="eqno">(4)<a class="headerlink" href="#equation-effective-sample-size" title="Permalink to this equation">¶</a></span>\[n' \approx n \frac{1-r_1}{1+r_1},\]</div>
+<p>where <span class="math">\(r_1\)</span> is the lag-1 autocorrelation given by:</p>
+<div class="math" id="equation-lag-1-auto-correlation">
+<span class="eqno">(5)<a class="headerlink" href="#equation-lag-1-auto-correlation" title="Permalink to this equation">¶</a></span>\[r_1=\frac{\sum\limits_{i=1}^{n-1}\big[(x_i-\bar{x}_{1:n-1})(x_{i+1}-\bar{x}_{2:n})\big]}{\sqrt{\sum\limits_{i=1}^{n-1} (x_i-\bar{x}_{1:n-1})^2 \sum\limits_{i=2}^{n} (x_i-\bar{x}_{2:n})^2 }}.\]</div>
+<p>In equation&nbsp;<a class="reference internal" href="#equation-lag-1-auto-correlation">(5)</a>, <span class="math">\(\bar{x}_{1:n-1}\)</span> is
+the mean of all samples except the last, and <span class="math">\(\bar{x}_{2:n}\)</span> is
+the mean of samples except the first, and both differ from the overall
+mean <span class="math">\(\bar{x}\)</span> in equations&nbsp;<a class="reference internal" href="#equation-t-distribution">(1)</a>
+and&nbsp;<a class="reference internal" href="#equation-unbiased-sigma">(3)</a>, which we repeat here for clarity:</p>
+<div class="math" id="equation-short-means">
+<span class="eqno">(6)<a class="headerlink" href="#equation-short-means" title="Permalink to this equation">¶</a></span>\[\bar{x}_{1:n-1}=\frac{1}{n{-}1} \sum \limits_{i=1}^{n-1} x_i,\quad
+\bar{x}_{2:n}=\frac{1}{n{-}1} \sum \limits_{i=2}^{n} x_i,\quad
+\bar{x}=\frac{1}{n} \sum \limits_{i=1}^{n} x_i\]</div>
+<p>In applying equations&nbsp;<a class="reference internal" href="#equation-t-distribution">(1)</a> through&nbsp;<a class="reference internal" href="#equation-short-means">(6)</a>,
+we are accounting for the fact, however imperfectly, that a
+<span class="math">\(t\)</span>-test should be a comparison of the means from two series of
+independent samples. The typical affect of applying these equations to
+sea ice model output is that <span class="math">\(n' \ll n\)</span>. For that reason, we need
+a lengthy time series to narrow the range of acceptable values
+in&nbsp;<a class="reference internal" href="#equation-t-crit">(2)</a>. There is little point in using more frequent output
+from CICE than daily instantaneous values, since this would have little
+impact on decreasing <span class="math">\(r_1\)</span> in <a class="reference internal" href="#equation-lag-1-auto-correlation">(5)</a>.</p>
+<p>Using these equations, a standard procedure in testing for
+science-changing answers in CICE and Icepack is as follows: First, make
+every attempt to obtain bit-for-bit reproducibility in the model code.
+Once all available software-testing options have been exhausted, and the
+source of the bit-for-bit test failure has been pinpointed, proceed with
+the <span class="math">\(t\)</span>-test documented above if the expectation is that code
+alterations should not be science-changing.
+Equations&nbsp;<a class="reference internal" href="#equation-t-distribution">(1)</a> through&nbsp;<a class="reference internal" href="#equation-short-means">(6)</a> are
+implemented in the reverse order from which they are presented here, and
+applied individually to daily samples of <span class="math">\(h\)</span>, <span class="math">\(c\)</span>, <span class="math">\(u\)</span>
+and <span class="math">\(v\)</span> from 5-year time series at every model grid point: i)
+Calculate <span class="math">\(\bar{x}_{1:n-1}\)</span>, <span class="math">\(\bar{x}_{2:n}\)</span>, and
+<span class="math">\(\bar{x}\)</span> in <a class="reference internal" href="#equation-short-means">(6)</a> for simulations <span class="math">\(a\)</span> and
+<span class="math">\(b\)</span>; ii) Compute <a class="reference internal" href="#equation-lag-1-auto-correlation">(5)</a>,
+<a class="reference internal" href="#equation-effective-sample-size">(4)</a> and <a class="reference internal" href="#equation-unbiased-sigma">(3)</a>, in that order,
+for each simulation <span class="math">\(a\)</span> and <span class="math">\(b\)</span>, and finally; iii) Determine
+whether the null hypothesis is true at each model grid point in
+<a class="reference internal" href="#equation-t-crit">(2)</a> using equation <a class="reference internal" href="#equation-t-distribution">(1)</a> and a lookup
+<span class="math">\(t\)</span>-distribution table. Should <span class="math">\(H_0\)</span> be confirmed at each
+grid point, and for each variable <span class="math">\(h\)</span>, <span class="math">\(c\)</span>, <span class="math">\(u\)</span> and
+<span class="math">\(v\)</span>, this test contributes to evidence that changes to CICE and
+Icepack code are unlikely to alter scientific results. To guard against
+the possibility of a Type II error, the test should be performed for
+several different confidence intervals, nominally set at 68, 80 and 95%,
+the first and last of these values corresponding to <span class="math">\(\sigma\)</span> and
+<span class="math">\(2\sigma\)</span> tests.</p>
+</div>
+<div class="section" id="practical-testing-procedure">
+<h4>3.6.5.2. Practical Testing Procedure<a class="headerlink" href="#practical-testing-procedure" title="Permalink to this headline">¶</a></h4>
+<p>To be placed here: Write up of how to actually do this test within the
+testing software to be added by Elizabeth, Rick, Matt, Tony et al....</p>
+<p>Implementation notes: 1) Provide a pass/fail on each of the confidence
+intervals, 2) Facilitate output of a bitmap for each test so that
+locations of failures can be identified.</p>
+</div>
+</div>
+</div>
+<div class="section" id="table-of-namelist-options">
+<span id="tabnamelist"></span><h2>3.7. Table of namelist options<a class="headerlink" href="#table-of-namelist-options" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="colwidths-given docutils" id="id32">
+<span id="tab-namelist"></span><caption><span class="caption-text">Table 8</span><a class="headerlink" href="#id32" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="20%" />
+<col width="20%" />
+<col width="40%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">variable</th>
+<th class="head">options/format</th>
+<th class="head">description</th>
+<th class="head">recommended value</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><em>setup_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Time, Diagnostics</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">days_per_year</span></code></td>
+<td><code class="docutils literal"><span class="pre">360</span></code> or <code class="docutils literal"><span class="pre">365</span></code></td>
+<td>number of days in a model year</td>
+<td>365</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">use_leap_years</span></code></td>
+<td>true/false</td>
+<td>if true, include leap days</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">year_init</span></code></td>
+<td>yyyy</td>
+<td>the initial year, if not using restart</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">istep0</span></code></td>
+<td>integer</td>
+<td>initial time step number</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">dt</span></code></td>
+<td>seconds</td>
+<td>thermodynamics time step length</td>
+<td><ol class="first last arabic simple" start="3600">
+<li></li>
+</ol>
+</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">npt</span></code></td>
+<td>integer</td>
+<td>total number of time steps to take</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ndtd</span></code></td>
+<td>integer</td>
+<td>number of dynamics/advection/ridging/steps per thermo timestep</td>
+<td>1</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Initialization/Restarting</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">runtype</span></code></td>
+<td><code class="docutils literal"><span class="pre">initial</span></code></td>
+<td>start from <code class="docutils literal"><span class="pre">ice_ic</span></code></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">continue</span></code></td>
+<td>restart using <code class="docutils literal"><span class="pre">pointer_file</span></code></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ice_ic</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>latitude and sst dependent</td>
+<td>default</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">none</span></code></td>
+<td>no ice</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>path/file</td>
+<td>restart file name</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart</span></code></td>
+<td>true/false</td>
+<td>initialize using restart file</td>
+<td><code class="docutils literal"><span class="pre">.true.</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">use_restart_time</span></code></td>
+<td>true/false</td>
+<td>set initial date using restart file</td>
+<td><code class="docutils literal"><span class="pre">.true.</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_format</span></code></td>
+<td>nc</td>
+<td>read/write &nbsp;restart files (use with PIO)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>bin</td>
+<td>read/write binary restart files</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">lcdf64</span></code></td>
+<td>true/false</td>
+<td>if true, use 64-bit &nbsp;format</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">restart_dir</span></code></td>
+<td>path/</td>
+<td>path to restart directory</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_ext</span></code></td>
+<td>true/false</td>
+<td>read/write halo cells in restart files</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">restart_file</span></code></td>
+<td>filename prefix</td>
+<td>output file for restart dump</td>
+<td>‘iced’</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">pointer_file</span></code></td>
+<td>pointer filename</td>
+<td>contains restart filename</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">dumpfreq</span></code></td>
+<td><code class="docutils literal"><span class="pre">y</span></code></td>
+<td>write restart every <code class="docutils literal"><span class="pre">dumpfreq_n</span></code> years</td>
+<td>y</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">m</span></code></td>
+<td>write restart every <code class="docutils literal"><span class="pre">dumpfreq_n</span></code> months</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">d</span></code></td>
+<td>write restart every <code class="docutils literal"><span class="pre">dumpfreq_n</span></code> days</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">dumpfreq_n</span></code></td>
+<td>integer</td>
+<td>frequency restart data is written</td>
+<td>1</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">dump_last</span></code></td>
+<td>true/false</td>
+<td>if true, write restart on last time step of simulation</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Model Output</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">bfbflag</span></code></td>
+<td>true/false</td>
+<td>for bit-for-bit diagnostic output</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">diagfreq</span></code></td>
+<td>integer</td>
+<td>frequency of diagnostic output in <code class="docutils literal"><span class="pre">dt</span></code></td>
+<td>24</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><em>e.g.</em>, 10</td>
+<td>once every 10 time steps</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">diag_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">stdout</span></code></td>
+<td>write diagnostic output to stdout</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">file</span></code></td>
+<td>write diagnostic output to file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">diag_file</span></code></td>
+<td>filename</td>
+<td>diagnostic output file (script may reset)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">print_global</span></code></td>
+<td>true/false</td>
+<td>print diagnostic data, global sums</td>
+<td><code class="docutils literal"><span class="pre">.false.</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">print_points</span></code></td>
+<td>true/false</td>
+<td>print diagnostic data for two grid points</td>
+<td><code class="docutils literal"><span class="pre">.false.</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">latpnt</span></code></td>
+<td>real</td>
+<td>latitude of (2) diagnostic points</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">lonpnt</span></code></td>
+<td>real</td>
+<td>longitude of (2) diagnostic points</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">dbug</span></code></td>
+<td>true/false</td>
+<td>if true, write extra diagnostics</td>
+<td><code class="docutils literal"><span class="pre">.false.</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">histfreq</span></code></td>
+<td>string array</td>
+<td>defines output frequencies</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">y</span></code></td>
+<td>write history every <code class="docutils literal"><span class="pre">histfreq_n</span></code> years</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">m</span></code></td>
+<td>write history every <code class="docutils literal"><span class="pre">histfreq_n</span></code> months</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">d</span></code></td>
+<td>write history every <code class="docutils literal"><span class="pre">histfreq_n</span></code> days</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">h</span></code></td>
+<td>write history every <code class="docutils literal"><span class="pre">histfreq_n</span></code> hours</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>write history every time step</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">x</span></code></td>
+<td>unused frequency stream (not written)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">histfreq_n</span></code></td>
+<td>integer array</td>
+<td>frequency history output is written</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>0</td>
+<td>do not write to history</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">hist_avg</span></code></td>
+<td>true</td>
+<td>write time-averaged data</td>
+<td><code class="docutils literal"><span class="pre">.true.</span></code></td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>false</td>
+<td>write snapshots of data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">history\_dir</span></code></td>
+<td>path/</td>
+<td>path to history output directory</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">history\_file</span></code></td>
+<td>filename prefix</td>
+<td>output file for history</td>
+<td>‘iceh’</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">write\_ic</span></code></td>
+<td>true/false</td>
+<td>write initial condition</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">incond\_dir</span></code></td>
+<td>path/</td>
+<td>path to initial condition directory</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">incond\_file</span></code></td>
+<td>filename prefix</td>
+<td>output file for initial condition</td>
+<td>‘iceh’</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">runid</span></code></td>
+<td>string</td>
+<td>label for run (currently CESM only)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><em>grid_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Grid</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">grid_format</span></code></td>
+<td><code class="docutils literal"><span class="pre">nc</span></code></td>
+<td>read &nbsp;grid and kmt files</td>
+<td>‘bin’</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">bin</span></code></td>
+<td>read direct access, binary file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">grid_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">rectangular</span></code></td>
+<td>defined in <em>rectgrid</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">displaced_pole</span></code></td>
+<td>read from file in <em>popgrid</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">tripole</span></code></td>
+<td>read from file in <em>popgrid</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">regional</span></code></td>
+<td>read from file in <em>popgrid</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">grid_file</span></code></td>
+<td>filename</td>
+<td>name of grid file to be read</td>
+<td>‘grid’</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">kmt_file</span></code></td>
+<td>filename</td>
+<td>name of land mask file to be read</td>
+<td>‘kmt’</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">gridcpl_file</span></code></td>
+<td>filename</td>
+<td>input file for coupling grid info</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">kcatbound</span></code></td>
+<td><code class="docutils literal"><span class="pre">0</span></code></td>
+<td>original category boundary formula</td>
+<td>0</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>new formula with round numbers</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">2</span></code></td>
+<td>WMO standard categories</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">-1</span></code></td>
+<td>one category</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><em>domain_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Domain</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">nprocs</span></code></td>
+<td>integer</td>
+<td>number of processors to use</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">processor_shape</span></code></td>
+<td><code class="docutils literal"><span class="pre">slenderX1</span></code></td>
+<td>1 processor in the y direction (tall, thin)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">slenderX2</span></code></td>
+<td>2 processors in the y direction (thin)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">square-ice</span></code></td>
+<td>more processors in x than y, <span class="math">\(\sim\)</span> square</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">square-pop</span></code></td>
+<td>more processors in y than x, <span class="math">\(\sim\)</span> square</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">distribution_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">cartesian</span></code></td>
+<td>distribute blocks in 2D Cartesian array</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">roundrobin</span></code></td>
+<td>1 block per proc until blocks are used</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">sectcart</span></code></td>
+<td>blocks distributed to domain quadrants</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">sectrobin</span></code></td>
+<td>several blocks per proc until used</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">rake</span></code></td>
+<td>redistribute blocks among neighbors</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">spacecurve</span></code></td>
+<td>distribute blocks via space-filling curves</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">distribution_weight</span></code></td>
+<td><code class="docutils literal"><span class="pre">block</span></code></td>
+<td>full block size sets <code class="docutils literal"><span class="pre">work_per_block</span></code></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">latitude</span></code></td>
+<td>latitude/ocean sets <code class="docutils literal"><span class="pre">work_per_block</span></code></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ew_boundary_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">cyclic</span></code></td>
+<td>periodic boundary conditions in x-direction</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">open</span></code></td>
+<td>Dirichlet boundary conditions in x</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ns_boundary_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">cyclic</span></code></td>
+<td>periodic boundary conditions in y-direction</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">open</span></code></td>
+<td>Dirichlet boundary conditions in y</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">tripole</span></code></td>
+<td>U-fold tripole boundary conditions in y</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">tripoleT</span></code></td>
+<td>T-fold tripole boundary conditions in y</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">maskhalo_dyn</span></code></td>
+<td>true/false</td>
+<td>mask unused halo cells for dynamics</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">maskhalo_remap</span></code></td>
+<td>true/false</td>
+<td>mask unused halo cells for transport</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">maskhalo_bound</span></code></td>
+<td>true/false</td>
+<td>mask unused halo cells for boundary updates</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><em>tracer_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Tracers</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_iage</span></code></td>
+<td>true/false</td>
+<td>ice age</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_age</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_FY</span></code></td>
+<td>true/false</td>
+<td>first-year ice area</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_FY</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_lvl</span></code></td>
+<td>true/false</td>
+<td>level ice area and volume</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_lvl</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_pond_cesm</span></code></td>
+<td>true/false</td>
+<td>CESM melt ponds</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_pond_cesm</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_pond_topo</span></code></td>
+<td>true/false</td>
+<td>topo melt ponds</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_pond_topo</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_pond_lvl</span></code></td>
+<td>true/false</td>
+<td>level-ice melt ponds</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_pond_lvl</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_aero</span></code></td>
+<td>true/false</td>
+<td>aerosols</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_aero</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><em>thermo_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Thermodynamics</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">kitd</span></code></td>
+<td><code class="docutils literal"><span class="pre">0</span></code></td>
+<td>delta function ITD approximation</td>
+<td>1</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>linear remapping ITD approximation</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ktherm</span></code></td>
+<td><code class="docutils literal"><span class="pre">0</span></code></td>
+<td>zero-layer thermodynamic model</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>Bitz and Lipscomb thermodynamic model</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">2</span></code></td>
+<td>mushy-layer thermodynamic model</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">conduct</span></code></td>
+<td><code class="docutils literal"><span class="pre">MU71</span></code></td>
+<td>conductivity <a class="reference internal" href="zreferences.html#mu71" id="id17">[50]</a></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">bubbly</span></code></td>
+<td>conductivity <a class="reference internal" href="zreferences.html#petb07" id="id18">[55]</a></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">a_rapid_mode</span></code></td>
+<td>real</td>
+<td>brine channel diameter</td>
+<td>0.5x10:math:<cite>^{-3}</cite> m</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">Rac_rapid_mode</span></code></td>
+<td>real</td>
+<td>critical Rayleigh number</td>
+<td>10</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">aspect_rapid_mode</span></code></td>
+<td>real</td>
+<td>brine convection aspect ratio</td>
+<td>1</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">dSdt_slow_mode</span></code></td>
+<td>real</td>
+<td>drainage strength parameter</td>
+<td>-1.5x10:math:<cite>^{-7}</cite> m/s/K</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">phi_c_slow_mode</span></code></td>
+<td><span class="math">\(0&lt;\phi_c &lt; 1\)</span></td>
+<td>critical liquid fraction</td>
+<td>0.05</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">phi_i_mushy</span></code></td>
+<td><span class="math">\(0&lt;\phi_i &lt; 1\)</span></td>
+<td>solid fraction at lower boundary</td>
+<td>0.85</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><em>dynamics_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Dynamics</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">kdyn</span></code></td>
+<td><code class="docutils literal"><span class="pre">0</span></code></td>
+<td>dynamics OFF</td>
+<td>1</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>EVP dynamics</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">2</span></code></td>
+<td>EAP dynamics</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">revised_evp</span></code></td>
+<td>true/false</td>
+<td>use revised EVP formulation</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ndte</span></code></td>
+<td>integer</td>
+<td>number of EVP subcycles</td>
+<td>120</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">advection</span></code></td>
+<td><code class="docutils literal"><span class="pre">remap</span></code></td>
+<td>linear remapping advection</td>
+<td>‘remap’</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">upwind</span></code></td>
+<td>donor cell advection</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">kstrength</span></code></td>
+<td><code class="docutils literal"><span class="pre">0</span></code></td>
+<td>ice strength formulation <a class="reference internal" href="zreferences.html#hibler79" id="id19">[26]</a></td>
+<td>1</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>ice strength formulation <a class="reference internal" href="zreferences.html#rothrock75" id="id20">[57]</a></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">krdg_partic</span></code></td>
+<td><code class="docutils literal"><span class="pre">0</span></code></td>
+<td>old ridging participation function</td>
+<td>1</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>new ridging participation function</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">krdg_redist</span></code></td>
+<td><code class="docutils literal"><span class="pre">0</span></code></td>
+<td>old ridging redistribution function</td>
+<td>1</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>new ridging redistribution function</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">mu_rdg</span></code></td>
+<td>real</td>
+<td>e-folding scale of ridged ice</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">Cf</span></code></td>
+<td>real</td>
+<td>ratio of ridging work to PE change in ridging</td>
+<td><ol class="first last arabic simple" start="17">
+<li></li>
+</ol>
+</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><em>shortwave_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Shortwave</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">shortwave</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>NCAR CCSM3 distribution method</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">dEdd</span></code></td>
+<td>Delta-Eddington method</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">albedo_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>NCAR CCSM3 albedos</td>
+<td>‘default’</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">constant</span></code></td>
+<td>four constant albedos</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">albicev</span></code></td>
+<td><span class="math">\(0&lt;\alpha &lt;1\)</span></td>
+<td>visible ice albedo for thicker ice</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">albicei</span></code></td>
+<td><span class="math">\(0&lt;\alpha &lt;1\)</span></td>
+<td>near infrared ice albedo for thicker ice</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">albsnowv</span></code></td>
+<td><span class="math">\(0&lt;\alpha &lt;1\)</span></td>
+<td>visible, cold snow albedo</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">albsnowi</span></code></td>
+<td><span class="math">\(0&lt;\alpha &lt;1\)</span></td>
+<td>near infrared, cold snow albedo</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ahmax</span></code></td>
+<td>real</td>
+<td>albedo is constant above this thickness</td>
+<td>0.3 m</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">R_ice</span></code></td>
+<td>real</td>
+<td>tuning parameter for sea ice albedo from Delta-Eddington shortwave</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">R_pnd</span></code></td>
+<td>real</td>
+<td>... for ponded sea ice albedo …</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">R_snw</span></code></td>
+<td>real</td>
+<td>... for snow (broadband albedo) …</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">dT_mlt</span></code></td>
+<td>real</td>
+<td><span class="math">\(\Delta\)</span> temperature per <span class="math">\(\Delta\)</span> snow grain radius</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">rsnw_mlt</span></code></td>
+<td>real</td>
+<td>maximum melting snow grain radius</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">kalg</span></code></td>
+<td>real</td>
+<td>absorption coefficient for algae</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><em>ponds_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Melt Ponds</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">hp1</span></code></td>
+<td>real</td>
+<td>critical ice lid thickness for topo ponds</td>
+<td>0.01 m</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">hs0</span></code></td>
+<td>real</td>
+<td>snow depth of transition to bare sea ice</td>
+<td>0.03 m</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">hs1</span></code></td>
+<td>real</td>
+<td>snow depth of transition to pond ice</td>
+<td>0.03 m</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">dpscale</span></code></td>
+<td>real</td>
+<td>time scale for flushing in permeable ice</td>
+<td><span class="math">\(1\times 10^{-3}\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">frzpnd</span></code></td>
+<td><code class="docutils literal"><span class="pre">hlid</span></code></td>
+<td>Stefan refreezing with pond ice thickness</td>
+<td>‘hlid’</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">cesm</span></code></td>
+<td>CESM refreezing empirical formula</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">rfracmin</span></code></td>
+<td><span class="math">\(0 \le r_{min} \le 1\)</span></td>
+<td>minimum melt water added to ponds</td>
+<td>0.15</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">rfracmax</span></code></td>
+<td><span class="math">\(0 \le r_{max} \le 1\)</span></td>
+<td>maximum melt water added to ponds</td>
+<td>1.0</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">pndaspect</span></code></td>
+<td>real</td>
+<td>aspect ratio of pond changes (depth:area)</td>
+<td>0.8</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><em>zbgc_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Biogeochemistry</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_brine</span></code></td>
+<td>true/false</td>
+<td>brine height tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_hbrine</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">skl_bgc</span></code></td>
+<td>true/false</td>
+<td>biogeochemistry</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">bgc_flux_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">Jin2006</span></code></td>
+<td>ice–ocean flux velocity of <a class="reference internal" href="zreferences.html#jdwstwlg06" id="id21">[37]</a></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">constant</span></code></td>
+<td>constant ice–ocean flux velocity</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_bgc</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">restore_bgc</span></code></td>
+<td>true/false</td>
+<td>restore nitrate/silicate to data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">bgc_data_dir</span></code></td>
+<td>path/</td>
+<td>data directory for bgc</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">sil_data_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>default forcing value for silicate</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">clim</span></code></td>
+<td>silicate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id22">[23]</a></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">nit_data_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>default forcing value for nitrate</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">clim</span></code></td>
+<td>nitrate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id23">[23]</a></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">sss</span></code></td>
+<td>nitrate forcing equals salinity</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">tr_bgc_C_sk</span></code></td>
+<td>true/false</td>
+<td>algal carbon tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_bgc_chl_sk</span></code></td>
+<td>true/false</td>
+<td>algal chlorophyll tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">tr_bgc_Am_sk</span></code></td>
+<td>true/false</td>
+<td>ammonium tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_bgc_Sil_sk</span></code></td>
+<td>true/false</td>
+<td>silicate tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">tr_bgc_DMSPp_sk</span></code></td>
+<td>true/false</td>
+<td>particulate DMSP tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">tr_bgc_DMSPd_sk</span></code></td>
+<td>true/false</td>
+<td>dissolved DMSP tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">tr_bgc_DMS_sk</span></code></td>
+<td>true/false</td>
+<td>DMS tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">phi_snow</span></code></td>
+<td>real</td>
+<td>snow porosity for brine height tracer</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><em>forcing_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>Forcing</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">formdrag</span></code></td>
+<td>true/false</td>
+<td>calculate form drag</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">atmbndy</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>stability-based boundary layer</td>
+<td>‘default’</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">constant</span></code></td>
+<td>bulk transfer coefficients</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">fyear_init</span></code></td>
+<td>yyyy</td>
+<td>first year of atmospheric forcing data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ycycle</span></code></td>
+<td>integer</td>
+<td>number of years in forcing data cycle</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">atm_data_format</span></code></td>
+<td><code class="docutils literal"><span class="pre">nc</span></code></td>
+<td>read &nbsp;atmo forcing files</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">bin</span></code></td>
+<td>read direct access, binary files</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">atm_data_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>constant values defined in the code</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">LYq</span></code></td>
+<td>AOMIP/Large-Yeager forcing data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">monthly</span></code></td>
+<td>monthly forcing data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">ncar</span></code></td>
+<td>NCAR bulk forcing data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">oned</span></code></td>
+<td>column forcing data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">atm_data_dir</span></code></td>
+<td>path/</td>
+<td>path to atmospheric forcing data directory</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">calc_strair</span></code></td>
+<td>true</td>
+<td>calculate wind stress and speed</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>false</td>
+<td>read wind stress and speed from files</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">highfreq</span></code></td>
+<td>true/false</td>
+<td>high-frequency atmo coupling</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">natmiter</span></code></td>
+<td>integer</td>
+<td>number of atmo boundary layer iterations</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">calc_Tsfc</span></code></td>
+<td>true/false</td>
+<td>calculate surface temperature</td>
+<td><code class="docutils literal"><span class="pre">.true.</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">precip_units</span></code></td>
+<td><code class="docutils literal"><span class="pre">mks</span></code></td>
+<td>liquid precipitation data units</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">mm_per_month</span></code></td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">mm_per_sec</span></code></td>
+<td>(same as MKS units)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">tfrz_option</span></code></td>
+<td><code class="docutils literal"><span class="pre">minus1p8</span></code></td>
+<td>constant ocean freezing temperature (<span class="math">\(-1.8\degC\)</span>)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">linear_salt</span></code></td>
+<td>linear function of salinity (ktherm=1)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">mushy_layer</span></code></td>
+<td>matches mushy-layer thermo (ktherm=2)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ustar_min</span></code></td>
+<td>real</td>
+<td>minimum value of ocean friction velocity</td>
+<td>0.0005 m/s</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">fbot_xfer_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">constant</span></code></td>
+<td>constant ocean heat transfer coefficient</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">Cdn\_ocn</span></code></td>
+<td>variable ocean heat transfer coefficient</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">update_ocn_f</span></code></td>
+<td>true</td>
+<td>include frazil water/salt fluxes in ocn fluxes</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>false</td>
+<td>do not include (when coupling with POP)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">l_mpond_fresh</span></code></td>
+<td>true</td>
+<td>retain (topo) pond water until ponds drain</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>false</td>
+<td>release (topo) pond water immediately to ocean</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">oceanmixed_ice</span></code></td>
+<td>true/false</td>
+<td>active ocean mixed layer calculation</td>
+<td><code class="docutils literal"><span class="pre">.true.</span></code> (if uncoupled)</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ocn_data_format</span></code></td>
+<td><code class="docutils literal"><span class="pre">nc</span></code></td>
+<td>read &nbsp;ocean forcing files</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">bin</span></code></td>
+<td>read direct access, binary files</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">sss_data_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>constant values defined in the code</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">clim</span></code></td>
+<td>climatological data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">near</span></code></td>
+<td>POP ocean forcing data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">sst_data_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>constant values defined in the code</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">clim</span></code></td>
+<td>climatological data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">ncar</span></code></td>
+<td>POP ocean forcing data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">ocn_data_dir</span></code></td>
+<td>path/</td>
+<td>path to oceanic forcing data directory</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">oceanmixed_file</span></code></td>
+<td>filename</td>
+<td>data file containing ocean forcing data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">restore_sst</span></code></td>
+<td>true/false</td>
+<td>restore sst to data</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">trestore</span></code></td>
+<td>integer</td>
+<td>sst restoring time scale (days)</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">restore_ice</span></code></td>
+<td>true/false</td>
+<td>restore ice state along lateral boundaries</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><em>icefields_tracer_nml</em></td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+<td><em>History Fields</em></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">f_&lt;var&gt;</span></code></td>
+<td>string</td>
+<td>frequency units for writing <code class="docutils literal"><span class="pre">&lt;var&gt;</span></code> to history</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">y</span></code></td>
+<td>write history every <code class="docutils literal"><span class="pre">histfreq_n</span></code> years</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">m</span></code></td>
+<td>write history every <code class="docutils literal"><span class="pre">histfreq_n</span></code> months</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">d</span></code></td>
+<td>write history every <code class="docutils literal"><span class="pre">histfreq_n</span></code> days</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">h</span></code></td>
+<td>write history every <code class="docutils literal"><span class="pre">histfreq_n</span></code> hours</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">1</span></code></td>
+<td>write history every time step</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">x</span></code></td>
+<td>do not write <code class="docutils literal"><span class="pre">&lt;var&gt;</span></code> to history</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">md</span></code></td>
+<td><em>e.g.,</em> write both monthly and daily files</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">f_&lt;var&gt;_ai</span></code></td>
+<td>&#160;</td>
+<td>grid cell average of <code class="docutils literal"><span class="pre">&lt;var&gt;</span></code> (<span class="math">\(\times a_i\)</span>)</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">3. User Guide</a><ul>
+<li><a class="reference internal" href="#numerical-implementation">3.1. Numerical implementation</a><ul>
+<li><a class="reference internal" href="#directory-structure">3.1.1. Directory structure</a></li>
+<li><a class="reference internal" href="#grid-boundary-conditions-and-masks">3.1.2. Grid, boundary conditions and masks</a><ul>
+<li><a class="reference internal" href="#grid-domains-and-blocks">3.1.2.1. Grid domains and blocks</a></li>
+<li><a class="reference internal" href="#tripole-grids">3.1.2.2. Tripole grids</a></li>
+<li><a class="reference internal" href="#bio-grid">3.1.2.3. Bio-grid</a></li>
+<li><a class="reference internal" href="#column-configuration">3.1.2.4. Column configuration</a></li>
+<li><a class="reference internal" href="#boundary-conditions">3.1.2.5. Boundary conditions</a></li>
+<li><a class="reference internal" href="#masks">3.1.2.6. Masks</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#test-configurations">3.1.3. Test configurations</a></li>
+<li><a class="reference internal" href="#initialization-and-coupling">3.1.4. Initialization and coupling</a></li>
+<li><a class="reference internal" href="#choosing-an-appropriate-time-step">3.1.5. Choosing an appropriate time step</a></li>
+<li><a class="reference internal" href="#model-output">3.1.6. Model output</a><ul>
+<li><a class="reference internal" href="#history-files">3.1.6.1. History files</a></li>
+<li><a class="reference internal" href="#diagnostic-files">3.1.6.2. Diagnostic files</a></li>
+<li><a class="reference internal" href="#restart-files">3.1.6.3. Restart files</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#execution-procedures">3.2. Execution procedures</a><ul>
+<li><a class="reference internal" href="#scripts">3.2.1. Scripts</a></li>
+<li><a class="reference internal" href="#directories">3.2.2. Directories</a></li>
+<li><a class="reference internal" href="#local-modifications">3.2.3. Local modifications</a></li>
+<li><a class="reference internal" href="#forcing-data">3.2.4. Forcing data</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#performance">3.3. Performance</a></li>
+<li><a class="reference internal" href="#adding-things">3.4. Adding things</a><ul>
+<li><a class="reference internal" href="#addtimer">3.4.1. Timers</a></li>
+<li><a class="reference internal" href="#history-fields">3.4.2. History fields</a></li>
+<li><a class="reference internal" href="#tracers">3.4.3. Tracers</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#troubleshooting">3.5. Troubleshooting</a><ul>
+<li><a class="reference internal" href="#initial-setup">3.5.1. Initial setup</a></li>
+<li><a class="reference internal" href="#restarts">3.5.2. Restarts</a></li>
+<li><a class="reference internal" href="#slow-execution">3.5.3. Slow execution</a></li>
+<li><a class="reference internal" href="#debugging-hints">3.5.4. Debugging hints</a></li>
+<li><a class="reference internal" href="#known-bugs">3.5.5. Known bugs</a></li>
+<li><a class="reference internal" href="#interpretation-of-albedos">3.5.6. Interpretation of albedos</a></li>
+<li><a class="reference internal" href="#proliferating-subprocess-parameterizations">3.5.7. Proliferating subprocess parameterizations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#testing-cice">3.6. Testing CICE</a><ul>
+<li><a class="reference internal" href="#individual-tests-and-test-suites">3.6.1. Individual tests and test suites</a></li>
+<li><a class="reference internal" href="#additional-testing-options">3.6.2. Additional testing options</a></li>
+<li><a class="reference internal" href="#test-suite-format">3.6.3. Test suite format</a></li>
+<li><a class="reference internal" href="#example-tests-quickstart">3.6.4. Example Tests (Quickstart)</a><ul>
+<li><a class="reference internal" href="#to-generate-a-baseline-dataset-for-a-test-case">3.6.4.1. To generate a baseline dataset for a test case</a></li>
+<li><a class="reference internal" href="#to-run-a-test-case-and-compare-to-a-baseline-dataset">3.6.4.2. To run a test case and compare to a baseline dataset</a></li>
+<li><a class="reference internal" href="#to-run-a-test-suite-to-generate-baseline-data">3.6.4.3. To run a test suite to generate baseline data</a></li>
+<li><a class="reference internal" href="#to-run-a-test-suite-to-compare-to-baseline-data">3.6.4.4. To run a test suite to compare to baseline data</a></li>
+<li><a class="reference internal" href="#to-compare-to-another-test">3.6.4.5. To compare to another test</a></li>
+<li><a class="reference internal" href="#additional-details">3.6.4.6. Additional Details</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#code-compliance-test">3.6.5. Code compliance test</a><ul>
+<li><a class="reference internal" href="#method">3.6.5.1. Method</a></li>
+<li><a class="reference internal" href="#practical-testing-procedure">3.6.5.2. Practical Testing Procedure</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#table-of-namelist-options">3.7. Table of namelist options</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cice_2_science_guide.html"
+                        title="previous chapter">2. Science Guide</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="cice_4_index.html"
+                        title="next chapter">4. Index of primary variables and parameters</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/cice_3_user_guide.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="cice_4_index.html" title="4. Index of primary variables and parameters"
+             >next</a></li>
+        <li class="right" >
+          <a href="cice_2_science_guide.html" title="2. Science Guide"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CICE-Consortium 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation).
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.3.
+    </div>
+  </body>
+</html>

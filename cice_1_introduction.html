@@ -26,7 +26,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="2. Quick Start guide" href="cice_2_quick_start.html" />
+    <link rel="next" title="2. Science Guide" href="cice_2_science_guide.html" />
     <link rel="prev" title="CICE Documentation" href="index.html" /> 
   </head>
   <body role="document">
@@ -34,7 +34,7 @@
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="cice_2_quick_start.html" title="2. Quick Start guide"
+          <a href="cice_2_science_guide.html" title="2. Science Guide"
              accesskey="N">next</a></li>
         <li class="right" >
           <a href="index.html" title="CICE Documentation"
@@ -79,10 +79,115 @@ of the new code options, which need to be unified or pulled out as separate opti
 Variable names used in the code are <code class="docutils literal"><span class="pre">typewritten</span></code>.
 Subroutine names are given in <em>italic</em>.
 File and directory names are in <strong>boldface</strong>.
-A comprehensive <a class="reference internal" href="cice_10_index.html#index"><span class="std std-ref">Index of primary variables and parameters</span></a>, including glossary of symbols with many of their values, appears
+A comprehensive <a class="reference internal" href="cice_4_index.html#index"><span class="std std-ref">Index of primary variables and parameters</span></a>, including glossary of symbols with many of their values, appears
 at the end of this guide.</p>
-<div class="section" id="major-updates-in-v5-1">
-<h2>1.1. Major updates in V5.1<a class="headerlink" href="#major-updates-in-v5-1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="quick-start-guide">
+<h2>1.1. Quick Start guide<a class="headerlink" href="#quick-start-guide" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="get-the-model">
+<h3>1.1.1. Get the model<a class="headerlink" href="#get-the-model" title="Permalink to this headline">¶</a></h3>
+<p>Checkout the model from the CICE-Consortium repository,</p>
+<blockquote>
+<div>github.com/CICE-Consortium</div></blockquote>
+<p>For more details about how to work in github with CICE, a document can be
+found <a class="reference external" href="https://docs.google.com/document/d/1rR6WAvZQT9iAMUp-m_HZ06AUCCI19mguFialsMCYs9o">here</a>.</p>
+</div>
+<div class="section" id="running-the-model">
+<h3>1.1.2. Running the model<a class="headerlink" href="#running-the-model" title="Permalink to this headline">¶</a></h3>
+<p>&gt; cd consortium</p>
+<p>&gt; ./create.case -c ~/mycase1 -g gx3 -m thunder -s diag1,thread -p 8x1</p>
+<p>&gt; cd ~/mycase1</p>
+<p>&gt; ./cice.build</p>
+<p>&gt; ./cice.submit/Users/duvivier/Documents/Research/github/CICE-Consortium/CICE/doc/source/all_orig/cice_2_quick_start.rst</p>
+</div>
+<div class="section" id="more-details">
+<h3>1.1.3. More Details<a class="headerlink" href="#more-details" title="Permalink to this headline">¶</a></h3>
+<dl class="docutils">
+<dt>create.case generates a case, use &#8220;create.case -h&#8221; for help with the tool.</dt>
+<dd><p class="first">-c is the case name and location (required)</p>
+<p>-m is the machine name (required). Currently, there are working ports for NCAR yellowstone and cheyenne, AFRL thunder, NavyDSRC gordon and conrad, and LANL’s wolf machines.</p>
+<p>-g is the resolution (default is gx3)</p>
+<p>-p is the task x thread/task values (default is 4x1)</p>
+<p>-s are comma separated optional env or namelist settings (default is &#8220;null&#8221;)</p>
+<p>-t is the test name and location (cannot be used with -c).</p>
+<p>-bd is used to specify the location of the baseline datasets (only used with -t)</p>
+<p>-bg is used to specify the cice version name for generating baseline datasets (only used with -t)</p>
+<p>-bc is used to specify the cice versoin name for comparison. I.e., the version name for the baseline dataset (only used with -t)</p>
+<p>-testid is used to specify a test ID (used only with -t or -ts)</p>
+<p class="last">-ts is used to generate all test cases for a given test suite.</p>
+</dd>
+</dl>
+<p>Several files are placed in the case directory</p>
+<blockquote>
+<div><ul class="simple">
+<li>env.${machine} defines the environment</li>
+<li>cice.settings defines many variables associated with building and running the model</li>
+<li>makdep.c is a tool that will automatically generate the make dependencies</li>
+<li>Macros.${machine} defines the Makefile Macros</li>
+<li>Makefile is the makefile used to build the model</li>
+<li>cice.build is a script that build the model</li>
+<li>ice_in is the namelist file</li>
+<li>cice.run is a batch run script</li>
+<li>cice.submit is a simple script that submits the cice.run script</li>
+</ul>
+</div></blockquote>
+<p>Once the case is created, all scripts and namelist are fully resolved.  Users can edit any
+of the files in the case directory manually to change the model configuration.  The file
+dependency is indicated in the above list.  For instance, if any of the files before
+cice.build in the list are edited, cice.build should be rerun.</p>
+<p>The casescripts directory holds scripts used to create the case and can largely be ignored.</p>
+<p>In general, when cice.build is executed, the model will build from scratch due to the large
+dependence on cpps.  To change this behavior, edit the env variable ICE_CLEANBUILD in
+cice.settings.</p>
+<p>The cice.submit script just submits the cice.run script.  You can use cice.submit or just
+submit the cice.run script on the command line.</p>
+<p>The model will run in the directory defined by the env variable CICE_RUNDIR in cice.settings.
+Build and run logs will be copied into the case logs directory when complete.</p>
+<dl class="docutils">
+<dt>To port, an env.machine and Macros.machine file have to be added to scripts/machines and the cice.run.setup.csh file needs to be modified.</dt>
+<dd><ul class="first last simple">
+<li>cd to consortium/scripts/machines</li>
+<li>Copy an existing env and Macros file to new names for your new machine</li>
+<li>Edit the env and Macros file</li>
+<li>cd to consortium/scripts</li>
+<li>Edit the cice.run.setup.csh script to add a section for your machine for the batch settings and for the job launch settings</li>
+<li>Download and untar the 1997 dataset to the location defined by ICE_MACHINE_INPUTDATA in the env file</li>
+<li>Create a file in your home directory called .cice_proj and add your preferred account name to the first line.</li>
+<li>You can now create a case and test.  If there are problems, you can manually edit the env, Macros, and cice.run files in the case directory until things are working properly.  Then you can copy the env and Macros files back to consortium/scripts/machines.  You will have to manually modify the cice.run.setup.csh script if there any changes needed there.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="forcing-data">
+<h3>1.1.4. Forcing data<a class="headerlink" href="#forcing-data" title="Permalink to this headline">¶</a></h3>
+<p>The code is currently configured to run in standalone mode on a 3 degree grid using
+atmospheric data from 1997, available as detailed on the <a class="reference external" href="https://github.com/CICE-Consortium/CICE/wiki/Testing-CICE">wiki</a>.
+These data files are designed only for testing the code, not for use in production
+runs or as observational data.  Please do not publish results based on these data
+sets.  Module cicecore/dynamics/cicedynB/ice_forcing.F90 can be modified to change the
+forcing data.</p>
+<p>As currently configured, the model runs on 4 processors.  MPI is used for message passing
+between processors, and OpenMP threading is available.  The grid provided here is too
+small for the code to scale well beyond about 8 processors. A 1 degree grid is provided also,
+and details about this grid can be found on the <a class="reference external" href="https://github.com/CICE-Consortium/CICE/wiki/Testing-CICE">wiki</a>.</p>
+</div>
+<div class="section" id="online-resources">
+<h3>1.1.5. Online resources<a class="headerlink" href="#online-resources" title="Permalink to this headline">¶</a></h3>
+<p><strong>DO WE WANT TO KEEP THESE?</strong></p>
+<p>primary wiki page:</p>
+<p>FAQ:</p>
+<p>instructions for code developers:</p>
+<p>ongoing or planned development projects:</p>
+<p>list of users and publications:</p>
+<p>Please send references to your publications using the CICE model to ...</p>
+<p>Please report any bugs to
+Elizabeth Hunke (<a class="reference external" href="mailto:eclare&#37;&#52;&#48;lanl&#46;gov">eclare<span>&#64;</span>lanl<span>&#46;</span>gov</a>)</p>
+<p>Good luck!</p>
+</div>
+</div>
+<div class="section" id="major-updates">
+<h2>1.2. Major updates<a class="headerlink" href="#major-updates" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="cice-v5-1">
+<h3>1.2.1. CICE V5.1<a class="headerlink" href="#cice-v5-1" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>include ice velocity in atm-ice coupling updates (e.g. stress) for high-frequency coupling</li>
 <li>allow a variable coefficient for the ice-ocean heat flux</li>
@@ -104,8 +209,8 @@ at the end of this guide.</p>
 <li>various bug fixes</li>
 </ul>
 </div>
-<div class="section" id="major-updates-in-v5-0">
-<h2>1.2. Major updates in V5.0<a class="headerlink" href="#major-updates-in-v5-0" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="cice-v5-0">
+<h3>1.2.2. CICE V5.0<a class="headerlink" href="#cice-v5-0" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>A method for prognosing sea ice salinity, including improved snow-ice formation</li>
 <li>Two new explicit melt pond parameterizations (topo and level-ice)</li>
@@ -128,6 +233,51 @@ at the end of this guide.</p>
 </ul>
 </div>
 </div>
+<div class="section" id="acknowledgements">
+<h2>1.3. Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permalink to this headline">¶</a></h2>
+<p>This work has been supported under the Department of Energy’s Climate,
+Ocean and Sea Ice Modeling project through the Computer Hardware Applied
+Mathematics and Model Physics (CHAMMP) program, Climate Change
+Prediction Program (CCPP), Improving the Characterization of Clouds,
+Aerosols and the Cryosphere in Climate Models (Cloud-Cryo) program and
+Scientific Discovery through Advanced Computing (SCIDAC) program, with
+additional support from the T-3 Fluid Dynamics and Solid Mechanics Group
+at Los Alamos National Laboratory. Special thanks are due to the
+following people:</p>
+<ul class="simple">
+<li>members of the CESM Polar Climate Working Group, including David
+Bailey, Alice DuVivier, Cecilia Bitz, Bruce Briegleb, Tony Craig,
+Marika Holland, John Dennis, Julie Schramm, Bonnie Light and Phil Jones.</li>
+<li>Andrew Roberts of the Naval Postgraduate School,</li>
+<li>David Hebert and Olivier Lecomte for their melt pond work,</li>
+<li>Jonathan Gregory of the University of Reading and the U.K. MetOffice
+for supplying tripole T-fold code and documentation,</li>
+<li>Alison McLaren, Ann Keen and others working with the Hadley Centre
+GCM for testing non-standard model configurations and providing their
+code to us,</li>
+<li>Daniel Feltham and his research group for several new
+parameterizations and documentation,</li>
+<li>Sylvain Bouillon for the revised EVP approach,</li>
+<li>the many researchers who tested beta versions of CICE 5 and waited
+patiently for the official release.</li>
+</ul>
+</div>
+<div class="section" id="copyright">
+<h2>1.4. Copyright<a class="headerlink" href="#copyright" title="Permalink to this headline">¶</a></h2>
+<p>©&nbsp;Copyright 2013, LANS LLC. All rights reserved. Unless otherwise
+indicated, this information has been authored by an employee or
+employees of the Los Alamos National Security, LLC (LANS), operator of
+the Los Alamos National Laboratory under Contract No. DE-AC52-06NA25396
+with the U.S. Department of Energy. The U.S. Government has rights to
+use, reproduce, and distribute this information. The public may copy and
+use this information without charge, provided that this Notice and any
+statement of authorship are reproduced on all copies. Neither the
+Government nor LANS makes any warranty, express or implied, or assumes
+any liability or responsibility for the use of this information.
+Beginning with version 4.0, the CICE code carries Los Alamos Software
+Release number LA-CC-06-012.</p>
+</div>
+</div>
 
 
           </div>
@@ -138,8 +288,21 @@ at the end of this guide.</p>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">1. Introduction - CICE5</a><ul>
-<li><a class="reference internal" href="#major-updates-in-v5-1">1.1. Major updates in V5.1</a></li>
-<li><a class="reference internal" href="#major-updates-in-v5-0">1.2. Major updates in V5.0</a></li>
+<li><a class="reference internal" href="#quick-start-guide">1.1. Quick Start guide</a><ul>
+<li><a class="reference internal" href="#get-the-model">1.1.1. Get the model</a></li>
+<li><a class="reference internal" href="#running-the-model">1.1.2. Running the model</a></li>
+<li><a class="reference internal" href="#more-details">1.1.3. More Details</a></li>
+<li><a class="reference internal" href="#forcing-data">1.1.4. Forcing data</a></li>
+<li><a class="reference internal" href="#online-resources">1.1.5. Online resources</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#major-updates">1.2. Major updates</a><ul>
+<li><a class="reference internal" href="#cice-v5-1">1.2.1. CICE V5.1</a></li>
+<li><a class="reference internal" href="#cice-v5-0">1.2.2. CICE V5.0</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#acknowledgements">1.3. Acknowledgements</a></li>
+<li><a class="reference internal" href="#copyright">1.4. Copyright</a></li>
 </ul>
 </li>
 </ul>
@@ -148,8 +311,8 @@ at the end of this guide.</p>
   <p class="topless"><a href="index.html"
                         title="previous chapter">CICE Documentation</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="cice_2_quick_start.html"
-                        title="next chapter">2. Quick Start guide</a></p>
+  <p class="topless"><a href="cice_2_science_guide.html"
+                        title="next chapter">2. Science Guide</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -175,7 +338,7 @@ at the end of this guide.</p>
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="cice_2_quick_start.html" title="2. Quick Start guide"
+          <a href="cice_2_science_guide.html" title="2. Science Guide"
              >next</a></li>
         <li class="right" >
           <a href="index.html" title="CICE Documentation"
