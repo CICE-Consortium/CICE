@@ -9,7 +9,8 @@ restart        gx3     8x1        none
 restart        gx3     4x2        debug
 restart        gx3     8x2        diag1,pondcesm
 restart        gx3     8x2        diag1,pondtopo
-smoke          gx1    16x1        diag1,run5day,thread
-smoke          gx1     8x2        diag1,run5day          smoke_gx1_16x1_diag1_run5day_thread
-smoke          gx1     8x2        debug,run2day
+smoke          gx1    32x1        diag1,run5day,thread
+smoke          gx1    16x2        diag1,run5day          smoke_gx1_32x1_diag1_run5day_thread
+smoke          gx1     8x4        debug,run2day
+restart        gx1    32x1        none
 restart        gx1    13x2        none
