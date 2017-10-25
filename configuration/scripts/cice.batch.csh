@@ -47,7 +47,7 @@ cat >> ${jobfile} << EOFB
 #BSUB -o poe.stdout.%J
 #BSUB -e poe.stderr.%J
 #BSUB -J ${ICE_CASENAME}
-#BSUB -W ${ICE_RUNLENGTH}
+#BSUB -W 00:10
 #BSUB -P ${acct}
 EOFB
 
