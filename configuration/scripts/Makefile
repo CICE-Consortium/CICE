@@ -124,7 +124,7 @@ mostlyclean:
 	$(RM) -f *.f *.f90 
 
 clean:
-	$(RM) -f *.f *.f90 *.d *.mod *.o
+	$(RM) -f *.f *.f90 *.d *.mod *.o $(EXEC)
 #	$(RM) -f *.f *.f90 *.d *.$(MOD_SUFFIX) $(OBJS)
 
 realclean:

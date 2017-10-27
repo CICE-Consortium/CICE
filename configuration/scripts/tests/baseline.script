@@ -35,7 +35,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     if ( { cmp -s ${test_data} ${baseline_data} } ) then
       echo "PASS ${ICE_TESTNAME} compare ${ICE_BASECOM}" >> ${ICE_CASEDIR}/test_output
     else
-      echo "FAIL ${ICE_TESTNAME} compare different-data" >> ${ICE_CASEDIR}/test_output
+      echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} different-data" >> ${ICE_CASEDIR}/test_output
       echo "Regression baseline and test dataset are different"
     endif
   else
