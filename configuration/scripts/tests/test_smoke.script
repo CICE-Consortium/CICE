@@ -3,8 +3,14 @@
 # Run the CICE model
 # cice.run returns -1 if run did not complete successfully
 
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
+echo "RUN  ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
+
 ./cice.run
 
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
 if ( $? != 0 ) then
   # Run failed
   echo "FAIL ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
