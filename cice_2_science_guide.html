@@ -1,16 +1,13 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
     <title>2. Science Guide &#8212; CICE-Consortium 0.0.1 documentation</title>
-    
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
@@ -24,12 +21,12 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="3. User Guide" href="cice_3_user_guide.html" />
     <link rel="prev" title="1. Introduction - CICE5" href="cice_1_introduction.html" /> 
   </head>
-  <body role="document">
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -84,8 +81,8 @@ System Model (RASM). In particular, the relative atmosphere-ice velocity
 velocity for computing turbulent fluxes in the atmospheric boundary
 layer.</p>
 <p><a class="reference internal" href="#tab-flux-cpl"><span class="std std-ref">Table 1</span></a>: <em>Data exchanged between the CESM flux coupler and the sea ice model</em></p>
-<table border="1" class="docutils" id="id185">
-<span id="tab-flux-cpl"></span><caption><span class="caption-text">Table 1</span><a class="headerlink" href="#id185" title="Permalink to this table">¶</a></caption>
+<span id="tab-flux-cpl"></span><table border="1" class="docutils" id="id185">
+<caption><span class="caption-text">Table 1</span><a class="headerlink" href="#id185" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="18%" />
 <col width="25%" />
@@ -246,8 +243,8 @@ weighted by (<span class="math">\(1-a_i\)</span>), to obtain the net shortwave f
 ocean over the entire grid cell. The flux coupler requires the fluxes to
 be divided by the total ice area so that the ice and land models are
 treated identically (land also may occupy less than 100% of an
-atmospheric grid cell). These fluxes are “per unit ice area&#8221; rather than
-“per unit grid cell area.&#8221;</p>
+atmospheric grid cell). These fluxes are “per unit ice area” rather than
+“per unit grid cell area.”</p>
 <p>In some coupled climate models (for example, recent versions of the U.K.
 Hadley Centre model) the surface air temperature and fluxes are computed
 within the atmosphere model and are passed to CICE. In this case the
@@ -301,9 +298,9 @@ clarity, the equations are reproduced here in the present notation.</p>
 stable and unstable atmosphere–ice boundary layers. Define the
 “stability”</p>
 <div class="math">
-\[\Upsilon = {\kappa g z_\circ\over u^{*2}}
-\left({\Theta^*\over\Theta_a\left(1+0.606Q_a\right)}  +
-{Q^*\over 1/0.606 + Q_a}\right),\]</div>
+\[\Upsilon = {\frac{\kappa g z_\circ}{u^{*2}}}
+\left({\frac{\Theta^*}{\Theta_a\left(1+0.606Q_a\right)}}  +
+{\frac{Q^*}{\frac{1}{0.606} + Q_a}}\right),\]</div>
 <p>where <span class="math">\(\kappa\)</span> is the von Karman constant, <span class="math">\(g\)</span> is
 gravitational acceleration, and <span class="math">\(u^*\)</span>, <span class="math">\(\Theta^*\)</span> and
 <span class="math">\(Q^*\)</span> are turbulent scales for velocity, temperature, and humidity,
@@ -321,7 +318,7 @@ surface, as described in Section&nbsp;<a class="reference internal" href="#sfc-f
 <p>Neglecting form drag,the exchange coefficients <span class="math">\(c_u\)</span>,
 <span class="math">\(c_\theta\)</span> and <span class="math">\(c_q\)</span> are initialized as</p>
 <div class="math">
-\[\kappa\over \ln(z_{ref}/z_{ice})\]</div>
+\[\frac{\kappa}{\ln(z_{ref}/z_{ice}})\]</div>
 <p>and updated during a short iteration, as they depend upon the turbulent
 scales. The number of iterations is set by the namelist variable
 <cite>natmiter</cite>. (For the case with form drag, see section&nbsp;<a class="reference internal" href="#formdrag"><span class="std std-ref">Variable exchange coefficients</span></a>.)
@@ -336,7 +333,7 @@ unstable (<span class="math">\(\Upsilon &lt;0\)</span>) case are given by</p>
 \[\begin{split}\begin{aligned}
 \psi_m = &amp;\mbox{}&amp;2\ln\left[0.5(1+\chi)\right] +
          \ln\left[0.5(1+\chi^2)\right] -2\tan^{-1}\chi +
-         {\pi\over 2}, \\
+         {\frac{\pi}{2}}, \\
 \psi_s = &amp;\mbox{}&amp;2\ln\left[0.5(1+\chi^2)\right].\end{aligned}\end{split}\]</div>
 <p>In a departure from the parameterization used in
 <a class="reference internal" href="zreferences.html#kl02" id="id4">[39]</a>, we use profiles for the stable case
@@ -347,8 +344,8 @@ following <a class="reference internal" href="zreferences.html#jam99" id="id5">[
 <p>The coefficients are then updated as</p>
 <div class="math">
 \[\begin{split}\begin{aligned}
-c_u^\prime&amp;=&amp;{c_u\over 1+c_u\left(\lambda-\psi_m\right)/\kappa} \\
-c_\theta^\prime&amp;=&amp; {c_\theta\over 1+c_\theta\left(\lambda-\psi_s\right)/\kappa}\\
+c_u^\prime&amp;=&amp;{\frac{c_u}{1+c_u\left(\lambda-\psi_m\right)/\kappa}} \\
+c_\theta^\prime&amp;=&amp; {\frac{c_\theta}{1+c_\theta\left(\lambda-\psi_s\right)/\kappa}}\\
 c_q^\prime&amp;=&amp;c_\theta^\prime\end{aligned}\end{split}\]</div>
 <p>where <span class="math">\(\lambda = \ln\left(z_\circ/z_{ref}\right)\)</span>. The
 first iteration ends with new turbulent scales from
@@ -359,7 +356,7 @@ heat flux coefficients are computed, along with the wind stress:</p>
 \nonumber
 C_l&amp;=&amp;\rho_a \left(L_{vap}+L_{ice}\right) u^* c_q \\
 C_s&amp;=&amp;\rho_a c_p u^* c_\theta^* + 1, \\
-\vec{\tau}_a&amp;=&amp;{\rho_a u^{*2}\vec{U}_a\over |\vec{U}_a|},\end{aligned}\end{split}\]</div>
+\vec{\tau}_a&amp;=&amp;{\rho_a \frac{u^{*2}\vec{U}_a}{|\vec{U}_a|}},\end{aligned}\end{split}\]</div>
 <p>where <span class="math">\(L_{vap}\)</span> and <span class="math">\(L_{ice}\)</span> are
 latent heats of vaporization and fusion, <span class="math">\(\rho_a\)</span> is the density
 of air and <span class="math">\(c_p\)</span> is its specific heat. Again following
@@ -402,7 +399,7 @@ open water.</p>
 incorporates the cloud fraction and humidity through the atmospheric
 vapor pressure:</p>
 <div class="math">
-\[F_{sw\downarrow} = {1353 \cos^2 Z \over {10^{-3}(\cos Z+2.7)e_a + 1.085\cos Z + 0.1}}\left(1-0.6 f_{cld}^3\right) &gt; 0\]</div>
+\[F_{sw\downarrow} = {\frac{1353 \cos^2 Z}{10^{-3}(\cos Z+2.7)e_a + 1.085\cos Z + 0.1}}\left(1-0.6 f_{cld}^3\right) &gt; 0\]</div>
 <p>where <span class="math">\(\cos Z\)</span> is the cosine of the solar zenith angle.</p>
 </div>
 <div class="section" id="ocean">
@@ -642,8 +639,8 @@ substitute their own preferred boundaries in <em>init_itd</em>.</p>
 Lower boundary values for thickness categories, in meters, for
 the three distribution options (</em> <cite>kcatbound</cite> <em>) and linear remapping (</em> <cite>kitd</cite> = 1 <em>).
 In the WMO case, the distribution used depends on the number of categories used.</em></p>
-<table border="1" class="docutils" id="id186">
-<span id="tab-itd"></span><caption><span class="caption-text">Table 2</span><a class="headerlink" href="#id186" title="Permalink to this table">¶</a></caption>
+<span id="tab-itd"></span><table border="1" class="docutils" id="id186">
+<caption><span class="caption-text">Table 2</span><a class="headerlink" href="#id186" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="26%" />
 <col width="20%" />
@@ -803,7 +800,7 @@ computed at the end of the last timestep are scaled for the new forcing.</p>
 ice volume <span class="math">\(v_{in}\)</span>, and snow volume <span class="math">\(v_{sn}\)</span> for each
 thickness category <span class="math">\(n\)</span> are</p>
 <div class="math" id="equation-transport-ai">
-<span class="eqno">(10)<a class="headerlink" href="#equation-transport-ai" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (a_{in}) + \nabla \cdot (a_{in} {\bf u}) = 0,\]</div>
+<span class="eqno">(10)<a class="headerlink" href="#equation-transport-ai" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (a_{in}) + \nabla \cdot (a_{in} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-vi">
 <span class="eqno">(11)<a class="headerlink" href="#equation-transport-vi" title="Permalink to this equation">¶</a></span>\[\frac{\partial v_{in}}{\partial t} + \nabla \cdot (v_{in} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-vs">
@@ -850,9 +847,9 @@ see Equations&nbsp;<a class="reference internal" href="#equation-transport-lvl">
 equations for pond area fraction <span class="math">\(a_{pnd}a_i\)</span> and pond volume
 <span class="math">\(h_{pnd}a_{pnd}a_i\)</span>, given the ice velocity <span class="math">\(\bf u\)</span>, are</p>
 <div class="math" id="equation-transport-apnd">
-<span class="eqno">(18)<a class="headerlink" href="#equation-transport-apnd" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (a_{pnd}a_{i}) + \nabla \cdot (a_{pnd}a_{i} {\bf u}) = 0,\]</div>
+<span class="eqno">(18)<a class="headerlink" href="#equation-transport-apnd" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (a_{pnd}a_{i}) + \nabla \cdot (a_{pnd}a_{i} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-hpnd">
-<span class="eqno">(19)<a class="headerlink" href="#equation-transport-hpnd" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (h_{pnd}a_{pnd}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{i} {\bf u}) = 0.\]</div>
+<span class="eqno">(19)<a class="headerlink" href="#equation-transport-hpnd" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (h_{pnd}a_{pnd}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{i} {\bf u}) = 0.\]</div>
 <p>(These equations represent quantities within one thickness category;
 all melt pond calculations are performed for each category, separately.)
 Equation <a class="reference internal" href="#equation-transport-hpnd">(19)</a> expresses conservation of melt pond
@@ -877,7 +874,7 @@ by the tracers. The chart on the left provides corresponding ice
 thickness and pond depth averages over the grid cell, sea ice and
 pond area fractions.</p>
 <p>Tracers may need to be modified for physical reasons outside of the
-“core&#8221; module or subroutine describing their evolution. For example,
+“core” module or subroutine describing their evolution. For example,
 when new ice forms in open water, the new ice does not yet have ponds on
 it. Likewise when sea ice deforms, we assume that pond water (and ice)
 on the portion of ice that ridges is lost to the ocean.</p>
@@ -1150,7 +1147,7 @@ but do not change the total amount of aerosol, thus causing the aerosol
 concentration (the value of the tracer itself) to increase: evaporation,
 snow deposition and basal ice growth. Basal and lateral melting remove
 all aerosols in the melted portion. Surface ice and snow melt leave a
-significant fraction of the aerosols behind, but they do “scavenge&#8221; a
+significant fraction of the aerosols behind, but they do “scavenge” a
 fraction of them given by the parameter <cite>kscav</cite> = [0.03, 0.2, 0.02, 0.02,
 0.01, 0.01] (only the first 3 are used in CESM, for their 3 aerosol
 species). Scavenging also applies to snow–ice formation. When sea ice
@@ -1558,8 +1555,8 @@ defined in the text. We define</em> <span class="math">\(\tilde{y}_1 =
 y_1\)</span> <em>if</em> <span class="math">\(x_1&gt;0\)</span>, <em>else</em> <span class="math">\(\tilde{y}_1 = y_a\)</span>. <em>Similarly,</em>
 <span class="math">\(\tilde{y}_2
 = y_2\)</span> if <span class="math">\(x_2&lt;0\)</span>, <em>else</em> <span class="math">\(\tilde{y}_2 = y_b\)</span>.</p>
-<table border="1" class="docutils" id="id190">
-<span id="tab-triangle"></span><caption><span class="caption-text">Table 3</span><a class="headerlink" href="#id190" title="Permalink to this table">¶</a></caption>
+<span id="tab-triangle"></span><table border="1" class="docutils" id="id190">
+<caption><span class="caption-text">Table 3</span><a class="headerlink" href="#id190" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="14%" />
 <col width="14%" />
@@ -2691,7 +2688,7 @@ the ridge potential energy is modified:</p>
 <div class="math" id="equation-roth-strength1">
 <span class="eqno">(88)<a class="headerlink" href="#equation-roth-strength1" title="Permalink to this equation">¶</a></span>\[P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
   \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
-     \left( H_{\min}^2 + 2H_{\min}\lambda + 2 \lambda^2 \right) \right]  % CHECK BRACES\]</div>
+     \left( H_{\min}^2 + 2H_{\min}\lambda + 2 \lambda^2 \right) \right]\]</div>
 <p>The energy-based ice strength given by Equations <a class="reference internal" href="#equation-roth-strength0">(87)</a> or
 <a class="reference internal" href="#equation-roth-strength1">(88)</a> is more physically realistic than the strength
 given by Equation <a class="reference internal" href="#equation-hib-strength">(86)</a>. However, use of Equation <a class="reference internal" href="#equation-hib-strength">(86)</a> is
@@ -2701,9 +2698,9 @@ time step. See <a class="reference internal" href="zreferences.html#lhmj07" id="
 <div class="section" id="thermodynamics">
 <span id="thermo"></span><h4>2.2.4.3. Thermodynamics<a class="headerlink" href="#thermodynamics" title="Permalink to this headline">¶</a></h4>
 <p>The current CICE version includes three thermodynamics
-options, the “zero-layer&#8221; thermodynamics of <a class="reference internal" href="zreferences.html#semtner76" id="id140">[60]</a>
+options, the “zero-layer” thermodynamics of <a class="reference internal" href="zreferences.html#semtner76" id="id140">[60]</a>
 (<cite>ktherm</cite> = 0), the Bitz and Lipscomb model <a class="reference internal" href="zreferences.html#bl99" id="id141">[7]</a>
-(<cite>ktherm</cite> = 1) that assumes a fixed salinity profile, and a new “mushy&#8221;
+(<cite>ktherm</cite> = 1) that assumes a fixed salinity profile, and a new “mushy”
 formulation (<cite>ktherm</cite> = 2) in which salinity evolves
 <a class="reference internal" href="zreferences.html#thb13" id="id142">[73]</a>. For each thickness category, CICE computes
 changes in the ice and snow thickness and vertical temperature profile
@@ -2768,7 +2765,7 @@ area and depth are maintained throughout the simulation according to the
 physical processes acting on it. However, snow on the sea ice and pond
 ice may shield the pond and ice below from solar radiation. These
 processes do not alter the actual pond volume; instead they are used to
-define an “effective pond fraction&#8221; (and likewise, effective pond depth,
+define an “effective pond fraction” (and likewise, effective pond depth,
 snow fraction and snow depth) used only for the shortwave radiation
 calculation.</p>
 <p>In addition to the physical processes discussed below, tracer equations
@@ -3175,7 +3172,7 @@ Principle written in terms of the draft <span class="math">\(d\)</span>,</p>
 \[\rho_i h_i + \rho_s h_s + \rho_0 h_p = \rho_w d \le \rho_w h_i.\]</div>
 <p>There is a separate freeboard calculation in the thermodynamics which
 considers only the ice and snow and converts flooded snow to sea ice.
-Because the current melt ponds are “virtual&#8221; in the sense that they only
+Because the current melt ponds are “virtual” in the sense that they only
 have a radiative influence, we do not allow the pond mass to change the
 sea ice and snow masses at this time, although this issue may need to be
 reconsidered in the future, especially for the Antarctic.</p>
@@ -3235,12 +3232,12 @@ level-ice ponds) should be used in conjunction with the Delta-Eddington
 shortwave scheme, described below.</p>
 <p><em>Shortwave radiation: Delta-Eddington</em></p>
 <p>Two methods for computing albedo and shortwave fluxes are available, the
-default (“ccsm3&#8221;) method, described below, and a multiple scattering
+default (“ccsm3”) method, described below, and a multiple scattering
 radiative transfer scheme that uses a Delta-Eddington approach.
-“Inherent&#8221; optical properties (IOPs) for snow and sea ice, such as
+“Inherent” optical properties (IOPs) for snow and sea ice, such as
 extinction coefficient and single scattering albedo, are prescribed
 based on physical measurements; reflected, absorbed and transmitted
-shortwave radiation (“apparent&#8221; optical properties) are then computed
+shortwave radiation (“apparent” optical properties) are then computed
 for each snow and ice layer in a self-consistent manner. Absorptive
 effects of inclusions in the ice/snow matrix such as dust and algae can
 also be included, along with radiative treatment of melt ponds and other
@@ -3371,7 +3368,7 @@ ktherm to 0 and changing the number of ice layers, nilyr, in
 fresh and the thermodynamic calculations are much simpler than in the
 other configurations, which we describe here.</p>
 <p><strong>Bitz and Lipscomb thermodynamics</strong> (<cite>ktherm</cite> = 1)</p>
-<p>The “BL99&#8221; thermodynamic sea ice model is based on
+<p>The “BL99” thermodynamic sea ice model is based on
 <a class="reference internal" href="zreferences.html#mu71" id="id163">[50]</a> and <a class="reference internal" href="zreferences.html#bl99" id="id164">[7]</a>, and is
 described more fully in <a class="reference internal" href="zreferences.html#lipscomb98" id="id165">[41]</a>. The vertical
 salinity profile is prescribed and is unchanging in time. The snow is
@@ -3459,7 +3456,7 @@ not be a good description of the thermal conductivity of sea ice. In
 particular, the measured conductivity does not markedly decrease as
 <span class="math">\(T\)</span> approaches , but does decrease near the top surface
 (regardless of temperature).</p>
-<p>An alternative parameterization based on the “bubbly brine&#8221; model of
+<p>An alternative parameterization based on the “bubbly brine” model of
 <a class="reference internal" href="zreferences.html#petb07" id="id173">[55]</a> for conductivity is available
 (<cite>conduct</cite> = ‘bubbly’):</p>
 <div class="math" id="equation-Pringle">
@@ -3673,7 +3670,7 @@ b &amp; = &amp; (c_w - c_0) \, T_m - \frac{q_i}{\rho_i} - L_0, \\
 c &amp; = &amp; L_0 T_m.\end{aligned}\end{split}\]</div>
 <p>The other root is unphysical.</p>
 <p><strong>Mushy thermodynamics</strong> (<cite>ktherm</cite> = 2)</p>
-<p>The “mushy&#8221; thermodynamics option treats the sea ice as a mushy layer
+<p>The “mushy” thermodynamics option treats the sea ice as a mushy layer
 <a class="reference internal" href="zreferences.html#fuww06" id="id174">[18]</a> in which the ice is assumed to be composed
 of microscopic brine inclusions surrounded by a matrix of pure water
 ice. Both enthalpy and salinity are prognostic variables. The size of
@@ -3688,7 +3685,7 @@ to the temperature, <span class="math">\(T\)</span>, and the brine volume, <span
 <span class="eqno">(124)<a class="headerlink" href="#equation-enth-def" title="Permalink to this equation">¶</a></span>\[\begin{aligned}
 q =&amp; \phi q_{br} &amp;+\, (1-\phi) q_{i}
 =&amp; \phi \rho_{w} c_{w} T &amp;+\, (1-\phi) (\rho_i c_i T - \rho_i L_0)
-\label{enthalpy_definition}\end{aligned}\]</div>
+\end{aligned}\]</div>
 <p>where <span class="math">\(q_{br}\)</span> is the brine enthalpy, <span class="math">\(q_i\)</span> is the pure ice
 enthalpy, <span class="math">\(\rho_i\)</span> and <span class="math">\(c_i\)</span> are density and heat capacity
 of the ice, <span class="math">\(\rho_{w}\)</span> and <span class="math">\(c_{w}\)</span> are density and heat
@@ -4198,7 +4195,7 @@ with the melt water.</td></tr>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation).
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
     </div>
   </body>
 </html>

@@ -1,16 +1,13 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
     <title>3. User Guide &#8212; CICE-Consortium 0.0.1 documentation</title>
-    
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
@@ -24,12 +21,12 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="4. Index of primary variables and parameters" href="cice_4_index.html" />
     <link rel="prev" title="2. Science Guide" href="cice_2_science_guide.html" /> 
   </head>
-  <body role="document">
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -87,7 +84,7 @@ details).</p>
 <dd>perl script that determines module dependencies</dd>
 </dl>
 <p>script that sets up the run directory and compiles the code</p>
-<p>modules based on “shared&#8221; code in CESM</p>
+<p>modules based on “shared” code in CESM</p>
 <dl class="docutils">
 <dt><strong>shr_orb_mod.F90</strong></dt>
 <dd>orbital parameterizations</dd>
@@ -338,7 +335,7 @@ activated using the namelist variable <cite>gridcpl_file</cite>.</p>
 <cite>nx_global</cite> <span class="math">\(\times\)</span><cite>ny_global</cite>, while the subdomains used in the
 block distribution are <cite>nx_block</cite> <span class="math">\(\times\)</span><cite>ny_block</cite>. The
 physical portion of a subdomain is indexed as [<cite>ilo:ihi</cite>, <cite>jlo:jhi</cite>], with
-nghost “ghost” or “halo&#8221; cells outside the domain used for boundary
+nghost “ghost” or “halo” cells outside the domain used for boundary
 conditions. These parameters are illustrated in&nbsp;<a class="reference internal" href="#fig-grid"><span class="std std-ref">Figure 8</span></a> in one
 dimension. The routines <em>global_scatter</em> and <em>global_gather</em>
 distribute information from the global domain to the local domains and
@@ -499,7 +496,7 @@ grid edge must be filled by restoring them to specified values. The
 namelist variable <cite>restore_ice</cite> turns this functionality on and off; the
 restoring timescale <cite>trestore</cite> may be used (it is also used for restoring
 ocean sea surface temperature in stand-alone ice runs). This
-implementation is only intended to provide the “hooks&#8221; for a more
+implementation is only intended to provide the “hooks” for a more
 sophisticated treatment; the rectangular grid option can be used to test
 this configuration. The ‘displaced_pole’ grid option should not be used
 unless the regional grid contains land all along the north and south
@@ -583,7 +580,7 @@ initial run from a file <strong>filename</strong> in two ways: (1) set runtype =
 ‘initial’, restart = true and ice_ic = <strong>filename</strong>, or (2) runtype =
 ‘continue’ and pointer_file = <strong>./restart/ice.restart_file</strong> where
 <strong>./restart/ice.restart_file</strong> contains the line
-“./restart/[filename]&#8221;. The first option is convenient when repeatedly
+“./restart/[filename]”. The first option is convenient when repeatedly
 starting from a given file when subsequent restart files have been
 written. With this arrangement, the tracer restart flags can be set to
 true or false, depending on whether the tracer restart data exist. With
@@ -604,8 +601,8 @@ coupled mode is determined at compile time, as described below.</p>
 <cite>ice_ic</cite>, <cite>runtype</cite> and <cite>restart</cite>. <span class="math">\(^a\)</span><em>If false, restart is reset to
 true.</em> <span class="math">\(^b\)</span><em>restart is reset to false.</em> <span class="math">\(^c\)</span>ice_ic <em>is
 reset to ‘none.’</em></p>
-<table border="1" class="docutils" id="id25">
-<span id="tab-ic"></span><caption><span class="caption-text">Table 4</span><a class="headerlink" href="#id25" title="Permalink to this table">¶</a></caption>
+<span id="tab-ic"></span><table border="1" class="docutils" id="id25">
+<caption><span class="caption-text">Table 4</span><a class="headerlink" href="#id25" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="13%" />
 <col width="22%" />
@@ -835,7 +832,7 @@ convenience.</p>
 <p>Several history variables are available in two forms, a value
 representing an average over the sea ice fraction of the grid cell, and
 another that is multiplied by <span class="math">\(a_i\)</span>, representing an average over
-the grid cell area. Our naming convention attaches the suffix “_ai&#8221; to
+the grid cell area. Our naming convention attaches the suffix “_ai” to
 the grid-cell-mean variable names.</p>
 </div>
 <div class="section" id="diagnostic-files">
@@ -857,7 +854,7 @@ may be changed in <strong>ice_in</strong>.</p>
 <p>Timers are declared and initialized in <strong>ice_timers.F90</strong>, and the code
 to be timed is wrapped with calls to <em>ice_timer_start</em> and
 <em>ice_timer_stop</em>. Finally, <em>ice_timer_print</em> writes the results to
-the log file. The optional “stats&#8221; argument (true/false) prints
+the log file. The optional “stats” argument (true/false) prints
 additional statistics. Calling <em>ice_timer_print_all</em> prints all of
 the timings at once, rather than having to call each individually.
 Currently, the timers are set up as in <a class="reference internal" href="#timers"><span class="std std-ref">Table 5</span></a>.
@@ -869,8 +866,8 @@ the code, including the dynamics and advection routines.</p>
 <p>The timers use <em>MPI_WTIME</em> for parallel runs and the F90 intrinsic
 <em>system_clock</em> for single-processor runs.</p>
 <p><a class="reference internal" href="#timers"><span class="std std-ref">Table 5</span></a> : <em>CICE timers</em></p>
-<table border="1" class="docutils" id="id26">
-<span id="timers"></span><caption><span class="caption-text">Table 5</span><a class="headerlink" href="#id26" title="Permalink to this table">¶</a></caption>
+<span id="timers"></span><table border="1" class="docutils" id="id26">
+<caption><span class="caption-text">Table 5</span><a class="headerlink" href="#id26" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="18%" />
 <col width="16%" />
@@ -978,7 +975,7 @@ initial model date stamp is determined from the namelist parameters.
 lcdf64 = true sets 64-bit &nbsp;output, allowing larger file sizes with
 version 3.</p>
 <p>Routines for gathering, scattering and (unformatted) reading and writing
-of the “extended&#8221; global grid, including the physical domain and ghost
+of the “extended” global grid, including the physical domain and ghost
 (halo) cells around the outer edges, allow exact restarts on regional
 grids with open boundary conditions, and they will also simplify
 restarts on the various tripole grids. They are accessed by setting
@@ -1064,8 +1061,8 @@ directories that you will need to edit for your own environment.
 points automatically to scratch space, is intended to be a disk where
 the run directory resides. <cite>SHRDIR</cite> is a path to the CESM shared code.</p>
 <p><a class="reference internal" href="#comp-ice"><span class="std std-ref">Table 6</span></a> : Configuration options available in <strong>comp_ice</strong>.</p>
-<table border="1" class="docutils" id="id27">
-<span id="comp-ice"></span><caption><span class="caption-text">Table 6</span><a class="headerlink" href="#id27" title="Permalink to this table">¶</a></caption>
+<span id="comp-ice"></span><table border="1" class="docutils" id="id27">
+<caption><span class="caption-text">Table 6</span><a class="headerlink" href="#id27" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="15%" />
 <col width="27%" />
@@ -1223,7 +1220,7 @@ the work is at the top and bottom of the grid with little to do in
 between) and close-to-square domains, which maximize the volume to
 surface ratio (and therefore on-processor computations to message
 passing, if there were ice in every grid cell). In cases where the
-number of processors is not a perfect square (4, 9, 16...), the
+number of processors is not a perfect square (4, 9, 16…), the
 <cite>processor_shape</cite> namelist variable allows the user to choose how the
 processors are arranged. Here again, it is better in the sea ice model
 to have more processors in x than in y, for example, 8 processors
@@ -1263,7 +1260,7 @@ land is present), and is provided here for direct-communication
 compatibility with POP. The ‘latitude’ option weights the blocks based
 on latitude and the number of ocean grid cells they contain.</p>
 <p>The rake distribution type is initialized as a standard, Cartesian
-distribution. Using the work-per-block estimates, blocks are “raked&#8221;
+distribution. Using the work-per-block estimates, blocks are “raked”
 onto neighboring processors as needed to improve load balancing
 characteristics among processors, first in the x direction and then in
 y.</p>
@@ -1401,7 +1398,7 @@ in particular, the concentration is unchanged when there is surface or
 basal melting. The proper units for a volume-weighted mass tracer in the
 tracer array are kg/m.</p>
 <p>In several places in the code, tracer computations must be performed on
-the conserved “tracer volume&#8221; rather than the tracer itself; for
+the conserved “tracer volume” rather than the tracer itself; for
 example, the conserved quantity is <span class="math">\(h_{pnd}a_{pnd}a_{lvl}a_{i}\)</span>,
 not <span class="math">\(h_{pnd}\)</span>. Conserved quantities are thus computed according to
 the tracer dependencies, and code must be included to account for new
@@ -1694,7 +1691,7 @@ ${machine}_${test}_${grid}_${pes}_${soptions}.${testid}</p>
 <p class="last">run cice.submit</p>
 </dd>
 </dl>
-<p>The test results will be generated in a local file called &#8220;test_output&#8221;.</p>
+<p>The test results will be generated in a local file called “test_output”.</p>
 <p>When running a test suite, the create.case command line automatically generates all the tests
 under a directory names ${test_suite}.${testid}.  It then automatically builds and submits all
 tests.  When the tests are complete, run the results.csh script to see the results from all the
@@ -1713,7 +1710,7 @@ if the restart files at day 10 from both runs are bit-for-bit identical.</dd>
 </dl>
 </dd>
 </dl>
-<p>Please run &#8216;./create.case -h&#8217; for additional details.</p>
+<p>Please run ‘./create.case -h’ for additional details.</p>
 </div>
 <div class="section" id="additional-testing-options">
 <span id="additional"></span><h3>3.6.2. Additional testing options<a class="headerlink" href="#additional-testing-options" title="Permalink to this headline">¶</a></h3>
@@ -1753,8 +1750,8 @@ results save before in $SCRATCH/CICE_BASELINES/version1.</dd>
 &gt; create.case -t smoke -m wolf -g gx3 -p 4x2 -s run5day -testid t01 -td smoke_gx3_8x2_run5day</dd>
 </dl>
 <p>An additional check will be done for the second test (because of the -td argument), and it will compare
-the output from the first test &#8220;smoke_gx3_8x2_run5day&#8221; to the output from it&#8217;s test &#8220;smoke_gx3_4x2_run5day&#8221;
-and generate a result for that.  It&#8217;s important that the first test complete before the second test is
+the output from the first test “smoke_gx3_8x2_run5day” to the output from it’s test “smoke_gx3_4x2_run5day”
+and generate a result for that.  It’s important that the first test complete before the second test is
 done.  Also, the -td option works only if the testid and the machine are the same for the baseline
 run and the current run.</p>
 </div>
@@ -1762,8 +1759,8 @@ run and the current run.</p>
 <span id="format"></span><h3>3.6.3. Test suite format<a class="headerlink" href="#test-suite-format" title="Permalink to this headline">¶</a></h3>
 <p>The format for the test suite file is relatively simple.  It is a text file with white space delimited
 columns like,</p>
-<table border="1" class="colwidths-given docutils" id="id31">
-<span id="tab-test"></span><caption><span class="caption-text">Table 7</span><a class="headerlink" href="#id31" title="Permalink to this table">¶</a></caption>
+<span id="tab-test"></span><table border="1" class="colwidths-given docutils" id="id31">
+<caption><span class="caption-text">Table 7</span><a class="headerlink" href="#id31" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="14%" />
 <col width="14%" />
@@ -1867,7 +1864,7 @@ will also look for the filename in configuration/scripts/tests where some preset
 <p>cd base_suite.t02</p>
 <p># Once all jobs finish, concatenate all output</p>
 <p>./results.csh  # All tests results will be stored in results.log</p>
-<p># To plot a timeseries of &#8220;total ice extent&#8221;, &#8220;total ice area&#8221;, and &#8220;total ice volume&#8221;</p>
+<p># To plot a timeseries of “total ice extent”, “total ice area”, and “total ice volume”</p>
 <p>./timeseries.csh &lt;directory&gt;</p>
 <p>ls *.png</p>
 </div>
@@ -1877,7 +1874,7 @@ will also look for the filename in configuration/scripts/tests where some preset
 <p>cd base_suite.t03</p>
 <p># Once all jobs finish, concatenate all output</p>
 <p>./results.csh  # All tests results will be stored in results.log</p>
-<p># To plot a timeseries of &#8220;total ice extent&#8221;, &#8220;total ice area&#8221;, and &#8220;total ice volume&#8221;</p>
+<p># To plot a timeseries of “total ice extent”, “total ice area”, and “total ice volume”</p>
 <p>./timeseries.csh &lt;directory&gt;</p>
 <p>ls *.png</p>
 </div>
@@ -1903,27 +1900,27 @@ will also look for the filename in configuration/scripts/tests where some preset
 <ul class="simple">
 <li>In general, the baseline generation, baseline compare, and test diff are independent.</li>
 <li><dl class="first docutils">
-<dt>Use the &#8216;-bd&#8217; flag to specify the location where you want the baseline dataset</dt>
-<dd>to be written.  Without specifying &#8216;-bd&#8217;, the baseline dataset will be written
+<dt>Use the ‘-bd’ flag to specify the location where you want the baseline dataset</dt>
+<dd>to be written.  Without specifying ‘-bd’, the baseline dataset will be written
 to the default baseline directory found in the env.&lt;machine&gt; file (ICE_MACHINE_BASELINE).</dd>
 </dl>
 </li>
 <li><dl class="first docutils">
-<dt>If &#8216;-bd&#8217; is not passed, the scripts will look for baseline datasets in the default</dt>
+<dt>If ‘-bd’ is not passed, the scripts will look for baseline datasets in the default</dt>
 <dd>baseline directory found in the env.&lt;machine&gt; file (ICE_MACHINE_BASELINE).
-If the &#8216;-bd&#8217; option is passed, the scripts will look for baseline datasets in the
+If the ‘-bd’ option is passed, the scripts will look for baseline datasets in the
 location passed to the -bd argument.</dd>
 </dl>
 </li>
 <li><dl class="first docutils">
 <dt>To generate a baseline dataset for a specific version (for regression testing),</dt>
-<dd>use &#8216;-bg &lt;version_name&gt;&#8217;.  The scripts will then place the baseline dataset
+<dd>use ‘-bg &lt;version_name&gt;’.  The scripts will then place the baseline dataset
 in $ICE_MACHINE_BASELINE/&lt;version_name&gt;/</dd>
 </dl>
 </li>
 <li><dl class="first docutils">
-<dt>The &#8216;-testid&#8217; flag allows users to specify a testing id that will be added to the</dt>
-<dd>end of the case directory.  For example, &#8221;./create.case -m wolf -t smoke -testid t12 -p 4x1&#8221;
+<dt>The ‘-testid’ flag allows users to specify a testing id that will be added to the</dt>
+<dd>end of the case directory.  For example, “./create.case -m wolf -t smoke -testid t12 -p 4x1”
 creates the directory wolf_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t or -ts.</dd>
 </dl>
 </li>
@@ -2042,7 +2039,7 @@ the first and last of these values corresponding to <span class="math">\(\sigma\
 <div class="section" id="practical-testing-procedure">
 <h4>3.6.5.2. Practical Testing Procedure<a class="headerlink" href="#practical-testing-procedure" title="Permalink to this headline">¶</a></h4>
 <p>To be placed here: Write up of how to actually do this test within the
-testing software to be added by Elizabeth, Rick, Matt, Tony et al....</p>
+testing software to be added by Elizabeth, Rick, Matt, Tony et al….</p>
 <p>Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
 locations of failures can be identified.</p>
@@ -2051,8 +2048,8 @@ locations of failures can be identified.</p>
 </div>
 <div class="section" id="table-of-namelist-options">
 <span id="tabnamelist"></span><h2>3.7. Table of namelist options<a class="headerlink" href="#table-of-namelist-options" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="colwidths-given docutils" id="id32">
-<span id="tab-namelist"></span><caption><span class="caption-text">Table 8</span><a class="headerlink" href="#id32" title="Permalink to this table">¶</a></caption>
+<span id="tab-namelist"></span><table border="1" class="colwidths-given docutils" id="id32">
+<caption><span class="caption-text">Table 8</span><a class="headerlink" href="#id32" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="20%" />
 <col width="20%" />
@@ -2698,7 +2695,7 @@ locations of failures can be identified.</p>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">a_rapid_mode</span></code></td>
 <td>real</td>
 <td>brine channel diameter</td>
-<td>0.5x10:math:<cite>^{-3}</cite> m</td>
+<td>0.5x10 <span class="math">\(^{-3}\)</span> m</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">Rac_rapid_mode</span></code></td>
 <td>real</td>
@@ -2713,7 +2710,7 @@ locations of failures can be identified.</p>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">dSdt_slow_mode</span></code></td>
 <td>real</td>
 <td>drainage strength parameter</td>
-<td>-1.5x10:math:<cite>^{-7}</cite> m/s/K</td>
+<td>-1.5x10 <span class="math">\(^{-7}\)</span> m/s/K</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">phi_c_slow_mode</span></code></td>
 <td><span class="math">\(0&lt;\phi_c &lt; 1\)</span></td>
@@ -2885,12 +2882,12 @@ locations of failures can be identified.</p>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">R_pnd</span></code></td>
 <td>real</td>
-<td>... for ponded sea ice albedo …</td>
+<td>… for ponded sea ice albedo …</td>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">R_snw</span></code></td>
 <td>real</td>
-<td>... for snow (broadband albedo) …</td>
+<td>… for snow (broadband albedo) …</td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">dT_mlt</span></code></td>
@@ -3210,7 +3207,7 @@ locations of failures can be identified.</p>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">tfrz_option</span></code></td>
 <td><code class="docutils literal"><span class="pre">minus1p8</span></code></td>
-<td>constant ocean freezing temperature (<span class="math">\(-1.8\degC\)</span>)</td>
+<td>constant ocean freezing temperature (<span class="math">\(-1.8^{\circ} C\)</span>)</td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td>&#160;</td>
@@ -3514,7 +3511,7 @@ locations of failures can be identified.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2017, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation).
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
     </div>
   </body>
 </html>
