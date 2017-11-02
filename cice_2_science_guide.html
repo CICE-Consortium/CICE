@@ -297,16 +297,16 @@ clarity, the equations are reproduced here in the present notation.</p>
 <p>The wind stress and turbulent heat flux calculation accounts for both
 stable and unstable atmosphere–ice boundary layers. Define the
 “stability”</p>
-<div class="math">
-\[\Upsilon = {\frac{\kappa g z_\circ}{u^{*2}}}
+<div class="math" id="equation-upsilon">
+<span class="eqno">(1)<a class="headerlink" href="#equation-upsilon" title="Permalink to this equation">¶</a></span>\[\Upsilon = {\frac{\kappa g z_\circ}{u^{*2}}}
 \left({\frac{\Theta^*}{\Theta_a\left(1+0.606Q_a\right)}}  +
-{\frac{Q^*}{\frac{1}{0.606} + Q_a}}\right),\]</div>
+{\frac{Q^*}{{1/0.606} + Q_a}}\right),\]</div>
 <p>where <span class="math">\(\kappa\)</span> is the von Karman constant, <span class="math">\(g\)</span> is
 gravitational acceleration, and <span class="math">\(u^*\)</span>, <span class="math">\(\Theta^*\)</span> and
 <span class="math">\(Q^*\)</span> are turbulent scales for velocity, temperature, and humidity,
 respectively:</p>
 <div class="math" id="equation-stars">
-<span class="eqno">(1)<a class="headerlink" href="#equation-stars" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{aligned}
+<span class="eqno">(2)<a class="headerlink" href="#equation-stars" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{aligned}
 u^*&amp;=&amp;c_u \left|\vec{U}_a\right| \\
 \Theta^*&amp;=&amp; c_\theta\left(\Theta_a-T_{sfc}\right) \\
 Q^*&amp;=&amp;c_q\left(Q_a-Q_{sfc}\right).\end{aligned}\end{split}\]</div>
@@ -317,8 +317,8 @@ humidity, respectively. The latter is calculated by assuming a saturated
 surface, as described in Section&nbsp;<a class="reference internal" href="#sfc-forcing"><span class="std std-ref">Thermodynamic surface forcing balance</span></a>.</p>
 <p>Neglecting form drag,the exchange coefficients <span class="math">\(c_u\)</span>,
 <span class="math">\(c_\theta\)</span> and <span class="math">\(c_q\)</span> are initialized as</p>
-<div class="math">
-\[\frac{\kappa}{\ln(z_{ref}/z_{ice}})\]</div>
+<div class="math" id="equation-coeffinit">
+<span class="eqno">(3)<a class="headerlink" href="#equation-coeffinit" title="Permalink to this equation">¶</a></span>\[\frac{\kappa}{\ln(z_{ref}/z_{ice}})\]</div>
 <p>and updated during a short iteration, as they depend upon the turbulent
 scales. The number of iterations is set by the namelist variable
 <cite>natmiter</cite>. (For the case with form drag, see section&nbsp;<a class="reference internal" href="#formdrag"><span class="std std-ref">Variable exchange coefficients</span></a>.)
@@ -329,8 +329,8 @@ than 10. Further, defining
 <span class="math">\(\chi = \left(1-16\Upsilon\right)^{0.25}\)</span> and <span class="math">\(\chi \geq 1\)</span>,
 the “integrated flux profiles” for momentum and stability in the
 unstable (<span class="math">\(\Upsilon &lt;0\)</span>) case are given by</p>
-<div class="math">
-\[\begin{split}\begin{aligned}
+<div class="math" id="equation-psi1">
+<span class="eqno">(4)<a class="headerlink" href="#equation-psi1" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{aligned}
 \psi_m = &amp;\mbox{}&amp;2\ln\left[0.5(1+\chi)\right] +
          \ln\left[0.5(1+\chi^2)\right] -2\tan^{-1}\chi +
          {\frac{\pi}{2}}, \\
@@ -338,22 +338,21 @@ unstable (<span class="math">\(\Upsilon &lt;0\)</span>) case are given by</p>
 <p>In a departure from the parameterization used in
 <a class="reference internal" href="zreferences.html#kl02" id="id4">[39]</a>, we use profiles for the stable case
 following <a class="reference internal" href="zreferences.html#jam99" id="id5">[38]</a>,</p>
-<div class="math">
-\[\psi_m = \psi_s = -\left[0.7\Upsilon + 0.75\left(\Upsilon-14.3\right)
+<div class="math" id="equation-psi2">
+<span class="eqno">(5)<a class="headerlink" href="#equation-psi2" title="Permalink to this equation">¶</a></span>\[\psi_m = \psi_s = -\left[0.7\Upsilon + 0.75\left(\Upsilon-14.3\right)
          \exp\left(-0.35\Upsilon\right) + 10.7\right].\]</div>
 <p>The coefficients are then updated as</p>
-<div class="math">
-\[\begin{split}\begin{aligned}
+<div class="math" id="equation-coeff2">
+<span class="eqno">(6)<a class="headerlink" href="#equation-coeff2" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{aligned}
 c_u^\prime&amp;=&amp;{\frac{c_u}{1+c_u\left(\lambda-\psi_m\right)/\kappa}} \\
 c_\theta^\prime&amp;=&amp; {\frac{c_\theta}{1+c_\theta\left(\lambda-\psi_s\right)/\kappa}}\\
 c_q^\prime&amp;=&amp;c_\theta^\prime\end{aligned}\end{split}\]</div>
 <p>where <span class="math">\(\lambda = \ln\left(z_\circ/z_{ref}\right)\)</span>. The
 first iteration ends with new turbulent scales from
-equations&nbsp;<a class="reference internal" href="#equation-stars">(1)</a>. After five iterations the latent and sensible
+equations&nbsp;<a class="reference internal" href="#equation-stars">(2)</a>. After five iterations the latent and sensible
 heat flux coefficients are computed, along with the wind stress:</p>
-<div class="math">
-\[\begin{split}\begin{aligned}
-\nonumber
+<div class="math" id="equation-coeff3">
+<span class="eqno">(7)<a class="headerlink" href="#equation-coeff3" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{aligned}
 C_l&amp;=&amp;\rho_a \left(L_{vap}+L_{ice}\right) u^* c_q \\
 C_s&amp;=&amp;\rho_a c_p u^* c_\theta^* + 1, \\
 \vec{\tau}_a&amp;=&amp;{\rho_a \frac{u^{*2}\vec{U}_a}{|\vec{U}_a|}},\end{aligned}\end{split}\]</div>
@@ -377,8 +376,8 @@ Section&nbsp;<a class="reference internal" href="#sfc-forcing"><span class="std 
 and longwave radiation formulas are available in <strong>ice_forcing.F90</strong>.
 In function <em>longwave_rosati_miyakoda</em>, downwelling longwave is
 computed as</p>
-<div class="math">
-\[F_{lw\downarrow} = \epsilon\sigma T_s^4 - \epsilon\sigma T_a^4(0.39-0.05e_a^{1/2})(1-0.8f_{cld}) - 4\epsilon\sigma T_a^3(T_s-T_a)\]</div>
+<div class="math" id="equation-lwflux">
+<span class="eqno">(8)<a class="headerlink" href="#equation-lwflux" title="Permalink to this equation">¶</a></span>\[F_{lw\downarrow} = \epsilon\sigma T_s^4 - \epsilon\sigma T_a^4(0.39-0.05e_a^{1/2})(1-0.8f_{cld}) - 4\epsilon\sigma T_a^3(T_s-T_a)\]</div>
 <p>where the atmospheric vapor pressure (mb) is
 <span class="math">\(e_a = 1000 Q_a/(0.622+0.378Q_a)\)</span>, <span class="math">\(\epsilon=0.97\)</span> is the
 ocean emissivity, <span class="math">\(\sigma\)</span> is the Stephan-Boltzman constant,
@@ -389,8 +388,8 @@ longwave due to the mean (merged) ice and ocean surface temperature,
 longwave radiation patterned after <a class="reference internal" href="zreferences.html#rm88" id="id7">[56]</a>. The
 downwelling longwave formula of <a class="reference internal" href="zreferences.html#pw79" id="id8">[54]</a> is also
 available in function <em>longwave_parkinson_washington</em>:</p>
-<div class="math">
-\[F_{lw\downarrow} = \epsilon\sigma T_a^4 (1-0.261 \exp\left(-7.77\times 10^{-4}T_a^2\right)\left(1 + 0.275f_{cld}\right)\]</div>
+<div class="math" id="equation-lwflux2">
+<span class="eqno">(9)<a class="headerlink" href="#equation-lwflux2" title="Permalink to this equation">¶</a></span>\[F_{lw\downarrow} = \epsilon\sigma T_a^4 (1-0.261 \exp\left(-7.77\times 10^{-4}T_a^2\right)\left(1 + 0.275f_{cld}\right)\]</div>
 <p>The value of <span class="math">\(F_{lw\uparrow}\)</span> is different for each ice thickness
 category, while <span class="math">\(F_{lw\downarrow}\)</span> depends on the mean value of
 surface temperature averaged over all of the thickness categories and
@@ -398,8 +397,8 @@ open water.</p>
 <p>The AOMIP shortwave forcing formula (in subroutine <em>compute_shortwave</em>)
 incorporates the cloud fraction and humidity through the atmospheric
 vapor pressure:</p>
-<div class="math">
-\[F_{sw\downarrow} = {\frac{1353 \cos^2 Z}{10^{-3}(\cos Z+2.7)e_a + 1.085\cos Z + 0.1}}\left(1-0.6 f_{cld}^3\right) &gt; 0\]</div>
+<div class="math" id="equation-swflux">
+<span class="eqno">(10)<a class="headerlink" href="#equation-swflux" title="Permalink to this equation">¶</a></span>\[F_{sw\downarrow} = {\frac{1353 \cos^2 Z}{10^{-3}(\cos Z+2.7)e_a + 1.085\cos Z + 0.1}}\left(1-0.6 f_{cld}^3\right) &gt; 0\]</div>
 <p>where <span class="math">\(\cos Z\)</span> is the cosine of the solar zenith angle.</p>
 </div>
 <div class="section" id="ocean">
@@ -455,8 +454,8 @@ of computing it from the currents is provided in subroutine
 <span class="math">\(\vec{U}_w\)</span> to determine the stress between the ocean and the ice,
 and subsequently the ice velocity <span class="math">\(\vec{u}\)</span>. This stress, relative
 to the ice,</p>
-<div class="math">
-\[\begin{aligned}
+<div class="math" id="equation-tauw">
+<span class="eqno">(11)<a class="headerlink" href="#equation-tauw" title="Permalink to this equation">¶</a></span>\[\begin{aligned}
 \vec{\tau}_w&amp;=&amp;c_w\rho_w\left|{\vec{U}_w-\vec{u}}\right|\left[\left(\vec{U}_w-\vec{u}\right)\cos\theta
 +\hat{k}\times\left(\vec{U}_w-\vec{u}\right)\sin\theta\right] \end{aligned}\]</div>
 <p>is then passed to the flux coupler (relative to the ocean) for use by
@@ -505,14 +504,14 @@ surface area <span class="math">\(S_T\)</span>. Under the assumption of a logari
 velocity profile, the general formulation of the form drag coefficient
 can be expressed as</p>
 <div class="math" id="equation-formdrag">
-<span class="eqno">(2)<a class="headerlink" href="#equation-formdrag" title="Permalink to this equation">¶</a></span>\[C_d=\frac{N c S_c^2 \gamma L_y  H}{2 S_T}\left[\frac{\ln(H/z_0)}{\ln(z_{ref}/z_0)}\right]^2,\]</div>
+<span class="eqno">(12)<a class="headerlink" href="#equation-formdrag" title="Permalink to this equation">¶</a></span>\[C_d=\frac{N c S_c^2 \gamma L_y  H}{2 S_T}\left[\frac{\ln(H/z_0)}{\ln(z_{ref}/z_0)}\right]^2,\]</div>
 <p>where <span class="math">\(z_0\)</span> is a roughness length parameter at the top or bottom
 surface of the ice, <span class="math">\(\gamma\)</span> is a geometric factor, <span class="math">\(c\)</span> is
 the resistance coefficient of a single obstacle, and <span class="math">\(S_c\)</span> is a
 sheltering function that takes into account the shielding effect of the
 obstacle,</p>
 <div class="math" id="equation-shelter">
-<span class="eqno">(3)<a class="headerlink" href="#equation-shelter" title="Permalink to this equation">¶</a></span>\[S_{c}=\left(1-\exp(-s_l D/H)\right)^{1/2},\]</div>
+<span class="eqno">(13)<a class="headerlink" href="#equation-shelter" title="Permalink to this equation">¶</a></span>\[S_{c}=\left(1-\exp(-s_l D/H)\right)^{1/2},\]</div>
 <p>with <span class="math">\(D\)</span> the distance between two obstacles and <span class="math">\(s_l\)</span> an
 attenuation parameter.</p>
 <p>As in the original drag formulation in CICE (sections <a class="reference internal" href="#atmo"><span class="std std-ref">Atmosphere</span></a> and
@@ -523,17 +522,17 @@ atmosphere–ice and ocean–ice boundary layers. The corresponding neutral
 exchange coefficients are then replaced by coefficients that explicitly
 account for form drag, expressed in terms of various contributions as</p>
 <div class="math" id="equation-Cda">
-<span class="eqno">(4)<a class="headerlink" href="#equation-Cda" title="Permalink to this equation">¶</a></span>\[\tt{Cdn\_atm}  = \tt{Cdn\_atm\_rdg} + \tt{Cdn\_atm\_floe} + \tt{Cdn\_atm\_skin} + \tt{Cdn\_atm\_pond} ,\]</div>
+<span class="eqno">(14)<a class="headerlink" href="#equation-Cda" title="Permalink to this equation">¶</a></span>\[\tt{Cdn\_atm}  = \tt{Cdn\_atm\_rdg} + \tt{Cdn\_atm\_floe} + \tt{Cdn\_atm\_skin} + \tt{Cdn\_atm\_pond} ,\]</div>
 <div class="math" id="equation-Cdw">
-<span class="eqno">(5)<a class="headerlink" href="#equation-Cdw" title="Permalink to this equation">¶</a></span>\[\tt{Cdn\_ocn}  =  \tt{Cdn\_ocn\_rdg} + \tt{Cdn\_ocn\_floe} + \tt{Cdn\_ocn\_skin}.\]</div>
+<span class="eqno">(15)<a class="headerlink" href="#equation-Cdw" title="Permalink to this equation">¶</a></span>\[\tt{Cdn\_ocn}  =  \tt{Cdn\_ocn\_rdg} + \tt{Cdn\_ocn\_floe} + \tt{Cdn\_ocn\_skin}.\]</div>
 <p>The contributions to form drag from ridges (and keels underneath the
 ice), floe edges and melt pond edges can be expressed using the general
-formulation of equation <a class="reference internal" href="#equation-formdrag">(2)</a> (see <a class="reference internal" href="zreferences.html#tfsffklb14" id="id15">[71]</a> for
-details). Individual terms in equation <a class="reference internal" href="#equation-Cdw">(5)</a> are fully described in
+formulation of equation <a class="reference internal" href="#equation-formdrag">(12)</a> (see <a class="reference internal" href="zreferences.html#tfsffklb14" id="id15">[71]</a> for
+details). Individual terms in equation <a class="reference internal" href="#equation-Cdw">(15)</a> are fully described in
 <a class="reference internal" href="zreferences.html#tfsffklb14" id="id16">[71]</a>. Following <a class="reference internal" href="zreferences.html#arya75" id="id17">[4]</a>
 the skin drag coefficient is parametrized as</p>
 <div class="math" id="equation-skindrag">
-<span class="eqno">(6)<a class="headerlink" href="#equation-skindrag" title="Permalink to this equation">¶</a></span>\[{ \tt{Cdn\_(atm/ocn)\_skin}}=a_{i} \left(1-m_{(s/k)} \frac{H_{(s/k)}}{D_{(s/k)}}\right)c_{s(s/k)}, \mbox{       if  $\displaystyle\frac{H_{(s/k)}}{D_{(s/k)}}\ge\frac{1}{m_{(s/k)}}$,}\]</div>
+<span class="eqno">(16)<a class="headerlink" href="#equation-skindrag" title="Permalink to this equation">¶</a></span>\[{ \tt{Cdn\_(atm/ocn)\_skin}}=a_{i} \left(1-m_{(s/k)} \frac{H_{(s/k)}}{D_{(s/k)}}\right)c_{s(s/k)}, \mbox{       if  $\displaystyle\frac{H_{(s/k)}}{D_{(s/k)}}\ge\frac{1}{m_{(s/k)}}$,}\]</div>
 <p>where <span class="math">\(m_s\)</span> (<span class="math">\(m_k\)</span>) is a sheltering parameter that depends
 on the average sail (keel) height, <span class="math">\(H_s\)</span> (<span class="math">\(H_k\)</span>), but is
 often assumed constant, <span class="math">\(D_s\)</span> (<span class="math">\(D_k\)</span>) is the average
@@ -541,16 +540,16 @@ distance between sails (keels), and <span class="math">\(c_{ss}\)</span> (<span 
 the unobstructed atmospheric (oceanic) skin drag that would be attained
 in the absence of sails (keels) and with complete ice coverage,
 <span class="math">\(a_{ice}=1\)</span>.</p>
-<p>Calculation of equations <a class="reference internal" href="#equation-formdrag">(2)</a> – <a class="reference internal" href="#equation-skindrag">(6)</a> requires that small-scale geometrical
+<p>Calculation of equations <a class="reference internal" href="#equation-formdrag">(12)</a> – <a class="reference internal" href="#equation-skindrag">(16)</a> requires that small-scale geometrical
 properties of the ice cover be related to average grid cell quantities
 already computed in the sea ice model. These intermediate quantities are
 briefly presented here and described in more detail in
 <a class="reference internal" href="zreferences.html#tfsffklb14" id="id18">[71]</a>. The sail height is given by</p>
 <div class="math" id="equation-Hs">
-<span class="eqno">(7)<a class="headerlink" href="#equation-Hs" title="Permalink to this equation">¶</a></span>\[H_{s} = \displaystyle 2\frac{v_{rdg}}{a_{rdg}}\left(\frac{\alpha\tan \alpha_{k} R_d+\beta \tan \alpha_{s} R_h}{\phi_r\tan \alpha_{k} R_d+\phi_k \tan \alpha_{s} R_h^2}\right),\]</div>
+<span class="eqno">(17)<a class="headerlink" href="#equation-Hs" title="Permalink to this equation">¶</a></span>\[H_{s} = \displaystyle 2\frac{v_{rdg}}{a_{rdg}}\left(\frac{\alpha\tan \alpha_{k} R_d+\beta \tan \alpha_{s} R_h}{\phi_r\tan \alpha_{k} R_d+\phi_k \tan \alpha_{s} R_h^2}\right),\]</div>
 <p>and the distance between sails</p>
 <div class="math" id="equation-Ds">
-<span class="eqno">(8)<a class="headerlink" href="#equation-Ds" title="Permalink to this equation">¶</a></span>\[D_{s} = \displaystyle 2 H_s\frac{a_{i}}{a_{rdg}} \left(\frac{\alpha}{\tan \alpha_s}+\frac{\beta}{\tan \alpha_k}\frac{R_h}{R_d}\right),\]</div>
+<span class="eqno">(18)<a class="headerlink" href="#equation-Ds" title="Permalink to this equation">¶</a></span>\[D_{s} = \displaystyle 2 H_s\frac{a_{i}}{a_{rdg}} \left(\frac{\alpha}{\tan \alpha_s}+\frac{\beta}{\tan \alpha_k}\frac{R_h}{R_d}\right),\]</div>
 <p>where <span class="math">\(0&lt;\alpha&lt;1\)</span> and <span class="math">\(0&lt;\beta&lt;1\)</span> are weight functions,
 <span class="math">\(\alpha_{s}\)</span> and <span class="math">\(\alpha_{k}\)</span> are the sail and keel slope,
 <span class="math">\(\phi_s\)</span> and <span class="math">\(\phi_k\)</span> are constant porosities for the sails
@@ -599,7 +598,7 @@ modeling is to describe the evolution of the ice thickness distribution
 (ITD) in time and space.</p>
 <p>The fundamental equation solved by CICE is <a class="reference internal" href="zreferences.html#trmc75" id="id23">[69]</a>:</p>
 <div class="math" id="equation-transport-g">
-<span class="eqno">(9)<a class="headerlink" href="#equation-transport-g" title="Permalink to this equation">¶</a></span>\[\frac{\partial g}{\partial t} = -\nabla \cdot (g {\bf u})
+<span class="eqno">(19)<a class="headerlink" href="#equation-transport-g" title="Permalink to this equation">¶</a></span>\[\frac{\partial g}{\partial t} = -\nabla \cdot (g {\bf u})
  - \frac{\partial}{\partial h} (f g) + \psi,\]</div>
 <p>where <span class="math">\({\bf u}\)</span> is the horizontal ice velocity,
 <span class="math">\(\nabla = (\frac{\partial}{\partial x}, \frac{\partial}{\partial y})\)</span>,
@@ -608,7 +607,7 @@ ridging redistribution function, and <span class="math">\(g\)</span> is the ice 
 distribution function. We define <span class="math">\(g({\bf x},h,t)\,dh\)</span> as the
 fractional area covered by ice in the thickness range <span class="math">\((h,h+dh)\)</span>
 at a given time and location.</p>
-<p>Equation&nbsp;<a class="reference internal" href="#equation-transport-g">(9)</a> is solved by partitioning the ice pack in
+<p>Equation&nbsp;<a class="reference internal" href="#equation-transport-g">(19)</a> is solved by partitioning the ice pack in
 each grid cell into discrete thickness categories. The number of
 categories can be set by the user, with a default value <span class="math">\(N_C = 5\)</span>.
 (Five categories, plus open water, are generally sufficient to simulate
@@ -754,7 +753,7 @@ tracer.</li>
 <p>Since the fractional area is unitless, the volume variables have units
 of meters (i.e., m<span class="math">\(^3\)</span> of ice or snow per m<span class="math">\(^2\)</span> of grid
 cell area), and the energy variables have units of J/m<span class="math">\(^2\)</span>.</p>
-<p>The three terms on the right-hand side of Equation <a class="reference internal" href="#equation-transport-g">(9)</a> describe
+<p>The three terms on the right-hand side of Equation <a class="reference internal" href="#equation-transport-g">(19)</a> describe
 three kinds of sea ice transport: (1) horizontal transport in
 <span class="math">\((x,y)\)</span> space; (2) transport in thickness space <span class="math">\(h\)</span> due to
 thermodynamic growth and melting; and (3) transport in thickness space
@@ -800,35 +799,35 @@ computed at the end of the last timestep are scaled for the new forcing.</p>
 ice volume <span class="math">\(v_{in}\)</span>, and snow volume <span class="math">\(v_{sn}\)</span> for each
 thickness category <span class="math">\(n\)</span> are</p>
 <div class="math" id="equation-transport-ai">
-<span class="eqno">(10)<a class="headerlink" href="#equation-transport-ai" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (a_{in}) + \nabla \cdot (a_{in} {\bf u}) = 0,\]</div>
+<span class="eqno">(20)<a class="headerlink" href="#equation-transport-ai" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (a_{in}) + \nabla \cdot (a_{in} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-vi">
-<span class="eqno">(11)<a class="headerlink" href="#equation-transport-vi" title="Permalink to this equation">¶</a></span>\[\frac{\partial v_{in}}{\partial t} + \nabla \cdot (v_{in} {\bf u}) = 0,\]</div>
+<span class="eqno">(21)<a class="headerlink" href="#equation-transport-vi" title="Permalink to this equation">¶</a></span>\[\frac{\partial v_{in}}{\partial t} + \nabla \cdot (v_{in} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-vs">
-<span class="eqno">(12)<a class="headerlink" href="#equation-transport-vs" title="Permalink to this equation">¶</a></span>\[\frac{\partial v_{sn}}{\partial t} + \nabla \cdot (v_{sn} {\bf u}) = 0.\]</div>
+<span class="eqno">(22)<a class="headerlink" href="#equation-transport-vs" title="Permalink to this equation">¶</a></span>\[\frac{\partial v_{sn}}{\partial t} + \nabla \cdot (v_{sn} {\bf u}) = 0.\]</div>
 <p>The ice and snow volumes can be written equivalently in terms of
 tracers, ice thickness <span class="math">\(h_{in}\)</span> and snow depth <span class="math">\(h_{sn}\)</span>:</p>
 <div class="math" id="equation-transport-hi">
-<span class="eqno">(13)<a class="headerlink" href="#equation-transport-hi" title="Permalink to this equation">¶</a></span>\[\frac{\partial h_{in}a_{in}}{\partial t} + \nabla \cdot (h_{in}a_{in} {\bf u}) = 0,\]</div>
+<span class="eqno">(23)<a class="headerlink" href="#equation-transport-hi" title="Permalink to this equation">¶</a></span>\[\frac{\partial h_{in}a_{in}}{\partial t} + \nabla \cdot (h_{in}a_{in} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-hs">
-<span class="eqno">(14)<a class="headerlink" href="#equation-transport-hs" title="Permalink to this equation">¶</a></span>\[\frac{\partial h_{sn}a_{in}}{\partial t} + \nabla \cdot (h_{sn}a_{in} {\bf u}) = 0.\]</div>
+<span class="eqno">(24)<a class="headerlink" href="#equation-transport-hs" title="Permalink to this equation">¶</a></span>\[\frac{\partial h_{sn}a_{in}}{\partial t} + \nabla \cdot (h_{sn}a_{in} {\bf u}) = 0.\]</div>
 <p>Although we maintain ice and snow volume instead of the thicknesses as
 state variables in CICE, the tracer form is used for volume transport
 (section <a class="reference internal" href="#horiz-trans"><span class="std std-ref">Horizontal transport</span></a>). There are many other tracers
 available, whose values are contained in the <cite>trcrn</cite> array. Their
 transport equations typically have one of the following three forms</p>
 <div class="math" id="equation-transport-aT">
-<span class="eqno">(15)<a class="headerlink" href="#equation-transport-aT" title="Permalink to this equation">¶</a></span>\[\frac{\partial \left(a_{in} T_n\right)}{\partial t} + \nabla \cdot (a_{in} T_n {\bf u}) = 0,\]</div>
+<span class="eqno">(25)<a class="headerlink" href="#equation-transport-aT" title="Permalink to this equation">¶</a></span>\[\frac{\partial \left(a_{in} T_n\right)}{\partial t} + \nabla \cdot (a_{in} T_n {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-viT">
-<span class="eqno">(16)<a class="headerlink" href="#equation-transport-viT" title="Permalink to this equation">¶</a></span>\[\frac{\partial \left(v_{in} T_n\right)}{\partial t} + \nabla \cdot (v_{in} T_n {\bf u}) = 0,\]</div>
+<span class="eqno">(26)<a class="headerlink" href="#equation-transport-viT" title="Permalink to this equation">¶</a></span>\[\frac{\partial \left(v_{in} T_n\right)}{\partial t} + \nabla \cdot (v_{in} T_n {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-vsT">
-<span class="eqno">(17)<a class="headerlink" href="#equation-transport-vsT" title="Permalink to this equation">¶</a></span>\[\frac{\partial \left(v_{sn} T_n\right)}{\partial t} + \nabla \cdot (v_{sn} T_n {\bf u}) = 0.\]</div>
-<p>Equation <a class="reference internal" href="#equation-transport-aT">(15)</a> describes the transport of surface
-temperature, whereas Equation <a class="reference internal" href="#equation-transport-viT">(16)</a> and Equation <a class="reference internal" href="#equation-transport-vsT">(17)</a>
+<span class="eqno">(27)<a class="headerlink" href="#equation-transport-vsT" title="Permalink to this equation">¶</a></span>\[\frac{\partial \left(v_{sn} T_n\right)}{\partial t} + \nabla \cdot (v_{sn} T_n {\bf u}) = 0.\]</div>
+<p>Equation <a class="reference internal" href="#equation-transport-aT">(25)</a> describes the transport of surface
+temperature, whereas Equation <a class="reference internal" href="#equation-transport-viT">(26)</a> and Equation <a class="reference internal" href="#equation-transport-vsT">(27)</a>
 describe the transport of ice and snow enthalpy, salt, and passive
 tracers such as volume-weighted ice age and snow age. Each tracer field
 is given an integer index, <cite>trcr_depend</cite>, which has the value 0, 1, or 2
 depending on whether the appropriate conservation equation is
-Equation <a class="reference internal" href="#equation-transport-aT">(15)</a>, Equation <a class="reference internal" href="#equation-transport-viT">(16)</a>, or Equation <a class="reference internal" href="#equation-transport-vsT">(17)</a>,
+Equation <a class="reference internal" href="#equation-transport-aT">(25)</a>, Equation <a class="reference internal" href="#equation-transport-viT">(26)</a>, or Equation <a class="reference internal" href="#equation-transport-vsT">(27)</a>,
 respectively. The total number of tracers is
 <span class="math">\(N_{tr}\ge 1\)</span>. In the default configuration there are two
 tracers: surface temperature and volume-weighted ice age. Tracers for
@@ -843,20 +842,20 @@ guidance on adding tracers.</p>
 <p>Tracers may be defined that depend on other tracers. Melt pond tracers
 provide an example (these equations pertain to cesm and topo tracers;
 level-ice tracers are similar with an extra factor of <span class="math">\(a_{lvl}\)</span>,
-see Equations&nbsp;<a class="reference internal" href="#equation-transport-lvl">(102)</a>–<a class="reference internal" href="#equation-transport-ipnd-lvl">(105)</a>. Conservation
+see Equations&nbsp;<a class="reference internal" href="#equation-transport-lvl">(116)</a>–<a class="reference internal" href="#equation-transport-ipnd-lvl">(119)</a>. Conservation
 equations for pond area fraction <span class="math">\(a_{pnd}a_i\)</span> and pond volume
 <span class="math">\(h_{pnd}a_{pnd}a_i\)</span>, given the ice velocity <span class="math">\(\bf u\)</span>, are</p>
 <div class="math" id="equation-transport-apnd">
-<span class="eqno">(18)<a class="headerlink" href="#equation-transport-apnd" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (a_{pnd}a_{i}) + \nabla \cdot (a_{pnd}a_{i} {\bf u}) = 0,\]</div>
+<span class="eqno">(28)<a class="headerlink" href="#equation-transport-apnd" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (a_{pnd}a_{i}) + \nabla \cdot (a_{pnd}a_{i} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-hpnd">
-<span class="eqno">(19)<a class="headerlink" href="#equation-transport-hpnd" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (h_{pnd}a_{pnd}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{i} {\bf u}) = 0.\]</div>
+<span class="eqno">(29)<a class="headerlink" href="#equation-transport-hpnd" title="Permalink to this equation">¶</a></span>\[{\frac{\partial}{\partial t}} (h_{pnd}a_{pnd}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{i} {\bf u}) = 0.\]</div>
 <p>(These equations represent quantities within one thickness category;
 all melt pond calculations are performed for each category, separately.)
-Equation <a class="reference internal" href="#equation-transport-hpnd">(19)</a> expresses conservation of melt pond
+Equation <a class="reference internal" href="#equation-transport-hpnd">(29)</a> expresses conservation of melt pond
 volume, but in this form highlights that the quantity tracked in the
 code is the pond depth tracer <span class="math">\(h_{pnd}\)</span>, which depends on the pond
 area tracer <span class="math">\(a_{pnd}\)</span>. Likewise, <span class="math">\(a_{pnd}\)</span> is a tracer on
-ice area (Equation&nbsp;<a class="reference internal" href="#equation-transport-apnd">(18)</a>), which is a state variable, not a
+ice area (Equation&nbsp;<a class="reference internal" href="#equation-transport-apnd">(28)</a>), which is a state variable, not a
 tracer.</p>
 <p>For a generic quantity <span class="math">\(q\)</span> that represents a mean value over the
 ice fraction, <span class="math">\(q a_i\)</span> is the average value over the grid cell.
@@ -883,23 +882,22 @@ ponds is preserved within each category gaining ice,
 <span class="math">\(a_{pnd}^{t+\Delta t}a_{i}^{t+\Delta t} = a_{pnd}^{t}a_{i}^{t}\)</span>,
 or</p>
 <div class="math" id="equation-apnd">
-<span class="eqno">(20)<a class="headerlink" href="#equation-apnd" title="Permalink to this equation">¶</a></span>\[a_{pnd}^{t+\Delta t}= {a_{pnd}^{t}a_{i}^{t} \over a_{i}^{t+\Delta t} }.\]</div>
+<span class="eqno">(30)<a class="headerlink" href="#equation-apnd" title="Permalink to this equation">¶</a></span>\[a_{pnd}^{t+\Delta t}= {a_{pnd}^{t}a_{i}^{t} \over a_{i}^{t+\Delta t} }.\]</div>
 <p>Similar calculations are performed for all tracer types, for example
 tracer-on-tracer dependencies such as <span class="math">\(h_{pnd}\)</span>, when needed:</p>
-<div class="math">
-\[h_{pnd}^{t+\Delta t}= {h_{pnd}^{t}a_{pnd}^{t}a_{i}^{t} \over a_{pnd}^{t+\Delta t}a_{i}^{t+\Delta t} }.\]</div>
+<div class="math" id="equation-hpnd">
+<span class="eqno">(31)<a class="headerlink" href="#equation-hpnd" title="Permalink to this equation">¶</a></span>\[h_{pnd}^{t+\Delta t}= {h_{pnd}^{t}a_{pnd}^{t}a_{i}^{t} \over a_{pnd}^{t+\Delta t}a_{i}^{t+\Delta t} }.\]</div>
 <p>In this case (adding new ice), <span class="math">\(h_{pnd}\)</span> does not change because
 <span class="math">\(a_{pnd}^{t+\Delta t}a_{i}^{t+\Delta t} = a_{pnd}^{t}a_{i}^{t}\)</span>.</p>
 <p>When ice is transferred between two thickness categories, we conserve
 the total pond area summed over categories <span class="math">\(n\)</span>,</p>
-<div class="math">
-\[\sum_n a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) = \sum_n a_{pnd}^{t}(n)a_{i}^{t}(n).\]</div>
+<div class="math" id="equation-apnd2">
+<span class="eqno">(32)<a class="headerlink" href="#equation-apnd2" title="Permalink to this equation">¶</a></span>\[\sum_n a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) = \sum_n a_{pnd}^{t}(n)a_{i}^{t}(n).\]</div>
 <p>Thus,</p>
-<div class="math">
-\[\begin{split}\begin{aligned}
-\label{eq:xfer}
-a_{pnd}^{t+\Delta t}(m)&amp;=&amp; {\sum_n a_{pnd}^{t}(n)a_{i}^{t}(n) - \sum_{n\ne m} a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) \over a_i^{t+\Delta t}(m)  } \\
-= {a_{pnd}^t(m)a_i^t(m) + \sum_{n\ne m} \Delta \left(a_{pnd}a_i\right)^{t+\Delta t} \over a_i^{t+\Delta t}(m)  }\end{aligned}\end{split}\]</div>
+<div class="math" id="equation-xfer">
+<span class="eqno">(33)<a class="headerlink" href="#equation-xfer" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{aligned}
+a_{pnd}^{t+\Delta t}(m) &amp;=&amp; {\sum_n a_{pnd}^{t}(n)a_{i}^{t}(n) - \sum_{n\ne m} a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) \over a_i^{t+\Delta t}(m)  } \\
+&amp;=&amp; {a_{pnd}^t(m)a_i^t(m) + \sum_{n\ne m} \Delta \left(a_{pnd}a_i\right)^{t+\Delta t} \over a_i^{t+\Delta t}(m)  }\end{aligned}\end{split}\]</div>
 <p>This is more complicated because of the <span class="math">\(\Delta\)</span> term on the
 right-hand side, which is handled manually in <strong>ice_itd.F90</strong>. Such
 tracer calculations are scattered throughout the code, wherever there
@@ -1060,8 +1058,8 @@ dependent piston velocity of <a class="reference internal" href="zreferences.htm
 categories, biogeochemical tracers (<span class="math">\(T_b\)</span> where
 <span class="math">\(b = 1,\ldots, N_b\)</span>) satisfy a set of local coupled equations of
 the form</p>
-<div class="math">
-\[\frac{d T_b}{dt}  = w_b \frac{\Delta T_b}{\Delta z} +  R_b({T_j : j = 1,\ldots,N_b})\]</div>
+<div class="math" id="equation-tracer1">
+<span class="eqno">(34)<a class="headerlink" href="#equation-tracer1" title="Permalink to this equation">¶</a></span>\[\frac{d T_b}{dt}  = w_b \frac{\Delta T_b}{\Delta z} +  R_b({T_j : j = 1,\ldots,N_b})\]</div>
 <p>where <span class="math">\(R_b\)</span> represents the nonlinear biochemical reaction terms
 detailed in <a class="reference internal" href="zreferences.html#edhhjjls12" id="id65">[17]</a> and <span class="math">\(\Delta z\)</span> is a
 length scale representing the molecular sublayer of the ice–ocean
@@ -1072,13 +1070,13 @@ flux formulation.</p>
 rates. All tracers (algae included) flux with the same piston velocity
 during ice growth, <span class="math">\(dh/dt &gt; 0\)</span>:</p>
 <div class="math" id="equation-pwJin-growth">
-<span class="eqno">(21)<a class="headerlink" href="#equation-pwJin-growth" title="Permalink to this equation">¶</a></span>\[w_b   =   - p_g\left|m_1 + m_2 \frac{dh}{dt} - m_3
+<span class="eqno">(35)<a class="headerlink" href="#equation-pwJin-growth" title="Permalink to this equation">¶</a></span>\[w_b   =   - p_g\left|m_1 + m_2 \frac{dh}{dt} - m_3
   \left(\frac{dh}{dt} \right)^2\right|\]</div>
 <p>with parameters <span class="math">\(m_1\)</span>, <span class="math">\(m_2\)</span>, <span class="math">\(m_3\)</span> and <span class="math">\(p_g\)</span>
 defined in <strong>skl_biogeochemistry</strong>. For ice melt, <span class="math">\(dh/dt &lt; 0\)</span>,
 all tracers with the exception of ice algae flux with</p>
 <div class="math" id="equation-pwJin-melt">
-<span class="eqno">(22)<a class="headerlink" href="#equation-pwJin-melt" title="Permalink to this equation">¶</a></span>\[w_b  =  p_m\left|m_2 \frac{dh}{dt} - m_3
+<span class="eqno">(36)<a class="headerlink" href="#equation-pwJin-melt" title="Permalink to this equation">¶</a></span>\[w_b  =  p_m\left|m_2 \frac{dh}{dt} - m_3
     \left(\frac{dh}{dt}  \right)^2\right|\]</div>
 <p>with <span class="math">\(p_m\)</span> defined in <strong>skl_biogeochemistry</strong>. The ‘Jin2006’
 formulation also requires that for both expressions,
@@ -1090,7 +1088,7 @@ T_b\)</span>, depends on the sign of <span class="math">\(w_b\)</span>. For grow
 <span class="math">\(T_{io}\)</span> is the ocean concentration of tracer <span class="math">\(i\)</span>. For
 melting ice, <span class="math">\(w_b &gt; 0\)</span>, <span class="math">\(\Delta T_b = T_b/h_{sk}\)</span>.</p>
 <p>In ‘Jin2006’, the algal tracer (<span class="math">\(N_a\)</span>) responds to ice melt in the
-same manner as the other tracers from Equation <a class="reference internal" href="#equation-pwJin-melt">(22)</a>. However, this is
+same manner as the other tracers from Equation <a class="reference internal" href="#equation-pwJin-melt">(36)</a>. However, this is
 not the case for ice growth. Unlike dissolved nutrients, algae are able
 to cling to the ice matrix and resist expulsion during desalination. For
 this reason, algal tracers do not flux between ice and ocean during ice
@@ -1098,16 +1096,16 @@ growth unless the ice algal brine concentration is less than the ocean
 algal concentration (<span class="math">\(N_o\)</span>). Then the ocean seeds the sea ice
 concentration according to</p>
 <div class="math" id="equation-seed">
-<span class="eqno">(23)<a class="headerlink" href="#equation-seed" title="Permalink to this equation">¶</a></span>\[w_b \frac{\Delta N_a}{\Delta z} = \frac{N_oh_{sk}/\phi_{sk} -
+<span class="eqno">(37)<a class="headerlink" href="#equation-seed" title="Permalink to this equation">¶</a></span>\[w_b \frac{\Delta N_a}{\Delta z} = \frac{N_oh_{sk}/\phi_{sk} -
   N_a}{\Delta t}\]</div>
 <p>The ‘constant’ formulation uses a fixed piston velocity (PVc) for
 positive ice growth rates for all tracers except <span class="math">\(N_a\)</span>. As in
 ‘Jin2006’, congelation ice growth seeds the sea ice algal population
-according to Equation <a class="reference internal" href="#equation-seed">(23)</a> when <span class="math">\(N_a &lt; N_o
+according to Equation <a class="reference internal" href="#equation-seed">(37)</a> when <span class="math">\(N_a &lt; N_o
 h_{sk}/\phi_{sk}\)</span>. For bottom ice melt, all tracers follow the
 prescription</p>
 <div class="math" id="equation-constant-melt">
-<span class="eqno">(24)<a class="headerlink" href="#equation-constant-melt" title="Permalink to this equation">¶</a></span>\[\begin{split}w_b \frac{\Delta T_b}{\Delta z} =  \left\{ \begin{array}{ll}
+<span class="eqno">(38)<a class="headerlink" href="#equation-constant-melt" title="Permalink to this equation">¶</a></span>\[\begin{split}w_b \frac{\Delta T_b}{\Delta z} =  \left\{ \begin{array}{ll}
    T_b   |dh_i/dt|/h_{sk} \ \ \ \ \ &amp;   \mbox{if }
  |dh_i/dt|\Delta t/h_{sk} &lt; 1  \\
  T_b/\Delta t &amp; \mbox{otherwise.}   \end{array} \right.\end{split}\]</div>
@@ -1134,8 +1132,8 @@ developed for future release in CICE.</p>
 <span id="aero"></span><h4>2.2.1.4. Aerosols<a class="headerlink" href="#aerosols" title="Permalink to this headline">¶</a></h4>
 <p>Aerosols may be deposited on the ice and gradually work their way
 through it until the ice melts and they are passed into the ocean. They
-are defined as ice and snow volume tracers (Equations&nbsp;<a class="reference internal" href="#equation-transport-viT">(16)</a> and
-<a class="reference internal" href="#equation-transport-vsT">(17)</a>), with the snow and ice each having two tracers for
+are defined as ice and snow volume tracers (Equations&nbsp;<a class="reference internal" href="#equation-transport-viT">(26)</a> and
+<a class="reference internal" href="#equation-transport-vsT">(27)</a>), with the snow and ice each having two tracers for
 each aerosol species, one in the surface scattering layer
 (delta-Eddington SSL) and one in the snow or ice interior below the SSL.</p>
 <p>Rather than updating aerosols for each change to ice/snow thickness due
@@ -1183,7 +1181,7 @@ salinity. In future releases it will be used for transporting
 biogeochemical tracers vertically through the ice.</p>
 <p>Brine height is transported horizontally as the fraction
 <span class="math">\(f_{bri} = h_b/h_i\)</span>, a volume conserved tracer
-(Equation&nbsp;<a class="reference internal" href="#equation-transport-viT">(16)</a>). Note that unlike the sea ice porosity, brine
+(Equation&nbsp;<a class="reference internal" href="#equation-transport-viT">(26)</a>). Note that unlike the sea ice porosity, brine
 height fraction may be greater than 1 when <span class="math">\(h_b &gt; h_i\)</span>.</p>
 <p>Vertical transport processes are, generally, a result of the brine
 motion. Therefore the vertical transport equations for biogeochemical
@@ -1202,16 +1200,16 @@ at <span class="math">\(t+\Delta
 t\)</span> is a two step process. First, <span class="math">\(h_b\)</span> is updated from changes in
 ice and snow thickness, ie.</p>
 <div class="math" id="equation-hb-thickness-changes">
-<span class="eqno">(25)<a class="headerlink" href="#equation-hb-thickness-changes" title="Permalink to this equation">¶</a></span>\[h_b'  =  h_b(t) + \Delta h_b|_{h_i,h_s} .\]</div>
+<span class="eqno">(39)<a class="headerlink" href="#equation-hb-thickness-changes" title="Permalink to this equation">¶</a></span>\[h_b'  =  h_b(t) + \Delta h_b|_{h_i,h_s} .\]</div>
 <p>Second, pressure driven adjustments arising from meltwater flushing and
 snow loading are applied to <span class="math">\(h'_b\)</span>. Brine flow due to pressure
 forces are governed by Darcy’s equation</p>
 <div class="math" id="equation-Darcy">
-<span class="eqno">(26)<a class="headerlink" href="#equation-Darcy" title="Permalink to this equation">¶</a></span>\[w =  -\frac{\Pi^* \bar{\rho} g}{\mu}\frac{h_p}{h_i}.\]</div>
+<span class="eqno">(40)<a class="headerlink" href="#equation-Darcy" title="Permalink to this equation">¶</a></span>\[w =  -\frac{\Pi^* \bar{\rho} g}{\mu}\frac{h_p}{h_i}.\]</div>
 <p>The vertical component of the net permeability tensor <span class="math">\(\Pi^*\)</span> is
 computed as</p>
 <div class="math" id="equation-netPi">
-<span class="eqno">(27)<a class="headerlink" href="#equation-netPi" title="Permalink to this equation">¶</a></span>\[\Pi^*  =  \left(\frac{1}{h}\sum_{i=1}^N{\frac{\Delta
+<span class="eqno">(41)<a class="headerlink" href="#equation-netPi" title="Permalink to this equation">¶</a></span>\[\Pi^*  =  \left(\frac{1}{h}\sum_{i=1}^N{\frac{\Delta
       z_i}{\Pi_i}}\right)^{-1}\]</div>
 <p>where the sea ice is composed of <span class="math">\(N\)</span> vertical layers with
 <span class="math">\(i\)</span>th layer thickness <span class="math">\(\Delta z_i\)</span> and permeability
@@ -1224,7 +1222,7 @@ given by</p>
 <p>Assuming constant <span class="math">\(h_i\)</span> and <span class="math">\(h_s\)</span> during Darcy flow, the
 rate of change of <span class="math">\(h_b\)</span> is</p>
 <div class="math" id="equation-h-p">
-<span class="eqno">(28)<a class="headerlink" href="#equation-h-p" title="Permalink to this equation">¶</a></span>\[\frac{\partial h_b}{\partial t}   =  -w h_p\]</div>
+<span class="eqno">(42)<a class="headerlink" href="#equation-h-p" title="Permalink to this equation">¶</a></span>\[\frac{\partial h_b}{\partial t}   =  -w h_p\]</div>
 <p>where <span class="math">\(w_o = \Pi^* \bar{\rho}
 g/(h_i\mu\phi_{top})\)</span> and <span class="math">\(\phi_{top}\)</span> is the upper surface
 porosity. When the Darcy flow is downward into the ice
@@ -1234,9 +1232,9 @@ then <span class="math">\(\phi_{top}\)</span> equals the snow porosity <cite>phi
 <strong>ice_in</strong>. If a negative number is specified for <cite>phi_snow</cite>, then the
 default value is used: phi_snow <span class="math">\(=1 - \rho_s/\rho_w\)</span>.</p>
 <p>Since <span class="math">\(h_{sl}\)</span> remains relatively unchanged during Darcy flow,
-Equation <a class="reference internal" href="#equation-h-p">(28)</a> has the approximate solution</p>
+Equation <a class="reference internal" href="#equation-h-p">(42)</a> has the approximate solution</p>
 <div class="math" id="equation-brine-height">
-<span class="eqno">(29)<a class="headerlink" href="#equation-brine-height" title="Permalink to this equation">¶</a></span>\[h_b(t+\Delta t) \approx h_{sl}(t+\Delta t) +  [h'_b - h_{sl}(t+\Delta t)]\exp\left\{-w \Delta t\right\}.\]</div>
+<span class="eqno">(43)<a class="headerlink" href="#equation-brine-height" title="Permalink to this equation">¶</a></span>\[h_b(t+\Delta t) \approx h_{sl}(t+\Delta t) +  [h'_b - h_{sl}(t+\Delta t)]\exp\left\{-w \Delta t\right\}.\]</div>
 <p>The contribution <span class="math">\(\Delta h_b|_{h_i,h_s}\)</span> arises from snow and ice
 melt and bottom ice changes. Since the ice and brine bottom boundaries
 coincide, changes in the ice bottom from growth or melt,
@@ -1254,13 +1252,13 @@ ice surface is melting, ie. <span class="math">\((\Delta h_i)_{top} &lt;
 melt water contributes a source of surface brine. The total change from
 snow melt and ice thickness changes is</p>
 <div class="math" id="equation-dzdt-meltwater">
-<span class="eqno">(30)<a class="headerlink" href="#equation-dzdt-meltwater" title="Permalink to this equation">¶</a></span>\[\Delta h_b|_{h_i,h_s}  =  \left( \Delta
+<span class="eqno">(44)<a class="headerlink" href="#equation-dzdt-meltwater" title="Permalink to this equation">¶</a></span>\[\Delta h_b|_{h_i,h_s}  =  \left( \Delta
 h_b\right)_{top} -\left(\Delta h_i\right)_{bot} -\frac{\rho_s}{\rho_o}\Delta h_s.\]</div>
 <p>The above brine height calculation is used only when <span class="math">\(h_i\)</span> and
 <span class="math">\(h_b\)</span> exceed a minimum thickness, <cite>thinS</cite>, specified in
 <strong>ice_zbgc_shared</strong>. Otherwise</p>
 <div class="math" id="equation-thinbrine">
-<span class="eqno">(31)<a class="headerlink" href="#equation-thinbrine" title="Permalink to this equation">¶</a></span>\[h_b(t+\Delta t)  =  h_b(t) + \Delta h_i\]</div>
+<span class="eqno">(45)<a class="headerlink" href="#equation-thinbrine" title="Permalink to this equation">¶</a></span>\[h_b(t+\Delta t)  =  h_b(t) + \Delta h_i\]</div>
 <p>provided that <span class="math">\(|h_{sl}-h_b| \leq 0.001\)</span>. This formulation ensures
 small Darcy velocities when <span class="math">\(h_b\)</span> first exceeds <cite>thinS</cite>.</p>
 <p>Both the volume fraction <span class="math">\(f_{bri}\)</span> and the area-weighted brine
@@ -1277,19 +1275,19 @@ variable <cite>fbri</cite> contains the volume-averaged brine fraction tracer</p
 <div class="section" id="horizontal-transport">
 <span id="horiz-trans"></span><h3>2.2.2. Horizontal transport<a class="headerlink" href="#horizontal-transport" title="Permalink to this headline">¶</a></h3>
 <p>We wish to solve the continuity or transport equation
-(Equation <a class="reference internal" href="#equation-transport-ai">(10)</a>) for the fractional ice area in each
-thickness category <span class="math">\(n\)</span>. Equation <a class="reference internal" href="#equation-transport-ai">(10)</a> describes
+(Equation <a class="reference internal" href="#equation-transport-ai">(20)</a>) for the fractional ice area in each
+thickness category <span class="math">\(n\)</span>. Equation <a class="reference internal" href="#equation-transport-ai">(20)</a> describes
 the conservation of ice area under horizontal transport. It is obtained
-from Equation <a class="reference internal" href="#equation-transport-g">(9)</a> by discretizing <span class="math">\(g\)</span> and neglecting the
+from Equation <a class="reference internal" href="#equation-transport-g">(19)</a> by discretizing <span class="math">\(g\)</span> and neglecting the
 second and third terms on the right-hand side, which are treated
 separately (Sections&nbsp;<a class="reference internal" href="#itd-trans"><span class="std std-ref">Transport in thickness space</span></a> and&nbsp;<a class="reference internal" href="#mech-red"><span class="std std-ref">Mechanical redistribution</span></a>.</p>
 <p>There are similar conservation equations for ice volume
-(Equation&nbsp;<a class="reference internal" href="#equation-transport-vi">(11)</a>), snow volume (Equation&nbsp;<a class="reference internal" href="#equation-transport-vs">(12)</a>), ice
+(Equation&nbsp;<a class="reference internal" href="#equation-transport-vi">(21)</a>), snow volume (Equation&nbsp;<a class="reference internal" href="#equation-transport-vs">(22)</a>), ice
 energy and snow energy:</p>
 <div class="math" id="equation-transport-ei">
-<span class="eqno">(32)<a class="headerlink" href="#equation-transport-ei" title="Permalink to this equation">¶</a></span>\[\frac{\partial e_{ink}}{\partial t} + \nabla \cdot (e_{ink} {\bf u}) = 0,\]</div>
+<span class="eqno">(46)<a class="headerlink" href="#equation-transport-ei" title="Permalink to this equation">¶</a></span>\[\frac{\partial e_{ink}}{\partial t} + \nabla \cdot (e_{ink} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-es">
-<span class="eqno">(33)<a class="headerlink" href="#equation-transport-es" title="Permalink to this equation">¶</a></span>\[\frac{\partial e_{snk}}{\partial t} + \nabla \cdot (e_{snk} {\bf u}) = 0.\]</div>
+<span class="eqno">(47)<a class="headerlink" href="#equation-transport-es" title="Permalink to this equation">¶</a></span>\[\frac{\partial e_{snk}}{\partial t} + \nabla \cdot (e_{snk} {\bf u}) = 0.\]</div>
 <p>By default, ice and snow are assumed to have constant densities, so that
 volume conservation is equivalent to mass conservation. Variable-density
 ice and snow layers can be transported conservatively by defining
@@ -1364,19 +1362,19 @@ where <span class="math">\({\bf r} =
 (x,y)\)</span> is the position vector relative to the cell center. That is, we
 require</p>
 <div class="math" id="equation-mean-area">
-<span class="eqno">(34)<a class="headerlink" href="#equation-mean-area" title="Permalink to this equation">¶</a></span>\[\int_A a \, dA = {\bar a} \, A,\]</div>
+<span class="eqno">(48)<a class="headerlink" href="#equation-mean-area" title="Permalink to this equation">¶</a></span>\[\int_A a \, dA = {\bar a} \, A,\]</div>
 <p>where <span class="math">\(A=\int_A dA\)</span> is the grid cell area.
-Equation&nbsp;<a class="reference internal" href="#equation-mean-area">(34)</a> is satisfied if <span class="math">\(a({\bf r})\)</span> has the
+Equation&nbsp;<a class="reference internal" href="#equation-mean-area">(48)</a> is satisfied if <span class="math">\(a({\bf r})\)</span> has the
 form</p>
 <div class="math" id="equation-recon-area">
-<span class="eqno">(35)<a class="headerlink" href="#equation-recon-area" title="Permalink to this equation">¶</a></span>\[a({\bf r}) = \bar{a} + \alpha_a \left&lt;\nabla a\right&gt; \cdot ({\bf r}-{\bf \bar{r}}),\]</div>
+<span class="eqno">(49)<a class="headerlink" href="#equation-recon-area" title="Permalink to this equation">¶</a></span>\[a({\bf r}) = \bar{a} + \alpha_a \left&lt;\nabla a\right&gt; \cdot ({\bf r}-{\bf \bar{r}}),\]</div>
 <p>where <span class="math">\(\left&lt;\nabla a\right&gt;\)</span> is a centered estimate of the area
 gradient within the cell, <span class="math">\(\alpha_a\)</span> is a limiting coefficient
 that enforces monotonicity, and <span class="math">\({\bf \bar{r}}\)</span> is the cell
 centroid:</p>
 <div class="math">
 \[{\bf \bar{r}} = {1\over A} \int_A {\bf r} \, dA.\]</div>
-<p>It follows from Equation <a class="reference internal" href="#equation-recon-area">(35)</a> that the ice area at the cell center
+<p>It follows from Equation <a class="reference internal" href="#equation-recon-area">(49)</a> that the ice area at the cell center
 (<span class="math">\(\mathbf{r} = 0\)</span>) is</p>
 <div class="math">
 \[a_c = \bar{a} - a_x \overline{x} - a_y \overline{y},\]</div>
@@ -1397,19 +1395,19 @@ is analogous to the tracer concentration <span class="math">\(T\)</span> in
 thickness <span class="math">\(h({\bf r})\)</span> and enthalpy <span class="math">\(q(\mathbf{r})\)</span> must
 satisfy</p>
 <div class="math" id="equation-mean-thickness">
-<span class="eqno">(36)<a class="headerlink" href="#equation-mean-thickness" title="Permalink to this equation">¶</a></span>\[\int_A a \, h \, dA       =  \bar{a} \, \tilde{h} \, A,\]</div>
+<span class="eqno">(50)<a class="headerlink" href="#equation-mean-thickness" title="Permalink to this equation">¶</a></span>\[\int_A a \, h \, dA       =  \bar{a} \, \tilde{h} \, A,\]</div>
 <div class="math" id="equation-mean-enthalpy">
-<span class="eqno">(37)<a class="headerlink" href="#equation-mean-enthalpy" title="Permalink to this equation">¶</a></span>\[\int_A a \, h \, q \, dA  =  \bar{a} \, \tilde{h} \, \hat{q} \, A,\]</div>
+<span class="eqno">(51)<a class="headerlink" href="#equation-mean-enthalpy" title="Permalink to this equation">¶</a></span>\[\int_A a \, h \, q \, dA  =  \bar{a} \, \tilde{h} \, \hat{q} \, A,\]</div>
 <p>where <span class="math">\(\tilde{h}=h(\tilde{\bf r})\)</span> is the thickness at the center
 of ice area, and <span class="math">\(\hat{q}=q(\hat{\bf r})\)</span> is the enthalpy at the
 center of ice or snow volume. Equations&nbsp;([eq:mean_thickness]) and
 ([eq:mean_enthalpy]) are satisfied when <span class="math">\(h({\bf r})\)</span> and
 <span class="math">\(q({\bf r})\)</span> are given by</p>
 <div class="math" id="equation-recon-thickness">
-<span class="eqno">(38)<a class="headerlink" href="#equation-recon-thickness" title="Permalink to this equation">¶</a></span>\[h({\bf r}) = \tilde{h} + \alpha_h \left&lt;\nabla h\right&gt; \cdot
+<span class="eqno">(52)<a class="headerlink" href="#equation-recon-thickness" title="Permalink to this equation">¶</a></span>\[h({\bf r}) = \tilde{h} + \alpha_h \left&lt;\nabla h\right&gt; \cdot
                                      ({\bf r}-{\bf \tilde{r}}),\]</div>
 <div class="math" id="equation-recon-enthalpy">
-<span class="eqno">(39)<a class="headerlink" href="#equation-recon-enthalpy" title="Permalink to this equation">¶</a></span>\[q({\bf r}) = \hat{q} + \alpha_q \left&lt;\nabla q\right&gt; \cdot
+<span class="eqno">(53)<a class="headerlink" href="#equation-recon-enthalpy" title="Permalink to this equation">¶</a></span>\[q({\bf r}) = \hat{q} + \alpha_q \left&lt;\nabla q\right&gt; \cdot
                                    ({\bf r}-{\bf \hat{r}}),\]</div>
 <p>where <span class="math">\(\alpha_h\)</span> and <span class="math">\(\alpha_q\)</span> are limiting coefficients.
 The center of ice area, <span class="math">\({\bf\tilde{r}}\)</span>, and the center of ice or
@@ -1447,7 +1445,7 @@ snow volume, <span class="math">\({\bf \hat{r}}\)</span>, are given by</p>
  c_4 &amp; \equiv &amp; a_x h_x,            \\
  c_5 &amp; \equiv &amp; a_x h_y + a_y h_x,  \\
  c_6 &amp; \equiv &amp; a_y h_y.\end{aligned}\end{split}\]</div>
-<p>From Equation <a class="reference internal" href="#equation-recon-thickness">(38)</a> and Equation <a class="reference internal" href="#equation-recon-enthalpy">(39)</a>,
+<p>From Equation <a class="reference internal" href="#equation-recon-thickness">(52)</a> and Equation <a class="reference internal" href="#equation-recon-enthalpy">(53)</a>,
 the thickness and enthalpy at the cell center are given by</p>
 <div class="math">
 \[h_c = \tilde{h} - h_x \tilde{x} - h_y \tilde{y},\]</div>
@@ -1457,7 +1455,7 @@ the thickness and enthalpy at the cell center are given by</p>
 limited gradients of thickness and enthalpy. The surface temperature is
 treated the same way as ice or snow thickness, but it has no associated
 enthalpy. Tracers obeying conservation equations of the form Equation
-<a class="reference internal" href="#equation-transport-viT">(16)</a> and Equation <a class="reference internal" href="#equation-transport-vsT">(17)</a> are treated in analogy
+<a class="reference internal" href="#equation-transport-viT">(26)</a> and Equation <a class="reference internal" href="#equation-transport-vsT">(27)</a> are treated in analogy
 to ice and snow enthalpy, respectively.</p>
 <p>We preserve monotonicity by van Leer limiting. If
 <span class="math">\(\bar{\phi}(i,j)\)</span> denotes the mean value of some field in grid
@@ -1731,9 +1729,9 @@ CR, DL, DR, IL, IR, IC).</p>
 <span class="math">\(\nabla\cdot{\bf u}\)</span> in a given grid cell can be computed from the
 local velocities and written in terms of fluxes across each cell edge:</p>
 <div class="math" id="equation-divergence">
-<span class="eqno">(40)<a class="headerlink" href="#equation-divergence" title="Permalink to this equation">¶</a></span>\[\nabla\cdot{\bf u} = {1\over A}\left[\left({u_{NE}+u_{SE}}\over 2\right)L_E + \left({u_{NW}+u_{SW}}\over 2\right)L_W + \left({u_{NE}+u_{NW}}\over 2\right)L_N + \left({u_{SE}+u_{SW}}\over 2\right)L_S \right],\]</div>
+<span class="eqno">(54)<a class="headerlink" href="#equation-divergence" title="Permalink to this equation">¶</a></span>\[\nabla\cdot{\bf u} = {1\over A}\left[\left({u_{NE}+u_{SE}}\over 2\right)L_E + \left({u_{NW}+u_{SW}}\over 2\right)L_W + \left({u_{NE}+u_{NW}}\over 2\right)L_N + \left({u_{SE}+u_{SW}}\over 2\right)L_S \right],\]</div>
 <p>where <span class="math">\(L\)</span> is an edge length and the indices <span class="math">\(N, S, E, W\)</span>
-denote compass directions. Equation <a class="reference internal" href="#equation-divergence">(40)</a> is equivalent to
+denote compass directions. Equation <a class="reference internal" href="#equation-divergence">(54)</a> is equivalent to
 the divergence computed in the EVP dynamics (Section&nbsp;<a class="reference internal" href="#dynam"><span class="std std-ref">Dynamics</span></a>).
 In general, the fluxes in this expression are not equal to those implied
 by the above scheme for locating departure regions. For some
@@ -1756,7 +1754,7 @@ has yet to be fully tested in CICE, the current default is
 locating triangles. In their paper, departure points are defined by
 projecting cell corner velocities directly backward. That is,</p>
 <div class="math" id="equation-departure_points">
-<span class="eqno">(41)<a class="headerlink" href="#equation-departure_points" title="Permalink to this equation">¶</a></span>\[\mathbf{x_D} = -\mathbf{u} \, \Delta t,\]</div>
+<span class="eqno">(55)<a class="headerlink" href="#equation-departure_points" title="Permalink to this equation">¶</a></span>\[\mathbf{x_D} = -\mathbf{u} \, \Delta t,\]</div>
 <p>where <span class="math">\(\mathbf{x}_D\)</span> is the location of the departure point
 relative to the cell corner and <span class="math">\(\mathbf{u}\)</span> is the velocity at
 the corner. This approximation is only first-order accurate. Accuracy
@@ -1777,7 +1775,7 @@ area is</p>
 <p>The integral <span class="math">\(F_a\)</span> of any linear function <span class="math">\(f(\mathbf{r})\)</span>
 over a triangle is given by</p>
 <div class="math" id="equation-I1">
-<span class="eqno">(42)<a class="headerlink" href="#equation-I1" title="Permalink to this equation">¶</a></span>\[F_a = A_T f(\mathbf{x_0}),\]</div>
+<span class="eqno">(56)<a class="headerlink" href="#equation-I1" title="Permalink to this equation">¶</a></span>\[F_a = A_T f(\mathbf{x_0}),\]</div>
 <p>where <span class="math">\(\mathbf{x}_0 = (x_0,y_0)\)</span> is the triangle midpoint,</p>
 <div class="math">
 \[\mathbf{x}_0={1\over 3}\sum_{i=1}^3\mathbf{x}_i.\]</div>
@@ -1787,23 +1785,23 @@ over a triangle is given by</p>
 <p>and multiply by <span class="math">\(A_T\)</span>. By convention, northward and eastward
 transport is positive, while southward and westward transport is
 negative.</p>
-<p>Equation <a class="reference internal" href="#equation-I1">(42)</a> cannot be used for volume transport, because the
+<p>Equation <a class="reference internal" href="#equation-I1">(56)</a> cannot be used for volume transport, because the
 reconstructed volumes are quadratic functions of position. (They are
 products of two linear functions, area and thickness.) The integral of a
 quadratic polynomial over a triangle requires function evaluations at
 three points,</p>
 <div class="math" id="equation-I2">
-<span class="eqno">(43)<a class="headerlink" href="#equation-I2" title="Permalink to this equation">¶</a></span>\[F_h = \frac{A_T}{3}\sum_{i=1}^3 f\left({\mathbf x}^\prime_i\right),\]</div>
+<span class="eqno">(57)<a class="headerlink" href="#equation-I2" title="Permalink to this equation">¶</a></span>\[F_h = \frac{A_T}{3}\sum_{i=1}^3 f\left({\mathbf x}^\prime_i\right),\]</div>
 <p>where <span class="math">\(\mathbf{x}_i^\prime = (\mathbf{x}_0+\mathbf{x}_i)/2\)</span> are
 points lying halfway between the midpoint and the three vertices.
 <a class="reference internal" href="zreferences.html#db00" id="id81">[12]</a> use this formula to compute transports of the
 product <span class="math">\(\rho \, T\)</span>, which is analogous to ice volume. Equation
-<a class="reference internal" href="#equation-I2">(43)</a> does not work for ice and snow energies, which are cubic
+<a class="reference internal" href="#equation-I2">(57)</a> does not work for ice and snow energies, which are cubic
 functions—products of area, thickness, and enthalpy. Integrals of a
 cubic polynomial over a triangle can be evaluated using a four-point
 formula <a class="reference internal" href="zreferences.html#stroud71" id="id82">[67]</a>:</p>
 <div class="math" id="equation-I3">
-<span class="eqno">(44)<a class="headerlink" href="#equation-I3" title="Permalink to this equation">¶</a></span>\[F_q = A_T \left[ -\frac{9}{16} f(\mathbf{x}_0) +
+<span class="eqno">(58)<a class="headerlink" href="#equation-I3" title="Permalink to this equation">¶</a></span>\[F_q = A_T \left[ -\frac{9}{16} f(\mathbf{x}_0) +
              \frac{25}{48} \sum_{i=1}^3 f(\mathbf{x}_i^{\prime\prime})\right]\]</div>
 <p>where <span class="math">\(\mathbf{x_i}^{\prime\prime}=(3 \mathbf{x}_0 + 2
 \mathbf{x}_i)/5\)</span>. To evaluate functions at specific points, we must
@@ -1819,7 +1817,7 @@ repeatedly.</p>
 category and grid cell. The new fractional ice areas
 <span class="math">\(a_{in}^\prime(i,j)\)</span> are given by</p>
 <div class="math" id="equation-new-area">
-<span class="eqno">(45)<a class="headerlink" href="#equation-new-area" title="Permalink to this equation">¶</a></span>\[a_{in}^\prime(i,j) = a_{in}(i,j) +
+<span class="eqno">(59)<a class="headerlink" href="#equation-new-area" title="Permalink to this equation">¶</a></span>\[a_{in}^\prime(i,j) = a_{in}(i,j) +
               \frac{F_{aE}(i-1,j) - F_{aE}(i,j)
                   + F_{aN}(i,j-1) - F_{aN}(i,j)}
                    {A(i,j)}\]</div>
@@ -1827,7 +1825,7 @@ category and grid cell. The new fractional ice areas
 transports across the east and north edges, respectively, of cell
 <span class="math">\((i,j)\)</span>, and <span class="math">\(A(i,j)\)</span> is the grid cell area. All transports
 added to one cell are subtracted from a neighboring cell; thus
-Equation <a class="reference internal" href="#equation-new-area">(45)</a> conserves total ice area.</p>
+Equation <a class="reference internal" href="#equation-new-area">(59)</a> conserves total ice area.</p>
 <p>The new ice volumes and energies are computed analogously. New
 thicknesses are given by the ratio of volume to area, and enthalpies by
 the ratio of energy to volume. Tracer monotonicity is ensured because</p>
@@ -1883,7 +1881,7 @@ two-dimensional momentum equation <a class="reference internal" href="zreference
 by integrating the 3D equation through the thickness of the ice in the
 vertical direction:</p>
 <div class="math" id="equation-vpmom">
-<span class="eqno">(46)<a class="headerlink" href="#equation-vpmom" title="Permalink to this equation">¶</a></span>\[m{\partial {\bf u}\over\partial t} = \nabla\cdot{\bf \sigma}
+<span class="eqno">(60)<a class="headerlink" href="#equation-vpmom" title="Permalink to this equation">¶</a></span>\[m{\partial {\bf u}\over\partial t} = \nabla\cdot{\bf \sigma}
 + \vec{\tau}_a+\vec{\tau}_w - \hat{k}\times mf{\bf u} - mg\nabla H_\circ,\]</div>
 <p>where <span class="math">\(m\)</span> is the combined mass of ice and snow per unit area and
 <span class="math">\(\vec{\tau}_a\)</span> and <span class="math">\(\vec{\tau}_w\)</span> are wind and ocean
@@ -1897,7 +1895,7 @@ concentration regions. A careful explanation of the issue and its
 continuum solution is provided in <a class="reference internal" href="zreferences.html#hd03" id="id101">[34]</a> and
 :cite:CGHM04`.</p>
 <p>The momentum equation is discretized in time as follows, for the classic
-EVP approach. First, for clarity, the two components of Equation <a class="reference internal" href="#equation-vpmom">(46)</a> are</p>
+EVP approach. First, for clarity, the two components of Equation <a class="reference internal" href="#equation-vpmom">(60)</a> are</p>
 <div class="math">
 \[\begin{split}\begin{aligned}
 m{\partial u\over\partial t} &amp;=&amp; {\partial\sigma_{1j}\over\partial x_j} + \tau_{ax} +
@@ -1914,13 +1912,13 @@ where <span class="math">\(k\)</span> denotes the subcycling step. The following
 illustrate the time discretization and define some of the other
 variables used in the code.</p>
 <div class="math" id="equation-umom">
-<span class="eqno">(47)<a class="headerlink" href="#equation-umom" title="Permalink to this equation">¶</a></span>\[\underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca} u^{k+1}
+<span class="eqno">(61)<a class="headerlink" href="#equation-umom" title="Permalink to this equation">¶</a></span>\[\underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca} u^{k+1}
 - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{k+1}
  =  \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
  + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex}
   + {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t_e}u^k,\]</div>
 <div class="math" id="equation-vmom">
-<span class="eqno">(48)<a class="headerlink" href="#equation-vmom" title="Permalink to this equation">¶</a></span>\[\underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{k+1}
+<span class="eqno">(62)<a class="headerlink" href="#equation-vmom" title="Permalink to this equation">¶</a></span>\[\underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{k+1}
 + \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca}v^{k+1}
  =  \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty}
  + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey}
@@ -1929,9 +1927,9 @@ variables used in the code.</p>
 <p>We solve this system of equations analytically for <span class="math">\(u^{k+1}\)</span> and
 <span class="math">\(v^{k+1}\)</span>. Define</p>
 <div class="math" id="equation-cevpuhat">
-<span class="eqno">(49)<a class="headerlink" href="#equation-cevpuhat" title="Permalink to this equation">¶</a></span>\[\hat{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t_e}u^k\]</div>
+<span class="eqno">(63)<a class="headerlink" href="#equation-cevpuhat" title="Permalink to this equation">¶</a></span>\[\hat{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t_e}u^k\]</div>
 <div class="math" id="equation-cevpvhat">
-<span class="eqno">(50)<a class="headerlink" href="#equation-cevpvhat" title="Permalink to this equation">¶</a></span>\[\hat{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} + {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t_e}v^k,\]</div>
+<span class="eqno">(64)<a class="headerlink" href="#equation-cevpvhat" title="Permalink to this equation">¶</a></span>\[\hat{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} + {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t_e}v^k,\]</div>
 <p>where <span class="math">\({\bf F} = \nabla\cdot\sigma^{k+1}\)</span>. Then</p>
 <div class="math">
 \[\begin{split}\begin{aligned}
@@ -1944,9 +1942,9 @@ u^{k+1} = {a \hat{u} + b \hat{v} \over a^2 + b^2} \\
 v^{k+1} = {a \hat{v} - b \hat{u} \over a^2 + b^2}, \end{aligned}\end{split}\]</div>
 <p>where</p>
 <div class="math" id="equation-cevpa">
-<span class="eqno">(51)<a class="headerlink" href="#equation-cevpa" title="Permalink to this equation">¶</a></span>\[\begin{split}a = {m\over\Delta t_e} + {\tt vrel}\cos\theta \\\end{split}\]</div>
+<span class="eqno">(65)<a class="headerlink" href="#equation-cevpa" title="Permalink to this equation">¶</a></span>\[\begin{split}a = {m\over\Delta t_e} + {\tt vrel}\cos\theta \\\end{split}\]</div>
 <div class="math" id="equation-cevpb">
-<span class="eqno">(52)<a class="headerlink" href="#equation-cevpb" title="Permalink to this equation">¶</a></span>\[b = mf + {\tt vrel}\sin\theta.\]</div>
+<span class="eqno">(66)<a class="headerlink" href="#equation-cevpb" title="Permalink to this equation">¶</a></span>\[b = mf + {\tt vrel}\sin\theta.\]</div>
 <p>When the subcycling is finished for each (thermodynamic) time step, the
 ice–ocean stress must be constructed from <cite>taux(y)</cite> and the terms
 containing <cite>vrel</cite> on the left hand side of the equations.</p>
@@ -1965,12 +1963,12 @@ strain rates, <span class="math">\(D_T\)</span> and <span class="math">\(D_S\)</
 <p>In the EVP model the internal stress tensor is determined from a
 regularized version of the VP constitutive law,</p>
 <div class="math" id="equation-sig1">
-<span class="eqno">(53)<a class="headerlink" href="#equation-sig1" title="Permalink to this equation">¶</a></span>\[\begin{split}{1\over E}{\partial\sigma_1\over\partial t} + {\sigma_1\over 2\zeta}
+<span class="eqno">(67)<a class="headerlink" href="#equation-sig1" title="Permalink to this equation">¶</a></span>\[\begin{split}{1\over E}{\partial\sigma_1\over\partial t} + {\sigma_1\over 2\zeta}
   + {P\over 2\zeta} = D_D, \\\end{split}\]</div>
 <div class="math" id="equation-sig2">
-<span class="eqno">(54)<a class="headerlink" href="#equation-sig2" title="Permalink to this equation">¶</a></span>\[{1\over E}{\partial\sigma_2\over\partial t} + {\sigma_2\over 2\eta} = D_T,\]</div>
+<span class="eqno">(68)<a class="headerlink" href="#equation-sig2" title="Permalink to this equation">¶</a></span>\[{1\over E}{\partial\sigma_2\over\partial t} + {\sigma_2\over 2\eta} = D_T,\]</div>
 <div class="math" id="equation-sig12">
-<span class="eqno">(55)<a class="headerlink" href="#equation-sig12" title="Permalink to this equation">¶</a></span>\[{1\over E}{\partial\sigma_{12}\over\partial t} + {\sigma_{12}\over
+<span class="eqno">(69)<a class="headerlink" href="#equation-sig12" title="Permalink to this equation">¶</a></span>\[{1\over E}{\partial\sigma_{12}\over\partial t} + {\sigma_{12}\over
   2\eta} = {1\over 2}D_S,\]</div>
 <p>where</p>
 <div class="math">
@@ -1999,7 +1997,7 @@ for elastic waves, <span class="math">\(\Delta t_e &lt; T &lt; \Delta t\)</span>
 <div class="math">
 \[E = {\zeta\over T},\]</div>
 <p>where <span class="math">\(T=E_\circ\Delta t\)</span> and <span class="math">\(E_\circ\)</span> (eyc) is a tunable
-parameter less than one. The stress equations <a class="reference internal" href="#equation-sig1">(53)</a>–<a class="reference internal" href="#equation-sig12">(55)</a>
+parameter less than one. The stress equations <a class="reference internal" href="#equation-sig1">(67)</a>–<a class="reference internal" href="#equation-sig12">(69)</a>
 become</p>
 <div class="math">
 \[\begin{split}\begin{aligned}
@@ -2052,7 +2050,7 @@ components of <span class="math">\(\mathbf{A}\)</span>, <span class="math">\(A_{
 from the phenomenological evolution equation for the structure tensor
 <span class="math">\(\mathbf A\)</span>,</p>
 <div class="math" id="equation-evolutionA">
-<span class="eqno">(56)<a class="headerlink" href="#equation-evolutionA" title="Permalink to this equation">¶</a></span>\[\frac{D\mathbf{A}}{D t}=\mathbf{F}_{iso}(\mathbf{A})+\mathbf{F}_{frac}(\mathbf{A},\boldsymbol\sigma),\]</div>
+<span class="eqno">(70)<a class="headerlink" href="#equation-evolutionA" title="Permalink to this equation">¶</a></span>\[\frac{D\mathbf{A}}{D t}=\mathbf{F}_{iso}(\mathbf{A})+\mathbf{F}_{frac}(\mathbf{A},\boldsymbol\sigma),\]</div>
 <p>where <span class="math">\(t\)</span> is the time, and <span class="math">\(D/Dt\)</span> is the co-rotational
 time derivative accounting for advection and rigid body rotation
 (<span class="math">\(D\mathbf A/Dt = d\mathbf A/dt -\mathbf W \cdot \mathbf A -\mathbf A \cdot \mathbf W^{T}\)</span>)
@@ -2098,11 +2096,11 @@ orientations. The angle <span class="math">\(z\)</span> represents the rotation 
 diamonds’ main axis relative to their preferential orientation along
 the axis <span class="math">\(x_1\)</span>.</p>
 <p>The new anisotropic rheology requires solving the evolution
-Equation <a class="reference internal" href="#equation-evolutionA">(56)</a> for the structure tensor in addition to the momentum
+Equation <a class="reference internal" href="#equation-evolutionA">(70)</a> for the structure tensor in addition to the momentum
 and stress equations. The evolution equation for <span class="math">\(\mathbf{A}\)</span> is
 solved within the EVP subcycling loop, and consistently with the
 momentum and stress evolution equations, we neglect the advection term
-for the structure tensor. Equation&nbsp;<a class="reference internal" href="#equation-evolutionA">(56)</a> then reduces to the system
+for the structure tensor. Equation&nbsp;<a class="reference internal" href="#equation-evolutionA">(70)</a> then reduces to the system
 of two equations:</p>
 <div class="math">
 \[\begin{split}\begin{aligned}
@@ -2111,7 +2109,7 @@ of two equations:</p>
 <p>where the first terms on the right hand side correspond to the
 isotropic contribution, <span class="math">\(F_{iso}\)</span>, and <span class="math">\(M_{11}\)</span> and
 <span class="math">\(M_{12}\)</span> are the components of the term <span class="math">\(F_{frac}\)</span> in
-Equation <a class="reference internal" href="#equation-evolutionA">(56)</a> that are given in <a class="reference internal" href="zreferences.html#wf06" id="id109">[78]</a> and
+Equation <a class="reference internal" href="#equation-evolutionA">(70)</a> that are given in <a class="reference internal" href="zreferences.html#wf06" id="id109">[78]</a> and
 <a class="reference internal" href="zreferences.html#tfw13" id="id110">[72]</a>. These evolution equations are
 discretized semi-implicitly in time. The degree of anisotropy is
 measured by the largest eigenvalue (<span class="math">\(A_{1}\)</span>) of this tensor
@@ -2126,7 +2124,7 @@ internal ice stress for a single orientation of the ice floes can be
 calculated explicitly and decomposed, for an average ice thickness
 <span class="math">\(h\)</span>, into its ridging (r) and sliding (s) contributions</p>
 <div class="math" id="equation-stress1">
-<span class="eqno">(57)<a class="headerlink" href="#equation-stress1" title="Permalink to this equation">¶</a></span>\[\boldsymbol \sigma^{b}(\mathbf r,h)=P_{r}(h) \boldsymbol \sigma_{r}^{b}(\mathbf r)+P_{s}(h) \boldsymbol \sigma_{s}^{b}(\mathbf r),\]</div>
+<span class="eqno">(71)<a class="headerlink" href="#equation-stress1" title="Permalink to this equation">¶</a></span>\[\boldsymbol \sigma^{b}(\mathbf r,h)=P_{r}(h) \boldsymbol \sigma_{r}^{b}(\mathbf r)+P_{s}(h) \boldsymbol \sigma_{s}^{b}(\mathbf r),\]</div>
 <p>where <span class="math">\(P_{r}\)</span> and <span class="math">\(P_{s}\)</span> are the ridging and sliding
 strengths and the ridging and sliding stresses are functions of the
 angle <span class="math">\(\theta= \arctan(\dot\epsilon_{II}/\dot\epsilon_{I})\)</span>, the
@@ -2138,7 +2136,7 @@ but in a continuum-scale sea ice region the floes can possess different
 orientations in different places and we take the mean sea ice stress
 over a collection of floes to be given by the average</p>
 <div class="math" id="equation-stressaverage">
-<span class="eqno">(58)<a class="headerlink" href="#equation-stressaverage" title="Permalink to this equation">¶</a></span>\[\boldsymbol\sigma^{EAP}(h)=P_{r}(h)\int_{\mathbb{S}}\vartheta(\mathbf r)\left[\boldsymbol\sigma_{r}^{b}(\mathbf r)+ k \boldsymbol\sigma_{s}^{b}(\mathbf r)\right]d\mathbf r\]</div>
+<span class="eqno">(72)<a class="headerlink" href="#equation-stressaverage" title="Permalink to this equation">¶</a></span>\[\boldsymbol\sigma^{EAP}(h)=P_{r}(h)\int_{\mathbb{S}}\vartheta(\mathbf r)\left[\boldsymbol\sigma_{r}^{b}(\mathbf r)+ k \boldsymbol\sigma_{s}^{b}(\mathbf r)\right]d\mathbf r\]</div>
 <p>where we have introduced the friction parameter <span class="math">\(k=P_{s}/P_{r}\)</span>
 and where we identify the ridging ice strength <span class="math">\(P_{r}(h)\)</span> with the
 strength <span class="math">\(P\)</span> described in section 1 and used within the EVP
@@ -2148,15 +2146,15 @@ description not to describe any physical effect, but to make use of the
 efficient, explicit numerical algorithm used to solve the full sea ice
 momentum balance. We use the analogous EAP stress equations,</p>
 <div class="math" id="equation-EAPsigma1">
-<span class="eqno">(59)<a class="headerlink" href="#equation-EAPsigma1" title="Permalink to this equation">¶</a></span>\[\frac{\partial \sigma_{1}}{\partial t}+\frac{\sigma_1}{2T} = \frac{\sigma^{EAP}_{1}}{2T}  \mbox{,}\]</div>
+<span class="eqno">(73)<a class="headerlink" href="#equation-EAPsigma1" title="Permalink to this equation">¶</a></span>\[\frac{\partial \sigma_{1}}{\partial t}+\frac{\sigma_1}{2T} = \frac{\sigma^{EAP}_{1}}{2T}  \mbox{,}\]</div>
 <div class="math" id="equation-EAPsigma2">
-<span class="eqno">(60)<a class="headerlink" href="#equation-EAPsigma2" title="Permalink to this equation">¶</a></span>\[\frac{\partial \sigma_{2}}{\partial t}+\frac{\sigma_2}{2T} = \frac{\sigma^{EAP}_{2}}{2T} \mbox{,}\]</div>
+<span class="eqno">(74)<a class="headerlink" href="#equation-EAPsigma2" title="Permalink to this equation">¶</a></span>\[\frac{\partial \sigma_{2}}{\partial t}+\frac{\sigma_2}{2T} = \frac{\sigma^{EAP}_{2}}{2T} \mbox{,}\]</div>
 <div class="math" id="equation-EAPsigma12">
-<span class="eqno">(61)<a class="headerlink" href="#equation-EAPsigma12" title="Permalink to this equation">¶</a></span>\[\frac{\partial \sigma_{12}}{\partial t}+\frac{\sigma_{12}}{2T} = \frac{\sigma^{EAP}_{12}}{2T} \mbox{,}\]</div>
+<span class="eqno">(75)<a class="headerlink" href="#equation-EAPsigma12" title="Permalink to this equation">¶</a></span>\[\frac{\partial \sigma_{12}}{\partial t}+\frac{\sigma_{12}}{2T} = \frac{\sigma^{EAP}_{12}}{2T} \mbox{,}\]</div>
 <p>where the anisotropic stress <span class="math">\(\boldsymbol\sigma^{EAP}\)</span> is defined
 in a look-up table for the current values of strain rate and structure
 tensor. The look-up table is constructed by computing the stress
-(normalized by the strength) from Equations&nbsp;<a class="reference internal" href="#equation-EAPsigma1">(59)</a>–<a class="reference internal" href="#equation-EAPsigma12">(61)</a>
+(normalized by the strength) from Equations&nbsp;<a class="reference internal" href="#equation-EAPsigma1">(73)</a>–<a class="reference internal" href="#equation-EAPsigma12">(75)</a>
 for discrete values of the largest eigenvalue of the structure tensor,
 <span class="math">\(\frac{1}{2}\le A_{1}\le 1\)</span>, the angle <span class="math">\(0\le\theta\le2\pi\)</span>,
 and the angle <span class="math">\(-\pi/2\le y\le\pi/2\)</span> between the major principal
@@ -2199,14 +2197,14 @@ the converged VP solution and <span class="math">\(\alpha, \beta &lt; 1\)</span>
 \beta{m\over\Delta t} \left(v^{k+1}-v^k\right) &amp;=&amp; \overline{v} - {\tt vrel}\left(u^{k+1}\sin\theta + v^{k+1}\cos\theta\right) - mfu^{k+1}  - {m\over \Delta t} v^{k+1} \end{aligned}\end{split}\]</div>
 <p>where</p>
 <div class="math" id="equation-revpuhat">
-<span class="eqno">(62)<a class="headerlink" href="#equation-revpuhat" title="Permalink to this equation">¶</a></span>\[\overline{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t}u^\circ\]</div>
+<span class="eqno">(76)<a class="headerlink" href="#equation-revpuhat" title="Permalink to this equation">¶</a></span>\[\overline{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t}u^\circ\]</div>
 <div class="math" id="equation-revpvhat">
-<span class="eqno">(63)<a class="headerlink" href="#equation-revpvhat" title="Permalink to this equation">¶</a></span>\[\overline{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} +  {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t}v^\circ,\]</div>
+<span class="eqno">(77)<a class="headerlink" href="#equation-revpvhat" title="Permalink to this equation">¶</a></span>\[\overline{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} +  {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t}v^\circ,\]</div>
 <p><span class="math">\({\bf u}^\circ\)</span> is the initial value of velocity at the
 beginning of the subcycling (<span class="math">\(k=0\)</span>), and we use
 <span class="math">\({\bf u}^{k+1}\)</span> for the ice–ocean stress and Coriolis terms.
-Equations&nbsp;<a class="reference internal" href="#equation-revpuhat">(62)</a> and <a class="reference internal" href="#equation-revpvhat">(63)</a> differ from
-Equations&nbsp;<a class="reference internal" href="#equation-cevpuhat">(49)</a> and <a class="reference internal" href="#equation-cevpvhat">(50)</a> only in the last term.</p>
+Equations&nbsp;<a class="reference internal" href="#equation-revpuhat">(76)</a> and <a class="reference internal" href="#equation-revpvhat">(77)</a> differ from
+Equations&nbsp;<a class="reference internal" href="#equation-cevpuhat">(63)</a> and <a class="reference internal" href="#equation-cevpvhat">(64)</a> only in the last term.</p>
 <p>Solving simultaneously for <span class="math">\({\bf u}^{k+1}\)</span> as before, we have</p>
 <div class="math">
 \[\begin{split}\begin{aligned}
@@ -2216,18 +2214,18 @@ v^{k+1} = {\tilde{a} \tilde{v} - b \tilde{u} \over \tilde{a}^2 + b^2}, \end{alig
 <div class="math">
 \[\begin{split}\tilde{a} = \left(1+\beta\right){m\over\Delta t} + {\tt vrel}\cos\theta \\\end{split}\]</div>
 <div class="math" id="equation-tildeu">
-<span class="eqno">(64)<a class="headerlink" href="#equation-tildeu" title="Permalink to this equation">¶</a></span>\[\tilde{\bf u} = \overline{\bf u} + \beta  {m\over\Delta t}{\bf u}^k,\]</div>
-<p>and <span class="math">\(b\)</span> is the same as in Equation&nbsp;<a class="reference internal" href="#equation-cevpb">(52)</a>.</p>
+<span class="eqno">(78)<a class="headerlink" href="#equation-tildeu" title="Permalink to this equation">¶</a></span>\[\tilde{\bf u} = \overline{\bf u} + \beta  {m\over\Delta t}{\bf u}^k,\]</div>
+<p>and <span class="math">\(b\)</span> is the same as in Equation&nbsp;<a class="reference internal" href="#equation-cevpb">(66)</a>.</p>
 <p><em>Stress</em></p>
 <p>In CICE’s classic approach, the update to <span class="math">\(\sigma_1\)</span> at subcycle
 step <span class="math">\(k+1\)</span> is</p>
 <div class="math" id="equation-sig1time">
-<span class="eqno">(65)<a class="headerlink" href="#equation-sig1time" title="Permalink to this equation">¶</a></span>\[\sigma_1^{k+1}
+<span class="eqno">(79)<a class="headerlink" href="#equation-sig1time" title="Permalink to this equation">¶</a></span>\[\sigma_1^{k+1}
 = \left(\sigma_1^{k} + {P\over\Delta}{\Delta t_e\over 2T} \left(\dot{\epsilon} - \Delta\right)\right) * \left(1 + {\Delta t_e\over 2T}\right)\]</div>
 <p>If we set</p>
 <div class="math">
 \[\alpha_1 = {2T\over \Delta t_e},\]</div>
-<p>then Equation&nbsp;<a class="reference internal" href="#equation-sig1time">(65)</a> becomes</p>
+<p>then Equation&nbsp;<a class="reference internal" href="#equation-sig1time">(79)</a> becomes</p>
 <div class="math">
 \[\sigma_1^{k+1}\left(1+\alpha_1\right) = \alpha_1\sigma_1^k + {P\over\Delta} \left(\dot{\epsilon} - \Delta\right).\]</div>
 <p>This is equivalent to Eq.&nbsp;(23) in <a class="reference internal" href="zreferences.html#bflm13" id="id115">[8]</a>, but
@@ -2288,7 +2286,7 @@ modified equations for <cite>stressm</cite> (<span class="math">\(\sigma_2\)</sp
 <div class="math">
 \[{\tt cca} = \tilde{a} = \left(1+ {\tt brlx}\right){m\over\Delta t} + {\tt vrel}\cos\theta= \left(1+\beta\right){m\over\Delta t} + {\tt vrel}\cos\theta.\]</div>
 <p><span class="math">\(\tilde{\bf u}\)</span> must also be defined for revised EVP as in
-Equation&nbsp;<a class="reference internal" href="#equation-tildeu">(64)</a>. The extra terms in <span class="math">\(\tilde{a}\)</span> and
+Equation&nbsp;<a class="reference internal" href="#equation-tildeu">(78)</a>. The extra terms in <span class="math">\(\tilde{a}\)</span> and
 <span class="math">\(\tilde{\bf u}\)</span> are multiplied by a flag (revp) that equals 1 for
 revised EVP and 0 for classic EVP. Revised EVP is activated by setting
 the namelist parameter <cite>revised_evp</cite> = true. Note that in the current
@@ -2306,8 +2304,8 @@ EVP approach uses the previous time step value.</p>
 <p>Next we solve the equation for ice transport in thickness space due to
 thermodynamic growth and melt,</p>
 <div class="math" id="equation-itd-transport">
-<span class="eqno">(66)<a class="headerlink" href="#equation-itd-transport" title="Permalink to this equation">¶</a></span>\[\frac{\partial g}{\partial t} + \frac{\partial}{\partial h} (f g) = 0,\]</div>
-<p>which is obtained from Equation <a class="reference internal" href="#equation-transport-g">(9)</a> by neglecting the first and
+<span class="eqno">(80)<a class="headerlink" href="#equation-itd-transport" title="Permalink to this equation">¶</a></span>\[\frac{\partial g}{\partial t} + \frac{\partial}{\partial h} (f g) = 0,\]</div>
+<p>which is obtained from Equation <a class="reference internal" href="#equation-transport-g">(19)</a> by neglecting the first and
 third terms on the right-hand side. We use the remapping method of
 <a class="reference internal" href="zreferences.html#lipscomb01" id="id118">[42]</a>, in which thickness categories are
 represented as Lagrangian grid cells whose boundaries are projected
@@ -2350,14 +2348,14 @@ time index <span class="math">\(m+1\)</span>. We wish to construct a continuous 
 <span class="math">\(g(h)\)</span> within each category such that the total area and volume at
 time <span class="math">\(m+1\)</span> are <span class="math">\(a_n\)</span> and <span class="math">\(v_n\)</span>, respectively:</p>
 <div class="math" id="equation-area-cons">
-<span class="eqno">(67)<a class="headerlink" href="#equation-area-cons" title="Permalink to this equation">¶</a></span>\[\int_{H_L}^{H_R} g \, dh = a_n,\]</div>
+<span class="eqno">(81)<a class="headerlink" href="#equation-area-cons" title="Permalink to this equation">¶</a></span>\[\int_{H_L}^{H_R} g \, dh = a_n,\]</div>
 <div class="math" id="equation-volume-cons">
-<span class="eqno">(68)<a class="headerlink" href="#equation-volume-cons" title="Permalink to this equation">¶</a></span>\[\int_{H_L}^{H_R} h \, g \, dh = v_n.\]</div>
+<span class="eqno">(82)<a class="headerlink" href="#equation-volume-cons" title="Permalink to this equation">¶</a></span>\[\int_{H_L}^{H_R} h \, g \, dh = v_n.\]</div>
 <p>The simplest polynomial that can satisfy both equations is a line. It
 is convenient to change coordinates, writing
 <span class="math">\(g(\eta) = g_1 \eta + g_0\)</span>, where <span class="math">\(\eta = h - H_L\)</span> and the
 coefficients <span class="math">\(g_0\)</span> and <span class="math">\(g_1\)</span> are to be determined. Then
-Equations <a class="reference internal" href="#equation-area-cons">(67)</a> and <a class="reference internal" href="#equation-volume-cons">(68)</a> can be written as</p>
+Equations <a class="reference internal" href="#equation-area-cons">(81)</a> and <a class="reference internal" href="#equation-volume-cons">(82)</a> can be written as</p>
 <div class="math">
 \[g_1 \frac{\eta_R^2}{2} + g_0 \eta_R = a_n,\]</div>
 <div class="math">
@@ -2365,29 +2363,29 @@ Equations <a class="reference internal" href="#equation-area-cons">(67)</a> and 
 <p>where <span class="math">\(\eta_R = H_R - H_L\)</span> and <span class="math">\(\eta_n = h_n - H_L\)</span>. These
 equations have the solution</p>
 <div class="math" id="equation-g0">
-<span class="eqno">(69)<a class="headerlink" href="#equation-g0" title="Permalink to this equation">¶</a></span>\[g_0 = \frac{6 a_n}{\eta_R^2} \left(\frac{2 \eta_R}{3} - \eta_n\right),\]</div>
+<span class="eqno">(83)<a class="headerlink" href="#equation-g0" title="Permalink to this equation">¶</a></span>\[g_0 = \frac{6 a_n}{\eta_R^2} \left(\frac{2 \eta_R}{3} - \eta_n\right),\]</div>
 <div class="math" id="equation-g1">
-<span class="eqno">(70)<a class="headerlink" href="#equation-g1" title="Permalink to this equation">¶</a></span>\[g_1 = \frac{12 a_n}{\eta_R^3} \left(\eta_n - \frac{\eta_R}{2}\right).\]</div>
+<span class="eqno">(84)<a class="headerlink" href="#equation-g1" title="Permalink to this equation">¶</a></span>\[g_1 = \frac{12 a_n}{\eta_R^3} \left(\eta_n - \frac{\eta_R}{2}\right).\]</div>
 <p>Since <span class="math">\(g\)</span> is linear, its maximum and minimum values lie at the
 boundaries, <span class="math">\(\eta = 0\)</span> and <span class="math">\(\eta_R\)</span>:</p>
 <div class="math" id="equation-gmin">
-<span class="eqno">(71)<a class="headerlink" href="#equation-gmin" title="Permalink to this equation">¶</a></span>\[g(0)=\frac{6 a_n}{\eta_R^2} \, \left(\frac{2 \eta_R}{3} - \eta_n\right) = g_0,\]</div>
+<span class="eqno">(85)<a class="headerlink" href="#equation-gmin" title="Permalink to this equation">¶</a></span>\[g(0)=\frac{6 a_n}{\eta_R^2} \, \left(\frac{2 \eta_R}{3} - \eta_n\right) = g_0,\]</div>
 <div class="math" id="equation-gmax">
-<span class="eqno">(72)<a class="headerlink" href="#equation-gmax" title="Permalink to this equation">¶</a></span>\[g(\eta_R) = \frac{6 a_n}{\eta_R^2} \, \left(\eta_n - \frac{\eta_R}{3}\right).\]</div>
-<p>Equation <a class="reference internal" href="#equation-gmin">(71)</a> implies that <span class="math">\(g(0) &lt; 0\)</span> when
+<span class="eqno">(86)<a class="headerlink" href="#equation-gmax" title="Permalink to this equation">¶</a></span>\[g(\eta_R) = \frac{6 a_n}{\eta_R^2} \, \left(\eta_n - \frac{\eta_R}{3}\right).\]</div>
+<p>Equation <a class="reference internal" href="#equation-gmin">(85)</a> implies that <span class="math">\(g(0) &lt; 0\)</span> when
 <span class="math">\(\eta_n &gt; 2 \eta_R/3\)</span>, i.e., when <span class="math">\(h_n\)</span> lies in the right
-third of the thickness range <span class="math">\((H_L, H_R)\)</span>. Similarly, Equation <a class="reference internal" href="#equation-gmax">(72)</a>
+third of the thickness range <span class="math">\((H_L, H_R)\)</span>. Similarly, Equation <a class="reference internal" href="#equation-gmax">(86)</a>
 implies that <span class="math">\(g(\eta_R) &lt; 0\)</span> when <span class="math">\(\eta_n &lt; \eta_R/3\)</span>, i.e.,
 when <span class="math">\(h_n\)</span> is in the left third of the range. Since negative
 values of <span class="math">\(g\)</span> are unphysical, a different solution is needed when
 <span class="math">\(h_n\)</span> lies outside the central third of the thickness range. If
 <span class="math">\(h_n\)</span> is in the left third of the range, we define a cutoff
 thickness, <span class="math">\(H_C = 3 h_n - 2 H_L\)</span>, and set <span class="math">\(g = 0\)</span> between
-<span class="math">\(H_C\)</span> and <span class="math">\(H_R\)</span>. Equations <a class="reference internal" href="#equation-g0">(69)</a> and <a class="reference internal" href="#equation-g1">(70)</a> are then
+<span class="math">\(H_C\)</span> and <span class="math">\(H_R\)</span>. Equations <a class="reference internal" href="#equation-g0">(83)</a> and <a class="reference internal" href="#equation-g1">(84)</a> are then
 valid with <span class="math">\(\eta_R\)</span> redefined as <span class="math">\(H_C - H_L\)</span>. And if
 <span class="math">\(h_n\)</span> is in the right third of the range, we define
 <span class="math">\(H_C = 3 h_n - 2 H_R\)</span> and set <span class="math">\(g = 0\)</span> between <span class="math">\(H_L\)</span>
-and <span class="math">\(H_C\)</span>. In this case, <a class="reference internal" href="#equation-g0">(69)</a> and <a class="reference internal" href="#equation-g1">(70)</a> apply with
+and <span class="math">\(H_C\)</span>. In this case, <a class="reference internal" href="#equation-g0">(83)</a> and <a class="reference internal" href="#equation-g1">(84)</a> apply with
 <span class="math">\(\eta_R = H_R - H_C\)</span> and <span class="math">\(\eta_n = h_n - H_C\)</span>.</p>
 <p><a class="reference internal" href="#fig-gplot"><span class="std std-ref">Figure 4</span></a> illustrates the linear reconstruction of <span class="math">\(g\)</span>
 for the simple cases <span class="math">\(H_L = 0\)</span>, <span class="math">\(H_R = 1\)</span>, <span class="math">\(a_n = 1\)</span>,
@@ -2411,16 +2409,16 @@ original boundary <span class="math">\(H_n\)</span> and displaced boundary <span
 <span class="math">\(H_n^* &gt; H_n\)</span>, ice moves from category <span class="math">\(n\)</span> to <span class="math">\(n+1\)</span>.
 The area and volume transferred are</p>
 <div class="math" id="equation-move-area">
-<span class="eqno">(73)<a class="headerlink" href="#equation-move-area" title="Permalink to this equation">¶</a></span>\[\Delta a_n = \int_{H_n}^{H_n^*} g \, dh,\]</div>
+<span class="eqno">(87)<a class="headerlink" href="#equation-move-area" title="Permalink to this equation">¶</a></span>\[\Delta a_n = \int_{H_n}^{H_n^*} g \, dh,\]</div>
 <div class="math" id="equation-move-volume">
-<span class="eqno">(74)<a class="headerlink" href="#equation-move-volume" title="Permalink to this equation">¶</a></span>\[\Delta v_n = \int_{H_n}^{H_n^*} h \, g \, dh.\]</div>
+<span class="eqno">(88)<a class="headerlink" href="#equation-move-volume" title="Permalink to this equation">¶</a></span>\[\Delta v_n = \int_{H_n}^{H_n^*} h \, g \, dh.\]</div>
 <p>If <span class="math">\(H_n^* &lt; H_N\)</span>, ice area and volume are transferred from
-category <span class="math">\(n+1\)</span> to <span class="math">\(n\)</span> using Equations <a class="reference internal" href="#equation-move-area">(73)</a> and
-<a class="reference internal" href="#equation-move-volume">(74)</a> with the limits of integration reversed. To evaluate
+category <span class="math">\(n+1\)</span> to <span class="math">\(n\)</span> using Equations <a class="reference internal" href="#equation-move-area">(87)</a> and
+<a class="reference internal" href="#equation-move-volume">(88)</a> with the limits of integration reversed. To evaluate
 the integrals we change coordinates from <span class="math">\(h\)</span> to
 <span class="math">\(\eta = h - H_L\)</span>, where <span class="math">\(H_L\)</span> is the left limit of the range
-over which <span class="math">\(g &gt; 0\)</span>, and write <span class="math">\(g(\eta)\)</span> using Equations <a class="reference internal" href="#equation-g0">(69)</a> and
-<a class="reference internal" href="#equation-g1">(70)</a>. In this way we obtain the new areas <span class="math">\(a_n\)</span> and volumes
+over which <span class="math">\(g &gt; 0\)</span>, and write <span class="math">\(g(\eta)\)</span> using Equations <a class="reference internal" href="#equation-g0">(83)</a> and
+<a class="reference internal" href="#equation-g1">(84)</a>. In this way we obtain the new areas <span class="math">\(a_n\)</span> and volumes
 <span class="math">\(v_n\)</span> between the original boundaries <span class="math">\(H_{n-1}\)</span> and
 <span class="math">\(H_n\)</span> in each category. The new thicknesses,
 <span class="math">\(h_n = v_n/a_n\)</span>, are guaranteed to lie in the range
@@ -2464,7 +2462,7 @@ and tracer contents to the ocean.</p>
 </div>
 <div class="section" id="mechanical-redistribution">
 <span id="mech-red"></span><h4>2.2.4.2. Mechanical redistribution<a class="headerlink" href="#mechanical-redistribution" title="Permalink to this headline">¶</a></h4>
-<p>The last term on the right-hand side of Equation <a class="reference internal" href="#equation-transport-g">(9)</a>
+<p>The last term on the right-hand side of Equation <a class="reference internal" href="#equation-transport-g">(19)</a>
 is <span class="math">\(\psi\)</span>, which describes the redistribution
 of ice in thickness space due to ridging and other mechanical processes.
 The mechanical redistribution scheme in CICE is based on
@@ -2483,7 +2481,7 @@ thicker ice. There are two options for the form of <span class="math">\(b(h)\)</
 <cite>krdg_partic</cite> = 0 in the namelist, we follow <a class="reference internal" href="zreferences.html#trmc75" id="id125">[69]</a>
 and set</p>
 <div class="math" id="equation-partic-old-contin">
-<span class="eqno">(75)<a class="headerlink" href="#equation-partic-old-contin" title="Permalink to this equation">¶</a></span>\[\begin{split}b(h) = \left\{\begin{array}{ll}
+<span class="eqno">(89)<a class="headerlink" href="#equation-partic-old-contin" title="Permalink to this equation">¶</a></span>\[\begin{split}b(h) = \left\{\begin{array}{ll}
        \frac{2}{G^*}(1-\frac{G(h)}{G^*}) &amp; \mbox{if $G(h)&lt;G^*$} \\
                  0                       &amp; \mbox{otherwise}
               \end{array}  \right.\end{split}\]</div>
@@ -2493,20 +2491,20 @@ and set</p>
 <span class="math">\(H_n\)</span>, we obtain the mean value of <span class="math">\(a_P\)</span> in category
 <span class="math">\(n\)</span>:</p>
 <div class="math" id="equation-partic-old-discrete">
-<span class="eqno">(76)<a class="headerlink" href="#equation-partic-old-discrete" title="Permalink to this equation">¶</a></span>\[a_{Pn} = \frac{2}{G^*} (G_n - G_{n-1})
+<span class="eqno">(90)<a class="headerlink" href="#equation-partic-old-discrete" title="Permalink to this equation">¶</a></span>\[a_{Pn} = \frac{2}{G^*} (G_n - G_{n-1})
          \left( 1 - \frac{G_{n-1}+G_n}{2 G^*} \right),\]</div>
 <p>where <span class="math">\(a_{Pn}\)</span> is the ratio of the ice area ridging (or open
 water area closing) in category <span class="math">\(n\)</span> to the total area ridging and
 closing, and <span class="math">\(G_n\)</span> is the total fractional ice area in categories
-0 to <span class="math">\(n\)</span>. Equation&nbsp;<a class="reference internal" href="#equation-partic-old-discrete">(76)</a> applies to
+0 to <span class="math">\(n\)</span>. Equation&nbsp;<a class="reference internal" href="#equation-partic-old-discrete">(90)</a> applies to
 categories with <span class="math">\(G_n &lt; G^*\)</span>. If <span class="math">\(G_{n-1} &lt; G^* &lt; G_n\)</span>, then
-Equation <a class="reference internal" href="#equation-partic-old-discrete">(76)</a> is valid with <span class="math">\(G^*\)</span> replacing
+Equation <a class="reference internal" href="#equation-partic-old-discrete">(90)</a> is valid with <span class="math">\(G^*\)</span> replacing
 <span class="math">\(G_n\)</span>, and if <span class="math">\(G_{n-1} &gt; G^*\)</span>, then <span class="math">\(a_{Pn} = 0\)</span>. If
 the open water fraction <span class="math">\(a_0 &gt; G^*\)</span>, no ice can ridge, because
 “ridging” simply reduces the area of open water. As in
 <a class="reference internal" href="zreferences.html#trmc75" id="id126">[69]</a> we set <span class="math">\(G^* = 0.15\)</span>.</p>
 <p>If the spatial resolution is too fine for a given time step
-<span class="math">\(\Delta t\)</span>, the weighting function Equation <a class="reference internal" href="#equation-partic-old-contin">(75)</a> can
+<span class="math">\(\Delta t\)</span>, the weighting function Equation <a class="reference internal" href="#equation-partic-old-contin">(89)</a> can
 promote numerical instability. For <span class="math">\(\Delta t = \mbox{1 hour}\)</span>,
 resolutions finer than <span class="math">\(\Delta x \sim \mbox{10 km}\)</span> are typically
 unstable. The instability results from feedback between the ridging
@@ -2519,17 +2517,17 @@ unphysical.</p>
 <p>A more stable weighting function was suggested by
 <a class="reference internal" href="zreferences.html#lhmj07" id="id127">[44]</a>:</p>
 <div class="math" id="equation-partic-new-contin">
-<span class="eqno">(77)<a class="headerlink" href="#equation-partic-new-contin" title="Permalink to this equation">¶</a></span>\[b(h) = \frac{\exp[-G(h)/a^*]}
+<span class="eqno">(91)<a class="headerlink" href="#equation-partic-new-contin" title="Permalink to this equation">¶</a></span>\[b(h) = \frac{\exp[-G(h)/a^*]}
             {a^*[1-\exp(-1/a^*)]}\]</div>
-<p>When integrated between category boundaries, Equation <a class="reference internal" href="#equation-partic-new-contin">(77)</a>
+<p>When integrated between category boundaries, Equation <a class="reference internal" href="#equation-partic-new-contin">(91)</a>
 implies</p>
 <div class="math" id="equation-partic-new-discrete">
-<span class="eqno">(78)<a class="headerlink" href="#equation-partic-new-discrete" title="Permalink to this equation">¶</a></span>\[a_{Pn} = \frac {\exp(-G_{n-1}/a^*) - \exp(-G_{n}/a^*)}
+<span class="eqno">(92)<a class="headerlink" href="#equation-partic-new-discrete" title="Permalink to this equation">¶</a></span>\[a_{Pn} = \frac {\exp(-G_{n-1}/a^*) - \exp(-G_{n}/a^*)}
                {1 - \exp(-1/a^*)}\]</div>
 <p>This weighting function is used if <cite>krdg_partic</cite> = 1 in the namelist.
-From Equation <a class="reference internal" href="#equation-partic-new-contin">(77)</a>, the mean value of <span class="math">\(G\)</span> for ice
+From Equation <a class="reference internal" href="#equation-partic-new-contin">(91)</a>, the mean value of <span class="math">\(G\)</span> for ice
 participating in ridging is <span class="math">\(a^*\)</span>, as compared to <span class="math">\(G^*/3\)</span>
-for Equation <a class="reference internal" href="#equation-partic-old-contin">(75)</a>. For typical ice thickness distributions,
+for Equation <a class="reference internal" href="#equation-partic-old-contin">(89)</a>. For typical ice thickness distributions,
 setting <span class="math">\(a^* = 0.05\)</span> with <cite>krdg_partic</cite> = 1 gives participation
 fractions similar to those given by <span class="math">\(G^* = 0.15\)</span> with <cite>krdg_partic</cite>
 = 0. See <a class="reference internal" href="zreferences.html#lhmj07" id="id128">[44]</a> for a detailed comparison of these
@@ -2555,13 +2553,13 @@ Thus the <em>net</em> rate of area loss due to ridging of ice in category
 thickness range <span class="math">\((H_{\min}, H_{\max})\)</span>. The fraction of the new
 ridge area in category <span class="math">\(m\)</span> is</p>
 <div class="math" id="equation-ridge-area-old">
-<span class="eqno">(79)<a class="headerlink" href="#equation-ridge-area-old" title="Permalink to this equation">¶</a></span>\[f_m^{\mathrm{area}} = \frac{H_R - H_L}
+<span class="eqno">(93)<a class="headerlink" href="#equation-ridge-area-old" title="Permalink to this equation">¶</a></span>\[f_m^{\mathrm{area}} = \frac{H_R - H_L}
                            {H_{\max} - H_{\min}},\]</div>
 <p>where <span class="math">\(H_L = \max(H_{m-1},H_{\min})\)</span> and
 <span class="math">\(H_R= \min(H_m,H_{\max})\)</span>. The fraction of the ridge volume going
 to category <span class="math">\(m\)</span> is</p>
 <div class="math" id="equation-ridge-volume-old">
-<span class="eqno">(80)<a class="headerlink" href="#equation-ridge-volume-old" title="Permalink to this equation">¶</a></span>\[f_m^{\mathrm{vol}} = \frac{(H_R)^2 - (H_L)^2}
+<span class="eqno">(94)<a class="headerlink" href="#equation-ridge-volume-old" title="Permalink to this equation">¶</a></span>\[f_m^{\mathrm{vol}} = \frac{(H_R)^2 - (H_L)^2}
                           {(H_{\max})^2 - (H_{\min})^2}.\]</div>
 <p>This uniform redistribution function tends to produce too little ice in
 the 3–5&nbsp;m range and too much ice thicker than 10&nbsp;m
@@ -2569,7 +2567,7 @@ the 3–5&nbsp;m range and too much ice thicker than 10&nbsp;m
 better approximated by a negative exponential. Setting <cite>krdg_redist</cite> = 1
 gives ridges with an exponential ITD <a class="reference internal" href="zreferences.html#lhmj07" id="id133">[44]</a>:</p>
 <div class="math" id="equation-redist-new">
-<span class="eqno">(81)<a class="headerlink" href="#equation-redist-new" title="Permalink to this equation">¶</a></span>\[g_R(h) \propto \exp[-(h - H_{\min})/\lambda]\]</div>
+<span class="eqno">(95)<a class="headerlink" href="#equation-redist-new" title="Permalink to this equation">¶</a></span>\[g_R(h) \propto \exp[-(h - H_{\min})/\lambda]\]</div>
 <p>for <span class="math">\(h \ge H_{\min}\)</span>, with <span class="math">\(g_R(h) = 0\)</span> for
 <span class="math">\(h &lt; H_{\min}\)</span>. Here, <span class="math">\(\lambda\)</span> is an empirical <em>e</em>-folding
 scale and <span class="math">\(H_{\min}=2h_n\)</span> (where <span class="math">\(h_n\)</span> is the thickness of
@@ -2580,18 +2578,18 @@ ridge thickness increases in proportion to <span class="math">\(h_n^{1/2}\)</spa
 <span class="math">\(\lambda\)</span> in the range 1–4 m for most ridged ice. Ice strengths
 with <span class="math">\(\mu = 4.0\)</span>&nbsp; and <cite>krdg_redist</cite> = 1 are roughly comparable to
 the strengths with <span class="math">\(H^* = 50\)</span>&nbsp;m and <cite>krdg_redist</cite> = 0.</p>
-<p>From Equation <a class="reference internal" href="#equation-redist-new">(81)</a> it can be shown that the fractional area going
+<p>From Equation <a class="reference internal" href="#equation-redist-new">(95)</a> it can be shown that the fractional area going
 to category <span class="math">\(m\)</span> as a result of ridging is</p>
 <div class="math" id="equation-ridge-area-new">
-<span class="eqno">(82)<a class="headerlink" href="#equation-ridge-area-new" title="Permalink to this equation">¶</a></span>\[f_m^{\mathrm{area}} = \exp[-(H_{m-1} - H_{\min}) / \lambda]
+<span class="eqno">(96)<a class="headerlink" href="#equation-ridge-area-new" title="Permalink to this equation">¶</a></span>\[f_m^{\mathrm{area}} = \exp[-(H_{m-1} - H_{\min}) / \lambda]
                      - \exp[-(H_m - H_{\min}) / \lambda].\]</div>
 <p>The fractional volume going to category <span class="math">\(m\)</span> is</p>
 <div class="math" id="equation-ridge-volume-new">
-<span class="eqno">(83)<a class="headerlink" href="#equation-ridge-volume-new" title="Permalink to this equation">¶</a></span>\[f_m^{\mathrm{vol}} = \frac{(H_{m-1}+\lambda) \exp[-(H_{m-1}-H_{\min})/\lambda]
+<span class="eqno">(97)<a class="headerlink" href="#equation-ridge-volume-new" title="Permalink to this equation">¶</a></span>\[f_m^{\mathrm{vol}} = \frac{(H_{m-1}+\lambda) \exp[-(H_{m-1}-H_{\min})/\lambda]
                            - (H_m + \lambda) \exp[-(H_m - H_{\min}) / \lambda]}
                              {H_{min} + \lambda}.\]</div>
-<p>Equations <a class="reference internal" href="#equation-ridge-area-new">(82)</a> and <a class="reference internal" href="#equation-ridge-volume-new">(83)</a> replace
-Equations <a class="reference internal" href="#equation-ridge-area-old">(79)</a> and <a class="reference internal" href="#equation-ridge-volume-old">(80)</a> when <cite>krdg_redist</cite>
+<p>Equations <a class="reference internal" href="#equation-ridge-area-new">(96)</a> and <a class="reference internal" href="#equation-ridge-volume-new">(97)</a> replace
+Equations <a class="reference internal" href="#equation-ridge-area-old">(93)</a> and <a class="reference internal" href="#equation-ridge-volume-old">(94)</a> when <cite>krdg_redist</cite>
 = 1.</p>
 <p>Internal ice energy is transferred between categories in proportion to
 ice volume. Snow volume and internal energy are transferred in the same
@@ -2603,7 +2601,7 @@ ice pack (i.e., the rate of open water area closing, plus the net rate
 of ice area loss due to ridging). Following <a class="reference internal" href="zreferences.html#fh95" id="id135">[19]</a>,
 <span class="math">\(R_{\mathrm{net}}\)</span> is given by</p>
 <div class="math" id="equation-Rnet">
-<span class="eqno">(84)<a class="headerlink" href="#equation-Rnet" title="Permalink to this equation">¶</a></span>\[R_{\mathrm{net}} = \frac{C_s}{2}
+<span class="eqno">(98)<a class="headerlink" href="#equation-Rnet" title="Permalink to this equation">¶</a></span>\[R_{\mathrm{net}} = \frac{C_s}{2}
                  (\Delta - |D_D|) - \min(D_D,0),\]</div>
 <p>where <span class="math">\(C_s\)</span> is the fraction of shear dissipation energy that
 contributes to ridge-building, <span class="math">\(D_D\)</span> is the divergence, and
@@ -2613,18 +2611,18 @@ rates are computed by the dynamics scheme. The default value of
 <p>Next, define <span class="math">\(R_{\mathrm{tot}} = \sum_{n=0}^N r_n\)</span>. This rate is
 related to <span class="math">\(R_{\mathrm{net}}\)</span> by</p>
 <div class="math" id="equation-Rtot-Rnet">
-<span class="eqno">(85)<a class="headerlink" href="#equation-Rtot-Rnet" title="Permalink to this equation">¶</a></span>\[R_{\mathrm{net}} =
+<span class="eqno">(99)<a class="headerlink" href="#equation-Rtot-Rnet" title="Permalink to this equation">¶</a></span>\[R_{\mathrm{net}} =
    \left[ a_{P0} + \sum_{n=1}^N a_{Pn}\left(1-{1\over k_n}\right)\right]
     R_{\mathrm{tot}}.\]</div>
-<p>Given <span class="math">\(R_{\mathrm{net}}\)</span> from&nbsp;Equation <a class="reference internal" href="#equation-Rnet">(84)</a>, we
-use&nbsp;Equation <a class="reference internal" href="#equation-Rtot-Rnet">(85)</a> to compute <span class="math">\(R_{\mathrm{tot}}\)</span>. Then the area
+<p>Given <span class="math">\(R_{\mathrm{net}}\)</span> from&nbsp;Equation <a class="reference internal" href="#equation-Rnet">(98)</a>, we
+use&nbsp;Equation <a class="reference internal" href="#equation-Rtot-Rnet">(99)</a> to compute <span class="math">\(R_{\mathrm{tot}}\)</span>. Then the area
 ridged in category <span class="math">\(n\)</span> is given by <span class="math">\(a_{rn} = r_n \Delta t\)</span>,
 where <span class="math">\(r_n = a_{Pn} R_{\mathrm{tot}}\)</span>. The area of new ridges is
 <span class="math">\(a_{rn} / k_n\)</span>, and the volume of new ridges is <span class="math">\(a_{rn} h_n\)</span>
 (since volume is conserved during ridging). We remove the ridging ice
-from category <span class="math">\(n\)</span> and use Equations&nbsp;<a class="reference internal" href="#equation-ridge-area-old">(79)</a>
-and&nbsp;<a class="reference internal" href="#equation-ridge-volume-old">(80)</a>: (or <a class="reference internal" href="#equation-ridge-area-new">(82)</a> and
-<a class="reference internal" href="#equation-ridge-volume-new">(83)</a>) to redistribute the ice among thicker
+from category <span class="math">\(n\)</span> and use Equations&nbsp;<a class="reference internal" href="#equation-ridge-area-old">(93)</a>
+and&nbsp;<a class="reference internal" href="#equation-ridge-volume-old">(94)</a>: (or <a class="reference internal" href="#equation-ridge-area-new">(96)</a> and
+<a class="reference internal" href="#equation-ridge-volume-new">(97)</a>) to redistribute the ice among thicker
 categories.</p>
 <p>Occasionally the ridging rate in thickness category <span class="math">\(n\)</span> may be
 large enough to ridge the entire area <span class="math">\(a_n\)</span> during a time interval
@@ -2659,7 +2657,7 @@ prefer level ice over previously ridged ice).</p>
 namelist parameter kstrength = 0, we use the strength formula from
 <a class="reference internal" href="zreferences.html#hibler79" id="id136">[26]</a>:</p>
 <div class="math" id="equation-hib-strength">
-<span class="eqno">(86)<a class="headerlink" href="#equation-hib-strength" title="Permalink to this equation">¶</a></span>\[P = P^* h \exp[-C(1-a_i)],\]</div>
+<span class="eqno">(100)<a class="headerlink" href="#equation-hib-strength" title="Permalink to this equation">¶</a></span>\[P = P^* h \exp[-C(1-a_i)],\]</div>
 <p>where <span class="math">\(P^* = 27,500 \, \mathrm {N/m}\)</span> and <span class="math">\(C = 20\)</span> are
 empirical constants, and <span class="math">\(h\)</span> is the mean ice thickness.
 Alternatively, setting kstrength = 1 gives an ice strength closely
@@ -2669,13 +2667,13 @@ to the change in ice potential energy <span class="math">\(\Delta E_P\)</span> p
 of compressive deformation. Given uniform ridge ITDs (krdg_redist = 0),
 we have</p>
 <div class="math" id="equation-roth-strength0">
-<span class="eqno">(87)<a class="headerlink" href="#equation-roth-strength0" title="Permalink to this equation">¶</a></span>\[P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
+<span class="eqno">(101)<a class="headerlink" href="#equation-roth-strength0" title="Permalink to this equation">¶</a></span>\[P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
   \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
      \left( \frac{(H_n^{\max})^3 - (H_n^{\min})^3}
                  {3(H_n^{\max}-H_n^{\min})} \right) \right],\]</div>
 <p>where <span class="math">\(C_P = (g/2)(\rho_i/\rho_w)(\rho_w-\rho_i)\)</span>,
 <span class="math">\(\beta =R_{\mathrm{tot}}/R_{\mathrm{net}} &gt; 1\)</span>
-from&nbsp;Equation <a class="reference internal" href="#equation-Rtot-Rnet">(85)</a>, and <span class="math">\(C_f\)</span> is an empirical parameter that
+from&nbsp;Equation <a class="reference internal" href="#equation-Rtot-Rnet">(99)</a>, and <span class="math">\(C_f\)</span> is an empirical parameter that
 accounts for frictional energy dissipation. Following
 <a class="reference internal" href="zreferences.html#fh95" id="id138">[19]</a>, we set <span class="math">\(C_f = 17\)</span>. The first term in
 the summation is the potential energy of ridging ice, and the second,
@@ -2686,12 +2684,12 @@ Recall that more than one unit area of ice must be ridged to reduce the
 net ice area by one unit. For exponential ridge ITDs (<cite>krdg_redist</cite> = 1),
 the ridge potential energy is modified:</p>
 <div class="math" id="equation-roth-strength1">
-<span class="eqno">(88)<a class="headerlink" href="#equation-roth-strength1" title="Permalink to this equation">¶</a></span>\[P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
+<span class="eqno">(102)<a class="headerlink" href="#equation-roth-strength1" title="Permalink to this equation">¶</a></span>\[P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
   \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
      \left( H_{\min}^2 + 2H_{\min}\lambda + 2 \lambda^2 \right) \right]\]</div>
-<p>The energy-based ice strength given by Equations <a class="reference internal" href="#equation-roth-strength0">(87)</a> or
-<a class="reference internal" href="#equation-roth-strength1">(88)</a> is more physically realistic than the strength
-given by Equation <a class="reference internal" href="#equation-hib-strength">(86)</a>. However, use of Equation <a class="reference internal" href="#equation-hib-strength">(86)</a> is
+<p>The energy-based ice strength given by Equations <a class="reference internal" href="#equation-roth-strength0">(101)</a> or
+<a class="reference internal" href="#equation-roth-strength1">(102)</a> is more physically realistic than the strength
+given by Equation <a class="reference internal" href="#equation-hib-strength">(100)</a>. However, use of Equation <a class="reference internal" href="#equation-hib-strength">(100)</a> is
 less likely to allow numerical instability at a given resolution and
 time step. See <a class="reference internal" href="zreferences.html#lhmj07" id="id139">[44]</a> for more details.</p>
 </div>
@@ -2851,16 +2849,16 @@ is the volume of water required to completely fill up the first
 thickness category, so that any extra melt water must occupy the second
 thickness category, and it is given by the expression</p>
 <div class="math" id="equation-topo-vol1">
-<span class="eqno">(89)<a class="headerlink" href="#equation-topo-vol1" title="Permalink to this equation">¶</a></span>\[V_{P1} = a_{i1} (h_{top,2}-h_{top,1}) - a_{s1} a_{i1} h_{s1} (1-V_{sw}),\]</div>
+<span class="eqno">(103)<a class="headerlink" href="#equation-topo-vol1" title="Permalink to this equation">¶</a></span>\[V_{P1} = a_{i1} (h_{top,2}-h_{top,1}) - a_{s1} a_{i1} h_{s1} (1-V_{sw}),\]</div>
 <p>where <span class="math">\(V_{sw}\)</span> is the fraction of the snow volume that can be
 occupied by water, and <span class="math">\(h_{s1}\)</span> is the snow depth on ice height
 class 1. In a similar way, the volume required to fill up the first and
 second surface categories, <span class="math">\(V_{P2}\)</span>, is given by</p>
 <div class="math" id="equation-topo-vol2">
-<span class="eqno">(90)<a class="headerlink" href="#equation-topo-vol2" title="Permalink to this equation">¶</a></span>\[V_{P2} = a_{i1} (h_{top,3}-h_{top,2}) + a_{i2} (h_{top,3}-h_{top,2}) - a_{s2} a_{i2} h_{s2} (1-V_{sw}) + V_{P1}.\]</div>
+<span class="eqno">(104)<a class="headerlink" href="#equation-topo-vol2" title="Permalink to this equation">¶</a></span>\[V_{P2} = a_{i1} (h_{top,3}-h_{top,2}) + a_{i2} (h_{top,3}-h_{top,2}) - a_{s2} a_{i2} h_{s2} (1-V_{sw}) + V_{P1}.\]</div>
 <p>The general expression for volume <span class="math">\(V_{Pk}\)</span> is given by</p>
 <div class="math" id="equation-topo-vol">
-<span class="eqno">(91)<a class="headerlink" href="#equation-topo-vol" title="Permalink to this equation">¶</a></span>\[V_{Pk} = \sum^k_{m=0} a_{im} (h_{top,k+1}-h_{top,k}) - a_{sk} a_{ik} h_{sk} (1-V_{sw})
+<span class="eqno">(105)<a class="headerlink" href="#equation-topo-vol" title="Permalink to this equation">¶</a></span>\[V_{Pk} = \sum^k_{m=0} a_{im} (h_{top,k+1}-h_{top,k}) - a_{sk} a_{ik} h_{sk} (1-V_{sw})
           + \sum^{k-1}_{m=0} V_{Pm}.\]</div>
 <p>(Note that we have implicitly assumed that
 <span class="math">\(h_{si} &lt; h_{top,k+1} - h_{top,k}\)</span> for all <span class="math">\(k\)</span>.) No melt
@@ -2874,7 +2872,7 @@ of melt water <span class="math">\(V_{P}\)</span> is such that
 <span class="math">\(V_{Pk} &lt; V_{P} &lt; V_{P,k+1}\)</span> then the pond height
 <span class="math">\(h_{pnd,tot}\)</span> is</p>
 <div class="math" id="equation-topo_hpnd_tot">
-<span class="eqno">(92)<a class="headerlink" href="#equation-topo_hpnd_tot" title="Permalink to this equation">¶</a></span>\[h_{pnd,tot} = h_{par} + h_{top,k} - h_{top,1},\]</div>
+<span class="eqno">(106)<a class="headerlink" href="#equation-topo_hpnd_tot" title="Permalink to this equation">¶</a></span>\[h_{pnd,tot} = h_{par} + h_{top,k} - h_{top,1},\]</div>
 <p>where <span class="math">\(h_{par}\)</span> is the height of the pond above the level of the
 ice in class <span class="math">\(k\)</span> and partially fills the volume between
 <span class="math">\(V_{P,k}\)</span> and <span class="math">\(V_{P,k+1}\)</span>. From <a class="reference internal" href="#fig-topo"><span class="std std-ref">Figure 6</span></a> (a) we see
@@ -2889,14 +2887,14 @@ it is not (i.e., <span class="math">\(h_{par} \le h_{s,k+1}\)</span>). From cons
 volume, we see from <a class="reference internal" href="#fig-topo"><span class="std std-ref">Figure 6</span></a> (a) that for an incompletely to
 completely saturated snow cover on surface ice class <span class="math">\(k + 1\)</span>,</p>
 <div class="math" id="equation-topo-satsnow1">
-<span class="eqno">(93)<a class="headerlink" href="#equation-topo-satsnow1" title="Permalink to this equation">¶</a></span>\[\begin{aligned}
+<span class="eqno">(107)<a class="headerlink" href="#equation-topo-satsnow1" title="Permalink to this equation">¶</a></span>\[\begin{aligned}
 V_{P} - V_{Pk} &amp; = &amp; h_{par} \left( \sum^k_{m=1} a_{ik} + a_{i,k+1}(1-a_{s,k+1})
 + a_{i,k+1} a_{s,k+1} V_{sw} \right)
 &amp; &amp; {\rm for} \hspace{3mm} h_{par} \le h_{s,k+1},\end{aligned}\]</div>
 <p>and for a saturated snow cover with water on top of the snow on surface
 ice class <span class="math">\(k + 1\)</span>,</p>
 <div class="math" id="equation-topo-satsnow2">
-<span class="eqno">(94)<a class="headerlink" href="#equation-topo-satsnow2" title="Permalink to this equation">¶</a></span>\[\begin{aligned}
+<span class="eqno">(108)<a class="headerlink" href="#equation-topo-satsnow2" title="Permalink to this equation">¶</a></span>\[\begin{aligned}
 V_{P} - V_{Pk} &amp; = &amp; h_{par} \left( \sum^k_{m=1} a_{ik} + a_{i,k+1}(1-a_{s,k+1}) \right)
    + a_{i,k+1} a_{s,k+1} V_{sw} h_{s,k+1}
 &amp; &amp; + a_{i,k+1} a_{s,k+1} (h_{par}-h_{s,k+1})
@@ -2911,7 +2909,7 @@ thermodynamics scheme (<cite>ktherm</cite>&nbsp;<span class="math">\(= 2\)</span
 ktherm&nbsp;<span class="math">\(\ne 2\)</span> we model the vertical flushing rate using Darcy’s
 law for flow through a porous medium</p>
 <div class="math" id="equation-topo-darcy">
-<span class="eqno">(95)<a class="headerlink" href="#equation-topo-darcy" title="Permalink to this equation">¶</a></span>\[w = - \frac{\Pi_v}{\mu} \rho_o g \frac{\Delta H}{h_i},\]</div>
+<span class="eqno">(109)<a class="headerlink" href="#equation-topo-darcy" title="Permalink to this equation">¶</a></span>\[w = - \frac{\Pi_v}{\mu} \rho_o g \frac{\Delta H}{h_i},\]</div>
 <p>where <span class="math">\(w\)</span> is the vertical mass flux per unit perpendicular
 cross-sectional area (i.e., the vertical component of the Darcy
 velocity), <span class="math">\(\Pi_v\)</span> is the vertical component of the permeability
@@ -2923,14 +2921,14 @@ flushes. As proposed by <a class="reference internal" href="zreferences.html#geh
 permeability of sea ice can be calculated from the liquid fraction
 <span class="math">\(\phi\)</span>:</p>
 <div class="math" id="equation-topo-permea">
-<span class="eqno">(96)<a class="headerlink" href="#equation-topo-permea" title="Permalink to this equation">¶</a></span>\[\Pi_v = 3 \times 10^{-8} \phi^3 \rm{m^2}.\]</div>
+<span class="eqno">(110)<a class="headerlink" href="#equation-topo-permea" title="Permalink to this equation">¶</a></span>\[\Pi_v = 3 \times 10^{-8} \phi^3 \rm{m^2}.\]</div>
 <p>Since the solid fraction varies throughout the depth of the sea ice, so
 does the permeability. The rate of vertical drainage is determined by
 the lowest (least permeable) layer, corresponding to the highest solid
 fraction. From the equations describing sea ice as a mushy layer
 <a class="reference internal" href="zreferences.html#fuww06" id="id149">[18]</a>, the solid fraction is determined by:</p>
 <div class="math" id="equation-topo-solid">
-<span class="eqno">(97)<a class="headerlink" href="#equation-topo-solid" title="Permalink to this equation">¶</a></span>\[\phi = \frac{c_i-S}{c_i-S_{br}(T)},\]</div>
+<span class="eqno">(111)<a class="headerlink" href="#equation-topo-solid" title="Permalink to this equation">¶</a></span>\[\phi = \frac{c_i-S}{c_i-S_{br}(T)},\]</div>
 <p>where <span class="math">\(S\)</span> is the bulk salinity of the ice, <span class="math">\(S_{br}(T)\)</span> is
 the concentration of salt in the brine at temperature <span class="math">\(T\)</span> and
 <span class="math">\(c_i\)</span> is the concentration of salt in the ice crystals (set to
@@ -2940,15 +2938,15 @@ upper surface of the melt pond <span class="math">\(h_{pnd,tot}\)</span> and the
 <span class="math">\(h_{sl}\)</span>. The value of the sea level <span class="math">\(h_{sl}\)</span> is calculated
 from</p>
 <div class="math" id="equation-topo-hsl1">
-<span class="eqno">(98)<a class="headerlink" href="#equation-topo-hsl1" title="Permalink to this equation">¶</a></span>\[h_{sl} = h_{sub} - 0.4 \sum^{N}_{n=1} a_{in} h_{in} - \beta h_{i1},\]</div>
+<span class="eqno">(112)<a class="headerlink" href="#equation-topo-hsl1" title="Permalink to this equation">¶</a></span>\[h_{sl} = h_{sub} - 0.4 \sum^{N}_{n=1} a_{in} h_{in} - \beta h_{i1},\]</div>
 <p>where <span class="math">\(0.4 \sum^{N}_{n=1} a_{in} h_{i,n}\)</span> is the mean thickness
 of the basal depth classes, and <span class="math">\(h_{sub}\)</span> is the depth of the
 submerged portion of the floe. <a class="reference internal" href="#fig-topo"><span class="std std-ref">Figure 6</span></a> (b) depicts the
 relationship between the hydraulic head and the depths and heights that
-appear in Equation <a class="reference internal" href="#equation-topo-hsl1">(98)</a>. The depth of the submerged portion
+appear in Equation <a class="reference internal" href="#equation-topo-hsl1">(112)</a>. The depth of the submerged portion
 of the floe is determined from hydrostatic equilibrium to be</p>
 <div class="math" id="equation-topo-hsl2">
-<span class="eqno">(99)<a class="headerlink" href="#equation-topo-hsl2" title="Permalink to this equation">¶</a></span>\[h_{sub} = \frac{\rho_m}{\rho_w} V_P + \frac{\rho_s}{\rho_w} V_s + \frac{\rho_i}{\rho_w} V_i,\]</div>
+<span class="eqno">(113)<a class="headerlink" href="#equation-topo-hsl2" title="Permalink to this equation">¶</a></span>\[h_{sub} = \frac{\rho_m}{\rho_w} V_P + \frac{\rho_s}{\rho_w} V_s + \frac{\rho_i}{\rho_w} V_i,\]</div>
 <p>where <span class="math">\(\rho_m\)</span> is the density of melt water, <span class="math">\(V_P\)</span> is the
 total pond volume, <span class="math">\(V_s\)</span> is the total snow volume, and <span class="math">\(V_i\)</span>
 is the total ice volume.</p>
@@ -2956,7 +2954,7 @@ is the total ice volume.</p>
 the upper surface of the ponds. The rate of growth of the ice lid is
 given by the Stefan energy budget at the lid-pond interface</p>
 <div class="math" id="equation-topo-lid">
-<span class="eqno">(100)<a class="headerlink" href="#equation-topo-lid" title="Permalink to this equation">¶</a></span>\[\rho_i L_0 \frac{d h_{ipnd}}{dt} = k_i \frac{\partial T_i}{\partial z} - k_p \frac{\partial T_p}{\partial z},\]</div>
+<span class="eqno">(114)<a class="headerlink" href="#equation-topo-lid" title="Permalink to this equation">¶</a></span>\[\rho_i L_0 \frac{d h_{ipnd}}{dt} = k_i \frac{\partial T_i}{\partial z} - k_p \frac{\partial T_p}{\partial z},\]</div>
 <p>where <span class="math">\(L_0\)</span> is the latent heat of fusion of pure ice per unit
 volume, <span class="math">\(T_i\)</span> and <span class="math">\(T_p\)</span> are the ice surface and pond
 temperatures, and <span class="math">\(k_i\)</span> and <span class="math">\(k_p\)</span> are the thermal
@@ -2966,7 +2964,7 @@ at the freezing temperature <a class="reference internal" href="zreferences.html
 temperature gradient in the ice lid as linear, the Stefan condition
 yields the classic Stefan solution for ice lid depth</p>
 <div class="math" id="equation-topo-stefan">
-<span class="eqno">(101)<a class="headerlink" href="#equation-topo-stefan" title="Permalink to this equation">¶</a></span>\[h_{ipnd} = \sqrt{\frac{2k_i}{\rho_s L}\Delta T_i t},\]</div>
+<span class="eqno">(115)<a class="headerlink" href="#equation-topo-stefan" title="Permalink to this equation">¶</a></span>\[h_{ipnd} = \sqrt{\frac{2k_i}{\rho_s L}\Delta T_i t},\]</div>
 <p>where <span class="math">\(\Delta T\)</span> is the temperature difference between the top
 and the bottom of the lid. Depending on the surface flux conditions the
 ice lid can grow, partially melt, or melt completely. Provided that the
@@ -3038,21 +3036,21 @@ ice fraction <span class="math">\(a_{lvl}a_i\)</span>, pond area fraction
 <span class="math">\(a_{pnd}a_{lvl}a_i\)</span>, pond volume <span class="math">\(h_{pnd}a_{pnd}a_{lvl}a_i\)</span>
 and pond ice volume <span class="math">\(h_{ipnd}a_{pnd}a_{lvl}a_i\)</span> are</p>
 <div class="math" id="equation-transport-lvl">
-<span class="eqno">(102)<a class="headerlink" href="#equation-transport-lvl" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (a_{lvl}a_{i}) + \nabla \cdot (a_{lvl}a_{i} {\bf u}) = 0,\]</div>
+<span class="eqno">(116)<a class="headerlink" href="#equation-transport-lvl" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (a_{lvl}a_{i}) + \nabla \cdot (a_{lvl}a_{i} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-apnd-lvl">
-<span class="eqno">(103)<a class="headerlink" href="#equation-transport-apnd-lvl" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (a_{pnd}a_{lvl}a_{i}) + \nabla \cdot (a_{pnd}a_{lvl}a_{i} {\bf u}) = 0,\]</div>
+<span class="eqno">(117)<a class="headerlink" href="#equation-transport-apnd-lvl" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (a_{pnd}a_{lvl}a_{i}) + \nabla \cdot (a_{pnd}a_{lvl}a_{i} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-hpnd-lvl">
-<span class="eqno">(104)<a class="headerlink" href="#equation-transport-hpnd-lvl" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (h_{pnd}a_{pnd}a_{lvl}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{lvl}a_{i} {\bf u}) = 0,\]</div>
+<span class="eqno">(118)<a class="headerlink" href="#equation-transport-hpnd-lvl" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (h_{pnd}a_{pnd}a_{lvl}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{lvl}a_{i} {\bf u}) = 0,\]</div>
 <div class="math" id="equation-transport-ipnd-lvl">
-<span class="eqno">(105)<a class="headerlink" href="#equation-transport-ipnd-lvl" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (h_{ipnd}a_{pnd}a_{lvl}a_{i}) + \nabla \cdot (h_{ipnd}a_{pnd}a_{lvl}a_{i} {\bf u}) = 0.\]</div>
+<span class="eqno">(119)<a class="headerlink" href="#equation-transport-ipnd-lvl" title="Permalink to this equation">¶</a></span>\[{\partial\over\partial t} (h_{ipnd}a_{pnd}a_{lvl}a_{i}) + \nabla \cdot (h_{ipnd}a_{pnd}a_{lvl}a_{i} {\bf u}) = 0.\]</div>
 <p>(We have dropped the category subscript here, for clarity.) Equations
-<a class="reference internal" href="#equation-transport-hpnd-lvl">(104)</a> and <a class="reference internal" href="#equation-transport-ipnd-lvl">(105)</a> express
+<a class="reference internal" href="#equation-transport-hpnd-lvl">(118)</a> and <a class="reference internal" href="#equation-transport-ipnd-lvl">(119)</a> express
 conservation of melt pond volume and pond ice volume, but in this form
 highlight that the quantities tracked in the code are the tracers
 <span class="math">\(h_{pnd}\)</span> and <span class="math">\(h_{ipnd}\)</span>, pond depth and pond ice thickness.
 Likewise, the level ice fraction <span class="math">\(a_{lvl}\)</span> is a tracer on ice area
-fraction (Equation&nbsp;<a class="reference internal" href="#equation-transport-lvl">(102)</a>), and pond fraction <span class="math">\(a_{pnd}\)</span> is
-a tracer on level ice (Equation&nbsp;<a class="reference internal" href="#equation-transport-apnd-lvl">(103)</a>).</p>
+fraction (Equation&nbsp;<a class="reference internal" href="#equation-transport-lvl">(116)</a>), and pond fraction <span class="math">\(a_{pnd}\)</span> is
+a tracer on level ice (Equation&nbsp;<a class="reference internal" href="#equation-transport-apnd-lvl">(117)</a>).</p>
 <p><em>Pond ice.</em> The ponds are assumed to be well mixed fresh water, and
 therefore their temperature is 0<span class="math">\(^\circ\)</span>C. If the air
 temperature is cold enough, a layer of clear ice may form on top of the
@@ -3064,11 +3062,11 @@ of the lid.</p>
 fresh ice and is invoked only when <span class="math">\(\Delta V_{melt}=0\)</span>.</p>
 <p>The basic thermodynamic equation governing ice growth is</p>
 <div class="math" id="equation-Stefanthermo1">
-<span class="eqno">(106)<a class="headerlink" href="#equation-Stefanthermo1" title="Permalink to this equation">¶</a></span>\[\rho_i L {\partial h_i\over\partial t} = k_i{\partial T_i\over\partial z} \sim k_i {\Delta T\over h_i}\]</div>
+<span class="eqno">(120)<a class="headerlink" href="#equation-Stefanthermo1" title="Permalink to this equation">¶</a></span>\[\rho_i L {\partial h_i\over\partial t} = k_i{\partial T_i\over\partial z} \sim k_i {\Delta T\over h_i}\]</div>
 <p>assuming a linear temperature profile through the ice thickness
 <span class="math">\(h_i\)</span>. In discrete form, the solution is</p>
 <div class="math" id="equation-hi">
-<span class="eqno">(107)<a class="headerlink" href="#equation-hi" title="Permalink to this equation">¶</a></span>\[\begin{split}\Delta h_i = \left\{
+<span class="eqno">(121)<a class="headerlink" href="#equation-hi" title="Permalink to this equation">¶</a></span>\[\begin{split}\Delta h_i = \left\{
 \begin{array}{ll}    {\sqrt{\beta\Delta t}/2} &amp; \mbox {if $h_i=0$} \\
                                 {\beta\Delta t / 2 h_i} &amp; \mbox {if $h_i&gt;0,$}
 \end{array} \right.\end{split}\]</div>
@@ -3078,7 +3076,7 @@ fresh ice and is invoked only when <span class="math">\(\Delta V_{melt}=0\)</spa
 <p>When <span class="math">\(\Delta V_{melt}&gt;0\)</span>, any existing pond ice may also melt. In
 this case,</p>
 <div class="math" id="equation-ipndmelt">
-<span class="eqno">(108)<a class="headerlink" href="#equation-ipndmelt" title="Permalink to this equation">¶</a></span>\[\Delta h_i = -\min\left({\max(F_\circ, 0) \Delta t \over \rho_i L}, h_i\right),\]</div>
+<span class="eqno">(122)<a class="headerlink" href="#equation-ipndmelt" title="Permalink to this equation">¶</a></span>\[\Delta h_i = -\min\left({\max(F_\circ, 0) \Delta t \over \rho_i L}, h_i\right),\]</div>
 <p>where <span class="math">\(F_\circ\)</span> is the net downward surface flux.</p>
 <p>In either case, the change in pond volume associated with growth or melt
 of pond ice is</p>
@@ -3109,7 +3107,7 @@ its own parameter <span class="math">\(h_{s1}\)</span>:</p>
 the ice is reduced by the (roughly) equivalent flux required to melt
 that ice. This is accomplished (approximately) with
 <span class="math">\(a_{pnd}^{eff} = (1-f_{frac})a_{pnd}a_{lvl}\)</span>, where (see
-Equation&nbsp;<a class="reference internal" href="#equation-ipndmelt">(108)</a>)</p>
+Equation&nbsp;<a class="reference internal" href="#equation-ipndmelt">(122)</a>)</p>
 <div class="math">
 \[f_{frac} = \min\left(-{\rho_i L\Delta h_i\over F_\circ \Delta t}, 1 \right) .\]</div>
 <p><em>Snow infiltration by pond water.</em> If there is snow on top of the sea
@@ -3301,7 +3299,7 @@ near infrared). The flux penetrating into the ice is <span class="math">\(I_0
 for visible radiation and <span class="math">\(i_0 = 0\)</span> for near IR. Radiation
 penetrating into the ice is attenuated according to Beer’s Law:</p>
 <div class="math" id="equation-Beers-law">
-<span class="eqno">(109)<a class="headerlink" href="#equation-Beers-law" title="Permalink to this equation">¶</a></span>\[I(z) = I_0 \exp(-\kappa_i z),\]</div>
+<span class="eqno">(123)<a class="headerlink" href="#equation-Beers-law" title="Permalink to this equation">¶</a></span>\[I(z) = I_0 \exp(-\kappa_i z),\]</div>
 <p>where <span class="math">\(I(z)\)</span> is the shortwave flux that reaches depth <span class="math">\(z\)</span>
 beneath the surface without being absorbed, and <span class="math">\(\kappa_i\)</span> is the
 bulk extinction coefficient for solar radiation in ice, set to
@@ -3341,7 +3339,7 @@ Kelvin, and <span class="math">\(\rho_a\)</span> is the surface air density.</p>
 <p>The net downward heat flux from the ice to the ocean is given by
 <a class="reference internal" href="zreferences.html#mm95" id="id159">[48]</a>:</p>
 <div class="math" id="equation-fbot">
-<span class="eqno">(110)<a class="headerlink" href="#equation-fbot" title="Permalink to this equation">¶</a></span>\[F_{bot} = -\rho_w c_w c_h u_* (T_w - T_f),\]</div>
+<span class="eqno">(124)<a class="headerlink" href="#equation-fbot" title="Permalink to this equation">¶</a></span>\[F_{bot} = -\rho_w c_w c_h u_* (T_w - T_f),\]</div>
 <p>where <span class="math">\(\rho_w\)</span> is the density of seawater, <span class="math">\(c_w\)</span> is the
 specific heat of seawater, <span class="math">\(c_h = 0.006\)</span> is a heat transfer
 coefficient, <span class="math">\(u_*=\sqrt{\left|\vec{\tau}_w\right|/\rho_w}\)</span> is the
@@ -3375,14 +3373,14 @@ salinity profile is prescribed and is unchanging in time. The snow is
 assumed to be fresh, and the midpoint salinity <span class="math">\(S_{ik}\)</span> in each
 ice layer is given by</p>
 <div class="math" id="equation-salinity">
-<span class="eqno">(111)<a class="headerlink" href="#equation-salinity" title="Permalink to this equation">¶</a></span>\[S_{ik} = {1\over 2}S_{\max} [1-\cos(\pi z^{(\frac{a}{z+b})})],\]</div>
+<span class="eqno">(125)<a class="headerlink" href="#equation-salinity" title="Permalink to this equation">¶</a></span>\[S_{ik} = {1\over 2}S_{\max} [1-\cos(\pi z^{(\frac{a}{z+b})})],\]</div>
 <p>where <span class="math">\(z \equiv (k-1/2)/N_i\)</span>, <span class="math">\(S_{\max} = 3.2\)</span> ppt, and
 <span class="math">\(a=0.407\)</span> and <span class="math">\(b=0.573\)</span> are determined from a
 least-squares fit to the salinity profile observed in multiyear sea
 ice by <a class="reference internal" href="zreferences.html#schwarzacher59" id="id166">[59]</a>. This profile varies from
 <span class="math">\(S=0\)</span> at the top surface (<span class="math">\(z = 0\)</span>) to <span class="math">\(S=S_{\max}\)</span>
 at the bottom surface (<span class="math">\(z=1\)</span>) and is similar to that used by
-<a class="reference internal" href="zreferences.html#mu71" id="id167">[50]</a>. Equation <a class="reference internal" href="#equation-salinity">(111)</a> is fairly accurate
+<a class="reference internal" href="zreferences.html#mu71" id="id167">[50]</a>. Equation <a class="reference internal" href="#equation-salinity">(125)</a> is fairly accurate
 for ice that has drained at the top surface due to summer melting. It
 is not a good approximation for cold first-year ice, which has a more
 vertically uniform salinity because it has not yet drained. However,
@@ -3399,7 +3397,7 @@ treated implicitly. For example, the rate of change of <span class="math">\(T_{i
 depends on the new temperatures in layers <span class="math">\(k-1\)</span>, <span class="math">\(k\)</span>, and
 <span class="math">\(k+1\)</span>. Thus we have a set of equations of the form</p>
 <div class="math" id="equation-tridiag">
-<span class="eqno">(112)<a class="headerlink" href="#equation-tridiag" title="Permalink to this equation">¶</a></span>\[{\bf A} {\bf x} = {\bf b},\]</div>
+<span class="eqno">(126)<a class="headerlink" href="#equation-tridiag" title="Permalink to this equation">¶</a></span>\[{\bf A} {\bf x} = {\bf b},\]</div>
 <p>where <span class="math">\({\bf A}\)</span> is a tridiagonal matrix, <span class="math">\({\bf x}\)</span> is a
 column vector whose components are the unknown new temperatures, and
 <span class="math">\({\bf b}\)</span> is another column vector. Given <span class="math">\({\bf A}\)</span> and
@@ -3421,7 +3419,7 @@ thermodynamics.)</p>
 <p>The rate of temperature change in the ice interior is given by
 <a class="reference internal" href="zreferences.html#mu71" id="id168">[50]</a>:</p>
 <div class="math" id="equation-ice-temp-change">
-<span class="eqno">(113)<a class="headerlink" href="#equation-ice-temp-change" title="Permalink to this equation">¶</a></span>\[\rho_i c_i \frac{\partial T_i}{\partial t} =
+<span class="eqno">(127)<a class="headerlink" href="#equation-ice-temp-change" title="Permalink to this equation">¶</a></span>\[\rho_i c_i \frac{\partial T_i}{\partial t} =
  \frac{\partial}{\partial z} \left(K_i \frac{\partial T_i}{\partial z}\right)
  - \frac{\partial}{\partial z} [I_{pen}(z)],\]</div>
 <p>where <span class="math">\(\rho_i = 917 \ \mathrm {kg/m^{3}}\)</span> is the sea ice density
@@ -3439,7 +3437,7 @@ and <span class="math">\(\kappa_i\)</span> is an extinction coefficient. If shor
 <p>The specific heat of sea ice is given to an excellent approximation by
 <a class="reference internal" href="zreferences.html#ono67" id="id169">[53]</a></p>
 <div class="math" id="equation-heat-capacity">
-<span class="eqno">(114)<a class="headerlink" href="#equation-heat-capacity" title="Permalink to this equation">¶</a></span>\[c_i(T,S) = c_0 + \frac{L_0 \mu S}{T^2},\]</div>
+<span class="eqno">(128)<a class="headerlink" href="#equation-heat-capacity" title="Permalink to this equation">¶</a></span>\[c_i(T,S) = c_0 + \frac{L_0 \mu S}{T^2},\]</div>
 <p>where <span class="math">\(c_0 = 2106\)</span>&nbsp;J/kg/deg is the specific heat of fresh ice at
 , <span class="math">\(L_0 = 3.34 \times 10^5\)</span>&nbsp;J/kg is the latent heat of fusion of
 fresh ice at , and <span class="math">\(\mu = 0.054\)</span>&nbsp;deg/ppt is the (liquidus) ratio
@@ -3448,10 +3446,10 @@ between the freezing temperature and salinity of brine.</p>
 <a class="reference internal" href="zreferences.html#mu71" id="id171">[50]</a>, the standard thermal conductivity
 (<cite>conduct</cite> = ‘MU71’) is given by</p>
 <div class="math" id="equation-conductivity">
-<span class="eqno">(115)<a class="headerlink" href="#equation-conductivity" title="Permalink to this equation">¶</a></span>\[K_i(T,S) = K_0 + \frac{\beta S}{T},\]</div>
+<span class="eqno">(129)<a class="headerlink" href="#equation-conductivity" title="Permalink to this equation">¶</a></span>\[K_i(T,S) = K_0 + \frac{\beta S}{T},\]</div>
 <p>where <span class="math">\(K_0 = 2.03\)</span>&nbsp;W/m/deg is the conductivity of fresh ice and
 <span class="math">\(\beta = 0.13\)</span>&nbsp;W/m/ppt is an empirical constant. Experimental
-results <a class="reference internal" href="zreferences.html#twmh01" id="id172">[70]</a> suggest that Equation <a class="reference internal" href="#equation-conductivity">(115)</a> may
+results <a class="reference internal" href="zreferences.html#twmh01" id="id172">[70]</a> suggest that Equation <a class="reference internal" href="#equation-conductivity">(129)</a> may
 not be a good description of the thermal conductivity of sea ice. In
 particular, the measured conductivity does not markedly decrease as
 <span class="math">\(T\)</span> approaches , but does decrease near the top surface
@@ -3460,15 +3458,15 @@ particular, the measured conductivity does not markedly decrease as
 <a class="reference internal" href="zreferences.html#petb07" id="id173">[55]</a> for conductivity is available
 (<cite>conduct</cite> = ‘bubbly’):</p>
 <div class="math" id="equation-Pringle">
-<span class="eqno">(116)<a class="headerlink" href="#equation-Pringle" title="Permalink to this equation">¶</a></span>\[K_i={\rho_i\over\rho_0}\left(2.11-0.011T+0.09 S/T\right),\]</div>
+<span class="eqno">(130)<a class="headerlink" href="#equation-Pringle" title="Permalink to this equation">¶</a></span>\[K_i={\rho_i\over\rho_0}\left(2.11-0.011T+0.09 S/T\right),\]</div>
 <p>where <span class="math">\(\rho_i\)</span> and <span class="math">\(\rho_0=917\)</span>&nbsp;kg/m <span class="math">\(^3\)</span> are
 densities of sea ice and pure ice. Whereas the parameterization in
-Equation <a class="reference internal" href="#equation-conductivity">(115)</a> asymptotes to a constant conductivity of
+Equation <a class="reference internal" href="#equation-conductivity">(129)</a> asymptotes to a constant conductivity of
 2.03&nbsp;W&nbsp;m<span class="math">\(^{-1}\)</span>&nbsp;K <span class="math">\(^{-1}\)</span> with decreasing <span class="math">\(T\)</span>,
-<span class="math">\(K_i\)</span> in Equation <a class="reference internal" href="#equation-Pringle">(116)</a> continues to increase with colder
+<span class="math">\(K_i\)</span> in Equation <a class="reference internal" href="#equation-Pringle">(130)</a> continues to increase with colder
 temperatures.</p>
 <p>The equation for temperature changes in snow is analogous to
-Equation <a class="reference internal" href="#equation-ice-temp-change">(113)</a>, with <span class="math">\(\rho_s = 330\)</span>&nbsp;kg/m <span class="math">\(^3\)</span>,
+Equation <a class="reference internal" href="#equation-ice-temp-change">(127)</a>, with <span class="math">\(\rho_s = 330\)</span>&nbsp;kg/m <span class="math">\(^3\)</span>,
 <span class="math">\(c_s = c_0\)</span>, and <span class="math">\(K_s = 0.30\)</span>&nbsp;W/m/deg replacing the
 corresponding ice values. If shortwave = ‘default’, then the penetrating
 solar radiation is equal to zero for snow-covered ice, since most of the
@@ -3486,13 +3484,13 @@ radiation schemes. If the available energy would melt through a layer,
 then penetrating shortwave is first reduced, possibly to zero, and if
 that is insufficient then the local conductivity is also reduced to
 bring the layer temperature just to the melting point.</p>
-<p>We now convert Equation <a class="reference internal" href="#equation-ice-temp-change">(113)</a> to finite-difference form. The
+<p>We now convert Equation <a class="reference internal" href="#equation-ice-temp-change">(127)</a> to finite-difference form. The
 resulting equations are second-order accurate in space, except possibly
 at material boundaries, and first-order accurate in time. Before writing
 the equations in full we give finite-difference expressions for some of
 the terms.</p>
 <p>First consider the terms on the left-hand side of
-Equation <a class="reference internal" href="#equation-ice-temp-change">(113)</a>. We write the time derivatives as</p>
+Equation <a class="reference internal" href="#equation-ice-temp-change">(127)</a>. We write the time derivatives as</p>
 <div class="math">
 \[\frac{\partial T}{\partial t} =
    \frac{T^{m+1} - T^m}{\Delta t},\]</div>
@@ -3500,22 +3498,22 @@ Equation <a class="reference internal" href="#equation-ice-temp-change">(113)</a
 is a time index. The specific heat of ice layer <span class="math">\(k\)</span> is
 approximated as</p>
 <div class="math" id="equation-heat-capacity-fd">
-<span class="eqno">(117)<a class="headerlink" href="#equation-heat-capacity-fd" title="Permalink to this equation">¶</a></span>\[c_{ik} = c_0 + \frac{L_0 \mu S_{ik}} {T_{ik}^m \, T_{ik}^{m+1}},\]</div>
+<span class="eqno">(131)<a class="headerlink" href="#equation-heat-capacity-fd" title="Permalink to this equation">¶</a></span>\[c_{ik} = c_0 + \frac{L_0 \mu S_{ik}} {T_{ik}^m \, T_{ik}^{m+1}},\]</div>
 <p>which ensures that energy is conserved during a change in temperature.
-This can be shown by using Equation <a class="reference internal" href="#equation-heat-capacity">(114)</a> to integrate
+This can be shown by using Equation <a class="reference internal" href="#equation-heat-capacity">(128)</a> to integrate
 <span class="math">\(c_i \, dT\)</span> from <span class="math">\(T_{ik}^m\)</span> to <span class="math">\(T_{ik}^{m+1}\)</span>; the
 result is <span class="math">\(c_{ik}(T_{ik}^{m+1} - T_{ik}^m)\)</span>, where <span class="math">\(c_{ik}\)</span>
-is given by Equation <a class="reference internal" href="#equation-heat-capacity-fd">(117)</a>. The specific heat is a nonlinear
+is given by Equation <a class="reference internal" href="#equation-heat-capacity-fd">(131)</a>. The specific heat is a nonlinear
 function of <span class="math">\(T_{ik}^{m+1}\)</span>, the unknown new temperature. We can
 retain a set of linear equations, however, by initially guessing
 <span class="math">\(T_{ik}^{m+1} = T_{ik}^m\)</span> and then iterating the solution,
-updating <span class="math">\(T_{ik}^{m+1}\)</span> in Equation <a class="reference internal" href="#equation-heat-capacity-fd">(117)</a> with each
+updating <span class="math">\(T_{ik}^{m+1}\)</span> in Equation <a class="reference internal" href="#equation-heat-capacity-fd">(131)</a> with each
 iteration until the solution converges.</p>
 <p>Next consider the first term on the right-hand side of
-Equation <a class="reference internal" href="#equation-ice-temp-change">(113)</a>. The first term describes heat diffusion and is
+Equation <a class="reference internal" href="#equation-ice-temp-change">(127)</a>. The first term describes heat diffusion and is
 discretized for a given ice or snow layer <span class="math">\(k\)</span> as</p>
 <div class="math" id="equation-ice-dT-dz">
-<span class="eqno">(118)<a class="headerlink" href="#equation-ice-dT-dz" title="Permalink to this equation">¶</a></span>\[\frac{\partial}{\partial z} \left(K \frac{\partial T}{\partial z}\right) =
+<span class="eqno">(132)<a class="headerlink" href="#equation-ice-dT-dz" title="Permalink to this equation">¶</a></span>\[\frac{\partial}{\partial z} \left(K \frac{\partial T}{\partial z}\right) =
  \frac{1}{\Delta h}
   \left[ {K_k^*(T_{k-1}^{m+1} - T_{k}^{m+1})} - K_{k+1}^*(T_{k}^{m+1} - T_{k+1}^{m+1}) \right],\]</div>
 <p>where <span class="math">\(\Delta h\)</span> is the layer thickness and <span class="math">\(K_{k}\)</span> is the
@@ -3534,7 +3532,7 @@ vice versa). The effective conductivity at the top (bottom) interface of
 the ice-snow column is given by <span class="math">\(K^*=2K/\Delta h\)</span>, where <span class="math">\(K\)</span>
 and <span class="math">\(\Delta h\)</span> are the thermal conductivity and thickness of the
 top (bottom) layer. The second term on the RHS of
-Equation <a class="reference internal" href="#equation-ice-temp-change">(113)</a> is discretized as</p>
+Equation <a class="reference internal" href="#equation-ice-temp-change">(127)</a> is discretized as</p>
 <div class="math">
 \[{\partial\over\partial z}\left[I_{pen}(z)\right] = I_0{{\tau_{k-1}-\tau_k}\over \Delta h} = {I_k\over\Delta h}\]</div>
 <p>where <span class="math">\(\tau_k\)</span> is the fraction of the penetrating solar radiation
@@ -3543,7 +3541,7 @@ absorbed.</p>
 <p>We now construct a system of equations for the new temperatures. For
 <span class="math">\(T_{sf}&lt;0^{circ}C\)</span> we require</p>
 <div class="math" id="equation-top-surface">
-<span class="eqno">(119)<a class="headerlink" href="#equation-top-surface" title="Permalink to this equation">¶</a></span>\[F_0 = F_{ct},\]</div>
+<span class="eqno">(133)<a class="headerlink" href="#equation-top-surface" title="Permalink to this equation">¶</a></span>\[F_0 = F_{ct},\]</div>
 <p>where <span class="math">\(F_{ct}\)</span> is the conductive flux from the top surface to the
 ice interior, and both fluxes are evaluated at time <span class="math">\(m+1\)</span>.
 Although <span class="math">\(F_0\)</span> is a nonlinear function of <span class="math">\(T_{sf}\)</span>,
@@ -3556,38 +3554,38 @@ most recent iteration, and <span class="math">\(F_0^*\)</span> and
 <span class="math">\((dF_0/dT_{sf})^*\)</span> are functions of
 <span class="math">\(T_{sf}^*\)</span>. We initialize
 <span class="math">\(T_{sf}^* = T_{sf}^m\)</span> and update it with each
-iteration. Thus we can rewrite&nbsp;Equation <a class="reference internal" href="#equation-top-surface">(119)</a> as</p>
+iteration. Thus we can rewrite&nbsp;Equation <a class="reference internal" href="#equation-top-surface">(133)</a> as</p>
 <div class="math">
 \[F_0^* + \left(\frac{dF_0}{dT_{sf}}\right)^* \, (T_
 {sf}^{m+1} - T_{sf}^*) =    K_1^* (T_{sf}^{m+1} - T_1^{m+1}),\]</div>
 <p>Rearranging terms, we obtain</p>
 <div class="math" id="equation-surface-case1">
-<span class="eqno">(120)<a class="headerlink" href="#equation-surface-case1" title="Permalink to this equation">¶</a></span>\[\left[ \left(\frac{dF_0}{dT_{sf}}\right)^* - K_1^* \right]
+<span class="eqno">(134)<a class="headerlink" href="#equation-surface-case1" title="Permalink to this equation">¶</a></span>\[\left[ \left(\frac{dF_0}{dT_{sf}}\right)^* - K_1^* \right]
 T_{sf}^{m+1} +  K_1^* T_1^{m+1} =
 \left(\frac{dF_0}{dT_{sf}}\right)^* \, T_{sf}^* - F_0^*,\]</div>
-<p>the first equation in the set of equations&nbsp;<a class="reference internal" href="#equation-tridiag">(112)</a>. The
+<p>the first equation in the set of equations&nbsp;<a class="reference internal" href="#equation-tridiag">(126)</a>. The
 temperature change in ice/snow layer <span class="math">\(k\)</span> is</p>
 <div class="math" id="equation-case1-prelim">
-<span class="eqno">(121)<a class="headerlink" href="#equation-case1-prelim" title="Permalink to this equation">¶</a></span>\[\rho_k c_k \frac{(T_k^{m+1} - T_k^m)}{\Delta t} =
+<span class="eqno">(135)<a class="headerlink" href="#equation-case1-prelim" title="Permalink to this equation">¶</a></span>\[\rho_k c_k \frac{(T_k^{m+1} - T_k^m)}{\Delta t} =
    \frac{1}{\Delta h_k} [K_k^*    (T_{k-1}^{m+1} - T_k^{m+1})
                 - K_{k+1}(T_k^{m+1} - T_{k+1}^{m+1})],\]</div>
 <p>where <span class="math">\(T_0 = T_{sf}\)</span> in the equation for layer 1. In
-tridiagonal matrix form, Equation <a class="reference internal" href="#equation-case1-prelim">(121)</a> becomes</p>
+tridiagonal matrix form, Equation <a class="reference internal" href="#equation-case1-prelim">(135)</a> becomes</p>
 <div class="math" id="equation-tridiag-form">
-<span class="eqno">(122)<a class="headerlink" href="#equation-tridiag-form" title="Permalink to this equation">¶</a></span>\[-\eta_k K_k T_{k-1}^{m+1} + \left[ 1 + \eta_k(K_k+K_{k+1}) \right]T_k^{m+1} -\eta_k K_{k+1} T_{k+1}^{m+1} = T_k^m + \eta_k I_k,\]</div>
+<span class="eqno">(136)<a class="headerlink" href="#equation-tridiag-form" title="Permalink to this equation">¶</a></span>\[-\eta_k K_k T_{k-1}^{m+1} + \left[ 1 + \eta_k(K_k+K_{k+1}) \right]T_k^{m+1} -\eta_k K_{k+1} T_{k+1}^{m+1} = T_k^m + \eta_k I_k,\]</div>
 <p>where <span class="math">\(\eta_k = \Delta t/(\rho_k c_k \Delta h_k)\)</span>. In the
 equation for the bottom ice layer, the temperature at the ice–ocean
 interface is held fixed at <span class="math">\(T_f\)</span>, the freezing temperature of the
 mixed layer; thus the last term on the LHS is known and is moved to the
 RHS. If <span class="math">\(T_{sf} = 0^{circ}C\)</span> , then there is no surface flux
-equation. In this case the first equation in Equation <a class="reference internal" href="#equation-tridiag">(112)</a> is similar
-to Equation <a class="reference internal" href="#equation-tridiag-form">(122)</a>, but with the first term on the LHS moved to the
+equation. In this case the first equation in Equation <a class="reference internal" href="#equation-tridiag">(126)</a> is similar
+to Equation <a class="reference internal" href="#equation-tridiag-form">(136)</a>, but with the first term on the LHS moved to the
 RHS.</p>
 <p>These equations are modified if <span class="math">\(T_{sf}\)</span> and
 <span class="math">\(F_{ct}\)</span> are computed within the atmospheric model and
 passed to CICE (calc_Tsfc = false; see Section <a class="reference internal" href="#atmo"><span class="std std-ref">Atmosphere</span></a>). In this case there
 is no surface flux equation. The top layer temperature is computed by an
-equation similar to Equation <a class="reference internal" href="#equation-tridiag-form">(122)</a> but with the first term on the
+equation similar to Equation <a class="reference internal" href="#equation-tridiag-form">(136)</a> but with the first term on the
 LHS replaced by <span class="math">\(\eta_1 F_{ct}\)</span> and moved to the RHS. The
 main drawback of treating the surface temperature and fluxes explicitly
 is that the solution scheme is no longer unconditionally stable.
@@ -3635,9 +3633,9 @@ we derive expressions for the enthalpy <span class="math">\(q\)</span>. The enth
 salinity varies inversely with temperature. Since the salinity is
 prescribed, there is a one-to-one relationship between temperature and
 enthalpy. The specific heat of sea ice, given by
-Equation <a class="reference internal" href="#equation-heat-capacity">(114)</a>, includes not only the energy needed to warm or
+Equation <a class="reference internal" href="#equation-heat-capacity">(128)</a>, includes not only the energy needed to warm or
 cool ice, but also the energy used to freeze or melt ice adjacent to
-brine pockets. Equation&nbsp;<a class="reference internal" href="#equation-heat-capacity">(114)</a> can be integrated to
+brine pockets. Equation&nbsp;<a class="reference internal" href="#equation-heat-capacity">(128)</a> can be integrated to
 give the energy <span class="math">\(\delta_e\)</span> required to raise the temperature of
 a unit mass of sea ice of salinity <span class="math">\(S\)</span> from <span class="math">\(T\)</span> to
 <span class="math">\(T^\prime\)</span>:</p>
@@ -3654,10 +3652,10 @@ which the ice is completely melted, we have</p>
 for the energy needed to raise the meltwater temperature to , we
 obtain the sea ice enthalpy:</p>
 <div class="math" id="equation-ice-enthalpy">
-<span class="eqno">(123)<a class="headerlink" href="#equation-ice-enthalpy" title="Permalink to this equation">¶</a></span>\[q_i(T,S) = - \rho_i \left[ c_0(T_m-T)
+<span class="eqno">(137)<a class="headerlink" href="#equation-ice-enthalpy" title="Permalink to this equation">¶</a></span>\[q_i(T,S) = - \rho_i \left[ c_0(T_m-T)
            + L_0 \left(1-\frac{T_m}{T}\right) - c_w T_m.
                   \right]\]</div>
-<p>Note that Equation <a class="reference internal" href="#equation-ice-enthalpy">(123)</a> is a quadratic equation in <span class="math">\(T\)</span>.
+<p>Note that Equation <a class="reference internal" href="#equation-ice-enthalpy">(137)</a> is a quadratic equation in <span class="math">\(T\)</span>.
 Given the layer enthalpies we can compute the temperatures using the
 quadratic formula:</p>
 <div class="math">
@@ -3682,7 +3680,7 @@ quantity in the ice and in the brine.</p>
 <p>The mush enthalpy, <span class="math">\(q\)</span>, is related
 to the temperature, <span class="math">\(T\)</span>, and the brine volume, <span class="math">\(\phi\)</span>, by</p>
 <div class="math" id="equation-enth-def">
-<span class="eqno">(124)<a class="headerlink" href="#equation-enth-def" title="Permalink to this equation">¶</a></span>\[\begin{aligned}
+<span class="eqno">(138)<a class="headerlink" href="#equation-enth-def" title="Permalink to this equation">¶</a></span>\[\begin{aligned}
 q =&amp; \phi q_{br} &amp;+\, (1-\phi) q_{i}
 =&amp; \phi \rho_{w} c_{w} T &amp;+\, (1-\phi) (\rho_i c_i T - \rho_i L_0)
 \end{aligned}\]</div>
@@ -3696,11 +3694,11 @@ is the energy required to raise the temperature of the sea ice to ,
 including both sensible and latent heat changes. Since the sea ice
 contains salt, it usually will be fully melted at a temperature below
 <span class="math">\(0^{circ}C\)</span>.
-Equations <a class="reference internal" href="#equation-ice-enthalpy">(123)</a> and <a class="reference internal" href="#equation-enth-def">(124)</a> are
+Equations <a class="reference internal" href="#equation-ice-enthalpy">(137)</a> and <a class="reference internal" href="#equation-enth-def">(138)</a> are
 equivalent except for the density used in the term representing the
 energy required to bring the melt water temperature to (<span class="math">\(\rho_i\)</span>
-and <span class="math">\(\rho_w\)</span> in equations&nbsp;<a class="reference internal" href="#equation-ice-enthalpy">(123)</a> and
-<a class="reference internal" href="#equation-enth-def">(124)</a>, respectively).</p>
+and <span class="math">\(\rho_w\)</span> in equations&nbsp;<a class="reference internal" href="#equation-ice-enthalpy">(137)</a> and
+<a class="reference internal" href="#equation-enth-def">(138)</a>, respectively).</p>
 <p>The liquid fraction, <span class="math">\(\phi\)</span>, of sea ice is given by</p>
 <div class="math">
 \[\phi = \frac{S}{S_{br}}\]</div>
@@ -3803,7 +3801,7 @@ liquidus salinity at <span class="math">\(-10^\circ\)</span>C.</p>
 <p>We discretize the terms that include temperature in the heat
 conservation equation as</p>
 <div class="math" id="equation-mushyheat">
-<span class="eqno">(125)<a class="headerlink" href="#equation-mushyheat" title="Permalink to this equation">¶</a></span>\[\frac{q^{t}_k - q^{t_0}_k}{\Delta t} = \frac{\frac{K^*_{k+1}}{\Delta z^\prime_{k+1}} (T^t_{k+1} - T^t_k) - \frac{K^*_k}{\Delta z^\prime_k} (T^t_k - T^t_{k-1})}{\Delta h}\]</div>
+<span class="eqno">(139)<a class="headerlink" href="#equation-mushyheat" title="Permalink to this equation">¶</a></span>\[\frac{q^{t}_k - q^{t_0}_k}{\Delta t} = \frac{\frac{K^*_{k+1}}{\Delta z^\prime_{k+1}} (T^t_{k+1} - T^t_k) - \frac{K^*_k}{\Delta z^\prime_k} (T^t_k - T^t_{k-1})}{\Delta h}\]</div>
 <p>where the superscript signifies whether the quantity is evaluated at
 the start (<span class="math">\(t_0\)</span>) or the end (<span class="math">\(t\)</span>) of the time step and the
 subscript indicates the vertical layer. Writing out the temperature
@@ -3870,7 +3868,7 @@ equation is discretized using an upwind advection scheme,</p>
 <div class="math">
 \[\frac{S_k^t - S_k^{t_0}}{\Delta t} = w_k \frac{S_{br k+1} - S_{br k}}{\Delta z}.\]</div>
 <p>The upward advective flow also carries heat, contributing a term to the
-heat conservation Equation <a class="reference internal" href="#equation-mushyheat">(125)</a>,</p>
+heat conservation Equation <a class="reference internal" href="#equation-mushyheat">(139)</a>,</p>
 <div class="math">
 \[\left. \frac{\partial{q}}{\partial{t}}  \right|_{rapid} = w(z) \frac{\partial{q_{br}}}{\partial{z}}\]</div>
 <p>where <span class="math">\(q_{br}\)</span> is the brine enthalpy. This term is discretized as</p>
@@ -3881,7 +3879,7 @@ heat conservation Equation <a class="reference internal" href="#equation-mushyhe
 <p>where the maximum is taken over all the ice layers between layer
 <span class="math">\(k\)</span> and the ice base. <span class="math">\(\tilde{w}_j\)</span> is given by</p>
 <div class="math" id="equation-mushyvel">
-<span class="eqno">(126)<a class="headerlink" href="#equation-mushyvel" title="Permalink to this equation">¶</a></span>\[\tilde{w}(z) = w \left( \frac{Ra(z) - Ra_c}{Ra(z)} \right).\]</div>
+<span class="eqno">(140)<a class="headerlink" href="#equation-mushyvel" title="Permalink to this equation">¶</a></span>\[\tilde{w}(z) = w \left( \frac{Ra(z) - Ra_c}{Ra(z)} \right).\]</div>
 <p>where <span class="math">\(Ra_c\)</span> is a critical Rayleigh number and <span class="math">\(Ra(z)\)</span> is
 the local Rayleigh number at a particular level,</p>
 <div class="math">
@@ -3959,12 +3957,12 @@ growth rate is calculated by determining the difference in heat flux on
 either side of the ice/ocean interface and equating this energy
 difference to the latent heat of new ice formed. Thus,</p>
 <div class="math" id="equation-growth-stefan">
-<span class="eqno">(127)<a class="headerlink" href="#equation-growth-stefan" title="Permalink to this equation">¶</a></span>\[(1-\phi_i) L_0 \rho_i \frac{\partial{h}}{\partial{t}} = K \left. \frac{\partial{T}}{\partial{z}} \right|_i - K_w \left. \frac{\partial{T}}{\partial{z}} \right|_w\]</div>
+<span class="eqno">(141)<a class="headerlink" href="#equation-growth-stefan" title="Permalink to this equation">¶</a></span>\[(1-\phi_i) L_0 \rho_i \frac{\partial{h}}{\partial{t}} = K \left. \frac{\partial{T}}{\partial{z}} \right|_i - K_w \left. \frac{\partial{T}}{\partial{z}} \right|_w\]</div>
 <p>where <span class="math">\((1-\phi_i)\)</span> is the solid fraction of new ice formed and
 the right hand is the difference in heat flux at the ice–ocean interface
 between the ice side and the ocean side of the interface. However, with
 mushy layers there is usually no discontinuity in solid fraction across
-the interface, so <span class="math">\(\phi_i=1\)</span> and Equation <a class="reference internal" href="#equation-growth-stefan">(127)</a>
+the interface, so <span class="math">\(\phi_i=1\)</span> and Equation <a class="reference internal" href="#equation-growth-stefan">(141)</a>
 cannot be used explicitly. To circumvent this problem we set the
 interface solid fraction to be 0.15, a value that reproduces
 observations. <span class="math">\(\phi_i\)</span> is a namelist parameter (<cite>phi_i_mushy</cite> =
@@ -3991,7 +3989,7 @@ may reduce ice formation by a small amount afterwards.</p>
 <span id="thermo-growth"></span><h5>2.2.4.3.4. Growth and melting<a class="headerlink" href="#growth-and-melting" title="Permalink to this headline">¶</a></h5>
 <p>Melting at the top surface is given by</p>
 <div class="math" id="equation-top-melting">
-<span class="eqno">(128)<a class="headerlink" href="#equation-top-melting" title="Permalink to this equation">¶</a></span>\[\begin{split}q \, \delta h = \left\{\begin{array}{ll}
+<span class="eqno">(142)<a class="headerlink" href="#equation-top-melting" title="Permalink to this equation">¶</a></span>\[\begin{split}q \, \delta h = \left\{\begin{array}{ll}
 (F_0-F_{ct}) \, \Delta t &amp; \mbox{if $F_0&gt;F_{ct}$} \\
 0                   &amp; \mbox{otherwise}
          \end{array}
@@ -4005,14 +4003,14 @@ surface due to conductive fluxes; however, snow–ice can form. New
 snowfall is added at the end of the thermodynamic time step.</p>
 <p>Growth and melting at the bottom ice surface are governed by</p>
 <div class="math" id="equation-bottom-melting">
-<span class="eqno">(129)<a class="headerlink" href="#equation-bottom-melting" title="Permalink to this equation">¶</a></span>\[q \, \delta h = (F_{cb} - F_{bot}) \,
+<span class="eqno">(143)<a class="headerlink" href="#equation-bottom-melting" title="Permalink to this equation">¶</a></span>\[q \, \delta h = (F_{cb} - F_{bot}) \,
 \Delta t,\]</div>
-<p>where <span class="math">\(F_{bot}\)</span> is given by Equation <a class="reference internal" href="#equation-fbot">(110)</a> and <span class="math">\(F_{cb}\)</span> is the
+<p>where <span class="math">\(F_{bot}\)</span> is given by Equation <a class="reference internal" href="#equation-fbot">(124)</a> and <span class="math">\(F_{cb}\)</span> is the
 conductive heat flux at the bottom surface:</p>
 <div class="math">
 \[F_{cb} =   \frac{K_{i,N+1}}{\Delta h_i}  (T_{iN} - T_f).\]</div>
 <p>If ice is melting at the bottom surface, <span class="math">\(q\)</span>
-in&nbsp;Equation <a class="reference internal" href="#equation-bottom-melting">(129)</a> is the enthalpy of the bottom ice layer. If
+in&nbsp;Equation <a class="reference internal" href="#equation-bottom-melting">(143)</a> is the enthalpy of the bottom ice layer. If
 ice is growing, <span class="math">\(q\)</span> is the enthalpy of new ice with temperature
 <span class="math">\(T_f\)</span> and salinity <span class="math">\(S_{max}\)</span> (<cite>ktherm</cite> = 1) or ocean surface
 salinity (<cite>ktherm</cite> = 2). This ice is added to the bottom layer.</p>
@@ -4027,7 +4025,7 @@ top surface. If the latent heat flux is positive, vapor from the
 atmosphere is deposited at the surface as snow or ice. The thickness
 change of the surface layer is given by</p>
 <div class="math" id="equation-latent-heat">
-<span class="eqno">(130)<a class="headerlink" href="#equation-latent-heat" title="Permalink to this equation">¶</a></span>\[(\rho L_v - q) \delta h = F_l \Delta t,\]</div>
+<span class="eqno">(144)<a class="headerlink" href="#equation-latent-heat" title="Permalink to this equation">¶</a></span>\[(\rho L_v - q) \delta h = F_l \Delta t,\]</div>
 <p>where <span class="math">\(\rho\)</span> is the density of the surface material (snow or
 ice), and <span class="math">\(L_v = 2.501 \times 10^6 \ \mathrm{J/kg}\)</span> is the latent
 heat of vaporization of liquid water at . Note that <span class="math">\(\rho L_v\)</span> is
@@ -4115,39 +4113,10 @@ with the melt water.</td></tr>
 </ul>
 </li>
 <li><a class="reference internal" href="#model-components">2.2. Model components</a><ul>
-<li><a class="reference internal" href="#tracers">2.2.1. Tracers</a><ul>
-<li><a class="reference internal" href="#tracers-that-depend-on-other-tracers-e-g-melt-ponds">2.2.1.1. Tracers that depend on other tracers (e.g., melt ponds)</a></li>
-<li><a class="reference internal" href="#ice-age">2.2.1.2. Ice age</a></li>
-<li><a class="reference internal" href="#sea-ice-biogeochemistry">2.2.1.3. Sea ice biogeochemistry</a></li>
-<li><a class="reference internal" href="#aerosols">2.2.1.4. Aerosols</a></li>
-<li><a class="reference internal" href="#brine-height">2.2.1.5. Brine height</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#horizontal-transport">2.2.2. Horizontal transport</a><ul>
-<li><a class="reference internal" href="#reconstructing-area-and-tracer-fields">2.2.2.1. Reconstructing area and tracer fields</a></li>
-<li><a class="reference internal" href="#locating-departure-triangles">2.2.2.2. Locating departure triangles</a></li>
-<li><a class="reference internal" href="#integrating-fields">2.2.2.3. Integrating fields</a></li>
-<li><a class="reference internal" href="#updating-state-variables">2.2.2.4. Updating state variables</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#dynamics">2.2.3. Dynamics</a><ul>
-<li><a class="reference internal" href="#momentum">2.2.3.1. Momentum</a></li>
-<li><a class="reference internal" href="#internal-stress">2.2.3.2. Internal stress</a></li>
-<li><a class="reference internal" href="#revised-approach">2.2.3.3. Revised approach</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#thickness-changes">2.2.4. Thickness changes</a><ul>
-<li><a class="reference internal" href="#transport-in-thickness-space">2.2.4.1. Transport in thickness space</a></li>
-<li><a class="reference internal" href="#mechanical-redistribution">2.2.4.2. Mechanical redistribution</a></li>
-<li><a class="reference internal" href="#thermodynamics">2.2.4.3. Thermodynamics</a><ul>
-<li><a class="reference internal" href="#melt-ponds">2.2.4.3.1. Melt ponds</a></li>
-<li><a class="reference internal" href="#thermodynamic-surface-forcing-balance">2.2.4.3.2. Thermodynamic surface forcing balance</a></li>
-<li><a class="reference internal" href="#new-temperatures">2.2.4.3.3. New temperatures</a></li>
-<li><a class="reference internal" href="#growth-and-melting">2.2.4.3.4. Growth and melting</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li><a class="reference internal" href="#tracers">2.2.1. Tracers</a></li>
+<li><a class="reference internal" href="#horizontal-transport">2.2.2. Horizontal transport</a></li>
+<li><a class="reference internal" href="#dynamics">2.2.3. Dynamics</a></li>
+<li><a class="reference internal" href="#thickness-changes">2.2.4. Thickness changes</a></li>
 </ul>
 </li>
 </ul>
