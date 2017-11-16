@@ -249,7 +249,7 @@
 
       if (trim(sss_data_type) == 'clim') then
 
-         sss_file = trim(ocn_data_dir)//'sss.mm.100x116.da' ! gx3 only
+         sss_file = trim(ocn_data_dir)//'/sss.mm.100x116.da' ! gx3 only
 
          if (my_task == master_task) then
             write (nu_diag,*) ' '
@@ -301,9 +301,9 @@
       if (trim(sst_data_type) == 'clim') then
 
          if (nx_global == 320) then ! gx1
-            sst_file = trim(ocn_data_dir)//'sst_clim_hurrell.dat'
+            sst_file = trim(ocn_data_dir)//'/sst_clim_hurrell.dat'
          else                   ! gx3
-            sst_file = trim(ocn_data_dir)//'sst.mm.100x116.da'
+            sst_file = trim(ocn_data_dir)//'/sst.mm.100x116.da'
          endif
 
          if (my_task == master_task) then
@@ -338,7 +338,7 @@
 
        	 diag = .true.   ! write diagnostic information 
 
-         sst_file = trim (ocn_data_dir)//'MONTHLY/sst.1997.nc'
+         sst_file = trim (ocn_data_dir)//'/MONTHLY/sst.1997.nc'
 
        	 if (my_task == master_task) then
 
@@ -1515,35 +1515,35 @@
            yr                   ! current forcing year
 
       fsw_file = &
-           trim(atm_data_dir)//'ISCCPM/MONTHLY/RADFLX/swdn.1996.dat'
+           trim(atm_data_dir)//'/MONTHLY/swdn.1996.dat'
       call file_year(fsw_file,yr)
 
       flw_file = &
-           trim(atm_data_dir)//'ISCCPM/MONTHLY/RADFLX/cldf.1996.dat'
+           trim(atm_data_dir)//'/MONTHLY/cldf.1996.dat'
       call file_year(flw_file,yr)
 
       rain_file = &
-           trim(atm_data_dir)//'MXA/MONTHLY/PRECIP/prec.1996.dat'
+           trim(atm_data_dir)//'/MONTHLY/prec.1996.dat'
       call file_year(rain_file,yr)
 
       uwind_file = &
-           trim(atm_data_dir)//'NCEP/4XDAILY/STATES/u_10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/u_10.1996.dat'
       call file_year(uwind_file,yr)
 
       vwind_file = &
-           trim(atm_data_dir)//'NCEP/4XDAILY/STATES/v_10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/v_10.1996.dat'
       call file_year(vwind_file,yr)
 
       tair_file = &
-           trim(atm_data_dir)//'NCEP/4XDAILY/STATES/t_10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/t_10.1996.dat'
       call file_year(tair_file,yr)
 
       humid_file = &
-           trim(atm_data_dir)//'NCEP/4XDAILY/STATES/q_10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/q_10.1996.dat'
       call file_year(humid_file,yr)
 
       rhoa_file = &
-           trim(atm_data_dir)//'NCEP/4XDAILY/STATES/dn10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/dn10.1996.dat'
       call file_year(rhoa_file,yr)
 
       if (my_task == master_task) then
@@ -1728,25 +1728,25 @@
            yr                   ! current forcing year
 
       flw_file = &
-           trim(atm_data_dir)//'MONTHLY/cldf.omip.dat'
+           trim(atm_data_dir)//'/MONTHLY/cldf.omip.dat'
 
       rain_file = &
-           trim(atm_data_dir)//'MONTHLY/prec.nmyr.dat'
+           trim(atm_data_dir)//'/MONTHLY/prec.nmyr.dat'
 
       uwind_file = &
-           trim(atm_data_dir)//'4XDAILY/u_10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/u_10.1996.dat'
       call file_year(uwind_file,yr)
 
       vwind_file = &
-           trim(atm_data_dir)//'4XDAILY/v_10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/v_10.1996.dat'
       call file_year(vwind_file,yr)
 
       tair_file = &
-           trim(atm_data_dir)//'4XDAILY/t_10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/t_10.1996.dat'
       call file_year(tair_file,yr)
 
       humid_file = &
-           trim(atm_data_dir)//'4XDAILY/q_10.1996.dat'
+           trim(atm_data_dir)//'/4XDAILY/q_10.1996.dat'
       call file_year(humid_file,yr)
 
       if (my_task == master_task) then
@@ -2103,11 +2103,11 @@
       ! -----------------------------------------------------------
 
       snow_file = &
-           trim(atm_data_dir)//'MONTHLY/snowfall.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/snowfall.1996.nc'
            call file_year(snow_file,yr)
 
       rain_file = &
-           trim(atm_data_dir)//'MONTHLY/rainfall.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/rainfall.1996.nc'
            call file_year(rain_file,yr)
 
       if (my_task == master_task) then
@@ -2124,11 +2124,11 @@
          ! --------------------------------------------------------
 
          uwind_file = &
-           trim(atm_data_dir)//'MONTHLY/u_10.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/u_10.1996.nc'
            call file_year(uwind_file,yr)
 
          vwind_file = &
-           trim(atm_data_dir)//'MONTHLY/v_10.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/v_10.1996.nc'
            call file_year(vwind_file,yr)
 
          if (my_task == master_task) then
@@ -2143,11 +2143,11 @@
          ! --------------------------------------------------------
 
          strax_file = &
-              trim(atm_data_dir)//'MONTHLY/taux.1996.nc'
+              trim(atm_data_dir)//'/MONTHLY/taux.1996.nc'
          call file_year(strax_file,yr)
 
          stray_file = &
-              trim(atm_data_dir)//'MONTHLY/tauy.1996.nc'
+              trim(atm_data_dir)//'/MONTHLY/tauy.1996.nc'
          call file_year(stray_file,yr)
 
          if (my_task == master_task) then
@@ -2162,7 +2162,7 @@
             ! --------------------------------------------------
 
             wind_file = &
-               trim(atm_data_dir)//'MONTHLY/wind_10.1996.nc'
+               trim(atm_data_dir)//'/MONTHLY/wind_10.1996.nc'
             call file_year(wind_file,yr)
 
             if (my_task == master_task) then
@@ -2183,23 +2183,23 @@
        if (calc_Tsfc .or. oceanmixed_ice .or. calc_strair) then  
 
          fsw_file = &
-           trim(atm_data_dir)//'MONTHLY/SW_incoming.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/SW_incoming.1996.nc'
            call file_year(fsw_file,yr)
 
          flw_file = &
-           trim(atm_data_dir)//'MONTHLY/LW_incoming.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/LW_incoming.1996.nc'
            call file_year(flw_file,yr)
 
          tair_file = &
-           trim(atm_data_dir)//'MONTHLY/t_10.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/t_10.1996.nc'
            call file_year(tair_file,yr)
 
          humid_file = &
-           trim(atm_data_dir)//'MONTHLY/q_10.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/q_10.1996.nc'
            call file_year(humid_file,yr)
 
          rhoa_file = &
-           trim(atm_data_dir)//'MONTHLY/rho_10.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/rho_10.1996.nc'
            call file_year(rhoa_file,yr)
 
          if (my_task == master_task) then
@@ -2222,19 +2222,19 @@
 
             ! 'topmelt' = fsurf - fcondtop.
             write(topmelt_file(n), '(a,i1,a)')  &
-              trim(atm_data_dir)//'MONTHLY/topmeltn',n,'.1996.nc'
+              trim(atm_data_dir)//'/MONTHLY/topmeltn',n,'.1996.nc'
               call file_year(topmelt_file(n),yr)
 
             ! 'botmelt' = fcondtop. 
             write(botmelt_file(n), '(a,i1,a)')  &
-              trim(atm_data_dir)//'MONTHLY/botmeltn',n,'.1996.nc'
+              trim(atm_data_dir)//'/MONTHLY/botmeltn',n,'.1996.nc'
               call file_year(botmelt_file(n),yr)
 
          enddo
 
          ! 'sublim' = - flat / Lsub. 
          sublim_file = &
-           trim(atm_data_dir)//'MONTHLY/sublim.1996.nc'
+           trim(atm_data_dir)//'/MONTHLY/sublim.1996.nc'
            call file_year(sublim_file,yr)
 
          if (my_task == master_task) then
@@ -2506,30 +2506,30 @@
            yr                   ! current forcing year
 
       flw_file = &
-           trim(atm_data_dir)//'MONTHLY/cldf.omip.dat'
+           trim(atm_data_dir)//'/MONTHLY/cldf.omip.dat'
 
       rain_file = &
-           trim(atm_data_dir)//'MONTHLY/prec.nmyr.dat'
+           trim(atm_data_dir)//'/MONTHLY/prec.nmyr.dat'
 
       tair_file = &
-           trim(atm_data_dir)//'MONTHLY/t_10.1996.dat'
+           trim(atm_data_dir)//'/MONTHLY/t_10.1996.dat'
       call file_year(tair_file,yr)
 
       humid_file = &
-           trim(atm_data_dir)//'MONTHLY/q_10.1996.dat'
+           trim(atm_data_dir)//'/MONTHLY/q_10.1996.dat'
       call file_year(humid_file,yr)
 
       ! stress/speed is used instead of wind components
       strax_file = &
-           trim(atm_data_dir)//'MONTHLY/strx.1996.dat'
+           trim(atm_data_dir)//'/MONTHLY/strx.1996.dat'
       call file_year(strax_file,yr)
 
       stray_file = &
-           trim(atm_data_dir)//'MONTHLY/stry.1996.dat'
+           trim(atm_data_dir)//'/MONTHLY/stry.1996.dat'
       call file_year(stray_file,yr)
 
       wind_file = &
-           trim(atm_data_dir)//'MONTHLY/wind.1996.dat'
+           trim(atm_data_dir)//'/MONTHLY/wind.1996.dat'
       call file_year(wind_file,yr)
 
       if (my_task == master_task) then
@@ -2852,22 +2852,22 @@
            yr                   ! current forcing year
 
       fsw_file = &
-           trim(atm_data_dir)//'hourlysolar_brw1989_5yr.nc'
+           trim(atm_data_dir)//'/hourlysolar_brw1989_5yr.nc'
 
       rain_file = &
-           trim(atm_data_dir)//'hourlymet_rh_5yr.nc'
+           trim(atm_data_dir)//'/hourlymet_rh_5yr.nc'
 
       uwind_file = &
-           trim(atm_data_dir)//'hourlymet_brw1989_5yr.nc'
+           trim(atm_data_dir)//'/hourlymet_brw1989_5yr.nc'
 
       vwind_file = &
-           trim(atm_data_dir)//'hourlymet_brw1989_5yr.nc'
+           trim(atm_data_dir)//'/hourlymet_brw1989_5yr.nc'
 
       tair_file = &
-           trim(atm_data_dir)//'hourlymet_brw1989_5yr.nc'
+           trim(atm_data_dir)//'/hourlymet_brw1989_5yr.nc'
 
       humid_file = &
-           trim(atm_data_dir)//'hourlymet_rh_5yr.nc'
+           trim(atm_data_dir)//'/hourlymet_rh_5yr.nc'
 
       if (my_task == master_task) then
          write (nu_diag,*) ' '
@@ -3090,7 +3090,7 @@
          if (restore_sst) write (nu_diag,*)  &
              'SST restoring timescale = ',trestore,' days' 
 
-         sst_file = trim(ocn_data_dir)//oceanmixed_file ! not just sst
+         sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
 
         !---------------------------------------------------------------
         ! Read in ocean forcing data from an existing file
@@ -3240,7 +3240,7 @@
          if (restore_sst) write (nu_diag,*)  &
              'SST restoring timescale = ',trestore,' days' 
 
-         sst_file = trim(ocn_data_dir)//oceanmixed_file ! not just sst
+         sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
 
         !---------------------------------------------------------------
         ! Read in ocean forcing data from an existing file
@@ -3615,21 +3615,21 @@
       if (my_task == master_task .and. istep == 1) then
          write (nu_diag,*) ' '
          write (nu_diag,*) 'SST data interpolated to timestep:'
-         write (nu_diag,*) trim(ocn_data_dir)//'MONTHLY/sst.1997.nc'
+         write (nu_diag,*) trim(ocn_data_dir)//'/MONTHLY/sst.1997.nc'
          if (restore_sst) write (nu_diag,*) &
               'SST restoring timescale (days) =', trestore
          if (trim(sst_data_type)=='hadgem_sst_uvocn') then
             write (nu_diag,*) ' '
             write (nu_diag,*) 'uocn and vocn interpolated to timestep:'
-            write (nu_diag,*) trim(ocn_data_dir)//'MONTHLY/uocn.1997.nc'
-            write (nu_diag,*) trim(ocn_data_dir)//'MONTHLY/vocn.1997.nc'
+            write (nu_diag,*) trim(ocn_data_dir)//'/MONTHLY/uocn.1997.nc'
+            write (nu_diag,*) trim(ocn_data_dir)//'/MONTHLY/vocn.1997.nc'
          endif
       endif                     ! my_task, istep
 
       ! -----------------------------------------------------------
       ! SST
       ! -----------------------------------------------------------
-      sst_file = trim(ocn_data_dir)//'MONTHLY/sst.1997.nc'	
+      sst_file = trim(ocn_data_dir)//'/MONTHLY/sst.1997.nc'	
       fieldname='sst'
       call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
                       maxrec, sst_file, fieldname, sst_data, &
@@ -3663,7 +3663,7 @@
 
       if (trim(sst_data_type)=='hadgem_sst_uvocn') then
 
-      	filename = trim(ocn_data_dir)//'MONTHLY/uocn.1997.nc'	
+      	filename = trim(ocn_data_dir)//'/MONTHLY/uocn.1997.nc'	
       	fieldname='uocn'
       	call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
                       maxrec, filename, fieldname, uocn_data, &
@@ -3672,7 +3672,7 @@
       	! Interpolate to current time step
       	call interpolate_data (uocn_data, uocn)
 
-      	filename = trim(ocn_data_dir)//'MONTHLY/vocn.1997.nc'	
+      	filename = trim(ocn_data_dir)//'/MONTHLY/vocn.1997.nc'	
       	fieldname='vocn'
       	call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
                       maxrec, filename, fieldname, vocn_data, &
@@ -3888,25 +3888,25 @@
            yr                   ! current forcing year
 
       fsw_file = &
-           trim(atm_data_dir)//'fsw_sfc_4Xdaily.nc' 
+           trim(atm_data_dir)//'/fsw_sfc_4Xdaily.nc' 
 
       flw_file = &
-           trim(atm_data_dir)//'flw_sfc_4Xdaily.nc'
+           trim(atm_data_dir)//'/flw_sfc_4Xdaily.nc'
 
       rain_file = &
-           trim(atm_data_dir)//'fsnow_sfc_daily_mod3.nc'
+           trim(atm_data_dir)//'/fsnow_sfc_daily_mod3.nc'
 
       uwind_file = &
-           trim(atm_data_dir)//'uatm_10m_daily.nc'
+           trim(atm_data_dir)//'/uatm_10m_daily.nc'
 
       vwind_file = &
-           trim(atm_data_dir)//'vatm_10m_daily.nc' 
+           trim(atm_data_dir)//'/vatm_10m_daily.nc' 
 
       tair_file = &
-           trim(atm_data_dir)//'Tair_2m_daily.nc'  
+           trim(atm_data_dir)//'/Tair_2m_daily.nc'  
 
       humid_file = &
-           trim(atm_data_dir)//'Qa_2m_daily.nc'
+           trim(atm_data_dir)//'/Qa_2m_daily.nc'
 
       if (my_task == master_task) then
          write (nu_diag,*) ' '
@@ -4238,7 +4238,7 @@
          if (restore_sst) write (nu_diag,*)  &
              'SST restoring timescale = ',trestore,' days' 
 
-         sst_file = trim(ocn_data_dir)//oceanmixed_file ! not just sst
+         sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
 
         !---------------------------------------------------------------
         ! Read in ocean forcing data from an existing file

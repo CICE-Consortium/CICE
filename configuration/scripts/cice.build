@@ -4,7 +4,7 @@ source ./cice.settings
 source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
 
 if (${ICE_MACHINE} != ${ICE_MACHINE_ENVNAME}) then
-  echo "WARNING, is ICE_MACHINE setting OK, ${ICE_MACHINE}, ${ICE_MACHINE_ENV}"
+  echo "WARNING, is ICE_MACHINE setting OK, ${ICE_MACHINE}, ${ICE_MACHINE_ENVNAME}"
 endif
 
 echo " "
@@ -77,19 +77,29 @@ echo "building cice > ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
 if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
   echo "#---" >! ${ICE_CASEDIR}/test_output
 endif
+
 if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
 if !($?ICE_MACHINE_BLDTHRDS) then
   set ICE_MACHINE_BLDTHRDS = 1
 endif
 if (-e ${ICE_BLDLOG_FILE}) rm ${ICE_BLDLOG_FILE}
-${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice ICE_CPPDEFSDEFS="${ICE_CPPDEFS}" \
+
+if (${ICE_CLEANBUILD} == 'true') then
+  echo "gmake clean"
+  ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack CPPDEFS="${ICE_CPPDEFS}" \
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHINE} clean | tee ${ICE_BLDLOG_FILE}
+endif
+
+${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice CPPDEFS="${ICE_CPPDEFS}" \
       -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHINE} | tee ${ICE_BLDLOG_FILE} 
+
 if ($status != 0) then
   echo "${0}: COMPILE FAILED, see"
   echo "  cat ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
   if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
     # This is a test case.  Write output to test_output file
     echo "FAIL ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
+    echo "FAIL ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
   endif
   exit 99
 endif
@@ -100,5 +110,6 @@ echo "`date` ${0}:${ICE_CASENAME} build completed ${ICE_BLDLOG_FILE}"  >> ${ICE_
 echo "${0}: COMPILE SUCCESSFUL, ${ICE_LOGDIR}/${ICE_BLDLOG_FILE}"
 if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
   echo "PASS ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
+  echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
 endif
 

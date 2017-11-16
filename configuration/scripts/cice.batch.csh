@@ -26,6 +26,8 @@ if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
 set ptile = $taskpernode
 if ($ptile > ${maxtpn} / 2) @ ptile = ${maxtpn} / 2
 
+set ICE_CASENAME_SHORT = `echo ${ICE_CASENAME} | cut -c 1-12`
+
 #==========================================
 
 cat >! ${jobfile} << EOF0
@@ -45,7 +47,7 @@ cat >> ${jobfile} << EOFB
 #BSUB -o poe.stdout.%J
 #BSUB -e poe.stderr.%J
 #BSUB -J ${ICE_CASENAME}
-#BSUB -W ${ICE_RUNLENGTH}
+#BSUB -W 00:10
 #BSUB -P ${acct}
 EOFB
 
@@ -58,12 +60,24 @@ cat >> ${jobfile} << EOFB
 #PBS -V
 #PBS -q regular
 #PBS -N ${ICE_CASENAME}
-#PBS -A ${ICE_ACCT}
+#PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
 #PBS -l walltime=${ICE_RUNLENGTH}
 EOFB
 
 else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME_SHORT}
+#PBS -q debug
+#PBS -A ${acct}
+#PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
+#PBS -l walltime=${ICE_RUNLENGTH}
+#PBS -j oe
+###PBS -M username@domain.com
+###PBS -m be
+EOFB
+
+else if (${ICE_MACHINE} =~ onyx* ) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -q debug

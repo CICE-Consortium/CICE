@@ -275,11 +275,20 @@ EOF0
     else
       set bfbcomp = "$bfbcomp_tmp"
     endif
+
 endif
 
 if ($case =~ $spval) then
   if ($sets != "") then
-    set soptions = `echo $sets | sed 's/,/_/g'`
+    set sarray = `echo $sets | sed 's/,/ /g' | fmt -1 | sort -n`
+    set soptions = "JustStartingNowOK"
+    foreach field ($sarray)
+      if (${soptions} =~ "JustStartingNowOK") then
+        set soptions = ${field}
+      else
+        set soptions = ${soptions}"_"${field}
+      endif
+    end
     # Only include $testid in testname if this is not a baseline-generating run
     set testname_noid = "${mach}_${test}_${grid}_${pesx}_${soptions}"
     set testname_base = "${mach}_${test}_${grid}_${pesx}_${soptions}.${testid}"
@@ -300,7 +309,7 @@ if (-d $case) then
   exit -1
 endif
 mkdir -p $case
-echo "`date`${0} $initargv[*]" > $case/README.case
+echo "`date`${0} $initargv[*]" >> $case/README.case
 
 #------------------------------------------------------------
 # Setup case directory, copy files to case directory
@@ -329,7 +338,7 @@ foreach file (env.${mach} Macros.${mach})
 end
 
 # from basic script dir to casescr
-foreach file (parse_namelist.sh parse_settings.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
+foreach file (parse_namelist.sh parse_settings.sh parse_namelist_from_settings.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
   if !(-e ${ICE_SCRIPTS}/$file) then
     echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
     exit -1
@@ -386,12 +395,8 @@ if (-e ${fsmods}) rm ${fsmods}
 
 cat >! ${fimods} << EOF1
 nprocs = ${task}
-atm_data_dir = '${ICE_MACHINE_INPUTDATA}/'
 distribution_type = '${ICE_DECOMP_DECOMP}'
 processor_shape   = '${ICE_DECOMP_DSHAPE}'
-ice_ic            = '${ICE_DECOMP_INITFILE}'
-grid_file         = '${ICE_DECOMP_GRIDFILE}'
-kmt_file          = '${ICE_DECOMP_KMTFILE}'
 EOF1
 
 # If this is a baseline-compare test, modify ICE_RUNDIR
@@ -418,7 +423,6 @@ setenv ICE_DSHAPE   ${ICE_DECOMP_DSHAPE}
 setenv ICE_MXBLCKS  ${ICE_DECOMP_MXBLCKS}
 setenv ICE_BLCKX    ${ICE_DECOMP_BLCKX}
 setenv ICE_BLCKY    ${ICE_DECOMP_BLCKY}
-setenv ICE_RSTPFILE ${ICE_DECOMP_RSTPFILE}
 setenv ICE_BASELINE ${basedir_tmp}
 setenv ICE_BASEGEN  ${baseGen}
 setenv ICE_BASECOM  ${baseCom}
@@ -457,13 +461,13 @@ foreach name ($testx $grid $setsx)
   if (-e ${ICE_SCRIPTS}/options/set_nml.${name}) then
     cat ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
     echo "adding namelist mods set_nml.${name}"
-    echo "`date`${0} adding namelist modes set_nml.${name}" > ${casedir}/README.case
+    echo "`date`${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
     set found = 1
   endif
   if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
     cat ${ICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
     echo "adding env mods set_env.${name}"
-    echo "`date`${0} adding namelist modes set_env.${name}" > ${casedir}/README.case
+    echo "`date`${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
     set found = 1
   endif
   if (${found} == 0) then
@@ -474,6 +478,9 @@ end
 
 ${casescr}/parse_settings.sh cice.settings ${fsmods}
 ${casescr}/parse_namelist.sh ice_in ${fimods}
+source ./cice.settings
+source ./env.${mach} || exit 2
+${casescr}/parse_namelist_from_settings.sh ice_in cice.settings
 
 #------------------------------------------------------------
 # Generate run script
@@ -521,6 +528,11 @@ cd $testname_base
 cd ..
 EOF
     
+    # If results are to be posted to CDash, build CtestTestfile.cmake
+    if ("$testid" =~ reg*) then
+      ${ICE_SCRIPTS}/tests/CTest/gen_ctestfile.csh ./${tsdir} $testname_noid $bfbcomp $spval
+    endif
+
     # Reset case for the next test in suite
     set case = $spval
 
