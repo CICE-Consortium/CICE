@@ -116,12 +116,12 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'bizstyle'
+html_theme = 'classic'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {"stickysidebar": "true"}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -210,7 +210,7 @@ html_use_index = False
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'CICE-Consoritumdoc'
+htmlhelp_basename = 'CICE-Consortiumdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -232,7 +232,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'CICE-Consoritum.tex', u'CICE-Consoritum Documentation',
+    (master_doc, 'CICE-Consortium.tex', u'CICE-Consortium Documentation',
      u'Alice DuVivier', 'manual'),
 ]
 
@@ -276,8 +276,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'CICE-Consoritum', u'CICE-Consoritum Documentation',
-     author, 'CICE-Consoritum', 'One line description of project.',
+    (master_doc, 'CICE-Consortium', u'CICE-Consortium Documentation',
+     author, 'CICE-Consortium', 'One line description of project.',
      'Miscellaneous'),
 ]
 

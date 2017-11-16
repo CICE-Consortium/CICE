@@ -1,6 +1,576 @@
+:tocdepth: 3
 
-Model components
+Science Guide
 ================
+
+.. _coupl:
+
+--------------------------------------------
+Coupling with other climate model components
+--------------------------------------------
+
+The sea ice model exchanges information with the other model components
+via a flux coupler. CICE has been coupled into numerous climate models
+with a variety of coupling techniques. This document is oriented
+primarily toward the CESM Flux Coupler :cite:`KL02`
+from NCAR, the first major climate model to incorporate CICE. The flux
+coupler was originally intended to gather state variables from the
+component models, compute fluxes at the model interfaces, and return
+these fluxes to the component models for use in the next integration
+period, maintaining conservation of momentum, heat, and fresh water.
+However, several of these fluxes are now computed in the ice model
+itself and provided to the flux coupler for distribution to the other
+components, for two reasons. First, some of the fluxes depend strongly
+on the state of the ice, and vice versa, implying that an implicit,
+simultaneous determination of the ice state and the surface fluxes is
+necessary for consistency and stability. Second, given the various ice
+types in a single grid cell, it is more efficient for the ice model to
+determine the net ice characteristics of the grid cell and provide the
+resulting fluxes, rather than passing several values of the state
+variables for each cell. These considerations are explained in more
+detail below.
+
+The fluxes and state variables passed between the sea ice model and the
+CESM flux coupler are listed in :ref:`tab-flux-cpl`. By convention,
+directional fluxes are positive downward. In CESM, the sea ice model may
+exchange coupling fluxes using a different grid than the computational
+grid. This functionality is activated using the namelist variable
+``gridcpl_file``. Another namelist variable ``highfreq``, allows the
+high-frequency coupling procedure implemented in the Regional Arctic
+System Model (RASM). In particular, the relative atmosphere-ice velocity
+(:math:`\vec{U}_a-\vec{u}`) is used instead of the full atmospheric
+velocity for computing turbulent fluxes in the atmospheric boundary
+layer.
+
+:ref:`tab-flux-cpl`: *Data exchanged between the CESM flux coupler and the sea ice model*
+
+.. _tab-flux-cpl:
+
+.. table:: Table 1
+
+   ===========================   ======================================   =======================================================================================
+   Variable                       Description                              Interaction with flux coupler 
+   ===========================   ======================================   =======================================================================================
+   :math:`z_o`                    Atmosphere level height                  From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`\vec{U}_a`              Wind velocity                            From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`Q_a`                    Specific humidity                        From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`\rho_a`                 Air density                              From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`\Theta_a`               Air potential temperature                From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`T_a`                    Air temperature                          From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`F_{sw\downarrow}`       Incoming shortwave radiation             From *atmosphere model* via flux coupler **to** *sea ice model*
+                                  (4 bands)
+
+   :math:`F_{L\downarrow}`        Incoming longwave radiation              From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`F_{rain}`               Rainfall rate                            From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`F_{snow}`               Snowfall rate                            From *atmosphere model* via flux coupler **to** *sea ice model*
+
+   :math:`F_{frzmlt}`             Freezing/melting potential               From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`T_w`                    Sea surface temperature                  From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`S`                      Sea surface salinity                     From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`\nabla H_o`             Sea surface slope                        From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`\vec{U}_w`              Surface ocean currents                   From *ocean model* via flux coupler **to** *sea ice model*
+
+   :math:`\vec{\tau}_a`           Wind stress                              From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`F_s`                    Sensible heat flux                       From *sea ice model* via flux coupler **to** *atmosphere model*
+ 
+   :math:`F_l`                    Latent heat flux                         From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`F_{L\uparrow}`          Outgoing longwave radiation              From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`F_{evap}`               Evaporated water                         From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`\alpha`                 Surface albedo (4 bands)                 From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`T_{sfc}`                Surface temperature                      From *sea ice model* via flux coupler **to** *atmosphere model*
+
+   :math:`F_{sw\Downarrow}`       Penetrating shortwave radiation          From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`F_{water}`              Fresh water flux                         From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`F_{hocn}`               Net heat flux to ocean                   From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`F_{salt}`               Salt flux                                From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`\vec{\tau}_w`           Ice-ocean stress                         From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`F_{bio}`                Biogeochemical fluxes                    From *sea ice model* via flux coupler **to** *ocean model*
+
+   :math:`a_{i}`                  Ice fraction                             From *sea ice model* via flux coupler **to** both *ocean and atmosphere models*
+
+   :math:`T^{ref}_{a}`            2m reference temperature (diagnostic)    From *sea ice model* via flux coupler **to** both *ocean and atmosphere models*
+
+   :math:`Q^{ref}_{a}`            2m reference humidity (diagnostic)       From *sea ice model* via flux coupler **to** both *ocean and atmosphere models*
+
+   :math:`F_{swabs}`              Absorbed shortwave (diagnostic)          From *sea ice model* via flux coupler **to** both *ocean and atmosphere models*
+   ===========================   ======================================   =======================================================================================
+
+The ice fraction :math:`a_i` (aice) is the total fractional ice
+coverage of a grid cell. That is, in each cell,
+
+.. math::
+   \begin{array}{cl}
+                  a_{i}=0 & \mbox{if there is no ice} \\ 
+                  a_{i}=1 & \mbox{if there is no open water} \\ 
+                  0<a_{i}<1 & \mbox{if there is both ice and open water,}
+   \end{array}
+
+where :math:`a_{i}` is the sum of fractional ice areas for each category
+of ice. The ice fraction is used by the flux coupler to merge fluxes
+from the ice model with fluxes from the other components. For example,
+the penetrating shortwave radiation flux, weighted by :math:`a_i`, is
+combined with the net shortwave radiation flux through ice-free leads,
+weighted by (:math:`1-a_i`), to obtain the net shortwave flux into the
+ocean over the entire grid cell. The flux coupler requires the fluxes to
+be divided by the total ice area so that the ice and land models are
+treated identically (land also may occupy less than 100% of an
+atmospheric grid cell). These fluxes are “per unit ice area" rather than
+“per unit grid cell area."
+
+In some coupled climate models (for example, recent versions of the U.K.
+Hadley Centre model) the surface air temperature and fluxes are computed
+within the atmosphere model and are passed to CICE. In this case the
+logical parameter ``calc_Tsfc`` in *ice_therm_vertical* is set to false.
+The fields ``fsurfn`` (the net surface heat flux from the atmosphere), ``flatn``
+(the surface latent heat flux), and ``fcondtopn`` (the conductive flux at
+the top surface) for each ice thickness category are copied or derived
+from the input coupler fluxes and are passed to the thermodynamic driver
+subroutine, *thermo_vertical*. At the end of the time step, the surface
+temperature and effective conductivity (i.e., thermal conductivity
+divided by thickness) of the top ice/snow layer in each category are
+returned to the atmosphere model via the coupler. Since the ice surface
+temperature is treated explicitly, the effective conductivity may need
+to be limited to ensure stability. As a result, accuracy may be
+significantly reduced, especially for thin ice or snow layers. A more
+stable and accurate procedure would be to compute the temperature
+profiles for both the atmosphere and ice, together with the surface
+fluxes, in a single implicit calculation. This was judged impractical,
+however, given that the atmosphere and sea ice models generally exist on
+different grids and/or processor sets.
+
+.. _atmo:
+
+~~~~~~~~~~
+Atmosphere
+~~~~~~~~~~
+
+The wind velocity, specific humidity, air density and potential
+temperature at the given level height :math:`z_\circ` are used to
+compute transfer coefficients used in formulas for the surface wind
+stress and turbulent heat fluxes :math:`\vec\tau_a`, :math:`F_s`, and
+:math:`F_l`, as described below. Wind stress is arguably the primary
+forcing mechanism for the ice motion, although the ice–ocean stress,
+Coriolis force, and slope of the ocean surface are also important
+:cite:`SZRS97`. The sensible and latent heat fluxes,
+:math:`F_s` and :math:`F_l`, along with shortwave and longwave
+radiation, :math:`F_{sw\downarrow}`, :math:`F_{L\downarrow}`
+and :math:`F_{L\uparrow}`, are included in the flux balance that
+determines the ice or snow surface temperature when calc\_Tsfc = true.
+As described in Section :ref:`thermo`, these fluxes depend nonlinearly
+on the ice surface temperature :math:`T_{sfc}`. The balance
+equation is iterated until convergence, and the resulting fluxes and
+:math:`T_{sfc}` are then passed to the flux coupler.
+
+The snowfall precipitation rate (provided as liquid water equivalent and
+converted by the ice model to snow depth) also contributes to the heat
+and water mass budgets of the ice layer. Melt ponds generally form on
+the ice surface in the Arctic and refreeze later in the fall, reducing
+the total amount of fresh water that reaches the ocean and altering the
+heat budget of the ice; this version includes two new melt pond
+parameterizations. Rain and all melted snow end up in the ocean.
+
+Wind stress and transfer coefficients for the
+turbulent heat fluxes are computed in subroutine
+*atmo\_boundary\_layer* following :cite:`KL02`. For
+clarity, the equations are reproduced here in the present notation.
+
+The wind stress and turbulent heat flux calculation accounts for both
+stable and unstable atmosphere–ice boundary layers. Define the
+“stability”
+
+.. math::
+   \Upsilon = {\frac{\kappa g z_\circ}{u^{*2}}}
+   \left({\frac{\Theta^*}{\Theta_a\left(1+0.606Q_a\right)}}  +
+   {\frac{Q^*}{{1/0.606} + Q_a}}\right),
+   :label: upsilon
+
+where :math:`\kappa` is the von Karman constant, :math:`g` is
+gravitational acceleration, and :math:`u^*`, :math:`\Theta^*` and
+:math:`Q^*` are turbulent scales for velocity, temperature, and humidity,
+respectively:
+
+.. math::
+   \begin{aligned}
+   u^*&=&c_u \left|\vec{U}_a\right| \\
+   \Theta^*&=& c_\theta\left(\Theta_a-T_{sfc}\right) \\
+   Q^*&=&c_q\left(Q_a-Q_{sfc}\right).\end{aligned}
+   :label: stars
+
+The wind speed has a minimum value of 1 m/s. We have ignored ice motion
+in :math:`u^*`, and :math:`T_{sfc}` and
+:math:`Q_{sfc}` are the surface temperature and specific
+humidity, respectively. The latter is calculated by assuming a saturated
+surface, as described in Section :ref:`sfc-forcing`.
+
+Neglecting form drag,the exchange coefficients :math:`c_u`,
+:math:`c_\theta` and :math:`c_q` are initialized as
+
+.. math:: 
+   \frac{\kappa}{\ln(z_{ref}/z_{ice}})
+   :label: coeffinit
+
+and updated during a short iteration, as they depend upon the turbulent
+scales. The number of iterations is set by the namelist variable
+`natmiter`. (For the case with form drag, see section :ref:`formdrag`.)
+Here, :math:`z_{ref}` is a reference height of 10m and
+:math:`z_{ice}` is the roughness length scale for the given
+sea ice category. :math:`\Upsilon` is constrained to have magnitude less
+than 10. Further, defining
+:math:`\chi = \left(1-16\Upsilon\right)^{0.25}` and :math:`\chi \geq 1`,
+the “integrated flux profiles” for momentum and stability in the
+unstable (:math:`\Upsilon <0`) case are given by
+
+.. math::
+   \begin{aligned}
+   \psi_m = &\mbox{}&2\ln\left[0.5(1+\chi)\right] +
+            \ln\left[0.5(1+\chi^2)\right] -2\tan^{-1}\chi +
+            {\frac{\pi}{2}}, \\
+   \psi_s = &\mbox{}&2\ln\left[0.5(1+\chi^2)\right].\end{aligned}
+   :label: psi1
+
+In a departure from the parameterization used in
+:cite:`KL02`, we use profiles for the stable case
+following :cite:`JAM99`,
+
+.. math::
+   \psi_m = \psi_s = -\left[0.7\Upsilon + 0.75\left(\Upsilon-14.3\right)
+            \exp\left(-0.35\Upsilon\right) + 10.7\right].
+   :label: psi2
+
+The coefficients are then updated as
+
+.. math::
+   \begin{aligned}
+   c_u^\prime&=&{\frac{c_u}{1+c_u\left(\lambda-\psi_m\right)/\kappa}} \\
+   c_\theta^\prime&=& {\frac{c_\theta}{1+c_\theta\left(\lambda-\psi_s\right)/\kappa}}\\
+   c_q^\prime&=&c_\theta^\prime\end{aligned}
+   :label: coeff2
+
+where :math:`\lambda = \ln\left(z_\circ/z_{ref}\right)`. The
+first iteration ends with new turbulent scales from
+equations :eq:`stars`. After five iterations the latent and sensible
+heat flux coefficients are computed, along with the wind stress:
+
+.. math::
+   \begin{aligned}
+   C_l&=&\rho_a \left(L_{vap}+L_{ice}\right) u^* c_q \\
+   C_s&=&\rho_a c_p u^* c_\theta^* + 1, \\
+   \vec{\tau}_a&=&{\rho_a \frac{u^{*2}\vec{U}_a}{|\vec{U}_a|}},\end{aligned}
+   :label: coeff3
+   
+
+where :math:`L_{vap}` and :math:`L_{ice}` are
+latent heats of vaporization and fusion, :math:`\rho_a` is the density
+of air and :math:`c_p` is its specific heat. Again following
+:cite:`JAM99`, we have added a constant to the sensible
+heat flux coefficient in order to allow some heat to pass between the
+atmosphere and the ice surface in stable, calm conditions.
+
+The atmospheric reference temperature :math:`T_a^{ref}` is computed from
+:math:`T_a` and :math:`T_{sfc}` using the coefficients
+:math:`c_u`, :math:`c_\theta` and :math:`c_q`. Although the sea ice
+model does not use this quantity, it is convenient for the ice model to
+perform this calculation. The atmospheric reference temperature is
+returned to the flux coupler as a climate diagnostic. The same is true
+for the reference humidity, :math:`Q_a^{ref}`.
+
+Additional details about the latent and sensible heat fluxes and other
+quantities referred to here can be found in
+Section :ref:`sfc-forcing`.
+
+For CICE run in stand-alone mode (i.e., uncoupled), the AOMIP shortwave
+and longwave radiation formulas are available in **ice\_forcing.F90**.
+In function *longwave\_rosati\_miyakoda*, downwelling longwave is
+computed as
+
+.. math:: 
+   F_{lw\downarrow} = \epsilon\sigma T_s^4 - \epsilon\sigma T_a^4(0.39-0.05e_a^{1/2})(1-0.8f_{cld}) - 4\epsilon\sigma T_a^3(T_s-T_a)
+   :label: lwflux
+
+where the atmospheric vapor pressure (mb) is
+:math:`e_a = 1000 Q_a/(0.622+0.378Q_a)`, :math:`\epsilon=0.97` is the
+ocean emissivity, :math:`\sigma` is the Stephan-Boltzman constant,
+:math:`f_{cld}` is the cloud cover fraction, and :math:`T_a` is the
+surface air temperature (K). The first term on the right is upwelling
+longwave due to the mean (merged) ice and ocean surface temperature,
+:math:`T_s` (K), and the other terms on the right represent the net
+longwave radiation patterned after :cite:`RM88`. The
+downwelling longwave formula of :cite:`PW79` is also
+available in function *longwave\_parkinson\_washington*:
+
+.. math:: 
+   F_{lw\downarrow} = \epsilon\sigma T_a^4 (1-0.261 \exp\left(-7.77\times 10^{-4}T_a^2\right)\left(1 + 0.275f_{cld}\right)
+   :label: lwflux2
+
+The value of :math:`F_{lw\uparrow}` is different for each ice thickness
+category, while :math:`F_{lw\downarrow}` depends on the mean value of
+surface temperature averaged over all of the thickness categories and
+open water.
+
+The AOMIP shortwave forcing formula (in subroutine *compute\_shortwave*)
+incorporates the cloud fraction and humidity through the atmospheric
+vapor pressure:
+
+.. math:: 
+   F_{sw\downarrow} = {\frac{1353 \cos^2 Z}{10^{-3}(\cos Z+2.7)e_a + 1.085\cos Z + 0.1}}\left(1-0.6 f_{cld}^3\right) > 0
+   :label: swflux
+
+where :math:`\cos Z` is the cosine of the solar zenith angle.
+
+.. _ocean:
+
+~~~~~
+Ocean
+~~~~~
+
+New sea ice forms when the ocean temperature drops below its freezing
+temperature. In the Bitz and Lipscomb thermodynamics,
+:cite:`BL99` :math:`T_f=-\mu S`, where :math:`S` is the
+seawater salinity and :math:`\mu=0.054 \ ^\circ`/ppt is the ratio of the
+freezing temperature of brine to its salinity (linear liquidus
+approximation). For the mushy thermodynamics, :math:`T_f` is given by a
+piecewise linear liquidus relation. The ocean model calculates the new
+ice formation; if the freezing/melting potential
+:math:`F_{frzmlt}` is positive, its value represents a certain
+amount of frazil ice that has formed in one or more layers of the ocean
+and floated to the surface. (The ocean model assumes that the amount of
+new ice implied by the freezing potential actually forms.)
+
+If :math:`F_{frzmlt}` is negative, it is used to heat already
+existing ice from below. In particular, the sea surface temperature and
+salinity are used to compute an oceanic heat flux :math:`F_w`
+(:math:`\left|F_w\right| \leq \left|F_{frzmlt}\right|`) which
+is applied at the bottom of the ice. The portion of the melting
+potential actually used to melt ice is returned to the coupler in
+:math:`F_{hocn}`. The ocean model adjusts its own heat budget
+with this quantity, assuming that the rest of the flux remained in the
+ocean.
+
+In addition to runoff from rain and melted snow, the fresh water flux
+:math:`F_{water}` includes ice melt water from the top surface
+and water frozen (a negative flux) or melted at the bottom surface of
+the ice. This flux is computed as the net change of fresh water in the
+ice and snow volume over the coupling time step, excluding frazil ice
+formation and newly accumulated snow. Setting the namelist option
+update\_ocn\_f to true causes frazil ice to be included in the fresh
+water and salt fluxes.
+
+There is a flux of salt into the ocean under melting conditions, and a
+(negative) flux when sea water is freezing. However, melting sea ice
+ultimately freshens the top ocean layer, since the ocean is much more
+saline than the ice. The ice model passes the net flux of salt
+:math:`F_{salt}` to the flux coupler, based on the net change
+in salt for ice in all categories. In the present configuration,
+ice\_ref\_salinity is used for computing the salt flux, although the ice
+salinity used in the thermodynamic calculation has differing values in
+the ice layers.
+
+A fraction of the incoming shortwave :math:`F_{sw\Downarrow}`
+penetrates the snow and ice layers and passes into the ocean, as
+described in Section :ref:`sfc-forcing`.
+
+Many ice models compute the sea surface slope :math:`\nabla H_\circ`
+from geostrophic ocean currents provided by an ocean model or other data
+source. In our case, the sea surface height :math:`H_\circ` is a
+prognostic variable in POP—the flux coupler can provide the surface
+slope directly, rather than inferring it from the currents. (The option
+of computing it from the currents is provided in subroutine
+*evp\_prep*.) The sea ice model uses the surface layer currents
+:math:`\vec{U}_w` to determine the stress between the ocean and the ice,
+and subsequently the ice velocity :math:`\vec{u}`. This stress, relative
+to the ice,
+
+.. math::
+   \begin{aligned}
+   \vec{\tau}_w&=&c_w\rho_w\left|{\vec{U}_w-\vec{u}}\right|\left[\left(\vec{U}_w-\vec{u}\right)\cos\theta
+   +\hat{k}\times\left(\vec{U}_w-\vec{u}\right)\sin\theta\right] \end{aligned}
+   :label: tauw
+
+is then passed to the flux coupler (relative to the ocean) for use by
+the ocean model. Here, :math:`\theta` is the turning angle between
+geostrophic and surface currents, :math:`c_w` is the ocean drag
+coefficient, :math:`\rho_w` is the density of seawater, and
+:math:`\hat{k}` is the vertical unit vector. The turning angle is
+necessary if the top ocean model layers are not able to resolve the
+Ekman spiral in the boundary layer. If the top layer is sufficiently
+thin compared to the typical depth of the Ekman spiral, then
+:math:`\theta=0` is a good approximation. Here we assume that the top
+layer is thin enough.
+
+For CICE run in stand-alone mode (i.e., uncoupled), a thermodynamic slab
+ocean mixed-layer parameterization is available in **ice\_ocean.F90**.
+The turbulent fluxes are computed above the water surface using the same
+parameterizations as for sea ice, but with parameters appropriate for
+the ocean. The surface flux balance takes into account the turbulent
+fluxes, oceanic heat fluxes from below the mixed layer, and shortwave
+and longwave radiation, including that passing through the sea ice into
+the ocean. If the resulting sea surface temperature falls below the
+salinity-dependent freezing point, then new ice (frazil) forms.
+Otherwise, heat is made available for melting the ice.
+
+.. _formdrag:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Variable exchange coefficients
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the default CICE setup, atmospheric and oceanic neutral drag
+coefficients (:math:`c_u` and :math:`c_w`) are assumed constant in time
+and space. These constants are chosen to reflect friction associated
+with an effective sea ice surface roughness at the ice–atmosphere and
+ice–ocean interfaces. Sea ice (in both Arctic and Antarctic) contains
+pressure ridges as well as floe and melt pond edges that act as discrete
+obstructions to the flow of air or water past the ice, and are a source
+of form drag. Following :cite:`TFSFFKLB14` and based on
+recent theoretical developments :cite:`LGHA12,LLCL11`, the
+neutral drag coefficients can now be estimated from properties of the
+ice cover such as ice concentration, vertical extent and area of the
+ridges, freeboard and floe draft, and size of floes and melt ponds. The
+new parameterization allows the drag coefficients to be coupled to the
+sea ice state and therefore to evolve spatially and temporally. This
+parameterization is contained in the subroutine *neutral\_drag\_coeffs*
+and is accessed by setting `formdrag` = true in the namelist.
+
+Following :cite:`TFSFFKLB14`, consider the general case of
+fluid flow obstructed by N randomly oriented obstacles of height
+:math:`H` and transverse length :math:`L_y`, distributed on a domain
+surface area :math:`S_T`. Under the assumption of a logarithmic fluid
+velocity profile, the general formulation of the form drag coefficient
+can be expressed as
+
+.. math:: 
+   C_d=\frac{N c S_c^2 \gamma L_y  H}{2 S_T}\left[\frac{\ln(H/z_0)}{\ln(z_{ref}/z_0)}\right]^2,
+   :label: formdrag
+
+where :math:`z_0` is a roughness length parameter at the top or bottom
+surface of the ice, :math:`\gamma` is a geometric factor, :math:`c` is
+the resistance coefficient of a single obstacle, and :math:`S_c` is a
+sheltering function that takes into account the shielding effect of the
+obstacle,
+
+.. math:: 
+   S_{c}=\left(1-\exp(-s_l D/H)\right)^{1/2},
+   :label: shelter
+
+with :math:`D` the distance between two obstacles and :math:`s_l` an
+attenuation parameter.
+
+As in the original drag formulation in CICE (sections :ref:`atmo` and
+:ref:`ocean`), :math:`c_u` and :math:`c_w` along with the transfer
+coefficients for sensible heat, :math:`c_{\theta}`, and latent heat,
+:math:`c_{q}`, are initialized to a situation corresponding to neutral
+atmosphere–ice and ocean–ice boundary layers. The corresponding neutral
+exchange coefficients are then replaced by coefficients that explicitly
+account for form drag, expressed in terms of various contributions as
+
+.. math::
+   \tt{Cdn\_atm}  = \tt{Cdn\_atm\_rdg} + \tt{Cdn\_atm\_floe} + \tt{Cdn\_atm\_skin} + \tt{Cdn\_atm\_pond} ,
+   :label: Cda
+
+.. math::
+   \tt{Cdn\_ocn}  =  \tt{Cdn\_ocn\_rdg} + \tt{Cdn\_ocn\_floe} + \tt{Cdn\_ocn\_skin}. 
+   :label: Cdw
+
+The contributions to form drag from ridges (and keels underneath the
+ice), floe edges and melt pond edges can be expressed using the general
+formulation of equation :eq:`formdrag` (see :cite:`TFSFFKLB14` for
+details). Individual terms in equation :eq:`Cdw` are fully described in
+:cite:`TFSFFKLB14`. Following :cite:`Arya75`
+the skin drag coefficient is parametrized as
+
+.. math:: 
+   { \tt{Cdn\_(atm/ocn)\_skin}}=a_{i} \left(1-m_{(s/k)} \frac{H_{(s/k)}}{D_{(s/k)}}\right)c_{s(s/k)}, \mbox{       if  $\displaystyle\frac{H_{(s/k)}}{D_{(s/k)}}\ge\frac{1}{m_{(s/k)}}$,}
+   :label: skindrag
+
+where :math:`m_s` (:math:`m_k`) is a sheltering parameter that depends
+on the average sail (keel) height, :math:`H_s` (:math:`H_k`), but is
+often assumed constant, :math:`D_s` (:math:`D_k`) is the average
+distance between sails (keels), and :math:`c_{ss}` (:math:`c_{sk}`) is
+the unobstructed atmospheric (oceanic) skin drag that would be attained
+in the absence of sails (keels) and with complete ice coverage,
+:math:`a_{ice}=1`.
+
+Calculation of equations :eq:`formdrag` – :eq:`skindrag` requires that small-scale geometrical
+properties of the ice cover be related to average grid cell quantities
+already computed in the sea ice model. These intermediate quantities are
+briefly presented here and described in more detail in
+:cite:`TFSFFKLB14`. The sail height is given by
+
+.. math:: 
+   H_{s} = \displaystyle 2\frac{v_{rdg}}{a_{rdg}}\left(\frac{\alpha\tan \alpha_{k} R_d+\beta \tan \alpha_{s} R_h}{\phi_r\tan \alpha_{k} R_d+\phi_k \tan \alpha_{s} R_h^2}\right),
+   :label: Hs
+
+and the distance between sails\ 
+
+.. math:: 
+   D_{s} = \displaystyle 2 H_s\frac{a_{i}}{a_{rdg}} \left(\frac{\alpha}{\tan \alpha_s}+\frac{\beta}{\tan \alpha_k}\frac{R_h}{R_d}\right),
+   :label: Ds
+
+where :math:`0<\alpha<1` and :math:`0<\beta<1` are weight functions,
+:math:`\alpha_{s}` and :math:`\alpha_{k}` are the sail and keel slope,
+:math:`\phi_s` and :math:`\phi_k` are constant porosities for the sails
+and keels, and we assume constant ratios for the average keel depth and
+sail height (:math:`H_k/H_s=R_h`) and for the average distances between
+keels and between sails (:math:`D_k/D_s=R_d`). With the assumption of
+hydrostatic equilibrium, the effective ice plus snow freeboard is
+:math:`H_{f}=\bar{h_i}(1-\rho_i/\rho_w)+\bar{h_s}(1-\rho_s/\rho_w)`,
+where :math:`\rho_i`, :math:`\rho_w` and :math:`\rho_s` are
+respectively the densities of sea ice, water and snow, :math:`\bar{h_i}`
+is the mean ice thickness and :math:`\bar{h_s}` is the mean snow
+thickness (means taken over the ice covered regions). For the melt pond
+edge elevation we assume that the melt pond surface is at the same level
+as the ocean surface surrounding the floes
+:cite:`FF07,FFT10,FSFH12` and use the simplification
+:math:`H_p = H_f`. Finally to estimate the typical floe size
+:math:`L_A`, distance between floes, :math:`D_F`, and melt pond size,
+:math:`L_P` we use the parameterizations of :cite:`LGHA12`
+to relate these quantities to the ice and pond concentrations. All of
+these intermediate quantities are available as history output, along
+with `Cdn\_atm`, `Cdn\_ocn` and the ratio `Cdn\_atm\_ratio\_n` between the
+total atmospheric drag and the atmospheric neutral drag coefficient.
+
+We assume that the total neutral drag coefficients are thickness
+category independent, but through their dependance on the diagnostic
+variables described above, they vary both spatially and temporally. The
+total drag coefficients and heat transfer coefficients will also depend
+on the type of stratification of the atmosphere and the ocean, and we
+use the parameterization described in section :ref:`atmo` that accounts
+for both stable and unstable atmosphere–ice boundary layers. In contrast
+to the neutral drag coefficients the stability effect of the atmospheric
+boundary layer is calculated separately for each ice thickness category.
+
+The transfer coefficient for oceanic heat flux to the bottom of the ice
+may be varied based on form drag considerations by setting the namelist
+variable `fbot\_xfer\_type` to `Cdn\_ocn`; this is recommended when using
+the form drag parameterization. Its default value of the transfer
+coefficient is 0.006 (`fbot\_xfer\_type = ’constant’`).
+
+
+----------------
+Model components
+----------------
 
 The Arctic and Antarctic sea ice packs are mixtures of open water, thin
 first-year ice, thicker multiyear ice, and thick pressure ridges. The
@@ -166,15 +736,16 @@ computed at the end of the last timestep are scaled for the new forcing.
 
 .. _tracers:
 
+~~~~~~~
 Tracers
--------
+~~~~~~~
 
 The basic conservation equations for ice area fraction :math:`a_{in}`,
 ice volume :math:`v_{in}`, and snow volume :math:`v_{sn}` for each
 thickness category :math:`n` are
 
 .. math::
-   {\partial\over\partial t} (a_{in}) + \nabla \cdot (a_{in} {\bf u}) = 0,
+   {\frac{\partial}{\partial t}} (a_{in}) + \nabla \cdot (a_{in} {\bf u}) = 0,
    :label: transport-ai
 
 .. math::
@@ -233,8 +804,9 @@ guidance on adding tracers.
 
 .. _pondtr:
 
+*******************************************************
 Tracers that depend on other tracers (e.g., melt ponds)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*******************************************************
 
 Tracers may be defined that depend on other tracers. Melt pond tracers
 provide an example (these equations pertain to cesm and topo tracers;
@@ -244,11 +816,11 @@ equations for pond area fraction :math:`a_{pnd}a_i` and pond volume
 :math:`h_{pnd}a_{pnd}a_i`, given the ice velocity :math:`\bf u`, are
 
 .. math::
-   {\partial\over\partial t} (a_{pnd}a_{i}) + \nabla \cdot (a_{pnd}a_{i} {\bf u}) = 0,
+   {\frac{\partial}{\partial t}} (a_{pnd}a_{i}) + \nabla \cdot (a_{pnd}a_{i} {\bf u}) = 0,
    :label: transport-apnd
 
 .. math::
-   {\partial\over\partial t} (h_{pnd}a_{pnd}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{i} {\bf u}) = 0.
+   {\frac{\partial}{\partial t}} (h_{pnd}a_{pnd}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{i} {\bf u}) = 0.
    :label: transport-hpnd
 
 (These equations represent quantities within one thickness category;
@@ -301,6 +873,7 @@ tracer-on-tracer dependencies such as :math:`h_{pnd}`, when needed:
 
 .. math:: 
    h_{pnd}^{t+\Delta t}= {h_{pnd}^{t}a_{pnd}^{t}a_{i}^{t} \over a_{pnd}^{t+\Delta t}a_{i}^{t+\Delta t} }.
+   :label: hpnd
 
 In this case (adding new ice), :math:`h_{pnd}` does not change because
 :math:`a_{pnd}^{t+\Delta t}a_{i}^{t+\Delta t} = a_{pnd}^{t}a_{i}^{t}`.
@@ -310,14 +883,15 @@ the total pond area summed over categories :math:`n`,
 
 .. math:: 
    \sum_n a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) = \sum_n a_{pnd}^{t}(n)a_{i}^{t}(n).
+   :label: apnd2
 
 Thus,
 
 .. math::
    \begin{aligned}
-   \label{eq:xfer}
-   a_{pnd}^{t+\Delta t}(m)&=& {\sum_n a_{pnd}^{t}(n)a_{i}^{t}(n) - \sum_{n\ne m} a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) \over a_i^{t+\Delta t}(m)  } \\
-   = {a_{pnd}^t(m)a_i^t(m) + \sum_{n\ne m} \Delta \left(a_{pnd}a_i\right)^{t+\Delta t} \over a_i^{t+\Delta t}(m)  }\end{aligned}
+   a_{pnd}^{t+\Delta t}(m) &=& {\sum_n a_{pnd}^{t}(n)a_{i}^{t}(n) - \sum_{n\ne m} a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) \over a_i^{t+\Delta t}(m)  } \\
+   &=& {a_{pnd}^t(m)a_i^t(m) + \sum_{n\ne m} \Delta \left(a_{pnd}a_i\right)^{t+\Delta t} \over a_i^{t+\Delta t}(m)  }\end{aligned}
+   :label: xfer
 
 This is more complicated because of the :math:`\Delta` term on the
 right-hand side, which is handled manually in **ice\_itd.F90**. Such
@@ -335,8 +909,9 @@ section :ref:`ponds`.
 
 .. _ice-age:
 
+*******
 Ice age
-~~~~~~~
+*******
 
 The age of the ice, :math:`\tau_{age}`, is treated as an
 ice-volume tracer (`trcr\_depend` = 1). It is initialized at 0 when ice
@@ -359,8 +934,9 @@ is discussed in :cite:`ABTH11`.
 
 .. _ice-bgc:
 
+***********************
 Sea ice biogeochemistry
-~~~~~~~~~~~~~~~~~~~~~~~
+***********************
 
 Ice algal photosynthesis leads to carbon fixation and pigment buildup
 throughout much of the pack ice in springtime, including warm layers in
@@ -501,6 +1077,7 @@ the form
 
 .. math::
    \frac{d T_b}{dt}  = w_b \frac{\Delta T_b}{\Delta z} +  R_b({T_j : j = 1,\ldots,N_b})
+   :label: tracer1
 
 where :math:`R_b` represents the nonlinear biochemical reaction terms
 detailed in :cite:`EDHHJJLS12` and :math:`\Delta z` is a
@@ -587,8 +1164,9 @@ developed for future release in CICE.
 
 .. _aero:
 
+********
 Aerosols
-~~~~~~~~
+********
 
 Aerosols may be deposited on the ice and gradually work their way
 through it until the ice melts and they are passed into the ocean. They
@@ -629,8 +1207,9 @@ oceanic fluxes, for each species.
 
 .. _brine-ht:
 
+************
 Brine height
-~~~~~~~~~~~~
+************
 
 The brine height, :math:`h_b`, is the distance from the ice–ocean
 interface to the brine surface. When `tr\_brine` is set true in
@@ -773,8 +1352,9 @@ where the sums are taken over thickness categories.
 
 .. _horiz-trans:
 
+~~~~~~~~~~~~~~~~~~~~
 Horizontal transport
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 We wish to solve the continuity or transport equation
 (Equation :eq:`transport-ai`) for the fractional ice area in each
@@ -863,8 +1443,9 @@ below.
 
 .. _reconstruct:
 
+*************************************
 Reconstructing area and tracer fields
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*************************************
 
 First, using the known values of the state variables, the ice area and
 tracer fields are reconstructed in each grid cell as linear functions of
@@ -1054,8 +1635,9 @@ for generality.
 
 .. _loc-dep-triangles:
 
+****************************
 Locating departure triangles
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+****************************
 
 The method for locating departure triangles is discussed in detail by
 :cite:`DB00`. The basic idea is illustrated in
@@ -1259,8 +1841,9 @@ trajectory.
 
 .. _integ-flux:
 
+******************
 Integrating fields
-~~~~~~~~~~~~~~~~~~
+******************
 
 Next, we integrate the reconstructed fields over the departure triangles
 to find the total area, volume, and energy transported across each cell
@@ -1328,8 +1911,9 @@ repeatedly.
 
 .. _updating-state-var:
 
+************************
 Updating state variables
-~~~~~~~~~~~~~~~~~~~~~~~~
+************************
 
 Finally, we compute new values of the state variables in each ice
 category and grid cell. The new fractional ice areas
@@ -1366,510 +1950,11 @@ values, with non-negative weights :math:`a` and :math:`ah`. Thus the
 new-time values must lie between the maximum and minimum of the old-time
 values.
 
-.. _itd-trans:
-
-Transport in thickness space
-----------------------------
-
-Next we solve the equation for ice transport in thickness space due to
-thermodynamic growth and melt,
-
-.. math::
-   \frac{\partial g}{\partial t} + \frac{\partial}{\partial h} (f g) = 0,
-   :label: itd-transport
-
-which is obtained from Equation :eq:`transport-g` by neglecting the first and
-third terms on the right-hand side. We use the remapping method of
-:cite:`Lipscomb01`, in which thickness categories are
-represented as Lagrangian grid cells whose boundaries are projected
-forward in time. The thickness distribution function :math:`g` is
-approximated as a linear function of :math:`h` in each displaced
-category and is then remapped onto the original thickness categories.
-This method is numerically smooth and is not too diffusive. It can be
-viewed as a 1D simplification of the 2D incremental remapping scheme
-described above.
-
-We first compute the displacement of category boundaries in thickness
-space. Assume that at time :math:`m` the ice areas :math:`a_n^m` and
-mean ice thicknesses :math:`h_n^m` are known for each thickness
-category. (For now we omit the subscript :math:`i` that distinguishes
-ice from snow.) We use a thermodynamic model (Section :ref:`thermo`)
-to compute the new mean thicknesses :math:`h_n^{m+1}` at time
-:math:`m+1`. The time step must be small enough that trajectories do not
-cross; i.e., :math:`h_n^{m+1} < h_{n+1}^{m+1}` for each pair of adjacent
-categories. The growth rate at :math:`h = h_n` is given by
-:math:`f_n = (h_n^{m+1} - h_n^m) / \Delta t`. By linear interpolation we
-estimate the growth rate :math:`F_n` at the upper category boundary
-:math:`H_n`:
-
-.. math:: 
-   F_n = f_n + \frac{f_{n+1}-f_n}{h_{n+1}-h_n} \, (H_n - h_n).
-
-If :math:`a_n` or :math:`a_{n+1} = 0`, :math:`F_n` is set to the growth
-rate in the nonzero category, and if :math:`a_n = a_{n+1} = 0`, we set
-:math:`F_n = 0`. The temporary displaced boundaries are given by
-
-.. math:: 
-   H_n^* = H_n + F_n \, \Delta t, \ n = 1 \ {\rm to} \ N-1
-
-The boundaries must not be displaced by more than one category to the
-left or right; that is, we require :math:`H_{n-1} < H_n^* < H_{n+1}`.
-Without this requirement we would need to do a general remapping rather
-than an incremental remapping, at the cost of added complexity.
-
-Next we construct :math:`g(h)` in the displaced thickness categories.
-The ice areas in the displaced categories are :math:`a_n^{m+1} = a_n^m`,
-since area is conserved following the motion in thickness space (i.e.,
-during vertical ice growth or melting). The new ice volumes are
-:math:`v_n^{m+1} = (a_n h_n)^{m+1} = a_n^m h_n^{m+1}`. For conciseness,
-define :math:`H_L = H_{n-1}^*` and :math:`H_R = H_{n}^*` and drop the
-time index :math:`m+1`. We wish to construct a continuous function
-:math:`g(h)` within each category such that the total area and volume at
-time :math:`m+1` are :math:`a_n` and :math:`v_n`, respectively:
-
-.. math::
-   \int_{H_L}^{H_R} g \, dh = a_n,
-   :label: area-cons
-
-.. math::
-   \int_{H_L}^{H_R} h \, g \, dh = v_n.
-   :label: volume-cons
-
-The simplest polynomial that can satisfy both equations is a line. It
-is convenient to change coordinates, writing
-:math:`g(\eta) = g_1 \eta + g_0`, where :math:`\eta = h - H_L` and the
-coefficients :math:`g_0` and :math:`g_1` are to be determined. Then
-Equations :eq:`area-cons` and :eq:`volume-cons` can be written as
-
-.. math:: 
-   g_1 \frac{\eta_R^2}{2} + g_0 \eta_R = a_n,
-
-.. math:: 
-   g_1 \frac{\eta_R^3}{3} + g_0 \frac{\eta_R^2}{2} = a_n \eta_n,
-
-where :math:`\eta_R = H_R - H_L` and :math:`\eta_n = h_n - H_L`. These
-equations have the solution
-
-.. math::
-   g_0 = \frac{6 a_n}{\eta_R^2} \left(\frac{2 \eta_R}{3} - \eta_n\right),
-   :label: g0
-
-.. math::
-   g_1 = \frac{12 a_n}{\eta_R^3} \left(\eta_n - \frac{\eta_R}{2}\right).
-   :label: g1
-
-Since :math:`g` is linear, its maximum and minimum values lie at the
-boundaries, :math:`\eta = 0` and :math:`\eta_R`:
-
-.. math::
-   g(0)=\frac{6 a_n}{\eta_R^2} \, \left(\frac{2 \eta_R}{3} - \eta_n\right) = g_0,
-   :label: gmin
- 
-.. math::
-   g(\eta_R) = \frac{6 a_n}{\eta_R^2} \, \left(\eta_n - \frac{\eta_R}{3}\right).
-   :label: gmax
-
-Equation :eq:`gmin` implies that :math:`g(0) < 0` when
-:math:`\eta_n > 2 \eta_R/3`, i.e., when :math:`h_n` lies in the right
-third of the thickness range :math:`(H_L, H_R)`. Similarly, Equation :eq:`gmax`
-implies that :math:`g(\eta_R) < 0` when :math:`\eta_n < \eta_R/3`, i.e.,
-when :math:`h_n` is in the left third of the range. Since negative
-values of :math:`g` are unphysical, a different solution is needed when
-:math:`h_n` lies outside the central third of the thickness range. If
-:math:`h_n` is in the left third of the range, we define a cutoff
-thickness, :math:`H_C = 3 h_n - 2 H_L`, and set :math:`g = 0` between
-:math:`H_C` and :math:`H_R`. Equations :eq:`g0` and :eq:`g1` are then
-valid with :math:`\eta_R` redefined as :math:`H_C - H_L`. And if
-:math:`h_n` is in the right third of the range, we define
-:math:`H_C = 3 h_n - 2 H_R` and set :math:`g = 0` between :math:`H_L`
-and :math:`H_C`. In this case, :eq:`g0` and :eq:`g1` apply with
-:math:`\eta_R = H_R - H_C` and :math:`\eta_n = h_n - H_C`.
-
-:ref:`fig-gplot` illustrates the linear reconstruction of :math:`g`
-for the simple cases :math:`H_L = 0`, :math:`H_R = 1`, :math:`a_n = 1`,
-and :math:`h_n =` 0.2, 0.4, 0.6, and 0.8. Note that :math:`g` slopes
-downward (:math:`g_1 < 0`) when :math:`h_n` is less than the midpoint
-thickness, :math:`(H_L + H_R)/2 = 1/2`, and upward when :math:`h_n`
-exceeds the midpoint thickness. For :math:`h_n = 0.2` and 0.8,
-:math:`g = 0` over part of the range.
-
-.. _fig-gplot:
-
-.. figure:: ./figures/gplot.png
-   :align: center
-   :scale: 20%
-
-   Figure 4
-
-:ref:`fig-gplot` : Linear approximation of the thickness distribution
-function :math:`g(h)` for an ice category with left boundary
-:math:`H_L = 0`, right boundary :math:`H_R = 1`, fractional area
-:math:`a_n = 1`, and mean ice thickness :math:`h_n = 0.2, 0.4, 0.6,` and :math:`0.8`.
-
-Finally, we remap the thickness distribution to the original boundaries
-by transferring area and volume between categories. We compute the ice
-area :math:`\Delta a_n` and volume :math:`\Delta v_n` between each
-original boundary :math:`H_n` and displaced boundary :math:`H_n^*`. If
-:math:`H_n^* > H_n`, ice moves from category :math:`n` to :math:`n+1`.
-The area and volume transferred are
-
-.. math::
-   \Delta a_n = \int_{H_n}^{H_n^*} g \, dh,
-   :label: move-area
-
-.. math::
-   \Delta v_n = \int_{H_n}^{H_n^*} h \, g \, dh.
-   :label: move-volume
-
-If :math:`H_n^* < H_N`, ice area and volume are transferred from
-category :math:`n+1` to :math:`n` using Equations :eq:`move-area` and
-:eq:`move-volume` with the limits of integration reversed. To evaluate
-the integrals we change coordinates from :math:`h` to
-:math:`\eta = h - H_L`, where :math:`H_L` is the left limit of the range
-over which :math:`g > 0`, and write :math:`g(\eta)` using Equations :eq:`g0` and
-:eq:`g1`. In this way we obtain the new areas :math:`a_n` and volumes
-:math:`v_n` between the original boundaries :math:`H_{n-1}` and
-:math:`H_n` in each category. The new thicknesses,
-:math:`h_n = v_n/a_n`, are guaranteed to lie in the range
-:math:`(H_{n-1}, H_n)`. If :math:`g = 0` in the part of a category that
-is remapped to a neighboring category, no ice is transferred.
-
-Other conserved quantities are transferred in proportion to the ice
-volume :math:`\Delta v_{in}`. For example, the transferred ice energy in
-layer :math:`k` is
-:math:`\Delta e_{ink} = e_{ink} (\Delta v_{in} / v_{in})`.
-
-The left and right boundaries of the domain require special treatment.
-If ice is growing in open water at a rate :math:`F_0`, the left boundary
-:math:`H_0` is shifted to the right by :math:`F_0 \Delta t` before
-:math:`g` is constructed in category 1, then reset to zero after the
-remapping is complete. New ice is then added to the grid cell,
-conserving area, volume, and energy. If ice cannot grow in open water
-(because the ocean is too warm or the net surface energy flux is
-downward), :math:`H_0` is fixed at zero, and the growth rate at the left
-boundary is estimated as :math:`F_0 = f_1`. If :math:`F_0 < 0`, all ice
-thinner than :math:`\Delta h_0 = -F_0 \Delta t` is assumed to have
-melted, and the ice area in category 1 is reduced accordingly. The area
-of new open water is
-
-.. math:: 
-   \Delta a_0 = \int_{0}^{\Delta h_0} g \, dh.
-
-The right boundary :math:`H_N` is not fixed but varies with
-:math:`h_N`, the mean ice thickness in the thickest category. Given
-:math:`h_N`, we set :math:`H_N = 3 h_N - 2 H_{N-1}`, which ensures that
-:math:`g(h) > 0` for :math:`H_{N-1} < h < H_N` and :math:`g(h) = 0` for
-:math:`h \geq H_N`. No ice crosses the right boundary. If the ice growth
-or melt rates in a given grid cell are too large, the thickness
-remapping scheme will not work. Instead, the thickness categories in
-that grid cell are treated as delta functions following
-:cite:`BHWE01`, and categories outside their prescribed
-boundaries are merged with neighboring categories as needed. For time
-steps of less than a day and category thickness ranges of 10 cm or more,
-this simplification is needed rarely, if ever.
-
-The linear remapping algorithm for thickness is not monotonic for
-tracers, although significant errors rarely occur. Usually they appear
-as snow temperatures (enthalpy) outside the physical range of values in
-very small snow volumes. In this case we transfer the snow and its heat
-and tracer contents to the ocean.
-
-.. _mech-red:
-
-Mechanical redistribution
--------------------------
-
-The last term on the right-hand side of Equation :eq:`transport-g`
-is :math:`\psi`, which describes the redistribution
-of ice in thickness space due to ridging and other mechanical processes.
-The mechanical redistribution scheme in CICE is based on
-:cite:`TRMC75`, :cite:`Rothrock75`,
-:cite:`Hibler80`, :cite:`FH95`, and
-:cite:`LHMJ07`. This scheme converts thinner ice to thicker
-ice and is applied after horizontal transport. When the ice is
-converging, enough ice ridges to ensure that the ice area does not
-exceed the grid cell area.
-
-First we specify the participation function: the thickness distribution
-:math:`a_P(h) = b(h) \, g(h)` of the ice participating in ridging. (We
-use “ridging” as shorthand for all forms of mechanical redistribution,
-including rafting.) The weighting function :math:`b(h)` favors ridging
-of thin ice and closing of open water in preference to ridging of
-thicker ice. There are two options for the form of :math:`b(h)`. If
-`krdg\_partic` = 0 in the namelist, we follow :cite:`TRMC75`
-and set
-
-.. math::
-   b(h) = \left\{\begin{array}{ll}  
-          \frac{2}{G^*}(1-\frac{G(h)}{G^*}) & \mbox{if $G(h)<G^*$} \\
-                    0                       & \mbox{otherwise}   
-                 \end{array}  \right.
-   :label: partic-old-contin
-
-where :math:`G(h)` is the fractional area covered by ice thinner than
-:math:`h`, and :math:`G^*` is an empirical constant. Integrating
-:math:`a_P(h)` between category boundaries :math:`H_{n-1}` and
-:math:`H_n`, we obtain the mean value of :math:`a_P` in category
-:math:`n`:
-
-.. math::
-   a_{Pn} = \frac{2}{G^*} (G_n - G_{n-1})
-            \left( 1 - \frac{G_{n-1}+G_n}{2 G^*} \right),
-   :label: partic-old-discrete
-
-where :math:`a_{Pn}` is the ratio of the ice area ridging (or open
-water area closing) in category :math:`n` to the total area ridging and
-closing, and :math:`G_n` is the total fractional ice area in categories
-0 to :math:`n`. Equation :eq:`partic-old-discrete` applies to
-categories with :math:`G_n < G^*`. If :math:`G_{n-1} < G^* < G_n`, then
-Equation :eq:`partic-old-discrete` is valid with :math:`G^*` replacing
-:math:`G_n`, and if :math:`G_{n-1} > G^*`, then :math:`a_{Pn} = 0`. If
-the open water fraction :math:`a_0 > G^*`, no ice can ridge, because
-“ridging” simply reduces the area of open water. As in
-:cite:`TRMC75` we set :math:`G^* = 0.15`.
-
-If the spatial resolution is too fine for a given time step
-:math:`\Delta t`, the weighting function Equation :eq:`partic-old-contin` can
-promote numerical instability. For :math:`\Delta t = \mbox{1 hour}`,
-resolutions finer than :math:`\Delta x \sim \mbox{10 km}` are typically
-unstable. The instability results from feedback between the ridging
-scheme and the dynamics via the ice strength. If the strength changes
-significantly on time scales less than :math:`\Delta t`, the
-viscous-plastic solution of the momentum equation is inaccurate and
-sometimes oscillatory. As a result, the fields of ice area, thickness,
-velocity, strength, divergence, and shear can become noisy and
-unphysical.
-
-A more stable weighting function was suggested by
-:cite:`LHMJ07`:
-
-.. math::
-   b(h) = \frac{\exp[-G(h)/a^*]}
-               {a^*[1-\exp(-1/a^*)]}
-   :label: partic-new-contin
-
-When integrated between category boundaries, Equation :eq:`partic-new-contin`
-implies
-
-.. math::
-   a_{Pn} = \frac {\exp(-G_{n-1}/a^*) - \exp(-G_{n}/a^*)}
-                  {1 - \exp(-1/a^*)}
-   :label: partic-new-discrete
-
-This weighting function is used if `krdg\_partic` = 1 in the namelist.
-From Equation :eq:`partic-new-contin`, the mean value of :math:`G` for ice
-participating in ridging is :math:`a^*`, as compared to :math:`G^*/3`
-for Equation :eq:`partic-old-contin`. For typical ice thickness distributions,
-setting :math:`a^* = 0.05` with `krdg\_partic` = 1 gives participation
-fractions similar to those given by :math:`G^* = 0.15` with `krdg\_partic`
-= 0. See :cite:`LHMJ07` for a detailed comparison of these
-two participation functions.
-
-Thin ice is converted to thick, ridged ice in a way that reduces the
-total ice area while conserving ice volume and internal energy. There
-are two namelist options for redistributing ice among thickness
-categories. If `krdg\_redist` = 0, ridging ice of thickness :math:`h_n`
-forms ridges whose area is distributed uniformly between
-:math:`H_{\min} = 2 h_n` and :math:`H_{\max} = 2 \sqrt{H^* h_n}`, as in
-:cite:`Hibler80`. The default value of :math:`H^*` is 25 m, as
-in earlier versions of CICE. Observations suggest that
-:math:`H^* = 50` m gives a better fit to first-year ridges
-:cite:`AMI04`, although the lower value may be appropriate
-for multiyear ridges :cite:`FH95`. The ratio of the mean
-ridge thickness to the thickness of ridging ice is
-:math:`k_n = (H_{\min} + H_{\max}) / (2 h_n)`. If the area of category
-:math:`n` is reduced by ridging at the rate :math:`r_n`, the area of
-thicker categories grows simultaneously at the rate :math:`r_n/k_n`.
-Thus the *net* rate of area loss due to ridging of ice in category
-:math:`n` is :math:`r_n(1-1/k_n)`.
-
-The ridged ice area and volume are apportioned among categories in the
-thickness range :math:`(H_{\min}, H_{\max})`. The fraction of the new
-ridge area in category :math:`m` is
-
-.. math::
-   f_m^{\mathrm{area}} = \frac{H_R - H_L} 
-                              {H_{\max} - H_{\min}},
-   :label: ridge-area-old
-
-where :math:`H_L = \max(H_{m-1},H_{\min})` and
-:math:`H_R= \min(H_m,H_{\max})`. The fraction of the ridge volume going
-to category :math:`m` is
-
-.. math::
-   f_m^{\mathrm{vol}} = \frac{(H_R)^2 - (H_L)^2}
-                             {(H_{\max})^2 - (H_{\min})^2}.
-   :label: ridge-volume-old
-
-This uniform redistribution function tends to produce too little ice in
-the 3–5 m range and too much ice thicker than 10 m
-:cite:`AMI04`. Observations show that the ITD of ridges is
-better approximated by a negative exponential. Setting `krdg\_redist` = 1
-gives ridges with an exponential ITD :cite:`LHMJ07`:
-
-.. math::
-   g_R(h) \propto \exp[-(h - H_{\min})/\lambda]
-   :label: redist-new
-
-for :math:`h \ge H_{\min}`, with :math:`g_R(h) = 0` for
-:math:`h < H_{\min}`. Here, :math:`\lambda` is an empirical *e*-folding
-scale and :math:`H_{\min}=2h_n` (where :math:`h_n` is the thickness of
-ridging ice). We assume that :math:`\lambda = \mu h_n^{1/2}`, where
-:math:`\mu` (mu\_rdg) is a tunable parameter with units . Thus the mean
-ridge thickness increases in proportion to :math:`h_n^{1/2}`, as in
-:cite:`Hibler80`. The value :math:`\mu = 4.0`  gives
-:math:`\lambda` in the range 1–4 m for most ridged ice. Ice strengths
-with :math:`\mu = 4.0`  and `krdg\_redist` = 1 are roughly comparable to
-the strengths with :math:`H^* = 50` m and `krdg\_redist` = 0.
-
-From Equation :eq:`redist-new` it can be shown that the fractional area going
-to category :math:`m` as a result of ridging is
-
-.. math::
-   f_m^{\mathrm{area}} = \exp[-(H_{m-1} - H_{\min}) / \lambda] 
-                        - \exp[-(H_m - H_{\min}) / \lambda].
-   :label: ridge-area-new
-
-The fractional volume going to category :math:`m` is
-
-.. math::
-   f_m^{\mathrm{vol}} = \frac{(H_{m-1}+\lambda) \exp[-(H_{m-1}-H_{\min})/\lambda]
-                              - (H_m + \lambda) \exp[-(H_m - H_{\min}) / \lambda]}
-                                {H_{min} + \lambda}.
-   :label: ridge-volume-new
-
-Equations :eq:`ridge-area-new` and :eq:`ridge-volume-new` replace
-Equations :eq:`ridge-area-old` and :eq:`ridge-volume-old` when `krdg\_redist`
-= 1.
-
-Internal ice energy is transferred between categories in proportion to
-ice volume. Snow volume and internal energy are transferred in the same
-way, except that a fraction of the snow may be deposited in the ocean
-instead of added to the new ridge.
-
-The net area removed by ridging and closing is a function of the strain
-rates. Let :math:`R_{\mathrm{net}}` be the net rate of area loss for the
-ice pack (i.e., the rate of open water area closing, plus the net rate
-of ice area loss due to ridging). Following :cite:`FH95`,
-:math:`R_{\mathrm{net}}` is given by
-
-.. math::
-   R_{\mathrm{net}} = \frac{C_s}{2}
-                    (\Delta - |D_D|) - \min(D_D,0),
-   :label: Rnet
-
-where :math:`C_s` is the fraction of shear dissipation energy that
-contributes to ridge-building, :math:`D_D` is the divergence, and
-:math:`\Delta` is a function of the divergence and shear. These strain
-rates are computed by the dynamics scheme. The default value of
-:math:`C_s` is 0.25.
-
-Next, define :math:`R_{\mathrm{tot}} = \sum_{n=0}^N r_n`. This rate is
-related to :math:`R_{\mathrm{net}}` by
-
-.. math::
-   R_{\mathrm{net}} =
-      \left[ a_{P0} + \sum_{n=1}^N a_{Pn}\left(1-{1\over k_n}\right)\right]
-       R_{\mathrm{tot}}.
-   :label: Rtot-Rnet
-
-Given :math:`R_{\mathrm{net}}` from Equation :eq:`Rnet`, we
-use Equation :eq:`Rtot-Rnet` to compute :math:`R_{\mathrm{tot}}`. Then the area
-ridged in category :math:`n` is given by :math:`a_{rn} = r_n \Delta t`,
-where :math:`r_n = a_{Pn} R_{\mathrm{tot}}`. The area of new ridges is
-:math:`a_{rn} / k_n`, and the volume of new ridges is :math:`a_{rn} h_n`
-(since volume is conserved during ridging). We remove the ridging ice
-from category :math:`n` and use Equations :eq:`ridge-area-old`
-and :eq:`ridge-volume-old`: (or :eq:`ridge-area-new` and
-:eq:`ridge-volume-new`) to redistribute the ice among thicker
-categories.
-
-Occasionally the ridging rate in thickness category :math:`n` may be
-large enough to ridge the entire area :math:`a_n` during a time interval
-less than :math:`\Delta t`. In this case :math:`R_{\mathrm{tot}}` is
-reduced to the value that exactly ridges an area :math:`a_n` during
-:math:`\Delta t`. After each ridging iteration, the total fractional ice
-area :math:`a_i` is computed. If :math:`a_i > 1`, the ridging is
-repeated with a value of :math:`R_{\mathrm{net}}` sufficient to yield
-:math:`a_i = 1`.
-
-Two tracers for tracking the ridged ice area and volume are available.
-The actual tracers are for level (undeformed) ice area (`alvl`) and volume
-(`vlvl`), which are easier to implement for a couple of reasons: (1) ice
-ridged in a given thickness category is spread out among the rest of the
-categories, making it more difficult (and expensive) to track than the
-level ice remaining behind in the original category; (2) previously
-ridged ice may ridge again, so that simply adding a volume of freshly
-ridged ice to the volume of previously ridged ice in a grid cell may be
-inappropriate. Although the code currently only tracks level ice
-internally, both level ice and ridged ice are offered as history output.
-They are simply related:
-
-.. math::
-   \begin{aligned}
-   a_{lvl} + a_{rdg} &=& a_i, \\
-   v_{lvl} + v_{rdg} &=& v_i.\end{aligned}
-
-Level ice area fraction and volume increase with new ice formation and
-decrease steadily via ridging processes. Without the formation of new
-ice, level ice asymptotes to zero because we assume that both level ice
-and ridged ice ridge, in proportion to their fractional areas in a grid
-cell (in the spirit of the ridging calculation itself which does not
-prefer level ice over previously ridged ice).
-
-The ice strength :math:`P` may be computed in either of two ways. If the
-namelist parameter kstrength = 0, we use the strength formula from
-:cite:`Hibler79`:
-
-.. math::
-   P = P^* h \exp[-C(1-a_i)],
-   :label: hib-strength
-
-where :math:`P^* = 27,500 \, \mathrm {N/m}` and :math:`C = 20` are
-empirical constants, and :math:`h` is the mean ice thickness.
-Alternatively, setting kstrength = 1 gives an ice strength closely
-related to the ridging scheme. Following
-:cite:`Rothrock75`, the strength is assumed proportional
-to the change in ice potential energy :math:`\Delta E_P` per unit area
-of compressive deformation. Given uniform ridge ITDs (krdg\_redist = 0),
-we have
-
-.. math::
-   P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
-     \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
-        \left( \frac{(H_n^{\max})^3 - (H_n^{\min})^3}
-                    {3(H_n^{\max}-H_n^{\min})} \right) \right],
-   :label: roth-strength0
-
-where :math:`C_P = (g/2)(\rho_i/\rho_w)(\rho_w-\rho_i)`,
-:math:`\beta =R_{\mathrm{tot}}/R_{\mathrm{net}} > 1`
-from Equation :eq:`Rtot-Rnet`, and :math:`C_f` is an empirical parameter that
-accounts for frictional energy dissipation. Following
-:cite:`FH95`, we set :math:`C_f = 17`. The first term in
-the summation is the potential energy of ridging ice, and the second,
-larger term is the potential energy of the resulting ridges. The factor
-of :math:`\beta` is included because :math:`a_{Pn}` is normalized with
-respect to the total area of ice ridging, not the net area removed.
-Recall that more than one unit area of ice must be ridged to reduce the
-net ice area by one unit. For exponential ridge ITDs (`krdg\_redist` = 1),
-the ridge potential energy is modified:
-
-.. math::
-   P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
-     \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
-        \left( H_{\min}^2 + 2H_{\min}\lambda + 2 \lambda^2 \right) \right]  % CHECK BRACES
-   :label: roth-strength1
-
-The energy-based ice strength given by Equations :eq:`roth-strength0` or
-:eq:`roth-strength1` is more physically realistic than the strength
-given by Equation :eq:`hib-strength`. However, use of Equation :eq:`hib-strength` is
-less likely to allow numerical instability at a given resolution and
-time step. See :cite:`LHMJ07` for more details.
-
 .. _dynam:
 
+~~~~~~~~
 Dynamics
---------
+~~~~~~~~
 
 There are now different rheologies available in the CICE code. The
 elastic-viscous-plastic (EVP) model represents a modification of the
@@ -1905,8 +1990,9 @@ dynamics into CICE is described in detail in
 
 .. _momentum:
 
+********
 Momentum
-~~~~~~~~
+********
 
 The force balance per unit area in the ice pack is given by a
 two-dimensional momentum equation :cite:`Hibler79`, obtained
@@ -2013,8 +2099,9 @@ pending further testing.
 
 .. _internal-stress:
 
+***************
 Internal stress
-~~~~~~~~~~~~~~~
+***************
 
 For convenience we formulate the stress tensor :math:`\bf \sigma` in
 terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
@@ -2294,8 +2381,9 @@ of the dynamics.
 
 .. _revp:
 
+****************
 Revised approach
-~~~~~~~~~~~~~~~~
+****************
 
 A modification of the standard elastic-viscous-plastic (EVP) approach
 for sea ice dynamics has been proposed by :cite:`BFLM13`,
@@ -2459,10 +2547,518 @@ EVP method. A final difference is that the revised approach initializes
 the stresses to 0 at the beginning of each time step, while the classic
 EVP approach uses the previous time step value.
 
+
+~~~~~~~~~~~~~~~~~~~~
+Thickness changes
+~~~~~~~~~~~~~~~~~~~~
+
+.. _itd-trans:
+
+****************************
+Transport in thickness space
+****************************
+
+Next we solve the equation for ice transport in thickness space due to
+thermodynamic growth and melt,
+
+.. math::
+   \frac{\partial g}{\partial t} + \frac{\partial}{\partial h} (f g) = 0,
+   :label: itd-transport
+
+which is obtained from Equation :eq:`transport-g` by neglecting the first and
+third terms on the right-hand side. We use the remapping method of
+:cite:`Lipscomb01`, in which thickness categories are
+represented as Lagrangian grid cells whose boundaries are projected
+forward in time. The thickness distribution function :math:`g` is
+approximated as a linear function of :math:`h` in each displaced
+category and is then remapped onto the original thickness categories.
+This method is numerically smooth and is not too diffusive. It can be
+viewed as a 1D simplification of the 2D incremental remapping scheme
+described above.
+
+We first compute the displacement of category boundaries in thickness
+space. Assume that at time :math:`m` the ice areas :math:`a_n^m` and
+mean ice thicknesses :math:`h_n^m` are known for each thickness
+category. (For now we omit the subscript :math:`i` that distinguishes
+ice from snow.) We use a thermodynamic model (Section :ref:`thermo`)
+to compute the new mean thicknesses :math:`h_n^{m+1}` at time
+:math:`m+1`. The time step must be small enough that trajectories do not
+cross; i.e., :math:`h_n^{m+1} < h_{n+1}^{m+1}` for each pair of adjacent
+categories. The growth rate at :math:`h = h_n` is given by
+:math:`f_n = (h_n^{m+1} - h_n^m) / \Delta t`. By linear interpolation we
+estimate the growth rate :math:`F_n` at the upper category boundary
+:math:`H_n`:
+
+.. math:: 
+   F_n = f_n + \frac{f_{n+1}-f_n}{h_{n+1}-h_n} \, (H_n - h_n).
+
+If :math:`a_n` or :math:`a_{n+1} = 0`, :math:`F_n` is set to the growth
+rate in the nonzero category, and if :math:`a_n = a_{n+1} = 0`, we set
+:math:`F_n = 0`. The temporary displaced boundaries are given by
+
+.. math:: 
+   H_n^* = H_n + F_n \, \Delta t, \ n = 1 \ {\rm to} \ N-1
+
+The boundaries must not be displaced by more than one category to the
+left or right; that is, we require :math:`H_{n-1} < H_n^* < H_{n+1}`.
+Without this requirement we would need to do a general remapping rather
+than an incremental remapping, at the cost of added complexity.
+
+Next we construct :math:`g(h)` in the displaced thickness categories.
+The ice areas in the displaced categories are :math:`a_n^{m+1} = a_n^m`,
+since area is conserved following the motion in thickness space (i.e.,
+during vertical ice growth or melting). The new ice volumes are
+:math:`v_n^{m+1} = (a_n h_n)^{m+1} = a_n^m h_n^{m+1}`. For conciseness,
+define :math:`H_L = H_{n-1}^*` and :math:`H_R = H_{n}^*` and drop the
+time index :math:`m+1`. We wish to construct a continuous function
+:math:`g(h)` within each category such that the total area and volume at
+time :math:`m+1` are :math:`a_n` and :math:`v_n`, respectively:
+
+.. math::
+   \int_{H_L}^{H_R} g \, dh = a_n,
+   :label: area-cons
+
+.. math::
+   \int_{H_L}^{H_R} h \, g \, dh = v_n.
+   :label: volume-cons
+
+The simplest polynomial that can satisfy both equations is a line. It
+is convenient to change coordinates, writing
+:math:`g(\eta) = g_1 \eta + g_0`, where :math:`\eta = h - H_L` and the
+coefficients :math:`g_0` and :math:`g_1` are to be determined. Then
+Equations :eq:`area-cons` and :eq:`volume-cons` can be written as
+
+.. math:: 
+   g_1 \frac{\eta_R^2}{2} + g_0 \eta_R = a_n,
+
+.. math:: 
+   g_1 \frac{\eta_R^3}{3} + g_0 \frac{\eta_R^2}{2} = a_n \eta_n,
+
+where :math:`\eta_R = H_R - H_L` and :math:`\eta_n = h_n - H_L`. These
+equations have the solution
+
+.. math::
+   g_0 = \frac{6 a_n}{\eta_R^2} \left(\frac{2 \eta_R}{3} - \eta_n\right),
+   :label: g0
+
+.. math::
+   g_1 = \frac{12 a_n}{\eta_R^3} \left(\eta_n - \frac{\eta_R}{2}\right).
+   :label: g1
+
+Since :math:`g` is linear, its maximum and minimum values lie at the
+boundaries, :math:`\eta = 0` and :math:`\eta_R`:
+
+.. math::
+   g(0)=\frac{6 a_n}{\eta_R^2} \, \left(\frac{2 \eta_R}{3} - \eta_n\right) = g_0,
+   :label: gmin
+ 
+.. math::
+   g(\eta_R) = \frac{6 a_n}{\eta_R^2} \, \left(\eta_n - \frac{\eta_R}{3}\right).
+   :label: gmax
+
+Equation :eq:`gmin` implies that :math:`g(0) < 0` when
+:math:`\eta_n > 2 \eta_R/3`, i.e., when :math:`h_n` lies in the right
+third of the thickness range :math:`(H_L, H_R)`. Similarly, Equation :eq:`gmax`
+implies that :math:`g(\eta_R) < 0` when :math:`\eta_n < \eta_R/3`, i.e.,
+when :math:`h_n` is in the left third of the range. Since negative
+values of :math:`g` are unphysical, a different solution is needed when
+:math:`h_n` lies outside the central third of the thickness range. If
+:math:`h_n` is in the left third of the range, we define a cutoff
+thickness, :math:`H_C = 3 h_n - 2 H_L`, and set :math:`g = 0` between
+:math:`H_C` and :math:`H_R`. Equations :eq:`g0` and :eq:`g1` are then
+valid with :math:`\eta_R` redefined as :math:`H_C - H_L`. And if
+:math:`h_n` is in the right third of the range, we define
+:math:`H_C = 3 h_n - 2 H_R` and set :math:`g = 0` between :math:`H_L`
+and :math:`H_C`. In this case, :eq:`g0` and :eq:`g1` apply with
+:math:`\eta_R = H_R - H_C` and :math:`\eta_n = h_n - H_C`.
+
+:ref:`fig-gplot` illustrates the linear reconstruction of :math:`g`
+for the simple cases :math:`H_L = 0`, :math:`H_R = 1`, :math:`a_n = 1`,
+and :math:`h_n =` 0.2, 0.4, 0.6, and 0.8. Note that :math:`g` slopes
+downward (:math:`g_1 < 0`) when :math:`h_n` is less than the midpoint
+thickness, :math:`(H_L + H_R)/2 = 1/2`, and upward when :math:`h_n`
+exceeds the midpoint thickness. For :math:`h_n = 0.2` and 0.8,
+:math:`g = 0` over part of the range.
+
+.. _fig-gplot:
+
+.. figure:: ./figures/gplot.png
+   :align: center
+   :scale: 20%
+
+   Figure 4
+
+:ref:`fig-gplot` : Linear approximation of the thickness distribution
+function :math:`g(h)` for an ice category with left boundary
+:math:`H_L = 0`, right boundary :math:`H_R = 1`, fractional area
+:math:`a_n = 1`, and mean ice thickness :math:`h_n = 0.2, 0.4, 0.6,` and :math:`0.8`.
+
+Finally, we remap the thickness distribution to the original boundaries
+by transferring area and volume between categories. We compute the ice
+area :math:`\Delta a_n` and volume :math:`\Delta v_n` between each
+original boundary :math:`H_n` and displaced boundary :math:`H_n^*`. If
+:math:`H_n^* > H_n`, ice moves from category :math:`n` to :math:`n+1`.
+The area and volume transferred are
+
+.. math::
+   \Delta a_n = \int_{H_n}^{H_n^*} g \, dh,
+   :label: move-area
+
+.. math::
+   \Delta v_n = \int_{H_n}^{H_n^*} h \, g \, dh.
+   :label: move-volume
+
+If :math:`H_n^* < H_N`, ice area and volume are transferred from
+category :math:`n+1` to :math:`n` using Equations :eq:`move-area` and
+:eq:`move-volume` with the limits of integration reversed. To evaluate
+the integrals we change coordinates from :math:`h` to
+:math:`\eta = h - H_L`, where :math:`H_L` is the left limit of the range
+over which :math:`g > 0`, and write :math:`g(\eta)` using Equations :eq:`g0` and
+:eq:`g1`. In this way we obtain the new areas :math:`a_n` and volumes
+:math:`v_n` between the original boundaries :math:`H_{n-1}` and
+:math:`H_n` in each category. The new thicknesses,
+:math:`h_n = v_n/a_n`, are guaranteed to lie in the range
+:math:`(H_{n-1}, H_n)`. If :math:`g = 0` in the part of a category that
+is remapped to a neighboring category, no ice is transferred.
+
+Other conserved quantities are transferred in proportion to the ice
+volume :math:`\Delta v_{in}`. For example, the transferred ice energy in
+layer :math:`k` is
+:math:`\Delta e_{ink} = e_{ink} (\Delta v_{in} / v_{in})`.
+
+The left and right boundaries of the domain require special treatment.
+If ice is growing in open water at a rate :math:`F_0`, the left boundary
+:math:`H_0` is shifted to the right by :math:`F_0 \Delta t` before
+:math:`g` is constructed in category 1, then reset to zero after the
+remapping is complete. New ice is then added to the grid cell,
+conserving area, volume, and energy. If ice cannot grow in open water
+(because the ocean is too warm or the net surface energy flux is
+downward), :math:`H_0` is fixed at zero, and the growth rate at the left
+boundary is estimated as :math:`F_0 = f_1`. If :math:`F_0 < 0`, all ice
+thinner than :math:`\Delta h_0 = -F_0 \Delta t` is assumed to have
+melted, and the ice area in category 1 is reduced accordingly. The area
+of new open water is
+
+.. math:: 
+   \Delta a_0 = \int_{0}^{\Delta h_0} g \, dh.
+
+The right boundary :math:`H_N` is not fixed but varies with
+:math:`h_N`, the mean ice thickness in the thickest category. Given
+:math:`h_N`, we set :math:`H_N = 3 h_N - 2 H_{N-1}`, which ensures that
+:math:`g(h) > 0` for :math:`H_{N-1} < h < H_N` and :math:`g(h) = 0` for
+:math:`h \geq H_N`. No ice crosses the right boundary. If the ice growth
+or melt rates in a given grid cell are too large, the thickness
+remapping scheme will not work. Instead, the thickness categories in
+that grid cell are treated as delta functions following
+:cite:`BHWE01`, and categories outside their prescribed
+boundaries are merged with neighboring categories as needed. For time
+steps of less than a day and category thickness ranges of 10 cm or more,
+this simplification is needed rarely, if ever.
+
+The linear remapping algorithm for thickness is not monotonic for
+tracers, although significant errors rarely occur. Usually they appear
+as snow temperatures (enthalpy) outside the physical range of values in
+very small snow volumes. In this case we transfer the snow and its heat
+and tracer contents to the ocean.
+
+.. _mech-red:
+
+*************************
+Mechanical redistribution
+*************************
+
+The last term on the right-hand side of Equation :eq:`transport-g`
+is :math:`\psi`, which describes the redistribution
+of ice in thickness space due to ridging and other mechanical processes.
+The mechanical redistribution scheme in CICE is based on
+:cite:`TRMC75`, :cite:`Rothrock75`,
+:cite:`Hibler80`, :cite:`FH95`, and
+:cite:`LHMJ07`. This scheme converts thinner ice to thicker
+ice and is applied after horizontal transport. When the ice is
+converging, enough ice ridges to ensure that the ice area does not
+exceed the grid cell area.
+
+First we specify the participation function: the thickness distribution
+:math:`a_P(h) = b(h) \, g(h)` of the ice participating in ridging. (We
+use “ridging” as shorthand for all forms of mechanical redistribution,
+including rafting.) The weighting function :math:`b(h)` favors ridging
+of thin ice and closing of open water in preference to ridging of
+thicker ice. There are two options for the form of :math:`b(h)`. If
+`krdg\_partic` = 0 in the namelist, we follow :cite:`TRMC75`
+and set
+
+.. math::
+   b(h) = \left\{\begin{array}{ll}  
+          \frac{2}{G^*}(1-\frac{G(h)}{G^*}) & \mbox{if $G(h)<G^*$} \\
+                    0                       & \mbox{otherwise}   
+                 \end{array}  \right.
+   :label: partic-old-contin
+
+where :math:`G(h)` is the fractional area covered by ice thinner than
+:math:`h`, and :math:`G^*` is an empirical constant. Integrating
+:math:`a_P(h)` between category boundaries :math:`H_{n-1}` and
+:math:`H_n`, we obtain the mean value of :math:`a_P` in category
+:math:`n`:
+
+.. math::
+   a_{Pn} = \frac{2}{G^*} (G_n - G_{n-1})
+            \left( 1 - \frac{G_{n-1}+G_n}{2 G^*} \right),
+   :label: partic-old-discrete
+
+where :math:`a_{Pn}` is the ratio of the ice area ridging (or open
+water area closing) in category :math:`n` to the total area ridging and
+closing, and :math:`G_n` is the total fractional ice area in categories
+0 to :math:`n`. Equation :eq:`partic-old-discrete` applies to
+categories with :math:`G_n < G^*`. If :math:`G_{n-1} < G^* < G_n`, then
+Equation :eq:`partic-old-discrete` is valid with :math:`G^*` replacing
+:math:`G_n`, and if :math:`G_{n-1} > G^*`, then :math:`a_{Pn} = 0`. If
+the open water fraction :math:`a_0 > G^*`, no ice can ridge, because
+“ridging” simply reduces the area of open water. As in
+:cite:`TRMC75` we set :math:`G^* = 0.15`.
+
+If the spatial resolution is too fine for a given time step
+:math:`\Delta t`, the weighting function Equation :eq:`partic-old-contin` can
+promote numerical instability. For :math:`\Delta t = \mbox{1 hour}`,
+resolutions finer than :math:`\Delta x \sim \mbox{10 km}` are typically
+unstable. The instability results from feedback between the ridging
+scheme and the dynamics via the ice strength. If the strength changes
+significantly on time scales less than :math:`\Delta t`, the
+viscous-plastic solution of the momentum equation is inaccurate and
+sometimes oscillatory. As a result, the fields of ice area, thickness,
+velocity, strength, divergence, and shear can become noisy and
+unphysical.
+
+A more stable weighting function was suggested by
+:cite:`LHMJ07`:
+
+.. math::
+   b(h) = \frac{\exp[-G(h)/a^*]}
+               {a^*[1-\exp(-1/a^*)]}
+   :label: partic-new-contin
+
+When integrated between category boundaries, Equation :eq:`partic-new-contin`
+implies
+
+.. math::
+   a_{Pn} = \frac {\exp(-G_{n-1}/a^*) - \exp(-G_{n}/a^*)}
+                  {1 - \exp(-1/a^*)}
+   :label: partic-new-discrete
+
+This weighting function is used if `krdg\_partic` = 1 in the namelist.
+From Equation :eq:`partic-new-contin`, the mean value of :math:`G` for ice
+participating in ridging is :math:`a^*`, as compared to :math:`G^*/3`
+for Equation :eq:`partic-old-contin`. For typical ice thickness distributions,
+setting :math:`a^* = 0.05` with `krdg\_partic` = 1 gives participation
+fractions similar to those given by :math:`G^* = 0.15` with `krdg\_partic`
+= 0. See :cite:`LHMJ07` for a detailed comparison of these
+two participation functions.
+
+Thin ice is converted to thick, ridged ice in a way that reduces the
+total ice area while conserving ice volume and internal energy. There
+are two namelist options for redistributing ice among thickness
+categories. If `krdg\_redist` = 0, ridging ice of thickness :math:`h_n`
+forms ridges whose area is distributed uniformly between
+:math:`H_{\min} = 2 h_n` and :math:`H_{\max} = 2 \sqrt{H^* h_n}`, as in
+:cite:`Hibler80`. The default value of :math:`H^*` is 25 m, as
+in earlier versions of CICE. Observations suggest that
+:math:`H^* = 50` m gives a better fit to first-year ridges
+:cite:`AMI04`, although the lower value may be appropriate
+for multiyear ridges :cite:`FH95`. The ratio of the mean
+ridge thickness to the thickness of ridging ice is
+:math:`k_n = (H_{\min} + H_{\max}) / (2 h_n)`. If the area of category
+:math:`n` is reduced by ridging at the rate :math:`r_n`, the area of
+thicker categories grows simultaneously at the rate :math:`r_n/k_n`.
+Thus the *net* rate of area loss due to ridging of ice in category
+:math:`n` is :math:`r_n(1-1/k_n)`.
+
+The ridged ice area and volume are apportioned among categories in the
+thickness range :math:`(H_{\min}, H_{\max})`. The fraction of the new
+ridge area in category :math:`m` is
+
+.. math::
+   f_m^{\mathrm{area}} = \frac{H_R - H_L} 
+                              {H_{\max} - H_{\min}},
+   :label: ridge-area-old
+
+where :math:`H_L = \max(H_{m-1},H_{\min})` and
+:math:`H_R= \min(H_m,H_{\max})`. The fraction of the ridge volume going
+to category :math:`m` is
+
+.. math::
+   f_m^{\mathrm{vol}} = \frac{(H_R)^2 - (H_L)^2}
+                             {(H_{\max})^2 - (H_{\min})^2}.
+   :label: ridge-volume-old
+
+This uniform redistribution function tends to produce too little ice in
+the 3–5 m range and too much ice thicker than 10 m
+:cite:`AMI04`. Observations show that the ITD of ridges is
+better approximated by a negative exponential. Setting `krdg\_redist` = 1
+gives ridges with an exponential ITD :cite:`LHMJ07`:
+
+.. math::
+   g_R(h) \propto \exp[-(h - H_{\min})/\lambda]
+   :label: redist-new
+
+for :math:`h \ge H_{\min}`, with :math:`g_R(h) = 0` for
+:math:`h < H_{\min}`. Here, :math:`\lambda` is an empirical *e*-folding
+scale and :math:`H_{\min}=2h_n` (where :math:`h_n` is the thickness of
+ridging ice). We assume that :math:`\lambda = \mu h_n^{1/2}`, where
+:math:`\mu` (mu\_rdg) is a tunable parameter with units . Thus the mean
+ridge thickness increases in proportion to :math:`h_n^{1/2}`, as in
+:cite:`Hibler80`. The value :math:`\mu = 4.0`  gives
+:math:`\lambda` in the range 1–4 m for most ridged ice. Ice strengths
+with :math:`\mu = 4.0`  and `krdg\_redist` = 1 are roughly comparable to
+the strengths with :math:`H^* = 50` m and `krdg\_redist` = 0.
+
+From Equation :eq:`redist-new` it can be shown that the fractional area going
+to category :math:`m` as a result of ridging is
+
+.. math::
+   f_m^{\mathrm{area}} = \exp[-(H_{m-1} - H_{\min}) / \lambda] 
+                        - \exp[-(H_m - H_{\min}) / \lambda].
+   :label: ridge-area-new
+
+The fractional volume going to category :math:`m` is
+
+.. math::
+   f_m^{\mathrm{vol}} = \frac{(H_{m-1}+\lambda) \exp[-(H_{m-1}-H_{\min})/\lambda]
+                              - (H_m + \lambda) \exp[-(H_m - H_{\min}) / \lambda]}
+                                {H_{min} + \lambda}.
+   :label: ridge-volume-new
+
+Equations :eq:`ridge-area-new` and :eq:`ridge-volume-new` replace
+Equations :eq:`ridge-area-old` and :eq:`ridge-volume-old` when `krdg\_redist`
+= 1.
+
+Internal ice energy is transferred between categories in proportion to
+ice volume. Snow volume and internal energy are transferred in the same
+way, except that a fraction of the snow may be deposited in the ocean
+instead of added to the new ridge.
+
+The net area removed by ridging and closing is a function of the strain
+rates. Let :math:`R_{\mathrm{net}}` be the net rate of area loss for the
+ice pack (i.e., the rate of open water area closing, plus the net rate
+of ice area loss due to ridging). Following :cite:`FH95`,
+:math:`R_{\mathrm{net}}` is given by
+
+.. math::
+   R_{\mathrm{net}} = \frac{C_s}{2}
+                    (\Delta - |D_D|) - \min(D_D,0),
+   :label: Rnet
+
+where :math:`C_s` is the fraction of shear dissipation energy that
+contributes to ridge-building, :math:`D_D` is the divergence, and
+:math:`\Delta` is a function of the divergence and shear. These strain
+rates are computed by the dynamics scheme. The default value of
+:math:`C_s` is 0.25.
+
+Next, define :math:`R_{\mathrm{tot}} = \sum_{n=0}^N r_n`. This rate is
+related to :math:`R_{\mathrm{net}}` by
+
+.. math::
+   R_{\mathrm{net}} =
+      \left[ a_{P0} + \sum_{n=1}^N a_{Pn}\left(1-{1\over k_n}\right)\right]
+       R_{\mathrm{tot}}.
+   :label: Rtot-Rnet
+
+Given :math:`R_{\mathrm{net}}` from Equation :eq:`Rnet`, we
+use Equation :eq:`Rtot-Rnet` to compute :math:`R_{\mathrm{tot}}`. Then the area
+ridged in category :math:`n` is given by :math:`a_{rn} = r_n \Delta t`,
+where :math:`r_n = a_{Pn} R_{\mathrm{tot}}`. The area of new ridges is
+:math:`a_{rn} / k_n`, and the volume of new ridges is :math:`a_{rn} h_n`
+(since volume is conserved during ridging). We remove the ridging ice
+from category :math:`n` and use Equations :eq:`ridge-area-old`
+and :eq:`ridge-volume-old`: (or :eq:`ridge-area-new` and
+:eq:`ridge-volume-new`) to redistribute the ice among thicker
+categories.
+
+Occasionally the ridging rate in thickness category :math:`n` may be
+large enough to ridge the entire area :math:`a_n` during a time interval
+less than :math:`\Delta t`. In this case :math:`R_{\mathrm{tot}}` is
+reduced to the value that exactly ridges an area :math:`a_n` during
+:math:`\Delta t`. After each ridging iteration, the total fractional ice
+area :math:`a_i` is computed. If :math:`a_i > 1`, the ridging is
+repeated with a value of :math:`R_{\mathrm{net}}` sufficient to yield
+:math:`a_i = 1`.
+
+Two tracers for tracking the ridged ice area and volume are available.
+The actual tracers are for level (undeformed) ice area (`alvl`) and volume
+(`vlvl`), which are easier to implement for a couple of reasons: (1) ice
+ridged in a given thickness category is spread out among the rest of the
+categories, making it more difficult (and expensive) to track than the
+level ice remaining behind in the original category; (2) previously
+ridged ice may ridge again, so that simply adding a volume of freshly
+ridged ice to the volume of previously ridged ice in a grid cell may be
+inappropriate. Although the code currently only tracks level ice
+internally, both level ice and ridged ice are offered as history output.
+They are simply related:
+
+.. math::
+   \begin{aligned}
+   a_{lvl} + a_{rdg} &=& a_i, \\
+   v_{lvl} + v_{rdg} &=& v_i.\end{aligned}
+
+Level ice area fraction and volume increase with new ice formation and
+decrease steadily via ridging processes. Without the formation of new
+ice, level ice asymptotes to zero because we assume that both level ice
+and ridged ice ridge, in proportion to their fractional areas in a grid
+cell (in the spirit of the ridging calculation itself which does not
+prefer level ice over previously ridged ice).
+
+The ice strength :math:`P` may be computed in either of two ways. If the
+namelist parameter kstrength = 0, we use the strength formula from
+:cite:`Hibler79`:
+
+.. math::
+   P = P^* h \exp[-C(1-a_i)],
+   :label: hib-strength
+
+where :math:`P^* = 27,500 \, \mathrm {N/m}` and :math:`C = 20` are
+empirical constants, and :math:`h` is the mean ice thickness.
+Alternatively, setting kstrength = 1 gives an ice strength closely
+related to the ridging scheme. Following
+:cite:`Rothrock75`, the strength is assumed proportional
+to the change in ice potential energy :math:`\Delta E_P` per unit area
+of compressive deformation. Given uniform ridge ITDs (krdg\_redist = 0),
+we have
+
+.. math::
+   P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
+     \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
+        \left( \frac{(H_n^{\max})^3 - (H_n^{\min})^3}
+                    {3(H_n^{\max}-H_n^{\min})} \right) \right],
+   :label: roth-strength0
+
+where :math:`C_P = (g/2)(\rho_i/\rho_w)(\rho_w-\rho_i)`,
+:math:`\beta =R_{\mathrm{tot}}/R_{\mathrm{net}} > 1`
+from Equation :eq:`Rtot-Rnet`, and :math:`C_f` is an empirical parameter that
+accounts for frictional energy dissipation. Following
+:cite:`FH95`, we set :math:`C_f = 17`. The first term in
+the summation is the potential energy of ridging ice, and the second,
+larger term is the potential energy of the resulting ridges. The factor
+of :math:`\beta` is included because :math:`a_{Pn}` is normalized with
+respect to the total area of ice ridging, not the net area removed.
+Recall that more than one unit area of ice must be ridged to reduce the
+net ice area by one unit. For exponential ridge ITDs (`krdg\_redist` = 1),
+the ridge potential energy is modified:
+
+.. math::
+   P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
+     \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
+        \left( H_{\min}^2 + 2H_{\min}\lambda + 2 \lambda^2 \right) \right]
+   :label: roth-strength1
+
+The energy-based ice strength given by Equations :eq:`roth-strength0` or
+:eq:`roth-strength1` is more physically realistic than the strength
+given by Equation :eq:`hib-strength`. However, use of Equation :eq:`hib-strength` is
+less likely to allow numerical instability at a given resolution and
+time step. See :cite:`LHMJ07` for more details.
+
 .. _thermo:
 
+**************
 Thermodynamics
---------------
+**************
 
 The current CICE version includes three thermodynamics
 options, the “zero-layer" thermodynamics of :cite:`Semtner76`
@@ -2511,8 +3107,9 @@ surface temperatures.
 
 .. _ponds:
 
+``````````
 Melt ponds
-~~~~~~~~~~
+``````````
 
 Three explicit melt pond parameterizations are available in CICE, and
 all must use the delta-Eddington radiation scheme, described below. The
@@ -3116,8 +3713,9 @@ the newly formed ice area :math:`\Delta a_i = \Delta a_{lvl}`.
 
 .. _sfc-forcing:
 
+`````````````````````````````````````
 Thermodynamic surface forcing balance
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`````````````````````````````````````
 
 The net surface energy flux from the atmosphere to the ice (with all
 fluxes defined as positive downward) is
@@ -3292,8 +3890,9 @@ Section :ref:`thermo-growth`).
 
 .. _thermo-temp:
 
+````````````````
 New temperatures
-~~~~~~~~~~~~~~~~
+````````````````
 
 **Zero-layer thermodynamics** (`ktherm` = 0)
 An option for zero-layer thermodynamics :cite:`Semtner76` is
@@ -3709,7 +4308,7 @@ to the temperature, :math:`T`, and the brine volume, :math:`\phi`, by
    \begin{aligned}
    q =& \phi q_{br} &+\, (1-\phi) q_{i}
    =& \phi \rho_{w} c_{w} T &+\, (1-\phi) (\rho_i c_i T - \rho_i L_0) 
-   \label{enthalpy_definition}\end{aligned}
+   \end{aligned}
    :label: enth-def
 
 where :math:`q_{br}` is the brine enthalpy, :math:`q_i` is the pure ice
@@ -4101,8 +4700,9 @@ may reduce ice formation by a small amount afterwards.
 
 .. _thermo-growth:
 
+``````````````````
 Growth and melting
-~~~~~~~~~~~~~~~~~~
+``````````````````
 
 Melting at the top surface is given by
 
