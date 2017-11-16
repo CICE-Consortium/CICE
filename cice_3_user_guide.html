@@ -347,7 +347,7 @@ domain is evenly divided, if this is not possible then the furthest east
 and/or north blocks will contain nonphysical points (“padding”). These
 points are excluded from the computation domain and have little effect
 on model performance.</p>
-<div class="figure align-center" id="id24">
+<div class="figure align-center" id="id26">
 <span id="fig-grid"></span><a class="reference internal image-reference" href="_images/grid.png"><img alt="_images/grid.png" src="_images/grid.png" style="width: 516.8px; height: 416.0px;" /></a>
 <p class="caption"><span class="caption-text">Figure 8</span></p>
 </div>
@@ -601,8 +601,8 @@ coupled mode is determined at compile time, as described below.</p>
 <cite>ice_ic</cite>, <cite>runtype</cite> and <cite>restart</cite>. <span class="math">\(^a\)</span><em>If false, restart is reset to
 true.</em> <span class="math">\(^b\)</span><em>restart is reset to false.</em> <span class="math">\(^c\)</span>ice_ic <em>is
 reset to ‘none.’</em></p>
-<span id="tab-ic"></span><table border="1" class="docutils" id="id25">
-<caption><span class="caption-text">Table 4</span><a class="headerlink" href="#id25" title="Permalink to this table">¶</a></caption>
+<span id="tab-ic"></span><table border="1" class="docutils" id="id27">
+<caption><span class="caption-text">Table 4</span><a class="headerlink" href="#id27" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="13%" />
 <col width="22%" />
@@ -695,7 +695,7 @@ CFL condition, under remapping yields</p>
 usually determined by the time scale for large changes in the ice
 strength (which depends in part on wind strength). Using the strength
 parameterization of <a class="reference internal" href="zreferences.html#rothrock75" id="id8">[57]</a>, as in
-Equation&nbsp;<a class="reference internal" href="cice_2_science_guide.html#equation-roth-strength0">(88)</a>, limits the time step to <span class="math">\(\sim\)</span>30
+Equation&nbsp;<a class="reference internal" href="cice_2_science_guide.html#equation-roth-strength0">(101)</a>, limits the time step to <span class="math">\(\sim\)</span>30
 minutes for the old ridging scheme (<cite>krdg_partic</cite> = 0), and to
 <span class="math">\(\sim\)</span>2 hours for the new scheme (<cite>krdg_partic</cite> = 1), assuming
 <span class="math">\(\Delta x\)</span> = 10 km. Practical limits may be somewhat less,
@@ -866,8 +866,8 @@ the code, including the dynamics and advection routines.</p>
 <p>The timers use <em>MPI_WTIME</em> for parallel runs and the F90 intrinsic
 <em>system_clock</em> for single-processor runs.</p>
 <p><a class="reference internal" href="#timers"><span class="std std-ref">Table 5</span></a> : <em>CICE timers</em></p>
-<span id="timers"></span><table border="1" class="docutils" id="id26">
-<caption><span class="caption-text">Table 5</span><a class="headerlink" href="#id26" title="Permalink to this table">¶</a></caption>
+<span id="timers"></span><table border="1" class="docutils" id="id28">
+<caption><span class="caption-text">Table 5</span><a class="headerlink" href="#id28" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="18%" />
 <col width="16%" />
@@ -1061,8 +1061,8 @@ directories that you will need to edit for your own environment.
 points automatically to scratch space, is intended to be a disk where
 the run directory resides. <cite>SHRDIR</cite> is a path to the CESM shared code.</p>
 <p><a class="reference internal" href="#comp-ice"><span class="std std-ref">Table 6</span></a> : Configuration options available in <strong>comp_ice</strong>.</p>
-<span id="comp-ice"></span><table border="1" class="docutils" id="id27">
-<caption><span class="caption-text">Table 6</span><a class="headerlink" href="#id27" title="Permalink to this table">¶</a></caption>
+<span id="comp-ice"></span><table border="1" class="docutils" id="id29">
+<caption><span class="caption-text">Table 6</span><a class="headerlink" href="#id29" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="15%" />
 <col width="27%" />
@@ -1233,7 +1233,7 @@ smaller, more numerous blocks, there is a point where the code becomes
 less efficient; blocks should not have fewer than about 20 grid cells in
 each direction. Squarish blocks optimize the volume-to-surface ratio for
 communications.</p>
-<div class="figure align-center" id="id28">
+<div class="figure align-center" id="id30">
 <span id="fig-distrb"></span><a class="reference internal image-reference" href="_images/distrb.png"><img alt="_images/distrb.png" src="_images/distrb.png" style="width: 788.0px; height: 565.5px;" /></a>
 <p class="caption"><span class="caption-text">Figure 9</span></p>
 </div>
@@ -1285,7 +1285,7 @@ characteristics. In the ‘sectcart’ case, the domain is divided into two
 (east-west) halves and the loops are done over each, sequentially.
 <a class="reference internal" href="#fig-distribscorecard"><span class="std std-ref">Figure 10</span></a> provides an overview of the pros and cons
 for the distribution types.</p>
-<div class="figure align-center" id="id29">
+<div class="figure align-center" id="id31">
 <span id="fig-distribscorecard"></span><a class="reference internal image-reference" href="_images/scorecard.png"><img alt="_images/scorecard.png" src="_images/scorecard.png" style="width: 810.0px; height: 610.0px;" /></a>
 <p class="caption"><span class="caption-text">Figure 10</span></p>
 </div>
@@ -1321,7 +1321,7 @@ represent essentially the time needed just to carry an extra tracer. The
 topo melt pond scheme is slightly faster than the others because it
 calculates pond area and volume once per grid cell, while the others
 calculate it for each thickness category.</p>
-<div class="figure align-center" id="id30">
+<div class="figure align-center" id="id32">
 <span id="fig-timings"></span><a class="reference internal image-reference" href="_images/histograms.png"><img alt="_images/histograms.png" src="_images/histograms.png" style="width: 543.8px; height: 312.0px;" /></a>
 <p class="caption"><span class="caption-text">Figure 11</span></p>
 </div>
@@ -1759,8 +1759,8 @@ run and the current run.</p>
 <span id="format"></span><h3>3.6.3. Test suite format<a class="headerlink" href="#test-suite-format" title="Permalink to this headline">¶</a></h3>
 <p>The format for the test suite file is relatively simple.  It is a text file with white space delimited
 columns like,</p>
-<span id="tab-test"></span><table border="1" class="colwidths-given docutils" id="id31">
-<caption><span class="caption-text">Table 7</span><a class="headerlink" href="#id31" title="Permalink to this table">¶</a></caption>
+<span id="tab-test"></span><table border="1" class="colwidths-given docutils" id="id33">
+<caption><span class="caption-text">Table 7</span><a class="headerlink" href="#id33" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="14%" />
 <col width="14%" />
@@ -2048,8 +2048,8 @@ locations of failures can be identified.</p>
 </div>
 <div class="section" id="table-of-namelist-options">
 <span id="tabnamelist"></span><h2>3.7. Table of namelist options<a class="headerlink" href="#table-of-namelist-options" title="Permalink to this headline">¶</a></h2>
-<span id="tab-namelist"></span><table border="1" class="colwidths-given docutils" id="id32">
-<caption><span class="caption-text">Table 8</span><a class="headerlink" href="#id32" title="Permalink to this table">¶</a></caption>
+<span id="tab-namelist"></span><table border="1" class="colwidths-given docutils" id="id34">
+<caption><span class="caption-text">Table 8</span><a class="headerlink" href="#id34" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="20%" />
 <col width="20%" />
@@ -2327,27 +2327,27 @@ locations of failures can be identified.</p>
 <td>write snapshots of data</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">history\_dir</span></code></td>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">history_dir</span></code></td>
 <td>path/</td>
 <td>path to history output directory</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">history\_file</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">history_file</span></code></td>
 <td>filename prefix</td>
 <td>output file for history</td>
 <td>‘iceh’</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">write\_ic</span></code></td>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">write_ic</span></code></td>
 <td>true/false</td>
 <td>write initial condition</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">incond\_dir</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">incond_dir</span></code></td>
 <td>path/</td>
 <td>path to initial condition directory</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">incond\_file</span></code></td>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">incond_file</span></code></td>
 <td>filename prefix</td>
 <td>output file for initial condition</td>
 <td>‘iceh’</td>
@@ -2985,34 +2985,24 @@ locations of failures can be identified.</p>
 <td>brine height tracer</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_hbrine</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">tr_zaero</span></code></td>
 <td>true/false</td>
-<td>restart tracer values from file</td>
+<td>vertical aerosol tracers</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">skl_bgc</span></code></td>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">modal_aero</span></code></td>
 <td>true/false</td>
-<td>biogeochemistry</td>
+<td>modal aersols</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">bgc_flux_type</span></code></td>
-<td><code class="docutils literal"><span class="pre">Jin2006</span></code></td>
-<td>ice–ocean flux velocity of <a class="reference internal" href="zreferences.html#jdwstwlg06" id="id21">[37]</a></td>
-<td>&#160;</td>
-</tr>
-<tr class="row-even"><td>&#160;</td>
-<td><code class="docutils literal"><span class="pre">constant</span></code></td>
-<td>constant ice–ocean flux velocity</td>
-<td>&#160;</td>
-</tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restart_bgc</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">restore_bgc</span></code></td>
 <td>true/false</td>
-<td>restart tracer values from file</td>
+<td>restore bgc to data</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">restore_bgc</span></code></td>
+<tr class="row-even"><td><a href="#id21"><span class="problematic" id="id22">``</span></a>solve_zsal`</td>
 <td>true/false</td>
-<td>restore nitrate/silicate to data</td>
+<td>update salinity tracer profile</td>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">bgc_data_dir</span></code></td>
@@ -3020,29 +3010,59 @@ locations of failures can be identified.</p>
 <td>data directory for bgc</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">sil_data_type</span></code></td>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">skl_bgc</span></code></td>
+<td>true/false</td>
+<td>biogeochemistry</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">sil_data_type</span></code></td>
 <td><code class="docutils literal"><span class="pre">default</span></code></td>
 <td>default forcing value for silicate</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td>&#160;</td>
+<tr class="row-even"><td>&#160;</td>
 <td><code class="docutils literal"><span class="pre">clim</span></code></td>
-<td>silicate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id22">[23]</a></td>
+<td>silicate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id23">[23]</a></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">nit_data_type</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">nit_data_type</span></code></td>
 <td><code class="docutils literal"><span class="pre">default</span></code></td>
 <td>default forcing value for nitrate</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td>&#160;</td>
+<tr class="row-even"><td>&#160;</td>
 <td><code class="docutils literal"><span class="pre">clim</span></code></td>
-<td>nitrate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id23">[23]</a></td>
+<td>nitrate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id24">[23]</a></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td>&#160;</td>
+<tr class="row-odd"><td>&#160;</td>
 <td><code class="docutils literal"><span class="pre">sss</span></code></td>
 <td>nitrate forcing equals salinity</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">fe_data_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">default</span></code></td>
+<td>default forcing value for iron</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">clim</span></code></td>
+<td>iron forcing from ocean climatology</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">bgc_flux_type</span></code></td>
+<td><code class="docutils literal"><span class="pre">Jin2006</span></code></td>
+<td>ice–ocean flux velocity of <a class="reference internal" href="zreferences.html#jdwstwlg06" id="id25">[37]</a></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td><code class="docutils literal"><span class="pre">constant</span></code></td>
+<td>constant ice–ocean flux velocity</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">restart_bgc</span></code></td>
+<td>true/false</td>
+<td>restart tracer values from file</td>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">tr_bgc_C_sk</span></code></td>
@@ -3231,7 +3251,7 @@ locations of failures can be identified.</p>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td>&#160;</td>
-<td><code class="docutils literal"><span class="pre">Cdn\_ocn</span></code></td>
+<td><code class="docutils literal"><span class="pre">Cdn_ocn</span></code></td>
 <td>variable ocean heat transfer coefficient</td>
 <td>&#160;</td>
 </tr>
