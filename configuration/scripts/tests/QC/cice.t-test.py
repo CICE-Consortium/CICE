@@ -176,7 +176,7 @@ def two_stage_test(data_a,data_b,num_files,data_d):
     return passed
 
 # Calculate Taylor Skill Score
-def skill_test(path_a,fname,data_a,data_b,num_files,tlat):
+def skill_test(path_a,fname,data_a,data_b,num_files,tlat,hemisphere):
     # First calculate the weight attributed to each grid point (based on Area)
     nfid = nc.Dataset("{}/{}".format(path_a,fname),'r')
     tarea = nfid.variables['tarea'][:]
@@ -221,13 +221,13 @@ def skill_test(path_a,fname,data_a,data_b,num_files,tlat):
     
     s_crit = 0.99
     if s<0 or s>1:
-        logger.error('Skill score out of range')
+        logger.error('Skill score out of range for {} Hemisphere'.format(hemisphere))
         passed = False
     elif s > s_crit:
-        logger.info('Quadratic Skill Test Passed')
+        logger.info('Quadratic Skill Test Passed for {} Hemisphere'.format(hemisphere))
         passed = True
     else:
-        logger.info('Quadratic Skill Test Failed')
+        logger.info('Quadratic Skill Test Failed for {} Hemisphere'.format(hemisphere))
         passed = False
     return passed
 
@@ -275,17 +275,20 @@ if __name__ == "__main__":
     # Run skill test on northern hemisphere
     data_nh_a = ma.masked_array(data_a,mask=mask_nh)
     data_nh_b = ma.masked_array(data_b,mask=mask_nh)
-    passed_nh = skill_test(path_a,fname,data_nh_a,data_nh_b,num_files,tlat)
+    passed_nh = skill_test(path_a,fname,data_nh_a,data_nh_b,num_files,tlat,'Northern')
     
     # Run skill test on southern hemisphere
     data_sh_a = ma.masked_array(data_a,mask=mask_sh)
     data_sh_b = ma.masked_array(data_b,mask=mask_sh)
-    passed_sh = skill_test(path_a,fname,data_sh_a,data_sh_b,num_files,tlat)
+    passed_sh = skill_test(path_a,fname,data_sh_a,data_sh_b,num_files,tlat,'Southern')
     
     passed_skill = passed_nh and passed_sh
     
+    logger.info('')
     if not passed and not passed_skill:
+        logger.error('Quality Control Test FAILED')
         sys.exit(1)  # exit with an error return code
     else:
+        logger.info('Quality Control Test PASSED')
         sys.exit(0)  # exit with successfull return code
     
