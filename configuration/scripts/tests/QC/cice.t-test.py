@@ -11,13 +11,17 @@ import os
 import sys
 import numpy as np
 import numpy.ma as ma
-import itertools
 import logging
 
 def maenumerate(marr):
     mask = ~marr.mask.ravel()
-    for i,m in itertools.izip(np.ndindex(marr.shape[-2:]),mask):
-        if m: yield i
+    try:   # Python 2
+        import itertools
+        for i,m in itertools.izip(np.ndindex(marr.shape[-2:]),mask):
+            if m: yield i
+    except:  # Python 3
+        for i,m in zip(np.ndindex(marr.shape[-2:]),mask):
+            if m: yield i
 
 def read_data(base_dir,test_dir):
     # The path to output files for simulation 'a' (the '-bc' simulation)
