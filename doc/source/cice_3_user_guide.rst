@@ -2238,7 +2238,7 @@ users essentially just need to perform all steps available in run.suite, detaile
   queue manager.  
 - After every job has been submitted and completed, ``cd`` to the suite directory.
 - Parse the results, by running ``./results.csh``.
-- Run the CTest / CTesh script ``ctest -S steer.cmake``.
+- Run the CTest / CDash script ``ctest -S steer.cmake``.
 
 .. _tabnamelist:
 
