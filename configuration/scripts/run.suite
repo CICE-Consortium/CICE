@@ -100,14 +100,6 @@ while (1)
   shift argv
 end
 
-setenv host `uname -n`
-if ("$host" !~ *"$mach"*) then
-  echo "Hostname: $host"
-  echo "Machine: $mach"
-  echo "Host and Machine should be similar.  Ensure that Machine (-m) was set correctly"
-  exit -1
-endif
-
 if ($baseCom == $spval) then
   echo "${0}: ERROR in arguments, -bc is required"
   exit -1
