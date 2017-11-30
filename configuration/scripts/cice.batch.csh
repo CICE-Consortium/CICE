@@ -114,7 +114,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -o slurm%j.out
 ###SBATCH --mail-type END,FAIL
 ###SBATCH --mail-user=eclare@lanl.gov
-#SBATCH --qos=low
+#SBATCH --qos=standby
 EOFB
 
 else if (${ICE_MACHINE} =~ pinto*) then
@@ -127,7 +127,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -o slurm%j.out
 ###SBATCH --mail-type END,FAIL
 ###SBATCH --mail-user=eclare@lanl.gov
-#SBATCH --qos=standby
+#SBATCH --qos=standard
 EOFB
 
 else if (${ICE_MACHINE} =~ testmachine*) then
