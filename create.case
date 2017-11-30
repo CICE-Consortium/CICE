@@ -87,6 +87,7 @@ cat << EOF1
         -ts test suite, pre-defined set of tests to run in column text format.  Current set of predefined tests:
              - "base_suite": runs general set of tests including smoke with debug, restart, etc.
         -td difference output against another case
+        -report include the CTest / CDash files in the suite directory (only used with -ts)
 
       EXAMPLES:
       create.case -h
