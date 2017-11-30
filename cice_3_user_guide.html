@@ -254,7 +254,7 @@ runs</p>
 <p>space-filling-curves distribution method</p>
 <p>essential arrays to describe the state of the ice</p>
 <p>routines for time stepping the major code components</p>
-<p>zero-layer thermodynamics of <a class="reference internal" href="zreferences.html#semtner76" id="id1">[60]</a></p>
+<p>zero-layer thermodynamics of <a class="reference internal" href="zreferences.html#semtner76" id="id1">[64]</a></p>
 <p>multilayer thermodynamics of <a class="reference internal" href="zreferences.html#bl99" id="id2">[7]</a></p>
 <p>thermodynamic changes mostly related to ice thickness distribution</p>
 <p>mushy-theory thermodynamics of:cite:<cite>THB13</cite></p>
@@ -297,12 +297,12 @@ runs</p>
 <div class="section" id="grid-boundary-conditions-and-masks">
 <h3>3.1.2. Grid, boundary conditions and masks<a class="headerlink" href="#grid-boundary-conditions-and-masks" title="Permalink to this headline">¶</a></h3>
 <p>The spatial discretization is specialized for a generalized orthogonal
-B-grid as in <a class="reference internal" href="zreferences.html#murray96" id="id3">[51]</a> or
-<a class="reference internal" href="zreferences.html#skm95" id="id4">[63]</a>. The ice and snow area, volume and energy are
+B-grid as in <a class="reference internal" href="zreferences.html#murray96" id="id3">[54]</a> or
+<a class="reference internal" href="zreferences.html#skm95" id="id4">[67]</a>. The ice and snow area, volume and energy are
 given at the center of the cell, velocity is defined at the corners, and
 the internal ice stress tensor takes four different values within a grid
 cell; bilinear approximations are used for the stress tensor and the ice
-velocity across the cell, as described in <a class="reference internal" href="zreferences.html#hd02" id="id5">[33]</a>.
+velocity across the cell, as described in <a class="reference internal" href="zreferences.html#hd02" id="id5">[34]</a>.
 This tends to avoid the grid decoupling problems associated with the
 B-grid. EVP is available on the C-grid through the MITgcm code
 distribution, <a class="reference external" href="http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/">http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/</a>.</p>
@@ -347,7 +347,7 @@ domain is evenly divided, if this is not possible then the furthest east
 and/or north blocks will contain nonphysical points (“padding”). These
 points are excluded from the computation domain and have little effect
 on model performance.</p>
-<div class="figure align-center" id="id26">
+<div class="figure align-center" id="id39">
 <span id="fig-grid"></span><a class="reference internal image-reference" href="_images/grid.png"><img alt="_images/grid.png" src="_images/grid.png" style="width: 516.8px; height: 416.0px;" /></a>
 <p class="caption"><span class="caption-text">Figure 8</span></p>
 </div>
@@ -601,8 +601,8 @@ coupled mode is determined at compile time, as described below.</p>
 <cite>ice_ic</cite>, <cite>runtype</cite> and <cite>restart</cite>. <span class="math">\(^a\)</span><em>If false, restart is reset to
 true.</em> <span class="math">\(^b\)</span><em>restart is reset to false.</em> <span class="math">\(^c\)</span>ice_ic <em>is
 reset to ‘none.’</em></p>
-<span id="tab-ic"></span><table border="1" class="docutils" id="id27">
-<caption><span class="caption-text">Table 4</span><a class="headerlink" href="#id27" title="Permalink to this table">¶</a></caption>
+<span id="tab-ic"></span><table border="1" class="docutils" id="id40">
+<caption><span class="caption-text">Table 4</span><a class="headerlink" href="#id40" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="13%" />
 <col width="22%" />
@@ -691,10 +691,10 @@ CFL condition, under remapping yields</p>
 </tbody>
 </table>
 <p>As discussed in section&nbsp;<a class="reference internal" href="cice_2_science_guide.html#mech-red"><span class="std std-ref">Mechanical redistribution</span></a> and
-<a class="reference internal" href="zreferences.html#lhmj07" id="id7">[44]</a>, the maximum time step in practice is
+<a class="reference internal" href="zreferences.html#lhmj07" id="id7">[47]</a>, the maximum time step in practice is
 usually determined by the time scale for large changes in the ice
 strength (which depends in part on wind strength). Using the strength
-parameterization of <a class="reference internal" href="zreferences.html#rothrock75" id="id8">[57]</a>, as in
+parameterization of <a class="reference internal" href="zreferences.html#rothrock75" id="id8">[61]</a>, as in
 Equation&nbsp;<a class="reference internal" href="cice_2_science_guide.html#equation-roth-strength0">(101)</a>, limits the time step to <span class="math">\(\sim\)</span>30
 minutes for the old ridging scheme (<cite>krdg_partic</cite> = 0), and to
 <span class="math">\(\sim\)</span>2 hours for the new scheme (<cite>krdg_partic</cite> = 1), assuming
@@ -720,7 +720,7 @@ damping timescale <span class="math">\(T\)</span>, described in Section&nbsp;<a 
 <cite>eyc</cite>* <cite>dt_dyn</cite>. The forcing terms are not updated during the subcycling.
 Given the small step (<cite>dte</cite>) at which the EVP dynamics model is subcycled,
 the elastic parameter <span class="math">\(E\)</span> is also limited by stability
-constraints, as discussed in <a class="reference internal" href="zreferences.html#hd97" id="id9">[32]</a>. Linear stability
+constraints, as discussed in <a class="reference internal" href="zreferences.html#hd97" id="id9">[33]</a>. Linear stability
 analysis for the dynamics component shows that the numerical method is
 stable as long as the subcycling time step <span class="math">\(\Delta t_e\)</span>
 sufficiently resolves the damping timescale <span class="math">\(T\)</span>. For the stability
@@ -744,8 +744,8 @@ stability of the dynamics component; <span class="math">\(\Delta t\)</span> does
 the time step may not be tightly limited by stability considerations,
 large time steps (<em>e.g.,</em> <span class="math">\(\Delta t=1\)</span>&nbsp;day, given daily forcing)
 do not produce accurate results in the dynamics component. The reasons
-for this error are discussed in <a class="reference internal" href="zreferences.html#hd97" id="id11">[32]</a>; see
-<a class="reference internal" href="zreferences.html#hz99" id="id12">[36]</a> for its practical effects. The thermodynamics
+for this error are discussed in <a class="reference internal" href="zreferences.html#hd97" id="id11">[33]</a>; see
+<a class="reference internal" href="zreferences.html#hz99" id="id12">[37]</a> for its practical effects. The thermodynamics
 component is stable for any time step, as long as the surface
 temperature <span class="math">\(T_{sfc}\)</span> is computed internally. The
 numerical constraint on the thermodynamics time step is associated with
@@ -866,8 +866,8 @@ the code, including the dynamics and advection routines.</p>
 <p>The timers use <em>MPI_WTIME</em> for parallel runs and the F90 intrinsic
 <em>system_clock</em> for single-processor runs.</p>
 <p><a class="reference internal" href="#timers"><span class="std std-ref">Table 5</span></a> : <em>CICE timers</em></p>
-<span id="timers"></span><table border="1" class="docutils" id="id28">
-<caption><span class="caption-text">Table 5</span><a class="headerlink" href="#id28" title="Permalink to this table">¶</a></caption>
+<span id="timers"></span><table border="1" class="docutils" id="id41">
+<caption><span class="caption-text">Table 5</span><a class="headerlink" href="#id41" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="18%" />
 <col width="16%" />
@@ -1061,8 +1061,8 @@ directories that you will need to edit for your own environment.
 points automatically to scratch space, is intended to be a disk where
 the run directory resides. <cite>SHRDIR</cite> is a path to the CESM shared code.</p>
 <p><a class="reference internal" href="#comp-ice"><span class="std std-ref">Table 6</span></a> : Configuration options available in <strong>comp_ice</strong>.</p>
-<span id="comp-ice"></span><table border="1" class="docutils" id="id29">
-<caption><span class="caption-text">Table 6</span><a class="headerlink" href="#id29" title="Permalink to this table">¶</a></caption>
+<span id="comp-ice"></span><table border="1" class="docutils" id="id42">
+<caption><span class="caption-text">Table 6</span><a class="headerlink" href="#id42" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="15%" />
 <col width="27%" />
@@ -1233,7 +1233,7 @@ smaller, more numerous blocks, there is a point where the code becomes
 less efficient; blocks should not have fewer than about 20 grid cells in
 each direction. Squarish blocks optimize the volume-to-surface ratio for
 communications.</p>
-<div class="figure align-center" id="id30">
+<div class="figure align-center" id="id43">
 <span id="fig-distrb"></span><a class="reference internal image-reference" href="_images/distrb.png"><img alt="_images/distrb.png" src="_images/distrb.png" style="width: 788.0px; height: 565.5px;" /></a>
 <p class="caption"><span class="caption-text">Figure 9</span></p>
 </div>
@@ -1285,7 +1285,7 @@ characteristics. In the ‘sectcart’ case, the domain is divided into two
 (east-west) halves and the loops are done over each, sequentially.
 <a class="reference internal" href="#fig-distribscorecard"><span class="std std-ref">Figure 10</span></a> provides an overview of the pros and cons
 for the distribution types.</p>
-<div class="figure align-center" id="id31">
+<div class="figure align-center" id="id44">
 <span id="fig-distribscorecard"></span><a class="reference internal image-reference" href="_images/scorecard.png"><img alt="_images/scorecard.png" src="_images/scorecard.png" style="width: 810.0px; height: 610.0px;" /></a>
 <p class="caption"><span class="caption-text">Figure 10</span></p>
 </div>
@@ -1321,7 +1321,7 @@ represent essentially the time needed just to carry an extra tracer. The
 topo melt pond scheme is slightly faster than the others because it
 calculates pond area and volume once per grid cell, while the others
 calculate it for each thickness category.</p>
-<div class="figure align-center" id="id32">
+<div class="figure align-center" id="id45">
 <span id="fig-timings"></span><a class="reference internal image-reference" href="_images/histograms.png"><img alt="_images/histograms.png" src="_images/histograms.png" style="width: 543.8px; height: 312.0px;" /></a>
 <p class="caption"><span class="caption-text">Figure 11</span></p>
 </div>
@@ -1759,8 +1759,8 @@ run and the current run.</p>
 <span id="format"></span><h3>3.6.3. Test suite format<a class="headerlink" href="#test-suite-format" title="Permalink to this headline">¶</a></h3>
 <p>The format for the test suite file is relatively simple.  It is a text file with white space delimited
 columns like,</p>
-<span id="tab-test"></span><table border="1" class="colwidths-given docutils" id="id33">
-<caption><span class="caption-text">Table 7</span><a class="headerlink" href="#id33" title="Permalink to this table">¶</a></caption>
+<span id="tab-test"></span><table border="1" class="colwidths-given docutils" id="id46">
+<caption><span class="caption-text">Table 7</span><a class="headerlink" href="#id46" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="14%" />
 <col width="14%" />
@@ -1928,128 +1928,218 @@ creates the directory wolf_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t
 </div>
 </div>
 <div class="section" id="code-compliance-test">
-<h3>3.6.5. Code compliance test<a class="headerlink" href="#code-compliance-test" title="Permalink to this headline">¶</a></h3>
-<p>Additions and changes to CICE and Icepack are expected to be bit-for-bit
-unless there is a strong justification for non-reproducibility, such as
-a bug-fix or approved scientific alteration to existing code. However,
-situations do arise when additions to CICE or Icepack are not
-bit-for-bit, but are also not expected to change the science of CICE and
-Icepack. In that instant, further evidence is required in the initial
-testing phase to support the premise that code changes have not altered
-the science of the model. To support this testing, a <span class="math">\(t\)</span>-test is
-being/has been implemented in the CICE testing infrastructure.</p>
-<div class="section" id="method">
-<h4>3.6.5.1. Method<a class="headerlink" href="#method" title="Permalink to this headline">¶</a></h4>
-<p>Welch’s two-sided <span class="math">\(t\)</span>-test is used to help determine whether or
-not two different simulations that should be identical are significantly
-different for any grid cell of the CICE gx-1/3 domain for grid-cell
-averaged sea ice thickness, <span class="math">\(h\)</span>, ice concentration, <span class="math">\(c\)</span>, and
-pack velocity components <span class="math">\(\pmb{u}=\pmb{u}(u,v)\)</span>. In this
-circumstance, we seek to determine whether or not the null hypothesis,
-<span class="math">\(H_0\)</span>, is true. The null hypothesis is: Two simulations that are
-not bit-for-bit identical are ostensibly the same at every model grid
-point. The test begins from the standpoint that two CICE simulations
-<em>should</em> be bit-for-bit but are suspected of only being different at the
-level of computational innaccuracy. Therefore, we seek to limit a
-<span class="math">\(t\)</span>-test Type II error, where a test would erroneously confirm the
-null hypothesis, <span class="math">\(H_0\)</span>. To that end, we choose to test the
-hypothesis that grid-point means from CICE simulation ‘<span class="math">\(a\)</span>’ are
-different from CICE simulation ‘<span class="math">\(b\)</span>’ at a relatively low
-confidence interval. Formally, we test the hypothesis
-<span class="math">\(H_0:\bar{x}_a=\bar{x}_b\)</span>, <span class="math">\(H_1:\bar{x}_a\neq\bar{x}_b\)</span> for
-each of the aforementioned variables at every model grid point using a
-two-sided t-test with a 68, 80 and 95% confidence interval. Here,
-<span class="math">\(\bar{x}{=}\tfrac{1}{n}\sum_{i=1}^n x_i\)</span> is the time series mean
-of <span class="math">\(n\)</span> samples <span class="math">\(x_i\)</span> representing <span class="math">\(h\)</span>, <span class="math">\(c\)</span>,
-<span class="math">\(u\)</span> or <span class="math">\(v\)</span>, and daily samples are used from 5-year
-stand-alone CICE simulations. More frequent output is unnecessary,
-because each of <span class="math">\(h\)</span>, <span class="math">\(c\)</span>, <span class="math">\(u\)</span> and <span class="math">\(v\)</span> typically
-have a high degree of auto-correlation in sea ice models.</p>
-<p>Due to the strong auto-correlation in geo-located sea ice time series,
-we calculate a two-sided <span class="math">\(t\)</span>-statistic to compare
-<span class="math">\(\bar{x}_a\)</span> and <span class="math">\(\bar{x}_b\)</span>, given their respective standard
-deviations, <span class="math">\(\sigma_a\)</span> and <span class="math">\(\sigma_b\)</span>, and effective sample
-sizes, <span class="math">\(n'_a\)</span> and <span class="math">\(n'_b\)</span>, following
-<a class="reference internal" href="zreferences.html#vsz99" id="id15">[75]</a> :</p>
+<span id="compliance"></span><h3>3.6.5. Code Compliance Test<a class="headerlink" href="#code-compliance-test" title="Permalink to this headline">¶</a></h3>
+<p>A core tenet of CICE dycore and Icepack innovations is that they must not change
+the physics and biogeochemistry of existing model configurations, notwithstanding
+obsolete model components. Therefore, alterations to existing CICE Consortium code
+must only fix demonstrable numerical or scientific inaccuracies or bugs, or be
+necessary to introduce new science into the code.  New physics and biogeochemistry
+introduced into the model must not change model answers when switched off, and in
+that case CICEcore and Icepack must reproduce answers bit-for-bit as compared to
+previous simulations with the same namelist configurations. This bit-for-bit
+requirement is common in Earth System Modeling projects, but often cannot be achieved
+in practice because model additions may require changes to existing code.  In this
+circumstance, bit-for-bit reproducibility using one compiler may not be unachievable
+on a different computing platform with a different compiler.  Therefore, tools for
+scientific testing of CICE code changes have been developed to accompany bit-for-bit
+testing. These tools exploit the statistical properties of simulated sea ice thickness
+to confirm or deny the null hypothesis, which is that new additions to the CICE dycore
+and Icepack have not significantly altered simulated ice volume using previous model
+configurations.  Here we describe the CICE testing tools, which are applies to output
+from five-year gx-1 simulations that use the standard CICE atmospheric forcing.
+A scientific justification of the testing is provided in
+<a class="reference internal" href="zreferences.html#hunke2018" id="id15">[38]</a>.</p>
+<div class="section" id="two-stage-paired-thickness-test">
+<span id="paired"></span><h4>3.6.5.1. Two-Stage Paired Thickness Test<a class="headerlink" href="#two-stage-paired-thickness-test" title="Permalink to this headline">¶</a></h4>
+<p>The first quality check aims to confirm the null hypotheses
+<span class="math">\(H_0\!:\!\mu_d{=}0\)</span> at every model grid point, given the mean
+thickness difference <span class="math">\(\mu_d\)</span> between paired CICE simulations
+‘<span class="math">\(a\)</span>’ and ‘<span class="math">\(b\)</span>’ that should be identical. <span class="math">\(\mu_d\)</span> is
+approximated as
+<span class="math">\(\bar{h}_{d}=\tfrac{1}{n}\sum_{i=1}^n (h_{ai}{-}h_{bi})\)</span> for
+<span class="math">\(n\)</span> paired samples of ice thickness <span class="math">\(h_{ai}\)</span> and
+<span class="math">\(h_{bi}\)</span> in each grid cell of the gx-1 mesh. Following
+<a class="reference internal" href="zreferences.html#wilks2006" id="id16">[84]</a>, the associated <span class="math">\(t\)</span>-statistic
+expects a zero mean, and is therefore</p>
 <div class="math" id="equation-t-distribution">
-<span class="eqno">(1)<a class="headerlink" href="#equation-t-distribution" title="Permalink to this equation">¶</a></span>\[t=\frac{\bar{x}_a - \bar{x}_b}{\sqrt{\frac{\sigma^2_a}{n'_a}+\frac{\sigma^2_b}{n'_b}}}.\]</div>
-<p>The null hypothesis <span class="math">\(H_0:\bar{x}_a=\bar{x}_b\)</span> is true when</p>
-<div class="math" id="equation-t-crit">
-<span class="eqno">(2)<a class="headerlink" href="#equation-t-crit" title="Permalink to this equation">¶</a></span>\[-t_{crit}({1{-}\alpha/2},N)&lt;t&lt;t_{crit}({1{-}\alpha/2},N)\]</div>
-<p>for critical <span class="math">\(t\)</span>-distribution values, <span class="math">\(t_{crit}\)</span>, at the
-<span class="math">\(\alpha\)</span> significance level for effective degrees of freedom
-<span class="math">\(N = n'_a + n'_b - 2\)</span>. At the 80% confidence interval,
-<span class="math">\(\alpha=0.20\)</span>, with corresponding tabulated values of
-<span class="math">\(t_{crit}(0.9,N)\)</span> obtained from a <span class="math">\(t\)</span>-distribution look-up
-table. From <a class="reference internal" href="zreferences.html#wilks06" id="id16">[79]</a> , we use an unbiased standard
-deviation estimate,</p>
-<div class="math" id="equation-unbiased-sigma">
-<span class="eqno">(3)<a class="headerlink" href="#equation-unbiased-sigma" title="Permalink to this equation">¶</a></span>\[\sigma=\sqrt{\frac{1}{n'-1}\sum_{i=1}^{n}(x_i-\bar{x})^2},\]</div>
-<p>for the effective sample size,</p>
-<div class="math" id="equation-effective-sample-size">
-<span class="eqno">(4)<a class="headerlink" href="#equation-effective-sample-size" title="Permalink to this equation">¶</a></span>\[n' \approx n \frac{1-r_1}{1+r_1},\]</div>
-<p>where <span class="math">\(r_1\)</span> is the lag-1 autocorrelation given by:</p>
-<div class="math" id="equation-lag-1-auto-correlation">
-<span class="eqno">(5)<a class="headerlink" href="#equation-lag-1-auto-correlation" title="Permalink to this equation">¶</a></span>\[r_1=\frac{\sum\limits_{i=1}^{n-1}\big[(x_i-\bar{x}_{1:n-1})(x_{i+1}-\bar{x}_{2:n})\big]}{\sqrt{\sum\limits_{i=1}^{n-1} (x_i-\bar{x}_{1:n-1})^2 \sum\limits_{i=2}^{n} (x_i-\bar{x}_{2:n})^2 }}.\]</div>
-<p>In equation&nbsp;<a class="reference internal" href="#equation-lag-1-auto-correlation">(5)</a>, <span class="math">\(\bar{x}_{1:n-1}\)</span> is
-the mean of all samples except the last, and <span class="math">\(\bar{x}_{2:n}\)</span> is
-the mean of samples except the first, and both differ from the overall
-mean <span class="math">\(\bar{x}\)</span> in equations&nbsp;<a class="reference internal" href="#equation-t-distribution">(1)</a>
-and&nbsp;<a class="reference internal" href="#equation-unbiased-sigma">(3)</a>, which we repeat here for clarity:</p>
+<span class="eqno">(1)<a class="headerlink" href="#equation-t-distribution" title="Permalink to this equation">¶</a></span>\[t=\frac{\bar{h}_{d}}{\sigma_d/\sqrt{n_{eff}}}\]</div>
+<p>given variance
+<span class="math">\(\sigma_d^{\;2}=\frac{1}{n-1}\sum_{i=1}^{n}(h_{di}-\bar{h}_d)^2\)</span>
+of <span class="math">\(h_{di}{=}(h_{ai}{-}h_{bi})\)</span> and effective sample size</p>
+<div class="math" id="equation-neff">
+<span class="eqno">(2)<a class="headerlink" href="#equation-neff" title="Permalink to this equation">¶</a></span>\[n_{eff}{=}n\frac{({1-r_1})}{({1+r_1})}\]</div>
+<p>for lag-1 autocorrelation:</p>
+<div class="math" id="equation-r1">
+<span class="eqno">(3)<a class="headerlink" href="#equation-r1" title="Permalink to this equation">¶</a></span>\[r_1=\frac{\sum\limits_{i=1}^{n-1}\big[(h_{di}-\bar{h}_{d1:n-1})(h_{di+1}-\bar{h}_{d2:n})\big]}{\sqrt{\sum\limits_{i=1}^{n-1} (h_{di}-\bar{h}_{d1:n-1})^2 \sum\limits_{i=2}^{n} (h_{di}-\bar{h}_{d2:n})^2 }}.\]</div>
+<p>Here, <span class="math">\(\bar{h}_{d1:n-1}\)</span> is the mean of all samples except the
+last, and <span class="math">\(\bar{h}_{d2:n}\)</span> is the mean of samples except the
+first, and both differ from the overall mean <span class="math">\(\bar{h}_d\)</span> in
+equations&nbsp;(<a class="reference internal" href="#equation-t-distribution">(1)</a>). That is:</p>
 <div class="math" id="equation-short-means">
-<span class="eqno">(6)<a class="headerlink" href="#equation-short-means" title="Permalink to this equation">¶</a></span>\[\bar{x}_{1:n-1}=\frac{1}{n{-}1} \sum \limits_{i=1}^{n-1} x_i,\quad
-\bar{x}_{2:n}=\frac{1}{n{-}1} \sum \limits_{i=2}^{n} x_i,\quad
-\bar{x}=\frac{1}{n} \sum \limits_{i=1}^{n} x_i\]</div>
-<p>In applying equations&nbsp;<a class="reference internal" href="#equation-t-distribution">(1)</a> through&nbsp;<a class="reference internal" href="#equation-short-means">(6)</a>,
-we are accounting for the fact, however imperfectly, that a
-<span class="math">\(t\)</span>-test should be a comparison of the means from two series of
-independent samples. The typical affect of applying these equations to
-sea ice model output is that <span class="math">\(n' \ll n\)</span>. For that reason, we need
-a lengthy time series to narrow the range of acceptable values
-in&nbsp;<a class="reference internal" href="#equation-t-crit">(2)</a>. There is little point in using more frequent output
-from CICE than daily instantaneous values, since this would have little
-impact on decreasing <span class="math">\(r_1\)</span> in <a class="reference internal" href="#equation-lag-1-auto-correlation">(5)</a>.</p>
-<p>Using these equations, a standard procedure in testing for
-science-changing answers in CICE and Icepack is as follows: First, make
-every attempt to obtain bit-for-bit reproducibility in the model code.
-Once all available software-testing options have been exhausted, and the
-source of the bit-for-bit test failure has been pinpointed, proceed with
-the <span class="math">\(t\)</span>-test documented above if the expectation is that code
-alterations should not be science-changing.
-Equations&nbsp;<a class="reference internal" href="#equation-t-distribution">(1)</a> through&nbsp;<a class="reference internal" href="#equation-short-means">(6)</a> are
-implemented in the reverse order from which they are presented here, and
-applied individually to daily samples of <span class="math">\(h\)</span>, <span class="math">\(c\)</span>, <span class="math">\(u\)</span>
-and <span class="math">\(v\)</span> from 5-year time series at every model grid point: i)
-Calculate <span class="math">\(\bar{x}_{1:n-1}\)</span>, <span class="math">\(\bar{x}_{2:n}\)</span>, and
-<span class="math">\(\bar{x}\)</span> in <a class="reference internal" href="#equation-short-means">(6)</a> for simulations <span class="math">\(a\)</span> and
-<span class="math">\(b\)</span>; ii) Compute <a class="reference internal" href="#equation-lag-1-auto-correlation">(5)</a>,
-<a class="reference internal" href="#equation-effective-sample-size">(4)</a> and <a class="reference internal" href="#equation-unbiased-sigma">(3)</a>, in that order,
-for each simulation <span class="math">\(a\)</span> and <span class="math">\(b\)</span>, and finally; iii) Determine
-whether the null hypothesis is true at each model grid point in
-<a class="reference internal" href="#equation-t-crit">(2)</a> using equation <a class="reference internal" href="#equation-t-distribution">(1)</a> and a lookup
-<span class="math">\(t\)</span>-distribution table. Should <span class="math">\(H_0\)</span> be confirmed at each
-grid point, and for each variable <span class="math">\(h\)</span>, <span class="math">\(c\)</span>, <span class="math">\(u\)</span> and
-<span class="math">\(v\)</span>, this test contributes to evidence that changes to CICE and
-Icepack code are unlikely to alter scientific results. To guard against
-the possibility of a Type II error, the test should be performed for
-several different confidence intervals, nominally set at 68, 80 and 95%,
-the first and last of these values corresponding to <span class="math">\(\sigma\)</span> and
-<span class="math">\(2\sigma\)</span> tests.</p>
+<span class="eqno">(4)<a class="headerlink" href="#equation-short-means" title="Permalink to this equation">¶</a></span>\[\bar{h}_{d1:n-1}=\frac{1}{n{-}1} \sum \limits_{i=1}^{n-1} h_{di},\quad
+\bar{h}_{d2:n}=\frac{1}{n{-}1} \sum \limits_{i=2}^{n} h_{di},\quad
+\bar{h}_d=\frac{1}{n} \sum \limits_{i=1}^{n} {h}_{di}\]</div>
+<p>Following <a class="reference internal" href="zreferences.html#zwiers1995" id="id17">[85]</a>, the effective sample size is
+limited to <span class="math">\(n_{eff}\in[2,n]\)</span>. This definition of <span class="math">\(n_{eff}\)</span>
+assumes ice thickness evolves as an AR(1) process
+<a class="reference internal" href="zreferences.html#vonstorch1999" id="id18">[80]</a>, which can be justified by analyzing
+the spectral density of daily samples of ice thickness from 5-year
+records in CICE Consortium member models <a class="reference internal" href="zreferences.html#hunke2018" id="id19">[38]</a>.
+The AR(1) approximation is inadmissible for paired velocity samples,
+because ice drift possesses periodicity from inertia and tides
+<a class="reference internal" href="zreferences.html#hibler2006" id="id20">[29]</a><a class="reference internal" href="zreferences.html#lepparanta2012" id="id21">[43]</a><a class="reference internal" href="zreferences.html#roberts2015" id="id22">[59]</a>. Conversely,
+tests of paired ice concentration samples may be less sensitive to ice
+drift than ice thickness. In short, ice thickness is the best variable
+for CICE Consortium quality control (QC), and for the test of the mean
+in particular.</p>
+<p>Care is required in analyzing mean sea ice thickness changes using
+(<a class="reference internal" href="#equation-t-distribution">(1)</a>) with
+<span class="math">\(N{=}n_{eff}{-}1\)</span> degrees of freedom.
+<a class="reference internal" href="zreferences.html#zwiers1995" id="id23">[85]</a> demonstrate that the <span class="math">\(t\)</span>-test in
+(<a class="reference internal" href="#equation-t-distribution">(1)</a>) becomes conservative when
+<span class="math">\(n_{eff} &lt; 30\)</span>, meaning that <span class="math">\(H_0\)</span> may be erroneously
+confirmed for highly auto-correlated series. Strong autocorrelation
+frequently occurs in modeled sea ice thickness, and <span class="math">\(r_1&gt;0.99\)</span> is
+possible in parts of the gx-1 domain for the five-year QC simulations.
+In the event that <span class="math">\(H_0\)</span> is confirmed but <span class="math">\(2\leq n_{eff}&lt;30\)</span>,
+the <span class="math">\(t\)</span>-test progresses to the ‘Table Lookup Test’ of
+<a class="reference internal" href="zreferences.html#zwiers1995" id="id24">[85]</a>, to check that the first-stage test
+using (<a class="reference internal" href="#equation-t-distribution">(1)</a>) was not
+conservative. The Table Lookup Test chooses critical <span class="math">\(t\)</span> values
+<span class="math">\(|t|&lt;t_{crit}({1{-}\alpha/2},N)\)</span> at the <span class="math">\(\alpha\)</span>
+significance level based on <span class="math">\(r_1\)</span>. It uses the conventional
+<span class="math">\(t={\bar{h}_{d} \sqrt{n}}/{\sigma_d}\)</span> statistic with degrees of
+freedom <span class="math">\(N{=}n{-}1\)</span>, but with <span class="math">\(t_{crit}\)</span> values generated
+using the Monte Carlo technique described in
+<a class="reference internal" href="zreferences.html#zwiers1995" id="id25">[85]</a>, and summarized in <a class="reference internal" href="#table-lookup"><span class="std std-ref">Table 1</span></a> for 5-year QC
+simulations (<span class="math">\(N=1824\)</span>) at the two-sided 80% confidence interval
+(<span class="math">\(\alpha=0.2\)</span>). We choose this interval to limit Type II errors,
+whereby a QC test erroneously confirms <span class="math">\(H_0\)</span>.</p>
+<p><a class="reference internal" href="#table-lookup"><span class="std std-ref">Table 1</span></a> : Summary of two-sided <span class="math">\(t_{crit}\)</span> values for the Table
+Lookup Test of <a class="reference internal" href="zreferences.html#zwiers1995" id="id26">[85]</a> at the 80% confidence
+interval generated for <span class="math">\(N=1824\)</span> degrees of freedom and lag-1
+autocorrelation <span class="math">\(r_1\)</span>.</p>
+<span id="table-lookup"></span><table border="1" class="colwidths-given docutils align-right" id="id47">
+<caption><span class="caption-text">Table 1</span><a class="headerlink" href="#id47" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="14%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><span class="math">\(r_1\)</span></td>
+<td>-0.05</td>
+<td>0.0</td>
+<td>0.2</td>
+<td>0.4</td>
+<td>0.5</td>
+<td>0.6</td>
+<td>0.7</td>
+<td>0.8</td>
+<td>0.9</td>
+<td>0.95</td>
+<td>0.97</td>
+<td>0.99</td>
+</tr>
+<tr class="row-even"><td><span class="math">\(t_{crit}\)</span></td>
+<td>1.32</td>
+<td>1.32</td>
+<td>1.54</td>
+<td>2.02</td>
+<td>2.29</td>
+<td>2.46</td>
+<td>3.17</td>
+<td>3.99</td>
+<td>5.59</td>
+<td>8.44</td>
+<td>10.85</td>
+<td>20.44</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
 </div>
-<div class="section" id="practical-testing-procedure">
-<h4>3.6.5.2. Practical Testing Procedure<a class="headerlink" href="#practical-testing-procedure" title="Permalink to this headline">¶</a></h4>
-<p>To be placed here: Write up of how to actually do this test within the
-testing software to be added by Elizabeth, Rick, Matt, Tony et al….</p>
-<p>Implementation notes: 1) Provide a pass/fail on each of the confidence
-intervals, 2) Facilitate output of a bitmap for each test so that
-locations of failures can be identified.</p>
+</div>
+<div class="section" id="quadratic-skill-compliance-test">
+<span id="quadratic"></span><h4>3.6.5.2. Quadratic Skill Compliance Test<a class="headerlink" href="#quadratic-skill-compliance-test" title="Permalink to this headline">¶</a></h4>
+<p>In addition to the two-stage test of mean sea ice thickness, we also
+check that paired simulations are highly correlated and have similar
+variance using a skill metric adapted from
+<a class="reference internal" href="zreferences.html#taylor2001" id="id27">[72]</a>. A general skill score applicable to
+Taylor diagrams takes the form</p>
+<div class="math" id="equation-taylor-skill">
+<span class="eqno">(5)<a class="headerlink" href="#equation-taylor-skill" title="Permalink to this equation">¶</a></span>\[S_m=\frac{4(1+R)^m}{({\hat{\sigma}_{f}+1/{\hat{\sigma}_{f}}})^2 (1+R_0)^m}\]</div>
+<p>where <span class="math">\(m=1\)</span> for variance-weighted skill, and <span class="math">\(m=4\)</span> for
+correlation-weighted performance, as given in equations (4) and (5) of
+<a class="reference internal" href="zreferences.html#taylor2001" id="id28">[72]</a>, respectively. We choose <span class="math">\(m=2\)</span> to
+balance the importance of variance and correlation reproduction in QC
+tests, where <span class="math">\(\hat{\sigma}_{f}={\sigma_{b}}/{\sigma_{a}}\)</span> is the ratio
+of the standard deviations of simulations ‘<span class="math">\(b\)</span>’ and ‘<span class="math">\(a\)</span>’,
+respectively, and simulation ‘<span class="math">\(a\)</span>’ is the control. <span class="math">\(R_0\)</span> is
+the maximum possible correlation between two series for correlation
+coefficient <span class="math">\(R\)</span> calculated between respective thickness pairs
+<span class="math">\(h_{a}\)</span> and <span class="math">\(h_{b}\)</span>. Bit-for-bit reproduction of previous
+CICE simulations means that perfect correlation is possible, and so
+<span class="math">\(R_0=1\)</span>, giving the quadratic skill of run ‘<span class="math">\(b\)</span>’ relative to
+run ‘<span class="math">\(a\)</span>’:</p>
+<div class="math" id="equation-quadratic-skill">
+<span class="eqno">(6)<a class="headerlink" href="#equation-quadratic-skill" title="Permalink to this equation">¶</a></span>\[S=\bigg[ \frac{(1+R) (\sigma_a \sigma_b)}{({\sigma_a}^2 + {\sigma_b}^2)} \bigg]^2\]</div>
+<p>This provides a skill score between 0 and 1. We apply this <span class="math">\(S\)</span>
+metric separately to the northern and southern hemispheres of the gx-1
+grid by area-weighting the daily thickness samples discussed in the
+Two-Stage Paired Thickness QC Test. The hemispheric mean thickness over
+a 5-year simulation for run ‘<span class="math">\(a\)</span>’ is:</p>
+<div class="math" id="equation-h-bar">
+<span class="eqno">(7)<a class="headerlink" href="#equation-h-bar" title="Permalink to this equation">¶</a></span>\[\bar{h}_{a}=\frac{1}{n} \sum_{i=1}^{n} \sum_{j=1}^{J} \ W_{j} \; h_{{a}_{i,j}}\]</div>
+<p>at time sample <span class="math">\(i\)</span> and grid point index <span class="math">\(j\)</span>, with an
+equivalent equation for simulation ‘<span class="math">\(b\)</span>’. <span class="math">\(n\)</span> is the total
+number of time samples (nominally <span class="math">\(n=1825\)</span>) and <span class="math">\(J\)</span> is the
+total number of grid points on the gx-1 grid. <span class="math">\(W_j\)</span> is the weight
+attributed to each grid point according to its area <span class="math">\(A_{j}\)</span>, given
+as</p>
+<div class="math" id="equation-area-weight">
+<span class="eqno">(8)<a class="headerlink" href="#equation-area-weight" title="Permalink to this equation">¶</a></span>\[W_{j}=\frac{ A_{j} }{\sum_{j=1}^{J} A_{j}}\]</div>
+<p>for all grid points within each hemisphere with one or more non-zero
+thicknesses in one or both sets of samples <span class="math">\(h_{{a}_{i,j}}\)</span> or
+<span class="math">\(h_{{b}_{i,j}}\)</span>. The area-weighted variance for simulation
+‘<span class="math">\(a\)</span>’ is:</p>
+<div class="math" id="equation-weighted-deviation">
+<span class="eqno">(9)<a class="headerlink" href="#equation-weighted-deviation" title="Permalink to this equation">¶</a></span>\[\sigma_a^{\;2}=\frac{\hat{J}}{(n\,\hat{J}-1)} \sum_{i=1}^{n} \sum_{j=1}^{J}  W_{j} \, (h_{{a}_{i,j}}-\bar{h}_{a})^2\]</div>
+<p>where <span class="math">\(\hat{J}\)</span> is the number of non-zero <span class="math">\(W_j\)</span> weights,
+and <span class="math">\(\sigma_b\)</span> is calculated equivalently for run ‘<span class="math">\(b\)</span>’. In
+this context, <span class="math">\(R\)</span> becomes a weighted correlation coefficient,
+calculated as</p>
+<div class="math" id="equation-R">
+<span class="eqno">(10)<a class="headerlink" href="#equation-R" title="Permalink to this equation">¶</a></span>\[R=\frac{\textrm{cov}(h_{a},h_{b})}{\sigma_a \; \sigma_b}\]</div>
+<p>given the weighted covariance</p>
+<div class="math" id="equation-weighted-covariance">
+<span class="eqno">(11)<a class="headerlink" href="#equation-weighted-covariance" title="Permalink to this equation">¶</a></span>\[\textrm{cov}(h_{a},h_{b})=\frac{\hat{J}}{(n\,\hat{J}-1)} \sum_{i=1}^{n} \sum_{j=1}^{J}  W_{j} \, (h_{{a}_{i,j}}-\bar{h}_{a}) (h_{{b}_{i,j}}-\bar{h}_{b}).\]</div>
+<p>Using equations&nbsp;(<a class="reference internal" href="#equation-quadratic-skill">(6)</a>)
+to&nbsp;(<a class="reference internal" href="#equation-weighted-covariance">(11)</a>), the skill
+score <span class="math">\(S\)</span> is calculated separately for the northern and southern
+hemispheres, and must exceed a critical value nominally set to
+<span class="math">\(S_{crit}=0.99\)</span> to pass the test. Practical illustrations of this
+test and the Two-Stage test described in the previous section are
+provided in <a class="reference internal" href="zreferences.html#hunke2018" id="id29">[38]</a>.</p>
 </div>
 </div>
 </div>
 <div class="section" id="table-of-namelist-options">
 <span id="tabnamelist"></span><h2>3.7. Table of namelist options<a class="headerlink" href="#table-of-namelist-options" title="Permalink to this headline">¶</a></h2>
-<span id="tab-namelist"></span><table border="1" class="colwidths-given docutils" id="id34">
-<caption><span class="caption-text">Table 8</span><a class="headerlink" href="#id34" title="Permalink to this table">¶</a></caption>
+<span id="tab-namelist"></span><table border="1" class="colwidths-given docutils" id="id48">
+<caption><span class="caption-text">Table 8</span><a class="headerlink" href="#id48" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="20%" />
 <col width="20%" />
@@ -2684,12 +2774,12 @@ locations of failures can be identified.</p>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">conduct</span></code></td>
 <td><code class="docutils literal"><span class="pre">MU71</span></code></td>
-<td>conductivity <a class="reference internal" href="zreferences.html#mu71" id="id17">[50]</a></td>
+<td>conductivity <a class="reference internal" href="zreferences.html#mu71" id="id30">[53]</a></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td>&#160;</td>
 <td><code class="docutils literal"><span class="pre">bubbly</span></code></td>
-<td>conductivity <a class="reference internal" href="zreferences.html#petb07" id="id18">[55]</a></td>
+<td>conductivity <a class="reference internal" href="zreferences.html#petb07" id="id31">[58]</a></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">a_rapid_mode</span></code></td>
@@ -2774,12 +2864,12 @@ locations of failures can be identified.</p>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">kstrength</span></code></td>
 <td><code class="docutils literal"><span class="pre">0</span></code></td>
-<td>ice strength formulation <a class="reference internal" href="zreferences.html#hibler79" id="id19">[26]</a></td>
+<td>ice strength formulation <a class="reference internal" href="zreferences.html#hibler79" id="id32">[26]</a></td>
 <td>1</td>
 </tr>
 <tr class="row-even"><td>&#160;</td>
 <td><code class="docutils literal"><span class="pre">1</span></code></td>
-<td>ice strength formulation <a class="reference internal" href="zreferences.html#rothrock75" id="id20">[57]</a></td>
+<td>ice strength formulation <a class="reference internal" href="zreferences.html#rothrock75" id="id33">[61]</a></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">krdg_partic</span></code></td>
@@ -3000,7 +3090,7 @@ locations of failures can be identified.</p>
 <td>restore bgc to data</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><a href="#id21"><span class="problematic" id="id22">``</span></a>solve_zsal`</td>
+<tr class="row-even"><td><a href="#id34"><span class="problematic" id="id35">``</span></a>solve_zsal`</td>
 <td>true/false</td>
 <td>update salinity tracer profile</td>
 <td>&#160;</td>
@@ -3022,7 +3112,7 @@ locations of failures can be identified.</p>
 </tr>
 <tr class="row-even"><td>&#160;</td>
 <td><code class="docutils literal"><span class="pre">clim</span></code></td>
-<td>silicate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id23">[23]</a></td>
+<td>silicate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id36">[23]</a></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">nit_data_type</span></code></td>
@@ -3032,7 +3122,7 @@ locations of failures can be identified.</p>
 </tr>
 <tr class="row-even"><td>&#160;</td>
 <td><code class="docutils literal"><span class="pre">clim</span></code></td>
-<td>nitrate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id24">[23]</a></td>
+<td>nitrate forcing from ocean climatology <a class="reference internal" href="zreferences.html#glba06" id="id37">[23]</a></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td>&#160;</td>
@@ -3052,7 +3142,7 @@ locations of failures can be identified.</p>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">bgc_flux_type</span></code></td>
 <td><code class="docutils literal"><span class="pre">Jin2006</span></code></td>
-<td>ice–ocean flux velocity of <a class="reference internal" href="zreferences.html#jdwstwlg06" id="id25">[37]</a></td>
+<td>ice–ocean flux velocity of <a class="reference internal" href="zreferences.html#jdwstwlg06" id="id38">[39]</a></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td>&#160;</td>
@@ -3419,12 +3509,47 @@ locations of failures can be identified.</p>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">3. User Guide</a><ul>
-<li><a class="reference internal" href="#numerical-implementation">3.1. Numerical implementation</a></li>
-<li><a class="reference internal" href="#execution-procedures">3.2. Execution procedures</a></li>
+<li><a class="reference internal" href="#numerical-implementation">3.1. Numerical implementation</a><ul>
+<li><a class="reference internal" href="#directory-structure">3.1.1. Directory structure</a></li>
+<li><a class="reference internal" href="#grid-boundary-conditions-and-masks">3.1.2. Grid, boundary conditions and masks</a></li>
+<li><a class="reference internal" href="#test-configurations">3.1.3. Test configurations</a></li>
+<li><a class="reference internal" href="#initialization-and-coupling">3.1.4. Initialization and coupling</a></li>
+<li><a class="reference internal" href="#choosing-an-appropriate-time-step">3.1.5. Choosing an appropriate time step</a></li>
+<li><a class="reference internal" href="#model-output">3.1.6. Model output</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#execution-procedures">3.2. Execution procedures</a><ul>
+<li><a class="reference internal" href="#scripts">3.2.1. Scripts</a></li>
+<li><a class="reference internal" href="#directories">3.2.2. Directories</a></li>
+<li><a class="reference internal" href="#local-modifications">3.2.3. Local modifications</a></li>
+<li><a class="reference internal" href="#forcing-data">3.2.4. Forcing data</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#performance">3.3. Performance</a></li>
-<li><a class="reference internal" href="#adding-things">3.4. Adding things</a></li>
-<li><a class="reference internal" href="#troubleshooting">3.5. Troubleshooting</a></li>
-<li><a class="reference internal" href="#testing-cice">3.6. Testing CICE</a></li>
+<li><a class="reference internal" href="#adding-things">3.4. Adding things</a><ul>
+<li><a class="reference internal" href="#addtimer">3.4.1. Timers</a></li>
+<li><a class="reference internal" href="#history-fields">3.4.2. History fields</a></li>
+<li><a class="reference internal" href="#tracers">3.4.3. Tracers</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#troubleshooting">3.5. Troubleshooting</a><ul>
+<li><a class="reference internal" href="#initial-setup">3.5.1. Initial setup</a></li>
+<li><a class="reference internal" href="#restarts">3.5.2. Restarts</a></li>
+<li><a class="reference internal" href="#slow-execution">3.5.3. Slow execution</a></li>
+<li><a class="reference internal" href="#debugging-hints">3.5.4. Debugging hints</a></li>
+<li><a class="reference internal" href="#known-bugs">3.5.5. Known bugs</a></li>
+<li><a class="reference internal" href="#interpretation-of-albedos">3.5.6. Interpretation of albedos</a></li>
+<li><a class="reference internal" href="#proliferating-subprocess-parameterizations">3.5.7. Proliferating subprocess parameterizations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#testing-cice">3.6. Testing CICE</a><ul>
+<li><a class="reference internal" href="#individual-tests-and-test-suites">3.6.1. Individual tests and test suites</a></li>
+<li><a class="reference internal" href="#additional-testing-options">3.6.2. Additional testing options</a></li>
+<li><a class="reference internal" href="#test-suite-format">3.6.3. Test suite format</a></li>
+<li><a class="reference internal" href="#example-tests-quickstart">3.6.4. Example Tests (Quickstart)</a></li>
+<li><a class="reference internal" href="#code-compliance-test">3.6.5. Code Compliance Test</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#table-of-namelist-options">3.7. Table of namelist options</a></li>
 </ul>
 </li>

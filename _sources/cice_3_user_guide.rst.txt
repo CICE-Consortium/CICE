@@ -1,4 +1,4 @@
-:tocdepth: 2
+:tocdepth: 3
 
 User Guide
 ==========
@@ -2047,151 +2047,221 @@ Additional Details
     end of the case directory.  For example, "./create.case -m wolf -t smoke -testid t12 -p 4x1"
     creates the directory wolf_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t or -ts.
 
+.. _compliance:
+
 ~~~~~~~~~~~~~~~~~~~~
-Code compliance test
+Code Compliance Test
 ~~~~~~~~~~~~~~~~~~~~
 
-Additions and changes to CICE and Icepack are expected to be bit-for-bit
-unless there is a strong justification for non-reproducibility, such as
-a bug-fix or approved scientific alteration to existing code. However,
-situations do arise when additions to CICE or Icepack are not
-bit-for-bit, but are also not expected to change the science of CICE and
-Icepack. In that instant, further evidence is required in the initial
-testing phase to support the premise that code changes have not altered
-the science of the model. To support this testing, a :math:`t`-test is
-being/has been implemented in the CICE testing infrastructure.
+A core tenet of CICE dycore and Icepack innovations is that they must not change 
+the physics and biogeochemistry of existing model configurations, notwithstanding 
+obsolete model components. Therefore, alterations to existing CICE Consortium code
+must only fix demonstrable numerical or scientific inaccuracies or bugs, or be 
+necessary to introduce new science into the code.  New physics and biogeochemistry 
+introduced into the model must not change model answers when switched off, and in 
+that case CICEcore and Icepack must reproduce answers bit-for-bit as compared to 
+previous simulations with the same namelist configurations. This bit-for-bit 
+requirement is common in Earth System Modeling projects, but often cannot be achieved 
+in practice because model additions may require changes to existing code.  In this 
+circumstance, bit-for-bit reproducibility using one compiler may not be unachievable 
+on a different computing platform with a different compiler.  Therefore, tools for 
+scientific testing of CICE code changes have been developed to accompany bit-for-bit 
+testing. These tools exploit the statistical properties of simulated sea ice thickness 
+to confirm or deny the null hypothesis, which is that new additions to the CICE dycore 
+and Icepack have not significantly altered simulated ice volume using previous model 
+configurations.  Here we describe the CICE testing tools, which are applies to output 
+from five-year gx-1 simulations that use the standard CICE atmospheric forcing. 
+A scientific justification of the testing is provided in
+:cite:`Hunke2018`.
 
-******
-Method
-******
+.. _paired:
 
-Welch’s two-sided :math:`t`-test is used to help determine whether or
-not two different simulations that should be identical are significantly
-different for any grid cell of the CICE gx-1/3 domain for grid-cell
-averaged sea ice thickness, :math:`h`, ice concentration, :math:`c`, and
-pack velocity components :math:`\pmb{u}=\pmb{u}(u,v)`. In this
-circumstance, we seek to determine whether or not the null hypothesis,
-:math:`H_0`, is true. The null hypothesis is: Two simulations that are
-not bit-for-bit identical are ostensibly the same at every model grid
-point. The test begins from the standpoint that two CICE simulations
-*should* be bit-for-bit but are suspected of only being different at the
-level of computational innaccuracy. Therefore, we seek to limit a
-:math:`t`-test Type II error, where a test would erroneously confirm the
-null hypothesis, :math:`H_0`. To that end, we choose to test the
-hypothesis that grid-point means from CICE simulation ‘:math:`a`’ are
-different from CICE simulation ‘:math:`b`’ at a relatively low
-confidence interval. Formally, we test the hypothesis
-:math:`H_0:\bar{x}_a=\bar{x}_b`, :math:`H_1:\bar{x}_a\neq\bar{x}_b` for
-each of the aforementioned variables at every model grid point using a
-two-sided t-test with a 68, 80 and 95% confidence interval. Here,
-:math:`\bar{x}{=}\tfrac{1}{n}\sum_{i=1}^n x_i` is the time series mean
-of :math:`n` samples :math:`x_i` representing :math:`h`, :math:`c`,
-:math:`u` or :math:`v`, and daily samples are used from 5-year
-stand-alone CICE simulations. More frequent output is unnecessary,
-because each of :math:`h`, :math:`c`, :math:`u` and :math:`v` typically
-have a high degree of auto-correlation in sea ice models.
+*******************************
+Two-Stage Paired Thickness Test
+*******************************
 
-Due to the strong auto-correlation in geo-located sea ice time series,
-we calculate a two-sided :math:`t`-statistic to compare
-:math:`\bar{x}_a` and :math:`\bar{x}_b`, given their respective standard
-deviations, :math:`\sigma_a` and :math:`\sigma_b`, and effective sample
-sizes, :math:`n'_a` and :math:`n'_b`, following
-:cite:`vSZ99` :
+The first quality check aims to confirm the null hypotheses
+:math:`H_0\!:\!\mu_d{=}0` at every model grid point, given the mean
+thickness difference :math:`\mu_d` between paired CICE simulations
+‘:math:`a`’ and ‘:math:`b`’ that should be identical. :math:`\mu_d` is
+approximated as
+:math:`\bar{h}_{d}=\tfrac{1}{n}\sum_{i=1}^n (h_{ai}{-}h_{bi})` for
+:math:`n` paired samples of ice thickness :math:`h_{ai}` and
+:math:`h_{bi}` in each grid cell of the gx-1 mesh. Following
+:cite:`Wilks2006`, the associated :math:`t`-statistic
+expects a zero mean, and is therefore
 
 .. math::
-   t=\frac{\bar{x}_a - \bar{x}_b}{\sqrt{\frac{\sigma^2_a}{n'_a}+\frac{\sigma^2_b}{n'_b}}}.
+   t=\frac{\bar{h}_{d}}{\sigma_d/\sqrt{n_{eff}}}
    :label: t-distribution
 
-The null hypothesis :math:`H_0:\bar{x}_a=\bar{x}_b` is true when
+given variance
+:math:`\sigma_d^{\;2}=\frac{1}{n-1}\sum_{i=1}^{n}(h_{di}-\bar{h}_d)^2`
+of :math:`h_{di}{=}(h_{ai}{-}h_{bi})` and effective sample size
 
 .. math::
-   -t_{crit}({1{-}\alpha/2},N)<t<t_{crit}({1{-}\alpha/2},N)
-   :label: t-crit
+   n_{eff}{=}n\frac{({1-r_1})}{({1+r_1})}
+   :label: neff
 
-
-for critical :math:`t`-distribution values, :math:`t_{crit}`, at the
-:math:`\alpha` significance level for effective degrees of freedom
-:math:`N = n'_a + n'_b - 2`. At the 80% confidence interval,
-:math:`\alpha=0.20`, with corresponding tabulated values of
-:math:`t_{crit}(0.9,N)` obtained from a :math:`t`-distribution look-up
-table. From :cite:`Wilks06` , we use an unbiased standard
-deviation estimate,
+for lag-1 autocorrelation:
 
 .. math::
-   \sigma=\sqrt{\frac{1}{n'-1}\sum_{i=1}^{n}(x_i-\bar{x})^2},
-   :label: unbiased-sigma
+   r_1=\frac{\sum\limits_{i=1}^{n-1}\big[(h_{di}-\bar{h}_{d1:n-1})(h_{di+1}-\bar{h}_{d2:n})\big]}{\sqrt{\sum\limits_{i=1}^{n-1} (h_{di}-\bar{h}_{d1:n-1})^2 \sum\limits_{i=2}^{n} (h_{di}-\bar{h}_{d2:n})^2 }}.
+   :label: r1
 
-for the effective sample size,
-
-.. math::
-   n' \approx n \frac{1-r_1}{1+r_1},
-   :label: effective-sample-size
-
-where :math:`r_1` is the lag-1 autocorrelation given by:
+Here, :math:`\bar{h}_{d1:n-1}` is the mean of all samples except the
+last, and :math:`\bar{h}_{d2:n}` is the mean of samples except the
+first, and both differ from the overall mean :math:`\bar{h}_d` in
+equations (:eq:`t-distribution`). That is:
 
 .. math::
-   r_1=\frac{\sum\limits_{i=1}^{n-1}\big[(x_i-\bar{x}_{1:n-1})(x_{i+1}-\bar{x}_{2:n})\big]}{\sqrt{\sum\limits_{i=1}^{n-1} (x_i-\bar{x}_{1:n-1})^2 \sum\limits_{i=2}^{n} (x_i-\bar{x}_{2:n})^2 }}.
-   :label: lag-1-auto-correlation
-
-In equation :eq:`lag-1-auto-correlation`, :math:`\bar{x}_{1:n-1}` is
-the mean of all samples except the last, and :math:`\bar{x}_{2:n}` is
-the mean of samples except the first, and both differ from the overall
-mean :math:`\bar{x}` in equations :eq:`t-distribution`
-and :eq:`unbiased-sigma`, which we repeat here for clarity:
-
-.. math::
-   \bar{x}_{1:n-1}=\frac{1}{n{-}1} \sum \limits_{i=1}^{n-1} x_i,\quad 
-   \bar{x}_{2:n}=\frac{1}{n{-}1} \sum \limits_{i=2}^{n} x_i,\quad
-   \bar{x}=\frac{1}{n} \sum \limits_{i=1}^{n} x_i
+   \bar{h}_{d1:n-1}=\frac{1}{n{-}1} \sum \limits_{i=1}^{n-1} h_{di},\quad 
+   \bar{h}_{d2:n}=\frac{1}{n{-}1} \sum \limits_{i=2}^{n} h_{di},\quad
+   \bar{h}_d=\frac{1}{n} \sum \limits_{i=1}^{n} {h}_{di}
    :label: short-means
 
-In applying equations :eq:`t-distribution` through :eq:`short-means`,
-we are accounting for the fact, however imperfectly, that a
-:math:`t`-test should be a comparison of the means from two series of
-independent samples. The typical affect of applying these equations to
-sea ice model output is that :math:`n' \ll n`. For that reason, we need
-a lengthy time series to narrow the range of acceptable values
-in :eq:`t-crit`. There is little point in using more frequent output
-from CICE than daily instantaneous values, since this would have little
-impact on decreasing :math:`r_1` in :eq:`lag-1-auto-correlation`.
+Following :cite:`Zwiers1995`, the effective sample size is
+limited to :math:`n_{eff}\in[2,n]`. This definition of :math:`n_{eff}`
+assumes ice thickness evolves as an AR(1) process
+:cite:`VonStorch1999`, which can be justified by analyzing
+the spectral density of daily samples of ice thickness from 5-year
+records in CICE Consortium member models :cite:`Hunke2018`.
+The AR(1) approximation is inadmissible for paired velocity samples,
+because ice drift possesses periodicity from inertia and tides
+:cite:`Hibler2006,Lepparanta2012,Roberts2015`. Conversely,
+tests of paired ice concentration samples may be less sensitive to ice
+drift than ice thickness. In short, ice thickness is the best variable
+for CICE Consortium quality control (QC), and for the test of the mean
+in particular.
 
-Using these equations, a standard procedure in testing for
-science-changing answers in CICE and Icepack is as follows: First, make
-every attempt to obtain bit-for-bit reproducibility in the model code.
-Once all available software-testing options have been exhausted, and the
-source of the bit-for-bit test failure has been pinpointed, proceed with
-the :math:`t`-test documented above if the expectation is that code
-alterations should not be science-changing.
-Equations :eq:`t-distribution` through :eq:`short-means` are
-implemented in the reverse order from which they are presented here, and
-applied individually to daily samples of :math:`h`, :math:`c`, :math:`u`
-and :math:`v` from 5-year time series at every model grid point: i)
-Calculate :math:`\bar{x}_{1:n-1}`, :math:`\bar{x}_{2:n}`, and
-:math:`\bar{x}` in :eq:`short-means` for simulations :math:`a` and
-:math:`b`; ii) Compute :eq:`lag-1-auto-correlation`,
-:eq:`effective-sample-size` and :eq:`unbiased-sigma`, in that order,
-for each simulation :math:`a` and :math:`b`, and finally; iii) Determine
-whether the null hypothesis is true at each model grid point in
-:eq:`t-crit` using equation :eq:`t-distribution` and a lookup
-:math:`t`-distribution table. Should :math:`H_0` be confirmed at each
-grid point, and for each variable :math:`h`, :math:`c`, :math:`u` and
-:math:`v`, this test contributes to evidence that changes to CICE and
-Icepack code are unlikely to alter scientific results. To guard against
-the possibility of a Type II error, the test should be performed for
-several different confidence intervals, nominally set at 68, 80 and 95%,
-the first and last of these values corresponding to :math:`\sigma` and
-:math:`2\sigma` tests.
+Care is required in analyzing mean sea ice thickness changes using
+(:eq:`t-distribution`) with
+:math:`N{=}n_{eff}{-}1` degrees of freedom.
+:cite:`Zwiers1995` demonstrate that the :math:`t`-test in
+(:eq:`t-distribution`) becomes conservative when
+:math:`n_{eff} < 30`, meaning that :math:`H_0` may be erroneously
+confirmed for highly auto-correlated series. Strong autocorrelation
+frequently occurs in modeled sea ice thickness, and :math:`r_1>0.99` is
+possible in parts of the gx-1 domain for the five-year QC simulations.
+In the event that :math:`H_0` is confirmed but :math:`2\leq n_{eff}<30`,
+the :math:`t`-test progresses to the ‘Table Lookup Test’ of
+:cite:`Zwiers1995`, to check that the first-stage test
+using (:eq:`t-distribution`) was not
+conservative. The Table Lookup Test chooses critical :math:`t` values
+:math:`|t|<t_{crit}({1{-}\alpha/2},N)` at the :math:`\alpha`
+significance level based on :math:`r_1`. It uses the conventional
+:math:`t={\bar{h}_{d} \sqrt{n}}/{\sigma_d}` statistic with degrees of
+freedom :math:`N{=}n{-}1`, but with :math:`t_{crit}` values generated
+using the Monte Carlo technique described in
+:cite:`Zwiers1995`, and summarized in :ref:`Table-Lookup` for 5-year QC
+simulations (:math:`N=1824`) at the two-sided 80% confidence interval
+(:math:`\alpha=0.2`). We choose this interval to limit Type II errors,
+whereby a QC test erroneously confirms :math:`H_0`.
 
-***************************
-Practical Testing Procedure
-***************************
+:ref:`Table-Lookup` : Summary of two-sided :math:`t_{crit}` values for the Table
+Lookup Test of :cite:`Zwiers1995` at the 80% confidence
+interval generated for :math:`N=1824` degrees of freedom and lag-1
+autocorrelation :math:`r_1`.
 
-To be placed here: Write up of how to actually do this test within the
-testing software to be added by Elizabeth, Rick, Matt, Tony et al....
+.. _Table-Lookup:
 
-Implementation notes: 1) Provide a pass/fail on each of the confidence
-intervals, 2) Facilitate output of a bitmap for each test so that
-locations of failures can be identified.
+.. csv-table:: Table 1
+   :widths: 10, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
+   :align: right
+
+   :math:`r_1`,-0.05,0.0,0.2,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.97,0.99
+   :math:`t_{crit}`,1.32,1.32,1.54,2.02,2.29,2.46,3.17,3.99,5.59,8.44,10.85,20.44
+
+| 
+| 
+
+.. _quadratic:
+
+*******************************
+Quadratic Skill Compliance Test
+*******************************
+
+In addition to the two-stage test of mean sea ice thickness, we also
+check that paired simulations are highly correlated and have similar
+variance using a skill metric adapted from
+:cite:`Taylor2001`. A general skill score applicable to
+Taylor diagrams takes the form
+
+.. math::
+   S_m=\frac{4(1+R)^m}{({\hat{\sigma}_{f}+1/{\hat{\sigma}_{f}}})^2 (1+R_0)^m}
+   :label: taylor-skill
+
+where :math:`m=1` for variance-weighted skill, and :math:`m=4` for
+correlation-weighted performance, as given in equations (4) and (5) of
+:cite:`Taylor2001`, respectively. We choose :math:`m=2` to
+balance the importance of variance and correlation reproduction in QC
+tests, where :math:`\hat{\sigma}_{f}={\sigma_{b}}/{\sigma_{a}}` is the ratio
+of the standard deviations of simulations ‘:math:`b`’ and ‘:math:`a`’,
+respectively, and simulation ‘:math:`a`’ is the control. :math:`R_0` is
+the maximum possible correlation between two series for correlation
+coefficient :math:`R` calculated between respective thickness pairs
+:math:`h_{a}` and :math:`h_{b}`. Bit-for-bit reproduction of previous
+CICE simulations means that perfect correlation is possible, and so
+:math:`R_0=1`, giving the quadratic skill of run ‘:math:`b`’ relative to
+run ‘:math:`a`’:
+
+.. math::
+   S=\bigg[ \frac{(1+R) (\sigma_a \sigma_b)}{({\sigma_a}^2 + {\sigma_b}^2)} \bigg]^2
+   :label: quadratic-skill
+
+This provides a skill score between 0 and 1. We apply this :math:`S`
+metric separately to the northern and southern hemispheres of the gx-1
+grid by area-weighting the daily thickness samples discussed in the
+Two-Stage Paired Thickness QC Test. The hemispheric mean thickness over
+a 5-year simulation for run ‘:math:`a`’ is:
+
+.. math::
+   \bar{h}_{a}=\frac{1}{n} \sum_{i=1}^{n} \sum_{j=1}^{J} \ W_{j} \; h_{{a}_{i,j}}
+   :label: h-bar
+
+at time sample :math:`i` and grid point index :math:`j`, with an
+equivalent equation for simulation ‘:math:`b`’. :math:`n` is the total
+number of time samples (nominally :math:`n=1825`) and :math:`J` is the
+total number of grid points on the gx-1 grid. :math:`W_j` is the weight
+attributed to each grid point according to its area :math:`A_{j}`, given
+as
+
+.. math::
+   W_{j}=\frac{ A_{j} }{\sum_{j=1}^{J} A_{j}}
+   :label: area-weight
+
+for all grid points within each hemisphere with one or more non-zero
+thicknesses in one or both sets of samples :math:`h_{{a}_{i,j}}` or
+:math:`h_{{b}_{i,j}}`. The area-weighted variance for simulation
+‘:math:`a`’ is:
+
+.. math::
+   \sigma_a^{\;2}=\frac{\hat{J}}{(n\,\hat{J}-1)} \sum_{i=1}^{n} \sum_{j=1}^{J}  W_{j} \, (h_{{a}_{i,j}}-\bar{h}_{a})^2
+   :label: weighted-deviation
+
+where :math:`\hat{J}` is the number of non-zero :math:`W_j` weights,
+and :math:`\sigma_b` is calculated equivalently for run ‘:math:`b`’. In
+this context, :math:`R` becomes a weighted correlation coefficient,
+calculated as
+
+.. math::
+   R=\frac{\textrm{cov}(h_{a},h_{b})}{\sigma_a \; \sigma_b}
+   :label: R
+
+given the weighted covariance
+
+.. math::
+   \textrm{cov}(h_{a},h_{b})=\frac{\hat{J}}{(n\,\hat{J}-1)} \sum_{i=1}^{n} \sum_{j=1}^{J}  W_{j} \, (h_{{a}_{i,j}}-\bar{h}_{a}) (h_{{b}_{i,j}}-\bar{h}_{b}).
+   :label: weighted-covariance
+
+Using equations (:eq:`quadratic-skill`)
+to (:eq:`weighted-covariance`), the skill
+score :math:`S` is calculated separately for the northern and southern
+hemispheres, and must exceed a critical value nominally set to
+:math:`S_{crit}=0.99` to pass the test. Practical illustrations of this
+test and the Two-Stage test described in the previous section are
+provided in :cite:`Hunke2018`.
+
 
 
 .. _tabnamelist:
@@ -2206,7 +2276,7 @@ Table of namelist options
    :header: "variable", "options/format", "description", "recommended value"
    :widths: 15, 15, 30, 15 
 
-   "*setup_nml*", "", "", ""
+   "*setup_nml*", " ", " ", " "
    "", "", "*Time, Diagnostics*", ""
    "``days_per_year``", "``360`` or ``365``", "number of days in a model year", "365"
    "``use_leap_years``", "true/false", "if true, include leap days", ""
