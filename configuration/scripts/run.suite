@@ -184,3 +184,6 @@ cd base_suite.${testid}
 ctest -S steer.cmake
 
 cd ..
+
+echo "---"
+echo "CICE run.suite completed"
