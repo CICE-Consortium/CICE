@@ -2262,7 +2262,80 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke2018`.
 
+In applying equations :eq:`t-distribution` through :eq:`short-means`,
+we are accounting for the fact, however imperfectly, that a
+:math:`t`-test should be a comparison of the means from two series of
+independent samples. The typical affect of applying these equations to
+sea ice model output is that :math:`n' \ll n`. For that reason, we need
+a lengthy time series to narrow the range of acceptable values
+in :eq:`t-crit`. There is little point in using more frequent output
+from CICE than daily instantaneous values, since this would have little
+impact on decreasing :math:`r_1` in :eq:`lag-1-auto-correlation`.
 
+Using these equations, a standard procedure in testing for
+science-changing answers in CICE and Icepack is as follows: First, make
+every attempt to obtain bit-for-bit reproducibility in the model code.
+Once all available software-testing options have been exhausted, and the
+source of the bit-for-bit test failure has been pinpointed, proceed with
+the :math:`t`-test documented above if the expectation is that code
+alterations should not be science-changing.
+Equations :eq:`t-distribution` through :eq:`short-means` are
+implemented in the reverse order from which they are presented here, and
+applied individually to daily samples of :math:`h`, :math:`c`, :math:`u`
+and :math:`v` from 5-year time series at every model grid point: i)
+Calculate :math:`\bar{x}_{1:n-1}`, :math:`\bar{x}_{2:n}`, and
+:math:`\bar{x}` in :eq:`short-means` for simulations :math:`a` and
+:math:`b`; ii) Compute :eq:`lag-1-auto-correlation`,
+:eq:`effective-sample-size` and :eq:`unbiased-sigma`, in that order,
+for each simulation :math:`a` and :math:`b`, and finally; iii) Determine
+whether the null hypothesis is true at each model grid point in
+:eq:`t-crit` using equation :eq:`t-distribution` and a lookup
+:math:`t`-distribution table. Should :math:`H_0` be confirmed at each
+grid point, and for each variable :math:`h`, :math:`c`, :math:`u` and
+:math:`v`, this test contributes to evidence that changes to CICE and
+Icepack code are unlikely to alter scientific results. To guard against
+the possibility of a Type II error, the test should be performed for
+several different confidence intervals, nominally set at 68, 80 and 95%,
+the first and last of these values corresponding to :math:`\sigma` and
+:math:`2\sigma` tests.
+
+***************************
+Practical Testing Procedure
+***************************
+
+The CICE code compliance test is performed by running a python script (cice.t-test.py).
+In order to run the script, the following requirements must be met:
+
+* Python v2.7 or later
+* netCDF Python package
+* numpy Python package
+
+In order to generate the files necessary for the compliance test, test cases should be
+created with the ``ttest`` option (i.e., ``-s ttest``) when running create.case.  This 
+option results in daily, non-averaged history files being written for a 5 year simulation.
+
+To run the compliance test:
+
+.. code-block:: bash
+
+  cp configuration/scripts/tests/QC/cice.t-test.py .
+  ./cice.t-test.py /path/to/baseline/history /path/to/test/history
+
+The script will produce output similar to:
+
+  |  \INFO:__main__:Number of files: 1825
+  |  \INFO:__main__:Two-Stage Test Passed
+  |  \INFO:__main__:Quadratic Skill Test Passed for Northern Hemisphere
+  |  \INFO:__main__:Quadratic Skill Test Passed for Southern Hemisphere
+  |  \INFO:__main__:
+  |  \INFO:__main__:Quality Control Test PASSED
+
+Additionally, the exit code from the test (``echo $?``) will be 0 if the test passed,
+and 1 if the test failed.
+
+Implementation notes: 1) Provide a pass/fail on each of the confidence
+intervals, 2) Facilitate output of a bitmap for each test so that
+locations of failures can be identified.
 
 .. _tabnamelist:
 
