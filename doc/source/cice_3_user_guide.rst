@@ -2184,8 +2184,35 @@ the first and last of these values corresponding to :math:`\sigma` and
 Practical Testing Procedure
 ***************************
 
-To be placed here: Write up of how to actually do this test within the
-testing software to be added by Elizabeth, Rick, Matt, Tony et al....
+The CICE code compliance test is performed by running a python script (cice.t-test.py).
+In order to run the script, the following requirements must be met:
+
+* Python v2.7 or later
+* netCDF Python package
+* numpy Python package
+
+In order to generate the files necessary for the compliance test, test cases should be
+created with the ``ttest`` option (i.e., ``-s ttest``) when running create.case.  This 
+option results in daily, non-averaged history files being written for a 5 year simulation.
+
+To run the compliance test:
+
+.. code-block:: bash
+
+  cp configuration/scripts/tests/QC/cice.t-test.py .
+  ./cice.t-test.py /path/to/baseline/history /path/to/test/history
+
+The script will produce output similar to:
+
+  |  \INFO:__main__:Number of files: 1825
+  |  \INFO:__main__:Two-Stage Test Passed
+  |  \INFO:__main__:Quadratic Skill Test Passed for Northern Hemisphere
+  |  \INFO:__main__:Quadratic Skill Test Passed for Southern Hemisphere
+  |  \INFO:__main__:
+  |  \INFO:__main__:Quality Control Test PASSED
+
+Additionally, the exit code from the test (``echo $?``) will be 0 if the test passed,
+and 1 if the test failed.
 
 Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
