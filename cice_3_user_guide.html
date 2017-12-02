@@ -2133,41 +2133,6 @@ hemispheres, and must exceed a critical value nominally set to
 <span class="math">\(S_{crit}=0.99\)</span> to pass the test. Practical illustrations of this
 test and the Two-Stage test described in the previous section are
 provided in <a class="reference internal" href="zreferences.html#hunke2018" id="id29">[38]</a>.</p>
-<p>In applying equations&nbsp;<a class="reference internal" href="#equation-t-distribution">(1)</a> through&nbsp;<a class="reference internal" href="#equation-short-means">(4)</a>,
-we are accounting for the fact, however imperfectly, that a
-<span class="math">\(t\)</span>-test should be a comparison of the means from two series of
-independent samples. The typical affect of applying these equations to
-sea ice model output is that <span class="math">\(n' \ll n\)</span>. For that reason, we need
-a lengthy time series to narrow the range of acceptable values
-in&nbsp;<code class="xref eq docutils literal"><span class="pre">t-crit</span></code>. There is little point in using more frequent output
-from CICE than daily instantaneous values, since this would have little
-impact on decreasing <span class="math">\(r_1\)</span> in <code class="xref eq docutils literal"><span class="pre">lag-1-auto-correlation</span></code>.</p>
-<p>Using these equations, a standard procedure in testing for
-science-changing answers in CICE and Icepack is as follows: First, make
-every attempt to obtain bit-for-bit reproducibility in the model code.
-Once all available software-testing options have been exhausted, and the
-source of the bit-for-bit test failure has been pinpointed, proceed with
-the <span class="math">\(t\)</span>-test documented above if the expectation is that code
-alterations should not be science-changing.
-Equations&nbsp;<a class="reference internal" href="#equation-t-distribution">(1)</a> through&nbsp;<a class="reference internal" href="#equation-short-means">(4)</a> are
-implemented in the reverse order from which they are presented here, and
-applied individually to daily samples of <span class="math">\(h\)</span>, <span class="math">\(c\)</span>, <span class="math">\(u\)</span>
-and <span class="math">\(v\)</span> from 5-year time series at every model grid point: i)
-Calculate <span class="math">\(\bar{x}_{1:n-1}\)</span>, <span class="math">\(\bar{x}_{2:n}\)</span>, and
-<span class="math">\(\bar{x}\)</span> in <a class="reference internal" href="#equation-short-means">(4)</a> for simulations <span class="math">\(a\)</span> and
-<span class="math">\(b\)</span>; ii) Compute <code class="xref eq docutils literal"><span class="pre">lag-1-auto-correlation</span></code>,
-<code class="xref eq docutils literal"><span class="pre">effective-sample-size</span></code> and <code class="xref eq docutils literal"><span class="pre">unbiased-sigma</span></code>, in that order,
-for each simulation <span class="math">\(a\)</span> and <span class="math">\(b\)</span>, and finally; iii) Determine
-whether the null hypothesis is true at each model grid point in
-<code class="xref eq docutils literal"><span class="pre">t-crit</span></code> using equation <a class="reference internal" href="#equation-t-distribution">(1)</a> and a lookup
-<span class="math">\(t\)</span>-distribution table. Should <span class="math">\(H_0\)</span> be confirmed at each
-grid point, and for each variable <span class="math">\(h\)</span>, <span class="math">\(c\)</span>, <span class="math">\(u\)</span> and
-<span class="math">\(v\)</span>, this test contributes to evidence that changes to CICE and
-Icepack code are unlikely to alter scientific results. To guard against
-the possibility of a Type II error, the test should be performed for
-several different confidence intervals, nominally set at 68, 80 and 95%,
-the first and last of these values corresponding to <span class="math">\(\sigma\)</span> and
-<span class="math">\(2\sigma\)</span> tests.</p>
 </div>
 <div class="section" id="practical-testing-procedure">
 <h4>3.6.5.3. Practical Testing Procedure<a class="headerlink" href="#practical-testing-procedure" title="Permalink to this headline">¶</a></h4>
