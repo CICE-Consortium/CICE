@@ -2300,6 +2300,55 @@ Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
 locations of failures can be identified.
 
+~~~~~~~~~~~~~~~~~~~~
+CICE Test Reporting
+~~~~~~~~~~~~~~~~~~~~
+
+The CICE testing scripts have the capability of posting the test results 
+to an online dashboard, located `on CDash <http://my.cdash.org/index.php?project=myCICE>`_.  
+There are 2 options for posting CICE results to CDash: 1) The automated 
+script, 2) The manual method.
+
+*****************
+Automatic Script
+*****************
+
+To automatically run the CICE tests, and post the results to the CICE Cdash dashboard,
+users need to copy and run the ``run.suite`` script:
+
+.. code-block:: bash
+
+  cp configuration/scripts/run.suite .
+  ./run.suite -m <machine> -testid <test_id> -bc <baseline_to_compare> -bg <baseline_to_generate>
+
+The run.suite script does the following:
+
+- Creates a fresh clone of the CICE-Consortium repository
+- ``cd`` to cloned repo
+- run ``create.case`` to generate the base_suite directories.  The output 
+  is piped to ``log.suite``
+- Running ``create.case`` submits each individual job to the queue.  
+- ``run.suite`` monitors the queue manager to determine when all jobs have 
+  finished (pings the queue manager once every 5 minutes).
+- Once all jobs complete, cd to base_suite directory and run ``./results.csh``
+- Run ``ctest -S steer.cmake`` in order to post the test results to the CDash dashboard
+
+*****************
+Manual Method
+*****************
+
+To manually run the CICE tests and post the results to the CICE CDash dashboard,
+users essentially just need to perform all steps available in run.suite, detailed below:
+
+- Pass the ``-report`` flag to create.case when running the ``base_suite`` test suite.
+  The ``-report`` flag copies the required CTest / CDash scripts to the suite 
+  directory.
+- ``create.case`` compiles the CICE code, and submits all of the jobs to the 
+  queue manager.  
+- After every job has been submitted and completed, ``cd`` to the suite directory.
+- Parse the results, by running ``./results.csh``.
+- Run the CTest / CDash script ``ctest -S steer.cmake``.
+
 .. _tabnamelist:
 
 -------------------------

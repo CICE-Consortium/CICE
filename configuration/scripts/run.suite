@@ -1,42 +1,183 @@
 #!/bin/csh -f
 
-if ($#argv < 1) then
-  echo "Usage: ./run.suite <platform>"
-  echo "Example: ./run.suite onyx"
-  exit -1
-endif
-
-setenv PLATFORM "$1"
-setenv host `uname -n`
-if ("$host" !~ *"$PLATFORM"*) then
-  echo "Hostname: $host"
-  echo "PLATFORM: $PLATFORM"
-  echo "Host and Platform should be similar.  Ensure that PLATFORM was set correctly"
-  exit -1
-endif
-
 echo " "
-echo "${0}:"
+echo "${0}"
 
-#git checkout master
+set initargv = ( $argv[*] )
 
-git pull
+set helpheader = 0
+set dash = "-"
+set spval = "UnDeFiNeD"
+set mach = $spval
+set baseCom = $spval
+set baseGen = $spval
 
-./create.case -m $PLATFORM -ts base_suite -testid reg99 -bc cicev6.0.0
+if ($#argv < 1) then
+  set helpheader = 1
+endif
 
-cd base_suite.reg99
-
-# Get a list of subdirectories
-foreach dir (`ls -d */`)
-  # Check for log file in this directory
-  set dir_trimmed=`echo $dir | sed -e 's#/$##'`
-  echo "dir_trimmed $dir_trimmed"
-  while ( `find $dir -name "${dir_trimmed}.*" -print` == "")
-    echo "waiting on job $dir_trimmed to finish"
-    sleep 10
-  end
-  echo "---------           job $dir_trimmed FINISHED"
+# Check for -h
+while (1)
+  if ($#argv < 1) break;
+  if ("$argv[1]" =~ ${dash}h* ) then
+    set helpheader = 1
+  endif
+  shift argv
 end
+
+#------------------------------------------------------------
+# Help output
+
+if ( $helpheader ) then
+cat << EOF1
+
+NAME   
+      run.suite - fully automated testing script that goes through the following steps:
+                1. Clone the CICE repository into a new directory
+                2. Generate a baseline (optional)
+                3. Run the full base_suite
+                4. Post the results of the suite to CDash
+        -h help
+        -m machine, machine name (required)
+           Available -m options are in configuration/scripts/machines and include:
+EOF1
+      set soptions1 = `ls -1 configuration/scripts/machines | grep Macros | sed 's/Macros.//g' `
+      set soptions = `echo $soptions1 | fmt -1 | sort `
+      foreach sopt ($soptions)
+        echo "             $sopt"
+      end
+cat << EOF1
+        -bg cice version name for generate, directory under the baseline directory where 
+            baselines are stored
+        -bc cice version name for compare, directory under the baseline directory where 
+            baselines are stored (required)
+        -testid test ID, user-defined indentifier for test (required)
+
+      EXAMPLES:
+      ./run.suite -m conrad -testid nightly00 -bc cicev6.0.0
+      ./run.suite -m conrad -testid nightly00 -bc cicev6.0.0 -bg cicev6.0.1
+EOF1
+
+exit -1
+endif
+
+#------------------------------------------------------------
+# Read in command line arguments
+
+set argv = ( $initargv[*] )
+
+while (1)
+  if ( $#argv < 1 ) break;
+  set option = $argv[1];
+  shift argv
+  if ( $#argv < 1 ) then
+    echo "${0}: ERROR1 in $option"
+    exit -1
+  endif
+  if ($argv[1] =~ $dash* ) then
+    echo "${0}: ERROR2 in $option"
+    exit -1
+  endif
+
+  switch ( $option )
+    case "-m":
+      set mach = $argv[1]
+      breaksw
+    case "-bc":
+      set baseCom = $argv[1]
+      breaksw
+    case "-bg":
+      set baseGen = $argv[1]
+      breaksw
+    case "-testid":
+      set testid = $argv[1]
+      breaksw
+    default:
+      echo "${0}: ERROR unknown option $option, use -h for help"
+      exit -1
+      breaksw
+  endsw
+  shift argv
+end
+
+if ($baseCom == $spval) then
+  echo "${0}: ERROR in arguments, -bc is required"
+  exit -1
+endif
+
+if ($testid == $spval) then
+  echo "${0}: ERROR in arguments, -testid is required"
+  exit -1
+endif
+
+set gitDir = "./CICE.${testid}"
+
+git clone --recursive https://github.com/CICE-Consortium/CICE.git $gitDir
+
+cd $gitDir
+
+echo "Running ./create.case and storing output in log.suite"
+if ($baseGen == $spval) then
+  ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -report >& log.suite
+else
+  ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -bg ${baseGen} -report >& log.suite
+endif
+
+# Parse the job IDs from log.suite.  This should work for PBS, Slurm, or IBM LFS but needs
+# to be thoroughly tested (so far only tested on PBS)
+set job_id = 0
+foreach line ( "`cat log.suite`" )
+  if ( $job_id == 1 ) then
+    set job_id = 0
+    if ( "$line" != " " ) then
+      # Grep the job number
+      echo "$line" | grep -E -o "([[:digit:]]{2,})" >> log.jobs
+    endif
+  else
+    if ( "$line" =~ *'COMPILE SUCCESSFUL'* ) then
+      set job_id = 1
+    endif
+  endif
+end
+
+# Check if this server uses PBS or Slurm
+which qstat >&/dev/null
+if ( $? == 0 ) then
+  # PBS
+  set queue_check = 'qstat'
+else
+  which squeue
+  if ( $? == 0 ) then
+    # Slurm
+    set queue_check = 'squeue --jobs='
+  else
+    which bjobs
+    if ( $? == 0 ) then
+      # IBM LFS
+      set queue_check = 'bjobs -l '
+    else
+      echo "Unable to determine how to check status of jobs.  Once all jobs are "
+      echo "complete, cd to ${PWD} and run ./results.csh followed by ctest -S steer.cmake"
+    endif
+  endif
+endif
+
+# Wait for all jobs to finish
+foreach job ("`cat log.jobs`")
+  while (1)
+    $queue_check $job >&/dev/null
+    if ($? != 0) then
+      echo "Job $job completed"
+      break
+    endif
+    echo "Waiting for $job to complete"
+    sleep 300   # Sleep for 5 minutes, so as not to overwhelm the queue manager
+  end
+end
+
+rm log.jobs  # Delete the list of job IDs
+
+cd base_suite.${testid}
 
 ./results.csh
 
@@ -44,4 +185,5 @@ ctest -S steer.cmake
 
 cd ..
 
-rm -rf base_suite.reg99
+echo "---"
+echo "CICE run.suite completed"

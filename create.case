@@ -22,6 +22,7 @@ set testsuite = $spval
 set baseCom = $spval  # Baseline compare
 set baseGen = $spval  # Baseline generate
 set bfbcomp = $spval  # BFB compare
+set report  = 0       # include CTest files?
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -86,6 +87,7 @@ cat << EOF1
         -ts test suite, pre-defined set of tests to run in column text format.  Current set of predefined tests:
              - "base_suite": runs general set of tests including smoke with debug, restart, etc.
         -td difference output against another case
+        -report include the CTest / CDash files in the suite directory (only used with -ts)
 
       EXAMPLES:
       create.case -h
@@ -109,6 +111,11 @@ set argv = ( $initargv[*] )
 while (1)
   if ( $#argv < 1 ) break;
   set option = $argv[1];
+  if ("$option" == "${dash}report") then
+    set report = 1
+    shift argv
+    continue
+  endif
   shift argv
   if ( $#argv < 1 ) then
     echo "${0}: ERROR1 in $option"
@@ -219,7 +226,7 @@ if ( $testsuite != $spval ) then
   mkdir ./${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ./${tsdir}
 
-  if ("$testid" =~ reg*) then
+  if ($report == 1) then
     cp -f ${ICE_SCRIPTS}/tests/CTest/CTestConfig.cmake ./${tsdir}
     cp -f ${ICE_SCRIPTS}/tests/CTest/CTestTestfile.cmake ./${tsdir}
     cp -f ${ICE_SCRIPTS}/tests/CTest/steer.cmake ./${tsdir}
@@ -529,7 +536,7 @@ cd ..
 EOF
     
     # If results are to be posted to CDash, build CtestTestfile.cmake
-    if ("$testid" =~ reg*) then
+    if ($report == 1) then
       ${ICE_SCRIPTS}/tests/CTest/gen_ctestfile.csh ./${tsdir} $testname_noid $bfbcomp $spval
     endif
 
