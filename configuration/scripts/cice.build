@@ -99,6 +99,7 @@ if ($status != 0) then
   if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
     # This is a test case.  Write output to test_output file
     echo "FAIL ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
+    echo "FAIL ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
   endif
   exit 99
 endif
@@ -109,5 +110,6 @@ echo "`date` ${0}:${ICE_CASENAME} build completed ${ICE_BLDLOG_FILE}"  >> ${ICE_
 echo "${0}: COMPILE SUCCESSFUL, ${ICE_LOGDIR}/${ICE_BLDLOG_FILE}"
 if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
   echo "PASS ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
+  echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
 endif
 

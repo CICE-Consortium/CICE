@@ -1,3 +1,5 @@
+:tocdepth: 3
+
 Science Guide
 ================
 
@@ -199,9 +201,10 @@ stable and unstable atmosphere–ice boundary layers. Define the
 “stability”
 
 .. math::
-   \Upsilon = {\kappa g z_\circ\over u^{*2}}
-   \left({\Theta^*\over\Theta_a\left(1+0.606Q_a\right)}  +
-   {Q^*\over 1/0.606 + Q_a}\right),
+   \Upsilon = {\frac{\kappa g z_\circ}{u^{*2}}}
+   \left({\frac{\Theta^*}{\Theta_a\left(1+0.606Q_a\right)}}  +
+   {\frac{Q^*}{{1/0.606} + Q_a}}\right),
+   :label: upsilon
 
 where :math:`\kappa` is the von Karman constant, :math:`g` is
 gravitational acceleration, and :math:`u^*`, :math:`\Theta^*` and
@@ -225,7 +228,8 @@ Neglecting form drag,the exchange coefficients :math:`c_u`,
 :math:`c_\theta` and :math:`c_q` are initialized as
 
 .. math:: 
-   \kappa\over \ln(z_{ref}/z_{ice})
+   \frac{\kappa}{\ln(z_{ref}/z_{ice}})
+   :label: coeffinit
 
 and updated during a short iteration, as they depend upon the turbulent
 scales. The number of iterations is set by the namelist variable
@@ -242,8 +246,9 @@ unstable (:math:`\Upsilon <0`) case are given by
    \begin{aligned}
    \psi_m = &\mbox{}&2\ln\left[0.5(1+\chi)\right] +
             \ln\left[0.5(1+\chi^2)\right] -2\tan^{-1}\chi +
-            {\pi\over 2}, \\
+            {\frac{\pi}{2}}, \\
    \psi_s = &\mbox{}&2\ln\left[0.5(1+\chi^2)\right].\end{aligned}
+   :label: psi1
 
 In a departure from the parameterization used in
 :cite:`KL02`, we use profiles for the stable case
@@ -252,14 +257,16 @@ following :cite:`JAM99`,
 .. math::
    \psi_m = \psi_s = -\left[0.7\Upsilon + 0.75\left(\Upsilon-14.3\right)
             \exp\left(-0.35\Upsilon\right) + 10.7\right].
+   :label: psi2
 
 The coefficients are then updated as
 
 .. math::
    \begin{aligned}
-   c_u^\prime&=&{c_u\over 1+c_u\left(\lambda-\psi_m\right)/\kappa} \\
-   c_\theta^\prime&=& {c_\theta\over 1+c_\theta\left(\lambda-\psi_s\right)/\kappa}\\
+   c_u^\prime&=&{\frac{c_u}{1+c_u\left(\lambda-\psi_m\right)/\kappa}} \\
+   c_\theta^\prime&=& {\frac{c_\theta}{1+c_\theta\left(\lambda-\psi_s\right)/\kappa}}\\
    c_q^\prime&=&c_\theta^\prime\end{aligned}
+   :label: coeff2
 
 where :math:`\lambda = \ln\left(z_\circ/z_{ref}\right)`. The
 first iteration ends with new turbulent scales from
@@ -268,10 +275,11 @@ heat flux coefficients are computed, along with the wind stress:
 
 .. math::
    \begin{aligned}
-   \nonumber
    C_l&=&\rho_a \left(L_{vap}+L_{ice}\right) u^* c_q \\
    C_s&=&\rho_a c_p u^* c_\theta^* + 1, \\
-   \vec{\tau}_a&=&{\rho_a u^{*2}\vec{U}_a\over |\vec{U}_a|},\end{aligned}
+   \vec{\tau}_a&=&{\rho_a \frac{u^{*2}\vec{U}_a}{|\vec{U}_a|}},\end{aligned}
+   :label: coeff3
+   
 
 where :math:`L_{vap}` and :math:`L_{ice}` are
 latent heats of vaporization and fusion, :math:`\rho_a` is the density
@@ -299,6 +307,7 @@ computed as
 
 .. math:: 
    F_{lw\downarrow} = \epsilon\sigma T_s^4 - \epsilon\sigma T_a^4(0.39-0.05e_a^{1/2})(1-0.8f_{cld}) - 4\epsilon\sigma T_a^3(T_s-T_a)
+   :label: lwflux
 
 where the atmospheric vapor pressure (mb) is
 :math:`e_a = 1000 Q_a/(0.622+0.378Q_a)`, :math:`\epsilon=0.97` is the
@@ -313,6 +322,7 @@ available in function *longwave\_parkinson\_washington*:
 
 .. math:: 
    F_{lw\downarrow} = \epsilon\sigma T_a^4 (1-0.261 \exp\left(-7.77\times 10^{-4}T_a^2\right)\left(1 + 0.275f_{cld}\right)
+   :label: lwflux2
 
 The value of :math:`F_{lw\uparrow}` is different for each ice thickness
 category, while :math:`F_{lw\downarrow}` depends on the mean value of
@@ -324,7 +334,8 @@ incorporates the cloud fraction and humidity through the atmospheric
 vapor pressure:
 
 .. math:: 
-   F_{sw\downarrow} = {1353 \cos^2 Z \over {10^{-3}(\cos Z+2.7)e_a + 1.085\cos Z + 0.1}}\left(1-0.6 f_{cld}^3\right) > 0
+   F_{sw\downarrow} = {\frac{1353 \cos^2 Z}{10^{-3}(\cos Z+2.7)e_a + 1.085\cos Z + 0.1}}\left(1-0.6 f_{cld}^3\right) > 0
+   :label: swflux
 
 where :math:`\cos Z` is the cosine of the solar zenith angle.
 
@@ -395,6 +406,7 @@ to the ice,
    \begin{aligned}
    \vec{\tau}_w&=&c_w\rho_w\left|{\vec{U}_w-\vec{u}}\right|\left[\left(\vec{U}_w-\vec{u}\right)\cos\theta
    +\hat{k}\times\left(\vec{U}_w-\vec{u}\right)\sin\theta\right] \end{aligned}
+   :label: tauw
 
 is then passed to the flux coupler (relative to the ocean) for use by
 the ocean model. Here, :math:`\theta` is the turning angle between
@@ -733,7 +745,7 @@ ice volume :math:`v_{in}`, and snow volume :math:`v_{sn}` for each
 thickness category :math:`n` are
 
 .. math::
-   {\partial\over\partial t} (a_{in}) + \nabla \cdot (a_{in} {\bf u}) = 0,
+   {\frac{\partial}{\partial t}} (a_{in}) + \nabla \cdot (a_{in} {\bf u}) = 0,
    :label: transport-ai
 
 .. math::
@@ -804,11 +816,11 @@ equations for pond area fraction :math:`a_{pnd}a_i` and pond volume
 :math:`h_{pnd}a_{pnd}a_i`, given the ice velocity :math:`\bf u`, are
 
 .. math::
-   {\partial\over\partial t} (a_{pnd}a_{i}) + \nabla \cdot (a_{pnd}a_{i} {\bf u}) = 0,
+   {\frac{\partial}{\partial t}} (a_{pnd}a_{i}) + \nabla \cdot (a_{pnd}a_{i} {\bf u}) = 0,
    :label: transport-apnd
 
 .. math::
-   {\partial\over\partial t} (h_{pnd}a_{pnd}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{i} {\bf u}) = 0.
+   {\frac{\partial}{\partial t}} (h_{pnd}a_{pnd}a_{i}) + \nabla \cdot (h_{pnd}a_{pnd}a_{i} {\bf u}) = 0.
    :label: transport-hpnd
 
 (These equations represent quantities within one thickness category;
@@ -861,6 +873,7 @@ tracer-on-tracer dependencies such as :math:`h_{pnd}`, when needed:
 
 .. math:: 
    h_{pnd}^{t+\Delta t}= {h_{pnd}^{t}a_{pnd}^{t}a_{i}^{t} \over a_{pnd}^{t+\Delta t}a_{i}^{t+\Delta t} }.
+   :label: hpnd
 
 In this case (adding new ice), :math:`h_{pnd}` does not change because
 :math:`a_{pnd}^{t+\Delta t}a_{i}^{t+\Delta t} = a_{pnd}^{t}a_{i}^{t}`.
@@ -870,14 +883,15 @@ the total pond area summed over categories :math:`n`,
 
 .. math:: 
    \sum_n a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) = \sum_n a_{pnd}^{t}(n)a_{i}^{t}(n).
+   :label: apnd2
 
 Thus,
 
 .. math::
    \begin{aligned}
-   \label{eq:xfer}
-   a_{pnd}^{t+\Delta t}(m)&=& {\sum_n a_{pnd}^{t}(n)a_{i}^{t}(n) - \sum_{n\ne m} a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) \over a_i^{t+\Delta t}(m)  } \\
-   = {a_{pnd}^t(m)a_i^t(m) + \sum_{n\ne m} \Delta \left(a_{pnd}a_i\right)^{t+\Delta t} \over a_i^{t+\Delta t}(m)  }\end{aligned}
+   a_{pnd}^{t+\Delta t}(m) &=& {\sum_n a_{pnd}^{t}(n)a_{i}^{t}(n) - \sum_{n\ne m} a_{pnd}^{t+\Delta t}(n)a_{i}^{t+\Delta t}(n) \over a_i^{t+\Delta t}(m)  } \\
+   &=& {a_{pnd}^t(m)a_i^t(m) + \sum_{n\ne m} \Delta \left(a_{pnd}a_i\right)^{t+\Delta t} \over a_i^{t+\Delta t}(m)  }\end{aligned}
+   :label: xfer
 
 This is more complicated because of the :math:`\Delta` term on the
 right-hand side, which is handled manually in **ice\_itd.F90**. Such
@@ -1063,6 +1077,7 @@ the form
 
 .. math::
    \frac{d T_b}{dt}  = w_b \frac{\Delta T_b}{\Delta z} +  R_b({T_j : j = 1,\ldots,N_b})
+   :label: tracer1
 
 where :math:`R_b` represents the nonlinear biochemical reaction terms
 detailed in :cite:`EDHHJJLS12` and :math:`\Delta z` is a
@@ -3030,7 +3045,7 @@ the ridge potential energy is modified:
 .. math::
    P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
      \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
-        \left( H_{\min}^2 + 2H_{\min}\lambda + 2 \lambda^2 \right) \right]  % CHECK BRACES
+        \left( H_{\min}^2 + 2H_{\min}\lambda + 2 \lambda^2 \right) \right]
    :label: roth-strength1
 
 The energy-based ice strength given by Equations :eq:`roth-strength0` or
@@ -4293,7 +4308,7 @@ to the temperature, :math:`T`, and the brine volume, :math:`\phi`, by
    \begin{aligned}
    q =& \phi q_{br} &+\, (1-\phi) q_{i}
    =& \phi \rho_{w} c_{w} T &+\, (1-\phi) (\rho_i c_i T - \rho_i L_0) 
-   \label{enthalpy_definition}\end{aligned}
+   \end{aligned}
    :label: enth-def
 
 where :math:`q_{br}` is the brine enthalpy, :math:`q_i` is the pure ice
