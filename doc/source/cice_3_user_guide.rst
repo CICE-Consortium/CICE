@@ -2262,43 +2262,6 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke2018`.
 
-In applying equations :eq:`t-distribution` through :eq:`short-means`,
-we are accounting for the fact, however imperfectly, that a
-:math:`t`-test should be a comparison of the means from two series of
-independent samples. The typical affect of applying these equations to
-sea ice model output is that :math:`n' \ll n`. For that reason, we need
-a lengthy time series to narrow the range of acceptable values
-in :eq:`t-crit`. There is little point in using more frequent output
-from CICE than daily instantaneous values, since this would have little
-impact on decreasing :math:`r_1` in :eq:`lag-1-auto-correlation`.
-
-Using these equations, a standard procedure in testing for
-science-changing answers in CICE and Icepack is as follows: First, make
-every attempt to obtain bit-for-bit reproducibility in the model code.
-Once all available software-testing options have been exhausted, and the
-source of the bit-for-bit test failure has been pinpointed, proceed with
-the :math:`t`-test documented above if the expectation is that code
-alterations should not be science-changing.
-Equations :eq:`t-distribution` through :eq:`short-means` are
-implemented in the reverse order from which they are presented here, and
-applied individually to daily samples of :math:`h`, :math:`c`, :math:`u`
-and :math:`v` from 5-year time series at every model grid point: i)
-Calculate :math:`\bar{x}_{1:n-1}`, :math:`\bar{x}_{2:n}`, and
-:math:`\bar{x}` in :eq:`short-means` for simulations :math:`a` and
-:math:`b`; ii) Compute :eq:`lag-1-auto-correlation`,
-:eq:`effective-sample-size` and :eq:`unbiased-sigma`, in that order,
-for each simulation :math:`a` and :math:`b`, and finally; iii) Determine
-whether the null hypothesis is true at each model grid point in
-:eq:`t-crit` using equation :eq:`t-distribution` and a lookup
-:math:`t`-distribution table. Should :math:`H_0` be confirmed at each
-grid point, and for each variable :math:`h`, :math:`c`, :math:`u` and
-:math:`v`, this test contributes to evidence that changes to CICE and
-Icepack code are unlikely to alter scientific results. To guard against
-the possibility of a Type II error, the test should be performed for
-several different confidence intervals, nominally set at 68, 80 and 95%,
-the first and last of these values corresponding to :math:`\sigma` and
-:math:`2\sigma` tests.
-
 ***************************
 Practical Testing Procedure
 ***************************
