@@ -12,7 +12,7 @@ and other operating systems. The code is parallelized via grid
 decomposition with MPI or OpenMP threads and includes some optimizations
 for vector architectures.
 
-A second, “external” layer of parallelization involves message passing
+A second, external layer of parallelization involves message passing
 between CICE and the flux coupler, which may be running on different
 processors in a distributed system. The parallelization scheme for CICE
 was designed so that MPI could be used for the coupling along with MPI,
@@ -53,7 +53,7 @@ basic information
 
 script that sets up the run directory and compiles the code
 
-modules based on “shared" code in CESM
+modules based on shared code in CESM
 
 **shr\_orb\_mod.F90**
     orbital parameterizations
@@ -211,7 +211,7 @@ handles most work associated with the age tracer
 skeletal layer biogeochemistry
 
 stability-based parameterization for calculation of turbulent
-ice–atmosphere fluxes
+ice atmosphere fluxes
 
 for decomposing global domain into blocks
 
@@ -312,7 +312,7 @@ driver for ice biogeochemistry and brine tracer motion
 
 parameters and shared code for biogeochemistry and brine height
 
-execution or “run” directory created when the code is compiled using the
+execution or run directory created when the code is compiled using the
 **comp\_ice** script (gx3)
 
 **cice**
@@ -364,8 +364,8 @@ B-grid. EVP is available on the C-grid through the MITgcm code
 distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/. 
 
 Since ice thickness and thermodynamic variables such as temperature are given
-in the center of each cell, the grid cells are referred to as “T cells.”
-We also occasionally refer to “U cells,” which are centered on the
+in the center of each cell, the grid cells are referred to as T cells.
+We also occasionally refer to U cells, which are centered on the
 northeast corner of the corresponding T cells and have velocity in the
 center of each. The velocity components are aligned along grid lines.
 
@@ -397,7 +397,7 @@ In general, the global gridded domain is
 `nx\_global` :math:`\times`\ `ny\_global`, while the subdomains used in the
 block distribution are `nx\_block` :math:`\times`\ `ny\_block`. The
 physical portion of a subdomain is indexed as [`ilo:ihi`, `jlo:jhi`], with
-nghost “ghost” or “halo" cells outside the domain used for boundary
+nghost ghost or halo" cells outside the domain used for boundary
 conditions. These parameters are illustrated in :ref:`fig-grid` in one
 dimension. The routines *global\_scatter* and *global\_gather*
 distribute information from the global domain to the local domains and
@@ -406,7 +406,7 @@ the ice model, these routines simply adjust the indexing on the global
 domain to the single, local domain index coordinates. Although we
 recommend that the user choose the local domains so that the global
 domain is evenly divided, if this is not possible then the furthest east
-and/or north blocks will contain nonphysical points (“padding”). These
+and/or north blocks will contain nonphysical points (padding). These
 points are excluded from the computation domain and have little effect
 on model performance.
 
@@ -463,21 +463,21 @@ Tripole grids
 The tripole grid is a device for constructing a global grid with a
 normal south pole and southern boundary condition, which avoids placing
 a physical boundary or grid singularity in the Arctic Ocean. Instead of
-a single north pole, it has two “poles” in the north, both located on
+a single north pole, it has two poles in the north, both located on
 land, with a line of grid points between them. This line of points is
-called the “fold,” and it is the “top row” of the physical grid. One
+called the fold, and it is the top row of the physical grid. One
 pole is at the left-hand end of the top row, and the other is in the
-middle of the row. The grid is constructed by “folding” the top row, so
+middle of the row. The grid is constructed by folding the top row, so
 that the left-hand half and the right-hand half of it coincide. Two
 choices for constructing the tripole grid are available. The one first
-introduced to CICE is called “U-fold”, which means that the poles and
+introduced to CICE is called U-fold, which means that the poles and
 the grid cells between them are U cells on the grid. Alternatively the
-poles and the cells between them can be grid T cells, making a “T-fold.”
+poles and the cells between them can be grid T cells, making a T-fold.
 Both of these options are also supported by the OPA/NEMO ocean model,
-which calls the U-fold an “f-fold” (because it uses the Arakawa C-grid
+which calls the U-fold an f-fold (because it uses the Arakawa C-grid
 in which U cells are on T-rows). The choice of tripole grid is given by
-the namelist variable `ns\_boundary\_type`, ‘tripole’ for the U-fold and
-‘tripoleT’ for the T-fold grid.
+the namelist variable `ns\_boundary\_type`, tripole for the U-fold and
+tripoleT for the T-fold grid.
 
 In the U-fold tripole grid, the poles have U-index
 :math:`{\tt nx\_global}/2` and `nx\_global` on the top U-row of the
@@ -497,7 +497,7 @@ points with T-index i and :math:`{\tt nx\_global}-{\tt i}+2` are
 coincident. Let the fold have T-row index :math:`n` on the global grid.
 It is usual for the northernmost row of the physical domain to be a
 U-row, but in the case of the T-fold, the U-row of index :math:`n` is
-“beyond” the fold; although it is not a ghost row, it is not physically
+beyond the fold; although it is not a ghost row, it is not physically
 independent, because it coincides with U-row :math:`n-1`, and it
 therefore has to be treated like a ghost row. Points i on U-row
 :math:`n` coincides with :math:`{\tt nx\_global}-{\tt i}+1` on U-row
@@ -510,7 +510,7 @@ The tripole grid thus requires two special kinds of treatment for
 certain rows, arranged by the halo-update routines. First, within rows
 along the fold, coincident points must always have the same value. This
 is achieved by averaging them in pairs. Second, values for ghost rows
-and the “quasi-ghost” U-row on the T-fold grid are reflected copies of
+and the quasi-ghost U-row on the T-fold grid are reflected copies of
 the coincident physical rows. Both operations involve the tripole
 buffer, which is used to assemble the data for the affected rows.
 Special treatment is also required in the scattering routine, and when
@@ -527,14 +527,14 @@ The bio-grid is a vertical grid used for solving the brine height
 variable :math:`h_b`. In the future, it will also be used for
 discretizing the vertical transport equations of biogeochemical tracers.
 The bio-grid is a non-dimensional vertical grid which takes the value
-zero at :math:`h_b` and one at the ice–ocean interface. The number of
+zero at :math:`h_b` and one at the ice-ocean interface. The number of
 grid levels is specified during compilation in **comp\_ice** by setting
 the variable `NBGCLYR` equal to an integer (:math:`n_b`) .
 
 Ice tracers and microstructural properties defined on the bio-grid are
 referenced in two ways: as `bgrid` :math:`=n_b+2` points and as
 igrid\ :math:`=n_b+1` points. For both bgrid and igrid, the first and
-last points reference :math:`h_b` and the ice–ocean interface,
+last points reference :math:`h_b` and the ice-ocean interface,
 respectively, and so take the values :math:`0` and :math:`1`,
 respectively. For bgrid, the interior points :math:`[2, n_b+1]` are
 spaced at :math:`1/n_b` intervals beginning with `bgrid(2)` :math:` =
@@ -582,9 +582,9 @@ grid edge must be filled by restoring them to specified values. The
 namelist variable `restore\_ice` turns this functionality on and off; the
 restoring timescale `trestore` may be used (it is also used for restoring
 ocean sea surface temperature in stand-alone ice runs). This
-implementation is only intended to provide the “hooks" for a more
+implementation is only intended to provide the hooks" for a more
 sophisticated treatment; the rectangular grid option can be used to test
-this configuration. The ‘displaced\_pole’ grid option should not be used
+this configuration. The displaced\_pole grid option should not be used
 unless the regional grid contains land all along the north and south
 boundaries. The current form of the boundary condition routines does not
 allow Neumann boundary conditions, which must be set explicitly. This
@@ -619,10 +619,10 @@ The logical masks `tmask` and `umask` (which correspond to the real masks
 `hm` and `uvm`, respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
-*evp\_prep* in order to reduce the dynamics component’s work on a global
+*evp\_prep* in order to reduce the dynamics components work on a global
 grid. At each time step the logical masks `ice\_tmask` and `ice\_umask` are
 determined from the current ice extent, such that they have the value
-“true” wherever ice exists. They also include a border of cells around
+true wherever ice exists. They also include a border of cells around
 the ice pack for numerical purposes. These masks are used in the
 dynamics component to prevent unnecessary calculations on grid points
 where there is no ice. They are not used in the thermodynamics
@@ -637,7 +637,7 @@ logical namelist flags `maskhalo\_bound`, `maskhalo\_remap`, and
 `maskhalo\_dyn`, respectively. Only the halo cells containing needed
 information are communicated.
 
-Two additional masks are created for the user’s convenience: `lmask\_n`
+Two additional masks are created for the users convenience: `lmask\_n`
 and `lmask\_s` can be used to compute or write data only for the northern
 or southern hemispheres, respectively. Special constants (`spval` and
 `spval\_dbl`, each equal to :math:`10^{30}`) are used to indicate land
@@ -678,14 +678,14 @@ files.
 Three namelist variables control model initialization, `ice\_ic`, `runtype`,
 and `restart`, as described in :ref:`tab-ic`. It is possible to do an
 initial run from a file **filename** in two ways: (1) set runtype =
-‘initial’, restart = true and ice\_ic = **filename**, or (2) runtype =
-‘continue’ and pointer\_file = **./restart/ice.restart\_file** where
+initial, restart = true and ice\_ic = **filename**, or (2) runtype =
+continue and pointer\_file = **./restart/ice.restart\_file** where
 **./restart/ice.restart\_file** contains the line
-“./restart/[filename]". The first option is convenient when repeatedly
+./restart/[filename]". The first option is convenient when repeatedly
 starting from a given file when subsequent restart files have been
 written. With this arrangement, the tracer restart flags can be set to
 true or false, depending on whether the tracer restart data exist. With
-the second option, tracer restart flags are set to ‘continue’ for all
+the second option, tracer restart flags are set to continue for all
 active tracers.
 
 An additional namelist option, `restart\_ext` specifies whether halo cells
@@ -704,7 +704,7 @@ coupled mode is determined at compile time, as described below.
 :ref:`tab-ic` : *Ice initial state resulting from combinations of*
 `ice\_ic`, `runtype` and `restart`. :math:`^a`\ *If false, restart is reset to
 true.* :math:`^b`\ *restart is reset to false.* :math:`^c`\ ice\_ic *is
-reset to ‘none.’*
+reset to none.*
 
 .. _tab-ic:
 
@@ -832,7 +832,7 @@ History files
 
 Model output data is averaged over the period(s) given by `histfreq` and
 `histfreq\_n`, and written to binary or  files prepended by `history\_file`
-in **ice\_in**. That is, if `history\_file` = ‘iceh’ then the filenames
+in **ice\_in**. That is, if `history\_file` = iceh then the filenames
 will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
 depending on the output file format chosen in **comp\_ice** (set
 `IO\_TYPE`). The  history files are CF-compliant; header information for
@@ -861,7 +861,7 @@ The history modules allow output at different frequencies. Five output
 frequencies (1, `h`, `d`, `m`, `y`) are available simultaneously during a run.
 The same variable can be output at different frequencies (say daily and
 monthly) via its namelist flag, `f\_` :math:`\left<{var}\right>`, which
-is now a character string corresponding to `histfreq` or ‘x’ for none.
+is now a character string corresponding to `histfreq` or x for none.
 (Grid variable flags are still logicals, since they are written to all
 files, no matter what the frequency is.) If there are no namelist flags
 with a given `histfreq` value, or if an element of `histfreq\_n` is 0, then
@@ -872,23 +872,23 @@ For example, in namelist:
 
 ::
 
-  `histfreq` = ’1’, ’h’, ’d’, ’m’, ’y’
+  `histfreq` = 1, h, d, m, y
   `histfreq\_n` = 1, 6, 0, 1, 1
-  `f\_hi` = ’1’
-  `f\_hs` = ’h’
-  `f\_Tsfc` = ’d’
-  `f\_aice` = ’m’
-  `f\_meltb` = ’mh’
-  `f\_iage` = ’x’
+  `f\_hi` = 1
+  `f\_hs` = h
+  `f\_Tsfc` = d
+  `f\_aice` = m
+  `f\_meltb` = mh
+  `f\_iage` = x
 
 Here, `hi` will be written to a file on every timestep, `hs` will be
 written once every 6 hours, `aice` once a month, `meltb` once a month AND
 once every 6 hours, and `Tsfc` and `iage` will not be written.
 
 From an efficiency standpoint, it is best to set unused frequencies in
-`histfreq` to ‘x’. Having output at all 5 frequencies takes nearly 5 times
+`histfreq` to x. Having output at all 5 frequencies takes nearly 5 times
 as long as for a single frequency. If you only want monthly output, the
-most efficient setting is `histfreq` = ’m’,’x’,’x’,’x’,’x’. The code counts
+most efficient setting is `histfreq` = m,x,x,x,x. The code counts
 the number of desired streams (`nstreams`) based on `histfreq`.
 
 The history variable names must be unique for netcdf, so in cases where
@@ -912,13 +912,13 @@ the frequency given by their namelist flag.
 The normalized principal components of internal ice stress are computed
 in *principal\_stress* and written to the history file. This calculation
 is not necessary for the simulation; principal stresses are merely
-computed for diagnostic purposes and included here for the user’s
+computed for diagnostic purposes and included here for the users
 convenience.
 
 Several history variables are available in two forms, a value
 representing an average over the sea ice fraction of the grid cell, and
 another that is multiplied by :math:`a_i`, representing an average over
-the grid cell area. Our naming convention attaches the suffix “\_ai" to
+the grid cell area. Our naming convention attaches the suffix \_ai" to
 the grid-cell-mean variable names.
 
 ****************
@@ -928,7 +928,7 @@ Diagnostic files
 Like `histfreq`, the parameter `diagfreq` can be used to regulate how often
 output is written to a log file. The log file unit to which diagnostic
 output is written is set in **ice\_fileunits.F90**. If `diag\_type` =
-‘stdout’, then it is written to standard out (or to **ice.log.[ID]** if
+stdout, then it is written to standard out (or to **ice.log.[ID]** if
 you redirect standard out as in **run\_ice**); otherwise it is written
 to the file given by `diag\_file`. In addition to the standard diagnostic
 output (maximum area-averaged thickness, velocity, average albedo, total
@@ -943,14 +943,14 @@ may be changed in **ice\_in**.
 Timers are declared and initialized in **ice\_timers.F90**, and the code
 to be timed is wrapped with calls to *ice\_timer\_start* and
 *ice\_timer\_stop*. Finally, *ice\_timer\_print* writes the results to
-the log file. The optional “stats" argument (true/false) prints
+the log file. The optional stats" argument (true/false) prints
 additional statistics. Calling *ice\_timer\_print\_all* prints all of
 the timings at once, rather than having to call each individually.
 Currently, the timers are set up as in :ref:`timers`.
 Section :ref:`addtimer` contains instructions for adding timers.
 
 The timings provided by these timers are not mutually exclusive. For
-example, the column timer (5) includes the timings from 6–10, and
+example, the column timer (5) includes the timings from 610, and
 subroutine *bound* (timer 15) is called from many different places in
 the code, including the dynamics and advection routines.
 
@@ -1013,7 +1013,7 @@ restart files using PIO.
 
 The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string
-‘iced.’, and the restart dump frequency is given by the namelist
+iced., and the restart dump frequency is given by the namelist
 variables `dumpfreq` and `dumpfreq\_n`. The pointer to the filename from
 which the restart data is to be read for a continuation run is set in
 `pointer\_file`. The code assumes that auxiliary binary tracer restart
@@ -1032,7 +1032,7 @@ lcdf64 = true sets 64-bit  output, allowing larger file sizes with
 version 3.
 
 Routines for gathering, scattering and (unformatted) reading and writing
-of the “extended" global grid, including the physical domain and ghost
+of the extended" global grid, including the physical domain and ghost
 (halo) cells around the outer edges, allow exact restarts on regional
 grids with open boundary conditions, and they will also simplify
 restarts on the various tripole grids. They are accessed by setting
@@ -1072,16 +1072,16 @@ To compile and execute the code: in the source directory,
    https://github.com/CICE-Consortium .
 
 #. Create **Macros.\*** and **run\_ice.\*** files for your particular
-   platform, if they do not already exist (type ‘uname -s’ at the prompt
+   platform, if they do not already exist (type uname -s at the prompt
    to get :math:`\langle`\ OS\ :math:`\rangle`).
 
 #. Alter directories in the script **comp\_ice**.
 
 #. Run **comp\_ice** to set up the run directory and make the executable
-   ‘**cice**’.
+   **cice**.
 
 #. | To clean the compile directory and start fresh, simply execute
-     ‘/bin/rm -rf compile’ from the run directory.
+     /bin/rm -rf compile from the run directory.
 
 In the run directory,
 
@@ -1100,14 +1100,14 @@ This procedure creates the output log file **ice.log.[ID]**, and if
 **iceh\_[timeID].nc (.da)**. Using the :math:`\left<3^\circ\right>`
 grid, the log file should be similar to
 **ice.log.\ :math:`\langle`\ OS\ :math:`\rangle`**, provided for the
-user’s convenience. These log files were created using MPI on 4
+users convenience. These log files were created using MPI on 4
 processors on the :math:`\left<3^\circ\right>` grid.
 
 Several options are available in **comp\_ice** for configuring the run,
 shown in :ref:`comp-ice`. If `NTASK` = 1, then the **serial/**
 code is used, otherwise the code in **mpi/** is used. Loops over blocks
 have been threaded throughout the code, so that their work will be
-divided among `OMP\_NUM\_THREADS` if `THRD` is ‘yes.’ Note that the value of
+divided among `OMP\_NUM\_THREADS` if `THRD` is yes. Note that the value of
 `NTASK` in **comp\_ice** must equal the value of `nprocs` in **ice\_in**.
 Generally the value of `MXBLCKS` computed by **comp\_ice** is sufficient,
 but sometimes it will need to be set explicitly, as discussed in
@@ -1176,7 +1176,7 @@ the run directory resides. `SHRDIR` is a path to the CESM shared code.
    |NUMAX                | (integer)                            | largest unit number assigned to CICE files                                         |
    +---------------------+--------------------------------------+------------------------------------------------------------------------------------+
 
-The ‘reproducible’ option (`DITTO`) makes diagnostics bit-for-bit when
+The reproducible option (`DITTO`) makes diagnostics bit-for-bit when
 varying the number of processors. (The simulation results are
 bit-for-bit regardless, because they do not require global sums or
 max/mins as do the diagnostics.) This was done mainly by increasing the
@@ -1274,10 +1274,10 @@ latitude weighting, (f) spacecurve. Each block consists of 20x24 grid
 cells, and white blocks consist entirely of land cells.
 
 The `distribution\_type` options allow standard Cartesian distribution of
-blocks, redistribution via a ‘rake’ algorithm for improved load
+blocks, redistribution via a rake algorithm for improved load
 balancing across processors, and redistribution based on space-filling
 curves. There are also three additional distribution types
-(‘roundrobin,’ ‘sectrobin,’ ‘sectcart’) that improve land-block
+(roundrobin, sectrobin, sectcart) that improve land-block
 elimination rates and also allow more flexibility in the number of
 processors used. The rake and space-filling curve algorithms are
 primarily helpful when using squarish processor domains where some
@@ -1285,14 +1285,14 @@ processors (located near the equator) would otherwise have little work
 to do. Processor domains need not be rectangular, however.
 
 `distribution\_wght` chooses how the work-per-block estimates are
-weighted. The ‘block’ option is the default in POP, which uses a lot of
+weighted. The block option is the default in POP, which uses a lot of
 array syntax requiring calculations over entire blocks (whether or not
 land is present), and is provided here for direct-communication
-compatibility with POP. The ‘latitude’ option weights the blocks based
+compatibility with POP. The latitude option weights the blocks based
 on latitude and the number of ocean grid cells they contain.
 
 The rake distribution type is initialized as a standard, Cartesian
-distribution. Using the work-per-block estimates, blocks are “raked"
+distribution. Using the work-per-block estimates, blocks are raked
 onto neighboring processors as needed to improve load balancing
 characteristics among processors, first in the x direction and then in
 y.
@@ -1309,13 +1309,13 @@ are integers. For example, a 16x16 array of blocks, each containing
 these conditions is not met, a Cartesian distribution is used instead.
 
 While the Cartesian distribution groups sets of blocks by processor, the
-‘roundrobin’ distribution loops through the blocks and processors
+roundrobin distribution loops through the blocks and processors
 together, putting one block on each processor until the blocks are gone.
 This provides good load balancing but poor communication characteristics
 due to the number of neighbors and the amount of data needed to
-communicate. The ‘sectrobin’ and ‘sectcart’ algorithms loop similarly,
+communicate. The sectrobin and sectcart algorithms loop similarly,
 but put groups of blocks on each processor to improve the communication
-characteristics. In the ‘sectcart’ case, the domain is divided into two
+characteristics. In the sectcart case, the domain is divided into two
 (east-west) halves and the loops are done over each, sequentially.
 :ref:`fig-distribscorecard` provides an overview of the pros and cons
 for the distribution types.
@@ -1338,7 +1338,7 @@ overhead in setting up the halo masks, which is done during the
 timestepping procedure as the ice area changes, but this option
 usually improves timings even for relatively small processor counts.
 T. Craig has found that performance improved by more than 20% for
-combinations of updated decompositions and masked haloes, in CESM’s
+combinations of updated decompositions and masked haloes, in CESMs
 version of CICE. A practical guide for choosing a CICE grid
 decomposition, based on experience in CESM, is available:
 http://oceans11.lanl.gov/drupal/CICE/DecompositionGuide
@@ -1350,9 +1350,9 @@ to reduce unnecessary operations and to improve vector performance.
 :ref:`fig-timings` illustrates the computational expense of various
 options, relative to the total time (excluding initialization) of a
 7-layer configuration using BL99 thermodynamics, EVP dynamics, and the
-‘ccsm3’ shortwave parameterization on the gx1 grid, run for one year
+ccsm3 shortwave parameterization on the gx1 grid, run for one year
 from a no-ice initial condition. The block distribution consisted of
-20 \ :math:`\times` 192 blocks spread over 32 processors (‘slenderX2’)
+20 \ :math:`\times` 192 blocks spread over 32 processors (slenderX2)
 with no threads and -O2 optimization. Timings varied by about
 :math:`\pm3`\ % in identically configured runs due to machine load.
 Extra time required for tracers has two components, that needed to carry
@@ -1372,7 +1372,7 @@ calculate it for each thickness category.
 
    Figure 11
 
-:ref:`fig-timings` : Change in ‘TimeLoop’ timings from the 7-layer
+:ref:`fig-timings` : Change in TimeLoop timings from the 7-layer
 configuration using BL99 thermodynamics and EVP dynamics. Timings
 were made on a nondedicated machine, with variations of about
 :math:`\pm3`\ % in identically configured runs (light grey). Darker
@@ -1412,7 +1412,7 @@ History fields
 ~~~~~~~~~~~~~~
 
 To add a variable to be printed in the history output, search for
-‘example’ in **ice\_history\_shared.F90**:
+example in **ice\_history\_shared.F90**:
 
 #. add a frequency flag for the new field
 
@@ -1434,7 +1434,7 @@ as an example. Some history variables, especially tracers, are grouped
 in other files according to their purpose (bgc, melt ponds, etc.).
 
 To add an output frequency for an existing variable, see
-section :ref:`history`.
+section :ref:`history`.
 
 .. _addtrcr:
 
@@ -1466,7 +1466,7 @@ basal melting. The proper units for a volume-weighted mass tracer in the
 tracer array are kg/m.
 
 In several places in the code, tracer computations must be performed on
-the conserved “tracer volume" rather than the tracer itself; for
+the conserved tracer volume" rather than the tracer itself; for
 example, the conserved quantity is :math:`h_{pnd}a_{pnd}a_{lvl}a_{i}`,
 not :math:`h_{pnd}`. Conserved quantities are thus computed according to
 the tracer dependencies, and code must be included to account for new
@@ -1553,16 +1553,16 @@ The code may abort during the setup phase for any number of reasons, and
 often the buffer containing the diagnostic output fails to print before
 the executable exits. The quickest way to get the diagnostic information
 is to run the code in an interactive shell with just the command `cice`
-for serial runs or “`mpirun -np N cice`” for MPI runs, where N is the
+for serial runs or `mpirun -np N cice` for MPI runs, where N is the
 appropriate number of processors (or a command appropriate for your
-computer’s software).
+computers software).
 
 If the code fails to compile or run, or if the model configuration is
 changed, try the following:
 
 -  create **Macros.\***. **Makefile.\*** and **run\_ice.\*** files for
-   your particular platform, if they do not already exist (type ‘uname
-   -s’ at the prompt and compare the result with the file suffixes; we
+   your particular platform, if they do not already exist (type uname
+   -s at the prompt and compare the result with the file suffixes; we
    rename `UNICOS/mp` as `UNICOS` for simplicity).
 
 -  modify the `INCLUDE` directory path and other settings for your system
@@ -1611,15 +1611,15 @@ layers within each category must be the same in the restart file and in
 the run restarting from that file. Moreover, significant differences in
 the physics, such as the salinity profile, may cause the code to fail
 upon restart. Therefore, new model configurations may need to be started
-using `runtype` = ‘initial’. Binary restart files that were provided with
+using `runtype` = initial. Binary restart files that were provided with
 CICE v4.1 were made using the BL99 thermodynamics with 4 layers and 5
 thickness categories (`kcatbound` = 0) and therefore can not be used for
-the default CICE v5 configuration (7 layers). In addition, CICE’s
-default restart file format is now  instead of binary.
+the default CICE v5 configuration (7 layers). In addition, CICEs
+default restart file format is now instead of binary.
 
-Restarting a run using `runtype` = ‘continue’ requires restart data for
+Restarting a run using `runtype` = continue requires restart data for
 all tracers used in the new run. If tracer restart data is not
-available, use `runtype` = ‘initial’, setting `ice\_ic` to the name of the
+available, use `runtype` = initial, setting `ice\_ic` to the name of the
 core restart file and setting to true the namelist restart flags for
 each tracer that is available. The unavailable tracers will be
 initialized to their default settings.
@@ -1629,7 +1629,7 @@ regular (non-PIO) netcdf.
 
 Provided that the same number of ice layers (default: 4) will be used
 for the new runs, it is possible to convert v4.1 restart files to the
-new file structure and then to  format. If the same physical
+new file structure and then to format. If the same physical
 parameterizations are used, the code should be able to execute from
 these files. However if different physics is used (for instance, mushy
 thermo instead of BL99), the code may still fail. To convert a v4.1
@@ -1644,9 +1644,9 @@ restart file:
 #. In your working directory, turn off all tracer restart flags in
    **ice\_in** and set the following:
 
-   -  runtype = ‘initial’
+   -  runtype = initial
 
-   -  ice\_ic = ‘./restart/[your binary file name]’
+   -  ice\_ic = ./restart/[your binary file name]
 
    -  restart = .true.
 
@@ -1673,7 +1673,7 @@ You will take a hit for the extra computations, but it will not be as
 bad as running with the underflows.
 
 In some configurations, multiple calls to scatter or gather global
-variables may overfill MPI’s buffers, causing the code to slow down
+variables may overfill MPIs buffers, causing the code to slow down
 (particularly when writing large output files such as restarts). To
 remedy this problem, set `BARRIERS yes` in **comp\_ice**. This
 synchronizes MPI messages, keeping the buffers in check.
@@ -1729,7 +1729,7 @@ Known bugs
    as does the ice area).
 
 #. With the old CCSM radiative scheme (`shortwave` = ‘default’ or
-   ‘ccsm3’), a sizable fraction (more than 10%) of the total shortwave
+   ccsm3), a sizable fraction (more than 10%) of the total shortwave
    radiation is absorbed at the surface but should be penetrating into
    the ice interior instead. This is due to use of the aggregated,
    effective albedo rather than the bare ice albedo when
@@ -2083,7 +2083,7 @@ Two-Stage Paired Thickness Test
 The first quality check aims to confirm the null hypotheses
 :math:`H_0\!:\!\mu_d{=}0` at every model grid point, given the mean
 thickness difference :math:`\mu_d` between paired CICE simulations
-‘:math:`a`’ and ‘:math:`b`’ that should be identical. :math:`\mu_d` is
+:math:`a` and :math:`b` that should be identical. :math:`\mu_d` is
 approximated as
 :math:`\bar{h}_{d}=\tfrac{1}{n}\sum_{i=1}^n (h_{ai}{-}h_{bi})` for
 :math:`n` paired samples of ice thickness :math:`h_{ai}` and
@@ -2144,7 +2144,7 @@ confirmed for highly auto-correlated series. Strong autocorrelation
 frequently occurs in modeled sea ice thickness, and :math:`r_1>0.99` is
 possible in parts of the gx-1 domain for the five-year QC simulations.
 In the event that :math:`H_0` is confirmed but :math:`2\leq n_{eff}<30`,
-the :math:`t`-test progresses to the ‘Table Lookup Test’ of
+the :math:`t`-test progresses to the Table Lookup Test of
 :cite:`Zwiers1995`, to check that the first-stage test
 using (:eq:`t-distribution`) was not
 conservative. The Table Lookup Test chooses critical :math:`t` values
@@ -2196,14 +2196,14 @@ correlation-weighted performance, as given in equations (4) and (5) of
 :cite:`Taylor2001`, respectively. We choose :math:`m=2` to
 balance the importance of variance and correlation reproduction in QC
 tests, where :math:`\hat{\sigma}_{f}={\sigma_{b}}/{\sigma_{a}}` is the ratio
-of the standard deviations of simulations ‘:math:`b`’ and ‘:math:`a`’,
-respectively, and simulation ‘:math:`a`’ is the control. :math:`R_0` is
+of the standard deviations of simulations :math:`b` and :math:`a`,
+respectively, and simulation :math:`a` is the control. :math:`R_0` is
 the maximum possible correlation between two series for correlation
 coefficient :math:`R` calculated between respective thickness pairs
 :math:`h_{a}` and :math:`h_{b}`. Bit-for-bit reproduction of previous
 CICE simulations means that perfect correlation is possible, and so
-:math:`R_0=1`, giving the quadratic skill of run ‘:math:`b`’ relative to
-run ‘:math:`a`’:
+:math:`R_0=1`, giving the quadratic skill of run :math:`b` relative to
+run :math:`a`:
 
 .. math::
    S=\bigg[ \frac{(1+R) (\sigma_a \sigma_b)}{({\sigma_a}^2 + {\sigma_b}^2)} \bigg]^2
@@ -2213,14 +2213,14 @@ This provides a skill score between 0 and 1. We apply this :math:`S`
 metric separately to the northern and southern hemispheres of the gx-1
 grid by area-weighting the daily thickness samples discussed in the
 Two-Stage Paired Thickness QC Test. The hemispheric mean thickness over
-a 5-year simulation for run ‘:math:`a`’ is:
+a 5-year simulation for run :math:`a` is:
 
 .. math::
    \bar{h}_{a}=\frac{1}{n} \sum_{i=1}^{n} \sum_{j=1}^{J} \ W_{j} \; h_{{a}_{i,j}}
    :label: h-bar
 
 at time sample :math:`i` and grid point index :math:`j`, with an
-equivalent equation for simulation ‘:math:`b`’. :math:`n` is the total
+equivalent equation for simulation :math:`b`. :math:`n` is the total
 number of time samples (nominally :math:`n=1825`) and :math:`J` is the
 total number of grid points on the gx-1 grid. :math:`W_j` is the weight
 attributed to each grid point according to its area :math:`A_{j}`, given
@@ -2233,14 +2233,14 @@ as
 for all grid points within each hemisphere with one or more non-zero
 thicknesses in one or both sets of samples :math:`h_{{a}_{i,j}}` or
 :math:`h_{{b}_{i,j}}`. The area-weighted variance for simulation
-‘:math:`a`’ is:
+:math:`a` is:
 
 .. math::
    \sigma_a^{\;2}=\frac{\hat{J}}{(n\,\hat{J}-1)} \sum_{i=1}^{n} \sum_{j=1}^{J}  W_{j} \, (h_{{a}_{i,j}}-\bar{h}_{a})^2
    :label: weighted-deviation
 
 where :math:`\hat{J}` is the number of non-zero :math:`W_j` weights,
-and :math:`\sigma_b` is calculated equivalently for run ‘:math:`b`’. In
+and :math:`\sigma_b` is calculated equivalently for run :math:`b`. In
 this context, :math:`R` becomes a weighted correlation coefficient,
 calculated as
 
@@ -2299,6 +2299,55 @@ and 1 if the test failed.
 Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
 locations of failures can be identified.
+
+~~~~~~~~~~~~~~~~~~~~
+CICE Test Reporting
+~~~~~~~~~~~~~~~~~~~~
+
+The CICE testing scripts have the capability of posting the test results 
+to an online dashboard, located `on CDash <http://my.cdash.org/index.php?project=myCICE>`_.  
+There are 2 options for posting CICE results to CDash: 1) The automated 
+script, 2) The manual method.
+
+*****************
+Automatic Script
+*****************
+
+To automatically run the CICE tests, and post the results to the CICE Cdash dashboard,
+users need to copy and run the ``run.suite`` script:
+
+.. code-block:: bash
+
+  cp configuration/scripts/run.suite .
+  ./run.suite -m <machine> -testid <test_id> -bc <baseline_to_compare> -bg <baseline_to_generate>
+
+The run.suite script does the following:
+
+- Creates a fresh clone of the CICE-Consortium repository
+- ``cd`` to cloned repo
+- run ``create.case`` to generate the base_suite directories.  The output 
+  is piped to ``log.suite``
+- Running ``create.case`` submits each individual job to the queue.  
+- ``run.suite`` monitors the queue manager to determine when all jobs have 
+  finished (pings the queue manager once every 5 minutes).
+- Once all jobs complete, cd to base_suite directory and run ``./results.csh``
+- Run ``ctest -S steer.cmake`` in order to post the test results to the CDash dashboard
+
+*****************
+Manual Method
+*****************
+
+To manually run the CICE tests and post the results to the CICE CDash dashboard,
+users essentially just need to perform all steps available in run.suite, detailed below:
+
+- Pass the ``-report`` flag to create.case when running the ``base_suite`` test suite.
+  The ``-report`` flag copies the required CTest / CDash scripts to the suite 
+  directory.
+- ``create.case`` compiles the CICE code, and submits all of the jobs to the 
+  queue manager.  
+- After every job has been submitted and completed, ``cd`` to the suite directory.
+- Parse the results, by running ``./results.csh``.
+- Run the CTest / CDash script ``ctest -S steer.cmake``.
 
 .. _tabnamelist:
 
