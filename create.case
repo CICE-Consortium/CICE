@@ -230,6 +230,7 @@ if ( $testsuite != $spval ) then
     cp -f ${ICE_SCRIPTS}/tests/CTest/CTestConfig.cmake ./${tsdir}
     cp -f ${ICE_SCRIPTS}/tests/CTest/CTestTestfile.cmake ./${tsdir}
     cp -f ${ICE_SCRIPTS}/tests/CTest/steer.cmake ./${tsdir}
+    cp -f ${ICE_SCRIPTS}/tests/CTest/run_ctest.csh ./${tsdir}
   endif
 
 cat >! ./${tsdir}/suite.run << EOF0
