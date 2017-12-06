@@ -2331,7 +2331,7 @@ The run.suite script does the following:
 - ``run.suite`` monitors the queue manager to determine when all jobs have 
   finished (pings the queue manager once every 5 minutes).
 - Once all jobs complete, cd to base_suite directory and run ``./results.csh``
-- Run ``ctest -S steer.cmake`` in order to post the test results to the CDash dashboard
+- Run ``./run_ctest.csh`` in order to post the test results to the CDash dashboard
 
 *****************
 Manual Method
@@ -2347,7 +2347,16 @@ users essentially just need to perform all steps available in run.suite, detaile
   queue manager.  
 - After every job has been submitted and completed, ``cd`` to the suite directory.
 - Parse the results, by running ``./results.csh``.
-- Run the CTest / CDash script ``ctest -S steer.cmake``.
+- Run the CTest / CDash script ``./run_ctest.csh``.
+
+
+If the ``run_ctest.csh`` script is unable to post the testing results to the CDash
+server, a message will be printed to the screen detailing instructions on how to attempt
+to post the results from another server.  If ``run_ctest.csh`` fails to submit the results,
+it will generate a tarball ``cice_ctest.tgz`` that contains the necessary files for 
+submission.  Copy this file to another server, extract the archive, and run
+``./run_ctest.csh -submit``.
+
 
 .. _tabnamelist:
 
