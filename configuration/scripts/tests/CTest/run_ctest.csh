@@ -60,7 +60,7 @@ if ( $submit_only == 0 ) then
         echo "CTest submission failed.  To try the submission again run "
         echo "    ./run_ctest.csh -submit"
         echo "If you wish to submit the test results from another server, copy the "
-        echo "cice_submit.tgz file to another server and run "
+        echo "cice_ctest.tgz file to another server and run "
         echo "    ./run_ctest.csh -submit"
     else
         echo "Submit Succeeded"
