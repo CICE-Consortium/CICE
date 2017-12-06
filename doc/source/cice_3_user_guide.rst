@@ -2354,8 +2354,8 @@ If the ``run_ctest.csh`` script is unable to post the testing results to the CDa
 server, a message will be printed to the screen detailing instructions on how to attempt
 to post the results from another server.  If ``run_ctest.csh`` fails to submit the results,
 it will generate a tarball ``cice_ctest.tgz`` that contains the necessary files for 
-submission.  Copy this file to another server, extract the archive, and run
-``./run_ctest.csh -submit``.
+submission.  Copy this file to another server (CMake version 2.8+ required), extract the 
+archive, and run ``./run_ctest.csh -submit``.
 
 
 .. _tabnamelist:
