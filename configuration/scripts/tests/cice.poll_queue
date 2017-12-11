@@ -1,0 +1,55 @@
+#!/bin/csh -f
+
+# Parse the job IDs from log.suite.  This should work for PBS, Slurm, or IBM LFS but needs
+# to be thoroughly tested (so far only tested on PBS)
+set job_id = 0
+foreach line ( "`cat log.suite`" )
+  if ( $job_id == 1 ) then
+    set job_id = 0
+    if ( "$line" != " " ) then
+      # Grep the job number
+      echo "$line" | grep -oP "\d+" | sort -n | tail -1 >> log.jobs
+    endif
+  else
+    if ( "$line" =~ *'COMPILE SUCCESSFUL'* ) then
+      set job_id = 1
+    endif
+  endif
+end
+
+# Check if this server uses PBS or Slurm
+which qstat >&/dev/null
+if ( $? == 0 ) then
+  # PBS
+  set queue_check = 'qstat'
+else
+  which squeue
+  if ( $? == 0 ) then
+    # Slurm
+    set queue_check = 'squeue --jobs='
+  else
+    which bjobs
+    if ( $? == 0 ) then
+      # IBM LFS
+      set queue_check = 'bjobs -l '
+    else
+      echo "Unable to determine how to check status of jobs.  Once all jobs are "
+      echo "complete, cd to ${PWD} and run ./results.csh followed by ctest -S steer.cmake"
+    endif
+  endif
+endif
+
+# Wait for all jobs to finish
+foreach job ("`cat log.jobs`")
+  while (1)
+    $queue_check $job >&/dev/null
+    if ($? != 0) then
+      echo "Job $job completed"
+      break
+    endif
+    echo "Waiting for $job to complete"
+    sleep 300   # Sleep for 5 minutes, so as not to overwhelm the queue manager
+  end
+end
+
+rm log.jobs  # Delete the list of job IDs
