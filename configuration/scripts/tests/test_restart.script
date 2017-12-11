@@ -13,10 +13,11 @@ echo "RUN  ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
 echo "PEND ${ICE_TESTNAME} exact-restart" >> ${ICE_CASEDIR}/test_output
 
 ./cice.run
+set res="$?"
 
 mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
 cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
-if ( $? != 0 ) then
+if ( $res != 0 ) then
   echo "FAIL ${ICE_TESTNAME} run-initial" >> ${ICE_CASEDIR}/test_output
   exit 99
 else
