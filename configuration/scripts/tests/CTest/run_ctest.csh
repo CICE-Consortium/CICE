@@ -21,7 +21,7 @@ if ( $submit_only == 0 ) then
   ctest -S steer.cmake
 else
   # Find the filename to submit to CDash
-  set CTEST_TAG="`head -n 1 Testing/TAG`"
+  set CTEST_TAG="`head -n 1 Testing/TAG.submit`"
   
 cat > submit.cmake << EOF0
 cmake_minimum_required(VERSION 2.8)
@@ -55,7 +55,8 @@ if ( $submit_only == 0 ) then
     if ( $success == 0 ) then
         echo ""
         set xml_file="Testing/$CTEST_TAG/Test.xml"
-        tar czf cice_ctest.tgz run_ctest.csh CTestConfig.cmake Testing/TAG \
+        cp Testing/TAG Testing/TAG.submit
+        tar czf cice_ctest.tgz run_ctest.csh CTestConfig.cmake Testing/TAG.submit \
                                       Testing/${CTEST_TAG}/Test.xml
         echo "CTest submission failed.  To try the submission again run "
         echo "    ./run_ctest.csh -submit"
