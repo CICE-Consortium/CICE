@@ -1,4 +1,4 @@
-#!/usr/bin/csh
+#!/bin/csh -f
 
 set initargv = ( $argv[*] )
 
