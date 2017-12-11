@@ -116,11 +116,11 @@ git clone --recursive https://github.com/CICE-Consortium/CICE.git $gitDir
 
 cd $gitDir
 
-echo "Running ./create.case and storing output in log.suite"
+echo "Running ./create.case"
 if ($baseGen == $spval) then
-  ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -report >& log.suite
+  ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -report
 else
-  ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -bg ${baseGen} -report >& log.suite
+  ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -bg ${baseGen} -report
 endif
 
 # Poll the queue manager to see when all jobs are completed
@@ -130,7 +130,7 @@ cd base_suite.${testid}
 
 ./results.csh
 
-ctest -S steer.cmake
+./run_ctest.csh
 
 cd ..
 

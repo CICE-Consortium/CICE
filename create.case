@@ -566,10 +566,15 @@ echo "\$failures of \$total tests FAILED"
 echo "\$pends of \$total tests PENDING"
 EOF
 
-# build and submit tests
-cd ${tsdir}
-./suite.run
-cd ${ICE_SANDBOX}
+  # build and submit tests
+  cd ${tsdir}
+  if ($report == 1) then
+    echo "Running the suite and storing output in log.suite"
+    ./suite.run >& ../log.suite
+  else
+    ./suite.run
+  endif
+  cd ${ICE_SANDBOX}
 
 endif
 
