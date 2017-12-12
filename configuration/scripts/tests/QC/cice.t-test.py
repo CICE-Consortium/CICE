@@ -47,6 +47,7 @@ def read_data(base_dir,test_dir):
               "   # of files: {}\n".format(len(files_a)) + \
               "Test directory: {}\n".format(path_b) + \
               "   # of files: {}".format(len(files_b)))
+        sys.exit(-1)
       
     num_files = len(files_a)
     logger.info("Number of files: {}".format(num_files))
