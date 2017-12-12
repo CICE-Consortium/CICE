@@ -47,6 +47,7 @@ def read_data(base_dir,test_dir):
               "   # of files: {}\n".format(len(files_a)) + \
               "Test directory: {}\n".format(path_b) + \
               "   # of files: {}".format(len(files_b)))
+        sys.exit(-1)
       
     num_files = len(files_a)
     logger.info("Number of files: {}".format(num_files))
@@ -171,7 +172,7 @@ def two_stage_test(data_a,data_b,num_files,data_d):
             logger.info('Two-Stage Test Passed')
             passed = True
         else:
-            logger.error('TEST NOT CONCLUSIVE')
+            logger.error('TWO-STAGE TEST NOT CONCLUSIVE')
             passed = False
     
     else:
@@ -261,6 +262,10 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     
     data_a, data_b, data_d, num_files, path_a, fname = read_data(args.base_dir,args.test_dir)
+
+    if np.ma.all(data_d.mask):
+        logger.info("Data is bit-for-bit.  No need to run QC test")
+        sys.exit(0)
 
     # Run the two-stage test
     passed = two_stage_test(data_a,data_b,num_files,data_d)
