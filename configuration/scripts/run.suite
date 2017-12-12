@@ -123,16 +123,5 @@ else
   ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -bg ${baseGen} -report
 endif
 
-# Poll the queue manager to see when all jobs are completed
-./configuration/scripts/tests/cice.poll_queue
-
-cd base_suite.${testid}
-
-./results.csh
-
-./run_ctest.csh
-
-cd ..
-
 echo "---"
 echo "CICE run.suite completed"
