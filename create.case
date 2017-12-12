@@ -570,7 +570,7 @@ EOF
   cd ${tsdir}
   if ($report == 1) then
     echo "Running the suite and storing output in log.suite"
-    ./suite.run >& ../log.suite
+    ./suite.run >& log.suite
     ../configuration/scripts/tests/cice.poll_queue
     ./results.csh
     ./run_ctest.csh
