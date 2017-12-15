@@ -38,5 +38,6 @@ message("source directory = ${CTEST_SOURCE_DIRECTORY}")
 
 ctest_start(${MODEL} TRACK ${MODEL})
 ctest_test( BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
+message("Parsing timings into Test.xml")
+execute_process(COMMAND "./parse_timings.csh")
 ctest_submit(           RETURN_VALUE res)
