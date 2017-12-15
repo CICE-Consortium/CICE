@@ -17,17 +17,32 @@ foreach line ("`cat $testfile`")
     endif
   endif
   if ( "$line" =~ *"FullName"* ) then
-    if ( "$line" =~ *"_run<"* && $save_time == 1) then
-      set save_time=1
+    if ( $save_time == 1 ) then
+      if ( "$line" =~ *"_run<"* ) then
+        set save_time=1
+      else if ("$line" =~ *"_run-initial<"*) then
+        set save_time=2
+      else if ("$line" =~ *"run-restart"*) then
+        set save_time=3
+      else
+        set save_time=0
+      endif
       # Grab the case name
-      set casename=`echo $line | grep -oP '(?<=<FullName>\.\/).*?(?=</FullName>)' | rev | cut -c 5- | rev`
+      set casename=`echo $line | grep -oP '(?<=<FullName>\.\/).*?(?=</FullName>)'`
+      set casename=`echo $casename | sed 's/_run\>\|_run-initial\>\|_run-restart\>//'`
     else
       set save_time=0
     endif
   endif
-  if ( "$line" =~ *"Execution Time"* && $save_time == 1 ) then
+  if ( "$line" =~ *"Execution Time"* && $save_time > 0 ) then
     # Find the case runlog
-    set runlog=`ls ./${casename}.*/logs/*runlog*`
+    #set runlog=`ls ./${casename}.*/logs/*runlog*`
+    foreach file (`ls ./${casename}.*/logs/*runlog*`)
+      set runlog="$file"
+      if ( $save_time == 2 ) then
+        break
+      endif
+    end
     foreach line1 ("`cat $runlog`")
       if ( "$line1" =~ *"Timer   2:"*) then
         set runtime=`echo $line1 | grep -oP "\d+\.(\d+)?" | sort -n | tail -1`
