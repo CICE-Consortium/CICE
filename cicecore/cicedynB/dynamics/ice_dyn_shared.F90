@@ -45,6 +45,7 @@
 
       real (kind=dbl_kind), public :: &
          revp     , & ! 0 for classic EVP, 1 for revised EVP
+         e_ratio  , & ! e = EVP ellipse aspect ratio 
          ecci     , & ! 1/e^2
          dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
          dte2T    , & ! dte/2T
@@ -60,6 +61,10 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: & 
          uvel_init, & ! x-component of velocity (m/s), beginning of timestep
          vvel_init    ! y-component of velocity (m/s), beginning of timestep
+         
+       ! ice isotropic tensile strength parameter
+      real (kind=dbl_kind), public :: &
+         Ktens         ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)   
 
 !=======================================================================
 
@@ -184,8 +189,8 @@
       dtei = c1/dte              ! 1/s
 
       ! major/minor axis length ratio, squared
-      ecc  = c4
-      ecci = p25                  ! 1/ecc
+      ecc  = e_ratio**2
+      ecci = c1/ecc               ! 1/ecc
 
       ! constants for stress equation
       tdamp2 = c2*eyc*dt                    ! s
