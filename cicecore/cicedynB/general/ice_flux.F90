@@ -41,6 +41,7 @@
          vocn    , & ! ocean current, y-direction (m/s)
          ss_tltx , & ! sea surface slope, x-direction (m/m)
          ss_tlty , & ! sea surface slope, y-direction
+         hwater  , & ! water depth for basal stress calc (landfast ice) 
 
        ! out to atmosphere
          strairxT, & ! stress on ice by air, x-direction
@@ -56,6 +57,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          sig1    , & ! principal stress component
          sig2    , & ! principal stress component
+         tau_bu  , & ! basal stress (x) (N/m^2)
+         tau_bv  , & ! basal stress (y) (N/m^2)
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
          strocnx , & ! ice-ocean stress, x-direction
@@ -103,7 +106,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          prs_sig  , & ! replacement pressure, for stress calc
-         fm           ! Coriolis param. * mass in U-cell (kg/s)
+         fm       , & ! Coriolis param. * mass in U-cell (kg/s)
+         Cbu          ! coefficient for basal stress (landfast ice)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -426,6 +430,7 @@
       vocn  (:,:,:) = c0
       frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
       sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
+      hwater(:,:,:) = 10000.0_dbl_kind! water depth for basal stress calc (landfast ice)
 
       do iblk = 1, size(Tf,3)
       do j = 1, size(Tf,2)
@@ -653,6 +658,8 @@
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0
+      tau_bu  (:,:,:) = c0
+      tau_bv  (:,:,:) = c0
       strocnx (:,:,:) = c0
       strocny (:,:,:) = c0
       strairx (:,:,:) = c0

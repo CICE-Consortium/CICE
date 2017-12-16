@@ -83,11 +83,13 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
       use ice_dyn_shared, only: fcor_blk, ndte, dtei, a_min, m_min, &
           cosw, sinw, denom1, uvel_init, vvel_init, arlx1i, &
-          evp_prep1, evp_prep2, stepu, evp_finish
+          evp_prep1, evp_prep2, stepu, evp_finish, &
+          basal_stress_coeff, basalstress
       use ice_flux, only: rdg_conv, rdg_shear, prs_sig, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, &
           strocnxT, strocnyT, strax, stray, &
+          Cbu, hwater, tau_bu, tau_bv, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
@@ -269,7 +271,8 @@
                          stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
-                         uvel      (:,:,iblk), vvel      (:,:,iblk))
+                         uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                         Cbu       (:,:,iblk))
 
       !-----------------------------------------------------------------
       ! Initialize structure tensor
@@ -388,6 +391,21 @@
 !      call ice_timer_stop(timer_tmp1) ! dynamics
 
       !-----------------------------------------------------------------
+      ! basal stress calculation (landfast ice)
+      !-----------------------------------------------------------------
+      
+            if (basalstress) then        
+               call basal_stress_coeff (nx_block,       ny_block,       &
+                                        icellu  (iblk),                 &
+                                        indxui(:,iblk), indxuj(:,iblk), &
+                                        vice(:,:,iblk), aice(:,:,iblk), &
+                                        hwater(:,:,iblk),               &
+                                        uvel(:,:,iblk), vvel(:,:,iblk), &
+                                        Cbu(:,:,iblk)) 
+            endif
+
+
+      !-----------------------------------------------------------------
       ! momentum equation
       !-----------------------------------------------------------------
 
@@ -403,7 +421,8 @@
                         strocnx  (:,:,iblk), strocny (:,:,iblk), & 
                         strintx  (:,:,iblk), strinty (:,:,iblk), & 
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
-                        uvel     (:,:,iblk), vvel    (:,:,iblk))
+                        uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                        Cbu      (:,:,iblk))
 
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
@@ -453,6 +472,16 @@
          !$OMP END PARALLEL DO
 
       enddo                     ! subcycling
+      
+      ! calculate basal stress component for outputs
+      if ( basalstress ) then
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            tau_bu(:,:,iblk) = Cbu(:,:,iblk)*uvel(:,:,iblk)
+            tau_bv(:,:,iblk) = Cbu(:,:,iblk)*vvel(:,:,iblk)
+         enddo
+         !$OMP END PARALLEL DO
+      endif
 
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
