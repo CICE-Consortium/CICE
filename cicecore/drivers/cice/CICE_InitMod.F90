@@ -63,7 +63,6 @@
       use ice_domain_size, only: ncat
       use ice_dyn_eap, only: init_eap
       use ice_dyn_shared, only: kdyn, init_evp, basalstress
-!          read_basalstress_bathy
       use ice_fileunits, only: init_fileunits, nu_diag
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn
@@ -128,8 +127,6 @@
       call calendar(time)       ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
-!      if (basalstress) &
-!      call read_basalstress_bathy ! read bathy for basalstress calc (standalone mode)
       call init_state           ! initialize the ice state
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions

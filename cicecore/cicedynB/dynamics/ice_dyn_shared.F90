@@ -18,8 +18,7 @@
       implicit none
       private
       public :: init_evp, set_evp_parameters, stepu, principal_stress, &
-                evp_prep1, evp_prep2, evp_finish, basal_stress_coeff, &
-                read_basalstress_bathy
+                evp_prep1, evp_prep2, evp_finish, basal_stress_coeff
       save
 
       ! namelist parameters
@@ -891,73 +890,6 @@
 
       end subroutine basal_stress_coeff
 
-!=======================================================================
-
-! Read bathymetry data for basal stress calculation (grounding scheme for 
-! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode 
-! (e.g. CICE-NEMO), hwater should be uptated at each time level so that 
-! it varies with ocean dynamics.
-!
-! author: Fred Dupont, CMC
-      
-      subroutine read_basalstress_bathy
-
-      ! use module
-      use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_domain_size, only: max_blocks
-      use ice_flux, only: hwater
-      use ice_read_write
-      use ice_fileunits, only: nu_diag
-      use ice_communicate, only: my_task, master_task
-      use ice_constants, only: field_loc_center, field_type_scalar
-
-
-      ! local variables
-      integer (kind=int_kind) :: &
-         i, j,     &     ! index inside block
-         iblk,     &     ! block index
-         fid_init        ! file id for netCDF init file
-      
-      character (char_len_long) :: &        ! input data file names
-         init_file, &
-         fieldname
-
-      logical (kind=log_kind) :: diag=.true.
-
-      init_file='bathymetry.nc'
-
-      if (my_task == master_task) then
-
-          write (nu_diag,*) ' '
-          write (nu_diag,*) 'Initial ice file: ', trim(init_file)
-          write (*,*) 'Initial ice file: ', trim(init_file)
-          call flush(nu_diag)
-
-      endif
-
-      call ice_open_nc(init_file,fid_init)
-
-      fieldname='Bathymetry'
-
-      if (my_task == master_task) then
-         write(nu_diag,*) 'reading ',TRIM(fieldname)
-         write(*,*) 'reading ',TRIM(fieldname)
-         call flush(nu_diag)
-      endif
-      call ice_read_nc(fid_init,1,fieldname,hwater,diag, &
-                    field_loc=field_loc_center, &
-                    field_type=field_type_scalar)
-
-      call ice_close_nc(fid_init)
-
-      if (my_task == master_task) then
-         write(nu_diag,*) 'closing file ',TRIM(init_file)
-         call flush(nu_diag)
-      endif
-
-      end subroutine read_basalstress_bathy
-      
 !=======================================================================
 
 ! Computes principal stresses for comparison with the theoretical

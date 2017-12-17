@@ -62,6 +62,7 @@
          TLAT   , & ! latitude of temp pts (radians)
          ANGLE  , & ! for conversions between POP grid and lat/lon
          ANGLET , & ! ANGLE converted to T-cells
+         bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
@@ -104,7 +105,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public, save :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
-         uvm        ! land/boundary mask, velocity (U-cell)
+         uvm    , & ! land/boundary mask, velocity (U-cell)
+         kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), &
          dimension (nx_block,ny_block,max_blocks), public, save :: &
@@ -279,6 +281,12 @@
       else
          call rectgrid          ! regular rectangular grid
       endif
+
+      !-----------------------------------------------------------------
+      ! bathymetry
+      !-----------------------------------------------------------------
+
+      call get_bathymetry
 
       !-----------------------------------------------------------------
       ! T-grid cell and U-grid cell quantities
@@ -524,7 +532,8 @@
                     field_loc=field_loc_center, & 
                     field_type=field_type_scalar)
 
-      hm(:,:,:) = c0
+      hm (:,:,:) = c0
+      kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -535,8 +544,8 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
-            hm(i,j,iblk) = work1(i,j,iblk)
-            if (hm(i,j,iblk) >= c1) hm(i,j,iblk) = c1
+            kmt(i,j,iblk) = work1(i,j,iblk)
+            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
@@ -647,7 +656,8 @@
                        field_loc=field_loc_center, & 
                        field_type=field_type_scalar)
 
-      hm(:,:,:) = c0
+      hm (:,:,:) = c0
+      kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -658,8 +668,8 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
-            hm(i,j,iblk) = work1(i,j,iblk)
-            if (hm(i,j,iblk) >= c1) hm(i,j,iblk) = c1
+            kmt(i,j,iblk) = work1(i,j,iblk)
+            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
@@ -1196,7 +1206,8 @@
       ! topography
       call ice_read(nu_kmt,1,work1,'ida4',diag)
 
-      hm(:,:,:) = c0
+      hm (:,:,:) = c0
+      kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1207,8 +1218,8 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
-            hm(i,j,iblk) = work1(i,j,iblk)
-            if (hm(i,j,iblk) >= c1) hm(i,j,iblk) = c1
+            kmt(i,j,iblk) = work1(i,j,iblk)
+            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
@@ -2098,6 +2109,127 @@
 
       end subroutine gridbox_verts
 
+!=======================================================================
+! ocean bathymetry for grounded sea ice (basalstress) or icebergs
+! currently hardwired for 40 levels (gx3, gx1 grids)
+! should be read from a file instead (see subroutine read_basalstress_bathy)
+
+      subroutine get_bathymetry
+
+      use ice_constants, only: puny
+      use ice_flux, only: hwater     ! or replace hwater with bathymetry
+
+      integer (kind=int_kind) :: &
+         i, j, k, iblk      ! loop indices
+
+      integer (kind=int_kind), parameter :: &
+         nlevel = 40        ! number of layers (gx3 grid)
+
+      real (kind=dbl_kind), dimension(nlevel) :: &
+         depth              ! total depth, m
+
+      real (kind=dbl_kind), dimension(nlevel), parameter :: &
+         thick  = (/ &                        ! ocean layer thickness, m
+            10.01244_dbl_kind,  10.11258_dbl_kind,  10.31682_dbl_kind, &
+            10.63330_dbl_kind,  11.07512_dbl_kind,  11.66145_dbl_kind, &
+            12.41928_dbl_kind,  13.38612_dbl_kind,  14.61401_dbl_kind, &
+            16.17561_dbl_kind,  18.17368_dbl_kind,  20.75558_dbl_kind, &
+            24.13680_dbl_kind,  28.63821_dbl_kind,  34.74644_dbl_kind, &
+            43.20857_dbl_kind,  55.16812_dbl_kind,  72.30458_dbl_kind, &
+            96.74901_dbl_kind,  130.0392_dbl_kind,  170.0489_dbl_kind, &
+            207.9933_dbl_kind,  233.5694_dbl_kind,  245.2719_dbl_kind, &
+            248.9804_dbl_kind,  249.8322_dbl_kind,  249.9787_dbl_kind, &
+            249.9979_dbl_kind,  249.9998_dbl_kind,  250.0000_dbl_kind, &
+            250.0000_dbl_kind,  250.0000_dbl_kind,  250.0000_dbl_kind, &
+            250.0000_dbl_kind,  250.0000_dbl_kind,  250.0000_dbl_kind, &
+            250.0000_dbl_kind,  250.0000_dbl_kind,  250.0000_dbl_kind, &
+            250.0000_dbl_kind   /)
+
+      ! convert to total depth
+      depth(1) = thick(1)
+      do k = 2, nlevel
+         depth(k) = depth(k) + depth(k-1)
+      enddo
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            k = kmt(i,j,iblk)
+            if (k > puny) bathymetry(i,j,iblk) = depth(k)
+         enddo
+         enddo
+      enddo
+
+      hwater = bathymetry
+
+      end subroutine get_bathymetry
+
+!=======================================================================
+
+! Read bathymetry data for basal stress calculation (grounding scheme for 
+! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode 
+! (e.g. CICE-NEMO), hwater should be uptated at each time level so that 
+! it varies with ocean dynamics.
+!
+! author: Fred Dupont, CMC
+      
+      subroutine read_basalstress_bathy
+
+      ! use module
+      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
+      use ice_domain_size, only: max_blocks
+      use ice_flux, only: hwater
+      use ice_read_write
+      use ice_fileunits, only: nu_diag
+      use ice_communicate, only: my_task, master_task
+      use ice_constants, only: field_loc_center, field_type_scalar
+
+      ! local variables
+      integer (kind=int_kind) :: &
+         i, j,     &     ! index inside block
+         iblk,     &     ! block index
+         fid_init        ! file id for netCDF init file
+      
+      character (char_len_long) :: &        ! input data file names
+         init_file, &
+         fieldname
+
+      logical (kind=log_kind) :: diag=.true.
+
+      init_file='bathymetry.nc'
+
+      if (my_task == master_task) then
+
+          write (nu_diag,*) ' '
+          write (nu_diag,*) 'Initial ice file: ', trim(init_file)
+          write (*,*) 'Initial ice file: ', trim(init_file)
+          call flush(nu_diag)
+
+      endif
+
+      call ice_open_nc(init_file,fid_init)
+
+      fieldname='Bathymetry'
+
+      if (my_task == master_task) then
+         write(nu_diag,*) 'reading ',TRIM(fieldname)
+         write(*,*) 'reading ',TRIM(fieldname)
+         call flush(nu_diag)
+      endif
+      call ice_read_nc(fid_init,1,fieldname,hwater,diag, &
+                    field_loc=field_loc_center, &
+                    field_type=field_type_scalar)
+
+      call ice_close_nc(fid_init)
+
+      if (my_task == master_task) then
+         write(nu_diag,*) 'closing file ',TRIM(init_file)
+         call flush(nu_diag)
+      endif
+
+      end subroutine read_basalstress_bathy
+      
 !=======================================================================
 
       end module ice_grid
