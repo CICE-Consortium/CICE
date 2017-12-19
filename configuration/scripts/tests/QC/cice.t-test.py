@@ -165,6 +165,8 @@ def two_stage_test(data_a,data_b,num_files,data_d):
             idx = np.where(np.abs(r1[x]-r1_table)==min_val)
             t_crit[x] = t_crit_table[idx]
     
+        passed_array = abs(t_val) > t_crit
+
         if np.any(abs(t_val) > t_crit):
             logger.info('Two-Stage Test Failed')
             passed = False
@@ -178,7 +180,7 @@ def two_stage_test(data_a,data_b,num_files,data_d):
     else:
         logger.error('TEST NOT CONCLUSIVE')
         passed = False
-    return passed
+    return passed, passed_array
 
 # Calculate Taylor Skill Score
 def skill_test(path_a,fname,data_a,data_b,num_files,tlat,hemisphere):
@@ -236,6 +238,70 @@ def skill_test(path_a,fname,data_a,data_b,num_files,tlat,hemisphere):
         passed = False
     return passed
 
+def plot_two_stage_failures(data,lat,lon):
+    int_data = data.astype(int)
+
+    try: 
+        logger.info('Creating map of the failures (two_stage_test_failure_map.png)')
+        # Load the necessary plotting libraries
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.basemap import Basemap
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        from matplotlib.colors import LinearSegmentedColormap
+
+        # Suppress Matplotlib deprecation warnings
+        import warnings
+        warnings.filterwarnings("ignore",category=UserWarning)
+
+        # Create the figure and axis
+        fig = plt.figure(figsize=(12,8))
+        ax = fig.add_axes([0.05,0.08,0.9,0.9])
+ 
+        # Create the basemap, and draw boundaries
+        m = Basemap(projection='kav7',lon_0=180.,resolution='l')
+        m.drawmapboundary(fill_color='white')
+        m.drawcoastlines()
+        m.drawcountries()
+
+        # Create the custom colormap
+        colors = [(0,0,1),(1,0,0)]  # Blue, Red
+        cmap_name = 'RB_2bins'
+        cm = LinearSegmentedColormap.from_list(cmap_name,colors,N=2)
+
+        # Plot the data as a scatter plot
+        x,y=m(lon,lat)
+        sc = m.scatter(x,y,c=int_data,cmap=cm,lw=0,vmin=0,vmax=1)
+ 
+        m.drawmeridians(np.arange(0,360,60),labels=[0,0,0,1],fontsize=10)
+        m.drawparallels(np.arange(-90,90,30),labels=[1,0,0,0],fontsize=10)
+
+        plt.title('CICE Two-Stage Test Failures')
+
+        # Create the colorbar and add Pass / Fail labels
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("bottom",size="5%",pad=0.5)
+        cb = plt.colorbar(sc,cax=cax,orientation="horizontal",format="%.0f")
+        cb.set_ticks([])
+        cb.ax.text(-0.01,-0.5,'PASS')
+        cb.ax.text(0.99,-0.5,'FAIL')
+
+        plt.savefig('two_stage_test_failure_map.png',dpi=300)
+    except:
+        logger.warning('')
+        logger.warning('Unable to plot the data.  Saving latitude and longitude')
+        logger.warning('for ONLY failures to two_stage_failure_locations.txt')
+
+        # Create a file and write the failures only to the file
+        f = open('two_stage_failure_locations.txt','w')
+        f.write('# CICE Two-stage test failures\n')
+        f.write('# Longitude,Latitude\n')
+        for i in range(data.shape[0]):
+          for j in range(data.shape[1]):
+            if (not data.mask[i,j]) and data[i,j]:
+              f.write('{},{}\n'.format(tlon[i,j],tlat[i,j]))
+
+        f.close()
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='This script performs the T-test for \
@@ -268,12 +334,16 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # Run the two-stage test
-    passed = two_stage_test(data_a,data_b,num_files,data_d)
+    passed,passed_array = two_stage_test(data_a,data_b,num_files,data_d)
     
     nfid = nc.Dataset("{}/{}".format(path_a,fname),'r')
     tlat = nfid.variables['TLAT'][:]
+    tlon = nfid.variables['TLON'][:]
     nfid.close()
     
+    if not passed:
+        plot_two_stage_failures(passed_array,tlat,tlon)
+
     mask_tlat = tlat < 0
     mask_nh = np.zeros_like(data_a)
     mask_sh = np.zeros_like(data_a)
