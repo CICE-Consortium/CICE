@@ -41,7 +41,6 @@
          vocn    , & ! ocean current, y-direction (m/s)
          ss_tltx , & ! sea surface slope, x-direction (m/m)
          ss_tlty , & ! sea surface slope, y-direction
-         hwater  , & ! water depth for basal stress calc (landfast ice) 
 
        ! out to atmosphere
          strairxT, & ! stress on ice by air, x-direction
@@ -430,7 +429,6 @@
       vocn  (:,:,:) = c0
       frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
       sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
-      hwater(:,:,:) = 10000.0_dbl_kind! water depth for basal stress calc (landfast ice)
 
       do iblk = 1, size(Tf,3)
       do j = 1, size(Tf,2)

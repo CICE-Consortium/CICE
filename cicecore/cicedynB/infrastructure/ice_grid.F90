@@ -62,6 +62,7 @@
          TLAT   , & ! latitude of temp pts (radians)
          ANGLE  , & ! for conversions between POP grid and lat/lon
          ANGLET , & ! ANGLE converted to T-cells
+         hwater , & ! water depth for basal stress calc (landfast ice) 
          bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
@@ -2117,7 +2118,6 @@
       subroutine get_bathymetry
 
       use ice_constants, only: puny
-      use ice_flux, only: hwater     ! or replace hwater with bathymetry
 
       integer (kind=int_kind) :: &
          i, j, k, iblk      ! loop indices
@@ -2148,7 +2148,7 @@
       ! convert to total depth
       depth(1) = thick(1)
       do k = 2, nlevel
-         depth(k) = depth(k) + depth(k-1)
+         depth(k) = depth(k-1) + thick(k)
       enddo
 
       do iblk = 1, nblocks
@@ -2179,7 +2179,6 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: hwater
       use ice_read_write
       use ice_fileunits, only: nu_diag
       use ice_communicate, only: my_task, master_task
