@@ -67,7 +67,7 @@
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
           get_fileunit, release_fileunit
-      use ice_flux, only: mlt_onset, frz_onset, albcnt
+      use ice_flux, only: mlt_onset, frz_onset, albcnt, taubx, tauby
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
@@ -279,6 +279,8 @@
       call broadcast_scalar (f_strocny, master_task)
       call broadcast_scalar (f_strintx, master_task)
       call broadcast_scalar (f_strinty, master_task)
+      call broadcast_scalar (f_taubx, master_task)
+      call broadcast_scalar (f_tauby, master_task)
       call broadcast_scalar (f_strength, master_task)
       call broadcast_scalar (f_divu, master_task)
       call broadcast_scalar (f_shear, master_task)
@@ -725,6 +727,16 @@
              "internal ice stress (y)",                                  &
              "positive is y direction on U grid", c1, c0,                &
              ns1, f_strinty)
+
+         call define_hist_field(n_taubx,"taubx","N/m^2",ustr2D, ucstr,   &
+             "basal (seabed) stress (x)",                                &
+             "positive is x direction on U grid", c1, c0,                &
+             ns1, f_taubx)
+
+         call define_hist_field(n_tauby,"tauby","N/m^2",ustr2D, ucstr,   &
+             "basal (seabed) stress (y)",                                &
+             "positive is y direction on U grid", c1, c0,                &
+             ns1, f_tauby)
       
          call define_hist_field(n_strength,"strength","N/m",tstr2D, tcstr, &
              "compressive ice strength",                                 &
@@ -1175,7 +1187,7 @@
           melts, meltb, meltt, meltl, fresh, fsalt, fresh_ai, fsalt_ai, &
           fhocn, fhocn_ai, uatm, vatm, fbot, &
           fswthru_ai, strairx, strairy, strtltx, strtlty, strintx, strinty, &
-          strocnx, strocny, fm, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
+          taubx, tauby, strocnx, strocny, fm, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
           fcondtop, fsurfn, fcondtopn, flatn, fsensn, albcnt, prs_sig, &
           stressp_1, stressm_1, stress12_1, &
           stressp_2, stressm_2, stress12_2, &
@@ -1481,6 +1493,10 @@
              call accum_hist_field(n_strintx, iblk, strintx(:,:,iblk), a2D)
          if (f_strinty(1:1) /= 'x') &
              call accum_hist_field(n_strinty, iblk, strinty(:,:,iblk), a2D)
+         if (f_taubx(1:1) /= 'x') &
+             call accum_hist_field(n_taubx, iblk, taubx(:,:,iblk), a2D)
+         if (f_tauby(1:1) /= 'x') &
+             call accum_hist_field(n_tauby, iblk, tauby(:,:,iblk), a2D)
          if (f_strength(1:1)/= 'x') &
              call accum_hist_field(n_strength,iblk, strength(:,:,iblk), a2D)
 

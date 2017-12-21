@@ -62,7 +62,6 @@
          TLAT   , & ! latitude of temp pts (radians)
          ANGLE  , & ! for conversions between POP grid and lat/lon
          ANGLET , & ! ANGLE converted to T-cells
-         hwater , & ! water depth for basal stress calc (landfast ice) 
          bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
@@ -2162,8 +2161,6 @@
          enddo
       enddo
 
-      hwater = bathymetry
-
       end subroutine get_bathymetry
 
 !=======================================================================
@@ -2218,7 +2215,7 @@
          write(*,*) 'reading ',TRIM(fieldname)
          call flush(nu_diag)
       endif
-      call ice_read_nc(fid_init,1,fieldname,hwater,diag, &
+      call ice_read_nc(fid_init,1,fieldname,bathymetry,diag, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 

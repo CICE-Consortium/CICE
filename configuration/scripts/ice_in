@@ -413,6 +413,8 @@
     f_strocny      = 'x' 
     f_strintx      = 'x' 
     f_strinty      = 'x'
+    f_taubx        = 'x'
+    f_tauby        = 'x'
     f_strength     = 'm'
     f_divu         = 'm'
     f_shear        = 'm'
