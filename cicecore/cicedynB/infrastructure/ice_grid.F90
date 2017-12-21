@@ -283,12 +283,6 @@
       endif
 
       !-----------------------------------------------------------------
-      ! bathymetry
-      !-----------------------------------------------------------------
-
-      call get_bathymetry
-
-      !-----------------------------------------------------------------
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
@@ -450,6 +444,12 @@
       call makemask          ! velocity mask, hemisphere masks
 
       call Tlatlon           ! get lat, lon on the T grid
+
+      !-----------------------------------------------------------------
+      ! bathymetry
+      !-----------------------------------------------------------------
+
+      call get_bathymetry
 
       !----------------------------------------------------------------
       ! Corner coordinates for CF compliant history files
@@ -1432,6 +1432,8 @@
          this_block           ! block information for current block
 
       call ice_timer_start(timer_bound)
+      call ice_HaloUpdate (kmt,               halo_info, &
+                           field_loc_center, field_type_scalar)
       call ice_HaloUpdate (hm,               halo_info, &
                            field_loc_center, field_type_scalar)
       call ice_timer_stop(timer_bound)
@@ -2148,7 +2150,7 @@
       ! convert to total depth
       depth(1) = thick(1)
       do k = 2, nlevel
-         depth(k) = depth(k) + depth(k-1)
+         depth(k) = depth(k-1) + thick(k)
       enddo
 
       do iblk = 1, nblocks
