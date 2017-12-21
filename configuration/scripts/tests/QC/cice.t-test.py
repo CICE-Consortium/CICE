@@ -236,6 +236,110 @@ def skill_test(path_a,fname,data_a,data_b,num_files,tlat,hemisphere):
         passed = False
     return passed
 
+def create_cdash_submit(tag):
+    with open('submit.cmake','w') as f:
+        f.write('cmake_minimum_required(VERSION 2.8)\n')
+        f.write('set(CTEST_DASHBOARD_ROOT "$ENV{PWD}")\n')
+        f.write('set(CTEST_SOURCE_DIRECTORY "$ENV{PWD}")\n')
+        f.write('set(CTEST_BINARY_DIRECTORY "$ENV{PWD}")\n')
+        f.write('\n')
+        f.write('include(CTestConfig.cmake)\n')
+        f.write('\n')
+        f.write('ctest_start("Experimental")\n')
+        f.write('ctest_submit(FILES "$ENV{PWD}/Testing/'+str(tag)+'/Test.xml")\n')
+        f.write('\n')
+
+def post_to_cdash(passed):
+    logger.info('Posting QC Test results to CDash')
+  
+    # Create the CTest config file
+    f = open('CTestConfig.cmake','w')
+    f.write('set(CTEST_PROJECT_NAME       "myCICE")\n')
+    f.write('set(CTEST_DROP_METHOD        "http")\n')
+    f.write('set(CTEST_DROP_SITE          "my.cdash.org")\n')
+    f.write('set(CTEST_DROP_LOCATION      "/submit.php?project=myCICE")\n')
+    f.write('set(CTEST_DROP_SITE_CDASH    TRUE)\n')
+    f.write('set(CTEST_NIGHTLY_START_TIME "01:00:00 CET")\n')
+    f.close()
+
+    # Create the CTest test file
+    f = open('CTestTestfile.cmake','w')
+    f.write('add_test(Two-Stage-Test grep \"Two-Stage Test Passed\" qc_log.txt)\n')
+    f.write('add_test(Skill-Northern-Hemi grep \"Passed for Northern\" qc_log.txt)\n')
+    f.write('add_test(Skill-Southern-Hemi grep \"Passed for Southern\" qc_log.txt)\n')
+    f.close()
+
+    # Create the steer.cmake file
+    f = open('steer.cmake','w')
+    f.write('## -- Set hostname\n')
+    f.write('find_program(HOSTNAME_CMD NAMES hostname)\n')
+    f.write('exec_program(${HOSTNAME_CMD} ARGS OUTPUT_VARIABLE HOSTNAME)\n')
+    f.write('set(CTEST_SITE    "${HOSTNAME}")\n')
+    f.write('\n')
+    f.write('## -- Set site / build name\n')
+    f.write('find_program(UNAME NAMES uname)\n')
+    f.write('macro(getuname name flag)\n')
+    f.write('  exec_program("${UNAME}" ARGS "${flag}" OUTPUT_VARIABLE "${name}")\n')
+    f.write('endmacro(getuname)\n')
+    f.write('getuname(osname -s)\n')
+    f.write('getuname(osrel -r)\n')
+    f.write('getuname(cpu -m)\n')
+    f.write('\n')
+    f.write('find_program(GIT_CMD NAMES git)\n')
+    f.write('exec_program(${GIT_CMD} ARGS rev-parse --short HEAD OUTPUT_VARIABLE GIT_COMMIT_HASH\n)')
+    f.write('\n')
+    f.write('set(CTEST_BUILD_NAME "${osname}-${cpu}-QC_TEST-${GIT_COMMIT_HASH}")\n')
+    f.write('\n')
+    f.write('set(CTEST_DASHBOARD_ROOT "$ENV{PWD}")\n')
+    f.write('set(CTEST_SOURCE_DIRECTORY "$ENV{PWD}")\n')
+    f.write('set(CTEST_BINARY_DIRECTORY "$ENV{PWD}")\n')
+    f.write('\n')
+    f.write('ctest_start(${MODEL} TRACK ${MODEL})\n')
+    f.write('ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)\n')
+    f.write('ctest_submit(RETURN_VALUE res)\n')
+    f.close()
+
+    import subprocess
+    subprocess.call(['ctest','-S','steer.cmake'])
+
+    # Check CTest log to see if submit succeeded
+    with open('Testing/TAG','r') as f:
+        tag = f.readline()
+        tag = tag.rstrip('\n')
+
+    if 'Submission successful' in open('Testing/Temporary/LastSubmit_{}.log'.format(tag)).read():
+        success = True
+    else:
+        success = False
+
+    # If submit failed, create backup
+    if not success:
+        logger.error('')
+        logger.error('')
+        logger.error('')
+        logger.error('Failed to submit results to CDash.  ')
+        logger.error('')
+        logger.error('To try the submission again, copy cice_qc_ctest.tgz to another server, ')
+        logger.error('and run:')
+        logger.error('    ctest -S submit.cmake')
+        create_cdash_submit(tag)
+        import shutil
+        shutil.copyfile('Testing/TAG','Testing/TAG.submit')
+        import tarfile
+        tar = tarfile.open('cice_qc_ctest.tgz','w:gz')
+        for name in ['Testing/TAG.submit','CTestConfig.cmake','Testing/{}/Test.xml'.format(tag),\
+                     'submit.cmake']:
+            tar.add(name)
+        tar.close()
+
+    # Delete the ctest / cdash files and folders
+    import os
+    os.remove('CTestConfig.cmake')
+    os.remove('CTestTestfile.cmake')
+    os.remove('steer.cmake')
+    import shutil
+    shutil.rmtree('Testing/')
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='This script performs the T-test for \
@@ -259,7 +363,10 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
+    # Log to log file as well as stdout
+    fh = logging.FileHandler(r'qc_log.txt','w')
     logger = logging.getLogger(__name__)
+    logger.addHandler(fh)
     
     data_a, data_b, data_d, num_files, path_a, fname = read_data(args.base_dir,args.test_dir)
 
@@ -296,8 +403,10 @@ if __name__ == "__main__":
     logger.info('')
     if not passed and not passed_skill:
         logger.error('Quality Control Test FAILED')
+        post_to_cdash(False)
         sys.exit(1)  # exit with an error return code
     else:
         logger.info('Quality Control Test PASSED')
+        post_to_cdash(True)
         sys.exit(0)  # exit with successfull return code
     
