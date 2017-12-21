@@ -19,6 +19,7 @@ set sets = ""
 set bdir = $spval
 set testid = $spval
 set testsuite = $spval
+set acct = $spval
 set baseCom = $spval  # Baseline compare
 set baseGen = $spval  # Baseline generate
 set bfbcomp = $spval  # BFB compare
@@ -57,6 +58,7 @@ EOF1
       end
 cat << EOF1
         -p tasks x threads, mxn (default is 4x1)
+        -a account number for the queue manager (default is defined in env.<machine>)
         -g grid, grid (default = gx3)
         -s build and namelist mod files, comma separated with no spaces (default = " ")
            Available -s options are in configuration/scripts/options and include:
@@ -141,6 +143,9 @@ while (1)
       breaksw
     case "-p":
       set pesx = $argv[1]
+      breaksw
+    case "-a":
+      set acct = $argv[1]
       breaksw
     case "-s":
       set sets = $argv[1]
@@ -449,6 +454,17 @@ if ($test != $spval) then
 else
   echo "setenv ICE_TEST     ${spval}" >> ${fsmods}
   echo "setenv ICE_TESTNAME ${spval}" >> ${fsmods}
+endif
+
+if ($acct != $spval) then
+  echo "setenv ICE_ACCOUNT ${acct}" >> ${fsmods}
+else
+  if(-e ~/.cice_proj) then
+    set account_name = `head -1 ~/.cice_proj`
+    echo "setenv ICE_ACCOUNT ${account_name}" >> ${fsmods}
+  else
+    echo "setenv ICE_ACCOUNT ${ICE_MACHINE_ACCT}" >> ${fsmods}
+  endif
 endif
 
 if ($sets != "") then

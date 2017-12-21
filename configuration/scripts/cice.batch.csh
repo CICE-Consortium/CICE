@@ -14,7 +14,7 @@ set jobfile = $1
 set ntasks = ${ICE_NTASKS}
 set nthrds = ${ICE_NTHRDS}
 set maxtpn = ${ICE_MACHINE_TPNODE}
-set acct   = ${ICE_MACHINE_ACCT}
+set acct   = ${ICE_ACCOUNT}
 
 @ taskpernode = ${maxtpn} / $nthrds
 @ nnodes = ${ntasks} / ${taskpernode}

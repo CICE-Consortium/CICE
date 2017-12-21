@@ -11,6 +11,8 @@ set spval = "UnDeFiNeD"
 set mach = $spval
 set baseCom = $spval
 set baseGen = $spval
+set testid = $spval
+set acct = $spval
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -38,6 +40,7 @@ NAME
                 3. Run the full base_suite
                 4. Post the results of the suite to CDash
         -h help
+        -1 account number for queue manager (default is defined in env.<machine>)
         -m machine, machine name (required)
            Available -m options are in configuration/scripts/machines and include:
 EOF1
@@ -83,6 +86,9 @@ while (1)
     case "-m":
       set mach = $argv[1]
       breaksw
+    case "-a":
+      set acct = $argv[1]
+      breaksw
     case "-bc":
       set baseCom = $argv[1]
       breaksw
@@ -117,10 +123,19 @@ git clone --recursive https://github.com/CICE-Consortium/CICE.git $gitDir
 cd $gitDir
 
 echo "Running ./create.case"
-if ($baseGen == $spval) then
-  ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -report
+if ($acct = $spval) then
+  if ($baseGen == $spval) then
+    ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -report
+  else
+    ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -bg ${baseGen} -report
+  endif
 else
-  ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -bg ${baseGen} -report
+  if ($baseGen == $spval) then
+    ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -report -a $acct
+  else
+    ./create.case -m ${mach} -ts base_suite -testid ${testid} -bc ${baseCom} -bg ${baseGen} \
+                  -report -a $acct
+  endif
 endif
 
 echo "---"
