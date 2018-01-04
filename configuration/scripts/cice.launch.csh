@@ -12,12 +12,6 @@ set nthrds = ${ICE_NTHRDS}
 
 #==========================================
 
-if (${ICE_MACHINE} =~ yellowstone*) then
-cat >> ${jobfile} << EOFR
-setenv MP_TASK_AFFINITY core:\${OMP_NUM_THREADS}
-mpirun.lsf ./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-
 else if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFR
 mpiexec_mpt -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE

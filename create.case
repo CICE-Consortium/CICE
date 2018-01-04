@@ -93,7 +93,7 @@ cat << EOF1
 
       EXAMPLES:
       create.case -h
-      create.case -c ~/caseA -m yellowstone 
+      create.case -c ~/caseA -m cheyenne
       create.case -p 32x4 -g gx1 -m gordon -c caseB
       create.case -c ~/caseC -m spirit -s diag1,writeicf
       create.case -t restart -p 8x1 -g gx1 -m cheyenne -s diag1,debug -testid myid

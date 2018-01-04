@@ -74,7 +74,7 @@ More Details
 create.case generates a case, use "create.case -h" for help with the tool.
   -c is the case name and location (required)
 
-  -m is the machine name (required). Currently, there are working ports for NCAR yellowstone and cheyenne, AFRL thunder, NavyDSRC gordon and conrad, and LANL’s wolf machines.
+  -m is the machine name (required). Currently, there are working ports for NCAR cheyenne, AFRL thunder, NavyDSRC gordon and conrad, and LANL’s wolf machines.
 
   -g is the resolution (default is gx3)
 
