@@ -41,6 +41,7 @@
          vocn    , & ! ocean current, y-direction (m/s)
          ss_tltx , & ! sea surface slope, x-direction (m/m)
          ss_tlty , & ! sea surface slope, y-direction
+         hwater  , & ! water depth for basal stress calc (landfast ice) 
 
        ! out to atmosphere
          strairxT, & ! stress on ice by air, x-direction
@@ -56,6 +57,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          sig1    , & ! principal stress component
          sig2    , & ! principal stress component
+         taubx   , & ! basal stress (x) (N/m^2)
+         tauby   , & ! basal stress (y) (N/m^2)
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
          strocnx , & ! ice-ocean stress, x-direction
@@ -103,7 +106,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          prs_sig  , & ! replacement pressure, for stress calc
-         fm           ! Coriolis param. * mass in U-cell (kg/s)
+         fm       , & ! Coriolis param. * mass in U-cell (kg/s)
+         Cbu          ! coefficient for basal stress (landfast ice)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -328,6 +332,7 @@
       use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
            fdoc, fdon, fdic, ffed, ffep
+      use ice_grid, only: bathymetry
 
       integer (kind=int_kind) :: n
 
@@ -439,7 +444,8 @@
       sst   (:,:,:) = Tf(:,:,:)       ! sea surface temp (C)
 #endif
       qdp   (:,:,:) = c0              ! deep ocean heat flux (W/m^2)
-      hmix  (:,:,:) = c20             ! ocean mixed layer depth
+      hmix  (:,:,:) = c20             ! ocean mixed layer depth (m)
+      hwater(:,:,:) = bathymetry(:,:,:) ! ocean water depth (m)
       daice_da(:,:,:) = c0            ! data assimilation increment rate
 
       !-----------------------------------------------------------------
@@ -653,6 +659,8 @@
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0
+      taubx   (:,:,:) = c0
+      tauby   (:,:,:) = c0
       strocnx (:,:,:) = c0
       strocny (:,:,:) = c0
       strairx (:,:,:) = c0

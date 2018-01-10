@@ -222,6 +222,7 @@
            f_strcorx   = 'm', f_strcory    = 'm', &
            f_strocnx   = 'm', f_strocny    = 'm', &
            f_strintx   = 'm', f_strinty    = 'm', &
+           f_taubx     = 'm', f_tauby      = 'm', &
            f_strength  = 'm', &
            f_divu      = 'm', f_shear      = 'm', &
            f_sig1      = 'm', f_sig2       = 'm', &
@@ -308,6 +309,7 @@
            f_strcorx,   f_strcory  , &
            f_strocnx,   f_strocny  , &
            f_strintx,   f_strinty  , &
+           f_taubx,     f_tauby    , &
            f_strength,  &
            f_divu,      f_shear    , &
            f_sig1,      f_sig2     , &
@@ -412,6 +414,7 @@
            n_strcorx    , n_strcory    , &
            n_strocnx    , n_strocny    , &
            n_strintx    , n_strinty    , &
+           n_taubx      , n_tauby      , &
            n_strength   , &
            n_divu       , n_shear      , &
            n_sig1       , n_sig2       , &

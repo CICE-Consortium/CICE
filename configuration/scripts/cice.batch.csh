@@ -14,7 +14,7 @@ set jobfile = $1
 set ntasks = ${ICE_NTASKS}
 set nthrds = ${ICE_NTHRDS}
 set maxtpn = ${ICE_MACHINE_TPNODE}
-set acct   = ${ICE_MACHINE_ACCT}
+set acct   = ${ICE_ACCOUNT}
 
 @ taskpernode = ${maxtpn} / $nthrds
 @ nnodes = ${ntasks} / ${taskpernode}
@@ -36,24 +36,7 @@ EOF0
 
 #==========================================
 
-if (${ICE_MACHINE} =~ yellowstone*) then
-cat >> ${jobfile} << EOFB
-#BSUB -n ${ntasks}
-#BSUB -R "span[ptile=${ptile}]"
-#BSUB -q caldera
-#BSUB -N
-###BSUB -x
-#BSUB -a poe
-#BSUB -o poe.stdout.%J
-#BSUB -e poe.stderr.%J
-#BSUB -J ${ICE_CASENAME}
-#BSUB -W 00:10
-#BSUB -P ${acct}
-EOFB
-
-#==========================================
-
-else if (${ICE_MACHINE} =~ cheyenne*) then
+if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFB
 #PBS -j oe 
 #PBS -m ae 
@@ -128,6 +111,32 @@ cat >> ${jobfile} << EOFB
 ###SBATCH --mail-type END,FAIL
 ###SBATCH --mail-user=eclare@lanl.gov
 #SBATCH --qos=standard
+EOFB
+
+else if (${ICE_MACHINE} =~ fram*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -t ${ICE_RUNLENGTH}
+#SBATCH -A ${acct}
+#SBATCH -N ${nnodes}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+###SBATCH --mail-type END,FAIL
+###SBATCH --mail-user=armnjfl@ec.gc.ca
+#SBATCH --qos=standby
+EOFB
+
+else if (${ICE_MACHINE} =~ fram*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -t ${ICE_RUNLENGTH}
+#SBATCH -A ${acct}
+#SBATCH -N ${nnodes}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+###SBATCH --mail-type END,FAIL
+###SBATCH --mail-user=armnjfl@ec.gc.ca
+#SBATCH --qos=standby
 EOFB
 
 else if (${ICE_MACHINE} =~ testmachine*) then

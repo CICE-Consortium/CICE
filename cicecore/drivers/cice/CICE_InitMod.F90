@@ -62,7 +62,7 @@
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat
       use ice_dyn_eap, only: init_eap
-      use ice_dyn_shared, only: kdyn, init_evp
+      use ice_dyn_shared, only: kdyn, init_evp, basalstress
       use ice_fileunits, only: init_fileunits, nu_diag
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn

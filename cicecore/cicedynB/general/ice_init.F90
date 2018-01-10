@@ -74,7 +74,8 @@
           sss_data_type,   sst_data_type, ocn_data_dir, &
           oceanmixed_file, restore_sst,   trestore
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
-      use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve
+      use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
+                                basalstress, Ktens, e_ratio
       use ice_transport_driver, only: advection
       use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, tr_pond, &
                              tr_pond_cesm, tr_pond_lvl, tr_pond_topo, &
@@ -133,7 +134,7 @@
         kdyn,           ndte,           revised_evp,    yield_curve,    &
         advection,                                                      &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        Cf
+        e_ratio,        Ktens,          Cf,             basalstress
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
@@ -227,6 +228,9 @@
       krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
       Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
+      basalstress= .false.   ! if true, basal stress for landfast is on
+      Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
+      e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
       shortwave = 'default'  ! 'default' or 'dEdd' (delta-Eddington)
       albedo_type = 'default'! or 'constant'
@@ -685,6 +689,9 @@
       call broadcast_scalar(krdg_redist,        master_task)
       call broadcast_scalar(mu_rdg,             master_task)
       call broadcast_scalar(Cf,                 master_task)
+      call broadcast_scalar(basalstress,        master_task)
+      call broadcast_scalar(Ktens,              master_task)
+      call broadcast_scalar(e_ratio,            master_task)
       call broadcast_scalar(advection,          master_task)
       call broadcast_scalar(shortwave,          master_task)
       call broadcast_scalar(albedo_type,        master_task)
@@ -857,6 +864,9 @@
          write(nu_diag,1000) ' mu_rdg                    = ', mu_rdg
          if (kstrength == 1) &
          write(nu_diag,1000) ' Cf                        = ', Cf
+         write(nu_diag,1010) ' basalstress               = ', basalstress
+         write(nu_diag,1005) ' Ktens                     = ', Ktens
+         write(nu_diag,1005) ' e_ratio                   = ', e_ratio    
          write(nu_diag,1030) ' advection                 = ', &
                                trim(advection)
          write(nu_diag,1030) ' shortwave                 = ', &

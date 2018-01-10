@@ -5,6 +5,15 @@ set initargv = ( $argv[*] )
 set dash = "-"
 set submit_only=0
 
+# Check if any of the results could not find the baseline dataset
+grep --quiet 'baseline-does-not-exist' results.log
+if ($status == 0) then
+  echo "Tests were not able to find the baseline datasets.  No results"
+  echo "will be posted to CDash"
+  grep 'baseline-does-not-exist' results.log
+  exit -1
+endif
+
 # Read in command line arguments
 set argv = ( $initargv[*] )
 
