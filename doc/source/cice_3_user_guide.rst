@@ -2272,10 +2272,20 @@ In order to run the script, the following requirements must be met:
 * Python v2.7 or later
 * netCDF Python package
 * numpy Python package
+* matplotlib Python package (optional)
+* basemap Python package (optional)
 
 In order to generate the files necessary for the compliance test, test cases should be
-created with the ``ttest`` option (i.e., ``-s ttest``) when running create.case.  This 
+created with the ``qc`` option (i.e., ``-s qc``) when running create.case.  This 
 option results in daily, non-averaged history files being written for a 5 year simulation.
+
+To install the necessary Python packages, the ``pip`` Python utility can be used.
+
+.. code-block:: bash
+
+  pip install --user netCDF4
+  pip install --user numpy
+  pip install --user matplotlib
 
 To run the compliance test:
 
