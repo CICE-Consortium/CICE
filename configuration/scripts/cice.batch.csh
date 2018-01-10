@@ -36,7 +36,7 @@ EOF0
 
 #==========================================
 
-else if (${ICE_MACHINE} =~ cheyenne*) then
+if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFB
 #PBS -j oe 
 #PBS -m ae 

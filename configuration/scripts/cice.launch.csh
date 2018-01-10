@@ -12,7 +12,7 @@ set nthrds = ${ICE_NTHRDS}
 
 #==========================================
 
-else if (${ICE_MACHINE} =~ cheyenne*) then
+if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFR
 mpiexec_mpt -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
