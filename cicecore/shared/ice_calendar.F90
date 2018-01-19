@@ -18,7 +18,9 @@
       use ice_constants, only: c0, c1, c100, c30, c360, c365, c3600, &
           c4, c400
       use ice_domain_size, only: max_nstrm
+      use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_constants
 
       implicit none
@@ -125,10 +127,12 @@
 
       subroutine init_calendar
 
-      use ice_fileunits, only: nu_diag
       real    (kind=dbl_kind) :: secday           ! seconds per day
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       istep = 0         ! local timestep number
       time=istep0*dt    ! s
@@ -198,7 +202,6 @@
 
       subroutine calendar(ttime)
 
-      use ice_fileunits, only: nu_diag
       use ice_communicate, only: my_task, master_task
 
       real (kind=dbl_kind), intent(in) :: &
@@ -216,6 +219,9 @@
       real    (kind=dbl_kind) :: secday ! seconds per day
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       nyrp=nyr
       monthp=month
@@ -340,6 +346,9 @@
       integer (kind=int_kind) :: years_since_calz  ! days since calendar zero
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (dayyr == 360) then
          days_since_calz = c360*year + c30*(month-1) + day - c1
@@ -409,6 +418,9 @@
       integer (kind=int_kind) :: k                ! counter
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       days_since_calz = int(tsec/secday)
 

@@ -27,6 +27,8 @@
       use ice_kinds_mod
       use ice_fileunits, only: nu_diag,ice_stderr
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, max_nstrm
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       save
@@ -554,7 +556,6 @@
 
       use ice_calendar, only: histfreq, histfreq_n, nstreams
       use ice_domain_size, only: max_nstrm
-      use ice_exit, only: abort_ice
 
       integer (int_kind), dimension(max_nstrm), intent(out) :: &
          id                ! location in avail_fields array for use in

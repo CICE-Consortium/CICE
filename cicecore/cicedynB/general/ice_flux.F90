@@ -18,9 +18,12 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat, max_nstrm, nilyr
       use ice_constants, only: c0, c1, c5, c10, c20, c180
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
       use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_liquidus_temperature
 
       implicit none
       private
@@ -329,7 +332,6 @@
       subroutine init_coupler_flux
 
       use ice_arrays_column, only: Cdn_atm
-      use icepack_intfc, only: icepack_liquidus_temperature
       use ice_constants, only: p001
       use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
@@ -364,6 +366,9 @@
 
       call icepack_query_constants(stefan_boltzmann_out=stefan_boltzmann, &
          Tffresh_out=Tffresh, vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! fluxes received from atmosphere
@@ -610,6 +615,9 @@
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_query_constants( dragio_out=dragio, &
          vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       fsurf  (:,:,:) = c0
       fcondtop(:,:,:)= c0
@@ -690,6 +698,9 @@
 
       call icepack_query_tracer_flags(tr_iage_out=tr_iage)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0
@@ -833,6 +844,9 @@
 
       call icepack_query_constants(stefan_boltzmann_out=stefan_boltzmann, &
          Tffresh_out=Tffresh)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
 !DIR$ CONCURRENT !Cray
 !cdir nodep      !NEC

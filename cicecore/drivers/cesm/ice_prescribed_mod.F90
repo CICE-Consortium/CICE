@@ -38,7 +38,6 @@ module ice_prescribed_mod
    use ice_communicate,   only : my_task, master_task, MPI_COMM_ICE
    use ice_kinds_mod
    use ice_fileunits
-   use ice_exit,          only : abort_ice
    use ice_domain_size,   only : nx_global, ny_global, ncat, nilyr, nslyr, max_blocks
    use ice_constants
    use ice_blocks,        only : nx_block, ny_block, block, get_block
@@ -47,6 +46,8 @@ module ice_prescribed_mod
    use ice_calendar,      only : idate, sec, calendar_type
    use ice_arrays_column, only : hin_max
    use ice_read_write
+   use ice_exit, only: abort_ice
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    save
@@ -541,6 +542,10 @@ subroutine ice_prescribed_phys
    enddo                 ! i
    enddo                 ! j
    enddo                 ! iblk
+
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      file=__FILE__, line=__LINE__)
 
    do iblk = 1, nblocks
    do j = 1, ny_block

@@ -10,6 +10,11 @@
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm
       use ice_constants, only: c0, c1
+      use ice_fileunits, only: nu_nml, nml_filename, &
+          get_fileunit, release_fileunit
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_constants, &
           icepack_query_tracer_flags, icepack_query_tracer_indices
 
@@ -65,9 +70,6 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nml_filename, &
-          get_fileunit, release_fileunit
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -79,6 +81,9 @@
       !-----------------------------------------------------------------
 
       call icepack_query_tracer_flags(tr_pond_out=tr_pond)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call get_fileunit(nu_nml)
       if (my_task == master_task) then
@@ -261,6 +266,9 @@
               tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
          call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
               nt_alvl_out=nt_alvl, nt_ipnd_out=nt_ipnd)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+            file=__FILE__, line=__LINE__)
 
          if (tr_pond_cesm) then
          if (f_apond(1:1)/= 'x') &

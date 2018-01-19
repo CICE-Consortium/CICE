@@ -42,6 +42,9 @@
       use ice_dyn_shared, only: stepu, evp_prep1, evp_prep2, evp_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength
 #ifdef CICE_IN_NEMO
       use icepack_intfc, only: calc_strair
@@ -292,6 +295,10 @@
 
       enddo  ! iblk
       !$OMP END PARALLEL DO
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &

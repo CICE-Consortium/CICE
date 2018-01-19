@@ -21,6 +21,10 @@
        nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block
    use ice_distribution, only: distrb
    use ice_boundary, only: ice_halo
+   use ice_exit, only: abort_ice
+   use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
+       get_fileunit, release_fileunit
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
    use icepack_intfc, only: icepack_query_constants
 
    implicit none
@@ -84,9 +88,6 @@
    use ice_distribution, only: processor_shape
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global
-   use ice_exit, only: abort_ice
-   use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
-       get_fileunit, release_fileunit
 
 !----------------------------------------------------------------------
 !
@@ -246,8 +247,6 @@
    use ice_boundary, only: ice_HaloCreate
    use ice_distribution, only: create_distribution, create_local_block_ids
    use ice_domain_size, only: max_blocks, nx_global, ny_global
-   use ice_exit, only: abort_ice
-   use ice_fileunits, only: nu_diag
 
    real (dbl_kind), dimension(nx_global,ny_global), intent(in) :: &
       KMTG           ,&! global topography
@@ -295,6 +294,9 @@
 !----------------------------------------------------------------------
 
    call icepack_query_constants(puny_out=puny, rad_to_deg_out=rad_to_deg)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      file=__FILE__, line=__LINE__)
 
    if (trim(ns_boundary_type) == 'closed') then
       allocate(nocn(nblocks_tot))

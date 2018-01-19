@@ -16,6 +16,7 @@
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_diag
    use ice_communicate, only: my_task, master_task
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private

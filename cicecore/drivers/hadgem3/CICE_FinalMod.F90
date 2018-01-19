@@ -12,6 +12,9 @@
       module CICE_FinalMod
 
       use ice_kinds_mod
+      use ice_exit, only: abort_ice, end_run
+      use ice_fileunits, only: nu_diag, release_all_fileunits
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
@@ -28,8 +31,6 @@
 
       subroutine CICE_Finalize
 
-      use ice_exit, only: end_run
-      use ice_fileunits, only: nu_diag, release_all_fileunits
       use ice_restart_shared, only: runid
       use ice_timers, only: ice_timer_stop, ice_timer_print_all, timer_total
 

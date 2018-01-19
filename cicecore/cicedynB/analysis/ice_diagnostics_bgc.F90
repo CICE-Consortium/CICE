@@ -16,6 +16,9 @@
       use ice_constants, only: c0, mps_to_cmpdy, c100, p5, c1
       use ice_calendar, only: diagfreq, istep1, istep
       use ice_fileunits, only: nu_diag
+      use ice_fileunits, only: flush_fileunit
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_algae, icepack_max_aero, icepack_max_dic
       use icepack_intfc, only: icepack_max_doc, icepack_max_don, icepack_max_fe
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
@@ -48,7 +51,6 @@
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, pbloc, &
                                 plat, plon
       use ice_domain_size, only: ncat, nltrcr, nilyr
-      use ice_fileunits, only: flush_fileunit
       use ice_state, only: aice, aicen, vicen, vice, trcr, trcrn
 
       real (kind=dbl_kind), intent(in) :: &
@@ -70,6 +72,9 @@
 
       call icepack_query_parameters(ktherm_out=ktherm)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_fbri_out=nt_fbri)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! Dynamic brine height
@@ -165,7 +170,6 @@
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, pbloc
       use ice_domain_size, only: ncat, nltrcr, nblyr, n_algae, n_zaero, &
           n_dic, n_doc, n_don, n_fed, n_fep, nilyr, nslyr
-      use ice_fileunits, only: flush_fileunit
       use ice_flux_bgc, only: flux_bio, flux_bio_atm
       use ice_state, only:aice, vicen, vice, trcr
       use ice_timers, only: timer_bgc, ice_timer_start, ice_timer_stop
@@ -275,6 +279,9 @@
          nlt_bgc_Sil_out=nlt_bgc_Sil, &
          nlt_bgc_DOC_out=nlt_bgc_DOC, nlt_bgc_DON_out=nlt_bgc_DON, nlt_bgc_DMSPp_out=nlt_bgc_DMSPp, &
          nlt_bgc_DMS_out=nlt_bgc_DMS)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       zspace(:) = c1/real(nblyr,kind=dbl_kind)
       zspace(1) = zspace(1)*p5
@@ -872,7 +879,6 @@
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, &
           pbloc, plat, plon
       use ice_domain_size, only: max_blocks, nblyr, ncat, nilyr
-      use ice_fileunits, only: flush_fileunit
       use ice_state, only: aicen, aice, vice, trcr, trcrn, vicen, vsno
 
       real (kind=dbl_kind), intent(in) :: &
@@ -912,6 +918,9 @@
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_bgc_S_out=nt_bgc_S, &
            nt_sice_out=nt_sice)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! salinity and microstructure  of the ice

@@ -9,10 +9,13 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
+      use ice_domain_size, only: max_blocks, ncat
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_aero, icepack_max_nbtrcr, &
           icepack_max_algae, icepack_max_doc, icepack_max_don, icepack_max_dic, icepack_max_fe, &
           icepack_query_tracer_indices, icepack_query_tracer_flags, icepack_query_parameters
-      use ice_domain_size, only: max_blocks, ncat
 
       implicit none
       private
@@ -182,6 +185,9 @@
           nlt_zaero_out=nlt_zaero, nlt_bgc_Nit_out=nlt_bgc_Nit, nlt_bgc_Am_out=nlt_bgc_Am, &
           nlt_bgc_Sil_out=nlt_bgc_Sil, nlt_bgc_DMSPd_out=nlt_bgc_DMSPd, &
           nlt_bgc_DMS_out=nlt_bgc_DMS, nlt_bgc_hum_out=nlt_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       f_nit    (:,:) = c0
       f_sil    (:,:) = c0

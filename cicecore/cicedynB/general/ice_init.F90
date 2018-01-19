@@ -16,6 +16,11 @@
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, c2, c3, p2, p5
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
+          ice_stdout, get_fileunit, release_fileunit, bfbflag
+      use ice_fileunits, only: inst_suffix
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_trcr
       use icepack_intfc, only: icepack_init_constants
@@ -54,9 +59,6 @@
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
       use ice_domain_size, only: max_nstrm, nilyr, nslyr, max_ntrcr, ncat, n_aero
-      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
-          ice_stdout, get_fileunit, release_fileunit, bfbflag
-      use ice_fileunits, only: inst_suffix
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
                               dumpfreq, dumpfreq_n, diagfreq, nstreams, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
@@ -69,7 +71,6 @@
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file
-      use ice_exit, only: abort_ice
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
@@ -190,6 +191,9 @@
       !-----------------------------------------------------------------
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       days_per_year = 365    ! number of days in a year
       use_leap_years= .false.! if true, use leap years (Feb 29)
@@ -800,6 +804,9 @@
 #endif
 
       call icepack_init_constants(Cf_in=Cf)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! spew
@@ -1173,6 +1180,9 @@
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
          nt_ipnd_in=nt_ipnd, nt_aero_in=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       end subroutine input_data
 
@@ -1188,13 +1198,11 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, max_ntrcr, n_aero
-      use ice_fileunits, only: nu_diag
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_grid, only: tmask, ULON, ULAT, TLON, TLAT
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
           aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
           n_trcr_strata, nt_strata, trcr_base
-      use ice_exit, only: abort_ice
 
       integer (kind=int_kind) :: &
          ilo, ihi    , & ! physical domain indices
@@ -1229,6 +1237,9 @@
         nt_qice_out=nt_qice, nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_fy_out=nt_fy, &
         nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
         nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! Check number of layers in ice and snow.
@@ -1431,6 +1442,10 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       end subroutine init_state
 
 !=======================================================================
@@ -1539,6 +1554,10 @@
         nt_fbri_out=nt_fbri, nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
       call icepack_query_constants(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
         rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       indxi(:) = 0
       indxj(:) = 0
 
@@ -1713,6 +1732,10 @@
             enddo               ! ij
          enddo                  ! ncat
       endif                     ! ice_ic
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       end subroutine set_state_var
 

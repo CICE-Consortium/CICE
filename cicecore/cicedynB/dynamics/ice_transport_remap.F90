@@ -38,6 +38,8 @@
           field_loc_NEcorner, field_type_vector
       use ice_domain_size, only: max_blocks, ncat
       use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_constants
 
       implicit none
@@ -327,7 +329,6 @@
                           tarea, tarear, hm,                  &
                           xav, yav, xxav, yyav
 !                          xyav, xxxav, xxyav, xyyav, yyyav
-      use ice_exit, only: abort_ice
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
@@ -919,6 +920,9 @@
            puny             !
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do n = 0, ncat
          do ij = 1, nx_block*ny_block
@@ -1153,6 +1157,9 @@
     !-------------------------------------------------------------------
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -1395,6 +1402,10 @@
           gxtmp, gytmp   ! temporary term for x- and y- limited gradient
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       gx(:,:) = c0
       gy(:,:) = c0
 
@@ -1843,6 +1854,9 @@
     !-------------------------------------------------------------------
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       areafac_c(:,:) = c0
       areafac_l(:,:) = c0
@@ -3580,6 +3594,9 @@
     !-------------------------------------------------------------------
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (present(tm)) then
          do nt = 1, ntrace

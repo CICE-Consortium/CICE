@@ -10,6 +10,11 @@
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm
       use ice_constants, only: c0, c1, c100, mps_to_cmpdy
+      use ice_fileunits, only: nu_nml, nml_filename, &
+          get_fileunit, release_fileunit
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_constants, icepack_query_parameters, &
           icepack_query_tracer_flags, icepack_query_tracer_indices
 
@@ -80,9 +85,6 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nml_filename, &
-          get_fileunit, release_fileunit
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -92,6 +94,9 @@
 
       call icepack_query_constants(secday_out=secday)
       call icepack_query_tracer_flags(tr_lvl_out=tr_lvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -208,7 +213,6 @@
       subroutine init_hist_mechred_3Dc
 
       use ice_calendar, only: nstreams
-      use ice_exit, only: abort_ice
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -219,6 +223,9 @@
       !-----------------------------------------------------------------
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do ns = 1, nstreams
 
@@ -315,6 +322,9 @@
            nt_alvl, nt_vlvl
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !---------------------------------------------------------------
       ! increment field

@@ -19,6 +19,9 @@
       module ice_history_write
 
       use ice_kinds_mod
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
@@ -46,8 +49,6 @@
       use ice_constants, only: c0, c360, secday, spval, spval_dbl, rad_to_deg
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: nx_global, ny_global, max_blocks, max_nstrm
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, hm, bm, tarea, uarea, &
           dxu, dxt, dyu, dyt, HTN, HTE, ANGLE, ANGLET, tmask, &

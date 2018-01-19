@@ -15,6 +15,7 @@
 
       use ice_kinds_mod
       use ice_exit, only: abort_ice
+      use ice_fileunits, only: init_fileunits, nu_diag
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_configure
@@ -68,7 +69,6 @@
       use ice_domain_size, only: ncat
       use ice_dyn_eap, only: init_eap
       use ice_dyn_shared, only: kdyn, init_evp, basalstress
-      use ice_fileunits, only: init_fileunits, nu_diag
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -88,8 +88,6 @@
       use drv_forcing, only: sst_sss
 #endif
 
-      logical(kind=log_kind) :: l_stop
-      character(char_len) :: stop_label
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
       character(len=*),parameter :: subname = '(cice_init)'
 
@@ -126,10 +124,15 @@
       call sst_sss              ! POP data for CICE initialization
 #endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
+
       call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
       if (my_task == master_task) then
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
       endif
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       call calendar(time)       ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
@@ -243,6 +246,9 @@
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
            nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (trim(runtype) == 'continue') then 
          ! start from core restart file
@@ -394,6 +400,10 @@
       enddo
       enddo
       !$OMP END PARALLEL DO
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       end subroutine init_restart
 

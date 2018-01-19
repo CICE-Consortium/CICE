@@ -20,6 +20,9 @@
       module ice_history_write
 
       use ice_constants, only: c0, c360, spval
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_constants
 
       implicit none
@@ -49,8 +52,6 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info
       use ice_domain_size, only: nx_global, ny_global, max_nstrm, max_blocks
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, hm, bm, tarea, uarea, &
           dxu, dxt, dyu, dyt, HTN, HTE, ANGLE, ANGLET, &
@@ -118,6 +119,9 @@
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
 
       call icepack_query_constants(secday_out=secday, rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+          file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
 

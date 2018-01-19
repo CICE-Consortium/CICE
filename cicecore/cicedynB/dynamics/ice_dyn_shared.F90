@@ -14,6 +14,9 @@
       use ice_constants, only: c0, c1, p01, p001
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_constants
 
       implicit none
@@ -92,7 +95,6 @@
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_state, only: uvel, vvel, divu, shear
       use ice_grid, only: ULAT, ULON
-      use ice_fileunits, only: nu_diag
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -172,7 +174,6 @@
       use ice_domain, only: distrb_info
       use ice_global_reductions, only: global_minval, global_maxval
       use ice_grid, only: dxt, dyt, tmask, tarea
-      use ice_fileunits, only: nu_diag
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -298,6 +299,9 @@
          tmphm               ! temporary mask
 
       call icepack_query_constants(rhos_out=rhos, rhoi_out=rhoi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -681,6 +685,9 @@
       !-----------------------------------------------------------------
 
       call icepack_query_constants(rhow_out=rhow)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do ij =1, icellu
          i = indxui(ij)
@@ -785,6 +792,9 @@
          Cw                   ! ocean-ice neutral drag coefficient 
 
       call icepack_query_constants(rhow_out=rhow)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -935,6 +945,9 @@
       real (kind=dbl_kind) :: puny
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
       do i = 1, nx_block

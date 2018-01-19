@@ -12,6 +12,9 @@
       module CICE_FinalMod
 
       use ice_kinds_mod
+      use ice_exit, only: end_run, abort_ice
+      use ice_fileunits, only: nu_diag, release_all_fileunits
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
@@ -28,12 +31,9 @@
 
       subroutine CICE_Finalize
 
-      use ice_exit, only: end_run, abort_ice
-      use ice_fileunits, only: nu_diag, release_all_fileunits
       use ice_restart_shared, only: runid
       use ice_communicate, only: my_task, master_task
       use ice_timers, only: ice_timer_stop, ice_timer_print_all, timer_total
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       character(len=*), parameter :: subname='(CICE_Finalize)'
 
@@ -45,7 +45,7 @@
       call ice_timer_print_all(stats=.false.) ! print timing information
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
           file=__FILE__,line= __LINE__)
 
       if (my_task == master_task) then

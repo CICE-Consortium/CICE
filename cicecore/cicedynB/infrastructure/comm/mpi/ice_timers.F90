@@ -19,6 +19,7 @@
    use ice_fileunits, only: nu_diag
    use ice_communicate, only: my_task, master_task
    use icepack_intfc, only: icepack_query_constants
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private
@@ -550,6 +551,9 @@
 !-----------------------------------------------------------------------
 
    call icepack_query_constants(bignum_out=bignum)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+       file=__FILE__, line=__LINE__)
 
    if (all_timers(timer_id)%in_use) then
       if (all_timers(timer_id)%node_started) then

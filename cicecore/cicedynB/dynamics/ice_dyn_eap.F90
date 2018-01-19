@@ -23,7 +23,14 @@
       use ice_domain_size, only: max_blocks, ncat
       use ice_constants, only: c0, c1, c2, c3, c12, p1, p2, p5, &
           p001, p025, p027, p05, p055, p111, p166, p222, p25, p333
+      use ice_fileunits, only: nu_diag, nu_dump_eap, nu_restart_eap
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_ice_strength
+#ifdef CICE_IN_NEMO
+      use icepack_intfc, only: calc_strair
+#endif
 
       implicit none
       private
@@ -80,7 +87,6 @@
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy
       use ice_blocks, only: block, get_block
-      use icepack_intfc, only: icepack_ice_strength
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
@@ -105,9 +111,6 @@
 !          timer_tmp1, timer_tmp2, timer_tmp3
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
-#ifdef CICE_IN_NEMO
-      use icepack_intfc, only: calc_strair
-#endif
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -322,6 +325,10 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
@@ -529,7 +536,6 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
       use ice_dyn_shared, only: init_evp
-      use ice_exit, only: abort_ice
       use ice_restart_shared, only: runtype
 
       real (kind=dbl_kind), intent(in) :: &
@@ -556,6 +562,9 @@
          pi, pih, piq, phi
 
       call icepack_query_constants(pi_out=pi, pih_out=pih, piq_out=piq)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
       phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
 
       call init_evp (dt)
@@ -715,6 +724,10 @@
       pih, puny
 
       call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -780,6 +793,10 @@
       pih, puny
 
       call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -845,6 +862,10 @@
       pih, puny
 
       call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -908,6 +929,10 @@
       pih, puny
 
       call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -971,6 +996,10 @@
       pih, puny
 
       call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       p =phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -1036,6 +1065,10 @@
       pih, puny
 
       call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -1216,6 +1249,10 @@
       !-----------------------------------------------------------------
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       strtmp(:,:,:) = c0
 
 !DIR$ CONCURRENT !Cray
@@ -1553,6 +1590,9 @@
 
          call icepack_query_constants(puny_out=puny, &
             pi_out=pi, pi2_out=pi2, piq_out=piq)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+            file=__FILE__, line=__LINE__)
 
 ! Factor to maintain the same stress as in EVP (see Section 3)
 ! Can be set to 1 otherwise
@@ -1902,7 +1942,6 @@
 
       subroutine write_restart_eap ()
 
-      use ice_fileunits, only: nu_diag, nu_dump_eap
       use ice_restart, only: write_restart_field
 
       ! local variables
@@ -1944,7 +1983,6 @@
       use ice_constants, only:  &
           field_loc_center, field_type_scalar
       use ice_domain, only: nblocks, halo_info
-      use ice_fileunits, only: nu_diag, nu_restart_eap
       use ice_grid, only: grid_type
       use ice_restart, only: read_restart_field
       use ice_restart_shared, only: restart_format

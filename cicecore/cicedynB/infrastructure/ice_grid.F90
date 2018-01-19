@@ -27,6 +27,8 @@
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_constants
 
       implicit none
@@ -160,6 +162,9 @@
       !-----------------------------------------------------------------
 
       call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       allocate(work_g1(nx_global,ny_global))
       allocate(work_g2(nx_global,ny_global))
@@ -249,7 +254,6 @@
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector, field_type_angle
       use ice_domain_size, only: max_blocks
-      use ice_exit, only: abort_ice
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -273,6 +277,9 @@
       !-----------------------------------------------------------------
 
       call icepack_query_constants(pi_out=pi, pi2_out=pi2, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
@@ -655,6 +662,9 @@
          this_block           ! block information for current block
 
       call icepack_query_constants(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call ice_open_nc(grid_file,fid_grid)
       call ice_open_nc(kmt_file,fid_kmt)
@@ -761,7 +771,6 @@
 #endif
       use ice_constants, only: c0, c1, p5, p25, &
           field_loc_center, field_type_scalar, radius
-      use ice_exit, only: abort_ice
       use netcdf
 
       integer (kind=int_kind) :: &
@@ -813,6 +822,9 @@
 #ifdef CCSMCOUPLED
 
       call icepack_query_constants(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! Determine dimension of domain file and check for consistency
 
@@ -1031,7 +1043,6 @@
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
       use ice_domain_size, only: max_blocks
-      use ice_exit, only: abort_ice
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1049,6 +1060,9 @@
       !-----------------------------------------------------------------
 
       call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
@@ -1223,6 +1237,9 @@
            this_block           ! block information for current block
 
       call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call ice_open(nu_grid,grid_file,64)
       call ice_open(nu_kmt,kmt_file,32)
@@ -1461,6 +1478,9 @@
          this_block           ! block information for current block
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (kmt,               halo_info, &
@@ -1568,6 +1588,9 @@
            this_block           ! block information for current block
 
       call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       TLAT(:,:,:) = c0
       TLON(:,:,:) = c0
@@ -1885,6 +1908,9 @@
          this_block           ! block information for current block
 
       call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-------------------------------------------------------------
       ! Get coordinates of grid boxes for each block as follows:
@@ -2072,6 +2098,9 @@
          work1
 
       call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
          allocate(work_g2(nx_global,ny_global))
@@ -2192,6 +2221,9 @@
             250.0000_dbl_kind   /)
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! convert to total depth
       depth(1) = thick(1)
@@ -2226,7 +2258,6 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks
       use ice_read_write
-      use ice_fileunits, only: nu_diag
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_type_scalar
 

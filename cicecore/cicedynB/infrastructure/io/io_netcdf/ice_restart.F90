@@ -8,15 +8,17 @@
       module ice_restart
 
       use ice_broadcast
-      use ice_exit, only: abort_ice
       use ice_kinds_mod
       use netcdf
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64, lenstr
+      use ice_fileunits, only: nu_diag, nu_rst_pointer
+      use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_numbers
       use icepack_intfc, only: icepack_query_tracer_flags
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
@@ -40,7 +42,6 @@
                               time, time_forc, year_init, npt
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
-      use ice_fileunits, only: nu_diag, nu_rst_pointer
 
       character(len=char_len_long), intent(in), optional :: ice_ic
 
@@ -115,7 +116,6 @@
                                  n_dic, n_don, n_fed, n_fep
       use ice_arrays_column, only: oceanmixed_ice
       use ice_dyn_shared, only: kdyn
-      use ice_fileunits, only: nu_diag, nu_rst_pointer
 
       character(len=char_len_long), intent(in), optional :: filename_spec
 
@@ -165,6 +165,9 @@
          tr_bgc_PON_out=tr_bgc_PON, tr_bgc_DON_out=tr_bgc_DON, &
          tr_zaero_out=tr_zaero,   tr_bgc_Fe_out=tr_bgc_Fe, &
          tr_bgc_hum_out=tr_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! construct path/file
       if (present(filename_spec)) then
@@ -614,7 +617,6 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat
-      use ice_fileunits, only: nu_diag
       use ice_read_write, only: ice_read, ice_read_nc
 
       integer (kind=int_kind), intent(in) :: &
@@ -698,7 +700,6 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat
-      use ice_fileunits, only: nu_diag
       use ice_read_write, only: ice_write, ice_write_nc
 
       integer (kind=int_kind), intent(in) :: &
@@ -758,7 +759,6 @@
 
       use ice_calendar, only: istep1, time, time_forc
       use ice_communicate, only: my_task, master_task
-      use ice_fileunits, only: nu_diag
 
       integer (kind=int_kind) :: status
 

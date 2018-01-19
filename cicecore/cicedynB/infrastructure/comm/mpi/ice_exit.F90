@@ -9,6 +9,7 @@
       module ice_exit
 
       use ice_kinds_mod
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       public
@@ -45,6 +46,7 @@
 
 #if (defined CCSMCOUPLED)
       call flush_fileunit(nu_diag)
+      call icepack_warnings_flush(nu_diag)
       write(nu_diag,*) ' '
       write(nu_diag,*) subname, 'ABORTED: '
       if (present(file))   write (nu_diag,*) subname,' called from ',trim(file)
@@ -54,6 +56,7 @@
       call shr_sys_abort(subname//trim(error_message))
 #else
       call flush_fileunit(nu_diag)
+      call icepack_warnings_flush(nu_diag)
       write(ice_stderr,*) ' '
       write(ice_stderr,*) subname, 'ABORTED: '
       if (present(file))   write (ice_stderr,*) subname,' called from ',trim(file)

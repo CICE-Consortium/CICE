@@ -20,6 +20,8 @@
       use ice_domain_size, only: max_blocks, nx_global, ny_global, ncat
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
 #ifdef ncdf
       use netcdf      
@@ -151,7 +153,6 @@
                           field_loc, field_type, &
                           ignore_eof, hit_eof)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: scatter_global
 
       integer (kind=int_kind), intent(in) :: &
@@ -295,7 +296,6 @@
                           field_loc, field_type, &
                           ignore_eof, hit_eof)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: scatter_global
       use ice_domain_size, only: nblyr
 
@@ -445,8 +445,6 @@
       subroutine ice_read_global (nu,  nrec,  work_g, atype, diag, &
                                   ignore_eof, hit_eof)
 
-      use ice_fileunits, only: nu_diag
-
       integer (kind=int_kind), intent(in) :: &
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
@@ -555,7 +553,6 @@
                           field_loc, field_type, &
                           ignore_eof, hit_eof)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: scatter_global_ext
 
       integer (kind=int_kind), intent(in) :: &
@@ -689,7 +686,6 @@
 
       subroutine ice_write_xyt(nu, nrec, work, atype, diag)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: gather_global
 
       integer (kind=int_kind), intent(in) :: &
@@ -789,7 +785,6 @@
 
       subroutine ice_write_xyzt(nu, nrec, work, atype, diag)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: gather_global
       use ice_domain_size, only: nblyr
 
@@ -895,7 +890,6 @@
 
       subroutine ice_write_ext(nu, nrec, work, atype, diag)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: gather_global_ext
 
       integer (kind=int_kind), intent(in) :: &
@@ -1038,7 +1032,6 @@
       subroutine ice_read_nc_xy(fid,  nrec,  varname, work,  diag, &
                              field_loc, field_type, restart_ext)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: scatter_global, scatter_global_ext
 
       integer (kind=int_kind), intent(in) :: &
@@ -1211,7 +1204,6 @@
       subroutine ice_read_nc_xyz(fid,  nrec,  varname, work,  diag, &
                                  field_loc, field_type, restart_ext)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: scatter_global, scatter_global_ext
 
       integer (kind=int_kind), intent(in) :: &
@@ -1389,7 +1381,6 @@
       subroutine ice_read_nc_point(fid,  nrec,  varname, work,  diag, &
                              field_loc, field_type)
 
-      use ice_fileunits, only: nu_diag
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
            nrec              ! record number 
@@ -1483,7 +1474,6 @@
                              field_loc, field_type)
 
       use ice_domain_size, only: nilyr
-      use ice_fileunits, only: nu_diag
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
@@ -1578,7 +1568,6 @@
       subroutine ice_write_nc_xy(fid,  nrec,  varid, work,  diag, &
                                  restart_ext)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: gather_global, gather_global_ext
 
       integer (kind=int_kind), intent(in) :: &
@@ -1687,7 +1676,6 @@
       subroutine ice_write_nc_xyz(fid,  nrec,  varid, work,  diag, &
                                   restart_ext)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: gather_global, gather_global_ext
 
       integer (kind=int_kind), intent(in) :: &
@@ -1808,8 +1796,6 @@
 ! Adapted by Ann Keen, Met Office, to read from a netcdf file 
 
       subroutine ice_read_global_nc (fid,  nrec, varname, work_g, diag)
-
-      use ice_fileunits, only: nu_diag
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
@@ -1950,7 +1936,6 @@
       subroutine ice_read_nc_uv(fid,  nrec, nzlev,  varname, work,  diag, &
                              field_loc, field_type, restart_ext)
 
-      use ice_fileunits, only: nu_diag
       use ice_gather_scatter, only: scatter_global, scatter_global_ext
 
       integer (kind=int_kind), intent(in) :: &

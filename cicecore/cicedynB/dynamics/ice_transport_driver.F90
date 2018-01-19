@@ -20,6 +20,8 @@
           field_type_scalar, field_type_vector, &
           field_loc_Nface, field_loc_Eface
       use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_compute_tracers
       use icepack_intfc, only: icepack_query_tracer_flags, &
           icepack_query_tracer_numbers, icepack_query_tracer_indices, &
@@ -72,7 +74,6 @@
 
       subroutine init_transport
 
-      use ice_exit, only: abort_ice
       use ice_state, only: trcr_depend
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_advect
       use ice_transport_remap, only: init_remap
@@ -92,6 +93,9 @@
           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_alvl_out=nt_alvl, &
           nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
           nt_ipnd_out=nt_ipnd, nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ntrace = 2 + ntrcr ! hice,hsno,trcr
 
@@ -225,7 +229,6 @@
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, bound_state
       use ice_grid, only: tarea, HTE, HTN
-      use ice_exit, only: abort_ice
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_advect, timer_bound
@@ -296,6 +299,9 @@
 
       call ice_timer_start(timer_advect)  ! advection 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
 !---!-------------------------------------------------------------------
 !---! Prepare for remapping.
@@ -695,6 +701,10 @@
       call ice_timer_start(timer_advect)  ! advection 
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       narr = 1 + ncat*(3+ntrcr) ! max number of state variable arrays
 
       allocate (works(nx_block,ny_block,narr,max_blocks))
@@ -875,6 +885,10 @@
       call icepack_query_constants(puny_out=puny, rhos_out=rhos, &
            Lfresh_out=Lfresh)
       call icepack_query_tracer_indices(nt_qsno_out=nt_qsno)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       aim(:,:,0) = aice0(:,:)
 
       do n = 1, ncat
@@ -993,6 +1007,10 @@
 
       call icepack_query_constants(rhos_out=rhos, Lfresh_out=Lfresh)
       call icepack_query_tracer_indices(nt_qsno_out=nt_qsno)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       aice0(:,:) = aim(:,:,0)
 
       do n = 1, ncat
@@ -1072,6 +1090,9 @@
            diff          ! difference between initial and final values
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (asum_init > puny) then
          diff = asum_final - asum_init
@@ -1322,6 +1343,9 @@
            l_check        ! if true, check monotonicity
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do nt = 1, ntrace
 
@@ -1468,6 +1492,9 @@
            tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, &
            nt_fbri_out=nt_fbri)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! This array is used for performance (balance memory/cache vs
@@ -1665,6 +1692,10 @@
          narrays = narrays + ntrcr
 
       enddo                     ! ncat
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       end subroutine work_to_state
 

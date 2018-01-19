@@ -15,11 +15,14 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0
       use ice_calendar, only: diagfreq, istep1, istep
+      use ice_fileunits, only: nu_diag
+      use ice_fileunits, only: flush_fileunit
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_aero
       use icepack_intfc, only: icepack_query_constants, icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices
-      use ice_fileunits, only: nu_diag
 
       implicit none
       private
@@ -112,7 +115,6 @@
           field_loc_center, m2_to_km2
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: ncat, n_aero, max_blocks
-      use ice_fileunits, only: flush_fileunit
       use ice_flux, only: alvdr, alidr, alvdf, alidf, evap, fsnow, frazil, &
           fswabs, fswthru, flw, flwout, fsens, fsurf, flat, frzmlt_init, frain, fpond, &
           coszen, fhocn_ai, fsalt_ai, fresh_ai, frazil_diag, &
@@ -192,6 +194,9 @@
            awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf, &
            rhofresh_out=rhofresh, lfresh_out=lfresh, lvap_out=lvap, &
            ice_ref_salinity_out=ice_ref_salinity)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! state of the ice
@@ -1024,6 +1029,9 @@
          nt_hpnd_out=nt_hpnd, nt_apnd_out=nt_apnd, nt_aero_out=nt_aero)
       call icepack_query_constants( &
          rhoi_out=rhoi, rhos_out=rhos, rhofresh_out=rhofresh)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! total ice volume
       shmaxn = global_sum(vice, distrb_info, field_loc_center, tarean)
@@ -1139,6 +1147,9 @@
         nt_qice, nt_qsno
 
       call icepack_query_tracer_indices(nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
@@ -1222,6 +1233,9 @@
         nt_sice
 
       call icepack_query_tracer_indices(nt_sice_out=nt_sice)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
@@ -1300,6 +1314,9 @@
 !      if (print_points) then
 
          call icepack_query_constants(puny_out=puny, rad_to_deg_out=rad_to_deg)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+            file=__FILE__, line=__LINE__)
 
          if (my_task==master_task) then
             write(nu_diag,*) ' '
@@ -1441,6 +1458,9 @@
       call icepack_query_constants( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)         
 
@@ -1578,6 +1598,9 @@
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno)
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do m = 1, npnt
       if (my_task == pmloc(m)) then
@@ -1690,8 +1713,6 @@
       use ice_blocks, only: block, get_block
       use ice_communicate, only: my_task
       use ice_domain, only: blocks_ice
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_diag
       use ice_grid, only: TLAT, TLON
       use ice_state, only: aice
 
@@ -1710,6 +1731,9 @@
          this_block      ! block information for current block
 
       call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)         
 

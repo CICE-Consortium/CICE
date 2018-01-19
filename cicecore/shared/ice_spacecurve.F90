@@ -17,6 +17,7 @@ module ice_spacecurve
    use ice_communicate, only: my_task, master_task
    use ice_exit, only: abort_ice
    use ice_fileunits
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
 

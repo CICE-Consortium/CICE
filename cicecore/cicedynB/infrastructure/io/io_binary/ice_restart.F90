@@ -18,6 +18,7 @@
       use icepack_intfc, only: tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
                              tr_pond_topo, tr_pond_lvl, tr_brine, nbtrcr
       use icepack_intfc, only: solve_zsal
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private

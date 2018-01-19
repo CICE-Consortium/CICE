@@ -14,6 +14,9 @@
       module CICE_InitMod
 
       use ice_kinds_mod
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: init_fileunits, nu_diag
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
@@ -62,7 +65,6 @@
       use ice_domain_size, only: ncat
       use ice_dyn_eap, only: init_eap
       use ice_dyn_shared, only: kdyn, init_evp, basalstress
-      use ice_fileunits, only: init_fileunits, nu_diag
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -81,7 +83,6 @@
       use ice_transport_driver, only: init_transport
       use icepack_intfc, only: skl_bgc, z_tracers
       use icepack_intfc, only: icepack_configure
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 #ifdef popcice
       use drv_forcing, only: sst_sss
 #endif
@@ -382,7 +383,6 @@
       subroutine check_finished_file()
 
       use ice_communicate, only: my_task, master_task
-      use ice_exit, only: abort_ice
       use ice_restart_shared, only: restart_dir
 
       character(len=char_len_long) :: filename

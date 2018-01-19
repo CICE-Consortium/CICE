@@ -15,6 +15,9 @@
       use ice_state, only: aicen, vicen, vsnon, trcrn, bound_state, &
           aice_init, aice0, aice, vice, vsno, trcr, trcr_depend
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_init_trcr
       use icepack_intfc, only: icepack_query_constants, &
           icepack_query_tracer_numbers, icepack_query_tracer_flags, &
@@ -56,7 +59,6 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: ew_boundary_type, ns_boundary_type, &
           nblocks, blocks_ice
-      use ice_fileunits, only: nu_diag
       use ice_grid, only: tmask
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_restart_shared, only: restart_ext
@@ -81,6 +83,9 @@
    if (.not. restore_ice) return
 
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      file=__FILE__, line=__LINE__)
 
    if (ew_boundary_type == 'open' .and. &
        ns_boundary_type == 'open' .and. .not.(restart_ext)) then
@@ -351,6 +356,10 @@
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_fbri_out=nt_fbri, &
            nt_qice_out=nt_qice, nt_sice_out=nt_sice, nt_qsno_out=nt_qsno)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       indxi(:) = 0
       indxj(:) = 0
 
@@ -507,6 +516,10 @@
             enddo               ! ij
          enddo                  ! ncat
 
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+            file=__FILE__, line=__LINE__)
+
    end subroutine set_restore_var
 
 !=======================================================================
@@ -546,6 +559,9 @@
    call ice_timer_start(timer_bound)
    call icepack_query_constants(secday_out=secday)
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      file=__FILE__, line=__LINE__)
 
 !-----------------------------------------------------------------------
 !

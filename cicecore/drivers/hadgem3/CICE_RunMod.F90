@@ -16,6 +16,9 @@
       module CICE_RunMod
 
       use ice_kinds_mod
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private

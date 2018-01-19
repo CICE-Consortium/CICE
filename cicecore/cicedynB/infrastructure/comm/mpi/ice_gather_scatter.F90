@@ -26,7 +26,9 @@
        nblocks_x, nblocks_y, nghost
    use ice_distribution, only: distrb
    use ice_domain_size, only: nx_global, ny_global
+   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private

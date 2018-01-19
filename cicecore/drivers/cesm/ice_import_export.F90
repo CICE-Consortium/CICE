@@ -20,6 +20,8 @@ module ice_import_export
                           dms, hum, algalN, doc, don, dic, fed, fep, zaeros, &
                           falgalN, fdoc, fdon, fnit, famm, fsil, fdmsp, fdms, &
                           fhum, ffed, ffep, fdust, cpl_bgc
+  use ice_exit, only: abort_ice
+  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc , only: tfrz_option, modal_aero, z_tracers, skl_bgc
   use ice_arrays_column , only: Cdn_atm
   use ice_state         , only: vice, vsno, aice, trcr

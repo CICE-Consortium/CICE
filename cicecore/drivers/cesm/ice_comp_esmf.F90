@@ -65,6 +65,8 @@ module ice_comp_esmf
   use ice_global_reductions
   use ice_broadcast
   use CICE_RunMod
+  use ice_exit, only: abort_ice
+  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
 ! !PUBLIC MEMBER FUNCTIONS:
   implicit none

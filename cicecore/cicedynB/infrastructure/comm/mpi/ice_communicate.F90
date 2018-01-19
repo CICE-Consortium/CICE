@@ -10,6 +10,9 @@
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
    use ice_kinds_mod
+   use ice_fileunits, only: nu_diag
+   use ice_exit, only: abort_ice
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
 #if defined key_oasis3 || key_oasis3mct
    use cpl_oasis3

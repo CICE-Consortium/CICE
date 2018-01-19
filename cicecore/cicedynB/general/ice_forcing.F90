@@ -36,6 +36,7 @@
       use ice_constants, only: cm_to_m
       use ice_constants, only: field_loc_center, field_type_scalar, &
                                field_type_vector, field_loc_NEcorner
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_liquidus_temperature
       use icepack_intfc, only: icepack_sea_freezing_temperature
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_parameters
@@ -243,6 +244,10 @@
          work1
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       nbits = 64              ! double precision data
 
       if (restore_sst .or. restore_bgc) then
@@ -414,6 +419,10 @@
       enddo
       !$OMP END PARALLEL DO
 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       end subroutine ocn_freezing_temperature
 
 !=======================================================================
@@ -446,6 +455,10 @@
       endif
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       ftime = time         ! forcing time
       time_forc = ftime    ! for restarting
 
@@ -1043,6 +1056,10 @@
           daymid(0:13)     ! month mid-points
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       daymid(1:13) = 14._dbl_kind   ! time frame ends 0 sec into day 15
       daymid(0)    = 14._dbl_kind - daymo(12)  ! Dec 15, 0 sec
 
@@ -1099,6 +1116,10 @@
           rcnum            ! recnum => dbl_kind
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       secyr = dayyr * secday         ! seconds in a year
       tt = mod(ftime,secyr)
 
@@ -1253,6 +1274,9 @@
       call icepack_query_constants(Tffresh_out=Tffresh)
       call icepack_query_constants(secday_out=secday)
       call icepack_query_parameters(calc_strair_out=calc_strair)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = jlo, jhi
       do i = ilo, ihi
@@ -1453,6 +1477,9 @@
 
       call icepack_query_constants(Tffresh_out=Tffresh, &
            stefan_boltzmann_out=stefan_boltzmann)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
       
       flw = stefan_boltzmann*Tair**4 &
              * (c1 - 0.261_dbl_kind &
@@ -1499,6 +1526,10 @@
       call icepack_query_constants(Tffresh_out=Tffresh, &
            stefan_boltzmann_out=stefan_boltzmann, &
            emissivity_out=emissivity)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       fcc = c1 - 0.8_dbl_kind * cldf
       sstk = (Tsfc * aice &
            + sst * (c1 - aice)) + Tffresh
@@ -1597,6 +1628,9 @@
       logical (kind=log_kind) :: readm, read6
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
     ! monthly data
@@ -1816,6 +1850,9 @@
 
       call icepack_query_constants(Tffresh_out=Tffresh)
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -2035,6 +2072,9 @@
          i, j
 
       call icepack_query_constants(secday_out=secday, pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j=jlo,jhi
        do i=ilo,ihi
@@ -2083,6 +2123,10 @@
          Tffresh, puny
 
       call icepack_query_constants(Tffresh_out=Tffresh, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       worka = Tair - Tffresh
       worka = c2 + (0.7859_dbl_kind + 0.03477_dbl_kind*worka) &
                      /(c1 + 0.00412_dbl_kind*worka) & ! 2+ converts ea mb -> Pa
@@ -2120,6 +2164,9 @@
 
       call icepack_query_parameters(calc_strair_out=calc_strair, &
            calc_Tsfc_out=calc_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! -----------------------------------------------------------
       ! Rainfall and snowfall
@@ -2315,6 +2362,9 @@
       call icepack_query_constants(Lsub_out=Lsub)
       call icepack_query_parameters(calc_strair_out=calc_strair, &
            calc_Tsfc_out=calc_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
     ! monthly data
@@ -4031,6 +4081,9 @@
 
       diag = .false.   ! write diagnostic information 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
    
 #ifdef ncdf 
       if (trim(atm_data_format) == 'nc') then     ! read nc file
@@ -4212,7 +4265,6 @@
 !
       use ice_domain, only: nblocks, distrb_info
       use ice_gather_scatter
-      use ice_exit
       use ice_read_write
 #ifdef ncdf
       use netcdf

@@ -34,6 +34,10 @@
       use ice_kinds_mod
       use ice_constants, only: c0, c1, c2, c100, p25, &
           mps_to_cmpdy, kg_to_g, spval
+      use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
+          get_fileunit, release_fileunit
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_snow_temperature, icepack_ice_temperature
       use icepack_intfc, only: icepack_query_constants, icepack_query_parameters, &
           icepack_query_tracer_flags, icepack_query_tracer_indices
@@ -66,9 +70,6 @@
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, max_nstrm
       use ice_dyn_shared, only: kdyn
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
-          get_fileunit, release_fileunit
       use ice_flux, only: mlt_onset, frz_onset, albcnt, taubx, tauby
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
@@ -102,6 +103,9 @@
          solve_zsal_out=solve_zsal, solve_zbgc_out=solve_zbgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_pond_out=tr_pond, tr_aero_out=tr_aero, tr_brine_out=tr_brine)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call get_fileunit(nu_nml)
       if (my_task == master_task) then
@@ -1252,6 +1256,9 @@
            tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_Tsfc_out=nt_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !---------------------------------------------------------------
       ! increment step counter
@@ -1690,6 +1697,10 @@
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !---------------------------------------------------------------
       ! Write output files at prescribed intervals

@@ -14,7 +14,8 @@
   use ice_domain, only : nblocks, blocks_ice
   use ice_domain_size
   use ice_fileunits  
-  use ice_exit
+  use ice_exit, only: abort_ice
+  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
   use pio
 
   implicit none

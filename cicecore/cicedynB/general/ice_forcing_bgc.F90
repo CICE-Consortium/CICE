@@ -18,6 +18,8 @@
          bgc_data_dir, sil_data_type, nit_data_type, fe_data_type
       use ice_constants, only: c0, p01, p1
       use ice_constants, only: field_loc_center, field_type_scalar
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_nspint, icepack_max_aero, &
           icepack_max_algae, icepack_max_doc, icepack_max_dic
       use icepack_intfc, only: icepack_query_tracer_flags, &
@@ -97,6 +99,9 @@
       call icepack_query_constants(secday_out=secday)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
            tr_bgc_Sil_out=tr_bgc_Sil)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (.not. trim(nit_data_type)=='ISPOL' .AND. &
           .not. trim(sil_data_type)=='ISPOL') then 
@@ -413,6 +418,9 @@
 
       call icepack_query_tracer_flags(tr_zaero_out=tr_zaero)
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       flux_bio_atm(:,:,:,:) = c0
       if (tr_zaero) then
@@ -589,6 +597,9 @@
       logical (kind=log_kind) :: readm
 
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -728,7 +739,6 @@
       subroutine faero_optics
 
       use ice_broadcast, only: broadcast_array
-      use ice_fileunits,  only: nu_diag
       use ice_read_write, only: ice_open_nc, ice_read_nc, ice_close_nc
       use ice_communicate, only: my_task, master_task
       use ice_arrays_column, only: &
@@ -739,7 +749,6 @@
          waer_bc_tab, & ! BC single scatter albedo (fraction)
          gaer_bc_tab, & ! BC aerosol asymmetry parameter (cos(theta))
          bcenh          ! BC absorption enhancement facto
-      use ice_exit, only: abort_ice
 
 #ifdef ncdf
       use netcdf
@@ -836,6 +845,9 @@
       bcenh(:,:,:)     = c0
 
     call icepack_query_parameters(modal_aero_out=modal_aero)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+       file=__FILE__, line=__LINE__)
 
     if (modal_aero) then
        diag = .true.   ! write diagnostic information 

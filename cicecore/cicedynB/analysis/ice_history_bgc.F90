@@ -10,6 +10,11 @@
 
       use ice_kinds_mod
       use ice_constants
+      use ice_fileunits, only: nu_nml, nml_filename, &
+          get_fileunit, release_fileunit
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_aero, icepack_max_dic, &
           icepack_max_doc, icepack_max_don, &
           icepack_max_algae, icepack_max_fe
@@ -256,9 +261,6 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nml_filename, &
-          get_fileunit, release_fileunit
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field, &
           f_fsalt, f_fsalt_ai, f_sice
 
@@ -283,6 +285,9 @@
           tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C, &
           tr_bgc_chl_out=tr_bgc_chl, tr_bgc_DON_out=tr_bgc_DON, &
           tr_bgc_Fe_out =tr_bgc_Fe,  tr_bgc_hum_out=tr_bgc_hum ) 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -1756,6 +1761,9 @@
       ! biology vertical grid
 
       call icepack_query_constants(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do ns = 1, nstreams
  
@@ -1906,12 +1914,15 @@
          nlt_bgc_DMSPd_out=nlt_bgc_DMSPd, &
          nlt_bgc_Fed_out=nlt_bgc_Fed,   nlt_bgc_Fep_out=nlt_bgc_Fep,  &
          nt_bgc_hum_out=nt_bgc_hum,    nlt_bgc_hum_out=nlt_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
           
-         this_block = get_block(blocks_ice(iblk),iblk)         
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
+      this_block = get_block(blocks_ice(iblk),iblk)         
+      ilo = this_block%ilo
+      ihi = this_block%ihi
+      jlo = this_block%jlo
+      jhi = this_block%jhi
 
       !---------------------------------------------------------------
       ! increment field

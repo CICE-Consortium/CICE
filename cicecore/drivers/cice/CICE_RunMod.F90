@@ -20,6 +20,8 @@
       use ice_arrays_column, only: oceanmixed_ice
       use ice_constants, only: c0, c1
       use ice_constants, only: field_loc_center, field_type_scalar
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters, icepack_query_constants
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_numbers
@@ -61,6 +63,9 @@
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
 #ifndef CICE_IN_NEMO
    !--------------------------------------------------------------------
@@ -169,6 +174,9 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! restoring on grid boundaries
@@ -355,6 +363,9 @@
          call icepack_query_constants(puny_out=puny, rhofresh_out=rhofresh)
          call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
          call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+            file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! Save current value of frzmlt for diagnostics.
@@ -571,6 +582,9 @@
           rLsub            ! 1/Lsub
 
       call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
       rLsub = c1 / Lsub
 
       do n = 1, ncat

@@ -15,6 +15,9 @@
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, nblyr
       use ice_restart,only: read_restart_field, write_restart_field
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_algae, icepack_max_doc, &
           icepack_max_don, icepack_max_dic, icepack_max_fe, icepack_max_aero
       use icepack_intfc, only: icepack_query_constants, icepack_query_parameters, &
@@ -58,7 +61,7 @@
 
       subroutine write_restart_age()
 
-      use ice_fileunits, only: nu_diag, nu_dump_age
+      use ice_fileunits, only: nu_dump_age
       use ice_state, only: trcrn
 
       ! local variables
@@ -67,6 +70,10 @@
       integer (kind=int_kind) :: nt_iage
 
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       !-----------------------------------------------------------------
@@ -83,7 +90,7 @@
 
       subroutine read_restart_age()
 
-      use ice_fileunits, only: nu_diag, nu_restart_age
+      use ice_fileunits, only: nu_restart_age
       use ice_state, only: trcrn
 
       ! local variables
@@ -93,6 +100,10 @@
       integer (kind=int_kind) :: nt_iage
 
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       if (my_task == master_task) write(nu_diag,*) 'min/max age (s)'
@@ -109,7 +120,7 @@
 
       subroutine write_restart_FY()
 
-      use ice_fileunits, only: nu_diag, nu_dump_FY
+      use ice_fileunits, only: nu_dump_FY
       use ice_flux, only: frz_onset
       use ice_state, only: trcrn
 
@@ -119,6 +130,10 @@
       integer (kind=int_kind) :: nt_FY
 
       call icepack_query_tracer_indices(nt_FY_out=nt_FY)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       !-----------------------------------------------------------------
@@ -137,7 +152,7 @@
 
       subroutine read_restart_FY()
 
-      use ice_fileunits, only: nu_diag, nu_restart_FY
+      use ice_fileunits, only: nu_restart_FY
       use ice_flux, only: frz_onset
       use ice_state, only: trcrn
 
@@ -148,6 +163,10 @@
       integer (kind=int_kind) :: nt_FY
 
       call icepack_query_tracer_indices(nt_FY_out=nt_FY)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       if (my_task == master_task) write(nu_diag,*) 'min/max first-year ice area'
@@ -170,7 +189,7 @@
 
       subroutine write_restart_lvl()
 
-      use ice_fileunits, only: nu_diag, nu_dump_lvl
+      use ice_fileunits, only: nu_dump_lvl
       use ice_state, only: trcrn
 
       ! local variables
@@ -179,6 +198,10 @@
       integer (kind=int_kind) :: nt_alvl, nt_vlvl
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       !-----------------------------------------------------------------
@@ -198,7 +221,7 @@
 
       subroutine read_restart_lvl()
 
-      use ice_fileunits, only: nu_diag, nu_restart_lvl
+      use ice_fileunits, only: nu_restart_lvl
       use ice_state, only: trcrn
 
       ! local variables
@@ -208,6 +231,10 @@
       integer (kind=int_kind) :: nt_alvl, nt_vlvl
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       if (my_task == master_task) write(nu_diag,*) 'min/max level ice area, volume'
@@ -237,6 +264,10 @@
       integer (kind=int_kind) :: nt_apnd, nt_hpnd
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       call write_restart_field(nu_dump_pond,0,trcrn(:,:,nt_apnd,:,:),'ruf8', &
@@ -255,7 +286,7 @@
 
       subroutine read_restart_pond_cesm()
 
-      use ice_fileunits, only: nu_diag, nu_restart_pond 
+      use ice_fileunits, only: nu_restart_pond 
       use ice_state, only: trcrn
 
       ! local variables
@@ -265,6 +296,10 @@
       integer (kind=int_kind) :: nt_apnd, nt_hpnd
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       if (my_task == master_task) write(nu_diag,*) 'min/max cesm ponds'
@@ -296,6 +331,10 @@
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
            nt_ipnd_out=nt_ipnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       call write_restart_field(nu_dump_pond,0, trcrn(:,:,nt_apnd,:,:),'ruf8', &
@@ -322,7 +361,7 @@
       subroutine read_restart_pond_lvl()
 
       use ice_arrays_column, only: dhsn, ffracn
-      use ice_fileunits, only: nu_diag, nu_restart_pond 
+      use ice_fileunits, only: nu_restart_pond 
       use ice_flux, only: fsnow
       use ice_state, only: trcrn
 
@@ -334,6 +373,10 @@
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
            nt_ipnd_out=nt_ipnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       if (my_task == master_task) write(nu_diag,*) 'min/max level-ice ponds'
@@ -372,6 +415,10 @@
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
            nt_ipnd_out=nt_ipnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       call write_restart_field(nu_dump_pond,0,trcrn(:,:,nt_apnd,:,:),'ruf8', &
@@ -392,7 +439,7 @@
 
       subroutine read_restart_pond_topo()
 
-      use ice_fileunits, only: nu_diag, nu_restart_pond 
+      use ice_fileunits, only: nu_restart_pond 
       use ice_state, only: trcrn
 
       ! local variables
@@ -403,6 +450,10 @@
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
            nt_ipnd_out=nt_ipnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       if (my_task == master_task) write(nu_diag,*) 'min/max topo ponds'
@@ -428,7 +479,7 @@
 
       use ice_domain_size, only: n_aero
       use ice_state, only: trcrn
-      use ice_fileunits, only: nu_dump_aero, nu_diag
+      use ice_fileunits, only: nu_dump_aero
 
       ! local variables
 
@@ -445,6 +496,10 @@
       if (my_task == master_task) write(nu_diag,*) 'write_restart_aero (aerosols)'
 
       call icepack_query_tracer_indices(nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       do k = 1, n_aero
@@ -477,7 +532,7 @@
 
       use ice_domain_size, only: n_aero
       use ice_state, only: trcrn
-      use ice_fileunits, only: nu_restart_aero, nu_diag
+      use ice_fileunits, only: nu_restart_aero
 
       ! local variables
 
@@ -495,6 +550,10 @@
       if (my_task == master_task) write(nu_diag,*) 'read_restart_aero (aerosols)'
 
       call icepack_query_tracer_indices(nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       do k = 1, n_aero
@@ -526,7 +585,7 @@
       use ice_blocks, only: block, get_block
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, blocks_ice
-      use ice_fileunits, only: nu_diag, nu_restart_hbrine
+      use ice_fileunits, only: nu_restart_hbrine
       use ice_state, only: trcrn
       use ice_restart,only: read_restart_field
 
@@ -545,6 +604,10 @@
       integer (kind=int_kind) :: nt_fbri
 
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       if (my_task == master_task) write(nu_diag,*) 'brine restart'
@@ -588,7 +651,7 @@
       use ice_arrays_column, only: first_ice, first_ice_real
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
-      use ice_fileunits, only: nu_diag, nu_dump_hbrine
+      use ice_fileunits, only: nu_dump_hbrine
       use ice_state, only: trcrn
       use ice_restart,only: write_restart_field
 
@@ -606,6 +669,10 @@
          this_block      ! block information for current block
 
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
@@ -650,11 +717,10 @@
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic, &
           n_don, n_zaero, n_fed, n_fep
-      use ice_fileunits, only: nu_diag, nu_dump_bgc
+      use ice_fileunits, only: nu_dump_bgc
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
       use ice_state, only: trcrn
-      use ice_fileunits, only: nu_diag, nu_dump_bgc
       use ice_flux, only: sss  
       use ice_restart, only:  write_restart_field
 
@@ -726,6 +792,10 @@
           nt_bgc_DON_out=nt_bgc_DON, nt_bgc_DOC_out=nt_bgc_DOC, nt_bgc_DIC_out=nt_bgc_DIC, &
           nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_bgc_Fed_out=nt_bgc_Fed, &
           nt_bgc_hum_out=nt_bgc_hum, nt_bgc_Fep_out=nt_bgc_Fep, nt_zbgc_frac_out=nt_zbgc_frac)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       !-----------------------------------------------------------------
@@ -1060,7 +1130,7 @@
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic,&
           n_don, n_zaero, n_fed, n_fep
-      use ice_fileunits, only: nu_diag, nu_restart_bgc
+      use ice_fileunits, only: nu_restart_bgc
       use ice_flux, only: sss  
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
@@ -1130,6 +1200,10 @@
           nt_bgc_DON_out=nt_bgc_DON, nt_bgc_DOC_out=nt_bgc_DOC, nt_bgc_DIC_out=nt_bgc_DIC, &
           nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_bgc_Fed_out=nt_bgc_Fed, &
           nt_bgc_Fep_out=nt_bgc_Fep, nt_zbgc_frac_out=nt_zbgc_frac, nt_bgc_hum_out=nt_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       diag = .true.
 
       !-----------------------------------------------------------------
