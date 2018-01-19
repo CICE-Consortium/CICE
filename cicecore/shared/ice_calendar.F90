@@ -25,7 +25,6 @@
 
       implicit none
       private
-      save
 
       public :: init_calendar, calendar, time2sec, sec2time
 

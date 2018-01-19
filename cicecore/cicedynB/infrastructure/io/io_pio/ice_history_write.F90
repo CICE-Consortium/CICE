@@ -26,7 +26,6 @@
       implicit none
       private
       public :: ice_write_hist
-      save
       
 !=======================================================================
 

@@ -19,7 +19,6 @@
       implicit none
       private
       public :: CICE_Finalize
-      save
 
 !=======================================================================
 
@@ -34,9 +33,15 @@
       use ice_restart_shared, only: runid
       use ice_timers, only: ice_timer_stop, ice_timer_print_all, timer_total
 
+      character(len=*), parameter :: subname='(CICE_Finalize)'
+
    !-------------------------------------------------------------------
    ! stop timers and print timer info
    !-------------------------------------------------------------------
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+          file=__FILE__,line= __LINE__)
 
       call ice_timer_stop(timer_total)        ! stop timing entire run
       call ice_timer_print_all(stats=.false.) ! print timing information

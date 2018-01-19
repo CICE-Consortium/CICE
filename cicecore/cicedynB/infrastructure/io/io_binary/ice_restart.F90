@@ -24,7 +24,6 @@
       private
       public :: init_restart_write, init_restart_read, &
                 read_restart_field, write_restart_field, final_restart
-      save
 
 !=======================================================================
 

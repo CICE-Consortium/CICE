@@ -11,7 +11,6 @@
       use ice_kinds_mod
 
       implicit none
-      save
 
       !-----------------------------------------------------------------
       ! physical constants

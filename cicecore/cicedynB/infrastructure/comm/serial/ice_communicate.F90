@@ -17,7 +17,6 @@
 
    implicit none
    private
-   save
 
    public  :: init_communicate,          &
               get_num_procs,             &

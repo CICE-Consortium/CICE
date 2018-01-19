@@ -18,7 +18,6 @@
       implicit none
       private
       public :: accum_hist_drag, init_hist_drag_2D
-      save
       
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value

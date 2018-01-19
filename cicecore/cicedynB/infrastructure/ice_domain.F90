@@ -29,7 +29,6 @@
 
    implicit none
    private
-   save
 
    public  :: init_domain_blocks ,&
               init_domain_distribution

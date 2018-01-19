@@ -49,7 +49,6 @@
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
                 read_data_nc_point, interp_coeff
-      save
 
       integer (kind=int_kind), public :: &
          ycycle          , & ! number of years in forcing cycle

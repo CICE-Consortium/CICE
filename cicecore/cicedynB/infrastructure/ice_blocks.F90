@@ -19,7 +19,6 @@
 
    implicit none
    private
-   save
 
    type, public :: block   ! block data type
       integer (int_kind) :: &

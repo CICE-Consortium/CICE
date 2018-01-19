@@ -71,7 +71,6 @@ module ice_comp_mct
   public :: ice_init_mct
   public :: ice_run_mct
   public :: ice_final_mct
-  SAVE
   private                              ! By default make data private
 !
 ! ! PUBLIC DATA:

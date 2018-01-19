@@ -21,7 +21,6 @@
       implicit none
       private
       public :: accum_hist_mechred, init_hist_mechred_2D, init_hist_mechred_3Dc
-      save
       
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value

@@ -21,7 +21,6 @@
       implicit none
       private
       public :: accum_hist_pond, init_hist_pond_2D, init_hist_pond_3Dc
-      save
       
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value

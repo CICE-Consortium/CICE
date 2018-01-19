@@ -30,7 +30,6 @@
       private
       public :: init_fileunits, get_fileunit, flush_fileunit, &
                 release_fileunit, release_all_fileunits
-      save
 
       character (len=char_len), public :: &
          diag_type               ! 'stdout' or 'file'

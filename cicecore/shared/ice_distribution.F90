@@ -20,7 +20,6 @@
 
    implicit none
    private
-   save
 
    type, public :: distrb  ! distribution data type
       integer (int_kind) :: &

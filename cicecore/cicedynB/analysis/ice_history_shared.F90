@@ -31,7 +31,6 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
-      save
 
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename

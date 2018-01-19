@@ -45,7 +45,6 @@
       implicit none
       private
       public :: init_hist, accum_hist
-      save
       
 !=======================================================================
 

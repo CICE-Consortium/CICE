@@ -29,7 +29,6 @@
       public :: runtime_diags, init_mass_diags, init_diags, &
                 print_state, print_points_state, diagnostic_abort
 
-      save
 
       ! diagnostic output file
       character (len=char_len), public :: diag_file

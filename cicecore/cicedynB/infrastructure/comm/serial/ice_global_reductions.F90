@@ -22,7 +22,6 @@
 
    implicit none
    private
-   save
 
    public :: global_sum,      &
              global_sum_prod, &

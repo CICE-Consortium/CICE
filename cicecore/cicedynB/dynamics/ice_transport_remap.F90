@@ -43,7 +43,6 @@
       use icepack_intfc, only: icepack_query_constants
 
       implicit none
-      save
       private
       public :: init_remap, horizontal_remap, make_masks
 

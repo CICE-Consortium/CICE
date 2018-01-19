@@ -74,7 +74,6 @@ module ice_comp_esmf
   public :: ice_init_esmf
   public :: ice_run_esmf
   public :: ice_final_esmf
-  SAVE
   private                              ! By default make data private
 !
 ! ! PUBLIC DATA:

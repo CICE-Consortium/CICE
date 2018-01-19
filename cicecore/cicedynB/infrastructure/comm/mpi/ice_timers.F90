@@ -23,7 +23,6 @@
 
    implicit none
    private
-   save
 
    public :: init_ice_timers,     &
              get_ice_timer,       &

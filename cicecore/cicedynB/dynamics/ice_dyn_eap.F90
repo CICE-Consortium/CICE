@@ -35,7 +35,6 @@
       implicit none
       private
       public :: eap, init_eap, write_restart_eap, read_restart_eap
-      save
 
       ! Look-up table needed for calculating structure tensor
       integer (int_kind), parameter :: & 

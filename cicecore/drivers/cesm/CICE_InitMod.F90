@@ -21,7 +21,6 @@
       implicit none
       private
       public :: CICE_Initialize, cice_init
-      save
 
 !=======================================================================
 

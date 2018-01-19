@@ -18,7 +18,6 @@
            icepack_nmodal1, icepack_nmodal2
 
       implicit none
-      save
 
       ! icepack_atmo.F90
       real (kind=dbl_kind), public, &
@@ -88,7 +87,7 @@
          apeffn       ! effective pond area used for radiation calculation
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat,max_blocks), &
-         public, save :: &
+         public :: &
          snowfracn    ! Category snow fraction used in radiation
 
       ! shortwave components

@@ -26,7 +26,6 @@
       implicit none
       private
       public :: ice_HaloRestore_init, ice_HaloRestore
-      save
 
       logical (kind=log_kind), public :: &
          restore_ice                 ! restore ice state if true

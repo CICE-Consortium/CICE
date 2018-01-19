@@ -63,7 +63,7 @@ module ice_spacecurve
 
    logical           :: verbose=.FALSE. 
    
-   type (factor_t),  public,save :: fact  ! stores the factorization
+   type (factor_t),  public :: fact  ! stores the factorization
 
 !EOP
 !EOC

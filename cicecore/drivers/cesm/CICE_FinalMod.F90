@@ -19,7 +19,6 @@
       implicit none
       private
       public :: CICE_Finalize
-      save
 
 !=======================================================================
 

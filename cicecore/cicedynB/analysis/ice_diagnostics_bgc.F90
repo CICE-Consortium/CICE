@@ -28,7 +28,6 @@
       implicit none
       private
       public :: hbrine_diags, bgc_diags, zsal_diags
-      save
 
 !=======================================================================
 

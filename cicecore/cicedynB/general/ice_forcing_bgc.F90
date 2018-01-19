@@ -30,7 +30,6 @@
       private
       public :: get_forcing_bgc, get_atm_bgc, fzaero_data, &
                 init_bgc_data, faero_data, faero_default, faero_optics
-      save
 
       integer (kind=int_kind) :: &
          bgcrecnum = 0   ! old record number (save between steps)

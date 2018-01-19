@@ -18,7 +18,6 @@
 
    implicit none
    private
-   save
 
    public  :: broadcast_scalar,         &
               broadcast_array

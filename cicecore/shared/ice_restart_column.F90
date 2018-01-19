@@ -25,7 +25,6 @@
           icepack_query_tracer_indices
 
       implicit none
-      save
 
       private
       public ::  write_restart_age,       read_restart_age, &

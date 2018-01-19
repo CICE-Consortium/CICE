@@ -21,7 +21,6 @@
       private
 
       public :: bgcflux_ice_to_ocn 
-      save
 
       ! in from atmosphere
 

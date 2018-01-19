@@ -35,7 +35,6 @@
       use icepack_intfc, only: icepack_query_constants
 
       implicit none
-      save
 
       character(len=char_len_long) :: &
          ice_ic      ! method of ice cover initialization

@@ -29,7 +29,6 @@
       implicit none
       private
       public :: CICE_Run, ice_step
-      save
 
 !=======================================================================
 

@@ -20,7 +20,6 @@
 
   implicit none
   private
-  save
 
   interface ice_pio_initdecomp
      module procedure ice_pio_initdecomp_2d

@@ -36,7 +36,6 @@
       implicit none
       private
       public :: dumpfile, restartfile, restartfile_v4
-      save
 
 !=======================================================================
 

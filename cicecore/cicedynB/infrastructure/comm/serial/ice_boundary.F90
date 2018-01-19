@@ -38,7 +38,6 @@
 
    implicit none
    private
-   save
 
    type, public :: ice_halo
       integer (int_kind) ::  &

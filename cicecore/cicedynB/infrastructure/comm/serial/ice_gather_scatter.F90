@@ -25,7 +25,6 @@
 
    implicit none
    private
-   save
 
    public :: gather_global,      &
              gather_global_ext,  &

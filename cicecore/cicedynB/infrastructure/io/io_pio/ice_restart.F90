@@ -22,7 +22,6 @@
       private
       public :: init_restart_write, init_restart_read, &
                 read_restart_field, write_restart_field, final_restart
-      save
 
       type(file_desc_t)     :: File
       type(var_desc_t)      :: vardesc
