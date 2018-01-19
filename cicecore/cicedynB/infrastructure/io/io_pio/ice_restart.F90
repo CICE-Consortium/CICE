@@ -126,8 +126,8 @@
                                  n_dic, n_don, n_fed, n_fep
       use ice_dyn_shared, only: kdyn
       use ice_fileunits, only: nu_diag, nu_rst_pointer
-      use icepack_intfc_shared, only: oceanmixed_ice, solve_zsal, skl_bgc, z_tracers
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
+      use icepack_intfc, only: oceanmixed_ice, solve_zsal, skl_bgc, z_tracers
+      use icepack_intfc, only: tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
                              tr_pond_topo, tr_pond_lvl, tr_brine, nbtrcr, &
                              tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
                              tr_bgc_Sil, tr_bgc_DMS, &

@@ -20,11 +20,11 @@ module ice_import_export
                           dms, hum, algalN, doc, don, dic, fed, fep, zaeros, &
                           falgalN, fdoc, fdon, fnit, famm, fsil, fdmsp, fdms, &
                           fhum, ffed, ffep, fdust, cpl_bgc
-  use icepack_intfc_shared , only: tfrz_option, modal_aero, z_tracers, skl_bgc
+  use icepack_intfc , only: tfrz_option, modal_aero, z_tracers, skl_bgc
   use ice_arrays_column , only: Cdn_atm
   use ice_state         , only: vice, vsno, aice, trcr
-  use icepack_intfc_tracers, only: tr_aero, tr_iage, tr_FY, tr_pond, tr_lvl, tr_zaero, tr_bgc_Nit 
-  use icepack_intfc_shared , only: R_C2N
+  use icepack_intfc, only: tr_aero, tr_iage, tr_FY, tr_pond, tr_lvl, tr_zaero, tr_bgc_Nit 
+  use icepack_intfc , only: R_C2N
   use ice_domain        , only: nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size   , only: nx_global, ny_global, block_size_x, block_size_y, max_blocks
   use ice_grid          , only: tlon, tlat, tarea, tmask, anglet, hm

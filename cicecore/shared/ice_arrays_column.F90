@@ -11,11 +11,11 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
-      use icepack_constants, only: nspint
+      use icepack_intfc, only: icepack_nspint
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
            nblyr, max_nsw , max_ntrcr
-      use icepack_intfc_shared, only: max_nbtrcr, max_algae, max_aero, &
-           nmodal1, nmodal2
+      use icepack_intfc, only: icepack_max_nbtrcr, icepack_max_algae, icepack_max_aero, &
+           icepack_nmodal1, icepack_nmodal2
 
       implicit none
       save
@@ -113,17 +113,17 @@
       ! aerosol optical properties   -> band  |
       !                                       v aerosol
       ! for combined dust category, use category 4 properties
-      real (kind=dbl_kind), dimension(nspint,max_aero), public :: & 
+      real (kind=dbl_kind), dimension(icepack_nspint,icepack_max_aero), public :: & 
          kaer_tab, & ! aerosol mass extinction cross section (m2/kg)
          waer_tab, & ! aerosol single scatter albedo (fraction)
          gaer_tab    ! aerosol asymmetry parameter (cos(theta))
 
-      real (kind=dbl_kind), dimension(nspint,nmodal1), public :: & 
-          kaer_bc_tab, & ! BC mass extinction cross section (m2/kg)
-          waer_bc_tab, & ! BC single scatter albedo (fraction)
-          gaer_bc_tab    ! BC aerosol asymmetry parameter (cos(theta))
+      real (kind=dbl_kind), dimension(icepack_nspint,icepack_nmodal1), public :: & 
+         kaer_bc_tab, & ! BC mass extinction cross section (m2/kg)
+         waer_bc_tab, & ! BC single scatter albedo (fraction)
+         gaer_bc_tab    ! BC aerosol asymmetry parameter (cos(theta))
 
-      real (kind=dbl_kind), dimension (nspint,nmodal1,nmodal2), public :: &
+      real (kind=dbl_kind), dimension (icepack_nspint,icepack_nmodal1,icepack_nmodal2), public :: &
           bcenh           ! BC absorption enhancement factor
 
       ! biogeochemistry components
@@ -150,42 +150,42 @@
                         ! there the entire time step (true until ice forms)
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,max_nbtrcr,max_blocks), public :: &
+         dimension (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), public :: &
          ocean_bio      ! contains all the ocean bgc tracer concentrations
 
       ! diagnostic fluxes
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,max_nbtrcr,max_blocks), public :: &
+         dimension (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), public :: &
          fbio_snoice, & ! fluxes from snow to ice
          fbio_atmice    ! fluxes from atm to ice
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_nbtrcr, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_nbtrcr, max_blocks), public :: &
          ocean_bio_all      ! fixed order, all values even for tracers false
-                            ! N(1:max_algae) = 1:max_algae
-                            ! Nit = max_algae + 1
-                            ! DOC(1:max_doc) = max_algae + 2: max_algae + max_doc + 1
-                            ! DIC(1:max_dic) = max_algae + max_doc + 2: max_algae + max_doc + 1 + max_dic
-                            ! chl(1:max_algae) =  max_algae + max_doc + 2 + max_dic: &
-                            !                     2*max_algae + max_doc + 1 + max_dic
-                            ! Am =  2*max_algae + max_doc + 2 + max_dic
-                            ! Sil=  2*max_algae + max_doc + 3 + max_dic
-                            ! DMSPp=  2*max_algae + max_doc + 4 + max_dic
-                            ! DMSPd=  2*max_algae + max_doc + 5 + max_dic
-                            ! DMS  =  2*max_algae + max_doc + 6 + max_dic
-                            ! PON  =  2*max_algae + max_doc + 7 + max_dic
-                            ! DON(1:max_don)  =  2*max_algae + max_doc + 8 + max_dic:
-                            !                    2*max_algae + max_doc + 7 + max_dic + max_don
-                            ! Fed(1:max_fe) = 2*max_algae + max_doc + 8 + max_dic + max_don:
-                            !                2*max_algae + max_doc + 7 + max_dic + max_don + max_fe
-                            ! Fep(1:max_fe) = 2*max_algae + max_doc + 8 + max_dic + max_don + max_fe:
-                            !                2*max_algae + max_doc + 7 + max_dic + max_don + 2*max_fe
-                            ! zaero(1:max_aero) = 2*max_algae + max_doc + 8 + max_dic + max_don + 2*max_fe: 
-                            !                     2*max_algae + max_doc + 7 + max_dic + max_don + 2*max_fe
-                            !                     + max_aero
-                            ! humic ==  2*max_algae + max_doc + 8 + max_dic + max_don + 2*max_fe
-                            !                     + max_aero 
+                            ! N(1:icepack_max_algae) = 1:icepack_max_algae
+                            ! Nit = icepack_max_algae + 1
+                            ! DOC(1:icepack_max_doc) = icepack_max_algae + 2: icepack_max_algae + icepack_max_doc + 1
+                            ! DIC(1:icepack_max_dic) = icepack_max_algae + icepack_max_doc + 2: icepack_max_algae + icepack_max_doc + 1 + icepack_max_dic
+                            ! chl(1:icepack_max_algae) =  icepack_max_algae + icepack_max_doc + 2 + icepack_max_dic: &
+                            !                     2*icepack_max_algae + icepack_max_doc + 1 + icepack_max_dic
+                            ! Am =  2*icepack_max_algae + icepack_max_doc + 2 + icepack_max_dic
+                            ! Sil=  2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
+                            ! DMSPp=  2*icepack_max_algae + icepack_max_doc + 4 + icepack_max_dic
+                            ! DMSPd=  2*icepack_max_algae + icepack_max_doc + 5 + icepack_max_dic
+                            ! DMS  =  2*icepack_max_algae + icepack_max_doc + 6 + icepack_max_dic
+                            ! PON  =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
+                            ! DON(1:icepack_max_don)  =  2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic:
+                            !                    2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic + icepack_max_don
+                            ! Fed(1:icepack_max_fe) = 2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic + icepack_max_don:
+                            !                2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic + icepack_max_don + icepack_max_fe
+                            ! Fep(1:icepack_max_fe) = 2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic + icepack_max_don + icepack_max_fe:
+                            !                2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe
+                            ! zaero(1:icepack_max_aero) = 2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe: 
+                            !                     2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe
+                            !                     + icepack_max_aero
+                            ! humic ==  2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe
+                            !                     + icepack_max_aero 
 
-      integer (kind=int_kind), dimension(nx_block, ny_block,max_algae, max_blocks), public :: &
+      integer (kind=int_kind), dimension(nx_block, ny_block,icepack_max_algae, max_blocks), public :: &
         algal_peak          ! vertical location of algal maximum, 0 if no maximum 
 
       real (kind=dbl_kind), & 
@@ -254,9 +254,23 @@
                          ! calculation on the shortwave grid (swgrid)
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,max_nbtrcr, max_blocks), public :: &
+         dimension (nx_block,ny_block,icepack_max_nbtrcr, max_blocks), public :: &
          ice_bio_net  , &   ! depth integrated tracer (mmol/m^2) 
          snow_bio_net       ! depth integrated snow tracer (mmol/m^2)
+
+      logical (kind=log_kind), public :: &
+         oceanmixed_ice, &  ! if true, use internal ocean mixed layer
+         restore_bgc        ! 
+
+      character(char_len), public :: &
+         sil_data_type  , & ! 'default', 'clim'
+         nit_data_type  , & ! 'default', 'clim'
+         fe_data_type   , & ! 'default', 'clim'
+         bgc_data_dir   ! directory for biogeochemistry data
+
+      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+         R_C2N     ,      & ! algal C to N (mole/mole)
+         R_chl2N            ! 3 algal chlorophyll to N (mg/mmol)
 
 !=======================================================================
 

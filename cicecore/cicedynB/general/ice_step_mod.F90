@@ -12,11 +12,25 @@
 
       module ice_step_mod
 
-      use ice_constants
       use ice_kinds_mod
+      use ice_constants, only: c0, c1000
+      use icepack_intfc, only: icepack_prep_radiation
+      use icepack_intfc, only: icepack_step_therm1
+      use icepack_intfc, only: icepack_step_therm2
+      use icepack_intfc, only: icepack_aggregate
+      use icepack_intfc, only: icepack_step_ridge
+      use icepack_intfc, only: icepack_step_radiation
+      use icepack_intfc, only: icepack_ocn_mixed_layer, icepack_atm_boundary
+      use icepack_intfc, only: icepack_biogeochemistry, icepack_init_OceanConcArray
+      use icepack_intfc, only: icepack_max_algae, icepack_max_nbtrcr, icepack_max_don
+      use icepack_intfc, only: icepack_max_doc, icepack_max_dic, icepack_max_aero
+      use icepack_intfc, only: icepack_max_fe
+      use icepack_intfc, only: icepack_query_constants, icepack_query_parameters
+      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_indices
+
       implicit none
       private
-      save
 
       public :: step_therm1, step_therm2, step_dyn_horiz, step_dyn_ridge, &
                 prep_radiation, step_radiation, ocean_mixed_layer, &
@@ -44,9 +58,6 @@
            fswpenln, Sswabsn, Iswabsn
       use ice_state, only: aice, aicen
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_sw
-
-      ! column package includes
-      use icepack_intfc, only: icepack_prep_radiation
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -137,16 +148,6 @@
       use ice_state, only: aice, aicen, aice_init, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
 
-      ! column packge includes
-      use icepack_intfc_tracers, only: ntrcr, &
-          nt_apnd, nt_hpnd, nt_ipnd, nt_alvl, nt_vlvl, nt_Tsfc, &
-          tr_iage, nt_iage, tr_FY, nt_FY, tr_aero, tr_pond, tr_pond_cesm, &
-          tr_pond_lvl, nt_qice, nt_sice, tr_pond_topo, nt_aero, &
-          nt_qsno
-      use icepack_intfc, only: icepack_step_therm1, &
-          icepack_clear_warnings, icepack_print_warnings
-      use icepack_intfc_shared, only: calc_Tsfc
-
 #ifdef CCSMCOUPLED
       use ice_prescribed_mod, only: prescribed_ice
 #else
@@ -168,22 +169,41 @@
          n              , & ! thickness category index
          k, kk              ! indices for aerosols
 
+      integer (kind=int_kind) :: &
+         ntrcr, nt_apnd, nt_hpnd, nt_ipnd, nt_alvl, nt_vlvl, nt_Tsfc, &
+         nt_iage, nt_FY, nt_qice, nt_sice, nt_aero, nt_qsno
+
+      logical (kind=log_kind) :: &
+         tr_iage, tr_FY, tr_aero, tr_pond, tr_pond_cesm, &
+         tr_pond_lvl, tr_pond_topo, calc_Tsfc
+
+      real (kind=dbl_kind) :: &
+         puny
+
       real (kind=dbl_kind), dimension(n_aero,2,ncat) :: &
          aerosno,  aeroice    ! kg/m^2
 
       type (block) :: &
          this_block      ! block information for current block
 
-      logical (kind=log_kind) :: &
-         l_stop          ! if true, abort the model
-
-      character (char_len) :: stop_label
+      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_flags( &
+         tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+         tr_aero_out=tr_aero, tr_pond_out=tr_pond, tr_pond_cesm_out=tr_pond_cesm, &
+         tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+      call icepack_query_tracer_indices( &
+         nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
+         nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_Tsfc_out=nt_Tsfc, &
+         nt_iage_out=nt_iage, nt_FY_out=nt_FY, &
+         nt_qice_out=nt_qice, nt_sice_out=nt_sice, &
+         nt_aero_out=nt_aero, nt_qsno_out=nt_qsno)
 
 #ifndef CCSMCOUPLED
       prescribed_ice = .false.
 #endif
 
-      l_stop = .false.
       aerosno(:,:,:) = c0
       aeroice(:,:,:) = c0
 
@@ -246,8 +266,6 @@
             enddo
          endif ! tr_aero
 
-         call icepack_clear_warnings()
-         
          call icepack_step_therm1(dt, ncat, nilyr, nslyr, n_aero,                &
                             aicen_init  (i,j,:,iblk),                           &
                             vicen_init  (i,j,:,iblk), vsnon_init  (i,j,:,iblk), &
@@ -317,15 +335,7 @@
                             dsnown      (i,j,:,iblk), frazil      (i,j,  iblk), &
                             lmask_n     (i,j,  iblk), lmask_s     (i,j,  iblk), &
                             mlt_onset   (i,j,  iblk), frz_onset   (i,j,  iblk), &
-                            yday,                     l_stop,                   &
-                            stop_label,                                         &
-                            prescribed_ice)
-
-         call icepack_print_warnings(nu_diag)
-         
-         if (l_stop) then
-            call diagnostic_abort(i, j, iblk, istep1, stop_label)
-         endif
+                            yday,                     prescribed_ice)
 
          if (tr_aero) then
             do n = 1, ncat
@@ -374,11 +384,6 @@
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
           trcr_base, n_trcr_strata, nt_strata
 
-      ! column package_includes
-      use icepack_intfc, only: icepack_step_therm2, &
-          icepack_clear_warnings, icepack_print_warnings
-      use icepack_intfc_tracers, only: ntrcr, nbtrcr
-
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -391,16 +396,14 @@
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j               ! horizontal indices
 
+      integer (kind=int_kind) :: &
+         ntrcr, nbtrcr
+
       type (block) :: &
          this_block      ! block information for current block
 
-      logical (kind=log_kind) :: &
-         l_stop          ! if true, abort model
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
 
-      character (char_len) :: stop_label
-
-      l_stop = .false.
-      
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
       ihi = this_block%ihi
@@ -412,8 +415,6 @@
 
          if (tmask(i,j,iblk)) then
 
-         call icepack_clear_warnings()
-            
          call icepack_step_therm2(dt, ncat, n_aero, nltrcr,                 &
                            nilyr,                  nslyr,                  &
                            hin_max   (:),          nblyr,                  &   
@@ -436,13 +437,8 @@
                            first_ice (i,j,:,iblk), fzsal     (i,j,  iblk), &
                            flux_bio  (i,j,1:nbtrcr,iblk),                  &
                            ocean_bio (i,j,1:nbtrcr,iblk),                  &
-                           l_stop,                 stop_label,             &
                            frazil_diag(i,j, iblk),                         &
                            frz_onset (i,j,  iblk), yday)
-
-         call icepack_print_warnings(nu_diag)
-         
-         if (l_stop) call diagnostic_abort(i, j, iblk, istep1, stop_label)
 
          endif ! tmask
 
@@ -468,10 +464,6 @@
                            bound_state, trcr_base, nt_strata, n_trcr_strata
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
-      ! column package includes
-      use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc_tracers, only: ntrcr, tr_iage, nt_iage
-
       real (kind=dbl_kind), intent(in) :: &
          dt    , & ! time step
          offset    ! d(age)/dt time offset = dt for thermo, 0 for dyn
@@ -482,8 +474,19 @@
           dagedt   ! change in ice age per time step
 
       integer (kind=int_kind) :: & 
-         iblk  , & ! block index 
-         i,j       ! horizontal indices
+         iblk,  & ! block index 
+         i,j,   & ! horizontal indices
+         ntrcr, & !
+         nt_iage  !
+
+      logical (kind=log_kind) :: &
+         tr_iage  !
+
+      character(len=*), parameter :: subname='(update_state)'
+
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_indices(nt_iage_out=nt_iage)
 
       !-------------------------------------------------------------------
       ! Ghost cell updates for state variables.
@@ -612,11 +615,6 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
           timer_ridge
 
-      ! column package includes
-      use icepack_intfc, only: icepack_step_ridge, &
-          icepack_clear_warnings, icepack_print_warnings
-      use icepack_intfc_tracers, only: ntrcr, nbtrcr
-
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -631,12 +629,9 @@
 
       integer (kind=int_kind) :: & 
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-         i, j               ! horizontal indices
-
-      logical (kind=log_kind) :: &
-         l_stop          ! if true, abort the model
-
-      character (char_len) :: stop_label
+         i, j,            & ! horizontal indices
+         ntrcr,           & !
+         nbtrcr             !
 
       !-----------------------------------------------------------------
       ! Ridging
@@ -644,6 +639,8 @@
 
       call ice_timer_start(timer_column,iblk)
       call ice_timer_start(timer_ridge,iblk)
+
+         call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
 
          this_block = get_block(blocks_ice(iblk), iblk)
          ilo = this_block%ilo
@@ -660,8 +657,6 @@
 
          if (tmask(i,j,iblk)) then
 
-         call icepack_clear_warnings()
-               
          call icepack_step_ridge (dt,            ndtd,                  &
                          nilyr,                 nslyr,                 &
                          nblyr,                                        &
@@ -686,12 +681,8 @@
                          araftn   (i,j,:,iblk), vraftn   (i,j,:,iblk), &
                          aice     (i,j,  iblk), fsalt    (i,j,  iblk), &
                          first_ice(i,j,:,iblk), fzsal    (i,j,  iblk), &
-                         flux_bio (i,j,1:nbtrcr,iblk),                 &
-                         l_stop,                stop_label)
+                         flux_bio (i,j,1:nbtrcr,iblk)                  )
 
-         call icepack_print_warnings(nu_diag)
-         
-         if (l_stop) call diagnostic_abort(i, j, iblk, istep1, stop_label)
          endif ! tmask
 
          enddo ! i
@@ -730,14 +721,6 @@
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc
       use ice_fileunits, only: nu_diag
 
-      ! column package includes
-      use icepack_intfc, only: icepack_step_radiation, &
-          icepack_clear_warnings, icepack_print_warnings
-      use icepack_intfc_tracers, only: nt_Tsfc, nt_alvl, tr_bgc_N, &
-          nt_apnd, nt_hpnd, nt_ipnd, nt_aero, nlt_chl_sw, nlt_zaero_sw, &
-          tr_zaero, ntrcr, nbtrcr, nbtrcr_sw, nt_fbri, tr_brine, nt_zaero
-      use icepack_intfc_shared, only: dEdd_algae, modal_aero
-
       real (kind=dbl_kind), intent(in) :: &
          dt                 ! time step
 
@@ -754,13 +737,22 @@
       type (block) :: &
          this_block         ! block information for current block
 
+      integer (kind=int_kind) :: &
+         nt_Tsfc, nt_alvl, &
+         nt_apnd, nt_hpnd, nt_ipnd, nt_aero, nlt_chl_sw, &
+         ntrcr, nbtrcr, nbtrcr_sw, nt_fbri
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero_sw, nt_zaero
+
+      logical (kind=log_kind) :: &
+         tr_bgc_N, tr_zaero, tr_brine, dEdd_algae, modal_aero
+
       real (kind=dbl_kind), dimension(ncat) :: &
          fbri                 ! brine height to ice thickness
 
-      real(kind= dbl_kind), dimension(ntrcr, ncat) :: &
-         ztrcr
-
-      real(kind= dbl_kind), dimension(ntrcr, ncat) :: &
+      real(kind= dbl_kind), dimension(:,:), allocatable :: &
+         ztrcr    , &
          ztrcr_sw
 
       logical (kind=log_kind) :: &
@@ -768,6 +760,20 @@
          l_print_point      ! flag for printing debugging information
 
       call ice_timer_start(timer_sw,iblk)      ! shortwave
+
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, &
+         nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
+      call icepack_query_tracer_flags( &
+         tr_brine_out=tr_brine, tr_bgc_N_out=tr_bgc_N, tr_zaero_out=tr_zaero)
+      call icepack_query_tracer_indices( &
+         nt_Tsfc_out=nt_Tsfc, nt_alvl_out=nt_alvl, &
+         nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, &
+         nlt_chl_sw_out=nlt_chl_sw, nlt_zaero_sw_out=nlt_zaero_sw, &
+         nt_fbri_out=nt_fbri, nt_zaero_out=nt_zaero)
+      call icepack_query_parameters(dEdd_algae_out=dEdd_algae, modal_aero_out=modal_aero)
+
+      allocate(ztrcr(ntrcr,ncat))
+      allocate(ztrcr_sw(ntrcr,ncat))
 
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
@@ -800,8 +806,6 @@
 
          if (tmask(i,j,iblk)) then
 
-         call icepack_clear_warnings()
-            
          call icepack_step_radiation (dt,         ncat,                    &
                           n_algae,   tr_zaero, nblyr,                     &
                           ntrcr,     nbtrcr,   nbtrcr_sw,                 &
@@ -843,8 +847,6 @@
                           dhsn(i,j,:,iblk),      ffracn(i,j,:,iblk),      &
                           l_print_point)
 
-         call icepack_print_warnings(nu_diag)
-
          endif
          
       if (dEdd_algae .and. (tr_zaero .or. tr_bgc_N)) then
@@ -857,6 +859,9 @@
 
       enddo ! i
       enddo ! j
+
+      deallocate(ztrcr)
+      deallocate(ztrcr_sw)
 
       call ice_timer_stop(timer_sw)     ! shortwave
 
@@ -876,8 +881,6 @@
 
       use ice_arrays_column, only: Cdn_atm, Cdn_atm_ratio
       use ice_blocks, only: nx_block, ny_block
-      use icepack_constants, only: c0, c1000, albocn
-      use icepack_intfc, only: icepack_ocn_mixed_layer, icepack_atm_boundary
       use ice_flux, only: sst, Tf, Qa, uatm, vatm, wind, potT, rhoa, zlvl, &
            frzmlt, fhocn, fswthru, flw, flwout_ocn, fsens_ocn, flat_ocn, evap_ocn, &
            alvdr_ocn, alidr_ocn, alvdf_ocn, alidf_ocn, swidf, swvdf, swidr, swvdr, &
@@ -894,6 +897,7 @@
       ! local variables
 
       real (kind=dbl_kind) :: &
+         albocn,& ! 
          TsfK , & ! surface temperature (K)
          swabs    ! surface absorbed shortwave heat flux (W/m^2)
 
@@ -915,6 +919,11 @@
 
       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
          indxi, indxj    ! compressed indices for ocean cells
+
+
+      !-----------------------------------------------------------------
+
+         call icepack_query_constants(albocn_out=albocn)
 
       !-----------------------------------------------------------------
       ! Identify ocean cells.
@@ -1022,11 +1031,6 @@
                            bgrid, igrid, icgrid, cgrid
       use ice_blocks, only: block, get_block
       use ice_calendar, only: istep1
-      use icepack_intfc, only: icepack_biogeochemistry, icepack_init_OceanConcArray, &
-          icepack_clear_warnings, icepack_print_warnings
-      use icepack_intfc_shared, only: skl_bgc, max_algae, max_nbtrcr, max_don, &
-                             max_doc, max_dic, max_aero, max_fe
-      use icepack_intfc_tracers, only: tr_brine, nbtrcr, ntrcr, bio_index_o, nlt_zaero, tr_zaero
       use ice_diagnostics, only: diagnostic_abort
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: nblyr, nilyr, nslyr, n_algae, n_zaero, ncat, &
@@ -1054,13 +1058,29 @@
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          n, mm              ! tracer index
 
-      logical (kind=log_kind) :: &
-         l_stop          ! if true, abort the model
-
-      character (char_len) :: stop_label
-
       type (block) :: &
          this_block      ! block information for current block
+
+      integer (kind=int_kind) :: &
+         nbtrcr, ntrcr
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero
+
+      integer (kind=int_kind), dimension(icepack_max_nbtrcr) :: &
+         bio_index_o
+
+      logical (kind=log_kind) :: &
+         skl_bgc, tr_brine, tr_zaero
+
+      character(len=*), parameter :: subname='(biogeochemistry)'
+
+      call icepack_query_tracer_flags(tr_brine_out=tr_brine)
+      call icepack_query_parameters(skl_bgc_out=skl_bgc)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_flags(tr_zaero_out=tr_zaero)
+      call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
+      call icepack_query_tracer_indices(bio_index_o_out=bio_index_o)
 
       if (tr_brine .or. skl_bgc) then
 
@@ -1076,9 +1096,9 @@
       do j = jlo, jhi
       do i = ilo, ihi    
 
-         call icepack_init_OceanConcArray(max_nbtrcr, &
-                max_algae, max_don,  max_doc,        &
-                max_dic,   max_aero, max_fe,         &
+         call icepack_init_OceanConcArray(icepack_max_nbtrcr, &
+                icepack_max_algae, icepack_max_don,  icepack_max_doc,        &
+                icepack_max_dic,   icepack_max_aero, icepack_max_fe,         &
                 nit(i,j,  iblk), amm   (i,j,  iblk), &
                 sil(i,j,  iblk), dmsp  (i,j,  iblk), &
                 dms(i,j,  iblk), algalN(i,j,:,iblk), &
@@ -1097,8 +1117,6 @@
             enddo  ! mm
          endif
 
-         call icepack_clear_warnings()
-         
          call icepack_biogeochemistry(dt, ntrcr, nbtrcr,&
                               upNO        (i,j,          iblk),        &
                               upNH        (i,j,          iblk),        &
@@ -1151,12 +1169,7 @@
                               aice0       (i,j,          iblk),        &
                               trcrn       (i,j,1:ntrcr,:,iblk),        &
                               vsnon_init  (i,j,:,        iblk),        &
-                              skl_bgc, max_algae, max_nbtrcr,          &
-                              l_stop, stop_label)
-
-         call icepack_print_warnings(nu_diag)
-         
-         if (l_stop) call diagnostic_abort(i, j, iblk, istep1, stop_label)
+                              skl_bgc, icepack_max_algae, icepack_max_nbtrcr)
 
       enddo               ! i
       enddo               ! j

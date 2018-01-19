@@ -32,6 +32,11 @@
       module ice_history
 
       use ice_kinds_mod
+      use ice_constants, only: c0, c1, c2, c100, p25, &
+          mps_to_cmpdy, kg_to_g, spval
+      use icepack_intfc, only: icepack_snow_temperature, icepack_ice_temperature
+      use icepack_intfc, only: icepack_query_constants, icepack_query_parameters, &
+          icepack_query_tracer_flags, icepack_query_tracer_indices
 
       implicit none
       private
@@ -54,12 +59,9 @@
 
       subroutine init_hist (dt)
 
-      use icepack_intfc_shared, only: formdrag
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1, c2, c100, mps_to_cmpdy, rhofresh, &
-          Tffresh, kg_to_g, secday
       use ice_calendar, only: yday, days_per_year, histfreq, &
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, max_nstrm
@@ -75,14 +77,16 @@
           init_hist_bgc_3Db, init_hist_bgc_3Da
       use ice_history_drag, only: init_hist_drag_2D
       use ice_restart_shared, only: restart
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_brine
-      use icepack_intfc_shared, only: skl_bgc, solve_zsal, solve_zbgc, z_tracers
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
       ! local variables
 
+      real (kind=dbl_kind) :: rhofresh, Tffresh, secday
+      logical (kind=log_kind) :: formdrag
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_brine
+      logical (kind=log_kind) :: skl_bgc, solve_zsal, solve_zbgc, z_tracers
       integer (kind=int_kind) :: n, ns, ns1, ns2
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
@@ -91,6 +95,13 @@
       !-----------------------------------------------------------------
       ! read namelist
       !-----------------------------------------------------------------
+
+      call icepack_query_constants(rhofresh_out=rhofresh, Tffresh_out=Tffresh, &
+         secday_out=secday)
+      call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, &
+         solve_zsal_out=solve_zsal, solve_zbgc_out=solve_zbgc, z_tracers_out=z_tracers)
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+         tr_lvl_out=tr_lvl, tr_pond_out=tr_pond, tr_aero_out=tr_aero, tr_brine_out=tr_brine)
 
       call get_fileunit(nu_nml)
       if (my_task == master_task) then
@@ -1169,9 +1180,6 @@
       subroutine accum_hist (dt)
 
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use icepack_intfc, only: icepack_snow_temperature, icepack_ice_temperature
-      use ice_constants, only: c0, c1, p25, puny, secday, depressT, &
-          awtvdr, awtidr, awtvdf, awtidf, Lfresh, rhos, cp_ice, spval
       use ice_domain, only: blocks_ice, nblocks
       use ice_grid, only: tmask, lmask_n, lmask_s
       use ice_calendar, only: new_year, write_history, &
@@ -1196,7 +1204,6 @@
           mlt_onset, frz_onset, dagedtt, dagedtd, fswint_ai, keffn_top, &
           snowfrac, alvdr_ai, alvdf_ai, alidr_ai, alidf_ai
       use ice_arrays_column, only: snowfracn
-      use icepack_intfc_shared, only: formdrag, skl_bgc
       use ice_history_shared ! almost everything
       use ice_history_write, only: ice_write_hist
       use ice_history_bgc, only: accum_hist_bgc
@@ -1204,8 +1211,6 @@
       use ice_history_pond, only: accum_hist_pond
       use ice_history_drag, only: accum_hist_drag
       use ice_state ! almost everything
-      use icepack_intfc_tracers, only: nt_sice, nt_qice, nt_qsno, tr_pond, tr_aero, &
-          tr_brine, nt_iage, nt_FY, nt_Tsfc
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
       real (kind=dbl_kind), intent(in) :: &
@@ -1232,8 +1237,21 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
          worka, workb
 
+      real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday
+      logical (kind=log_kind) :: formdrag, skl_bgc
+      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine
+      integer (kind=int_kind) :: nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_Tsfc
+
       type (block) :: &
          this_block           ! block information for current block
+
+      call icepack_query_constants(awtvdr_out=awtvdr, awtidr_out=awtidr, &
+           awtvdf_out=awtvdf, awtidf_out=awtidf, puny_out=puny, secday_out=secday)
+      call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc)
+      call icepack_query_tracer_flags(tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
+           tr_brine_out=tr_brine)
+      call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
+           nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_Tsfc_out=nt_Tsfc)
 
       !---------------------------------------------------------------
       ! increment step counter

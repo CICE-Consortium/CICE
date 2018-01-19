@@ -1,4 +1,4 @@
 [submodule "icepack"]
 	path = icepack
-	url = https://github.com/cice-consortium/Icepack.git
+	url = https://github.com/apcraig/Icepack.git
 	branch = master

@@ -76,16 +76,25 @@
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
-      use icepack_intfc_tracers, only: tr_aero, tr_zaero
+      use icepack_intfc, only: tr_aero, tr_zaero
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-      use icepack_intfc_shared, only: skl_bgc, z_tracers
+      use icepack_intfc, only: skl_bgc, z_tracers
+      use icepack_intfc, only: icepack_configure
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 #ifdef popcice
       use drv_forcing, only: sst_sss
 #endif
-      
+      character(len=*),parameter :: subname = '(cice_init)'
+
       call init_communicate     ! initial setup for message passing
       call init_fileunits       ! unit numbers
+
+      call icepack_configure()  ! initialize icepack
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(subname, &
+          file=__FILE__,line= __LINE__)
+
       call input_data           ! namelist variables
       if (trim(runid) == 'bering') call check_finished_file
       call init_zbgc            ! vertical biogeochemistry namelist
@@ -204,10 +213,10 @@
       use ice_restart_driver, only: restartfile, restartfile_v4
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, nt_alvl, nt_vlvl, &
+      use icepack_intfc, only: tr_iage, tr_FY, tr_lvl, nt_alvl, nt_vlvl, &
           tr_pond_cesm, nt_apnd, nt_hpnd, tr_pond_lvl, nt_ipnd, &
           tr_pond_topo, tr_aero, tr_brine, nt_iage, nt_FY, nt_aero
-      use icepack_intfc_shared, only: skl_bgc, z_tracers, solve_zsal
+      use icepack_intfc, only: skl_bgc, z_tracers, solve_zsal
 
       integer(kind=int_kind) :: &
          i, j        , & ! horizontal indices

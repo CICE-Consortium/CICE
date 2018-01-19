@@ -9,6 +9,9 @@
 
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm
+      use ice_constants, only: c0, c1
+      use icepack_intfc, only: icepack_query_constants, &
+          icepack_query_tracer_flags, icepack_query_tracer_indices
 
       implicit none
       private
@@ -62,19 +65,20 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
-      use icepack_intfc_tracers, only: tr_pond
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      logical (kind=log_kind) :: tr_pond
 
       !-----------------------------------------------------------------
       ! read namelist
       !-----------------------------------------------------------------
+
+      call icepack_query_tracer_flags(tr_pond_out=tr_pond)
 
       call get_fileunit(nu_nml)
       if (my_task == master_task) then
@@ -183,9 +187,7 @@
       subroutine init_hist_pond_3Dc
 
       use ice_calendar, only: nstreams
-      use ice_constants, only: c0, c1
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
-      use icepack_intfc_tracers, only: tr_pond
 
       integer (kind=int_kind) :: ns
       
@@ -220,14 +222,11 @@
 
       use ice_arrays_column, only: apeffn
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_constants, only: c0, puny
       use ice_domain, only: blocks_ice
       use ice_flux, only: apeff_ai
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, trcr, trcrn
-      use icepack_intfc_tracers, only: tr_pond_cesm, tr_pond_lvl, tr_pond_topo, &
-          nt_apnd, nt_hpnd, nt_ipnd, nt_alvl
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
@@ -241,12 +240,27 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
          worka
 
+      integer (kind=int_kind) :: &
+         nt_apnd, nt_hpnd, nt_alvl, nt_ipnd
+
+      logical (kind=log_kind) :: &
+         tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+
+      real (kind=dbl_kind) :: &
+         puny
+
       type (block) :: &
          this_block           ! block information for current block
 
       !---------------------------------------------------------------
       ! increment field
       !---------------------------------------------------------------
+
+         call icepack_query_constants(puny_out=puny)
+         call icepack_query_tracer_flags(tr_pond_cesm_out=tr_pond_cesm, &
+              tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+         call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
+              nt_alvl_out=nt_alvl, nt_ipnd_out=nt_ipnd)
 
          if (tr_pond_cesm) then
          if (f_apond(1:1)/= 'x') &

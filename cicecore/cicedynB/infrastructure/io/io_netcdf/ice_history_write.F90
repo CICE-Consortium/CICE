@@ -19,6 +19,9 @@
 
       module ice_history_write
 
+      use ice_constants, only: c0, c360, spval
+      use icepack_intfc, only: icepack_query_constants
+
       implicit none
       private
       public :: ice_write_hist
@@ -44,7 +47,6 @@
       use ice_calendar, only: time, sec, idate, idate0, write_ic, &
           histfreq, dayyr, days_per_year, use_leap_years
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c360, secday, spval, rad_to_deg
       use ice_domain, only: distrb_info
       use ice_domain_size, only: nx_global, ny_global, max_nstrm, max_blocks
       use ice_exit, only: abort_ice
@@ -81,6 +83,7 @@
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title
       character (char_len_long) :: ncfile(max_nstrm)
+      real (kind=dbl_kind)  :: secday, rad_to_deg
 
       integer (kind=int_kind) :: ind,boundid
 
@@ -113,6 +116,8 @@
       TYPE(coord_attributes), dimension(nvar_verts) :: var_nverts
       TYPE(coord_attributes), dimension(nvarz) :: var_nz
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
+
+      call icepack_query_constants(secday_out=secday, rad_to_deg_out=rad_to_deg)
 
       if (my_task == master_task) then
 

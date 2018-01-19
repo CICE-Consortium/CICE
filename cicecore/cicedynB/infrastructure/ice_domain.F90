@@ -14,13 +14,14 @@
 !  and not used anyhow).
 
    use ice_kinds_mod
-   use ice_constants, only: puny, shlat, nhlat, rad_to_deg
+   use ice_constants, only: shlat, nhlat, c180
    use ice_communicate, only: my_task, master_task, get_num_procs
    use ice_broadcast, only: broadcast_scalar
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
        nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block
    use ice_distribution, only: distrb
    use ice_boundary, only: ice_halo
+   use icepack_intfc, only: icepack_query_constants
 
    implicit none
    private
@@ -274,6 +275,10 @@
       nblocks_tmp        ,&! temporary value of nblocks
       nblocks_max          ! max blocks on proc
 
+   real (dbl_kind) :: &
+      puny, &              ! puny limit
+      rad_to_deg           ! radians to degrees
+
    integer (int_kind), dimension(:), allocatable :: &
       nocn               ,&! number of ocean points per block
       work_per_block       ! number of work units per block
@@ -288,6 +293,8 @@
 !  cells neighboring ocean points).  
 !
 !----------------------------------------------------------------------
+
+   call icepack_query_constants(puny_out=puny, rad_to_deg_out=rad_to_deg)
 
    if (trim(ns_boundary_type) == 'closed') then
       allocate(nocn(nblocks_tot))

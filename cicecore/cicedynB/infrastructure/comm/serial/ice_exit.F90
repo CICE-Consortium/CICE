@@ -18,7 +18,7 @@
 
 !=======================================================================
 
-      subroutine abort_ice(error_message)
+      subroutine abort_ice(error_message,file,line)
 
 !  This routine aborts the ice model and prints an error message.
 
@@ -27,12 +27,26 @@
       use shr_sys_mod
 #endif
 
-      character (len=*), intent(in) :: error_message
+      character (len=*), intent(in),optional :: error_message
+      character (len=*), intent(in),optional :: file
+      integer (kind=int_kind), intent(in), optional :: &
+         line       ! line number
+
+      character(len=*), parameter :: subname='(abort_ice)'
 
 #ifdef CCSM
-      call shr_sys_abort(error_message)
+      write(nu_diag,*) ' '
+      write(nu_diag,*) subname, 'ABORTED: '
+      if (present(file))   write (nu_diag,*) subname,' called from ',trim(file)
+      if (present(line))   write (nu_diag,*) subname,' line number ',line
+      if (present(error_message)) write (nu_diag,*) subname,' error = ',trim(error_message)
+      call shr_sys_abort(subname//trim(error_message))
 #else
-      write (nu_diag,*) error_message
+      write(nu_diag,*) ' '
+      write(nu_diag,*) subname, 'ABORTED: '
+      if (present(file))   write (nu_diag,*) subname,' called from ',trim(file)
+      if (present(line))   write (nu_diag,*) subname,' line number ',line
+      if (present(error_message)) write (nu_diag,*) subname,' error = ',trim(error_message)
       call flush_fileunit(nu_diag)
       stop
 #endif

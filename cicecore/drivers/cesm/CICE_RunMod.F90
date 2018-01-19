@@ -43,10 +43,10 @@
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, & 
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
-      use icepack_intfc_tracers, only: tr_aero, tr_zaero
+      use icepack_intfc, only: tr_aero, tr_zaero
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_couple, timer_step
-      use icepack_intfc_shared, only: skl_bgc, z_tracers
+      use icepack_intfc, only: skl_bgc, z_tracers
 
    !--------------------------------------------------------------------
    !  initialize error code and step timer
@@ -129,12 +129,12 @@
       use ice_restart_driver, only: dumpfile
       use ice_restoring, only: restore_ice, ice_HaloRestore
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, &
+      use icepack_intfc, only: tr_iage, tr_FY, tr_lvl, &
           tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
           biogeochemistry
-      use icepack_intfc_shared, only: calc_Tsfc, skl_bgc, solve_zsal, z_tracers
+      use icepack_intfc, only: calc_Tsfc, skl_bgc, solve_zsal, z_tracers
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
           timer_hist, timer_readwrite
@@ -305,8 +305,8 @@
           albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
       use ice_blocks, only: block, nx_block, ny_block
       use ice_calendar, only: dt, nstreams
-      use icepack_intfc_shared, only: calc_Tsfc, oceanmixed_ice, max_aero, skl_bgc
-      use icepack_intfc_tracers, only: nbtrcr
+      use icepack_intfc, only: calc_Tsfc, oceanmixed_ice, icepack_max_aero, skl_bgc
+      use icepack_intfc, only: nbtrcr
       use ice_constants, only: c0, c1, puny, rhofresh
       use ice_domain_size, only: ncat
       use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
@@ -469,7 +469,7 @@
       !-----------------------------------------------------------------
 
          call scale_fluxes (nx_block,            ny_block,           &
-                            tmask    (:,:,iblk), nbtrcr, max_aero,   &
+                            tmask    (:,:,iblk), nbtrcr, icepack_max_aero,   &
                             aice     (:,:,iblk), Tf      (:,:,iblk), &
                             Tair     (:,:,iblk), Qa      (:,:,iblk), &
                             strairxT (:,:,iblk), strairyT(:,:,iblk), &

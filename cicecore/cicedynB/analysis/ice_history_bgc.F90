@@ -10,10 +10,14 @@
 
       use ice_kinds_mod
       use ice_constants
-      use icepack_intfc_shared, only: max_aero, max_dic, max_doc, max_don, &
-                        max_algae, max_fe
+      use icepack_intfc, only: icepack_max_aero, icepack_max_dic, &
+          icepack_max_doc, icepack_max_don, &
+          icepack_max_algae, icepack_max_fe
+      use icepack_intfc, only: icepack_query_tracer_flags, &
+          icepack_query_tracer_indices, icepack_query_parameters, &
+          icepack_query_constants
       use ice_domain_size, only: max_nstrm, n_aero, nblyr, &
-                        n_algae, n_dic, n_doc, n_don, n_zaero, n_fed, n_fep 
+          n_algae, n_dic, n_doc, n_don, n_zaero, n_fed, n_fep 
 
       implicit none
       private
@@ -147,7 +151,7 @@
            n_fzsal_g    , n_fzsal_g_ai , & 
            n_zsal       
 
-      integer(kind=int_kind), dimension(max_aero,max_nstrm) :: &
+      integer(kind=int_kind), dimension(icepack_max_aero,max_nstrm) :: &
            n_faero_atm    , &
            n_faero_ocn    , &
            n_aerosn1      , &
@@ -161,7 +165,7 @@
            n_zaerosnow    , &
            n_zaerofrac
 
-      integer(kind=int_kind), dimension(max_algae, max_nstrm) :: &
+      integer(kind=int_kind), dimension(icepack_max_algae, max_nstrm) :: &
            n_bgc_N  , n_bgc_C   , &
            n_bgc_chl, n_bgc_N_ml, &
            n_fN     , n_fN_ai   , &
@@ -171,25 +175,25 @@
            n_algalpeak          , &
            n_peakval, n_bgc_N_cat1
 
-      integer(kind=int_kind), dimension(max_doc, max_nstrm) :: &
+      integer(kind=int_kind), dimension(icepack_max_doc, max_nstrm) :: &
            n_bgc_DOC,  n_bgc_DOC_ml, &
            n_fDOC   ,  n_fDOC_ai   , &
            n_DOCnet ,  n_DOCsnow   , n_DOCfrac, &
            n_bgc_DOC_cat1
 
-      integer(kind=int_kind), dimension(max_dic, max_nstrm) :: &
+      integer(kind=int_kind), dimension(icepack_max_dic, max_nstrm) :: &
            n_bgc_DIC,  n_bgc_DIC_ml, &
            n_fDIC   ,  n_fDIC_ai   , &
            n_DICnet ,  n_DICsnow   , n_DICfrac, &
            n_bgc_DIC_cat1
 
-      integer(kind=int_kind), dimension(max_don, max_nstrm) :: &
+      integer(kind=int_kind), dimension(icepack_max_don, max_nstrm) :: &
            n_bgc_DON,  n_bgc_DON_ml, &
            n_fDON   ,  n_fDON_ai   , &
            n_DONnet ,  n_DONsnow   , n_DONfrac, &
            n_bgc_DON_cat1
 
-      integer(kind=int_kind), dimension(max_fe,  max_nstrm) :: &
+      integer(kind=int_kind), dimension(icepack_max_fe,  max_nstrm) :: &
            n_bgc_Fed ,  n_bgc_Fed_ml , &
            n_fFed    ,  n_fFed_ai    , &
            n_Fednet  ,  n_Fedsnow    , n_Fedfrac, &
@@ -252,23 +256,33 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field, &
           f_fsalt, f_fsalt_ai, f_sice
-      use icepack_intfc_tracers, only: tr_zaero, tr_aero, tr_brine, &
-          tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
-          tr_bgc_DMS,    tr_bgc_PON,   tr_bgc_S,     &
-          tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
-          tr_bgc_DON,    tr_bgc_Fe,    nbtrcr, tr_bgc_hum
-      use icepack_intfc_shared, only: solve_zsal, skl_bgc, z_tracers
 
       integer (kind=int_kind) :: n, ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       character (len=3) :: nchar
       character (len=16) :: vname_in     ! variable name
+      logical (kind=log_kind) :: tr_zaero, tr_aero, tr_brine, &
+          tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
+          tr_bgc_DMS,    tr_bgc_PON,   tr_bgc_S,     &
+          tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
+          tr_bgc_DON,    tr_bgc_Fe,    tr_bgc_hum,   &
+          skl_bgc, solve_zsal, z_tracers
+
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, &
+          solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
+      call icepack_query_tracer_flags(tr_zaero_out =tr_zaero, &
+          tr_aero_out   =tr_aero,    tr_brine_out  =tr_brine, &
+          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am, &
+          tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
+          tr_bgc_PON_out=tr_bgc_PON, tr_bgc_S_out  =tr_bgc_S, &
+          tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C, &
+          tr_bgc_chl_out=tr_bgc_chl, tr_bgc_DON_out=tr_bgc_DON, &
+          tr_bgc_Fe_out =tr_bgc_Fe,  tr_bgc_hum_out=tr_bgc_hum ) 
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -1714,7 +1728,6 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
-      use ice_constants, only: c0, c1
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -1735,12 +1748,14 @@
       subroutine init_hist_bgc_3Db
 
       use ice_calendar, only: nstreams
-      use ice_constants, only: c0, c1, c100, secday
       use ice_history_shared, only: tstr3Db, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
+      real (kind=dbl_kind) :: secday
       
       ! biology vertical grid
+
+      call icepack_query_constants(secday_out=secday)
 
       do ns = 1, nstreams
  
@@ -1787,9 +1802,9 @@
 
       use ice_arrays_column, only: ocean_bio, &
           grow_net, PP_net, upNO, upNH, ice_bio_net, snow_bio_net, &
-          hbri, bTiz, bphi, zfswin, iDi, iki, zsal_tot, fzsal, fzsal_g
+          hbri, bTiz, bphi, zfswin, iDi, iki, zsal_tot, fzsal, fzsal_g, &
+          R_C2N, R_chl2N
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_constants, only: c0, puny, rhos, rhoi, rhow   
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nblyr
       use ice_flux, only: sss
@@ -1799,20 +1814,6 @@
           n3Dzcum, n3Dbcum, n3Dacum, a3Db, a3Da, &    
           ncat_hist, accum_hist_field, nzblyr, nzalyr
       use ice_state, only: trcrn, trcr, aicen, aice, vice, vicen
-      use icepack_intfc_tracers, only:  nt_aero, nt_fbri, &
-          nt_zaero, nt_bgc_DIC, nt_bgc_DOC, nt_bgc_DON, nt_bgc_N, nt_bgc_C, &
-          nt_bgc_chl, nt_bgc_Nit, nt_bgc_Am, nt_bgc_Sil, nt_bgc_DMSPp, &
-          nt_bgc_DMSPd, nt_bgc_DMS, nt_bgc_PON, nt_bgc_S, nt_bgc_Fed, &
-          nt_bgc_Fep, nt_zbgc_frac, nlt_zaero_sw,  nlt_chl_sw, &
-          nlt_bgc_Nit,   nlt_bgc_Am,   nlt_bgc_Sil,   &
-          nlt_bgc_DMS,   nlt_bgc_PON,  &
-          nlt_bgc_N,     nlt_bgc_C,    nlt_bgc_chl,   &
-          nlt_bgc_DOC,   nlt_bgc_DON,  nlt_bgc_DIC,   &
-          nlt_zaero  ,   nlt_bgc_DMSPp,nlt_bgc_DMSPd, &
-          nlt_bgc_Fed,   nlt_bgc_Fep,  nlt_zaero,     &
-          nt_bgc_hum,    nlt_bgc_hum
-          
-     use icepack_intfc_shared, only: skl_bgc, z_tracers, sk_l, R_C2N, R_chl2N
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
@@ -1827,7 +1828,7 @@
          workz, workz2
 
       real (kind=dbl_kind) :: & 
-         maxv
+         maxv, rhos, rhoi, rhow, puny, sk_l
 
       real (kind=dbl_kind), dimension (nblyr+1) :: & 
          workv
@@ -1840,9 +1841,72 @@
       integer (kind=int_kind) :: & 
          workii
 
+      logical (kind=log_kind) :: &
+         skl_bgc, z_tracers
+
+      integer(kind=int_kind) :: nt_aero, nt_fbri, &
+         nt_bgc_Nit,   nt_bgc_Am,   nt_bgc_Sil, nt_bgc_DMSPp, &
+         nt_bgc_DMSPd,  nt_bgc_DMS, nt_bgc_PON, nt_bgc_S, &
+         nt_zbgc_frac,  nlt_chl_sw, &
+         nlt_bgc_Nit,   nlt_bgc_Am, nlt_bgc_Sil,   &
+         nlt_bgc_DMS,   nlt_bgc_PON,  &
+         nlt_bgc_DMSPp, nlt_bgc_DMSPd, &
+         nt_bgc_hum,    nlt_bgc_hum
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero_sw       ! points to aerosol in trcrn_sw
+  
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nt_bgc_N, nlt_bgc_N, &     ! algae 
+         nt_bgc_C, nlt_bgc_C, &     !
+         nt_bgc_chl, nlt_bgc_chl    !
+
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &
+         nt_bgc_DOC, nlt_bgc_DOC    ! disolved organic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_don) :: &
+         nt_bgc_DON, nlt_bgc_DON    !
+
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &
+         nt_bgc_DIC, nlt_bgc_DIC    ! disolved inorganic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_fe) :: &
+         nt_bgc_Fed, nlt_bgc_Fed, & !
+         nt_bgc_Fep, nlt_bgc_Fep    !
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nt_zaero, nlt_zaero        ! non-reacting layer aerosols
+
       type (block) :: &
          this_block           ! block information for current block
 
+      call icepack_query_constants(rhos_out=rhos, rhoi_out=rhoi, &
+         rhow_out=rhow, puny_out=puny, sk_l_out=sk_l)
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, &
+         z_tracers_out=z_tracers)
+      call icepack_query_tracer_indices( nt_aero_out=nt_aero, &
+         nt_fbri_out=nt_fbri, nt_bgc_DOC_out=nt_bgc_DOC, &
+         nt_zaero_out=nt_zaero, nt_bgc_DIC_out=nt_bgc_DIC, &
+         nt_bgc_DON_out=nt_bgc_DON, nt_bgc_N_out=nt_bgc_N, &
+         nt_bgc_C_out=nt_bgc_C, nt_bgc_Am_out=nt_bgc_Am, &
+         nt_bgc_chl_out=nt_bgc_chl, nt_bgc_Nit_out=nt_bgc_Nit, &
+         nt_bgc_Sil_out=nt_bgc_Sil, nt_bgc_DMSPp_out=nt_bgc_DMSPp, &
+         nt_bgc_DMSPd_out=nt_bgc_DMSPd, nt_bgc_DMS_out=nt_bgc_DMS, &
+         nt_bgc_PON_out=nt_bgc_PON, &
+         nt_bgc_S_out=nt_bgc_S, nt_bgc_Fed_out=nt_bgc_Fed, &
+         nt_bgc_Fep_out=nt_bgc_Fep, nt_zbgc_frac_out=nt_zbgc_frac, &
+         nlt_zaero_sw_out=nlt_zaero_sw, nlt_chl_sw_out=nlt_chl_sw, &
+         nlt_bgc_Nit_out=nlt_bgc_Nit,   nlt_bgc_Am_out=nlt_bgc_Am,   &
+         nlt_bgc_Sil_out=nlt_bgc_Sil,   &
+         nlt_bgc_DMS_out=nlt_bgc_DMS,   nlt_bgc_PON_out=nlt_bgc_PON,  &
+         nlt_bgc_N_out=nlt_bgc_N,     nlt_bgc_C_out=nlt_bgc_C,    &
+         nlt_bgc_chl_out=nlt_bgc_chl, nlt_bgc_DIC_out=nlt_bgc_DIC,   &
+         nlt_bgc_DOC_out=nlt_bgc_DOC,   nlt_bgc_DON_out=nlt_bgc_DON,  &
+         nlt_zaero_out=nlt_zaero,   nlt_bgc_DMSPp_out=nlt_bgc_DMSPp, &
+         nlt_bgc_DMSPd_out=nlt_bgc_DMSPd, &
+         nlt_bgc_Fed_out=nlt_bgc_Fed,   nlt_bgc_Fep_out=nlt_bgc_Fep,  &
+         nt_bgc_hum_out=nt_bgc_hum,    nlt_bgc_hum_out=nlt_bgc_hum)
+          
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
          ihi = this_block%ihi
@@ -3002,7 +3066,6 @@
       subroutine init_hist_bgc_3Da
 
       use ice_calendar, only: nstreams
-      use ice_constants, only: c0, c1, c100, secday
       use ice_history_shared, only: tstr3Da, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns, n
@@ -3247,7 +3310,6 @@
 
       subroutine init_history_bgc
 
-      use icepack_constants, only: c0
       use ice_arrays_column, only: PP_net, grow_net, hbri, &
           ice_bio_net, snow_bio_net, fbio_snoice, fbio_atmice, &
           fzsal, fzsal_g, zfswin 

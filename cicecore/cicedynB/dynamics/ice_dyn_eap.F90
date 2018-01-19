@@ -21,6 +21,9 @@
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat
+      use ice_constants, only: c0, c1, c2, c3, c12, p1, p2, p5, &
+          p001, p025, p027, p05, p055, p111, p166, p222, p25, p333
+      use icepack_intfc, only: icepack_query_constants
 
       implicit none
       private
@@ -79,7 +82,7 @@
       use ice_blocks, only: block, get_block
       use icepack_intfc, only: icepack_ice_strength
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
-          field_type_scalar, field_type_vector, c0, p5
+          field_type_scalar, field_type_vector
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
       use ice_dyn_shared, only: fcor_blk, ndte, dtei, a_min, m_min, &
           cosw, sinw, denom1, uvel_init, vvel_init, arlx1i, &
@@ -103,7 +106,7 @@
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
 #ifdef CICE_IN_NEMO
-      use icepack_intfc_shared, only: calc_strair
+      use icepack_intfc, only: calc_strair
 #endif
 
       real (kind=dbl_kind), intent(in) :: &
@@ -524,7 +527,6 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1, c2, c12, p5, pi, pih, piq
       use ice_domain, only: nblocks
       use ice_dyn_shared, only: init_evp
       use ice_exit, only: abort_ice
@@ -540,8 +542,7 @@
          iblk          ! block index
 
       real (kind=dbl_kind), parameter :: & 
-         eps6 = 1.0e-6_dbl_kind, &
-         phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
+         eps6 = 1.0e-6_dbl_kind
 
       integer (kind=int_kind) :: & 
          ix, iy, ip, iz, n, ia
@@ -551,7 +552,11 @@
 
       real (kind=dbl_kind) :: & 
          ainit, xinit, yinit, pinit, zinit, &
-         da, dx, dy, dp, dz, a1
+         da, dx, dy, dp, dz, a1, &
+         pi, pih, piq, phi
+
+      call icepack_query_constants(pi_out=pi, pih_out=pih, piq_out=piq)
+      phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
 
       call init_evp (dt)
 
@@ -693,8 +698,6 @@
 
       FUNCTION s11kr(x,y,z,phi) 
 
-      use ice_constants , only: p5, pi, pih, c0, c1, puny
-
       real (kind=dbl_kind), intent(in) :: &
         x,y,z,phi
 
@@ -708,8 +711,10 @@
       t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1
+      Hen1t2, Hen2t1, &
+      pih, puny
 
+      call icepack_query_constants(pih_out=pih, puny_out=puny)
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -758,7 +763,6 @@
 
       FUNCTION s12kr(x,y,z,phi)
 
-      use ice_constants , only: p5, pi, pih, c0, c1, puny
       real (kind=dbl_kind), intent(in) :: &
         x,y,z,phi
 
@@ -772,8 +776,10 @@
       t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1
+      Hen1t2, Hen2t1, &
+      pih, puny
 
+      call icepack_query_constants(pih_out=pih, puny_out=puny)
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -822,8 +828,6 @@
 
       FUNCTION s22kr(x,y,z,phi)
 
-      use ice_constants , only: p5, pi, pih, c0, c1, puny
-
       real (kind=dbl_kind), intent(in) :: &
         x,y,z,phi
 
@@ -837,8 +841,10 @@
       t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1
+      Hen1t2, Hen2t1, &
+      pih, puny
 
+      call icepack_query_constants(pih_out=pih, puny_out=puny)
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -885,8 +891,6 @@
 
       FUNCTION s11ks(x,y,z,phi)
 
-      use ice_constants , only: p5, pi, pih, c0, c1, puny
-
       real (kind=dbl_kind), intent(in):: &
         x,y,z,phi
 
@@ -900,8 +904,10 @@
       t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1
+      Hen1t2, Hen2t1, &
+      pih, puny
 
+      call icepack_query_constants(pih_out=pih, puny_out=puny)
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -948,8 +954,6 @@
 
       FUNCTION s12ks(x,y,z,phi)
 
-      use ice_constants , only: p5, pi, pih, c0, c1, puny
-
       real (kind=dbl_kind), intent(in) :: &
         x,y,z,phi
 
@@ -963,8 +967,10 @@
       t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1
+      Hen1t2, Hen2t1, &
+      pih, puny
 
+      call icepack_query_constants(pih_out=pih, puny_out=puny)
       p =phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -1013,8 +1019,6 @@
 
       FUNCTION s22ks(x,y,z,phi) 
 
-      use ice_constants , only: p5, pi, pih, c0, c1, puny
-
       real (kind=dbl_kind), intent(in) :: &
         x,y,z,phi
 
@@ -1028,8 +1032,10 @@
       t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1
+      Hen1t2, Hen2t1, &
+      pih, puny
 
+      call icepack_query_constants(pih_out=pih, puny_out=puny)
       p = phi
 
       n1t2i11 = cos(z+pih-p) * cos(z+p)
@@ -1110,9 +1116,6 @@
                               prs_sig,                    &
                               rdg_conv,   rdg_shear,      &
                               strtmp)
-
-      use ice_constants, only: c0, p027, p055, p111, p166, &
-          p2, p222, p25, p333, p5, puny
 
 !echmod tmp
 !      use ice_timers, only:  &
@@ -1202,7 +1205,7 @@
         csigmne, csigmnw, csigmse, csigmsw        , &
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
-        strp_tmp, strm_tmp
+        strp_tmp, strm_tmp, puny
 
       real (kind=dbl_kind) :: &
         alpharne, alpharnw, alpharsw, alpharse,     &
@@ -1212,6 +1215,7 @@
       ! Initialize
       !-----------------------------------------------------------------
 
+      call icepack_query_constants(puny_out=puny)
       strtmp(:,:,:) = c0
 
 !DIR$ CONCURRENT !Cray
@@ -1507,9 +1511,6 @@
                                    stress12, strength, &
                                    alphar, alphas)
 
-      use ice_constants, only: c0, p025, p05, p1, p5, c1, c2, c12, puny, &
-          pi, pih, pi2, piq
-
       integer (kind=int_kind), intent(in) :: &
          ksub, &
          ndte
@@ -1544,10 +1545,14 @@
 	 invstressconviso, &
          gamma, alpha, x, y, dx, dy, da, &
          invdx, invdy, invda, invsin, &
-         invleng, dtemp1, dtemp2, atempprime, a
+         invleng, dtemp1, dtemp2, atempprime, a, &
+         puny, pi, pi2, piq
 
       real (kind=dbl_kind), parameter :: &
          kfriction = 0.45_dbl_kind
+
+         call icepack_query_constants(puny_out=puny, &
+            pi_out=pi, pi2_out=pi2, piq_out=piq)
 
 ! Factor to maintain the same stress as in EVP (see Section 3)
 ! Can be set to 1 otherwise
@@ -1704,8 +1709,6 @@
                          stress12_1, stress12_2,     &
                          stress12_3, stress12_4)
 
-      use ice_constants, only: p001, p2, p25, p5, c1
-
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
@@ -1827,8 +1830,6 @@
                              a1x,                       &
                              mresult)
 
-      use ice_constants, only: c0, p001, p1, p5, c2, c3
-
       integer(kind=int_kind), intent(in) :: &
          blockno
 
@@ -1940,7 +1941,7 @@
       use ice_blocks, only: nghost
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, &
+      use ice_constants, only:  &
           field_loc_center, field_type_scalar
       use ice_domain, only: nblocks, halo_info
       use ice_fileunits, only: nu_diag, nu_restart_eap

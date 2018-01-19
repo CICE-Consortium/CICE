@@ -146,7 +146,7 @@ end subroutine
     use ice_restart_shared, only: runid, runtype, restart_dir, restart_format
     use ice_history,        only: accum_hist
     use ice_history_shared, only: history_dir, history_file
-    use icepack_intfc_tracers, only: tr_aero, tr_zaero
+    use icepack_intfc, only: tr_aero, tr_zaero
 !
 ! !ARGUMENTS:
     type(ESMF_GridComp)          :: comp

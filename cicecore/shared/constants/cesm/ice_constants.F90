@@ -9,7 +9,7 @@
       module ice_constants
 
       use ice_kinds_mod
-      use icepack_constants ! all constants needed for column package
+      use icepack_intfc ! all constants needed for column package
 
       implicit none
       save

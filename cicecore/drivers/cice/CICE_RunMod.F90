@@ -16,6 +16,13 @@
       module CICE_RunMod
 
       use ice_kinds_mod
+      use ice_fileunits, only: nu_diag
+      use ice_arrays_column, only: oceanmixed_ice
+      use ice_constants, only: c0, c1
+      use ice_constants, only: field_loc_center, field_type_scalar
+      use icepack_intfc, only: icepack_max_aero
+      use icepack_intfc, only: icepack_query_parameters, icepack_query_constants
+      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_numbers
 
       implicit none
       private
@@ -41,16 +48,19 @@
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, & 
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
-      use icepack_intfc_tracers, only: tr_aero, tr_zaero
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_couple, timer_step
-      use icepack_intfc_shared, only: skl_bgc, z_tracers
+      logical (kind=log_kind) :: &
+          tr_aero, tr_zaero, skl_bgc, z_tracers
 
    !--------------------------------------------------------------------
    !  initialize error code and step timer
    !--------------------------------------------------------------------
 
       call ice_timer_start(timer_step)   ! start timing entire run
+
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
+      call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
 
 #ifndef CICE_IN_NEMO
    !--------------------------------------------------------------------
@@ -117,7 +127,6 @@
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
-      use ice_constants, only: field_loc_center, field_type_scalar, c0
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
@@ -136,12 +145,9 @@
       use ice_restart_driver, only: dumpfile
       use ice_restoring, only: restore_ice, ice_HaloRestore
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, &
-          tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
           biogeochemistry
-      use icepack_intfc_shared, only: calc_Tsfc, skl_bgc, solve_zsal, z_tracers
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
           timer_hist, timer_readwrite
@@ -152,6 +158,17 @@
 
       real (kind=dbl_kind) :: &
          offset          ! d(age)/dt time offset
+
+      logical (kind=log_kind) :: &
+          tr_iage, tr_FY, tr_lvl, &
+          tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero, &
+          calc_Tsfc, skl_bgc, solve_zsal, z_tracers
+
+      call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
+           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+           tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+           tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero)
 
       !-----------------------------------------------------------------
       ! restoring on grid boundaries
@@ -300,9 +317,6 @@
           albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
       use ice_blocks, only: block, nx_block, ny_block
       use ice_calendar, only: dt, nstreams
-      use icepack_intfc_shared, only: calc_Tsfc, oceanmixed_ice, max_aero
-      use icepack_intfc_tracers, only: nbtrcr
-      use ice_constants, only: c0, c1, puny, rhofresh
       use ice_domain_size, only: ncat
       use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
           albpnd, albcnt, apeff_ai, coszen, fpond, fresh, l_mpond_fresh, &
@@ -326,11 +340,21 @@
       integer (kind=int_kind) :: & 
          n           , & ! thickness category index
          i,j         , & ! horizontal indices
-         k               ! tracer index
+         k           , & ! tracer index
+         nbtrcr          !
+
+      logical (kind=log_kind) :: &
+         calc_Tsfc       !
 
       real (kind=dbl_kind) :: &
          cszn        , & ! counter for history averaging
+         puny        , & !
+         rhofresh    , & !
          netsw           ! flag for shortwave radiation presence
+
+         call icepack_query_constants(puny_out=puny, rhofresh_out=rhofresh)
+         call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+         call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
 
       !-----------------------------------------------------------------
       ! Save current value of frzmlt for diagnostics.
@@ -461,7 +485,7 @@
       !-----------------------------------------------------------------
 
          call scale_fluxes (nx_block,            ny_block,           &
-                            tmask    (:,:,iblk), nbtrcr, max_aero,   &
+                            tmask    (:,:,iblk), nbtrcr, icepack_max_aero,   &
                             aice     (:,:,iblk), Tf      (:,:,iblk), &
                             Tair     (:,:,iblk), Qa      (:,:,iblk), &
                             strairxT (:,:,iblk), strairyT(:,:,iblk), &
@@ -543,8 +567,10 @@
           i, j, n    ! horizontal indices
       
       real (kind=dbl_kind)    :: &
+          puny, &          !
           rLsub            ! 1/Lsub
 
+      call icepack_query_constants(puny_out=puny)
       rLsub = c1 / Lsub
 
       do n = 1, ncat

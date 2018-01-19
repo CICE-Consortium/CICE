@@ -381,7 +381,7 @@ subroutine ice_prescribed_phys
  
    use ice_flux
    use ice_state
-   use icepack_intfc_tracers, only : nt_Tsfc, nt_sice, nt_qice, nt_qsno, ntrcr
+   use icepack_intfc, only : nt_Tsfc, nt_sice, nt_qice, nt_qsno, ntrcr
    use ice_arrays_column,  only : hin_max
    use icepack_intfc,         only : icepack_aggregate
    use ice_dyn_evp

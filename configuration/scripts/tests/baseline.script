@@ -19,7 +19,8 @@ endif
 #-----------------------------------------------------------
 # Baseline comparing run
 
-if (${ICE_BASECOM} != ${ICE_SPVAL} && ${ICE_TEST} != "restart") then
+#if (${ICE_BASECOM} != ${ICE_SPVAL} && ${ICE_TEST} != "restart") then
+if (${ICE_BASECOM} != ${ICE_SPVAL}) then
   set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
   set test_data = ${ICE_RUNDIR}/restart/${test_file}
 

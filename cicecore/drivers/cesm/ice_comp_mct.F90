@@ -49,8 +49,8 @@ module ice_comp_mct
 		              sec, dt, dt_dyn, calendar,                 &
                               calendar_type, nextsw_cday, days_per_year, &
                               nyr, new_year, time2sec, year_init
-  use icepack_constants, only : eccen, obliqr, lambm0, mvelpp
-  use icepack_intfc_tracers, only: tr_zaero, tr_aero
+  use icepack_intfc, only : eccen, obliqr, lambm0, mvelpp
+  use icepack_intfc, only: tr_zaero, tr_aero
   use ice_timers
 
   use ice_kinds_mod,   only : int_kind, dbl_kind, char_len_long, log_kind

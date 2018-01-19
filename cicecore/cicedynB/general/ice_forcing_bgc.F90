@@ -11,10 +11,18 @@
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
-      use icepack_intfc_tracers, only: bio_index_o
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: dt, istep, sec, mday, month, daymo
       use ice_fileunits, only: nu_diag
+      use ice_arrays_column, only: restore_bgc, &
+         bgc_data_dir, sil_data_type, nit_data_type, fe_data_type
+      use ice_constants, only: c0, p01, p1
+      use ice_constants, only: field_loc_center, field_type_scalar
+      use icepack_intfc, only: icepack_nspint, icepack_max_aero, &
+          icepack_max_algae, icepack_max_doc, icepack_max_dic
+      use icepack_intfc, only: icepack_query_tracer_flags, &
+          icepack_query_constants, icepack_query_parameters, &
+          icepack_query_tracer_indices
 
       implicit none
       private
@@ -40,8 +48,6 @@
 
       use ice_arrays_column, only: ocean_bio_all
       use ice_calendar, only:  yday
-      use ice_constants, only: field_loc_center, field_type_scalar, &
-                               secday
       use ice_domain, only: nblocks
       use ice_flux, only: sss
       use ice_flux_bgc, only: sil, nit
@@ -49,9 +55,6 @@
           read_clim_data_nc, interpolate_data, &
           interp_coeff_monthly, interp_coeff,  &
           read_data_nc_point, c1intp, c2intp
-      use icepack_intfc_shared, only: nit_data_type, sil_data_type, bgc_data_dir, &
-          max_algae, max_doc, max_dic, restore_bgc
-      use icepack_intfc_tracers, only: tr_bgc_Sil, tr_bgc_Nit
 
       integer (kind=int_kind) :: &
           i, j, k,iblk, & ! horizontal indices
@@ -82,13 +85,18 @@
          nit_data_p           ! field values at 2 temporal data points
 
       real (kind=dbl_kind) :: &
+          secday      , &     ! number of seconds in day
           sec1hr              ! number of seconds in 1 hour
 
-      logical (kind=log_kind) :: readm, read1
+      logical (kind=log_kind) :: readm, read1, tr_bgc_Nit, tr_bgc_Sil
 
       character (char_len_long) :: &        ! input data file names
          nit_file   , & ! nitrate input file
          sil_file       ! silicate input file
+
+      call icepack_query_constants(secday_out=secday)
+      call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
+           tr_bgc_Sil_out=tr_bgc_Sil)
 
       if (.not. trim(nit_data_type)=='ISPOL' .AND. &
           .not. trim(sil_data_type)=='ISPOL') then 
@@ -169,7 +177,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                sil(i,j,iblk) = sildat(i,j,iblk)
-               ks = 2*max_algae + max_doc + 3 + max_dic
+               ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
             enddo
             enddo
@@ -182,7 +190,7 @@
             do i = 1, nx_block
                sil(i,j,iblk) = sil(i,j,iblk)  &
                          + (sildat(i,j,iblk)-sil(i,j,iblk))*dt/trest
-               ks = 2*max_algae + max_doc + 3 + max_dic
+               ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
             enddo
             enddo
@@ -195,7 +203,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                sil(i,j,iblk) = 25.0_dbl_kind
-               ks = 2*max_algae + max_doc + 3 + max_dic
+               ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
             enddo
             enddo
@@ -224,9 +232,9 @@
             do j = 1, ny_block
             do i = 1, nx_block
                nit(i,j,iblk) = nitdat(i,j,iblk)
-               ks = max_algae + 1
+               ks = icepack_max_algae + 1
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
-               ks =  2*max_algae + max_doc + 7 + max_dic
+               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON
             enddo
             enddo
@@ -239,9 +247,9 @@
             do i = 1, nx_block
                nit(i,j,iblk) = nit(i,j,iblk)  &
                          + (nitdat(i,j,iblk)-nit(i,j,iblk))*dt/trest     
-               ks = max_algae + 1
+               ks = icepack_max_algae + 1
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
-               ks =  2*max_algae + max_doc + 7 + max_dic
+               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON
             enddo
             enddo
@@ -256,9 +264,9 @@
             do j = 1, ny_block
             do i = 1, nx_block
                nit(i,j,iblk) =  sss(i,j,iblk)      
-               ks = max_algae + 1
+               ks = icepack_max_algae + 1
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit 
-               ks =  2*max_algae + max_doc + 7 + max_dic
+               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON      
             enddo
             enddo
@@ -272,9 +280,9 @@
             do j = 1, ny_block
             do i = 1, nx_block
                nit(i,j,iblk) = 12.0_dbl_kind
-               ks = max_algae + 1
+               ks = icepack_max_algae + 1
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit 
-               ks =  2*max_algae + max_doc + 7 + max_dic
+               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON      
             enddo
             enddo
@@ -355,11 +363,11 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               ks = 2*max_algae + max_doc + 3 + max_dic
+               ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil  
-               ks = max_algae + 1
+               ks = icepack_max_algae + 1
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
-               ks =  2*max_algae + max_doc + 7 + max_dic
+               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
                ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON    
             enddo
             enddo
@@ -379,11 +387,8 @@
       subroutine get_atm_bgc 
 
       use ice_blocks, only: nx_block, ny_block, block, get_block
-      use ice_constants, only: p01, c0
       use ice_domain, only: nblocks, distrb_info, blocks_ice
       use ice_domain_size, only: n_zaero 
-      use icepack_intfc_tracers, only: tr_zaero, nlt_zaero
-      use icepack_intfc_shared, only: grid_o_t
       use ice_flux_bgc, only: flux_bio_atm, faero_atm
 
       !  local variables
@@ -393,12 +398,21 @@
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          iblk               ! block index 
 
+      logical (kind=log_kind) :: &
+         tr_zaero
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero
+
       type (block) :: &
          this_block      ! block information for current block
 
       !-----------------------------------------------------------------
       ! initialize
       !-----------------------------------------------------------------
+
+      call icepack_query_tracer_flags(tr_zaero_out=tr_zaero)
+      call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
 
       flux_bio_atm(:,:,:,:) = c0
       if (tr_zaero) then
@@ -434,9 +448,6 @@
       subroutine faero_default
 
       use ice_flux_bgc, only: faero_atm
-      use icepack_constants, only: nspint
-      use icepack_intfc_shared, only: max_aero
-      use icepack_intfc_tracers, only: tr_aero
 
         faero_atm(:,:,1,:) = 1.e-12_dbl_kind ! kg/m^2 s
         faero_atm(:,:,2,:) = 1.e-13_dbl_kind
@@ -456,7 +467,6 @@
       subroutine faero_data
 
       use ice_calendar, only: month, mday, istep, sec
-      use ice_constants, only: field_type_scalar, field_loc_center, c0
       use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block
       use ice_flux_bgc, only: faero_atm
@@ -555,8 +565,6 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_flux_bgc, only: faero_atm
       use ice_forcing, only: interp_coeff_monthly, read_clim_data_nc, interpolate_data
-      use ice_constants, only: c0, field_type_scalar, field_loc_center
-      use icepack_intfc_tracers, only: nlt_zaero
 
 #ifdef ncdf 
       ! local parameters
@@ -575,7 +583,12 @@
          recslot     , & ! spline slot for current record
          midmonth        ! middle day of month
 
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero
+
       logical (kind=log_kind) :: readm
+
+      call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -636,8 +649,6 @@
       subroutine init_bgc_data (fed1,fep1)
 
       use ice_read_write, only: ice_open_nc, ice_read_nc, ice_close_nc
-      use ice_constants, only: c0, p1
-      use icepack_intfc_shared, only: fe_data_type, bgc_data_dir
 
 #ifdef ncdf
       use netcdf
@@ -720,8 +731,6 @@
       use ice_fileunits,  only: nu_diag
       use ice_read_write, only: ice_open_nc, ice_read_nc, ice_close_nc
       use ice_communicate, only: my_task, master_task
-      use icepack_constants, only: nspint, c0
-      use icepack_intfc_shared, only: max_aero, modal_aero
       use ice_arrays_column, only: &
          kaer_tab, & ! aerosol mass extinction cross section (m2/kg)
          waer_tab, & ! aerosol single scatter albedo (fraction)
@@ -752,7 +761,7 @@
       integer (kind=int_kind) :: &
          fid                ! file id for netCDF file 
 
-      logical (kind=log_kind) :: diag
+      logical (kind=log_kind) :: diag, modal_aero
 
       character (char_len_long) :: & 
          optics_file,   &   ! netcdf filename
@@ -766,7 +775,7 @@
            2665.85867,   2256.71027,    820.36024, &
             840.78295,   1028.24656,   1163.03298, &
             387.51211,    414.68808,    450.29814/), &
-            (/nspint,max_aero/))
+            (/icepack_nspint,icepack_max_aero/))
       waer_tab = reshape((/ &      ! aerosol single scatter albedo (fraction)
               0.29003,      0.17349,      0.06613, &
               0.51731,      0.41609,      0.21324, &
@@ -774,7 +783,7 @@
               0.97764,      0.99402,      0.98552, &
               0.94146,      0.98527,      0.99093, &
               0.90034,      0.96543,      0.97678/), &
-              (/nspint,max_aero/))
+              (/icepack_nspint,icepack_max_aero/))
       gaer_tab = reshape((/ &      ! aerosol asymmetry parameter (cos(theta))
               0.35445,      0.19838,      0.08857, &
               0.52581,      0.32384,      0.14970, &
@@ -782,7 +791,7 @@
               0.68861,      0.70836,      0.54171, &
               0.70239,      0.66115,      0.71983, &
               0.78734,      0.73580,      0.64411/), &
-              (/nspint,max_aero/))
+              (/icepack_nspint,icepack_max_aero/))
 
       ! this data is used in MODAL AEROSOL treatment in dEdd radiation
       kaer_bc_tab = reshape((/ &      ! aerosol mass extinction cross section (m2/kg)
@@ -796,7 +805,7 @@
               3934.17604,   4020.20799, 3543.27199, &
               3461.20656,   3587.80962, 3289.98060, &
               3083.03396,   3226.27231, 3052.91441/), &
-              (/nspint,10/))
+              (/icepack_nspint,10/))
 
       waer_bc_tab = reshape((/ &      ! aerosol single scatter albedo (fraction)
               0.26107,      0.15861,    0.06535, &
@@ -809,7 +818,7 @@
               0.49440,      0.46328,    0.42008, &
               0.50131,      0.47070,    0.43128, &
               0.50736,      0.47704,    0.44056/), &
-              (/nspint,10/))
+              (/icepack_nspint,10/))
 
       gaer_bc_tab = reshape((/ &      ! aerosol asymmetry parameter (cos(theta))
               0.28328,      0.19644,      0.10498, &
@@ -822,9 +831,11 @@
               0.75064,      0.64959,      0.47551, &
               0.76663,      0.67461,      0.50415, &
               0.77926,      0.69561,      0.52981/),&
-              (/nspint,10/))
+              (/icepack_nspint,10/))
 
       bcenh(:,:,:)     = c0
+
+    call icepack_query_parameters(modal_aero_out=modal_aero)
 
     if (modal_aero) then
        diag = .true.   ! write diagnostic information 

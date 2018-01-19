@@ -11,9 +11,10 @@
       module ice_dyn_shared
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, p01, p001, dragio, rhow
+      use ice_constants, only: c0, c1, p01, p001
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
+      use icepack_intfc, only: icepack_query_constants
 
       implicit none
       private
@@ -257,7 +258,7 @@
                             strairx,   strairy,  & 
                             tmass,     icetmask)
 
-      use ice_constants, only: c0, rhoi, rhos
+      use ice_constants, only: c0
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -290,8 +291,13 @@
       integer (kind=int_kind) :: &
          i, j
 
+      real (kind=dbl_kind) :: &
+         rhoi, rhos
+
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          tmphm               ! temporary mask
+
+      call icepack_query_constants(rhos_out=rhos, rhoi_out=rhoi)
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -384,7 +390,7 @@
                             uvel,       vvel,       &
                             Cbu)
 
-      use ice_constants, only: c0, c1, gravit
+      use ice_constants, only: c0, c1
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -667,11 +673,14 @@
          uold, vold        , & ! old-time uvel, vvel
          vrel              , & ! relative ice-ocean velocity
          cca,ccb,ab2,cc1,cc2,& ! intermediate variables
-         taux, tauy            ! part of ocean stress term          
+         taux, tauy        , & ! part of ocean stress term          
+         rhow                  !
 
       !-----------------------------------------------------------------
       ! integrate the momentum equation
       !-----------------------------------------------------------------
+
+      call icepack_query_constants(rhow_out=rhow)
 
       do ij =1, icellu
          i = indxui(ij)
@@ -770,10 +779,12 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
-      real (kind=dbl_kind) :: vrel
+      real (kind=dbl_kind) :: vrel, rhow
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient 
+
+      call icepack_query_constants(rhow_out=rhow)
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -902,7 +913,7 @@
                                   stress12_1, prs_sig,   &
                                   sig1,       sig2)
 
-      use ice_constants, only: spval_dbl, puny, p5, c4
+      use ice_constants, only: spval_dbl, p5, c4
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block  ! block dimensions
@@ -920,6 +931,10 @@
       ! local variables
 
       integer (kind=int_kind) :: i, j
+
+      real (kind=dbl_kind) :: puny
+
+      call icepack_query_constants(puny_out=puny)
 
       do j = 1, ny_block
       do i = 1, nx_block

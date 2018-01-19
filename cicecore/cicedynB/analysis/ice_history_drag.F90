@@ -8,6 +8,7 @@
 
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm
+      use ice_constants, only: c0, c1, c100, mps_to_cmpdy
 
       implicit none
       private
@@ -59,7 +60,6 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1, secday, c100, mps_to_cmpdy
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
@@ -228,7 +228,6 @@
 
       subroutine accum_hist_drag (iblk)
 
-      use ice_constants, only: c1
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_arrays_column, only: hfreebd, hdraft, hridge, distrdg, hkeel, &

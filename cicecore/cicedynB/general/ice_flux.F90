@@ -17,8 +17,10 @@
       use ice_fileunits, only: nu_diag
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat, max_nstrm, nilyr
-      use ice_constants, only: c0, c1, c5, c10, c20, c180, dragio, &
-          stefan_boltzmann, Tffresh, emissivity
+      use ice_constants, only: c0, c1, c5, c10, c20, c180
+      use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
+      use icepack_intfc, only: icepack_query_constants
 
       implicit none
       private
@@ -328,7 +330,7 @@
 
       use ice_arrays_column, only: Cdn_atm
       use icepack_intfc, only: icepack_liquidus_temperature
-      use ice_constants, only: p001,vonkar,zref,iceruf
+      use ice_constants, only: p001
       use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
            fdoc, fdon, fdic, ffed, ffep
@@ -346,7 +348,12 @@
          l_spring = .false.      ! spring example
 #endif
 
-      real (kind=dbl_kind) :: fcondtopn_d(6), fsurfn_d(6)
+      real (kind=dbl_kind) :: fcondtopn_d(6), fsurfn_d(6), &
+         stefan_boltzmann, &
+         Tffresh, &
+         vonkar, &
+         zref, &
+         iceruf
 
       integer :: i, j, iblk
 
@@ -354,6 +361,9 @@
                           -9.0_dbl_kind, -7.0_dbl_kind, -3.0_dbl_kind /
       data fsurfn_d    /  0.20_dbl_kind, 0.15_dbl_kind, 0.10_dbl_kind, &
                           0.05_dbl_kind, 0.01_dbl_kind, 0.01_dbl_kind /
+
+      call icepack_query_constants(stefan_boltzmann_out=stefan_boltzmann, &
+         Tffresh_out=Tffresh, vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
 
       !-----------------------------------------------------------------
       ! fluxes received from atmosphere
@@ -576,14 +586,30 @@
       subroutine init_history_therm
 
       use ice_state, only: aice, vice, trcr
-      use icepack_intfc_tracers, only: tr_iage, nt_iage
-      use icepack_intfc_shared, only: formdrag
       use ice_arrays_column, only: &
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           Cdn_atm_skin, Cdn_atm_floe, Cdn_atm_pond, Cdn_atm_rdg, &
           Cdn_ocn_skin, Cdn_ocn_floe, Cdn_ocn_keel, Cdn_atm_ratio, &
           Cdn_atm, Cdn_ocn
-      use ice_constants, only: vonkar,zref,iceruf
+
+      logical (kind=log_kind) :: &
+          formdrag, &
+          tr_iage
+
+      integer (kind=int_kind) :: &
+          nt_iage
+
+      real (kind=dbl_kind) :: &
+          dragio, &
+          vonkar, &
+          zref, &
+          iceruf
+
+      call icepack_query_parameters(formdrag_out=formdrag)
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage)
+      call icepack_query_tracer_indices(nt_iage_out=nt_iage)
+      call icepack_query_constants( dragio_out=dragio, &
+         vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
 
       fsurf  (:,:,:) = c0
       fcondtop(:,:,:)= c0
@@ -655,7 +681,15 @@
       subroutine init_history_dyn
 
       use ice_state, only: aice, vice, trcr
-      use icepack_intfc_tracers, only: tr_iage, nt_iage
+
+      logical (kind=log_kind) :: &
+          tr_iage
+
+      integer (kind=int_kind) :: &
+          nt_iage
+
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage)
+      call icepack_query_tracer_indices(nt_iage_out=nt_iage)
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0
@@ -789,10 +823,16 @@
 
       ! local variables
 
-      real (kind=dbl_kind) :: ar   ! 1/aice
+      real (kind=dbl_kind) :: &
+          ar, &   ! 1/aice
+          stefan_boltzmann, &
+          Tffresh
 
       integer (kind=int_kind) :: &
           i, j    ! horizontal indices
+
+      call icepack_query_constants(stefan_boltzmann_out=stefan_boltzmann, &
+         Tffresh_out=Tffresh)
 
 !DIR$ CONCURRENT !Cray
 !cdir nodep      !NEC
