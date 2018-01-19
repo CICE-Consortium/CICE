@@ -15,12 +15,21 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
+      use ice_constants, only: c0, c1, p5, &
+          field_loc_center, field_loc_NEcorner, &
+          field_type_scalar, field_type_vector, &
+          field_loc_Nface, field_loc_Eface
       use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_compute_tracers
+      use icepack_intfc, only: icepack_query_tracer_flags, &
+          icepack_query_tracer_numbers, icepack_query_tracer_indices, &
+          icepack_query_constants
 
       implicit none
       private
       public :: init_transport, transport_remap, transport_upwind
-      save
 
       character (len=char_len), public ::     &
          advection   ! type of advection scheme used
@@ -65,18 +74,28 @@
 
       subroutine init_transport
 
-      use ice_exit, only: abort_ice
       use ice_state, only: trcr_depend
-      use icepack_intfc_tracers, only: ntrcr, nt_Tsfc, nt_qice, nt_qsno, &
-          nt_sice, nt_fbri, nt_iage, nt_FY, nt_alvl, nt_vlvl, &
-          nt_apnd, nt_hpnd, nt_ipnd, nt_bgc_Nit, nt_bgc_S
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_advect
       use ice_transport_remap, only: init_remap
 
       integer (kind=int_kind) ::       &
          k, nt, nt1     ! tracer indices
 
+      integer (kind=int_kind) :: ntrcr, nt_Tsfc, nt_qice, nt_qsno, &
+          nt_sice, nt_fbri, nt_iage, nt_FY, nt_alvl, nt_vlvl, &
+          nt_apnd, nt_hpnd, nt_ipnd, nt_bgc_Nit, nt_bgc_S
+
       call ice_timer_start(timer_advect)  ! advection 
+
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
+          nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fbri_out=nt_fbri, &
+          nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_alvl_out=nt_alvl, &
+          nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
+          nt_ipnd_out=nt_ipnd, nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ntrace = 2 + ntrcr ! hice,hsno,trcr
 
@@ -203,18 +222,13 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_boundary, only: ice_HaloUpdate
-      use ice_constants, only: c0, &
-          field_loc_center, field_loc_NEcorner, &
-          field_type_scalar, field_type_vector
       use ice_global_reductions, only: global_sum, global_sum_prod
       use ice_domain, only: nblocks, distrb_info, blocks_ice, halo_info
       use ice_domain_size, only: ncat, max_blocks
       use ice_blocks, only: nx_block, ny_block, block, get_block, nghost
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, bound_state
-      use icepack_intfc_tracers, only: ntrcr
       use ice_grid, only: tarea, HTE, HTN
-      use ice_exit, only: abort_ice
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_advect, timer_bound
@@ -254,6 +268,9 @@
          dimension(nx_block*ny_block,0:ncat,max_blocks) ::     &
          indxinc, indxjnc   ! compressed i/j indices
 
+      integer (kind=int_kind) :: &
+         ntrcr
+
       type (block) :: &
          this_block           ! block information for current block
       
@@ -281,6 +298,10 @@
          work1
 
       call ice_timer_start(timer_advect)  ! advection 
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
 !---!-------------------------------------------------------------------
 !---! Prepare for remapping.
@@ -645,14 +666,11 @@
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_blocks, only: nx_block, ny_block, block, get_block, nx_block, ny_block
-      use ice_constants, only: p5, &
-          field_loc_Nface, field_loc_Eface, field_type_vector
       use ice_domain, only: blocks_ice, halo_info, nblocks
       use ice_domain_size, only: ncat, max_blocks
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, trcr_depend, bound_state, trcr_base, &
           n_trcr_strata, nt_strata
-      use icepack_intfc_tracers, only: ntrcr
       use ice_grid, only: HTE, HTN, tarea
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_bound, timer_advect
@@ -663,6 +681,7 @@
       ! local variables
 
       integer (kind=int_kind) ::     &
+         ntrcr, &           !
          narr               ! max number of state variable arrays
 
       integer (kind=int_kind) ::     &
@@ -680,6 +699,11 @@
          this_block           ! block information for current block
 
       call ice_timer_start(timer_advect)  ! advection 
+
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       narr = 1 + ncat*(3+ntrcr) ! max number of state variable arrays
 
@@ -808,9 +832,7 @@
                                    vicen,    vsnon,      &
                                    aim,      trm)
 
-      use ice_constants, only: c0, c1, rhos, Lfresh, puny
       use ice_domain_size, only: ncat, nslyr
-      use icepack_intfc_tracers, only: nt_qsno
 
       integer (kind=int_kind), intent(in) ::     &
            nx_block, ny_block, & ! block dimensions
@@ -842,11 +864,15 @@
       ! local variables
 
       integer (kind=int_kind) ::     &
+           nt_qsno      ,&!
            i, j, n      ,&! standard indices
            it, kt       ,&! tracer indices
            ij             ! combined i/j index
 
       real (kind=dbl_kind) ::     &
+           puny         ,&!
+           rhos         ,&!
+           Lfresh       ,&!
            w1             ! work variable
 
       integer (kind=int_kind), dimension(nx_block*ny_block,0:ncat) ::  &
@@ -855,6 +881,13 @@
 
       integer (kind=int_kind), dimension(0:ncat) ::     &
            icells         ! number of cells with ice
+
+      call icepack_query_constants(puny_out=puny, rhos_out=rhos, &
+           Lfresh_out=Lfresh)
+      call icepack_query_tracer_indices(nt_qsno_out=nt_qsno)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       aim(:,:,0) = aice0(:,:)
 
@@ -927,9 +960,7 @@
                                    trcrn,                &
                                    vicen,    vsnon)
 
-      use ice_constants, only: c0, rhos, Lfresh
       use ice_domain_size, only: ncat, nslyr
-      use icepack_intfc_tracers, only: nt_qsno
 
       integer (kind=int_kind), intent(in) ::     &
            nx_block, ny_block, & ! block dimensions
@@ -961,13 +992,24 @@
       ! local variables
 
       integer (kind=int_kind) ::     &
+           nt_qsno         ,&!
            i, j, k, n      ,&! standard indices
            it, kt          ,&! tracer indices
            icells          ,&! number of cells with ice
            ij
 
+      real (kind=dbl_kind) :: &
+           rhos, &
+           Lfresh
+
       integer (kind=int_kind), dimension (nx_block*ny_block) ::     &
            indxi, indxj      ! compressed indices
+
+      call icepack_query_constants(rhos_out=rhos, Lfresh_out=Lfresh)
+      call icepack_query_tracer_indices(nt_qsno_out=nt_qsno)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       aice0(:,:) = aim(:,:,0)
 
@@ -1027,8 +1069,6 @@
                                       asum_init,  asum_final,     &
                                       atsum_init, atsum_final)
 
-      use ice_constants, only: puny
-
       real (kind=dbl_kind), intent(in) ::     &
          asum_init   ,&! initial global ice area
          asum_final    ! final global ice area
@@ -1046,8 +1086,13 @@
            nt            ! tracer index
 
       real (kind=dbl_kind) ::     &
+           puny        ,&!
            diff          ! difference between initial and final values
 
+      call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (asum_init > puny) then
          diff = asum_final - asum_init
@@ -1101,8 +1146,6 @@
                                 trm,                    &
                                 tmin,     tmax,         &
                                 aimask,   trmask)
-
-      use ice_constants, only: c1
 
       integer (kind=int_kind), intent(in) ::     &
            nx_block, ny_block,&! block dimensions
@@ -1263,8 +1306,6 @@
                                      l_stop,                 &
                                      istop,    jstop)
 
-      use ice_constants, only: c1, puny
-
       integer (kind=int_kind), intent(in) ::     &
            nx_block, ny_block,&! block dimensions
            ilo,ihi,jlo,jhi     ! beginning and end of physical domain
@@ -1295,10 +1336,16 @@
            nt, nt1, nt2     ! tracer indices
 
       real (kind=dbl_kind) ::     &
+           puny         ,&!
            w1, w2         ! work variables
 
       logical (kind=log_kind), dimension (nx_block, ny_block) ::   &
            l_check        ! if true, check monotonicity
+
+      call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do nt = 1, ntrace
 
@@ -1402,8 +1449,6 @@
                                 aice0,    works)
 
       use ice_domain_size, only: ncat
-      use icepack_intfc_tracers, only: nt_alvl, nt_apnd, nt_fbri, &
-                           tr_pond_cesm, tr_pond_lvl, tr_pond_topo
 
       integer (kind=int_kind), intent(in) ::     &
          nx_block, ny_block, & ! block dimensions
@@ -1433,9 +1478,23 @@
 
       ! local variables
 
+      integer (kind=int_kind) :: &
+         nt_alvl, nt_apnd, nt_fbri
+
+      logical (kind=log_kind) :: &
+         tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+
       integer (kind=int_kind) ::      &
          i, j, n, it    ,&! counting indices
          narrays          ! counter for number of state variable arrays
+
+      call icepack_query_tracer_flags(tr_pond_cesm_out=tr_pond_cesm, &
+           tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+      call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, &
+           nt_fbri_out=nt_fbri)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! This array is used for performance (balance memory/cache vs
@@ -1542,7 +1601,6 @@
                                 aice0,    works)
 
       use ice_domain_size, only: ncat
-      use icepack_intfc_tracers, only: icepack_compute_tracers
 
       integer (kind=int_kind), intent (in) ::                       &
          nx_block, ny_block, & ! block dimensions
@@ -1635,6 +1693,10 @@
 
       enddo                     ! ncat
 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       end subroutine work_to_state
 
 !=======================================================================
@@ -1648,8 +1710,6 @@
                                uee,      vnn,        &
                                HTE,      HTN,        &
                                tarea)
-
-      use ice_constants, only: p5
 
       integer (kind=int_kind), intent (in) ::     &
          nx_block, ny_block ,&! block dimensions

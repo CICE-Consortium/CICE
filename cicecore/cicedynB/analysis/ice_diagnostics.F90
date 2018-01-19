@@ -15,15 +15,20 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0
       use ice_calendar, only: diagfreq, istep1, istep
-      use icepack_intfc_shared, only: max_aero
       use ice_fileunits, only: nu_diag
+      use ice_fileunits, only: flush_fileunit
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_max_aero
+      use icepack_intfc, only: icepack_query_constants, icepack_query_parameters
+      use icepack_intfc, only: icepack_query_tracer_flags
+      use icepack_intfc, only: icepack_query_tracer_indices
 
       implicit none
       private
       public :: runtime_diags, init_mass_diags, init_diags, &
                 print_state, print_points_state, diagnostic_abort
 
-      save
 
       ! diagnostic output file
       character (len=char_len), public :: diag_file
@@ -75,7 +80,7 @@
          toten            , & ! total ice/snow energy (J)
          totes                ! total ice/snow energy (J)
 
-      real (kind=dbl_kind), dimension(max_aero) :: &
+      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
          totaeron         , & ! total aerosol mass
          totaeros             ! total aerosol mass
 
@@ -105,13 +110,10 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
-      use icepack_intfc_shared, only: calc_Tsfc, ktherm
-      use ice_constants, only: c1, c1000, c2, p001, p5, puny, rhoi, rhos, rhow, &
-          rhofresh, Tffresh, Lfresh, Lvap, ice_ref_salinity, field_loc_center, &
-          m2_to_km2, awtvdr, awtidr, awtvdf, awtidf
+      use ice_constants, only: c1, c1000, c2, p001, p5, &
+          field_loc_center, m2_to_km2
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: ncat, n_aero, max_blocks
-      use ice_fileunits, only: flush_fileunit
       use ice_flux, only: alvdr, alidr, alvdf, alidf, evap, fsnow, frazil, &
           fswabs, fswthru, flw, flwout, fsens, fsurf, flat, frzmlt_init, frain, fpond, &
           coszen, fhocn_ai, fsalt_ai, fresh_ai, frazil_diag, &
@@ -123,7 +125,6 @@
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
       use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_type
       use ice_state   ! everything
-      use icepack_intfc_tracers ! everything
 #ifdef CCSMCOUPLED
       use ice_prescribed_mod, only: prescribed_ice
 #endif
@@ -134,7 +135,16 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, n, iblk
+         i, j, n, iblk, &
+         ktherm, &
+         nt_tsfc, nt_aero, nt_fbri, nt_apnd, nt_hpnd
+
+      logical (kind=log_kind) :: &
+         tr_pond_topo, tr_brine, tr_aero, calc_Tsfc
+
+      real (kind=dbl_kind) :: &
+         rhow, rhos, rhoi, puny, awtvdr, awtidr, awtvdf, awtidf, &
+         rhofresh, lfresh, lvap, ice_ref_salinity, Tffresh
 
       ! hemispheric state quantities
       real (kind=dbl_kind) :: &
@@ -156,7 +166,7 @@
          deleis, werrs, herrs, mslts, delmslts, serrs
 
       ! aerosol diagnostics
-      real (kind=dbl_kind), dimension(max_aero) :: &
+      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
          faeran, faeron, aerrn, &
          faeras, faeros, aerrs, &
          aeromx1n, aeromx1s, &
@@ -172,6 +182,20 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2
+
+      call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
+      call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
+           tr_pond_topo_out=tr_pond_topo)
+      call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_Tsfc_out=nt_Tsfc, &
+           nt_aero_out=nt_aero, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
+      call icepack_query_constants(Tffresh_out=Tffresh, rhos_out=rhos, &
+           rhow_out=rhow, rhoi_out=rhoi, puny_out=puny, &
+           awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf, &
+           rhofresh_out=rhofresh, lfresh_out=lfresh, lvap_out=lvap, &
+           ice_ref_salinity_out=ice_ref_salinity)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! state of the ice
@@ -979,22 +1003,34 @@
       subroutine init_mass_diags
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: field_loc_center, rhofresh, rhoi, rhos
+      use ice_constants, only: field_loc_center
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: n_aero, ncat, max_blocks
       use ice_global_reductions, only: global_sum
       use ice_grid, only: tareas, tarean
       use ice_state, only: aicen, vice, vsno, trcrn, trcr
-      use icepack_intfc_tracers, only: tr_aero, nt_aero, tr_pond_topo, &
-          nt_apnd, nt_hpnd
 
-      integer (kind=int_kind) :: n, i, j, iblk
+      integer (kind=int_kind) :: n, i, j, iblk, &
+         nt_hpnd, nt_apnd, nt_aero
+
+      logical (kind=log_kind) :: &
+         tr_aero, tr_pond_topo
 
       real (kind=dbl_kind) :: &
-         shmaxn, snwmxn,  shmaxs, snwmxs, totpn, totps
+         shmaxn, snwmxn,  shmaxs, snwmxs, totpn, totps, &
+         rhoi, rhos, rhofresh
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
+
+      call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_pond_topo_out=tr_pond_topo)
+      call icepack_query_tracer_indices( &
+         nt_hpnd_out=nt_hpnd, nt_apnd_out=nt_apnd, nt_aero_out=nt_aero)
+      call icepack_query_constants( &
+         rhoi_out=rhoi, rhos_out=rhos, rhofresh_out=rhofresh)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! total ice volume
       shmaxn = global_sum(vice, distrb_info, field_loc_center, tarean)
@@ -1091,7 +1127,6 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks
       use ice_grid, only: tmask
       use ice_state, only: vicen, vsnon, trcrn
-      use icepack_intfc_tracers, only: nt_qice, nt_qsno
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks),  &
          intent(out) :: &
@@ -1107,7 +1142,13 @@
         indxj
 
       integer (kind=int_kind) :: &
-        i, j, k, n, iblk, ij
+        i, j, k, n, iblk, ij, &
+        nt_qice, nt_qsno
+
+      call icepack_query_tracer_indices(nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
@@ -1172,7 +1213,6 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks
       use ice_grid, only: tmask
       use ice_state, only: vicen, trcrn
-      use icepack_intfc_tracers, only: nt_sice
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks),  &
          intent(out) :: &
@@ -1188,7 +1228,13 @@
         indxj
 
       integer (kind=int_kind) :: &
-        i, j, k, n, iblk, ij
+        i, j, k, n, iblk, ij, &
+        nt_sice
+
+      call icepack_query_tracer_indices(nt_sice_out=nt_sice)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
@@ -1241,11 +1287,13 @@
 
       use ice_grid, only: hm, TLAT, TLON
       use ice_blocks, only: block, get_block
-      use ice_constants, only: c180, c360, p5, rad_to_deg, puny
+      use ice_constants, only: c180, c360, p5
       use ice_domain, only: blocks_ice, distrb_info, nblocks
       use ice_global_reductions, only: global_minval, global_maxval
 
       real (kind=dbl_kind) :: &
+         rad_to_deg, &
+         puny, &
          latdis  , & ! latitude distance
          londis  , & ! longitude distance
          totdis  , & ! total distance
@@ -1263,6 +1311,11 @@
 
 !tcraig, do this all the time now for print_points_state usage
 !      if (print_points) then
+
+         call icepack_query_constants(puny_out=puny, rad_to_deg_out=rad_to_deg)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+            file=__FILE__, line=__LINE__)
 
          if (my_task==master_task) then
             write(nu_diag,*) ' '
@@ -1374,11 +1427,9 @@
       subroutine print_state(plabel,i,j,iblk)
 
       use ice_blocks, only: block, get_block
-      use ice_constants, only: puny, rhoi, rhos, Lfresh, cp_ice
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr
       use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, trcrn
-      use icepack_intfc_tracers, only: nt_Tsfc, nt_qice, nt_qsno
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
           frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltx, strtlty
@@ -1393,12 +1444,22 @@
 
       real (kind=dbl_kind) :: &
            eidebug, esdebug, &
-           qi, qs, Tsnow
+           qi, qs, Tsnow, &
+           rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
-      integer (kind=int_kind) :: n, k
+      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno
 
       type (block) :: &
          this_block           ! block information for current block
+
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
+           nt_qsno_out=nt_qsno)
+      call icepack_query_constants( &
+           rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
+           rhos_out=rhos, cp_ice_out=cp_ice)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)         
 
@@ -1508,11 +1569,9 @@
       subroutine print_points_state(plabel,ilabel)
 
       use ice_blocks, only: block, get_block
-      use ice_constants, only: puny, rhoi, rhos, Lfresh, cp_ice
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr
       use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, trcrn
-      use icepack_intfc_tracers, only: nt_Tsfc, nt_qice, nt_qsno
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
           frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltx, strtlty
@@ -1524,15 +1583,23 @@
 
       real (kind=dbl_kind) :: &
            eidebug, esdebug, &
-           qi, qs, Tsnow
+           qi, qs, Tsnow, &
+           puny
 
-      integer (kind=int_kind) :: m, n, k, i, j, iblk
+      integer (kind=int_kind) :: m, n, k, i, j, iblk, nt_Tsfc, nt_qice, nt_qsno
       character(len=256) :: llabel
 
       type (block) :: &
          this_block           ! block information for current block
 
       ! ----------------------
+
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
+           nt_qsno_out=nt_qsno)
+      call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do m = 1, npnt
       if (my_task == pmloc(m)) then
@@ -1644,10 +1711,7 @@
 
       use ice_blocks, only: block, get_block
       use ice_communicate, only: my_task
-      use ice_constants, only: rad_to_deg
       use ice_domain, only: blocks_ice
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_diag
       use ice_grid, only: TLAT, TLON
       use ice_state, only: aice
 
@@ -1660,8 +1724,15 @@
 
       ! local variables
 
+      real (kind=dbl_kind) :: rad_to_deg
+
       type (block) :: &
          this_block      ! block information for current block
+
+      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)         
 

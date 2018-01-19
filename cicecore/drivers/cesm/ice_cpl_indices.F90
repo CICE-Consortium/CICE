@@ -5,7 +5,6 @@ module ice_cpl_indices
 
   implicit none
 
-  SAVE
   public                               ! By default make data private
 
   ! ice -> drv 

@@ -27,6 +27,9 @@
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_constants
 
       implicit none
       private
@@ -42,7 +45,7 @@
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public, save :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          dxt    , & ! width of T-cell through the middle (m)
          dyt    , & ! height of T-cell through the middle (m)
          dxu    , & ! width of U-cell through the middle (m)
@@ -66,7 +69,7 @@
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public, save :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          cyp    , & ! 1.5*HTE - 0.5*HTE
          cxp    , & ! 1.5*HTN - 0.5*HTN
          cym    , & ! 0.5*HTE - 1.5*HTE
@@ -75,14 +78,14 @@
          dyhx       ! 0.5*(HTN - HTN)
 
       ! Corners of grid boxes for history output
-      real (kind=dbl_kind), dimension (4,nx_block,ny_block,max_blocks), public, save :: &
+      real (kind=dbl_kind), dimension (4,nx_block,ny_block,max_blocks), public :: &
          lont_bounds, & ! longitude of gridbox corners for T point
          latt_bounds, & ! latitude of gridbox corners for T point
          lonu_bounds, & ! longitude of gridbox corners for U point
          latu_bounds    ! latitude of gridbox corners for U point       
 
       ! geometric quantities used for remapping transport
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public, save :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          xav  , & ! mean T-cell value of x
          yav  , & ! mean T-cell value of y
          xxav , & ! mean T-cell value of xx
@@ -95,21 +98,21 @@
 !         yyyav    ! mean T-cell value of yyy
 
       real (kind=dbl_kind), &
-         dimension (2,2,nx_block,ny_block,max_blocks), public, save :: &
+         dimension (2,2,nx_block,ny_block,max_blocks), public :: &
          mne, & ! matrices used for coordinate transformations in remapping
          mnw, & ! ne = northeast corner, nw = northwest, etc.
          mse, & 
          msw
 
       ! masks
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public, save :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
          uvm    , & ! land/boundary mask, velocity (U-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), &
-         dimension (nx_block,ny_block,max_blocks), public, save :: &
+         dimension (nx_block,ny_block,max_blocks), public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
          umask  , & ! land/boundary mask, velocity (U-cell)
          lmask_n, & ! northern hemisphere mask
@@ -120,7 +123,7 @@
          dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
          dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public, save :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          rndex_global       ! global index for local subdomain (dbl)
 
 !=======================================================================
@@ -138,7 +141,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_array
-      use ice_constants, only: c1, rad_to_deg, puny
+      use ice_constants, only: c1
       use ice_domain_size, only: max_blocks
 
       integer (kind=int_kind) :: &
@@ -151,9 +154,17 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1, work_g2
 
+      real (kind=dbl_kind) :: &
+         rad_to_deg
+
       !-----------------------------------------------------------------
       ! Get global ULAT and KMT arrays used for block decomposition.
       !-----------------------------------------------------------------
+
+      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       allocate(work_g1(nx_global,ny_global))
       allocate(work_g2(nx_global,ny_global))
@@ -239,18 +250,18 @@
       subroutine init_grid2
 
       use ice_blocks, only: get_block, block, nx_block, ny_block
-      use ice_constants, only: c0, c1, c2, pi, pi2, puny, p5, p25, c1p5, &
+      use ice_constants, only: c0, c1, c2, p5, p25, c1p5, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector, field_type_angle
       use ice_domain_size, only: max_blocks
-      use ice_exit, only: abort_ice
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi      ! beginning and end of physical domain
 
       real (kind=dbl_kind) :: &
-         angle_0, angle_w, angle_s, angle_sw
+         angle_0, angle_w, angle_s, angle_sw, &
+         pi, pi2, puny
 
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
@@ -264,6 +275,11 @@
       !-----------------------------------------------------------------
       ! lat, lon, cell widths, angle, land mask
       !-----------------------------------------------------------------
+
+      call icepack_query_constants(pi_out=pi, pi2_out=pi2, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
@@ -499,7 +515,7 @@
       subroutine popgrid
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, pi, &
+      use ice_constants, only: c0, c1, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
@@ -617,7 +633,7 @@
 
 #ifdef ncdf
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, pi, pi2, rad_to_deg, puny, p5, p25, &
+      use ice_constants, only: c0, c1, p5, p25, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
@@ -633,6 +649,9 @@
       character (char_len) :: &
          fieldname		! field name in netCDF file
 
+      real (kind=dbl_kind) :: &
+         pi
+
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
 
@@ -641,6 +660,11 @@
 
       type (block) :: &
          this_block           ! block information for current block
+
+      call icepack_query_constants(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call ice_open_nc(grid_file,fid_grid)
       call ice_open_nc(kmt_file,fid_kmt)
@@ -745,9 +769,8 @@
 #ifdef CCSMCOUPLED
       use ice_scam, only : scmlat, scmlon, single_column
 #endif
-      use ice_constants, only: c0, c1, pi, pi2, rad_to_deg, puny, p5, p25, &
+      use ice_constants, only: c0, c1, p5, p25, &
           field_loc_center, field_type_scalar, radius
-      use ice_exit, only: abort_ice
       use netcdf
 
       integer (kind=int_kind) :: &
@@ -787,6 +810,7 @@
 
       real (kind=dbl_kind) :: &
          pos_scmlon,&         ! temporary
+         pi, &
          scamdata             ! temporary
 
       !-----------------------------------------------------------------
@@ -796,6 +820,11 @@
       ! - Read in ocean from "kmt" file (1 for ocean, 0 for land)
       !-----------------------------------------------------------------
 #ifdef CCSMCOUPLED
+
+      call icepack_query_constants(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! Determine dimension of domain file and check for consistency
 
@@ -1011,16 +1040,17 @@
       subroutine rectgrid
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, rad_to_deg, c2, radius, cm_to_m, &
+      use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
       use ice_domain_size, only: max_blocks
-      use ice_exit, only: abort_ice
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
          imid, jmid
 
-      real (kind=dbl_kind) :: length
+      real (kind=dbl_kind) :: &
+         length, &
+         rad_to_deg
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1028,6 +1058,11 @@
       !-----------------------------------------------------------------
       ! Calculate various geometric 2d arrays
       !-----------------------------------------------------------------
+
+      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
@@ -1179,7 +1214,7 @@
       subroutine cpomgrid
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, rad_to_deg, m_to_cm, &
+      use ice_constants, only: c0, c1, m_to_cm, &
           field_loc_NEcorner, field_type_scalar
       use ice_domain_size, only: max_blocks
 
@@ -1195,8 +1230,16 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      real (kind=dbl_kind) :: &
+         rad_to_deg
+
       type (block) :: &
            this_block           ! block information for current block
+
+      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call ice_open(nu_grid,grid_file,64)
       call ice_open(nu_kmt,kmt_file,32)
@@ -1421,15 +1464,23 @@
 
       subroutine makemask
 
-      use ice_constants, only: c0, puny, p5, &
+      use ice_constants, only: c0, p5, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi      ! beginning and end of physical domain
 
+      real (kind=dbl_kind) :: &
+         puny
+
       type (block) :: &
          this_block           ! block information for current block
+
+      call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (kmt,               halo_info, &
@@ -1520,20 +1571,25 @@
 
       subroutine Tlatlon
 
-      use ice_constants, only: c0, c1, rad_to_deg, c2, c4, &
+      use ice_constants, only: c0, c1, c2, c4, &
           field_loc_center, field_type_scalar
       use ice_global_reductions, only: global_minval, global_maxval
-      save 
 
       integer (kind=int_kind) :: &
            i, j, iblk       , & ! horizontal indices
            ilo,ihi,jlo,jhi      ! beginning and end of physical domain
 
       real (kind=dbl_kind) :: &
-           z1,x1,y1,z2,x2,y2,z3,x3,y3,z4,x4,y4,tx,ty,tz,da
+           z1,x1,y1,z2,x2,y2,z3,x3,y3,z4,x4,y4,tx,ty,tz,da, &
+           rad_to_deg
 
       type (block) :: &
            this_block           ! block information for current block
+
+      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       TLAT(:,:,:) = c0
       TLON(:,:,:) = c0
@@ -1830,7 +1886,7 @@
       subroutine gridbox_corners
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0,  rad_to_deg, c2, c360, &
+      use ice_constants, only: c0,  c2, c360, &
           field_loc_NEcorner, field_type_scalar
       use ice_domain_size, only: max_blocks
 
@@ -1844,8 +1900,16 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      real (kind=dbl_kind) :: &
+         rad_to_deg
+
       type (block) :: &
          this_block           ! block information for current block
+
+      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-------------------------------------------------------------
       ! Get coordinates of grid boxes for each block as follows:
@@ -2010,7 +2074,7 @@
       subroutine gridbox_verts(work_g,vbounds)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, rad_to_deg, c2, &
+      use ice_constants, only: c0, c2, &
           field_loc_NEcorner, field_type_scalar
       use ice_domain_size, only: max_blocks
 
@@ -2023,11 +2087,19 @@
       integer (kind=int_kind) :: &
           i,j                 ! index counters
 
+      real (kind=dbl_kind) :: &
+          rad_to_deg
+
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
+
+      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
          allocate(work_g2(nx_global,ny_global))
@@ -2118,8 +2190,6 @@
 
       subroutine get_bathymetry
 
-      use ice_constants, only: puny
-
       integer (kind=int_kind) :: &
          i, j, k, iblk      ! loop indices
 
@@ -2128,6 +2198,9 @@
 
       real (kind=dbl_kind), dimension(nlevel) :: &
          depth              ! total depth, m
+
+      real (kind=dbl_kind) :: &
+         puny
 
       real (kind=dbl_kind), dimension(nlevel), parameter :: &
          thick  = (/ &                        ! ocean layer thickness, m
@@ -2145,6 +2218,11 @@
             250.0000_dbl_kind,  250.0000_dbl_kind,  250.0000_dbl_kind, &
             250.0000_dbl_kind,  250.0000_dbl_kind,  250.0000_dbl_kind, &
             250.0000_dbl_kind   /)
+
+      call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! convert to total depth
       depth(1) = thick(1)
@@ -2179,7 +2257,6 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks
       use ice_read_write
-      use ice_fileunits, only: nu_diag
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_type_scalar
 

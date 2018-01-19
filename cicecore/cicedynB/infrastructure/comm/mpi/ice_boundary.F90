@@ -21,7 +21,9 @@
          field_loc_center,  field_loc_NEcorner, &
          field_loc_Nface, field_loc_Eface
    use ice_global_reductions, only: global_maxval
+   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    use ice_blocks, only: nx_block, ny_block, nghost, &
            nblocks_tot, ice_blocksNorth, &

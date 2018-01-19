@@ -16,11 +16,13 @@
    use ice_blocks, only: block, get_block, nblocks_tot, nx_block, ny_block
    use ice_communicate, only: my_task, mpiR8, mpiR4, master_task
    use ice_constants, only: field_loc_Nface, field_loc_NEcorner
-   use ice_fileunits, only: bfbflag
+   use ice_fileunits, only: bfbflag, nu_diag
+   use ice_exit, only: abort_ice
    use ice_distribution, only: distrb, ice_distributionGet, &
        ice_distributionGetBlockID
    use ice_domain_size, only: nx_global, ny_global, max_blocks
    use ice_gather_scatter, only: gather_global
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private

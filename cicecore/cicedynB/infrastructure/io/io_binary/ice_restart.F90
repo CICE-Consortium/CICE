@@ -15,15 +15,15 @@
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lenstr
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
+      use icepack_intfc, only: tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
                              tr_pond_topo, tr_pond_lvl, tr_brine, nbtrcr
-      use icepack_intfc_shared, only: solve_zsal
+      use icepack_intfc, only: solve_zsal
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
                 read_restart_field, write_restart_field, final_restart
-      save
 
 !=======================================================================
 

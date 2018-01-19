@@ -13,11 +13,12 @@
 
    use ice_kinds_mod
    use ice_domain_size, only: block_size_x, block_size_y
+   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private
-   save
 
    type, public :: block   ! block data type
       integer (int_kind) :: &
@@ -114,7 +115,6 @@ contains
 !  This subroutine decomposes the global domain into blocks and
 !  fills the data structures with all the necessary block information.
 
-   use ice_fileunits, only: nu_diag
    use ice_communicate, only: my_task, master_task
 
    integer (int_kind), intent(in) :: &

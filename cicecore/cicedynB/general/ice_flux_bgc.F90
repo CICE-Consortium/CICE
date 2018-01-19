@@ -9,36 +9,39 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
-      use icepack_intfc_shared, only: max_aero, max_nbtrcr, &
-                max_algae, max_doc, max_don, max_dic, max_fe
       use ice_domain_size, only: max_blocks, ncat
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_max_aero, icepack_max_nbtrcr, &
+          icepack_max_algae, icepack_max_doc, icepack_max_don, icepack_max_dic, icepack_max_fe, &
+          icepack_query_tracer_indices, icepack_query_tracer_flags, icepack_query_parameters
 
       implicit none
       private
 
       public :: bgcflux_ice_to_ocn 
-      save
 
       ! in from atmosphere
 
       real (kind=dbl_kind), &   !coupling variable for both tr_aero and tr_zaero
-         dimension (nx_block,ny_block,max_aero,max_blocks), public :: &
+         dimension (nx_block,ny_block,icepack_max_aero,max_blocks), public :: &
          faero_atm   ! aerosol deposition rate (kg/m^2 s)   
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,max_nbtrcr,max_blocks), public :: &
+         dimension (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), public :: &
          flux_bio_atm  ! all bio fluxes to ice from atmosphere
 
       ! in from ocean
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,max_aero,max_blocks), public :: &
+         dimension (nx_block,ny_block,icepack_max_aero,max_blocks), public :: &
          faero_ocn   ! aerosol flux to ocean  (kg/m^2/s)
 
       ! out to ocean 
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,max_nbtrcr,max_blocks), public :: &
+         dimension (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), public :: &
          flux_bio   , & ! all bio fluxes to ocean
          flux_bio_ai    ! all bio fluxes to ocean, averaged over grid cell
 
@@ -70,27 +73,27 @@
          fhum       , & ! ice-ocean humic material carbon (mmol/m^2/s), positive to ocean
          fdust          ! ice-ocean dust flux (kg/m^2/s), positive to ocean
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_algae, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_algae, max_blocks), public :: &
          algalN     , & ! ocean algal nitrogen (mmol/m^3) (diatoms, pico, phaeo)
          falgalN        ! ice-ocean algal nitrogen flux (mmol/m^2/s) (diatoms, pico, phaeo)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_doc, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_doc, max_blocks), public :: &
          doc         , & ! ocean doc (mmol/m^3)  (saccharids, lipids, tbd )
          fdoc            ! ice-ocean doc flux (mmol/m^2/s)  (saccharids, lipids, tbd)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_don, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_don, max_blocks), public :: &
          don         , & ! ocean don (mmol/m^3) (proteins and amino acids)
          fdon            ! ice-ocean don flux (mmol/m^2/s) (proteins and amino acids)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_dic, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_dic, max_blocks), public :: &
          dic         , & ! ocean dic (mmol/m^3) 
          fdic            ! ice-ocean dic flux (mmol/m^2/s) 
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_fe, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_fe, max_blocks), public :: &
          fed, fep    , & ! ocean dissolved and particulate fe (nM) 
          ffed, ffep      ! ice-ocean dissolved and particulate fe flux (umol/m^2/s) 
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_aero, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_aero, max_blocks), public :: &
          zaeros          ! ocean aerosols (mmol/m^3) 
 
 !=======================================================================
@@ -114,12 +117,6 @@
                                   f_don,    f_fep,    &
                                   f_fed)
 
-      use icepack_intfc_shared, only: skl_bgc, solve_zbgc
-      use icepack_intfc_tracers, only: nlt_bgc_N, nlt_bgc_C, nlt_bgc_DOC, nlt_bgc_DON, &
-          nlt_bgc_DIC, nlt_bgc_Fed, nlt_bgc_Fep, nlt_zaero, nlt_bgc_Nit, nlt_bgc_Am, &
-          nlt_bgc_Sil, nlt_bgc_DMSPd, nlt_bgc_DMS, nlt_bgc_hum, tr_bgc_Nit, tr_bgc_N, &
-          tr_bgc_DON, tr_bgc_C, tr_bgc_Am, tr_bgc_Sil, tr_bgc_DMS, tr_bgc_Fe, &
-          tr_bgc_hum, tr_zaero
       use ice_constants, only: c0
       use ice_domain_size, only: n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep
     
@@ -151,6 +148,46 @@
          i,j         , & ! horizontal indices
          k               ! tracer index
    
+      logical (kind=log_kind) :: &
+          skl_bgc, solve_zbgc, &
+          tr_bgc_Nit, tr_bgc_N, &
+          tr_bgc_DON, tr_bgc_C, tr_bgc_Am, tr_bgc_Sil, tr_bgc_DMS, tr_bgc_Fe, &
+          tr_bgc_hum, tr_zaero
+
+      integer (kind=int_kind) :: &
+          nlt_bgc_Nit, nlt_bgc_Am, &
+          nlt_bgc_Sil, nlt_bgc_DMSPd, nlt_bgc_DMS, nlt_bgc_hum 
+
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+          nlt_bgc_N, nlt_bgc_C   ! algae
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &
+          nlt_bgc_DOC            ! disolved organic carbon
+      integer (kind=int_kind), dimension(icepack_max_don) :: &
+          nlt_bgc_DON            ! 
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &
+          nlt_bgc_DIC            ! disolved inorganic carbon
+      integer (kind=int_kind), dimension(icepack_max_fe) :: &
+          nlt_bgc_Fed, nlt_bgc_Fep  !
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+          nlt_zaero              ! non-reacting layer aerosols
+
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zbgc_out=solve_zbgc)
+      call icepack_query_tracer_flags( &
+          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_N_out=tr_bgc_N, &
+          tr_bgc_DON_out=tr_bgc_DON, tr_bgc_C_out=tr_bgc_C, tr_bgc_Am_out=tr_bgc_Am, &
+          tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_Fe_out=tr_bgc_Fe, &
+          tr_bgc_hum_out=tr_bgc_hum, tr_zaero_out=tr_zaero)
+      call icepack_query_tracer_indices( &
+          nlt_bgc_N_out=nlt_bgc_N, nlt_bgc_C_out=nlt_bgc_C, nlt_bgc_DOC_out=nlt_bgc_DOC, &
+          nlt_bgc_DON_out=nlt_bgc_DON, nlt_bgc_DIC_out=nlt_bgc_DIC, &
+          nlt_bgc_Fed_out=nlt_bgc_Fed, nlt_bgc_Fep_out=nlt_bgc_Fep, &
+          nlt_zaero_out=nlt_zaero, nlt_bgc_Nit_out=nlt_bgc_Nit, nlt_bgc_Am_out=nlt_bgc_Am, &
+          nlt_bgc_Sil_out=nlt_bgc_Sil, nlt_bgc_DMSPd_out=nlt_bgc_DMSPd, &
+          nlt_bgc_DMS_out=nlt_bgc_DMS, nlt_bgc_hum_out=nlt_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       f_nit    (:,:) = c0
       f_sil    (:,:) = c0
       f_amm    (:,:) = c0

@@ -3,7 +3,6 @@ module ice_scam
   use ice_kinds_mod
 
   implicit none
-  save
 
   ! single column control variables (only used for latlon grid)
 

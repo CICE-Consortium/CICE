@@ -9,10 +9,8 @@
       module ice_constants
 
       use ice_kinds_mod
-      use icepack_constants ! all constants needed for column package
 
       implicit none
-      save
 
       !-----------------------------------------------------------------
       ! physical constants
@@ -38,24 +36,51 @@
       !-----------------------------------------------------------------
 
       real (kind=dbl_kind), parameter, public :: &
+        c0   = 0.0_dbl_kind, &
+        c1   = 1.0_dbl_kind, &
+        c1p5 = 1.5_dbl_kind, &
+        c2   = 2.0_dbl_kind, &
+        c3   = 3.0_dbl_kind, &
+        c4   = 4.0_dbl_kind, &
+        c5   = 5.0_dbl_kind, &
+        c6   = 6.0_dbl_kind, &
+        c8   = 8.0_dbl_kind, &
         c9   = 9.0_dbl_kind, &
+        c10  = 10.0_dbl_kind, &
         c12  = 12.0_dbl_kind, &
+        c15  = 15.0_dbl_kind, &
+        c16  = 16.0_dbl_kind, &
+        c20  = 20.0_dbl_kind, &
+        c25  = 25.0_dbl_kind, &
         c30  = 30.0_dbl_kind, &
+        c100 = 100.0_dbl_kind, &
         c180 = 180.0_dbl_kind, &
         c360 = 360.0_dbl_kind, &
         c365 = 365.0_dbl_kind, &
 	c400 = 400.0_dbl_kind, &
+        c1000= 1000.0_dbl_kind, &
         c3600= 3600.0_dbl_kind, &
+        p001 = 0.001_dbl_kind, &
+        p01  = 0.01_dbl_kind, &
         p025 = 0.025_dbl_kind, &
-        p166 = c1/c6, &
+        p05  = 0.05_dbl_kind, &
+        p1   = 0.1_dbl_kind, &
+        p15  = 0.15_dbl_kind, &
+        p2   = 0.2_dbl_kind, &
+        p25  = 0.25_dbl_kind, &
+        p4   = 0.4_dbl_kind, &
+        p5   = 0.5_dbl_kind, &
+        p6   = 0.6_dbl_kind, &
+        p75  = 0.75_dbl_kind, &
         p111 = c1/c9, &
+        p166 = c1/c6, &
+        p222 = c2/c9, &
+        p333 = c1/c3, &
+        p666 = c2/c3, &
         p055 = p111*p5, &
         p027 = p055*p5, &
-        p222 = c2/c9, &
         eps13  = 1.0e-13_dbl_kind, &
-        eps16  = 1.0e-16_dbl_kind, &
-        piq    = p5*pih, &
-        pi2    = c2*pi
+        eps16  = 1.0e-16_dbl_kind
 
       !-----------------------------------------------------------------
       ! location of fields for staggered grids
@@ -91,8 +116,7 @@
         m_to_cm       = 100._dbl_kind   ,&! meters to cm
         m2_to_km2     = 1.e-6_dbl_kind  ,&! m^2 to km^2
         kg_to_g       = 1000._dbl_kind  ,&! kilograms to grams
-        mps_to_cmpdy  = 8.64e6_dbl_kind ,&! m per s to cm per day
-        rad_to_deg    = 180._dbl_kind/pi  ! degree-radian conversion
+        mps_to_cmpdy  = 8.64e6_dbl_kind   ! m per s to cm per day
 
 !=======================================================================
 

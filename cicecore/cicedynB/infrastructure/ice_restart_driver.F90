@@ -19,15 +19,23 @@
       module ice_restart_driver
 
       use ice_kinds_mod
+      use ice_arrays_column, only: oceanmixed_ice
+      use ice_constants, only: c0, c1, p5, &
+          field_loc_center, field_loc_NEcorner, &
+          field_type_scalar, field_type_vector
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64, lenstr
       use ice_restart
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_aggregate
+      use icepack_intfc, only: icepack_query_tracer_indices
 
       implicit none
       private
       public :: dumpfile, restartfile, restartfile_v4
-      save
 
 !=======================================================================
 
@@ -47,12 +55,9 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_calendar, only: sec, month, mday, nyr, istep1, &
                               time, time_forc, year_init
-      use icepack_intfc_shared, only: oceanmixed_ice
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1
       use ice_domain, only: nblocks
       use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
-      use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_dump
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           strocnxT, strocnyT, sst, frzmlt, iceumask, coszen, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -60,7 +65,6 @@
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_read_write, only: ice_open, ice_write
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel
-      use icepack_intfc_tracers, only: nt_Tsfc, nt_sice, nt_qice, nt_qsno
 
       character(len=char_len_long), intent(in), optional :: filename_spec
 
@@ -68,6 +72,7 @@
 
       integer (kind=int_kind) :: &
           i, j, k, n, iblk, &     ! counting indices
+          nt_Tsfc, nt_sice, nt_qice, nt_qsno, &
           iyear, imonth, iday     ! year, month, day
 
       character(len=char_len_long) :: filename
@@ -78,6 +83,12 @@
          work1
 
       character (len=3) :: nchar
+
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
+           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (present(filename_spec)) then
          call init_restart_write(filename_spec)
@@ -194,16 +205,10 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_blocks, only: nghost, nx_block, ny_block
       use ice_calendar, only: istep0, istep1, time, time_forc, calendar, npt
-      use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc_shared, only: oceanmixed_ice
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, p5, &
-          field_loc_center, field_loc_NEcorner, &
-          field_type_scalar, field_type_vector
       use ice_domain, only: nblocks, distrb_info, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_ntrcr, max_blocks
-      use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           strocnxT, strocnyT, sst, frzmlt, iceumask, coszen, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -215,7 +220,6 @@
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           trcr_base, nt_strata, n_trcr_strata
-      use icepack_intfc_tracers, only: nt_Tsfc, nt_sice, nt_qice, nt_qsno
 
       character (*), optional :: ice_ic
 
@@ -223,6 +227,7 @@
 
       integer (kind=int_kind) :: &
          i, j, k, n, iblk, &     ! counting indices
+         nt_Tsfc, nt_sice, nt_qice, nt_qsno, &
          iignore                 ! dummy variable
 
       real (kind=real_kind) :: &
@@ -241,6 +246,12 @@
          work_g1, work_g2
 
       character (len=3) :: nchar
+
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
+           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call init_restart_read(ice_ic)
 
@@ -511,6 +522,10 @@
       enddo
       !$OMP END PARALLEL DO
 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       ! if runid is bering then need to correct npt for istep0
       if (trim(runid) == 'bering') then
          npt = npt - istep0
@@ -528,16 +543,10 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_blocks, only: nghost, nx_block, ny_block
       use ice_calendar, only: istep0, istep1, time, time_forc, calendar, npt
-      use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc_shared, only: oceanmixed_ice
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, p5, &
-          field_loc_center, field_loc_NEcorner, &
-          field_type_scalar, field_type_vector
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_ntrcr, max_blocks
-      use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           strocnxT, strocnyT, sst, frzmlt, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -549,7 +558,6 @@
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           trcr_base, nt_strata, n_trcr_strata
-      use icepack_intfc_tracers, only: nt_Tsfc, nt_sice, nt_qice, nt_qsno
 
       character (*), optional :: ice_ic
 
@@ -557,6 +565,7 @@
 
       integer (kind=int_kind) :: &
          i, j, k, n, iblk, &     ! counting indices
+         nt_Tsfc, nt_sice, nt_qice, nt_qsno, &
          iignore                 ! dummy variable
 
       real (kind=real_kind) :: &
@@ -573,6 +582,12 @@
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1, work_g2
+
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
+           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (present(ice_ic)) then
          filename = ice_ic
@@ -861,6 +876,10 @@
 
       enddo
       !$OMP END PARALLEL DO
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! creates netcdf if restart_format = 'nc'
       filename = trim(restart_dir) // '/iced.converted'

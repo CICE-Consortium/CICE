@@ -14,17 +14,21 @@
 !  and not used anyhow).
 
    use ice_kinds_mod
-   use ice_constants, only: puny, shlat, nhlat, rad_to_deg
+   use ice_constants, only: shlat, nhlat, c180
    use ice_communicate, only: my_task, master_task, get_num_procs
    use ice_broadcast, only: broadcast_scalar
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
        nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block
    use ice_distribution, only: distrb
    use ice_boundary, only: ice_halo
+   use ice_exit, only: abort_ice
+   use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
+       get_fileunit, release_fileunit
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+   use icepack_intfc, only: icepack_query_constants
 
    implicit none
    private
-   save
 
    public  :: init_domain_blocks ,&
               init_domain_distribution
@@ -83,9 +87,6 @@
    use ice_distribution, only: processor_shape
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global
-   use ice_exit, only: abort_ice
-   use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
-       get_fileunit, release_fileunit
 
 !----------------------------------------------------------------------
 !
@@ -245,8 +246,6 @@
    use ice_boundary, only: ice_HaloCreate
    use ice_distribution, only: create_distribution, create_local_block_ids
    use ice_domain_size, only: max_blocks, nx_global, ny_global
-   use ice_exit, only: abort_ice
-   use ice_fileunits, only: nu_diag
 
    real (dbl_kind), dimension(nx_global,ny_global), intent(in) :: &
       KMTG           ,&! global topography
@@ -274,6 +273,10 @@
       nblocks_tmp        ,&! temporary value of nblocks
       nblocks_max          ! max blocks on proc
 
+   real (dbl_kind) :: &
+      puny, &              ! puny limit
+      rad_to_deg           ! radians to degrees
+
    integer (int_kind), dimension(:), allocatable :: &
       nocn               ,&! number of ocean points per block
       work_per_block       ! number of work units per block
@@ -288,6 +291,11 @@
 !  cells neighboring ocean points).  
 !
 !----------------------------------------------------------------------
+
+   call icepack_query_constants(puny_out=puny, rad_to_deg_out=rad_to_deg)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      file=__FILE__, line=__LINE__)
 
    if (trim(ns_boundary_type) == 'closed') then
       allocate(nocn(nblocks_tot))

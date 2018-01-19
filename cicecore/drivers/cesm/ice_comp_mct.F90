@@ -49,8 +49,8 @@ module ice_comp_mct
 		              sec, dt, dt_dyn, calendar,                 &
                               calendar_type, nextsw_cday, days_per_year, &
                               nyr, new_year, time2sec, year_init
-  use icepack_constants, only : eccen, obliqr, lambm0, mvelpp
-  use icepack_intfc_tracers, only: tr_zaero, tr_aero
+  use icepack_intfc, only : eccen, obliqr, lambm0, mvelpp
+  use icepack_intfc, only: tr_zaero, tr_aero
   use ice_timers
 
   use ice_kinds_mod,   only : int_kind, dbl_kind, char_len_long, log_kind
@@ -63,13 +63,14 @@ module ice_comp_mct
   use ice_global_reductions
   use ice_broadcast
   use CICE_RunMod
+  use ice_exit, only: abort_ice
+  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
 ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
   public :: ice_init_mct
   public :: ice_run_mct
   public :: ice_final_mct
-  SAVE
   private                              ! By default make data private
 !
 ! ! PUBLIC DATA:

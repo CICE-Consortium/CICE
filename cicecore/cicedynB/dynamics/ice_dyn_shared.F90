@@ -11,15 +11,18 @@
       module ice_dyn_shared
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, p01, p001, dragio, rhow
+      use ice_constants, only: c0, c1, p01, p001
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_constants
 
       implicit none
       private
       public :: init_evp, set_evp_parameters, stepu, principal_stress, &
                 evp_prep1, evp_prep2, evp_finish, basal_stress_coeff
-      save
 
       ! namelist parameters
 
@@ -91,7 +94,6 @@
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_state, only: uvel, vvel, divu, shear
       use ice_grid, only: ULAT, ULON
-      use ice_fileunits, only: nu_diag
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -171,7 +173,6 @@
       use ice_domain, only: distrb_info
       use ice_global_reductions, only: global_minval, global_maxval
       use ice_grid, only: dxt, dyt, tmask, tarea
-      use ice_fileunits, only: nu_diag
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -257,7 +258,7 @@
                             strairx,   strairy,  & 
                             tmass,     icetmask)
 
-      use ice_constants, only: c0, rhoi, rhos
+      use ice_constants, only: c0
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -290,8 +291,16 @@
       integer (kind=int_kind) :: &
          i, j
 
+      real (kind=dbl_kind) :: &
+         rhoi, rhos
+
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          tmphm               ! temporary mask
+
+      call icepack_query_constants(rhos_out=rhos, rhoi_out=rhoi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -384,7 +393,7 @@
                             uvel,       vvel,       &
                             Cbu)
 
-      use ice_constants, only: c0, c1, gravit
+      use ice_constants, only: c0, c1
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -667,11 +676,17 @@
          uold, vold        , & ! old-time uvel, vvel
          vrel              , & ! relative ice-ocean velocity
          cca,ccb,ab2,cc1,cc2,& ! intermediate variables
-         taux, tauy            ! part of ocean stress term          
+         taux, tauy        , & ! part of ocean stress term          
+         rhow                  !
 
       !-----------------------------------------------------------------
       ! integrate the momentum equation
       !-----------------------------------------------------------------
+
+      call icepack_query_constants(rhow_out=rhow)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do ij =1, icellu
          i = indxui(ij)
@@ -770,10 +785,15 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
-      real (kind=dbl_kind) :: vrel
+      real (kind=dbl_kind) :: vrel, rhow
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient 
+
+      call icepack_query_constants(rhow_out=rhow)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -902,7 +922,7 @@
                                   stress12_1, prs_sig,   &
                                   sig1,       sig2)
 
-      use ice_constants, only: spval_dbl, puny, p5, c4
+      use ice_constants, only: spval_dbl, p5, c4
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block  ! block dimensions
@@ -920,6 +940,13 @@
       ! local variables
 
       integer (kind=int_kind) :: i, j
+
+      real (kind=dbl_kind) :: puny
+
+      call icepack_query_constants(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
       do i = 1, nx_block
