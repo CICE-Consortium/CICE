@@ -1,0 +1,14 @@
+kcatbound = 1
+kitd    = 1
+ktherm  = 0
+conduct = 'bubbly'
+shortwave = 'ccsm3'
+albedo_type = 'constant'
+tfrz_option = 'minus1p8'
+default_season = 'fall'
+atm_data_type = 'default'
+formdrag = .true.
+tr_lvl = .true.
+tr_pond_cesm = .false.
+tr_pond_topo = .false.
+tr_pond_lvl  = .false.

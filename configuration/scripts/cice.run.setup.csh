@@ -4,7 +4,7 @@
 echo "running cice.run.setup.csh"
 
 source ./cice.settings
-source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
+source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 set jobfile = cice.run
 set subfile = cice.submit
@@ -28,7 +28,7 @@ cat >> ${jobfile} << EOF1
 
 cd ${ICE_CASEDIR}
 source ./cice.settings || exit 2
-source ./env.\${ICE_MACHINE} || exit 2
+source ./env.\${ICE_MACHCOMP} || exit 2
 
 echo " "
 echo "\${0}:"

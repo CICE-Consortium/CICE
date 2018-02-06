@@ -7,7 +7,7 @@ else
 endif
 
 source ./cice.settings
-source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
+source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 set jobfile = $1
 
@@ -16,6 +16,7 @@ set nthrds = ${ICE_NTHRDS}
 set maxtpn = ${ICE_MACHINE_TPNODE}
 set acct   = ${ICE_ACCOUNT}
 
+@ ncores = ${ntasks} * ${nthrds}
 @ taskpernode = ${maxtpn} / $nthrds
 @ nnodes = ${ntasks} / ${taskpernode}
 if (${nnodes} * ${taskpernode} < ${ntasks}) @ nnodes = $nnodes + 1
@@ -26,7 +27,7 @@ if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
 set ptile = $taskpernode
 if ($ptile > ${maxtpn} / 2) @ ptile = ${maxtpn} / 2
 
-set ICE_CASENAME_SHORT = `echo ${ICE_CASENAME} | cut -c 1-12`
+set shortcase = `echo ${ICE_CASENAME} | cut -c1-15`
 
 #==========================================
 
@@ -50,7 +51,7 @@ EOFB
 
 else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
 cat >> ${jobfile} << EOFB
-#PBS -N ${ICE_CASENAME_SHORT}
+#PBS -N ${shortcase}
 #PBS -q debug
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
@@ -60,7 +61,7 @@ cat >> ${jobfile} << EOFB
 ###PBS -m be
 EOFB
 
-else if (${ICE_MACHINE} =~ onyx* ) then
+else if (${ICE_MACHINE} =~ onyx*) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -q debug
@@ -77,7 +78,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH -p debug
 ###SBATCH -A ${acct}
-#SBATCH -N ${nnodes}
+#SBATCH -n ${ncores}
 #SBATCH -t ${ICE_RUNLENGTH}
 #SBATCH -L SCRATCH
 #SBATCH -C haswell
@@ -111,19 +112,6 @@ cat >> ${jobfile} << EOFB
 ###SBATCH --mail-type END,FAIL
 ###SBATCH --mail-user=eclare@lanl.gov
 #SBATCH --qos=standard
-EOFB
-
-else if (${ICE_MACHINE} =~ fram*) then
-cat >> ${jobfile} << EOFB
-#SBATCH -J ${ICE_CASENAME}
-#SBATCH -t ${ICE_RUNLENGTH}
-#SBATCH -A ${acct}
-#SBATCH -N ${nnodes}
-#SBATCH -e slurm%j.err
-#SBATCH -o slurm%j.out
-###SBATCH --mail-type END,FAIL
-###SBATCH --mail-user=armnjfl@ec.gc.ca
-#SBATCH --qos=standby
 EOFB
 
 else if (${ICE_MACHINE} =~ fram*) then

@@ -1,10 +1,14 @@
 #! /bin/csh -f
 
 source ./cice.settings
-source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
+source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 if (${ICE_MACHINE} != ${ICE_MACHINE_ENVNAME}) then
   echo "WARNING, is ICE_MACHINE setting OK, ${ICE_MACHINE}, ${ICE_MACHINE_ENVNAME}"
+endif
+
+if (${ICE_COMPILER} != ${ICE_MACHINE_COMPILER}) then
+  echo "WARNING, is ICE_COMPILER setting OK, ${ICE_COMPILER}, ${ICE_MACHINE_COMPILER}"
 endif
 
 echo " "
@@ -86,12 +90,14 @@ if (-e ${ICE_BLDLOG_FILE}) rm ${ICE_BLDLOG_FILE}
 
 if (${ICE_CLEANBUILD} == 'true') then
   echo "gmake clean"
-  ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack CPPDEFS="${ICE_CPPDEFS}" \
-      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHINE} clean | tee ${ICE_BLDLOG_FILE}
+  ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack \
+      CPPDEFS="${ICE_CPPDEFS}" \
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean | tee ${ICE_BLDLOG_FILE}
 endif
 
-${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice CPPDEFS="${ICE_CPPDEFS}" \
-      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHINE} | tee ${ICE_BLDLOG_FILE} 
+${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
+      CPPDEFS="${ICE_CPPDEFS}" \
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} | tee ${ICE_BLDLOG_FILE} 
 
 if ($status != 0) then
   echo "${0}: COMPILE FAILED, see"
