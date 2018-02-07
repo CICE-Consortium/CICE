@@ -1,8 +1,10 @@
 #! /bin/csh -f
 
-setenv ICE_MACHINE    undefined
 setenv ICE_CASENAME   undefined
 setenv ICE_SANDBOX    undefined
+setenv ICE_MACHINE    undefined
+setenv ICE_COMPILER   undefined
+setenv ICE_MACHCOMP   undefined
 setenv ICE_SCRIPTS    undefined
 setenv ICE_CASEDIR    undefined
 setenv ICE_RUNDIR     /glade/scratch/tcraig/CICE_RUNS/${ICE_CASENAME}
@@ -31,7 +33,7 @@ setenv ICE_BASEGEN    undefined
 setenv ICE_BASECOM    undefined
 setenv ICE_BFBCOMP    undefined
 setenv ICE_SPVAL      undefined
-setenv ICE_RUNLENGTH  00:10:00
+setenv ICE_RUNLENGTH  0
 setenv ICE_ACCOUNT    undefined
 
 #======================================================

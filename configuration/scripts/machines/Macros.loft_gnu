@@ -1,0 +1,57 @@
+#==============================================================================
+# Macros file for LANL osx, gfortran compiler (loft laptop)
+#==============================================================================
+
+CPP        := /usr/bin/cpp
+#CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise   -xHost
+
+FIXEDFLAGS := -132
+#FREEFLAGS  := -FR
+
+#gfortran flags
+FFLAGS     :=  -O2 -ffree-line-length-none -fconvert=big-endian -finit-real=nan
+#FFLAGS     :=  -O2 -ffree-line-length-none -fconvert=big-endian -finit-real=nan -Wall -Wextra -pedantic -fbacktrace -std=f2008
+
+#ifort flags
+#FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -Wextra -fbacktrace -fbounds-check -ffpe-trap=zero,overflow
+# ifort flags
+#  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+else
+  FFLAGS     += -O2
+endif
+
+ 	FC         := gfortran
+
+MPICC:= 
+
+MPIFC:= 
+LD:= $(FC)
+
+ifeq ($(ICE_IOTYPE), netcdf)
+  NETCDF_PATH := /usr/projects/climate/SHARED_CLIMATE/software/conejo/netcdf/3.6.3/intel-13.0.1
+  INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
+  LIB_NETCDF := $(NETCDF_PATH)/lib
+  LIB_PNETCDF := 
+  SLIBS   := -L$(LIB_NETCDF) -lnetcdf 
+else
+  SLIBS   := 
+endif
+
+LIB_MPI := 
+SCC:= 
+SFC:= 
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -openmp
+   CFLAGS += -openmp
+   FFLAGS += -openmp
+endif
+
+

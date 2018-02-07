@@ -1,7 +1,7 @@
 #! /bin/csh -f
 
 source ./cice.settings
-source ${ICE_CASEDIR}/env.${ICE_MACHINE} || exit 2
+source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 set jobfile = cice.test
 set subfile = cice.submit
@@ -31,7 +31,7 @@ cat >> ${jobfile} << EOF2
 
 cd ${ICE_CASEDIR}
 source ./cice.settings || exit 2
-source ./env.\${ICE_MACHINE} || exit 2
+source ./env.\${ICE_MACHCOMP} || exit 2
 
 # Check to see if executable exists in ICE_RUNDIR
 if ( ! -f ${ICE_RUNDIR}/cice ) then
@@ -56,7 +56,7 @@ chmod +x ${jobfile}
 cat >! ${subfile} << EOFS
 #!/bin/csh -f 
 
-${ICE_MACHINE_SUBMIT} ${jobfile}
+${ICE_MACHINE_SUBMIT} ./${jobfile}
 echo "\`date\` \${0}: ${ICE_CASENAME} job submitted"  >> ${ICE_CASEDIR}/README.case
 
 EOFS
