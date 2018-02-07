@@ -27,6 +27,13 @@ if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
 set ptile = $taskpernode
 if ($ptile > ${maxtpn} / 2) @ ptile = ${maxtpn} / 2
 
+set queue = "regular"
+set batchtime = "00:15:00"
+if (${ICE_RUNLENGTH} > 1) set batchtime = "00:29:00"
+if (${ICE_RUNLENGTH} > 2) set batchtime = "00:59:00"
+if (${ICE_RUNLENGTH} > 4) set batchtime = "4:00:00"
+if (${ICE_RUNLENGTH} > 8) set batchtime = "8:00:00"
+
 set shortcase = `echo ${ICE_CASENAME} | cut -c1-15`
 
 #==========================================
@@ -42,32 +49,36 @@ cat >> ${jobfile} << EOFB
 #PBS -j oe 
 #PBS -m ae 
 #PBS -V
-#PBS -q regular
+#PBS -q ${queue}
 #PBS -N ${ICE_CASENAME}
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
-#PBS -l walltime=${ICE_RUNLENGTH}
+#PBS -l walltime=${batchtime}
 EOFB
 
 else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
+set queue = "debug"
+if (${ICE_RUNLENGTH} > 1) set queue = "frontier"
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q debug
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=${ICE_RUNLENGTH}
+#PBS -l walltime=${batchtime}
 #PBS -j oe
 ###PBS -M username@domain.com
 ###PBS -m be
 EOFB
 
 else if (${ICE_MACHINE} =~ onyx*) then
+set queue = "debug"
+if (${ICE_RUNLENGTH} > 2) set queue = "frontier"
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -q debug
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=${ICE_RUNLENGTH}
+#PBS -l walltime=${batchtime}
 #PBS -j oe
 ###PBS -M username@domain.com
 ###PBS -m be
@@ -79,7 +90,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -p debug
 ###SBATCH -A ${acct}
 #SBATCH -n ${ncores}
-#SBATCH -t ${ICE_RUNLENGTH}
+#SBATCH -t ${batchtime}
 #SBATCH -L SCRATCH
 #SBATCH -C haswell
 ###SBATCH -e filename
@@ -91,7 +102,7 @@ EOFB
 else if (${ICE_MACHINE} =~ wolf*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -t ${ICE_RUNLENGTH}
+#SBATCH -t ${batchtime}
 #SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
@@ -104,7 +115,7 @@ EOFB
 else if (${ICE_MACHINE} =~ pinto*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -t ${ICE_RUNLENGTH}
+#SBATCH -t ${batchtime}
 #SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
@@ -117,7 +128,7 @@ EOFB
 else if (${ICE_MACHINE} =~ fram*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -t ${ICE_RUNLENGTH}
+#SBATCH -t ${batchtime}
 #SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err

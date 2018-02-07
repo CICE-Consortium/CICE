@@ -309,8 +309,8 @@ EOF0
   set ctime = `date -u "+%H:%M:%S"`
   set vers = "unknown"
   set shhash = `echo ${hash} | cut -c 1-10`
-  if (-e columnphysics/version.txt) then
-    set vers = `head -1 columnphysics/version.txt`
+  if (-e cicecore/version.txt) then
+    set vers = `head -1 cicecore/version.txt`
   endif
 
 cat >! ./${tsdir}/results.csh << EOF0
