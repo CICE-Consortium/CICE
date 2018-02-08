@@ -209,7 +209,7 @@
          call define_rest_field(File,'uvel',dims)
          call define_rest_field(File,'vvel',dims)
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
          call define_rest_field(File,'coszen',dims)
 #endif
          call define_rest_field(File,'scale_factor',dims)

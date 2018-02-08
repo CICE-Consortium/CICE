@@ -125,7 +125,7 @@
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
       use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_type
       use ice_state   ! everything
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       use ice_prescribed_mod, only: prescribed_ice
 #endif
 
@@ -838,7 +838,7 @@
 
         if (print_global) then  ! global diags for conservations checks
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
          if (prescribed_ice) then
           write (nu_diag,*) '----------------------------'
           write (nu_diag,*)   'This is the prescribed ice option.'

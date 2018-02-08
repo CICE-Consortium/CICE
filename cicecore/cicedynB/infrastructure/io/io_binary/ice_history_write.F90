@@ -8,7 +8,7 @@
 !         C. M. Bitz, UW
 !
 ! 2004 WHL: Block structure added 
-! 2006 ECH: Accepted some CCSM code into mainstream CICE
+! 2006 ECH: Accepted some CESM code into mainstream CICE
 !           Added ice_present, aicen, vicen; removed aice1...10, vice1...1.
 !           Added histfreq_n and histfreq='h' options, removed histfreq='w'
 !           Converted to free source form (F90)
@@ -92,7 +92,7 @@
         write (nu_hdr, 999) 'source',title,' '
 
         write (nu_hdr, 999) 'file name contains model date',trim(ncfile(ns)),' '
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
         write (nu_hdr, 999) 'runid',runid,' '
 #endif
         if (use_leap_years) then

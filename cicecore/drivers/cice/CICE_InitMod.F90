@@ -37,7 +37,7 @@
 !  running the CICE model.  Return the initial state in routine
 !  export state.
 !  Note: This initialization driver is designed for standalone and
-!        CCSM-coupled applications.  For other
+!        CESM-coupled applications.  For other
 !        applications (e.g., standalone CAM), this driver would be
 !        replaced by a different driver that calls subroutine cice_init,
 !        where most of the work is done.
@@ -172,7 +172,7 @@
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
 
 #ifndef coupled
-#ifndef CCSMCOUPLED
+#ifndef CESMCOUPLED
       call get_forcing_atmo     ! atmospheric forcing from data
       call get_forcing_ocn(dt)  ! ocean forcing from data
 

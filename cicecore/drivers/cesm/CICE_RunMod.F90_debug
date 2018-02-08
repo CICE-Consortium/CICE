@@ -488,7 +488,7 @@
 
       !-----------------------------------------------------------------
       ! Divide fluxes by ice area 
-      !  - the CCSM coupler assumes fluxes are per unit ice area
+      !  - the CESM coupler assumes fluxes are per unit ice area
       !  - also needed for global budget in diagnostics
       !-----------------------------------------------------------------
 

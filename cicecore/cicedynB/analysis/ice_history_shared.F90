@@ -478,7 +478,7 @@
         iday = mday
         isec = sec - dt
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
         if (write_ic) isec = sec
 #endif
         ! construct filename
@@ -505,7 +505,7 @@
 
          cstream = ''
 !echmod ! this was implemented for CESM but it breaks post-processing software
-!echmod ! of other groups (including RASM which uses CCSMCOUPLED)
+!echmod ! of other groups (including RASM which uses CESMCOUPLED)
 !echmod         if (ns > 1) write(cstream,'(i1.1)') ns-1
 
          if (histfreq(ns) == '1') then ! instantaneous, write every dt

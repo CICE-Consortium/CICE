@@ -1305,7 +1305,7 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
-            ! correct known biases in NCAR data (as in CCSM latm)
+            ! correct known biases in NCAR data (as in CESM latm)
             Qa (i,j) = Qa (i,j) * 0.94_dbl_kind
             fsw(i,j) = fsw(i,j) * 0.92_dbl_kind
 
@@ -3093,7 +3093,7 @@
       end subroutine ocn_data_clim
 
 !=======================================================================
-! NCAR CCSM M-configuration (AIO) ocean forcing
+! NCAR CESM M-configuration (AIO) ocean forcing
 !=======================================================================
 
       subroutine ocn_data_ncar_init

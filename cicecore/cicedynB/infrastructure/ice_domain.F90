@@ -174,7 +174,7 @@
       !***
       !*** input nprocs does not match system (eg MPI) request
       !***
-#if (defined CCSMCOUPLED)
+#if (defined CESMCOUPLED)
       nprocs = get_num_procs()
 #else
       call abort_ice('ice: Input nprocs not same as system request')
