@@ -23,16 +23,14 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_trcr
-      use icepack_intfc, only: icepack_init_constants
       use icepack_intfc, only: icepack_init_parameters
       use icepack_intfc, only: icepack_init_tracer_flags
       use icepack_intfc, only: icepack_init_tracer_numbers
       use icepack_intfc, only: icepack_init_tracer_indices
-      use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_numbers
       use icepack_intfc, only: icepack_query_tracer_indices
-      use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
 
@@ -189,7 +187,7 @@
       ! default values
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -802,7 +800,7 @@
       pointer_file = trim(pointer_file) // trim(inst_suffix)
 #endif
 
-      call icepack_init_constants(Cf_in=Cf)
+      call icepack_init_parameters(Cf_in=Cf)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1551,7 +1549,7 @@
       call icepack_query_tracer_indices( nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
         nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, &
         nt_fbri_out=nt_fbri, nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
-      call icepack_query_constants(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
+      call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
         rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &

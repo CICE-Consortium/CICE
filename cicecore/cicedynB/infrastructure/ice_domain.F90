@@ -25,7 +25,7 @@
    use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
        get_fileunit, release_fileunit
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-   use icepack_intfc, only: icepack_query_constants
+   use icepack_intfc, only: icepack_query_parameters
 
    implicit none
    private
@@ -292,7 +292,7 @@
 !
 !----------------------------------------------------------------------
 
-   call icepack_query_constants(puny_out=puny, rad_to_deg_out=rad_to_deg)
+   call icepack_query_parameters(puny_out=puny, rad_to_deg_out=rad_to_deg)
    call icepack_warnings_flush(nu_diag)
    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
       file=__FILE__, line=__LINE__)

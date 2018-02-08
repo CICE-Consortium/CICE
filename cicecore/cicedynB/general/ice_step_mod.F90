@@ -28,7 +28,7 @@
       use icepack_intfc, only: icepack_max_algae, icepack_max_nbtrcr, icepack_max_don
       use icepack_intfc, only: icepack_max_doc, icepack_max_dic, icepack_max_aero
       use icepack_intfc, only: icepack_max_fe
-      use icepack_intfc, only: icepack_query_constants, icepack_query_parameters
+      use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_numbers
       use icepack_intfc, only: icepack_query_tracer_indices
 
@@ -192,7 +192,7 @@
       type (block) :: &
          this_block      ! block information for current block
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags( &
@@ -842,7 +842,7 @@
 
             call icepack_step_radiation (dt,   ncat,                      &
                           n_algae,   tr_zaero, nblyr,                     &
-                          ntrcr,     nbtrcr,   nbtrcr_sw,                 &
+                          ntrcr,     nbtrcr_sw,                           &
                           nilyr,    nslyr,       n_aero,                  &
                           n_zaero,  dEdd_algae,  nlt_chl_sw,              &
                           nlt_zaero_sw(:),                                &
@@ -961,7 +961,7 @@
 
       !-----------------------------------------------------------------
 
-         call icepack_query_constants(albocn_out=albocn)
+         call icepack_query_parameters(albocn_out=albocn)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
             file=__FILE__, line=__LINE__)

@@ -26,7 +26,7 @@
       use ice_fileunits, only: nu_diag, nu_dump_eap, nu_restart_eap
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_ice_strength
 #ifdef CICE_IN_NEMO
       use icepack_intfc, only: calc_strair
@@ -560,7 +560,7 @@
          da, dx, dy, dp, dz, a1, &
          pi, pih, piq, phi
 
-      call icepack_query_constants(pi_out=pi, pih_out=pih, piq_out=piq)
+      call icepack_query_parameters(pi_out=pi, pih_out=pih, piq_out=piq)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -722,7 +722,7 @@
       Hen1t2, Hen2t1, &
       pih, puny
 
-      call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -791,7 +791,7 @@
       Hen1t2, Hen2t1, &
       pih, puny
 
-      call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -860,7 +860,7 @@
       Hen1t2, Hen2t1, &
       pih, puny
 
-      call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -927,7 +927,7 @@
       Hen1t2, Hen2t1, &
       pih, puny
 
-      call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -994,7 +994,7 @@
       Hen1t2, Hen2t1, &
       pih, puny
 
-      call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1063,7 +1063,7 @@
       Hen1t2, Hen2t1, &
       pih, puny
 
-      call icepack_query_constants(pih_out=pih, puny_out=puny)
+      call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1247,7 +1247,7 @@
       ! Initialize
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1587,7 +1587,7 @@
       real (kind=dbl_kind), parameter :: &
          kfriction = 0.45_dbl_kind
 
-         call icepack_query_constants(puny_out=puny, &
+         call icepack_query_parameters(puny_out=puny, &
             pi_out=pi, pi2_out=pi2, piq_out=piq)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &

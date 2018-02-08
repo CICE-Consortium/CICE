@@ -29,7 +29,7 @@
       use icepack_intfc, only: icepack_init_parameters
       use icepack_intfc, only: icepack_query_tracer_numbers, icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
-      use icepack_intfc, only: icepack_query_parameters, icepack_query_constants
+      use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_init_zbgc
       use icepack_intfc, only: icepack_init_thermo
       use icepack_intfc, only: icepack_step_radiation, icepack_init_orbit
@@ -77,7 +77,7 @@
       ! initialize heat_capacity, l_brine, and salinity profile
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(depressT_out=depressT)
+      call icepack_query_parameters(depressT_out=depressT)
       call icepack_init_thermo(nilyr, sprofile)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -172,7 +172,7 @@
 
       character(len=*), parameter :: subname='(init_shortwave)'
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_query_parameters(shortwave_out=shortwave)
       call icepack_query_parameters(dEdd_algae_out=dEdd_algae)
       call icepack_query_parameters(modal_aero_out=modal_aero)
@@ -269,7 +269,7 @@
             if (tmask(i,j,iblk)) then
                call icepack_step_radiation (dt,         ncat,             &
                           n_algae,   tr_zaero, nblyr,                     &
-                          ntrcr,     nbtrcr,   nbtrcr_sw,                 &
+                          ntrcr,     nbtrcr_sw,                           &
                           nilyr,    nslyr,       n_aero,                  &
                           n_zaero,  dEdd_algae,  nlt_chl_sw,              &
                           nlt_zaero_sw(:),                                &
@@ -873,7 +873,7 @@
       logical (kind=log_kind) :: &
           tr_brine, &
           tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
-          tr_bgc_DMS,    tr_bgc_PON,   tr_bgc_S,     &
+          tr_bgc_DMS,    tr_bgc_PON,   &
           tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
           tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
           tr_bgc_hum,    tr_aero
@@ -1361,7 +1361,7 @@
 
       if ((skl_bgc .AND. solve_zbgc) .or. (skl_bgc .AND. z_tracers)) &
               call abort_ice('error:skl_bgc &
-              and solve_zbgc or z_tracers are both true')
+            & and solve_zbgc or z_tracers are both true')
 
       if (skl_bgc .AND. tr_zaero) then
          write(nu_diag,*) 'WARNING: skl bgc does not use vertical tracers'
@@ -1391,17 +1391,17 @@
          modal_aero = .false.
       endif
       if (n_algae > icepack_max_algae) call abort_ice('error:number of algal &
-            types exceeds icepack_max_algae')
+          & types exceeds icepack_max_algae')
       if (n_doc > icepack_max_doc) call abort_ice('error:number of doc &
-            types exceeds icepack_max_doc')
+          & types exceeds icepack_max_doc')
       if (n_dic > icepack_max_doc) call abort_ice('error:number of dic &
-            types exceeds icepack_max_dic')
+          & types exceeds icepack_max_dic')
       if (n_don > icepack_max_don) call abort_ice('error:number of don &
-            types exceeds icepack_max_don')
+          & types exceeds icepack_max_don')
       if (n_fed  > icepack_max_fe ) call abort_ice('error:number of dissolved fe &
-            types exceeds icepack_max_fe ')
+          & types exceeds icepack_max_fe ')
       if (n_fep  > icepack_max_fe ) call abort_ice('error:number of particulate fe &
-            types exceeds icepack_max_fe ')
+          & types exceeds icepack_max_fe ')
       if ((TRBGCS == 0 .and. skl_bgc) .or. (TRALG == 0 .and. skl_bgc)) then
          write(nu_diag,*) &
             'WARNING: skl_bgc=T but 0 bgc or algal tracers compiled'
@@ -1463,7 +1463,7 @@
       if (tr_zaero .and. .not. z_tracers) z_tracers = .true.
 
       if (n_zaero > icepack_max_aero) call abort_ice('error:number of z aerosols &
-            exceeds icepack_max_aero')
+          & exceeds icepack_max_aero')
          
       call broadcast_scalar(z_tracers,          master_task)
       call broadcast_scalar(tr_zaero,           master_task)
@@ -1611,11 +1611,12 @@
          call abort_ice ('init_zbgc error: tr_zaero and tr zaero < 1')
       endif
 
-      call icepack_init_tracer_indices( &
-          nbtrcr_in=nbtrcr)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
-          file=__FILE__, line=__LINE__)
+! tcx, tcraig, this is not set yet
+!      call icepack_init_tracer_indices( &
+!          nbtrcr_in=nbtrcr)
+!      call icepack_warnings_flush(nu_diag)
+!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+!          file=__FILE__, line=__LINE__)
 
       call icepack_init_parameters( &
           ktherm_in=ktherm, shortwave_in=shortwave, solve_zsal_in=solve_zsal, &
@@ -1854,8 +1855,6 @@
          mort_Tdep_in=mort_Tdep, k_exude_in=k_exude, &
          K_Nit_in=K_Nit, K_Am_in=K_Am, K_sil_in=K_Sil, K_Fe_in=K_Fe, &
          f_don_in=f_don, kn_bac_in=k_bac, f_don_Am_in=f_don, f_exude_in=f_exude, k_bac_in=k_bac, &
-         algaltype_in=algaltype, doctype_in=doctype, dontype_in=dontype, dictype_in=dictype, &
-         fedtype_in=fedtype, feptype_in=feptype, zaerotype_in=zaerotype, &
          fr_resp_in=fr_resp, algal_vel_in=algal_vel, R_dFe2dust_in=R_dFe2dust, &
          dustFe_sol_in=dustFe_sol, T_max_in=T_max, fr_mort2min_in=fr_mort2min, fr_dFe_in=fr_dFe, &
          op_dep_min_in=op_dep_min, fr_graze_s_in=fr_graze_s, fr_graze_e_in=fr_graze_e, &
@@ -2170,7 +2169,7 @@
       call icepack_init_tracer_flags( &
           tr_brine_in  =tr_brine, &
           tr_bgc_Nit_in=tr_bgc_Nit, tr_bgc_Am_in =tr_bgc_Am,  tr_bgc_Sil_in=tr_bgc_Sil,   &
-          tr_bgc_DMS_in=tr_bgc_DMS, tr_bgc_PON_in=tr_bgc_PON, tr_bgc_S_in  =tr_bgc_S,     &
+          tr_bgc_DMS_in=tr_bgc_DMS, tr_bgc_PON_in=tr_bgc_PON, &
           tr_bgc_N_in  =tr_bgc_N,   tr_bgc_C_in  =tr_bgc_C,   tr_bgc_chl_in=tr_bgc_chl,   &
           tr_bgc_DON_in=tr_bgc_DON, tr_bgc_Fe_in =tr_bgc_Fe,  tr_zaero_in  =tr_zaero,     &
           tr_bgc_hum_in=tr_bgc_hum)

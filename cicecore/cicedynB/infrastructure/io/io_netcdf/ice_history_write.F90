@@ -23,7 +23,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
       private
@@ -117,7 +117,7 @@
       TYPE(coord_attributes), dimension(nvarz) :: var_nz
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
 
-      call icepack_query_constants(secday_out=secday, rad_to_deg_out=rad_to_deg)
+      call icepack_query_parameters(secday_out=secday, rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
           file=__FILE__, line=__LINE__)

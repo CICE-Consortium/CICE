@@ -23,7 +23,6 @@
       use icepack_intfc, only: icepack_max_doc, icepack_max_don, icepack_max_fe
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices
-      use icepack_intfc, only: icepack_query_constants
 
       implicit none
       private
@@ -194,7 +193,7 @@
          skl_bgc, z_tracers, dEdd_algae
 
       logical (kind=log_kind) :: &
-         tr_bgc_DMS, tr_bgc_PON, tr_bgc_S, &
+         tr_bgc_DMS, tr_bgc_PON, &
          tr_bgc_N, tr_bgc_C, tr_bgc_DON, tr_zaero, tr_bgc_hum, &
          tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil, tr_bgc_Fe
 
@@ -260,7 +259,7 @@
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, dEdd_algae_out=dEdd_algae)
       call icepack_query_tracer_flags( &
-         tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, tr_bgc_S_out=tr_bgc_S, &
+         tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
          tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, &
          tr_bgc_DON_out=tr_bgc_DON, tr_zaero_out=tr_zaero, tr_bgc_hum_out=tr_bgc_hum, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
@@ -913,7 +912,7 @@
 
       integer (kind=int_kind) :: nt_fbri, nt_bgc_S, nt_sice
 
-      call icepack_query_constants(rhosi_out=rhosi, rhow_out=rhow, rhos_out=rhos)
+      call icepack_query_parameters(rhosi_out=rhosi, rhow_out=rhow, rhos_out=rhos)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_bgc_S_out=nt_bgc_S, &
            nt_sice_out=nt_sice)

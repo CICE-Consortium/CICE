@@ -21,7 +21,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
       private
@@ -128,7 +128,7 @@
 
       real    (kind=dbl_kind) :: secday           ! seconds per day
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -217,7 +217,7 @@
          month0
       real    (kind=dbl_kind) :: secday ! seconds per day
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -344,7 +344,7 @@
       real    (kind=dbl_kind) :: secday            ! seconds per day
       integer (kind=int_kind) :: years_since_calz  ! days since calendar zero
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -416,7 +416,7 @@
       real    (kind=dbl_kind) :: secday           ! seconds per day
       integer (kind=int_kind) :: k                ! counter
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
