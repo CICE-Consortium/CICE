@@ -10,6 +10,7 @@ FIXEDFLAGS := -132
 FREEFLAGS  := 
 FFLAGS     := -h fp0 -h byteswapio 
 FFLAGS_NOOPT:= -O0
+LDFLAGS = -h byteswapio
 
 ifeq ($(ICE_BLDDEBUG), true)
   FFLAGS     += -O0 -g -Rbcdps

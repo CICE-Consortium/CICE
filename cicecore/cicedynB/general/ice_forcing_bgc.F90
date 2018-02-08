@@ -23,7 +23,7 @@
       use icepack_intfc, only: icepack_nspint, icepack_max_aero, &
           icepack_max_algae, icepack_max_doc, icepack_max_dic
       use icepack_intfc, only: icepack_query_tracer_flags, &
-          icepack_query_constants, icepack_query_parameters, &
+          icepack_query_parameters, icepack_query_parameters, &
           icepack_query_tracer_indices
 
       implicit none
@@ -95,7 +95,7 @@
          nit_file   , & ! nitrate input file
          sil_file       ! silicate input file
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
            tr_bgc_Sil_out=tr_bgc_Sil)
       call icepack_warnings_flush(nu_diag)

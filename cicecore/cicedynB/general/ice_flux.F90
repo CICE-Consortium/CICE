@@ -20,9 +20,8 @@
       use ice_constants, only: c0, c1, c5, c10, c20, c180
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
-      use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_liquidus_temperature
 
       implicit none
@@ -363,7 +362,7 @@
       data fsurfn_d    /  0.20_dbl_kind, 0.15_dbl_kind, 0.10_dbl_kind, &
                           0.05_dbl_kind, 0.01_dbl_kind, 0.01_dbl_kind /
 
-      call icepack_query_constants(stefan_boltzmann_out=stefan_boltzmann, &
+      call icepack_query_parameters(stefan_boltzmann_out=stefan_boltzmann, &
          Tffresh_out=Tffresh, vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -612,7 +611,7 @@
       call icepack_query_parameters(formdrag_out=formdrag)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
-      call icepack_query_constants( dragio_out=dragio, &
+      call icepack_query_parameters( dragio_out=dragio, &
          vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -841,7 +840,7 @@
       integer (kind=int_kind) :: &
           i, j    ! horizontal indices
 
-      call icepack_query_constants(stefan_boltzmann_out=stefan_boltzmann, &
+      call icepack_query_parameters(stefan_boltzmann_out=stefan_boltzmann, &
          Tffresh_out=Tffresh)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &

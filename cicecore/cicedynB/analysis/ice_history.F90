@@ -39,7 +39,7 @@
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_snow_temperature, icepack_ice_temperature
-      use icepack_intfc, only: icepack_query_constants, icepack_query_parameters, &
+      use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_flags, icepack_query_tracer_indices
 
       implicit none
@@ -96,7 +96,7 @@
       ! read namelist
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(rhofresh_out=rhofresh, Tffresh_out=Tffresh, &
+      call icepack_query_parameters(rhofresh_out=rhofresh, Tffresh_out=Tffresh, &
          secday_out=secday)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, &
          solve_zsal_out=solve_zsal, solve_zbgc_out=solve_zbgc, z_tracers_out=z_tracers)
@@ -1248,7 +1248,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      call icepack_query_constants(awtvdr_out=awtvdr, awtidr_out=awtidr, &
+      call icepack_query_parameters(awtvdr_out=awtvdr, awtidr_out=awtidr, &
            awtvdf_out=awtvdf, awtidf_out=awtidf, puny_out=puny, secday_out=secday)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc)
       call icepack_query_tracer_flags(tr_pond_out=tr_pond, tr_aero_out=tr_aero, &

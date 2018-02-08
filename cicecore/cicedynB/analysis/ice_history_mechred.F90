@@ -15,7 +15,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_constants, icepack_query_parameters, &
+      use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_flags, icepack_query_tracer_indices
 
       implicit none
@@ -91,7 +91,7 @@
       real    (kind=dbl_kind) :: secday
       logical (kind=log_kind) :: tr_lvl
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_query_tracer_flags(tr_lvl_out=tr_lvl)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -221,7 +221,7 @@
       ! 3D (category) variables must be looped separately
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)

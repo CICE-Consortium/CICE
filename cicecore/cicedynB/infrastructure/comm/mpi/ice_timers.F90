@@ -18,7 +18,7 @@
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_diag
    use ice_communicate, only: my_task, master_task
-   use icepack_intfc, only: icepack_query_constants
+   use icepack_intfc, only: icepack_query_parameters
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
@@ -549,7 +549,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call icepack_query_constants(bignum_out=bignum)
+   call icepack_query_parameters(bignum_out=bignum)
    call icepack_warnings_flush(nu_diag)
    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
        file=__FILE__, line=__LINE__)

@@ -15,7 +15,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_constants, &
+      use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_flags, icepack_query_tracer_indices
 
       implicit none
@@ -260,7 +260,7 @@
       ! increment field
       !---------------------------------------------------------------
 
-         call icepack_query_constants(puny_out=puny)
+         call icepack_query_parameters(puny_out=puny)
          call icepack_query_tracer_flags(tr_pond_cesm_out=tr_pond_cesm, &
               tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
          call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &

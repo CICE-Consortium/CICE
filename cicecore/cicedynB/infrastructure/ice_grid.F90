@@ -29,7 +29,7 @@
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
       private
@@ -161,7 +161,7 @@
       ! Get global ULAT and KMT arrays used for block decomposition.
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -276,7 +276,7 @@
       ! lat, lon, cell widths, angle, land mask
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(pi_out=pi, pi2_out=pi2, puny_out=puny)
+      call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -386,7 +386,9 @@
       out_of_range = .false.
       where (ANGLE < -pi .or. ANGLE > pi) out_of_range = .true.
       if (count(out_of_range) > 0) then
-         call abort_ice ('ice: init_grid: ANGLE out of expected range')
+         write(nu_diag,*) "subname",' angle = ',minval(ANGLE),maxval(ANGLE),count(out_of_range)
+         call abort_ice ("subname"//' ANGLE out of expected range', &
+             file=__FILE__, line=__LINE__)
       endif
 
       !-----------------------------------------------------------------
@@ -661,7 +663,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      call icepack_query_constants(pi_out=pi)
+      call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -821,7 +823,7 @@
       !-----------------------------------------------------------------
 #ifdef CCSMCOUPLED
 
-      call icepack_query_constants(pi_out=pi)
+      call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1059,7 +1061,7 @@
       ! Calculate various geometric 2d arrays
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1236,7 +1238,7 @@
       type (block) :: &
            this_block           ! block information for current block
 
-      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1477,7 +1479,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1586,7 +1588,7 @@
       type (block) :: &
            this_block           ! block information for current block
 
-      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1906,7 +1908,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -2096,7 +2098,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
-      call icepack_query_constants(rad_to_deg_out=rad_to_deg)
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -2219,7 +2221,7 @@
             250.0000_dbl_kind,  250.0000_dbl_kind,  250.0000_dbl_kind, &
             250.0000_dbl_kind   /)
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)

@@ -40,7 +40,6 @@
       use icepack_intfc, only: icepack_liquidus_temperature
       use icepack_intfc, only: icepack_sea_freezing_temperature
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_parameters
-      use icepack_intfc, only: icepack_query_constants
 
       implicit none
       private
@@ -242,7 +241,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1054,7 +1053,7 @@
       real (kind=dbl_kind) :: &
           daymid(0:13)     ! month mid-points
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1114,7 +1113,7 @@
           t1, t2       , & ! seconds elapsed at data points
           rcnum            ! recnum => dbl_kind
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1270,8 +1269,8 @@
 
       logical (kind=log_kind) :: calc_strair
 
-      call icepack_query_constants(Tffresh_out=Tffresh)
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(Tffresh_out=Tffresh)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_query_parameters(calc_strair_out=calc_strair)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -1474,7 +1473,7 @@
       real(kind=dbl_kind) :: &
            Tffresh, stefan_boltzmann
 
-      call icepack_query_constants(Tffresh_out=Tffresh, &
+      call icepack_query_parameters(Tffresh_out=Tffresh, &
            stefan_boltzmann_out=stefan_boltzmann)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -1522,7 +1521,7 @@
       real(kind=dbl_kind) :: &
            Tffresh, stefan_boltzmann, emissivity
 
-      call icepack_query_constants(Tffresh_out=Tffresh, &
+      call icepack_query_parameters(Tffresh_out=Tffresh, &
            stefan_boltzmann_out=stefan_boltzmann, &
            emissivity_out=emissivity)
       call icepack_warnings_flush(nu_diag)
@@ -1626,7 +1625,7 @@
 
       logical (kind=log_kind) :: readm, read6
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1847,8 +1846,8 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      call icepack_query_constants(Tffresh_out=Tffresh)
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(Tffresh_out=Tffresh)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -2070,7 +2069,7 @@
       integer (kind=int_kind) :: &
          i, j
 
-      call icepack_query_constants(secday_out=secday, pi_out=pi)
+      call icepack_query_parameters(secday_out=secday, pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -2121,7 +2120,7 @@
       real (kind=dbl_kind) :: &
          Tffresh, puny
 
-      call icepack_query_constants(Tffresh_out=Tffresh, puny_out=puny)
+      call icepack_query_parameters(Tffresh_out=Tffresh, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -2358,7 +2357,7 @@
             calc_strair, &
             calc_Tsfc
 
-      call icepack_query_constants(Lsub_out=Lsub)
+      call icepack_query_parameters(Lsub_out=Lsub)
       call icepack_query_parameters(calc_strair_out=calc_strair, &
            calc_Tsfc_out=calc_Tsfc)
       call icepack_warnings_flush(nu_diag)
@@ -4079,7 +4078,7 @@
       logical (kind=log_kind) :: readm, read1
 
       diag = .false.   ! write diagnostic information 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -4167,8 +4166,8 @@
                     field_loc_center, field_type_scalar)
 
         fsnow(:,:,:) =  (c1intp * fsnow_data_p(1) + &
-                          + c2intp * fsnow_data_p(2)) 
-      
+                         c2intp * fsnow_data_p(2)) 
+
         !-----------------------------
         !fsw and flw are every 6 hours
         !------------------------------

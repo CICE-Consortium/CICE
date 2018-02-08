@@ -20,7 +20,7 @@
           icepack_max_algae, icepack_max_fe
       use icepack_intfc, only: icepack_query_tracer_flags, &
           icepack_query_tracer_indices, icepack_query_parameters, &
-          icepack_query_constants
+          icepack_query_parameters
       use ice_domain_size, only: max_nstrm, n_aero, nblyr, &
           n_algae, n_dic, n_doc, n_don, n_zaero, n_fed, n_fep 
 
@@ -269,7 +269,7 @@
       character (len=16) :: vname_in     ! variable name
       logical (kind=log_kind) :: tr_zaero, tr_aero, tr_brine, &
           tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
-          tr_bgc_DMS,    tr_bgc_PON,   tr_bgc_S,     &
+          tr_bgc_DMS,    tr_bgc_PON,                 &
           tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
           tr_bgc_DON,    tr_bgc_Fe,    tr_bgc_hum,   &
           skl_bgc, solve_zsal, z_tracers
@@ -280,7 +280,7 @@
           tr_aero_out   =tr_aero,    tr_brine_out  =tr_brine, &
           tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am, &
           tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
-          tr_bgc_PON_out=tr_bgc_PON, tr_bgc_S_out  =tr_bgc_S, &
+          tr_bgc_PON_out=tr_bgc_PON, &
           tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C, &
           tr_bgc_chl_out=tr_bgc_chl, tr_bgc_DON_out=tr_bgc_DON, &
           tr_bgc_Fe_out =tr_bgc_Fe,  tr_bgc_hum_out=tr_bgc_hum ) 
@@ -1759,7 +1759,7 @@
       
       ! biology vertical grid
 
-      call icepack_query_constants(secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1887,7 +1887,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      call icepack_query_constants(rhos_out=rhos, rhoi_out=rhoi, &
+      call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi, &
          rhow_out=rhow, puny_out=puny, sk_l_out=sk_l)
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
          z_tracers_out=z_tracers)

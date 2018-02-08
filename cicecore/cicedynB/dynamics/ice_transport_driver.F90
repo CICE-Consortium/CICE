@@ -25,7 +25,7 @@
       use icepack_intfc, only: icepack_compute_tracers
       use icepack_intfc, only: icepack_query_tracer_flags, &
           icepack_query_tracer_numbers, icepack_query_tracer_indices, &
-          icepack_query_constants
+          icepack_query_parameters
 
       implicit none
       private
@@ -882,7 +882,7 @@
       integer (kind=int_kind), dimension(0:ncat) ::     &
            icells         ! number of cells with ice
 
-      call icepack_query_constants(puny_out=puny, rhos_out=rhos, &
+      call icepack_query_parameters(puny_out=puny, rhos_out=rhos, &
            Lfresh_out=Lfresh)
       call icepack_query_tracer_indices(nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
@@ -1005,7 +1005,7 @@
       integer (kind=int_kind), dimension (nx_block*ny_block) ::     &
            indxi, indxj      ! compressed indices
 
-      call icepack_query_constants(rhos_out=rhos, Lfresh_out=Lfresh)
+      call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh)
       call icepack_query_tracer_indices(nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -1089,7 +1089,7 @@
            puny        ,&!
            diff          ! difference between initial and final values
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -1342,7 +1342,7 @@
       logical (kind=log_kind), dimension (nx_block, ny_block) ::   &
            l_check        ! if true, check monotonicity
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)

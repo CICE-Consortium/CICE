@@ -19,7 +19,7 @@
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_init_trcr
-      use icepack_intfc, only: icepack_query_constants, &
+      use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_numbers, icepack_query_tracer_flags, &
           icepack_query_tracer_indices
 
@@ -556,7 +556,7 @@
      ctime                ! dt/trest
 
    call ice_timer_start(timer_bound)
-   call icepack_query_constants(secday_out=secday)
+   call icepack_query_parameters(secday_out=secday)
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &

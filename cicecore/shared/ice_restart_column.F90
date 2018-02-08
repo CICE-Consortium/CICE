@@ -20,7 +20,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_algae, icepack_max_doc, &
           icepack_max_don, icepack_max_dic, icepack_max_fe, icepack_max_aero
-      use icepack_intfc, only: icepack_query_constants, icepack_query_parameters, &
+      use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_numbers, icepack_query_tracer_flags, &
           icepack_query_tracer_indices
 
@@ -763,7 +763,7 @@
          nt_zaero       !  black carbon and other aerosols
       
       logical (kind=log_kind) :: tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil,&
-         tr_bgc_DMS, tr_bgc_PON, tr_bgc_S, tr_bgc_N, tr_bgc_C, &
+         tr_bgc_DMS, tr_bgc_PON, tr_bgc_N, tr_bgc_C, &
          tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
          tr_bgc_hum
 
@@ -779,7 +779,7 @@
       call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
-          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, tr_bgc_S_out=tr_bgc_S, &
+          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, &
           tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out=tr_bgc_Fe,  tr_zaero_out=tr_zaero, &
           tr_bgc_chl_out=tr_bgc_chl, tr_bgc_hum_out=tr_bgc_hum)
@@ -1175,7 +1175,7 @@
          nt_zaero       !  black carbon and other aerosols
       
       logical (kind=log_kind) :: tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil,&
-         tr_bgc_DMS, tr_bgc_PON, tr_bgc_S, tr_bgc_N, tr_bgc_C, &
+         tr_bgc_DMS, tr_bgc_PON, tr_bgc_N, tr_bgc_C, &
          tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
          tr_bgc_hum
 
@@ -1187,7 +1187,7 @@
       call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
-          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, tr_bgc_S_out=tr_bgc_S, &
+          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, &
           tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out=tr_bgc_Fe,  tr_zaero_out=tr_zaero, &
           tr_bgc_chl_out=tr_bgc_chl, tr_bgc_hum_out=tr_bgc_hum)

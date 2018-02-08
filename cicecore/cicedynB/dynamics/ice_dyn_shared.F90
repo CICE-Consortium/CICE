@@ -17,7 +17,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_constants
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
       private
@@ -297,7 +297,7 @@
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          tmphm               ! temporary mask
 
-      call icepack_query_constants(rhos_out=rhos, rhoi_out=rhoi)
+      call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -683,7 +683,7 @@
       ! integrate the momentum equation
       !-----------------------------------------------------------------
 
-      call icepack_query_constants(rhow_out=rhow)
+      call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -790,7 +790,7 @@
          intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient 
 
-      call icepack_query_constants(rhow_out=rhow)
+      call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -943,7 +943,7 @@
 
       real (kind=dbl_kind) :: puny
 
-      call icepack_query_constants(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)

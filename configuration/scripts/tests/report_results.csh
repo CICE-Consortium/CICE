@@ -140,8 +140,6 @@ if ( ${case} =~ *_${compiler}_* ) then
   if (${fcomp}  == "") set rcomp  = ${gray}
   if (${ftime}  == "") set rtime  = ${gray}
 
-echo "tcx1 $case $fregr $rregr"
-
   set fregrx  = `grep " ${case} " results.log | grep " compare" | grep "baseline-does-not-exist" | wc -l `
   if ($fregrx > 0) set rregr = ${gray}
 
