@@ -33,6 +33,7 @@ The [wiki](https://github.com/CICE-Consortium/CICE/wiki) pages for each reposito
 - complete documentation 
 - larger files such as the gx1 grid, land mask, and forcing files
 - testing data
-- test results 
+
+Test results for both CICE and Icepack can be found in the ["Test-Results" repository](https://github.com/CICE-Consortium/Test-Results).
 
 The ["About-Us" repository](https://github.com/CICE-Consortium/About-Us) includes background and supporting information about the CICE Consortium, including how to interact with it.    

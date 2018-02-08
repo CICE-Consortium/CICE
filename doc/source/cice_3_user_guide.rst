@@ -2272,10 +2272,20 @@ In order to run the script, the following requirements must be met:
 * Python v2.7 or later
 * netCDF Python package
 * numpy Python package
+* matplotlib Python package (optional)
+* basemap Python package (optional)
 
 In order to generate the files necessary for the compliance test, test cases should be
-created with the ``ttest`` option (i.e., ``-s ttest``) when running create.case.  This 
+created with the ``qc`` option (i.e., ``-s qc``) when running create.case.  This 
 option results in daily, non-averaged history files being written for a 5 year simulation.
+
+To install the necessary Python packages, the ``pip`` Python utility can be used.
+
+.. code-block:: bash
+
+  pip install --user netCDF4
+  pip install --user numpy
+  pip install --user matplotlib
 
 To run the compliance test:
 
@@ -2349,7 +2359,6 @@ users essentially just need to perform all steps available in run.suite, detaile
 - Parse the results, by running ``./results.csh``.
 - Run the CTest / CDash script ``./run_ctest.csh``.
 
-
 If the ``run_ctest.csh`` script is unable to post the testing results to the CDash
 server, a message will be printed to the screen detailing instructions on how to attempt
 to post the results from another server.  If ``run_ctest.csh`` fails to submit the results,
@@ -2357,6 +2366,56 @@ it will generate a tarball ``cice_ctest.tgz`` that contains the necessary files 
 submission.  Copy this file to another server (CMake version 2.8+ required), extract the 
 archive, and run ``./run_ctest.csh -submit``.
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+End-To-End Testing Procedure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Below is an example of a step-by-step procedure for testing a code change that results
+in non-bit-for-bit results:
+
+.. code-block:: bash
+
+  # Create a baseline dataset (only necessary if no baseline exists on the system)
+  ./create.case -m onyx -ts base_suite -testid base0 -bg cicev6.0.0 -a <account_number>
+
+  # Check out the updated code, or clone from a pull request
+
+  # Run the test with the new code
+  ./create.case -m onyx -ts base_suite -testid test0 -bc cicev6.0.0 -a <account_number>
+
+  # Check the results
+  cd base_suite.test0
+  ./results.csh
+
+  #### If the BFB tests fail, perform the compliance testing ####
+  # Create a QC baseline
+  ./create.case -m onyx -t smoke -g gx1 -p 44x1 -testid qc_base -s qc,medium -a <account_number>
+  cd onyx_smoke_gx1_44x1_medium_qc.qc_base
+  ./cice.build
+  ./cice.submit
+
+  # Check out the updated code or clone from a pull request
+
+  # Create the t-test testing data
+  ./create.case -m onyx -t smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium -a <account_number>
+  cd onyx_smoke_gx1_44x1_medium_qc.qc_test
+  ./cice.build
+  ./cice.submit
+
+  # Wait for runs to finish
+  
+  # Perform the QC test
+  cp configuration/scripts/tests/QC/cice.t-test.py
+  ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_smoke_gx1_44x1_medium_qc.qc_base \
+                   /p/work/turner/CICE_RUNS/onyx_smoke_gx1_44x1_medium_qc.qc_test
+
+  # Example output:
+  INFO:__main__:Number of files: 1825
+  INFO:__main__:Two-Stage Test Passed
+  INFO:__main__:Quadratic Skill Test Passed for Northern Hemisphere
+  INFO:__main__:Quadratic Skill Test Passed for Southern Hemisphere
+  INFO:__main__:
+  INFO:__main__:Quality Control Test PASSED
 
 .. _tabnamelist:
 

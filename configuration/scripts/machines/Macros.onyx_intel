@@ -1,5 +1,5 @@
 #==============================================================================
-# Macros file for NAVYDSRC conrad, intel compiler
+# Macros file for ERDC onyx, intel compiler
 #==============================================================================
 
 CPP        := fpp
@@ -49,9 +49,9 @@ SCC:= icc
 SFC:= ifort 
 
 ifeq ($(ICE_THREADED), true) 
-   LDFLAGS += -qopenmp
-   CFLAGS += -qopenmp
-   FFLAGS += -qopenmp
+   LDFLAGS += -openmp
+   CFLAGS += -openmp
+   FFLAGS += -openmp
 endif
 
 ### if using parallel I/O, load all 3 libraries.  PIO must be first!

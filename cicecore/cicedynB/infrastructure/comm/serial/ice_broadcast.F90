@@ -12,10 +12,12 @@
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
    use ice_kinds_mod
+   use ice_fileunits, only: nu_diag
+   use ice_exit, only: abort_ice
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private
-   save
 
    public  :: broadcast_scalar,         &
               broadcast_array

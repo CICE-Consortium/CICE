@@ -14,11 +14,18 @@
       module CICE_InitMod
 
       use ice_kinds_mod
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: init_fileunits, nu_diag
+      use icepack_intfc, only: icepack_aggregate
+      use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
+      use icepack_intfc, only: icepack_configure
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
+          icepack_query_tracer_indices
 
       implicit none
       private
       public :: CICE_Initialize, cice_init
-      save
 
 !=======================================================================
 
@@ -55,14 +62,12 @@
           ocean_bio_all, ice_bio_net, snow_bio_net
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
-      use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat
       use ice_dyn_eap, only: init_eap
       use ice_dyn_shared, only: kdyn, init_evp, basalstress
-      use ice_fileunits, only: init_fileunits, nu_diag
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -76,17 +81,25 @@
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
-      use icepack_intfc_tracers, only: tr_aero, tr_zaero
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-      use icepack_intfc_shared, only: skl_bgc, z_tracers
 #ifdef popcice
       use drv_forcing, only: sst_sss
 #endif
-      
+
+      logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
+      character(len=*),parameter :: subname = '(cice_init)'
+
       call init_communicate     ! initial setup for message passing
       call init_fileunits       ! unit numbers
+
+      call icepack_configure()  ! initialize icepack
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(subname, &
+          file=__FILE__,line= __LINE__)
+
       call input_data           ! namelist variables
+
       if (trim(runid) == 'bering') call check_finished_file
       call init_zbgc            ! vertical biogeochemistry namelist
 
@@ -110,9 +123,15 @@
       call sst_sss              ! POP data for CICE initialization
 #endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
-      call icepack_init_itd(ncat, hin_max, nu_diag) ! ice thickness distribution
-      if (my_task == master_task) &
-         call icepack_init_itd_hist(ncat, hin_max, nu_diag, c_hi_range) ! output
+
+      call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
+      if (my_task == master_task) then
+         call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
+      endif
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       call calendar(time)       ! determine the initial date
 
 #ifndef CICE_IN_NEMO
@@ -127,6 +146,12 @@
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
+
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
+      call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(subname, &
+          file=__FILE__,line= __LINE__)
 
       if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
                                                    !property tables
@@ -182,7 +207,7 @@
       use ice_arrays_column, only: dhsn
       use ice_blocks, only: nx_block, ny_block
       use ice_calendar, only: time, calendar
-      use icepack_intfc, only: icepack_aggregate
+      use ice_constants, only: c0
       use ice_domain, only: nblocks
       use ice_domain_size, only: ncat, max_ntrcr, n_aero
       use ice_dyn_eap, only: read_restart_eap
@@ -204,14 +229,29 @@
       use ice_restart_driver, only: restartfile, restartfile_v4
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, nt_alvl, nt_vlvl, &
-          tr_pond_cesm, nt_apnd, nt_hpnd, tr_pond_lvl, nt_ipnd, &
-          tr_pond_topo, tr_aero, tr_brine, nt_iage, nt_FY, nt_aero
-      use icepack_intfc_shared, only: skl_bgc, z_tracers, solve_zsal
 
       integer(kind=int_kind) :: &
          i, j        , & ! horizontal indices
          iblk            ! block index
+      logical(kind=log_kind) :: &
+          tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
+          tr_pond_topo, tr_aero, tr_brine, &
+          skl_bgc, z_tracers, solve_zsal
+      integer(kind=int_kind) :: &
+          nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
+          nt_iage, nt_FY, nt_aero
+
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, &
+           z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+           tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+           tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine)
+      call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
+           nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
+           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (trim(runtype) == 'continue') then 
          ! start from core restart file
@@ -339,26 +379,34 @@
       do iblk = 1, nblocks
       do j = 1, ny_block
       do i = 1, nx_block
-         if (tmask(i,j,iblk)) &
-         call icepack_aggregate (ncat,               &
-                                aicen(i,j,:,iblk),  &
-                                trcrn(i,j,:,:,iblk),&
-                                vicen(i,j,:,iblk),  &
-                                vsnon(i,j,:,iblk),  &
-                                aice (i,j,  iblk),  &
-                                trcr (i,j,:,iblk),  &
-                                vice (i,j,  iblk),  &
-                                vsno (i,j,  iblk),  &
-                                aice0(i,j,  iblk),  &
-                                max_ntrcr,          &
-                                trcr_depend,        &
-                                trcr_base,          &
-                                n_trcr_strata,      &
-                                nt_strata)
+         if (tmask(i,j,iblk)) then
+            call icepack_aggregate (ncat,               &
+                                   aicen(i,j,:,iblk),  &
+                                   trcrn(i,j,:,:,iblk),&
+                                   vicen(i,j,:,iblk),  &
+                                   vsnon(i,j,:,iblk),  &
+                                   aice (i,j,  iblk),  &
+                                   trcr (i,j,:,iblk),  &
+                                   vice (i,j,  iblk),  &
+                                   vsno (i,j,  iblk),  &
+                                   aice0(i,j,  iblk),  &
+                                   max_ntrcr,          &
+                                   trcr_depend,        &
+                                   trcr_base,          &
+                                   n_trcr_strata,      &
+                                   nt_strata)
+         else
+            ! tcraig, reset all tracer values on land to zero
+            trcrn(i,j,:,:,iblk) = c0
+         endif
       enddo
       enddo
       enddo
       !$OMP END PARALLEL DO
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       end subroutine init_restart
 
@@ -373,7 +421,6 @@
       subroutine check_finished_file()
 
       use ice_communicate, only: my_task, master_task
-      use ice_exit, only: abort_ice
       use ice_restart_shared, only: restart_dir
 
       character(len=char_len_long) :: filename

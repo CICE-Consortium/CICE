@@ -11,17 +11,16 @@
 
 !=======================================================================
 
+      use icepack_intfc, only: char_len  => icepack_char_len
+      use icepack_intfc, only: char_len_long => icepack_char_len_long
+      use icepack_intfc, only: log_kind  => icepack_log_kind
+      use icepack_intfc, only: int_kind  => icepack_int_kind
+      use icepack_intfc, only: real_kind => icepack_real_kind
+      use icepack_intfc, only: dbl_kind  => icepack_dbl_kind
+      use icepack_intfc, only: r16_kind  => icepack_r16_kind
+
       implicit none
       public
-      save
-
-      integer, parameter :: char_len  = 80, &
-                            char_len_long  = 256, &
-                            log_kind  = kind(.true.), &
-                            int_kind  = selected_int_kind(6), &
-                            real_kind = selected_real_kind(6), &
-                            dbl_kind  = selected_real_kind(13), &
-                            r16_kind  = selected_real_kind(26)
 
 !=======================================================================
 

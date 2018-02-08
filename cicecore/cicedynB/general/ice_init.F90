@@ -15,9 +15,24 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
+      use ice_constants, only: c0, c1, c2, c3, p2, p5
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
+          ice_stdout, get_fileunit, release_fileunit, bfbflag
+      use ice_fileunits, only: inst_suffix
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_aggregate
+      use icepack_intfc, only: icepack_init_trcr
+      use icepack_intfc, only: icepack_init_parameters
+      use icepack_intfc, only: icepack_init_tracer_flags
+      use icepack_intfc, only: icepack_init_tracer_numbers
+      use icepack_intfc, only: icepack_init_tracer_indices
+      use icepack_intfc, only: icepack_query_tracer_flags
+      use icepack_intfc, only: icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_indices
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
-      save
 
       character(len=char_len_long) :: &
          ice_ic      ! method of ice cover initialization
@@ -39,24 +54,13 @@
       subroutine input_data
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use icepack_intfc_shared, only: ustar_min, albicev, albicei, albsnowv, albsnowi, &
-                            ahmax, shortwave, albedo_type, R_ice, R_pnd, &
-                            R_snw, dT_mlt, rsnw_mlt, &
-                            kstrength, krdg_partic, krdg_redist, mu_rdg, &
-                            atmbndy, calc_strair, formdrag, highfreq, natmiter, &
-                            kitd, kcatbound, hs0, dpscale, frzpnd, &
-                            rfracmin, rfracmax, pndaspect, hs1, hp1, &
-                            ktherm, calc_Tsfc, conduct, oceanmixed_ice
-      use ice_constants, only: c0, c1, puny
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
       use ice_domain_size, only: max_nstrm, nilyr, nslyr, max_ntrcr, ncat, n_aero
-      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
-          ice_stdout, get_fileunit, release_fileunit, bfbflag
-      use ice_fileunits, only: inst_suffix
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
                               dumpfreq, dumpfreq_n, diagfreq, nstreams, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
                               write_ic, dump_last
+      use ice_arrays_column, only: oceanmixed_ice
       use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
           restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero
       use ice_restart_shared, only: &
@@ -64,7 +68,6 @@
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file
-      use ice_exit, only: abort_ice
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
@@ -77,15 +80,6 @@
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 basalstress, Ktens, e_ratio
       use ice_transport_driver, only: advection
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, tr_pond, &
-                             tr_pond_cesm, tr_pond_lvl, tr_pond_topo, &
-                             tr_aero, nt_Tsfc, nt_qice, nt_qsno, nt_sice, &
-                             nt_iage, nt_FY, nt_alvl, nt_vlvl, &
-                             nt_apnd, nt_hpnd, nt_ipnd, nt_aero, ntrcr
-      use icepack_intfc_shared, only: a_rapid_mode, Rac_rapid_mode, &
-                                   aspect_rapid_mode, dSdt_slow_mode, &
-                                   phi_c_slow_mode, phi_i_mushy, &
-                                   Cf, tfrz_option, kalg, fbot_xfer_type
       use ice_restoring, only: restore_ice
 #ifdef CCSMCOUPLED
       use shr_file_mod, only: shr_file_setIO
@@ -102,7 +96,30 @@
 
       logical :: exists
 
+      real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
+        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, &
+        mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
+        a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
+        phi_c_slow_mode, phi_i_mushy, kalg
+
+      integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
+        kitd, kcatbound
+
+      character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
+        tfrz_option, frzpnd, atmbndy
+
+      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair
+
+      integer (kind=int_kind) :: ntrcr
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
+      logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+      integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
+      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
+
       real (kind=real_kind) :: rpcesm, rplvl, rptopo 
+      real (kind=dbl_kind) :: Cf, puny
+
+      character(len=*), parameter :: subname='(input_data)'
 
       !-----------------------------------------------------------------
       ! Namelist variables.
@@ -169,6 +186,11 @@
       !-----------------------------------------------------------------
       ! default values
       !-----------------------------------------------------------------
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       days_per_year = 365    ! number of days in a year
       use_leap_years= .false.! if true, use leap years (Feb 29)
@@ -778,6 +800,11 @@
       pointer_file = trim(pointer_file) // trim(inst_suffix)
 #endif
 
+      call icepack_init_parameters(Cf_in=Cf)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       !-----------------------------------------------------------------
       ! spew
       !-----------------------------------------------------------------
@@ -1129,6 +1156,31 @@
          endif
       endif
 
+      call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
+         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, &
+         ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
+         R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
+         kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &
+         atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
+         kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
+         rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
+         ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
+         a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
+         aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
+         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
+         tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
+      call icepack_init_tracer_numbers(ntrcr_in=ntrcr)
+      call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
+         tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, tr_pond_in=tr_pond, &
+         tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
+      call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
+         nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
+         nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
+         nt_ipnd_in=nt_ipnd, nt_aero_in=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       end subroutine input_data
 
 !=======================================================================
@@ -1141,22 +1193,13 @@
       subroutine init_state
 
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc_shared, only: heat_capacity
-      use ice_constants, only: c0, c1
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, max_ntrcr, n_aero
-      use ice_fileunits, only: nu_diag
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_grid, only: tmask, ULON, ULAT, TLON, TLAT
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
           aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
           n_trcr_strata, nt_strata, trcr_base
-      use icepack_intfc_tracers, only: tr_iage, tr_FY, tr_lvl, &
-          tr_pond_cesm, nt_apnd, tr_pond_lvl, nt_alvl, tr_pond_topo, &
-          nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_vlvl, &
-          nt_hpnd, nt_ipnd, tr_aero, nt_aero, ntrcr
-      use ice_exit, only: abort_ice
 
       integer (kind=int_kind) :: &
          ilo, ihi    , & ! physical domain indices
@@ -1168,8 +1211,32 @@
          it          , & ! tracer index
          iblk            ! block index
 
+      logical (kind=log_kind) :: &
+         heat_capacity   ! from icepack
+
+      integer (kind=int_kind) :: ntrcr
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_aero
+      logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+      integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_fy
+      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
+
       type (block) :: &
          this_block           ! block information for current block
+
+      character(len=*), parameter :: subname='(init_state)'
+
+      call icepack_query_parameters(heat_capacity_out=heat_capacity)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+        tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, &
+        tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
+        nt_qice_out=nt_qice, nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_fy_out=nt_fy, &
+        nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
+        nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! Check number of layers in ice and snow.
@@ -1372,6 +1439,10 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       end subroutine init_state
 
 !=======================================================================
@@ -1394,12 +1465,7 @@
                                 vicen,    vsnon)
 
       use ice_arrays_column, only: hin_max
-      use icepack_intfc, only: icepack_init_trcr
-      use ice_constants, only: c0, c1, c2, c3, p2, p5, rhoi, rhos, Lfresh, &
-           cp_ice, cp_ocn, Tsmelt, Tffresh, rad_to_deg, puny
       use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, max_ntrcr, ncat
-      use icepack_intfc_tracers, only: nt_Tsfc, nt_qice, nt_qsno, nt_sice, &
-           nt_fbri, tr_brine, tr_lvl, nt_alvl, nt_vlvl
       use ice_grid, only: grid_type
       use ice_forcing, only: atm_data_type
 
@@ -1459,7 +1525,7 @@
          indxi, indxj    ! compressed indices for cells with aicen > puny
 
       real (kind=dbl_kind) :: &
-         Tsfc, sum, hbar
+         Tsfc, sum, hbar, puny, rhos, Lfresh, rad_to_deg
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -1474,6 +1540,20 @@
          hsno_init = 0.20_dbl_kind   , & ! initial snow thickness (m)
          edge_init_nh =  70._dbl_kind, & ! initial ice edge, N.Hem. (deg) 
          edge_init_sh = -60._dbl_kind    ! initial ice edge, S.Hem. (deg)
+
+      logical (kind=log_kind) :: tr_brine, tr_lvl
+      integer (kind=int_kind) :: nt_Tsfc, nt_qice, nt_qsno, nt_sice
+      integer (kind=int_kind) :: nt_fbri, nt_alvl, nt_vlvl
+
+      call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_lvl_out=tr_lvl)
+      call icepack_query_tracer_indices( nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
+        nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, &
+        nt_fbri_out=nt_fbri, nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+      call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
+        rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       indxi(:) = 0
       indxj(:) = 0
@@ -1649,6 +1729,10 @@
             enddo               ! ij
          enddo                  ! ncat
       endif                     ! ice_ic
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       end subroutine set_state_var
 

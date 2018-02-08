@@ -12,16 +12,17 @@
 !           for MPI runs.  Single-processor runs still use system_clock.
 
    use ice_kinds_mod
-   use ice_constants, only: c0, c1, bignum
+   use ice_constants, only: c0, c1
    use ice_domain, only: nblocks, distrb_info
    use ice_global_reductions, only: global_minval, global_maxval, global_sum
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_diag
    use ice_communicate, only: my_task, master_task
+   use icepack_intfc, only: icepack_query_parameters
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private
-   save
 
    public :: init_ice_timers,     &
              get_ice_timer,       &
@@ -526,6 +527,7 @@
                          ! when this routine is called
 
    real (dbl_kind) :: &
+      bignum,           &! big num
       local_time,       &! temp space for holding local timer results
       min_time,         &! minimum accumulated time
       max_time,         &! maximum accumulated time
@@ -546,6 +548,11 @@
 !  running.  If it is, stop the timer and print the info.
 !
 !-----------------------------------------------------------------------
+
+   call icepack_query_parameters(bignum_out=bignum)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+       file=__FILE__, line=__LINE__)
 
    if (all_timers(timer_id)%in_use) then
       if (all_timers(timer_id)%node_started) then

@@ -1,5 +1,5 @@
 #==============================================================================
-# Macros file for LANL wolf, intel compiler
+# Macros file for NAVYDSRC conrad, intel compiler
 #==============================================================================
 
 CPP        := fpp
@@ -18,32 +18,31 @@ else
 endif
 
 ifeq ($(ICE_COMMDIR), mpi)
-  FC         := mpif90
+  FC         := ftn
 else
-  FC         := ifort
+  FC         := ftn
 endif
 
-MPICC:= mpicc
+MPICC:= cc
 
-MPIFC:= mpif90
+MPIFC:= ftn
 LD:= $(MPIFC)
 
-# set in Macros file
-NETCDF_PATH := /usr/projects/climate/SHARED_CLIMATE/software/conejo/netcdf/3.6.3/intel-13.0.1
-PNETCDF_PATH := /usr/projects/climate/SHARED_CLIMATE/software/conejo/parallel-netcdf/1.3.1/intel-13.0.1/openmpi-1.6.3
+# defined by module
+#NETCDF_PATH := $(NETCDF)
+#PNETCDF_PATH := $(PNETCDF)
+#PNETCDF_PATH := /glade/apps/opt/pnetcdf/1.3.0/intel/default
 #LAPACK_LIBDIR := /glade/apps/opt/lapack/3.4.2/intel/12.1.5/lib
 
-PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+#PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 
-INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
-#INCLDIR := $(INCLDIR) -I/usr/projects/climate/SHARED_CLIMATE/software/conejo/netcdf/3.6.3/intel-13.0.1/include
+INCLDIR := $(INCLDIR)
+#INCLDIR += -I$(NETCDF_PATH)/include
 
-LIB_NETCDF := $(NETCDF_PATH)/lib
-LIB_PNETCDF := $(PNETCDF_PATH)/lib
-LIB_MPI := $(IMPILIBDIR)
-
-#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf -L$(LAPACK_LIBDIR) -llapack -lblas
-SLIBS   := -L$(LIB_NETCDF) -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf 
+#LIB_NETCDF := $(NETCDF_PATH)/lib
+#LIB_PNETCDF := $(PNETCDF_PATH)/lib
+#LIB_MPI := $(IMPILIBDIR)
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
 SCC:= icc 
 
@@ -57,7 +56,7 @@ endif
 
 ### if using parallel I/O, load all 3 libraries.  PIO must be first!
 ifeq ($(ICE_IOTYPE), pio)
-   PIO_PATH:=/usr/projects/climate/SHARED_CLIMATE/software/conejo/pio/1.7.2/intel-13.0.1/openmpi-1.6.3/netcdf-3.6.3-parallel-netcdf-1.3.1/include
+   PIO_PATH:=/glade/u/home/jedwards/pio1_6_5/pio
    INCLDIR += -I$(PIO_PATH)
    SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpio
 endif

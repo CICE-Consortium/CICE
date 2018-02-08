@@ -19,7 +19,7 @@ endif
 #-----------------------------------------------------------
 # Baseline comparing run
 
-if (${ICE_BASECOM} != ${ICE_SPVAL} && ${ICE_TEST} != "restart") then
+if (${ICE_BASECOM} != ${ICE_SPVAL}) then
   set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
   set test_data = ${ICE_RUNDIR}/restart/${test_file}
 
@@ -39,7 +39,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL} && ${ICE_TEST} != "restart") then
       echo "Regression baseline and test dataset are different"
     endif
   else
-    echo "FAIL ${ICE_TESTNAME} compare baseline-does-not-exist" >> ${ICE_CASEDIR}/test_output
+    echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} baseline-does-not-exist" >> ${ICE_CASEDIR}/test_output
     echo "Baseline file does not exist"
   endif
 endif

@@ -35,14 +35,24 @@
       module ice_dyn_evp
 
       use ice_kinds_mod
+      use ice_constants, only: field_loc_center, field_loc_NEcorner, &
+          field_type_scalar, field_type_vector
+      use ice_constants, only: c0, c4, p027, p055, p111, p166, &
+          p2, p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, evp_prep1, evp_prep2, evp_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_ice_strength
+#ifdef CICE_IN_NEMO
+      use icepack_intfc, only: calc_strair
+#endif
 
       implicit none
       private
       public :: evp
-      save
 
 !=======================================================================
 
@@ -68,9 +78,6 @@
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy, ice_HaloUpdate_stress
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use icepack_intfc, only: icepack_ice_strength
-      use ice_constants, only: field_loc_center, field_loc_NEcorner, &
-          field_type_scalar, field_type_vector, c0
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks, ncat
       use ice_flux, only: rdg_conv, rdg_shear, prs_sig, strairxT, strairyT, &
@@ -88,9 +95,6 @@
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
-#ifdef CICE_IN_NEMO
-      use icepack_intfc_shared, only: calc_strair
-#endif
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -290,6 +294,10 @@
 
       enddo  ! iblk
       !$OMP END PARALLEL DO
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
@@ -546,9 +554,6 @@
                          prs_sig,                & 
                          rdg_conv,   rdg_shear,  & 
                          str )
-
-      use ice_constants, only: c0, c4, p027, p055, p111, p166, &
-          p2, p222, p25, p333, p5, puny, c1
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions

@@ -39,11 +39,13 @@
       use ice_kinds_mod
       use ice_domain_size, only: max_blocks, ncat, max_ntrcr, n_aero
       use ice_blocks, only: nx_block, ny_block
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
       public :: bound_state
-      save
 
       !-----------------------------------------------------------------
       ! state of the ice aggregated over all categories

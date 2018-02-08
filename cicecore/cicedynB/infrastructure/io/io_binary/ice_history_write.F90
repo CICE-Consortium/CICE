@@ -19,10 +19,13 @@
 
       module ice_history_write
 
+      use ice_fileunits, only: nu_history, nu_hdr, nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+
       implicit none
       private
       public :: ice_write_hist
-      save
       
 !=======================================================================
 
@@ -46,7 +49,6 @@
       use ice_constants, only: spval
       use ice_domain_size, only: nx_global, ny_global, max_nstrm
       use ice_read_write, only: ice_open, ice_write
-      use ice_fileunits, only: nu_history, nu_hdr, nu_diag
       use ice_grid, only: tarea
       use ice_history_shared
       use ice_restart_shared, only: lenstr, runid

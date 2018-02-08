@@ -9,17 +9,23 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
+      use ice_constants, only: c0, c1, c2, p2, p5
       use ice_domain_size, only: ncat, max_blocks, max_ntrcr
       use ice_forcing, only: trestore, trest
       use ice_state, only: aicen, vicen, vsnon, trcrn, bound_state, &
           aice_init, aice0, aice, vice, vsno, trcr, trcr_depend
-      use icepack_intfc_tracers, only: ntrcr
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_init_trcr
+      use icepack_intfc, only: icepack_query_parameters, &
+          icepack_query_tracer_numbers, icepack_query_tracer_flags, &
+          icepack_query_tracer_indices
 
       implicit none
       private
       public :: ice_HaloRestore_init, ice_HaloRestore
-      save
 
       logical (kind=log_kind), public :: &
          restore_ice                 ! restore ice state if true
@@ -50,10 +56,8 @@
 
       use ice_blocks, only: block, get_block, nblocks_x, nblocks_y
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0
       use ice_domain, only: ew_boundary_type, ns_boundary_type, &
           nblocks, blocks_ice
-      use ice_fileunits, only: nu_diag
       use ice_grid, only: tmask
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_restart_shared, only: restart_ext
@@ -65,6 +69,7 @@
      jglob(ny_block),    &! global indices
      iblock, jblock,     &! block indices
      ibc,                &! ghost cell column or row
+     ntrcr,              &!
      npad                 ! padding column/row counter
 
    character (len=7), parameter :: &
@@ -75,6 +80,11 @@
      this_block  ! block info for current block
 
    if (.not. restore_ice) return
+
+   call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      file=__FILE__, line=__LINE__)
 
    if (ew_boundary_type == 'open' .and. &
        ns_boundary_type == 'open' .and. .not.(restart_ext)) then
@@ -269,12 +279,7 @@
 
       use ice_arrays_column, only: hin_max
       use ice_blocks, only: nblocks_x, nblocks_y
-      use icepack_intfc, only: icepack_init_trcr
-      use ice_constants, only: c0, c1, c2, p2, p5, rhoi, rhos, Lfresh, &
-           cp_ice, cp_ocn, Tsmelt, Tffresh
       use ice_domain_size, only: nilyr, nslyr, ncat
-      use icepack_intfc_tracers, only: nt_Tsfc, nt_qice, nt_qsno, nt_sice, &
-          nt_fbri, tr_brine
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -321,7 +326,15 @@
          k           , & ! ice layer index
          n           , & ! thickness category index
          it          , & ! tracer index
+         nt_Tsfc     , & !
+         nt_fbri     , & !
+         nt_qice     , & !
+         nt_sice     , & !
+         nt_qsno     , & !
          icells          ! number of cells initialized with ice
+
+      logical (kind=log_kind) :: &
+         tr_brine
 
       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
          indxi, indxj    ! compressed indices for cells with restoring
@@ -338,6 +351,13 @@
 
       real (kind=dbl_kind), dimension(nslyr) :: &
          qsn             ! snow enthalpy (J/m3)
+
+      call icepack_query_tracer_flags(tr_brine_out=tr_brine)
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_fbri_out=nt_fbri, &
+           nt_qice_out=nt_qice, nt_sice_out=nt_sice, nt_qsno_out=nt_qsno)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       indxi(:) = 0
       indxj(:) = 0
@@ -495,6 +515,10 @@
             enddo               ! ij
          enddo                  ! ncat
 
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+            file=__FILE__, line=__LINE__)
+
    end subroutine set_restore_var
 
 !=======================================================================
@@ -508,7 +532,6 @@
 
       use ice_blocks, only: block, get_block, nblocks_x, nblocks_y
       use ice_calendar, only: dt
-      use ice_constants, only: secday
       use ice_domain, only: ew_boundary_type, ns_boundary_type, &
           nblocks, blocks_ice
 
@@ -522,15 +545,22 @@
      i,j,iblk,nt,n,      &! dummy loop indices
      ilo,ihi,jlo,jhi,    &! beginning and end of physical domain
      ibc,                &! ghost cell column or row
+     ntrcr,              &! 
      npad                 ! padding column/row counter
 
    type (block) :: &
      this_block  ! block info for current block
 
    real (dbl_kind) :: &
+     secday,             &!
      ctime                ! dt/trest
 
    call ice_timer_start(timer_bound)
+   call icepack_query_parameters(secday_out=secday)
+   call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      file=__FILE__, line=__LINE__)
 
 !-----------------------------------------------------------------------
 !

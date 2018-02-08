@@ -9,11 +9,18 @@
 
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm
+      use ice_constants, only: c0, c1, c100, mps_to_cmpdy
+      use ice_fileunits, only: nu_nml, nml_filename, &
+          get_fileunit, release_fileunit
+      use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_parameters, &
+          icepack_query_tracer_flags, icepack_query_tracer_indices
 
       implicit none
       private
       public :: accum_hist_mechred, init_hist_mechred_2D, init_hist_mechred_3Dc
-      save
       
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
@@ -77,15 +84,18 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1, secday, c100, mps_to_cmpdy
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nml_filename, &
-          get_fileunit, release_fileunit
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
-      use icepack_intfc_tracers, only: tr_lvl
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      real    (kind=dbl_kind) :: secday
+      logical (kind=log_kind) :: tr_lvl
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_query_tracer_flags(tr_lvl_out=tr_lvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -201,16 +211,20 @@
 
       subroutine init_hist_mechred_3Dc
 
-      use ice_constants, only: c0, c1, secday, c100, mps_to_cmpdy
       use ice_calendar, only: nstreams
-      use ice_exit, only: abort_ice
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
+      real (kind=dbl_kind) :: secday
 
       !-----------------------------------------------------------------
       ! 3D (category) variables must be looped separately
       !-----------------------------------------------------------------
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do ns = 1, nstreams
 
@@ -291,17 +305,25 @@
 
       subroutine accum_hist_mechred (iblk)
 
-      use ice_constants, only: c1
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, vice, trcr, aicen, vicen, trcrn
-      use icepack_intfc_tracers, only: nt_alvl, nt_vlvl
       use ice_flux, only: dardg1dt, dardg2dt, dvirdgdt, dardg1ndt,&
           dardg2ndt, dvirdgndt, krdgn, aparticn, aredistn, vredistn, &
           araftn, vraftn, opening
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+           nt_alvl, nt_vlvl
+
+      call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       !---------------------------------------------------------------
       ! increment field

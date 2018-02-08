@@ -24,10 +24,22 @@
                               sec, mday, month, nyr, yday, daycal, dayyr, &
                               daymo, days_per_year
       use ice_fileunits, only: nu_diag, nu_forcing
-      use icepack_intfc_shared, only: calc_strair
       use ice_exit, only: abort_ice
       use ice_read_write, only: ice_open, ice_read, &
                                 ice_open_nc, ice_read_nc, ice_close_nc
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
+                            timer_bound
+      use ice_arrays_column, only: oceanmixed_ice, restore_bgc
+      use ice_constants, only: c0, c1, c2, c4, c10, c12, c20, &
+                               c180, c365, c1000, c3600
+      use ice_constants, only: p001, p01, p1, p25, p5, p6
+      use ice_constants, only: cm_to_m
+      use ice_constants, only: field_loc_center, field_type_scalar, &
+                               field_type_vector, field_loc_NEcorner
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_liquidus_temperature
+      use icepack_intfc, only: icepack_sea_freezing_temperature
+      use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_parameters
 
       implicit none
       private
@@ -36,7 +48,6 @@
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
                 read_data_nc_point, interp_coeff
-      save
 
       integer (kind=int_kind), public :: &
          ycycle          , & ! number of years in forcing cycle
@@ -202,13 +213,9 @@
 ! (restore_sst = T). SSS is not prognosed by CICE. 
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c12, c1000, secday, &
-          field_loc_center, field_type_scalar
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
       use ice_flux, only: sss, sst, Tf
-      use icepack_intfc, only: icepack_liquidus_temperature
-      use icepack_intfc_shared, only: restore_bgc
 #ifdef ncdf
       use netcdf
 #endif
@@ -226,11 +233,18 @@
 
       logical (kind=log_kind) :: diag
 
+      real (kind=dbl_kind) :: secday
+
       character (char_len) :: & 
          fieldname            ! field name in netcdf file
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       nbits = 64              ! double precision data
 
@@ -385,7 +399,6 @@
  ! 'mushy'            Tf conforms with mushy layer thermo (ktherm=2)
 
       use ice_blocks, only: nx_block, ny_block
-      use icepack_intfc, only: icepack_sea_freezing_temperature
       use ice_domain, only: nblocks
       use ice_flux, only: sss, Tf
 
@@ -404,6 +417,10 @@
       enddo
       !$OMP END PARALLEL DO
 
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
       end subroutine ocn_freezing_temperature
 
 !=======================================================================
@@ -413,20 +430,18 @@
 ! Get atmospheric forcing data and interpolate as necessary
 
       use ice_blocks, only: block, get_block
-      use ice_constants, only: field_loc_center, field_type_scalar
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: nblocks, blocks_ice, halo_info
       use ice_flux, only: Tair, fsw, flw, frain, fsnow, Qa, rhoa, &
           uatm, vatm, strax, stray, zlvl, wind, swvdr, swvdf, swidr, swidf, &
           potT, sst
       use ice_state, only: aice, trcr
-      use icepack_intfc_tracers, only: nt_Tsfc
       use ice_grid, only: ANGLET, hm
-      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       integer (kind=int_kind) :: &
          iblk, &              ! block index
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+         ilo,ihi,jlo,jhi, &   ! beginning and end of physical domain
+         nt_Tsfc
 
       type (block) :: &
          this_block           ! block information for current block
@@ -436,6 +451,11 @@
                    .and. my_task == master_task) then
          write (nu_diag,*) ' Current forcing data year = ',fyear
       endif
+
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ftime = time         ! forcing time
       time_forc = ftime    ! for restarting
@@ -566,7 +586,6 @@
 !   is missing.
 
       use ice_diagnostics, only: check_step
-      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
       logical (kind=log_kind), intent(in) :: flag
 
@@ -713,9 +732,7 @@
 !
 ! Adapted by Alison McLaren, Met Office from read_data
 
-      use ice_constants, only: c0
       use ice_diagnostics, only: check_step
-      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
       logical (kind=log_kind), intent(in) :: flag
 
@@ -860,7 +877,6 @@
 !  the forcing time period.
 
       use ice_diagnostics, only: check_step
-      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
       logical (kind=log_kind),intent(in) :: readflag
 
@@ -942,7 +958,6 @@
 !  the forcing time period.
 
       use ice_diagnostics, only: check_step
-      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
       logical (kind=log_kind),intent(in) :: readflag
 
@@ -1025,19 +1040,23 @@
 
 ! Compute coefficients for interpolating monthly data to current time step.
 
-      use ice_constants, only: c1, secday
-
       integer (kind=int_kind), intent(in) :: &
           recslot         ! slot (1 or 2) for current record
 
       ! local variables
 
       real (kind=dbl_kind) :: &
+          secday       , & ! seconds in day
           tt           , & ! seconds elapsed in current year
           t1, t2           ! seconds elapsed at month midpoint
 
       real (kind=dbl_kind) :: &
           daymid(0:13)     ! month mid-points
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       daymid(1:13) = 14._dbl_kind   ! time frame ends 0 sec into day 15
       daymid(0)    = 14._dbl_kind - daymo(12)  ! Dec 15, 0 sec
@@ -1074,8 +1093,6 @@
 !  year (daily, 6-hourly, etc.)
 ! Use interp_coef_monthly for monthly data.
 
-      use ice_constants, only: c1, p5, secday
-
       integer (kind=int_kind), intent(in) :: &
           recnum      , & ! record number for current data value
           recslot     , & ! spline slot for current record
@@ -1088,12 +1105,18 @@
       ! local variables
 
       real (kind=dbl_kind) :: &
+          secday, &        ! seconds in a day
           secyr            ! seconds in a year
 
       real (kind=dbl_kind) :: &
           tt           , & ! seconds elapsed in current year
           t1, t2       , & ! seconds elapsed at data points
           rcnum            ! recnum => dbl_kind
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       secyr = dayyr * secday         ! seconds in a year
       tt = mod(ftime,secyr)
@@ -1203,10 +1226,6 @@
                                   Tsfc,     sst,      &
                                   aice)
 
-      use ice_constants, only: c0, c1, c10, c12, c4, &
-          secday, Tffresh, stefan_boltzmann, &
-          emissivity, qqqocn, TTTocn
-
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
@@ -1246,7 +1265,16 @@
          i, j
 
       real (kind=dbl_kind) :: workx, worky, &
-         precip_factor, zlvl0
+         precip_factor, zlvl0, secday, Tffresh
+
+      logical (kind=log_kind) :: calc_strair
+
+      call icepack_query_parameters(Tffresh_out=Tffresh)
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_query_parameters(calc_strair_out=calc_strair)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = jlo, jhi
       do i = ilo, ihi
@@ -1429,8 +1457,6 @@
 
       subroutine longwave_parkinson_washington(Tair, cldf, flw)
 
-      use ice_constants, only: c1, Tffresh, stefan_boltzmann
-
       ! compute downward longwave as in Parkinson and Washington (1979)
       ! (for now)
       ! Parkinson, C. L. and W. M. Washington (1979),
@@ -1443,6 +1469,15 @@
       
       real(kind=dbl_kind), intent(out) :: &
            flw      ! incoming longwave radiation (W/m^2)
+
+      real(kind=dbl_kind) :: &
+           Tffresh, stefan_boltzmann
+
+      call icepack_query_parameters(Tffresh_out=Tffresh, &
+           stefan_boltzmann_out=stefan_boltzmann)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
       
       flw = stefan_boltzmann*Tair**4 &
              * (c1 - 0.261_dbl_kind &
@@ -1457,9 +1492,6 @@
                                           aice, sst,  &
                                           Qa,   Tair, &
                                           hm,   flw)
-
-      use ice_constants, only: c1, c4, c1000, &
-          Tffresh, stefan_boltzmann, emissivity
 
       ! based on 
       ! Rosati, A. and K. Miyakoda (1988), 
@@ -1485,6 +1517,16 @@
            rtea , & ! square root of the vapour pressure
            ptem , & ! potential air temperature (K)
            qlwm 
+
+      real(kind=dbl_kind) :: &
+           Tffresh, stefan_boltzmann, emissivity
+
+      call icepack_query_parameters(Tffresh_out=Tffresh, &
+           stefan_boltzmann_out=stefan_boltzmann, &
+           emissivity_out=emissivity)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       fcc = c1 - 0.8_dbl_kind * cldf
       sstk = (Tsfc * aice &
@@ -1566,8 +1608,6 @@
 
       subroutine ncar_data
 
-      use ice_constants, only: c4, p5, secday, &
-          field_loc_center, field_type_scalar, field_type_vector
       use ice_flux, only: fsw, fsnow, Tair, uatm, vatm, rhoa, Qa
 
       integer (kind=int_kind) :: &
@@ -1580,9 +1620,15 @@
           midmonth        ! middle day of month
 
       real (kind=dbl_kind) :: &
+          secday, &           ! number of seconds in day
           sec6hr              ! number of seconds in 6 hours
 
       logical (kind=log_kind) :: readm, read6
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
     ! monthly data
@@ -1771,8 +1817,6 @@
       subroutine LY_data
 
       use ice_blocks, only: block, get_block
-      use ice_constants, only: c4, p1, p5, secday, Tffresh, &
-          field_loc_center, field_type_scalar, field_type_vector
       use ice_global_reductions, only: global_minval, global_maxval
       use ice_domain, only: nblocks, distrb_info, blocks_ice
       use ice_flux, only: fsnow, Tair, uatm, vatm, Qa, fsw
@@ -1793,12 +1837,20 @@
 
       real (kind=dbl_kind) :: &
           sec6hr          , & ! number of seconds in 6 hours
+          secday          , & ! number of seconds in day
+          Tffresh         , &
           vmin, vmax
 
       logical (kind=log_kind) :: readm, read6
 
       type (block) :: &
          this_block           ! block information for current block
+
+      call icepack_query_parameters(Tffresh_out=Tffresh)
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -1989,9 +2041,6 @@
 !---!-------------------------------------------------------------------
 !---!-------------------------------------------------------------------
 
-      use ice_constants, only: c0, c1, c12, c2, c180, c365, &
-          c3600, p1, p5, p6, pi, secday
-
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
@@ -2013,10 +2062,17 @@
          cosZ      , &
          e, d      , &
          sw0       , &
+         secday    , &
+         pi        , &
          deg2rad   
 
       integer (kind=int_kind) :: &
          i, j
+
+      call icepack_query_parameters(secday_out=secday, pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j=jlo,jhi
        do i=ilo,ihi
@@ -2048,8 +2104,6 @@
 
       subroutine Qa_fixLY(nx_block, ny_block, Tair, Qa)
 
-      use ice_constants, only: c1, c10, c2, Tffresh, puny
-
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block ! block dimensions
 
@@ -2062,6 +2116,14 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
          worka
+
+      real (kind=dbl_kind) :: &
+         Tffresh, puny
+
+      call icepack_query_parameters(Tffresh_out=Tffresh, puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       worka = Tair - Tffresh
       worka = c2 + (0.7859_dbl_kind + 0.03477_dbl_kind*worka) &
@@ -2090,13 +2152,19 @@
 !
 ! author: Alison McLaren, Met Office
 
-      use icepack_intfc_shared, only: calc_Tsfc, oceanmixed_ice
-
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
       integer (kind=int_kind) :: &
            n           ! thickness category index
+
+      logical (kind=log_kind) :: calc_strair, calc_Tsfc
+
+      call icepack_query_parameters(calc_strair_out=calc_strair, &
+           calc_Tsfc_out=calc_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       ! -----------------------------------------------------------
       ! Rainfall and snowfall
@@ -2258,9 +2326,6 @@
 
 ! authors: Alison McLaren, Met Office
 
-      use icepack_intfc_shared, only: calc_Tsfc, oceanmixed_ice
-      use ice_constants, only: p5, Lsub, &
-          field_loc_center, field_type_scalar, field_type_vector
       use ice_domain, only: nblocks
       use ice_flux, only: fsnow, frain, uatm, vatm, strax, stray, wind, &
           fsw, flw, Tair, rhoa, Qa, fcondtopn_f, fsurfn_f, flatn_f
@@ -2284,6 +2349,20 @@
 
       character (char_len) :: & 
             fieldname    ! field name in netcdf file
+
+      real (kind=dbl_kind) :: &
+            Lsub
+
+      logical (kind=log_kind) :: &
+            calc_strair, &
+            calc_Tsfc
+
+      call icepack_query_parameters(Lsub_out=Lsub)
+      call icepack_query_parameters(calc_strair_out=calc_strair, &
+           calc_Tsfc_out=calc_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
     ! monthly data
@@ -2552,8 +2631,6 @@
       subroutine monthly_data
 
       use ice_blocks, only: block, get_block
-      use ice_constants, only: p5, &
-          field_loc_center, field_type_scalar, field_type_vector
       use ice_global_reductions, only: global_minval, global_maxval
       use ice_domain, only: nblocks, distrb_info, blocks_ice
       use ice_flux, only: fsnow, Tair, Qa, wind, strax, stray, fsw
@@ -2719,7 +2796,6 @@
       subroutine oned_data
 
       use ice_blocks, only: block, get_block
-      use ice_constants, only: p001, p01, p25, c0, c1
       use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: uatm, vatm, Tair, fsw, fsnow, Qa, rhoa, frain
 
@@ -2894,11 +2970,8 @@
 
 ! author: Elizabeth C. Hunke and William H. Lipscomb, LANL
 
-      use ice_constants, only: c0, p5, c1000, &
-          field_loc_center, field_type_scalar
       use ice_domain, only: nblocks
       use ice_flux, only: Tf, sss, sst, uocn, vocn, ss_tltx, ss_tlty
-      use icepack_intfc, only: icepack_liquidus_temperature
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -3048,9 +3121,6 @@
 !          Elizabeth Hunke, LANL
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, &
-          field_loc_center, field_loc_NEcorner, &
-          field_type_scalar, field_type_vector
       use ice_domain_size, only: max_blocks
 #ifdef ncdf
       use netcdf
@@ -3198,8 +3268,6 @@
 !          Elizabeth Hunke, LANL
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, &
-          field_loc_center, field_type_scalar 
       use ice_domain_size, only: max_blocks
       use ice_grid, only: to_ugrid, ANGLET
       use ice_read_write, only: ice_read_nc_uv
@@ -3335,7 +3403,6 @@
 ! Restore sst if desired. sst is updated with surface fluxes in ice_ocean.F.
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, p5
       use ice_global_reductions, only: global_minval, global_maxval
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: max_blocks
@@ -3343,7 +3410,6 @@
             qdp, hmix
       use ice_restart_shared, only: restart
       use ice_grid, only: hm, tmask, umask
-      use icepack_intfc, only: icepack_liquidus_temperature
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -3514,10 +3580,8 @@
 
       subroutine ocn_data_oned(dt)
 
-      use ice_constants, only: c0, c20, p001
       use ice_flux, only: sss, sst, Tf, uocn, vocn, ss_tltx, ss_tlty, &
             qdp, hmix, frzmlt
-      use icepack_intfc, only: icepack_liquidus_temperature
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -3550,8 +3614,6 @@
 
 ! authors: Ann Keen, Met Office
 
-      use ice_constants, only: p5, cm_to_m, &
-          field_loc_center, field_type_scalar, field_type_vector
       use ice_domain, only: nblocks
       use ice_flux, only: sst, uocn, vocn
       use ice_grid, only: t2ugrid_vector, ANGLET
@@ -3739,9 +3801,7 @@
 !   data is missing, and we assume periodicity when monthly data
 !   is missing.
 !
-      use ice_constants, only: c0
       use ice_diagnostics, only: check_step
-      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
       logical (kind=log_kind), intent(in) :: flag
 
@@ -3932,8 +3992,6 @@
 !
       use ice_global_reductions, only: global_minval, global_maxval
       use ice_domain, only: nblocks, distrb_info, blocks_ice
-      use ice_constants, only: c0, c1, c2, c4, p001, p01, p1, secday, &
-          field_loc_center, field_type_scalar, p5
       use ice_flux, only: uatm, vatm, Tair, fsw,  Qa, qdp, rhoa, &
           frain, fsnow, flw
       use ice_grid, only:  tmask
@@ -4011,14 +4069,19 @@
          deg2rad   , &
          fsw_pnt   , &
          sumsw0    , &
+         secday    , &
          Qa_pnt                
 
       real (kind=dbl_kind) :: &
           sec1hr              ! number of seconds in 1 hour
 
       logical (kind=log_kind) :: readm, read1
-                  
+
       diag = .false.   ! write diagnostic information 
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
    
 #ifdef ncdf 
       if (trim(atm_data_format) == 'nc') then     ! read nc file
@@ -4103,8 +4166,8 @@
                     field_loc_center, field_type_scalar)
 
         fsnow(:,:,:) =  (c1intp * fsnow_data_p(1) + &
-                          + c2intp * fsnow_data_p(2)) 
-      
+                         c2intp * fsnow_data_p(2)) 
+
         !-----------------------------
         !fsw and flw are every 6 hours
         !------------------------------
@@ -4199,11 +4262,7 @@
 ! authors: Nicole Jeffery, LANL
 !
       use ice_domain, only: nblocks, distrb_info
-      use ice_constants, only: c0, &
-          field_loc_center, field_loc_NEcorner, &
-          field_type_scalar, field_type_vector
       use ice_gather_scatter
-      use ice_exit
       use ice_read_write
 #ifdef ncdf
       use netcdf

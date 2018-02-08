@@ -18,7 +18,6 @@
 
       implicit none
       private
-      save
 
       integer (kind=int_kind), parameter, public :: &
         nx_global = NXGLOB    , & ! i-axis size

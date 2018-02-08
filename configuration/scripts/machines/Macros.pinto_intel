@@ -35,15 +35,19 @@ PNETCDF_PATH := /usr/projects/climate/SHARED_CLIMATE/software/conejo/parallel-ne
 
 PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 
-INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
-#INCLDIR := $(INCLDIR) -I/usr/projects/climate/SHARED_CLIMATE/software/conejo/netcdf/3.6.3/intel-13.0.1/include
+ifeq ($(ICE_IOTYPE), netcdf)
+  INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
+#  INCLDIR := $(INCLDIR) -I/usr/projects/climate/SHARED_CLIMATE/software/conejo/netcdf/3.6.3/intel-13.0.1/include
 
-LIB_NETCDF := $(NETCDF_PATH)/lib
-LIB_PNETCDF := $(PNETCDF_PATH)/lib
-LIB_MPI := $(IMPILIBDIR)
+  LIB_NETCDF := $(NETCDF_PATH)/lib
+  LIB_PNETCDF := $(PNETCDF_PATH)/lib
+  LIB_MPI := $(IMPILIBDIR)
 
-#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf -L$(LAPACK_LIBDIR) -llapack -lblas
-SLIBS   := -L$(LIB_NETCDF) -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf 
+  #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf -L$(LAPACK_LIBDIR) -llapack -lblas
+  SLIBS   := -L$(LIB_NETCDF) -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf 
+else
+  SLIBS   := 
+endif
 
 SCC:= icc 
 

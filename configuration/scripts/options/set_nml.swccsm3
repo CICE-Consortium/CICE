@@ -1,0 +1,6 @@
+shortwave       = 'ccsm3'
+albedo_type     = 'ccsm3'
+calc_tsfc       = .true.
+tr_pond_cesm = .false.
+tr_pond_topo = .false.
+tr_pond_lvl  = .false.

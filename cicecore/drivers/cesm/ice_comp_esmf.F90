@@ -65,6 +65,8 @@ module ice_comp_esmf
   use ice_global_reductions
   use ice_broadcast
   use CICE_RunMod
+  use ice_exit, only: abort_ice
+  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
 ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
@@ -72,7 +74,6 @@ module ice_comp_esmf
   public :: ice_init_esmf
   public :: ice_run_esmf
   public :: ice_final_esmf
-  SAVE
   private                              ! By default make data private
 !
 ! ! PUBLIC DATA:
@@ -146,7 +147,7 @@ end subroutine
     use ice_restart_shared, only: runid, runtype, restart_dir, restart_format
     use ice_history,        only: accum_hist
     use ice_history_shared, only: history_dir, history_file
-    use icepack_intfc_tracers, only: tr_aero, tr_zaero
+    use icepack_intfc, only: tr_aero, tr_zaero
 !
 ! !ARGUMENTS:
     type(ESMF_GridComp)          :: comp

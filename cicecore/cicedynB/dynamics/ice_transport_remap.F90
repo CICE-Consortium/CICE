@@ -32,11 +32,17 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
+      use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, &
+          eps13, eps16, &
+          field_loc_center, field_type_scalar, &
+          field_loc_NEcorner, field_type_vector
       use ice_domain_size, only: max_blocks, ncat
       use ice_fileunits, only: nu_diag
+      use ice_exit, only: abort_ice
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
-      save
       private
       public :: init_remap, horizontal_remap, make_masks
 
@@ -248,7 +254,6 @@
 
       subroutine init_remap
 
-      use ice_constants, only: c0, c1, c12
       use ice_domain, only: nblocks
       use ice_blocks, only: nx_block, ny_block
       use ice_grid, only: xav, yav, xxav, yyav
@@ -317,16 +322,12 @@
 
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy
-      use ice_constants, only: c0, p5, &
-          field_loc_center, field_type_scalar, &
-          field_loc_NEcorner, field_type_vector
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_remap
       use ice_blocks, only: block, get_block, nghost, nx_block, ny_block
       use ice_grid, only: HTE, HTN, dxu, dyu,       &
                           tarea, tarear, hm,                  &
                           xav, yav, xxav, yyav
 !                          xyav, xxxav, xxyav, xyyav, yyyav
-      use ice_exit, only: abort_ice
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
@@ -873,8 +874,6 @@
                              mm,       mmask,              &
                              tm,       tmask)
 
-      use ice_constants, only: c0, c1, puny
-
       integer (kind=int_kind), intent(in) ::     &
            nx_block, ny_block  ,&! block dimensions
            ilo,ihi,jlo,jhi     ,&! beginning and end of physical domain
@@ -915,6 +914,14 @@
            i, j, ij       ,&! horizontal indices
            n              ,&! ice category index
            nt               ! tracer index
+
+      real (kind=dbl_kind) :: &
+           puny             !
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do n = 0, ncat
          do ij = 1, nx_block*ny_block
@@ -1040,8 +1047,6 @@
                                    tx,             ty,         &
                                    tmask)
 
-      use ice_constants, only: c0, c1, puny
-
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block  ,&! block dimensions
          ilo,ihi,jlo,jhi     ,&! beginning and end of physical domain
@@ -1104,6 +1109,7 @@
          mtyav            ! y coordinate of center of mass*tracer
 
       real (kind=dbl_kind) ::   &
+         puny, &
          w1, w2, w3, w4, w5, w6, w7   ! work variables
 
     !-------------------------------------------------------------------
@@ -1148,6 +1154,11 @@
     !-------------------------------------------------------------------
     ! Initialize
     !-------------------------------------------------------------------
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -1348,8 +1359,6 @@
                                    cnx,      cny,        &
                                    gx,       gy)
 
-      use ice_constants, only: c0, c1, p5, puny
-
       integer (kind=int_kind), intent(in) ::   &
           nx_block, ny_block,&! block dimensions
           ilo,ihi,jlo,jhi ,&! beginning and end of physical domain
@@ -1388,7 +1397,13 @@
           w1, w2, w3, w4 ! work variables
 
       real (kind=dbl_kind) ::   &
+          puny, &        !
           gxtmp, gytmp   ! temporary term for x- and y- limited gradient
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       gx(:,:) = c0
       gy(:,:) = c0
@@ -1499,8 +1514,6 @@
                                    dpx,        dpy,     &
                                    l_dp_midpt, l_stop,   &
                                    istop,      jstop)
-
-      use ice_constants, only: c0, p5
 
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block,&! block dimensions
@@ -1686,8 +1699,6 @@
                                    triarea,                  &
                                    l_fixed_area, edgearea)
 
-      use ice_constants, only: c0, c1, c2, p5, puny, eps13, eps16
-
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block,&! block dimensions
          ilo,ihi,jlo,jhi   ,&! beginning and end of physical domain
@@ -1776,10 +1787,11 @@
          md             ,&! slope of line connecting DL and DR
          mdl            ,&! slope of line connecting DL and DM
          mdr            ,&! slope of line connecting DR and DM
-         area1, area2         ,&! temporary triangle areas
-         area3, area4         ,&! 
-         area_c               ,&! center polygon area
-         w1, w2                 ! work variables
+         area1, area2   ,&! temporary triangle areas
+         area3, area4   ,&! 
+         area_c         ,&! center polygon area
+         puny           ,&!
+         w1, w2           ! work variables
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ngroups) ::   &
          areafact         ! = 1 for positive flux, -1 for negative
@@ -1839,6 +1851,11 @@
     !-------------------------------------------------------------------
     ! Initialize
     !-------------------------------------------------------------------
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       areafac_c(:,:) = c0
       areafac_l(:,:) = c0
@@ -3077,8 +3094,6 @@
                                        indxi,          indxj,     &
                                        xp,             yp)
 
-      use ice_constants, only: p333, p4, p5, p6
-
       integer (kind=int_kind), intent(in) ::   &
            nx_block, ny_block,&! block dimensions
            integral_order      ! polynomial order for quadrature integrals 
@@ -3204,8 +3219,6 @@
                                       my,             mflx,        &
                                       tc,             tx,          &
                                       ty,             mtflx)
-
-      use ice_constants, only: c0, p333
 
       integer (kind=int_kind), intent(in) ::   &
            nx_block, ny_block  ,&! block dimensions
@@ -3522,8 +3535,6 @@
                                 mtflxe,      mtflxn,     &
                                 tm)
 
-      use ice_constants, only: c0, puny
-
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block,&! block dimensions
          ilo,ihi,jlo,jhi   ,&! beginning and end of physical domain
@@ -3566,6 +3577,7 @@
          mtold            ! old mass*tracer
 
       real (kind=dbl_kind) ::   &
+         puny, &          !
          w1               ! work variable
 
       integer (kind=int_kind), dimension(nx_block*ny_block) ::   &
@@ -3579,6 +3591,11 @@
     !-------------------------------------------------------------------
     ! Save starting values of mass*tracer
     !-------------------------------------------------------------------
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       if (present(tm)) then
          do nt = 1, ntrace

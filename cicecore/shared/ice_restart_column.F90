@@ -11,12 +11,20 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
-      use ice_constants
+      use ice_constants, only: c0, c1, p5
+      use ice_constants, only: field_loc_center, field_type_scalar
       use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, nblyr
       use ice_restart,only: read_restart_field, write_restart_field
+      use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_max_algae, icepack_max_doc, &
+          icepack_max_don, icepack_max_dic, icepack_max_fe, icepack_max_aero
+      use icepack_intfc, only: icepack_query_parameters, &
+          icepack_query_tracer_numbers, icepack_query_tracer_flags, &
+          icepack_query_tracer_indices
 
       implicit none
-      save
 
       private
       public ::  write_restart_age,       read_restart_age, &
@@ -52,13 +60,18 @@
 
       subroutine write_restart_age()
 
-      use ice_fileunits, only: nu_diag, nu_dump_age
+      use ice_fileunits, only: nu_dump_age
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_iage
 
       ! local variables
 
       logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_iage
+
+      call icepack_query_tracer_indices(nt_iage_out=nt_iage)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -76,14 +89,19 @@
 
       subroutine read_restart_age()
 
-      use ice_fileunits, only: nu_diag, nu_restart_age
+      use ice_fileunits, only: nu_restart_age
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_iage
 
       ! local variables
 
       logical (kind=log_kind) :: &
          diag
+      integer (kind=int_kind) :: nt_iage
+
+      call icepack_query_tracer_indices(nt_iage_out=nt_iage)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -101,14 +119,19 @@
 
       subroutine write_restart_FY()
 
-      use ice_fileunits, only: nu_diag, nu_dump_FY
+      use ice_fileunits, only: nu_dump_FY
       use ice_flux, only: frz_onset
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_FY
 
       ! local variables
 
       logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_FY
+
+      call icepack_query_tracer_indices(nt_FY_out=nt_FY)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -128,15 +151,20 @@
 
       subroutine read_restart_FY()
 
-      use ice_fileunits, only: nu_diag, nu_restart_FY
+      use ice_fileunits, only: nu_restart_FY
       use ice_flux, only: frz_onset
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_FY
 
       ! local variables
 
       logical (kind=log_kind) :: &
          diag
+      integer (kind=int_kind) :: nt_FY
+
+      call icepack_query_tracer_indices(nt_FY_out=nt_FY)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -160,13 +188,18 @@
 
       subroutine write_restart_lvl()
 
-      use ice_fileunits, only: nu_diag, nu_dump_lvl
+      use ice_fileunits, only: nu_dump_lvl
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_alvl, nt_vlvl
 
       ! local variables
 
       logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_alvl, nt_vlvl
+
+      call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -187,14 +220,19 @@
 
       subroutine read_restart_lvl()
 
-      use ice_fileunits, only: nu_diag, nu_restart_lvl
+      use ice_fileunits, only: nu_restart_lvl
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_alvl, nt_vlvl
 
       ! local variables
 
       logical (kind=log_kind) :: &
          diag
+      integer (kind=int_kind) :: nt_alvl, nt_vlvl
+
+      call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -218,11 +256,16 @@
 
       use ice_fileunits, only: nu_dump_pond
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_apnd, nt_hpnd
 
       ! local variables
 
       logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_apnd, nt_hpnd
+
+      call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -242,14 +285,19 @@
 
       subroutine read_restart_pond_cesm()
 
-      use ice_fileunits, only: nu_diag, nu_restart_pond 
+      use ice_fileunits, only: nu_restart_pond 
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_apnd, nt_hpnd
 
       ! local variables
 
       logical (kind=log_kind) :: &
          diag
+      integer (kind=int_kind) :: nt_apnd, nt_hpnd
+
+      call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -274,11 +322,17 @@
       use ice_fileunits, only: nu_dump_pond
       use ice_flux, only: fsnow
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_apnd, nt_hpnd, nt_ipnd
 
       ! local variables
 
       logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_apnd, nt_hpnd, nt_ipnd
+
+      call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
+           nt_ipnd_out=nt_ipnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -306,15 +360,21 @@
       subroutine read_restart_pond_lvl()
 
       use ice_arrays_column, only: dhsn, ffracn
-      use ice_fileunits, only: nu_diag, nu_restart_pond 
+      use ice_fileunits, only: nu_restart_pond 
       use ice_flux, only: fsnow
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_apnd, nt_hpnd, nt_ipnd
 
       ! local variables
 
       logical (kind=log_kind) :: &
          diag
+      integer (kind=int_kind) :: nt_apnd, nt_hpnd, nt_ipnd
+
+      call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
+           nt_ipnd_out=nt_ipnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -346,11 +406,17 @@
 
       use ice_fileunits, only: nu_dump_pond
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_apnd, nt_hpnd, nt_ipnd
 
       ! local variables
 
       logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_apnd, nt_hpnd, nt_ipnd
+
+      call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
+           nt_ipnd_out=nt_ipnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -372,14 +438,20 @@
 
       subroutine read_restart_pond_topo()
 
-      use ice_fileunits, only: nu_diag, nu_restart_pond 
+      use ice_fileunits, only: nu_restart_pond 
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_apnd, nt_hpnd, nt_ipnd
 
       ! local variables
 
       logical (kind=log_kind) :: &
          diag
+      integer (kind=int_kind) :: nt_apnd, nt_hpnd, nt_ipnd
+
+      call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
+           nt_ipnd_out=nt_ipnd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -406,8 +478,7 @@
 
       use ice_domain_size, only: n_aero
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_aero
-      use ice_fileunits, only: nu_dump_aero, nu_diag
+      use ice_fileunits, only: nu_dump_aero
 
       ! local variables
 
@@ -417,10 +488,16 @@
       logical (kind=log_kind) :: diag
 
       character (len=3)       :: nchar
+      integer (kind=int_kind) :: nt_aero
 
       !-----------------------------------------------------------------
 
       if (my_task == master_task) write(nu_diag,*) 'write_restart_aero (aerosols)'
+
+      call icepack_query_tracer_indices(nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -454,8 +531,7 @@
 
       use ice_domain_size, only: n_aero
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_aero
-      use ice_fileunits, only: nu_restart_aero, nu_diag
+      use ice_fileunits, only: nu_restart_aero
 
       ! local variables
 
@@ -464,12 +540,18 @@
 
       logical (kind=log_kind) :: &
          diag
+      integer (kind=int_kind) :: nt_aero
 
       character (len=3)       :: nchar
 
       !-----------------------------------------------------------------
 
       if (my_task == master_task) write(nu_diag,*) 'read_restart_aero (aerosols)'
+
+      call icepack_query_tracer_indices(nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -502,9 +584,8 @@
       use ice_blocks, only: block, get_block
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, blocks_ice
-      use ice_fileunits, only: nu_diag, nu_restart_hbrine
+      use ice_fileunits, only: nu_restart_hbrine
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_fbri
       use ice_restart,only: read_restart_field
 
       ! local variables
@@ -518,6 +599,13 @@
 
       logical (kind=log_kind) :: &
          diag
+
+      integer (kind=int_kind) :: nt_fbri
+
+      call icepack_query_tracer_indices(nt_fbri_out=nt_fbri)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -562,9 +650,8 @@
       use ice_arrays_column, only: first_ice, first_ice_real
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
-      use ice_fileunits, only: nu_diag, nu_dump_hbrine
+      use ice_fileunits, only: nu_dump_hbrine
       use ice_state, only: trcrn
-      use icepack_intfc_tracers, only: nt_fbri
       use ice_restart,only: write_restart_field
 
       ! local variables
@@ -575,8 +662,15 @@
 
       logical (kind=log_kind) :: diag
 
+      integer (kind=int_kind) :: nt_fbri
+
       type (block) :: &
          this_block      ! block information for current block
+
+      call icepack_query_tracer_indices(nt_fbri_out=nt_fbri)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -622,24 +716,12 @@
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic, &
           n_don, n_zaero, n_fed, n_fep
-      use ice_fileunits, only: nu_diag, nu_dump_bgc
+      use ice_fileunits, only: nu_dump_bgc
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
       use ice_state, only: trcrn
-      use ice_fileunits, only: nu_diag, nu_dump_bgc
       use ice_flux, only: sss  
       use ice_restart, only:  write_restart_field
-      use icepack_intfc_tracers, only: nt_bgc_S, nt_bgc_Am, &
-          nt_bgc_DMS, nt_bgc_DMSPd, nt_bgc_C, nt_bgc_chl, &
-          nt_bgc_DMSPp, nt_bgc_Nit, nt_bgc_Sil, &
-          nt_bgc_PON, nt_bgc_DON, nt_bgc_DOC, nt_bgc_DIC, &
-          nt_bgc_N, nt_zaero, nt_bgc_Fed, nt_bgc_Fep, &
-          nt_zbgc_frac, nbtrcr,  &
-          nt_bgc_Fep, tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil,&
-          tr_bgc_DMS, tr_bgc_PON, tr_bgc_S, tr_bgc_N, tr_bgc_C, &
-          tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
-          nt_bgc_hum, tr_bgc_hum
-      use icepack_intfc_shared, only: skl_bgc, solve_zsal
 
       ! local variables
 
@@ -654,11 +736,64 @@
 
       character (len=3) :: nchar, ncharb
 
+      integer (kind=int_kind) :: nt_bgc_S, nt_bgc_Am, &
+         nt_bgc_DMS, nt_bgc_DMSPd, &
+         nt_bgc_DMSPp, nt_bgc_Nit, nt_bgc_Sil, &
+         nt_bgc_PON, nt_zbgc_frac, nt_bgc_hum, nbtrcr
+
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &  
+         nt_bgc_N , & ! diatoms, phaeocystis, pico/small   
+         nt_bgc_C , & ! diatoms, phaeocystis, pico/small   
+         nt_bgc_chl   ! diatoms, phaeocystis, pico/small 
+
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &  
+         nt_bgc_DOC      !  dissolved organic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_don) :: & 
+         nt_bgc_DON         !  dissolved organic nitrogen
+
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &  
+         nt_bgc_DIC         !  dissolved inorganic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_fe) :: & 
+         nt_bgc_Fed,     & !  dissolved iron
+         nt_bgc_Fep        !  particulate iron
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &  
+         nt_zaero       !  black carbon and other aerosols
+      
+      logical (kind=log_kind) :: tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil,&
+         tr_bgc_DMS, tr_bgc_PON, tr_bgc_N, tr_bgc_C, &
+         tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
+         tr_bgc_hum
+
+      logical (kind=log_kind) :: skl_bgc, solve_zsal
+
       type (block) :: &
          this_block      ! block information for current block
 
       integer (kind=int_kind) :: &
          ipoint
+
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
+      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
+          tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
+          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
+          tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, &
+          tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out=tr_bgc_Fe,  tr_zaero_out=tr_zaero, &
+          tr_bgc_chl_out=tr_bgc_chl, tr_bgc_hum_out=tr_bgc_hum)
+      call icepack_query_tracer_indices(nt_bgc_S_out=nt_bgc_S, nt_bgc_Am_out=nt_bgc_Am, &
+          nt_bgc_DMS_out=nt_bgc_DMS, nt_bgc_DMSPd_out=nt_bgc_DMSPd, &
+          nt_bgc_C_out=nt_bgc_C, nt_bgc_chl_out=nt_bgc_chl, &
+          nt_bgc_DMSPp_out=nt_bgc_DMSPp, nt_bgc_Nit_out=nt_bgc_Nit, &
+          nt_bgc_Sil_out=nt_bgc_Sil, nt_bgc_PON_out=nt_bgc_PON, &
+          nt_bgc_DON_out=nt_bgc_DON, nt_bgc_DOC_out=nt_bgc_DOC, nt_bgc_DIC_out=nt_bgc_DIC, &
+          nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_bgc_Fed_out=nt_bgc_Fed, &
+          nt_bgc_hum_out=nt_bgc_hum, nt_bgc_Fep_out=nt_bgc_Fep, nt_zbgc_frac_out=nt_zbgc_frac)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
@@ -994,23 +1129,12 @@
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic,&
           n_don, n_zaero, n_fed, n_fep
-      use ice_fileunits, only: nu_diag, nu_restart_bgc
+      use ice_fileunits, only: nu_restart_bgc
       use ice_flux, only: sss  
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
       use ice_state, only: trcrn
       use ice_restart, only: read_restart_field
-      use icepack_intfc_tracers, only: nt_bgc_S, nt_bgc_Am, &
-          nt_bgc_DMS, nt_bgc_DMSPd, nt_bgc_C, nt_bgc_chl, &
-          nt_bgc_DMSPp, nt_bgc_Nit, nt_bgc_Sil, &
-          nt_bgc_PON, nt_bgc_DON, nt_bgc_DOC, nt_bgc_DIC, &
-          nt_bgc_N, nt_zaero, nt_bgc_Fed, nt_bgc_Fep, &
-          nt_zbgc_frac, nbtrcr,  &
-          nt_bgc_Fep, tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil,&
-          tr_bgc_DMS, tr_bgc_PON, tr_bgc_S, tr_bgc_N, tr_bgc_C, &
-          tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
-          nt_bgc_hum, tr_bgc_hum
-      use icepack_intfc_shared, only: skl_bgc
 
       ! local variables
 
@@ -1024,7 +1148,60 @@
 
       logical (kind=log_kind) :: diag
 
+      integer (kind=int_kind) :: nt_bgc_S, nt_bgc_Am, &
+         nt_bgc_DMS, nt_bgc_DMSPd, &
+         nt_bgc_DMSPp, nt_bgc_Nit, nt_bgc_Sil, &
+         nt_bgc_PON, nt_zbgc_frac, nt_bgc_hum, nbtrcr
+
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &  
+         nt_bgc_N , & ! diatoms, phaeocystis, pico/small   
+         nt_bgc_C , & ! diatoms, phaeocystis, pico/small   
+         nt_bgc_chl   ! diatoms, phaeocystis, pico/small 
+
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &  
+         nt_bgc_DOC      !  dissolved organic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_don) :: & 
+         nt_bgc_DON         !  dissolved organic nitrogen
+
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &  
+         nt_bgc_DIC         !  dissolved inorganic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_fe) :: & 
+         nt_bgc_Fed,     & !  dissolved iron
+         nt_bgc_Fep        !  particulate iron
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &  
+         nt_zaero       !  black carbon and other aerosols
+      
+      logical (kind=log_kind) :: tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil,&
+         tr_bgc_DMS, tr_bgc_PON, tr_bgc_N, tr_bgc_C, &
+         tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
+         tr_bgc_hum
+
+      logical (kind=log_kind) :: skl_bgc, solve_zsal
+
       character (len=3) :: nchar, ncharb
+
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
+      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
+          tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
+          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
+          tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, &
+          tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out=tr_bgc_Fe,  tr_zaero_out=tr_zaero, &
+          tr_bgc_chl_out=tr_bgc_chl, tr_bgc_hum_out=tr_bgc_hum)
+      call icepack_query_tracer_indices(nt_bgc_S_out=nt_bgc_S, nt_bgc_Am_out=nt_bgc_Am, &
+          nt_bgc_DMS_out=nt_bgc_DMS, nt_bgc_DMSPd_out=nt_bgc_DMSPd, &
+          nt_bgc_C_out=nt_bgc_C, nt_bgc_chl_out=nt_bgc_chl, &
+          nt_bgc_DMSPp_out=nt_bgc_DMSPp, nt_bgc_Nit_out=nt_bgc_Nit, &
+          nt_bgc_Sil_out=nt_bgc_Sil, nt_bgc_PON_out=nt_bgc_PON, &
+          nt_bgc_DON_out=nt_bgc_DON, nt_bgc_DOC_out=nt_bgc_DOC, nt_bgc_DIC_out=nt_bgc_DIC, &
+          nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_bgc_Fed_out=nt_bgc_Fed, &
+          nt_bgc_Fep_out=nt_bgc_Fep, nt_zbgc_frac_out=nt_zbgc_frac, nt_bgc_hum_out=nt_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
 
       diag = .true.
 
