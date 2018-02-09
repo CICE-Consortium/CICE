@@ -11,7 +11,7 @@
 
       use ice_fileunits, only: nu_diag, flush_fileunit
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-#ifdef CCSM
+#ifdef CESMCOUPLED
       use shr_sys_mod
 #endif
 
@@ -35,7 +35,7 @@
 
       character(len=*), parameter :: subname='(abort_ice)'
 
-#ifdef CCSM
+#ifdef CESMCOUPLED
       call icepack_warnings_flush(nu_diag)
       write(nu_diag,*) ' '
       write(nu_diag,*) subname, 'ABORTED: '

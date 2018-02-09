@@ -290,7 +290,7 @@
             call popgrid        ! read POP grid lengths directly
          endif 
       elseif (trim(grid_type) == 'latlon') then
-         call latlongrid        ! lat lon grid for sequential CCSM (CAM mode)
+         call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
          return
       elseif (trim(grid_type) == 'cpom_grid') then
          call cpomgrid          ! cpom model orca1 type grid
@@ -768,7 +768,7 @@
 #ifdef ncdf
 !     use ice_boundary
       use ice_domain_size
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       use ice_scam, only : scmlat, scmlon, single_column
 #endif
       use ice_constants, only: c0, c1, p5, p25, &
@@ -821,7 +821,7 @@
       ! - Read in lon/lat centers in degrees from kmt file
       ! - Read in ocean from "kmt" file (1 for ocean, 0 for land)
       !-----------------------------------------------------------------
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
 
       call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)

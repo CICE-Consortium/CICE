@@ -338,7 +338,7 @@
 
       integer (kind=int_kind) :: n
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       logical (kind=log_kind), parameter ::     & 
          l_winter = .false.  , &  ! winter/summer default switch
          l_spring = .false.      ! spring example

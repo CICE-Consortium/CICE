@@ -9,7 +9,7 @@
 !
 ! 2004-05: Block structure added by William Lipscomb
 !          Restart module separated from history module
-! 2006 ECH: Accepted some CCSM code into mainstream CICE
+! 2006 ECH: Accepted some CESM code into mainstream CICE
 !           Converted to free source form (F90) 
 ! 2008 ECH: Rearranged order in which internal stresses are written and read
 ! 2010 ECH: Changed eice, esno to qice, qsno
@@ -136,7 +136,7 @@
       !-----------------------------------------------------------------
       ! radiation fields
       !-----------------------------------------------------------------
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       call write_restart_field(nu_dump,0,coszen,'ruf8','coszen',1,diag)
 #endif
       call write_restart_field(nu_dump,0,scale_factor,'ruf8','scale_factor',1,diag)
@@ -316,7 +316,7 @@
       if (my_task == master_task) &
          write(nu_diag,*) 'radiation fields'
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       call read_restart_field(nu_restart,0,coszen,'ruf8', &
 !           'coszen',1,diag, field_loc_center, field_type_scalar)
            'coszen',1,diag)

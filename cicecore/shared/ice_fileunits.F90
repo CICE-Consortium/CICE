@@ -22,7 +22,7 @@
       module ice_fileunits
 
       use ice_kinds_mod
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       use shr_file_mod, only : shr_file_getunit, shr_file_freeunit
 #endif
 
@@ -146,12 +146,12 @@
 
    ! local variables
 
-#ifndef CCSMCOUPLED
+#ifndef CESMCOUPLED
    integer (kind=int_kind) :: n  ! dummy loop index
    logical (kind=log_kind) :: alreadyInUse
 #endif
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
    iunit = shr_file_getUnit()
 #else
 
@@ -225,7 +225,7 @@
    integer (kind=int_kind), intent(in) :: &
       iunit                    ! I/O unit to be released
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
          call shr_file_freeUnit(iunit)
 #else
 !  check for proper unit number
@@ -246,13 +246,13 @@
 !  (typically stdout) to force output when the system is buffering
 !  such output.  Because this system function is system dependent,
 !  we only support this wrapper and users are welcome to insert the
-!  code relevant to their local machine.  In the case where the CCSM
+!  code relevant to their local machine.  In the case where the CESM
 !  libraries are available, the shared routine for sys flush can be
 !  used (and is provided here under a preprocessor option).
 
       subroutine flush_fileunit(iunit)
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       use shr_sys_mod, only : shr_sys_flush
 #endif
 
@@ -265,7 +265,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
    call shr_sys_flush(iunit)
 #else
 #if (defined IRIX64 || defined CRAY || defined OSF1 || defined SUNOS || defined LINUX || defined NEC_SX | defined UNICOSMP)

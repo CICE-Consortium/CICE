@@ -81,7 +81,7 @@
                                 basalstress, Ktens, e_ratio
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
 
@@ -197,7 +197,7 @@
       year_init = 0          ! initial year
       istep0 = 0             ! no. of steps taken in previous integrations,
                              ! real (dumped) or imagined (to set calendar)
-#ifndef CCSMCOUPLED
+#ifndef CESMCOUPLED
       dt = 3600.0_dbl_kind   ! time step, s      
 #endif
       npt = 99999            ! total number of time steps (dt) 
@@ -315,7 +315,7 @@
       latpnt(2) = -65._dbl_kind   ! latitude of diagnostic point 2 (deg)
       lonpnt(2) = -45._dbl_kind   ! longitude of point 2 (deg)
 
-#ifndef CCSMCOUPLED
+#ifndef CESMCOUPLED
       runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
       runtype = 'initial'   ! run type: 'initial', 'continue'
 #endif
@@ -348,7 +348,7 @@
       ! read from input file
       !-----------------------------------------------------------------
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       nml_filename  = 'ice_in'//trim(inst_suffix)
 #endif
 
@@ -400,8 +400,8 @@
       ! set up diagnostics output and resolve conflicts
       !-----------------------------------------------------------------
 
-#ifdef CCSMCOUPLED
-      ! Note in CCSMCOUPLED mode diag_file is not utilized and
+#ifdef CESMCOUPLED
+      ! Note in CESMCOUPLED mode diag_file is not utilized and
       ! runid and runtype are obtained from the driver, not from the namelist
 
       if (my_task == master_task) then
@@ -796,7 +796,7 @@
       call broadcast_scalar(phi_c_slow_mode,    master_task)
       call broadcast_scalar(phi_i_mushy,        master_task)
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       pointer_file = trim(pointer_file) // trim(inst_suffix)
 #endif
 

@@ -8,7 +8,7 @@
 !         C. M. Bitz, UW
 !
 ! 2004 WHL: Block structure added 
-! 2006 ECH: Accepted some CCSM code into mainstream CICE
+! 2006 ECH: Accepted some CESM code into mainstream CICE
 !           Added ice_present, aicen, vicen; removed aice1...10, vice1...1.
 !           Added histfreq_n and histfreq='h' options, removed histfreq='w'
 !           Converted to free source form (F90)
@@ -798,7 +798,7 @@
       !-----------------------------------------------------------------
       ! ... the user should change these to something useful ...
       !-----------------------------------------------------------------
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
         status = nf90_put_att(ncid,nf90_global,'title',runid)
         if (status /= nf90_noerr) call abort_ice( &
                       'ice: Error in global attribute title')

@@ -89,7 +89,7 @@
          call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
 #ifndef coupled
-#ifndef CCSMCOUPLED
+#ifndef CESMCOUPLED
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
 
@@ -497,7 +497,7 @@
 
       !-----------------------------------------------------------------
       ! Divide fluxes by ice area 
-      !  - the CCSM coupler assumes fluxes are per unit ice area
+      !  - the CESM coupler assumes fluxes are per unit ice area
       !  - also needed for global budget in diagnostics
       !-----------------------------------------------------------------
 

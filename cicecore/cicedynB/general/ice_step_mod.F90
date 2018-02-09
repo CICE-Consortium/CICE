@@ -154,7 +154,7 @@
       use ice_state, only: aice, aicen, aice_init, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
 
-#ifdef CCSMCOUPLED
+#ifdef CESMCOUPLED
       use ice_prescribed_mod, only: prescribed_ice
 #else
       logical (kind=log_kind) :: & 
@@ -209,7 +209,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
-#ifndef CCSMCOUPLED
+#ifndef CESMCOUPLED
       prescribed_ice = .false.
 #endif
 
