@@ -145,9 +145,9 @@
           meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, &
           wind, rhoa, potT, Qa, zlvl, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
           flw, fsnow, fpond, sss, mlt_onset, frz_onset, &
-          frain, Tair, coszen, strairxT, strairyT, fsurf, fcondtop, fsens, &
+          frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
           flat, fswabs, flwout, evap, Tref, Qref, Uref, fresh, fsalt, fhocn, &
-          fswthru, meltt, melts, meltb, meltl, congel, snoice, frazil, &
+          fswthru, meltt, melts, meltb, meltl, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn
       use ice_grid, only: lmask_n, lmask_s
@@ -324,7 +324,7 @@
                             fswthrun    (i,j,:,iblk), fswabs      (i,j,  iblk), &
                             flwout      (i,j,  iblk),                           &
                             Sswabsn   (i,j,:,:,iblk), Iswabsn   (i,j,:,:,iblk), &
-                            flw         (i,j,  iblk), coszen      (i,j,  iblk), & 
+                            flw         (i,j,  iblk), &
                             fsens       (i,j,  iblk), fsensn      (i,j,:,iblk), &
                             flat        (i,j,  iblk), flatn       (i,j,:,iblk), &
                             evap        (i,j,  iblk),                           &
@@ -337,11 +337,10 @@
                             dhsn        (i,j,:,iblk), ffracn      (i,j,:,iblk), &
                             meltt       (i,j,  iblk), melttn      (i,j,:,iblk), &
                             meltb       (i,j,  iblk), meltbn      (i,j,:,iblk), &
-                            meltl       (i,j,  iblk),                           &
                             melts       (i,j,  iblk), meltsn      (i,j,:,iblk), &
                             congel      (i,j,  iblk), congeln     (i,j,:,iblk), &
                             snoice      (i,j,  iblk), snoicen     (i,j,:,iblk), &
-                            dsnown      (i,j,:,iblk), frazil      (i,j,  iblk), &
+                            dsnown      (i,j,:,iblk), &
                             lmask_n     (i,j,  iblk), lmask_s     (i,j,  iblk), &
                             mlt_onset   (i,j,  iblk), frz_onset   (i,j,  iblk), &
                             yday,                     prescribed_ice)
@@ -1085,7 +1084,7 @@
       use ice_domain_size, only: nblyr, nilyr, nslyr, n_algae, n_zaero, ncat, &
                                  n_doc, n_dic,  n_don, n_fed, n_fep
       use ice_flux, only: meltbn, melttn, congeln, snoicen, &
-                          sst, sss, fsnow, meltsn, hmix, salinz
+                          sst, sss, fsnow, meltsn
       use ice_flux_bgc, only: hin_old, flux_bio, flux_bio_atm, faero_atm, & 
           nit, amm, sil, dmsp, dms, algalN, doc, don, dic, fed, fep, zaeros, hum
       use ice_state, only: aicen_init, vicen_init, aicen, vicen, vsnon, &
@@ -1207,8 +1206,6 @@
                               sss         (i,j,          iblk),        &
                               fsnow       (i,j,          iblk),        &
                               meltsn      (i,j,:,        iblk),        &
-                              hmix        (i,j,          iblk),        &
-                              salinz      (i,j,1:nilyr,  iblk),        &
                               hin_old     (i,j,:,        iblk),        &
                               flux_bio    (i,j,1:nbtrcr, iblk),        &
                               flux_bio_atm(i,j,1:nbtrcr, iblk),        &
@@ -1220,7 +1217,7 @@
                               aice0       (i,j,          iblk),        &
                               trcrn       (i,j,1:ntrcr,:,iblk),        &
                               vsnon_init  (i,j,:,        iblk),        &
-                              skl_bgc, icepack_max_algae, icepack_max_nbtrcr)
+                              skl_bgc)
 
       enddo               ! i
       enddo               ! j

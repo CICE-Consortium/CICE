@@ -721,7 +721,7 @@
             do j = jlo, jhi
             do i = ilo, ihi  
 
-            call icepack_init_bgc(dt, ncat, nblyr, nilyr, ntrcr_o, &
+            call icepack_init_bgc(ncat, nblyr, nilyr, ntrcr_o, &
                cgrid, igrid, ntrcr, nbtrcr, &
                sicen(:,:), trcrn_bgc(:,:), sss(i,j, iblk), &
                ocean_bio_all(i,j,:,iblk))
@@ -824,7 +824,6 @@
 
       integer (kind=int_kind), dimension(icepack_max_algae) :: &
          nlt_bgc_N      , & ! algae
-         nlt_bgc_C      , & !
          nlt_bgc_chl
 
       integer (kind=int_kind), dimension(icepack_max_doc) :: &
@@ -845,7 +844,6 @@
 
       integer (kind=int_kind), dimension(icepack_max_algae) :: &
          nt_bgc_N , & ! diatoms, phaeocystis, pico/small
-         nt_bgc_C , & ! diatoms, phaeocystis, pico/small
          nt_bgc_chl   ! diatoms, phaeocystis, pico/small
 
       integer (kind=int_kind), dimension(icepack_max_doc) :: &
@@ -1676,10 +1674,8 @@
 
       ! vectors of size icepack_max_algae
       nlt_bgc_N(:) = 0
-      nlt_bgc_C(:) = 0
       nlt_bgc_chl(:) = 0
       nt_bgc_N(:) = 0
-      nt_bgc_C(:) = 0
       nt_bgc_chl(:) = 0
 
       ! vectors of size icepack_max_dic
@@ -2182,14 +2178,14 @@
           nt_fbri_in=nt_fbri,      &  
           nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
           nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &
-          nt_bgc_N_in=nt_bgc_N,       nt_bgc_C_in=nt_bgc_C,         nt_bgc_chl_in=nt_bgc_chl,   &
+          nt_bgc_N_in=nt_bgc_N,       nt_bgc_chl_in=nt_bgc_chl,   &
           nt_bgc_DOC_in=nt_bgc_DOC,   nt_bgc_DON_in=nt_bgc_DON,     nt_bgc_DIC_in=nt_bgc_DIC,   &
           nt_zaero_in=nt_zaero,       nt_bgc_DMSPp_in=nt_bgc_DMSPp, nt_bgc_DMSPd_in=nt_bgc_DMSPd, &
           nt_bgc_Fed_in=nt_bgc_Fed,   nt_bgc_Fep_in=nt_bgc_Fep,     nt_zbgc_frac_in=nt_zbgc_frac, &
           nlt_zaero_sw_in=nlt_zaero_sw,  nlt_chl_sw_in=nlt_chl_sw,  nlt_bgc_Sil_in=nlt_bgc_Sil, &
           nlt_bgc_N_in=nlt_bgc_N,     nlt_bgc_Nit_in=nlt_bgc_Nit,   nlt_bgc_Am_in=nlt_bgc_Am, &
           nlt_bgc_DMS_in=nlt_bgc_DMS, nlt_bgc_DMSPp_in=nlt_bgc_DMSPp, nlt_bgc_DMSPd_in=nlt_bgc_DMSPd, &
-          nlt_bgc_C_in=nlt_bgc_C,     nlt_bgc_chl_in=nlt_bgc_chl,   nlt_zaero_in=nlt_zaero, &
+          nlt_bgc_chl_in=nlt_bgc_chl,   nlt_zaero_in=nlt_zaero, &
           nlt_bgc_DIC_in=nlt_bgc_DIC, nlt_bgc_DOC_in=nlt_bgc_DOC,   nlt_bgc_PON_in=nlt_bgc_PON, &
           nlt_bgc_DON_in=nlt_bgc_DON, nlt_bgc_Fed_in=nlt_bgc_Fed,   nlt_bgc_Fep_in=nlt_bgc_Fep, &
           nt_bgc_hum_in=nt_bgc_hum,   nlt_bgc_hum_in=nlt_bgc_hum, &

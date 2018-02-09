@@ -531,6 +531,7 @@ setenv ICE_MACHCOMP ${machcomp}
 setenv ICE_RUNDIR   ${ICE_MACHINE_WKDIR}/${casename}
 setenv ICE_GRID     ${grid}
 setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}
+setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}
 setenv ICE_NTASKS   ${task}
 setenv ICE_NTHRDS   ${thrd}
 setenv ICE_DECOMP   ${ICE_DECOMP_DECOMP}
