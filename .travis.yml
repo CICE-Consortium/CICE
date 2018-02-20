@@ -1,0 +1,46 @@
+language: cpp
+
+sudo: false
+
+compiler: clang
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-trusty-5.0
+    packages:
+      - tcsh
+      - pkg-config
+      - netcdf-bin
+      - libnetcdf-dev
+      - gfortran
+      - clang-5.0
+      - wget
+      #- lftp
+
+install:
+  # Fetch Icepack-specific dataset
+  - "wget ftp://ftp.cgd.ucar.edu/archive/Model-Data/CICE/Icepack_data.tar.gz &&
+    tar xvfz Icepack_data.tar.gz -C ~"
+
+  # Mirror entire data folder
+  #- "lftp ftp://anonymous:travis@travis-ci.org@ftp.cgd.ucar.edu 
+  #-e 'mirror /archive/Model-Data/CICE/ ~/ICEPACK_INPUTDATA; quit'"
+
+
+script:
+  - "./cice.setup --suite base_suite --testid travisCItest 
+    --mach travisCI --env gnu &&
+    cd base_suite.travisCItest &&
+    ./results.csh"
+
+notifications:
+  email: false
+
+after_failure:
+  - "for runlog in $TRAVIS_BUILD_DIR/base_suite.travisCItest/*.travisCItest/logs/cice.runlog.*; do
+    echo \"### Contents of $runlog ###\" && cat $runlog; done"
+  #- "git config --global user.email 'travis@travis-ci.org' &&
+    #git config --global user.name 'ciceconsortium' &&
+    #./report_results.csh --travisCI"

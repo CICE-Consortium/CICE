@@ -1,0 +1,46 @@
+#==============================================================================
+# Makefile macros for Travis-CI - gfortran and llvm (clang) compilers
+#==============================================================================
+
+CPP        := clang-cpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise   -xHost
+
+FIXEDFLAGS := -132
+FFLAGS     :=  -O2 -ffree-line-length-none -fconvert=big-endian -finit-real=nan
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+    FFLAGS     += -O0 -g -Wextra -fbacktrace -fbounds-check -ffpe-trap=zero,overflow
+else
+    FFLAGS     += -O2
+endif
+
+FC := gfortran
+
+MPICC:= 
+
+MPIFC:= 
+LD:= $(FC)
+
+NETCDF_PATH := $(NETCDF)
+
+ifeq ($(ICE_IOTYPE), netcdf)
+    NETCDF_PATH := /usr/projects/climate/SHARED_CLIMATE/software/conejo/netcdf/3.6.3/intel-13.0.1
+    INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
+    LIB_NETCDF := $(NETCDF_PATH)/lib
+    LIB_PNETCDF := 
+    SLIBS   := -L$(LIB_NETCDF) -lnetcdf 
+else
+    SLIBS   := 
+endif
+
+LIB_MPI := 
+SCC:= 
+SFC:= 
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -openmp
+   CFLAGS += -openmp
+   FFLAGS += -openmp
+endif
