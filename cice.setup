@@ -704,6 +704,7 @@ echo ""
 echo "\$success of \$total tests PASSED"
 echo "\$failures of \$total tests FAILED"
 echo "\$pends of \$total tests PENDING"
+exit \$failures
 EOF
 
   # build and submit tests
