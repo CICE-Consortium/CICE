@@ -1,7 +1,7 @@
 #!/bin/csh -f
 
 set ICE_SANDBOX = `pwd`
-set ICE_SCRIPTS = ${ICE_SANDBOX}/configuration/scripts
+set ICE_SCRIPTS = "${ICE_SANDBOX}/configuration/scripts"
 set initargv = ( $argv[*] ) 
 
 set helpheader = 0
