@@ -5,7 +5,7 @@
 !
 ! The following variables are currently hard-wired as snapshots 
 !   (instantaneous rather than time-averages):
-!   divu, shear, sig1, sig2, trsig, mlt_onset, frz_onset, hisnap, aisnap
+!   divu, shear, sig1, sig2, sigI, trsig, mlt_onset, frz_onset, hisnap, aisnap
 !
 ! Options for histfreq: '1','h','d','m','y','x', where x means that
 !   output stream will not be used (recommended for efficiency).  
@@ -300,6 +300,7 @@
       call broadcast_scalar (f_shear, master_task)
       call broadcast_scalar (f_sig1, master_task)
       call broadcast_scalar (f_sig2, master_task)
+      call broadcast_scalar (f_sigI, master_task)
       call broadcast_scalar (f_dvidtt, master_task)
       call broadcast_scalar (f_dvidtd, master_task)
       call broadcast_scalar (f_daidtt, master_task)
@@ -776,6 +777,11 @@
              "norm. principal stress 2",                       &
              "sig2 is instantaneous", c1, c0,                  &
              ns1, f_sig2)
+             
+         call define_hist_field(n_sigI,"sigI","1",ustr2D, ucstr, &
+             "ice pressure",                       &
+             "sigI is instantaneous", c1, c0,                  &
+             ns1, f_sigI)
       
          call define_hist_field(n_dvidtt,"dvidtt","cm/day",tstr2D, tcstr, &
              "volume tendency thermo",                                  &
@@ -1199,11 +1205,11 @@
           fhocn, fhocn_ai, uatm, vatm, fbot, &
           fswthru_ai, strairx, strairy, strtltx, strtlty, strintx, strinty, &
           taubx, tauby, strocnx, strocny, fm, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
-          fcondtop, fsurfn, fcondtopn, flatn, fsensn, albcnt, prs_sig, &
+          fcondtop, fsurfn, fcondtopn, flatn, fsensn, albcnt, &
           stressp_1, stressm_1, stress12_1, &
           stressp_2, stressm_2, stress12_2, &
           stressp_3, stressm_3, stress12_3, &
-          stressp_4, stressm_4, stress12_4, sig1, sig2, &
+          stressp_4, stressm_4, stress12_4, sig1, sig2, sigI, &
           mlt_onset, frz_onset, dagedtt, dagedtd, fswint_ai, keffn_top, &
           snowfrac, alvdr_ai, alvdf_ai, alidr_ai, alidf_ai
       use ice_arrays_column, only: snowfracn
@@ -1922,9 +1928,10 @@
                                   stressp_1 (:,:,iblk), &
                                   stressm_1 (:,:,iblk), &
                                   stress12_1(:,:,iblk), &
-                                  prs_sig   (:,:,iblk), &
+                                  strength  (:,:,iblk), &
                                   sig1      (:,:,iblk), &
-                                  sig2      (:,:,iblk))
+                                  sig2      (:,:,iblk), &
+                                  sigI      (:,:,iblk))
  
            do j = jlo, jhi
            do i = ilo, ihi
@@ -1933,6 +1940,7 @@
                  if (n_shear    (ns) /= 0) a2D(i,j,n_shear(ns),    iblk) = spval
                  if (n_sig1     (ns) /= 0) a2D(i,j,n_sig1(ns),     iblk) = spval
                  if (n_sig2     (ns) /= 0) a2D(i,j,n_sig2(ns),     iblk) = spval
+                 if (n_sigI     (ns) /= 0) a2D(i,j,n_sigI(ns),     iblk) = spval
                  if (n_mlt_onset(ns) /= 0) a2D(i,j,n_mlt_onset(ns),iblk) = spval
                  if (n_frz_onset(ns) /= 0) a2D(i,j,n_frz_onset(ns),iblk) = spval
                  if (n_hisnap   (ns) /= 0) a2D(i,j,n_hisnap(ns),   iblk) = spval
@@ -1961,6 +1969,8 @@
                        sig1 (i,j,iblk)*avail_hist_fields(n_sig1(ns))%cona
                  if (n_sig2     (ns) /= 0) a2D(i,j,n_sig2(ns),iblk)      = &
                        sig2 (i,j,iblk)*avail_hist_fields(n_sig2(ns))%cona
+                 if (n_sigI     (ns) /= 0) a2D(i,j,n_sigI(ns),iblk)      = &
+                       sigI (i,j,iblk)*avail_hist_fields(n_sigI(ns))%cona      
                  if (n_mlt_onset(ns) /= 0) a2D(i,j,n_mlt_onset(ns),iblk) = &
                        mlt_onset(i,j,iblk)
                  if (n_frz_onset(ns) /= 0) a2D(i,j,n_frz_onset(ns),iblk) = &
@@ -1972,7 +1982,7 @@
 
                  if (kdyn == 2) then  ! for EAP dynamics different time of output
                     if (n_trsig    (ns) /= 0) a2D(i,j,n_trsig(ns),iblk ) = &
-                                        prs_sig(i,j,iblk)
+                                        strength(i,j,iblk)
                  else
                     if (n_trsig    (ns) /= 0) a2D(i,j,n_trsig(ns),iblk ) = &
                                        p25*(stressp_1(i,j,iblk) &
