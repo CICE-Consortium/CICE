@@ -953,15 +953,16 @@
       do j = 1, ny_block
       do i = 1, nx_block
          if (strength(i,j) > puny) then
-            ! not normalized yet
+            ! ice internal pressure          
+            sigI(i,j) = -p5*stressp_1(i,j) 
+            
+            ! normalized principal stresses
             sig1(i,j) = (p5*(stressp_1(i,j) &
-                      + sqrt(stressm_1(i,j)**2+c4*stress12_1(i,j)**2)))
+                      + sqrt(stressm_1(i,j)**2+c4*stress12_1(i,j)**2))) &
+                      / strength(i,j)
             sig2(i,j) = (p5*(stressp_1(i,j) &
-                      - sqrt(stressm_1(i,j)**2+c4*stress12_1(i,j)**2)))
-            sigI(i,j) = -p5*( sig1(i,j) + sig2(i,j) ) 
-            ! normalization of sig1 and sig2
-            sig1(i,j) = sig1(i,j) / strength(i,j)
-            sig2(i,j) = sig2(i,j) / strength(i,j)
+                      - sqrt(stressm_1(i,j)**2+c4*stress12_1(i,j)**2))) &
+                      / strength(i,j)         
          else
             sig1(i,j) = spval_dbl
             sig2(i,j) = spval_dbl
