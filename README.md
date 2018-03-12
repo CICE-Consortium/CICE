@@ -25,7 +25,7 @@ where "branch name" can also be a version name
 
 ## More information
 
-Detailed and searchable online documentation of CICE can be found at https://cice-consortium.github.io/CICE/. In this documentation, a [“Quick Start”](https://cice-consortium.github.io/CICE/cice_2_quick_start.html) subsection is available with instructions for running the model. A [“Testing”](https://cice-consortium.github.io/CICE/cice_7_testing.html) subsection with instructions for setting up standard tests (e.g. regression, restart) is also available. 
+Detailed and searchable online documentation of CICE can be found at https://cice-consortium.github.io/CICE/. In this documentation, a [“Quick Start”](https://cice-consortium.github.io/CICE/cice_1_introduction.html#quick-start-guide) subsection is available with instructions for running the model. A [“Testing”](https://cice-consortium.github.io/CICE/cice_3_user_guide.html#testing-cice) subsection with instructions for setting up standard tests (e.g. regression, restart) is also available. 
 
 In-progress documentation (not yet merged into the main repo): https://duvivier.github.io/CICE/ 
 
