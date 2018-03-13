@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#! /bin/csh -fv
 
 if ( $1 != "" ) then
   echo ${0:t} ${1}
@@ -12,13 +12,20 @@ source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 set jobfile = $1
 
 set ntasks = ${ICE_NTASKS}
+echo ntasks ${ntasks}
 set nthrds = ${ICE_NTHRDS}
+echo nthrds ${nthrds}
 set maxtpn = ${ICE_MACHINE_TPNODE}
+echo maxtpn ${maxtpn}
 set acct   = ${ICE_ACCOUNT}
+echo acct ${acct}
 
 @ ncores = ${ntasks} * ${nthrds}
+echo ncores ${ncores}
 @ taskpernode = ${maxtpn} / $nthrds
+echo taskpernode ${taskpernode}
 @ nnodes = ${ntasks} / ${taskpernode}
+echo nnodes ${nnodes}
 if (${nnodes} * ${taskpernode} < ${ntasks}) @ nnodes = $nnodes + 1
 set taskpernodelimit = ${taskpernode}
 if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
