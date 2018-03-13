@@ -774,17 +774,17 @@ default in this distribution, this is not a stringent limitation:
 :math:`\Delta t < 19.4` hr, assuming :math:`\max(f) = 40` cm/day.
 
 In the classic EVP or EAP approach (`kdyn` = 1 or 2, `revised\_evp` = false),
-the dynamics component is subcycled ndte (:math:`N`) times per dynamics
+the dynamics component is subcycled ndte (:math:`N`) times per thermodynamic
 time step so that the elastic waves essentially disappear before the
 next time step. The subcycling time step (:math:`\Delta
 t_e`) is thus
 
 .. math::
-   dte = dt\_dyn/ndte.
+   dte = dt/ndte.
 
 A second parameter, :math:`E_\circ` (`eyc`), defines the elastic wave
 damping timescale :math:`T`, described in Section :ref:`dynam`, as
-`eyc`\ * `dt\_dyn`. The forcing terms are not updated during the subcycling.
+`eyc`\ * `dt`. The forcing terms are not updated during the subcycling.
 Given the small step (`dte`) at which the EVP dynamics model is subcycled,
 the elastic parameter :math:`E` is also limited by stability
 constraints, as discussed in :cite:`HD97`. Linear stability
