@@ -921,7 +921,7 @@
                                   stressp_1,  stressm_1, &
                                   stress12_1, strength,  &
                                   sig1,       sig2,      &
-                                  sigI)
+                                  sigP)
 
       use ice_constants, only: spval_dbl, p5, c4
 
@@ -937,7 +937,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out):: &
          sig1    , & ! normalized principal stress component
          sig2    , & ! normalized principal stress component
-         sigI        ! internal ice pressure (N/m)
+         sigP        ! internal ice pressure (N/m)
 
       ! local variables
 
@@ -954,7 +954,7 @@
       do i = 1, nx_block
          if (strength(i,j) > puny) then
             ! ice internal pressure          
-            sigI(i,j) = -p5*stressp_1(i,j) 
+            sigP(i,j) = -p5*stressp_1(i,j) 
             
             ! normalized principal stresses
             sig1(i,j) = (p5*(stressp_1(i,j) &
@@ -966,7 +966,7 @@
          else
             sig1(i,j) = spval_dbl
             sig2(i,j) = spval_dbl
-            sigI(i,j) = spval_dbl
+            sigP(i,j) = spval_dbl
          endif
       enddo
       enddo

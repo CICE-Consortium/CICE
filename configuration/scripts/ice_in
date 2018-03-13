@@ -420,7 +420,7 @@
     f_shear        = 'm'
     f_sig1         = 'm' 
     f_sig2         = 'm' 
-    f_sigI         = 'm' 
+    f_sigP         = 'm' 
     f_dvidtt       = 'm' 
     f_dvidtd       = 'm' 
     f_daidtt       = 'm'

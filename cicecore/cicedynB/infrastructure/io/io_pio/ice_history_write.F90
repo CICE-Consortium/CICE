@@ -426,7 +426,7 @@
             if (hist_avg .and. histfreq(ns) /= '1') then
               if (TRIM(avail_hist_fields(n)%vname)/='sig1' &
               .or.TRIM(avail_hist_fields(n)%vname)/='sig2' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sigI') then
+              .or.TRIM(avail_hist_fields(n)%vname)/='sigP') then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
               endif
             endif
@@ -434,7 +434,7 @@
             if (histfreq(ns) == '1' .or. .not. hist_avg         &
                 .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
-                .or. n==n_sigI(ns)      .or. n==n_trsig(ns)     &
+                .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
                 .or. n==n_mlt_onset(ns) .or. n==n_frz_onset(ns) &
                 .or. n==n_hisnap(ns)    .or. n==n_aisnap(ns)) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')

@@ -60,7 +60,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          sig1    , & ! normalized principal stress component
          sig2    , & ! normalized principal stress component
-         sigI    , & ! internal ice pressure (N/m)
+         sigP    , & ! internal ice pressure (N/m)
          taubx   , & ! basal stress (x) (N/m^2)
          tauby   , & ! basal stress (y) (N/m^2)
          strairx , & ! stress on ice by air, x-direction
