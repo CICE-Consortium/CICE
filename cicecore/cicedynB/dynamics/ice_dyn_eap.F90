@@ -93,7 +93,7 @@
           cosw, sinw, denom1, uvel_init, vvel_init, arlx1i, &
           evp_prep1, evp_prep2, stepu, evp_finish, &
           basal_stress_coeff, basalstress
-      use ice_flux, only: rdg_conv, rdg_shear, prs_sig, strairxT, strairyT, &
+      use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, &
           strocnxT, strocnyT, strax, stray, &
@@ -176,7 +176,6 @@
             rdg_shear(i,j,iblk) = c0 
             divu (i,j,iblk) = c0 
             shear(i,j,iblk) = c0 
-            prs_sig(i,j,iblk) = c0 
             e11(i,j,iblk) = c0
             e12(i,j,iblk) = c0
             e22(i,j,iblk) = c0
@@ -394,7 +393,6 @@
                               yieldstress11 (:,:,iblk),                   &
                               yieldstress12 (:,:,iblk),                   &
                               yieldstress22 (:,:,iblk),                   &
-                              prs_sig   (:,:,iblk),                       &
                               rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
                               strtmp    (:,:,:))
 !      call ice_timer_stop(timer_tmp1) ! dynamics
@@ -486,8 +484,8 @@
       if ( basalstress ) then
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            taubx(:,:,iblk) = Cbu(:,:,iblk)*uvel(:,:,iblk)
-            tauby(:,:,iblk) = Cbu(:,:,iblk)*vvel(:,:,iblk)
+            taubx(:,:,iblk) = -Cbu(:,:,iblk)*uvel(:,:,iblk)
+            tauby(:,:,iblk) = -Cbu(:,:,iblk)*vvel(:,:,iblk)
          enddo
          !$OMP END PARALLEL DO
       endif
@@ -1145,7 +1143,6 @@
                               yieldstress11,              &
                               yieldstress12,              &
                               yieldstress22,              &
-                              prs_sig,                    &
                               rdg_conv,   rdg_shear,      &
                               strtmp)
 
@@ -1196,7 +1193,6 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), & 
          intent(inout) :: &
-         prs_sig  , & ! replacement pressure, for stress calc
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          e11      , & ! components of strain rate tensor (1/s)
@@ -1352,8 +1348,6 @@
 
          e22(i,j) = p5*p25*(divune + divunw + divuse + divusw - &
                     tensionne - tensionnw - tensionse - tensionsw) * tarear(i,j)
-
-         prs_sig(i,j) = strength(i,j) 
 
       !-----------------------------------------------------------------
       ! elastic relaxation, see Eq. A12-A14

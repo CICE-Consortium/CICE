@@ -80,7 +80,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks, ncat
-      use ice_flux, only: rdg_conv, rdg_shear, prs_sig, strairxT, strairyT, &
+      use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, &
           strocnxT, strocnyT, strax, stray, &
@@ -177,7 +177,6 @@
             rdg_shear(i,j,iblk) = c0 
             divu (i,j,iblk) = c0 
             shear(i,j,iblk) = c0 
-            prs_sig(i,j,iblk) = c0 
          enddo
          enddo
 
@@ -352,7 +351,6 @@
                             stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
                             stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                             shear     (:,:,iblk), divu      (:,:,iblk), & 
-                            prs_sig   (:,:,iblk),                       & 
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
                             strtmp    (:,:,:) )
 !            endif               ! yield_curve
@@ -420,8 +418,8 @@
       if ( basalstress ) then
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            taubx(:,:,iblk) = Cbu(:,:,iblk)*uvel(:,:,iblk)
-            tauby(:,:,iblk) = Cbu(:,:,iblk)*vvel(:,:,iblk)
+            taubx(:,:,iblk) = -Cbu(:,:,iblk)*uvel(:,:,iblk)
+            tauby(:,:,iblk) = -Cbu(:,:,iblk)*vvel(:,:,iblk)
          enddo
          !$OMP END PARALLEL DO
       endif
@@ -551,7 +549,6 @@
                          stress12_1, stress12_2, & 
                          stress12_3, stress12_4, & 
                          shear,      divu,       & 
-                         prs_sig,                & 
                          rdg_conv,   rdg_shear,  & 
                          str )
 
@@ -588,7 +585,6 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), & 
          intent(inout) :: &
-         prs_sig  , & ! replacement pressure, for stress calc
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          rdg_conv , & ! convergence term for ridging (1/s)
@@ -698,7 +694,6 @@
          c0nw = strength(i,j)/max(Deltanw,tinyarea(i,j))
          c0sw = strength(i,j)/max(Deltasw,tinyarea(i,j))
          c0se = strength(i,j)/max(Deltase,tinyarea(i,j))
-         prs_sig(i,j) = c0ne*Deltane ! northeast
 
          c1ne = c0ne*arlx1i
          c1nw = c0nw*arlx1i
