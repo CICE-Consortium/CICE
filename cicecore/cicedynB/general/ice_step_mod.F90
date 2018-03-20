@@ -78,7 +78,7 @@
       type (block) :: &
          this_block      ! block information for current block
 
-      call ice_timer_start(timer_sw,iblk)      ! shortwave
+      call ice_timer_start(timer_sw)      ! shortwave
 
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
@@ -660,8 +660,8 @@
       ! Ridging
       !-----------------------------------------------------------------
 
-      call ice_timer_start(timer_column,iblk)
-      call ice_timer_start(timer_ridge,iblk)
+      call ice_timer_start(timer_column)
+      call ice_timer_start(timer_ridge)
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
@@ -788,7 +788,7 @@
          debug, &           ! flag for printing debugging information
          l_print_point      ! flag for printing debugging information
 
-      call ice_timer_start(timer_sw,iblk)      ! shortwave
+      call ice_timer_start(timer_sw)      ! shortwave
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, &
          nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)

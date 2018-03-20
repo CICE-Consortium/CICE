@@ -850,6 +850,8 @@
                                      uold,     vold,             &
                                      Cbu)
 
+      use ice_constants, only: c0, c1                                     
+                                     
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
          icellu                 ! no. of cells where icetmask = 1
@@ -899,11 +901,9 @@
          hcu = au * hwu / k1
 
          ! 2- calculate stress factor
-         if (au > p01 .and. hu > hcu ) then
-   !       endif
-           Cbu(i,j) = ( k2 / (sqrt(uold(i,j)**2 + vold(i,j)**2) + u0) ) &
-                      * (hu - hcu) * exp(-CC * (1 - au))
-         endif
+                      
+         Cbu(i,j) = ( k2 / (sqrt(uold(i,j)**2 + vold(i,j)**2) + u0) ) &
+                    * max(c0,(hu - hcu)) * exp(-CC * (c1 - au))
 
       enddo                     ! ij
 
@@ -918,8 +918,9 @@
 
       subroutine principal_stress(nx_block,   ny_block,  &
                                   stressp_1,  stressm_1, &
-                                  stress12_1, prs_sig,   &
-                                  sig1,       sig2)
+                                  stress12_1, strength,  &
+                                  sig1,       sig2,      &
+                                  sigP)
 
       use ice_constants, only: spval_dbl, p5, c4
 
@@ -930,11 +931,12 @@
          stressp_1 , & ! sigma11 + sigma22
          stressm_1 , & ! sigma11 - sigma22
          stress12_1, & ! sigma12
-         prs_sig       ! replacement pressure, for stress calc
+         strength      ! for normalization of sig1 and sig2
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out):: &
-         sig1    , & ! principal stress component
-         sig2        ! principal stress component
+         sig1    , & ! normalized principal stress component
+         sig2    , & ! normalized principal stress component
+         sigP        ! internal ice pressure (N/m)
 
       ! local variables
 
@@ -949,16 +951,21 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
-         if (prs_sig(i,j) > puny) then
+         if (strength(i,j) > puny) then
+            ! ice internal pressure          
+            sigP(i,j) = -p5*stressp_1(i,j) 
+            
+            ! normalized principal stresses
             sig1(i,j) = (p5*(stressp_1(i,j) &
                       + sqrt(stressm_1(i,j)**2+c4*stress12_1(i,j)**2))) &
-                      / prs_sig(i,j)
+                      / strength(i,j)
             sig2(i,j) = (p5*(stressp_1(i,j) &
                       - sqrt(stressm_1(i,j)**2+c4*stress12_1(i,j)**2))) &
-                      / prs_sig(i,j)
+                      / strength(i,j)         
          else
             sig1(i,j) = spval_dbl
             sig2(i,j) = spval_dbl
+            sigP(i,j) = spval_dbl
          endif
       enddo
       enddo

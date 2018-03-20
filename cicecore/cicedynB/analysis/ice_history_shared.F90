@@ -4,7 +4,7 @@
 !
 ! The following variables are currently hard-wired as snapshots 
 !   (instantaneous rather than time-averages):
-!   divu, shear, sig1, sig2, trsig, mlt_onset, frz_onset, hisnap, aisnap
+!   divu, shear, sig1, sig2, sigP, trsig, mlt_onset, frz_onset, hisnap, aisnap
 !
 ! Options for histfreq: '1','h','d','m','y','x', where x means that
 !   output stream will not be used (recommended for efficiency).  
@@ -226,6 +226,7 @@
            f_strength  = 'm', &
            f_divu      = 'm', f_shear      = 'm', &
            f_sig1      = 'm', f_sig2       = 'm', &
+           f_sigP      = 'm', &
            f_dvidtt    = 'm', f_dvidtd     = 'm', &
            f_daidtt    = 'm', f_daidtd     = 'm', &
            f_dagedtt   = 'm', f_dagedtd    = 'm', &
@@ -313,6 +314,7 @@
            f_strength,  &
            f_divu,      f_shear    , &
            f_sig1,      f_sig2     , &
+           f_sigP,      &
            f_dvidtt,    f_dvidtd   , &
            f_daidtt,    f_daidtd   , &
            f_dagedtt,   f_dagedtd  , &
@@ -418,6 +420,7 @@
            n_strength   , &
            n_divu       , n_shear      , &
            n_sig1       , n_sig2       , &
+           n_sigP       , &
            n_dvidtt     , n_dvidtd     , &
            n_daidtt     , n_daidtd     , &
            n_dagedtt    , n_dagedtd    , &

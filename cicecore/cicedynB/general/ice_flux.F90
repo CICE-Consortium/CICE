@@ -57,8 +57,9 @@
        ! diagnostic
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
-         sig1    , & ! principal stress component
-         sig2    , & ! principal stress component
+         sig1    , & ! normalized principal stress component
+         sig2    , & ! normalized principal stress component
+         sigP    , & ! internal ice pressure (N/m)
          taubx   , & ! basal stress (x) (N/m^2)
          tauby   , & ! basal stress (y) (N/m^2)
          strairx , & ! stress on ice by air, x-direction
@@ -107,7 +108,6 @@
        ! internal
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
-         prs_sig  , & ! replacement pressure, for stress calc
          fm       , & ! Coriolis param. * mass in U-cell (kg/s)
          Cbu          ! coefficient for basal stress (landfast ice)
 
@@ -720,7 +720,6 @@
       if (tr_iage) &
          dagedtd (:,:,:) = trcr(:,:,nt_iage,:) ! temporary initial age
       fm      (:,:,:) = c0
-      prs_sig (:,:,:) = c0
       ardgn   (:,:,:,:) = c0
       vrdgn   (:,:,:,:) = c0
       krdgn   (:,:,:,:) = c1
