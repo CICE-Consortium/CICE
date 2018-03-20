@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restoring.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Reads and interpolates forcing data for atmosphere and ocean quantities.

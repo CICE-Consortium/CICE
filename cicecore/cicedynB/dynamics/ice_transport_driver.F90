@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_transport_driver.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Drivers for remapping and upwind ice transport

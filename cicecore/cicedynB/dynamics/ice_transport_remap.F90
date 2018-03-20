@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_transport_remap.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Transports quantities using the second-order conservative remapping

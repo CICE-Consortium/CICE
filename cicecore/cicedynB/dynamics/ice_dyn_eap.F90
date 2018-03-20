@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_dyn_eap.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Elastic-anisotropic sea ice dynamics model
@@ -89,8 +88,8 @@
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_dyn_shared, only: fcor_blk, ndte, dtei, a_min, m_min, &
-          cosw, sinw, denom1, uvel_init, vvel_init, arlx1i, &
+      use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
+          denom1, uvel_init, vvel_init, arlx1i, &
           evp_prep1, evp_prep2, stepu, evp_finish, &
           basal_stress_coeff, basalstress
       use ice_flux, only: rdg_conv, rdg_shear, prs_sig, strairxT, strairyT, &
@@ -102,7 +101,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, tinyarea, to_ugrid, t2ugrid_vector, u2tgrid_vector
+          tarear, uarear, to_ugrid, t2ugrid_vector, u2tgrid_vector
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
 !      use ice_timers, only: timer_dynamics, timer_bound, &
@@ -375,7 +374,6 @@
                               cxp       (:,:,iblk), cyp       (:,:,iblk), &
                               cxm       (:,:,iblk), cym       (:,:,iblk), &
                               tarear    (:,:,iblk), strength  (:,:,iblk), &
-                              a11       (:,:,iblk), a12  (:,:,iblk),      &
                               a11_1     (:,:,iblk), a11_2   (:,:,iblk),   &
                               a11_3     (:,:,iblk), a11_4   (:,:,iblk),   &
                               a12_1     (:,:,iblk), a12_2   (:,:,iblk),   &
@@ -532,10 +530,8 @@
       subroutine init_eap (dt)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
       use ice_dyn_shared, only: init_evp
-      use ice_restart_shared, only: runtype
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -543,21 +539,21 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, k, &
+         i, j, &
          iblk          ! block index
 
       real (kind=dbl_kind), parameter :: & 
          eps6 = 1.0e-6_dbl_kind
 
       integer (kind=int_kind) :: & 
-         ix, iy, ip, iz, n, ia
+         ix, iy, iz, ia
 
       integer (kind=int_kind), parameter :: & 
          nz = 100
 
       real (kind=dbl_kind) :: & 
-         ainit, xinit, yinit, pinit, zinit, &
-         da, dx, dy, dp, dz, a1, &
+         ainit, xinit, yinit, zinit, &
+         da, dx, dy, dz, &
          pi, pih, piq, phi
 
       call icepack_query_parameters(pi_out=pi, pih_out=pih, piq_out=piq)
@@ -715,10 +711,11 @@
       real (kind=dbl_kind) :: &
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
-      t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+!     t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
+!     t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
-      IIn1t2, IIn2t1, IIt1t2, &
+      IIn1t2, IIn2t1, &
+!     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
 
@@ -737,14 +734,14 @@
       n2t1i12 = cos(z-pih+p) * sin(z-p)
       n2t1i21 = sin(z-pih+p) * cos(z-p)
       n2t1i22 = sin(z-pih+p) * sin(z-p)
-      t1t2i11 = cos(z-p) * cos(z+p)
-      t1t2i12 = cos(z-p) * sin(z+p)
-      t1t2i21 = sin(z-p) * cos(z+p)
-      t1t2i22 = sin(z-p) * sin(z+p)
-      t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t1t2i11 = cos(z-p) * cos(z+p)
+!     t1t2i12 = cos(z-p) * sin(z+p)
+!     t1t2i21 = sin(z-p) * cos(z+p)
+!     t1t2i22 = sin(z-p) * sin(z+p)
+!     t2t1i11 = cos(z+p) * cos(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
 ! In expression of tensor d, with this formulatin d(x)=-d(x+pi)
 ! Solution, when diagonalizing always check sgn(a11-a22) if > then keep x else x=x-pi/2
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
@@ -752,7 +749,7 @@
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
       IIn1t2 = n1t2i11 * d11 + (n1t2i12 + n1t2i21) * d12 + n1t2i22 * d22
       IIn2t1 = n2t1i11 * d11 + (n2t1i12 + n2t1i21) * d12 + n2t1i22 * d22
-      IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
+!     IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
 
       if (-IIn1t2>=puny) then
       Hen1t2 = c1
@@ -784,10 +781,11 @@
       real (kind=dbl_kind) :: &
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
-      t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+!     t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
+!     t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
-      IIn1t2, IIn2t1, IIt1t2, &
+      IIn1t2, IIn2t1, &
+!     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
 
@@ -806,20 +804,20 @@
       n2t1i12 = cos(z-pih+p) * sin(z-p)
       n2t1i21 = sin(z-pih+p) * cos(z-p)
       n2t1i22 = sin(z-pih+p) * sin(z-p)
-      t1t2i11 = cos(z-p) * cos(z+p)
-      t1t2i12 = cos(z-p) * sin(z+p)
-      t1t2i21 = sin(z-p) * cos(z+p)
-      t1t2i22 = sin(z-p) * sin(z+p)
-      t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t1t2i11 = cos(z-p) * cos(z+p)
+!     t1t2i12 = cos(z-p) * sin(z+p)
+!     t1t2i21 = sin(z-p) * cos(z+p)
+!     t1t2i22 = sin(z-p) * sin(z+p)
+!     t2t1i11 = cos(z+p) * cos(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
       d12 = cos(y)*cos(y)*tan(y)*(-cos(x)+sin(x))
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
       IIn1t2 = n1t2i11 * d11 + (n1t2i12 + n1t2i21) * d12 + n1t2i22 * d22
       IIn2t1 = n2t1i11 * d11 + (n2t1i12 + n2t1i21) * d12 + n2t1i22 * d22
-      IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
+!     IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
 
       if (-IIn1t2>=puny) then
       Hen1t2 = c1
@@ -853,10 +851,11 @@
       real (kind=dbl_kind) :: &
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
-      t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+!     t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
+!     t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
-      IIn1t2, IIn2t1, IIt1t2, &
+      IIn1t2, IIn2t1, &
+!     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
 
@@ -875,20 +874,20 @@
       n2t1i12 = cos(z-pih+p) * sin(z-p)
       n2t1i21 = sin(z-pih+p) * cos(z-p)
       n2t1i22 = sin(z-pih+p) * sin(z-p)
-      t1t2i11 = cos(z-p) * cos(z+p)
-      t1t2i12 = cos(z-p) * sin(z+p)
-      t1t2i21 = sin(z-p) * cos(z+p)
-      t1t2i22 = sin(z-p) * sin(z+p)
-      t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t1t2i11 = cos(z-p) * cos(z+p)
+!     t1t2i12 = cos(z-p) * sin(z+p)
+!     t1t2i21 = sin(z-p) * cos(z+p)
+!     t1t2i22 = sin(z-p) * sin(z+p)
+!     t2t1i11 = cos(z+p) * cos(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
       d12 = cos(y)*cos(y)*tan(y)*(-cos(x)+sin(x))
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
       IIn1t2 = n1t2i11 * d11 + (n1t2i12 + n1t2i21) * d12 + n1t2i22 * d22
       IIn2t1 = n2t1i11 * d11 + (n2t1i12 + n2t1i21) * d12 + n2t1i22 * d22
-      IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
+!     IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
 
       if (-IIn1t2>=puny) then
       Hen1t2 = c1
@@ -920,8 +919,10 @@
       real (kind=dbl_kind) :: &
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
-      t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+      t1t2i11, &
+      t1t2i12, t1t2i21, t1t2i22, &
+      t2t1i11, &
+!     t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
       Hen1t2, Hen2t1, &
@@ -947,9 +948,9 @@
       t1t2i21 = sin(z-p) * cos(z+p)
       t1t2i22 = sin(z-p) * sin(z+p)
       t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
       d12 = cos(y)*cos(y)*tan(y)*(-cos(x)+sin(x))
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
@@ -1128,7 +1129,6 @@
                               cxp,        cyp,            &
                               cxm,        cym,            &
                               tarear,     strength,       &
-                              a11, a12,                   &
                               a11_1, a11_2, a11_3, a11_4, &
                               a12_1, a12_2, a12_3, a12_4, &
                               stressp_1,  stressp_2,      &
@@ -1191,7 +1191,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         a11, a12, a11_1, a11_2, a11_3, a11_4, & ! structure tensor
+         a11_1, a11_2, a11_3, a11_4, & ! structure tensor
          a12_1, a12_2, a12_3, a12_4              ! structure tensor
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), & 

@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_shared.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Output files: netCDF or binary data, Fortran unformatted dumps

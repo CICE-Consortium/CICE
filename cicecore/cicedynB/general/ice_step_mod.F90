@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_step_mod.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 !  Contains CICE component driver routines common to all drivers.

@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_write.F90 567 2013-01-07 02:57:36Z eclare $
 !=======================================================================
 !
 ! Writes history in binary format

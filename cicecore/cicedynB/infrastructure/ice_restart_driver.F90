@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restart_driver.F90 607 2013-03-29 15:49:42Z eclare $
 !=======================================================================
 
 ! Read and write ice model restart files

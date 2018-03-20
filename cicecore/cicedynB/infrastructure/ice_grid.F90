@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_grid.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Spatial grids, masks, and boundary conditions
@@ -142,7 +141,6 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_array
       use ice_constants, only: c1
-      use ice_domain_size, only: max_blocks
 
       integer (kind=int_kind) :: &
          fid_grid, &     ! file id for netCDF grid file
@@ -289,9 +287,11 @@
          else
             call popgrid        ! read POP grid lengths directly
          endif 
+#ifdef CESMCOUPLED
       elseif (trim(grid_type) == 'latlon') then
          call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
          return
+#endif
       elseif (trim(grid_type) == 'cpom_grid') then
          call cpomgrid          ! cpom model orca1 type grid
       else
@@ -635,7 +635,7 @@
 
 #ifdef ncdf
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, p5, p25, &
+      use ice_constants, only: c0, c1, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
@@ -756,6 +756,7 @@
 #endif
       end subroutine popgrid_nc
 
+#ifdef CESMCOUPLED
 !=======================================================================
 
 ! Read in kmt file that matches CAM lat-lon grid and has single column 
@@ -768,9 +769,7 @@
 #ifdef ncdf
 !     use ice_boundary
       use ice_domain_size
-#ifdef CESMCOUPLED
       use ice_scam, only : scmlat, scmlon, single_column
-#endif
       use ice_constants, only: c0, c1, p5, p25, &
           field_loc_center, field_type_scalar, radius
       use netcdf
@@ -821,7 +820,6 @@
       ! - Read in lon/lat centers in degrees from kmt file
       ! - Read in ocean from "kmt" file (1 for ocean, 0 for land)
       !-----------------------------------------------------------------
-#ifdef CESMCOUPLED
 
       call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
@@ -1029,9 +1027,9 @@
 
       call makemask
 #endif
-#endif
 
       end subroutine latlongrid
+#endif
 
 !=======================================================================
 
@@ -1044,7 +1042,6 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
-      use ice_domain_size, only: max_blocks
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1319,11 +1316,9 @@
 
       subroutine primary_grid_lengths_HTN(work_g)
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: p5, c2, cm_to_m, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Nface, field_type_scalar
-      use ice_domain_size, only: max_blocks
 
       real (kind=dbl_kind), dimension(:,:) :: work_g ! global array holding HTN
 
@@ -1389,11 +1384,9 @@
 
       subroutine primary_grid_lengths_HTE(work_g)
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: p5, c2, cm_to_m, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Eface, field_type_scalar
-      use ice_domain_size, only: max_blocks
 
       real (kind=dbl_kind), dimension(:,:) :: work_g ! global array holding HTE
 
@@ -2255,17 +2248,12 @@
       subroutine read_basalstress_bathy
 
       ! use module
-      use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_domain_size, only: max_blocks
       use ice_read_write
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_type_scalar
 
       ! local variables
       integer (kind=int_kind) :: &
-         i, j,     &     ! index inside block
-         iblk,     &     ! block index
          fid_init        ! file id for netCDF init file
       
       character (char_len_long) :: &        ! input data file names
@@ -2281,7 +2269,7 @@
           write (nu_diag,*) ' '
           write (nu_diag,*) 'Initial ice file: ', trim(init_file)
           write (*,*) 'Initial ice file: ', trim(init_file)
-          call flush(nu_diag)
+!         call flush(nu_diag)
 
       endif
 
@@ -2292,7 +2280,7 @@
       if (my_task == master_task) then
          write(nu_diag,*) 'reading ',TRIM(fieldname)
          write(*,*) 'reading ',TRIM(fieldname)
-         call flush(nu_diag)
+!        call flush(nu_diag)
       endif
       call ice_read_nc(fid_init,1,fieldname,bathymetry,diag, &
                     field_loc=field_loc_center, &
@@ -2302,7 +2290,7 @@
 
       if (my_task == master_task) then
          write(nu_diag,*) 'closing file ',TRIM(init_file)
-         call flush(nu_diag)
+!        call flush(nu_diag)
       endif
 
       end subroutine read_basalstress_bathy

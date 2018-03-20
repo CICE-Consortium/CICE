@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_forcing.F90 973 2015-04-15 21:07:21Z akt $
 !=======================================================================
 !
 ! Reads and interpolates forcing data for biogeochemistry

@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_distribution.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_distribution
@@ -359,8 +358,24 @@
 !----------------------------------------------------------------------
 
    deallocate(distribution%blockLocation, stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'ice_distributionDestroy: error deallocating blockLocation')
+      return
+   endif
+
    deallocate(distribution%blockLocalID , stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'ice_distributionDestroy: error deallocating blockLocalID')
+      return
+   endif
    deallocate(distribution%blockGlobalID, stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'ice_distributionDestroy: error deallocating blockGlobalID')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -586,6 +601,12 @@
    allocate (newDistrb%blockLocation(nblocks_tot), &
              newDistrb%blockLocalID (nblocks_tot), stat=istat)
 
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_cart: error allocating blockLocation or blockLocalID')
+      return
+   endif
+
 !----------------------------------------------------------------------
 !
 !  distribute blocks linearly across processors in each direction
@@ -639,6 +660,11 @@
    if (newDistrb%numLocalBlocks > 0) then
       allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
                 stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_cart: error allocating blockGlobalID')
+         return
+      endif
 
       do j=1,nprocsY
       do i=1,nprocsX
@@ -738,6 +764,11 @@
    if (numOcnBlocks <= 2*nprocs) then
 
       allocate(priority(nblocks_tot), stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_rake: error allocating priority')
+         return
+      endif
 
       !*** initialize priority array
 
@@ -753,6 +784,11 @@
       end do
 
       allocate(workTmp(nblocks_tot), procTmp(nblocks_tot), stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_rake: error allocating procTmp')
+         return
+      endif
 
       workTmp(:) = 0
       do i=1,nprocs
@@ -768,6 +804,11 @@
                                  priority, dist)
 
       deallocate(workTmp, procTmp, stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_rake: error deallocating procTmp')
+         return
+      endif
 
 !----------------------------------------------------------------------
 !
@@ -786,6 +827,11 @@
 !----------------------------------------------------------------------
 
       allocate(priority(nblocks_tot), stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_rake: error allocating priority')
+         return
+      endif
 
       !*** set highest priority such that eastern-most blocks
       !*** and blocks with the least amount of work are
@@ -804,6 +850,11 @@
       end do
 
       allocate(workTmp(nprocsX), procTmp(nprocsX), stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_rake: error allocating procTmp')
+         return
+      endif
 
       do j=1,nprocsY
 
@@ -823,6 +874,11 @@
       end do
    
       deallocate(workTmp, procTmp, stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_rake: error deallocating procTmp')
+         return
+      endif
 
 !----------------------------------------------------------------------
 !
@@ -845,6 +901,11 @@
       end do
 
       allocate(workTmp(nprocsY), procTmp(nprocsY), stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_rake: error allocating procTmp')
+         return
+      endif
 
       do i=1,nprocsX
 
@@ -865,6 +926,11 @@
       end do
 
       deallocate(workTmp, procTmp, priority, stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_rake: error deallocating procTmp')
+         return
+      endif
 
    endif  ! 1d or 2d rake
 
@@ -880,8 +946,18 @@
 
    allocate(newDistrb%blockLocation(nblocks_tot), &
             newDistrb%blockLocalID(nblocks_tot), stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_rake: error allocating blockLocation or blockLocalID')
+      return
+   endif
 
    allocate(procTmp(nprocs), stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_rake: error allocating procTmp')
+      return
+   endif
 
    procTmp = 0
    do n=1,nblocks_tot
@@ -995,6 +1071,11 @@
 
    allocate (newDistrb%blockLocation(nblocks_tot), &
              newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_roundrobin: error allocating blockLocation or blockLocalID')
+      return
+   endif
 
    allocate (newDistrb%blockCnt(nprocs))
 
@@ -1054,6 +1135,11 @@
    if (newDistrb%numLocalBlocks > 0) then
       allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
                 stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_roundrobin: error allocating numLocalBlocks')
+      return
+   endif
 
       processor = my_task + 1
       do localID = 1,newDistrb%numLocalBlocks
@@ -1132,6 +1218,11 @@
 
    allocate (newDistrb%blockLocation(nblocks_tot), &
              newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_sectrobin: error allocating blockLocation or blockLocalID')
+      return
+   endif
 
    allocate (newDistrb%blockCnt(nprocs))
 
@@ -1349,6 +1440,11 @@
    if (newDistrb%numLocalBlocks > 0) then
       allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
                 stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_sectrobin: error allocating numLocalBlocks')
+      return
+   endif
 
       processor = my_task + 1
       do localID = 1,newDistrb%numLocalBlocks
@@ -1423,6 +1519,11 @@
 
    allocate (newDistrb%blockLocation(nblocks_tot), &
              newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_sectcart: error allocating blockLocation or blockLocalID')
+      return
+   endif
 
    allocate (newDistrb%blockCnt(nprocs))
 !----------------------------------------------------------------------
@@ -1507,6 +1608,11 @@
    if (newDistrb%numLocalBlocks > 0) then
       allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
                 stat=istat)
+   if (istat > 0) then
+      call abort_ice( &
+         'create_distrb_sectcart: error allocating numLocalBlocks')
+      return
+   endif
 
       processor = my_task + 1
       do localID = 1,newDistrb%numLocalBlocks
@@ -1846,7 +1952,7 @@
       minPriority,           &! minimum priority
       lastLoc,               &! location for most recent block
       meanWork, maxWork,     &! mean,max work per processor
-      diffWork, residual,    &! work differences and residual work
+      diffWork,              &! work differences
       numTransfers            ! counter for number of block transfers
 
 !----------------------------------------------------------------------
@@ -1862,7 +1968,7 @@
 
    meanWork = sum(procWork)/nprocs + 1
    maxWork  = maxval(procWork)
-   residual = mod(meanWork,nprocs)
+!  residual = mod(meanWork,nprocs)
 
    minPriority = 1000000
    do n=1,nprocs

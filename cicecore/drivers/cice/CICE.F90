@@ -1,4 +1,3 @@
-!  SVN:$Id: CICE.F90 1229 2017-05-24 02:22:58Z eclare $
 !=======================================================================
 ! Copyright (c) 2017, Los Alamos National Security, LLC 
 ! All rights reserved.

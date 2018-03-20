@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_global_reductions.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_global_reductions
@@ -13,10 +12,13 @@
 !            and global_sum_prod_dbl by T Craig NCAR
 
    use ice_kinds_mod
-   use ice_blocks, only: block, get_block, nblocks_tot, nx_block, ny_block
+   use ice_blocks, only: block, get_block, nx_block, ny_block
+#ifdef REPRODUCIBLE
+   use ice_blocks, only: nblocks_tot
+#endif
    use ice_communicate, only: my_task, mpiR8, mpiR4, master_task
    use ice_constants, only: field_loc_Nface, field_loc_NEcorner
-   use ice_fileunits, only: bfbflag, nu_diag
+   use ice_fileunits, only: bfbflag
    use ice_exit, only: abort_ice
    use ice_distribution, only: distrb, ice_distributionGet, &
        ice_distributionGetBlockID
