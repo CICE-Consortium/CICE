@@ -1,1 +1,1 @@
-CICE v6.0.0.alpha
+CICE 6.0.0.alpha
