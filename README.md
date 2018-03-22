@@ -28,7 +28,7 @@ where "branch name" can also be a version name
 ## More Information
 
 The [CICE wiki](https://github.com/CICE-Consortium/CICE/wiki) page contains links to additional information, e.g.    
-- complete documentation - both searchable html and pdf - including Quick Start, Science Guide, User Guide, and Developer Guide 
+- complete documentation - both searchable html and pdf 
 - larger files such as the gx1 grid, land mask, and forcing files
 - testing data
 
