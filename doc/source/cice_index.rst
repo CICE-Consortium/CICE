@@ -12,10 +12,6 @@ values. For other namelist options, see Section :ref:`tab-namelist`. All
 quantities in the code are expressed in MKS units (temperatures may take
 either Celsius or Kelvin units).  
 
-================================
-Comprehensive Alphabetical Index
-================================
-
 .. csv-table:: Alphabetical Index
    :header: " ", " ", " "
    :widths: 15, 30, 15, 1   
