@@ -62,7 +62,7 @@ author = u'Alice DuVivier'
 # built documents.
 #
 # The short X.Y version.
-version = u'6.0.0'
+version = u'6.0.0.alpha'
 # The full version, including alpha/beta/rc tags.
 release = u'6.0.0.alpha'
 
