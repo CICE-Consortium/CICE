@@ -15,7 +15,7 @@
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p5, &
-          field_loc_center, field_loc_NEcorner, &
+          field_loc_center, &
           field_type_scalar, field_type_vector, &
           field_loc_Nface, field_loc_Eface
       use ice_fileunits, only: nu_diag
@@ -227,7 +227,7 @@
       use ice_blocks, only: nx_block, ny_block, block, get_block, nghost
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, bound_state
-      use ice_grid, only: tarea, HTE, HTN
+      use ice_grid, only: tarea
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_advect, timer_bound
@@ -992,7 +992,7 @@
 
       integer (kind=int_kind) ::     &
            nt_qsno         ,&!
-           i, j, k, n      ,&! standard indices
+           i, j, n      ,&! standard indices
            it, kt          ,&! tracer indices
            icells          ,&! number of cells with ice
            ij
@@ -1736,17 +1736,8 @@
       integer (kind=int_kind) :: &
          i, j, n              ! standard indices
 
-      real (kind=dbl_kind) :: &
-         upwind, y1, y2, a, h ! function
-
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
          worka, workb
-
-    !-------------------------------------------------------------------
-    ! Define upwind function
-    !-------------------------------------------------------------------
-
-      upwind(y1,y2,a,h) = p5*dt*h*((a+abs(a))*y1+(a-abs(a))*y2)
 
     !-------------------------------------------------------------------
     ! upwind transport
@@ -1757,9 +1748,9 @@
          do j = 1, jhi
          do i = 1, ihi
             worka(i,j)=     &
-               upwind(phi(i,j,n),phi(i+1,j,n),uee(i,j),HTE(i,j))
+               upwind(phi(i,j,n),phi(i+1,j,n),uee(i,j),HTE(i,j),dt)
             workb(i,j)=     &
-               upwind(phi(i,j,n),phi(i,j+1,n),vnn(i,j),HTN(i,j))
+               upwind(phi(i,j,n),phi(i,j+1,n),vnn(i,j),HTN(i,j),dt)
          enddo
          enddo
 
@@ -1774,6 +1765,20 @@
       enddo                     ! narrays
 
       end subroutine upwind_field
+
+!=======================================================================
+
+    !-------------------------------------------------------------------
+    ! Define upwind function
+    !-------------------------------------------------------------------
+
+      real(kind=dbl_kind) function upwind(y1,y2,a,h,dt)
+
+      real(kind=dbl_kind), intent(in) :: y1,y2,a,h,dt
+
+      upwind = p5*dt*h*((a+abs(a))*y1+(a-abs(a))*y2)
+
+      end function upwind
 
 !=======================================================================
 

@@ -57,8 +57,7 @@
 
       subroutine cice_init
 
-      use ice_arrays_column, only: hin_max, c_hi_range, zfswin, trcrn_sw, &
-          ocean_bio_all, ice_bio_net, snow_bio_net
+      use ice_arrays_column, only: hin_max, c_hi_range
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
       use ice_communicate, only: init_communicate, my_task, master_task
@@ -66,13 +65,13 @@
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat
       use ice_dyn_eap, only: init_eap
-      use ice_dyn_shared, only: kdyn, init_evp, basalstress
+      use ice_dyn_shared, only: kdyn, init_evp
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
           get_forcing_atmo, get_forcing_ocn
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_data, faero_default, faero_optics
+          faero_default, faero_optics
       use ice_grid, only: init_grid1, init_grid2
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
@@ -124,9 +123,9 @@
       call init_thermo_vertical ! initialize vertical thermodynamics
 
       call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
-      if (my_task == master_task) then
+!     if (my_task == master_task) then
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
-      endif
+!     endif
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -207,7 +206,6 @@
       use ice_domain_size, only: ncat, max_ntrcr, n_aero
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: sss
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
@@ -221,7 +219,7 @@
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
-      use ice_restart_driver, only: restartfile, restartfile_v4
+      use ice_restart_driver, only: restartfile
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
 
