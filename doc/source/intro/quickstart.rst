@@ -31,31 +31,28 @@ how to use the cice.setup script.
 More Details
 ~~~~~~~~~~~~
 
-cice.setup generates a case, use "cice.setup -h" for help with the tool.
-  -c is the case name and location (required)
+``cice.setup -h`` will provide the latest information about how to use the tool.
+``cice.setup --help`` will provide an extended version of the help.
+There are three usage modes,
 
-  -m is the machine name (required). Currently, there are working ports for NCAR cheyenne, AFRL thunder, NavyDSRC gordon and conrad, and LANL’s wolf machines.
+* ``--case`` or ``-c`` creates individual stand alone cases.
+* ``--test`` creates individual tests.  Tests are just cases that have some extra automation in order to carry out particular tests such as exact restart.
+* ``--suite`` creates a test suite.  Test suites are predefined sets of tests and ``--suite`` provides the ability to quick setup, build, and run a full suite of tests.
 
-  -g is the resolution (default is gx3)
+All modes will require use of ``--mach`` or ``-m`` to specify the machine and case and test modes 
+can use ``--set`` or ``-s`` to define specific options.  ``--test`` and ``--suite`` will require ``--testid`` to be set 
+and both of the test modes can use ``--bdir``, ``--bgen``, ``--bcmp``, and ``--diff`` to generate (save) results and compare results with prior results.
+Testing will be described in greater detail in the :ref:`testing` section.
 
-  -p is the task x thread/task values (default is 4x1)
+Again, ``cice.setup --help`` will show the latest usage information including 
+the available ``--set`` options, the current ported machines, and the test choices.
 
-  -s are comma separated optional env or namelist settings (default is "null")
+To create a case, run **cice.setup**::
 
-  -t is the test name and location (cannot be used with -c).
+  cice.setup -c mycase -m machine
+  cd mycase
 
-  -bd is used to specify the location of the baseline datasets (only used with -t)
-
-  -bg is used to specify the cice version name for generating baseline datasets (only used with -t)
-
-  -bc is used to specify the cice versoin name for comparison. I.e., the version name for the baseline dataset (only used with -t)
-
-  -testid is used to specify a test ID (used only with -t or -ts)
-
-  -ts is used to generate all test cases for a given test suite.
-
-
-Several files are placed in the case directory
+Once a case/test is created, several files are placed in the case directory
 
  - env.${machine} defines the environment
 

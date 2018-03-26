@@ -5,35 +5,32 @@
 Acknowledgements
 =============================
 
-This work has been supported under the Department of Energy’s Climate,
-Ocean and Sea Ice Modeling project through the Computer Hardware Applied
-Mathematics and Model Physics (CHAMMP) program, Climate Change
-Prediction Program (CCPP), Improving the Characterization of Clouds,
-Aerosols and the Cryosphere in Climate Models (Cloud-Cryo) program and
-Scientific Discovery through Advanced Computing (SCIDAC) program, with
-additional support from the T-3 Fluid Dynamics and Solid Mechanics Group
-at Los Alamos National Laboratory. Special thanks are due to the
-following people:
+This work has been completed through the CICE Consortium and its members with funding 
+through the 
+Department of Energy,
+Department of Defense (Navy),
+Department of Commerce (NOAA),
+National Science Foundation
+and Environment and Climate Change Canada.
+Special thanks are due to the following people:
 
--  members of the CESM Polar Climate Working Group, including David
-   Bailey, Alice DuVivier, Cecilia Bitz, Bruce Briegleb, Tony Craig, 
-   Marika Holland, John Dennis, Julie Schramm, Bonnie Light and Phil Jones.
+-  Elizabeth Hunke, Nicole Jeffery, Adrian Turner and Chris Newman at Los Alamos National Laboratory
+ 
+-  David Bailey, Alice DuVivier and Marika Holland at the National Center for Atmospheric Research
+
+-  Rick Allard, Matt Turner and David Hebert at the Naval Research Laboratory, Stennis Space Center,
 
 -  Andrew Roberts of the Naval Postgraduate School,
 
--  David Hebert and Olivier Lecomte for their melt pond work,
+-  Michael Winton and Anders Damsgaard of the Geophysical Fluid Dynamics Laboratory,
 
--  Jonathan Gregory of the University of Reading and the U.K. MetOffice
-   for supplying tripole T-fold code and documentation,
+-  Jean-Francois Lemieux and Frederic Dupont of Environment and Climate Change Canada,
 
--  Alison McLaren, Ann Keen and others working with the Hadley Centre
-   GCM for testing non-standard model configurations and providing their
-   code to us,
+-  Tony Craig and his supporters at the National Center for Atmospheric Research, the Naval Postgraduate School, and NOAA National Weather Service,
 
--  Daniel Feltham and his research group for several new
-   parameterizations and documentation,
+-  Jessie Carman and Robert Grumbine of the National Oceanographic and Atmospheric Administration
 
--  Sylvain Bouillon for the revised EVP approach,
+-  Cecilia Bitz of the University of Washington, for her column forcing data,
 
--  the many researchers who tested beta versions of CICE 5 and waited
-   patiently for the official release.
+-  and many others who contributed to previous versions of CICE.
+
