@@ -1,4 +1,4 @@
-#! /bin/csh -fv
+#! /bin/csh -f
 
 if ( $1 != "" ) then
   echo ${0:t} ${1}
