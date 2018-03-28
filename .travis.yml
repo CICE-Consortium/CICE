@@ -18,7 +18,7 @@ addons:
 install:
   # Fetch all CICE test data
   - "wget ftp://ftp.cgd.ucar.edu/archive/Model-Data/CICE/CICE_data_all.tar.gz &&
-    tar xvfz CICE_data_ic_grid.tar.gz -C ~"
+    tar xvfz CICE_data_all.tar.gz -C ~"
 
   # Fetch CICE grid files and initial conditions
   #- "wget ftp://ftp.cgd.ucar.edu/archive/Model-Data/CICE/CICE_data_ic_grid.tar.gz &&
