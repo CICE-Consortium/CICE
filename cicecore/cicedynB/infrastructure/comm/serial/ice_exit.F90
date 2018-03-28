@@ -9,6 +9,7 @@
 
       module ice_exit
 
+      use ice_kinds_mod
       use ice_fileunits, only: nu_diag, flush_fileunit
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 #ifdef CESMCOUPLED

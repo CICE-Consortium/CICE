@@ -26,12 +26,14 @@ if (${grid} == 'col') then
 else if (${grid} == 'gx3') then
   set nxglob = 100
   set nyglob = 116
-  if (${cicepes} <= 8) then
+  if (${cicepes} <= 1) then
+    set blckx = 100; set blcky = 116
+  else if (${cicepes} <= 8) then
     set blckx = 25; set blcky = 29
   else if (${cicepes} <= 32) then
     set blckx = 5; set blcky = 29
   else
-    set blckx = 5; set blcky = 5
+    set blckx = 5; set blcky = 4
   endif
 
 else if (${grid} == 'gx1') then
