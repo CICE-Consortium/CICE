@@ -59,7 +59,7 @@ EOFR
 
 else if (${ICE_MACHINE} =~ travisCI*) then
 cat >> ${jobfile} << EOFR
-mpirun -np ${ntasts} ./cice >&! \$ICE_RUNLOG_FILE
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #cat >> ${jobfile} << EOFR
