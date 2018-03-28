@@ -25,16 +25,16 @@ install:
   #-e 'mirror /archive/Model-Data/CICE/ ~/ICEPACK_INPUTDATA; quit'"
 
 script:
-  - "travis_wait ./cice.setup --suite base_suite --testid travisCItest
+  - "travis_wait ./cice.setup --suite travis_suite --testid travisCItest
     --mach travisCI --env gnu;
-    cd base_suite.travisCItest &&
+    cd travis_suite.travisCItest &&
     ./results.csh"
 
 notifications:
   email: false
 
 after_failure:
-  - "for runlog in $TRAVIS_BUILD_DIR/base_suite.travisCItest/*.travisCItest/logs/cice.runlog.*; do
+  - "for runlog in $TRAVIS_BUILD_DIR/travis_suite.travisCItest/*.travisCItest/logs/cice.runlog.*; do
     echo \"### Contents of $runlog ###\" && cat $runlog; done"
   #- "git config --global user.email 'travis@travis-ci.org' &&
     #git config --global user.name 'ciceconsortium' &&
