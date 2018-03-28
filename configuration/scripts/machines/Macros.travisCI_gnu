@@ -1,8 +1,8 @@
 #==============================================================================
-# Makefile macros for Travis-CI - gfortran and llvm (clang) compilers
+# Makefile macros for Travis-CI - GCC and openmpi compilers
 #==============================================================================
 
-CPP        := clang-cpp
+CPP        := cpp
 CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
 CFLAGS     := -c -O2 -fp-model precise   -xHost
 
@@ -16,21 +16,21 @@ else
     FFLAGS     += -O2
 endif
 
-FC := gfortran
+FC := mpif90
 
 MPICC:= 
 
-MPIFC:= 
+MPIFC:= mpif90
 LD:= $(FC)
 
 NETCDF_PATH := $(NETCDF)
 
 ifeq ($(ICE_IOTYPE), netcdf)
-    NETCDF_PATH := /usr/projects/climate/SHARED_CLIMATE/software/conejo/netcdf/3.6.3/intel-13.0.1
+    NETCDF_PATH := $(shell nc-config --prefix)
     INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
     LIB_NETCDF := $(NETCDF_PATH)/lib
     LIB_PNETCDF := 
-    SLIBS   := -L$(LIB_NETCDF) -lnetcdf 
+    SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 else
     SLIBS   := 
 endif
@@ -40,7 +40,7 @@ SCC:=
 SFC:= 
 
 ifeq ($(ICE_THREADED), true) 
-   LDFLAGS += -openmp
-   CFLAGS += -openmp
-   FFLAGS += -openmp
+   LDFLAGS += -fopenmp
+   CFLAGS += -fopenmp
+   FFLAGS += -fopenmp
 endif
