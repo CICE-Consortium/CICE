@@ -161,7 +161,7 @@ Push changes back to the repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When you're happy with the documentation you've generated, follow the standard CICE-Consortium 
-`Git Workflow and Developer's guide <https://docs.google.com/document/d/1rR6WAvZQT9iAMUp-m_HZ06AUCCI19mguFialsMCYs9o/edit#heading=h.ugpwrwa68ov1>`_ 
+`Git Workflow and Developer's guide <https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guidance>`_
 to do a Pull Request and make sure to note in the Pull Request Template that documentation has also 
 been updated. We will test the HTML and PDF as part of the Pull Request before it is merged to the repository. 
 It can be particularly helpful if you include the link to your successfully built documentation that is 
