@@ -1,9 +1,14 @@
 [Remove this and add a short summary line]:
-Developer(s):
-Are the code changes bit for bit, different at roundoff level, or more substantial?
-Is the documentation being updated with this PR? (Y/N)
-If not, does the documentation need to be updated separately? (Y/N)
-"Documentation" includes information on the wiki and .rst files in doc/source/, 
-which are used to create the online technical docs at https://cice-consortium.github.io/CICE/ 
-Please suggest code reviewers in the column at right. 
-Other Relevant Details:
+
+- Developer(s):
+
+- Please suggest code Pull Request reviewers in the column at right.
+
+- Are the code changes bit for bit, different at roundoff level, or more substantial?
+
+- Is the documentation being updated with this PR? (Y/N)
+If not, does the documentation need to be updated separately at a later time? (Y/N)
+Note: "Documentation" includes information on the wiki and .rst files in doc/source/, 
+which are used to create the online technical docs at https://readthedocs.org/projects/cice-consortium-icepack/.  
+
+- Other Relevant Details:
