@@ -7,33 +7,36 @@ CICE consists of a top level driver and dynamical core plus the Icepack column p
 
 ## Obtaining CICE
 
+A list of the official CICE releases along with release notes is located here:
+https://github.com/CICE-Consortium/CICE/releases
+
 If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories.  Basic instructions for working with CICE and Icepack are found in the [Git Workflow Guidance](https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guidance), linked from the wikis in the primary code repositories    
 https://github.com/CICE-Consortium/CICE/wiki    
 https://github.com/CICE-Consortium/Icepack/wiki
 
 CICE may be obtained in several different ways:  [not yet tested]    
 1.  clone the full repository    
-See [Git Workflow Guidance](https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guidance)   
+See [Git Workflow Guidance](https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guidance)    
 2.  check out only a particular branch, version or tag    
 In the workflow for step 1 above, substitute    
-    git clone -b branch_name --single-branch --recursive https://github.com/CICE-Consortium/CICE.git local_directory_name  
+    git clone -b branch_name https://github.com/CICE-Consortium/CICE.git local_directory_name   
 or use svn    
-    svn co https://github.com/CICE-Consortium/CICE/branch_name    
+   svn co https://github.com/CICE-Consortium/CICE/branch_name    
 where "branch name" can also be a version name    
-3.  download a tarball for a particular version    
-[how]
+3.  download a tarball for a particular version from the git releases (see above)
 
-## More information
+## More Information
 
-Detailed and searchable online documentation of CICE can be found at https://cice-consortium.github.io/CICE/. In this documentation, a [“Quick Start”](https://cice-consortium.github.io/CICE/cice_1_introduction.html#quick-start-guide) subsection is available with instructions for running the model. A [“Testing”](https://cice-consortium.github.io/CICE/cice_3_user_guide.html#testing-cice) subsection with instructions for setting up standard tests (e.g. regression, restart) is also available. 
-
-In-progress documentation (not yet merged into the main repo): https://duvivier.github.io/CICE/ 
-
-The [wiki](https://github.com/CICE-Consortium/CICE/wiki) pages for each repository contain links to additional information, e.g.    
-- complete documentation 
+The [CICE wiki](https://github.com/CICE-Consortium/CICE/wiki) page contains links to additional information, e.g.    
+- complete documentation - both searchable html and pdf 
 - larger files such as the gx1 grid, land mask, and forcing files
 - testing data
 
-Test results for both CICE and Icepack can be found in the ["Test-Results" repository](https://github.com/CICE-Consortium/Test-Results).
+The [Test-Results wiki](https://github.com/CICE-Consortium/Test-Results/wiki) has test results for both CICE and Icepack.
 
-The ["About-Us" repository](https://github.com/CICE-Consortium/About-Us) includes background and supporting information about the CICE Consortium, including how to interact with it.    
+The [About-Us repository](https://github.com/CICE-Consortium/About-Us) includes background and supporting information about the CICE Consortium, including how to interact with it.   
+
+See also our [FAQ](https://github.com/CICE-Consortium/About-Us/wiki/FAQ).
+
+
+
