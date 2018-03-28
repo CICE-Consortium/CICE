@@ -25,7 +25,7 @@ install:
   #-e 'mirror /archive/Model-Data/CICE/ ~/ICEPACK_INPUTDATA; quit'"
 
 script:
-  - "travis_wait ./cice.setup --suite travis_suite --testid travisCItest
+  - "./cice.setup --suite travis_suite --testid travisCItest
     --mach travisCI --env gnu;
     cd travis_suite.travisCItest &&
     ./results.csh"
