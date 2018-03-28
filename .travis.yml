@@ -39,7 +39,7 @@ notifications:
 
 after_failure:
   - "for runlog in $TRAVIS_BUILD_DIR/travis_suite.travisCItest/*.travisCItest/logs/cice.runlog.*; do
-    echo \"### Contents of $runlog ###\" && cat $runlog; done"
+    echo \"### Contents of $runlog ###\" && tail -n 100 $runlog; done"
   #- "git config --global user.email 'travis@travis-ci.org' &&
     #git config --global user.name 'ciceconsortium' &&
     #./report_results.csh --travisCI"
