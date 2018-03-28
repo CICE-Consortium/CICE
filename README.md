@@ -10,10 +10,6 @@ CICE consists of a top level driver and dynamical core plus the Icepack column p
 A list of the official CICE releases along with release notes is located here:
 https://github.com/CICE-Consortium/CICE/releases
 
-If you use the CICE code, please cite the version you are using with the CICE Digital Object Identifier (DOI):10.5281/zenodo.1205674
-(https://zenodo.org/record/1205674). This DOI can be used to cite all CICE versions, but each released version of CICE will also
-receive its own, unique identifier that can be used for citations as well.
-
 CICE may be obtained in several different ways:  [not yet tested]    
 1.  clone the full repository
 See [Git Workflow Guidance](https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guidance)
@@ -28,6 +24,14 @@ where "branch name" can also be a version name
 If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories.  Basic instructions for working with CICE and Icepack are found in the [Git Workflow Guidance](https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guidance), linked from the wikis in the primary code repositories
 https://github.com/CICE-Consortium/CICE/wiki
 https://github.com/CICE-Consortium/Icepack/wiki
+
+## Citing the CICE code
+
+If you use the CICE code, please cite the version you are using with the CICE Digital Object Identifier (DOI):
+
+DOI:10.5281/zenodo.1205674 (https://zenodo.org/record/1205674)
+
+This DOI can be used to cite all CICE versions and the URL will default to the most recent version. However, each released version of CICE will also receive its own, unique DOI that can be used for citations as well.
 
 ## Documentation
 
