@@ -27,6 +27,8 @@ to port the model to a new machine.  See :ref:`porting` for
 more information about how to port and :ref:`scripts` for more information about 
 how to use the cice.setup script.
 
+Please cite any use of the CICE code. More information can be found at :ref:`citing`.
+
 ~~~~~~~~~~~~
 More Details
 ~~~~~~~~~~~~

@@ -5,7 +5,7 @@
 
 .. _introduction:
 
-Introduction - Icepack
+Introduction - CICE
 -----------------------
 
 .. toctree::

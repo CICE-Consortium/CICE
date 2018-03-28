@@ -10,7 +10,8 @@ User Guide
 
 .. toctree::
    :maxdepth: 3
-
+ 
+   ug_citing.rst
    ug_implementation.rst
    ug_running.rst
    ug_performance.rst

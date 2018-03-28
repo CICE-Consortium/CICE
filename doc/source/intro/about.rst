@@ -27,8 +27,11 @@ rates of strain.External routines would prepare and execute data exchanges with 
 external "flux coupler," which then passes the data to other climate
 model components such as POP.
 
-This model release is CICE version 6.0.0.alpha, available from https://github.com/CICE-Consortium/CICE.
-It updates CICE5.1, and there are considerable changes to the code.  
+Details about this model release and a list of major changes are found 
+in :ref:`updates` and the model code
+is available from https://github.com/CICE-Consortium/CICE. 
+
+Please cite any use of the CICE code. More information can be found at :ref:`citing`.
 
 This document uses the following text conventions:
 Variable names used in the code are ``typewritten``.
