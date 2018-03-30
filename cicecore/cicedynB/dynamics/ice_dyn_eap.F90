@@ -237,7 +237,10 @@
       endif
 #endif
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+! tcraig, tcx, turned off this threaded region, in evp, this block and 
+! the icepack_ice_strength call seems to not be thread safe.  more
+! debugging needed
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -321,7 +324,7 @@
          fld2(:,:,2,iblk) = vvel(:,:,iblk)
 
       enddo  ! iblk
-      !$OMP END PARALLEL DO
+      !$TCXOMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
