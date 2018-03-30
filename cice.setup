@@ -34,7 +34,7 @@ set argv = ( $initargv[*] )
 while (1)
   if ($#argv < 1) break;
   if ("$argv[1]" =~ "--version" ) then
-    echo "This is Cice ${versno}"
+    echo "This is CICE ${versno}"
     exit -1
   endif
   shift argv
@@ -106,7 +106,7 @@ EXAMPLES
 
 SEE ALSO
     cice.setup --help or
-    User Documentation at https://cice-consortium.github.io/Cice/
+    User Documentation at https://github.com/cice-consortium/cice/
 
 EOF1
 
@@ -544,6 +544,10 @@ setenv ICE_BASEGEN  ${baseGen}
 setenv ICE_BASECOM  ${baseCom}
 setenv ICE_SPVAL    ${spval}
 EOF1
+
+if ($?ICE_MACHINE_QUIETMODE) then
+  echo "setenv ICE_QUIETMODE  ${ICE_MACHINE_QUIETMODE}" >> ${fsmods}
+endif
 
 if ($bfbcomp != $spval) then
   echo "setenv ICE_BFBCOMP  ${machcomp}_${bfbcomp}.${testid}" >> ${fsmods}
