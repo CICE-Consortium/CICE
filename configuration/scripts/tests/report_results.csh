@@ -325,13 +325,13 @@ end
 #=====================
 
 cd ${wikiname}
-git add ${tsubdir}/${shhash}.${mach}*.md
-git add ${tsubdir}/${ofile}.md
-git add ${tsubdir}/${hfile}.md
-git add ${tsubdir}/${mfile}.md
-git add ${tsubdir}/${vfile}.md
-git add ${tsubdir}/${bfile}.md
-git commit -a -m "update $hash $mach"
-git push origin master
+#git add ${tsubdir}/${shhash}.${mach}*.md
+#git add ${tsubdir}/${ofile}.md
+#git add ${tsubdir}/${hfile}.md
+#git add ${tsubdir}/${mfile}.md
+#git add ${tsubdir}/${vfile}.md
+#git add ${tsubdir}/${bfile}.md
+#git commit -a -m "update $hash $mach"
+#git push origin master
 cd ../
 

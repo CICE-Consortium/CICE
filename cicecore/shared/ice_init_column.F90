@@ -1850,7 +1850,7 @@
          R_chl2N_in=R_chl2N, F_abs_chl_in=F_abs_chl, R_Fe2DON_in=R_Fe2DON, R_Fe2DOC_in=R_Fe2DOC, &
          mort_Tdep_in=mort_Tdep, k_exude_in=k_exude, &
          K_Nit_in=K_Nit, K_Am_in=K_Am, K_sil_in=K_Sil, K_Fe_in=K_Fe, &
-         f_don_in=f_don, kn_bac_in=k_bac, f_don_Am_in=f_don, f_exude_in=f_exude, k_bac_in=k_bac, &
+         f_don_in=f_don, kn_bac_in=kn_bac, f_don_Am_in=f_don, f_exude_in=f_exude, k_bac_in=k_bac, &
          fr_resp_in=fr_resp, algal_vel_in=algal_vel, R_dFe2dust_in=R_dFe2dust, &
          dustFe_sol_in=dustFe_sol, T_max_in=T_max, fr_mort2min_in=fr_mort2min, fr_dFe_in=fr_dFe, &
          op_dep_min_in=op_dep_min, fr_graze_s_in=fr_graze_s, fr_graze_e_in=fr_graze_e, &
