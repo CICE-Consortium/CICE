@@ -231,7 +231,9 @@
       endif      
 #endif
 
-      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
+! need to do more debugging
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -294,7 +296,7 @@
          fld2(:,:,2,iblk) = vvel(:,:,iblk)
 
       enddo  ! iblk
-      !$OMP END PARALLEL DO
+      !$TCXOMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &

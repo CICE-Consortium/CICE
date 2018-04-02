@@ -1,0 +1,45 @@
+language: cpp
+
+sudo: false
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - tcsh
+      - pkg-config
+      - netcdf-bin libnetcdf-dev #libnetcdff-dev (only required on Debian)
+      - gfortran
+      - openmpi-bin libopenmpi-dev
+      - wget
+      #- lftp
+
+install:
+  # Fetch CICE grid files and initial conditions
+  - "wget ftp://ftp.cgd.ucar.edu/archive/Model-Data/CICE/CICE_data_ic_grid.tar.gz &&
+    tar xvfz CICE_data_ic_grid.tar.gz -C ~"
+
+  # Fetch forcing data
+  - "wget ftp://ftp.cgd.ucar.edu/archive/Model-Data/CICE/CICE_data_forcing_gx3_all.tar.gz &&
+    tar xvfz CICE_data_forcing_gx3_all.tar.gz -C ~"
+
+  # Mirror entire data folder
+  #- "lftp ftp://anonymous:travis@travis-ci.org@ftp.cgd.ucar.edu 
+  #-e 'mirror /archive/Model-Data/CICE/ ~/ICEPACK_INPUTDATA; quit'"
+
+script:
+  - "./cice.setup --suite travis_suite --testid travisCItest
+    --mach travisCI --env gnu;
+    cd travis_suite.travisCItest &&
+    ./results.csh"
+
+notifications:
+  email: false
+
+after_failure:
+  - "for runlog in $TRAVIS_BUILD_DIR/travis_suite.travisCItest/*.travisCItest/logs/cice.runlog.*; do
+    echo \"### Contents of $runlog ###\" && tail -n 100 $runlog; done"
+  #- "git config --global user.email 'travis@travis-ci.org' &&
+    #git config --global user.name 'ciceconsortium' &&
+    #./report_results.csh --travisCI"

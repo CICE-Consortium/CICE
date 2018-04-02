@@ -413,7 +413,6 @@ on model performance.
 .. _fig-grid:
 
 .. figure:: ./figures/grid.png
-   :align: center
    :scale: 20%
 
    Figure 8
@@ -1261,7 +1260,6 @@ communications.
 .. _fig-distrb:
 
 .. figure:: ./figures/distrb.png
-   :align: center
    :scale: 50%
 
    Figure 9
@@ -1323,7 +1321,6 @@ for the distribution types.
 .. _fig-distribscorecard:
 
 .. figure:: ./figures/scorecard.png
-   :align: center
    :scale: 20%
 
    Figure 10
@@ -1367,7 +1364,6 @@ calculate it for each thickness category.
 .. _fig-timings:
 
 .. figure:: ./figures/histograms.png
-   :align: center
    :scale: 20%
 
    Figure 11
@@ -1815,14 +1811,14 @@ Individual tests and test suites
 The CICE scripts support both setup of individual tests as well as test suites.  Individual
 tests are run from the command line like
 
-  > create.case -t smoke -m wolf -g gx3 -p 8x2 -s diag1,run5day -testid myid
+  > cice.setup -t smoke -m wolf -g gx3 -p 8x2 -s diag1,run5day -testid myid
 
 where -m designates a specific machine.  Test suites are multiple tests that are specified in 
 an input file and are started on the command line like
 
-  > create.case -ts base_suite -m wolf -testid myid
+  > cice.setup -ts base_suite -m wolf -testid myid
 
-create.case with -t or -ts require a testid to uniquely name test directories.  The format
+cice.setup with -t or -ts require a testid to uniquely name test directories.  The format
 of the case directory name for a test will always be 
 ${machine}_${test}_${grid}_${pes}_${soptions}.${testid}
 
@@ -1835,7 +1831,7 @@ To build and run a test, the process is the same as a case,
 
 The test results will be generated in a local file called "test_output".
 
-When running a test suite, the create.case command line automatically generates all the tests
+When running a test suite, the cice.setup command line automatically generates all the tests
 under a directory names ${test_suite}.${testid}.  It then automatically builds and submits all
 tests.  When the tests are complete, run the results.csh script to see the results from all the
 tests.
@@ -1850,7 +1846,7 @@ Tests are defined under configuration/scripts/tests.  The tests currently suppor
             The test passes if both the 10 day and 5 day restart run complete and
             if the restart files at day 10 from both runs are bit-for-bit identical.
 
-Please run './create.case -h' for additional details.
+Please run './cice.setup -h' for additional details.
 
 .. _additional:
 
@@ -1858,7 +1854,7 @@ Please run './create.case -h' for additional details.
 Additional testing options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are several additional options on the create.case command line for testing that
+There are several additional options on the cice.setup command line for testing that
 provide the ability to regression test and compare tests to each other.
 
   -bd defines a baseline directory where tests can be stored for regression testing
@@ -1870,23 +1866,23 @@ provide the ability to regression test and compare tests to each other.
   -td provides a way to compare tests with each other
 
 To use -bg,
-  > create.case -ts base_suite -m wolf -testid v1 -bg version1 -bd $SCRATCH/CICE_BASELINES
+  > cice.setup -ts base_suite -m wolf -testid v1 -bg version1 -bd $SCRATCH/CICE_BASELINES
     will copy all the results from the test suite to $SCRATCH/CICE_BASELINES/version1.
 
 To use -bc,
-  > create.case -ts base_suite -m wolf -testid v2 -bc version1 -bd $SCRATCH/CICE_BASELINES
+  > cice.setup -ts base_suite -m wolf -testid v2 -bc version1 -bd $SCRATCH/CICE_BASELINES
     will compare all the results from this test suite to results saved before in $SCRATCH/CICE_BASELINES/version1.
 
 -bc and -bg can be combined,
-  >create.case -ts base_suite -m wolf -testid v2 -bg version2 -bc version1 -bd $SCRATCH/CICE_BASELINES
+  >cice.setup -ts base_suite -m wolf -testid v2 -bg version2 -bc version1 -bd $SCRATCH/CICE_BASELINES
    will save the current results to $SCRATCH/CICE_BASELINES/version2 and compare the current results to
    results save before in $SCRATCH/CICE_BASELINES/version1.
 
 -bg, -bc, and -bd are used for regression testing.  There is a default -bd on each machine.
 
 -td allows a user to compare one test result to another.  For instance,
-  > create.case -t smoke -m wolf -g gx3 -p 8x2 -s run5day -testid t01
-  > create.case -t smoke -m wolf -g gx3 -p 4x2 -s run5day -testid t01 -td smoke_gx3_8x2_run5day
+  > cice.setup -t smoke -m wolf -g gx3 -p 8x2 -s run5day -testid t01
+  > cice.setup -t smoke -m wolf -g gx3 -p 4x2 -s run5day -testid t01 -td smoke_gx3_8x2_run5day
 
 An additional check will be done for the second test (because of the -td argument), and it will compare
 the output from the first test "smoke_gx3_8x2_run5day" to the output from it's test "smoke_gx3_4x2_run5day"
@@ -1922,7 +1918,7 @@ columns like,
 
 The first column is the test name, the second the grid, the third the pe count, the fourth column is
 the -s options and the fifth column is the -td argument.  The fourth and fifth columns are optional.
-The argument to -ts defines which filename to choose and that argument can contain a path.  create.case 
+The argument to -ts defines which filename to choose and that argument can contain a path.  cice.setup 
 will also look for the filename in configuration/scripts/tests where some preset test suites are defined.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1933,7 +1929,7 @@ Example Tests (Quickstart)
 To generate a baseline dataset for a test case
 **********************************************
 
-./create.case -t smoke -m wolf -bg cicev6.0.0 -testid t00
+./cice.setup -t smoke -m wolf -bg cicev6.0.0 -testid t00
 
 cd wolf_smoke_gx3_4x1.t00
 
@@ -1949,7 +1945,7 @@ cat test_output
 To run a test case and compare to a baseline dataset
 ****************************************************
 
-./create.case -t smoke -m wolf -bc cicev6.0.0 -testid t01
+./cice.setup -t smoke -m wolf -bc cicev6.0.0 -testid t01
 
 cd wolf_smoke_gx3_4x1.t01
 
@@ -1965,7 +1961,7 @@ cat test_output
 To run a test suite to generate baseline data
 *********************************************
 
-./create.case -m wolf -ts base_suite -testid t02 -bg cicev6.0.0bs
+./cice.setup -m wolf -ts base_suite -testid t02 -bg cicev6.0.0bs
 
 cd base_suite.t02
 
@@ -1983,7 +1979,7 @@ ls \*.png
 To run a test suite to compare to baseline data
 ***********************************************
 
-./create.case -m wolf -ts base_suite -testid t03 -bc cicev6.0.0bs
+./cice.setup -m wolf -ts base_suite -testid t03 -bc cicev6.0.0bs
 
 cd base_suite.t03
 
@@ -2002,7 +1998,7 @@ To compare to another test
 **************************
 `First:`
 
-./create.case -m wolf -t smoke -testid t01 -p 8x2
+./cice.setup -m wolf -t smoke -testid t01 -p 8x2
 
 cd wolf_smoke_gx3_8x2.t01
 
@@ -2016,7 +2012,7 @@ cat test_output
 
 `Then, do the comparison:` 
 
-./create.case -m wolf -t smoke -testid t01 -td smoke_gx3_8x2 -s thread -p 4x1
+./cice.setup -m wolf -t smoke -testid t01 -td smoke_gx3_8x2 -s thread -p 4x1
 
 cd wolf_smoke_gx3_4x1_thread.t01
 
@@ -2044,7 +2040,7 @@ Additional Details
     use '-bg <version_name>'.  The scripts will then place the baseline dataset
     in $ICE_MACHINE_BASELINE/<version_name>/
 - The '-testid' flag allows users to specify a testing id that will be added to the
-    end of the case directory.  For example, "./create.case -m wolf -t smoke -testid t12 -p 4x1"
+    end of the case directory.  For example, "./cice.setup -m wolf -t smoke -testid t12 -p 4x1"
     creates the directory wolf_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t or -ts.
 
 .. _compliance:
@@ -2167,7 +2163,6 @@ autocorrelation :math:`r_1`.
 
 .. csv-table:: Table 1
    :widths: 10, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
-   :align: right
 
    :math:`r_1`,-0.05,0.0,0.2,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.97,0.99
    :math:`t_{crit}`,1.32,1.32,1.54,2.02,2.29,2.46,3.17,3.99,5.59,8.44,10.85,20.44
@@ -2276,7 +2271,7 @@ In order to run the script, the following requirements must be met:
 * basemap Python package (optional)
 
 In order to generate the files necessary for the compliance test, test cases should be
-created with the ``qc`` option (i.e., ``-s qc``) when running create.case.  This 
+created with the ``qc`` option (i.e., ``-s qc``) when running cice.setup.  This 
 option results in daily, non-averaged history files being written for a 5 year simulation.
 
 To install the necessary Python packages, the ``pip`` Python utility can be used.
@@ -2335,9 +2330,9 @@ The run.suite script does the following:
 
 - Creates a fresh clone of the CICE-Consortium repository
 - ``cd`` to cloned repo
-- run ``create.case`` to generate the base_suite directories.  The output 
+- run ``cice.setup`` to generate the base_suite directories.  The output 
   is piped to ``log.suite``
-- Running ``create.case`` submits each individual job to the queue.  
+- Running ``cice.setup`` submits each individual job to the queue.  
 - ``run.suite`` monitors the queue manager to determine when all jobs have 
   finished (pings the queue manager once every 5 minutes).
 - Once all jobs complete, cd to base_suite directory and run ``./results.csh``
@@ -2350,10 +2345,10 @@ Manual Method
 To manually run the CICE tests and post the results to the CICE CDash dashboard,
 users essentially just need to perform all steps available in run.suite, detailed below:
 
-- Pass the ``-report`` flag to create.case when running the ``base_suite`` test suite.
+- Pass the ``-report`` flag to cice.setup when running the ``base_suite`` test suite.
   The ``-report`` flag copies the required CTest / CDash scripts to the suite 
   directory.
-- ``create.case`` compiles the CICE code, and submits all of the jobs to the 
+- ``cice.setup`` compiles the CICE code, and submits all of the jobs to the 
   queue manager.  
 - After every job has been submitted and completed, ``cd`` to the suite directory.
 - Parse the results, by running ``./results.csh``.
@@ -2376,12 +2371,12 @@ in non-bit-for-bit results:
 .. code-block:: bash
 
   # Create a baseline dataset (only necessary if no baseline exists on the system)
-  ./create.case -m onyx -ts base_suite -testid base0 -bg cicev6.0.0 -a <account_number>
+  ./cice.setup -m onyx -ts base_suite -testid base0 -bg cicev6.0.0 -a <account_number>
 
   # Check out the updated code, or clone from a pull request
 
   # Run the test with the new code
-  ./create.case -m onyx -ts base_suite -testid test0 -bc cicev6.0.0 -a <account_number>
+  ./cice.setup -m onyx -ts base_suite -testid test0 -bc cicev6.0.0 -a <account_number>
 
   # Check the results
   cd base_suite.test0
@@ -2389,7 +2384,7 @@ in non-bit-for-bit results:
 
   #### If the BFB tests fail, perform the compliance testing ####
   # Create a QC baseline
-  ./create.case -m onyx -t smoke -g gx1 -p 44x1 -testid qc_base -s qc,medium -a <account_number>
+  ./cice.setup -m onyx -t smoke -g gx1 -p 44x1 -testid qc_base -s qc,medium -a <account_number>
   cd onyx_smoke_gx1_44x1_medium_qc.qc_base
   ./cice.build
   ./cice.submit
@@ -2397,7 +2392,7 @@ in non-bit-for-bit results:
   # Check out the updated code or clone from a pull request
 
   # Create the t-test testing data
-  ./create.case -m onyx -t smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium -a <account_number>
+  ./cice.setup -m onyx -t smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium -a <account_number>
   cd onyx_smoke_gx1_44x1_medium_qc.qc_test
   ./cice.build
   ./cice.submit

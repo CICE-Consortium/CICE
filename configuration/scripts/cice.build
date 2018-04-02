@@ -16,6 +16,7 @@ echo "${0}:"
 
 set  stamp   = `date '+%y%m%d-%H%M%S'`
 set ICE_BLDLOG_FILE = "cice.bldlog.${stamp}"
+set quiet = ${ICE_QUIETMODE}
 
 if (${ICE_CLEANBUILD} == 'true') then
   echo "cleaning objdir"
@@ -90,18 +91,40 @@ if (-e ${ICE_BLDLOG_FILE}) rm ${ICE_BLDLOG_FILE}
 
 if (${ICE_CLEANBUILD} == 'true') then
   echo "gmake clean"
-  ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack \
-      CPPDEFS="${ICE_CPPDEFS}" \
-      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean | tee ${ICE_BLDLOG_FILE}
+  if (${quiet} == "true") then
+    ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack \
+        CPPDEFS="${ICE_CPPDEFS}" \
+        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean >& ${ICE_BLDLOG_FILE}
+  else
+    ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack \
+        CPPDEFS="${ICE_CPPDEFS}" \
+        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean | tee ${ICE_BLDLOG_FILE}
+  endif
 endif
 
-${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
+echo "gmake cice"
+if (${quiet} == "true") then
+  echo "  quiet mode on... patience"
+  ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
+      CPPDEFS="${ICE_CPPDEFS}" \
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} >& ${ICE_BLDLOG_FILE} 
+  set bldstat = ${status}
+else
+  ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
       CPPDEFS="${ICE_CPPDEFS}" \
       -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} | tee ${ICE_BLDLOG_FILE} 
+  set bldstat = ${status}
+endif
 
-if ($status != 0) then
+if !(-d ${ICE_LOGDIR}) mkdir -p ${ICE_LOGDIR}
+cp -p ${ICE_BLDLOG_FILE} ${ICE_LOGDIR}/
+
+if (${bldstat} != 0) then
   echo "${0}: COMPILE FAILED, see"
   echo "  cat ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
+  if (${quiet} == "true") then
+    tail -10 ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}
+  endif
   if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
     # This is a test case.  Write output to test_output file
     echo "FAIL ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
@@ -110,8 +133,6 @@ if ($status != 0) then
   exit 99
 endif
 
-if !(-d ${ICE_LOGDIR}) mkdir -p ${ICE_LOGDIR}
-cp -p ${ICE_BLDLOG_FILE} ${ICE_LOGDIR}/
 echo "`date` ${0}:${ICE_CASENAME} build completed ${ICE_BLDLOG_FILE}"  >> ${ICE_CASEDIR}/README.case
 echo "${0}: COMPILE SUCCESSFUL, ${ICE_LOGDIR}/${ICE_BLDLOG_FILE}"
 if ( ${ICE_TEST} != ${ICE_SPVAL} ) then

@@ -634,10 +634,12 @@
 
       endif  ! nghost
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,m, &
-      !$OMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
-      !$OMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
-      !$OMP                     mtflxe,mtflxn,triarea,istop,jstop,l_stop)
+      !--- tcraig, tcx, this omp loop leads to a seg fault in gnu
+      !--- need to check private variables and debug further
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,m, &
+      !$TCXOMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
+      !$TCXOMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
+      !$TCXOMP                     mtflxe,mtflxn,triarea,istop,jstop,l_stop)
       do iblk = 1, nblocks
 
          l_stop = .false.
@@ -845,7 +847,7 @@
          enddo                  ! n
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+      !$TCXOMP END PARALLEL DO
 
       end subroutine horizontal_remap
 

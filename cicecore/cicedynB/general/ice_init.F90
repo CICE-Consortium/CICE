@@ -1077,7 +1077,8 @@
              endif
          endif
 
-         nt_aero = max_ntrcr
+         ! tcraig, tcx, this is a BAD kludge, NTRAERO should be 0 if tr_aero is false
+         nt_aero = max_ntrcr - 4*n_aero
          if (tr_aero) then
              nt_aero = ntrcr + 1
              ntrcr = ntrcr + 4*n_aero ! 4 dEdd layers, n_aero species
