@@ -1315,6 +1315,8 @@
          enddo
       endif
 
+      trcr_base = c0
+
       do it = 1, ntrcr
          ! mask for base quantity on which tracers are carried
          if (trcr_depend(it) == 0) then      ! area

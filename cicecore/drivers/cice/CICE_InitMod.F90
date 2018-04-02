@@ -93,7 +93,7 @@
 
       call icepack_configure()  ! initialize icepack
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(subname, &
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
       call input_data           ! namelist variables
@@ -123,11 +123,11 @@
       call init_thermo_vertical ! initialize vertical thermodynamics
 
       call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
-!     if (my_task == master_task) then
+      if (my_task == master_task) then
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
-!     endif
+      endif
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=trim(subname), &
          file=__FILE__, line=__LINE__)
 
       call calendar(time)       ! determine the initial date
@@ -146,7 +146,7 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(subname, &
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
       if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
@@ -234,6 +234,8 @@
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero
 
+      character(len=*),parameter :: subname = '(init_restart)'
+
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
@@ -243,7 +245,7 @@
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
            nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=trim(subname), &
          file=__FILE__, line=__LINE__)
 
       if (trim(runtype) == 'continue') then 
@@ -398,7 +400,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=trim(subname), &
          file=__FILE__, line=__LINE__)
 
       end subroutine init_restart
