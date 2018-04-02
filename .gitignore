@@ -4,3 +4,6 @@
 # Ignore doc/build
 # these are stored in gh-pages orphan branch
 doc/build
+
+# Ignore macOS cache files
+.DS_Store

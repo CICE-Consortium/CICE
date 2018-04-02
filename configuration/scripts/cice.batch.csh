@@ -56,6 +56,16 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
+else if (${ICE_MACHINE} =~ hobart*) then
+cat >> ${jobfile} << EOFB
+#PBS -j oe 
+#PBS -m ae 
+#PBS -V
+#PBS -q short
+#PBS -N ${ICE_CASENAME}
+#PBS -l nodes=1:ppn=24
+EOFB
+
 else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
 set queue = "debug"
 if (${ICE_RUNLENGTH} > 1) set queue = "frontier"
@@ -139,6 +149,11 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ testmachine*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
+else if (${ICE_MACHINE} =~ travisCI*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
 EOFB

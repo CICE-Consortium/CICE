@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restart.F90 607 2013-03-29 15:49:42Z eclare $
 !=======================================================================
 
 ! Read and write ice model restart files using netCDF or binary
@@ -11,8 +10,8 @@
       use ice_kinds_mod
       use netcdf
       use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr
+          restart_ext, restart_dir, restart_file, pointer_file, &
+          runid, use_restart_time, lcdf64, lenstr
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
@@ -39,9 +38,8 @@
       subroutine init_restart_read(ice_ic)
 
       use ice_calendar, only: sec, month, mday, nyr, istep0, istep1, &
-                              time, time_forc, year_init, npt
+                              time, time_forc, npt
       use ice_communicate, only: my_task, master_task
-      use ice_domain, only: nblocks
 
       character(len=char_len_long), intent(in), optional :: ice_ic
 
@@ -135,7 +133,7 @@
       integer (kind=int_kind) :: &
           k,  n,                & ! index
           nx, ny,               & ! global array size
-          iyear, imonth, iday,  & ! year, month, day
+          iyear,  & ! year
           nbtrcr
 
       character(len=char_len_long) :: filename
@@ -174,8 +172,6 @@
          filename = trim(filename_spec)
       else
          iyear = nyr + year_init - 1
-         imonth = month
-         iday = mday
       
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
@@ -617,7 +613,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat
-      use ice_read_write, only: ice_read, ice_read_nc
+      use ice_read_write, only: ice_read_nc
 
       integer (kind=int_kind), intent(in) :: &
            nu            , & ! unit number (not used for netcdf)
@@ -700,7 +696,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat
-      use ice_read_write, only: ice_write, ice_write_nc
+      use ice_read_write, only: ice_write_nc
 
       integer (kind=int_kind), intent(in) :: &
            nu            , & ! unit number
@@ -723,7 +719,6 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-        n,     &      ! dimension counter
         varid, &      ! variable id
         status        ! status variable from netCDF routine
 

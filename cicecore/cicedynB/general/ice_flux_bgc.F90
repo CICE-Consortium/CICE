@@ -1,4 +1,3 @@
-!  SVN:$Id: $
 !=======================================================================
 
 ! Flux variable declarations for biogeochemistry

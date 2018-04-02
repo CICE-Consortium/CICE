@@ -1,4 +1,3 @@
-! $Id: ice_calendar.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Calendar routines for managing time

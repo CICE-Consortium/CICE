@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_mechred.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Mechanical redistribution history output

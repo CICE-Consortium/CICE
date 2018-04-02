@@ -180,7 +180,11 @@ def two_stage_test(data_a,data_b,num_files,data_d):
     else:
         logger.error('TEST NOT CONCLUSIVE')
         passed = False
-    return passed, passed_array
+
+    try:
+        return passed, passed_array
+    except:
+        return passed, 0
 
 # Calculate Taylor Skill Score
 def skill_test(path_a,fname,data_a,data_b,num_files,tlat,hemisphere):
@@ -473,10 +477,10 @@ if __name__ == "__main__":
     logger.info('')
     if not passed and not passed_skill:
         logger.error('Quality Control Test FAILED')
-        post_to_cdash(False)
+        #post_to_cdash(False)
         sys.exit(1)  # exit with an error return code
     else:
         logger.info('Quality Control Test PASSED')
-        post_to_cdash(True)
+        #post_to_cdash(True)
         sys.exit(0)  # exit with successfull return code
     

@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_init.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! parameter and variable initializations
@@ -57,7 +56,7 @@
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
       use ice_domain_size, only: max_nstrm, nilyr, nslyr, max_ntrcr, ncat, n_aero
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
-                              dumpfreq, dumpfreq_n, diagfreq, nstreams, &
+                              dumpfreq, dumpfreq_n, diagfreq, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
                               write_ic, dump_last
       use ice_arrays_column, only: oceanmixed_ice
@@ -92,7 +91,6 @@
         n            ! loop index
 
       character (len=6) :: chartmp
-      character (len=32) :: str
 
       logical :: exists
 
@@ -1079,7 +1077,8 @@
              endif
          endif
 
-         nt_aero = max_ntrcr
+         ! tcraig, tcx, this is a BAD kludge, NTRAERO should be 0 if tr_aero is false
+         nt_aero = max_ntrcr - 4*n_aero
          if (tr_aero) then
              nt_aero = ntrcr + 1
              ntrcr = ntrcr + 4*n_aero ! 4 dEdd layers, n_aero species
@@ -1196,7 +1195,7 @@
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, max_ntrcr, n_aero
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
-      use ice_grid, only: tmask, ULON, ULAT, TLON, TLAT
+      use ice_grid, only: tmask, ULON, TLAT
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
           aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
           n_trcr_strata, nt_strata, trcr_base
@@ -1317,6 +1316,8 @@
          enddo
       endif
 
+      trcr_base = c0
+
       do it = 1, ntrcr
          ! mask for base quantity on which tracers are carried
          if (trcr_depend(it) == 0) then      ! area
@@ -1379,8 +1380,8 @@
                              ilo, ihi,            jlo, jhi,            &
                              iglob,               jglob,               &
                              ice_ic,              tmask(:,:,    iblk), &
-                             ULON (:,:,    iblk), ULAT (:,:,    iblk), &
-                             TLON (:,:,    iblk), TLAT (:,:,    iblk), &
+                             ULON (:,:,    iblk), &
+                             TLAT (:,:,    iblk), &
                              Tair (:,:,    iblk), sst  (:,:,    iblk), &
                              Tf   (:,:,    iblk),                      &
                              salinz(:,:,:, iblk), Tmltz(:,:,:,  iblk), &
@@ -1456,8 +1457,8 @@
                                 ilo, ihi, jlo, jhi, &
                                 iglob,    jglob,    &
                                 ice_ic,   tmask,    &
-                                ULON,     ULAT, &
-                                TLON,     TLAT, &
+                                ULON, &
+                                TLAT, &
                                 Tair,     sst,  &
                                 Tf,       &
                                 salinz,   Tmltz, &
@@ -1486,8 +1487,6 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(in) :: &
          ULON   , & ! longitude of velocity pts (radians)
-         ULAT   , & ! latitude of velocity pts (radians)
-         TLON   , & ! longitude of temperature pts (radians)
          TLAT       ! latitude of temperature pts (radians)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &

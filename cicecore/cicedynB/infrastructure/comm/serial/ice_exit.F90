@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_exit.F90 700 2013-08-15 19:17:39Z eclare $
 !=======================================================================
 !
 ! Exit the model.
@@ -9,6 +8,7 @@
 
       module ice_exit
 
+      use ice_kinds_mod
       use ice_fileunits, only: nu_diag, flush_fileunit
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 #ifdef CESMCOUPLED

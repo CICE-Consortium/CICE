@@ -8,7 +8,6 @@ module ice_spacecurve
 !  create space-filling curves.   
 !
 ! !REVISION HISTORY:
-!  SVN:$Id: ice_spacecurve.F90 1228 2017-05-23 21:33:34Z tcraig $
 !
 ! author: John Dennis, NCAR
 
@@ -76,7 +75,7 @@ contains
 ! !IROUTINE: Cinco
 ! !INTERFACE:
 
-   recursive function Cinco(l,type,ma,md,ja,jd) result(ierr)
+   recursive function Cinco(l,ma,md,ja,jd) result(ierr)
 
 ! !DESCRIPTION:
 !  This subroutine implements a Cinco space-filling curve.
@@ -93,7 +92,6 @@ contains
 
    integer(int_kind), intent(in) ::  &
 	l, 	& ! level of the space-filling curve 
-        type,   & ! type of SFC curve
 	ma,     & ! Major axis [0,1]
 	md,  	& ! direction of major axis [-1,1]
 	ja,	& ! joiner axis [0,1]
@@ -586,7 +584,7 @@ contains
 ! !IROUTINE: PeanoM
 ! !INTERFACE:
 
-   recursive function PeanoM(l,type,ma,md,ja,jd) result(ierr)
+   recursive function PeanoM(l,ma,md,ja,jd) result(ierr)
 
 ! !DESCRIPTION:
 !  This function implements a meandering Peano 
@@ -603,7 +601,6 @@ contains
 
    integer(int_kind), intent(in) ::  &
         l,      & ! level of the space-filling curve
-        type,   & ! type of SFC curve
         ma,     & ! Major axis [0,1]
         md,     & ! direction of major axis [-1,1]
         ja,     & ! joiner axis [0,1]
@@ -809,7 +806,7 @@ contains
 ! !IROUTINE: Hilbert
 ! !INTERFACE:
 
-   recursive function Hilbert(l,type,ma,md,ja,jd) result(ierr)
+   recursive function Hilbert(l,ma,md,ja,jd) result(ierr)
 
 ! !DESCRIPTION:
 !  This function implements a Hilbert space-filling curve.
@@ -826,7 +823,6 @@ contains
 
    integer(int_kind), intent(in) ::  &
         l,      & ! level of the space-filling curve
-        type,   & ! type of SFC curve
         ma,     & ! Major axis [0,1]
         md,     & ! direction of major axis [-1,1]
         ja,     & ! joiner axis [0,1]
@@ -1101,7 +1097,7 @@ contains
 
    integer(int_kind), intent(in) ::  &
         l,      & ! level of the space-filling curve
-        type,   & ! type of SFC curve
+        type,   & ! type of space-filling curve to start off 
         ma,     & ! Major axis [0,1]
         md,     & ! direction of major axis [-1,1]
         ja,     & ! joiner axis [0,1]
@@ -1120,11 +1116,11 @@ contains
    !-------------------------------------------------
 
    if(type == 2) then
-      ierr = Hilbert(l,type,ma,md,ja,jd)
+      ierr = Hilbert(l,ma,md,ja,jd)
    elseif ( type == 3) then
-      ierr = PeanoM(l,type,ma,md,ja,jd)
+      ierr = PeanoM(l,ma,md,ja,jd)
    elseif ( type == 5) then 
-      ierr = Cinco(l,type,ma,md,ja,jd)
+      ierr = Cinco(l,ma,md,ja,jd)
    endif
 
 !EOP
@@ -1185,14 +1181,14 @@ contains
       integer :: val
       integer :: val1
       logical :: found
-      logical :: tmp
+!     logical :: tmp
 
       found = .false.
 
       val1 = FirstFactor(fac1)
 !JMD      print *,'Matchfactor: found value: ',val1
       found = FindandMark(fac2,val1,.true.)
-      tmp = FindandMark(fac1,val1,found)
+!     tmp = FindandMark(fac1,val1,found)
       if (found) then
         val = val1
       else
@@ -1425,7 +1421,7 @@ contains
 
    type = fact%factors(l)
    ierr = GenCurve(l,type,0,1,0,1)
-
+   if (ierr .ne. 0) print *,'GenCurve ierr',ierr
 
 !EOP
 !-----------------------------------------------------------------------
