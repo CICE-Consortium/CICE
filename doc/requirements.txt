@@ -1,5 +1,0 @@
-#
-#
-sphinxcontrib-bibtex
-#
-#
