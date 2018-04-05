@@ -8,6 +8,12 @@
 
 ! intel compiler:
 ! ifort convert_restarts.f90 -o convert_restarts -i4 -r8 -convert big_endian -assume byterecl
+!
+! module rm PrgEnv-cray
+! module rm PrgEnv-gnu
+! module rm PrgEnv-intel
+! module load PrgEnv-intel
+! ifort convert_restarts.f90 -o convert_restarts -i4 -r8 -assume byterecl
 
       program convert_restarts
 
@@ -19,13 +25,13 @@
                             dbl_kind  = selected_real_kind(13)
 
 !!!!!!! modify as needed (begin)
-      ! these values are for the standard gx1 configuration
+      ! these values are for the standard NAAf0.10 configuration
       integer (kind=int_kind), parameter :: &
                             ncat = 5, &       ! number of thickness cats
                             nilyr = 4, &      ! number of ice layers
                             nslyr = 1, &      ! number of snow layers
-                            nx_block = 320, & ! global grid size
-                            ny_block = 384
+                            nx_block = 1228, & ! global grid size
+                            ny_block = 1213
 
       ! these values are for the standard gx3 configuration
 !      integer (kind=int_kind), parameter :: &
@@ -44,8 +50,8 @@
 
       ! file names
       character (len=char_len_long), parameter :: &
-         iced_4_1 = '/scratch/eclare/tmp/restarts/iced_gx1_v4.0_kcatbound0', &  ! gx1
-         iced_5_0 = '/scratch/eclare/tmp/restarts/iced_gx1_v4.0_kcatbound0_converted'
+         iced_4_1 = 'iced.2017-03-15-00000_v4_modified', &
+         iced_5_0 = 'iced.2017-03-15-00000'
 !         iced_4_1 = 'iced_gx3_v4.0_kcatbound0', &  ! gx3
 !         iced_5_0 = 'iced_gx3_v4.0_kcatbound0_converted''
 
@@ -128,6 +134,8 @@
       real (kind=dbl_kind), parameter :: &
          spval_dbl = 1.0e30_dbl_kind, & ! special value (double precision)
          puny = 1.0e-11_dbl_kind, &
+         small= 1.0e-4_dbl_kind, &    ! MHRI small
+         negNaN = -1.0E+20, &          ! MHRI restart_v4 land value (-6.845313241232439E+028)
          pi   = 3.14159265358979323846_dbl_kind,&! pi
          c0   = 0.0_dbl_kind, &
          c1   = 1.0_dbl_kind, &
@@ -167,6 +175,13 @@
          ntrcr = ntrcr + nslyr ! qsno in nslyr layers
          nt_sice = ntrcr + 1
          ntrcr = ntrcr + nilyr ! sice in nilyr layers
+         if (diag) then
+            write(*,*)'nt_Tsfc = ',nt_Tsfc
+            write(*,*)'nt_qice = ',nt_qice
+            write(*,*)'nt_qsno = ',nt_qsno
+            write(*,*)'nt_sice = ',nt_sice
+            write(*,*)'ntrcr   = ',ntrcr
+         endif
          if (ntrcr /= max_ntrcr) write (*,*) 'Tracer number mismatch'
 
       ! ice salinity profile
@@ -210,7 +225,15 @@
       do j = 1, ny_block
       do i = 1, nx_block
       do n = 1, ncat
+!MHRI ADD BEGIN
+      if (abs(trcrn(i,j,1,n)) > -negNaN) then
+         trcrn(i,j,1,n)= c0
+         trcrn(i,j,1,n)= spval_dbl
+         aicen(i,j,n)= c0
+      endif
+!MHRI ADD END
       if (aicen(i,j,n) > puny) then
+!      if (aicen(i,j,n) > small) then
       if (vsnon(i,j,n)/aicen(i,j,n) > hs_min) then
          do k = 1, nslyr
             ! qsn, esnon < 0              
@@ -241,7 +264,14 @@
             trcrn(i,j,nt_qsno+k-1,n) = c0
          enddo
       endif
+!MHRI ADD BEGIN
+      else
+         vsnon(i,j,n) = c0
+         do k = 1, nslyr
+            trcrn(i,j,nt_qsno+k-1,n) = c0
+         enddo
       endif
+!MHRI ADD END
       do k = 1, nilyr
 !         if (vicen(i,j,n) > puny) then
          if (aicen(i,j,n) > puny) then  ! matches v4.1
@@ -289,9 +319,7 @@
       ! tracers are in their own dump/restart files.
       !-----------------------------------------------------------------
       do n=1,ncat
-              write(*,*) 'cat ',n, &
-                               ' min/max area, vol ice, vol snow, Tsfc'
-
+              write(*,*) 'cat ',n, ' min/max aice,VolIce,VolSnow,Tsfc'
          call ice_read(nu_restart,aicen(:,:,n),diag)
          call ice_read(nu_restart,vicen(:,:,n),diag)
          call ice_read(nu_restart,vsnon(:,:,n),diag)
@@ -342,19 +370,16 @@
       
       call ice_read(nu_restart,stressp_1,diag) ! stressp_1
       call ice_read(nu_restart,stressp_3,diag) ! stressp_3
-
       call ice_read(nu_restart,stressp_2,diag) ! stressp_2
       call ice_read(nu_restart,stressp_4,diag) ! stressp_4
 
       call ice_read(nu_restart,stressm_1,diag) ! stressm_1
       call ice_read(nu_restart,stressm_3,diag) ! stressm_3
-
       call ice_read(nu_restart,stressm_2,diag) ! stressm_2
       call ice_read(nu_restart,stressm_4,diag) ! stressm_4
 
       call ice_read(nu_restart,stress12_1,diag) ! stress12_1
       call ice_read(nu_restart,stress12_3,diag) ! stress12_3
-
       call ice_read(nu_restart,stress12_2,diag) ! stress12_2
       call ice_read(nu_restart,stress12_4,diag) ! stress12_4
 
@@ -438,30 +463,43 @@
       ! tracers are written to their own dump/restart files.
       !-----------------------------------------------------------------
 
+              write(*,*) 'min/max area'
       do n=1,ncat
-              write(*,*) 'cat ',n, &
-                               ' min/max area, vol ice, vol snow, Tsfc'
-
          call ice_write(nu_dump,aicen(:,:,n),diag)
+      enddo ! ncat
+              write(*,*) 'min/max vice'
+      do n=1,ncat
          call ice_write(nu_dump,vicen(:,:,n),diag)
+      enddo ! ncat
+              write(*,*) 'min/max vsno'
+      do n=1,ncat
          call ice_write(nu_dump,vsnon(:,:,n),diag)
+      enddo ! ncat
+              write(*,*) 'min/max Tsfc'
+      do n=1,ncat
          call ice_write(nu_dump,trcrn(:,:,nt_Tsfc,n),diag)
+      enddo ! ncat
 
            write(*,*) 'min/max sicen for each layer'
-         do k=1,nilyr
+      do k=1,nilyr
+         do n=1,ncat
             call ice_write(nu_dump,trcrn(:,:,nt_sice+k-1,n),diag)
          enddo
+      enddo
 
            write(*,*) 'min/max qicen for each layer'
-         do k=1,nilyr
+      do k=1,nilyr
+         do n=1,ncat
             call ice_write(nu_dump,trcrn(:,:,nt_qice+k-1,n),diag)
          enddo
+      enddo
 
            write(*,*) 'min/max qsnon for each layer'
-         do k=1,nslyr
+      do k=1,nslyr
+         do n=1,ncat
             call ice_write(nu_dump,trcrn(:,:,nt_qsno+k-1,n),diag)
          enddo
-      enddo ! ncat
+      enddo
 
       !-----------------------------------------------------------------
       ! velocity
