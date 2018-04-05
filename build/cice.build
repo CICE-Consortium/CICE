@@ -1,0 +1,129 @@
+#! /bin/csh -f
+
+#setenv ICE_CPPDEFS "-DDMI_alloc "
+
+#---------------------------------------------
+#-- Machine specific / compiler
+#---------------------------------------------
+source /opt/modules/default/init/tcsh
+
+if ($#argv > 0) then
+  set compiler = $1
+else
+  set compiler = gnu
+  set compiler = intel
+  set compiler = cray
+endif
+
+module rm PrgEnv-intel
+module rm PrgEnv-cray
+module rm PrgEnv-gnu
+
+setenv ARCH DMI.${compiler}
+module add PrgEnv-${compiler}
+
+#module load cray-libsci
+module add cray-netcdf
+
+echo "-----------------------"
+echo "COMPILER: ${compiler}"
+echo "MACHINE:  `uname -mn`"
+echo "ARCH:     ${ARCH}"
+echo "-----------------------"
+
+#---------------------------------------------
+#-- Settings / CPPFLAGS etc.
+#---------------------------------------------
+
+source ./cice.settings
+setenv MACFILE ${ICE_CASEDIR}/Macros.${ARCH}
+
+if (! -e ${MACFILE}) then
+  echo "ERROR: Macro file not found: "${MACFILE}
+  exit 1
+endif
+
+echo "cleaning objdir"
+rm -r -f ${ICE_OBJDIR}
+mkdir -p ${ICE_OBJDIR}
+cd ${ICE_OBJDIR}
+echo "Goto objdir: "${ICE_OBJDIR}
+
+setenv ICE_CPPDEFS "-DNXGLOB=${ICE_NXGLOB} -DNYGLOB=${ICE_NYGLOB} -DBLCKX=${ICE_BLCKX} -DBLCKY=${ICE_BLCKY} -DMXBLCKS=${ICE_MXBLCKS} -DNICELYR=${NICELYR} -DNSNWLYR=${NSNWLYR} -DNICECAT=${NICECAT} -DTRAGE=${TRAGE} -DTRFY=${TRFY} -DTRLVL=${TRLVL} -DTRPND=${TRPND} -DTRBRI=${TRBRI} -DNTRAERO=${NTRAERO}  -DTRZS=${TRZS} -DNBGCLYR=${NBGCLYR} -DTRALG=${TRALG} -DTRBGCZ=${TRBGCZ} -DTRDOC=${TRDOC} -DTRDOC=${TRDOC} -DTRDIC=${TRDIC} -DTRDON=${TRDON} -DTRFED=${TRFED} -DTRFEP=${TRFEP} -DTRZAERO=${TRZAERO} -DTRBGCS=${TRBGCS} -DNUMIN=${NUMIN} -DNUMAX=${NUMAX}"
+
+if (${ICE_NTASKS} == 1) then
+   setenv ICE_COMMDIR serial
+else
+   setenv ICE_COMMDIR mpi 
+endif
+
+if !($?ICE_MACHINE_BLDTHRDS) set ICE_MACHINE_BLDTHRDS = 1
+
+if (${ICE_IOTYPE} == 'netcdf') then
+  set IODIR = io_netcdf
+  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
+else if (${ICE_IOTYPE} == 'pio') then
+  set IODIR = io_pio
+  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
+else if (${ICE_IOTYPE} == 'netcdf_bin') then
+  set IODIR = io_netcdf_bin
+  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
+else
+  set IODIR = io_binary
+endif
+
+### List of source code directories (in order of importance).
+cat >! Filepath << EOF
+${ICE_SANDBOX}/cicecore/drivers/${ICE_DRVOPT}
+${ICE_SANDBOX}/cicecore/cicedynB/dynamics
+${ICE_SANDBOX}/cicecore/cicedynB/general
+${ICE_SANDBOX}/cicecore/cicedynB/analysis
+${ICE_SANDBOX}/cicecore/cicedynB/infrastructure
+${ICE_SANDBOX}/cicecore/cicedynB/infrastructure/io/${IODIR}
+${ICE_SANDBOX}/cicecore/cicedynB/infrastructure/comm/${ICE_COMMDIR}
+${ICE_SANDBOX}/cicecore/shared
+${ICE_SANDBOX}/cicecore/shared/constants/${ICE_CONSTOPT}
+${ICE_SANDBOX}/icepack/columnphysics
+${ICE_SANDBOX}/icepack/columnphysics/constants/${ICE_CONSTOPT}
+EOF
+
+echo " "
+echo ICE_GRID     = ${ICE_GRID}
+echo ICE_NTASK    = ${ICE_NTASKS}
+echo ICE_NTHRD    = ${ICE_NTHRDS}
+echo "global N, block_size" 
+echo "x    ${ICE_NXGLOB},    ${ICE_BLCKX}"
+echo "y    ${ICE_NYGLOB},    ${ICE_BLCKY}"
+echo "max_blocks = ${ICE_MXBLCKS}"
+echo "ICE_CPPDEFS = ${ICE_CPPDEFS}"
+echo "Filepath = "
+cat ${ICE_OBJDIR}/Filepath
+echo " "
+
+#---------------------------------------------
+#-- Build / make
+#---------------------------------------------
+
+# make log-file. ONLY stdout if empty
+setenv ICE_BLDLOG_FILE
+setenv ICE_BLDLOG_FILE cice.${compiler}.buildlog
+
+echo "building makdep"
+cc -o makdep ${ICE_CASEDIR}/makdep.c     || exit 2
+
+echo "gmake clean"
+gmake VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack CPPDEFS="${ICE_CPPDEFS}" \
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${MACFILE} clean | tee ${ICE_BLDLOG_FILE}
+
+echo "building cice"
+#gmake -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice_${compiler} CPPDEFS="${ICE_CPPDEFS}" \
+gmake -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice_${compiler} \
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${MACFILE} | tee ${ICE_BLDLOG_FILE} 
+
+if ($status != 0) then
+  echo "COMPILE FAILED: ${0}"
+  exit 99
+else
+  echo "*** COMPILE SUCCESSFUL ***"
+endif
+

@@ -1,0 +1,94 @@
+#! /bin/csh -f
+
+setenv ICE_MACHINE    undefined
+setenv ICE_CASENAME   undefined
+setenv ICE_SANDBOX    undefined
+setenv ICE_SCRIPTS    undefined
+setenv ICE_CASEDIR    undefined
+setenv ICE_RUNDIR     /data/mhri/CICE_v6/test/
+
+#-- DMI BEGIN --
+setenv ICE_SANDBOX    ${cwd}/../                # undefined
+setenv ICE_RUNDIR     /data/mhri/CICE_v6/test/
+setenv ICE_CASEDIR    ${cwd}
+setenv ICE_MACHINE    DMI.cray   # OVERWRITTEN in cice.build
+#-- DMI END --
+
+setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
+setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
+setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
+setenv ICE_LOGDIR     ${ICE_CASEDIR}/logs
+setenv ICE_DRVOPT     cice
+setenv ICE_CONSTOPT   cice
+setenv ICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
+setenv ICE_CLEANBUILD true
+setenv ICE_GRID       gx3
+setenv ICE_NXGLOB     100
+setenv ICE_NYGLOB     116
+setenv ICE_NTASKS     4         # Number of processors (MPI ?)
+setenv ICE_NTHRDS     1         # Number of threads (OpenMP)
+setenv ICE_BLCKX      25
+setenv ICE_BLCKY      29
+setenv ICE_MXBLCKS    4
+setenv ICE_DECOMP     cartesian
+setenv ICE_DSHAPE     slenderX2
+setenv ICE_TEST       undefined   # Define if this is a test case
+setenv ICE_TESTNAME   undefined   # Define if this is a test case
+setenv ICE_BASELINE   undefined
+setenv ICE_BASEGEN    undefined
+setenv ICE_BASECOM    undefined
+setenv ICE_BFBCOMP    undefined
+setenv ICE_SPVAL      undefined
+setenv ICE_RUNLENGTH  00:10:00
+
+#======================================================
+
+setenv ICE_THREADED   false
+if (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true
+
+### Layers
+setenv NICELYR   7         # number of vertical layers in the ice
+setenv NSNWLYR   1         # number of vertical layers in the snow
+setenv NICECAT   5         # number of ice thickness categories
+
+### Tracers                # match ice_in tracer_nml to conserve memory
+setenv TRAGE     1         # set to 1 for ice age tracer
+setenv TRFY      1         # set to 1 for first-year ice area tracer
+setenv TRLVL     1         # set to 1 for level and deformed ice tracers
+setenv TRPND     1         # set to 1 for melt pond tracers
+setenv NTRAERO   1         # number of aerosol tracers 
+                           # (up to max_aero in ice_domain_size.F90) 
+                           # CESM uses 3 aerosol tracers
+setenv TRBRI     0         # set to 1 for brine height tracer
+setenv TRZS      0         # set to 1 for zsalinity tracer
+                           # (needs TRBRI = 1)
+setenv TRBGCS    0         # set to 1 for skeletal layer tracers  
+                           # (needs TRBGCZ = 0) 
+setenv TRBGCZ    0         # set to 1 for zbgc tracers
+                           # (needs TRBGCS = 0 and TRBRI = 1)         
+setenv NBGCLYR   7         # number of zbgc layers
+setenv TRZAERO   0         # number of z aerosol tracers 
+                           # (up to max_aero = 6)
+setenv TRALG     0         # number of algal tracers
+                           # (up to max_algae = 3)
+setenv TRDOC     0         # number of dissolve organic carbon 
+                           # (up to max_doc = 3)
+setenv TRDIC     0         # number of dissolve inorganic carbon 
+                           # (up to max_dic = 1)
+setenv TRDON     0         # number of dissolve organic nitrogen
+                           # (up to max_don = 1)
+setenv TRFEP     0         # number of particulate iron tracers 
+                           # (up to max_fe  = 2) 
+setenv TRFED     0         # number of dissolved iron tracers 
+                           # (up to max_fe  = 2)
+
+### Specialty code
+setenv CAM_ICE  no           # set to yes for CAM runs (single column) 
+setenv DITTO    no           # reproducible diagnostics
+setenv BARRIERS no           # prevent MPI buffer overflow during gather/scatter 
+setenv ICE_BLDDEBUG  false  # build debug flags
+
+### File unit numbers
+setenv NUMIN    11         # minimum file unit number
+setenv NUMAX    99         # maximum file unit number
+
