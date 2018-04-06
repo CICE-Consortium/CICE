@@ -14,7 +14,7 @@ You can find an overview of the CICE model, documentation, and process at
 You can find code, documentation, DOIs, and other information for each release at 
 * https://github.com/CICE-Consortium/CICE/wiki/Model-Versions-Index 
 
-and an index of all the documentation at 
+You can find a list of all the relevant documentation at 
 * https://github.com/CICE-Consortium/CICE/wiki/Documentation-Index.
 
 The [About-Us repository](https://github.com/CICE-Consortium/About-Us) includes background and supporting information about the CICE Consortium, including how to interact with it.   
