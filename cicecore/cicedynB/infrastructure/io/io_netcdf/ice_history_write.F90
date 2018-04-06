@@ -814,7 +814,7 @@
         if (status /= nf90_noerr) call abort_ice( &
                       'ice Error: global attribute contents')
 
-        title  = 'Los Alamos Sea Ice Model (CICE) Version 5'
+        write(title,'(2a)') 'Los Alamos Sea Ice Model, ', VERSION
         status = nf90_put_att(ncid,nf90_global,'source',title)
         if (status /= nf90_noerr) call abort_ice( &
                       'ice Error: global attribute source')
