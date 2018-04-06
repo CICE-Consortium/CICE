@@ -11,7 +11,7 @@ CICE uses [readthedocs](https://readthedocs.org/projects/cice-consortium-cice/) 
 You can find an overview of the CICE model, documentation, and process at
 * https://github.com/CICE-Consortium/CICE/wiki
 
-You can find code, documentation, DOIs, and other information for each release at 
+You can find code, documentation, DOIs, and other information for each CICE versions and releases at 
 * https://github.com/CICE-Consortium/CICE/wiki/Model-Versions-Index 
 
 You can find a list of all the relevant documentation at 
