@@ -687,7 +687,7 @@
         title = 'Diagnostic and Prognostic Variables'
         status = pio_put_att(File,pio_global,'contents',trim(title))
 
-        title  = 'Los Alamos Sea Ice Model (CICE) Version 5'
+        write(title,'(2a)') 'Los Alamos Sea Ice Model, ', VERSION
         status = pio_put_att(File,pio_global,'source',trim(title))
 
         if (use_leap_years) then
