@@ -8,7 +8,11 @@ CICE consists of a top level driver and dynamical core plus the Icepack column p
 
 CICE uses [readthedocs](https://readthedocs.org/projects/cice-consortium-cice/) to maintain documentation and zenodo to manage the Digital Object Identifier (DOI).
 
-You can find code, documentation, DOIs, and other information for each release at https://github.com/CICE-Consortium/CICE/wiki/Release-Index and an index of all the documentation at https://github.com/CICE-Consortium/CICE/wiki/Documentation-Index.
+You can find code, documentation, DOIs, and other information for each release at 
+* https://github.com/CICE-Consortium/CICE/wiki/Release-Index 
+
+and an index of all the documentation at 
+* https://github.com/CICE-Consortium/CICE/wiki/Documentation-Index.
 
 The [About-Us repository](https://github.com/CICE-Consortium/About-Us) includes background and supporting information about the CICE Consortium, including how to interact with it.   
 
