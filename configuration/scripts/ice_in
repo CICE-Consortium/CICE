@@ -38,6 +38,7 @@
     write_ic       = .true.
     incond_dir     = './history/'
     incond_file    = 'iceh_ic'
+    version_name   = 'undefined_version_name'
 /
 
 &grid_nml

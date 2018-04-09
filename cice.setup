@@ -461,7 +461,6 @@ echo ICE_CASENAME = ${casename}
 echo ICE_CASEDIR  = ${casedir}
 echo ICE_MACHINE  = ${machine}
 echo ICE_COMPILER = ${compiler}
-echo ICE_VERSION  = ${ICE_VERSION}
 
 #------------------------------------------------------------
 # Compute a default blocksize
@@ -502,6 +501,7 @@ cat >! ${fimods} << EOF1
 nprocs = ${task}
 distribution_type = '${ICE_DECOMP_DECOMP}'
 processor_shape   = '${ICE_DECOMP_DSHAPE}'
+version_name      = '${ICE_VERSION}'
 EOF1
 
 # If this is a baseline-compare test, modify ICE_RUNDIR
@@ -545,7 +545,6 @@ setenv ICE_BASELINE ${basedir_tmp}
 setenv ICE_BASEGEN  ${baseGen}
 setenv ICE_BASECOM  ${baseCom}
 setenv ICE_SPVAL    ${spval}
-setenv ICE_VERSION  ${ICE_VERSION}
 EOF1
 
 if ($?ICE_MACHINE_QUIETMODE) then

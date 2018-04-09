@@ -49,6 +49,9 @@
       character (len=char_len_long), public :: &
          pointer_file      ! input pointer file for restarts
 
+      character (len=char_len), public :: &
+         version_name
+
       !---------------------------------------------------------------
       ! Instructions for adding a field: (search for 'example')
       !     Here:
