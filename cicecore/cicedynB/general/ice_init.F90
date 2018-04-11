@@ -67,7 +67,7 @@
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
-                             incond_dir, incond_file
+                             incond_dir, incond_file, version_name
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
@@ -136,7 +136,7 @@
         print_global,   print_points,   latpnt,          lonpnt,        &
         dbug,           histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   cpl_bgc,                        &
-        write_ic,       incond_dir,     incond_file
+        write_ic,       incond_dir,     incond_file,     version_name
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
@@ -237,6 +237,7 @@
       grid_file    = 'unknown_grid_file'
       gridcpl_file = 'unknown_gridcpl_file'
       kmt_file     = 'unknown_kmt_file'
+      version_name = 'unknown_version_name'
 
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
