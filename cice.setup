@@ -1,7 +1,10 @@
 #!/bin/csh -f
 
 set ICE_SANDBOX = `pwd`
-set ICE_VERSION = `cat cicecore/version.txt | sed -e 's/ /_/g'`
+set ICE_VERSION = unknown
+if (-e cicecore/version.txt) then
+  set ICE_VERSION = `head -1 cicecore/version.txt | sed -e 's/ /_/g'`
+endif
 set ICE_SCRIPTS = "${ICE_SANDBOX}/configuration/scripts"
 set initargv = ( $argv[*] ) 
 
@@ -24,22 +27,10 @@ set baseCom = $spval  # Baseline compare
 set baseGen = $spval  # Baseline generate
 set bfbcomp = $spval  # BFB compare
 set report  = 0       # test results reporting
-set versno = `grep "release =" doc/source/conf.py | cut -d \' -f 2`
 
 if ($#argv < 1) then
   set helpheader = 1
 endif
-
-set argv = ( $initargv[*] )
-# check for --version
-while (1)
-  if ($#argv < 1) break;
-  if ("$argv[1]" =~ "--version" ) then
-    echo "This is CICE ${versno}"
-    exit -1
-  endif
-  shift argv
-end
 
 set argv = ( $initargv[*] )
 # check for -h
@@ -64,6 +55,12 @@ NAME
   cice.setup
 
 SYNOPSIS
+    -h || --help
+
+    --version
+
+    --setvers versno
+
     --case CASE -m MACH 
         [-e ENV][-p MxN][-g GRID][-s SET1,SET2][--acct ACCT]
 
@@ -78,6 +75,7 @@ SYNOPSIS
 DESCRIPTION
     --help, -h : help
     --version  : generates cice version number
+    --setvers  : updates cice version number in sandbox
     --case, -c : case, case directory/name (not with --test or --suite)
     --mach, -m : machine, machine name (required)
     --env,  -e : compiler(s), comma separated (default = "intel")
@@ -98,6 +96,8 @@ DESCRIPTION
     --report   : automatically post results when tests are complete
 
 EXAMPLES
+    cice.setup --version
+    cice.setup --setvers 6.0.2
     cice.setup -c caseB -m gordon -e cray -s diag1,debug
     cice.setup --case ~/caseA --mach cheyenne --env intel --set diag24
     cice.setup --test restart -m onyx -e gnu -s debug -testid myid
@@ -162,7 +162,40 @@ echo " "
 echo "${0}:"
 
 set argv = ( $initargv[*] )
+# check for --version
+while (1)
+  if ($#argv < 1) break;
+  if ("$argv[1]" =~ "--version" ) then
+    echo "${0}: This is ${ICE_VERSION}"
+    exit -1
+  endif
+  shift argv
+end
 
+set argv = ( $initargv[*] )
+# check for --setvers
+while (1)
+  if ($#argv < 1) break;
+  if ("$argv[1]" =~ "--setvers" ) then
+    shift argv
+    if ( $#argv < 1 ) then
+      echo "${0}: ERROR in --setvers argument"
+      exit -1
+    endif
+    set versno = $argv[1]
+    ${ICE_SCRIPTS}/set_version_number.csh $versno
+    if ($status != 0) then
+       echo "${0} ERROR in set_version_numbers.csh"
+       exit -1
+    endif
+    echo "Setting CICE version to ${versno} and exiting"
+    exit -1
+  endif
+  shift argv
+end
+
+set argv = ( $initargv[*] )
+# read in all options
 while (1)
   if ( $#argv < 1 ) break;
   set option = $argv[1];
@@ -269,9 +302,6 @@ if (($testsuite != $spval || $test != $spval) && $testid == $spval) then
   exit -1
 endif
 
-#Update version.txt
-echo "CICE ${versno}"  >! cicecore/version.txt
-
 # Check to see if this is a test-suite run.  If so, loop through the various
 #   tests and create a separate folder for each
 if ( $testsuite != $spval ) then
@@ -308,11 +338,8 @@ EOF0
   set hashdate = `git log | grep -i date   | head -1 | cut -d : -f 2-`
   set cdate = `date -u "+%Y-%m-%d"`
   set ctime = `date -u "+%H:%M:%S"`
-  set vers = "unknown"
+  set vers = ${ICE_VERSION}
   set shhash = `echo ${hash} | cut -c 1-10`
-  if (-e cicecore/version.txt) then
-    set vers = `head -1 cicecore/version.txt`
-  endif
 
 cat >! ./${tsdir}/results.csh << EOF0
 #!/bin/csh -f

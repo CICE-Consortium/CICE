@@ -4,15 +4,15 @@
 
 CPP        := ftn -E
 CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 -ffloat-store -march=native
+CFLAGS     := -c -O2
 
 FIXEDFLAGS := -ffixed-line-length-132
 FREEFLAGS  := -ffree-form
-FFLAGS     := -ffloat-store -fconvert=swap -fbacktrace -march=native -ffree-line-length-none
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -Wuninitialized -fbounds-check -ffpe-trap=invalid,zero,overflow,underflow
+  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
 else
   FFLAGS     += -O2
 endif
@@ -44,9 +44,8 @@ INCLDIR := $(INCLDIR)
 #LIB_MPI := $(IMPILIBDIR)
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
-SCC:= icc 
-
-SFC:= ifort 
+SCC:= gcc 
+SFC:= gfortran
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -fopenmp
