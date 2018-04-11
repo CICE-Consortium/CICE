@@ -14,4 +14,8 @@ echo "running parse_namelist_from_settings.sh"
 sed -i.sedbak -e 's|ICE_SANDBOX|'"${ICE_SANDBOX}"'|g' $filename
 sed -i.sedbak -e 's|ICE_MACHINE_INPUTDATA|'"${ICE_MACHINE_INPUTDATA}"'|g' $filename
 
+if [[ -e "${filename}.sedbak" ]]; then
+  rm ${filename}.sedbak
+fi
+
 exit 0
