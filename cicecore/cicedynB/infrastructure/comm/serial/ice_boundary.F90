@@ -663,7 +663,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,nmsg,                    &! dummy loop indices
+      i,j,nmsg,                  &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -693,6 +693,23 @@ contains
       nxGlobal = size(bufTripoleR8,dim=1)
       bufTripoleR8 = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:) = fill
+      array(1:nx_block,ny_block-j+1,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:) = fill
+      array(nx_block-i+1,1:ny_block,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -933,7 +950,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,nmsg,                    &! dummy loop indices
+      i,j,nmsg,                  &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -963,6 +980,23 @@ contains
       nxGlobal = size(bufTripoleR4,dim=1)
       bufTripoleR4 = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:) = fill
+      array(1:nx_block,ny_block-j+1,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:) = fill
+      array(nx_block-i+1,1:ny_block,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -1203,7 +1237,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,nmsg,                    &! dummy loop indices
+      i,j,nmsg,                  &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -1233,6 +1267,23 @@ contains
       nxGlobal = size(bufTripoleI4,dim=1)
       bufTripoleI4 = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:) = fill
+      array(1:nx_block,ny_block-j+1,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:) = fill
+      array(nx_block-i+1,1:ny_block,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -1473,7 +1524,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,k,nmsg,                  &! dummy loop indices
+      i,j,k,nmsg,                &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -1510,6 +1561,23 @@ contains
       allocate(bufTripole(nxGlobal,halo%tripoleRows,nz))
       bufTripole = fill
    endif 
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:,:) = fill
+      array(1:nx_block,ny_block-j+1,:,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:,:) = fill
+      array(nx_block-i+1,1:ny_block,:,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -1769,7 +1837,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,k,nmsg,                  &! dummy loop indices
+      i,j,k,nmsg,                &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -1806,6 +1874,23 @@ contains
       allocate(bufTripole(nxGlobal,halo%tripoleRows,nz))
       bufTripole = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:,:) = fill
+      array(1:nx_block,ny_block-j+1,:,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:,:) = fill
+      array(nx_block-i+1,1:ny_block,:,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -2065,7 +2150,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,k,nmsg,                  &! dummy loop indices
+      i,j,k,nmsg,                &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -2102,6 +2187,23 @@ contains
       allocate(bufTripole(nxGlobal,halo%tripoleRows,nz))
       bufTripole = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:,:) = fill
+      array(1:nx_block,ny_block-j+1,:,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:,:) = fill
+      array(nx_block-i+1,1:ny_block,:,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -2361,7 +2463,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,k,l,nmsg,                &! dummy loop indices
+      i,j,k,l,nmsg,              &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
       iSrc,jSrc,                 &! source addresses for message
@@ -2399,6 +2501,23 @@ contains
       allocate(bufTripole(nxGlobal,halo%tripoleRows,nz,nt))
       bufTripole = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:,:,:) = fill
+      array(1:nx_block,ny_block-j+1,:,:,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:,:,:) = fill
+      array(nx_block-i+1,1:ny_block,:,:,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -2674,7 +2793,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,k,l,nmsg,                &! dummy loop indices
+      i,j,k,l,nmsg,              &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
       iSrc,jSrc,                 &! source addresses for message
@@ -2712,6 +2831,23 @@ contains
       allocate(bufTripole(nxGlobal,halo%tripoleRows,nz,nt))
       bufTripole = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:,:,:) = fill
+      array(1:nx_block,ny_block-j+1,:,:,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:,:,:) = fill
+      array(nx_block-i+1,1:ny_block,:,:,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -2987,7 +3123,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,k,l,nmsg,                &! dummy loop indices
+      i,j,k,l,nmsg,              &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
       iSrc,jSrc,                 &! source addresses for message
@@ -3025,6 +3161,23 @@ contains
       allocate(bufTripole(nxGlobal,halo%tripoleRows,nz,nt))
       bufTripole = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  fill out halo region
+!  needed for masked halos to ensure halo values are filled for
+!  halo grid cells that are not updated
+!
+!-----------------------------------------------------------------------
+
+   do j = 1,nghost
+      array(1:nx_block,           j,:,:,:) = fill
+      array(1:nx_block,ny_block-j+1,:,:,:) = fill
+   enddo
+   do i = 1,nghost
+      array(i,           1:ny_block,:,:,:) = fill
+      array(nx_block-i+1,1:ny_block,:,:,:) = fill
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -3325,6 +3478,21 @@ contains
       nxGlobal = size(bufTripoleR8,dim=1)
       bufTripoleR8 = fill
    endif
+
+!-----------------------------------------------------------------------
+!
+!  do NOT zero the halo out, this halo update just updates
+!  the tripole zipper as needed for stresses.  if you zero
+!  it out, all halo values will be wiped out.
+!-----------------------------------------------------------------------
+!   do j = 1,nghost
+!      array1(1:nx_block,           j,:) = fill
+!      array1(1:nx_block,ny_block-j+1,:) = fill
+!   enddo
+!   do i = 1,nghost
+!      array1(i,           1:ny_block,:) = fill
+!      array1(nx_block-i+1,1:ny_block,:) = fill
+!   enddo
 
 !-----------------------------------------------------------------------
 !
