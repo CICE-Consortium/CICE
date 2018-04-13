@@ -20,7 +20,8 @@ CPPDEFS    := -DLINUX $(ICE_CPPDEFS)
 CPPDEFS    := -DLINUX -DDMI -DDMI_alloc -DDMI_Sanity -DDMI_TEST $(ICE_CPPDEFS)
 CPPDEFS    := -DLINUX -DDMI -DDMI_alloc -DDMI_Sanity -DDMI_TEST $(ICE_CPPDEFS)
 CPPDEFS    := -DLINUX -DDMI_alloc -DDMI_nml $(ICE_CPPDEFS)
-CPPDEFS    := -DLINUX -DDMI_alloc -DDMI_nml -DDMI_Sanity -DDMI_Sanity_MHRI $(ICE_CPPDEFS)
+CPPDEFS    := -DLINUX -DDMI -DDMI_alloc -DDMI_nml -DDMI_Sanity -DDMI_Sanity_MHRI $(ICE_CPPDEFS)
+CPPDEFS    := -DLINUX -DDMI -DDMI_nml $(ICE_CPPDEFS)
 
 # Linker flags
 LD         := $(FC)
@@ -28,7 +29,7 @@ LDFLAGS    := $(FFLAGS) -v
 
 # Additional flags
 FIXEDFLAGS := -132
-FREEFLAGS  := -FR
+FREEFLAGS  := -ffree-form
 
 #--- TEST flags ---
 #ifeq ($(ICE_BLDDEBUG), true)

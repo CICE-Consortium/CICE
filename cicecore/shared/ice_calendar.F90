@@ -26,7 +26,11 @@
       implicit none
       private
 
+#ifdef DMI
+      public :: init_calendar, calendar, time2sec, sec2time, hc_jday
+#else
       public :: init_calendar, calendar, time2sec, sec2time
+#endif
 
       integer (kind=int_kind), public :: &
          days_per_year        , & ! number of days in one year
@@ -55,17 +59,17 @@
       data daycal366/ 0,31, 60, 91,121,152,182,213,244,274,305,335,366/
 
       real (kind=dbl_kind), parameter :: &
-	days_per_4c = 146097.0_dbl_kind, &
-	days_per_c  = 36524.0_dbl_kind,  &
-	days_per_4y = 1461.0_dbl_kind,   &
-	days_per_y  = 365.0_dbl_kind
+         days_per_4c = 146097.0_dbl_kind, &
+         days_per_c  = 36524.0_dbl_kind,  &
+         days_per_4y = 1461.0_dbl_kind,   &
+         days_per_y  = 365.0_dbl_kind
 
       integer (kind=int_kind), public :: &
          istep    , & ! local step counter for time loop
          istep0   , & ! counter, number of steps taken in previous run
          istep1   , & ! counter, number of steps at current timestep
          mday     , & ! day of the month
-         hour     , & ! hour of the year
+         hour     , & ! hour of the day
          month    , & ! month number, 1 to 12
          monthp   , & ! last month
          year_init, & ! initial year
@@ -111,6 +115,12 @@
       character (len=char_len), public :: &
          calendar_type       ! differentiates Gregorian from other calendars
                              ! default = ' '
+
+#ifdef DMI
+      logical (kind=log_kind), public :: &
+         dmi_iced       , &   ! Write only one restart file
+         dmi_written          ! true if restart has been written
+#endif
 
 !=======================================================================
 
@@ -188,6 +198,11 @@
       nyr = nyr - year_init + 1    ! year number
 
       idate0 = (nyr+year_init-1)*10000 + month*100 + mday ! date (yyyymmdd) 
+
+#ifdef DMI
+      dmi_written = .false.
+      dmi_iced    = .false.    ! MHRI later:  PUT INTO NAMELIST ice_init
+#endif
 
       end subroutine init_calendar
 
@@ -299,6 +314,9 @@
 
         enddo ! nstreams
 
+#ifdef DMI
+       if ((.not. dmi_written) .or. (.not. dmi_iced)) then
+#endif
         select case (dumpfreq)
         case ("y", "Y")
           if (new_year  .and. mod(nyr, dumpfreq_n)==0) &
@@ -309,9 +327,16 @@
         case ("d", "D")
           if (new_day   .and. mod(elapsed_days, dumpfreq_n)==0) &
                 write_restart = 1
+        case ("h", "H")
+          if (new_hour  .and. mod(elapsed_hours, dumpfreq_n)==0) &
+                write_restart = 1
         end select
 
         if (force_restart_now) write_restart = 1
+#ifdef DMI
+        if (write_restart == 1) dmi_written = .true.
+       endif
+#endif
       
       endif !  istep > 1
 
@@ -523,8 +548,48 @@
          days_per_year=int(dayyr)
       endif
 
-    end subroutine set_calendar
+      end subroutine set_calendar
 
+#ifdef DMI
+      real(kind=dbl_kind) function hc_jday(iyear,imm,idd,ihour)
+!--------------------------------------------------------------------
+! converts "calendar" date to HYCOM julian day:
+!   1) year,month,day,hour  (4 arguments)
+!   2) year,doy,hour        (3 arguments)
+!
+! HYCOM model day is calendar days since 31/12/1900
+!--------------------------------------------------------------------
+        real(kind=dbl_kind)     :: dtime
+        integer(kind=int_kind)  :: iyear,iyr,imm,idd,idoy,ihr
+        integer(kind=int_kind), optional :: ihour
+
+        if (present(ihour)) then
+          !-----------------
+          ! ccyy mm dd HH
+          !-----------------
+          iyr=iyear-1901
+          if (mod(iyr,4)==3) then
+            dtime = floor(365.25d0*iyr)*1.d0 + daycal366(imm)*1.d0 + idd*c1 + ihour/24.d0
+          else
+            dtime = floor(365.25d0*iyr)*1.d0 + daycal365(imm)*1.d0 + idd*c1 + ihour/24.d0
+          endif
+
+        else
+          !-----------------
+          ! ccyy DOY HH
+          !-----------------
+          ihr  =idd   ! redefine input
+          idoy =imm   ! redefine input
+          iyr   = iyear - 1901
+          dtime = floor(365.25d0*iyr)*1.d0 + idoy*1.d0 + ihr/24.d0
+
+        endif
+
+        hc_jday=dtime
+
+        return
+      end function hc_jday
+#endif
 !=======================================================================
 
       end module ice_calendar

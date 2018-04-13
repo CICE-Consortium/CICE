@@ -58,23 +58,25 @@
 
       subroutine cice_init
 
+      use ice_state, only: alloc_state
+      use ice_flux_bgc, only: alloc_flux_bgc
       use ice_arrays_column, only: hin_max, c_hi_range, zfswin, trcrn_sw, &
-          ocean_bio_all, ice_bio_net, snow_bio_net
+          ocean_bio_all, ice_bio_net, snow_bio_net, alloc_arrays_column
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat
-      use ice_dyn_eap, only: init_eap
-      use ice_dyn_shared, only: kdyn, init_evp, basalstress
+      use ice_dyn_eap, only: init_eap, alloc_dyn_eap
+      use ice_dyn_shared, only: kdyn, init_evp, basalstress, alloc_dyn_shared
       use ice_flux, only: init_coupler_flux, init_history_therm, &
-          init_history_dyn, init_flux_atm, init_flux_ocn
+          init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn
+          get_forcing_atmo, get_forcing_ocn, alloc_forcing
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_data, faero_default, faero_optics
-      use ice_grid, only: init_grid1, init_grid2
+          faero_data, faero_default, faero_optics, alloc_forcing_bgc
+      use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
       use ice_init, only: input_data, init_state
@@ -105,6 +107,12 @@
 
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
+      call alloc_grid           ! allocate grid
+      call alloc_arrays_column  ! allocate column arrays
+      call alloc_state          ! allocate state
+      call alloc_dyn_shared     ! allocate dyn shared (init_uvel,init_vvel)
+      call alloc_flux_bgc       ! allocate flux_bgc
+      call alloc_flux           ! allocate flux
       call init_ice_timers      ! initialize all timers
       call ice_timer_start(timer_total)   ! start timing entire run
       call init_grid2           ! grid variables
@@ -113,6 +121,7 @@
       call init_hist (dt)       ! initialize output history file
 
       if (kdyn == 2) then
+         call alloc_dyn_eap     ! allocate dyn_eap
          call init_eap (dt_dyn) ! define eap dynamics parameters, variables
       else                      ! for both kdyn = 0 or 1
          call init_evp (dt_dyn) ! define evp dynamics parameters, variables
@@ -180,6 +189,8 @@
       ! if (tr_aero)  call faero_data                   ! data file
       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
       if (tr_aero .or. tr_zaero)  call faero_default    ! default values
+
+      if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! biogeochemistry
 
       if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
 #endif

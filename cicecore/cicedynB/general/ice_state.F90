@@ -45,20 +45,20 @@
 
       implicit none
       private
-      public :: bound_state
+      public :: bound_state, alloc_state
 
       !-----------------------------------------------------------------
       ! state of the ice aggregated over all categories
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
          aice  , & ! concentration of ice
          vice  , & ! volume per unit area of ice          (m)
          vsno      ! volume per unit area of snow         (m)
 
       real (kind=dbl_kind), &
-         dimension(nx_block,ny_block,max_ntrcr,max_blocks), public :: &
+         dimension(:,:,:,:), public, allocatable :: &
          trcr      ! ice tracers
                    ! 1: surface temperature of ice/snow (C)
 
@@ -66,18 +66,18 @@
       ! state of the ice for each category
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, &
          public:: &
          aice0     ! concentration of open water
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,ncat,max_blocks), public :: &
+         dimension (:,:,:,:), public, allocatable :: &
          aicen , & ! concentration of ice
          vicen , & ! volume per unit area of ice          (m)
          vsnon     ! volume per unit area of snow         (m)
 
       real (kind=dbl_kind), public, &
-         dimension (nx_block,ny_block,max_ntrcr,ncat,max_blocks) :: &
+         dimension (:,:,:,:,:), allocatable :: &
          trcrn     ! tracers
                    ! 1: surface temperature of ice/snow (C)
 
@@ -104,7 +104,7 @@
       ! dynamic variables closely related to the state of the ice
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
          uvel     , & ! x-component of velocity (m/s)
          vvel     , & ! y-component of velocity (m/s)
@@ -116,12 +116,12 @@
       ! ice state at start of time step, saved for later in the step 
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
          aice_init       ! initial concentration of ice, for diagnostics
 
       real (kind=dbl_kind), &
-         dimension(nx_block,ny_block,ncat,max_blocks), public :: &
+         dimension(:,:,:,:), allocatable, public :: &
          aicen_init  , & ! initial ice concentration, for linear ITD
          vicen_init  , & ! initial ice volume (m), for linear ITD
          vsnon_init      ! initial snow volume (m), for aerosol 
@@ -129,6 +129,37 @@
 !=======================================================================
 
       contains
+
+!=======================================================================
+!
+! Allocate space for all state variables 
+!
+      subroutine alloc_state
+      integer (int_kind) :: ierr
+
+      allocate ( &
+         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice
+         vice      (nx_block,ny_block,max_blocks) , & ! volume per unit area of ice (m)
+         vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
+         aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
+         uvel      (nx_block,ny_block,max_blocks) , & ! x-component of velocity (m/s)
+         vvel      (nx_block,ny_block,max_blocks) , & ! y-component of velocity (m/s)
+         divu      (nx_block,ny_block,max_blocks) , & ! strain rate I component, velocity divergence (1/s)
+         shear     (nx_block,ny_block,max_blocks) , & ! strain rate II component (1/s)
+         strength  (nx_block,ny_block,max_blocks) , & ! ice strength (N/m)
+         aice_init (nx_block,ny_block,max_blocks) , & ! initial concentration of ice, for diagnostics
+         aicen     (nx_block,ny_block,ncat,max_blocks) , & ! concentration of ice
+         vicen     (nx_block,ny_block,ncat,max_blocks) , & ! volume per unit area of ice (m)
+         vsnon     (nx_block,ny_block,ncat,max_blocks) , & ! volume per unit area of snow (m)
+         aicen_init(nx_block,ny_block,ncat,max_blocks) , & ! initial ice concentration, for linear ITD
+         vicen_init(nx_block,ny_block,ncat,max_blocks) , & ! initial ice volume (m), for linear ITD
+         vsnon_init(nx_block,ny_block,ncat,max_blocks) , & ! initial snow volume (m), for aerosol 
+         trcr      (nx_block,ny_block,max_ntrcr,max_blocks) , & ! ice tracers: 1: surface temperature of ice/snow (C)
+         trcrn     (nx_block,ny_block,max_ntrcr,ncat,max_blocks) , & ! tracers: 1: surface temperature of ice/snow (C)
+         stat=ierr)
+      if (ierr/=0) call abort_ice('ice: Out of Mem (alloc_state)')
+
+      end subroutine alloc_state
 
 !=======================================================================
 !

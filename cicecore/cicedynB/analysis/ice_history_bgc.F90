@@ -10,7 +10,11 @@
 
       use ice_kinds_mod
       use ice_constants
+#ifdef DMI_nml
+      use ice_fileunits, only: nu_nml, nml_filename_bgc, &
+#else
       use ice_fileunits, only: nu_nml, nml_filename, &
+#endif
           get_fileunit, release_fileunit
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -294,22 +298,36 @@
 
       call get_fileunit(nu_nml)
       if (my_task == master_task) then
+#ifdef DMI_nml
+         open (nu_nml, file=nml_filename_bgc, status='old',iostat=nml_error)
+#else
          open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+#endif
          if (nml_error /= 0) then
             nml_error = -1
          else
             nml_error =  1
          endif
+#ifdef DMI_nml
+         print*,'Reading icefields_bgc_nml'
+#endif
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_bgc_nml,iostat=nml_error)
          end do
+#ifdef DMI_nml
+         close (nu_nml)
+      endif
+#else
          if (nml_error == 0) close(nu_nml)
       endif
+#endif
       call release_fileunit(nu_nml)
 
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
+#ifndef DMI_nml
          close (nu_nml)
+#endif
          call abort_ice('ice: error reading icefields_bgc_nml')
       endif
 

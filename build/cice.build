@@ -10,9 +10,9 @@ source /opt/modules/default/init/tcsh
 if ($#argv > 0) then
   set compiler = $1
 else
-  set compiler = gnu
   set compiler = intel
   set compiler = cray
+  set compiler = gnu
 endif
 
 module rm PrgEnv-intel
@@ -83,8 +83,8 @@ ${ICE_SANDBOX}/cicecore/cicedynB/infrastructure/io/${IODIR}
 ${ICE_SANDBOX}/cicecore/cicedynB/infrastructure/comm/${ICE_COMMDIR}
 ${ICE_SANDBOX}/cicecore/shared
 ${ICE_SANDBOX}/cicecore/shared/constants/${ICE_CONSTOPT}
-${ICE_SANDBOX}/icepack/columnphysics
-${ICE_SANDBOX}/icepack/columnphysics/constants/${ICE_CONSTOPT}
+${ICE_SANDBOX}/Icepack/columnphysics
+${ICE_SANDBOX}/Icepack/columnphysics/constants/${ICE_CONSTOPT}
 EOF
 
 echo " "
@@ -112,7 +112,7 @@ echo "building makdep"
 cc -o makdep ${ICE_CASEDIR}/makdep.c     || exit 2
 
 echo "gmake clean"
-gmake VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack CPPDEFS="${ICE_CPPDEFS}" \
+gmake VPFILE=Filepath EXEC=${ICE_RUNDIR}/Icepack CPPDEFS="${ICE_CPPDEFS}" \
       -f  ${ICE_CASEDIR}/Makefile MACFILE=${MACFILE} clean | tee ${ICE_BLDLOG_FILE}
 
 echo "building cice"

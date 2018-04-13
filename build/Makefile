@@ -1,8 +1,4 @@
 #-------------------------------------------------------------------------------
-# CVS $Id: Makefile,v 1.1 2017/11/27 16:40:50 mhri Exp $
-# CVS $Source: /data/cvsroot/hycom_cice/CICE/cice_v6/build/Makefile,v $
-# CVS $Name:  $
-#-------------------------------------------------------------------------------
 # Common Makefile: a framework for building all CCSM components and more
 #
 # Command-line variables

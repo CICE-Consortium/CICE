@@ -66,6 +66,15 @@
          nu_diag            ! diagnostics output file
 
       character (32), public :: &
+#ifdef DMI_nml
+         nml_filename_history = 'ice_in_history' , & ! namelist input file name
+         nml_filename_domain  = 'ice_in_domain'  , & ! namelist input file name
+         nml_filename_bgc     = 'ice_in_bgc'     , & ! namelist input file name
+         nml_filename_drag    = 'ice_in_drag'    , & ! namelist input file name
+         nml_filename_mechred = 'ice_in_mechred' , & ! namelist input file name
+         nml_filename_pond    = 'ice_in_pond'    , & ! namelist input file name
+         nml_filename_zbgc    = 'ice_in_zbgc'    , & ! namelist input file name
+#endif
          nml_filename = 'ice_in' ! namelist input file name
 
       integer (kind=int_kind), parameter, public :: &
@@ -74,8 +83,13 @@
          ice_stderr =  6    ! reserved unit for standard error
 
       integer (kind=int_kind), parameter :: &
+#ifdef DMI_nml
+         ice_IOUnitsMinUnit = 11 , & ! do not use unit numbers below 
+         ice_IOUnitsMaxUnit = 99    ! or above
+#else
          ice_IOUnitsMinUnit = NUMIN, & ! do not use unit numbers below 
          ice_IOUnitsMaxUnit = NUMAX    ! or above
+#endif
 
       logical (kind=log_kind), dimension(ice_IOUnitsMaxUnit) :: &
          ice_IOUnitsInUse   ! flag=.true. if unit currently open

@@ -34,7 +34,11 @@
       use ice_kinds_mod
       use ice_constants, only: c0, c1, c2, c100, p25, &
           mps_to_cmpdy, kg_to_g, spval
+#ifdef DMI_nml
+      use ice_fileunits, only: nu_nml, nml_filename_history, nu_diag, &
+#else
       use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
+#endif
           get_fileunit, release_fileunit
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -108,22 +112,36 @@
 
       call get_fileunit(nu_nml)
       if (my_task == master_task) then
+#ifdef DMI_nml
+         open (nu_nml, file=nml_filename_history, status='old',iostat=nml_error)
+#else
          open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+#endif
          if (nml_error /= 0) then
             nml_error = -1
          else
             nml_error =  1
          endif
+#ifdef DMI_nml
+         print*,'Reading icefields_nml'
+#endif
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_nml,iostat=nml_error)
          end do
+#ifdef DMI_nml
          if (nml_error == 0) close(nu_nml)
       endif
+#else
+         close (nu_nml)
+      endif
+#endif
       call release_fileunit(nu_nml)
 
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
+#ifndef DMI_nml
          close (nu_nml)
+#endif
          call abort_ice('ice: error reading icefields_nml')
       endif
 

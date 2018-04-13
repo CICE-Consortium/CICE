@@ -17,7 +17,11 @@
       use ice_domain_size, only: n_doc, n_dic, n_don
       use ice_domain_size, only: n_fed, n_fep, max_nsw, n_bgc
       use ice_fileunits, only: nu_diag
+#ifdef DMI_nml
+      use ice_fileunits, only: nu_nml, nml_filename_zbgc, get_fileunit, &
+#else
       use ice_fileunits, only: nu_nml, nml_filename, get_fileunit, &
+#endif
                                release_fileunit
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_max_don, icepack_max_doc, icepack_max_dic
@@ -1262,7 +1266,11 @@
       call get_fileunit(nu_nml)
 
       if (my_task == master_task) then
+#ifdef DMI_nml
+         open (nu_nml, file=trim(nml_filename_zbgc), status='old',iostat=nml_error)
+#else
          open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
+#endif
          if (nml_error /= 0) then
             nml_error = -1
          else
@@ -1273,8 +1281,13 @@
          do while (nml_error > 0)
             read(nu_nml, nml=zbgc_nml,iostat=nml_error)
          end do
+#ifdef DMI_nml
+         close(nu_nml)
+      endif
+#else
          if (nml_error == 0) close(nu_nml)
       endif
+#endif
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
          call abort_ice('error reading zbgc namelist')

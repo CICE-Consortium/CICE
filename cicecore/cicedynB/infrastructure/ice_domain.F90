@@ -22,7 +22,11 @@
    use ice_distribution, only: distrb
    use ice_boundary, only: ice_halo
    use ice_exit, only: abort_ice
+#ifdef DMI_nml
+   use ice_fileunits, only: nu_nml, nml_filename_domain, nu_diag, &
+#else
    use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
+#endif
        get_fileunit, release_fileunit
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
    use icepack_intfc, only: icepack_query_parameters
@@ -86,7 +90,7 @@
 
    use ice_distribution, only: processor_shape
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
-       nx_global, ny_global
+       nx_global, ny_global, block_size_x, block_size_y
 
 !----------------------------------------------------------------------
 !
@@ -104,6 +108,11 @@
 !----------------------------------------------------------------------
 
    namelist /domain_nml/ nprocs, &
+                         max_blocks,   &
+                         block_size_x, &
+                         block_size_y, &
+                         nx_global,    &
+                         ny_global,    &
                          processor_shape,   &
                          distribution_type, &
                          distribution_wght, &
@@ -128,20 +137,37 @@
    maskhalo_dyn      = .false.     ! if true, use masked halos for dynamics
    maskhalo_remap    = .false.     ! if true, use masked halos for transport
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
+   max_blocks        = -1           ! max number of blocks per processor
+   block_size_x      = -1          ! size of block in first horiz dimension
+   block_size_y      = -1          ! size of block in second horiz dimension
+   nx_global         = -1          ! NXGLOB,  i-axis size
+   ny_global         = -1          ! NYGLOB,  j-axis size
 
    call get_fileunit(nu_nml)
    if (my_task == master_task) then
+#ifdef DMI_nml
+      open (nu_nml, file=nml_filename_domain, status='old',iostat=nml_error)
+#else
       open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+#endif
       if (nml_error /= 0) then
          nml_error = -1
       else
          nml_error =  1
       endif
+#ifdef DMI_nml
+      print*,'Reading domain_nml'
+#endif
       do while (nml_error > 0)
          read(nu_nml, nml=domain_nml,iostat=nml_error)
       end do
+#ifdef DMI_nml
+      close(nu_nml)
+   endif
+#else
       if (nml_error == 0) close(nu_nml)
    endif
+#endif
    call release_fileunit(nu_nml)
 
    call broadcast_scalar(nml_error, master_task)
@@ -158,6 +184,19 @@
    call broadcast_scalar(maskhalo_dyn,      master_task)
    call broadcast_scalar(maskhalo_remap,    master_task)
    call broadcast_scalar(maskhalo_bound,    master_task)
+   if (my_task == master_task) then
+     if (max_blocks < 1) then
+       max_blocks=( ((nx_global-1)/block_size_x + 1) *         &
+                    ((ny_global-1)/block_size_y + 1) ) / nprocs
+       write(nu_diag,'(/,a55,i6,/)')          &
+         'ice: ice_domain: max_block < 1: max_block estimated to ',max_blocks
+     endif
+   endif
+   call broadcast_scalar(max_blocks,        master_task)
+   call broadcast_scalar(block_size_x,      master_task)
+   call broadcast_scalar(block_size_y,      master_task)
+   call broadcast_scalar(nx_global,         master_task)
+   call broadcast_scalar(ny_global,         master_task)
 
 !----------------------------------------------------------------------
 !
