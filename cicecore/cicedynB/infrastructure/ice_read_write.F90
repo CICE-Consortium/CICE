@@ -13,9 +13,6 @@
 
       use ice_kinds_mod
       use ice_constants, only: c0, spval_dbl, &
-#ifdef DMI
-          c1, &
-#endif
           field_loc_noupdate, field_type_noupdate
       use ice_communicate, only: my_task, master_task
       use ice_broadcast, only: broadcast_scalar
@@ -87,7 +84,7 @@
 #ifdef DMI
       subroutine ice_open(nu, filename, nbits, algn)
       integer (kind=int_kind), intent(in), optional :: algn
-      integer (kind=int_kind) :: RecSize, Remnant, Flg
+      integer (kind=int_kind) :: RecSize, Remnant
 #else
       subroutine ice_open(nu, filename, nbits)
 #endif
