@@ -1,10 +1,23 @@
 #!/bin/csh -f
 
+if (! -e results.log) then
+  echo " "
+  echo "${0}: ERROR results.log does not exist, try running results.csh"
+  echo " "
+  exit -1
+endif
+
 set wikirepo = "https://github.com/CICE-Consortium/Test-Results.wiki.git"
 set wikiname = Test-Results.wiki
 
 rm -r -f ${wikiname}
 git clone ${wikirepo} ${wikiname}
+if ($status != 0) then
+  echo " "
+  echo "${0}: ERROR git clone failed"
+  echo " "
+  exit -1
+endif
 
 set repo = `grep "#repo = " results.log | cut -c 9-`
 set bran = `grep "#bran = " results.log | cut -c 9-`
