@@ -48,9 +48,9 @@ SCC:= icc
 SFC:= ifort 
 
 ifeq ($(compile_threaded), true) 
-   LDFLAGS += -openmp 
-   CFLAGS += -openmp 
-   FFLAGS += -openmp 
+   LDFLAGS += -qopenmp 
+   CFLAGS += -qopenmp 
+   FFLAGS += -qopenmp 
 endif
 
 ifeq ($(DITTO), yes)

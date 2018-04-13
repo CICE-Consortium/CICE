@@ -78,10 +78,10 @@ DESCRIPTION
     --setvers  : updates cice version number in sandbox
     --case, -c : case, case directory/name (not with --test or --suite)
     --mach, -m : machine, machine name (required)
-    --env,  -e : compiler(s), comma separated (default = "intel")
-    --pes,  -p : tasks x threads or "m"x"n" (default is 1x1)
+    --env,  -e : compiler(s), comma separated (default = $compilers)
+    --pes,  -p : tasks x threads [x blocksize_x x blocksize_y [x maxblocks]] (default is $pesx)
     --acct     : account number for the batch submission
-    --grid, -g : grid, grid (default = col)
+    --grid, -g : grid, grid (default = $grid)
     --set,  -s : case option setting(s), comma separated (default = " ")
 
     For testing
@@ -100,7 +100,7 @@ EXAMPLES
     cice.setup --setvers 6.0.2
     cice.setup -c caseB -m gordon -e cray -s diag1,debug
     cice.setup --case ~/caseA --mach cheyenne --env intel --set diag24
-    cice.setup --test restart -m onyx -e gnu -s debug -testid myid
+    cice.setup --test restart -m onyx -e gnu -s debug -testid myid -p 8x4
     cice.setup --suite base_suite -m conrad --env intel,cray --testid myv1 --bgen myv1
     cice.setup --suite quick_suite -m cheyenne --testid myv1 --bgen myv1
     cice.setup --suite quick_suite -m cheyenne --testid myv2 --bgen myv2 --bcmp myv1
@@ -305,20 +305,29 @@ endif
 # Check to see if this is a test-suite run.  If so, loop through the various
 #   tests and create a separate folder for each
 if ( $testsuite != $spval ) then
-  set tsdir = "${testsuite}.${testid}"
-  if (-e ${testsuite}) then
-    set tsfile = "${testsuite}"
-  else if (-e ${testsuite}.ts) then
-    set tsfile = "${testsuite}.ts"
-  else 
-    if (-e ${ICE_SCRIPTS}/tests/${testsuite}.ts) then
-      set tsfile = "${ICE_SCRIPTS}/tests/${testsuite}.ts"
-    else
-      echo "${0}: ERROR, cannot find testsuite file ${testsuite}, also checked ${ICE_SCRIPTS}/tests/${testsuite}.ts"
-      exit -1
+  set tsdir = "testsuitedir.${testid}"
+  set tsfile = "testsuitelist.${testid}"
+  rm -f $tsfile
+  set tarrays = `echo ${testsuite} | sed 's/,/ /g' | fmt -1 | sort -u`
+  foreach tarray ( ${tarrays} )
+    if (-e ${tarray}) then
+      cat ${tarray} >> $tsfile
+    else if (-e ${tarray}.ts) then
+      cat ${tarray.ts} >> $tsfile
+    else 
+      if (-e ${ICE_SCRIPTS}/tests/${tarray}.ts) then
+        cat ${ICE_SCRIPTS}/tests/${tarray}.ts >> $tsfile
+      else
+        echo "${0}: ERROR, cannot find testsuite file ${tarray}, also checked ${ICE_SCRIPTS}/tests/${tarray}.ts"
+        exit -1
+      endif
     endif
-  endif
+  end
 
+  if (-e ./${tsdir}) then
+    echo "${0}: ERROR, ${tsdir} already exists"
+    exit -1
+  endif
   mkdir ./${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ./${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ./${tsdir}
@@ -483,33 +492,59 @@ endif
 cd ${casedir}
 source ./env.${machcomp} || exit 2
 
-echo ICE_SANDBOX  = ${ICE_SANDBOX}
-echo ICE_CASENAME = ${casename}
-echo ICE_CASEDIR  = ${casedir}
-echo ICE_MACHINE  = ${machine}
-echo ICE_COMPILER = ${compiler}
-
 #------------------------------------------------------------
 # Compute a default blocksize
 
-set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
 if (${chck} == OK) then
-  set task = `echo ${pesx} | sed s/x.\*//`
-  set thrd = `echo ${pesx} | sed s/.\*x//`
+  set task  = `echo ${pesx} | cut -d x -f 1`
+  set thrd  = `echo ${pesx} | cut -d x -f 2`
+  set blckx = `echo ${pesx} | cut -d x -f 3`
+  set blcky = `echo ${pesx} | cut -d x -f 4`
+  set mblck = `echo ${pesx} | cut -d x -f 5`
 else
-  echo "${0}: ERROR in -p argument, ${pesx}, must be mxn"
-  exit -1
+  set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+  if (${chck} == OK) then
+    set task  = `echo ${pesx} | cut -d x -f 1`
+    set thrd  = `echo ${pesx} | cut -d x -f 2`
+    set blckx = `echo ${pesx} | cut -d x -f 3`
+    set blcky = `echo ${pesx} | cut -d x -f 4`
+    set mblck = 0
+  else
+    set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+    if (${chck} == OK) then
+      set task = `echo ${pesx} | cut -d x -f 1`
+      set thrd = `echo ${pesx} | cut -d x -f 2`
+      set blckx = 0
+      set blcky = 0
+      set mblck = 0
+    else
+      echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
+      exit -1
+    endif
+  endif
 endif
 
 setenv ICE_DECOMP_GRID  ${grid}
 setenv ICE_DECOMP_NTASK ${task}
 setenv ICE_DECOMP_NTHRD ${thrd}
+setenv ICE_DECOMP_BLCKX ${blckx}
+setenv ICE_DECOMP_BLCKY ${blcky}
+setenv ICE_DECOMP_MXBLCKS ${mblck}
 
 source ${casescr}/cice_decomp.csh
 if ($status != 0) then
   echo "${0}: ERROR, cice_decomp.csh aborted"
   exit -1
 endif
+
+echo "ICE_SANDBOX  = ${ICE_SANDBOX}"
+echo "ICE_CASENAME = ${casename}"
+echo "ICE_CASEDIR  = ${casedir}"
+echo "ICE_MACHINE  = ${machine}"
+echo "ICE_COMPILER = ${compiler}"
+echo "ICE_PES      = ${task}x${thrd}"
+echo "ICE_GRID     = ${grid} (${ICE_DECOMP_NXGLOB}x${ICE_DECOMP_NYGLOB}) blocksize=${ICE_DECOMP_BLCKX}x${ICE_DECOMP_BLCKY}x${ICE_DECOMP_MXBLCKS}"
 
 #------------------------------------------------------------
 # Copy in and update cice.settings and ice_in files
@@ -563,8 +598,6 @@ setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}
 setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}
 setenv ICE_NTASKS   ${task}
 setenv ICE_NTHRDS   ${thrd}
-setenv ICE_DECOMP   ${ICE_DECOMP_DECOMP}
-setenv ICE_DSHAPE   ${ICE_DECOMP_DSHAPE}
 setenv ICE_MXBLCKS  ${ICE_DECOMP_MXBLCKS}
 setenv ICE_BLCKX    ${ICE_DECOMP_BLCKX}
 setenv ICE_BLCKY    ${ICE_DECOMP_BLCKY}

@@ -3,12 +3,6 @@
 set wikirepo = "https://github.com/CICE-Consortium/Test-Results.wiki.git"
 set wikiname = Test-Results.wiki
 
-set tsubdir = cice_testing
-set hfile = "cice_by_hash"
-set mfile = "cice_by_mach"
-set vfile = "cice_by_vers"
-set bfile = "cice_by_bran"
-
 rm -r -f ${wikiname}
 git clone ${wikirepo} ${wikiname}
 
@@ -49,7 +43,13 @@ set xcdat = `echo $cdat | sed 's|-||g' | cut -c 3-`
 set xctim = `echo $ctim | sed 's|:||g'`
 set shrepo = `echo $repo | tr '[A-Z]' '[a-z]'`
 
+set tsubdir = cice_master
+set hfile = "cice_by_hash"
+set mfile = "cice_by_mach"
+set vfile = "cice_by_vers"
+set bfile = "cice_by_bran"
 if ("${shrepo}" !~ "*cice-consortium*") then
+  set tsubdir = cice_dev
   set hfile = {$hfile}_forks
   set mfile = {$mfile}_forks
   set vfile = {$vfile}_forks
@@ -325,13 +325,13 @@ end
 #=====================
 
 cd ${wikiname}
-#git add ${tsubdir}/${shhash}.${mach}*.md
-#git add ${tsubdir}/${ofile}.md
-#git add ${tsubdir}/${hfile}.md
-#git add ${tsubdir}/${mfile}.md
-#git add ${tsubdir}/${vfile}.md
-#git add ${tsubdir}/${bfile}.md
-#git commit -a -m "update $hash $mach"
-#git push origin master
+git add ${tsubdir}/${shhash}.${mach}*.md
+git add ${tsubdir}/${ofile}.md
+git add ${tsubdir}/${hfile}.md
+git add ${tsubdir}/${mfile}.md
+git add ${tsubdir}/${vfile}.md
+git add ${tsubdir}/${bfile}.md
+git commit -a -m "update $hash $mach"
+git push origin master
 cd ../
 

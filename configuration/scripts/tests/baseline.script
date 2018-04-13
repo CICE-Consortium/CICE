@@ -68,7 +68,7 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
       echo "bfbcomp and test dataset are different"
     endif
   else
-    echo "FAIL ${ICE_TESTNAME} bfbcomp baseline_does-not-exist" >> ${ICE_CASEDIR}/test_output
+    echo "FAIL ${ICE_TESTNAME} bfbcomp baseline-does-not-exist" >> ${ICE_CASEDIR}/test_output
     echo "Baseline file does not exist"
   endif
 endif
