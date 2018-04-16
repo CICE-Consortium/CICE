@@ -106,25 +106,54 @@ EOF
 foreach case ( ${cases} )
 if ( ${case} =~ *_${compiler}_* ) then
 
-  @ ttotl = $ttotl + 1
+# check thata case results are meaningful
+  set fbuild = `grep " ${case} " results.log | grep " build"   | cut -c 1-4`
+  set frun   = `grep " ${case} " results.log | grep " run"     | cut -c 1-4`
+  set ftest  = `grep " ${case} " results.log | grep " test"    | cut -c 1-4`
 
-  set tchkpass = 1
+if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
 
-  set fbuild = `grep " ${case} " results.log | grep " build" | cut -c 1-4`
+  set fbuild = `grep " ${case} " results.log | grep " build"   | cut -c 1-4`
+  set frun   = `grep " ${case} " results.log | grep " run"     | cut -c 1-4`
+  set ftest  = `grep " ${case} " results.log | grep " test"    | cut -c 1-4`
   set fregr  = `grep " ${case} " results.log | grep " compare" | cut -c 1-4`
   set fcomp  = `grep " ${case} " results.log | grep " bfbcomp" | cut -c 1-4`
+  if (${ftest}  == "PASS") set frun   = "PASS"
+  if (${frun}   == "PASS") set fbuild = "PASS"
+
   set vregr  = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 4 | sed 's/\./ /g' `
   set vcomp  = `grep " ${case} " results.log | grep " bfbcomp" | cut -d " " -f 4`
-  set ftime  = ""
 
-  if (${case} =~ *_restart_*) then
-    set frun   = `grep " ${case} " results.log | grep " run-initial" | cut -c 1-4`
-    set frun   = `grep " ${case} " results.log | grep " run-restart" | cut -c 1-4`
-    set ftest  = `grep " ${case} " results.log | grep " exact-restart" | cut -c 1-4`
-  else if (${case} =~ *_smoke_*) then
-    set frun   = `grep " ${case} " results.log | grep " run" | cut -c 1-4`
-    set ftest  = `grep " ${case} " results.log | grep " run" | cut -c 1-4`
+  set vtime1 = `grep " ${case} " results.log | grep " run" | cut -d " " -f 4`
+  set vtime2 = `grep " ${case} " results.log | grep " run" | cut -d " " -f 5`
+  set vtime3 = `grep " ${case} " results.log | grep " run" | cut -d " " -f 6`
+
+  set btime1 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 5`
+  set btime2 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 6`
+  set btime3 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 7`
+
+  set vtime  = ""
+  if (${vtime1} != "") set vtime = "$vtime TL=${vtime1}(${btime1})"
+  if (${vtime2} != "") set vtime = "$vtime Dyn=${vtime2}(${btime2})"
+  if (${vtime3} != "") set vtime = "$vtime Col=${vtime3}(${btime3})"
+
+  set scale1 = 1.2
+  set scale2 = 1.5
+  set ftime  = ""
+  if (${vtime1} != "" && ${btime1} != "") then
+    if (`echo "${vtime1} > 0.0" | bc` && `echo "${btime1} > 0.0" | bc`) then
+      if (`echo "$vtime1 > $btime1*$scale2" | bc`) then
+        set ftime = "FAIL"
+      else if (`echo "$vtime1 > $btime1*$scale1" | bc`) then
+        set ftime = "NOTSOGOOD"
+      else
+        set ftime = "PASS"
+      endif
+    endif
   endif
+
+  @ ttotl = $ttotl + 1
+  set tchkpass = 1
 
   set noglob
   set rbuild = ${yellow}
@@ -139,12 +168,14 @@ if ( ${case} =~ *_${compiler}_* ) then
   if (${ftest}  == "PASS") set rtest  = ${green}
   if (${fregr}  == "PASS") set rregr  = ${green}
   if (${fcomp}  == "PASS") set rcomp  = ${green}
+  if (${ftime}  == "PASS") set rtime  = ${green}
 
   if (${fbuild} == "FAIL") set rbuild = ${red}
   if (${frun}   == "FAIL") set rrun   = ${red}
   if (${ftest}  == "FAIL") set rtest  = ${red}
   if (${fregr}  == "FAIL") set rregr  = ${red}
   if (${fcomp}  == "FAIL") set rcomp  = ${red}
+  if (${ftime}  == "FAIL") set rtime  = ${red}
 
   if (${fbuild} == "") set rbuild = ${red}
   if (${frun}   == "") set rrun   = ${red}
@@ -179,8 +210,9 @@ if ( ${case} =~ *_${compiler}_* ) then
   set xcase = `echo $case | sed 's|_| |g'`
   set xvcomp = `echo $vcomp | sed 's|_| |g'`
   #echo "debug | ${rbuild} | ${rrun} | ${rtest} | ${rregr} ${vregr} | ${rcomp} ${vcomp} | ${case} |" 
-  echo "| ${rbuild} | ${rrun} | ${rtest} | ${rregr} ${vregr} | ${rcomp} ${xvcomp} | ${rtime} | ${xcase} |" >> ${outfile}
+  echo "| ${rbuild} | ${rrun} | ${rtest} | ${rregr} ${vregr} | ${rcomp} ${xvcomp} | ${rtime} ${vtime} | ${xcase} |" >> ${outfile}
 
+endif
 endif
 end
 
