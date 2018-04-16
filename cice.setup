@@ -289,14 +289,6 @@ if (${dosuite} == 0) then
   endif
 endif
 
-if (${acct} == ${spval}) then
-  if (-e ~/.cice_proj) then
-    set acct = `head -1 ~/.cice_proj`
-  else
-    set acct = ${ICE_MACHINE_ACCT}
-  endif
-endif
-
 # tcraig, lets find another way to validate argument
 #if (${test} != ${spval} && ${test} != 'smoke' && ${test} != '10day' && ${test} != 'annual' \
 # && ${test} != 'restart') then
@@ -536,6 +528,14 @@ foreach compiler ( $ncompilers )
     set quietmode = false
     if ($?ICE_MACHINE_QUIETMODE) then
       set quietmode = ${ICE_MACHINE_QUIETMODE}
+    endif
+
+    if (${acct} == ${spval}) then
+      if (-e ~/.cice_proj) then
+        set acct = `head -1 ~/.cice_proj`
+      else
+        set acct = ${ICE_MACHINE_ACCT}
+      endif
     endif
 
     #------------------------------------------------------------
