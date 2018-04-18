@@ -73,7 +73,7 @@ SYNOPSIS
         [-e ENV][-p MxN][-g GRID][-s SET1,SET2][--acct ACCT]
         [--diff TESTNAME][--bdir DIR][--bgen DIR][--bcmp DIR]
 
-    --suite SUITE -m MACH --testid ID 
+    --suite SUITE[,SUITE2] -m MACH --testid ID 
         [-e ENV1,ENV2][--acct ACCT][--bdir DIR][--bgen DIR]
         [--bcmp DIR][--report]
 
@@ -92,7 +92,7 @@ DESCRIPTION
     For testing
 
     --test     : test, test name (not with --case or --suite)
-    --suite    : test suite, pre-defined set of tests (not with --case or --test)
+    --suite    : test suite, pre-defined set or sets of tests, comma separated (not with --case or --test)
     --bdir     : top baseline directory, default ICE_MACHINE_BASELINE
     --bgen     : baselines directory where output from current tests are copied
     --bcmp     : baselines directory where output from current tests are compared
@@ -107,7 +107,7 @@ EXAMPLES
     cice.setup --case ~/caseA --mach cheyenne --env intel --set diag24
     cice.setup --test restart -m onyx -e gnu -s debug -testid myid -p 8x4
     cice.setup --suite base_suite -m conrad --env intel,cray --testid myv1 --bgen myv1
-    cice.setup --suite quick_suite -m cheyenne --testid myv1 --bgen myv1
+    cice.setup --suite quick_suite,decomp_suite -m cheyenne --testid myv1 --bgen myv1
     cice.setup --suite quick_suite -m cheyenne --testid myv2 --bgen myv2 --bcmp myv1
 
 SEE ALSO
@@ -140,7 +140,7 @@ cat << EOF1
 
       Available tests are in configuration/scripts/tests and include:
 EOF1
-      set soptions1 = `ls -1 configuration/scripts/tests | grep test_ | sed 's/test_//g' | sed 's/.script//g' `
+      set soptions1 = `ls -1 configuration/scripts/tests | grep test_ | grep script | sed 's/test_//g' | sed 's/.script//g' `
       set soptions = `echo $soptions1 | fmt -1 | sort `
       foreach sopt ($soptions)
         echo "             $sopt"

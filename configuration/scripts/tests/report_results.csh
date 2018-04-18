@@ -92,7 +92,7 @@ foreach compiler ( ${compilers} )
 
 cat >! ${outfile} << EOF
 
-| Build | Run | Test | Regression | Compare | Timing | Case |
+|Bld|Run|Test| Regr | Compare | Timing | Case |
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
 EOF
 
@@ -131,6 +131,16 @@ if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
   set btime1 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 5`
   set btime2 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 6`
   set btime3 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 7`
+
+  if (${btime1} != "") then
+    if (`echo "${btime1} < 0.0" | bc`) set btime1 = ""
+  endif
+  if (${btime2} != "") then
+    if (`echo "${btime2} < 0.0" | bc`) set btime2 = ""
+  endif
+  if (${btime3} != "") then
+    if (`echo "${btime3} < 0.0" | bc`) set btime3 = ""
+  endif
 
   set vtime  = ""
   if (${vtime1} != "") set vtime = "$vtime TL=${vtime1}(${btime1})"
@@ -184,8 +194,12 @@ if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
   if (${fcomp}  == "") set rcomp  = ${gray}
   if (${ftime}  == "") set rtime  = ${gray}
 
-  set fregrx  = `grep " ${case} " results.log | grep " compare" | grep "baseline-does-not-exist" | wc -l `
-  if ($fregrx > 0) set rregr = ${gray}
+  if (${fbuild} == "MISS") set rbuild = ${gray}
+  if (${frun}   == "MISS") set rrun   = ${gray}
+  if (${ftest}  == "MISS") set rtest  = ${gray}
+  if (${fregr}  == "MISS") set rregr  = ${gray}
+  if (${fcomp}  == "MISS") set rcomp  = ${gray}
+  if (${ftime}  == "MISS") set rtime  = ${gray}
 
   if (${rbuild} == ${red}) set tchkpass = 0
   if (${rrun}   == ${red}) set tchkpass = 0
@@ -207,8 +221,10 @@ if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
 
   unset noglob
 
-  set xcase = `echo $case | sed 's|_| |g'`
-  set xvcomp = `echo $vcomp | sed 's|_| |g'`
+  # remove final .string which is the testid isn't needed here
+  set wvcomp = `echo ${vcomp} | sed  's|^\(.*\)\.[^.]*$|\1|g'`
+  set xvcomp = `echo ${wvcomp} | sed 's|_| |g'`
+  set xcase  = `echo ${case}   | sed 's|_| |g'`
   #echo "debug | ${rbuild} | ${rrun} | ${rtest} | ${rregr} ${vregr} | ${rcomp} ${vcomp} | ${case} |" 
   echo "| ${rbuild} | ${rrun} | ${rtest} | ${rregr} ${vregr} | ${rcomp} ${xvcomp} | ${rtime} ${vtime} | ${xcase} |" >> ${outfile}
 
@@ -239,13 +255,13 @@ endif
 unset noglob
 
 mv ${outfile} ${outfile}.hold
+#- raw results: ${totl} total tests: ${pass} pass, ${fail} fail
 cat >! ${outfile} << EOF
 - repo = **${repo}** : **${bran}**
 - hash = ${hash}
 - hash created by ${hashuser} ${hashdate}
 - vers = ${vers}
 - tested on ${mach}, ${compiler}, ${user}, ${cdat} ${ctim} UTC
-- raw results: ${totl} total tests: ${pass} pass, ${fail} fail
 - ${ttotl} total tests: ${tpass} pass, ${tfail} fail
 - ${ttotl} total regressions: ${rpass} pass, ${rfail} fail, ${rothr} other
 EOF

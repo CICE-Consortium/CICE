@@ -52,7 +52,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
       echo "Regression baseline and test dataset are different"
     endif
   else
-    echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} baseline-does-not-exist" >> ${ICE_CASEDIR}/test_output
+    echo "MISS ${ICE_TESTNAME} compare ${ICE_BASECOM}  ${btimeloop} ${bdynamics} ${bcolumn} missing-data" >> ${ICE_CASEDIR}/test_output
     echo "Baseline file does not exist"
   endif
 endif
@@ -64,16 +64,24 @@ endif
 if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
 
   set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
-  set test_data = ${ICE_RUNDIR}/restart/${test_file}
+  if (${test_file} != "") then
+    set test_data = ${ICE_RUNDIR}/restart/${test_file}
+  else
+    set test_data = "NoThInG__Here"
+  endif
   set comp_file = `ls -t1 ${ICE_RUNDIR}/../${ICE_BFBCOMP}/restart | head -1`
-  set comp_data = ${ICE_RUNDIR}/../${ICE_BFBCOMP}/restart/${comp_file}
+  if (${comp_file} != "") then
+    set comp_data = ${ICE_RUNDIR}/../${ICE_BFBCOMP}/restart/${comp_file}
+  else
+    set comp_data = "NoThInG__Here"
+  endif
 
   echo ""
   echo "BFB Compare Mode:"
   echo "Performing binary comparison between files"
   echo "comp_data: ${comp_data}"
   echo "test_data: ${test_data}"
-  if (-e ${comp_data} ) then
+  if (-e ${comp_data} && -e ${test_data}) then
     if ( { cmp -s ${test_data} ${comp_data} } ) then
       echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
     else
@@ -81,8 +89,8 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
       echo "bfbcomp and test dataset are different"
     endif
   else
-    echo "FAIL ${ICE_TESTNAME} bfbcomp baseline-does-not-exist" >> ${ICE_CASEDIR}/test_output
-    echo "Baseline file does not exist"
+    echo "MISS ${ICE_TESTNAME} bfbcomp missing-data" >> ${ICE_CASEDIR}/test_output
+    echo "Missing data"
   endif
 endif
 

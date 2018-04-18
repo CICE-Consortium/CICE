@@ -105,8 +105,8 @@ foreach decomp (${decomps})
           echo "Regression baseline and test dataset are different"
         endif
       else
-        echo "FAIL ${ICE_TESTNAME}_$decomp compare ${ICE_BASECOM} baseline-does-not-exist" >> ${ICE_CASEDIR}/test_output
-        echo "Baseline file does not exist"
+        echo "MISS ${ICE_TESTNAME}_$decomp compare ${ICE_BASECOM}  ${btimeloop} ${bdynamics} ${bcolumn} missing-data" >> ${ICE_CASEDIR}/test_output
+        echo "Missing data"
       endif
     endif
   endif
