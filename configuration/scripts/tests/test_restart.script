@@ -9,19 +9,26 @@ cp ice_in ice_in.1
 
 mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
 cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
-echo "RUN  ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
-echo "PEND ${ICE_TESTNAME} exact-restart" >> ${ICE_CASEDIR}/test_output
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test" >! ${ICE_CASEDIR}/test_output
+rm -f ${ICE_CASEDIR}/test_output.prev
+echo "RUN  ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
+echo "PEND ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
 
 ./cice.run
 set res="$?"
 
-mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
-cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
 if ( $res != 0 ) then
-  echo "FAIL ${ICE_TESTNAME} run-initial" >> ${ICE_CASEDIR}/test_output
+  mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+  cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
+  mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+  cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test " >! ${ICE_CASEDIR}/test_output
+  rm -f ${ICE_CASEDIR}/test_output.prev
+  echo "FAIL ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
+  echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
   exit 99
 else
-  echo "PASS ${ICE_TESTNAME} run-initial" >> ${ICE_CASEDIR}/test_output
+  echo "PASS ${ICE_TESTNAME} initialrun" >> ${ICE_CASEDIR}/test_output
 endif
 
 # Prepend 'baseline_' to the final restart file to save for comparison
@@ -40,27 +47,37 @@ ${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/t
 cp ice_in ice_in.2
 
 ./cice.run
-
-if ( $? != 0 ) then
-  echo "FAIL ${ICE_TESTNAME} run-restart" >> ${ICE_CASEDIR}/test_output
-  exit 99
-else
-  echo "PASS ${ICE_TESTNAME} run-restart" >> ${ICE_CASEDIR}/test_output
-endif
-
-#-----------------------------------------------------------
+set res="$?"
 
 mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
-cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} exact-restart" >! ${ICE_CASEDIR}/test_output
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test" >! ${ICE_CASEDIR}/test_output
+rm -f ${ICE_CASEDIR}/test_output.prev
 
-echo "Exact Restart Comparison Mode:"
-echo "Performing binary comparison between files:"
-echo "base: $base_data"
-echo "test: $test_data"
-if ( { cmp -s $test_data $base_data } ) then
-  echo "PASS ${ICE_TESTNAME} exact-restart" >> ${ICE_CASEDIR}/test_output
+if ( $res != 0 ) then
+  echo "FAIL ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
+  echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  exit 99
 else
-  echo "FAIL ${ICE_TESTNAME} exact-restart" >> ${ICE_CASEDIR}/test_output
+  set log_file = `ls -t1 ${ICE_RUNDIR}/cice.runlog* | head -1`
+  set ttimeloop = `grep TimeLoop ${log_file} | grep Timer | cut -c 22-32`
+  set tdynamics = `grep Dynamics ${log_file} | grep Timer | cut -c 22-32`
+  set tcolumn   = `grep Column   ${log_file} | grep Timer | cut -c 22-32`
+  if (${ttimeloop} == "") set ttimeloop = -1
+  if (${tdynamics} == "") set tdynamics = -1
+  if (${tcolumn}   == "") set tcolumn = -1
+  echo "PASS ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
+
+  echo "Exact Restart Comparison Mode:"
+  echo "Performing binary comparison between files:"
+  echo "base: $base_data"
+  echo "test: $test_data"
+  if ( { cmp -s $test_data $base_data } ) then
+    echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  else
+    echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  endif
 endif
 
 #-----------------------------------------------------------

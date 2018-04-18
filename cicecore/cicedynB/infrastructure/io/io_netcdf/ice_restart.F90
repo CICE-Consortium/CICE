@@ -733,16 +733,16 @@
          status = nf90_inq_varid(ncid,trim(vname),varid)
          if (ndim3 == ncat) then 
             if (restart_ext) then
-               call ice_write_nc(ncid, 1, varid, work, diag, restart_ext)
+               call ice_write_nc(ncid, 1, varid, work, diag, restart_ext, varname=trim(vname))
             else
-               call ice_write_nc(ncid, 1, varid, work, diag)
+               call ice_write_nc(ncid, 1, varid, work, diag, varname=trim(vname))
             endif
          elseif (ndim3 == 1) then
             work2(:,:,:) = work(:,:,1,:)
             if (restart_ext) then
-               call ice_write_nc(ncid, 1, varid, work2, diag, restart_ext)
+               call ice_write_nc(ncid, 1, varid, work2, diag, restart_ext, varname=trim(vname))
             else
-               call ice_write_nc(ncid, 1, varid, work2, diag)
+               call ice_write_nc(ncid, 1, varid, work2, diag, varname=trim(vname))
             endif
          else
             write(nu_diag,*) 'ndim3 not supported',ndim3
