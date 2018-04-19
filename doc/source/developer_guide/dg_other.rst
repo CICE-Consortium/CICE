@@ -2,14 +2,34 @@
 
 .. _adding:
 
-Adding things
+Other things
 =============
+
+
+Reproducible Sums
+----------------------
+
+The ‘reproducible’ option (`DITTO`) makes diagnostics bit-for-bit when
+varying the number of processors. (The simulation results are
+bit-for-bit regardless, because they do not require global sums or
+max/mins as do the diagnostics.) This was done mainly by increasing the
+precision for the global reduction calculations, except for regular
+double-precision (r8) calculations involving MPI; MPI can not handle
+MPI\_REAL16 on some architectures. Instead, these cases perform sums or
+max/min calculations across the global block structure, so that the
+results are bit-for-bit as long as the block distribution is the same
+(the number of processors can be different).
+
+A more flexible option is available for double-precision MPI
+calculations, using the namelist variable `bfbflag`. When true, this flag
+produces bit-for-bit identical diagnostics with different tasks,
+threads, blocks and grid decompositions.
+
 
 .. _addtimer:
 
-~~~~~~
-Timers
-~~~~~~
+Adding Timers
+-----------------
 
 Timing any section of code, or multiple sections, consists of defining
 the timer and then wrapping the code with start and stop commands for
@@ -27,9 +47,8 @@ desired, by including the block ID in the timer calls.
 
 .. _addhist:
 
-~~~~~~~~~~~~~~
-History fields
-~~~~~~~~~~~~~~
+Adding History fields
+-------------------------
 
 To add a variable to be printed in the history output, search for
 ‘example’ in **ice\_history\_shared.F90**:
@@ -58,17 +77,8 @@ section :ref:`history`.
 
 .. _addtrcr:
 
-~~~~~~~
-Tracers
-~~~~~~~
-
-Each optional tracer has its own module, **ice\_[tracer].F90**, which
-also contains as much of the additional tracer code as possible, and for
-backward compatibility of binary restart files, each new tracer has its
-own binary restart file. We recommend that the logical namelist variable
-`tr\_[tracer]` be used for all calls involving the new tracer outside of
-**ice\_[tracer].F90**, in case other users do not want to use that
-tracer.
+Adding Tracers
+--------------------- 
 
 A number of optional tracers are available in the code, including ice
 age, first-year ice area, melt pond area and volume, brine height,
@@ -96,18 +106,16 @@ dependencies (e.g., :math:`a_{lvl}` and :math:`a_{pnd}` in
 To add a tracer, follow these steps using one of the existing tracers as
 a pattern.
 
-#. **ice\_domain\_size.F90**: increase `max\_ntrcr` (can also add option
-   to **comp\_ice** and **bld/Macros.\***)
+-  **ice\_domain\_size.F90**: increase `max\_ntrcr` via cpps in the build.
 
-#. **ice\_state.F90**: declare `nt\_[tracer]` and `tr\_[tracer]`
+-  **ice\_state.F90**: declare `nt\_[tracer]` and `tr\_[tracer]`
 
-#. **ice\_[tracer].F90**: create initialization, physics, restart
-   routines
+-  create initialization, physics, and restart routines.  The restart and history
+   routine will be in CICE.  The physics will be in Icepack.
 
-#. **ice\_fileunits.F90**: add new dump and restart file units
+-  **ice\_fileunits.F90**: add new dump and restart file units
 
-#. **ice\_init.F90**: (some of this may be done in **ice\_[tracer].F90**
-   instead)
+-  to control the new tracer
 
    -  add new module and `tr\_[tracer]` to list of used modules and
       variables
@@ -126,26 +134,28 @@ a pattern.
       ice volume, 2 for snow volume, 2+nt\_[tracer] for dependence on
       other tracers)
 
-#. **ice\_itd.F90**, **ice\_mechred.F90**: Account for new dependencies
+-  **ice\_itd.F90**, **ice\_mechred.F90**: Account for new dependencies
    if needed.
 
-#. **CICE\_InitMod.F90**: initialize tracer (includes reading restart
+-  **CICE\_InitMod.F90**: initialize tracer (includes reading restart
    file)
 
-#. **CICE\_RunMod.F90**, **ice\_step\_mod.F90**:
+-  **CICE\_RunMod.F90**, **ice\_step\_mod.F90**:
 
    -  call routine to write tracer restart data
 
-   -  call physics routines in **ice\_[tracer].F90** (often called from
+   -  call physics routines as needed (often called from
       **ice\_step\_mod.F90**)
 
-#. **ice\_restart.F90**: define restart variables (for binary,  and PIO)
+-  **ice\_restart.F90**: define restart variables (for binary,  and PIO)
 
-#. **ice\_history\_[tracer].F90**: add history variables
+-  **ice\_history\_[tracer].F90**: add history variables
    (Section :ref:`addhist`)
 
-#. **ice\_in**: add namelist variables to *tracer\_nml* and
+-  **ice\_in**: add namelist variables to *tracer\_nml* and
    *icefields\_nml*
 
-#. If strict conservation is necessary, add diagnostics as noted for
+-  If strict conservation is necessary, add diagnostics as noted for
    topo ponds in Section :ref:`ponds`.
+
+See also Icepack documentation.

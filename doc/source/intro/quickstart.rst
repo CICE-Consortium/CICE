@@ -12,6 +12,8 @@ Download the model from the CICE-Consortium repository,
 Instructions for working in github with CICE (and Icepack) can be
 found in the `CICE Git and Workflow Guide <https://docs.google.com/document/d/1rR6WAvZQT9iAMUp-m_HZ06AUCCI19mguFialsMCYs9o>`_.
 
+You will probably have to download some inputdata, see the `CICE wiki <https://github.com/cice-consortium/CICE/wiki>`_ or :ref:`force`.
+
 From your main CICE directory, execute::
 
   ./cice.setup -c ~/mycase1 -g gx3 -m testmachine -s diag1,thread -p 8x1
