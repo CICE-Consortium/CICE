@@ -84,13 +84,13 @@ cice.build in the list are edited, cice.build should be rerun.
 The casescripts directory holds scripts used to create the case and can largely be ignored.  
 
 In general, when cice.build is executed, the model will build from scratch due to the large
-dependence on cpps.  To change this behavior, edit the env variable ICE_CLEANBUILD in
+dependence on cpps.  To change this behavior, edit the env variable ``ICE_CLEANBUILD`` in
 cice.settings.  
 
 The cice.submit script just submits the cice.run script.  You can use cice.submit or just
 submit the cice.run script on the command line.
 
-The model will run in the directory defined by the env variable CICE_RUNDIR in cice.settings.  
+The model will run in the directory defined by the env variable ``ICE_RUNDIR`` in cice.settings.  
 Build and run logs will be copied into the case logs directory when complete.
 
 To port, an env.machine and Macros.machine file have to be added to scripts/machines and the cice.run.setup.csh file needs to be modified.
@@ -99,7 +99,7 @@ To port, an env.machine and Macros.machine file have to be added to scripts/mach
  - Edit the env and Macros file
  - cd to consortium/scripts
  - Edit the cice.run.setup.csh script to add a section for your machine for the batch settings and for the job launch settings
- - Download and untar the 1997 dataset to the location defined by ICE_MACHINE_INPUTDATA in the env file
+ - Download and untar the 1997 dataset to the location defined by ``ICE_MACHINE_INPUTDATA`` in the env file
  - Create a file in your home directory called .cice_proj and add your preferred account name to the first line.
  - You can now create a case and test.  If there are problems, you can manually edit the env, Macros, and cice.run files in the case directory until things are working properly.  Then you can copy the env and Macros files back to consortium/scripts/machines.  You will have to manually modify the cice.run.setup.csh script if there any changes needed there.
 

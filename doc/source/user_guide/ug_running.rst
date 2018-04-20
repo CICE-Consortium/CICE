@@ -89,7 +89,7 @@ To build and run::
 
 The build and run log files will be copied into the logs directory in the case directory.
 Other model output will be in the run directory.  The run directory is set in **cice.settings**
-via the **ICE_RUNDIR** variable.  To modify the case setup, changes should be made in the
+via the ``ICE_RUNDIR`` variable.  To modify the case setup, changes should be made in the
 case directory, NOT the run directory.
 
 .. _case_options:

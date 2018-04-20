@@ -22,7 +22,7 @@ if scripts in the case directory are run again later.
 
 If changes are needed in the **cice.run.setup.csh** script, it must be manually modified.
 
-Ensure that the block size `ICE_BLCKX`, `ICE_BLCKY`, and `ICE_MXBLCKS` in **cice.settings** is
+Ensure that the block size ``ICE_BLCKX``, ``ICE_BLCKY``, and ``ICE_MXBLCKS`` in **cice.settings** is
 compatible with the processor\_shape and other domain options in **ice\_in**
 
 If using the rake or space-filling curve algorithms for block
@@ -44,7 +44,7 @@ For coupled runs, check that `-Dcoupled` and other
 coupled-model-specific (e.g., CESM, popcice or hadgem) preprocessing
 options are set in the **Macros.\*** file.
 
-Set `ICE_CLEANBUILD` to true to clean before rebuilding.
+Set ``ICE_CLEANBUILD`` to true to clean before rebuilding.
 
 
 .. _restarttrouble:
