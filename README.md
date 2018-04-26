@@ -9,12 +9,12 @@ CICE consists of a top level driver and dynamical core plus the Icepack column p
 ## Useful links
 * [CICE wiki](https://github.com/CICE-Consortium/CICE/wiki): https://github.com/CICE-Consortium/CICE/wiki
 
-Information about the CICE model
+   Information about the CICE model
 
 * [CICE Version Index](https://github.com/CICE-Consortium/CICE/wiki/CICE-Version-Index): https://github.com/CICE-Consortium/CICE/wiki/CICE-Version-Index
 
-Numbered CICE releases since version 6 with associated documentation and DOIs. 
+   Numbered CICE releases since version 6 with associated documentation and DOIs. 
 
 * [Resources](https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index): https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index
 
-List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
+   List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
