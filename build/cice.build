@@ -24,7 +24,6 @@ module add PrgEnv-${compiler}
 
 #module load cray-libsci
 module add cray-netcdf
-
 echo "-----------------------"
 echo "COMPILER: ${compiler}"
 echo "MACHINE:  `uname -mn`"
@@ -108,8 +107,8 @@ echo " "
 setenv ICE_BLDLOG_FILE
 setenv ICE_BLDLOG_FILE cice.${compiler}.buildlog
 
-echo "building makdep"
-cc -o makdep ${ICE_CASEDIR}/makdep.c     || exit 2
+echo "building makdep using GNU compiler"
+gcc -o makdep ${ICE_CASEDIR}/makdep.c     || exit 2
 
 echo "gmake clean"
 gmake VPFILE=Filepath EXEC=${ICE_RUNDIR}/Icepack CPPDEFS="${ICE_CPPDEFS}" \
