@@ -64,8 +64,8 @@
 
     character (char_len) :: &
        distribution_type,   &! method to use for distributing blocks
-                             ! 'cartesian'
-                             ! 'rake' 
+                             ! 'cartesian', 'roundrobin', 'sectrobin', 'sectcart'
+                             ! 'rake', 'spacecurve', etc
        distribution_wght     ! method for weighting work per block 
                              ! 'block' = POP default configuration
                              ! 'latitude' = no. ocean points * |lat|

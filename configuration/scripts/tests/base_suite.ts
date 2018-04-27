@@ -15,3 +15,12 @@ smoke          gx1    16x2        diag1,run5day          smoke_gx1_32x1_diag1_ru
 smoke          gx1     8x4        debug,run2day
 restart        gx1    32x1        none
 restart        gx1    13x2        none
+restart        gx3     4x4        none
+restart        gx3     6x2        alt01
+restart        gx3     8x2        alt02
+restart        gx3     4x2        alt03
+restart        gx3     4x4        alt04
+smoke          gbox128  4x2       run5day
+smoke          gbox128  4x2       boxdyn,run5day
+smoke          gbox128  2x2       boxadv,run5day
+smoke          gbox128  4x4       boxrestore,run5day

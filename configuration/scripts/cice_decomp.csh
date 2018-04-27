@@ -31,6 +31,19 @@ if (${grid} == 'col') then
     set blckx = 1; set blcky = 1
   endif
 
+else if (${grid} == 'gbox128') then
+  set nxglob = 128
+  set nyglob = 128
+  if (${cicepes} <= 1) then
+    set blckx = 128; set blcky = 128
+  else if (${cicepes} <= 8) then
+    set blckx = 32; set blcky = 32
+  else if (${cicepes} <= 32) then
+    set blckx = 16; set blcky = 16
+  else
+    set blckx = 8; set blcky = 8
+  endif
+
 else if (${grid} == 'gx3') then
   set nxglob = 100
   set nyglob = 116

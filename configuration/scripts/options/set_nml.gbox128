@@ -1,0 +1,3 @@
+ice_ic = 'default'
+grid_type = 'rectangular'
+atm_data_type = 'box'
