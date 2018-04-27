@@ -71,7 +71,7 @@ set queue = "debug"
 if (${ICE_RUNLENGTH} > 1) set queue = "frontier"
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
-#PBS -q debug
+#PBS -q ${queue}
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
 #PBS -l walltime=${batchtime}
@@ -85,7 +85,7 @@ set queue = "debug"
 if (${ICE_RUNLENGTH} > 2) set queue = "frontier"
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
-#PBS -q debug
+#PBS -q ${queue}
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
 #PBS -l walltime=${batchtime}
@@ -95,9 +95,10 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ cori*) then
+set queue = "debug"
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -p debug
+#SBATCH -p ${queue}
 ###SBATCH -A ${acct}
 #SBATCH -n ${ncores}
 #SBATCH -t ${batchtime}

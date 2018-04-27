@@ -1,44 +1,41 @@
 #!/bin/csh -f
 
 set ICE_SANDBOX = `pwd`
+set ICE_VERSION = unknown
+if (-e cicecore/version.txt) then
+  set ICE_VERSION = `head -1 cicecore/version.txt | sed -e 's/ /_/g'`
+endif
 set ICE_SCRIPTS = "${ICE_SANDBOX}/configuration/scripts"
 set initargv = ( $argv[*] ) 
 
 set helpheader = 0
 set dash = "-"
 set spval = "UnDeFiNeD"
-set machcomp = $spval
-set machine = $spval
+set machcomp = ${spval}
+set machine = ${spval}
 set compilers = intel
-set case = $spval
-set test = $spval
+set case = ${spval}
+set test = ${spval}
 set grid = gx3
 set pesx = 4x1
 set sets = ""
-set bdir = $spval
-set testid = $spval
-set testsuite = $spval
-set acct = $spval
-set baseCom = $spval  # Baseline compare
-set baseGen = $spval  # Baseline generate
-set bfbcomp = $spval  # BFB compare
+set bdir = ${spval}
+set testid = ${spval}
+set testsuite = ${spval}
+set acct = ${spval}
+set baseCom = ${spval}  # Baseline compare
+set baseGen = ${spval}  # Baseline generate
+set bfbcomp = ${spval}  # BFB compare
 set report  = 0       # test results reporting
-set versno = `grep "release =" doc/source/conf.py | cut -d \' -f 2`
+set sdate = `date -u "+%y%m%d"`
+set stime = `date -u "+%H%M%S"`
+set docase = 0
+set dotest = 0
+set dosuite = 0
 
 if ($#argv < 1) then
   set helpheader = 1
 endif
-
-set argv = ( $initargv[*] )
-# check for --version
-while (1)
-  if ($#argv < 1) break;
-  if ("$argv[1]" =~ "--version" ) then
-    echo "This is CICE ${versno}"
-    exit -1
-  endif
-  shift argv
-end
 
 set argv = ( $initargv[*] )
 # check for -h
@@ -63,6 +60,12 @@ NAME
   cice.setup
 
 SYNOPSIS
+    -h || --help
+
+    --version
+
+    --setvers versno
+
     --case CASE -m MACH 
         [-e ENV][-p MxN][-g GRID][-s SET1,SET2][--acct ACCT]
 
@@ -70,25 +73,26 @@ SYNOPSIS
         [-e ENV][-p MxN][-g GRID][-s SET1,SET2][--acct ACCT]
         [--diff TESTNAME][--bdir DIR][--bgen DIR][--bcmp DIR]
 
-    --suite SUITE -m MACH --testid ID 
+    --suite SUITE[,SUITE2] -m MACH --testid ID 
         [-e ENV1,ENV2][--acct ACCT][--bdir DIR][--bgen DIR]
         [--bcmp DIR][--report]
 
 DESCRIPTION
     --help, -h : help
     --version  : generates cice version number
+    --setvers  : updates cice version number in sandbox
     --case, -c : case, case directory/name (not with --test or --suite)
     --mach, -m : machine, machine name (required)
-    --env,  -e : compiler(s), comma separated (default = "intel")
-    --pes,  -p : tasks x threads or "m"x"n" (default is 1x1)
+    --env,  -e : compiler(s), comma separated (default = $compilers)
+    --pes,  -p : tasks x threads [x blocksize_x x blocksize_y [x maxblocks]] (default is ${pesx})
     --acct     : account number for the batch submission
-    --grid, -g : grid, grid (default = col)
+    --grid, -g : grid, grid (default = ${grid})
     --set,  -s : case option setting(s), comma separated (default = " ")
 
     For testing
 
     --test     : test, test name (not with --case or --suite)
-    --suite    : test suite, pre-defined set of tests (not with --case or --test)
+    --suite    : test suite, pre-defined set or sets of tests, comma separated (not with --case or --test)
     --bdir     : top baseline directory, default ICE_MACHINE_BASELINE
     --bgen     : baselines directory where output from current tests are copied
     --bcmp     : baselines directory where output from current tests are compared
@@ -97,11 +101,13 @@ DESCRIPTION
     --report   : automatically post results when tests are complete
 
 EXAMPLES
+    cice.setup --version
+    cice.setup --setvers 6.0.2
     cice.setup -c caseB -m gordon -e cray -s diag1,debug
     cice.setup --case ~/caseA --mach cheyenne --env intel --set diag24
-    cice.setup --test restart -m onyx -e gnu -s debug -testid myid
+    cice.setup --test restart -m onyx -e gnu -s debug -testid myid -p 8x4
     cice.setup --suite base_suite -m conrad --env intel,cray --testid myv1 --bgen myv1
-    cice.setup --suite quick_suite -m cheyenne --testid myv1 --bgen myv1
+    cice.setup --suite quick_suite,decomp_suite -m cheyenne --testid myv1 --bgen myv1
     cice.setup --suite quick_suite -m cheyenne --testid myv2 --bgen myv2 --bcmp myv1
 
 SEE ALSO
@@ -134,7 +140,7 @@ cat << EOF1
 
       Available tests are in configuration/scripts/tests and include:
 EOF1
-      set soptions1 = `ls -1 configuration/scripts/tests | grep test_ | sed 's/test_//g' | sed 's/.script//g' `
+      set soptions1 = `ls -1 configuration/scripts/tests | grep test_ | grep script | sed 's/test_//g' | sed 's/.script//g' `
       set soptions = `echo $soptions1 | fmt -1 | sort `
       foreach sopt ($soptions)
         echo "             $sopt"
@@ -161,7 +167,40 @@ echo " "
 echo "${0}:"
 
 set argv = ( $initargv[*] )
+# check for --version
+while (1)
+  if ($#argv < 1) break;
+  if ("$argv[1]" =~ "--version" ) then
+    echo "${0}: This is ${ICE_VERSION}"
+    exit -1
+  endif
+  shift argv
+end
 
+set argv = ( $initargv[*] )
+# check for --setvers
+while (1)
+  if ($#argv < 1) break;
+  if ("$argv[1]" =~ "--setvers" ) then
+    shift argv
+    if ( $#argv < 1 ) then
+      echo "${0}: ERROR in --setvers argument"
+      exit -1
+    endif
+    set versno = $argv[1]
+    ${ICE_SCRIPTS}/set_version_number.csh $versno
+    if ($status != 0) then
+       echo "${0} ERROR in set_version_numbers.csh"
+       exit -1
+    endif
+    echo "Setting CICE version to ${versno} and exiting"
+    exit -1
+  endif
+  shift argv
+end
+
+set argv = ( $initargv[*] )
+# read in all options
 while (1)
   if ( $#argv < 1 ) break;
   set option = $argv[1];
@@ -185,12 +224,14 @@ while (1)
 
     if ("$option" == "--case" || "$option" == "-c") then
       set case = $argv[1]
+      set docase = 1
     else if ("$option" =~ --mach* || "$option" == "-m") then
       set machine = $argv[1]
     else if ("$option" =~ --env* || "$option" == "-e") then
       set compilers = $argv[1]
     else if ("$option" == "--test") then
       set test = $argv[1]
+      set dotest = 1
     else if ("$option" == "--grid" || "$option" == "-g") then
       set grid = $argv[1]
     else if ("$option" == "--pes" || "$option" == "-p") then
@@ -209,6 +250,7 @@ while (1)
       set bfbcomp = $argv[1]
     else if ("$option" == "--suite") then
       set testsuite = $argv[1]
+      set dosuite = 1
     else if ("$option" == "--testid") then
       set testid = $argv[1]
     else
@@ -221,34 +263,25 @@ while (1)
   endif
 end
 
-if ($machine == $spval) then
-  echo "${0}: ERROR in arguments, -m required"
+if (${machine} == ${spval}) then
+  echo "${0}: ERROR in arguments, --mach required"
   exit -1
 endif
 
-if ($case == $spval && $test == $spval && $testsuite == $spval) then
-  echo "${0}: ERROR in arguments, -c, -t, or -ts required"
+@ dosum = ${docase} + ${dotest} + ${dosuite}
+if (${dosum} == 0) then
+  echo "${0}: ERROR in arguments, --case, --test, or --suite required"
   exit -1
 endif
 
-if ($case != $spval && $test != $spval) then
-  echo "${0}: ERROR in arguments, cannot use both -c and -t"
+if (${dosum} > 1) then
+  echo "${0}: ERROR in arguments, cannot use more than one of --case, --test, and --suite"
   exit -1
 endif
 
-if ($case != $spval && $testsuite != $spval) then
-  echo "${0}: ERROR in arguments, cannot use both -c and -ts"
-  exit -1
-endif
-
-if ($testsuite != $spval && $test != $spval) then
-  echo "${0}: ERROR in arguments, cannot use both -ts and -t"
-  exit -1
-endif
-
-if ($testsuite == $spval) then
+if (${dosuite} == 0) then
   if ("$compilers" =~ "*,*") then
-    echo "${0}: ERROR in arguments, cannot set multiple compilers without -ts"
+    echo "${0}: ERROR in arguments, cannot set multiple compilers without --suite"
     exit -1
   else
     set compiler = ${compilers}
@@ -257,35 +290,63 @@ if ($testsuite == $spval) then
 endif
 
 # tcraig, lets find another way to validate argument
-#if ($test != $spval && $test != 'smoke' && $test != '10day' && $test != 'annual' \
-# && $test != 'restart') then
-#  echo "${0}: ERROR in arguments.  $test is not a valid test"
+#if (${test} != ${spval} && ${test} != 'smoke' && ${test} != '10day' && ${test} != 'annual' \
+# && ${test} != 'restart') then
+#  echo "${0}: ERROR in arguments.  ${test} is not a valid test"
 #  exit -1
 #endif
 
-if (($testsuite != $spval || $test != $spval) && $testid == $spval) then
-  echo "${0}: ERROR in arguments.  -testid must be passed if using -ts or -t"
+if ((${dosuite} == 1 || ${dotest} == 1) && ${testid} == ${spval}) then
+  echo "${0}: ERROR in arguments.  --testid must be passed if using --suite or --test"
   exit -1
 endif
 
-#Update version.txt
-echo "CICE ${versno}"  >! cicecore/version.txt
+#---------------------------------------------------------------------
+# Setup tsfile and test suite support stuff
 
-# Check to see if this is a test-suite run.  If so, loop through the various
-#   tests and create a separate folder for each
-if ( $testsuite != $spval ) then
-  set tsdir = "${testsuite}.${testid}"
-  if (-e ${testsuite}) then
-    set tsfile = "${testsuite}"
-  else if (-e ${testsuite}.ts) then
-    set tsfile = "${testsuite}.ts"
-  else 
-    if (-e ${ICE_SCRIPTS}/tests/${testsuite}.ts) then
-      set tsfile = "${ICE_SCRIPTS}/tests/${testsuite}.ts"
+set tsdir  = "."
+set tsfile = "caselist.${sdate}-${stime}"
+if ( ${dosuite} == 1 ) then
+  set tsdir  = "testsuite.${testid}"
+  set tsfile = "testsuite.${testid}.${sdate}-${stime}.list"
+endif
+if (-e $tsfile) then
+  echo "${0}: ERROR in tsfile, this should never happen"
+  exit -1
+endif
+
+if ( ${dosuite} == 0 ) then
+  set teststring = "${test} ${grid} ${pesx} ${sets}"
+  if ( $bfbcomp != ${spval} ) then
+    if ( ${sets} == "" ) then
+      set teststring = "${teststring} none ${bfbcomp}"
     else
-      echo "${0}: ERROR, cannot find testsuite file ${testsuite}, also checked ${ICE_SCRIPTS}/tests/${testsuite}.ts"
-      exit -1
+      set teststring = "${teststring} ${bfbcomp}"
     endif
+  endif
+  echo ${teststring} >! ${tsfile}
+  set sets = ""
+
+else
+  set tarrays = `echo ${testsuite} | sed 's/,/ /g' | fmt -1 | sort -u`
+  foreach tarray ( ${tarrays} )
+    if (-e ${tarray}) then
+      cat ${tarray} >> $tsfile
+    else if (-e ${tarray}.ts) then
+      cat ${tarray.ts} >> $tsfile
+    else 
+      if (-e ${ICE_SCRIPTS}/tests/${tarray}.ts) then
+        cat ${ICE_SCRIPTS}/tests/${tarray}.ts >> $tsfile
+      else
+        echo "${0}: ERROR, cannot find testsuite file ${tarray}, also checked ${ICE_SCRIPTS}/tests/${tarray}.ts"
+        exit -1
+      endif
+    endif
+  end
+
+  if (-e ./${tsdir}) then
+    echo "${0}: ERROR, ${tsdir} already exists"
+    exit -1
   endif
 
   mkdir ./${tsdir}
@@ -307,11 +368,8 @@ EOF0
   set hashdate = `git log | grep -i date   | head -1 | cut -d : -f 2-`
   set cdate = `date -u "+%Y-%m-%d"`
   set ctime = `date -u "+%H:%M:%S"`
-  set vers = "unknown"
+  set vers = ${ICE_VERSION}
   set shhash = `echo ${hash} | cut -c 1-10`
-  if (-e cicecore/version.txt) then
-    set vers = `head -1 cicecore/version.txt`
-  endif
 
 cat >! ./${tsdir}/results.csh << EOF0
 #!/bin/csh -f
@@ -334,9 +392,31 @@ EOF0
   chmod +x ./${tsdir}/suite.run
   chmod +x ./${tsdir}/results.csh
 
-  set ncompilers = "`echo $compilers | sed -e 's/,/ /g'`"
+endif
 
-  foreach compiler ( $ncompilers )
+#-------------------------------------------------------------------
+# Loop over cases/tests
+
+set ncompilers = "`echo $compilers | sed -e 's/,/ /g'`"
+
+# check that machines and compilers are valid before starting big loop
+set doabort = false
+foreach compiler ( $ncompilers )
+  set machcomp = ${machine}_${compiler}
+  foreach file (env.${machcomp} Macros.${machcomp})
+    if !(-e ${ICE_SCRIPTS}/machines/$file) then
+      echo "${0}: ERROR, ${ICE_SCRIPTS}/machines/$file not found"
+      set doabort = true
+    endif
+  end
+end
+if (${doabort} == true) then
+  exit -1
+endif
+
+set sets_base = "${sets}"
+set bfbcomp_base = "$bfbcomp"
+foreach compiler ( $ncompilers )
   set machcomp = ${machine}_${compiler}
   foreach line ( "`cat $tsfile`" )
     # Check if line is a comment line
@@ -351,148 +431,177 @@ EOF0
     set sets_tmp = `echo $line | cut -d' ' -f4`
     set bfbcomp_tmp = `echo $line | cut -d' ' -f5`
     # Create a new sets_base variable to store sets passed to cice.setup
-    if (! $?sets_base ) then
-      set sets_base = "$sets"
-    endif
+
     # Append sets from .ts file to the $sets variable
-    if ( $sets_tmp == "none" ) then
-      set sets = "$sets_base"
-    else
-      if ( $sets_base == "" ) then
-        set sets = "$sets_tmp"
-      else
-        set sets = "$sets_base,$sets_tmp"
-        # Remove duplictes in the sets variable
-        set sets = "`echo $sets | sed -e 's/\b\([a-z]\+\)[ ,\n]\1/\1/g'`"
-      endif
-    endif
+    set sets = "$sets_base,$sets_tmp"
+
     # Create a new bfbcomp_base variable to store bfbcomp passed to cice.setup
-    if (! $?bfbcomp_base ) then
-      set bfbcomp_base = "$bfbcomp"
-    endif
     # Use bfbcomp_base or bfbcomp_tmp
     if ( $bfbcomp_tmp == "" ) then
       set bfbcomp = "$bfbcomp_base"
     else
       set bfbcomp = "$bfbcomp_tmp"
     endif
-endif
 
-if ($case =~ $spval) then
-  if ($sets != "") then
-    set sarray = `echo $sets | sed 's/,/ /g' | fmt -1 | sort -n`
-    set soptions = "JustStartingNowOK"
-    foreach field ($sarray)
-      if (${soptions} =~ "JustStartingNowOK") then
-        set soptions = ${field}
-      else
-        set soptions = ${soptions}"_"${field}
+    set fbfbcomp = ${spval}
+    if ($bfbcomp != ${spval}) then
+      set fbfbcomp = ${machcomp}_${bfbcomp}.${testid}
+    endif
+
+    set testname_noid = ${spval}
+    # create case for test cases
+    if (${docase} == 0) then
+      set soptions = ""
+      # Create sorted array and remove duplicates and "none"
+      set setsarray = `echo ${sets} | sed 's/,/ /g' | fmt -1 | sort -u`
+      if ("${setsarray}" != "") then
+        foreach field (${setsarray})
+          if (${field} != "none") then
+            set soptions = ${soptions}"_"${field}
+          endif
+        end
       endif
+      # soptions starts with _
+      set testname_noid = "${machcomp}_${test}_${grid}_${pesx}${soptions}"
+      set testname_base = "${machcomp}_${test}_${grid}_${pesx}${soptions}.${testid}"
+      if (${dosuite} == 1) then
+        set testname = "${tsdir}/$testname_base"
+      else
+        set testname = "$testname_base"
+      endif
+      set case = ${testname}
+    endif
+
+    if (-d ${case}) then
+      echo "${0}: ERROR, case ${case} already exists"
+#      exit -1
+      continue
+    endif
+
+    if (${case} =~ */*) then
+      set casename = $case:t
+    else
+      set casename = $case
+    endif
+
+    #------------------------------------------------------------
+    # Setup case directory, copy files to case directory
+
+    mkdir -p ${case}
+    echo "`date`${0} $initargv[*]" >> ${case}/README.case
+
+    cd ${case}
+    set casedir = `pwd`
+    set casescr = "${casedir}/casescripts"
+    if !( -d ${casescr}) mkdir ${casescr}
+
+    # from basic script dir to case
+    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh)
+      if !(-e ${ICE_SCRIPTS}/$file) then
+        echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
+        exit -1
+      endif
+      cp -f -p ${ICE_SCRIPTS}/$file ${casedir}
     end
-    # Only include $testid in testname if this is not a baseline-generating run
-    set testname_noid = "${machcomp}_${test}_${grid}_${pesx}_${soptions}"
-    set testname_base = "${machcomp}_${test}_${grid}_${pesx}_${soptions}.${testid}"
-  else
-    set testname_noid = "${machcomp}_${test}_${grid}_${pesx}"
-    set testname_base = "${machcomp}_${test}_${grid}_${pesx}.${testid}"
-  endif
-  if ($testsuite != $spval) then
-    set testname = "${tsdir}/$testname_base"
-  else
-    set testname = "$testname_base"
-  endif
-  set case = ${testname}
-endif
 
-if (-d $case) then
-  echo "${0}: ERROR, case $case already exists"
-  exit -1
-endif
-mkdir -p $case
-echo "`date`${0} $initargv[*]" >> $case/README.case
+    # from machines dir to case
+    foreach file (env.${machcomp} Macros.${machcomp})
+      if !(-e ${ICE_SCRIPTS}/machines/$file) then
+        echo "${0}: ERROR, ${ICE_SCRIPTS}/machines/$file not found"
+        exit -1
+      endif
+      cp -f -p ${ICE_SCRIPTS}/machines/$file ${casedir}
+    end
 
-#------------------------------------------------------------
-# Setup case directory, copy files to case directory
+    # from basic script dir to casescr
+    foreach file (parse_namelist.sh parse_settings.sh parse_namelist_from_settings.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
+      if !(-e ${ICE_SCRIPTS}/$file) then
+        echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
+        exit -1
+      endif
+      cp -f -p ${ICE_SCRIPTS}/$file ${casescr}
+    end
 
-cd ${case}
-set casedir = `pwd`
-set casescr = "${casedir}/casescripts"
-if !( -d ${casescr}) mkdir ${casescr}
+    cd ${casedir}
+    source ./env.${machcomp} || exit 2
 
-# from basic script dir to case
-foreach file (cice.build cice.settings Makefile ice_in makdep.c)
-  if !(-e ${ICE_SCRIPTS}/$file) then
-    echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
-    exit -1
-  endif
-  cp -f -p ${ICE_SCRIPTS}/$file ${casedir}
-end
+    set quietmode = false
+    if ($?ICE_MACHINE_QUIETMODE) then
+      set quietmode = ${ICE_MACHINE_QUIETMODE}
+    endif
 
-# from machines dir to case
-foreach file (env.${machcomp} Macros.${machcomp})
-  if !(-e ${ICE_SCRIPTS}/machines/$file) then
-    echo "${0}: ERROR, ${ICE_SCRIPTS}/machines/$file not found"
-    exit -1
-  endif
-  cp -f -p ${ICE_SCRIPTS}/machines/$file ${casedir}
-end
+    if (${acct} == ${spval}) then
+      if (-e ~/.cice_proj) then
+        set acct = `head -1 ~/.cice_proj`
+      else
+        set acct = ${ICE_MACHINE_ACCT}
+      endif
+    endif
 
-# from basic script dir to casescr
-foreach file (parse_namelist.sh parse_settings.sh parse_namelist_from_settings.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
-  if !(-e ${ICE_SCRIPTS}/$file) then
-    echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
-    exit -1
-  endif
-  cp -f -p ${ICE_SCRIPTS}/$file ${casescr}
-end
+    #------------------------------------------------------------
+    # Compute a default blocksize
 
-if ($case =~ */*) then
-  set casename = $case:t
-else
-  set casename = $case
-endif
+    set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+    if (${chck} == OK) then
+      set task  = `echo ${pesx} | cut -d x -f 1`
+      set thrd  = `echo ${pesx} | cut -d x -f 2`
+      set blckx = `echo ${pesx} | cut -d x -f 3`
+      set blcky = `echo ${pesx} | cut -d x -f 4`
+      set mblck = `echo ${pesx} | cut -d x -f 5`
+    else
+      set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+      if (${chck} == OK) then
+        set task  = `echo ${pesx} | cut -d x -f 1`
+        set thrd  = `echo ${pesx} | cut -d x -f 2`
+        set blckx = `echo ${pesx} | cut -d x -f 3`
+        set blcky = `echo ${pesx} | cut -d x -f 4`
+        set mblck = 0
+      else
+        set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+        if (${chck} == OK) then
+          set task = `echo ${pesx} | cut -d x -f 1`
+          set thrd = `echo ${pesx} | cut -d x -f 2`
+          set blckx = 0
+          set blcky = 0
+          set mblck = 0
+        else
+          echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
+          exit -1
+        endif
+      endif
+    endif
 
-cd ${casedir}
-source ./env.${machcomp} || exit 2
+    setenv ICE_DECOMP_GRID  ${grid}
+    setenv ICE_DECOMP_NTASK ${task}
+    setenv ICE_DECOMP_NTHRD ${thrd}
+    setenv ICE_DECOMP_BLCKX ${blckx}
+    setenv ICE_DECOMP_BLCKY ${blcky}
+    setenv ICE_DECOMP_MXBLCKS ${mblck}
 
-echo ICE_SANDBOX  = ${ICE_SANDBOX}
-echo ICE_CASENAME = ${casename}
-echo ICE_CASEDIR  = ${casedir}
-echo ICE_MACHINE  = ${machine}
-echo ICE_COMPILER = ${compiler}
+    source ${casescr}/cice_decomp.csh
+    if ($status != 0) then
+      echo "${0}: ERROR, cice_decomp.csh aborted"
+      exit -1
+    endif
 
-#------------------------------------------------------------
-# Compute a default blocksize
+    echo "ICE_SANDBOX  = ${ICE_SANDBOX}"
+    echo "ICE_CASENAME = ${casename}"
+    echo "ICE_CASEDIR  = ${casedir}"
+    echo "ICE_MACHINE  = ${machine}"
+    echo "ICE_COMPILER = ${compiler}"
+    echo "ICE_PES      = ${task}x${thrd}"
+    echo "ICE_GRID     = ${grid} (${ICE_DECOMP_NXGLOB}x${ICE_DECOMP_NYGLOB}) blocksize=${ICE_DECOMP_BLCKX}x${ICE_DECOMP_BLCKY}x${ICE_DECOMP_MXBLCKS}"
 
-set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-if (${chck} == OK) then
-  set task = `echo ${pesx} | sed s/x.\*//`
-  set thrd = `echo ${pesx} | sed s/.\*x//`
-else
-  echo "${0}: ERROR in -p argument, ${pesx}, must be mxn"
-  exit -1
-endif
+    #------------------------------------------------------------
+    # Copy in and update cice.settings and ice_in files
 
-setenv ICE_DECOMP_GRID  ${grid}
-setenv ICE_DECOMP_NTASK ${task}
-setenv ICE_DECOMP_NTHRD ${thrd}
+    set fimods = ${casescr}/ice_in.mods
+    set fsmods = ${casescr}/cice.settings.mods
 
-source ${casescr}/cice_decomp.csh
-if ($status != 0) then
-  echo "${0}: ERROR, cice_decomp.csh aborted"
-  exit -1
-endif
-
-#------------------------------------------------------------
-# Copy in and update cice.settings and ice_in files
-
-set fimods = ${casescr}/ice_in.mods
-set fsmods = ${casescr}/cice.settings.mods
-
-cp ice_in ${casescr}/ice_in.base
-cp cice.settings ${casescr}/cice.settings.base
-if (-e ${fimods}) rm ${fimods}
-if (-e ${fsmods}) rm ${fsmods}
+    cp ice_in ${casescr}/ice_in.base
+    cp cice.settings ${casescr}/cice.settings.base
+    if (-e ${fimods}) rm ${fimods}
+    if (-e ${fsmods}) rm ${fsmods}
 
 cat >! ${fimods} << EOF1
 # cice.setup settings
@@ -500,22 +609,23 @@ cat >! ${fimods} << EOF1
 nprocs = ${task}
 distribution_type = '${ICE_DECOMP_DECOMP}'
 processor_shape   = '${ICE_DECOMP_DSHAPE}'
+version_name      = '${ICE_VERSION}'
 EOF1
 
-# If this is a baseline-compare test, modify ICE_RUNDIR
-if ($bdir != $spval) then
-  setenv basedir_tmp ${bdir}
-else
-  setenv basedir_tmp ${ICE_MACHINE_BASELINE}
-endif
-if ("$baseGen" =~ "default") then
-  set d1 = `echo ${cdate} | cut -c 3- | sed 's/-//g'`
-  set t1 = `echo ${ctime} | sed 's/://g'`
-  set baseGen = cice.${shhash}.${d1}-${t1}
-endif
-if ("$baseCom" =~ "default") then
-  set baseCom = `ls -t $basedir_tmp | head -1`
-endif
+    # If this is a baseline-compare test, modify ICE_RUNDIR
+    if ($bdir != ${spval}) then
+      setenv basedir_tmp ${bdir}
+    else
+      setenv basedir_tmp ${ICE_MACHINE_BASELINE}
+    endif
+    if ("$baseGen" =~ "default") then
+      set d1 = `echo ${cdate} | cut -c 3- | sed 's/-//g'`
+      set t1 = `echo ${ctime} | sed 's/://g'`
+      set baseGen = cice.${shhash}.${d1}-${t1}
+    endif
+    if ("$baseCom" =~ "default") then
+      set baseCom = `ls -t $basedir_tmp | head -1`
+    endif
 
 
 cat >! ${fsmods} << EOF1
@@ -534,8 +644,6 @@ setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}
 setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}
 setenv ICE_NTASKS   ${task}
 setenv ICE_NTHRDS   ${thrd}
-setenv ICE_DECOMP   ${ICE_DECOMP_DECOMP}
-setenv ICE_DSHAPE   ${ICE_DECOMP_DSHAPE}
 setenv ICE_MXBLCKS  ${ICE_DECOMP_MXBLCKS}
 setenv ICE_BLCKX    ${ICE_DECOMP_BLCKX}
 setenv ICE_BLCKY    ${ICE_DECOMP_BLCKY}
@@ -543,126 +651,119 @@ setenv ICE_BASELINE ${basedir_tmp}
 setenv ICE_BASEGEN  ${baseGen}
 setenv ICE_BASECOM  ${baseCom}
 setenv ICE_SPVAL    ${spval}
+setenv ICE_QUIETMODE  ${quietmode}
+setenv ICE_TEST     ${test}
+setenv ICE_TESTNAME ${testname_noid}
+setenv ICE_BFBCOMP  ${fbfbcomp}
+setenv ICE_ACCOUNT  ${acct}
 EOF1
 
-if ($?ICE_MACHINE_QUIETMODE) then
-  echo "setenv ICE_QUIETMODE  ${ICE_MACHINE_QUIETMODE}" >> ${fsmods}
-endif
+    if (${sets} != "") then
+      set setsx = `echo ${sets} | sed 's/,/ /g'`
+    else
+      set setsx = ""
+    endif
 
-if ($bfbcomp != $spval) then
-  echo "setenv ICE_BFBCOMP  ${machcomp}_${bfbcomp}.${testid}" >> ${fsmods}
-else
-  echo "setenv ICE_BFBCOMP  ${spval}" >> ${fsmods}
-endif
+    if (${docase} == 0) then
+      # from test options to casescr in case any test time changes are applied
+      if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
+        cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
+        foreach file (`cat ${casescr}/test_${test}.files`)
+          if (-e ${ICE_SCRIPTS}/options/$file) then
+            cp -f -p ${ICE_SCRIPTS}/options/$file ${casescr}
+          else
+            echo "${0}: ERROR, could not find $file from test_${test}.files"
+            exit -1
+          endif
+        end
+      endif
+    endif
 
-if ($test != $spval) then
-  echo "setenv ICE_TEST     ${test}" >> ${fsmods}
-  echo "setenv ICE_TESTNAME ${testname_noid}" >> ${fsmods}
-else
-  echo "setenv ICE_TEST     ${spval}" >> ${fsmods}
-  echo "setenv ICE_TESTNAME ${spval}" >> ${fsmods}
-endif
+    foreach name (${grid} $setsx)
+      set found = 0
+      if (-e ${ICE_SCRIPTS}/options/set_nml.${name}) then
 
-if ($acct != $spval) then
-  echo "setenv ICE_ACCOUNT ${acct}" >> ${fsmods}
-else
-  if (-e ~/.cice_proj) then
-    set account_name = `head -1 ~/.cice_proj`
-    echo "setenv ICE_ACCOUNT ${account_name}" >> ${fsmods}
-  else
-    echo "setenv ICE_ACCOUNT ${ICE_MACHINE_ACCT}" >> ${fsmods}
-  endif
-endif
-
-if ($sets != "") then
-  set setsx = `echo $sets | sed 's/,/ /g'`
-else
-  set setsx = ""
-endif
-if ($test != $spval) then
-  set testx = ${test}
-  # from test options to casescr in case any test time changes are applied
-  cp -f -p ${ICE_SCRIPTS}/options/test_nml.${test}* ${casescr} >& /dev/null
-else
-  set testx = ""
-endif
-
-foreach name ($testx $grid $setsx)
-  set found = 0
-  if (-e ${ICE_SCRIPTS}/options/set_nml.${name}) then
 cat >> ${fimods} << EOF2
 
 # set_nml.${name}
 
 EOF2
-    cat ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
+        cat ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
+
 cat >> ${fimods} << EOF2
 
 EOF2
-    echo "adding namelist mods set_nml.${name}"
-    echo "`date`${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
-    set found = 1
-  endif
-  if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
+        echo "adding namelist mods set_nml.${name}"
+        echo "`date`${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
+        set found = 1
+      endif
+      if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
+
 cat >> ${fsmods} << EOF2
 
 # set_env.${name}
 
 EOF2
-    cat ${ICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
+
+        cat ${ICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
+
 cat >> ${fimods} << EOF2
 
 EOF2
-    echo "adding env mods set_env.${name}"
-    echo "`date`${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
-    set found = 1
-  endif
-  if (${found} == 0) then
-    echo "${0}: ERROR, ${ICE_SCRIPTS}/options/set_[nml,env].${name} not found"
-    exit -1
-  endif
-end
 
-${casescr}/parse_settings.sh cice.settings ${fsmods}
-${casescr}/parse_namelist.sh ice_in ${fimods}
-source ./cice.settings
-source ./env.${machcomp} || exit 2
-${casescr}/parse_namelist_from_settings.sh ice_in cice.settings
+        echo "adding env mods set_env.${name}"
+        echo "`date`${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
+        set found = 1
+      endif
+      if (${found} == 0) then
+        echo "${0}: ERROR, ${ICE_SCRIPTS}/options/set_[nml,env].${name} not found"
+        exit -1
+      endif
+    end
 
-#------------------------------------------------------------
-# Generate run script
+    ${casescr}/parse_settings.sh cice.settings ${fsmods}
+    ${casescr}/parse_namelist.sh ice_in ${fimods}
+    source ./cice.settings
+    source ./env.${machcomp} || exit 2
+    ${casescr}/parse_namelist_from_settings.sh ice_in cice.settings
 
-source ./cice.settings
-source ./env.${machcomp} || exit 2
+    #------------------------------------------------------------
+    # Generate run script
 
-${casescr}/cice.run.setup.csh
-if ($status != 0) then
-  echo "${0}: ERROR, cice.run.setup.csh aborted"
-  exit -1
-endif
+    source ./cice.settings
+    source ./env.${machcomp} || exit 2
 
-#------------------------------------------------------------
+    ${casescr}/cice.run.setup.csh
+    if ($status != 0) then
+      echo "${0}: ERROR, cice.run.setup.csh aborted"
+      exit -1
+    endif
 
-if ($test != $spval) then
-  # Print information to stdout
-  echo "Creating scripts for $test test"
+    #------------------------------------------------------------
+    # Generate test script
 
-  # Generate test script
-  ${casescr}/cice.test.setup.csh 
-  if ($status != 0) then
-    echo "${0}: ERROR, cice.test.setup.csh aborted"
-    exit -1
-  endif
+    if (${docase} == 0) then
+      # Print information to stdout
+      echo "Creating scripts for ${test} test"
 
-  # Initial test_output file
-  echo "#---" >! test_output
-  echo "PEND ${testname_noid} " >> test_output
+      # Generate test script
+      ${casescr}/cice.test.setup.csh 
+      if ($status != 0) then
+        echo "${0}: ERROR, cice.test.setup.csh aborted"
+        exit -1
+      endif
 
-endif
+      # Initial test_output file
+      echo "#---" >! test_output
+      echo "PEND ${testname_noid} " >> test_output
+    endif
 
-if ( $testsuite != $spval ) then
-  cd ${ICE_SANDBOX}
-  # Write build and run commands to suite.run
+    #------------------------------------------------------------
+    # Generate testsuite stuff
+
+    if ( ${dosuite} == 1 ) then
+      cd ${ICE_SANDBOX}
+      # Write build and run commands to suite.run
 
 cat >> ./${tsdir}/results.csh << EOF
 cat $testname_base/test_output >> results.log
@@ -675,17 +776,23 @@ cd $testname_base
 cd ..
 EOF
     
-  # Reset case for the next test in suite
-  set case = $spval
+      # Reset case for the next test in suite
+      set case = ${spval}
 
-  echo "" 
-  echo "---" 
-  echo "" 
+      echo "" 
+      echo "---" 
+      echo "" 
+    endif
 
-  # This is the foreach end for the testsuite
+   # This is the foreach end for the testsuite
   end
-  # This is the foreach end for the compilers
-  end
+# This is the foreach end for the compilers
+end
+
+#-----------------------------------------------------
+# more testsuite stuff
+
+if ( ${dosuite} == 1 ) then
 
   # Add code to results.csh to count the number of failures
 cat >> ./${tsdir}/results.csh << EOF
@@ -723,6 +830,8 @@ EOF
   cd ${ICE_SANDBOX}
 
 endif
+
+#---------------------------------------------
 
 echo " "
 echo "${0} done"

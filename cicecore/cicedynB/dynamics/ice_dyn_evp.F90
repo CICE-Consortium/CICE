@@ -44,7 +44,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_ice_strength
+      use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
 #ifdef CICE_IN_NEMO
       use icepack_intfc, only: calc_strair
 #endif
@@ -608,6 +608,7 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        puny                                      , & ! puny
         c0ne, c0nw, c0se, c0sw                    , & ! useful combinations
         c1ne, c1nw, c1se, c1sw                    , &
         ssigpn, ssigps, ssigpe, ssigpw            , &
@@ -742,6 +743,11 @@
       ! it in that case.  The compiler flag is often described with the 
       ! phrase "flush to zero".
       !-----------------------------------------------------------------
+
+!      call icepack_query_parameters(puny_out=puny)
+!      call icepack_warnings_flush(nu_diag)
+!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+!         file=__FILE__, line=__LINE__)
 
 !      stressp_1(i,j) = sign(max(abs(stressp_1(i,j)),puny),stressp_1(i,j))
 !      stressp_2(i,j) = sign(max(abs(stressp_2(i,j)),puny),stressp_2(i,j))

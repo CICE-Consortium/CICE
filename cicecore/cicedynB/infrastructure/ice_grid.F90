@@ -302,6 +302,8 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
+      tarea(:,:,:) = c0
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1489,6 +1491,8 @@
       !-----------------------------------------------------------------
 
       bm = c0
+      uvm = c0
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
