@@ -611,6 +611,8 @@
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
+      field_data(:,:,:,:) = c0
+
       nbits = 64              ! double precision data
 
       if (istep1 > check_step) dbug = .true.  !! debugging
@@ -1221,7 +1223,6 @@
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
 
       real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in) :: &
-         Tair    , & ! air temperature  (K)
          ANGLET  , & ! ANGLE converted to T-cells
          Tsfc    , & ! ice skin temperature
          sst     , & ! sea surface temperature
@@ -1234,6 +1235,7 @@
          cldf    , & ! cloud fraction
          frain   , & ! rainfall rate (kg/m^2 s)
          fsnow   , & ! snowfall rate (kg/m^2 s)
+         Tair    , & ! air temperature  (K)
          Qa      , & ! specific humidity (kg/kg)
          rhoa    , & ! air density (kg/m^3)
          uatm    , & ! wind velocity components (m/s)
@@ -1255,11 +1257,11 @@
          i, j
 
       real (kind=dbl_kind) :: workx, worky, &
-         precip_factor, zlvl0, secday, Tffresh
+         precip_factor, zlvl0, secday, Tffresh, puny
 
       logical (kind=log_kind) :: calc_strair
 
-      call icepack_query_parameters(Tffresh_out=Tffresh)
+      call icepack_query_parameters(Tffresh_out=Tffresh, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
       call icepack_query_parameters(calc_strair_out=calc_strair)
       call icepack_warnings_flush(nu_diag)
@@ -1280,6 +1282,9 @@
          rhoa (i,j) = max(rhoa(i,j),c0)
          Qa   (i,j) = max(Qa(i,j),c0)
 
+         if (rhoa(i,j) .lt. puny) rhoa(i,j) = 1.3_dbl_kind            
+         if (Tair(i,j) .lt. puny) Tair(i,j) = Tffresh
+         if (Qa(i,j) .lt. puny) Qa(i,j) = 0.0035_dbl_kind
       enddo                     ! i
       enddo                     ! j
 
@@ -3712,7 +3717,7 @@
      ! and change  units
      !----------------------------------------------------------------- 
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
@@ -3798,6 +3803,8 @@
          fid                  ! file id for netCDF routines
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
+
+      field_data = c0 ! to satisfy intent(out) attribute
 
       if (istep1 > check_step) dbug = .true.  !! debugging
 

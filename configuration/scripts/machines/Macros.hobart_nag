@@ -20,13 +20,14 @@ endif
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC         := mpif90
+  MPIFC      := mpif90
+  MPICC      := mpicc
 else
   FC         := nagfor
+  MPIFC      := nagfor
+  MPICC      := cc
 endif
 
-MPICC:= mpicc
-
-MPIFC:= mpif90
 LD:= $(MPIFC)
 
 NETCDF_PATH := /usr/local/netcdf_c-4.3.2_f-4.4.1-nag-6.0
