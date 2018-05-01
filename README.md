@@ -9,14 +9,14 @@ CICE consists of a top level driver and dynamical core plus the Icepack column p
 If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories. Basic instructions for working with CICE and Icepack are found in the Git Workflow Guidance, linked from the Resource Index (below).
 
 ## Useful links
-* [CICE wiki](https://github.com/CICE-Consortium/CICE/wiki): https://github.com/CICE-Consortium/CICE/wiki
+* **CICE wiki**: https://github.com/CICE-Consortium/CICE/wiki
 
    Information about the CICE model
 
-* [CICE Version Index](https://github.com/CICE-Consortium/CICE/wiki/CICE-Version-Index): https://github.com/CICE-Consortium/CICE/wiki/CICE-Version-Index
+* **CICE Version Index**: https://github.com/CICE-Consortium/CICE/wiki/CICE-Version-Index
 
    Numbered CICE releases since version 6 with associated documentation and DOIs. 
 
-* [Resource Index](https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index): https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index
+* **Resource Index**: https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index
 
    List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
