@@ -5,7 +5,7 @@ smoke          gx3     4x1        debug,diag1,run5day
 smoke          gx3     8x2        debug,diag1,run5day
 smoke          gx3     4x2        diag1,run5day          smoke_gx3_8x2_diag1_run5day
 smoke          gx3     4x1        diag1,run5day,thread   smoke_gx3_8x2_diag1_run5day
-decomp         gx3     4x2x25x29x4
+decomp         gx3     4x2x25x29x5
 restart        gx3     8x1        diag1
 restart        gx3     4x2        debug
 restart        gx3     8x2        diag1,pondcesm
