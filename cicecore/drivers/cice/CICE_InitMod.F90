@@ -123,9 +123,9 @@
       call init_thermo_vertical ! initialize vertical thermodynamics
 
       call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
-!     if (my_task == master_task) then
+      if (my_task == master_task) then
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
-!     endif
+      endif
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=trim(subname), &
          file=__FILE__, line=__LINE__)
@@ -292,7 +292,7 @@
             call read_restart_lvl
          else
             do iblk = 1, nblocks 
-               call init_lvl(trcrn(:,:,nt_alvl,:,iblk), &
+               call init_lvl(iblk,trcrn(:,:,nt_alvl,:,iblk), &
                              trcrn(:,:,nt_vlvl,:,iblk))
             enddo ! iblk
          endif
