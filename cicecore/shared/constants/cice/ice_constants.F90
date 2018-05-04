@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_constants.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! This module defines a variety of physical and numerical constants

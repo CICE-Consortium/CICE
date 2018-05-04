@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_dyn_evp.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Elastic-viscous-plastic sea ice dynamics model
@@ -37,10 +36,10 @@
       use ice_kinds_mod
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
-      use ice_constants, only: c0, c4, p027, p055, p111, p166, &
-          p2, p222, p25, p333, p5, c1
+      use ice_constants, only: c0, p027, p055, p111, p166, &
+          p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, evp_prep1, evp_prep2, evp_finish, &
-          ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
+          ndte, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -83,11 +82,14 @@
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, &
-          strocnxT, strocnyT, strax, stray, &
+          strocnxT, strocnyT, &
           Cbu, taubx, tauby, hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
+#ifdef CICE_IN_NEMO
+      use ice_flux, only: strax, stray
+#endif
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
           grid_type

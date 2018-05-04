@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_arrays_column.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Grid-dependent arrays needed for column package

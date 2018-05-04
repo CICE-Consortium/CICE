@@ -1,12 +1,8 @@
-!  SVN:$Id: ice_restart_shared.F90 607 2013-03-29 15:49:42Z eclare $
 !=======================================================================
 
       module ice_restart_shared
 
       use ice_kinds_mod
-      use ice_fileunits, only: nu_diag
-      use ice_exit, only: abort_ice
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private

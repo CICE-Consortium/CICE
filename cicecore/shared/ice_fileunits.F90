@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_fileunits.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 !  This module contains an I/O unit manager for tracking, assigning
@@ -268,11 +267,10 @@
 #ifdef CESMCOUPLED
    call shr_sys_flush(iunit)
 #else
-#if (defined IRIX64 || defined CRAY || defined OSF1 || defined SUNOS || defined LINUX || defined NEC_SX | defined UNICOSMP)
-   call flush(iunit)
-#endif
 #if (defined AIX)
    call flush_(iunit)
+#else
+   flush(iunit)
 #endif
 #endif
 
