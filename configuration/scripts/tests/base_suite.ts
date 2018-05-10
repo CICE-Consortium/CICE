@@ -8,8 +8,6 @@ smoke          gx3     4x1        diag1,run5day,thread   smoke_gx3_8x2_diag1_run
 decomp         gx3     4x2x25x29x5
 restart        gx3     8x1        diag1
 restart        gx3     4x2        debug
-restart        gx3     8x2        diag1,pondcesm
-restart        gx3     8x2        diag1,pondtopo
 smoke          gx1    32x1        diag1,run5day,thread
 smoke          gx1    16x2        diag1,run5day          smoke_gx1_32x1_diag1_run5day_thread
 smoke          gx1     8x4        debug,run2day
@@ -20,6 +18,7 @@ restart        gx3     6x2        alt01
 restart        gx3     8x2        alt02
 restart        gx3     4x2        alt03
 restart        gx3     4x4        alt04
+restart        gx3     4x4        alt05
 smoke          gbox128  4x2       run5day
 smoke          gbox128  4x2       boxdyn,run5day
 smoke          gbox128  2x2       boxadv,run5day

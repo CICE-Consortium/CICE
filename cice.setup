@@ -333,7 +333,7 @@ else
     if (-e ${tarray}) then
       cat ${tarray} >> $tsfile
     else if (-e ${tarray}.ts) then
-      cat ${tarray.ts} >> $tsfile
+      cat ${tarray}.ts >> $tsfile
     else 
       if (-e ${ICE_SCRIPTS}/tests/${tarray}.ts) then
         cat ${ICE_SCRIPTS}/tests/${tarray}.ts >> $tsfile

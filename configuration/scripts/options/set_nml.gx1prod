@@ -1,0 +1,7 @@
+year_init = 1958
+dt = 3600
+npt = 87600
+dumpfreq = 'm'
+fyear_init = 1958
+ycycle = 52
+ocn_data_dir = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1'
