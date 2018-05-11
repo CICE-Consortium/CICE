@@ -1,0 +1,22 @@
+kcatbound = -1
+ice_ic = 'default'
+restart = .false.
+distribution_type = 'sectrobin'
+tr_iage      = .true.
+tr_FY        = .true.
+tr_lvl       = .true.
+tr_pond_cesm = .false.
+tr_pond_topo = .false.
+tr_pond_lvl  = .false.
+tr_aero      = .false.
+kitd = 0
+kdyn  =  1
+revised_evp = .true.
+kstrength = 0
+krdg_partic = 0
+krdg_redist = 0
+shortwave       = 'ccsm3'
+albedo_type     = 'ccsm3'
+calc_tsfc = .true.
+
+

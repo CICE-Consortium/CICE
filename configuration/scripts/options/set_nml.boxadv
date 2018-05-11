@@ -1,0 +1,20 @@
+ice_ic = 'default'
+restart = .false.
+restart_ext = .false.
+kcatbound = 2
+ew_boundary_type = 'cyclic'
+ns_boundary_type = 'cyclic'
+tr_iage      = .true.
+tr_FY        = .false.
+tr_lvl       = .true.
+tr_pond_cesm = .false.
+tr_pond_topo = .false.
+tr_pond_lvl  = .false.
+tr_aero      = .false.
+kitd = 1
+ktherm = 0
+kdyn  =  2
+kstrength = 0
+krdg_partic = 0
+krdg_redist = 0
+
