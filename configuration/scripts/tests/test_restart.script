@@ -49,6 +49,8 @@ cp ice_in ice_in.2
 ./cice.run
 set res="$?"
 
+cp ice_in.0 ice_in
+
 mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
 cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
 mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev

@@ -21,3 +21,4 @@ krdg_partic = 0
 krdg_redist = 0
 frzpnd = 'ccsm'
 natmiter = 20
+tfrz_option = 'linear_salt'

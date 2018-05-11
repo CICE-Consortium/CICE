@@ -273,7 +273,7 @@
          dvidtt, & ! ice volume tendency thermo. (m/s)
          dagedtt,& ! ice age tendency thermo.    (s/s)
          mlt_onset, &! day of year that sfc melting begins
-         frz_onset, &! day of year that freezing begins (congel or frazil)
+         frz_onset = c0, &! day of year that freezing begins (congel or frazil)
          frazil_diag ! frazil ice growth diagnostic (m/step-->cm/day)
          
       real (kind=dbl_kind), & 

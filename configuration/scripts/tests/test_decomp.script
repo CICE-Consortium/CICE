@@ -113,6 +113,7 @@ foreach decomp (${decomps})
 
 end
 
+cp ice_in.0 ice_in
 #-----------------------------------------------------------
 
 # turn off general test features, these are done above for this test
