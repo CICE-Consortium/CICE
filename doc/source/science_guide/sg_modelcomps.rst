@@ -3,7 +3,7 @@
 .. _modelcomps:
 
 Model components
-================
+================ jfl
 
 The Arctic and Antarctic sea ice packs are mixtures of open water, thin
 first-year ice, thicker multiyear ice, and thick pressure ridges. The
