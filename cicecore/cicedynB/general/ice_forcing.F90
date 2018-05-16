@@ -162,6 +162,21 @@
 ! Determine the current and final year of the forcing cycle based on
 ! namelist input; initialize the atmospheric forcing data filenames.
 
+      fsw_data(:,:,:,:) = c0
+      cldf_data(:,:,:,:) = c0
+      fsnow_data(:,:,:,:) = c0
+      Tair_data(:,:,:,:) = c0
+      uatm_data(:,:,:,:) = c0
+      vatm_data(:,:,:,:) = c0
+      wind_data(:,:,:,:) = c0
+      strax_data(:,:,:,:) = c0
+      stray_data(:,:,:,:) = c0
+      Qa_data(:,:,:,:) = c0
+      rhoa_data(:,:,:,:) = c0
+      flw_data(:,:,:,:) = c0
+      sublim_data(:,:,:,:) = c0
+      frain_data(:,:,:,:) = c0
+
       fyear       = fyear_init + mod(nyr-1,ycycle) ! current year
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
 
@@ -238,6 +253,11 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
+
+      sst_data(:,:,:,:) = c0
+      sss_data(:,:,:,:) = c0
+      uocn_data(:,:,:,:) = c0
+      vocn_data(:,:,:,:) = c0
 
       nbits = 64              ! double precision data
 
@@ -590,7 +610,7 @@
          maxrec                  ! maximum record value
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-         intent(out) :: &
+         intent(inout) :: &
          field_data              ! 2 values needed for interpolation
 
       integer (kind=int_kind), intent(in) :: &
@@ -610,8 +630,6 @@
          arg                  ! value of time argument in field_data
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
-
-      field_data(:,:,:,:) = c0
 
       nbits = 64              ! double precision data
 
