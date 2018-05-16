@@ -1585,17 +1585,21 @@ terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
 divergence, :math:`D_D`, and the horizontal tension and shearing
 strain rates, :math:`D_T` and :math:`D_S` respectively.
 
+CICE now outputs the internal ice pressure which is an important field to support navigation in ice-infested water.
+The internal ice pressure :math:`(sigP)` is the average of the normal stresses multiplied by :math:`-1` and 
+is therefore simply equal to :math:`-\sigma_1/2`.
+
 *Elastic-Viscous-Plastic*
 
 In the EVP model the internal stress tensor is determined from a
 regularized version of the VP constitutive law. Following the approach of :cite:`KH2010` (see also :cite:`Lemieux2016`), the 
 elliptical yield curve can be modified such that the ice has isotropic tensile strength. 
-The tensile strength :math:`T` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T=k_t P` 
+The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P` 
 where :math:`k_t` should be set to a value between 0 and 1. The constitutive law is therefore 
 
 .. math::
    {1\over E}{\partial\sigma_1\over\partial t} + {\sigma_1\over 2\zeta} 
-     + {p(1-k_t)\over 2\zeta} = D_D, \\
+     + {P_R(1-k_t)\over 2\zeta} = D_D, \\
    :label: sig1 
 
 .. math::
@@ -1630,12 +1634,11 @@ where
 .. math::
    \Delta = \left[D_D^2 + {1\over e^2}\left(D_T^2 + D_S^2\right)\right]^{1/2},
 
-and :math:`p` is a “replacement pressure” (see :cite:`GHA98`, for
+and :math:`P_R` is a “replacement pressure” (see :cite:`GHA98`, for
 example), which serves to prevent residual ice motion due to spatial
 variations of :math:`P` when the rates of strain are exactly zero. The ice strength :math:`P` 
 is a function of the ice thickness and concentration
-as it is described in Section :ref:`mech-red`. JFL CHECK HERE...only small p is modified by the 
-replacement pressure...not the P in the viscous coeff.
+as it is described in Section :ref:`mech-red`.
 
 Viscosities are updated during the subcycling, so that the entire
 dynamics component is subcycled within the time step, and the elastic
@@ -1652,16 +1655,14 @@ become
 .. math::
    \begin{aligned}
    {\partial\sigma_1\over\partial t} + {\sigma_1\over 2T} 
-     + {p(1-k_t)\over 2T} &=& {P(1+k_t)\over 2T\Delta} D_D, \\
+     + {P_R(1-k_t)\over 2T} &=& {P(1+k_t)\over 2T\Delta} D_D, \\
    {\partial\sigma_2\over\partial t} + {e^2\sigma_2\over 2T} &=& {P(1+k_t)\over
      2T\Delta} D_T,\\
    {\partial\sigma_{12}\over\partial t} + {e^2\sigma_{12}\over  2T} &=&
      {P(1+k_t)\over 4T\Delta}D_S.\end{aligned}
 
 All coefficients on the left-hand side are constant except for
-:math:`P`, JFL NOT TRUE FOR REP PRESSURE? IN FACT I WOULD REMOVE THE FIRST 
-2 sentences of this paragraph...which changes only on the longer time step :math:`\Delta t`.
-This modification compensates for the decreased efficiency of including
+:math:`P_R`. This modification compensates for the decreased efficiency of including
 the viscosity terms in the subcycling. (Note that the viscosities do not
 appear explicitly.) Choices of the parameters used to define :math:`E`,
 :math:`T` and :math:`\Delta t_e` are discussed in
