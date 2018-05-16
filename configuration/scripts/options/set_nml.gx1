@@ -5,11 +5,16 @@ grid_format = 'bin'
 grid_type   = 'displaced_pole'
 grid_file   = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx1/grid_gx1.bin'
 kmt_file    = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx1/kmt_gx1.bin'
+maskhalo_dyn   = .true.
+maskhalo_remap = .true.
+maskhalo_bound = .true.
 fyear_init      = 2005
 ycycle          = 1
 atm_data_format = 'bin'
 atm_data_type   = 'LYq'
 atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1/COREII'
-
-
+precip_unit = 'mm_per_sec'
+ocn_data_format = 'nc'
+ocn_data_type = 'ncar'
+ocn_data_dir = 'oceanmixed_ice_depth.nc'
 

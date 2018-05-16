@@ -86,9 +86,9 @@
 
    if (ew_boundary_type == 'open' .and. &
        ns_boundary_type == 'open' .and. .not.(restart_ext)) then
-      if (my_task == master_task) write (nu_diag,*) &
-            'WARNING: Setting restart_ext = T for open boundaries'
-      restart_ext = .true.
+      if (my_task == master_task) write (nu_diag,*) 'ERROR: restart_ext=F and open boundaries'
+      call abort_ice(error_message="subname"//'open boundary and restart_ext=F', &
+         file=__FILE__, line=__LINE__)
    endif
 
    allocate (aicen_rest(nx_block,ny_block,ncat,max_blocks), &

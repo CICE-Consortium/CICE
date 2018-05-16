@@ -89,6 +89,29 @@ One other files will need to be
 changed to support a port, that is **configuration/scripts/cice.batch.csh**.
 To port to a new machine, see :ref:`porting`.  
 
+.. _dev_options:
+
+Test Options
+---------------
+
+Values that are associated with the `--sets` cice.setup are defined in 
+**configuration/scripts/options**.  Those files are text files and cice.setup
+uses the values in those files to modify the `cice.settings` and `ice_in` files
+in the case as the case is created.  Files name `set_env.$option` are associated
+with values in the `cice.settings` file.  Files named `set_nml.$option` are associated
+with values in `ice.in`.  These files contain simple keyword pair values one line
+at a time.  A line starting with # is a comment.  Files names that start with `test_`
+are used specifically for tests.
+
+That directory also contains files named `set_files.$option`.  This provides an
+extra layer on top of the individual setting files that allows settings to be
+defined based on groups of other settings.  The `set_files.$option` files
+contain a list of `--sets` options to be applied.  
+
+The $option part of the filename is the argument to `--sets` argument in `cice.setup`.
+Multiple options can be specified by creating a comma delimited list.  In the case
+where settings contradict each other, the last defined is used.
+
 .. _dev_testing:
 
 Test scripts
@@ -96,7 +119,7 @@ Test scripts
 
 Under **configuration/scripts/tests** are several files including the scripts to 
 setup the various tests, such as smoke and restart tests (**test_smoke.script**, **test_restart.script**)
-and the files the describe with options files are needed for each test (ie. **test_smoke.files**, **test_restart.files**).
+and the files that describe with options files are needed for each test (ie. **test_smoke.files**, **test_restart.files**).
 A baseline test script (**baseline.script**) is also there to setup the general regression
 and comparison testing.  That directory also contains the preset test suites 
 (ie. **base_suite.ts**) and a file that supports post-processing on the model
@@ -120,5 +143,4 @@ To add a new test (for example newtest), several files may be needed,
 
 Generating a new test, particularly the **test_newtest.script** usually takes some iteration before
 it's working properly.
-
 

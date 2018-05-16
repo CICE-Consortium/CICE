@@ -13,11 +13,11 @@
       module ice_init
 
       use ice_kinds_mod
-      use ice_communicate, only: my_task, master_task
+      use ice_communicate, only: my_task, master_task, ice_barrier
       use ice_constants, only: c0, c1, c2, c3, p2, p5
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
-          ice_stdout, get_fileunit, release_fileunit, bfbflag
+          ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit
       use ice_fileunits, only: inst_suffix
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
@@ -116,6 +116,7 @@
 
       real (kind=real_kind) :: rpcesm, rplvl, rptopo 
       real (kind=dbl_kind) :: Cf, puny
+      integer :: abort_flag
 
       character(len=*), parameter :: subname='(input_data)'
 
@@ -185,9 +186,11 @@
       ! default values
       !-----------------------------------------------------------------
 
+      abort_flag = 0
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
          file=__FILE__, line=__LINE__)
 
       days_per_year = 365    ! number of days in a year
@@ -391,7 +394,8 @@
       endif
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
-         call abort_ice('ice: error reading namelist')
+         call abort_ice(subname//'ERROR: reading namelist', &
+            file=__FILE__, line=__LINE__)
       endif
       call release_fileunit(nu_nml)
 
@@ -427,236 +431,9 @@
       if (trim(diag_type) == 'file') call get_fileunit(nu_diag)
 #endif
 
-      if (my_task == master_task) then
-         if (trim(diag_type) == 'file') then
-            write(ice_stdout,*) 'Diagnostic output will be in file ',diag_file
-            open (nu_diag, file=diag_file, status='unknown')
-         endif
-         write(nu_diag,*) '--------------------------------'
-         write(nu_diag,*) '  CICE model diagnostic output  '
-         write(nu_diag,*) '--------------------------------'
-         write(nu_diag,*) ' '
-      endif
-
-      if (trim(runtype) == 'continue') restart = .true.
-      if (trim(runtype) /= 'continue' .and. (restart)) then
-         if (ice_ic == 'none' .or. ice_ic == 'default') then
-            if (my_task == master_task) then
-            write(nu_diag,*) &
-            'WARNING: runtype, restart, ice_ic are inconsistent:'
-            write(nu_diag,*) trim(runtype), restart, trim(ice_ic)
-            write(nu_diag,*) &
-            'WARNING: Need ice_ic = <filename>.'
-            write(nu_diag,*) &
-            'WARNING: Initializing using ice_ic conditions'
-            endif
-            restart = .false.
-         endif
-      endif
-      if (trim(runtype) == 'initial' .and. .not.(restart)) then
-         if (ice_ic /= 'none' .and. ice_ic /= 'default') then
-            if (my_task == master_task) then
-            write(nu_diag,*) &
-            'WARNING: runtype, restart, ice_ic are inconsistent:'
-            write(nu_diag,*) trim(runtype), restart, trim(ice_ic)
-            write(nu_diag,*) &
-            'WARNING: Initializing with NO ICE: ' 
-            write(nu_diag,*) ' '
-            endif
-            ice_ic = 'none'
-         endif
-      endif
-
-#ifndef ncdf
-      ! netcdf is unavailable
-      grid_format     = 'bin'
-      atm_data_format = 'bin'
-      ocn_data_format = 'bin' 
-#endif
-
-      chartmp = advection(1:6)
-      if (chartmp /= 'upwind' .and. chartmp /= 'remap ') advection = 'remap'
-
-      if (ncat == 1 .and. kitd == 1) then
-         if (my_task == master_task) then
-         write (nu_diag,*) 'Remapping the ITD is not allowed for ncat=1.'
-         write (nu_diag,*) 'Use kitd = 0 (delta function ITD) with kcatbound = 0'
-         write (nu_diag,*) 'or for column configurations use kcatbound = -1'
-         call abort_ice('Error: kitd incompatability: ncat=1 and kitd=1')
-         endif
-      endif
-
-      if (ncat /= 1 .and. kcatbound == -1) then
-         if (my_task == master_task) then
-            write (nu_diag,*) &
-               'WARNING: ITD required for ncat > 1'
-            write (nu_diag,*) &
-               'WARNING: Setting kitd and kcatbound to default values'
-         endif
-         kitd = 1
-         kcatbound = 0
-      endif
-
-      if (kdyn == 2 .and. revised_evp) then
-         if (my_task == master_task) then
-            write (nu_diag,*) &
-               'WARNING: revised_evp = T with EAP dynamics'
-            write (nu_diag,*) &
-               'WARNING: Setting revised_evp = F'
-         endif
-         revised_evp = .false.
-      endif
-
-      rpcesm = c0
-      rplvl  = c0
-      rptopo = c0
-      if (tr_pond_cesm) rpcesm = c1
-      if (tr_pond_lvl ) rplvl  = c1
-      if (tr_pond_topo) rptopo = c1
-
-      tr_pond = .false. ! explicit melt ponds
-      if (rpcesm + rplvl + rptopo > puny) tr_pond = .true.
-
-      if (rpcesm + rplvl + rptopo > c1 + puny) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: Must use only one melt pond scheme'
-            call abort_ice('ice: multiple melt pond schemes')
-         endif
-      endif
-
-      if (tr_pond_lvl .and. .not. tr_lvl) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: tr_pond_lvl=T but tr_lvl=F'
-            write (nu_diag,*) 'WARNING: Setting tr_lvl=T'
-         endif
-         tr_lvl = .true.
-      endif
-
-      if (tr_pond_lvl .and. abs(hs0) > puny) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: tr_pond_lvl=T and hs0/=0'
-            write (nu_diag,*) 'WARNING: Setting hs0=0'
-         endif
-         hs0 = c0
-      endif
-
-      if (tr_pond_cesm .and. trim(frzpnd) /= 'cesm') then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: tr_pond_cesm=T'
-            write (nu_diag,*) 'WARNING: frzpnd, dpscale not used'
-         endif
-         frzpnd = 'cesm'
-      endif
-
-      if (trim(shortwave) /= 'dEdd' .and. tr_pond .and. calc_tsfc) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: Must use dEdd shortwave'
-            write (nu_diag,*) 'WARNING: with tr_pond and calc_tsfc=T.'
-            write (nu_diag,*) 'WARNING: Setting shortwave = dEdd'
-         endif
-         shortwave = 'dEdd'
-      endif
-
-      if (tr_aero .and. n_aero==0) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: aerosols activated but'
-            write (nu_diag,*) 'WARNING: not allocated in tracer array.'
-            write (nu_diag,*) 'WARNING: Activate in compilation script.'
-         endif
-         call abort_ice('ice: aerosol tracer conflict: comp_ice, ice_in')
-      endif
-
-      if (tr_aero .and. trim(shortwave) /= 'dEdd') then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: aerosols activated but dEdd'
-            write (nu_diag,*) 'WARNING: shortwave is not.'
-            write (nu_diag,*) 'WARNING: Setting shortwave = dEdd'
-         endif
-         shortwave = 'dEdd'
-      endif
-
-      rfracmin = min(max(rfracmin,c0),c1)
-      rfracmax = min(max(rfracmax,c0),c1)
-
-      if (trim(atm_data_type) == 'monthly' .and. calc_strair) &
-         calc_strair = .false.
-
-      if (ktherm == 2 .and. .not. calc_Tsfc) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: ktherm = 2 and calc_Tsfc = F'
-            write (nu_diag,*) 'WARNING: Setting calc_Tsfc = T'
-         endif
-         calc_Tsfc = .true.
-      endif
-
-      if (ktherm == 1 .and. trim(tfrz_option) /= 'linear_salt') then
-         if (my_task == master_task) then
-         write (nu_diag,*) &
-         'WARNING: ktherm = 1 and tfrz_option = ',trim(tfrz_option)
-         write (nu_diag,*) &
-         'WARNING: For consistency, set tfrz_option = linear_salt'
-         endif
-      endif
-      if (ktherm == 2 .and. trim(tfrz_option) /= 'mushy') then
-         if (my_task == master_task) then
-         write (nu_diag,*) &
-         'WARNING: ktherm = 2 and tfrz_option = ',trim(tfrz_option)
-         write (nu_diag,*) &
-         'WARNING: For consistency, set tfrz_option = mushy'
-         endif
-      endif
-
-      if (trim(atm_data_type) == 'hadgem' .and. & 
-             trim(precip_units) /= 'mks') then
-         if (my_task == master_task) &
-         write (nu_diag,*) &
-         'WARNING: HadGEM atmospheric data chosen with wrong precip_units'
-         write (nu_diag,*) &
-         'WARNING: Changing precip_units to mks (i.e. kg/m2 s).'
-         precip_units='mks'
-      endif
-
-      if (formdrag) then
-      if (trim(atmbndy) == 'constant') then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: atmbndy = constant not allowed with formdrag'
-            write (nu_diag,*) 'WARNING: Setting atmbndy = default'
-         endif
-         atmbndy = 'default'
-      endif
-
-      if (.not. calc_strair) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: formdrag=T but calc_strair=F'
-            write (nu_diag,*) 'WARNING: Setting calc_strair=T'
-         endif
-         calc_strair = .true.
-      endif
-
-      if (tr_pond_cesm) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'ERROR: formdrag=T but frzpnd=''cesm''' 
-            call abort_ice('ice_init: Formdrag and no hlid')
-         endif
-      endif
-
-      if (.not. tr_lvl) then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: formdrag=T but tr_lvl=F'
-            write (nu_diag,*) 'WARNING: Setting tr_lvl=T'
-         endif
-         tr_lvl = .true.
-      endif
-      endif
-
-      if (trim(fbot_xfer_type) == 'Cdn_ocn' .and. .not. formdrag)  then
-         if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: formdrag=F but fbot_xfer_type=Cdn_ocn'
-            write (nu_diag,*) 'WARNING: Setting fbot_xfer_type = constant'
-         endif
-         fbot_xfer_type = 'constant'
-      endif
-
+      !-----------------------------------------------------------------
+      ! broadcast namelist settings
+      !-----------------------------------------------------------------
 
       call broadcast_scalar(days_per_year,      master_task)
       call broadcast_scalar(use_leap_years,     master_task)
@@ -799,9 +576,214 @@
       pointer_file = trim(pointer_file) // trim(inst_suffix)
 #endif
 
+      !-----------------------------------------------------------------
+      ! verify inputs
+      !-----------------------------------------------------------------
+
+      if (my_task == master_task) then
+         if (trim(diag_type) == 'file') then
+            write(ice_stdout,*) 'Diagnostic output will be in file ',diag_file
+            open (nu_diag, file=diag_file, status='unknown')
+         endif
+         write(nu_diag,*) '--------------------------------'
+         write(nu_diag,*) '  CICE model diagnostic output  '
+         write(nu_diag,*) '--------------------------------'
+         write(nu_diag,*) ' '
+      endif
+
+      if (trim(runtype) == 'continue' .and. .not.restart) then
+         if (my_task == master_task) &
+            write(nu_diag,*) 'WARNING: runtype=continue, setting restart=.true.'
+         restart = .true.
+      endif
+
+      if (trim(runtype) /= 'continue' .and. restart .and. &
+         (ice_ic == 'none' .or. ice_ic == 'default')) then
+         if (my_task == master_task) &
+            write(nu_diag,*) 'WARNING: runtype ne continue and ice_ic=none|default, setting restart=.false.'
+         restart = .false.
+      endif
+
+      if (trim(runtype) == 'initial' .and. .not.(restart) .and. &
+          ice_ic /= 'none' .and. ice_ic /= 'default') then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: runtype, restart, ice_ic are inconsistent:'
+            write(nu_diag,*) 'ERROR:   runtype=',trim(runtype), 'restart=',restart, 'ice_ic=',trim(ice_ic)
+            write(nu_diag,*) 'ERROR:   Please review user guide'
+         endif
+         abort_flag = 1
+      endif
+
+#ifndef ncdf
+      if (grid_format /= 'bin' .or. atm_data_format /= 'bin' .or. ocn_data_format /= 'bin') then
+         if (my_task == master_task) then
+            write(nu_diag,*)'ERROR: ncdf CPP flag unset, data formats must be bin'
+            write(nu_diag,*)'ERROR:   check grid_format, atm_data_format, ocn_data_format or set ncdf CPP'
+         endif
+         abort_flag = 2
+      endif
+#endif
+
+      if (advection /= 'remap' .and. advection /= 'upwind' .and. advection /= 'none') then
+         if (my_task == master_task) write(nu_diag,*)'ERROR: invalid advection=',trim(advection)
+         abort_flag = 3
+      endif
+
+      if (ncat == 1 .and. kitd == 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: kitd incompatability: ncat=1 and kitd=1'
+            write(nu_diag,*) 'ERROR:   Remapping the ITD is not allowed for ncat=1.'
+            write(nu_diag,*) 'ERROR:   Use kitd = 0 (delta function ITD) with kcatbound = 0'
+            write(nu_diag,*) 'ERROR:   or for column configurations use kcatbound = -1'
+         endif
+         abort_flag = 4
+      endif
+
+      if (ncat /= 1 .and. kcatbound == -1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: ITD required for ncat > 1'
+            write(nu_diag,*) 'ERROR:   ncat=',ncat,' kcatbound=',kcatbound
+            write(nu_diag,*) 'ERROR:   Please review user guide'
+         endif
+         abort_flag = 5
+      endif
+
+      if (kdyn == 2 .and. revised_evp) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'WARNING: revised_evp = T with EAP dynamics'
+            write(nu_diag,*) 'WARNING:   revised_evp is ignored'
+         endif
+         revised_evp = .false.
+      endif
+
+      rpcesm = c0
+      rplvl  = c0
+      rptopo = c0
+      if (tr_pond_cesm) rpcesm = c1
+      if (tr_pond_lvl ) rplvl  = c1
+      if (tr_pond_topo) rptopo = c1
+
+      tr_pond = .false. ! explicit melt ponds
+      if (rpcesm + rplvl + rptopo > puny) tr_pond = .true.
+
+      if (rpcesm + rplvl + rptopo > c1 + puny) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: Must use only one melt pond scheme'
+         endif
+         abort_flag = 6
+      endif
+
+      if (tr_pond_lvl .and. .not. tr_lvl) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'WARNING: tr_pond_lvl=T but tr_lvl=F'
+            write(nu_diag,*) 'WARNING: Setting tr_lvl=T'
+         endif
+         tr_lvl = .true.
+      endif
+
+! tcraig - this was originally implemented by resetting hs0=0. EH says it might be OK
+! to not reset it but extra calculations are done and it might not be bfb.  In our
+! testing, we should explicitly set hs0 to 0. when setting tr_pond_lvl=T, and otherwise
+! this will abort (safest option until additional testing is done)
+      if (tr_pond_lvl .and. abs(hs0) > puny) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: tr_pond_lvl=T and hs0 /= 0'
+         endif
+         abort_flag = 7
+      endif
+
+      if (trim(shortwave) /= 'dEdd' .and. tr_pond .and. calc_tsfc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: tr_pond=T, calc_tsfc=T, invalid shortwave'
+            write(nu_diag,*) 'ERROR:   Must use shortwave=dEdd'
+         endif
+         abort_flag = 8
+      endif
+
+      if (tr_aero .and. n_aero==0) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: aerosols activated but'
+            write(nu_diag,*) 'ERROR:   not allocated in tracer array.'
+            write(nu_diag,*) 'ERROR:   Activate in compilation script.'
+         endif
+         abort_flag = 9
+      endif
+
+      if (trim(shortwave) /= 'dEdd' .and. tr_aero) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: tr_aero=T, invalid shortwave'
+            write(nu_diag,*) 'ERROR:   Must use shortwave=dEdd'
+         endif
+         abort_flag = 10
+      endif
+
+      if ((rfracmin < -puny .or. rfracmin > c1+puny) .or. &
+          (rfracmax < -puny .or. rfracmax > c1+puny) .or. &
+          (rfracmin > rfracmax)) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: rfracmin, rfracmax must be between 0 and 1'
+            write(nu_diag,*) 'ERROR:   and rfracmax >= rfracmin'
+         endif
+         abort_flag = 11
+      endif
+      rfracmin = min(max(rfracmin,c0),c1)
+      rfracmax = min(max(rfracmax,c0),c1)
+
+      if (trim(atm_data_type) == 'monthly' .and. calc_strair) then
+         if (my_task == master_task) write(nu_diag,*)'ERROR: atm_data_type=monthly and calc_strair=T'
+         abort_flag = 12
+      endif
+
+      if (ktherm == 2 .and. .not. calc_Tsfc) then
+         if (my_task == master_task) write(nu_diag,*) 'ERROR: ktherm = 2 and calc_Tsfc=F'
+         abort_flag = 13
+      endif
+
+! tcraig, is it really OK for users to run inconsistently?
+      if (ktherm == 1 .and. trim(tfrz_option) /= 'linear_salt') then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'WARNING: ktherm = 1 and tfrz_option = ',trim(tfrz_option)
+            write(nu_diag,*) 'WARNING:   For consistency, set tfrz_option = linear_salt'
+         endif
+      endif
+      if (ktherm == 2 .and. trim(tfrz_option) /= 'mushy') then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'WARNING: ktherm = 2 and tfrz_option = ',trim(tfrz_option)
+            write(nu_diag,*) 'WARNING:   For consistency, set tfrz_option = mushy'
+         endif
+      endif
+!tcraig
+
+      if (formdrag) then
+         if (trim(atmbndy) == 'constant') then
+            if (my_task == master_task) write(nu_diag,*) 'ERROR: formdrag=T and atmbndy=constant'
+            abort_flag = 14
+         endif
+
+         if (.not. calc_strair) then
+            if (my_task == master_task) write(nu_diag,*) 'ERROR: formdrag=T and calc_strair=F'
+            abort_flag = 15
+         endif
+
+         if (tr_pond_cesm) then
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T and frzpnd=cesm'
+            abort_flag = 16
+         endif
+
+         if (.not. tr_lvl) then
+            if (my_task == master_task) write(nu_diag,*) 'ERROR: formdrag=T and tr_lvl=F'
+            abort_flag = 17
+         endif
+      endif
+
+      if (trim(fbot_xfer_type) == 'Cdn_ocn' .and. .not. formdrag)  then
+         if (my_task == master_task) write(nu_diag,*) 'ERROR: formdrag=F and fbot_xfer_type=Cdn_ocn'
+         abort_flag = 18
+      endif
+
       call icepack_init_parameters(Cf_in=Cf)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort1', &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -831,13 +813,13 @@
          write(nu_diag,1050) ' histfreq                  = ', histfreq(:)
          write(nu_diag,1040) ' histfreq_n                = ', histfreq_n(:)
          write(nu_diag,1010) ' hist_avg                  = ', hist_avg
-         if (.not. hist_avg) write (nu_diag,*) 'History data will be snapshots'
+         if (.not. hist_avg) write(nu_diag,*) 'History data will be snapshots'
          write(nu_diag,*)    ' history_dir               = ', &
                                trim(history_dir)
          write(nu_diag,*)    ' history_file              = ', &
                                trim(history_file)
          if (write_ic) then
-            write (nu_diag,*) 'Initial condition will be written in ', &
+            write(nu_diag,*) 'Initial condition will be written in ', &
                                trim(incond_dir)
          endif
          write(nu_diag,1030) ' dumpfreq                  = ', &
@@ -996,19 +978,19 @@
  
 #ifdef coupled
          if( oceanmixed_ice ) then
-            write (nu_diag,*) 'WARNING WARNING WARNING WARNING '
-            write (nu_diag,*) '*Coupled and oceanmixed flags are  *'
-            write (nu_diag,*) '*BOTH ON.  Ocean data received from*'
-            write (nu_diag,*) '*coupler will be altered by mixed  *'
-            write (nu_diag,*) '*layer routine!                    *'
-            write (nu_diag,*) ' '
+            write(nu_diag,*) 'WARNING ** WARNING ** WARNING ** WARNING '
+            write(nu_diag,*) 'WARNING: coupled CPP and oceanmixed_ice namelist are BOTH ON'
+            write(nu_diag,*) 'WARNING:   Ocean data received from coupler will'
+            write(nu_diag,*) 'WARNING:   be altered by mixed layer routine!'
+            write(nu_diag,*) 'WARNING ** WARNING ** WARNING ** WARNING '
+            write(nu_diag,*) ' '
          endif
 #endif
 
-         write (nu_diag,*) ' '
-         write (nu_diag,'(a30,2f8.2)') 'Diagnostic point 1: lat, lon =', &
+         write(nu_diag,*) ' '
+         write(nu_diag,'(a30,2f8.2)') 'Diagnostic point 1: lat, lon =', &
                             latpnt(1), lonpnt(1)
-         write (nu_diag,'(a30,2f8.2)') 'Diagnostic point 2: lat, lon =', &
+         write(nu_diag,'(a30,2f8.2)') 'Diagnostic point 2: lat, lon =', &
                             latpnt(2), lonpnt(2)
 
          ! tracers
@@ -1086,9 +1068,11 @@
          endif
               
          if (ntrcr > max_ntrcr-1) then
-            write(nu_diag,*) 'max_ntrcr-1 < number of namelist tracers'
-            write(nu_diag,*) 'max_ntrcr-1 = ',max_ntrcr-1,' ntrcr = ',ntrcr
-            call abort_ice('max_ntrcr-1 < number of namelist tracers')
+            if (my_task == master_task) then
+               write(nu_diag,*) 'ERROR: max_ntrcr-1 < number of namelist tracers'
+               write(nu_diag,*) 'ERROR:   max_ntrcr-1 = ',max_ntrcr-1,' ntrcr = ',ntrcr
+            endif
+            abort_flag = 19
          endif                               
 
          write(nu_diag,*) ' '
@@ -1110,7 +1094,7 @@
  1040    format (a30,2x,6i6)   ! integer
  1050    format (a30,2x,6a6)   ! character
 
-         write (nu_diag,*) ' '
+         write(nu_diag,*) ' '
          if (grid_type  /=  'displaced_pole' .and. &
              grid_type  /=  'tripole'        .and. &
              grid_type  /=  'column'         .and. &
@@ -1118,7 +1102,8 @@
              grid_type  /=  'cpom_grid'      .and. &
              grid_type  /=  'regional'       .and. &
              grid_type  /=  'latlon' ) then 
-            call abort_ice('ice_init: unknown grid_type')
+            if (my_task == master_task) write(nu_diag,*)'ERROR: unknown grid_type=',trim(grid_type)
+            abort_flag = 20
          endif
 
       endif                     ! my_task = master_task
@@ -1139,23 +1124,24 @@
 
       if (formdrag) then
          if (nt_apnd==0) then
-            write(nu_diag,*)'ERROR: nt_apnd:',nt_apnd
-            call abort_ice ('formdrag: nt_apnd=0')
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_apnd=',nt_apnd
+            abort_flag = 21
          elseif (nt_hpnd==0) then
-            write(nu_diag,*)'ERROR: nt_hpnd:',nt_hpnd
-            call abort_ice ('formdrag: nt_hpnd=0')
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_hpnd=',nt_hpnd
+            abort_flag = 22
          elseif (nt_ipnd==0) then
-            write(nu_diag,*)'ERROR: nt_ipnd:',nt_ipnd
-            call abort_ice ('formdrag: nt_ipnd=0')
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_ipnd=',nt_ipnd
+            abort_flag = 23
          elseif (nt_alvl==0) then
-            write(nu_diag,*)'ERROR: nt_alvl:',nt_alvl
-            call abort_ice ('formdrag: nt_alvl=0')
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_alvl=',nt_alvl
+            abort_flag = 24
          elseif (nt_vlvl==0) then
-            write(nu_diag,*)'ERROR: nt_vlvl:',nt_vlvl
-            call abort_ice ('formdrag: nt_vlvl=0')
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_vlvl=',nt_vlvl
+            abort_flag = 25
          endif
       endif
 
+      call flush_fileunit(nu_diag)
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
          albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
@@ -1178,8 +1164,16 @@
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
          nt_ipnd_in=nt_ipnd, nt_aero_in=nt_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//' Icepack Abort2', &
          file=__FILE__, line=__LINE__)
+
+      call flush_fileunit(nu_diag)
+      call ice_barrier()
+      if (abort_flag /= 0) then
+         write(nu_diag,*) subname,' ERROR: abort_flag=',abort_flag
+         call abort_ice (subname//' ABORTING on input ERRORS', &
+            file=__FILE__, line=__LINE__)
+      endif
 
       end subroutine input_data
 
@@ -1235,7 +1229,7 @@
         nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
         nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -1245,33 +1239,33 @@
       if (my_task == master_task) then
  
          if (nilyr < 1) then
-            write (nu_diag,*) 'nilyr =', nilyr
-            write (nu_diag,*) 'Must have at least one ice layer'
-            call abort_ice ('ice_init: Not enough ice layers')
+            write(nu_diag,*) 'ERROR: Must have at least one ice layer'
+            write(nu_diag,*) 'ERROR:   nilyr =', nilyr
+            call abort_ice (error_message=subname//' Not enough ice layers', &
+               file=__FILE__, line=__LINE__)
          endif
 
          if (nslyr < 1) then
-            write (nu_diag,*) 'nslyr =', nslyr
-            write (nu_diag,*) 'Must have at least one snow layer'
-            call abort_ice('ice_init: Not enough snow layers')
+            write(nu_diag,*) 'ERROR: Must have at least one snow layer'
+            write(nu_diag,*) 'ERROR:   nslyr =', nslyr
+            call abort_ice(error_message=subname//' Not enough snow layers', &
+               file=__FILE__, line=__LINE__)
          endif
 
          if (.not.heat_capacity) then
 
-            write (nu_diag,*) 'WARNING - Zero-layer thermodynamics'
-
             if (nilyr > 1) then
-               write (nu_diag,*) 'nilyr =', nilyr
-               write (nu_diag,*)        &
-                    'Must have nilyr = 1 if ktherm = 0'
-               call abort_ice('ice_init: Too many ice layers')
+               write(nu_diag,*) 'ERROR: Must have nilyr = 1 if heat_capacity=F'
+               write(nu_diag,*) 'ERROR:   nilyr =', nilyr
+               call abort_ice(error_message=subname//' Too many ice layers', &
+                  file=__FILE__, line=__LINE__)
             endif
 
             if (nslyr > 1) then
-               write (nu_diag,*) 'nslyr =', nslyr
-               write (nu_diag,*)        &
-                    'Must have nslyr = 1 if heat_capacity = F'
-               call abort_ice('ice_init: Too many snow layers')
+               write(nu_diag,*) 'ERROR: Must have nslyr = 1 if heat_capacity=F'
+               write(nu_diag,*) 'ERROR:  nslyr =', nslyr
+               call abort_ice(error_message=subname//' Too many snow layers', &
+                  file=__FILE__, line=__LINE__)
             endif
 
          endif   ! heat_capacity = F
@@ -1442,7 +1436,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine init_state
@@ -1545,6 +1539,8 @@
       integer (kind=int_kind) :: nt_Tsfc, nt_qice, nt_qsno, nt_sice
       integer (kind=int_kind) :: nt_fbri, nt_alvl, nt_vlvl
 
+      character(len=*), parameter :: subname='(set_state_var)'
+
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_lvl_out=tr_lvl)
       call icepack_query_tracer_indices( nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
         nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, &
@@ -1552,7 +1548,7 @@
       call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
         rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       indxi(:) = 0
@@ -1731,7 +1727,7 @@
       endif                     ! ice_ic
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine set_state_var
