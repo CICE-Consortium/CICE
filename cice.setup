@@ -22,6 +22,7 @@ set sets = ""
 set bdir = ${spval}
 set testid = ${spval}
 set testsuite = ${spval}
+set queue = ${spval}
 set acct = ${spval}
 set baseCom = ${spval}  # Baseline compare
 set baseGen = ${spval}  # Baseline generate
@@ -88,6 +89,7 @@ DESCRIPTION
     --acct     : account number for the batch submission
     --grid, -g : grid, grid (default = ${grid})
     --set,  -s : case option setting(s), comma separated (default = " ")
+    --queue    : queue for the batch submission
 
     For testing
 
@@ -234,6 +236,8 @@ while (1)
       set dotest = 1
     else if ("$option" == "--grid" || "$option" == "-g") then
       set grid = $argv[1]
+    else if ("$option" == "--queue") then
+      set queue = $argv[1]
     else if ("$option" == "--pes" || "$option" == "-p") then
       set pesx = $argv[1]
     else if ("$option" == "--acct") then
@@ -656,6 +660,7 @@ setenv ICE_TEST     ${test}
 setenv ICE_TESTNAME ${testname_noid}
 setenv ICE_BFBCOMP  ${fbfbcomp}
 setenv ICE_ACCOUNT  ${acct}
+setenv ICE_QUEUE    ${queue}
 EOF1
 
     if (${sets} != "") then
