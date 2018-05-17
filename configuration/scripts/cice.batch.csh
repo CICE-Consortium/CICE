@@ -49,7 +49,7 @@ cat >> ${jobfile} << EOFB
 #PBS -j oe 
 #PBS -m ae 
 #PBS -V
-#PBS -q ${ICE_QUEUE}
+#PBS -q ${queue}
 #PBS -N ${ICE_CASENAME}
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
