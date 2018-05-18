@@ -543,7 +543,7 @@ foreach compiler ( $ncompilers )
     endif
 
     if (${queue} == ${spval}) then
-      if (-e ~/.cice.queue) then
+      if (-e ~/.cice_queue) then
         set queue = `head -1 ~/.cice_queue`
       else
         set queue = ${ICE_MACHINE_QUEUE}
@@ -638,7 +638,6 @@ EOF1
     if ("$baseCom" =~ "default") then
       set baseCom = `ls -t $basedir_tmp | head -1`
     endif
-
 
 cat >! ${fsmods} << EOF1
 # cice.setup settings
