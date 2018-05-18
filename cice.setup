@@ -542,6 +542,14 @@ foreach compiler ( $ncompilers )
       endif
     endif
 
+    if (${queue} == ${spval}) then
+      if (-e ~/.cice.queue) then
+        set queue = `head -1 ~/.cice_queue`
+      else
+        set queue = ${ICE_MACHINE_QUEUE}
+      endif
+    endif
+
     #------------------------------------------------------------
     # Compute a default blocksize
 
