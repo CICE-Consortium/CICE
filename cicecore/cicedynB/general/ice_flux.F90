@@ -110,7 +110,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Cbu          ! coefficient for basal stress (landfast ice)
+         Tbu          ! coefficient for basal stress (N/m^2)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
