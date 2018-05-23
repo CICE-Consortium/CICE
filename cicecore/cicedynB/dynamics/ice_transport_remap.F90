@@ -717,6 +717,52 @@
     ! from each triangle.
     !-------------------------------------------------------------------
 
+#ifdef DMI_TEST_TRANSPORT
+      write (*,*) '-----------------------------------------------'
+      write (*,*) 'Statistics for all relevant 2D variables: stat2d'
+      write (*,*) '-----------------------------------------------'
+      write(*,'(a11,3i25)')   '  icellsng:',   minval(icellsng), maxval(icellsng),sum(icellsng)
+      write(*,'(a11,3i25)')   '   indxing:',   minval(indxing), maxval(indxing),sum(indxing)
+      write(*,'(a11,3i25)')   '   indxjng:',   minval(indxjng), maxval(indxjng),sum(indxjng)
+      write(*,'(a11,3i25)')   'tracer_type',   minval(tracer_type), maxval(tracer_type),sum(tracer_type)
+      write(*,'(a11,3i25)')   '    depend:',   minval(depend), maxval(depend),sum(depend)
+      write(*,'(a11,3i25)')   '    iflux:',   minval(iflux), maxval(iflux),sum(iflux)
+      write(*,'(a11,3i25)')   '    jflux:',   minval(jflux), maxval(jflux),sum(jflux)
+      write(*,'(a11,3f25.8)') '   triarea:',   minval(triarea), maxval(triarea),sum(triarea)
+      write(*,'(a11,3f25.8)') '       xp:',   minval(xp), maxval(xp),sum(xp)
+      write(*,'(a11,3f25.8)') '       yp:',   minval(yp), maxval(yp),sum(yp)
+      write(*,'(a11,3f25.8)') '       mc:',   minval(mc), maxval(mc),sum(mc)
+      write(*,'(a11,3f25.8)') '       mx:',   minval(mx), maxval(mx),sum(mx)
+      write(*,'(a11,3f25.8)') '       my:',   minval(my), maxval(my),sum(my)
+      write(*,'(a11,3f25.8)') '       tc:',   minval(tc), maxval(tc),sum(tc)
+      write(*,'(a11,3f25.8)') '       tx:',   minval(tx), maxval(tx),sum(tx)
+      write(*,'(a11,3f25.8)') '       ty:',   minval(ty), maxval(ty),sum(ty)
+      write(*,'(a11,3f25.8)') '    mflxe:',   minval(mflxe), maxval(mflxe),sum(mflxe)
+      write(*,'(a11,3f25.8)') '    mflxn:',   minval(mflxn), maxval(mflxn),sum(mflxn)
+      write(*,'(a11,3f25.8)') '   mtflxe:',   minval(mtflxe), maxval(mtflxe),sum(mtflxe)
+      write(*,'(a11,3f25.8)') '   mtflxn:',   minval(mtflxn), maxval(mtflxn),sum(mtflxn)
+      write(*,*)'-----------------------------------------------'
+      write(*,*)'END OF Statistics for relevant 2D variables'
+      write(*,*)'-----------------------------------------------'
+#endif
+
+#ifdef DMI_TEST_TRANSPORT
+      write(*,*)'ncat,max_blocks,nx_block,ny_block,nblocks,ntrace,integral_order', &
+                 ncat,max_blocks,nx_block,ny_block,nblocks,ntrace,integral_order
+      !------------------------
+      write(*,*) 'DMI: Save input files for testing transport integral kernels: ',edge
+!      write(*,*) 'na = icellt = ',icellt
+      ! Use j as temporary input-unit
+      j=999
+
+      !------------------------
+      open(j, file='TRANSPORT_v0input1.bin', form='unformatted', access='stream',&
+          action='write', status='replace', iostat=i)
+      write(j,iostat=i)      &
+         icellsng, indxing, indxjng, tracer_type, depend, triarea, iflux, jflux, &
+         xp, yp, mc, mx, my, mflxe, tc, tx, ty, mtflxe
+      close(j)
+#endif
          ! open water
          call transport_integrals(nx_block,          ny_block,           &
                                   ntrace,            icellsng (:,iblk),  &
@@ -744,6 +790,49 @@
                                 ty(:,:,:,n,iblk),  mtflxe(:,:,:,n))
 
          enddo
+#ifdef DMI_TEST_TRANSPORT
+      !------------------------
+      write(*,*) 'DMI: Save output files for testing transport integral kernels: ',edge
+!      write(*,*) 'na = icellt = ',icellt
+      ! Use j as temporary input-unit
+      j=999
+
+      !------------------------
+      open(j, file='TRANSPORT_v0output1.bin', form='unformatted', access='stream',&
+          action='write', status='replace', iostat=i)
+      write(j,iostat=i) mflxe, mtflxe
+      close(j)
+#endif
+
+#ifdef DMI_TEST_TRANSPORT
+      write (*,*) '-----------------------------------------------'
+      write (*,*) 'Statistics for all relevant 2D variables: stat2d'
+      write (*,*) '-----------------------------------------------'
+      write(*,'(a11,3i25)')   '  icellsng:',   minval(icellsng), maxval(icellsng),sum(icellsng)
+      write(*,'(a11,3i25)')   '   indxing:',   minval(indxing), maxval(indxing),sum(indxing)
+      write(*,'(a11,3i25)')   '   indxjng:',   minval(indxjng), maxval(indxjng),sum(indxjng)
+      write(*,'(a11,3i25)')   'tracer_type',   minval(tracer_type), maxval(tracer_type),sum(tracer_type)
+      write(*,'(a11,3i25)')   '    depend:',   minval(depend), maxval(depend),sum(depend)
+      write(*,'(a11,3i25)')   '    iflux:',   minval(iflux), maxval(iflux),sum(iflux)
+      write(*,'(a11,3i25)')   '    jflux:',   minval(jflux), maxval(jflux),sum(jflux)
+      write(*,'(a11,3f25.8)') '   triarea:',   minval(triarea), maxval(triarea),sum(triarea)
+      write(*,'(a11,3f25.8)') '       xp:',   minval(xp), maxval(xp),sum(xp)
+      write(*,'(a11,3f25.8)') '       yp:',   minval(yp), maxval(yp),sum(yp)
+      write(*,'(a11,3f25.8)') '       mc:',   minval(mc), maxval(mc),sum(mc)
+      write(*,'(a11,3f25.8)') '       mx:',   minval(mx), maxval(mx),sum(mx)
+      write(*,'(a11,3f25.8)') '       my:',   minval(my), maxval(my),sum(my)
+      write(*,'(a11,3f25.8)') '       tc:',   minval(tc), maxval(tc),sum(tc)
+      write(*,'(a11,3f25.8)') '       tx:',   minval(tx), maxval(tx),sum(tx)
+      write(*,'(a11,3f25.8)') '       ty:',   minval(ty), maxval(ty),sum(ty)
+      write(*,'(a11,3f25.8)') '    mflxe:',   minval(mflxe), maxval(mflxe),sum(mflxe)
+      write(*,'(a11,3f25.8)') '    mflxn:',   minval(mflxn), maxval(mflxn),sum(mflxn)
+      write(*,'(a11,3f25.8)') '   mtflxe:',   minval(mtflxe), maxval(mtflxe),sum(mtflxe)
+      write(*,'(a11,3f25.8)') '   mtflxn:',   minval(mtflxn), maxval(mtflxn),sum(mtflxn)
+      write(*,*)'-----------------------------------------------'
+      write(*,*)'END OF Statistics for relevant 2D variables'
+      write(*,*)'-----------------------------------------------'
+#endif
+
 
     !-------------------------------------------------------------------
     ! Repeat for north edges
@@ -767,6 +856,21 @@
                                     indxing(:,:), indxjng(:,:), &
                                     xp,                yp)
 
+#ifdef DMI_TEST_TRANSPORT
+      !------------------------
+      write(*,*) 'DMI: Save input files for testing transport integral kernels: ',edge
+!      write(*,*) 'na = icellt = ',icellt
+      ! Use j as temporary input-unit
+      j=999
+
+      !------------------------
+      open(j, file='TRANSPORT_v0input2.bin', form='unformatted', access='stream',&
+          action='write', status='replace', iostat=i)
+      write(j,iostat=i)      &
+         icellsng, indxing, indxjng, tracer_type, depend, triarea, iflux, jflux, &
+         xp, yp, mc, mx, my, mflxn, tc, tx, ty, mtflxn
+      close(j)
+#endif
          ! open water
          call transport_integrals(nx_block,           ny_block,          &
                                   ntrace,             icellsng (:,iblk), &
@@ -794,6 +898,51 @@
                                 ty(:,:,:,n,iblk),  mtflxn(:,:,:,n))
 
          enddo                  ! n
+#ifdef DMI_TEST_TRANSPORT
+      !------------------------
+      write(*,*) 'DMI: Save output files for testing transport integral kernels: ',edge
+!      write(*,*) 'na = icellt = ',icellt
+      ! Use j as temporary input-unit
+      j=999
+
+      !------------------------
+      open(j, file='TRANSPORT_v0output2.bin', form='unformatted', access='stream',&
+          action='write', status='replace', iostat=i)
+      write(j,iostat=i) mflxn, mtflxn
+      close(j)
+#endif
+
+
+#ifdef DMI_TEST_TRANSPORT
+      write (*,*) '-----------------------------------------------'
+      write (*,*) 'Statistics for all relevant 2D OUTPUT2 variables: stat2d'
+      write (*,*) '-----------------------------------------------'
+      write(*,'(a11,3i25)')   '  icellsng:',   minval(icellsng), maxval(icellsng),sum(icellsng)
+      write(*,'(a11,3i25)')   '   indxing:',   minval(indxing), maxval(indxing),sum(indxing)
+      write(*,'(a11,3i25)')   '   indxjng:',   minval(indxjng), maxval(indxjng),sum(indxjng)
+      write(*,'(a11,3i25)')   'tracer_type',   minval(tracer_type), maxval(tracer_type),sum(tracer_type)
+      write(*,'(a11,3i25)')   '    depend:',   minval(depend), maxval(depend),sum(depend)
+      write(*,'(a11,3i25)')   '    iflux:',   minval(iflux), maxval(iflux),sum(iflux)
+      write(*,'(a11,3i25)')   '    jflux:',   minval(jflux), maxval(jflux),sum(jflux)
+      write(*,'(a11,3f25.8)') '   triarea:',   minval(triarea), maxval(triarea),sum(triarea)
+      write(*,'(a11,3f25.8)') '       xp:',   minval(xp), maxval(xp),sum(xp)
+      write(*,'(a11,3f25.8)') '       yp:',   minval(yp), maxval(yp),sum(yp)
+      write(*,'(a11,3f25.8)') '       mc:',   minval(mc), maxval(mc),sum(mc)
+      write(*,'(a11,3f25.8)') '       mx:',   minval(mx), maxval(mx),sum(mx)
+      write(*,'(a11,3f25.8)') '       my:',   minval(my), maxval(my),sum(my)
+      write(*,'(a11,3f25.8)') '       tc:',   minval(tc), maxval(tc),sum(tc)
+      write(*,'(a11,3f25.8)') '       tx:',   minval(tx), maxval(tx),sum(tx)
+      write(*,'(a11,3f25.8)') '       ty:',   minval(ty), maxval(ty),sum(ty)
+      write(*,'(a11,3f25.8)') '    mflxe:',   minval(mflxe), maxval(mflxe),sum(mflxe)
+      write(*,'(a11,3f25.8)') '    mflxn:',   minval(mflxn), maxval(mflxn),sum(mflxn)
+      write(*,'(a11,3f25.8)') '   mtflxe:',   minval(mtflxe), maxval(mtflxe),sum(mtflxe)
+      write(*,'(a11,3f25.8)') '   mtflxn:',   minval(mtflxn), maxval(mtflxn),sum(mtflxn)
+      write(*,*)'-----------------------------------------------'
+      write(*,*)'END OF Statistics for relevant 2D variables'
+      write(*,*)'-----------------------------------------------'
+       stop
+#endif
+
 
     !-------------------------------------------------------------------
     ! Update the ice area and tracers.
