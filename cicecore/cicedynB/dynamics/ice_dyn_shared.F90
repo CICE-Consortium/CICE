@@ -205,6 +205,11 @@
          ecc         , & ! (ratio of major to minor ellipse axes)^2
          tdamp2          ! 2*(wave damping time scale T)
 
+#ifdef DMI_TEST_EVP
+      integer(kind=int_kind):: i,j
+      real(kind=dbl_kind)   :: rhow
+#endif
+
       ! elastic time step
       dte = dt/real(ndte,kind=dbl_kind)        ! s
       dtei = c1/dte              ! 1/s
@@ -226,6 +231,37 @@
       Se = 0.86_dbl_kind                 ! Se > 0.5
       xi = 5.5e-3_dbl_kind               ! Sv/Sc < 1
       gamma = p25 * 1.e11_dbl_kind * dt  ! rough estimate (P/m~10^5/10^3)
+
+#ifdef DMI_TEST_EVP
+     !------------------------------------
+     ! Store the following 5 constants used by "stress" and "stepu" subroutines
+     !  revp,arlx1i,brlx,denon1,ecci,rhow
+     ! Use j as temporary input-unit
+     j=999
+     !------------------------------------
+     open(j, file='EVP_input_constants.bin', form='unformatted', access='stream',&
+            action='write', status='replace', iostat=i)
+
+      call icepack_query_parameters(rhow_out=rhow)
+         ! revised evp parameters
+         revp   = c1
+         arlx1i = c2*xi/Se        ! 1/alpha1
+         brlx = c2*Se*xi*gamma/xmin**2 ! beta
+         denom1 = c1/(c1+arlx1i)
+     write(j,iostat=i) revp,arlx1i,brlx,denom1,ecci,rhow
+     write(*,*)'MHRI1: revp,arlx1i,brlx,denom1,ecci,rhow',&
+                       revp,arlx1i,brlx,denom1,ecci,rhow
+
+         ! classic evp parameters (but modified equations)
+         revp   = c0
+         arlx1i = dte2T
+         brlx   = dt*dtei
+         denom1 = c1/(c1+arlx1i)
+     write(j,iostat=i) revp,arlx1i,brlx,denom1,ecci,rhow
+     write(*,*)'MHRI2: revp,arlx1i,brlx,denom1,ecci,rhow: ',&
+                       revp,arlx1i,brlx,denom1,ecci,rhow
+     close(j)
+#endif
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
@@ -370,6 +406,15 @@
       enddo
       enddo
 
+#ifdef DMI_TEST_EVP
+! Use j as temporary input-unit
+!j=999
+!  open(j, file='EVP_tmask.bin', form='unformatted', access='stream',&
+!          action='write', status='replace', iostat=i)
+!  write(j,iostat=i)tmask
+!  close(j)
+#endif
+
       end subroutine evp_prep1
 
 !=======================================================================
@@ -426,6 +471,11 @@
          indxtj   , & ! compressed index in j-direction
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
+
+#ifdef DMI_TEST_EVP
+!      integer (kind=int_kind), dimension (nx_block*ny_block) :: & 
+!         ee,ne,se ! compressed index, neighbours to (i,j) off by : (-1,0), (-1,-1), (0,-1)
+#endif
 
       logical (kind=log_kind), dimension (nx_block,ny_block), & 
          intent(in) :: &
@@ -543,9 +593,24 @@
             icellt = icellt + 1
             indxti(icellt) = i
             indxtj(icellt) = j
+#ifdef DMI_TEST_EVP
+!            ! ee,ne,se ! compressed index, neighbours to (i,j) off by : (-1,0), (-1,-1), (0,-1)
+!            ee(icellt) = i-1 + (j-1)*nx_block  ! (-1, 0)
+!            ne(icellt) = i-1 + (j-2)*nx_block  ! (-1,-1)
+!            se(icellt) = i   + (j-2)*nx_block  ! ( 0,-1)
+#endif
          endif
       enddo
       enddo
+
+#ifdef DMI_TEST_EVP
+! Use j as temporary input-unit
+!j=999
+!  open(j, file='EVP_input_ee_ne_se.bin', form='unformatted', access='stream',&
+!          action='write', status='replace', iostat=i)
+!  write(j,iostat=i)ee,ne,se
+!  close(j)
+#endif
 
       !-----------------------------------------------------------------
       ! Define iceumask
