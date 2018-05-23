@@ -95,6 +95,19 @@
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
+#ifdef DMI_EVP
+      use ice_grid, only: HTE,HTN
+      use evp_kernel1d
+      use ice_communicate, only: my_task, master_task
+!      use ice_domain_size, only: nx_global, ny_global 
+#else
+#ifdef DMI_TEST_EVP
+      use ice_grid, only: HTE,HTN
+#endif
+#endif
+#ifdef DMI_EVP_TEST
+      use ice_calendar, only: istep
+#endif
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -297,7 +310,8 @@
       !$TCXOMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) &
+         call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
@@ -325,6 +339,107 @@
          call ice_timer_stop(timer_bound)
          call ice_HaloMask(halo_info_mask, halo_info, halomask)
       endif
+
+#ifdef DMI_EVP
+!      na=icellt(1)    ! MHRI/DMI: assume iblk==1
+!      nx=nx_global+2  ! MHRI/DMI: assume iblk==1  or nx_block
+!      ny=ny_global+2  ! MHRI/DMI: assume iblk==1  or ny_block
+!      call evp_copyin(nx_global+2,ny_global+2,icellt(1),               &
+!      write(*,*)'Entering evp_kernel'
+      if (my_task == master_task) then
+        call evp_copyin(nx_block,ny_block,icellt(1),                    &
+          icetmask,iceumask, HTE,HTN,                                   &
+          cdn_ocn,aiu,uocn,vocn,waterx,watery,forcex,forcey,            &
+          umassdti,fm,uarear,tarear,strintx,strinty,uvel_init,vvel_init,&
+          strength,uvel,vvel,dxt,dyt,dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,&
+          stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
+          stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
+          stress12_1,stress12_2,stress12_3,stress12_4                   )
+        call evp_kernel()
+        call evp_copyout(nx_block,ny_block,                             &
+          uvel,vvel, strintx,strinty, strocnx,strocny,                  &
+          stressp_1, stressp_2, stressp_3, stressp_4,                   &
+          stressm_1, stressm_2, stressm_3, stressm_4,                   &
+          stress12_1,stress12_2,stress12_3,stress12_4,                  &
+          divu,rdg_conv,rdg_shear,shear                                 )
+      endif
+
+#else
+
+#ifdef DMI_TEST_EVP
+      !------------------------
+      write(*,*) 'DMI: Save input files for testing evp kernels'
+      write(*,*) 'na = icellt = ',icellt
+      ! Use j as temporary input-unit
+      j=999
+
+      !------------------------
+      open(j, file='EVP_v0input.bin', form='unformatted', access='stream',&
+          action='write', status='replace', iostat=i)
+      write(j,iostat=i)      &
+                    icellt,     &
+        indxti    , indxtj,     &
+        uvel      , vvel,       &
+        dxt       , dyt,        &
+        dxhy      , dyhx,       &
+        cxp       , cyp,        &
+        cxm       , cym,        &
+        tarear    , tinyarea,   &
+        strength  ,             &
+        stressp_1 , stressp_2,  &
+        stressp_3 , stressp_4,  &
+        stressm_1 , stressm_2,  &
+        stressm_3 , stressm_4,  &
+        stress12_1, stress12_2, &
+        stress12_3, stress12_4, &
+        shear     , divu,       &
+!MHRI        prs_sig   ,             &
+        rdg_conv  , rdg_shear
+      close(j)
+
+      !------------------------
+      open(j, file='EVP_v0input2.bin', form='unformatted', access='stream',&
+          action='write', status='replace', iostat=i)
+      write(j,iostat=i)      &
+       icellu   , Cdn_ocn  , &
+       indxui   , indxuj   , &
+       aiu      ,            &
+       uocn     , vocn     , &
+       waterx   , watery   , &
+       forcex   , forcey   , &
+       umassdti , fm       , &
+       uarear   ,            &
+       strocnx  , strocny  , &
+       strintx  , strinty  , &
+       uvel_init, vvel_init
+      close(j)
+
+      !------------------------
+      open(j,file='EVP_input2D.bin', form='unformatted', access='stream', &
+             action='write', iostat=i)
+      if (i/=0) stop 'Problem opening file input2D.bin'
+      write(j,iostat=i)                                                &
+        icetmask, iceumask,                                            &
+        uvel_init, vvel_init, uvel, vvel,                              &
+        dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym,                      &
+        tarear, tinyarea, strength,                                    &
+        stressp_1, stressp_2, stressp_3, stressp_4,                    &
+        stressm_1, stressm_2, stressm_3, stressm_4,                    &
+        stress12_1, stress12_2, stress12_3, stress12_4,                &
+        uarear,cdn_ocn,aiu, uocn, vocn, waterx, watery, forcex, forcey,&
+        umassdti, fm, strintx, strinty
+      if (i/=0) stop 'Problem writing file EVP_input2D.bin'
+      close(j)
+
+      !------------------------
+      open(j,file='EVP_input2D_Grid.bin',form='unformatted', &
+             access='stream', action='write', iostat=i)
+      if (i/=0) stop 'Problem opening file EVP_input2D_Grid.bin'
+      write(j,iostat=i) HTE,HTN
+      if (i/=0) stop 'Problem reading file EVP_input2D_Grid.bin'
+      close(j)
+
+#endif
 
       do ksub = 1,ndte        ! subcycling
 
@@ -356,6 +471,33 @@
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
                             strtmp    (:,:,:) )
 !            endif               ! yield_curve
+
+#ifdef DMI_TEST_EVP
+      write(*,*)'-----------------------------------------------'
+      write(*,*)'Statistics for stepu relevant 2D variables'
+      write(*,*)'-----------------------------------------------'
+      write(*,'(a11,3i25)') '      indxui:',   minval(indxui(:,1)), maxval(indxui(:,1)),sum(indxui(:,1))
+      write(*,'(a11,3i25)') '      indxuj:',   minval(indxuj(:,1)), maxval(indxuj(:,1)),sum(indxuj(:,1))
+      write(*,'(a11,3f25.8)') ' uvel_init:',minval( uvel_init(:,:,1)),maxval( uvel_init(:,:,1)) ,sum( uvel_init(:,:,1))
+      write(*,'(a11,3f25.8)') ' vvel_init:',minval( vvel_init(:,:,1)),maxval( vvel_init(:,:,1)) ,sum( vvel_init(:,:,1))
+      write(*,'(a11,3f25.8)') '   strintx:',   minval(strintx(:,:,1)), maxval(strintx(:,:,1)),sum(strintx(:,:,1))
+      write(*,'(a11,3f25.8)') '   strinty:',   minval(strinty(:,:,1)), maxval(strinty(:,:,1)),sum(strinty(:,:,1))
+      write(*,'(a11,3f25.8)') '   cdn_ocn:',   minval( cdn_ocn(:,:,1)),maxval( cdn_ocn(:,:,1)),sum( cdn_ocn(:,:,1))
+      write(*,'(a11,3f25.8)') '       aiu:',      minval( aiu(:,:,1)),      maxval( aiu(:,:,1)),sum( aiu(:,:,1))
+      write(*,'(a11,3f25.8)') '      uocn:',     minval( uocn(:,:,1)),     maxval( uocn(:,:,1)),sum( uocn(:,:,1))
+      write(*,'(a11,3f25.8)') '      vocn:',     minval( vocn(:,:,1)),     maxval( vocn(:,:,1)),sum( vocn(:,:,1))
+      write(*,'(a11,3f25.8)') '    waterx:',   minval( waterx(:,:,1)),   maxval( waterx(:,:,1)),sum( waterx(:,:,1))
+      write(*,'(a11,3f25.8)') '    watery:',   minval( watery(:,:,1)),   maxval( watery(:,:,1)),sum( watery(:,:,1))
+      write(*,'(a11,3f25.8)') '    forcex:',   minval( forcex(:,:,1)),   maxval( forcex(:,:,1)),sum( forcex(:,:,1))
+      write(*,'(a11,3f25.8)') '    forcey:',   minval( forcey(:,:,1)),   maxval( forcey(:,:,1)),sum( forcey(:,:,1))
+      write(*,'(a11,3f25.8)') '  umassdti:', minval( umassdti(:,:,1)),maxval( umassdti(:,:,1)),sum( umassdti(:,:,1))
+      write(*,'(a11,3f25.8)') '        fm:',       minval( fm(:,:,1)),       maxval( fm(:,:,1)),sum( fm(:,:,1))
+      write(*,'(a11,3f25.8)') '    uarear:',   minval( uarear(:,:,1)),maxval( uarear(:,:,1)),sum( uarear(:,:,1))
+      write(*,'(a11,3f25.8)') '      Cbu:',   minval( Cbu(:,:,1)),maxval( Cbu(:,:,1)),sum( Cbu(:,:,1))
+      write(*,*)'-----------------------------------------------'
+      write(*,*)'END OF Statistics for stepu relevant 2D variables'
+      write(*,*)'-----------------------------------------------'
+#endif
 
       !-----------------------------------------------------------------
       ! basal stress calculation (landfast ice)
@@ -396,6 +538,77 @@
          enddo
          !$OMP END PARALLEL DO
 
+#ifdef DMI_TEST_EVP
+     !------------------------------------
+     ! stress output
+     ! Use j as temporary input-unit
+     j=999
+
+     !------------------------------------
+     open(j, file='EVP_output.bin', form='unformatted', access='stream',&
+            action='write', status='replace', iostat=i)
+     write(j,iostat=i)                           &
+       stressp_1, stressp_2, stressp_3, stressp_4 , &
+       stressm_1, stressm_2, stressm_3, stressm_4 , &
+       stress12_1,stress12_2,stress12_3,stress12_4, &
+       Cbu
+!       prs_sig  , &
+!       shear    , &
+!       divu     , &
+!       rdg_conv , &
+!       rdg_shear, &
+!       strtmp
+     close(j)
+     !------------------------
+     ! stepu output
+     open(j, file='EVP_output2.bin', form='unformatted', access='stream',&
+            action='write', status='replace', iostat=i)
+     write(j,iostat=i)       &
+       Cdn_ocn  , aiu     , &
+       uocn     , vocn    , &
+       waterx   , watery  , &
+       forcex   , forcey  , &
+       umassdti , fm      , &
+       uarear   ,           &
+       strocnx  , strocny , &
+       strintx  , strinty , &
+       uvel_init, vvel_init, Cbu
+     close(j)
+     !--------------------
+     write(*,*)'AFTER CALLING stress+stepu --'
+     write(*,'(a11,3f25.8)') ' stressp_1:',   minval(stressp_1(:,:,1)), maxval(stressp_1(:,:,1)),sum(stressp_1(:,:,1))
+     write(*,'(a11,3f25.8)') ' stressp_2:',   minval(stressp_2(:,:,1)), maxval(stressp_2(:,:,1)),sum(stressp_2(:,:,1))
+     write(*,'(a11,3f25.8)') ' stressp_3:',   minval(stressp_3(:,:,1)), maxval(stressp_3(:,:,1)),sum(stressp_3(:,:,1))
+     write(*,'(a11,3f25.8)') ' stressp_4:',   minval(stressp_4(:,:,1)), maxval(stressp_4(:,:,1)),sum(stressp_4(:,:,1))
+     write(*,'(a11,3f25.8)') ' stressm_1:',   minval(stressm_1(:,:,1)), maxval(stressm_1(:,:,1)),sum(stressm_1(:,:,1))
+     write(*,'(a11,3f25.8)') ' stressm_2:',   minval(stressm_2(:,:,1)), maxval(stressm_2(:,:,1)),sum(stressm_2(:,:,1))
+     write(*,'(a11,3f25.8)') ' stressm_3:',   minval(stressm_3(:,:,1)), maxval(stressm_3(:,:,1)),sum(stressm_3(:,:,1))
+     write(*,'(a11,3f25.8)') ' stressm_4:',   minval(stressm_4(:,:,1)), maxval(stressm_4(:,:,1)),sum(stressm_4(:,:,1))
+     write(*,'(a11,3f25.8)') 'stress12_1:',    minval(stress12_1(:,:,1)), maxval(stress12_1(:,:,1)),sum(stress12_1(:,:,1))
+     write(*,'(a11,3f25.8)') 'stress12_2:',    minval(stress12_2(:,:,1)), maxval(stress12_2(:,:,1)),sum(stress12_2(:,:,1))
+     write(*,'(a11,3f25.8)') 'stress12_3:',    minval(stress12_3(:,:,1)), maxval(stress12_3(:,:,1)),sum(stress12_3(:,:,1))
+     write(*,'(a11,3f25.8)') 'stress12_4:',    minval(stress12_4(:,:,1)), maxval(stress12_4(:,:,1)),sum(stress12_4(:,:,1))
+!MHRI     write(*,'(a11,3f25.8)') '   prs_sig:',   minval(prs_sig(:,:,1)), maxval(prs_sig(:,:,1)),sum(prs_sig(:,:,1))
+     write(*,'(a11,3f25.8)') '      str1:',   minval(strtmp(:,:,1)), maxval(strtmp(:,:,1)),sum(strtmp(:,:,1))
+     write(*,'(a11,3f25.8)') '      str2:',   minval(strtmp(:,:,2)), maxval(strtmp(:,:,2)),sum(strtmp(:,:,2))
+     write(*,'(a11,3f25.8)') '      str3:',   minval(strtmp(:,:,3)), maxval(strtmp(:,:,3)),sum(strtmp(:,:,3))
+     write(*,'(a11,3f25.8)') '      str4:',   minval(strtmp(:,:,4)), maxval(strtmp(:,:,4)),sum(strtmp(:,:,4))
+     write(*,'(a11,3f25.8)') '      str5:',   minval(strtmp(:,:,5)), maxval(strtmp(:,:,5)),sum(strtmp(:,:,5))
+     write(*,'(a11,3f25.8)') '      str6:',   minval(strtmp(:,:,6)), maxval(strtmp(:,:,6)),sum(strtmp(:,:,6))
+     write(*,'(a11,3f25.8)') '      str7:',   minval(strtmp(:,:,7)), maxval(strtmp(:,:,7)),sum(strtmp(:,:,7))
+     write(*,'(a11,3f25.8)') '      str8:',   minval(strtmp(:,:,8)), maxval(strtmp(:,:,8)),sum(strtmp(:,:,8))
+     write(*,'(a11,3f25.8)') '   strocnx:',   minval(strocnx(:,:,1)), maxval(strocnx(:,:,1)),sum(strocnx(:,:,1))
+     write(*,'(a11,3f25.8)') '   strocny:',   minval(strocny(:,:,1)), maxval(strocny(:,:,1)),sum(strocny(:,:,1))
+     write(*,'(a11,3f25.8)') '   strintx:',   minval(strintx(:,:,1)), maxval(strintx(:,:,1)),sum(strintx(:,:,1))
+     write(*,'(a11,3f25.8)') '   strinty:',   minval(strinty(:,:,1)), maxval(strinty(:,:,1)),sum(strinty(:,:,1))
+     write(*,'(a11,3f25.8)') '      uvel:',   minval(uvel(:,:,1)), maxval(uvel(:,:,1)),sum(uvel(:,:,1))
+     write(*,'(a11,3f25.8)') '      vvel:',   minval(vvel(:,:,1)), maxval(vvel(:,:,1)),sum(vvel(:,:,1))
+     write(*,'(a11,3f25.8)') '       Cbu:',   minval( Cbu(:,:,1)), maxval( Cbu(:,:,1)),sum( Cbu(:,:,1))
+     write(*,*)'AFTER CALLING --'
+     !--------------------
+     stop
+#endif
+
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
             call ice_HaloUpdate (fld2,               halo_info_mask, &
@@ -415,6 +628,7 @@
          !$OMP END PARALLEL DO
          
       enddo                     ! subcycling
+#endif
       
       ! calculate basal stress component for outputs
       if ( basalstress ) then
@@ -523,6 +737,25 @@
       call u2tgrid_vector(strocnyT)
 
       call ice_timer_stop(timer_dynamics)    ! dynamics
+
+#ifdef DMI_EVP_TEST
+     !------------------------------------
+     ! uvel,vvel output
+     ! Use j as temporary input-unit
+     j=999
+
+     !------------------------------------
+     open(j, file='EVP_output_uvel_vvel.bin', form='unformatted', access='stream',&
+            action='write', status='replace', iostat=i)
+     write(j,iostat=i)                           &
+         uvel,vvel
+     close(j)
+     write(*,*)'-----------------------------------------------'
+     write(*,*)'Statistics for uvel,vvel 2D variables: istep=',istep
+     write(*,*)'-----------------------------------------------'
+     write(*,'(a11,3f25.10)') '       uvel:',   minval(uvel), maxval(uvel),sum(uvel)
+     write(*,'(a11,3f25.10)') '       vvel:',   minval(vvel), maxval(vvel),sum(vvel)
+#endif
 
       end subroutine evp
 
@@ -671,6 +904,7 @@
          Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
          Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
 
+#ifndef DMI_TEST_EVP
       !-----------------------------------------------------------------
       ! on last subcycle, save quantities for mechanical redistribution
       !-----------------------------------------------------------------
@@ -687,6 +921,7 @@
                 +  (shearne +   shearnw +   shearse +   shearsw)**2)
 
          endif
+#endif
 
       !-----------------------------------------------------------------
       ! replacement pressure/Delta                   ! kg/s
