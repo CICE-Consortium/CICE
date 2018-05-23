@@ -1290,7 +1290,11 @@
 #endif
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
+#ifdef DMI_nml
+         call abort_ice('error reading zbgc namelist / ice_init_column')
+#else
          call abort_ice('error reading zbgc namelist')
+#endif
       endif
       call release_fileunit(nu_nml)
 
