@@ -27,7 +27,7 @@ if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
 set ptile = $taskpernode
 if ($ptile > ${maxtpn} / 2) @ ptile = ${maxtpn} / 2
 
-set queue = "regular"
+set queue = "${ICE_QUEUE}"
 set batchtime = "00:15:00"
 if (${ICE_RUNLENGTH} > 1) set batchtime = "00:29:00"
 if (${ICE_RUNLENGTH} > 2) set batchtime = "00:59:00"
@@ -57,8 +57,6 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
-set queue = "debug"
-if (${ICE_RUNLENGTH} > 1) set queue = "frontier"
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q ${queue}
@@ -71,8 +69,6 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ onyx*) then
-set queue = "debug"
-if (${ICE_RUNLENGTH} > 2) set queue = "frontier"
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -q ${queue}
@@ -85,7 +81,6 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ cori*) then
-set queue = "debug"
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH -p ${queue}
