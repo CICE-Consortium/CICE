@@ -39,8 +39,8 @@
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, c4, p027, p055, p111, p166, &
           p2, p222, p25, p333, p5, c1
-      use ice_dyn_shared, only: stepu, evp_prep1, evp_prep2, evp_finish, &
-          yield_curve, ecci, fcor_blk, uvel_init,  &
+      use ice_dyn_shared, only: evp_prep1, evp_prep2, evp_finish, &
+          yield_curve, ecci, cosw, sinw, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -52,7 +52,7 @@
 
       implicit none
       private
-      public :: evp
+      public :: imp_solver
 
 !=======================================================================
 
@@ -709,7 +709,7 @@
       !-----------------------------------------------------------------
       ! on last subcycle, save quantities for mechanical redistribution
       !-----------------------------------------------------------------
-         if (kOL == kmax) then ! jfl MODIF
+         if (kOL == 10) then ! jfl MODIF
             divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
             tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(i,j)
             rdg_conv(i,j)  = -min(divu(i,j),c0)
@@ -901,7 +901,7 @@
       subroutine matvec (nx_block,   ny_block, &
                          icellu,     Cw,       &
                          indxui,     indxuj,   &
-                         ksub,                 &
+                         kOL,                  &
                          aiu,        str,      &
                          uocn,       vocn,     &
                          waterx,     watery,   &
@@ -1041,16 +1041,12 @@
                             uvel_init,  vvel_init,  &
                             bxfix,      byfix        )
 
-      use ice_constants, only: c0, c1
-
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block  ! block dimensions
+         nx_block, ny_block, & ! block dimensions
+         icellu                ! no. of cells where iceumask = 1
          
-      integer (kind=int_kind), intent(out) :: &
-         icellu       ! no. of cells where iceumask = 1
-
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
-         intent(out) :: &
+         intent(in) :: &
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
@@ -1148,7 +1144,7 @@
       real (kind=dbl_kind) :: &
          vrel              , & ! relative ice-ocean velocity
          utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
-         taux, tauy            ! part of ocean stress term
+         taux, tauy        , & ! part of ocean stress term
          rhow                  !
          
       !-----------------------------------------------------------------
@@ -1187,12 +1183,12 @@
                                icellu,               &
                                indxui,     indxuj,   &
                                bx,         by,       &
-                               Au,         Ay,       &
+                               Au,         Av,       &
                                Fx,         Fy)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -1219,7 +1215,6 @@
       ! calc b vector
       !-----------------------------------------------------------------
 
-      call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
