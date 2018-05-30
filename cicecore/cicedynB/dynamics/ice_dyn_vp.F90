@@ -420,10 +420,11 @@
                                vrel     (:,:,iblk), Cb      (:,:,iblk))                                                              
                                
             call matvec (nx_block           , ny_block,           &
-                         icellu       (iblk), Cdn_ocn (:,:,iblk), & 
+                         icellu       (iblk),                     & 
                          indxui     (:,iblk), indxuj    (:,iblk), &
                          kOL                ,                     &
-                         aiu      (:,:,iblk), strtmp  (:,:,:),    & 
+                         aiu      (:,:,iblk), strtmp  (:,:,:),    &
+                         vrel     (:,:,iblk),                     &
                          umassdti (:,:,iblk), fm      (:,:,iblk), & 
                          uarear   (:,:,iblk), Cb      (:,:,iblk), & 
                          strintx  (:,:,iblk), strinty (:,:,iblk), &
@@ -635,7 +636,7 @@
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        Deltane, Deltanw, Deltase, Deltasw            ! Delt
 
 !DIR$ CONCURRENT !Cray
 !cdir nodep      !NEC
@@ -1093,7 +1094,7 @@
 !=======================================================================
 
       subroutine matvec (nx_block,   ny_block, &
-                         icellu,     Cw,       &
+                         icellu,               &
                          indxui,     indxuj,   &
                          kOL,                  &
                          aiu,        str,      &
@@ -1159,7 +1160,7 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
-ATTENTION vrel et viscous coeff doivent etre a previous k iteration...
+
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
