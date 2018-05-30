@@ -132,6 +132,8 @@
          Av       , & ! matvec, Fy = Av - by ! jfl
          Fx       , & ! x residual vector, Fx = Au - bx ! jfl
          Fy       , & ! y residual vector, Fy = Av - by ! jfl
+         vrel     , & ! coeff for tauw ! jfl
+         Cb       , & ! seabed stress coeff ! jfl
          aiu      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
@@ -139,7 +141,10 @@
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
-         strtmp       ! stress combinations for momentum equation
+         strtmp       ! stress combinations for momentum equation !JFL CHECK PAS SUR QUE OK
+                      ! doit etre (nx_block,ny_block,max_blocks,8)????
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
+         zetaD      ! zetaD = 2zeta (viscous coeff)
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
          icetmask, &  ! ice extent mask (T-cell)
@@ -369,6 +374,18 @@
          do iblk = 1, nblocks
 
 ! CALC Au and Av (MATVEC)
+                                
+            call viscous_coeff (nx_block           ,  ny_block,           &
+                                kOL                ,  icellt(iblk),       & 
+                                indxti   (:,iblk)  ,  indxtj(:,iblk),     & 
+                                uvel     (:,:,iblk),  vvel  (:,:,iblk),   & 
+                                dxt      (:,:,iblk),  dyt   (:,:,iblk),   & 
+                                dxhy     (:,:,iblk),  dyhx  (:,:,iblk),   & 
+                                cxp      (:,:,iblk),  cyp   (:,:,iblk),   & 
+                                cxm      (:,:,iblk),  cym   (:,:,iblk),   & 
+                                tarear   (:,:,iblk),  tinyarea (:,:,iblk),& 
+                                strength  (:,:,iblk), zetaD (:,:,iblk,:))                                              
+
             call stress_vp (nx_block,             ny_block,             & 
                             kOL,                  icellt(iblk),         & 
                             indxti      (:,iblk), indxtj      (:,iblk), & 
@@ -378,7 +395,7 @@
                             cxp       (:,:,iblk), cyp       (:,:,iblk), & 
                             cxm       (:,:,iblk), cym       (:,:,iblk), & 
                             tarear    (:,:,iblk), tinyarea  (:,:,iblk), & 
-                            strength  (:,:,iblk),                       & 
+                            zetaD     (:,:,iblk,:),strength (:,:,iblk), &                      & 
                             stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
                             stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
                             stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
@@ -387,24 +404,29 @@
                             stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                             shear     (:,:,iblk), divu      (:,:,iblk), & 
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
-                            strtmp    (:,:,:) )
+                            strtmp    (:,:,:))
 
       !-----------------------------------------------------------------
       ! momentum equation
       !-----------------------------------------------------------------
 
+            call calc_vrel_Cb (nx_block           , ny_block,           &
+                               icellu       (iblk), Cdn_ocn (:,:,iblk), & 
+                               indxui     (:,iblk), indxuj    (:,iblk), &
+                               kOL                ,                     &
+                               aiu      (:,:,iblk), Tbu     (:,:,iblk), &
+                               uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                               uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                               vrel     (:,:,iblk), Cb      (:,:,iblk))                                                              
+                               
             call matvec (nx_block           , ny_block,           &
                          icellu       (iblk), Cdn_ocn (:,:,iblk), & 
                          indxui     (:,iblk), indxuj    (:,iblk), &
                          kOL                ,                     &
                          aiu      (:,:,iblk), strtmp  (:,:,:),    & 
-                         uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                         waterx   (:,:,iblk), watery  (:,:,iblk), & 
                          umassdti (:,:,iblk), fm      (:,:,iblk), & 
-                         uarear   (:,:,iblk), Tbu     (:,:,iblk), & 
-                         strocnx  (:,:,iblk), strocny (:,:,iblk), & 
+                         uarear   (:,:,iblk), Cb      (:,:,iblk), & 
                          strintx  (:,:,iblk), strinty (:,:,iblk), &
-                         taubx    (:,:,iblk), tauby   (:,:,iblk), & 
                          uvel     (:,:,iblk), vvel    (:,:,iblk), &
                          Au       (:,:,iblk), Av      (:,:,iblk))
 
@@ -425,10 +447,6 @@
                        uvel     (:,:,iblk), vvel    (:,:,iblk), &
                        bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                        bx       (:,:,iblk), by      (:,:,iblk))                         
-                         
-            ! load velocity into array for boundary updates
-            fld2(:,:,1,iblk) = uvel(:,:,iblk)
-            fld2(:,:,2,iblk) = vvel(:,:,iblk)
            
             call residual_vec (nx_block           , ny_block,           &
                                icellu       (iblk),                     & 
@@ -436,6 +454,10 @@
                                bx       (:,:,iblk), by      (:,:,iblk), &
                                Au       (:,:,iblk), Av      (:,:,iblk), &
                                Fx       (:,:,iblk), Fy      (:,:,iblk))           
+            
+            ! load velocity into array for boundary updates
+            fld2(:,:,1,iblk) = uvel(:,:,iblk)
+            fld2(:,:,2,iblk) = vvel(:,:,iblk)            
             
          enddo
          !$OMP END PARALLEL DO
@@ -562,6 +584,117 @@
 
 !=======================================================================
 
+! Computes the viscous coefficients. In fact zetaD=2*zeta
+
+      subroutine viscous_coeff (nx_block,   ny_block,   & 
+                                kOL,        icellt,     & 
+                                indxti,     indxtj,     & 
+                                uvel,       vvel,       & 
+                                dxt,        dyt,        & 
+                                dxhy,       dyhx,       & 
+                                cxp,        cyp,        & 
+                                cxm,        cym,        & 
+                                tarear,     tinyarea,   & 
+                                strength,   zetaD)
+
+      integer (kind=int_kind), intent(in) :: & 
+         nx_block, ny_block, & ! block dimensions
+         kOL               , & ! subcycling step
+         icellt                ! no. of cells where icetmask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), & 
+         intent(in) :: &
+         indxti   , & ! compressed index in i-direction
+         indxtj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         strength , & ! ice strength (N/m)
+         uvel     , & ! x-component of velocity (m/s)
+         vvel     , & ! y-component of velocity (m/s)
+         dxt      , & ! width of T-cell through the middle (m)
+         dyt      , & ! height of T-cell through the middle (m)
+         dxhy     , & ! 0.5*(HTE - HTE)
+         dyhx     , & ! 0.5*(HTN - HTN)
+         cyp      , & ! 1.5*HTE - 0.5*HTE
+         cxp      , & ! 1.5*HTN - 0.5*HTN
+         cym      , & ! 0.5*HTE - 1.5*HTE
+         cxm      , & ! 0.5*HTN - 1.5*HTN
+         tarear   , & ! 1/tarea
+         tinyarea     ! puny*tarea
+         
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+         intent(out) :: &
+         zetaD          ! 2*zeta
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+        divune, divunw, divuse, divusw            , & ! divergence
+        tensionne, tensionnw, tensionse, tensionsw, & ! tension
+        shearne, shearnw, shearse, shearsw        , & ! shearing
+        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+
+!DIR$ CONCURRENT !Cray
+!cdir nodep      !NEC
+!ocl novrec      !Fujitsu
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
+
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+         ! divergence  =  e_11 + e_22
+         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
+                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
+         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
+                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
+         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
+                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
+         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
+                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
+
+         ! tension strain rate  =  e_11 - e_22
+         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
+                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
+         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
+                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
+         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
+                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
+         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
+                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
+
+         ! shearing strain rate  =  e_12
+         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
+                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
+         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
+                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
+         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
+                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
+         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
+                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
+         
+         ! Delta (in the denominator of zeta, eta)
+         Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
+         Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
+         Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
+         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+
+         zetaD(i,j,1) = strength(i,j)/max(Deltane,tinyarea(i,j))
+         zetaD(i,j,2) = strength(i,j)/max(Deltanw,tinyarea(i,j))
+         zetaD(i,j,3) = strength(i,j)/max(Deltasw,tinyarea(i,j))
+         zetaD(i,j,4) = strength(i,j)/max(Deltase,tinyarea(i,j))
+
+      enddo                     ! ij
+
+      end subroutine viscous_coeff      
+      
+!=======================================================================
+
 ! Computes the rates of strain and internal stress components for
 ! each of the four corners on each T-grid cell.
 ! Computes stress terms for the momentum equation
@@ -577,7 +710,7 @@
                             cxp,        cyp,        & 
                             cxm,        cym,        & 
                             tarear,     tinyarea,   & 
-                            strength,               & 
+                            zetaD,      strength,   & 
                             stressp_1,  stressp_2,  & 
                             stressp_3,  stressp_4,  & 
                             stressm_1,  stressm_2,  & 
@@ -612,6 +745,10 @@
          cxm      , & ! 0.5*HTN - 1.5*HTN
          tarear   , & ! 1/tarea
          tinyarea     ! puny*tarea
+         
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+         intent(in) :: &
+         zetaD          ! 2*zeta   
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), & 
          intent(inout) :: &
@@ -641,8 +778,6 @@
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
         puny                                      , & ! puny
-        c0ne, c0nw, c0se, c0sw                    , & ! useful combinations
-        c1ne, c1nw, c1se, c1sw                    , &
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -703,8 +838,8 @@
          ! Delta (in the denominator of zeta, eta)
          Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
          Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
          Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
+         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
 
       !-----------------------------------------------------------------
       ! on last subcycle, save quantities for mechanical redistribution
@@ -724,43 +859,24 @@
          endif
 
       !-----------------------------------------------------------------
-      ! replacement pressure/Delta                   ! kg/s
-      ! save replacement pressure for principal stress calculation
-      !-----------------------------------------------------------------
-         c0ne = strength(i,j)/max(Deltane,tinyarea(i,j))
-         c0nw = strength(i,j)/max(Deltanw,tinyarea(i,j))
-         c0sw = strength(i,j)/max(Deltasw,tinyarea(i,j))
-         c0se = strength(i,j)/max(Deltase,tinyarea(i,j))
-
-!         c1ne = c0ne*arlx1i
-!         c1nw = c0nw*arlx1i
-!         c1sw = c0sw*arlx1i
-!         c1se = c0se*arlx1i
-
-!         c0ne = c1ne*ecci
-!         c0nw = c1nw*ecci
-!         c0sw = c1sw*ecci
-!         c0se = c1se*ecci
-
-      !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-         stressp_1(i,j) = c0ne*(divune*(c1+Ktens) - Deltane*(c1-Ktens))
-         stressp_2(i,j) = c0nw*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))
-         stressp_3(i,j) = c0sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))
-         stressp_4(i,j) = c0se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))
+         stressp_1(i,j) = zetaD(i,j,1)*(divune*(c1+Ktens) - Deltane*(c1-Ktens))
+         stressp_2(i,j) = zetaD(i,j,2)*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))
+         stressp_3(i,j) = zetaD(i,j,3)*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))
+         stressp_4(i,j) = zetaD(i,j,4)*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))
          
-         stressm_1(i,j) = c0ne*tensionne*(c1+Ktens)*ecci
-         stressm_2(i,j) = c0nw*tensionnw*(c1+Ktens)*ecci
-         stressm_3(i,j) = c0sw*tensionsw*(c1+Ktens)*ecci
-         stressm_4(i,j) = c0se*tensionse*(c1+Ktens)*ecci
+         stressm_1(i,j) = zetaD(i,j,1)*tensionne*(c1+Ktens)*ecci
+         stressm_2(i,j) = zetaD(i,j,2)*tensionnw*(c1+Ktens)*ecci
+         stressm_3(i,j) = zetaD(i,j,3)*tensionsw*(c1+Ktens)*ecci
+         stressm_4(i,j) = zetaD(i,j,4)*tensionse*(c1+Ktens)*ecci
          
-         stress12_1(i,j) = c0ne*shearne*p5*(c1+Ktens)*ecci
-         stress12_2(i,j) = c0nw*shearnw*p5*(c1+Ktens)*ecci
-         stress12_3(i,j) = c0sw*shearsw*p5*(c1+Ktens)*ecci
-         stress12_4(i,j) = c0se*shearse*p5*(c1+Ktens)*ecci
+         stress12_1(i,j) = zetaD(i,j,1)*shearne*p5*(c1+Ktens)*ecci
+         stress12_2(i,j) = zetaD(i,j,2)*shearnw*p5*(c1+Ktens)*ecci
+         stress12_3(i,j) = zetaD(i,j,3)*shearsw*p5*(c1+Ktens)*ecci
+         stress12_4(i,j) = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
 
       !-----------------------------------------------------------------
       ! Eliminate underflows.
@@ -895,23 +1011,16 @@
 
       end subroutine stress_vp
       
-      
 !=======================================================================
 
-      subroutine matvec (nx_block,   ny_block, &
-                         icellu,     Cw,       &
-                         indxui,     indxuj,   &
-                         kOL,                  &
-                         aiu,        str,      &
-                         uocn,       vocn,     &
-                         waterx,     watery,   &
-                         umassdti,   fm,       &
-                         uarear,     Tbu,      &
-                         strocnx,    strocny,  &
-                         strintx,    strinty,  &
-                         taubx,      tauby,    &
-                         uvel,       vvel,     &
-                         Au,         Av)
+      subroutine calc_vrel_Cb (nx_block,   ny_block, &
+                               icellu,     Cw,       &
+                               indxui,     indxuj,   &
+                               kOL,                  &
+                               aiu,        Tbu,      &
+                               uocn,       vocn,     &
+                               uvel,       vvel,     &
+                               vrel,       Cb)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -926,17 +1035,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tbu,      & ! coefficient for basal stress (N/m^2)
          aiu     , & ! ice fraction on u-grid
-         waterx  , & ! for ocean stress calculation, x (m/s)
-         watery  , & ! for ocean stress calculation, y (m/s)
-         umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          uocn    , & ! ocean current, x-direction (m/s)
-         vocn    , & ! ocean current, y-direction (m/s)
-         fm      , & ! Coriolis param. * mass in U-cell (kg/s)
-         uarear      ! 1/uarea
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
-         intent(in) :: &
-         str
+         vocn        ! ocean current, y-direction (m/s)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(in) :: &
@@ -945,14 +1045,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         strocnx , & ! ice-ocean stress, x-direction
-         strocny , & ! ice-ocean stress, y-direction
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
-         taubx   , & ! basal stress, x-direction (N/m^2)
-         tauby   , & ! basal stress, y-direction (N/m^2)
-         Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
-         Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
+         vrel      , & ! coeff for tauw ! jfl
+         Cb            ! seabed stress coeff ! jfl
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
@@ -965,10 +1059,6 @@
 
       real (kind=dbl_kind) :: &
          utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
-         vrel              , & ! relative ice-ocean velocity
-         ccaimp,ccb        , & ! intermediate variables
-         taux, tauy        , & ! part of ocean stress term
-         Cb                , & ! complete basal stress coeff
          rhow                  !
 
       real (kind=dbl_kind) :: &
@@ -991,17 +1081,95 @@
          vtp = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - utp)**2 + &
+         vrel(i,j) = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - utp)**2 + &
                                            (vocn(i,j) - vtp)**2)  ! m/s
-         ! ice/ocean stress
-         taux = vrel*waterx(i,j) ! NOTE this is not the entire
-         tauy = vrel*watery(i,j) ! ocn stress term
       
-         Cb  = Tbu(i,j) / (sqrt(utp**2 + vtp**2) + u0) ! for basal stress
-         ! revp = 0 for classic evp, 1 for revised evp
-         ccaimp = umassdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+         Cb(i,j)  = Tbu(i,j) / (sqrt(utp**2 + vtp**2) + u0) ! for basal stress
+
+      enddo                     ! ij
+
+      end subroutine calc_vrel_Cb      
+      
+!=======================================================================
+
+      subroutine matvec (nx_block,   ny_block, &
+                         icellu,     Cw,       &
+                         indxui,     indxuj,   &
+                         kOL,                  &
+                         aiu,        str,      &
+                         vrel,                 &
+                         umassdti,   fm,       &
+                         uarear,     Cb,       &
+                         strintx,    strinty,  &
+                         uvel,       vvel,     &
+                         Au,         Av)
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icellu,             & ! total count when iceumask is true
+         kOL                   ! outer loop iteration
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+         intent(in) :: &
+         indxui  , & ! compressed index in i-direction
+         indxuj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         vrel,     & ! coefficient for tauw
+         Cb,       & ! coefficient for basal stress
+         aiu     , & ! ice fraction on u-grid
+         umassdti, & ! mass of U-cell/dt (kg/m^2 s)
+         fm      , & ! Coriolis param. * mass in U-cell (kg/s)
+         uarear      ! 1/uarea
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
+         intent(in) :: &
+         str
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), &
+         intent(in) :: &
+         uvel    , & ! x-component of velocity (m/s)
+         vvel        ! y-component of velocity (m/s)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), &
+         intent(inout) :: &
+!         strocnx , & ! ice-ocean stress, x-direction
+!         strocny , & ! ice-ocean stress, y-direction
+         strintx , & ! divergence of internal ice stress, x (N/m^2)
+         strinty , & ! divergence of internal ice stress, y (N/m^2)
+!         taubx   , & ! basal stress, x-direction (N/m^2)
+!         tauby   , & ! basal stress, y-direction (N/m^2)
+         Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
+         Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
+         
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+         utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
+         ccaimp,ccb        , & ! intermediate variables
+         rhow                  !
+
+      !-----------------------------------------------------------------
+      ! integrate the momentum equation
+      !-----------------------------------------------------------------
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+ATTENTION vrel et viscous coeff doivent etre a previous k iteration...
+      do ij =1, icellu
+         i = indxui(ij)
+         j = indxuj(ij)
+
+         utp = uvel(i,j)
+         vtp = vvel(i,j)
+
+         ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
                
-         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
+         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel(i,j) * sinw ! kg/m^2 s
 
          ! divergence of the internal stress tensor
          strintx(i,j) = uarear(i,j)* &
@@ -1016,8 +1184,8 @@
       ! ocean-ice stress for coupling
       ! here, strocn includes the factor of aice
       !-----------------------------------------------------------------
-         strocnx(i,j) = taux ! jfl could be moved
-         strocny(i,j) = tauy
+!         strocnx(i,j) = taux ! jfl could be moved
+!         strocny(i,j) = tauy
          
       ! calculate basal stress component for outputs ! jfl move this
 !         if (ksub == ndte) then ! on last subcycling iteration
@@ -1077,7 +1245,7 @@
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
-         
+
          bxfix(i,j) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
          byfix(i,j) = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
          
@@ -1229,6 +1397,8 @@
       enddo                     ! ij
 
       end subroutine residual_vec
+      
+!      JFL ROUTINE POUR CALC STRESS OCN POUR COUPLAGE
       
 !=======================================================================
 
