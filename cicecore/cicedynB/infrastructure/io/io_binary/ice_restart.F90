@@ -36,7 +36,7 @@
 
       subroutine init_restart_read(ice_ic)
 
-      use ice_calendar, only: istep0, istep1, time, time_forc, npt
+      use ice_calendar, only: istep0, istep1, time, time_forc, npt, nyr
       use ice_communicate, only: my_task, master_task
       use ice_dyn_shared, only: kdyn
       use ice_read_write, only: ice_open, ice_open_ext
@@ -79,7 +79,7 @@
             call ice_open(nu_restart,trim(filename),0)
          endif
          if (use_restart_time) then
-            read (nu_restart) istep0,time,time_forc
+            read (nu_restart) istep0,time,time_forc,nyr
          else
             read (nu_restart) iignore,rignore,rignore ! use namelist values
          endif
@@ -89,6 +89,7 @@
       call broadcast_scalar(istep0,master_task)
       call broadcast_scalar(time,master_task)
       call broadcast_scalar(time_forc,master_task)
+      call broadcast_scalar(nyr,master_task)
       
       istep1 = istep0
 
@@ -347,7 +348,7 @@
          else
             call ice_open(nu_dump,filename,0)
          endif
-         write(nu_dump) istep1,time,time_forc
+         write(nu_dump) istep1,time,time_forc,nyr
          write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
       endif
 
