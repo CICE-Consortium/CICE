@@ -1,4 +1,4 @@
-!  SVN:$Id: ice_distribution.F90 1228 2017-05-23 21:33:34Z tcraig $
+!  SVN:$Id: ice_distribution.F90 732 2013-09-19 18:19:31Z eclare $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_distribution
@@ -16,10 +16,10 @@
    use ice_blocks, only: nblocks_x, nblocks_y, nblocks_tot
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_diag
-   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private
+   save
 
    type, public :: distrb  ! distribution data type
       integer (int_kind) :: &
@@ -97,6 +97,14 @@
    case('roundrobin')
 
       create_distribution = create_distrb_roundrobin(nprocs, work_per_block)
+
+   case('spiralcenter')
+
+      create_distribution = create_distrb_spiralcenter(nprocs, work_per_block)
+
+   case('wghtfile')
+
+      create_distribution = create_distrb_wghtfile(nprocs, work_per_block)
 
    case('sectrobin')
 
@@ -1065,6 +1073,393 @@
 !----------------------------------------------------------------------
 
  end function create_distrb_roundrobin
+ 
+!***********************************************************************
+
+ function create_distrb_spiralcenter(nprocs, workPerBlock) result(newDistrb)
+
+!  This function creates a distribution of blocks across processors
+!  using a simple spiralcenter algorithm. Mean for prescribed ice or
+!  standalone CAM mode.
+
+   integer (int_kind), intent(in) :: &
+      nprocs            ! number of processors in this distribution
+
+   integer (int_kind), dimension(:), intent(in) :: &
+      workPerBlock        ! amount of work per block
+
+   type (distrb) :: &
+      newDistrb           ! resulting structure describing Cartesian
+                          !  distribution of blocks
+
+!----------------------------------------------------------------------
+!
+!  local variables
+!
+!----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      n, i, j, ic, jc, id, jd, cnt,  &! dummy loop indices
+      istat,                 &! status flag for allocation
+      processor,             &! processor position in cartesian decomp
+      nblocklist,            &! number of blocks in blocklist
+      globalID,              &! global block ID
+      localID                 ! block location on this processor
+
+   integer (int_kind), dimension(:), allocatable :: &
+      proc_tmp,         &! temp processor id
+      blocklist          ! temp block ordered list
+   integer (int_kind), dimension(:,:), allocatable :: &
+      blockchk           ! temp block check array
+   
+!----------------------------------------------------------------------
+!
+!  create communicator for this distribution
+!
+!----------------------------------------------------------------------
+
+   call create_communicator(newDistrb%communicator, nprocs)
+
+!----------------------------------------------------------------------
+!
+!  try to find best processor arrangement
+!
+!----------------------------------------------------------------------
+
+   newDistrb%nprocs = nprocs
+
+!----------------------------------------------------------------------
+!
+!  allocate space for decomposition
+!
+!----------------------------------------------------------------------
+
+   allocate (newDistrb%blockLocation(nblocks_tot), &
+             newDistrb%blockLocalID (nblocks_tot), stat=istat)
+
+   allocate (newDistrb%blockCnt(nprocs))
+
+!----------------------------------------------------------------------
+!
+!  create list of blocks starting from center in spiral
+!  pattern is start in center, right 1, up 1, left 2, down 2,
+!  right 3, up 3, left 4, down 4, right 5, up 5, etc.
+!  until all blocks have been accounted for just once.
+!  cnt tracks the up, left, down, right counts and is the emergency
+!  stop
+!
+!----------------------------------------------------------------------
+
+   allocate(proc_tmp(nprocs))
+   allocate(blocklist(nblocks_tot))
+   allocate(blockchk(nblocks_x,nblocks_y))
+   nblocklist = 0
+   blocklist = 0
+   blockchk = 0
+   processor = 0
+   globalID = 0
+   proc_tmp = 0
+
+   allocate(newDistrb%blockIndex(nprocs,max_blocks))
+   newDistrb%blockIndex(:,:) = 0
+
+   jc = nblocks_y/2
+   ic = nblocks_x/2
+
+   ! center block
+   cnt = 0
+   j = jc
+   i = ic
+   globalID = (j-1)*nblocks_x + i
+   nblocklist = nblocklist + 1
+   blocklist(nblocklist) = globalID
+   blockchk(i,j) = 1
+
+   do while (minval(blocklist) < 1 .and. cnt < max(nblocks_x,nblocks_y) )
+
+     cnt = cnt + 1
+
+     ! right, j held constant
+     ic = i
+     do id = ic+1,ic+cnt
+       i = max(min(id,nblocks_x),1)
+       if (blockchk(i,j) == 0) then
+         globalID = (j-1)*nblocks_x + i
+         nblocklist = nblocklist + 1
+         blocklist(nblocklist) = globalID
+         blockchk(i,j) = 1
+       endif
+     enddo
+
+     ! up, i held constant
+     jc = j
+     do jd = jc+1,jc+cnt
+       j = max(min(jd,nblocks_y),1)
+       if (blockchk(i,j) == 0) then
+         globalID = (j-1)*nblocks_x + i
+         nblocklist = nblocklist + 1
+         blocklist(nblocklist) = globalID
+         blockchk(i,j) = 1
+       endif
+     enddo
+
+     cnt = cnt + 1
+
+     ! left, j held constant
+     ic = i
+     do id = ic-1,ic-cnt,-1
+       i = max(min(id,nblocks_x),1)
+       if (blockchk(i,j) == 0) then
+         globalID = (j-1)*nblocks_x + i
+         nblocklist = nblocklist + 1
+         blocklist(nblocklist) = globalID
+         blockchk(i,j) = 1
+       endif
+     enddo
+
+     ! down, i held constant
+     jc = j
+     do jd = jc-1,jc-cnt,-1
+       j = max(min(jd,nblocks_y),1)
+       if (blockchk(i,j) == 0) then
+         globalID = (j-1)*nblocks_x + i
+         nblocklist = nblocklist + 1
+         blocklist(nblocklist) = globalID
+         blockchk(i,j) = 1
+       endif
+     enddo
+
+   enddo
+
+   if (nblocklist /= nblocks_x*nblocks_y .or. &
+       maxval(blockchk) /= 1 .or. minval(blockchk) /= 1) then
+     call abort_ice('create_distrb_spiralcenter: blockchk invalid')
+     return
+   endif
+   deallocate(blockchk)
+
+!----------------------------------------------------------------------
+!
+!  now distribute the blocks in the blocklist roundrobin
+!
+!----------------------------------------------------------------------
+
+   do n = 1,nblocklist
+
+     globalID = blocklist(n)
+
+     if (workPerBlock(globalID) /= 0) then
+       processor = mod(processor,nprocs) + 1
+       proc_tmp(processor) = proc_tmp(processor) + 1
+       localID = proc_tmp(processor)
+       if (localID > max_blocks) then
+          call abort_ice('create_distrb_spiralcenter: max_blocks too small')
+          return
+       endif
+       newDistrb%blockLocation(globalID) = processor
+       newDistrb%blockLocalID (globalID) = localID
+       newDistrb%blockIndex(processor,localID) = globalID
+     else  ! no work - eliminate block from distribution
+       newDistrb%blockLocation(globalID) = 0
+       newDistrb%blockLocalID (globalID) = 0
+     endif
+
+   end do
+
+   newDistrb%numLocalBlocks = proc_tmp(my_task+1)
+   newDistrb%blockCnt(:) = proc_tmp(:)
+   deallocate(proc_tmp)
+   deallocate(blocklist)
+
+!   write(nu_diag,*) 'my_task,newDistrb%numLocalBlocks',&
+!      my_task,newDistrb%numLocalBlocks
+
+!----------------------------------------------------------------------
+!
+!  now store the local info
+!
+!----------------------------------------------------------------------
+
+   globalID = 0
+
+   if (newDistrb%numLocalBlocks > 0) then
+      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
+                stat=istat)
+
+      processor = my_task + 1
+      do localID = 1,newDistrb%numLocalBlocks
+         newDistrb%blockGlobalID (localID) = newDistrb%blockIndex(processor,&
+                                             localID)
+      enddo
+   endif
+
+!----------------------------------------------------------------------
+
+ end function create_distrb_spiralcenter
+ 
+!***********************************************************************
+
+ function create_distrb_wghtfile(nprocs, workPerBlock) result(newDistrb)
+
+!  This function creates a distribution of blocks across processors
+!  using a simple wghtfile algorithm. Mean for prescribed ice or
+!  standalone CAM mode.
+
+   integer (int_kind), intent(in) :: &
+      nprocs            ! number of processors in this distribution
+
+   integer (int_kind), dimension(:), intent(in) :: &
+      workPerBlock        ! amount of work per block
+
+   type (distrb) :: &
+      newDistrb           ! resulting structure describing Cartesian
+                          !  distribution of blocks
+
+!----------------------------------------------------------------------
+!
+!  local variables
+!
+!----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i, j, n,               &! dummy loop indices
+      cnt,                   &! counter
+      istat,                 &! status flag for allocation
+      processor,             &! processor position in cartesian decomp
+      globalID,              &! global block ID
+      localID                 ! block location on this processor
+
+   integer (int_kind), dimension(:), allocatable :: &
+      proc_tmp           ! temp processor id
+
+   logical (log_kind) ::  up   ! direction of pe counting
+   
+!----------------------------------------------------------------------
+!
+!  create communicator for this distribution
+!
+!----------------------------------------------------------------------
+
+   call create_communicator(newDistrb%communicator, nprocs)
+
+!----------------------------------------------------------------------
+!
+!  try to find best processor arrangement
+!
+!----------------------------------------------------------------------
+
+   newDistrb%nprocs = nprocs
+
+!----------------------------------------------------------------------
+!
+!  allocate space for decomposition
+!
+!----------------------------------------------------------------------
+
+   allocate (newDistrb%blockLocation(nblocks_tot), &
+             newDistrb%blockLocalID (nblocks_tot), stat=istat)
+
+   allocate (newDistrb%blockCnt(nprocs))
+
+!----------------------------------------------------------------------
+!
+!  distribute blocks across processors, one block per proc until used
+!  work from most expensive workPerBlock to least and go up/down/up/down
+!  in terms of the pe index to try to get better load balance.
+!
+!----------------------------------------------------------------------
+
+   allocate(proc_tmp(nprocs))
+   processor = 0
+   proc_tmp = 0
+   up = .true.
+
+   allocate(newDistrb%blockIndex(nprocs,max_blocks))
+   newDistrb%blockIndex(:,:) = 0
+
+   if (my_task == master_task) &
+      write(nu_diag,*) 'create_distrb_wghtfile: workPerBlock = ',minval(workPerBlock),maxval(workPerBlock)
+   if (minval(workPerBlock) < 0 .or. maxval(workPerBlock) > 12) then
+      write(nu_diag,*) 'create_distrb_wghtfile: workPerBlock = ',minval(workPerBlock),maxval(workPerBlock)
+      call abort_ice('create_distrb_wghtfile: workPerBlock incorrect')
+      return
+   endif
+
+   ! do not distribution blocks with work=0
+   do n=maxval(workPerBlock),1,-1
+   cnt = 0
+   do j=1,nblocks_y
+   do i=1,nblocks_x
+
+      if (mod(j,2) == 1) then
+         globalID = (j-1)*nblocks_x + i
+      else
+         globalID = (j-1)*nblocks_x + nblocks_x - i + 1
+      endif
+
+      if (workPerBlock(globalID) == 0) then  ! no work - eliminate block from distribution
+         newDistrb%blockLocation(globalID) = 0
+         newDistrb%blockLocalID (globalID) = 0
+      elseif (workPerBlock(globalID) == n) then
+         cnt = cnt + 1
+!         processor = mod(processor,nprocs) + 1
+         if (up) then
+            processor = processor + 1
+         else
+            processor = processor - 1
+         endif
+         if (processor > nprocs) then
+            up = .false.
+            processor = nprocs
+         elseif (processor < 1) then
+            up = .true.
+            processor = 1
+         endif
+         proc_tmp(processor) = proc_tmp(processor) + 1
+         localID = proc_tmp(processor)
+         if (localID > max_blocks) then
+            call abort_ice('create_distrb_wghtfile: max_blocks too small')
+            return
+         endif
+         newDistrb%blockLocation(globalID) = processor
+         newDistrb%blockLocalID (globalID) = localID
+         newDistrb%blockIndex(processor,localID) = globalID
+      endif
+
+   end do
+   end do
+   write(nu_diag,*) 'create_distrb_wghtfile n cnt = ',n,cnt
+   end do
+
+   newDistrb%numLocalBlocks = proc_tmp(my_task+1)
+   newDistrb%blockCnt(:) = proc_tmp(:)
+   deallocate(proc_tmp)
+
+!   write(nu_diag,*) 'my_task,newDistrb%numLocalBlocks',&
+!      my_task,newDistrb%numLocalBlocks
+
+!----------------------------------------------------------------------
+!
+!  now store the local info
+!
+!----------------------------------------------------------------------
+
+   globalID = 0
+
+   if (newDistrb%numLocalBlocks > 0) then
+      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
+                stat=istat)
+
+      processor = my_task + 1
+      do localID = 1,newDistrb%numLocalBlocks
+         newDistrb%blockGlobalID (localID) = newDistrb%blockIndex(processor,&
+                                             localID)
+      enddo
+   endif
+
+!----------------------------------------------------------------------
+
+ end function create_distrb_wghtfile
  
 !***********************************************************************
 

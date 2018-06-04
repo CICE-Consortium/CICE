@@ -813,6 +813,7 @@
       real (kind=dbl_kind) :: &
          pos_scmlon,&         ! temporary
          pi, &
+         puny, &
          scamdata             ! temporary
 
       !-----------------------------------------------------------------
@@ -823,7 +824,7 @@
       !-----------------------------------------------------------------
 #ifdef CESMCOUPLED
 
-      call icepack_query_parameters(pi_out=pi)
+      call icepack_query_parameters(pi_out=pi, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)

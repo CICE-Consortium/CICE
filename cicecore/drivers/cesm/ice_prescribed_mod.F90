@@ -48,6 +48,8 @@ module ice_prescribed_mod
    use ice_read_write
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+   use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_numbers
+   use icepack_intfc, only: icepack_query_parameters
 
    implicit none
 
@@ -89,17 +91,17 @@ module ice_prescribed_mod
    character(len=char_len_long) :: fldList      ! list of fields in data stream
    real(kind=dbl_kind)          :: ice_cov(nx_block,ny_block,max_blocks) ! ice cover 
 
-    real (kind=dbl_kind), parameter :: &
-       cp_sno = 0.0_dbl_kind & ! specific heat of snow                (J/kg/K)
-    ,  rLfi = Lfresh*rhoi & ! latent heat of fusion ice               (J/m^3)
-    ,  rLfs = Lfresh*rhos & ! latent heat of fusion snow              (J/m^3)
-    ,  rLvi = Lvap*rhoi   & ! latent heat of vapor*rhoice             (J/m^3)
-    ,  rLvs = Lvap*rhos   & ! latent heat of vapor*rhosno             (J/m^3)
-    ,  rcpi = cp_ice*rhoi & ! heat capacity of fresh ice              (J/m^3)
-    ,  rcps = cp_sno*rhos & ! heat capacity of snow                   (J/m^3)
-    ,  rcpidepressT = rcpi*depressT & ! param for finding T(z) from q (J/m^3)
-    ,  rLfidepressT = rLfi*depressT ! param for heat capacity   (J deg/m^3)
-         ! heat capacity of sea ice, rhoi*C=rcpi+rLfidepressT*salinity/T^2
+!    real (kind=dbl_kind), parameter :: &
+!       cp_sno = 0.0_dbl_kind & ! specific heat of snow                (J/kg/K)
+!    ,  rLfi = Lfresh*rhoi & ! latent heat of fusion ice               (J/m^3)
+!    ,  rLfs = Lfresh*rhos & ! latent heat of fusion snow              (J/m^3)
+!    ,  rLvi = Lvap*rhoi   & ! latent heat of vapor*rhoice             (J/m^3)
+!    ,  rLvs = Lvap*rhos   & ! latent heat of vapor*rhosno             (J/m^3)
+!    ,  rcpi = cp_ice*rhoi & ! heat capacity of fresh ice              (J/m^3)
+!    ,  rcps = cp_sno*rhos & ! heat capacity of snow                   (J/m^3)
+!    ,  rcpidepressT = rcpi*depressT & ! param for finding T(z) from q (J/m^3)
+!    ,  rLfidepressT = rLfi*depressT ! param for heat capacity   (J deg/m^3)
+!         ! heat capacity of sea ice, rhoi*C=rcpi+rLfidepressT*salinity/T^2
 
 !=======================================================================
 contains
@@ -381,9 +383,8 @@ subroutine ice_prescribed_phys
  
    use ice_flux
    use ice_state
-   use icepack_intfc, only : nt_Tsfc, nt_sice, nt_qice, nt_qsno, ntrcr
    use ice_arrays_column,  only : hin_max
-   use icepack_intfc,         only : icepack_aggregate
+   use icepack_intfc, only : icepack_aggregate
    use ice_dyn_evp
 
    implicit none
@@ -397,6 +398,7 @@ subroutine ice_prescribed_phys
    integer(kind=int_kind) :: nc       ! ice category index
    integer(kind=int_kind) :: i,j,k    ! longitude, latitude and level indices
    integer(kind=int_kind) :: iblk
+   integer(kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, ntrcr
 
    real(kind=dbl_kind) :: slope     ! diff in underlying ocean tmp and ice surface tmp
    real(kind=dbl_kind) :: Ti        ! ice level temperature
@@ -407,10 +409,22 @@ subroutine ice_prescribed_phys
    real(kind=dbl_kind) :: hs        ! snow thickness
    real(kind=dbl_kind) :: zn        ! normalized ice thickness
    real(kind=dbl_kind) :: salin(nilyr)  ! salinity (ppt) 
+   real(kind=dbl_kind) :: rad_to_deg, pi, puny
+   real(kind=dbl_kind) :: rhoi, rhos, cp_ice, cp_ocn, lfresh, depressT
 
    real(kind=dbl_kind), parameter :: nsal    = 0.407_dbl_kind
    real(kind=dbl_kind), parameter :: msal    = 0.573_dbl_kind
    real(kind=dbl_kind), parameter :: saltmax = 3.2_dbl_kind   ! max salinity at ice base (ppm)
+
+   call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
+      nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
+   call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+   call icepack_query_parameters(rad_to_deg_out=rad_to_deg, pi_out=pi, &
+      puny_out=puny, rhoi_out=rhoi, rhos_out=rhos, cp_ice_out=cp_ice, cp_ocn_out=cp_ocn, &
+      lfresh_out=lfresh, depressT_out=depressT)
+   call icepack_warnings_flush(nu_diag)
+   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      file=__FILE__, line=__LINE__)
 
    !-----------------------------------------------------------------
    ! Initialize ice state

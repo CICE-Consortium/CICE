@@ -606,6 +606,25 @@
          restart = .false.
       endif
 
+! tcx tcraig added, is this correct?
+      if (trim(runtype) /= 'continue' .and. ice_ic == 'none' .or. ice_ic == 'default') then
+         if (my_task == master_task) &
+            write(nu_diag,*) 'WARNING: ice_ic = none or default, setting restart flags to .false.'
+         restart = .false.
+         restart_ext =  .false. 
+         restart_aero =  .false. 
+         restart_age =  .false. 
+         restart_fy =  .false. 
+         restart_lvl =  .false. 
+         restart_pond_cesm =  .false. 
+         restart_pond_lvl =  .false. 
+         restart_pond_topo =  .false. 
+!         restart_bgc =  .false. 
+!         restart_hbrine =  .false. 
+!         restart_zsal =  .false. 
+      endif
+! tcx
+
       if (trim(runtype) == 'initial' .and. .not.(restart) .and. &
           ice_ic /= 'none' .and. ice_ic /= 'default') then
          if (my_task == master_task) then
