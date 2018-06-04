@@ -380,6 +380,7 @@
                             strtltx,    strtlty,    & 
                             strocnx,    strocny,    &
                             strintx,    strinty,    &
+                            taubx,      tauby,      &
                             waterx,     watery,     & 
                             forcex,     forcey,     &     
                             stressp_1,  stressp_2,  &   
@@ -390,7 +391,7 @@
                             stress12_3, stress12_4, & 
                             uvel_init,  vvel_init,  &
                             uvel,       vvel,       &
-                            Cbu)
+                            Tbu)
 
       use ice_constants, only: c0, c1
 
@@ -437,7 +438,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), & 
          intent(out) :: &
-         Cbu,      & ! coefficient for basal stress
+         Tbu,      & ! coefficient for basal stress (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
@@ -459,7 +460,9 @@
          strocnx , & ! ice-ocean stress, x-direction
          strocny , & ! ice-ocean stress, y-direction
          strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty     ! divergence of internal ice stress, y (N/m^2)
+         strinty , & ! divergence of internal ice stress, y (N/m^2)
+         taubx   , & ! basal stress, x-direction (N/m^2)
+         tauby       ! basal stress, y-direction (N/m^2)
 
       ! local variables
 
@@ -480,7 +483,9 @@
          forcex   (i,j) = c0
          forcey   (i,j) = c0
          umassdti (i,j) = c0
-         Cbu      (i,j) = c0
+         Tbu      (i,j) = c0
+         taubx    (i,j) = c0
+         tauby    (i,j) = c0
 
          if (revp==1) then               ! revised evp
             stressp_1 (i,j) = c0
@@ -610,6 +615,7 @@
       subroutine stepu (nx_block,   ny_block, &
                         icellu,     Cw,       &
                         indxui,     indxuj,   &
+                        ksub,                 &
                         aiu,        str,      &
                         uocn,       vocn,     &
                         waterx,     watery,   &
@@ -618,13 +624,15 @@
                         uarear,               &
                         strocnx,    strocny,  &
                         strintx,    strinty,  &
+                        taubx,      tauby,    &
                         uvel_init,  vvel_init,&
                         uvel,       vvel,     &
-                        Cbu)
+                        Tbu)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
+         icellu,             & ! total count when iceumask is true
+         ksub                  ! subcycling iteration
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -632,7 +640,7 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Cbu,      & ! coefficient for basal stress
+         Tbu,      & ! coefficient for basal stress (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
          aiu     , & ! ice fraction on u-grid
@@ -660,7 +668,9 @@
          strocnx , & ! ice-ocean stress, x-direction
          strocny , & ! ice-ocean stress, y-direction
          strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty     ! divergence of internal ice stress, y (N/m^2)
+         strinty , & ! divergence of internal ice stress, y (N/m^2)
+         taubx   , & ! basal stress, x-direction (N/m^2)
+         tauby       ! basal stress, y-direction (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
@@ -675,9 +685,13 @@
          uold, vold        , & ! old-time uvel, vvel
          vrel              , & ! relative ice-ocean velocity
          cca,ccb,ab2,cc1,cc2,& ! intermediate variables
-         taux, tauy        , & ! part of ocean stress term          
+         taux, tauy        , & ! part of ocean stress term
+         Cb                , & ! complete basal stress coeff
          rhow                  !
 
+      real (kind=dbl_kind) :: &
+         u0 = 5e-5_dbl_kind    ! residual velocity for basal stress (m/s)
+         
       !-----------------------------------------------------------------
       ! integrate the momentum equation
       !-----------------------------------------------------------------
@@ -700,9 +714,11 @@
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
          tauy = vrel*watery(i,j) ! ocn stress term
-
+      
+         Cb  = Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0) ! for basal stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*umassdti(i,j) + vrel * cosw + Cbu(i,j) ! kg/m^2 s
+         cca = (brlx + revp)*umassdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+               
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
 
          ab2 = cca**2 + ccb**2
@@ -728,6 +744,14 @@
       !-----------------------------------------------------------------
          strocnx(i,j) = taux
          strocny(i,j) = tauy
+         
+      ! calculate basal stress component for outputs
+         if (ksub == ndte) then ! on last subcycling iteration
+          if ( basalstress ) then
+           taubx(i,j) = -uvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
+           tauby(i,j) = -vvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
+          endif
+         endif
 
       enddo                     ! ij
 
@@ -835,20 +859,25 @@
       end subroutine evp_finish
 
 !=======================================================================
-! Computes basal stress Cb coefficients (landfast ice)
+! Computes basal stress Tbu coefficients (landfast ice)
 !
-! Lemieux, J. F., B. Tremblay, F. Dupont, M. Plante, G. Smith, D. Dumont (2015). 
-! A basal stress parameterization form modeling landfast ice. J. Geophys. Res. 
+! Lemieux, J. F., B. Tremblay, F. Dupont, M. Plante, G.C. Smith, D. Dumont (2015). 
+! A basal stress parameterization form modeling landfast ice, J. Geophys. Res. 
 ! Oceans, 120, 3157-3173.
 !
-! author: Philippe Blain, CMC (coop summer 2015)
+! Lemieux, J. F., F. Dupont, P. Blain, F. Roy, G.C. Smith, G.M. Flato (2016). 
+! Improving the simulation of landfast ice by combining tensile strength and a
+! parameterization for grounded ridges, J. Geophys. Res. Oceans, 121.
 !
-      subroutine basal_stress_coeff (nx_block, ny_block, icellu, &
+! author: JF Lemieux, Philippe Blain (ECCC)
+!
+! note: Tbu is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
+!
+      subroutine basal_stress_coeff (nx_block, ny_block,         &
+                                     icellu,                     &
                                      indxui,   indxuj,           &
                                      vice,     aice,             &
-                                     hwater,                     &
-                                     uold,     vold,             &
-                                     Cbu)
+                                     hwater,   Tbu)
 
       use ice_constants, only: c0, c1                                     
                                      
@@ -864,25 +893,19 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          aice    , & ! concentration of ice at tracer location
          vice    , & ! volume per unit area of ice at tracer location
-         hwater  , & ! water depth at tracer location
-         uold    , & ! u component of ice speed at previous iteration
-         vold        ! v component of ice speed at previous iteration
+         hwater      ! water depth at tracer location
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         Cbu         ! coefficient for basal stress
-
-!
-!EOP
+         Tbu         ! coefficient for basal stress (N/m^2)
 
       real (kind=dbl_kind) :: &
          au,  & ! concentration of ice at u location
          hu,  & ! volume per unit area of ice at u location (mean thickness)
          hwu, & ! water depth at u location
          hcu, & ! critical thickness at u location
-         k1 = 8.0_dbl_kind , &  ! first free parameter for landfast parametrization 
-         k2 = 15.0_dbl_kind, &  ! second free parameter (Nm^-3) for landfast parametrization 
-         u0 = 5e-5_dbl_kind, &  ! residual velocity (m/s)
-         CC = 20.0_dbl_kind     ! CC=Cb factor in Lemieux et al 2015
+         k1 = 20.0_dbl_kind , &  ! first free parameter for landfast parametrization 
+         k2 = 15.0_dbl_kind , &  ! second free parameter (N/m^3) for landfast parametrization 
+         alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
 
       integer (kind=int_kind) :: &
          i, j, ij
@@ -896,14 +919,11 @@
          hwu = min(hwater(i,j),hwater(i+1,j),hwater(i,j+1),hwater(i+1,j+1))
          hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
 
-         ! calculate basal stress factor
          ! 1- calculate critical thickness
          hcu = au * hwu / k1
 
-         ! 2- calculate stress factor
-                      
-         Cbu(i,j) = ( k2 / (sqrt(uold(i,j)**2 + vold(i,j)**2) + u0) ) &
-                    * max(c0,(hu - hcu)) * exp(-CC * (c1 - au))
+         ! 2- calculate basal stress factor                    
+         Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
 
       enddo                     ! ij
 

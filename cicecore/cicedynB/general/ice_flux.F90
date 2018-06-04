@@ -109,7 +109,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Cbu          ! coefficient for basal stress (landfast ice)
+         Tbu          ! coefficient for basal stress (N/m^2)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -272,7 +272,7 @@
          dvidtt, & ! ice volume tendency thermo. (m/s)
          dagedtt,& ! ice age tendency thermo.    (s/s)
          mlt_onset, &! day of year that sfc melting begins
-         frz_onset = c0, &! day of year that freezing begins (congel or frazil)
+         frz_onset, &! day of year that freezing begins (congel or frazil)
          frazil_diag ! frazil ice growth diagnostic (m/step-->cm/day)
          
       real (kind=dbl_kind), & 
