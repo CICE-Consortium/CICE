@@ -132,6 +132,8 @@
          Av       , & ! matvec, Fy = Av - by ! jfl
          Fx       , & ! x residual vector, Fx = Au - bx ! jfl
          Fy       , & ! y residual vector, Fy = Av - by ! jfl
+         Diagu    , & ! diagonal matrix coeff for u component
+         Diagv    , & ! diagonal matrix coeff for v component
          vrel     , & ! coeff for tauw ! jfl
          Cb       , & ! seabed stress coeff ! jfl
          aiu      , & ! ice fraction on u-grid
@@ -459,25 +461,15 @@
             call precondD  (nx_block,             ny_block,             & 
                             kOL,                  icellt(iblk),         & 
                             indxti      (:,iblk), indxtj      (:,iblk), & 
-                            uvel      (:,:,iblk), vvel      (:,:,iblk), &     
                             dxt       (:,:,iblk), dyt       (:,:,iblk), & 
                             dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
                             cxp       (:,:,iblk), cyp       (:,:,iblk), & 
                             cxm       (:,:,iblk), cym       (:,:,iblk), & 
-                            tarear    (:,:,iblk), tinyarea  (:,:,iblk), &
+                            uarear    (:,:,iblk),                       &
                             vrel     (:,:,iblk) , Cb        (:,:,iblk), &
-                            umassdti (:,:,iblk),                        &
-                            zetaD     (:,:,iblk,:),strength (:,:,iblk), & 
-                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
-                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
-                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
-                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
-                            shear     (:,:,iblk), divu      (:,:,iblk), & 
-                            rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
-                            strtmp    (:,:,:))                               
-            
+                            umassdti (:,:,iblk) , zetaD   (:,:,iblk,:), &
+                            Diagu     (:,:,iblk), diagv   (:,:,iblk)) 
+                            
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
             fld2(:,:,2,iblk) = vvel(:,:,iblk)            
@@ -1426,24 +1418,14 @@
       subroutine precondD  (nx_block,   ny_block,   & 
                             kOL,        icellt,     & 
                             indxti,     indxtj,     & 
-                            uvel,       vvel,       & 
                             dxt,        dyt,        & 
                             dxhy,       dyhx,       & 
                             cxp,        cyp,        & 
                             cxm,        cym,        & 
-                            tarear,     tinyarea,   &
+                            uarear,                 &
                             vrel,       Cb,         &
-                            umassdti,               &
-                            zetaD,      strength,   & 
-                            stressp_1,  stressp_2,  & 
-                            stressp_3,  stressp_4,  & 
-                            stressm_1,  stressm_2,  & 
-                            stressm_3,  stressm_4,  & 
-                            stress12_1, stress12_2, & 
-                            stress12_3, stress12_4, & 
-                            shear,      divu,       & 
-                            rdg_conv,   rdg_shear,  & 
-                            str )
+                            umassdti,   zetaD,      &
+                            Diagu, Diagv)
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1456,9 +1438,6 @@
          indxtj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         strength , & ! ice strength (N/m)
-         uvel     , & ! x-component of velocity (m/s)
-         vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTE)
@@ -1467,8 +1446,7 @@
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm      , & ! 0.5*HTN - 1.5*HTN
-         tarear   , & ! 1/tarea
-         tinyarea     ! puny*tarea
+         uarear      ! 1/uarea
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &         
          vrel,     & ! coefficient for tauw
@@ -1478,23 +1456,10 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
          intent(in) :: &
          zetaD          ! 2*zeta   
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
-         stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
-         stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
-         stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
-         shear    , & ! strain rate II component (1/s)
-         divu     , & ! strain rate I component, velocity divergence (1/s)
-         rdg_conv , & ! convergence term for ridging (1/s)
-         rdg_shear    ! shear term for ridging (1/s)
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
-         intent(out) :: &
-         str          ! stress combinations
+         
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &         
+         Diagu,     & ! diagonal matrix coefficients for u component
+         Diagv        ! diagonal matrix coefficients for v component
 
       ! local variables
 
@@ -1502,26 +1467,43 @@
          i, j, ij
 
       real (kind=dbl_kind) :: &
-        divune, divunw, divuse, divusw            , & ! divergence
-        tensionne, tensionnw, tensionse, tensionsw, & ! tension
-        shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        puny                                      , & ! puny
-        ssigpn, ssigps, ssigpe, ssigpw            , &
-        ssigmn, ssigms, ssigme, ssigmw            , &
-        ssig12n, ssig12s, ssig12e, ssig12w        , &
-        ssigp1, ssigp2, ssigm1, ssigm2, ssig121, ssig122, &
-        csigpne, csigpnw, csigpse, csigpsw        , &
-        csigmne, csigmnw, csigmse, csigmsw        , &
-        csig12ne, csig12nw, csig12se, csig12sw    , &
-        str12ew, str12we, str12ns, str12sn        , &
-        strp_tmp, strm_tmp, tmp
+        divuneDu, divunwDu, divuseDu, divuswDu            , & ! divergence
+        divuneDv, divunwDv, divuseDv, divuswDv            , & ! divergence
+        tensionneDu, tensionnwDu, tensionseDu, tensionswDu, & ! tension
+        tensionneDv, tensionnwDv, tensionseDv, tensionswDv, & ! tension
+        shearneDu, shearnwDu, shearseDu, shearswDu        , & ! shearing
+        shearneDv, shearnwDv, shearseDv, shearswDv        , & ! shearing
+        stressp_1u, stressp_2u, stressp_3u, stressp_4u    , & 
+        stressp_1v, stressp_2v, stressp_3v, stressp_4v    , & 
+        stressm_1u, stressm_2u, stressm_3u, stressm_4u    , & 
+        stressm_1v, stressm_2v, stressm_3v, stressm_4v    , & 
+        stress12_1u, stress12_2u, stress12_3u, stress12_4u, & 
+        stress12_1v, stress12_2v, stress12_3v, stress12_4v, & 
+        ssigpnu, ssigpsu, ssigpeu, ssigpwu                , &
+        ssigpnv, ssigpsv, ssigpev, ssigpwv                , &
+        ssigmnu, ssigmsu, ssigmeu, ssigmwu                , &
+        ssigmnv, ssigmsv, ssigmev, ssigmwv                , &
+        ssig12nu, ssig12su, ssig12eu, ssig12wu            , &
+        ssig12nv, ssig12sv, ssig12ev, ssig12wv            , &
+        ssigp1u, ssigp2u, ssigm1u, ssigm2u, ssig121u, ssig122u, &
+        ssigp1v, ssigp2v, ssigm1v, ssigm2v, ssig121v, ssig122v, &
+        csigpneu, csigpnwu, csigpseu, csigpswu            , &
+        csigpnev, csigpnwv, csigpsev, csigpswv            , &
+        csigmneu, csigmnwu, csigmseu, csigmswu            , &
+        csigmnev, csigmnwv, csigmsev, csigmswv            , &
+        csig12neu, csig12nwu, csig12seu, csig12swu        , &
+        csig12nev, csig12nwv, csig12sev, csig12swv        , &
+        str12ewu, str12weu, str12nsu, str12snu            , &
+        str12ewv, str12wev, str12nsv, str12snv            , &
+        strp_tmpu, strm_tmpu, strp_tmpv, strm_tmpv        , &
+        str1, str2, str3, str4, str5, str6, str7, str8  
 
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
 
-      str(:,:,:) = c0
+      Diagu(:,:) = c0
+      Diagv(:,:) = c0
 
 !DIR$ CONCURRENT !Cray
 !cdir nodep      !NEC
@@ -1729,10 +1711,9 @@
          str4 = strp_tmpu + strm_tmpu + str12weu &
               + dxhy(i,j)*(-csigpswu + csigmswu) + dyhx(i,j)*csig12swu
 
-         Du(i,j) = -uarear(i,j)*(str1 + str2 + str3 + str4) ! -sign to bring it on LHS
+         Diagu(i,j) = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) & 
+                  -uarear(i,j)*(str1 + str2 + str3 + str4) ! -sign to bring it on LHS
          
-         ! MANQUE LE TERME CCAimp....
-              
       !-----------------------------------------------------------------
       ! for dF/dy (v momentum)
       !-----------------------------------------------------------------
@@ -1758,7 +1739,8 @@
          str8 = strp_tmpv - strm_tmpv + str12snv &
               - dyhx(i,j)*(csigpswv + csigmswv) + dxhy(i,j)*csig12swv
 
-         Dv(i,j) = -uarear(i,j)*(str5 + str6 + str7 + str8) ! -sign to bring it on LHS              
+         Diagv(i,j) = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) &
+                  -uarear(i,j)*(str5 + str6 + str7 + str8) ! -sign to bring it on LHS              
               
       enddo                     ! ij
 
