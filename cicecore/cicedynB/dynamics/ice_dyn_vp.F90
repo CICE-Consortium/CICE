@@ -134,6 +134,8 @@
          Fy       , & ! y residual vector, Fy = Av - by ! jfl
          Diagu    , & ! diagonal matrix coeff for u component
          Diagv    , & ! diagonal matrix coeff for v component
+         uprev_k  , & ! uvel at previous Picard iteration
+         vprev_k  , & ! vvel at previous Picard iteration
          vrel     , & ! coeff for tauw ! jfl
          Cb       , & ! seabed stress coeff ! jfl
          aiu      , & ! ice fraction on u-grid
@@ -141,6 +143,8 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
+      
+      real (kind=dbl_kind), dimension (max_blocks) :: L2norm
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation !JFL CHECK PAS SUR QUE OK
@@ -375,6 +379,9 @@
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
+            uprev_k(:,:,iblk) = uvel(:,:,iblk)
+            vprev_k(:,:,iblk) = vvel(:,:,iblk)
+         
 ! CALC Au and Av (MATVEC)
                                 
             call viscous_coeff (nx_block           ,  ny_block,           &
@@ -407,10 +414,6 @@
                             shear     (:,:,iblk), divu      (:,:,iblk), & 
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
                             strtmp    (:,:,:))
-
-      !-----------------------------------------------------------------
-      ! momentum equation
-      !-----------------------------------------------------------------
 
             call calc_vrel_Cb (nx_block           , ny_block,           &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), & 
@@ -456,7 +459,8 @@
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                bx       (:,:,iblk), by      (:,:,iblk), &
                                Au       (:,:,iblk), Av      (:,:,iblk), &
-                               Fx       (:,:,iblk), Fy      (:,:,iblk))
+                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
+                               L2norm(iblk))
                                
             call precondD  (nx_block,             ny_block,             & 
                             kOL,                  icellt(iblk),         & 
@@ -1367,7 +1371,8 @@
                                indxui,     indxuj,   &
                                bx,         by,       &
                                Au,         Av,       &
-                               Fx,         Fy)
+                               Fx,         Fy,       &
+                               L2normtp)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1388,6 +1393,9 @@
          intent(inout) :: &
          Fx      , & ! x residual vector, Fx = Au - bx (N/m^2)
          Fy          ! y residual vector, Fy = Av - by (N/m^2)
+         
+      real (kind=dbl_kind), intent(inout) :: &
+         L2normtp    ! (L2norm)^2
 
       ! local variables
 
@@ -1410,6 +1418,8 @@
          Fy(i,j) = Av(i,j) - by(i,j)
          
       enddo                     ! ij
+      
+      L2normtp = DOT_PRODUCT(Fx,Fx)+DOT_PRODUCT(Fy,Fy)
 
       end subroutine residual_vec
       
