@@ -862,11 +862,12 @@
       call init_history_dyn     ! initialize dynamic history variables
 
       !-----------------------------------------------------------------
-      ! Elastic-viscous-plastic ice dynamics
+      ! Ice dynamics (momentum equation)
       !-----------------------------------------------------------------
 
       if (kdyn == 1) call evp (dt)
       if (kdyn == 2) call eap (dt)
+      if (kdyn == 3) call imp_solver (dt)
 
       !-----------------------------------------------------------------
       ! Horizontal ice transport
