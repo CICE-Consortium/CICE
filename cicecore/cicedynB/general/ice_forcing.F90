@@ -929,7 +929,7 @@
            field_type        ! type of field (scalar, vector, angle)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-        intent(out) :: &
+        intent(inout) :: &
         field_data         ! 2 values needed for interpolation
 
       ! local variables
@@ -3658,16 +3658,8 @@
       use ice_flux, only: sss, sst, Tf, uocn, vocn, ss_tltx, ss_tlty, &
             qdp, hmix, frzmlt
 
-<<<<<<< HEAD
-=======
-      real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
-
-      integer :: i, j, iblk
- 
       character(len=*), parameter :: subname = '(ocn_data_oned)'
 
->>>>>>> 3c30e23f9da072174974ecf4eb7b8d46a6cf8473
       sss    (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
 
       call ocn_freezing_temperature
@@ -3904,7 +3896,7 @@
            field_type        ! type of field (scalar, vector, angle)
 
       real (kind=dbl_kind), dimension(2), &
-         intent(out) :: &
+         intent(inout) :: &
          field_data              ! 2 values needed for interpolation
 
       character(len=*), parameter :: subname = '(read_data_nc_point)'
@@ -4125,12 +4117,8 @@
 
       logical (kind=log_kind) :: read1
 
-<<<<<<< HEAD
-=======
       character(len=*), parameter :: subname = '(ISPOL_data)'
 
-      diag = .false.   ! write diagnostic information 
->>>>>>> 3c30e23f9da072174974ecf4eb7b8d46a6cf8473
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
