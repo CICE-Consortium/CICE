@@ -1678,70 +1678,88 @@
          csigmseu = p111*stressm_4u + ssigm1u + p027*stressm_2u
          csigmsev = p111*stressm_4v + ssigm1v + p027*stressm_2v
          
-         csig12ne = p222*stress12_1(i,j) + ssig122 &
-                  + p055*stress12_3(i,j)
-         csig12nw = p222*stress12_2(i,j) + ssig121 &
-                  + p055*stress12_4(i,j)
-         csig12sw = p222*stress12_3(i,j) + ssig122 &
-                  + p055*stress12_1(i,j)
-         csig12se = p222*stress12_4(i,j) + ssig121 &
-                  + p055*stress12_2(i,j)
+         csig12neu = p222*stress12_1u + ssig122u &
+                  + p055*stress12_3u
+         csig12nev = p222*stress12_1v + ssig122v &
+                  + p055*stress12_3v             
+         csig12nwu = p222*stress12_2u + ssig121u &
+                  + p055*stress12_4u
+         csig12nwv = p222*stress12_2v + ssig121v &
+                  + p055*stress12_4v
+         csig12swu = p222*stress12_3u + ssig122u &
+                  + p055*stress12_1u
+         csig12swv = p222*stress12_3v + ssig122v &
+                  + p055*stress12_1v
+         csig12seu = p222*stress12_4u + ssig121u &
+                  + p055*stress12_2u
+         csig12sev = p222*stress12_4v + ssig121v &
+                  + p055*stress12_2v         
 
-         str12ew = p5*dxt(i,j)*(p333*ssig12e + p166*ssig12w)
-         str12we = p5*dxt(i,j)*(p333*ssig12w + p166*ssig12e)
-         str12ns = p5*dyt(i,j)*(p333*ssig12n + p166*ssig12s)
-         str12sn = p5*dyt(i,j)*(p333*ssig12s + p166*ssig12n)
+         str12ewu = p5*dxt(i,j)*(p333*ssig12eu + p166*ssig12wu)
+         str12ewv = p5*dxt(i,j)*(p333*ssig12ev + p166*ssig12wv)
+         str12weu = p5*dxt(i,j)*(p333*ssig12wu + p166*ssig12eu)
+         str12wev = p5*dxt(i,j)*(p333*ssig12wv + p166*ssig12ev)
+         str12nsu = p5*dyt(i,j)*(p333*ssig12nu + p166*ssig12su)
+         str12nsv = p5*dyt(i,j)*(p333*ssig12nv + p166*ssig12sv)
+         str12snu = p5*dyt(i,j)*(p333*ssig12su + p166*ssig12nu)
+         str12snv = p5*dyt(i,j)*(p333*ssig12sv + p166*ssig12nv)
 
       !-----------------------------------------------------------------
       ! for dF/dx (u momentum)
       !-----------------------------------------------------------------
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+         strp_tmpu  = p25*dyt(i,j)*(p333*ssigpnu  + p166*ssigpsu)
+         strm_tmpu  = p25*dyt(i,j)*(p333*ssigmnu  + p166*ssigmsu)
 
          ! northeast (i,j)
-         str(i,j,1) = -strp_tmp - strm_tmp - str12ew &
-              + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
+         str1 = -strp_tmpu - strm_tmpu - str12ewu &
+              + dxhy(i,j)*(-csigpneu + csigmneu) + dyhx(i,j)*csig12neu
 
          ! northwest (i+1,j)
-         str(i,j,2) = strp_tmp + strm_tmp - str12we &
-              + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
+         str2 = strp_tmpu + strm_tmpu - str12weu &
+              + dxhy(i,j)*(-csigpnwu + csigmnwu) + dyhx(i,j)*csig12nwu
 
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+         strp_tmpu  = p25*dyt(i,j)*(p333*ssigpsu  + p166*ssigpnu)
+         strm_tmpu  = p25*dyt(i,j)*(p333*ssigmsu  + p166*ssigmnu)
 
          ! southeast (i,j+1)
-         str(i,j,3) = -strp_tmp - strm_tmp + str12ew &
-              + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
+         str3 = -strp_tmpu - strm_tmpu + str12ewu &
+              + dxhy(i,j)*(-csigpseu + csigmseu) + dyhx(i,j)*csig12seu
 
          ! southwest (i+1,j+1)
-         str(i,j,4) = strp_tmp + strm_tmp + str12we &
-              + dxhy(i,j)*(-csigpsw + csigmsw) + dyhx(i,j)*csig12sw
+         str4 = strp_tmpu + strm_tmpu + str12weu &
+              + dxhy(i,j)*(-csigpswu + csigmswu) + dyhx(i,j)*csig12swu
 
+         Du(i,j) = -uarear(i,j)*(str1 + str2 + str3 + str4) ! -sign to bring it on LHS
+         
+         ! MANQUE LE TERME CCAimp....
+              
       !-----------------------------------------------------------------
       ! for dF/dy (v momentum)
       !-----------------------------------------------------------------
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+         strp_tmpv  = p25*dxt(i,j)*(p333*ssigpev  + p166*ssigpwv)
+         strm_tmpv  = p25*dxt(i,j)*(p333*ssigmev  + p166*ssigmwv)
 
          ! northeast (i,j)
-         str(i,j,5) = -strp_tmp + strm_tmp - str12ns &
-              - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
+         str5 = -strp_tmpv + strm_tmpv - str12nsv &
+              - dyhx(i,j)*(csigpnev + csigmnev) + dxhy(i,j)*csig12nev
 
          ! southeast (i,j+1)
-         str(i,j,6) = strp_tmp - strm_tmp - str12sn &
-              - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
+         str6 = strp_tmpv - strm_tmpv - str12snv &
+              - dyhx(i,j)*(csigpsev + csigmsev) + dxhy(i,j)*csig12sev
 
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+         strp_tmpv  = p25*dxt(i,j)*(p333*ssigpwv  + p166*ssigpev)
+         strm_tmpv  = p25*dxt(i,j)*(p333*ssigmwv  + p166*ssigmev)
 
          ! northwest (i+1,j)
-         str(i,j,7) = -strp_tmp + strm_tmp + str12ns &
-              - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
+         str7 = -strp_tmpv + strm_tmpv + str12nsv &
+              - dyhx(i,j)*(csigpnwv + csigmnwv) + dxhy(i,j)*csig12nwv
 
          ! southwest (i+1,j+1)
-         str(i,j,8) = strp_tmp - strm_tmp + str12sn &
-              - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
+         str8 = strp_tmpv - strm_tmpv + str12snv &
+              - dyhx(i,j)*(csigpswv + csigmswv) + dxhy(i,j)*csig12swv
 
+         Dv(i,j) = -uarear(i,j)*(str5 + str6 + str7 + str8) ! -sign to bring it on LHS              
+              
       enddo                     ! ij
 
       end subroutine precondD
