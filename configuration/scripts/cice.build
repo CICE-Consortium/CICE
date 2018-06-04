@@ -57,9 +57,7 @@ ${ICE_SANDBOX}/cicecore/cicedynB/infrastructure
 ${ICE_SANDBOX}/cicecore/cicedynB/infrastructure/io/$IODIR
 ${ICE_SANDBOX}/cicecore/cicedynB/infrastructure/comm/${ICE_COMMDIR}
 ${ICE_SANDBOX}/cicecore/shared
-${ICE_SANDBOX}/cicecore/shared/constants/${ICE_CONSTOPT}
 ${ICE_SANDBOX}/icepack/columnphysics
-${ICE_SANDBOX}/icepack/columnphysics/constants/${ICE_CONSTOPT}
 EOF
 
 echo " "
