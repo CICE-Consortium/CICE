@@ -141,6 +141,11 @@
          aiu      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
+         
+      real (kind=dbl_kind), dimension (2*nx_block*ny_block, max_blocks) :: &
+         bvec     , & ! b vector (...bu(i,j), bv(i,j),....)
+         Aw       , & ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)
+         DiagA        ! diagonal of matrix A
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
@@ -434,34 +439,37 @@
                          uarear   (:,:,iblk), Cb      (:,:,iblk), & 
                          strintx  (:,:,iblk), strinty (:,:,iblk), &
                          uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                         Au       (:,:,iblk), Av      (:,:,iblk))
+                         Au       (:,:,iblk), Av      (:,:,iblk), &
+                         Aw       (:,iblk))
 
 ! end of Au and Av calc
 ! CALC b_u and b_v (bvec)
                          
                          
-            call bvec (nx_block           , ny_block,           &
-                       icellu       (iblk), Cdn_ocn (:,:,iblk), & 
-                       indxui     (:,iblk), indxuj    (:,iblk), &
-                       kOL                ,                     &
-                       aiu      (:,:,iblk),                     & 
-                       uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                       waterx   (:,:,iblk), watery  (:,:,iblk), & 
-                       forcex   (:,:,iblk), forcey  (:,:,iblk), & 
-                       umassdti (:,:,iblk),                     &
-                       uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
-                       uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                       bxfix    (:,:,iblk), byfix   (:,:,iblk), &
-                       bx       (:,:,iblk), by      (:,:,iblk))                         
+            call calc_bvec (nx_block           , ny_block,           &
+                            icellu       (iblk), Cdn_ocn (:,:,iblk), & 
+                            indxui     (:,iblk), indxuj    (:,iblk), &
+                            kOL                ,                     &
+                            aiu      (:,:,iblk),                     & 
+                            uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                            waterx   (:,:,iblk), watery  (:,:,iblk), & 
+                            forcex   (:,:,iblk), forcey  (:,:,iblk), & 
+                            umassdti (:,:,iblk),                     &
+                            uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
+                            uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                            bxfix    (:,:,iblk), byfix   (:,:,iblk), &
+                            bx       (:,:,iblk), by      (:,:,iblk), &
+                            bvec     (:,iblk))                         
            
             call residual_vec (nx_block           , ny_block,           &
                                icellu       (iblk),                     & 
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                bx       (:,:,iblk), by      (:,:,iblk), &
                                Au       (:,:,iblk), Av      (:,:,iblk), &
+                               Aw       (:,iblk)  , bvec    (:,iblk)  , &
                                Fx       (:,:,iblk), Fy      (:,:,iblk), &
                                L2norm(iblk))
-                               
+  stop
             call precondD  (nx_block,             ny_block,             & 
                             kOL,                  icellt(iblk),         & 
                             indxti      (:,iblk), indxtj      (:,iblk), & 
@@ -470,9 +478,10 @@
                             cxp       (:,:,iblk), cyp       (:,:,iblk), & 
                             cxm       (:,:,iblk), cym       (:,:,iblk), & 
                             uarear    (:,:,iblk),                       &
-                            vrel     (:,:,iblk) , Cb        (:,:,iblk), &
-                            umassdti (:,:,iblk) , zetaD   (:,:,iblk,:), &
-                            Diagu     (:,:,iblk), diagv   (:,:,iblk)) 
+                            vrel      (:,:,iblk), Cb        (:,:,iblk), &
+                            umassdti  (:,:,iblk), zetaD   (:,:,iblk,:), &
+                            Diagu     (:,:,iblk), Diagv   (:,:,iblk)  , &
+                            DiagA     (:,iblk)) 
                             
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
@@ -1121,7 +1130,8 @@
                          uarear,     Cb,       &
                          strintx,    strinty,  &
                          uvel,       vvel,     &
-                         Au,         Av)
+                         Au,         Av,       &
+                         Aw)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1161,6 +1171,10 @@
          Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
          Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
          
+      real (kind=dbl_kind), dimension (2*nx_block*ny_block), &
+         intent(inout) :: &
+         Aw          ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)   
+         
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1198,7 +1212,9 @@
 
          Au(i,j) = ccaimp*utp - ccb*vtp - strintx(i,j)
          Av(i,j) = ccaimp*vtp + ccb*utp - strinty(i,j)
-             
+         
+         Aw(2*ij-1)= ccaimp*utp - ccb*vtp - strintx(i,j)
+         Aw(2*ij)  = ccaimp*vtp + ccb*utp - strinty(i,j)
       !-----------------------------------------------------------------
       ! ocean-ice stress for coupling
       ! here, strocn includes the factor of aice
@@ -1274,7 +1290,7 @@
       
 !=======================================================================
 
-      subroutine bvec (nx_block,   ny_block, &
+      subroutine calc_bvec (nx_block,   ny_block, &
                        icellu,     Cw,       &
                        indxui,     indxuj,   &
                        kOL,                  &
@@ -1286,7 +1302,8 @@
                        uvel_init,  vvel_init,&
                        uvel,       vvel,     &
                        bxfix,      byfix,    &
-                       bx,         by)
+                       bx,         by,       &
+                       bvec)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1318,6 +1335,10 @@
          intent(inout) :: &
          bx      , & ! b vector, bx = taux + bxfix (N/m^2) !jfl
          by          ! b vector, by = tauy + byfix (N/m^2) !jfl
+         
+      real (kind=dbl_kind), dimension (2*nx_block*ny_block), &
+         intent(inout) :: &
+         bvec        ! b vector, bijx, bijy
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
@@ -1360,9 +1381,12 @@
          bx(i,j) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j) + taux
          by(i,j) = umassdti(i,j)*vvel_init(i,j) + forcey(i,j) + tauy
          
+         bvec(2*ij-1)= umassdti(i,j)*uvel_init(i,j) + forcex(i,j) + taux
+         bvec(2*ij)  = umassdti(i,j)*vvel_init(i,j) + forcey(i,j) + tauy
+         
       enddo                     ! ij
 
-      end subroutine bvec
+      end subroutine calc_bvec
       
       !=======================================================================
 
@@ -1371,6 +1395,7 @@
                                indxui,     indxuj,   &
                                bx,         by,       &
                                Au,         Av,       &
+                               Aw,         bvec,     &
                                Fx,         Fy,       &
                                L2normtp)
 
@@ -1389,6 +1414,11 @@
          Au       , & ! matvec, Fx = Au - bx (N/m^2) ! jfl
          Av           ! matvec, Fy = Av - by (N/m^2) ! jfl
 
+      real (kind=dbl_kind), dimension (2*nx_block*ny_block), &
+         intent(in) :: &
+         bvec     , & ! b vector, bijx, bijy   
+         Aw
+         
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          Fx      , & ! x residual vector, Fx = Au - bx (N/m^2)
@@ -1399,6 +1429,11 @@
 
       ! local variables
 
+      real (kind=dbl_kind), dimension (2*nx_block*ny_block) :: &
+         Fres
+      
+      real (kind=dbl_kind) :: L2norm
+      
       integer (kind=int_kind) :: &
          i, j, ij
 
@@ -1410,16 +1445,22 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
+      L2normtp=0d0   
+         
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
          Fx(i,j) = Au(i,j) - bx(i,j)
          Fy(i,j) = Av(i,j) - by(i,j)
+         L2normtp = L2normtp + Fx(i,j)**2 + Fy(i,j)**2
+         Fres(2*ij-1) = Au(i,j) - bx(i,j)
+         Fres(2*ij)   = Av(i,j) - by(i,j)
          
       enddo                     ! ij
       
-      L2normtp = DOT_PRODUCT(Fx,Fx)+DOT_PRODUCT(Fy,Fy)
+       L2norm = sqrt(DOT_PRODUCT(Fres,Fres))
+       print *, 'L2norm', L2norm, sqrt(L2normtp)
 
       end subroutine residual_vec
       
@@ -1435,7 +1476,7 @@
                             uarear,                 &
                             vrel,       Cb,         &
                             umassdti,   zetaD,      &
-                            Diagu, Diagv)
+                            Diagu, Diagv, DiagA)
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1470,6 +1511,9 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &         
          Diagu,     & ! diagonal matrix coefficients for u component
          Diagv        ! diagonal matrix coefficients for v component
+         
+      real (kind=dbl_kind), dimension (2*nx_block*ny_block), intent(inout) :: &   
+         DiagA
 
       ! local variables
 
@@ -1542,7 +1586,6 @@
          shearneDv = -cym(i,j)      
          shearnwDv = dyt(i,j)
          shearseDu = dxt(i,j)
-
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
