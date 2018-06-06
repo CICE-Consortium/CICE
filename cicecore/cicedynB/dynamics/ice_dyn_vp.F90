@@ -145,7 +145,8 @@
       real (kind=dbl_kind), dimension (2*nx_block*ny_block, max_blocks) :: &
          bvec     , & ! b vector (...bu(i,j), bv(i,j),....)
          Aw       , & ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)
-         DiagA        ! diagonal of matrix A
+         DiagA    , & ! diagonal of matrix A
+         tpvec        ! for debugging
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
@@ -459,7 +460,13 @@
                             uvel     (:,:,iblk), vvel    (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
-                            bvec     (:,iblk))                         
+                            bvec     (:,iblk))
+                            
+            call form_vec  (nx_block           , ny_block,           &
+                            icellu       (iblk),                     & 
+                            indxui     (:,iblk), indxuj    (:,iblk), &
+                            uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                            tpvec     (:,iblk))                                                     
            
             call residual_vec (nx_block           , ny_block,           &
                                icellu       (iblk),                     & 
@@ -1798,6 +1805,57 @@
       enddo                     ! ij
 
       end subroutine precondD
+      
+      !=======================================================================
+
+      subroutine form_vec (nx_block,   ny_block, &
+                           icellu,               &
+                           indxui,     indxuj,   &
+                           tpu,        tpv ,     &
+                           tpvec)
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icellu                ! total count when iceumask is true
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+         intent(in) :: &
+         indxui  , & ! compressed index in i-direction
+         indxuj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         tpu     , & ! x-component of vector
+         tpv         ! y-component of vector         
+
+      real (kind=dbl_kind), dimension (2*nx_block*ny_block), &
+         intent(inout) :: &
+         tpvec        ! vector
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+         
+      real (kind=dbl_kind) :: L2norm
+
+      !-----------------------------------------------------------------
+      ! fomr vector
+      !-----------------------------------------------------------------
+
+      do ij =1, icellu
+         i = indxui(ij)
+         j = indxuj(ij)
+         
+         tpvec(2*ij-1)= tpu(i,j)
+         tpvec(2*ij)  = tpv(i,j)
+         
+      enddo                     ! ij
+
+      L2norm = sqrt(DOT_PRODUCT(tpvec,tpvec))
+      
+      print *, 'ici uvel', icellu, L2norm
+      
+      end subroutine form_vec
       
 !      JFL ROUTINE POUR CALC STRESS OCN POUR COUPLAGE
       
