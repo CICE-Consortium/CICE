@@ -104,14 +104,14 @@
       integer (kind=int_kind) :: & 
          kOL            , & ! outer loop iteration
          kmax           , & ! jfl put in namelist
+         ntot           , & ! size of problem for fgmres (for given cpu)
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
 
       integer (kind=int_kind), dimension(max_blocks) :: & 
          icellt   , & ! no. of cells where icetmask = 1
-         icellu   , & ! no. of cells where iceumask = 1
-         ntot         ! ntot = 2*icellu
+         icellu       ! no. of cells where iceumask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks) :: &
          indxti   , & ! compressed index in i-direction
@@ -144,6 +144,8 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
          
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
+      
+      real (kind=dbl_kind), allocatable :: bvec(:), sol(:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
 
@@ -319,13 +321,23 @@
                                       strength(i,j,  iblk) )
          enddo  ! ij
 
-         ! load velocity into array for boundary updates
+         ! load velocity into array for boundary updates JFL move?
          fld2(:,:,1,iblk) = uvel(:,:,iblk)
          fld2(:,:,2,iblk) = vvel(:,:,iblk)
 
       enddo  ! iblk
       !$TCXOMP END PARALLEL DO
 
+      !-----------------------------------------------------------------
+      ! value of ntot
+      !-----------------------------------------------------------------
+      
+      ntot=0
+      do iblk = 1, nblocks
+        ntot = ntot + icellu(iblk)      
+      enddo
+      ntot = 2*ntot ! times 2 because of u and v
+      
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
@@ -452,10 +464,10 @@
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk))
                             
-            call form_vec  (nx_block           , ny_block,           &
-                            icellu       (iblk),                     & 
-                            indxui     (:,iblk), indxuj    (:,iblk), &
-                            uvel     (:,:,iblk), vvel    (:,:,iblk))                                                     
+            call calc_L2norm (nx_block           , ny_block,           &
+                             icellu       (iblk),                     & 
+                             indxui     (:,iblk), indxuj    (:,iblk), &
+                             uvel     (:,:,iblk), vvel    (:,:,iblk))                                                     
            
             call residual_vec (nx_block           , ny_block,           &
                                icellu       (iblk),                     & 
@@ -464,9 +476,6 @@
                                Au       (:,:,iblk), Av      (:,:,iblk), &
                                Fx       (:,:,iblk), Fy      (:,:,iblk), &
                                L2norm(iblk))
-  
-  stop
-  
   
             call precondD  (nx_block,             ny_block,             & 
                             kOL                 , icellt(iblk),         & 
@@ -478,7 +487,7 @@
                             uarear    (:,:,iblk),                       &
                             vrel      (:,:,iblk), Cb        (:,:,iblk), &
                             umassdti  (:,:,iblk), zetaD   (:,:,iblk,:), &
-                            Diagu     (:,:,iblk), Diagv   (:,:,iblk)) 
+                            Diagu     (:,:,iblk), Diagv   (:,:,iblk))
                             
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
@@ -486,6 +495,14 @@
             
          enddo
          !$OMP END PARALLEL DO
+         
+         allocate(bvec(ntot))
+         ! form b vector for fgmres
+         call form_vec      (nx_block, ny_block, max_blocks, &
+                             icellu        (:), ntot,        & 
+                             indxui      (:,:), indxuj(:,:), &
+                             bx        (:,:,:), by  (:,:,:), &
+                             bvec(:))  
 
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
@@ -1777,10 +1794,10 @@
       
       !=======================================================================
 
-      subroutine form_vec (nx_block,   ny_block, &
-                           icellu,               &
-                           indxui,     indxuj,   &
-                           tpu,        tpv )
+      subroutine calc_L2norm (nx_block,   ny_block, &
+                              icellu,               &
+                              indxui,     indxuj,   &
+                              tpu,        tpv )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1803,23 +1820,79 @@
       real (kind=dbl_kind) :: L2norm
 
       !-----------------------------------------------------------------
-      ! fomr vector
+      ! form vector
       !-----------------------------------------------------------------
 
-!      tpvec(:)=c0
+     L2norm = c0
       
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
          
-!         tpvec(2*ij-1)= tpu(i,j)
-!         tpvec(2*ij)  = tpv(i,j)
+         L2norm = L2norm + tpu(i,j)**2
+         L2norm = L2norm + tpv(i,j)**2
          
       enddo                     ! ij
 
-!      L2norm = sqrt(DOT_PRODUCT(tpvec,tpvec))
+      L2norm = sqrt(L2norm)
       
-!      print *, 'ici uvel', icellu, L2norm
+      print *, 'ici uvel', nx_block, ny_block, icellu, L2norm
+      
+      end subroutine calc_L2norm
+      
+            !=======================================================================
+
+      subroutine form_vec (nx_block, ny_block, max_blocks, &
+                           icellu,   ntot,                 &
+                           indxui,   indxuj,               &
+                           tpu,      tpv,                  &
+                           outvec)
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         max_blocks,         & ! nb of blocks
+         ntot                  ! size of problem for fgmres
+
+      integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
+         icellu          
+         
+      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
+         intent(in) :: &
+         indxui  , & ! compressed index in i-direction
+         indxuj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(in) :: &
+         tpu     , & ! x-component of vector
+         tpv         ! y-component of vector         
+         
+      real (kind=dbl_kind), dimension (ntot), intent(inout) :: &
+         outvec
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, tot, ij
+         
+
+      !-----------------------------------------------------------------
+      ! fomr vector
+      !-----------------------------------------------------------------
+
+      outvec(:)=c0
+      tot=0
+      
+      do iblk=1, max_blocks
+       do ij =1, icellu(iblk)
+          i = indxui(ij,iblk)
+          j = indxuj(ij,iblk)
+          tot=tot+1
+          outvec(tot)=tpu(i,j,iblk)
+          tot=tot+1
+          outvec(tot)=tpv(i,j,iblk)
+       enddo
+      enddo! ij
+
+      print *, 'NTOT', tot, ntot
       
       end subroutine form_vec
       
