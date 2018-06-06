@@ -386,7 +386,7 @@
       do kOL = 1,kmax        ! outer loop 
 
       !-----------------------------------------------------------------
-      ! stress tensor equation, total surface stress
+      ! Calc zetaD, vrel, Cb and vrel = f(uprev_k, vprev_k)
       !-----------------------------------------------------------------
 
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
@@ -394,19 +394,44 @@
 
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
+            
+            call viscous_coeff (nx_block           , ny_block,           &
+                                kOL                , icellt(iblk),       & 
+                                indxti   (:,iblk)  , indxtj(:,iblk),     & 
+                                uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                                dxt      (:,:,iblk), dyt   (:,:,iblk),   & 
+                                dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
+                                cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
+                                cxm      (:,:,iblk), cym   (:,:,iblk),   & 
+                                tarear   (:,:,iblk), tinyarea (:,:,iblk),& 
+                                strength (:,:,iblk), zetaD (:,:,iblk,:))                      
+            
+            call calc_vrel_Cb (nx_block           , ny_block,           &
+                               icellu       (iblk), Cdn_ocn (:,:,iblk), & 
+                               indxui     (:,iblk), indxuj    (:,iblk), &
+                               kOL                ,                     &
+                               aiu      (:,:,iblk), Tbu     (:,:,iblk), &
+                               uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                               vrel     (:,:,iblk), Cb      (:,:,iblk))
+                               
+            call calc_bvec (nx_block           , ny_block,           &
+                            icellu       (iblk),                     & 
+                            indxui     (:,iblk), indxuj    (:,iblk), &
+                            kOL                , Cdn_ocn (:,:,iblk), &
+                            aiu      (:,:,iblk),                     & 
+                            uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                            waterx   (:,:,iblk), watery  (:,:,iblk), & 
+                            uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                            bxfix    (:,:,iblk), byfix   (:,:,iblk), &
+                            bx       (:,:,iblk), by      (:,:,iblk))
+                            
+         enddo
+         !$OMP END PARALLEL DO                            
          
-! CALC Au and Av (MATVEC)
-                                
-            call viscous_coeff (nx_block           ,  ny_block,           &
-                                kOL                ,  icellt(iblk),       & 
-                                indxti   (:,iblk)  ,  indxtj(:,iblk),     & 
-                                uvel     (:,:,iblk),  vvel  (:,:,iblk),   & 
-                                dxt      (:,:,iblk),  dyt   (:,:,iblk),   & 
-                                dxhy     (:,:,iblk),  dyhx  (:,:,iblk),   & 
-                                cxp      (:,:,iblk),  cyp   (:,:,iblk),   & 
-                                cxm      (:,:,iblk),  cym   (:,:,iblk),   & 
-                                tarear   (:,:,iblk),  tinyarea (:,:,iblk),& 
-                                strength  (:,:,iblk), zetaD (:,:,iblk,:))                                              
+
+         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+         do iblk = 1, nblocks                                  
 
             call stress_vp (nx_block,             ny_block,             & 
                             kOL,                  icellt(iblk),         & 
@@ -426,16 +451,7 @@
                             stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                             shear     (:,:,iblk), divu      (:,:,iblk), & 
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
-                            strtmp    (:,:,:))
-
-            call calc_vrel_Cb (nx_block           , ny_block,           &
-                               icellu       (iblk), Cdn_ocn (:,:,iblk), & 
-                               indxui     (:,iblk), indxuj    (:,iblk), &
-                               kOL                ,                     &
-                               aiu      (:,:,iblk), Tbu     (:,:,iblk), &
-                               uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                               uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                               vrel     (:,:,iblk), Cb      (:,:,iblk))                                                              
+                            strtmp    (:,:,:))                                                             
                                
             call matvec (nx_block           , ny_block,           &
                          icellu       (iblk),                     & 
@@ -452,19 +468,8 @@
 ! end of Au and Av calc
 ! CALC b_u and b_v (bvec)
                          
-                         
-            call calc_bvec (nx_block           , ny_block,           &
-                            icellu       (iblk),                     & 
-                            indxui     (:,iblk), indxuj    (:,iblk), &
-                            kOL                , Cdn_ocn (:,:,iblk), &
-                            aiu      (:,:,iblk),                     & 
-                            uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                            waterx   (:,:,iblk), watery  (:,:,iblk), & 
-                            uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                            bxfix    (:,:,iblk), byfix   (:,:,iblk), &
-                            bx       (:,:,iblk), by      (:,:,iblk))
                             
-            call calc_L2norm (nx_block           , ny_block,           &
+            call calc_L2norm (nx_block           , ny_block,          &
                              icellu       (iblk),                     & 
                              indxui     (:,iblk), indxuj    (:,iblk), &
                              uvel     (:,:,iblk), vvel    (:,:,iblk))                                                     
@@ -492,17 +497,23 @@
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
             fld2(:,:,2,iblk) = vvel(:,:,iblk)            
-            
+
          enddo
          !$OMP END PARALLEL DO
          
-         allocate(bvec(ntot))
-         ! form b vector for fgmres
+         allocate(bvec(ntot), sol(ntot))
+         ! form b vector for fgmres         
          call form_vec      (nx_block, ny_block, max_blocks, &
                              icellu        (:), ntot,        & 
                              indxui      (:,:), indxuj(:,:), &
                              bx        (:,:,:), by  (:,:,:), &
-                             bvec(:))  
+                             bvec(:))
+         ! form sol vector for fgmres (sol is iniguess at the beginning)        
+         call form_vec      (nx_block, ny_block, max_blocks,   &
+                             icellu      (:), ntot,            & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             uprev_k (:,:,:), vprev_k (:,:,:), &
+                             sol(:))                               
 
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
@@ -1452,7 +1463,7 @@
 !      enddo
       
 !       L2norm = sqrt(DOT_PRODUCT(Fres,Fres))
-       print *, 'ici L2norm', sqrt(L2normtp)
+!       print *, 'ici L2norm', sqrt(L2normtp)
 
       end subroutine residual_vec
       
@@ -1836,7 +1847,7 @@
 
       L2norm = sqrt(L2norm)
       
-      print *, 'ici uvel', nx_block, ny_block, icellu, L2norm
+!      print *, 'ici uvel', nx_block, ny_block, icellu, L2norm
       
       end subroutine calc_L2norm
       
@@ -1892,7 +1903,7 @@
        enddo
       enddo! ij
 
-      print *, 'NTOT', tot, ntot
+!      print *, 'NTOT', max_blocks, tot, ntot
       
       end subroutine form_vec
       
