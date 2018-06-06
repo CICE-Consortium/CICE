@@ -105,12 +105,14 @@
          kOL            , & ! outer loop iteration
          kmax           , & ! jfl put in namelist
          iblk           , & ! block index
+         ntottp         , & ! ntottp = 2*icellu
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
 
       integer (kind=int_kind), dimension(max_blocks) :: & 
          icellt   , & ! no. of cells where icetmask = 1
-         icellu       ! no. of cells where iceumask = 1
+         icellu   , & ! no. of cells where iceumask = 1
+         ntot         ! ntot = 2*icellu
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks) :: &
          indxti   , & ! compressed index in i-direction
@@ -142,11 +144,11 @@
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
          
-      real (kind=dbl_kind), dimension (2*nx_block*ny_block, max_blocks) :: &
-         bvec     , & ! b vector (...bu(i,j), bv(i,j),....)
-         Aw       , & ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)
-         DiagA    , & ! diagonal of matrix A
-         tpvec        ! for debugging
+      real (kind=dbl_kind), allocatable :: &
+         bvec(:,:)  , & ! b vector (...bu(i,j), bv(i,j),....)
+         Aw(:,:)    , & ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)
+         DiagA(:,:) , & ! diagonal of matrix A
+         tpvec(:,:)     ! for debugging
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
@@ -299,6 +301,10 @@
                          uvel      (:,:,iblk), vvel      (:,:,iblk), &
                          Tbu       (:,:,iblk))
 
+         ntot(iblk) = 2*icellu(iblk)                         
+         allocate(bvec(ntot(iblk),max_blocks), Aw(ntot(iblk),max_blocks), & 
+                  DiagA(ntot(iblk),max_blocks), tpvec(ntot(iblk),max_blocks))
+         
          call calc_bfix (nx_block            , ny_block,             & 
                          icellu(iblk)        ,                       & 
                          indxui      (:,iblk), indxuj      (:,iblk), & 
@@ -431,7 +437,7 @@
                                vrel     (:,:,iblk), Cb      (:,:,iblk))                                                              
                                
             call matvec (nx_block           , ny_block,           &
-                         icellu       (iblk),                     & 
+                         icellu       (iblk), ntot      (iblk),   & 
                          indxui     (:,iblk), indxuj    (:,iblk), &
                          kOL                ,                     &
                          aiu      (:,:,iblk), strtmp  (:,:,:),    &
@@ -448,9 +454,9 @@
                          
                          
             call calc_bvec (nx_block           , ny_block,           &
-                            icellu       (iblk), Cdn_ocn (:,:,iblk), & 
+                            icellu       (iblk), ntot    (iblk),     & 
                             indxui     (:,iblk), indxuj    (:,iblk), &
-                            kOL                ,                     &
+                            kOL                , Cdn_ocn (:,:,iblk), &
                             aiu      (:,:,iblk),                     & 
                             uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
@@ -463,22 +469,25 @@
                             bvec     (:,iblk))
                             
             call form_vec  (nx_block           , ny_block,           &
-                            icellu       (iblk),                     & 
+                            icellu       (iblk), ntot    (iblk),     & 
                             indxui     (:,iblk), indxuj    (:,iblk), &
                             uvel     (:,:,iblk), vvel    (:,:,iblk), &
                             tpvec     (:,iblk))                                                     
            
             call residual_vec (nx_block           , ny_block,           &
-                               icellu       (iblk),                     & 
+                               icellu       (iblk), ntot    (iblk),     & 
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                bx       (:,:,iblk), by      (:,:,iblk), &
                                Au       (:,:,iblk), Av      (:,:,iblk), &
                                Aw       (:,iblk)  , bvec    (:,iblk)  , &
                                Fx       (:,:,iblk), Fy      (:,:,iblk), &
                                L2norm(iblk))
+  
   stop
+  
+  
             call precondD  (nx_block,             ny_block,             & 
-                            kOL,                  icellt(iblk),         & 
+                            kOL,            icellt(iblk), ntot(iblk),   & 
                             indxti      (:,iblk), indxtj      (:,iblk), & 
                             dxt       (:,:,iblk), dyt       (:,:,iblk), & 
                             dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
@@ -518,6 +527,7 @@
       enddo                     ! outer loop
 
       deallocate(fld2)
+      deallocate(bvec, Aw, DiagA, tpvec)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       ! Force symmetry across the tripole seam
@@ -832,6 +842,7 @@
 !DIR$ CONCURRENT !Cray
 !cdir nodep      !NEC
 !ocl novrec      !Fujitsu
+
       do ij = 1, icellt
          i = indxti(ij)
          j = indxtj(ij)
@@ -1128,7 +1139,7 @@
 !=======================================================================
 
       subroutine matvec (nx_block,   ny_block, &
-                         icellu,               &
+                         icellu,     ntot,     &
                          indxui,     indxuj,   &
                          kOL,                  &
                          aiu,        str,      &
@@ -1143,6 +1154,7 @@
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu,             & ! total count when iceumask is true
+         ntot,               & ! size of problem ntot=2*icellu
          kOL                   ! outer loop iteration
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
@@ -1178,7 +1190,7 @@
          Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
          Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
          
-      real (kind=dbl_kind), dimension (2*nx_block*ny_block), &
+      real (kind=dbl_kind), dimension (ntot), &
          intent(inout) :: &
          Aw          ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)   
          
@@ -1200,6 +1212,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
+      Aw(:)=c0   
+         
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -1298,9 +1312,9 @@
 !=======================================================================
 
       subroutine calc_bvec (nx_block,   ny_block, &
-                       icellu,     Cw,       &
+                       icellu,     ntot,     &
                        indxui,     indxuj,   &
-                       kOL,                  &
+                       kOL,        Cw,       &
                        aiu,                  &
                        uocn,       vocn,     &
                        waterx,     watery,   &
@@ -1315,6 +1329,7 @@
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu,             & ! total count when iceumask is true
+         ntot,               & ! size of problem ntot=2*icellu
          kOL                   ! outer loop iteration
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
@@ -1343,7 +1358,7 @@
          bx      , & ! b vector, bx = taux + bxfix (N/m^2) !jfl
          by          ! b vector, by = tauy + byfix (N/m^2) !jfl
          
-      real (kind=dbl_kind), dimension (2*nx_block*ny_block), &
+      real (kind=dbl_kind), dimension (ntot), &
          intent(inout) :: &
          bvec        ! b vector, bijx, bijy
 
@@ -1371,6 +1386,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
+      bvec(:)=c0   
+         
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -1398,7 +1415,7 @@
       !=======================================================================
 
       subroutine residual_vec (nx_block,   ny_block, &
-                               icellu,               &
+                               icellu,     ntot,     &
                                indxui,     indxuj,   &
                                bx,         by,       &
                                Au,         Av,       &
@@ -1408,7 +1425,8 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
+         icellu,             & ! total count when iceumask is true
+         ntot                  ! size of problem ntot=2*icellu
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -1421,7 +1439,7 @@
          Au       , & ! matvec, Fx = Au - bx (N/m^2) ! jfl
          Av           ! matvec, Fy = Av - by (N/m^2) ! jfl
 
-      real (kind=dbl_kind), dimension (2*nx_block*ny_block), &
+      real (kind=dbl_kind), dimension (ntot), &
          intent(in) :: &
          bvec     , & ! b vector, bijx, bijy   
          Aw
@@ -1436,7 +1454,7 @@
 
       ! local variables
 
-      real (kind=dbl_kind), dimension (2*nx_block*ny_block) :: &
+      real (kind=dbl_kind), dimension (ntot) :: &
          Fres
       
       real (kind=dbl_kind) :: L2norm
@@ -1452,7 +1470,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
-      L2normtp=0d0   
+      L2normtp=c0
+      Fres(:)=c0
          
       do ij =1, icellu
          i = indxui(ij)
@@ -1467,14 +1486,14 @@
       enddo                     ! ij
       
        L2norm = sqrt(DOT_PRODUCT(Fres,Fres))
-       print *, 'L2norm', L2norm, sqrt(L2normtp)
+       print *, 'ici L2norm', L2norm, sqrt(L2normtp), icellu, 2*nx_block*ny_block
 
       end subroutine residual_vec
       
 !=======================================================================
 
       subroutine precondD  (nx_block,   ny_block,   & 
-                            kOL,        icellt,     & 
+                            kOL,     icellt, ntot,  & 
                             indxti,     indxtj,     & 
                             dxt,        dyt,        & 
                             dxhy,       dyhx,       & 
@@ -1488,7 +1507,8 @@
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          kOL               , & ! subcycling step
-         icellt                ! no. of cells where icetmask = 1
+         icellt            , & ! no. of cells where icetmask = 1
+         ntot                  ! size of problem ntot=2*icellu
 
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
          intent(in) :: &
@@ -1519,7 +1539,7 @@
          Diagu,     & ! diagonal matrix coefficients for u component
          Diagv        ! diagonal matrix coefficients for v component
          
-      real (kind=dbl_kind), dimension (2*nx_block*ny_block), intent(inout) :: &   
+      real (kind=dbl_kind), dimension (ntot), intent(inout) :: &   
          DiagA
 
       ! local variables
@@ -1569,6 +1589,10 @@
 !DIR$ CONCURRENT !Cray
 !cdir nodep      !NEC
 !ocl novrec      !Fujitsu
+
+
+! ATTENTION ICI CEST icellt et non pas icellu....MODIF A FAIRE!!!
+
       do ij = 1, icellt
          i = indxti(ij)
          j = indxtj(ij)
@@ -1809,14 +1833,15 @@
       !=======================================================================
 
       subroutine form_vec (nx_block,   ny_block, &
-                           icellu,               &
+                           icellu,     ntot,     &
                            indxui,     indxuj,   &
                            tpu,        tpv ,     &
                            tpvec)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
+         icellu,             & ! total count when iceumask is true
+         ntot                  ! size of the problem ntot=2*icellu
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -1827,7 +1852,7 @@
          tpu     , & ! x-component of vector
          tpv         ! y-component of vector         
 
-      real (kind=dbl_kind), dimension (2*nx_block*ny_block), &
+      real (kind=dbl_kind), dimension (ntot), &
          intent(inout) :: &
          tpvec        ! vector
 
@@ -1842,6 +1867,8 @@
       ! fomr vector
       !-----------------------------------------------------------------
 
+      tpvec(:)=c0
+      
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
