@@ -145,9 +145,10 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
          
       real (kind=dbl_kind), allocatable :: &
-         bvec(:,:)  , & ! b vector (...bu(i,j), bv(i,j),....)
-         Aw(:,:)    , & ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)
-         DiagA(:,:) , & ! diagonal of matrix A
+         bvecfix(:,:), & ! part of b vector that does not change durign the OL
+         bvec(:,:)   , & ! b vector (...bu(i,j), bv(i,j),....)
+         Aw(:,:)     , & ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)
+         DiagA(:,:)  , & ! diagonal of matrix A
          tpvec(:,:)     ! for debugging
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
@@ -302,16 +303,18 @@
                          Tbu       (:,:,iblk))
 
          ntot(iblk) = 2*icellu(iblk)                         
-         allocate(bvec(ntot(iblk),max_blocks), Aw(ntot(iblk),max_blocks), & 
-                  DiagA(ntot(iblk),max_blocks), tpvec(ntot(iblk),max_blocks))
+         allocate(bvec(ntot(iblk),max_blocks), bvecfix(ntot(iblk),max_blocks), &
+                  Aw(ntot(iblk),max_blocks), DiagA(ntot(iblk),max_blocks), & 
+                  tpvec(ntot(iblk),max_blocks))
          
          call calc_bfix (nx_block            , ny_block,             & 
-                         icellu(iblk)        ,                       & 
+                         icellu(iblk)        , ntot      (iblk),     & 
                          indxui      (:,iblk), indxuj      (:,iblk), & 
                          umassdti  (:,:,iblk),                       & 
                          forcex    (:,:,iblk), forcey    (:,:,iblk), & 
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
-                         bxfix     (:,:,iblk), byfix     (:,:,iblk))                         
+                         bxfix     (:,:,iblk), byfix     (:,:,iblk), &
+                         bvecfix   (:,iblk))                         
                          
       !-----------------------------------------------------------------
       ! ice strength
@@ -460,13 +463,10 @@
                             aiu      (:,:,iblk),                     & 
                             uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
-                            forcex   (:,:,iblk), forcey  (:,:,iblk), & 
-                            umassdti (:,:,iblk),                     &
-                            uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
                             uvel     (:,:,iblk), vvel    (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
-                            bvec     (:,iblk))
+                            bvecfix  (:,iblk)  , bvec     (:,iblk))
                             
             call form_vec  (nx_block           , ny_block,           &
                             icellu       (iblk), ntot    (iblk),     & 
@@ -527,7 +527,7 @@
       enddo                     ! outer loop
 
       deallocate(fld2)
-      deallocate(bvec, Aw, DiagA, tpvec)
+      deallocate(bvecfix, bvec, Aw, DiagA, tpvec)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       ! Force symmetry across the tripole seam
@@ -1258,16 +1258,18 @@
 !=======================================================================      
       
      subroutine calc_bfix  (nx_block,   ny_block,   & 
-                            icellu,                 & 
+                            icellu,     ntot,       & 
                             indxui,     indxuj,     & 
                             umassdti,               & 
                             forcex,     forcey,     &
                             uvel_init,  vvel_init,  &
-                            bxfix,      byfix        )
+                            bxfix,      byfix,      &
+                            bvecfix)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! no. of cells where iceumask = 1
+         icellu,             & ! no. of cells where iceumask = 1
+         ntot                  ! size of problem ntot=2*icellu
          
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
          intent(in) :: &
@@ -1287,6 +1289,10 @@
          bxfix   , & ! bx = taux + bxfix !jfl
          byfix       ! by = tauy + byfix !jfl
 
+      real (kind=dbl_kind), dimension (ntot), & 
+         intent(out) :: &
+         bvecfix     ! fixed part of b vector
+         
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1304,6 +1310,8 @@
 
          bxfix(i,j) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
          byfix(i,j) = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
+         bvecfix(2*ij-1) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
+         bvecfix(2*ij)   = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
          
       enddo
 
@@ -1318,13 +1326,10 @@
                        aiu,                  &
                        uocn,       vocn,     &
                        waterx,     watery,   &
-                       forcex,     forcey,   &
-                       umassdti,             &
-                       uvel_init,  vvel_init,&
                        uvel,       vvel,     &
                        bxfix,      byfix,    &
                        bx,         by,       &
-                       bvec)
+                       bvecfix,    bvec)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1338,20 +1343,18 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvel_init,& ! x-component of velocity (m/s), beginning of timestep
-         vvel_init,& ! y-component of velocity (m/s), beginning of timestep
          uvel    , & ! x-component of velocity (m/s)
          vvel    , & ! y-component of velocity (m/s)         
          aiu     , & ! ice fraction on u-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
-         forcex  , & ! work array: combined atm stress and ocn tilt, x
-         forcey  , & ! work array: combined atm stress and ocn tilt, y
          bxfix   , & ! bx = taux + bxfix !jfl
          byfix   , & ! by = tauy + byfix !jfl
-         umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn        ! ocean current, y-direction (m/s)
+         
+      real (kind=dbl_kind), dimension (ntot), intent(in) :: &
+         bvecfix     ! fixed part of the b vector       
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
@@ -1402,11 +1405,11 @@
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
          tauy = vrel*watery(i,j) ! ocn stress term
 
-         bx(i,j) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j) + taux
-         by(i,j) = umassdti(i,j)*vvel_init(i,j) + forcey(i,j) + tauy
+         bx(i,j) = bxfix(i,j) + taux
+         by(i,j) = byfix(i,j) + tauy
          
-         bvec(2*ij-1)= umassdti(i,j)*uvel_init(i,j) + forcex(i,j) + taux
-         bvec(2*ij)  = umassdti(i,j)*vvel_init(i,j) + forcey(i,j) + tauy
+         bvec(2*ij-1)= bvecfix(2*ij-1) + taux
+         bvec(2*ij)  = bvecfix(2*ij) + tauy
          
       enddo                     ! ij
 
