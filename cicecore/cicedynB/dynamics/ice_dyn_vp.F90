@@ -105,7 +105,6 @@
          kOL            , & ! outer loop iteration
          kmax           , & ! jfl put in namelist
          iblk           , & ! block index
-         ntottp         , & ! ntottp = 2*icellu
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
 
@@ -144,13 +143,6 @@
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
          
-      real (kind=dbl_kind), allocatable :: &
-         bvecfix(:,:), & ! part of b vector that does not change durign the OL
-         bvec(:,:)   , & ! b vector (...bu(i,j), bv(i,j),....)
-         Aw(:,:)     , & ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)
-         DiagA(:,:)  , & ! diagonal of matrix A
-         tpvec(:,:)     ! for debugging
-
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
@@ -302,19 +294,13 @@
                          uvel      (:,:,iblk), vvel      (:,:,iblk), &
                          Tbu       (:,:,iblk))
 
-         ntot(iblk) = 2*icellu(iblk)                         
-         allocate(bvec(ntot(iblk),max_blocks), bvecfix(ntot(iblk),max_blocks), &
-                  Aw(ntot(iblk),max_blocks), DiagA(ntot(iblk),max_blocks), & 
-                  tpvec(ntot(iblk),max_blocks))
-         
          call calc_bfix (nx_block            , ny_block,             & 
-                         icellu(iblk)        , ntot      (iblk),     & 
+                         icellu(iblk)        ,                       & 
                          indxui      (:,iblk), indxuj      (:,iblk), & 
                          umassdti  (:,:,iblk),                       & 
                          forcex    (:,:,iblk), forcey    (:,:,iblk), & 
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
-                         bxfix     (:,:,iblk), byfix     (:,:,iblk), &
-                         bvecfix   (:,iblk))                         
+                         bxfix     (:,:,iblk), byfix     (:,:,iblk))                         
                          
       !-----------------------------------------------------------------
       ! ice strength
@@ -440,7 +426,7 @@
                                vrel     (:,:,iblk), Cb      (:,:,iblk))                                                              
                                
             call matvec (nx_block           , ny_block,           &
-                         icellu       (iblk), ntot      (iblk),   & 
+                         icellu       (iblk),                     & 
                          indxui     (:,iblk), indxuj    (:,iblk), &
                          kOL                ,                     &
                          aiu      (:,:,iblk), strtmp  (:,:,:),    &
@@ -449,15 +435,14 @@
                          uarear   (:,:,iblk), Cb      (:,:,iblk), & 
                          strintx  (:,:,iblk), strinty (:,:,iblk), &
                          uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                         Au       (:,:,iblk), Av      (:,:,iblk), &
-                         Aw       (:,iblk))
+                         Au       (:,:,iblk), Av      (:,:,iblk))
 
 ! end of Au and Av calc
 ! CALC b_u and b_v (bvec)
                          
                          
             call calc_bvec (nx_block           , ny_block,           &
-                            icellu       (iblk), ntot    (iblk),     & 
+                            icellu       (iblk),                     & 
                             indxui     (:,iblk), indxuj    (:,iblk), &
                             kOL                , Cdn_ocn (:,:,iblk), &
                             aiu      (:,:,iblk),                     & 
@@ -465,21 +450,18 @@
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
                             uvel     (:,:,iblk), vvel    (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
-                            bx       (:,:,iblk), by      (:,:,iblk), &
-                            bvecfix  (:,iblk)  , bvec     (:,iblk))
+                            bx       (:,:,iblk), by      (:,:,iblk))
                             
             call form_vec  (nx_block           , ny_block,           &
-                            icellu       (iblk), ntot    (iblk),     & 
+                            icellu       (iblk),                     & 
                             indxui     (:,iblk), indxuj    (:,iblk), &
-                            uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                            tpvec     (:,iblk))                                                     
+                            uvel     (:,:,iblk), vvel    (:,:,iblk))                                                     
            
             call residual_vec (nx_block           , ny_block,           &
-                               icellu       (iblk), ntot    (iblk),     & 
+                               icellu       (iblk),                     & 
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                bx       (:,:,iblk), by      (:,:,iblk), &
                                Au       (:,:,iblk), Av      (:,:,iblk), &
-                               Aw       (:,iblk)  , bvec    (:,iblk)  , &
                                Fx       (:,:,iblk), Fy      (:,:,iblk), &
                                L2norm(iblk))
   
@@ -487,7 +469,7 @@
   
   
             call precondD  (nx_block,             ny_block,             & 
-                            kOL,            icellt(iblk), ntot(iblk),   & 
+                            kOL                 , icellt(iblk),         & 
                             indxti      (:,iblk), indxtj      (:,iblk), & 
                             dxt       (:,:,iblk), dyt       (:,:,iblk), & 
                             dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
@@ -496,8 +478,7 @@
                             uarear    (:,:,iblk),                       &
                             vrel      (:,:,iblk), Cb        (:,:,iblk), &
                             umassdti  (:,:,iblk), zetaD   (:,:,iblk,:), &
-                            Diagu     (:,:,iblk), Diagv   (:,:,iblk)  , &
-                            DiagA     (:,iblk)) 
+                            Diagu     (:,:,iblk), Diagv   (:,:,iblk)) 
                             
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
@@ -527,7 +508,6 @@
       enddo                     ! outer loop
 
       deallocate(fld2)
-      deallocate(bvecfix, bvec, Aw, DiagA, tpvec)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       ! Force symmetry across the tripole seam
@@ -1139,7 +1119,7 @@
 !=======================================================================
 
       subroutine matvec (nx_block,   ny_block, &
-                         icellu,     ntot,     &
+                         icellu,               &
                          indxui,     indxuj,   &
                          kOL,                  &
                          aiu,        str,      &
@@ -1148,13 +1128,11 @@
                          uarear,     Cb,       &
                          strintx,    strinty,  &
                          uvel,       vvel,     &
-                         Au,         Av,       &
-                         Aw)
+                         Au,         Av)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu,             & ! total count when iceumask is true
-         ntot,               & ! size of problem ntot=2*icellu
          kOL                   ! outer loop iteration
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
@@ -1190,10 +1168,6 @@
          Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
          Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
          
-      real (kind=dbl_kind), dimension (ntot), &
-         intent(inout) :: &
-         Aw          ! A matrix times w, w=u,v (...u(i,j), v(i,j),...)   
-         
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1212,8 +1186,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
-      Aw(:)=c0   
-         
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -1234,8 +1206,8 @@
          Au(i,j) = ccaimp*utp - ccb*vtp - strintx(i,j)
          Av(i,j) = ccaimp*vtp + ccb*utp - strinty(i,j)
          
-         Aw(2*ij-1)= ccaimp*utp - ccb*vtp - strintx(i,j)
-         Aw(2*ij)  = ccaimp*vtp + ccb*utp - strinty(i,j)
+!         Aw(2*ij-1)= ccaimp*utp - ccb*vtp - strintx(i,j)
+!         Aw(2*ij)  = ccaimp*vtp + ccb*utp - strinty(i,j)
       !-----------------------------------------------------------------
       ! ocean-ice stress for coupling
       ! here, strocn includes the factor of aice
@@ -1258,18 +1230,16 @@
 !=======================================================================      
       
      subroutine calc_bfix  (nx_block,   ny_block,   & 
-                            icellu,     ntot,       & 
+                            icellu,                 & 
                             indxui,     indxuj,     & 
                             umassdti,               & 
                             forcex,     forcey,     &
                             uvel_init,  vvel_init,  &
-                            bxfix,      byfix,      &
-                            bvecfix)
+                            bxfix,      byfix)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! no. of cells where iceumask = 1
-         ntot                  ! size of problem ntot=2*icellu
+         icellu                ! no. of cells where iceumask = 1
          
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
          intent(in) :: &
@@ -1289,10 +1259,6 @@
          bxfix   , & ! bx = taux + bxfix !jfl
          byfix       ! by = tauy + byfix !jfl
 
-      real (kind=dbl_kind), dimension (ntot), & 
-         intent(out) :: &
-         bvecfix     ! fixed part of b vector
-         
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1310,8 +1276,8 @@
 
          bxfix(i,j) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
          byfix(i,j) = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
-         bvecfix(2*ij-1) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
-         bvecfix(2*ij)   = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
+!         bvecfix(2*ij-1) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
+!         bvecfix(2*ij)   = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
          
       enddo
 
@@ -1320,7 +1286,7 @@
 !=======================================================================
 
       subroutine calc_bvec (nx_block,   ny_block, &
-                       icellu,     ntot,     &
+                       icellu,               &
                        indxui,     indxuj,   &
                        kOL,        Cw,       &
                        aiu,                  &
@@ -1328,13 +1294,11 @@
                        waterx,     watery,   &
                        uvel,       vvel,     &
                        bxfix,      byfix,    &
-                       bx,         by,       &
-                       bvecfix,    bvec)
+                       bx,         by)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu,             & ! total count when iceumask is true
-         ntot,               & ! size of problem ntot=2*icellu
          kOL                   ! outer loop iteration
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
@@ -1353,18 +1317,11 @@
          uocn    , & ! ocean current, x-direction (m/s)
          vocn        ! ocean current, y-direction (m/s)
          
-      real (kind=dbl_kind), dimension (ntot), intent(in) :: &
-         bvecfix     ! fixed part of the b vector       
-
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          bx      , & ! b vector, bx = taux + bxfix (N/m^2) !jfl
          by          ! b vector, by = tauy + byfix (N/m^2) !jfl
          
-      real (kind=dbl_kind), dimension (ntot), &
-         intent(inout) :: &
-         bvec        ! b vector, bijx, bijy
-
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient
@@ -1389,8 +1346,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
-      bvec(:)=c0   
-         
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -1408,8 +1363,8 @@
          bx(i,j) = bxfix(i,j) + taux
          by(i,j) = byfix(i,j) + tauy
          
-         bvec(2*ij-1)= bvecfix(2*ij-1) + taux
-         bvec(2*ij)  = bvecfix(2*ij) + tauy
+!         bvec(2*ij-1)= bvecfix(2*ij-1) + taux
+!         bvec(2*ij)  = bvecfix(2*ij) + tauy
          
       enddo                     ! ij
 
@@ -1418,18 +1373,16 @@
       !=======================================================================
 
       subroutine residual_vec (nx_block,   ny_block, &
-                               icellu,     ntot,     &
+                               icellu,               &
                                indxui,     indxuj,   &
                                bx,         by,       &
                                Au,         Av,       &
-                               Aw,         bvec,     &
                                Fx,         Fy,       &
                                L2normtp)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         ntot                  ! size of problem ntot=2*icellu
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -1442,11 +1395,6 @@
          Au       , & ! matvec, Fx = Au - bx (N/m^2) ! jfl
          Av           ! matvec, Fy = Av - by (N/m^2) ! jfl
 
-      real (kind=dbl_kind), dimension (ntot), &
-         intent(in) :: &
-         bvec     , & ! b vector, bijx, bijy   
-         Aw
-         
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          Fx      , & ! x residual vector, Fx = Au - bx (N/m^2)
@@ -1454,13 +1402,6 @@
          
       real (kind=dbl_kind), intent(inout) :: &
          L2normtp    ! (L2norm)^2
-
-      ! local variables
-
-      real (kind=dbl_kind), dimension (ntot) :: &
-         Fres
-      
-      real (kind=dbl_kind) :: L2norm
       
       integer (kind=int_kind) :: &
          i, j, ij
@@ -1474,7 +1415,6 @@
          file=__FILE__, line=__LINE__)
 
       L2normtp=c0
-      Fres(:)=c0
          
       do ij =1, icellu
          i = indxui(ij)
@@ -1483,20 +1423,26 @@
          Fx(i,j) = Au(i,j) - bx(i,j)
          Fy(i,j) = Av(i,j) - by(i,j)
          L2normtp = L2normtp + Fx(i,j)**2 + Fy(i,j)**2
-         Fres(2*ij-1) = Au(i,j) - bx(i,j)
-         Fres(2*ij)   = Av(i,j) - by(i,j)
+!         Fres(2*ij-1) = Au(i,j) - bx(i,j)
+!         Fres(2*ij)   = Av(i,j) - by(i,j)
          
       enddo                     ! ij
       
-       L2norm = sqrt(DOT_PRODUCT(Fres,Fres))
-       print *, 'ici L2norm', L2norm, sqrt(L2normtp), icellu, 2*nx_block*ny_block
+!      do ij = 1, ntot
+      
+!	Ftp(ij) = Aw(ij) - bvec(ij)
+      
+!      enddo
+      
+!       L2norm = sqrt(DOT_PRODUCT(Fres,Fres))
+       print *, 'ici L2norm', sqrt(L2normtp)
 
       end subroutine residual_vec
       
 !=======================================================================
 
       subroutine precondD  (nx_block,   ny_block,   & 
-                            kOL,     icellt, ntot,  & 
+                            kOL,        icellt,     & 
                             indxti,     indxtj,     & 
                             dxt,        dyt,        & 
                             dxhy,       dyhx,       & 
@@ -1505,13 +1451,12 @@
                             uarear,                 &
                             vrel,       Cb,         &
                             umassdti,   zetaD,      &
-                            Diagu, Diagv, DiagA)
+                            Diagu, Diagv)
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          kOL               , & ! subcycling step
-         icellt            , & ! no. of cells where icetmask = 1
-         ntot                  ! size of problem ntot=2*icellu
+         icellt                ! no. of cells where icetmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
          intent(in) :: &
@@ -1542,9 +1487,6 @@
          Diagu,     & ! diagonal matrix coefficients for u component
          Diagv        ! diagonal matrix coefficients for v component
          
-      real (kind=dbl_kind), dimension (ntot), intent(inout) :: &   
-         DiagA
-
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1836,15 +1778,13 @@
       !=======================================================================
 
       subroutine form_vec (nx_block,   ny_block, &
-                           icellu,     ntot,     &
+                           icellu,               &
                            indxui,     indxuj,   &
-                           tpu,        tpv ,     &
-                           tpvec)
+                           tpu,        tpv )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         ntot                  ! size of the problem ntot=2*icellu
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -1854,10 +1794,6 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          tpu     , & ! x-component of vector
          tpv         ! y-component of vector         
-
-      real (kind=dbl_kind), dimension (ntot), &
-         intent(inout) :: &
-         tpvec        ! vector
 
       ! local variables
 
@@ -1870,20 +1806,20 @@
       ! fomr vector
       !-----------------------------------------------------------------
 
-      tpvec(:)=c0
+!      tpvec(:)=c0
       
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
          
-         tpvec(2*ij-1)= tpu(i,j)
-         tpvec(2*ij)  = tpv(i,j)
+!         tpvec(2*ij-1)= tpu(i,j)
+!         tpvec(2*ij)  = tpv(i,j)
          
       enddo                     ! ij
 
-      L2norm = sqrt(DOT_PRODUCT(tpvec,tpvec))
+!      L2norm = sqrt(DOT_PRODUCT(tpvec,tpvec))
       
-      print *, 'ici uvel', icellu, L2norm
+!      print *, 'ici uvel', icellu, L2norm
       
       end subroutine form_vec
       
