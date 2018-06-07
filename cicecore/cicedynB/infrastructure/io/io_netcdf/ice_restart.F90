@@ -134,10 +134,10 @@
          tr_bgc_hum
 
       integer (kind=int_kind) :: &
-          k,  n,                & ! index
-          nx, ny,               & ! global array size
-          iyear, imonth, iday,  & ! year, month, day
-          nbtrcr
+         k,  n,                & ! index
+         nx, ny,               & ! global array size
+         iyear, imonth, iday,  & ! year, month, day
+         nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
 
