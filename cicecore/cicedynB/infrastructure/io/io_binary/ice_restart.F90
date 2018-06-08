@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restart.F90 806 2014-07-31 19:00:00Z tcraig $
 !=======================================================================
 
 ! Read and write ice model restart files using netCDF or binary
@@ -13,9 +12,6 @@
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lenstr
-!      use icepack_intfc, only: tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
-!                             tr_pond_topo, tr_pond_lvl, tr_brine, nbtrcr
-!      use icepack_intfc, only: solve_zsal
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_fileunits, only: nu_dump, nu_dump_eap, nu_dump_FY, nu_dump_age
       use ice_fileunits, only: nu_dump_lvl, nu_dump_pond, nu_dump_hbrine
