@@ -105,6 +105,10 @@
          kOL            , & ! outer loop iteration
          kmax           , & ! jfl put in namelist
          ntot           , & ! size of problem for fgmres (for given cpu)
+         icode          , & ! for fgmres
+         its            , & ! iteration nb for fgmres
+         maxits         , & ! max nb of iteration for fgmres
+         im_fgmres      , & ! for size of Krylov subspace
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
@@ -145,7 +149,8 @@
          
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
-      real (kind=dbl_kind), allocatable :: bvec(:), sol(:)
+      real (kind=dbl_kind), allocatable :: bvec(:), sol(:), wk11(:), wk22(:)
+      real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
 
@@ -429,7 +434,116 @@
          enddo
          !$OMP END PARALLEL DO                            
          
+         allocate(bvec(ntot), sol(ntot), wk11(ntot), wk22(ntot))
+         ! form b vector from matrices (max_blocks matrices)      
+         call arrays_to_vec (nx_block, ny_block, max_blocks, &
+                             icellu        (:), ntot,        & 
+                             indxui      (:,:), indxuj(:,:), &
+                             bx        (:,:,:), by  (:,:,:), &
+                             bvec(:))
+         ! form sol vector for fgmres (sol is iniguess at the beginning)        
+         call arrays_to_vec (nx_block, ny_block, max_blocks,   &
+                             icellu      (:), ntot,            & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             uprev_k (:,:,:), vprev_k (:,:,:), &
+                             sol(:))    
 
+!-----------------------------------------------------------------------
+!     prep F G M R E S 
+!-----------------------------------------------------------------------                             
+         
+      icode  = 0
+      conv   = 1.d0
+      its    = 0   
+      maxits = 50
+      
+!-----------------------------------------------------------------------
+!     F G M R E S   L O O P
+!-----------------------------------------------------------------------
+ 1    continue
+!-----------------------------------------------------------------------
+
+      call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
+                           sol_fgm_eps, maxits,its,conv,icode )
+
+      if (icode == 1) then
+
+!         if (sol2D_precond_S == 'JACOBI')   then
+!               call pre_jacobi2D ( wk22,wk11,Prec_xevec_8,niloc,njloc,&
+!                                   F_nk,Prec_ai_8,Prec_bi_8,Prec_ci_8 )
+!         else
+!            call dcopy (nloc, wk11, 1, wk22, 1) ! precond=identity
+!         endif
+
+         wk11(:)=wk22(:) ! precond=identity
+
+         goto 1
+
+      else
+
+         if (icode >= 2) then
+
+!            if (Lun_debug_L.and.print_conv_L) write(lun_out, 199) conv,its
+!            call sol_matvec ( wk22, wk11, Minx, Maxx, Miny, Maxy, &
+!                           nil,njl, F_nk, minx1,maxx1,minx2,maxx2 )
+
+         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+         do iblk = 1, nblocks                                  
+
+JFL need to convert wk11 to uvel, vvel          
+         
+            call stress_vp (nx_block,             ny_block,             & 
+                            kOL,                  icellt(iblk),         & 
+                            indxti      (:,iblk), indxtj      (:,iblk), & 
+                            uvel      (:,:,iblk), vvel      (:,:,iblk), &     
+                            dxt       (:,:,iblk), dyt       (:,:,iblk), & 
+                            dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
+                            cxp       (:,:,iblk), cyp       (:,:,iblk), & 
+                            cxm       (:,:,iblk), cym       (:,:,iblk), & 
+                            tarear    (:,:,iblk), tinyarea  (:,:,iblk), & 
+                            zetaD     (:,:,iblk,:),strength (:,:,iblk), &
+                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
+                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
+                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
+                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
+                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
+                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
+                            shear     (:,:,iblk), divu      (:,:,iblk), & 
+                            rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
+                            strtmp    (:,:,:))                                                             
+                               
+            call matvec (nx_block           , ny_block,           &
+                         icellu       (iblk),                     & 
+                         indxui     (:,iblk), indxuj    (:,iblk), &
+                         kOL                ,                     &
+                         aiu      (:,:,iblk), strtmp  (:,:,:),    &
+                         vrel     (:,:,iblk),                     &
+                         umassdti (:,:,iblk), fm      (:,:,iblk), & 
+                         uarear   (:,:,iblk), Cb      (:,:,iblk), & 
+                         strintx  (:,:,iblk), strinty (:,:,iblk), &
+                         uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                         Au       (:,:,iblk), Av      (:,:,iblk))
+                         
+        enddo
+        !$OMP END PARALLEL DO 
+        
+         ! form sol vector for fgmres (sol is iniguess at the beginning)        
+        call form_vec (nx_block, ny_block, max_blocks,  &
+                      icellu      (:), ntot,            & 
+                      indxui    (:,:), indxuj(:,:),     &
+                      Au      (:,:,:), Av (:,:,:),      &
+                      wk22(:))            
+
+            goto 1
+
+         endif
+
+      endif
+
+! 199  format (3x,'Iterative FGMRES solver convergence criteria: ',1pe14.7,' at iteration', i3)
+
+!     deallocate (wk11,wk22,rhs1,sol1,vv_8,ww_8)         
+         
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks                                  
 
@@ -442,7 +556,7 @@
                             cxp       (:,:,iblk), cyp       (:,:,iblk), & 
                             cxm       (:,:,iblk), cym       (:,:,iblk), & 
                             tarear    (:,:,iblk), tinyarea  (:,:,iblk), & 
-                            zetaD     (:,:,iblk,:),strength (:,:,iblk), &                      & 
+                            zetaD     (:,:,iblk,:),strength (:,:,iblk), &
                             stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
                             stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
                             stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
@@ -499,21 +613,7 @@
             fld2(:,:,2,iblk) = vvel(:,:,iblk)            
 
          enddo
-         !$OMP END PARALLEL DO
-         
-         allocate(bvec(ntot), sol(ntot))
-         ! form b vector for fgmres         
-         call form_vec      (nx_block, ny_block, max_blocks, &
-                             icellu        (:), ntot,        & 
-                             indxui      (:,:), indxuj(:,:), &
-                             bx        (:,:,:), by  (:,:,:), &
-                             bvec(:))
-         ! form sol vector for fgmres (sol is iniguess at the beginning)        
-         call form_vec      (nx_block, ny_block, max_blocks,   &
-                             icellu      (:), ntot,            & 
-                             indxui    (:,:), indxuj(:,:),     &
-                             uprev_k (:,:,:), vprev_k (:,:,:), &
-                             sol(:))                               
+         !$OMP END PARALLEL DO                           
 
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
@@ -1853,7 +1953,7 @@
       
             !=======================================================================
 
-      subroutine form_vec (nx_block, ny_block, max_blocks, &
+      subroutine arrays_to_vec (nx_block, ny_block, max_blocks, &
                            icellu,   ntot,                 &
                            indxui,   indxuj,               &
                            tpu,      tpv,                  &
@@ -1886,7 +1986,7 @@
          
 
       !-----------------------------------------------------------------
-      ! fomr vector
+      ! form vector (converts from max_blocks arrays to single vector
       !-----------------------------------------------------------------
 
       outvec(:)=c0
@@ -1905,7 +2005,63 @@
 
 !      print *, 'NTOT', max_blocks, tot, ntot
       
-      end subroutine form_vec
+      end subroutine arrays_to_vec
+      
+            !=======================================================================
+
+      subroutine vec_to_arrays (nx_block, ny_block, max_blocks, &
+                                icellu,   ntot,                 &
+                                indxui,   indxuj,               &
+                                outvec,                         &
+                                tpu,      tpv)
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         max_blocks,         & ! nb of blocks
+         ntot                  ! size of problem for fgmres
+
+      integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
+         icellu          
+         
+      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
+         intent(in) :: &
+         indxui  , & ! compressed index in i-direction
+         indxuj      ! compressed index in j-direction
+         
+      real (kind=dbl_kind), dimension (ntot), intent(in) :: &
+         invec         
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(inout) :: &
+         tpu     , & ! x-component of vector
+         tpv         ! y-component of vector         
+         
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, tot, ij
+         
+
+      !-----------------------------------------------------------------
+      ! form arrays (converts from vector to the max_blocks arrays
+      !-----------------------------------------------------------------
+
+      outvec(:)=c0
+      tot=0
+      
+      do iblk=1, max_blocks
+       do ij =1, icellu(iblk)
+          i = indxui(ij,iblk)
+          j = indxuj(ij,iblk)
+          tot=tot+1
+          tpu(i,j,iblk)=invec(tot)
+          tot=tot+1
+          tpv(i,j,iblk)=invec(tot)
+       enddo
+      enddo! ij
+
+      print *, 'NTOT', max_blocks, tot, ntot
+      
+      end subroutine vec_to_arrays
       
 !      JFL ROUTINE POUR CALC STRESS OCN POUR COUPLAGE
       
