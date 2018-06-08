@@ -107,6 +107,7 @@
          ntot           , & ! size of problem for fgmres (for given cpu)
          icode          , & ! for fgmres
          its            , & ! iteration nb for fgmres
+         ischmi         , & ! Quesse ca!?!?! jfl
          maxits         , & ! max nb of iteration for fgmres
          im_fgmres      , & ! for size of Krylov subspace
          iblk           , & ! block index
@@ -153,6 +154,7 @@
       real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
+      real (kind=dbl_kind) :: conv, sol_eps
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation !JFL CHECK PAS SUR QUE OK
@@ -434,7 +436,20 @@
          enddo
          !$OMP END PARALLEL DO                            
          
+!-----------------------------------------------------------------------
+!     prep F G M R E S 
+!-----------------------------------------------------------------------                             
+         
+      icode  = 0
+      conv   = 1.d0
+      its    = 0 
+      ischmi = 0
+      im_fgmres = 50
+      maxits = 50     
+      sol_eps = 1d-02
+         
          allocate(bvec(ntot), sol(ntot), wk11(ntot), wk22(ntot))
+         allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
          ! form b vector from matrices (max_blocks matrices)      
          call arrays_to_vec (nx_block, ny_block, max_blocks, &
                              icellu        (:), ntot,        & 
@@ -447,15 +462,6 @@
                              indxui    (:,:), indxuj(:,:),     &
                              uprev_k (:,:,:), vprev_k (:,:,:), &
                              sol(:))    
-
-!-----------------------------------------------------------------------
-!     prep F G M R E S 
-!-----------------------------------------------------------------------                             
-         
-      icode  = 0
-      conv   = 1.d0
-      its    = 0   
-      maxits = 50
       
 !-----------------------------------------------------------------------
 !     F G M R E S   L O O P
@@ -463,8 +469,8 @@
  1    continue
 !-----------------------------------------------------------------------
 
-      call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
-                           sol_fgm_eps, maxits,its,conv,icode )
+!      call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
+!                           sol_eps, maxits,its,conv,icode )
 
       if (icode == 1) then
 
@@ -475,7 +481,7 @@
 !            call dcopy (nloc, wk11, 1, wk22, 1) ! precond=identity
 !         endif
 
-         wk11(:)=wk22(:) ! precond=identity
+         wk22(:)=wk11(:) ! precond=identity
 
          goto 1
 
@@ -487,10 +493,14 @@
 !            call sol_matvec ( wk22, wk11, Minx, Maxx, Miny, Maxy, &
 !                           nil,njl, F_nk, minx1,maxx1,minx2,maxx2 )
 
+         call arrays_to_vec (nx_block, ny_block, max_blocks,   &
+                             icellu      (:), ntot,            & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             wk11 (:),                         &
+                             uvel (:,:,:), vvel (:,:,:))    
+
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks                                  
-
-JFL need to convert wk11 to uvel, vvel          
          
             call stress_vp (nx_block,             ny_block,             & 
                             kOL,                  icellt(iblk),         & 
@@ -524,15 +534,15 @@ JFL need to convert wk11 to uvel, vvel
                          uvel     (:,:,iblk), vvel    (:,:,iblk), &
                          Au       (:,:,iblk), Av      (:,:,iblk))
                          
-        enddo
-        !$OMP END PARALLEL DO 
+         enddo
+         !$OMP END PARALLEL DO 
         
-         ! form sol vector for fgmres (sol is iniguess at the beginning)        
-        call form_vec (nx_block, ny_block, max_blocks,  &
-                      icellu      (:), ntot,            & 
-                      indxui    (:,:), indxuj(:,:),     &
-                      Au      (:,:,:), Av (:,:,:),      &
-                      wk22(:))            
+         ! form wk2 from Au and Av arrays        
+         call arrays_to_vec (nx_block, ny_block, max_blocks,   &
+                             icellu      (:), ntot,            & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             Au      (:,:,:), Av    (:,:,:),   &
+                             wk22(:))    
 
             goto 1
 
@@ -544,69 +554,33 @@ JFL need to convert wk11 to uvel, vvel
 
 !     deallocate (wk11,wk22,rhs1,sol1,vv_8,ww_8)         
          
-         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
-         do iblk = 1, nblocks                                  
-
-            call stress_vp (nx_block,             ny_block,             & 
-                            kOL,                  icellt(iblk),         & 
-                            indxti      (:,iblk), indxtj      (:,iblk), & 
-                            uvel      (:,:,iblk), vvel      (:,:,iblk), &     
-                            dxt       (:,:,iblk), dyt       (:,:,iblk), & 
-                            dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
-                            cxp       (:,:,iblk), cyp       (:,:,iblk), & 
-                            cxm       (:,:,iblk), cym       (:,:,iblk), & 
-                            tarear    (:,:,iblk), tinyarea  (:,:,iblk), & 
-                            zetaD     (:,:,iblk,:),strength (:,:,iblk), &
-                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
-                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
-                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
-                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
-                            shear     (:,:,iblk), divu      (:,:,iblk), & 
-                            rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
-                            strtmp    (:,:,:))                                                             
-                               
-            call matvec (nx_block           , ny_block,           &
-                         icellu       (iblk),                     & 
-                         indxui     (:,iblk), indxuj    (:,iblk), &
-                         kOL                ,                     &
-                         aiu      (:,:,iblk), strtmp  (:,:,:),    &
-                         vrel     (:,:,iblk),                     &
-                         umassdti (:,:,iblk), fm      (:,:,iblk), & 
-                         uarear   (:,:,iblk), Cb      (:,:,iblk), & 
-                         strintx  (:,:,iblk), strinty (:,:,iblk), &
-                         uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                         Au       (:,:,iblk), Av      (:,:,iblk))
-
-! end of Au and Av calc
-! CALC b_u and b_v (bvec)
-                         
-                            
-            call calc_L2norm (nx_block           , ny_block,          &
-                             icellu       (iblk),                     & 
-                             indxui     (:,iblk), indxuj    (:,iblk), &
-                             uvel     (:,:,iblk), vvel    (:,:,iblk))                                                     
+!            call calc_L2norm (nx_block           , ny_block,          &
+!                             icellu       (iblk),                     & 
+!                             indxui     (:,iblk), indxuj    (:,iblk), &
+!                             uvel     (:,:,iblk), vvel    (:,:,iblk))                                                     
            
-            call residual_vec (nx_block           , ny_block,           &
-                               icellu       (iblk),                     & 
-                               indxui     (:,iblk), indxuj    (:,iblk), &
-                               bx       (:,:,iblk), by      (:,:,iblk), &
-                               Au       (:,:,iblk), Av      (:,:,iblk), &
-                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
-                               L2norm(iblk))
+!            call residual_vec (nx_block           , ny_block,           &
+!                               icellu       (iblk),                     & 
+!                               indxui     (:,iblk), indxuj    (:,iblk), &
+!                               bx       (:,:,iblk), by      (:,:,iblk), &
+!                               Au       (:,:,iblk), Av      (:,:,iblk), &
+!                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
+!                               L2norm(iblk))
   
-            call precondD  (nx_block,             ny_block,             & 
-                            kOL                 , icellt(iblk),         & 
-                            indxti      (:,iblk), indxtj      (:,iblk), & 
-                            dxt       (:,:,iblk), dyt       (:,:,iblk), & 
-                            dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
-                            cxp       (:,:,iblk), cyp       (:,:,iblk), & 
-                            cxm       (:,:,iblk), cym       (:,:,iblk), & 
-                            uarear    (:,:,iblk),                       &
-                            vrel      (:,:,iblk), Cb        (:,:,iblk), &
-                            umassdti  (:,:,iblk), zetaD   (:,:,iblk,:), &
-                            Diagu     (:,:,iblk), Diagv   (:,:,iblk))
+!            call precondD  (nx_block,             ny_block,             & 
+!                            kOL                 , icellt(iblk),         & 
+!                            indxti      (:,iblk), indxtj      (:,iblk), & 
+!                            dxt       (:,:,iblk), dyt       (:,:,iblk), & 
+!                            dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
+!                            cxp       (:,:,iblk), cyp       (:,:,iblk), & 
+!                            cxm       (:,:,iblk), cym       (:,:,iblk), & 
+!                            uarear    (:,:,iblk),                       &
+!                            vrel      (:,:,iblk), Cb        (:,:,iblk), &
+!                            umassdti  (:,:,iblk), zetaD   (:,:,iblk,:), &
+!                            Diagu     (:,:,iblk), Diagv   (:,:,iblk))
+
+         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+         do iblk = 1, nblocks                             
                             
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
@@ -2012,7 +1986,7 @@ JFL need to convert wk11 to uvel, vvel
       subroutine vec_to_arrays (nx_block, ny_block, max_blocks, &
                                 icellu,   ntot,                 &
                                 indxui,   indxuj,               &
-                                outvec,                         &
+                                invec,                          &
                                 tpu,      tpv)
 
       integer (kind=int_kind), intent(in) :: &
@@ -2045,7 +2019,8 @@ JFL need to convert wk11 to uvel, vvel
       ! form arrays (converts from vector to the max_blocks arrays
       !-----------------------------------------------------------------
 
-      outvec(:)=c0
+      tpu(:,:,:)=c0
+      tpv(:,:,:)=c0
       tot=0
       
       do iblk=1, max_blocks
