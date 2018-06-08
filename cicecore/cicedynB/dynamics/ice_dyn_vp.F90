@@ -469,8 +469,8 @@
  1    continue
 !-----------------------------------------------------------------------
 
-!      call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
-!                           sol_eps, maxits,its,conv,icode )
+      call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
+                           sol_eps, maxits,its,conv,icode )
 
       if (icode == 1) then
 
