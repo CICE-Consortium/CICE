@@ -493,7 +493,7 @@
 !            call sol_matvec ( wk22, wk11, Minx, Maxx, Miny, Maxy, &
 !                           nil,njl, F_nk, minx1,maxx1,minx2,maxx2 )
 
-         call arrays_to_vec (nx_block, ny_block, max_blocks,   &
+         call vec_to_arrays (nx_block, ny_block, max_blocks,   &
                              icellu      (:), ntot,            & 
                              indxui    (:,:), indxuj(:,:),     &
                              wk11 (:),                         &
