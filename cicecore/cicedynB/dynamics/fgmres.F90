@@ -20,6 +20,8 @@
       implicit none
 !#include <arch_specific.hf>
 
+      include 'mpif.h'   ! MPI Fortran include file
+
       integer n, im, i, maxits, its, icode
       real*8 rhs(*), sol(*), vv(n,im+1),w(n,im), wk1(n), wk2(n), eps,conv
 !
@@ -150,8 +152,8 @@
  21   continue
  20   continue
        tloc=ddot(n, vv, 1, vv,1)
-      call MPI_allreduce(tloc,ro,1,MPI_double_precision,
-     *     MPI_sum,MPI_COMM_WORLD,ierr)
+      call MPI_allreduce(tloc,ro,1,MPI_double_precision, &
+           MPI_sum,MPI_COMM_WORLD,ierr)
 !       call RPN_COMM_allreduce(tloc,ro,1,"MPI_double_precision", &
 !           "MPI_sum","grid",ierr)
        ro = dsqrt(ro)
@@ -201,8 +203,8 @@
       do 55 j=1, i
          hhloc(j,i) = ddot(n, vv(1,j), 1, vv(1,i1), 1)
  55   continue
-      call MPI_allreduce(hhloc(1,i),hh(1,i),i,MPI_double_precision,
-    *     MPI_sum,MPI_COMM_WORLD,ierr)
+      call MPI_allreduce(hhloc(1,i),hh(1,i),i,MPI_double_precision, &
+                         MPI_sum,MPI_COMM_WORLD,ierr)
 !       call RPN_COMM_allreduce(hhloc(1,i),hh(1,i),i,"MPI_double_precision", &
 !           "MPI_sum","grid",ierr)
 
@@ -211,8 +213,8 @@
  56   continue
       tloc = ddot(n, vv(1,i1), 1, vv(1,i1), 1)
 !
-      call MPI_allreduce(tloc,t,1,MPI_double_precision,
-     *     MPI_sum,MPI_COMM_WORLD,ierr)
+      call MPI_allreduce(tloc,t,1,MPI_double_precision, &
+                         MPI_sum,MPI_COMM_WORLD,ierr)
 !       call RPN_COMM_allreduce(tloc,t,1,"MPI_double_precision", &
 !           "MPI_sum","grid",ierr)
 
