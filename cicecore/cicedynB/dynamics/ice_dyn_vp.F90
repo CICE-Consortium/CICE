@@ -585,6 +585,16 @@
 !                            umassdti  (:,:,iblk), zetaD   (:,:,iblk,:), &
 !                            Diagu     (:,:,iblk), Diagv   (:,:,iblk))
 
+!-----------------------------------------------------------------------
+!     Put vector sol in uvel and vvel arrays
+!-----------------------------------------------------------------------
+
+         call vec_to_arrays (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             sol (:),                          &
+                             uvel (:,:,:), vvel (:,:,:))    
+
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks                             
                             
