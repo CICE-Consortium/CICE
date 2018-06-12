@@ -106,9 +106,11 @@
          kmax           , & ! jfl put in namelist
          ntot           , & ! size of problem for fgmres (for given cpu)
          icode          , & ! for fgmres
+         iout           , & ! for printing fgmres info
          its            , & ! iteration nb for fgmres
          ischmi         , & ! Quesse ca!?!?! jfl
          maxits         , & ! max nb of iteration for fgmres
+         fgmres_its     , & ! final nb of fgmres_its
          im_fgmres      , & ! for size of Krylov subspace
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
@@ -442,22 +444,23 @@
          
       icode  = 0
       conv   = 1.d0
-      its    = 0 
+      iout   = 1
+!      its    = 0 
       ischmi = 0
       im_fgmres = 50
       maxits = 50     
-      sol_eps = 1d-02
+      sol_eps = 1d-01
          
          allocate(bvec(ntot), sol(ntot), wk11(ntot), wk22(ntot))
          allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
-         ! form b vector from matrices (max_blocks matrices)      
-         call arrays_to_vec (nx_block, ny_block, max_blocks, &
+         ! form b vector from matrices (nblocks matrices)      
+         call arrays_to_vec (nx_block, ny_block, nblocks,    &
                              icellu        (:), ntot,        & 
                              indxui      (:,:), indxuj(:,:), &
                              bx        (:,:,:), by  (:,:,:), &
                              bvec(:))
          ! form sol vector for fgmres (sol is iniguess at the beginning)        
-         call arrays_to_vec (nx_block, ny_block, max_blocks,   &
+         call arrays_to_vec (nx_block, ny_block, nblocks,      &
                              icellu      (:), ntot,            & 
                              indxui    (:,:), indxuj(:,:),     &
                              uprev_k (:,:,:), vprev_k (:,:,:), &
@@ -469,8 +472,11 @@
  1    continue
 !-----------------------------------------------------------------------
 
-      call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
-                           sol_eps, maxits,its,conv,icode )
+      !call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
+      !                     sol_eps, maxits,its,conv,icode )
+                           
+      call fgmres (ntot,im_fgmres,bvec,sol,its,vv,wk,wk11,wk22, &
+                   sol_eps, maxits,iout,icode,fgmres_its)                     
 
       if (icode == 1) then
 
@@ -493,7 +499,7 @@
 !            call sol_matvec ( wk22, wk11, Minx, Maxx, Miny, Maxy, &
 !                           nil,njl, F_nk, minx1,maxx1,minx2,maxx2 )
 
-         call vec_to_arrays (nx_block, ny_block, max_blocks,   &
+         call vec_to_arrays (nx_block, ny_block, nblocks,      &
                              icellu      (:), ntot,            & 
                              indxui    (:,:), indxuj(:,:),     &
                              wk11 (:),                         &
@@ -538,7 +544,7 @@
          !$OMP END PARALLEL DO 
         
          ! form wk2 from Au and Av arrays        
-         call arrays_to_vec (nx_block, ny_block, max_blocks,   &
+         call arrays_to_vec (nx_block, ny_block, nblocks,      &
                              icellu      (:), ntot,            & 
                              indxui    (:,:), indxuj(:,:),     &
                              Au      (:,:,:), Av    (:,:,:),   &
@@ -1927,15 +1933,16 @@
       
             !=======================================================================
 
-      subroutine arrays_to_vec (nx_block, ny_block, max_blocks, &
-                           icellu,   ntot,                 &
-                           indxui,   indxuj,               &
-                           tpu,      tpv,                  &
-                           outvec)
+      subroutine arrays_to_vec (nx_block, ny_block, nblocks, &
+                                max_blocks, icellu,   ntot,  &
+                                indxui,   indxuj,            &
+                                tpu,      tpv,               &
+                                outvec)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         max_blocks,         & ! nb of blocks
+         nblocks,            & ! nb of blocks
+         max_blocks,         & ! max nb of blocks
          ntot                  ! size of problem for fgmres
 
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
@@ -1966,7 +1973,7 @@
       outvec(:)=c0
       tot=0
       
-      do iblk=1, max_blocks
+      do iblk=1, nblocks
        do ij =1, icellu(iblk)
           i = indxui(ij,iblk)
           j = indxuj(ij,iblk)
@@ -1983,15 +1990,16 @@
       
             !=======================================================================
 
-      subroutine vec_to_arrays (nx_block, ny_block, max_blocks, &
-                                icellu,   ntot,                 &
-                                indxui,   indxuj,               &
-                                invec,                          &
+      subroutine vec_to_arrays (nx_block, ny_block, nblocks, &
+                                max_blocks, icellu,   ntot,  &
+                                indxui,   indxuj,            &
+                                invec,                       &
                                 tpu,      tpv)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         max_blocks,         & ! nb of blocks
+         nblocks,            & ! nb of blocks
+         max_blocks,         & ! max nb of blocks
          ntot                  ! size of problem for fgmres
 
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
@@ -2023,7 +2031,7 @@
       tpv(:,:,:)=c0
       tot=0
       
-      do iblk=1, max_blocks
+      do iblk=1, nblocks
        do ij =1, icellu(iblk)
           i = indxui(ij,iblk)
           j = indxuj(ij,iblk)
@@ -2034,8 +2042,6 @@
        enddo
       enddo! ij
 
-      print *, 'NTOT', max_blocks, tot, ntot
-      
       end subroutine vec_to_arrays
       
 !      JFL ROUTINE POUR CALC STRESS OCN POUR COUPLAGE
