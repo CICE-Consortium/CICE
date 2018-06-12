@@ -455,13 +455,13 @@
          allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
          ! form b vector from matrices (nblocks matrices)      
          call arrays_to_vec (nx_block, ny_block, nblocks,    &
-                             icellu        (:), ntot,        & 
+                             max_blocks, icellu (:), ntot,   & 
                              indxui      (:,:), indxuj(:,:), &
                              bx        (:,:,:), by  (:,:,:), &
                              bvec(:))
          ! form sol vector for fgmres (sol is iniguess at the beginning)        
          call arrays_to_vec (nx_block, ny_block, nblocks,      &
-                             icellu      (:), ntot,            & 
+                             max_blocks, icellu (:), ntot,   &  
                              indxui    (:,:), indxuj(:,:),     &
                              uprev_k (:,:,:), vprev_k (:,:,:), &
                              sol(:))    
@@ -475,7 +475,7 @@
       !call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
       !                     sol_eps, maxits,its,conv,icode )
                            
-      call fgmres (ntot,im_fgmres,bvec,sol,its,vv,wk,wk11,wk22, &
+      call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
                    sol_eps, maxits,iout,icode,fgmres_its)                     
 
       if (icode == 1) then
@@ -500,7 +500,7 @@
 !                           nil,njl, F_nk, minx1,maxx1,minx2,maxx2 )
 
          call vec_to_arrays (nx_block, ny_block, nblocks,      &
-                             icellu      (:), ntot,            & 
+                             max_blocks, icellu (:), ntot,     & 
                              indxui    (:,:), indxuj(:,:),     &
                              wk11 (:),                         &
                              uvel (:,:,:), vvel (:,:,:))    
@@ -545,7 +545,7 @@
         
          ! form wk2 from Au and Av arrays        
          call arrays_to_vec (nx_block, ny_block, nblocks,      &
-                             icellu      (:), ntot,            & 
+                             max_blocks, icellu (:), ntot,     & 
                              indxui    (:,:), indxuj(:,:),     &
                              Au      (:,:,:), Av    (:,:,:),   &
                              wk22(:))    
