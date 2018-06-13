@@ -338,7 +338,7 @@
       !$TCXOMP END PARALLEL DO
 
       !-----------------------------------------------------------------
-      ! value of ntot
+      ! calc size of problem (ntot) and allocate arrays and vectors
       !-----------------------------------------------------------------
       
       ntot=0
@@ -346,6 +346,11 @@
         ntot = ntot + icellu(iblk)      
       enddo
       ntot = 2*ntot ! times 2 because of u and v
+      
+      allocate(bvec(ntot), sol(ntot), wk11(ntot), wk22(ntot))
+      allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
+      
+      !-----------------------------------------------------------------
       
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -391,9 +396,9 @@
        enddo                           
       endif
       
-      kmax=1
+      kmax=2
       do kOL = 1,kmax        ! outer loop 
-
+      print *, 'Picard iteration', kOL
       !-----------------------------------------------------------------
       ! Calc zetaD, vrel, Cb and vrel = f(uprev_k, vprev_k)
       !-----------------------------------------------------------------
@@ -449,10 +454,8 @@
       ischmi = 0
       im_fgmres = 50
       maxits = 50     
-      sol_eps = 1d-01
+      sol_eps = 5d-01
          
-         allocate(bvec(ntot), sol(ntot), wk11(ntot), wk22(ntot))
-         allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
          ! form b vector from matrices (nblocks matrices)      
          call arrays_to_vec (nx_block, ny_block, nblocks,    &
                              max_blocks, icellu (:), ntot,   & 
@@ -625,6 +628,7 @@
          
       enddo                     ! outer loop
 
+      deallocate(bvec, sol, wk11, wk22, vv, ww)
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
