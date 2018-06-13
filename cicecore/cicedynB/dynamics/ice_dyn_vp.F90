@@ -144,6 +144,8 @@
          Diagv    , & ! diagonal matrix coeff for v component
          uprev_k  , & ! uvel at previous Picard iteration
          vprev_k  , & ! vvel at previous Picard iteration
+         ulin     , & ! uvel to linearize vrel
+         vlin     , & ! vvel to linearize vrel
          vrel     , & ! coeff for tauw ! jfl
          Cb       , & ! seabed stress coeff ! jfl
          aiu      , & ! ice fraction on u-grid
@@ -188,7 +190,7 @@
       
       im_fgmres = 50 
       maxits = 50    
-      kmax=2
+      kmax=50
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -413,6 +415,14 @@
       !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
+	    if (kOL .eq. 1) then
+	      ulin(:,:,iblk) = uvel(:,:,iblk)
+	      vlin(:,:,iblk) = vvel(:,:,iblk)
+	    else
+	      ulin(:,:,iblk) = p5*uprev_k(:,:,iblk) + p5*uvel(:,:,iblk)
+	      vlin(:,:,iblk) = p5*vprev_k(:,:,iblk) + p5*vvel(:,:,iblk)
+	    endif
+         
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
             
@@ -433,7 +443,7 @@
                                kOL                ,                     &
                                aiu      (:,:,iblk), Tbu     (:,:,iblk), &
                                uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                               ulin     (:,:,iblk), vlin    (:,:,iblk), & 
                                vrel     (:,:,iblk), Cb      (:,:,iblk))
                                
             call calc_bvec (nx_block           , ny_block,           &
@@ -443,7 +453,7 @@
                             aiu      (:,:,iblk),                     & 
                             uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
-                            uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                            ulin     (:,:,iblk), vlin    (:,:,iblk), & 
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk))
                             
@@ -459,7 +469,7 @@
       iout   = 1
 !      its    = 0 
       ischmi = 0 
-      sol_eps = 5d-01
+      sol_eps = 1d-05
          
          ! form b vector from matrices (nblocks matrices)      
          call arrays_to_vec (nx_block, ny_block, nblocks,    &
@@ -788,7 +798,11 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw            ! Delt
+        
+      logical :: capping ! of the viscous coeff  
 
+      capping = .false.
+      
 !DIR$ CONCURRENT !Cray
 !cdir nodep      !NEC
 !ocl novrec      !Fujitsu
@@ -836,10 +850,22 @@
          Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
          Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
 
-         zetaD(i,j,1) = strength(i,j)/max(Deltane,tinyarea(i,j))
-         zetaD(i,j,2) = strength(i,j)/max(Deltanw,tinyarea(i,j))
-         zetaD(i,j,3) = strength(i,j)/max(Deltasw,tinyarea(i,j))
-         zetaD(i,j,4) = strength(i,j)/max(Deltase,tinyarea(i,j))
+         if (capping) then
+         
+          zetaD(i,j,1) = strength(i,j)/max(Deltane,tinyarea(i,j))
+          zetaD(i,j,2) = strength(i,j)/max(Deltanw,tinyarea(i,j))
+          zetaD(i,j,3) = strength(i,j)/max(Deltasw,tinyarea(i,j))
+          zetaD(i,j,4) = strength(i,j)/max(Deltase,tinyarea(i,j))
+          
+         else
+
+          zetaD(i,j,1) = strength(i,j)/(Deltane + tinyarea(i,j))
+          zetaD(i,j,2) = strength(i,j)/(Deltanw + tinyarea(i,j))
+          zetaD(i,j,3) = strength(i,j)/(Deltasw + tinyarea(i,j))
+          zetaD(i,j,4) = strength(i,j)/(Deltase + tinyarea(i,j))
+          
+         
+         endif
 
       enddo                     ! ij
 
