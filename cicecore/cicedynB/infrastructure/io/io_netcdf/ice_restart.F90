@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restart.F90 607 2013-03-29 15:49:42Z eclare $
 !=======================================================================
 
 ! Read and write ice model restart files using netCDF or binary
@@ -134,10 +133,10 @@
          tr_bgc_hum
 
       integer (kind=int_kind) :: &
-          k,  n,                & ! index
-          nx, ny,               & ! global array size
-          iyear, imonth, iday,  & ! year, month, day
-          nbtrcr
+         k,  n,                & ! index
+         nx, ny,               & ! global array size
+         iyear, imonth, iday,  & ! year, month, day
+         nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
 
