@@ -181,6 +181,14 @@
       !-----------------------------------------------------------------
 
       allocate(fld2(nx_block,ny_block,2,max_blocks))
+      
+      !-----------------------------------------------------------------
+      ! Define a few things for FGMRES and Picard solver
+      !-----------------------------------------------------------------
+      
+      im_fgmres = 50 
+      maxits = 50    
+      kmax=2
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -396,7 +404,6 @@
        enddo                           
       endif
       
-      kmax=2
       do kOL = 1,kmax        ! outer loop 
       print *, 'Picard iteration', kOL
       !-----------------------------------------------------------------
@@ -451,9 +458,7 @@
       conv   = 1.d0
       iout   = 1
 !      its    = 0 
-      ischmi = 0
-      im_fgmres = 50
-      maxits = 50     
+      ischmi = 0 
       sol_eps = 5d-01
          
          ! form b vector from matrices (nblocks matrices)      
