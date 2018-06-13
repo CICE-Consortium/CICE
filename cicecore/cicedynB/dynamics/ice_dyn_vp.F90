@@ -158,7 +158,7 @@
       real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
-      real (kind=dbl_kind) :: conv, sol_eps
+      real (kind=dbl_kind) :: conv, sol_eps, krelax
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation !JFL CHECK PAS SUR QUE OK
@@ -191,6 +191,7 @@
       im_fgmres = 50 
       maxits = 50    
       kmax=50
+      krelax=0.5d0
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -613,6 +614,13 @@
                              sol (:),                          &
                              uvel (:,:,:), vvel (:,:,:))    
 
+         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+         do iblk = 1, nblocks
+              uvel(:,:,iblk) = (1d0-krelax)*uprev_k(:,:,iblk) + krelax*uvel(:,:,iblk)
+              vvel(:,:,iblk) = (1d0-krelax)*vprev_k(:,:,iblk) + krelax*vvel(:,:,iblk)
+         enddo
+         !$OMP END PARALLEL DO  
+                             
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks                             
                             
