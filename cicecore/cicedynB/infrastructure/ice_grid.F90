@@ -339,7 +339,8 @@
 
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, &
-         pi, pi2, puny
+         pi, pi2, puny, punyVP
+
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
 
@@ -383,6 +384,9 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
+      print *, 'in init_grid2 to set tinyarea with punyVP value'
+      punyVP = 2d-09
+      
 !     tarea(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -407,7 +411,8 @@
             else
                uarear(i,j,iblk) = c0 ! possible on boundaries
             endif
-            tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
+!            tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
+            tinyarea(i,j,iblk) = punyVP*tarea(i,j,iblk)
 
             dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
             dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))
