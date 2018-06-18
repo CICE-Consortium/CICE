@@ -58,7 +58,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: ew_boundary_type, ns_boundary_type, &
           nblocks, blocks_ice
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, hm
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_restart_shared, only: restart_ext
 
@@ -262,12 +262,12 @@
       do n = 1, ncat
          do j = 1, ny_block
          do i = 1, nx_block
-            aicen_rest(i,j,n,iblk) = aicen_rest(i,j,n,iblk) * tmask(i,j,iblk)
-            vicen_rest(i,j,n,iblk) = vicen_rest(i,j,n,iblk) * tmask(i,j,iblk)
-            vsnon_rest(i,j,n,iblk) = vsnon_rest(i,j,n,iblk) * tmask(i,j,iblk)
+            aicen_rest(i,j,n,iblk) = aicen_rest(i,j,n,iblk) * hm(i,j,iblk)
+            vicen_rest(i,j,n,iblk) = vicen_rest(i,j,n,iblk) * hm(i,j,iblk)
+            vsnon_rest(i,j,n,iblk) = vsnon_rest(i,j,n,iblk) * hm(i,j,iblk)
             do nt = 1, ntrcr
                trcrn_rest(i,j,nt,n,iblk) = trcrn_rest(i,j,nt,n,iblk) &
-                                                            * tmask(i,j,iblk)
+                                                            * hm(i,j,iblk)
             enddo
          enddo
          enddo
