@@ -58,7 +58,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: ew_boundary_type, ns_boundary_type, &
           nblocks, blocks_ice
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, hm
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_restart_shared, only: restart_ext
 
@@ -86,8 +86,8 @@
    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
       file=__FILE__, line=__LINE__)
 
-   if (ew_boundary_type == 'open' .and. &
-       ns_boundary_type == 'open' .and. .not.(restart_ext)) then
+   if ((ew_boundary_type == 'open' .or. &
+        ns_boundary_type == 'open') .and. .not.(restart_ext)) then
       if (my_task == master_task) write (nu_diag,*) 'ERROR: restart_ext=F and open boundaries'
       call abort_ice(error_message="subname"//'open boundary and restart_ext=F', &
          file=__FILE__, line=__LINE__)
@@ -253,6 +253,26 @@
    !$OMP END PARALLEL DO
 
    endif ! restore_ic
+
+      !-----------------------------------------------------------------
+      ! Impose land mask
+      !-----------------------------------------------------------------
+
+   do iblk = 1, nblocks
+      do n = 1, ncat
+         do j = 1, ny_block
+         do i = 1, nx_block
+            aicen_rest(i,j,n,iblk) = aicen_rest(i,j,n,iblk) * hm(i,j,iblk)
+            vicen_rest(i,j,n,iblk) = vicen_rest(i,j,n,iblk) * hm(i,j,iblk)
+            vsnon_rest(i,j,n,iblk) = vsnon_rest(i,j,n,iblk) * hm(i,j,iblk)
+            do nt = 1, ntrcr
+               trcrn_rest(i,j,nt,n,iblk) = trcrn_rest(i,j,nt,n,iblk) &
+                                                            * hm(i,j,iblk)
+            enddo
+         enddo
+         enddo
+      enddo
+   enddo
 
    if (my_task == master_task) &
       write (nu_diag,*) 'ice restoring timescale = ',trestore,' days' 
