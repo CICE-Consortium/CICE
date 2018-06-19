@@ -642,7 +642,7 @@
 #endif
       qdp   (:,:,:) = c0              ! deep ocean heat flux (W/m^2)
       hmix  (:,:,:) = c20             ! ocean mixed layer depth (m)
-      hwater(:,:,:) = bathymetry(:,:,:) ! ocean water depth (m)
+      hwater        = bathymetry      ! ocean water depth (m)
       daice_da(:,:,:) = c0            ! data assimilation increment rate
 
       !-----------------------------------------------------------------
