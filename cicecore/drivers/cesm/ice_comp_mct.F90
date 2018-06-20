@@ -15,7 +15,7 @@ module ice_comp_mct
 ! use shr_mem_mod,  only : shr_get_memusage, shr_init_memusage
   use shr_file_mod, only : shr_file_getlogunit, shr_file_getloglevel,  &
 		           shr_file_setloglevel, shr_file_setlogunit
-  use shr_const_mod, only: SHR_CONST_OMEGA, SHR_CONST_REARTH, SHR_CONST_SPVAL
+  use shr_const_mod
   use mct_mod
 #ifdef USE_ESMF_LIB
   use esmf
@@ -65,7 +65,7 @@ module ice_comp_mct
   use CICE_RunMod
   use ice_exit, only: abort_ice
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-  use icepack_intfc, only: icepack_init_orbit
+  use icepack_intfc, only: icepack_init_orbit, icepack_init_parameters
   use icepack_intfc, only: icepack_query_tracer_flags
 
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -174,6 +174,34 @@ contains
 
     call ice_init_constants(omega_in=SHR_CONST_OMEGA, radius_in=SHR_CONST_REARTH, &
        spval_dbl_in=SHR_CONST_SPVAL)
+    call icepack_init_parameters( &
+       secday_in = SHR_CONST_CDAY, &
+       rhoi_in   = SHR_CONST_RHOICE, &
+       rhow_in   = SHR_CONST_RHOSW, &
+       cp_air_in = SHR_CONST_CPDAIR, &
+       cp_ice_in = SHR_CONST_CPICE, &
+       cp_ocn_in = SHR_CONST_CPSW, &
+       gravit_in = SHR_CONST_G, &
+       rhofresh_in = SHR_CONST_RHOFW, &
+       zvir_in   = SHR_CONST_ZVIR, &
+       vonkar_in = SHR_CONST_KARMAN, &
+       cp_wv_in  = SHR_CONST_CPWV, &
+       stefan_boltzmann_in = SHR_CONST_STEBOL, &
+       Tffresh_in= SHR_CONST_TKFRZ, &
+       Lsub_in   = SHR_CONST_LATSUB, &
+       Lvap_in   = SHR_CONST_LATVAP, &
+!       Lfresh_in = SHR_CONST_LATICE, & ! computed in init_parameters as Lsub-Lvap
+       Timelt_in = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
+       Tsmelt_in = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
+       ice_ref_salinity_in = SHR_CONST_ICE_REF_SAL, &
+       depressT_in = 0.054_dbl_kind, &
+       Tocnfrz_in= -34.0_dbl_kind*0.054_dbl_kind, &
+       pi_in     = SHR_CONST_PI, &
+       snowpatch_in = 0.005_dbl_kind, &
+       dragio_in = 0.00962_dbl_kind)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+        file=__FILE__, line=__LINE__)
 
     !--------------------------------------------------------------------------
     ! Determine attribute vector indices
