@@ -120,8 +120,10 @@
 
       ! grid dimensions for rectangular grid
       real (kind=dbl_kind), parameter ::  &
-         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
-         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
+!         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
+!         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
+         dxrect = 16.e5_dbl_kind   ,&! uniform HTN (cm)
+         dyrect = 16.e5_dbl_kind     ! uniform HTE (cm)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          rndex_global       ! global index for local subdomain (dbl)

@@ -30,7 +30,7 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
-      use ice_constants, only: c0, c1, c2, c4, c10, c12, c20, &
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, c10, c12, c20, &
                                c180, c365, c1000, c3600
       use ice_constants, only: p001, p01, p1, p25, p5, p6
       use ice_constants, only: cm_to_m
@@ -121,7 +121,7 @@
          atm_data_format, & ! 'bin'=binary or 'nc'=netcdf
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 
-                          ! 'LYq' or 'hadgem' or 'oned'
+                          ! 'LYq' , 'hadgem' , 'oned', or 'box'
          sss_data_type, & ! 'default', 'clim', 'ncar', 'oned'
          sst_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
@@ -492,6 +492,8 @@
          call monthly_data
       elseif (trim(atm_data_type) == 'oned') then
          call oned_data
+      elseif (trim(atm_data_type) == 'box') then
+         call box_data(fyear)
       else    ! default values set in init_flux
          return
       endif
@@ -4440,6 +4442,112 @@
 
 !=======================================================================
 
-      end module ice_forcing
+!      end module ice_forcing
 
 !=======================================================================
+!=======================================================================
+!
+!BOP
+!
+! !IROUTINE: box_data - define atmospheric data fields 
+!
+! !INTERFACE:
+!
+      subroutine box_data (yr)
+!
+! !DESCRIPTION:
+!
+! wind and current fields as in Hunke, JCP 2001
+!
+! !REVISION HISTORY:
+!
+! authors: Elizabeth Hunke, LANL
+!
+! !USES:
+!
+      use ice_domain, only: nblocks
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, p2
+      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_flux, only: uocn, vocn, uatm, vatm
+      use ice_fileunits, only: nu_diag, nu_forcing
+
+!
+! !INPUT/OUTPUT PARAMETERS:
+! 
+! EOP
+! 
+!local parameters
+
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
+
+      integer (kind=int_kind), intent(in) :: &
+           yr                   ! current forcing year
+      real (kind=dbl_kind) :: &
+          secday, pi , c10, c12, c20, puny, period, pi2
+      call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
+      call icepack_query_parameters(secday_out=secday)
+        period = c4*secday 
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block   
+         do i = 1, nx_block   
+
+         ! ocean current
+         ! constant in time---could be initialized in ice_flux.F90
+         uocn(i,j,iblk) =  p2*real(j-nghost, kind=dbl_kind) &
+                            / real(nx_global,kind=dbl_kind) - p1
+         vocn(i,j,iblk) = -p2*real(i-nghost, kind=dbl_kind) &
+                            / real(ny_global,kind=dbl_kind) + p1
+
+         ! wind components
+         uatm(i,j,iblk) = c5 + (sin(pi2*time/period)-c3) &
+                              * sin(pi2*real(i-nghost, kind=dbl_kind)  &
+                                       /real(nx_global,kind=dbl_kind)) &
+                              * sin(pi *real(j-nghost, kind=dbl_kind)  &
+                                       /real(ny_global,kind=dbl_kind))
+         vatm(i,j,iblk) = c5 + (sin(pi2*time/period)-c3) &
+                              * sin(pi *real(i-nghost, kind=dbl_kind)  &
+                                       /real(nx_global,kind=dbl_kind)) &
+                              * sin(pi2*real(j-nghost, kind=dbl_kind)  &
+                                       /real(ny_global,kind=dbl_kind))
+!echmod symm
+!         uocn(i,j,iblk) = c0
+!         vocn(i,j,iblk) = c0
+        ! uatm(i,j,iblk) = p1
+        ! vatm(i,j,iblk) = c0
+!echmod symm
+
+! initialization test
+       ! Diagonal wind vectors 1
+         !uatm(i,j,iblk) = c1 *real(j-nghost, kind=dbl_kind) &
+         !                   / real(ny_global,kind=dbl_kind)
+         !vatm(i,j,iblk) = c1 *real(j-nghost, kind=dbl_kind) &
+         !                   / real(ny_global,kind=dbl_kind)
+
+       ! Diagonal wind vectors 2
+         !uatm(i,j,iblk) = c1 *real(i-nghost, kind=dbl_kind) &
+         !                   / real(nx_global,kind=dbl_kind)
+         !vatm(i,j,iblk) = -c1 *real(i-nghost, kind=dbl_kind) &
+         !                   / real(nx_global,kind=dbl_kind)
+
+       ! Wind in x direction
+        ! uatm(i,j,iblk) = c1 *real(i-nghost, kind=dbl_kind) &
+        !                    / real(nx_global,kind=dbl_kind)
+        ! vatm(i,j,iblk) = c0
+
+       ! Wind in y direction
+        ! uatm(i,j,iblk) = c0
+        ! vatm(i,j,iblk) = c1 *real(j-nghost, kind=dbl_kind) &
+        !                    / real(ny_global,kind=dbl_kind)
+! initialization test
+
+
+         enddo  
+         enddo  
+      enddo ! nblocks
+
+      end subroutine box_data
+
+      end module ice_forcing
+

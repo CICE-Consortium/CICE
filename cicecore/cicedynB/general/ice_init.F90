@@ -1681,8 +1681,8 @@
                if (trim(atm_data_type) == 'box') then
                   if (hinit(n) > c0) then
 !                  ! constant slope from 0 to 1 in x direction
-!                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
-!                                  / (real(nx_global,kind=dbl_kind))
+                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
+                                  / (real(nx_global,kind=dbl_kind))
 !                  ! constant slope from 0 to 0.5 in x direction
 !                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
 !                                  / (real(nx_global,kind=dbl_kind)) * p5
@@ -1691,12 +1691,12 @@
 !                                         / (real(nx_global,kind=dbl_kind)) &
 !                                         * (real(jglob(j), kind=dbl_kind)-p5) &
 !                                         / (real(ny_global,kind=dbl_kind)) * p5)
-                     aicen(i,j,n) = max(c0,(real(nx_global, kind=dbl_kind) &
-                                         -  real(iglob(i), kind=dbl_kind)-p5) &
-                                         / (real(nx_global,kind=dbl_kind)) &
-                                         * (real(ny_global, kind=dbl_kind) &
-                                         -  real(jglob(j), kind=dbl_kind)-p5) &
-                                         / (real(ny_global,kind=dbl_kind)) * p5)
+!                     aicen(i,j,n) = max(c0,(real(nx_global, kind=dbl_kind) &
+!                                         -  real(iglob(i), kind=dbl_kind)-p5) &
+!                                         / (real(nx_global,kind=dbl_kind)) &
+!                                         * (real(ny_global, kind=dbl_kind) &
+!                                         -  real(jglob(j), kind=dbl_kind)-p5) &
+!                                         / (real(ny_global,kind=dbl_kind)) * p5)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
                else
