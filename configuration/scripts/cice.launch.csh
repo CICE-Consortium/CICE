@@ -27,6 +27,11 @@ cat >> ${jobfile} << EOFR
 mpiexec_mpt -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
+else if (${ICE_MACHINE} =~ hobart*) then
+cat >> ${jobfile} << EOFR
+mpiexec -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
 else if (${ICE_MACHINE} =~ thunder*) then
 cat >> ${jobfile} << EOFR
 mpiexec_mpt -np ${ntasks} omplace ./cice >&! \$ICE_RUNLOG_FILE
