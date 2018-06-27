@@ -2281,7 +2281,7 @@
           write (nu_diag,*) ' '
           write (nu_diag,*) 'Initial ice file: ', trim(init_file)
           write (*,*) 'Initial ice file: ', trim(init_file)
-          call flush(nu_diag)
+          call icepack_warnings_flush(nu_diag)
 
       endif
 
@@ -2292,7 +2292,7 @@
       if (my_task == master_task) then
          write(nu_diag,*) 'reading ',TRIM(fieldname)
          write(*,*) 'reading ',TRIM(fieldname)
-         call flush(nu_diag)
+         call icepack_warnings_flush(nu_diag)
       endif
       call ice_read_nc(fid_init,1,fieldname,bathymetry,diag, &
                     field_loc=field_loc_center, &
@@ -2302,7 +2302,7 @@
 
       if (my_task == master_task) then
          write(nu_diag,*) 'closing file ',TRIM(init_file)
-         call flush(nu_diag)
+         call icepack_warnings_flush(nu_diag)
       endif
 
       end subroutine read_basalstress_bathy
