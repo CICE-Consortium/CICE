@@ -1,0 +1,47 @@
+#==============================================================================
+# Makefile macros for Travis-CI - GCC and openmpi compilers
+#==============================================================================
+
+CPP        := cpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CFLAGS     := -c -O2  -xHost
+
+FIXEDFLAGS := -ffixed-line-length-132
+FREEFLAGS  := -ffree-form
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+else
+  FFLAGS     += -O2
+endif
+
+FC := mpif90
+
+MPICC:= 
+
+MPIFC:= mpif90
+LD:= $(FC)
+
+NETCDF_PATH := $(NETCDF)
+
+ifeq ($(ICE_IOTYPE), netcdf)
+    NETCDF_PATH := $(shell nc-config --prefix)
+    INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
+    LIB_NETCDF := $(NETCDF_PATH)/lib
+    LIB_PNETCDF := 
+    SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+else
+    SLIBS   := 
+endif
+
+LIB_MPI := 
+SCC:= 
+SFC:= 
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp
+   CFLAGS += -fopenmp
+   FFLAGS += -fopenmp
+endif

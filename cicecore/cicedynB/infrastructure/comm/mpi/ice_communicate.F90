@@ -29,6 +29,7 @@
 
    public  :: init_communicate,          &
               get_num_procs,             &
+              ice_barrier,               &
               create_communicator
 
    integer (int_kind), public :: &
@@ -81,7 +82,7 @@
 #if (defined key_oasis3 || defined key_oasis3mct || defined key_oasis4)
      ice_comm = localComm       ! communicator from NEMO/OASISn 
 #elif defined key_iomput
-    ice_comm = mpi_comm_opa    ! communicator from NEMO/XIOS
+     ice_comm = mpi_comm_opa    ! communicator from NEMO/XIOS
 #else
      ice_comm = MPI_COMM_WORLD  ! Global communicator 
 #endif 
@@ -128,6 +129,28 @@
 !-----------------------------------------------------------------------
 
  end function get_num_procs
+
+!***********************************************************************
+
+ subroutine ice_barrier()
+
+!  This function calls an MPI_BARRIER
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: ierr
+
+!-----------------------------------------------------------------------
+
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+
+!-----------------------------------------------------------------------
+
+ end subroutine ice_barrier
 
 !***********************************************************************
 

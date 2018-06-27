@@ -168,6 +168,8 @@
 ! Determine the current and final year of the forcing cycle based on
 ! namelist input; initialize the atmospheric forcing data filenames.
 
+      character(len=*), parameter :: subname = '(init_forcing_atmo)'
+
       fyear       = fyear_init + mod(nyr-1,ycycle) ! current year
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
 
@@ -175,6 +177,16 @@
                           my_task == master_task) then
          write (nu_diag,*) ' Initial forcing data year = ',fyear_init
          write (nu_diag,*) ' Final   forcing data year = ',fyear_final
+      endif
+
+      if (trim(atm_data_type) == 'hadgem' .and. &
+          trim(precip_units) /= 'mks') then
+         if (my_task == master_task) then
+            write (nu_diag,*) 'WARNING: HadGEM atmospheric data chosen with wrong precip_units'
+            write (nu_diag,*) 'WARNING:   Changing precip_units to mks (i.e. kg/m2 s).'
+         endif
+         call abort_ice(error_message=subname//' HadGEM precip_units error', &
+            file=__FILE__, line=__LINE__)
       endif
 
     !-------------------------------------------------------------------
@@ -240,9 +252,11 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      character(len=*), parameter :: subname = '(init_forcing_ocn)'
+
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       nbits = 64              ! double precision data
@@ -406,6 +420,8 @@
       integer (kind=int_kind) :: &
          i, j, iblk           ! horizontal indices
 
+      character(len=*), parameter :: subname = '(ocn_freezing_temperature)'
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
@@ -417,7 +433,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine ocn_freezing_temperature
@@ -444,6 +460,8 @@
 
       type (block) :: &
          this_block           ! block information for current block
+
+      character(len=*), parameter :: subname = '(get_forcing_atmo)'
       
       fyear = fyear_init + mod(nyr-1,ycycle)  ! current year
       if (trim(atm_data_type) /= 'default' .and. istep <= 1 &
@@ -453,7 +471,7 @@
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ftime = time         ! forcing time
@@ -544,6 +562,8 @@
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
+      character(len=*), parameter :: subname = '(get_forcing_ocn)'
+
       if (trim(sst_data_type) == 'clim' .or.  &
           trim(sss_data_type) == 'clim') then
          call ocn_data_clim(dt)
@@ -614,6 +634,8 @@
          n2, n4           , & ! like ixm and ixp, but
                               ! adjusted at beginning and end of data
          arg                  ! value of time argument in field_data
+
+      character(len=*), parameter :: subname = '(read_data)'
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
@@ -758,6 +780,8 @@
 
       ! local variables
 
+      character(len=*), parameter :: subname = '(read_data_nc)'
+
 #ifdef ncdf 
       integer (kind=int_kind) :: &
          nrec             , & ! record number to read
@@ -901,6 +925,8 @@
         nrec           , & ! record number to read
         arg                ! value of time argument in field_data
 
+      character(len=*), parameter :: subname = '(read_clim_data)'
+
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
       nbits = 64                ! double precision data
@@ -986,6 +1012,8 @@
         arg            , & ! value of time argument in field_data
         fid                ! file id for netCDF routines
 
+      character(len=*), parameter :: subname = '(read_clim_data_nc)'
+
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
       nbits = 64                ! double precision data
@@ -1052,9 +1080,11 @@
       real (kind=dbl_kind) :: &
           daymid(0:13)     ! month mid-points
 
+      character(len=*), parameter :: subname = '(interp_coeff_monthly)'
+
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       daymid(1:13) = 14._dbl_kind   ! time frame ends 0 sec into day 15
@@ -1112,9 +1142,11 @@
           t1, t2       , & ! seconds elapsed at data points
           rcnum            ! recnum => dbl_kind
 
+      character(len=*), parameter :: subname = '(interp_coeff)'
+
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       secyr = dayyr * secday         ! seconds in a year
@@ -1166,6 +1198,8 @@
 
       integer (kind=int_kind) :: i,j, iblk
 
+      character(len=*), parameter :: subname = '(interpolate data)'
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
@@ -1194,6 +1228,8 @@
       character (char_len_long) :: tmpname
 
       integer (kind=int_kind) :: i
+
+      character(len=*), parameter :: subname = '(file_year)'
 
       if (trim(atm_data_type) == 'hadgem') then ! netcdf
          i = index(data_file,'.nc') - 5
@@ -1268,11 +1304,13 @@
 
       logical (kind=log_kind) :: calc_strair
 
+      character(len=*), parameter :: subname = '(prepare_forcing)'
+
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
       call icepack_query_parameters(calc_strair_out=calc_strair)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j = jlo, jhi
@@ -1472,10 +1510,12 @@
       real(kind=dbl_kind) :: &
            Tffresh, stefan_boltzmann
 
+      character(len=*), parameter :: subname = '(longwave_parkinson_washington)'
+
       call icepack_query_parameters(Tffresh_out=Tffresh, &
            stefan_boltzmann_out=stefan_boltzmann)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
       
       flw = stefan_boltzmann*Tair**4 &
@@ -1520,11 +1560,13 @@
       real(kind=dbl_kind) :: &
            Tffresh, stefan_boltzmann, emissivity
 
+      character(len=*), parameter :: subname = '(longwave_rosati_miyakoda)'
+
       call icepack_query_parameters(Tffresh_out=Tffresh, &
            stefan_boltzmann_out=stefan_boltzmann, &
            emissivity_out=emissivity)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       fcc = c1 - 0.8_dbl_kind * cldf
@@ -1554,6 +1596,8 @@
 
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
+
+      character(len=*), parameter :: subname = '(ncar_files)'
 
       fsw_file = &
            trim(atm_data_dir)//'/MONTHLY/swdn.1996.dat'
@@ -1624,9 +1668,11 @@
 
       logical (kind=log_kind) :: readm, read6
 
+      character(len=*), parameter :: subname = '(ncar_data)'
+
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
@@ -1672,7 +1718,8 @@
                          maxrec, rain_file, fsnow_data, &
                          field_loc_center, field_type_scalar)
       else
-         call abort_ice ('nonbinary atm_data_format unavailable')
+         call abort_ice (error_message=subname//'nonbinary atm_data_format unavailable', &
+            file=__FILE__, line=__LINE__)
 !        The routine exists, for example:  
 !         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
 !                            maxrec, fsw_file, 'fsw', fsw_data, &
@@ -1740,7 +1787,8 @@
                          maxrec, humid_file, Qa_data, &
                          field_loc_center, field_type_scalar)
       else
-         call abort_ice ('nonbinary atm_data_format unavailable')
+         call abort_ice (error_message=subname//'nonbinary atm_data_format unavailable', &
+            file=__FILE__, line=__LINE__)
       endif
 
       ! Interpolate
@@ -1771,6 +1819,8 @@
 
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
+
+      character(len=*), parameter :: subname = '(LY_files)'
 
       flw_file = &
            trim(atm_data_dir)//'/MONTHLY/cldf.omip.dat'
@@ -1845,10 +1895,12 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(LY_data)'
+
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
@@ -1938,7 +1990,8 @@
                          humid_file, Qa_data, &
                          field_loc_center, field_type_scalar)
       else
-         call abort_ice ('nonbinary atm_data_format unavailable')
+         call abort_ice (error_message=subname//'nonbinary atm_data_format unavailable', &
+            file=__FILE__, line=__LINE__)
       endif
 
       ! Interpolate
@@ -2068,9 +2121,11 @@
       integer (kind=int_kind) :: &
          i, j
 
+      character(len=*), parameter :: subname = '(compute_shortwave)'
+
       call icepack_query_parameters(secday_out=secday, pi_out=pi)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j=jlo,jhi
@@ -2119,9 +2174,11 @@
       real (kind=dbl_kind) :: &
          Tffresh, puny
 
+      character(len=*), parameter :: subname = '(Qa_fixLY)'
+
       call icepack_query_parameters(Tffresh_out=Tffresh, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       worka = Tair - Tffresh
@@ -2159,10 +2216,12 @@
 
       logical (kind=log_kind) :: calc_strair, calc_Tsfc
 
+      character(len=*), parameter :: subname = '(hadgem_files)'
+
       call icepack_query_parameters(calc_strair_out=calc_strair, &
            calc_Tsfc_out=calc_Tsfc)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! -----------------------------------------------------------
@@ -2356,11 +2415,13 @@
             calc_strair, &
             calc_Tsfc
 
+      character(len=*), parameter :: subname = '(hadgem_data)'
+
       call icepack_query_parameters(Lsub_out=Lsub)
       call icepack_query_parameters(calc_strair_out=calc_strair, &
            calc_Tsfc_out=calc_Tsfc)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
@@ -2583,6 +2644,8 @@
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
+      character(len=*), parameter :: subname = '(monthly_files)'
+
       flw_file = &
            trim(atm_data_dir)//'/MONTHLY/cldf.omip.dat'
 
@@ -2652,6 +2715,8 @@
       type (block) :: &
          this_block           ! block information for current block
       
+      character(len=*), parameter :: subname = '(monthly_data)'
+
     !-------------------------------------------------------------------
     ! monthly data 
     !
@@ -2841,6 +2906,8 @@
          ws1 = 621.97_dbl_kind,          & ! for saturation mixing ratio 
          Pair = 1020._dbl_kind             ! Sea level pressure (hPa) 
        
+      character(len=*), parameter :: subname = '(oned_data)'
+
       diag = .false.   ! write diagnostic information 
    
       do iblk = 1, nblocks
@@ -2926,6 +2993,8 @@
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
+      character(len=*), parameter :: subname = '(oned_files)'
+
       fsw_file = &
            trim(atm_data_dir)//'/hourlysolar_brw1989_5yr.nc'
 
@@ -2988,6 +3057,8 @@
           sstdat              ! data value toward which SST is restored
 
       logical (kind=log_kind) :: readm
+
+      character(len=*), parameter :: subname = '(ocean_data_clim)'
 
       if (my_task == master_task .and. istep == 1) then
          if (trim(sss_data_type)=='clim') then
@@ -3149,12 +3220,14 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      character(len=*), parameter :: subname = '(ocn_data_ncar_init)'
+
       if (my_task == master_task) then
 
          write (nu_diag,*) 'WARNING: evp_prep calculates surface tilt'
          write (nu_diag,*) 'WARNING: stress from geostrophic currents,'
          write (nu_diag,*) 'WARNING: not data from ocean forcing file.'
-         write (nu_diag,*) 'WARNING: Alter ice_dyn_evp.F if desired.'
+         write (nu_diag,*) 'WARNING: Alter ice_dyn_evp.F90 if desired.'
 
          if (restore_sst) write (nu_diag,*)  &
              'SST restoring timescale = ',trestore,' days' 
@@ -3183,10 +3256,12 @@
           status = nf90_inquire_dimension(fid,dimid,len=nlat)
 
           if( nlon .ne. nx_global ) then
-            call abort_ice ('ice: ocn frc file nlon ne nx_global')
+            call abort_ice (error_message=subname//'ice: ocn frc file nlon ne nx_global', &
+               file=__FILE__, line=__LINE__)
           endif
           if( nlat .ne. ny_global ) then
-            call abort_ice ('ice: ocn frc file nlat ne ny_global')
+            call abort_ice (error_message=subname//'ice: ocn frc file nlat ne ny_global', &
+               file=__FILE__, line=__LINE__)
           endif
 
         endif ! master_task
@@ -3297,6 +3372,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2
 
+      character(len=*), parameter :: subname = '(ocn_data_ncar_init_3D)'
+
       if (my_task == master_task) then
 
          write (nu_diag,*) 'WARNING: evp_prep calculates surface tilt'
@@ -3332,10 +3409,12 @@
           status = nf90_inquire_dimension(fid,dimid,len=nlat)
 
           if( nlon .ne. nx_global ) then
-            call abort_ice ('ice: ocn frc file nlon ne nx_global')
+            call abort_ice (error_message=subname//'ice: ocn frc file nlon ne nx_global', &
+               file=__FILE__, line=__LINE__)
           endif
           if( nlat .ne. ny_global ) then
-            call abort_ice ('ice: ocn frc file nlat ne ny_global')
+            call abort_ice (error_message=subname//'ice: ocn frc file nlat ne ny_global', &
+               file=__FILE__, line=__LINE__)
           endif
 
         endif ! master_task
@@ -3388,7 +3467,8 @@
 
       else  ! binary format
 
-        call abort_ice ('new ocean forcing is netcdf only')
+        call abort_ice (error_message=subname//'new ocean forcing is netcdf only', &
+           file=__FILE__, line=__LINE__)
 
       endif
 
@@ -3425,6 +3505,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
+
+      character(len=*), parameter :: subname = '(ocn_data_ncar)'
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -3587,6 +3669,8 @@
 
       integer :: i, j, iblk
  
+      character(len=*), parameter :: subname = '(ocn_data_oned)'
+
       sss    (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
 
       call ocn_freezing_temperature
@@ -3640,6 +3724,8 @@
 
       character (char_len_long) :: & 
             filename    	! name of netCDF file
+
+      character(len=*), parameter :: subname = '(ocn_data_hadgem)'
 
     !-------------------------------------------------------------------
     ! monthly data
@@ -3824,6 +3910,9 @@
       real (kind=dbl_kind), dimension(2), &
          intent(out) :: &
          field_data              ! 2 values needed for interpolation
+
+      character(len=*), parameter :: subname = '(read_data_nc_point)'
+
 #ifdef ncdf 
       integer (kind=int_kind) :: &
          nrec             , & ! record number to read
@@ -3945,6 +4034,8 @@
 
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
+
+      character(len=*), parameter :: subname = '(ISPOL_files)'
 
       fsw_file = &
            trim(atm_data_dir)//'/fsw_sfc_4Xdaily.nc' 
@@ -4076,10 +4167,12 @@
 
       logical (kind=log_kind) :: readm, read1
 
+      character(len=*), parameter :: subname = '(ISPOL_data)'
+
       diag = .false.   ! write diagnostic information 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
    
 #ifdef ncdf 
@@ -4291,6 +4384,8 @@
         nlat    , & ! number of longitudes of data
         nlon        ! number of latitudes  of data
 
+      character(len=*), parameter :: subname = '(ocn_data_ispol_init)'
+
       if (my_task == master_task) then
 
          if (restore_sst) write (nu_diag,*)  &
@@ -4331,7 +4426,8 @@
 #endif
 
       else  ! binary format
-       call abort_ice ('new ocean forcing is netcdf only')
+         call abort_ice (error_message=subname//'new ocean forcing is netcdf only', &
+            file=__FILE__, line=__LINE__)
       endif
 
 !echmod - currents cause Fram outflow to be too large

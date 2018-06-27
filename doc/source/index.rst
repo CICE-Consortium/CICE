@@ -11,13 +11,14 @@ Table of Contents:
 ------------------
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
    :numbered:
 
-   cice_1_introduction.rst
-   cice_2_science_guide.rst
-   cice_3_user_guide.rst
-   cice_4_index.rst
+   intro/index.rst
+   science_guide/index.rst
+   user_guide/index.rst
+   developer_guide/index.rst
+   cice_index.rst
    zreferences.rst
  
 Useful tools

@@ -1153,7 +1153,7 @@
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
          asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
-         write(nu_diag,*) ' min, max, sum =', amin, amax, asum
+         write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(varname)
       endif
 
     !-------------------------------------------------------------------
@@ -1327,7 +1327,7 @@
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= spval_dbl)
             asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= spval_dbl)
-            write(nu_diag,*) ' min, max, sum =', amin, amax, asum
+            write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(varname)
          enddo
       endif
 
@@ -1560,7 +1560,7 @@
 ! Adapted by David Bailey, NCAR
 
       subroutine ice_write_nc_xy(fid,  nrec,  varid, work,  diag, &
-                                 restart_ext)
+                                 restart_ext, varname)
 
       use ice_gather_scatter, only: gather_global, gather_global_ext
 
@@ -1579,6 +1579,9 @@
            intent(in) :: &
            work              ! output array (real, 8-byte)
 
+      character (len=*), optional, intent(in) :: &
+           varname           ! variable name
+
       ! local variables
 
 #ifdef ncdf
@@ -1592,8 +1595,9 @@
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-!     character (char_len) :: &
-!        dimname            ! dimension name            
+      character (char_len) :: &
+         lvarname,        & ! variable name
+         dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1608,6 +1612,12 @@
             nx = nx_global + 2*nghost
             ny = ny_global + 2*nghost
          endif
+      endif
+
+      if (present(varname)) then
+         lvarname = trim(varname)
+      else
+         lvarname = ' '
       endif
 
       if (my_task == master_task) then
@@ -1653,7 +1663,7 @@
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
          asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
-         write(nu_diag,*) ' min, max, sum =', amin, amax, asum
+         write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(lvarname)
       endif
 
       deallocate(work_g1)
@@ -1668,7 +1678,7 @@
 ! Adapted by David Bailey, NCAR
 
       subroutine ice_write_nc_xyz(fid,  nrec,  varid, work,  diag, &
-                                  restart_ext)
+                                  restart_ext, varname)
 
       use ice_gather_scatter, only: gather_global, gather_global_ext
 
@@ -1687,6 +1697,9 @@
            intent(in) :: &
            work              ! output array (real, 8-byte)
 
+      character (len=*), optional, intent(in) :: &
+           varname           ! variable name
+
       ! local variables
 
 #ifdef ncdf
@@ -1701,8 +1714,9 @@
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-!     character (char_len) :: &
-!        dimname            ! dimension name            
+      character (char_len) :: &
+         lvarname,        & ! variable name
+         dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -1739,6 +1753,12 @@
          enddo
       endif
 
+      if (present(varname)) then
+         lvarname = trim(varname)
+      else
+         lvarname = ' '
+      endif
+
       if (my_task == master_task) then
 
        !--------------------------------------------------------------
@@ -1771,7 +1791,7 @@
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= spval_dbl)
             asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= spval_dbl)
-            write(nu_diag,*) ' min, max, sum =', amin, amax, asum
+            write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(lvarname)
          enddo
       endif
 
@@ -1882,7 +1902,7 @@
          amin = minval(work_g)
          amax = maxval(work_g, mask = work_g /= spval_dbl)
          asum = sum   (work_g, mask = work_g /= spval_dbl)
-         write(nu_diag,*) 'min, max, sum = ', amin, amax, asum
+         write(nu_diag,*) 'min, max, sum = ', amin, amax, asum, trim(varname)
       endif
 
 #ifdef ORCA_GRID
@@ -2023,7 +2043,7 @@
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
          asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
-         write(nu_diag,*) ' min, max, sum =', amin, amax, asum
+         write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(varname)
       endif
 
     !-------------------------------------------------------------------

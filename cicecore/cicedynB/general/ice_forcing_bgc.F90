@@ -847,6 +847,7 @@
     if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
        file=__FILE__, line=__LINE__)
 
+#ifdef ncdf
     if (modal_aero) then
        diag = .true.   ! write diagnostic information 
        optics_file =  &
@@ -885,6 +886,11 @@
             enddo
          enddo          
       endif      ! modal_aero
+#else
+    if (modal_aero) then
+      call abort_ice('faero_optics: netcdf required for modal_aero')
+    endif
+#endif
 
       end subroutine faero_optics
 

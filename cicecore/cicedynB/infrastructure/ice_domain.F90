@@ -63,8 +63,8 @@
 
     character (char_len) :: &
        distribution_type,   &! method to use for distributing blocks
-                             ! 'cartesian'
-                             ! 'rake' 
+                             ! 'cartesian', 'roundrobin', 'sectrobin', 'sectcart'
+                             ! 'rake', 'spacecurve', etc
        distribution_wght     ! method for weighting work per block 
                              ! 'block' = POP default configuration
                              ! 'latitude' = no. ocean points * |lat|
@@ -476,14 +476,15 @@
 
    if (nblocks_max > max_blocks) then
      write(outstring,*) &
-         'ice: no. blocks exceed max: increase max to', nblocks_max
-     call abort_ice(trim(outstring))
+         'ERROR: no. blocks exceed max: increase max to', nblocks_max
+     call abort_ice("subname"//trim(outstring), &
+        file=__FILE__, line=__LINE__)
    else if (nblocks_max < max_blocks) then
      write(outstring,*) &
-         'ice: no. blocks too large: decrease max to', nblocks_max
+         'WARNING: no. blocks too large: decrease max to', nblocks_max
      if (my_task == master_task) then
         write(nu_diag,*) ' ********WARNING***********'
-        write(nu_diag,*) trim(outstring)
+        write(nu_diag,*) "subname",trim(outstring)
         write(nu_diag,*) ' **************************'
         write(nu_diag,*) ' '
      endif

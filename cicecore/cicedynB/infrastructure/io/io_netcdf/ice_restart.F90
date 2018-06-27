@@ -88,6 +88,7 @@
       call broadcast_scalar(istep0,master_task)
       call broadcast_scalar(time,master_task)
       call broadcast_scalar(time_forc,master_task)
+      call broadcast_scalar(nyr,master_task)
       
       istep1 = istep0
 
@@ -131,10 +132,10 @@
          tr_bgc_hum
 
       integer (kind=int_kind) :: &
-          k,  n,                & ! index
-          nx, ny,               & ! global array size
-          iyear,  & ! year
-          nbtrcr
+         k,  n,                & ! index
+         nx, ny,               & ! global array size
+         iyear, imonth, iday,  & ! year, month, day
+         nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
 
@@ -728,16 +729,16 @@
          status = nf90_inq_varid(ncid,trim(vname),varid)
          if (ndim3 == ncat) then 
             if (restart_ext) then
-               call ice_write_nc(ncid, 1, varid, work, diag, restart_ext)
+               call ice_write_nc(ncid, 1, varid, work, diag, restart_ext, varname=trim(vname))
             else
-               call ice_write_nc(ncid, 1, varid, work, diag)
+               call ice_write_nc(ncid, 1, varid, work, diag, varname=trim(vname))
             endif
          elseif (ndim3 == 1) then
             work2(:,:,:) = work(:,:,1,:)
             if (restart_ext) then
-               call ice_write_nc(ncid, 1, varid, work2, diag, restart_ext)
+               call ice_write_nc(ncid, 1, varid, work2, diag, restart_ext, varname=trim(vname))
             else
-               call ice_write_nc(ncid, 1, varid, work2, diag)
+               call ice_write_nc(ncid, 1, varid, work2, diag, varname=trim(vname))
             endif
          else
             write(nu_diag,*) 'ndim3 not supported',ndim3

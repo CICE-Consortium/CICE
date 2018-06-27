@@ -49,9 +49,9 @@ SCC:= icc
 SFC:= ifort 
 
 ifeq ($(ICE_THREADED), true) 
-   LDFLAGS += -openmp
-   CFLAGS += -openmp
-   FFLAGS += -openmp
+   LDFLAGS += -qopenmp
+   CFLAGS += -qopenmp
+   FFLAGS += -qopenmp
 endif
 
 ### if using parallel I/O, load all 3 libraries.  PIO must be first!
