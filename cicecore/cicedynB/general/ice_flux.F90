@@ -329,7 +329,6 @@
       subroutine init_coupler_flux
 
       use ice_arrays_column, only: Cdn_atm
-      use ice_constants, only: p001
       use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
            fdoc, fdon, fdic, ffed, ffep
@@ -442,6 +441,7 @@
       uocn  (:,:,:) = c0              ! surface ocean currents (m/s)
       vocn  (:,:,:) = c0
       frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
+      frzmlt_init(:,:,:) = c0         ! freezing/melting potential (W/m^2)
       sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
 
       do iblk = 1, size(Tf,3)
@@ -470,6 +470,7 @@
       fsens   (:,:,:) = c0
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
+      fswint_ai(:,:,:) = c0
       flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4   
                         ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
@@ -489,6 +490,7 @@
       strocnyT(:,:,:) = c0    ! ice-ocean stress, y-direction (T-cell)
       fresh   (:,:,:) = c0
       fsalt   (:,:,:) = c0
+      fpond   (:,:,:) = c0
       fhocn   (:,:,:) = c0
       fswthru (:,:,:) = c0
       fresh_da(:,:,:) = c0    ! data assimilation
@@ -514,6 +516,7 @@
 
       coszen  (:,:,:) = c0            ! Cosine of the zenith angle
       fsw     (:,:,:) = c0            ! shortwave radiation (W/m^2)
+      fswfac  (:,:,:) = c0
       scale_factor(:,:,:) = c1        ! shortwave scaling factor 
       wind    (:,:,:) = sqrt(uatm(:,:,:)**2 &
                            + vatm(:,:,:)**2)  ! wind speed, (m/s)
@@ -619,6 +622,7 @@
       fsurf  (:,:,:) = c0
       fcondtop(:,:,:)= c0
       congel (:,:,:) = c0
+      fbot   (:,:,:) = c0
       frazil (:,:,:) = c0
       snoice (:,:,:) = c0
       dsnow  (:,:,:) = c0
@@ -637,7 +641,6 @@
       fcondtopn (:,:,:,:) = c0
       flatn     (:,:,:,:) = c0
       fsensn    (:,:,:,:) = c0
-      fpond     (:,:,:) = c0
       fresh_ai  (:,:,:) = c0
       fsalt_ai  (:,:,:) = c0
       fhocn_ai  (:,:,:) = c0
@@ -654,10 +657,10 @@
       Cdn_ocn(:,:,:) = dragio
       Cdn_atm(:,:,:) = (vonkar/log(zref/iceruf)) &
                      * (vonkar/log(zref/iceruf)) ! atmo drag for RASM
+      Cdn_atm_ratio(:,:,:)= c0
 
       if (formdrag) then
         Cdn_atm_rdg (:,:,:) = c0
-        Cdn_atm_ratio(:,:,:)= c0
         Cdn_atm_floe(:,:,:) = c0
         Cdn_atm_pond(:,:,:) = c0
         Cdn_atm_skin(:,:,:) = c0
@@ -685,7 +688,7 @@
 
       subroutine init_history_dyn
 
-      use ice_state, only: aice, vice, trcr
+      use ice_state, only: aice, vice, trcr, strength
 
       logical (kind=log_kind) :: &
           tr_iage
@@ -703,6 +706,7 @@
       sig2    (:,:,:) = c0
       taubx   (:,:,:) = c0
       tauby   (:,:,:) = c0
+      strength (:,:,:) = c0
       strocnx (:,:,:) = c0
       strocny (:,:,:) = c0
       strairx (:,:,:) = c0

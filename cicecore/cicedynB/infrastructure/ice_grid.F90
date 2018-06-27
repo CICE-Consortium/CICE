@@ -302,6 +302,8 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
+      tarea(:,:,:) = c0
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1489,6 +1491,8 @@
       !-----------------------------------------------------------------
 
       bm = c0
+      uvm = c0
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1911,6 +1915,9 @@
       ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
       !-------------------------------------------------------------
 
+      latu_bounds(:,:,:,:) = c0
+      lonu_bounds(:,:,:,:) = c0
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1948,6 +1955,8 @@
       endif
 
       work1(:,:,:) = latu_bounds(2,:,:,:)
+      work_g2 = c0
+
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do j = 1, ny_global

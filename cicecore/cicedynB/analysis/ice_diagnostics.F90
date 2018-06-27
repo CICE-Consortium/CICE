@@ -1582,7 +1582,7 @@
 
       real (kind=dbl_kind) :: &
            eidebug, esdebug, &
-           qi, qs, Tsnow, &
+           qi, qs, &
            puny
 
       integer (kind=int_kind) :: m, n, k, i, j, iblk, nt_Tsfc, nt_qice, nt_qsno

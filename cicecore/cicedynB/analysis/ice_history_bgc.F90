@@ -20,7 +20,7 @@
       use icepack_intfc, only: icepack_query_tracer_flags, &
           icepack_query_tracer_indices, icepack_query_parameters, &
           icepack_query_parameters
-      use ice_domain_size, only: max_nstrm, n_aero, nblyr, &
+      use ice_domain_size, only: max_nstrm, n_aero, &
           n_algae, n_dic, n_doc, n_don, n_zaero, n_fed, n_fep 
 
       implicit none
@@ -1728,8 +1728,6 @@
 
       subroutine init_hist_bgc_3Dc
 
-      use ice_broadcast, only: broadcast_scalar
-      use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
@@ -1812,14 +1810,14 @@
           R_C2N, R_chl2N
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nblyr
+      use ice_domain_size, only: nblyr
       use ice_flux, only: sss
       use ice_flux_bgc, only: faero_atm, faero_ocn, flux_bio, flux_bio_ai, &
           fzsal_ai, fzsal_g_ai
-      use ice_history_shared, only: n2D, a2D, a3Dc, n3Dccum, &         
-          n3Dzcum, n3Dbcum, n3Dacum, a3Db, a3Da, &    
+      use ice_history_shared, only: n2D, a2D, a3Dc, &         
+          n3Dzcum, n3Dbcum, a3Db, a3Da, &    
           ncat_hist, accum_hist_field, nzblyr, nzalyr
-      use ice_state, only: trcrn, trcr, aicen, aice, vice, vicen
+      use ice_state, only: trcrn, trcr, aicen, aice, vicen
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index

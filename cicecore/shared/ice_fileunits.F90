@@ -267,9 +267,10 @@
 #ifdef CESMCOUPLED
    call shr_sys_flush(iunit)
 #else
-   flush(iunit)
 #if (defined AIX)
    call flush_(iunit)
+#else
+   flush(iunit)
 #endif
 #endif
 
