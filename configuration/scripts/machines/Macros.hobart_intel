@@ -15,7 +15,7 @@ FC_AUTO_R8 := -r8
 FFLAGS_NOOPT:=
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS   := -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+  FFLAGS   := -qno-opt-dynamic-align  -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -fp-model source -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
 endif
 
 ifeq ($(ICE_COMMDIR), mpi)
