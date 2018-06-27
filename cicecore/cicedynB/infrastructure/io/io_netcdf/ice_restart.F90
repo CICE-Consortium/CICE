@@ -88,6 +88,7 @@
       call broadcast_scalar(istep0,master_task)
       call broadcast_scalar(time,master_task)
       call broadcast_scalar(time_forc,master_task)
+      call broadcast_scalar(nyr,master_task)
       
       istep1 = istep0
 
@@ -131,10 +132,10 @@
          tr_bgc_hum
 
       integer (kind=int_kind) :: &
-          k,  n,                & ! index
-          nx, ny,               & ! global array size
-          iyear,  & ! year
-          nbtrcr
+         k,  n,                & ! index
+         nx, ny,               & ! global array size
+         iyear, imonth, iday,  & ! year, month, day
+         nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
 

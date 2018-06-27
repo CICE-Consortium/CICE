@@ -1,6 +1,6 @@
 ice_ic = 'default'
 restart = .false.
-restart_ext = .false.
+restart_ext = .true.
 use_leap_years = .true.
 ndtd = 2
 kcatbound = 1

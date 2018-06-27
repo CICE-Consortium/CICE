@@ -839,6 +839,7 @@
     if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
        file=__FILE__, line=__LINE__)
 
+#ifdef ncdf
     if (modal_aero) then
        optics_file =  &
         '/usr/projects/climate/njeffery/DATA/CAM/snicar/snicar_optics_5bnd_mam_c140303.nc'
@@ -876,6 +877,11 @@
             enddo
          enddo          
       endif      ! modal_aero
+#else
+    if (modal_aero) then
+      call abort_ice('faero_optics: netcdf required for modal_aero')
+    endif
+#endif
 
       end subroutine faero_optics
 
