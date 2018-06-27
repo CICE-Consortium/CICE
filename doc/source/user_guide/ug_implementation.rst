@@ -1,24 +1,24 @@
 :tocdepth: 3
 
 
-Numerical implementation
+Implementation
 ========================
 
 CICE is written in FORTRAN90 and runs on platforms using UNIX, LINUX,
-and other operating systems. The code is parallelized via grid
-decomposition with MPI or OpenMP threads and includes some optimizations
+and other operating systems. The code is based on a two-dimensional 
+horizontal orthogonal grid that is broken into two-dimensional horizontal
+blocks and parallelized over blocks 
+with MPI and OpenMP threads.  The code also includes some optimizations
 for vector architectures.
 
-A second, “external” layer of parallelization involves message passing
-between CICE and the flux coupler, which may be running on different
-processors in a distributed system. The parallelization scheme for CICE
-was designed so that MPI could be used for the coupling along with MPI,
-OpenMP or no parallelization internally. The internal parallelization
-method is set at compile time with the `NTASK` and `THRD` definitions in the
-compile script. Message passing between the ice model and the CESM flux
-coupler is accomplished with MPI, regardless of the type of internal
-parallelization used for CICE, although the ice model may be coupled to
-another system without using MPI.
+CICE consists of source code under the **cicecore/** directory that supports
+model dynamics and top-level control.  The column physics source code is
+under the Icepack directory and this is implemented as a submodule in
+github from a separate repository (`CICE <https://github.com/CICE-Consortium/CICE>`)
+There is also a **configuration/** directory that includes scripts
+for configuring CICE cases.
+
+.. _coupling:
 
 .. _dirstructure:
 
@@ -26,324 +26,51 @@ another system without using MPI.
 Directory structure
 ~~~~~~~~~~~~~~~~~~~
 
-The present code distribution includes make files, several scripts and
-some input files. The main directory is **cice/**, and a run directory
-(**rundir/**) is created upon initial execution of the script
-**comp\_ice**. One year of atmospheric forcing data is also available
-from the code distribution web site (see the **README** file for
-details).
+The present code distribution includes source code and scripts.  Forcing
+data is available from the ftp site.  The directory structure of CICE is
+as follows
 
-basic information
+**LICENSE.pdf**
+  license and policy for using and sharing the code
 
-**bld/** makefiles
+**DistributionPolicy.pdf**
+  license and policy for using and sharing the code
 
-**Macros.**\ :math:`\langle`\ OS\ :math:`\rangle`.\ :math:`\langle`\ SITE\ :math:`\rangle`.\ :math:`\langle`\ machine\ :math:`\rangle`
-    macro definitions for the given operating system, used by
-    **Makefile**.\ :math:`\langle` \ OS\ :math:`\rangle`
+**README.md**
+  basic information and pointers
 
-**Makefile.**\ :math:`\langle`\ OS\ :math:`\rangle`
-    primary makefile for the given operating system
-    (**:math:`\langle`\ std\ :math:`\rangle`** works for most systems)
+**icepack/**
+  subdirectory for the Icepack model.  The Icepack subdirectory includes Icepack specific scripts, drivers, and documentation.  CICE only uses the columnphysics source code under **icepack/columnphysics/**.
 
-**makedep.c**
-    perl script that determines module dependencies
+**cicecore/**
+  directory for CICE source code.
 
-script that sets up the run directory and compiles the code
+**cicecore/cicedynB/**
+  directory for routines associated with the dynamics core.
 
-modules based on “shared" code in CESM
+**cicecore/driver/**
+  directory for top level CICE drivers and coupling layers.
 
-**shr\_orb\_mod.F90**
-    orbital parameterizations
+**cicecore/shared/**
+  directory for CICE source code that is independent of the dynamical core.
 
-documentation
+**cicecore/version.txt**
+  file that indicates the CICE model version.
 
-**cicedoc.pdf**
-    this document
+**configuration/scripts/**
+   directory of support scripts, see :ref:`dev_scripts`
 
-**PDF/**
-    PDF documents of numerous publications related to CICE
+**doc/**
+    documentation
 
-institution-specific modules
+**cice.setup**
+  main CICE script for creating cases
 
-**cice/**
-    official driver for CICE v5 (LANL)
+A case (compile) directory is created upon initial execution of the script 
+**icepack.setup** at the user-specified location provided after the -c flag. 
+Executing the command ``./icepack.setup -h`` provides helpful information for 
+this tool.
 
-    **CICE.F90**
-        main program
-
-    **CICE\_FinalMod.F90**
-        routines for finishing and exiting a run
-
-    **CICE\_InitMod.F90**
-        routines for initializing a run
-
-    **CICE\_RunMod.F90**
-        main driver routines for time stepping
-
-    **CICE\_RunMod.F90\_debug**
-        debugging version of **CICE\_RunMod.F90**
-
-    **ice\_constants.F90**
-        physical and numerical constants and parameters
-
-sample diagnostic output files
-
-input files that may be modified for other CICE configurations
-
-**col/**
-    column configuration files
-
-    **ice\_in**
-        namelist input data (data paths depend on particular system)
-
-**gx1/**
-    :math:`\left<1^\circ\right>` displaced pole grid files
-
-    **global\_gx1.grid**
-        :math:`\left<1^\circ\right>` displaced pole grid (binary)
-
-    **global\_gx1.kmt**
-        :math:`\left<1^\circ\right>` land mask (binary)
-
-    **ice.restart\_file**
-        pointer for restart file name
-
-    **ice\_in**
-        namelist input data (data paths depend on particular system)
-
-    **ice\_in\_v4.1**
-        namelist input data for default CICE v4.1 configuration
-
-    **iced\_gx1\_v5.nc**
-         restart file used for initial condition
-
-**gx3/**
-    :math:`\left<3^\circ\right>` displaced pole grid files
-
-    **global\_gx3.grid**
-        :math:`\left<3^\circ\right>` displaced pole grid (binary)
-
-    **global\_gx3.kmt**
-        :math:`\left<3^\circ\right>` land mask (binary)
-
-    **global\_gx3.grid.nc**
-        :math:`\left<3^\circ\right>` displaced pole grid ()
-
-    **global\_gx3.kmt.nc**
-        :math:`\left<3^\circ\right>` land mask ()
-
-    **ice.restart\_file**
-        pointer for restart file name
-
-    **ice\_in**
-        namelist input data (data paths depend on particular system)
-
-    **iced\_gx3\_v5.nc**
-         restart file used for initial condition
-
-convert\_restarts.f90
-    Fortran code to convert restart files from v4.1 to v5 (4 ice layers)
-
-**run\_ice.**\ :math:`\langle`\ OS\ :math:`\rangle`.\ :math:`\langle`\ SITE\ :math:`\rangle`.\ :math:`\langle`\ machine\ :math:`\rangle`
-    sample script for running on the given operating system
-
-binary history and restart modules
-
-**ice\_history\_write.F90**
-    subroutines with binary output
-
-**ice\_restart.F90**
-    read/write binary restart files
-
- history and restart modules
-
-**ice\_history\_write.F90**
-    subroutines with  output
-
-**ice\_restart.F90**
-    read/write   restart files
-
-parallel I/O history and restart modules
-
-**ice\_history\_write.F90**
-    subroutines with   output using PIO
-
-**ice\_pio.F90**
-    subroutines specific to PIO
-
-**ice\_restart.F90**
-    read/write  restart files using PIO
-
-modules that require MPI calls
-
-**ice\_boundary.F90**
-    boundary conditions
-
-**ice\_broadcast.F90**
-    routines for broadcasting data across processors
-
-**ice\_communicate.F90**
-    routines for communicating between processors
-
-**ice\_exit.F90**
-    aborts or exits the run
-
-**ice\_gather\_scatter.F90**
-    gathers/scatters data to/from one processor from/to all processors
-
-**ice\_global\_reductions.F90**
-    global sums, minvals, maxvals, etc., across processors
-
-**ice\_timers.F90**
-    timing routines
-
-same modules as in **mpi/** but without MPI calls
-
-general CICE source code
-
-handles most work associated with the aerosol tracers
-
-handles most work associated with the age tracer
-
-skeletal layer biogeochemistry
-
-stability-based parameterization for calculation of turbulent
-ice–atmosphere fluxes
-
-for decomposing global domain into blocks
-
-evolves the brine height tracer
-
-keeps track of what time it is
-
-miscellaneous diagnostic and debugging routines
-
-for distributing blocks across processors
-
-decompositions, distributions and related parallel processing info
-
-domain and block sizes
-
-elastic-anisotropic-plastic dynamics component
-
-elastic-viscous-plastic dynamics component
-
-code shared by EVP and EAP dynamics
-
-unit numbers for I/O
-
-handles most work associated with the first-year ice area tracer
-
-fluxes needed/produced by the model
-
-routines to read and interpolate forcing data for stand-alone ice model
-runs
-
-grid and land masks
-
-initialization and accumulation of history output variables
-
-history output of biogeochemistry variables
-
-history output of form drag variables
-
-history output of ridging variables
-
-history output of melt pond variables
-
-code shared by all history modules
-
-namelist and initializations
-
-utilities for managing ice thickness distribution
-
-basic definitions of reals, integers, etc.
-
-handles most work associated with the level ice area and volume tracers
-
-mechanical redistribution component (ridging)
-
-CESM melt pond parameterization
-
-level-ice melt pond parameterization
-
-topo melt pond parameterization
-
-mixed layer ocean model
-
-orbital parameters for Delta-Eddington shortwave parameterization
-
-utilities for reading and writing files
-
-driver for reading/writing restart files
-
-code shared by all restart options
-
-basic restoring for open boundary conditions
-
-shortwave and albedo parameterizations
-
-space-filling-curves distribution method
-
-essential arrays to describe the state of the ice
-
-routines for time stepping the major code components
-
-zero-layer thermodynamics of :cite:`Semtner76`
-
-multilayer thermodynamics of :cite:`BL99`
-
-thermodynamic changes mostly related to ice thickness distribution
-
-mushy-theory thermodynamics of:cite:`THB13`
-
-code shared by all thermodynamics parameterizations
-
-vertical growth rates and fluxes
-
-driver for horizontal advection
-
-horizontal advection via incremental remapping
-
-driver for ice biogeochemistry and brine tracer motion
-
-parameters and shared code for biogeochemistry and brine height
-
-execution or “run” directory created when the code is compiled using the
-**comp\_ice** script (gx3)
-
-**cice**
-    code executable
-
-**compile/**
-    directory containing object files, etc.
-
-**grid**
-    horizontal grid file from **cice/input\_templates/gx3/**
-
-**ice.log.[ID]**
-    diagnostic output file
-
-**ice\_in**
-    namelist input data from **cice/input\_templates/gx3/**
-
-**history/iceh.[timeID].nc**
-    output history file
-
-**kmt**
-    land mask file from **cice/input\_templates/gx3/**
-
-**restart/**
-    restart directory
-
-    **iced\_gx3\_v5.nc**
-        initial condition from **cice/input\_templates/gx3/**
-
-    **ice.restart\_file**
-        restart pointer from **cice/input\_templates/gx3/**
-
-**run\_ice**
-    batch run script file from **cice/input\_templates/**
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Grid, boundary conditions and masks
@@ -640,9 +367,158 @@ or southern hemispheres, respectively. Special constants (`spval` and
 `spval\_dbl`, each equal to :math:`10^{30}`) are used to indicate land
 points in the history files and diagnostics.
 
-~~~~~~~~~~~~~~~~~~~
-Test configurations
-~~~~~~~~~~~~~~~~~~~
+
+.. _performance:
+
+***************
+Performance
+***************
+
+Namelist options (*domain\_nml*) provide considerable flexibility for
+finding the most efficient processor and block configuration. Some of
+these choices are illustration in :ref:`fig-distrb`. `processor\_shape`
+chooses between tall, thin processor domains (`slenderX1` or `slenderX2`,
+often better for sea ice simulations on global grids where nearly all of
+the work is at the top and bottom of the grid with little to do in
+between) and close-to-square domains, which maximize the volume to
+surface ratio (and therefore on-processor computations to message
+passing, if there were ice in every grid cell). In cases where the
+number of processors is not a perfect square (4, 9, 16...), the
+`processor\_shape` namelist variable allows the user to choose how the
+processors are arranged. Here again, it is better in the sea ice model
+to have more processors in x than in y, for example, 8 processors
+arranged 4x2 (`square-ice`) rather than 2x4 (`square-pop`). The latter
+option is offered for direct-communication compatibility with POP, in
+which this is the default.
+
+The user provides the total number of processors and the block
+dimensions in the setup script (**comp\_ice**). When moving toward
+smaller, more numerous blocks, there is a point where the code becomes
+less efficient; blocks should not have fewer than about 20 grid cells in
+each direction. Squarish blocks optimize the volume-to-surface ratio for
+communications.
+
+.. _fig-distrb:
+
+.. figure:: ./figures/distrb.png
+   :scale: 50%
+
+   Figure 9
+
+:ref:`fig-distrb` : Distribution of 256 blocks across 16 processors,
+represented by colors, on the gx1 grid: (a) cartesian, slenderX1, (b)
+cartesian, slenderX2, (c) cartesian, square-ice (square-pop is
+equivalent here), (d) rake with block weighting, (e) rake with
+latitude weighting, (f) spacecurve. Each block consists of 20x24 grid
+cells, and white blocks consist entirely of land cells.
+
+The `distribution\_type` options allow standard Cartesian distribution of
+blocks, redistribution via a ‘rake’ algorithm for improved load
+balancing across processors, and redistribution based on space-filling
+curves. There are also three additional distribution types
+(‘roundrobin,’ ‘sectrobin,’ ‘sectcart’) that improve land-block
+elimination rates and also allow more flexibility in the number of
+processors used. The rake and space-filling curve algorithms are
+primarily helpful when using squarish processor domains where some
+processors (located near the equator) would otherwise have little work
+to do. Processor domains need not be rectangular, however.
+
+`distribution\_wght` chooses how the work-per-block estimates are
+weighted. The ‘block’ option is the default in POP, which uses a lot of
+array syntax requiring calculations over entire blocks (whether or not
+land is present), and is provided here for direct-communication
+compatibility with POP. The ‘latitude’ option weights the blocks based
+on latitude and the number of ocean grid cells they contain.
+
+The rake distribution type is initialized as a standard, Cartesian
+distribution. Using the work-per-block estimates, blocks are “raked"
+onto neighboring processors as needed to improve load balancing
+characteristics among processors, first in the x direction and then in
+y.
+
+Space-filling curves reduce a multi-dimensional space (2D, in our case)
+to one dimension. The curve is composed of a string of blocks that is
+snipped into sections, again based on the work per processor, and each
+piece is placed on a processor for optimal load balancing. This option
+requires that the block size be chosen such that the number of blocks in
+the x direction equals the number of blocks in the y direction, and that
+number must be factorable as :math:`2^n 3^m 5^p` where :math:`n, m, p`
+are integers. For example, a 16x16 array of blocks, each containing
+20x24 grid cells, fills the gx1 grid (:math:`n=4, m=p=0`). If either of
+these conditions is not met, a Cartesian distribution is used instead.
+
+While the Cartesian distribution groups sets of blocks by processor, the
+‘roundrobin’ distribution loops through the blocks and processors
+together, putting one block on each processor until the blocks are gone.
+This provides good load balancing but poor communication characteristics
+due to the number of neighbors and the amount of data needed to
+communicate. The ‘sectrobin’ and ‘sectcart’ algorithms loop similarly,
+but put groups of blocks on each processor to improve the communication
+characteristics. In the ‘sectcart’ case, the domain is divided into two
+(east-west) halves and the loops are done over each, sequentially.
+:ref:`fig-distribscorecard` provides an overview of the pros and cons
+for the distribution types.
+
+.. _fig-distribscorecard:
+
+.. figure:: ./figures/scorecard.png
+   :scale: 20%
+
+   Figure 10
+
+:ref:`fig-distribscorecard` : Scorecard for block distribution choices in
+CICE, courtesy T. Craig. For more information, see
+http://www.cesm.ucar.edu/events/ws.2012/Presentations/SEWG2/craig.pdf
+
+The `maskhalo` options in the namelist improve performance by removing
+unnecessary halo communications where there is no ice. There is some
+overhead in setting up the halo masks, which is done during the
+timestepping procedure as the ice area changes, but this option
+usually improves timings even for relatively small processor counts.
+T. Craig has found that performance improved by more than 20% for
+combinations of updated decompositions and masked haloes, in CESM’s
+version of CICE. A practical guide for choosing a CICE grid
+decomposition, based on experience in CESM, is available:
+http://oceans11.lanl.gov/drupal/CICE/DecompositionGuide
+
+Throughout the code, (i, j) loops have been combined into a single loop,
+often over just ocean cells or those containing sea ice. This was done
+to reduce unnecessary operations and to improve vector performance.
+
+:ref:`fig-timings` illustrates the computational expense of various
+options, relative to the total time (excluding initialization) of a
+7-layer configuration using BL99 thermodynamics, EVP dynamics, and the
+‘ccsm3’ shortwave parameterization on the gx1 grid, run for one year
+from a no-ice initial condition. The block distribution consisted of
+20 \ :math:`\times` 192 blocks spread over 32 processors (‘slenderX2’)
+with no threads and -O2 optimization. Timings varied by about
+:math:`\pm3`\ % in identically configured runs due to machine load.
+Extra time required for tracers has two components, that needed to carry
+the tracer itself (advection, category conversions) and that needed for
+the calculations associated with the particular tracer. The age tracers
+(FY and iage) require very little extra calculation, so their timings
+represent essentially the time needed just to carry an extra tracer. The
+topo melt pond scheme is slightly faster than the others because it
+calculates pond area and volume once per grid cell, while the others
+calculate it for each thickness category.
+
+.. _fig-timings:
+
+.. figure:: ./figures/histograms.png
+   :scale: 20%
+
+   Figure 11
+
+:ref:`fig-timings` : Change in ‘TimeLoop’ timings from the 7-layer
+configuration using BL99 thermodynamics and EVP dynamics. Timings
+were made on a nondedicated machine, with variations of about
+:math:`\pm3`\ % in identically configured runs (light grey). Darker
+grey indicates the time needed for extra required options; The
+Delta-Eddington radiation scheme is required for all melt pond
+schemes and the aerosol tracers, and the level-ice pond
+parameterization additionally requires the level-ice tracers.
+
+
 
 .. _init:
 

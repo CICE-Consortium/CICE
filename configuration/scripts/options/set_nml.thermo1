@@ -1,6 +1,0 @@
-kcatbound = 0
-kitd    = 0
-ktherm  = 1
-conduct = 'MU71'
-tfrz_option = 'linear_salt'
-atm_data_type = 'clim'

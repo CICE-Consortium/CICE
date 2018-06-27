@@ -130,7 +130,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=trim(subname), &
          file=__FILE__, line=__LINE__)
 
-      call calendar(time)       ! determine the initial date
+!     call calendar(time)       ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
@@ -292,7 +292,7 @@
             call read_restart_lvl
          else
             do iblk = 1, nblocks 
-               call init_lvl(trcrn(:,:,nt_alvl,:,iblk), &
+               call init_lvl(iblk,trcrn(:,:,nt_alvl,:,iblk), &
                              trcrn(:,:,nt_vlvl,:,iblk))
             enddo ! iblk
          endif

@@ -420,16 +420,21 @@
 
 !  Initialize ice lvl tracers (call prior to reading restart data)
 
-      subroutine init_lvl(alvl, vlvl) 
+      subroutine init_lvl(iblk, alvl, vlvl) 
 
-      use ice_constants, only: c1
+      use ice_constants, only: c0, c1
+      use ice_arrays_column, only: ffracn, dhsn
 
-      real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
+      integer (kind=int_kind), intent(in)  :: iblk
+
+      real (kind=dbl_kind), dimension(:,:,:), intent(out) :: &
          alvl , & ! level ice area fraction
          vlvl     ! level ice volume
 
       alvl(:,:,:) = c1 ! level ice area fraction
       vlvl(:,:,:) = c1 ! level ice volume
+      ffracn(:,:,:,iblk) = c0
+      dhsn(:,:,:,iblk) = c0
 
       end subroutine init_lvl
 

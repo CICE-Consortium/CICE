@@ -38,9 +38,7 @@ set ICE_RUNLOG_FILE = "cice.runlog.\${stamp}"
 
 #--------------------------------------------
 
-if !(-d \${ICE_RUNDIR}) mkdir -p \${ICE_RUNDIR}
-if !(-d \${ICE_HSTDIR}) mkdir -p \${ICE_HSTDIR}
-if !(-d \${ICE_RSTDIR}) mkdir -p \${ICE_RSTDIR}
+./setup_run_dirs.csh
 
 #--------------------------------------------
 cd \${ICE_RUNDIR}

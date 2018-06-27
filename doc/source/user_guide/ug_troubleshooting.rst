@@ -1,77 +1,70 @@
 :tocdepth: 3
 
+.. _troubleshooting:
+
 Troubleshooting 
 ===============
 
-Check the FAQ: http://oceans11.lanl.gov/drupal/CICE/FAQ.
+Check the FAQ: https://github.com/CICE-Consortium/Icepack/wiki
 
 .. _setup:
 
-~~~~~~~~~~~~~
 Initial setup
-~~~~~~~~~~~~~
+-------------
 
-The script **comp\_ice** is configured so that the files **grid**,
-**kmt**, **ice\_in**, **run\_ice**, **iced\_gx3\_v5.0** and
-**ice.restart\_file** are NOT overwritten after the first setup. If you
-wish to make changes to the original files in **input\_templates/**
-rather than those in the run directory, either remove the files from the
-run directory before executing **comp\_ice** or edit the script.
+If there are problems, you can manually edit 
+the env, Macros, and **cice.run** files in the case directory until things are 
+working properly.  Then you can copy the env and Macros files back to 
+**configuration/scripts/machines**.  
 
-The code may abort during the setup phase for any number of reasons, and
-often the buffer containing the diagnostic output fails to print before
-the executable exits. The quickest way to get the diagnostic information
-is to run the code in an interactive shell with just the command `cice`
-for serial runs or “`mpirun -np N cice`” for MPI runs, where N is the
-appropriate number of processors (or a command appropriate for your
-computer’s software).
+Changes made directly in the run directory, e.g. to the namelist file, will be overwritten
+if scripts in the case directory are run again later.
 
-If the code fails to compile or run, or if the model configuration is
-changed, try the following:
+If changes are needed in the **cice.run.setup.csh** script, it must be manually modified.
 
--  create **Macros.\***. **Makefile.\*** and **run\_ice.\*** files for
-   your particular platform, if they do not already exist (type ‘uname
-   -s’ at the prompt and compare the result with the file suffixes; we
-   rename `UNICOS/mp` as `UNICOS` for simplicity).
+Ensure that the block size ``ICE_BLCKX``, ``ICE_BLCKY``, and ``ICE_MXBLCKS`` in **cice.settings** is
+compatible with the processor\_shape and other domain options in **ice\_in**
 
--  modify the `INCLUDE` directory path and other settings for your system
-   in the scripts, **Macros.\*** and **Makefile.\*** files.
+If using the rake or space-filling curve algorithms for block
+distribution (`distribution\_type` in **ice\_in**) the code will abort
+if `MXBLCKS` is not large enough. The correct value is provided in the
+diagnostic output.  Also, the spacecurve setting can only be used with certain
+block sizes that results in number of blocks in the x and y directions being
+only multiples of 2, 3, or 5.
 
--  alter directory paths, file names and the execution command as needed
-   in **run\_ice** and **ice\_in**.
+If starting from a restart file, ensure that kcatbound is the same as
+that used to create the file (`kcatbound` = 0 for the files included in
+this code distribution). Other configuration parameters, such as
+`NICELYR`, must also be consistent between runs.
 
--  ensure that `nprocs` in **ice\_in** is equal to `NTASK` in **comp\_ice**.
+For stand-alone runs, check that `-Dcoupled` is *not* set in the
+**Macros.\*** file.
 
--  ensure that the block size `NXBLOCK`, `NYBLOCK` in **comp\_ice** is
-   compatible with the processor\_shape and other domain options in
-   **ice\_in**
+For coupled runs, check that `-Dcoupled` and other
+coupled-model-specific (e.g., CESM, popcice or hadgem) preprocessing
+options are set in the **Macros.\*** file.
 
--  if using the rake or space-filling curve algorithms for block
-   distribution (`distribution\_type` in **ice\_in**) the code will abort
-   if `MXBLCKS` is not large enough. The correct value is provided in the
-   diagnostic output.
+Set ``ICE_CLEANBUILD`` to true to clean before rebuilding.
 
--  if starting from a restart file, ensure that kcatbound is the same as
-   that used to create the file (`kcatbound` = 0 for the files included in
-   this code distribution). Other configuration parameters, such as
-   `NICELYR`, must also be consistent between runs.
-
--  for stand-alone runs, check that `-Dcoupled` is *not* set in the
-   **Macros.\*** file.
-
--  for coupled runs, check that `-Dcoupled` and other
-   coupled-model-specific (e.g., CESM, popcice or hadgem) preprocessing
-   options are set in the **Macros.\*** file.
-
--  edit the grid size and other parameters in **comp\_ice**.
-
--  remove the **compile/** directory completely and recompile.
 
 .. _restarttrouble:
 
-~~~~~~~~
 Restarts
-~~~~~~~~
+--------------
+
+Manual restart tests require the path to the restart file be included in ``ice_in`` in the 
+namelist file.
+
+Ensure that ``kcatbound`` is the same as that used to create the restart file.  
+Other configuration parameters, such as ``NICELYR``, must also be consistent between runs.
+
+..
+      this is commented out now
+    Underflows
+    -----------
+    - Tests using a debug flag that traps underflows will fail unless a "flush-to-zero" flag 
+  is set in the Macros file.  This is due to very small exponential values in the delta-Eddington
+      radiation scheme.
 
 CICE version 5 introduces a new model configuration that makes
 restarting from older simulations difficult. In particular, the number
@@ -104,13 +97,13 @@ these files. However if different physics is used (for instance, mushy
 thermo instead of BL99), the code may still fail. To convert a v4.1
 restart file:
 
-#. Edit the code **input\_templates/convert\_restarts.f90** for your
+-  Edit the code **input\_templates/convert\_restarts.f90** for your
    model configuration and path names. Compile and run this code to
    create a binary restart file that can be read using v5. Copy the
    resulting file to the **restart/** subdirectory in your working
    directory.
 
-#. In your working directory, turn off all tracer restart flags in
+-  In your working directory, turn off all tracer restart flags in
    **ice\_in** and set the following:
 
    -  runtype = ‘initial’
@@ -121,18 +114,18 @@ restart file:
 
    -  use\_restart\_time = .true.
 
-#. In **CICE\_InitMod.F90**, comment out the call to
-   restartfile(ice\_ic) and uncomment the call to
-   restartfile\_v4(ice\_ic) immediately below it. This will read the
-   v4.1 binary file and write a v5  file containing the same
-   information.
+- In **CICE\_InitMod.F90**, comment out the call to
+  restartfile(ice\_ic) and uncomment the call to
+  restartfile\_v4(ice\_ic) immediately below it. This will read the
+  v4.1 binary file and write a v5  file containing the same
+  information.
 
 If restart files are taking a long time to be written serially (i.e.,
 not using PIO), see the next section.
 
-~~~~~~~~~~~~~~
+
 Slow execution
-~~~~~~~~~~~~~~
+--------------------
 
 On some architectures, underflows (:math:`10^{-300}` for example) are
 not flushed to zero automatically. Usually a compiler flag is available
@@ -147,9 +140,9 @@ variables may overfill MPI’s buffers, causing the code to slow down
 remedy this problem, set `BARRIERS yes` in **comp\_ice**. This
 synchronizes MPI messages, keeping the buffers in check.
 
-~~~~~~~~~~~~~~~
+
 Debugging hints
-~~~~~~~~~~~~~~~
+-----------------------
 
 Several utilities are available that can be helpful when debugging the
 code. Not all of these will work everywhere in the code, due to possible
@@ -185,11 +178,11 @@ conflicts in module dependencies.
     Compute and print the minimum and maximum values for an individual
     real array, or its global sum.
 
-~~~~~~~~~~
-Known bugs
-~~~~~~~~~~
 
-#. Fluxes sent to the CESM coupler may have incorrect values in grid
+Known bugs
+--------------
+
+-  Fluxes sent to the CESM coupler may have incorrect values in grid
    cells that change from an ice-free state to having ice during the
    given time step, or vice versa, due to scaling by the ice area. The
    authors of the CESM flux coupler insist on the area scaling so that
@@ -197,38 +190,38 @@ Known bugs
    note that the land area does not suddenly become zero in a grid cell,
    as does the ice area).
 
-#. With the old CCSM radiative scheme (`shortwave` = ‘default’ or
+-  With the old CCSM radiative scheme (`shortwave` = ‘default’ or
    ‘ccsm3’), a sizable fraction (more than 10%) of the total shortwave
    radiation is absorbed at the surface but should be penetrating into
    the ice interior instead. This is due to use of the aggregated,
    effective albedo rather than the bare ice albedo when
    `snowpatch` :math:`< 1`.
 
-#. The date-of-onset diagnostic variables, `melt\_onset` and `frz\_onset`,
+-  The date-of-onset diagnostic variables, `melt\_onset` and `frz\_onset`,
    are not included in the core restart file, and therefore may be
    incorrect for the current year if the run is restarted after Jan 1.
    Also, these variables were implemented with the Arctic in mind and
    may be incorrect for the Antarctic.
 
-#. The single-processor *system\_clock* time may give erratic results on
+-  The single-processor *system\_clock* time may give erratic results on
    some architectures.
 
-#. History files that contain time averaged data (`hist\_avg` = true in
+-  History files that contain time averaged data (`hist\_avg` = true in
    **ice\_in**) will be incorrect if restarting from midway through an
    averaging period.
 
-#. In stand-alone runs, restarts from the end of `ycycle` will not be
+-  In stand-alone runs, restarts from the end of `ycycle` will not be
    exact.
 
-#. Using the same frequency twice in `histfreq` will have unexpected
+-  Using the same frequency twice in `histfreq` will have unexpected
    consequences and causes the code to abort.
 
-#. Latitude and longitude fields in the history output may be wrong when
+-  Latitude and longitude fields in the history output may be wrong when
    using padding.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Interpretation of albedos
-~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------
 
 The snow-and-ice albedo, `albsni`, and diagnostic albedos `albice`, `albsno`,
 and `albpnd` are merged over categories but not scaled (divided) by the
@@ -250,9 +243,9 @@ each 24-hour period. To rectify this, a separate counter is used for the
 averaging that is incremented only when :math:`\cos\varphi > 0`. The
 albedos will still be zero in the dark, polar winter hemisphere.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Proliferating subprocess parameterizations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------
 
 With the addition of several alternative parameterizations for sea ice
 processes, a number of subprocesses now appear in multiple parts of the
@@ -266,3 +259,5 @@ schemes both allow fresh ice to grow atop melt ponds, using slightly
 different formulations for Stefan freezing. These various process
 parameterizations will be compared and their subprocess descriptions
 possibly unified in the future.
+
+

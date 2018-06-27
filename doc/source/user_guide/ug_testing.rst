@@ -1,266 +1,527 @@
 :tocdepth: 3
 
+.. _testing:
+
 Testing CICE
-============
+================
 
-Version 6, August 2017
-This documents how to use the testing features developed for the 
-CICE Consortium CICE sea ice model.
+This section documents primarily how to use the CICE scripts to carry 
+out CICE testing.  Exactly what to test is a separate question and
+depends on the kinds of code changes being made.  Prior to merging
+changes to the CICE Consortium master, changes will be reviewed and
+developers will need to provide a summary of the tests carried out.
 
-.. _basic:
+There is a base suite of tests provided by default with CICE and this
+may be a good starting point for testing.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Individual tests and test suites
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The testing scripts support several features
+ - Ability to test individual (via ``--test``)or multiple tests (via ``--suite``)
+   using an input file to define the suite
+ - Ability to use test suites defined in the package or test suites defined by the user
+ - Ability to store test results for regresssion testing (``--bgen``)
+ - Ability to compare results to prior baselines to verify bit-for-bit (``--bcmp``)
+ - Ability to define where baseline tests are stored (``--bdir``)
+ - Ability to compare tests against each other (``--diff``)
+
+.. _indtests:
+
+Individual Tests
+----------------
 
 The CICE scripts support both setup of individual tests as well as test suites.  Individual
-tests are run from the command line like
+tests are run from the command line::
 
-  > cice.setup -t smoke -m wolf -g gx3 -p 8x2 -s diag1,run5day -testid myid
+  ./cice.setup --test smoke --mach conrad --env cray --set diag1,debug --testid myid 
 
-where -m designates a specific machine.  Test suites are multiple tests that are specified in 
-an input file and are started on the command line like
+Tests are just like cases but have some additional scripting around them.  Individual
+tests can be created and manually modified just like cases.
+Many of the command line arguments for individual tests
+are similar to :ref:`case_options` for ``--case``.  
+For individual tests, the following command line options can be set
 
-  > cice.setup -ts base_suite -m wolf -testid myid
+``--test`` TESTNAME
+     specifies the test type.  This is probably either smoke or restart but see `cice.setup --help` for the latest.  This is required instead of ``--case``.
 
-cice.setup with -t or -ts require a testid to uniquely name test directories.  The format
-of the case directory name for a test will always be 
-${machine}_${test}_${grid}_${pes}_${soptions}.${testid}
+``--testid`` ID
+     specifies the testid.  This is required for every use of ``--test`` and ``--suite``.  This is a user defined string that will allow each test to have a unique case and run directory name.  This is also required.
 
-To build and run a test, the process is the same as a case,
-  cd into the test directory,
-  
-  run cice.build
-  
-  run cice.submit
+``--mach`` MACHINE (see :ref:`case_options`)
 
-The test results will be generated in a local file called "test_output".
+``--env`` ENVIRONMENT1 (see :ref:`case_options`)
 
-When running a test suite, the cice.setup command line automatically generates all the tests
-under a directory names ${test_suite}.${testid}.  It then automatically builds and submits all
-tests.  When the tests are complete, run the results.csh script to see the results from all the
-tests.
+``--set`` SET1,SET2,SET3 (see :ref:`case_options`)
 
-Tests are defined under configuration/scripts/tests.  The tests currently supported are:
-  smoke   - Runs the model for default length.  The length and options can
-            be set with the -s commmand line option.  The test passes if the
+``--acct`` ACCOUNT (see :ref:`case_options`)
+
+``--grid`` GRID (see :ref:`case_options`)
+
+``--pes`` MxNxBXxBYxMB (see :ref:`case_options`)
+
+There are several additional options that come with ``--test`` that are not available
+with ``--case`` for regression and comparision testing,
+
+``--bdir`` DIR
+     specifies the top level location of the baseline results.  This is used in conjuction with ``--bgen`` and ``--bcmp``.  The default is set by ICE_MACHINE_BASELINE in the env.[machine]_[environment] file.
+
+``--bgen`` DIR
+     specifies the name of the directory under [bdir] where test results will be stored.  When this flag is set, it automatically creates that directory and stores results from the test under that directory.  If DIR is set to ``default``, then the scripts will automatically generate a directory name based on the CICE hash and the date and time.  This can be useful for tracking the baselines by hash.
+
+``--bcmp`` DIR
+     specifies the name of the directory under [bdir] that the current tests will be compared to.  When this flag is set, it automatically invokes regression testing and compares results from the current test to those prior results.  If DIR is set to ``default``, then the script will automatically generate the last directory name in the [bdir] directory.  This can be useful for automated regression testing.
+
+``--diff`` LONG_TESTNAME
+     invokes a comparison against another local test.  This allows different tests to be compared to each other for bit-for-bit-ness.  This is different than ``--bcmp``.  ``--bcmp`` is regression testing, comparing identical test results between different model versions.  ``--diff`` allows comparison of two different test cases against each other.  For instance, different block sizes, decompositions, and other model features are expected to produced identical results and ``--diff`` supports that testing.  The restrictions for use of ``--diff`` are that the test has to already be completed and the testid has to match.  The LONG_TESTNAME string should be of format [test]_[grid]_[pes]_[sets].  The [machine], [env], and [testid] will be added to that string to complete the testname being compared.  (See also :ref:`examplediff`)
+
+The format of the case directory name for a test will always be 
+``[machine]_[env]_[test]_[grid]_[pes]_[sets].[testid]``
+The [sets] will always be sorted alphabetically by the script so ``--set debug,diag1`` and
+``--set diag1,debug`` produces the same testname and test with _debug_diag1 in that order.
+
+To build and run a test, the process is the same as a case.  cd to the 
+test directory, run the build script, and run the submit script::
+
+ cd [test_case]
+ ./cice.build
+ ./cice.submit
+
+The test results will be generated in a local file called **test_output**.
+To check those results::
+
+ cat test_output
+
+Tests are defined under **configuration/scripts/tests/**.  Some tests currently supported are:
+
+- smoke   - Runs the model for default length.  The length and options can
+            be set with the ``--set`` command line option.  The test passes if the
             model completes successfully.
-  restart - Runs the model for 10 days, writing a restart file at day 5 and
-            again at day 10.  Runs the model a second time starting from the
-            day 5 restart and writing a restart at day 10 of the model run.
-            The test passes if both the 10 day and 5 day restart run complete and
-            if the restart files at day 10 from both runs are bit-for-bit identical.
+- restart - Runs the model for 10 days, writing a restart file at the end of day 5 and
+            again at the end of the run.  Runs the model a second time starting from the
+            day 5 restart and writes a restart at then end of day 10 of the model run.
+            The test passes if both runs complete and
+            if the restart files at the end of day 10 from both runs are bit-for-bit identical.
+- decomp   - Runs a set of different decompositions on a given configuration
 
-Please run './cice.setup -h' for additional details.
+Please run ``./cice.setup --help`` for the latest information.
 
-.. _additional:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-Additional testing options
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Adding a new test
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are several additional options on the cice.setup command line for testing that
-provide the ability to regression test and compare tests to each other.
+See :ref:`dev_testing`
 
-  -bd defines a baseline directory where tests can be stored for regression testing
-  
-  -bg defines a version name that where the current tests can be saved for regression testing
-  
-  -bc defines a version name that the current tests should be compared to for regression testing
-  
-  -td provides a way to compare tests with each other
 
-To use -bg,
-  > cice.setup -ts base_suite -m wolf -testid v1 -bg version1 -bd $SCRATCH/CICE_BASELINES
-    will copy all the results from the test suite to $SCRATCH/CICE_BASELINES/version1.
+Example.  Basic default single test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To use -bc,
-  > cice.setup -ts base_suite -m wolf -testid v2 -bc version1 -bd $SCRATCH/CICE_BASELINES
-    will compare all the results from this test suite to results saved before in $SCRATCH/CICE_BASELINES/version1.
+Define the test, mach, env, and testid.
+::
 
--bc and -bg can be combined,
-  >cice.setup -ts base_suite -m wolf -testid v2 -bg version2 -bc version1 -bd $SCRATCH/CICE_BASELINES
-   will save the current results to $SCRATCH/CICE_BASELINES/version2 and compare the current results to
-   results save before in $SCRATCH/CICE_BASELINES/version1.
+  ./cice.setup --test smoke --mach wolf --env gnu --testid t00
+  cd wolf_gnu_smoke_col_1x1.t00
+  ./cice.build
+  ./cice.submit
+  ./cat test_output
 
--bg, -bc, and -bd are used for regression testing.  There is a default -bd on each machine.
 
--td allows a user to compare one test result to another.  For instance,
-  > cice.setup -t smoke -m wolf -g gx3 -p 8x2 -s run5day -testid t01
-  > cice.setup -t smoke -m wolf -g gx3 -p 4x2 -s run5day -testid t01 -td smoke_gx3_8x2_run5day
+Example. Simple test with some options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-An additional check will be done for the second test (because of the -td argument), and it will compare
-the output from the first test "smoke_gx3_8x2_run5day" to the output from it's test "smoke_gx3_4x2_run5day"
-and generate a result for that.  It's important that the first test complete before the second test is 
-done.  Also, the -td option works only if the testid and the machine are the same for the baseline
-run and the current run.
+Add ``--set``
+::
 
-.. _format:
+  ./cice.setup --test smoke --mach wolf --env gnu --set diag1,debug --testid t00
+  cd wolf_gnu_smoke_col_1x1_debug_diag1.t00
+  ./cice.build
+  ./cice.submit
+  ./cat test_output
 
-~~~~~~~~~~~~~~~~~
-Test suite format
-~~~~~~~~~~~~~~~~~
 
-The format for the test suite file is relatively simple.  It is a text file with white space delimited 
-columns like,
+Example. Single test, generate a baseline dataset
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _tab-test:
+Add ``--bgen``
+::
 
-.. csv-table:: Table 7
-   :header: "#Test", "Grid", "PEs", "Sets", "BFB-compare"
-   :widths: 7, 7, 7, 15, 15
+  ./cice.setup --test smoke --mach wolf -env gnu --bgen cice.v01 --testid t00 --set diag1
+  cd wolf_gnu_smoke_col_1x1_diag1.t00
+  ./cice.build
+  ./cice.submit
+  ./cat test_output
 
-   "smoke", "gx3", "8x2", "diag1,run5day", ""
-   "smoke", "gx3", "8x2", "diag24,run1year,medium", ""
-   "smoke", "gx3", "4x1", "debug,diag1,run5day", ""
-   "smoke", "gx3", "8x2", "debug,diag1,run5day", ""
-   "smoke", "gx3", "4x2", "diag1,run5day", "smoke_gx3_8x2_diag1_run5day"
-   "smoke", "gx3", "4x1", "diag1,run5day,thread", "smoke_gx3_8x2_diag1_run5day"
-   "smoke", "gx3", "4x1", "diag1,run5day", "smoke_gx3_4x1_diag1_run5day_thread"
-   "restart", "gx3", "8x1", "", ""
-   "restart", "gx3", "4x2", "debug", ""
 
+Example. Single test, compare results to a prior baseline.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The first column is the test name, the second the grid, the third the pe count, the fourth column is
-the -s options and the fifth column is the -td argument.  The fourth and fifth columns are optional.
-The argument to -ts defines which filename to choose and that argument can contain a path.  cice.setup 
-will also look for the filename in configuration/scripts/tests where some preset test suites are defined.
+Add ``--bcmp``.  For this to work,
+the prior baseline must exist and have the exact same base testname 
+[machine]_[env]_[test]_[grid]_[pes]_[sets] 
+::
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-Example Tests (Quickstart)
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ./cice.setup --test smoke --mach wolf -env gnu --bcmp cice.v01 --testid t01 --set diag1
+  cd wolf_gnu_smoke_col_1x1_diag1.t01
+  ./cice.build
+  ./cice.submit
+  ./cat test_output
 
-**********************************************
-To generate a baseline dataset for a test case
-**********************************************
 
-./cice.setup -t smoke -m wolf -bg cicev6.0.0 -testid t00
+Example. Simple test, generate a baseline dataset and compare to a prior baseline
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-cd wolf_smoke_gx3_4x1.t00
+Use ``--bgen`` and ``--bcmp``.  The prior baseline must exist already.
+::
 
-./cice.build
+  ./cice.setup --test smoke --mach wolf -env gnu --bgen cice.v02 --bcmp cice.v01 --testid t02 --set diag1
+  cd wolf_gnu_smoke_col_1x1_diag1.t02
+  ./cice.build
+  ./cice.submit
+  ./cat test_output
 
-./cice.submit
+.. _examplediff:
 
-# After job finishes, check output
+Example. Simple test, comparison against another test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-cat test_output
+``--diff`` provides a way to compare tests with each other.  
+For this to work, the tests have to be run in a specific order and
+the testids need to match.  The test 
+is always compared relative to the current case directory.
 
-****************************************************
-To run a test case and compare to a baseline dataset
-****************************************************
+To run the first test,
+::
 
-./cice.setup -t smoke -m wolf -bc cicev6.0.0 -testid t01
+  ./cice.setup --test smoke --mach wolf -env gnu --testid tx01 --set debug
+  cd wolf_gnu_smoke_col_1x1_debug.tx01
+  ./cice.build
+  ./cice.submit
+  ./cat test_output
 
-cd wolf_smoke_gx3_4x1.t01
+Then to run the second test and compare to the results from the first test
+::
 
-./cice.build
+  ./cice.setup --test smoke --mach wolf -env gnu --testid tx01 --diff smoke_col_1x1_debug
+  cd wolf_gnu_smoke_col_1x1.tx01
+  ./cice.build
+  ./cice.submit
+  ./cat test_output
 
-./cice.submit
+The scripts will add a [machine]_[environment] to the beginning of the diff 
+argument and the same testid to the end of the diff argument.  Then the runs 
+will be compared for bit-for-bit and a result will be produced in test_output.  
 
-# After job finishes, check output
 
-cat test_output
+.. _testsuites:
 
-*********************************************
-To run a test suite to generate baseline data
-*********************************************
+Test suites
+------------
 
-./cice.setup -m wolf -ts base_suite -testid t02 -bg cicev6.0.0bs
+Test suites support running multiple tests specified via
+an input file.  When invoking the test suite option (``--suite``) with **cice.setup**,
+all tests will be created, built, and submitted automatically under
+a local directory called testsuite.[testid] as part of involing the suite.::
 
-cd base_suite.t02
+  ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid
 
-# Once all jobs finish, concatenate all output
+Like an individual test, the ``--testid`` option must be specified and can be any 
+string.  Once the tests are complete, results can be checked by running the
+results.csh script in the [suite_name].[testid]::
 
-./results.csh  # All tests results will be stored in results.log
+  cd testsuite.[testid]
+  ./results.csh
 
-# To plot a timeseries of "total ice extent", "total ice area", and "total ice volume"
+Multiple suites are supported on the command line as comma separated arguments::
 
-./timeseries.csh <directory>
+  ./cice.setup --suite base_suite,decomp_suite --mach wolf --env gnu --testid myid
 
-ls \*.png
+If a user adds ``--set`` to the suite, all tests in that suite will add that option::
 
-***********************************************
-To run a test suite to compare to baseline data
-***********************************************
+  ./cice.setup --suite base_suite,decomp_suite --mach wolf --env gnu --testid myid -s debug
 
-./cice.setup -m wolf -ts base_suite -testid t03 -bc cicev6.0.0bs
+The option settings defined in the suite have precendent over the command line
+values if there are conflicts.
 
-cd base_suite.t03
+The predefined test suites are defined under **configuration/scripts/tests** and 
+the files defining the suites
+have a suffix of .ts in that directory.  The format for the test suite file 
+is relatively simple.  
+It is a text file with white space delimited 
+columns that define a handful of values in a specific order.  
+The first column is the test name, the second the grid, the third the pe count, 
+the fourth column is
+the ``--set`` options and the fifth column is the ``--diff`` argument. 
+The fourth and fifth columns are optional.
+Lines that begin with # or are blank are ignored.  For example,
+::
 
-# Once all jobs finish, concatenate all output
+   #Test   Grid  PEs  Sets                Diff
+    smoke   col  1x1  diag1  
+    smoke   col  1x1  diag1,run1year  smoke_col_1x1_diag1
+    smoke   col  1x1  debug,run1year  
+   restart  col  1x1  debug  
+   restart  col  1x1  diag1  
+   restart  col  1x1  pondcesm  
+   restart  col  1x1  pondlvl  
+   restart  col  1x1  pondtopo  
 
-./results.csh  # All tests results will be stored in results.log
+The argument to ``--suite`` defines the test suite (.ts) filename and that argument 
+can contain a path.  
+**cice.setup** 
+will look for the filename in the local directory, in **configuration/scripts/tests/**, 
+or in the path defined by the ``--suite`` option.
 
-# To plot a timeseries of "total ice extent", "total ice area", and "total ice volume"
+Because many of the command line options are specified in the input file, ONLY the
+following options are valid for suites,
 
-./timeseries.csh <directory>
+``--suite`` filename
+  required, input filename with list of suites
 
-ls \*.png
+``--mach`` MACHINE
+  required
 
-**************************
-To compare to another test
-**************************
-`First:`
+``--env`` ENVIRONMENT1,ENVIRONMENT2
+  strongly recommended
 
-./cice.setup -m wolf -t smoke -testid t01 -p 8x2
+``--set`` SET1,SET2
+  optional
 
-cd wolf_smoke_gx3_8x2.t01
+``--acct`` ACCOUNT
+  optional
 
-./cice.build
+``--testid`` ID
+  required
 
-./cice.submit
+``--bdir`` DIR
+  optional, top level baselines directory and defined by default by ICE_MACHINE_BASELINE in **env.[machine]_[environment]**.
 
-# After job finishes, check output
+``--bgen`` DIR
+  recommended, test output is copied to this directory under [bdir]
 
-cat test_output
+``--bcmp`` DIR
+  recommended, test output are compared to prior results in this directory under [bdir]
 
-`Then, do the comparison:` 
+``--report``
+  This is only used by ``--suite`` and when set, invokes a script that sends the test results to the results page when all tests are complete.  Please see :ref:`testreporting` for more information.
 
-./cice.setup -m wolf -t smoke -testid t01 -td smoke_gx3_8x2 -s thread -p 4x1
+Please see :ref:`case_options` and :ref:`indtests` for more details about how these options are used.
 
-cd wolf_smoke_gx3_4x1_thread.t01
 
-./cice.build
+Example. Basic test suite
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-./cice.submit
+Specify suite, mach, env, testid.
+::
 
-# After job finishes, check output
+  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a
+  cd base_suite.v01a
+  #wait for runs to complete
+  ./results.csh
 
-cat test_output
 
-******************
-Additional Details
-******************
+Example. Basic test suite on multiple environments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- In general, the baseline generation, baseline compare, and test diff are independent.
-- Use the '-bd' flag to specify the location where you want the baseline dataset
-    to be written.  Without specifying '-bd', the baseline dataset will be written
-    to the default baseline directory found in the env.<machine> file (ICE_MACHINE_BASELINE).
-- If '-bd' is not passed, the scripts will look for baseline datasets in the default 
-    baseline directory found in the env.<machine> file (ICE_MACHINE_BASELINE).
-    If the '-bd' option is passed, the scripts will look for baseline datasets in the
-    location passed to the -bd argument.
-- To generate a baseline dataset for a specific version (for regression testing),
-    use '-bg <version_name>'.  The scripts will then place the baseline dataset
-    in $ICE_MACHINE_BASELINE/<version_name>/
-- The '-testid' flag allows users to specify a testing id that will be added to the
-    end of the case directory.  For example, "./cice.setup -m wolf -t smoke -testid t12 -p 4x1"
-    creates the directory wolf_smoke_gx3_4x1.t12.  This flag is REQUIRED if using -t or -ts.
+Specify multiple envs.
+::
+
+  ./cice.setup --suite base_suite --mach conrad --env cray,pgi,intel,gnu --testid v01a
+  cd base_suite.v01a
+  #wait for runs to complete
+  ./results.csh
+
+Each env can be run as a separate invokation of `cice.setup` but if that
+approach is taken, it is recommended that different testids be used.
+
+
+Example. Basic test suite with generate option defined
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add ``--set``
+::
+
+  ./cice.setup --suite base_suite --mach conrad --env gnu --testid v01b --set diag1
+  cd base_suite.v01b
+  #wait for runs to complete
+  ./results.csh
+
+If there are conflicts between the ``--set`` options in the suite and on the command line,
+the suite will take precedent.
+
+
+Example. Multiple test suites from a single command line
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add comma delimited list of suites
+::
+
+  ./cice.setup --suite base_suite,decomp_suite --mach conrad --env gnu --testid v01c
+  cd base_suite.v01c
+  #wait for runs to complete
+  ./results.csh
+
+If there are redundant tests in multiple suites, the scripts will understand that and only
+create one test.
+
+
+Example. Basic test suite, store baselines in user defined name
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add ``--bgen``
+::
+
+  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a
+  cd base_suite.v01a
+  #wait for runs to complete
+  ./results.csh
+
+This will store the results in the default [bdir] directory under the subdirectory cice.v01a.
+
+Example. Basic test suite, store baselines in user defined top level directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add ``--bgen`` and ``--bdir``
+::
+
+  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a --bdir /tmp/user/CICE_BASELINES
+  cd base_suite.v01a
+  #wait for runs to complete
+  ./results.csh
+
+This will store the results in /tmp/user/CICE_BASELINES/cice.v01a.
+
+
+Example. Basic test suite, store baselines in auto-generated directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add ``--bgen default``
+::
+
+  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen default
+  cd base_suite.v01a
+  #wait for runs to complete
+  ./results.csh
+
+This will store the results in the default [bdir] directory under a directory name generated by the script that includes the hash and date.
+
+
+Example. Basic test suite, compare to prior baselines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add ``--bcmp``
+::
+
+  ./cice.setup --suite base_suite --mach conrad --env cray --testid v02a --bcmp cice.v01a
+  cd base_suite.v02a
+  #wait for runs to complete
+  ./results.csh
+
+This will compare to results saved in the baseline [bdir] directory under
+the subdirectory cice.v01a.  You can use other regression options as well
+(``--bdir`` and ``--bgen``)
+
+
+Example. Basic test suite, use of default string in regression testing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+default is a special argument to ``--bgen`` and ``--bcmp``.  When used, the
+scripts will automate generation of the directories.  In the case of ``--bgen``,
+a unique directory name consisting of the hash and a date will be created.
+In the case of ``--bcmp``, the latest directory in [bdir] will automatically
+be used.  This provides a number of useful features
+
+ - the ``--bgen`` directory will be named after the hash automatically
+ - the ``--bcmp`` will always find the most recent set of baselines
+ - the ``--bcmp`` reporting will include information about the comparison directory
+   name which will include hash information
+ - automation can be invoked easily, especially if ``--bdir`` is used to create separate
+   baseline directories as needed.
+
+Imagine the case where the default settings are used and ``--bdir`` is used to 
+create a unique location.  You could easily carry out regular builds automatically via,
+::
+
+  set mydate = `date -u "+%Y%m%d"`
+  git clone https://github.com/myfork/cice cice.$mydate --recursive
+  cd cice.$mydate
+  ./cice.setup --suite base_suite --mach conrad --env cray,gnu,intel,pgi --testid $mydate --bcmp default --bgen default --bdir /tmp/work/user/CICE_BASELINES_MASTER
+
+When this is invoked, a new set of baselines will be generated and compared to the prior
+results each time without having to change the arguments.
+
+
+Example. Create and test a custom suite
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create your own input text file consisting of 5 columns of data,
+ - Test
+ - Grid
+ - pes
+ - sets (optional)
+ - diff test (optional)
+
+such as
+::
+
+   > cat mysuite
+   smoke    col  1x1  diag1,debug
+   restart  col  1x1
+   restart  col  1x1  diag1,debug    restart_col_1x1
+   restart  col  1x1  mynewoption,diag1,debug
+
+then use that input file, mysuite
+::
+
+  ./cice.setup --suite mysuite --mach conrad --env cray --testid v01a --bgen default
+  cd mysuite.v01a
+  #wait for runs to complete
+  ./results.csh
+
+You can use all the standard regression testing options (``--bgen``, ``--bcmp``, 
+``--bdir``).  Make sure any "diff" testing that goes on is on tests that
+are created earlier in the test list, as early as possible.  Unfortunately,
+there is still no absolute guarantee the tests will be completed in the correct 
+sequence.
+
+
+.. _testreporting:
+
+Test Reporting
+---------------
+
+The CICE testing scripts have the capability to post test results
+to the official `wiki page <https://github.com/CICE-Consortium/Test-Results/wiki>`_.
+You may need write permission on the wiki.  If you are interested in using the
+wiki, please contact the consortium.
+
+To post results, once a test suite is complete, run ``results.csh`` and
+``report_results.csh`` from the suite directory,
+::
+
+  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a
+  cd base_suite.v01a
+  #wait for runs to complete
+  ./results.csh
+  ./report_results.csh
+
+The reporting can also be automated by adding ``--report`` to ``cice.setup``
+::
+
+  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --report
+
+With ``--report``, the suite will create all the tests, build and submit them,
+wait for all runs to be complete, and run the results and report_results scripts.
+
 
 .. _compliance:
 
-~~~~~~~~~~~~~~~~~~~~
-Code Compliance Test
-~~~~~~~~~~~~~~~~~~~~
+Code Compliance Test (non bit-for-bit validation)
+----------------------------------------------------
 
-A core tenet of CICE dycore and Icepack innovations is that they must not change 
+A core tenet of CICE dycore and CICE innovations is that they must not change 
 the physics and biogeochemistry of existing model configurations, notwithstanding 
 obsolete model components. Therefore, alterations to existing CICE Consortium code
 must only fix demonstrable numerical or scientific inaccuracies or bugs, or be 
 necessary to introduce new science into the code.  New physics and biogeochemistry 
 introduced into the model must not change model answers when switched off, and in 
-that case CICEcore and Icepack must reproduce answers bit-for-bit as compared to 
+that case CICEcore and CICE must reproduce answers bit-for-bit as compared to 
 previous simulations with the same namelist configurations. This bit-for-bit 
 requirement is common in Earth System Modeling projects, but often cannot be achieved 
 in practice because model additions may require changes to existing code.  In this 
@@ -269,7 +530,7 @@ on a different computing platform with a different compiler.  Therefore, tools f
 scientific testing of CICE code changes have been developed to accompany bit-for-bit 
 testing. These tools exploit the statistical properties of simulated sea ice thickness 
 to confirm or deny the null hypothesis, which is that new additions to the CICE dycore 
-and Icepack have not significantly altered simulated ice volume using previous model 
+and CICE have not significantly altered simulated ice volume using previous model 
 configurations.  Here we describe the CICE testing tools, which are applies to output 
 from five-year gx-1 simulations that use the standard CICE atmospheric forcing. 
 A scientific justification of the testing is provided in
@@ -277,9 +538,9 @@ A scientific justification of the testing is provided in
 
 .. _paired:
 
-*******************************
+
 Two-Stage Paired Thickness Test
-*******************************
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The first quality check aims to confirm the null hypotheses
 :math:`H_0\!:\!\mu_d{=}0` at every model grid point, given the mean
@@ -377,9 +638,9 @@ autocorrelation :math:`r_1`.
 
 .. _quadratic:
 
-*******************************
+
 Quadratic Skill Compliance Test
-*******************************
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the two-stage test of mean sea ice thickness, we also
 check that paired simulations are highly correlated and have similar
@@ -462,11 +723,12 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke2018`.
 
-***************************
-Practical Testing Procedure
-***************************
 
-The CICE code compliance test is performed by running a python script (cice.t-test.py).
+Code Compliance Testing Procedure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The CICE code compliance test is performed by running a python script 
+(**configurations/scripts/tests/QC/cice.t-test.py**).
 In order to run the script, the following requirements must be met:
 
 * Python v2.7 or later
@@ -476,7 +738,7 @@ In order to run the script, the following requirements must be met:
 * basemap Python package (optional)
 
 In order to generate the files necessary for the compliance test, test cases should be
-created with the ``qc`` option (i.e., ``-s qc``) when running cice.setup.  This 
+created with the ``qc`` option (i.e., ``--set qc``) when running cice.setup.  This 
 option results in daily, non-averaged history files being written for a 5 year simulation.
 
 To install the necessary Python packages, the ``pip`` Python utility can be used.
@@ -487,7 +749,9 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user numpy
   pip install --user matplotlib
 
-To run the compliance test:
+To run the compliance test, setup a baseline run with the original baseline model and then 
+a perturbation run based on recent model changes.  Use ``--sets qc`` in both runs in addition
+to other settings needed.  Then use the QC script to compare history output,
 
 .. code-block:: bash
 
@@ -510,65 +774,9 @@ Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
 locations of failures can be identified.
 
-~~~~~~~~~~~~~~~~~~~~
-CICE Test Reporting
-~~~~~~~~~~~~~~~~~~~~
 
-The CICE testing scripts have the capability of posting the test results 
-to an online dashboard, located `on CDash <http://my.cdash.org/index.php?project=myCICE>`_.  
-There are 2 options for posting CICE results to CDash: 1) The automated 
-script, 2) The manual method.
-
-*****************
-Automatic Script
-*****************
-
-To automatically run the CICE tests, and post the results to the CICE Cdash dashboard,
-users need to copy and run the ``run.suite`` script:
-
-.. code-block:: bash
-
-  cp configuration/scripts/run.suite .
-  ./run.suite -m <machine> -testid <test_id> -bc <baseline_to_compare> -bg <baseline_to_generate>
-
-The run.suite script does the following:
-
-- Creates a fresh clone of the CICE-Consortium repository
-- ``cd`` to cloned repo
-- run ``cice.setup`` to generate the base_suite directories.  The output 
-  is piped to ``log.suite``
-- Running ``cice.setup`` submits each individual job to the queue.  
-- ``run.suite`` monitors the queue manager to determine when all jobs have 
-  finished (pings the queue manager once every 5 minutes).
-- Once all jobs complete, cd to base_suite directory and run ``./results.csh``
-- Run ``./run_ctest.csh`` in order to post the test results to the CDash dashboard
-
-*****************
-Manual Method
-*****************
-
-To manually run the CICE tests and post the results to the CICE CDash dashboard,
-users essentially just need to perform all steps available in run.suite, detailed below:
-
-- Pass the ``-report`` flag to cice.setup when running the ``base_suite`` test suite.
-  The ``-report`` flag copies the required CTest / CDash scripts to the suite 
-  directory.
-- ``cice.setup`` compiles the CICE code, and submits all of the jobs to the 
-  queue manager.  
-- After every job has been submitted and completed, ``cd`` to the suite directory.
-- Parse the results, by running ``./results.csh``.
-- Run the CTest / CDash script ``./run_ctest.csh``.
-
-If the ``run_ctest.csh`` script is unable to post the testing results to the CDash
-server, a message will be printed to the screen detailing instructions on how to attempt
-to post the results from another server.  If ``run_ctest.csh`` fails to submit the results,
-it will generate a tarball ``cice_ctest.tgz`` that contains the necessary files for 
-submission.  Copy this file to another server (CMake version 2.8+ required), extract the 
-archive, and run ``./run_ctest.csh -submit``.
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 End-To-End Testing Procedure
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Below is an example of a step-by-step procedure for testing a code change that results
 in non-bit-for-bit results:
@@ -617,283 +825,58 @@ in non-bit-for-bit results:
   INFO:__main__:
   INFO:__main__:Quality Control Test PASSED
 
-.. _tabnamelist:
 
--------------------------
-Table of namelist options
--------------------------
+.. _testplotting:
 
-.. _tab-namelist:
+Test Plotting
+----------------
 
-.. csv-table:: Table 8
-   :header: "variable", "options/format", "description", "recommended value"
-   :widths: 15, 15, 30, 15 
+The CICE scripts include a script (``timeseries.csh``) that will generate a timeseries 
+figure from the diagnostic output file.  
+When running a test suite, the ``timeseries.csh`` script is automatically copied to the suite directory.  
+If the ``timeseries.csh`` script is to be used on a test / case that is not a part of a test suite, 
+users will need to run the ``timeseries.csh`` script from the tests directory 
+(``./configuration/scripts/tests/timeseries.csh``), or copy it to a local directory and run it 
+locally (``cp configuration/scripts/tests/timeseries.csh .`` followed by 
+``./timeseries.csh /path/to/ice_diag.full_ITD``. The plotting script can be run
+on any of the output files - icefree, slab, full_ITD, land).  To generate the figure, 
+run the ``timeseries.csh`` script and pass the full path to the ice_diag file as an argument.  
 
-   "*setup_nml*", " ", " ", " "
-   "", "", "*Time, Diagnostics*", ""
-   "``days_per_year``", "``360`` or ``365``", "number of days in a model year", "365"
-   "``use_leap_years``", "true/false", "if true, include leap days", ""
-   "``year_init``", "yyyy", "the initial year, if not using restart", ""
-   "``istep0``", "integer", "initial time step number", "0"
-   "``dt``", "seconds", "thermodynamics time step length", "3600."
-   "``npt``", "integer", "total number of time steps to take", ""
-   "``ndtd``", "integer", "number of dynamics/advection/ridging/steps per thermo timestep", "1"
-   "", "", "*Initialization/Restarting*", ""
-   "``runtype``", "``initial``", "start from ``ice_ic``", ""
-   "", "``continue``", "restart using ``pointer_file``", ""
-   "``ice_ic``", "``default``", "latitude and sst dependent", "default"
-   "", "``none``", "no ice", ""
-   "", "path/file", "restart file name", ""
-   "``restart``", "true/false", "initialize using restart file", "``.true.``"
-   "``use_restart_time``", "true/false", "set initial date using restart file", "``.true.``"
-   "``restart_format``", "nc", "read/write  restart files (use with PIO)", ""
-   "", "bin", "read/write binary restart files", ""
-   "``lcdf64``", "true/false", "if true, use 64-bit  format", ""
-   "``restart_dir``", "path/", "path to restart directory", ""
-   "``restart_ext``", "true/false", "read/write halo cells in restart files", ""
-   "``restart_file``", "filename prefix", "output file for restart dump", "‘iced’"
-   "``pointer_file``", "pointer filename", "contains restart filename", ""
-   "``dumpfreq``", "``y``", "write restart every ``dumpfreq_n`` years", "y"
-   "", "``m``", "write restart every ``dumpfreq_n`` months", ""
-   "", "``d``", "write restart every ``dumpfreq_n`` days", ""
-   "``dumpfreq_n``", "integer", "frequency restart data is written", "1"
-   "``dump_last``", "true/false", "if true, write restart on last time step of simulation", ""
-   "", "", "*Model Output*", ""
-   "``bfbflag``", "true/false", "for bit-for-bit diagnostic output", ""
-   "``diagfreq``", "integer", "frequency of diagnostic output in ``dt``", "24"
-   "", "*e.g.*, 10", "once every 10 time steps", ""
-   "``diag_type``", "``stdout``", "write diagnostic output to stdout", ""
-   "", "``file``", "write diagnostic output to file", ""
-   "``diag_file``", "filename", "diagnostic output file (script may reset)", ""
-   "``print_global``", "true/false", "print diagnostic data, global sums", "``.false.``"
-   "``print_points``", "true/false", "print diagnostic data for two grid points", "``.false.``"
-   "``latpnt``", "real", "latitude of (2) diagnostic points", "" 
-   "``lonpnt``", "real", "longitude of (2) diagnostic points", ""
-   "``dbug``", "true/false", "if true, write extra diagnostics", "``.false.``"
-   "``histfreq``", "string array", "defines output frequencies", ""
-   "", "``y``", "write history every ``histfreq_n`` years", ""
-   "", "``m``", "write history every ``histfreq_n`` months", ""
-   "", "``d``", "write history every ``histfreq_n`` days", ""
-   "", "``h``", "write history every ``histfreq_n`` hours", ""
-   "", "``1``", "write history every time step", ""
-   "", "``x``", "unused frequency stream (not written)", ""
-   "``histfreq_n``", "integer array", "frequency history output is written", ""
-   "", "0", "do not write to history", ""
-   "``hist_avg``", "true", "write time-averaged data", "``.true.``"
-   "", "false", "write snapshots of data", ""
-   "``history_dir``", "path/", "path to history output directory", ""
-   "``history_file``", "filename prefix", "output file for history", "‘iceh’"
-   "``write_ic``", "true/false", "write initial condition", ""
-   "``incond_dir``", "path/", "path to initial condition directory", ""
-   "``incond_file``", "filename prefix", "output file for initial condition", "‘iceh’"
-   "``runid``", "string", "label for run (currently CESM only)", ""
-   "", "", "", ""
-   "*grid_nml*", "", "", ""
-   "", "", "*Grid*", ""
-   "``grid_format``", "``nc``", "read  grid and kmt files", "‘bin’"
-   "", "``bin``", "read direct access, binary file", ""
-   "``grid_type``", "``rectangular``", "defined in *rectgrid*", ""
-   "", "``displaced_pole``", "read from file in *popgrid*", ""
-   "", "``tripole``", "read from file in *popgrid*", ""
-   "", "``regional``", "read from file in *popgrid*", ""
-   "``grid_file``", "filename", "name of grid file to be read", "‘grid’"
-   "``kmt_file``", "filename", "name of land mask file to be read", "‘kmt’"
-   "``gridcpl_file``", "filename", "input file for coupling grid info", ""
-   "``kcatbound``", "``0``", "original category boundary formula", "0"
-   "", "``1``", "new formula with round numbers", ""
-   "", "``2``", "WMO standard categories", ""
-   "", "``-1``", "one category", ""
-   "", "", "", ""
-   "*domain_nml*", "", "", ""
-   "", "", "*Domain*", ""
-   "``nprocs``", "integer", "number of processors to use", ""
-   "``processor_shape``", "``slenderX1``", "1 processor in the y direction (tall, thin)", ""
-   "", "``slenderX2``", "2 processors in the y direction (thin)", ""
-   "", "``square-ice``", "more processors in x than y, :math:`\sim` square", ""
-   "", "``square-pop``", "more processors in y than x, :math:`\sim` square", ""
-   "``distribution_type``", "``cartesian``", "distribute blocks in 2D Cartesian array", ""
-   "", "``roundrobin``", "1 block per proc until blocks are used", ""
-   "", "``sectcart``", "blocks distributed to domain quadrants", ""
-   "", "``sectrobin``", "several blocks per proc until used", ""
-   "", "``rake``", "redistribute blocks among neighbors", ""
-   "", "``spacecurve``", "distribute blocks via space-filling curves", ""
-   "``distribution_weight``", "``block``", "full block size sets ``work_per_block``", ""
-   "", "``latitude``", "latitude/ocean sets ``work_per_block``", ""
-   "``ew_boundary_type``", "``cyclic``", "periodic boundary conditions in x-direction", ""
-   "", "``open``", "Dirichlet boundary conditions in x", ""
-   "``ns_boundary_type``", "``cyclic``", "periodic boundary conditions in y-direction", ""
-   "", "``open``", "Dirichlet boundary conditions in y", ""
-   "", "``tripole``", "U-fold tripole boundary conditions in y", ""
-   "", "``tripoleT``", "T-fold tripole boundary conditions in y", ""
-   "``maskhalo_dyn``", "true/false", "mask unused halo cells for dynamics", ""
-   "``maskhalo_remap``", "true/false", "mask unused halo cells for transport", ""
-   "``maskhalo_bound``", "true/false", "mask unused halo cells for boundary updates", ""
-   "", "", "", ""
-   "*tracer_nml*", "", "", ""
-   "", "", "*Tracers*", ""
-   "``tr_iage``", "true/false", "ice age", ""
-   "``restart_age``", "true/false", "restart tracer values from file", ""
-   "``tr_FY``", "true/false", "first-year ice area", ""
-   "``restart_FY``", "true/false", "restart tracer values from file", ""
-   "``tr_lvl``", "true/false", "level ice area and volume", ""
-   "``restart_lvl``", "true/false", "restart tracer values from file", ""
-   "``tr_pond_cesm``", "true/false", "CESM melt ponds", ""
-   "``restart_pond_cesm``", "true/false", "restart tracer values from file", ""
-   "``tr_pond_topo``", "true/false", "topo melt ponds", ""
-   "``restart_pond_topo``", "true/false", "restart tracer values from file", ""
-   "``tr_pond_lvl``", "true/false", "level-ice melt ponds", ""
-   "``restart_pond_lvl``", "true/false", "restart tracer values from file", ""
-   "``tr_aero``", "true/false", "aerosols", ""
-   "``restart_aero``", "true/false", "restart tracer values from file", ""
-   "*thermo_nml*", "", "", ""
-   "", "", "*Thermodynamics*", ""
-   "``kitd``", "``0``", "delta function ITD approximation", "1"
-   "", "``1``", "linear remapping ITD approximation", ""
-   "``ktherm``", "``0``", "zero-layer thermodynamic model", ""
-   "", "``1``", "Bitz and Lipscomb thermodynamic model", ""
-   "", "``2``", "mushy-layer thermodynamic model", ""
-   "``conduct``", "``MU71``", "conductivity :cite:`MU71`", ""
-   "", "``bubbly``", "conductivity :cite:`PETB07`", ""
-   "``a_rapid_mode``", "real", "brine channel diameter", "0.5x10 :math:`^{-3}` m"
-   "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10"
-   "``aspect_rapid_mode``", "real", "brine convection aspect ratio", "1"
-   "``dSdt_slow_mode``", "real", "drainage strength parameter", "-1.5x10 :math:`^{-7}` m/s/K"
-   "``phi_c_slow_mode``", ":math:`0<\phi_c < 1`", "critical liquid fraction", "0.05"
-   "``phi_i_mushy``", ":math:`0<\phi_i < 1`", "solid fraction at lower boundary", "0.85"
-   "", "", "", ""
-   "*dynamics_nml*", "", "", ""
-   "", "", "*Dynamics*", ""
-   "``kdyn``", "``0``", "dynamics OFF", "1"
-   "", "``1``", "EVP dynamics", ""
-   "", "``2``", "EAP dynamics", ""
-   "``revised_evp``", "true/false", "use revised EVP formulation", ""
-   "``ndte``", "integer", "number of EVP subcycles", "120"
-   "``advection``", "``remap``", "linear remapping advection", "‘remap’"
-   "", "``upwind``", "donor cell advection", ""
-   "``kstrength``", "``0``", "ice strength formulation :cite:`Hibler79`", "1"
-   "", "``1``", "ice strength formulation :cite:`Rothrock75`", ""
-   "``krdg_partic``", "``0``", "old ridging participation function", "1"
-   "", "``1``", "new ridging participation function", ""
-   "``krdg_redist``", "``0``", "old ridging redistribution function", "1"
-   "", "``1``", "new ridging redistribution function", ""
-   "``mu_rdg``", "real", "e-folding scale of ridged ice", ""
-   "``Cf``", "real", "ratio of ridging work to PE change in ridging", "17."
-   "", "", "", ""
-   "*shortwave_nml*", "", "", ""
-   "", "", "*Shortwave*", ""
-   "``shortwave``", "``default``", "NCAR CCSM3 distribution method", ""
-   "", "``dEdd``", "Delta-Eddington method", ""
-   "``albedo_type``", "``default``", "NCAR CCSM3 albedos", "‘default’"
-   "", "``constant``", "four constant albedos", ""
-   "``albicev``", ":math:`0<\alpha <1`", "visible ice albedo for thicker ice", ""
-   "``albicei``", ":math:`0<\alpha <1`", "near infrared ice albedo for thicker ice", ""
-   "``albsnowv``", ":math:`0<\alpha <1`", "visible, cold snow albedo", ""
-   "``albsnowi``", ":math:`0<\alpha <1`", "near infrared, cold snow albedo", ""
-   "``ahmax``", "real", "albedo is constant above this thickness", "0.3 m"
-   "``R_ice``", "real", "tuning parameter for sea ice albedo from Delta-Eddington shortwave", ""
-   "``R_pnd``", "real", "... for ponded sea ice albedo …", ""
-   "``R_snw``", "real", "... for snow (broadband albedo) …", ""
-   "``dT_mlt``", "real", ":math:`\Delta` temperature per :math:`\Delta` snow grain radius", ""
-   "``rsnw_mlt``", "real", "maximum melting snow grain radius", ""
-   "``kalg``", "real", "absorption coefficient for algae", ""
-   "", "", "", ""
-   "*ponds_nml*", "", "", ""
-   "", "", "*Melt Ponds*", ""
-   "``hp1``", "real", "critical ice lid thickness for topo ponds", "0.01 m"
-   "``hs0``", "real", "snow depth of transition to bare sea ice", "0.03 m"
-   "``hs1``", "real", "snow depth of transition to pond ice", "0.03 m"
-   "``dpscale``", "real", "time scale for flushing in permeable ice", ":math:`1\times 10^{-3}`"
-   "``frzpnd``", "``hlid``", "Stefan refreezing with pond ice thickness", "‘hlid’"
-   "", "``cesm``", "CESM refreezing empirical formula", ""
-   "``rfracmin``", ":math:`0 \le r_{min} \le 1`", "minimum melt water added to ponds", "0.15"
-   "``rfracmax``", ":math:`0 \le r_{max} \le 1`", "maximum melt water added to ponds", "1.0"
-   "``pndaspect``", "real", "aspect ratio of pond changes (depth:area)", "0.8"
-   "", "", "", ""
-   "*zbgc_nml*", "", "", ""
-   "", "", "*Biogeochemistry*", ""
-   "``tr_brine``", "true/false", "brine height tracer", ""
-   "``tr_zaero``", "true/false", "vertical aerosol tracers", ""
-   "``modal_aero``", "true/false", "modal aersols", ""
-   "``restore_bgc``", "true/false", "restore bgc to data", ""
-   "``solve_zsal`", "true/false", "update salinity tracer profile", ""
-   "``bgc_data_dir``", "path/", "data directory for bgc", ""
-   "``skl_bgc``", "true/false", "biogeochemistry", ""
-   "``sil_data_type``", "``default``", "default forcing value for silicate", ""
-   "", "``clim``", "silicate forcing from ocean climatology :cite:`GLBA06`", ""
-   "``nit_data_type``", "``default``", "default forcing value for nitrate", ""
-   "", "``clim``", "nitrate forcing from ocean climatology :cite:`GLBA06`", ""
-   "", "``sss``", "nitrate forcing equals salinity", ""
-   "``fe_data_type``", "``default``", "default forcing value for iron", ""
-   "", "``clim``", "iron forcing from ocean climatology", ""
-   "``bgc_flux_type``", "``Jin2006``", "ice–ocean flux velocity of :cite:`JDWSTWLG06`", ""
-   "", "``constant``", "constant ice–ocean flux velocity", ""
-   "``restart_bgc``", "true/false", "restart tracer values from file", ""
-   "``tr_bgc_C_sk``", "true/false", "algal carbon tracer", ""
-   "``tr_bgc_chl_sk``", "true/false", "algal chlorophyll tracer", ""
-   "``tr_bgc_Am_sk``", "true/false", "ammonium tracer", ""
-   "``tr_bgc_Sil_sk``", "true/false", "silicate tracer", ""
-   "``tr_bgc_DMSPp_sk``", "true/false", "particulate DMSP tracer", ""
-   "``tr_bgc_DMSPd_sk``", "true/false", "dissolved DMSP tracer", ""
-   "``tr_bgc_DMS_sk``", "true/false", "DMS tracer", ""
-   "``phi_snow``", "real", "snow porosity for brine height tracer", ""
-   "", "", "", ""
-   "*forcing_nml*", "", "", ""
-   "", "", "*Forcing*", ""
-   "``formdrag``", "true/false", "calculate form drag", ""
-   "``atmbndy``", "``default``", "stability-based boundary layer", "‘default’"
-   "", "``constant``", "bulk transfer coefficients", ""
-   "``fyear_init``", "yyyy", "first year of atmospheric forcing data", ""
-   "``ycycle``", "integer", "number of years in forcing data cycle", ""
-   "``atm_data_format``", "``nc``", "read  atmo forcing files", ""
-   "", "``bin``", "read direct access, binary files", ""
-   "``atm_data_type``", "``default``", "constant values defined in the code", ""
-   "", "``LYq``", "AOMIP/Large-Yeager forcing data", ""
-   "", "``monthly``", "monthly forcing data", ""
-   "", "``ncar``", "NCAR bulk forcing data", ""
-   "", "``oned``", "column forcing data", ""
-   "``atm_data_dir``", "path/", "path to atmospheric forcing data directory", ""
-   "``calc_strair``", "true", "calculate wind stress and speed", ""
-   "", "false", "read wind stress and speed from files", ""
-   "``highfreq``", "true/false", "high-frequency atmo coupling", ""
-   "``natmiter``", "integer", "number of atmo boundary layer iterations", ""
-   "``calc_Tsfc``", "true/false", "calculate surface temperature", "``.true.``"
-   "``precip_units``", "``mks``", "liquid precipitation data units", ""
-   "", "``mm_per_month``", "", ""
-   "", "``mm_per_sec``", "(same as MKS units)", ""
-   "``tfrz_option``", "``minus1p8``", "constant ocean freezing temperature (:math:`-1.8^{\circ} C`)", ""
-   "", "``linear_salt``", "linear function of salinity (ktherm=1)", ""
-   "", "``mushy_layer``", "matches mushy-layer thermo (ktherm=2)", ""
-   "``ustar_min``", "real", "minimum value of ocean friction velocity", "0.0005 m/s"
-   "``fbot_xfer_type``", "``constant``", "constant ocean heat transfer coefficient", ""
-   "", "``Cdn_ocn``", "variable ocean heat transfer coefficient", ""
-   "``update_ocn_f``", "true", "include frazil water/salt fluxes in ocn fluxes", ""
-   "", "false", "do not include (when coupling with POP)", ""
-   "``l_mpond_fresh``", "true", "retain (topo) pond water until ponds drain", ""
-   "", "false", "release (topo) pond water immediately to ocean", ""
-   "``oceanmixed_ice``", "true/false", "active ocean mixed layer calculation", "``.true.`` (if uncoupled)"
-   "``ocn_data_format``", "``nc``", "read  ocean forcing files", ""
-   "", "``bin``", "read direct access, binary files", ""
-   "``sss_data_type``", "``default``", "constant values defined in the code", ""
-   "", "``clim``", "climatological data", ""
-   "", "``near``", "POP ocean forcing data", ""
-   "``sst_data_type``", "``default``", "constant values defined in the code", ""
-   "", "``clim``", "climatological data", ""
-   "", "``ncar``", "POP ocean forcing data", ""
-   "``ocn_data_dir``", "path/", "path to oceanic forcing data directory", ""
-   "``oceanmixed_file``", "filename", "data file containing ocean forcing data", ""
-   "``restore_sst``", "true/false", "restore sst to data", ""
-   "``trestore``", "integer", "sst restoring time scale (days)", ""
-   "``restore_ice``", "true/false", "restore ice state along lateral boundaries", ""
-   "", "", "", ""
-   "*icefields_tracer_nml*", "", "", ""
-   "", "", "*History Fields*", ""
-   "``f_<var>``", "string", "frequency units for writing ``<var>`` to history", ""
-   "", "``y``", "write history every ``histfreq_n`` years", ""
-   "", "``m``", "write history every ``histfreq_n`` months", ""
-   "", "``d``", "write history every ``histfreq_n`` days", ""
-   "", "``h``", "write history every ``histfreq_n`` hours", ""
-   "", "``1``", "write history every time step", ""
-   "", "``x``", "do not write ``<var>`` to history", ""
-   "", "``md``", "*e.g.,* write both monthly and daily files", ""
-   "``f_<var>_ai``", "", "grid cell average of ``<var>`` (:math:`\times a_i`)", ""
+For example:
+
+Run the test suite. ::
+
+$ ./cice.setup -m conrad -e intel --suite base_suite -acct <account_number> --testid t00
+
+Wait for suite to finish then go to the directory. ::
+
+$ cd base_suite.t00
+
+Run the timeseries script on the desired case. ::
+
+$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/ice_diag.full_ITD
+    
+The output figures are placed in the directory where the ice_diag file is located.
+
+This plotting script can be used to plot the following variables:
+
+  - area fraction
+  - average ice thickness (m)
+  - average snow depth (m)
+  - air temperature (C)
+  - shortwave radiation (:math:`W/m^2`)
+  - longwave radiation (:math:`W/m^2`)
+  - snowfall
+  - average salinity (ppt)
+  - surface temperature (C)
+  - outward longwave flux (:math:`W/m^2`)
+  - sensible heat flux (:math:`W/m^2`)
+  - latent heat flux (:math:`W/m^2`)
+  - top melt (m)
+  - bottom melt (m)
+  - lateral melt (m)
+  - new ice (m)
+  - congelation (m)
+  - snow-ice (m)
+  - initial energy change (:math:`W/m^2`)
 

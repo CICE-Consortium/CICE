@@ -1,0 +1,8 @@
+npt            = 72
+dumpfreq       = 'd'
+dumpfreq_n     = 2
+diag_type      = 'stdout'
+print_global   = .true.
+histfreq       = 'd','x','x','x','x'
+histfreq_n     = 2,1,1,1,1
+f_aice	       = 'd'

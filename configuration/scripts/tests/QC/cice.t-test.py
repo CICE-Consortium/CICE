@@ -465,12 +465,20 @@ if __name__ == "__main__":
     # Run skill test on northern hemisphere
     data_nh_a = ma.masked_array(data_a,mask=mask_nh)
     data_nh_b = ma.masked_array(data_b,mask=mask_nh)
-    passed_nh = skill_test(path_a,fname,data_nh_a,data_nh_b,num_files,tlat,'Northern')
+    if np.ma.all(data_nh_a.mask) and np.ma.all(data_nh_b.mask):
+        logger.info("Northern Hemisphere data is bit-for-bit")
+        passed_nh = True
+    else:
+        passed_nh = skill_test(path_a,fname,data_nh_a,data_nh_b,num_files,tlat,'Northern')
     
     # Run skill test on southern hemisphere
     data_sh_a = ma.masked_array(data_a,mask=mask_sh)
     data_sh_b = ma.masked_array(data_b,mask=mask_sh)
-    passed_sh = skill_test(path_a,fname,data_sh_a,data_sh_b,num_files,tlat,'Southern')
+    if np.ma.all(data_sh_a.mask) and np.ma.all(data_sh_b.mask):
+        logger.info("Southern Hemisphere data is bit-for-bit")
+        passed_sh = True
+    else:
+        passed_sh = skill_test(path_a,fname,data_sh_a,data_sh_b,num_files,tlat,'Southern')
     
     passed_skill = passed_nh and passed_sh
     

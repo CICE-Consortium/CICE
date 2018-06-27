@@ -44,7 +44,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_ice_strength
+      use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
 #ifdef CICE_IN_NEMO
       use icepack_intfc, only: calc_strair
 #endif
@@ -81,9 +81,9 @@
       use ice_domain_size, only: max_blocks, ncat
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
-          strtltx, strtlty, strocnx, strocny, strintx, strinty, &
-          strocnxT, strocnyT, &
-          Cbu, taubx, tauby, hwater, &
+          strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
+          strocnxT, strocnyT, strax, stray, &
+          Tbu, hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
@@ -262,6 +262,7 @@
                          strtltx   (:,:,iblk), strtlty   (:,:,iblk), & 
                          strocnx   (:,:,iblk), strocny   (:,:,iblk), & 
                          strintx   (:,:,iblk), strinty   (:,:,iblk), & 
+                         taubx     (:,:,iblk), tauby     (:,:,iblk), & 
                          waterx    (:,:,iblk), watery    (:,:,iblk), & 
                          forcex    (:,:,iblk), forcey    (:,:,iblk), & 
                          stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
@@ -272,7 +273,7 @@
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
                          uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                         Cbu       (:,:,iblk))
+                         Tbu       (:,:,iblk))
 
       !-----------------------------------------------------------------
       ! ice strength
@@ -328,6 +329,20 @@
          call ice_HaloMask(halo_info_mask, halo_info, halomask)
       endif
 
+      !-----------------------------------------------------------------
+      ! basal stress coefficients (landfast ice)
+      !-----------------------------------------------------------------
+      
+      if (basalstress) then
+       do iblk = 1, nblocks
+         call basal_stress_coeff (nx_block,         ny_block,       &
+                                  icellu  (iblk),                   &
+                                  indxui(:,iblk),   indxuj(:,iblk), &
+                                  vice(:,:,iblk),   aice(:,:,iblk), &
+                                  hwater(:,:,iblk), Tbu(:,:,iblk))
+       enddo                           
+      endif
+      
       do ksub = 1,ndte        ! subcycling
 
       !-----------------------------------------------------------------
@@ -360,26 +375,13 @@
 !            endif               ! yield_curve
 
       !-----------------------------------------------------------------
-      ! basal stress calculation (landfast ice)
-      !-----------------------------------------------------------------
-      
-            if (basalstress) then        
-               call basal_stress_coeff (nx_block,       ny_block,       &
-                                        icellu  (iblk),                 &
-                                        indxui(:,iblk), indxuj(:,iblk), &
-                                        vice(:,:,iblk), aice(:,:,iblk), &
-                                        hwater(:,:,iblk),               &
-                                        uvel(:,:,iblk), vvel(:,:,iblk), &
-                                        Cbu(:,:,iblk)) 
-            endif
-
-      !-----------------------------------------------------------------
       ! momentum equation
       !-----------------------------------------------------------------
 
             call stepu (nx_block,            ny_block,           &
                         icellu       (iblk), Cdn_ocn (:,:,iblk), & 
-                        indxui     (:,iblk), indxuj    (:,iblk), & 
+                        indxui     (:,iblk), indxuj    (:,iblk), &
+                        ksub,                                    &
                         aiu      (:,:,iblk), strtmp  (:,:,:),    & 
                         uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                         waterx   (:,:,iblk), watery  (:,:,iblk), & 
@@ -387,10 +389,11 @@
                         umassdti (:,:,iblk), fm      (:,:,iblk), & 
                         uarear   (:,:,iblk),                     & 
                         strocnx  (:,:,iblk), strocny (:,:,iblk), & 
-                        strintx  (:,:,iblk), strinty (:,:,iblk), & 
+                        strintx  (:,:,iblk), strinty (:,:,iblk), &
+                        taubx    (:,:,iblk), tauby   (:,:,iblk), & 
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
                         uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                        Cbu      (:,:,iblk))
+                        Tbu      (:,:,iblk))
 
             ! load velocity into array for boundary updates
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
@@ -417,16 +420,6 @@
          !$OMP END PARALLEL DO
          
       enddo                     ! subcycling
-      
-      ! calculate basal stress component for outputs
-      if ( basalstress ) then
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            taubx(:,:,iblk) = -Cbu(:,:,iblk)*uvel(:,:,iblk)
-            tauby(:,:,iblk) = -Cbu(:,:,iblk)*vvel(:,:,iblk)
-         enddo
-         !$OMP END PARALLEL DO
-      endif
 
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
@@ -608,6 +601,7 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        puny                                      , & ! puny
         c0ne, c0nw, c0se, c0sw                    , & ! useful combinations
         c1ne, c1nw, c1se, c1sw                    , &
         ssigpn, ssigps, ssigpe, ssigpw            , &
@@ -742,6 +736,11 @@
       ! it in that case.  The compiler flag is often described with the 
       ! phrase "flush to zero".
       !-----------------------------------------------------------------
+
+!      call icepack_query_parameters(puny_out=puny)
+!      call icepack_warnings_flush(nu_diag)
+!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+!         file=__FILE__, line=__LINE__)
 
 !      stressp_1(i,j) = sign(max(abs(stressp_1(i,j)),puny),stressp_1(i,j))
 !      stressp_2(i,j) = sign(max(abs(stressp_2(i,j)),puny),stressp_2(i,j))

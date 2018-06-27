@@ -75,6 +75,11 @@
 
       call ice_timer_start(timer_sw)      ! shortwave
 
+      alvdr_init(:,:,:) = c0
+      alvdf_init(:,:,:) = c0
+      alidr_init(:,:,:) = c0
+      alidf_init(:,:,:) = c0
+
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
          ihi = this_block%ihi
@@ -142,7 +147,7 @@
           fswthru, meltt, melts, meltb, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn
-      use ice_grid, only: lmask_n, lmask_s
+      use ice_grid, only: lmask_n, lmask_s, tmask
       use ice_state, only: aice, aicen, aice_init, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
 
@@ -267,6 +272,7 @@
             enddo
          endif ! tr_aero
 
+         if (tmask(i,j,iblk)) &
          call icepack_step_therm1(dt, ncat, nilyr, nslyr, n_aero,                &
                             aicen_init  (i,j,:,iblk),                           &
                             vicen_init  (i,j,:,iblk), vsnon_init  (i,j,:,iblk), &
@@ -518,7 +524,7 @@
       ! Aggregate the updated state variables (includes ghost cells). 
       !----------------------------------------------------------------- 
  
-         if (tmask(i,j,iblk)) &
+!        if (tmask(i,j,iblk)) &
          call icepack_aggregate (ncat,               aicen(i,j,:,iblk),   &
                                trcrn(i,j,1:ntrcr,:,iblk),               &
                                vicen(i,j,:,iblk), vsnon(i,j,  :,iblk),  &
@@ -906,6 +912,8 @@
 
       use ice_arrays_column, only: Cdn_atm, Cdn_atm_ratio
       use ice_blocks, only: nx_block, ny_block
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: blocks_ice
       use ice_flux, only: sst, Tf, Qa, uatm, vatm, wind, potT, rhoa, zlvl, &
            frzmlt, fhocn, fswthru, flw, flwout_ocn, fsens_ocn, flat_ocn, evap_ocn, &
            alvdr_ocn, alidr_ocn, alvdf_ocn, alidf_ocn, swidf, swvdf, swidr, swvdr, &
@@ -927,6 +935,7 @@
          frzmlt_max = c1000   ! max magnitude of frzmlt (W/m^2)
 
       integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j           , & ! horizontal indices
          ij                 ! combined ij index
 
@@ -942,6 +951,8 @@
       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
          indxi, indxj    ! compressed indices for ocean cells
 
+      type (block) :: &
+         this_block         ! block information for current block
 
       !-----------------------------------------------------------------
 
@@ -958,8 +969,15 @@
          icells = 0
          indxi(:) = 0
          indxj(:) = 0
-         do j = 1, ny_block
-         do i = 1, nx_block
+
+         this_block = get_block(blocks_ice(iblk),iblk)         
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
             if (tmask(i,j,iblk)) then
                icells = icells + 1
                indxi(icells) = i
