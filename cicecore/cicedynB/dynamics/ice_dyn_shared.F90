@@ -34,6 +34,14 @@
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure
 
+#ifdef DMI_EVP
+      integer (kind=int_kind), public :: &
+         evp_kernel_ver ! 0 = 2D org version
+                        ! 1 = 1D representation
+                        ! 2 = 1D + calculate distances inline
+                        ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
+#endif
+
       ! other EVP parameters
 
       character (len=char_len), public :: & 
@@ -231,37 +239,6 @@
       Se = 0.86_dbl_kind                 ! Se > 0.5
       xi = 5.5e-3_dbl_kind               ! Sv/Sc < 1
       gamma = p25 * 1.e11_dbl_kind * dt  ! rough estimate (P/m~10^5/10^3)
-
-#ifdef DMI_TEST_EVP
-     !------------------------------------
-     ! Store the following 5 constants used by "stress" and "stepu" subroutines
-     !  revp,arlx1i,brlx,denon1,ecci,rhow
-     ! Use j as temporary input-unit
-     j=999
-     !------------------------------------
-     open(j, file='EVP_input_constants.bin', form='unformatted', access='stream',&
-            action='write', status='replace', iostat=i)
-
-      call icepack_query_parameters(rhow_out=rhow)
-         ! revised evp parameters
-         revp   = c1
-         arlx1i = c2*xi/Se        ! 1/alpha1
-         brlx = c2*Se*xi*gamma/xmin**2 ! beta
-         denom1 = c1/(c1+arlx1i)
-     write(j,iostat=i) revp,arlx1i,brlx,denom1,ecci,rhow
-     write(*,*)'MHRI1: revp,arlx1i,brlx,denom1,ecci,rhow',&
-                       revp,arlx1i,brlx,denom1,ecci,rhow
-
-         ! classic evp parameters (but modified equations)
-         revp   = c0
-         arlx1i = dte2T
-         brlx   = dt*dtei
-         denom1 = c1/(c1+arlx1i)
-     write(j,iostat=i) revp,arlx1i,brlx,denom1,ecci,rhow
-     write(*,*)'MHRI2: revp,arlx1i,brlx,denom1,ecci,rhow: ',&
-                       revp,arlx1i,brlx,denom1,ecci,rhow
-     close(j)
-#endif
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
@@ -918,7 +895,7 @@
       end subroutine evp_finish
 
 !=======================================================================
-! Computes basal stress Cb coefficients (landfast ice)
+! Computes basal stress Cbu coefficients (landfast ice)
 !
 ! Lemieux, J. F., B. Tremblay, F. Dupont, M. Plante, G. Smith, D. Dumont (2015). 
 ! A basal stress parameterization form modeling landfast ice. J. Geophys. Res. 
@@ -965,7 +942,7 @@
          k1 = 8.0_dbl_kind , &  ! first free parameter for landfast parametrization 
          k2 = 15.0_dbl_kind, &  ! second free parameter (Nm^-3) for landfast parametrization 
          u0 = 5e-5_dbl_kind, &  ! residual velocity (m/s)
-         CC = 20.0_dbl_kind     ! CC=Cb factor in Lemieux et al 2015
+         CC = 20.0_dbl_kind     ! CC=Cbu factor in Lemieux et al 2015
 
       integer (kind=int_kind) :: &
          i, j, ij
