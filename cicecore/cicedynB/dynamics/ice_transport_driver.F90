@@ -361,7 +361,8 @@
 !      call ice_timer_stop(timer_bound)
 
 
-      !$OMP PARALLEL DO PRIVATE(iblk)
+! MHRI: CHECK THIS OMP
+!MHRI      !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
     !-------------------------------------------------------------------
@@ -376,7 +377,7 @@
                                aim  (:,:,:,iblk), trm  (:,:,:,:,iblk))
 
       enddo
-      !$OMP END PARALLEL DO
+!MHRI      !$OMP END PARALLEL DO
 
 !---!-------------------------------------------------------------------
 !---! Optional conservation and monotonicity checks.
@@ -514,7 +515,8 @@
     ! Given new fields, recompute state variables.
     !-------------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk)
+! MHRI: CHECK THIS OMP
+!MHRI      !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
          call tracers_to_state (nx_block,          ny_block,            &
@@ -525,7 +527,7 @@
                                 vicen(:,:,:,iblk), vsnon(:,:,  :,iblk))
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+!MHRI      !$OMP END PARALLEL DO
 
     !-------------------------------------------------------------------
     ! Ghost cell updates for state variables.

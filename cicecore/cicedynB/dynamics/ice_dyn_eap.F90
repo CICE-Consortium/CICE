@@ -395,7 +395,8 @@
       ! stress tensor equation, total surface stress
       !-----------------------------------------------------------------
 
-         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+! MHRI: CHECK THIS OMP (similar do not work in ice_dyn_evp.F90)
+!MHRI         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
 !      call ice_timer_start(timer_tmp1) ! dynamics
@@ -494,7 +495,7 @@
             endif
 !      call ice_timer_stop(timer_tmp3) ! dynamics
          enddo
-         !$OMP END PARALLEL DO
+!MHRI         !$OMP END PARALLEL DO
 
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then

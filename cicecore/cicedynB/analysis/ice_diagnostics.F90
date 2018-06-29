@@ -1150,7 +1150,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
+! MHRI: CHECK THIS OMP
+!MHRI      !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -1197,7 +1198,7 @@
          enddo                  ! n
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+!MHRI      !$OMP END PARALLEL DO
 
       end subroutine total_energy
 
@@ -1236,7 +1237,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
+! MHRI: CHECK THIS OMP
+!MHRI      !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -1273,7 +1275,7 @@
          enddo                  ! n
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+!MHRI      !$OMP END PARALLEL DO
 
       end subroutine total_salt
 

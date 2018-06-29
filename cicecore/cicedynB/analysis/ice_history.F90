@@ -1346,8 +1346,11 @@
       ! increment field
       !---------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP             k,n,qn,ns,worka,workb,Tinz4d,Sinz4d,Tsnz4d)
+! MHRI: CHECK THIS OMP
+!MHRI: NOTE: "ns --> sn" in PRIVATE. However do not solve the problem for gnu+intel compiler
+!MHRI      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
+!MHRI      !$OMP             k,n,qn,sn,worka,workb,Tinz4d,Sinz4d,Tsnz4d)
+!MHRI note: "ns --> sn"      !$OMP             k,n,qn,ns,worka,workb,Tinz4d,Sinz4d,Tsnz4d)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
@@ -1719,7 +1722,7 @@
          if (formdrag) call accum_hist_drag (iblk)
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+!MHRI      !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &

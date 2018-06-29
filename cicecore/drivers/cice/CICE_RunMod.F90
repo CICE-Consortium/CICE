@@ -252,7 +252,8 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
-         !$OMP PARALLEL DO PRIVATE(iblk)
+!MHRI: CHECK THIS OMP
+!MHRI         !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
             call step_radiation (dt, iblk)
@@ -264,7 +265,7 @@
             call coupling_prep (iblk)
 
          enddo ! iblk
-         !$OMP END PARALLEL DO
+!MHRI         !$OMP END PARALLEL DO
 
          call ice_timer_start(timer_bound)
          call ice_HaloUpdate (scale_factor,     halo_info, &

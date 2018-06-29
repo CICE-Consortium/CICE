@@ -382,7 +382,8 @@
       ! stress tensor equation, total surface stress
       !-----------------------------------------------------------------
 
-         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+!MHRI: CHECK THIS OMP
+!MHRI         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
 !            if (trim(yield_curve) == 'ellipse') then
@@ -444,7 +445,7 @@
             fld2(:,:,1,iblk) = uvel(:,:,iblk)
             fld2(:,:,2,iblk) = vvel(:,:,iblk)
          enddo
-         !$OMP END PARALLEL DO
+!MHRI         !$OMP END PARALLEL DO
 
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then

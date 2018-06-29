@@ -461,8 +461,9 @@
 !---! Remap the open water area (without tracers).
 !---!-------------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,m, &
-      !$OMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop)
+! MHRI: CHECK THIS OMP 
+!MHRI      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,m, &
+!MHRI      !$OMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop)
       do iblk = 1, nblocks
 
          l_stop = .false.
@@ -563,7 +564,7 @@
          endif
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+!MHRI      !$OMP END PARALLEL DO
 
     !-------------------------------------------------------------------
     ! Ghost cell updates

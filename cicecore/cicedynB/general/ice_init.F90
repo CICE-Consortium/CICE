@@ -1379,8 +1379,9 @@
       ! Set state variables
       !-----------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP                     iglob,jglob)
+!MHRI: CHECK THIS OMP
+!MHRI      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
+!MHRI      !$OMP                     iglob,jglob)
       do iblk = 1, nblocks
 
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1404,7 +1405,7 @@
                              vicen(:,:,  :,iblk), vsnon(:,:,  :,iblk))
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+!MHRI      !$OMP END PARALLEL DO
 
       !-----------------------------------------------------------------
       ! ghost cell updates
