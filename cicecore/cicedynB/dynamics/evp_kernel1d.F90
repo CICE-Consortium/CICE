@@ -2487,6 +2487,10 @@ module evp_kernel1d
     vvel(lo:up)=c0
     dxt(lo:up)=c0
     dyt(lo:up)=c0
+    HTE(lo:up)=c0
+    HTN(lo:up)=c0
+    HTEm1(lo:up)=c0
+    HTNm1(lo:up)=c0
     dxhy(lo:up)=c0
     dyhx(lo:up)=c0
     cyp(lo:up)=c0
@@ -2522,14 +2526,6 @@ module evp_kernel1d
     call domp_get_domain(u+1,uu,lo,up)
     uvel(lo:up)=c0
     vvel(lo:up)=c0
-!    str1(lo:up)=c0
-!    str2(lo:up)=c0
-!    str3(lo:up)=c0
-!    str4(lo:up)=c0
-!    str5(lo:up)=c0
-!    str6(lo:up)=c0
-!    str7(lo:up)=c0
-!    str8(lo:up)=c0
   end subroutine numainit
   
   !=======================================================================
