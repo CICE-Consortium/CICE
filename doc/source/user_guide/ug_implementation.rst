@@ -500,7 +500,7 @@ to processors.
 .. _fig-distribscorecard:
 
 .. figure:: ./figures/scorecard.png
-   :scale: 20%
+   :scale: 50%
 
    Figure 10
 
