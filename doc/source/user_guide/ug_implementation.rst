@@ -485,17 +485,17 @@ communicate. The ‘sectrobin’ and ‘sectcart’ algorithms loop similarly,
 but put groups of blocks on each processor to improve the communication
 characteristics. In the ‘sectcart’ case, the domain is divided into two
 (east-west) halves and the loops are done over each, sequentially.
-:ref:`fig-distribscorecard` provides an overview of the pros and cons
-for the distribution types.
 
 The `wghtfile` decomposition drives the decomposition based on 
 weights provided in a weight file.  That file should be a netcdf
 file with a double real field called `wght` containing the relative
-weight of each gridcell.  :ref:`fig-distrb` (b) and (c) show
+weight of each gridcell.  :ref:`fig-distrbB` (b) and (c) show
 an example.  The weights associated with each gridcell will be
 summed on a per block basis and normalized to about 10 bins to
 carry out the distribution of highest to lowest block weights 
-to processors.
+to processors.  :ref:`fig-distribscorecard` provides an overview 
+of the pros and cons of the various distribution types.
+
 
 .. _fig-distribscorecard:
 
