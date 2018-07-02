@@ -1723,7 +1723,7 @@ module evp_kernel1d
     !-- Gather data into one single block --
     ! BEGIN: Gather data
     !-- icetmask: gather_global_ext only works for reals
-    !$OMP PARALLEL DO PRIVATE(n,i,j)
+!MHRI    !$OMP PARALLEL DO PRIVATE(n,i,j)
     do n=1,nblk
       do j=1,ny
         do i=1,nx
@@ -1735,9 +1735,9 @@ module evp_kernel1d
         enddo
       enddo
     enddo
-    !$OMP END PARALLEL DO
+!MHRI    !$OMP END PARALLEL DO
     call gather_global_ext(G_work, I_work, master_task, distrb_info)
-    !$OMP PARALLEL DO PRIVATE(i,j)
+!MHRI    !$OMP PARALLEL DO PRIVATE(i,j)
     do j=1,ny_glob
       do i=1,nx_glob
         if (G_work(i,j)>p5)  then
@@ -1747,9 +1747,9 @@ module evp_kernel1d
         endif
       enddo
     enddo
-    !$OMP END PARALLEL DO
+!MHRI    !$OMP END PARALLEL DO
     !-- iceumask: gather_global_ext only works for reals
-    !$OMP PARALLEL DO PRIVATE(n,i,j)
+!MHRI    !$OMP PARALLEL DO PRIVATE(n,i,j)
     do n=1,nblk
       do j=1,ny
         do i=1,nx
@@ -1761,9 +1761,9 @@ module evp_kernel1d
         enddo
       enddo
     enddo
-    !$OMP END PARALLEL DO
+!MHRI    !$OMP END PARALLEL DO
     call gather_global_ext(G_work, I_work, master_task, distrb_info)
-    !$OMP PARALLEL DO PRIVATE(i,j)
+!MHRI    !$OMP PARALLEL DO PRIVATE(i,j)
     do j=1,ny_glob
       do i=1,nx_glob
         if (G_work(i,j)>p5)  then
@@ -1773,7 +1773,7 @@ module evp_kernel1d
         endif
       enddo
     enddo
-    !$OMP END PARALLEL DO
+!MHRI    !$OMP END PARALLEL DO
     !-- the rest
     call gather_global_ext(G_HTE, I_HTE, master_task, distrb_info)
     call gather_global_ext(G_HTN, I_HTN, master_task, distrb_info)
@@ -1903,7 +1903,7 @@ module evp_kernel1d
     G_rdg_conv   = c0
     G_rdg_shear  = c0
     G_shear      = c0
-    !$OMP PARALLEL PRIVATE(iw)
+!MHRI    !$OMP PARALLEL PRIVATE(iw,i,j)
     do iw=1,NA_len
       i=indi(iw)
       j=indj(iw)
@@ -1930,7 +1930,7 @@ module evp_kernel1d
       G_rdg_shear(i,j)  = rdg_shear(iw)
       G_shear(i,j)      = shear(iw)
     enddo
-    !$OMP END PARALLEL
+!MHRI    !$OMP END PARALLEL
     call dealloc1d()
     !-- Scatter data into blocks --
     ! BEGIN: Scatter data
