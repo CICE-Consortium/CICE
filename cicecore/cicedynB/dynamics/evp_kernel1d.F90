@@ -2356,7 +2356,6 @@ module evp_kernel1d
     j=1
     k=1
     do while (i<=nx .and. j<=ny)
-!write(*,*)'i,j,k,x(i),y(j):',i,j,k,x(i),y(j)
       if (x(i)<y(j)) then
         xy(k)=x(i)
         i=i+1
@@ -2372,13 +2371,11 @@ module evp_kernel1d
     enddo
     ! The rest
     do while (i<=nx)
-!write(*,*)'I,k,x(i),y(j):',i,j-1,k,x(i),y(j-1)
       xy(k)=x(i)
       i=i+1
       k=k+1
     enddo
     do while (j<=ny)
-!write(*,*)'i,J,k,x(i),y(j):',i-1,j,k,x(i-1),y(j)
       xy(k)=y(j)
       j=j+1
       k=k+1
