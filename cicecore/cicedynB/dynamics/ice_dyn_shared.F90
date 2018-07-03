@@ -237,8 +237,16 @@
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
+#ifdef DMI_REVP
+         ! brlx should be a parameter set in name list. According to mail of Martin Loesch this is valid for grid of ~25km
+         ! Chan ged to namelsit parameters
+         !         brlx = 300._dbl_kind
+         !         arlx1i = c1/brlx
+         denom1 = c1
+#else
          arlx1i = c2*xi/Se        ! 1/alpha1
          brlx = c2*Se*xi*gamma/xmin**2 ! beta
+#endif
 
 ! classic evp parameters (but modified equations)
 !         arlx1i = dte2T
@@ -262,7 +270,10 @@
                   p5*xmin*sqrt(brlx*arlx1i/gamma)
       endif            
 
+#ifdef DMI_REVP
+#else
       denom1 = c1/(c1+arlx1i)
+#endif
 
       end subroutine set_evp_parameters
 
@@ -508,6 +519,10 @@
          umassdti (i,j) = c0
          Cbu      (i,j) = c0
 
+#ifdef DMI_REVP
+         ! I Don't understand why this differs between revp and none revp.
+         ! However equal nevertheless
+#endif
          if (revp==1) then               ! revised evp
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
