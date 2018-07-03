@@ -81,6 +81,9 @@
 #ifdef DMI_EVP
                                 evp_kernel_ver, &
 #endif
+#ifdef DMI_REVP
+                                arlx1i, brlx, &
+#endif
                                 basalstress, Ktens, e_ratio
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
@@ -154,6 +157,9 @@
         kdyn,           ndte,           revised_evp,    yield_curve,    &
 #ifdef DMI_EVP
         evp_kernel_ver,                                                 &
+#endif
+#ifdef DMI_REVP
+        brlx, arlx1i,                                                   &
 #endif
         advection,                                                      &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
@@ -251,6 +257,10 @@
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
 #ifdef DMI_EVP
       evp_kernel_ver = 0 ! EVP kernel (0 = 2D, >0: 1D)
+#endif
+#ifdef DMI_REVP
+      arlx1i = 1._dbl_kind/300.0_dbl_kind
+      brlx   = 300.0_dbl_kind
 #endif
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
       yield_curve = 'ellipse'
@@ -716,6 +726,10 @@
 #ifdef DMI_EVP
       call broadcast_scalar(evp_kernel_ver,     master_task)
 #endif
+#ifdef DMI_REVP
+      call broadcast_scalar(arlx1i,             master_task)
+      call broadcast_scalar(brlx,               master_task)
+#endif
       call broadcast_scalar(revised_evp,        master_task)
       call broadcast_scalar(yield_curve,        master_task)
       call broadcast_scalar(kstrength,          master_task)
@@ -895,6 +909,11 @@
          write(nu_diag,1020) ' evp_kernel_ver            = ', &
                                evp_kernel_ver
 #endif
+#ifdef DMI_REVP
+         write(nu_diag,1005) '  arlx1i                   = ', arlx1i
+         write(nu_diag,1005) '  brlx                     = ', brlx
+#endif
+
          if (kdyn == 1) &
          write(nu_diag,*)    ' yield_curve               = ', &
                                trim(yield_curve)
