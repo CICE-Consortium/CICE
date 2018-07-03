@@ -1646,38 +1646,6 @@ module evp_kernel1d
       if (ierr/=0) stop 'Error de-allocating 1D, v2'
     endif
   end subroutine dealloc1d
-  subroutine write1d(na,navel)
-    integer(kind=int_kind),intent(in) :: na,navel
-    integer(kind=int_kind) :: lun, ios
-    integer(kind=int_kind) :: nb
-    nb=na
-    lun=77
-    open(lun,file='EVP_conv1D.bin', form='unformatted', access='stream',   &
-             action='write', iostat=ios)
-    if (ios/=0) stop 'Problem opening file EVP_conv1D.bin'
-    write(lun,iostat=ios)                                                  &
-      ! T cells
-      strength(1:na),dxt(1:na),dyt(1:na),dxhy(1:na),dyhx(1:na),            &
-      cyp(1:na),cym(1:na),cxm(1:na),tinyarea(1:na),stressp_1(1:na),        &
-      stressp_3(1:na),stressp_4(1:na),stressm_1(1:na),stressm_2(1:na),     &
-      stressm_3(1:na),stressm_4(1:na),stress12_1(1:na),                    &
-      cxp(1:na),stressp_2(1:na),                                           &
-      stress12_2(1:na),stress12_3(1:na),stress12_4(1:na),tarear(1:na),     &
-      ! U cells
-      cdn_ocn(1:nb),aiu(1:nb),uocn(1:nb),vocn(1:nb),                       &
-      waterx(1:nb),watery(1:nb),forcex(1:nb),forcey(1:nb),                 &
-      umassdti(1:nb),fm(1:nb),                                             &
-      uarear(1:nb),strintx(1:nb),strinty(1:nb),                            &
-      uvel_init(1:nb),vvel_init(1:nb),                                     &
-      ! common
-      uvel(1:navel),vvel(1:navel),                                         &
-      ! Helper index for neighbours
-!      indi(1:navel),indj(1:navel),                   &
-      ee(1:na),ne(1:na),se(1:na),                                          &
-      nw(1:nb),sw(1:nb),sse(1:nb), skipucell(1:na)
-    if (ios/=0) stop 'Problem writing file EVP_conv1D.bin'
-    close(lun)
-  end subroutine write1d
 !===============================================================================
 !===============================================================================
   subroutine evp_copyin_v0(nx,ny,nblk,nx_glob,ny_glob,                                        &
@@ -2114,6 +2082,7 @@ module evp_kernel1d
   end subroutine evp_kernel_v2
   !===============================================================================
   subroutine calc_na(nx,ny,na,icetmask)
+    ! Calculate number of active points (na)
     use ice_blocks, only: nghost
     implicit none
     integer(int_kind),intent(in) :: nx,ny
@@ -2164,6 +2133,7 @@ module evp_kernel1d
     endif
   end subroutine calc_2d_indices
   subroutine calc_navel(nx_block,ny_block,na,navel)
+    ! Calculate number of active points including needed halo points (navel)
     implicit none
     integer(int_kind),intent(in)  :: nx_block,ny_block,na
     integer(int_kind),intent(out) :: navel
