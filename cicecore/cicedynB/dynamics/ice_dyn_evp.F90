@@ -41,6 +41,9 @@
           p2, p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, evp_prep1, evp_prep2, evp_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
+#ifdef DMI_REVP
+          revp, &
+#endif
           vvel_init, basal_stress_coeff, basalstress, Ktens
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -793,6 +796,26 @@
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
+#ifdef DMI_REVP
+         stressp_1(i,j) = (stressp_1(i,j)*(c1-arlx1i*revp)  + c1ne*(divune*(c1+Ktens) - Deltane*(c1-Ktens))) &
+                          * denom1
+         stressp_2(i,j) = (stressp_2(i,j)*(c1-arlx1i*revp)  + c1nw*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))) &
+                          * denom1
+         stressp_3(i,j) = (stressp_3(i,j)*(c1-arlx1i*revp)  + c1sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))) &
+                          * denom1
+         stressp_4(i,j) = (stressp_4(i,j)*(c1-arlx1i*revp)  + c1se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))) &
+                          * denom1
+
+         stressm_1(i,j) = (stressm_1(i,j)*(c1-arlx1i*revp)  + c0ne*tensionne*(c1+Ktens)) * denom1
+         stressm_2(i,j) = (stressm_2(i,j)*(c1-arlx1i*revp)  + c0nw*tensionnw*(c1+Ktens)) * denom1
+         stressm_3(i,j) = (stressm_3(i,j)*(c1-arlx1i*revp)  + c0sw*tensionsw*(c1+Ktens)) * denom1
+         stressm_4(i,j) = (stressm_4(i,j)*(c1-arlx1i*revp)  + c0se*tensionse*(c1+Ktens)) * denom1
+
+         stress12_1(i,j) = (stress12_1(i,j)*(c1-arlx1i*revp)  + c0ne*shearne*p5*(c1+Ktens)) * denom1
+         stress12_2(i,j) = (stress12_2(i,j)*(c1-arlx1i*revp)  + c0nw*shearnw*p5*(c1+Ktens)) * denom1
+         stress12_3(i,j) = (stress12_3(i,j)*(c1-arlx1i*revp)  + c0sw*shearsw*p5*(c1+Ktens)) * denom1
+         stress12_4(i,j) = (stress12_4(i,j)*(c1-arlx1i*revp)  + c0se*shearse*p5*(c1+Ktens)) * denom1
+#else 
          stressp_1(i,j) = (stressp_1(i,j) + c1ne*(divune*(c1+Ktens) - Deltane*(c1-Ktens))) &
                           * denom1
          stressp_2(i,j) = (stressp_2(i,j) + c1nw*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))) &
@@ -811,6 +834,7 @@
          stress12_2(i,j) = (stress12_2(i,j) + c0nw*shearnw*p5*(c1+Ktens)) * denom1
          stress12_3(i,j) = (stress12_3(i,j) + c0sw*shearsw*p5*(c1+Ktens)) * denom1
          stress12_4(i,j) = (stress12_4(i,j) + c0se*shearse*p5*(c1+Ktens)) * denom1
+#endif
 
       !-----------------------------------------------------------------
       ! Eliminate underflows.
