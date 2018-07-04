@@ -39,7 +39,7 @@
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, c4, p027, p055, p111, p166, &
           p2, p222, p25, p333, p5, c1
-      use ice_dyn_shared, only: stepu, evp_prep1, evp_prep2, evp_finish, &
+      use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens
       use ice_fileunits, only: nu_diag
@@ -66,7 +66,7 @@
 ! Wind stress is set during this routine from the values supplied
 ! via NEMO (unless calc_strair is true).  These values are supplied 
 ! rotated on u grid and multiplied by aice.  strairxT = 0 in this 
-! case so operations in evp_prep1 are pointless but carried out to 
+! case so operations in dyn_prep1 are pointless but carried out to 
 ! minimise code changes.
 #endif
 !
@@ -190,7 +190,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call evp_prep1 (nx_block,           ny_block,           & 
+         call dyn_prep1 (nx_block,           ny_block,           & 
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), & 
                          vsno    (:,:,iblk), tmask   (:,:,iblk), & 
@@ -244,7 +244,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call evp_prep2 (nx_block,             ny_block,             & 
+         call dyn_prep2 (nx_block,             ny_block,             & 
                          ilo, ihi,             jlo, jhi,             &
                          icellt(iblk),         icellu(iblk),         & 
                          indxti      (:,iblk), indxtj      (:,iblk), & 
@@ -304,7 +304,7 @@
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
-      ! velocities may have changed in evp_prep2
+      ! velocities may have changed in dyn_prep2
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
       call ice_timer_stop(timer_bound)
@@ -332,13 +332,15 @@
       !-----------------------------------------------------------------
       
       if (basalstress) then
+       !$OMP PARALLEL DO PRIVATE(iblk)
        do iblk = 1, nblocks
          call basal_stress_coeff (nx_block,         ny_block,       &
                                   icellu  (iblk),                   &
                                   indxui(:,iblk),   indxuj(:,iblk), &
                                   vice(:,:,iblk),   aice(:,:,iblk), &
                                   hwater(:,:,iblk), Tbu(:,:,iblk))
-       enddo                           
+       enddo
+       !$OMP END PARALLEL DO
       endif
       
       do ksub = 1,ndte        ! subcycling
@@ -497,7 +499,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
-         call evp_finish                               & 
+         call dyn_finish                               & 
               (nx_block,           ny_block,           & 
                icellu      (iblk), Cdn_ocn (:,:,iblk), & 
                indxui    (:,iblk), indxuj    (:,iblk), & 
@@ -662,8 +664,8 @@
          ! Delta (in the denominator of zeta, eta)
          Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
          Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
          Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
+         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
 
       !-----------------------------------------------------------------
       ! on last subcycle, save quantities for mechanical redistribution
