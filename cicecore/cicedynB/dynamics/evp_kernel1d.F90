@@ -2497,6 +2497,14 @@ module evp_kernel1d
     call domp_get_domain(u+1,uu,lo,up)
     uvel(lo:up)=c0
     vvel(lo:up)=c0
+    str1(lo:up)=c0
+    str2(lo:up)=c0
+    str3(lo:up)=c0
+    str4(lo:up)=c0
+    str5(lo:up)=c0
+    str6(lo:up)=c0
+    str7(lo:up)=c0
+    str8(lo:up)=c0
   end subroutine numainit
   
   !=======================================================================
