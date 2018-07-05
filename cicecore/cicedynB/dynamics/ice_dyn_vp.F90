@@ -191,7 +191,7 @@
       im_fgmres = 50 
       maxits = 50    
       kmax=50
-      krelax=0.5d0
+      krelax=c1
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -616,8 +616,8 @@
 
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
-              uvel(:,:,iblk) = (1d0-krelax)*uprev_k(:,:,iblk) + krelax*uvel(:,:,iblk)
-              vvel(:,:,iblk) = (1d0-krelax)*vprev_k(:,:,iblk) + krelax*vvel(:,:,iblk)
+              uvel(:,:,iblk) = (c1-krelax)*uprev_k(:,:,iblk) + krelax*uvel(:,:,iblk)
+              vvel(:,:,iblk) = (c1-krelax)*vprev_k(:,:,iblk) + krelax*vvel(:,:,iblk)
          enddo
          !$OMP END PARALLEL DO  
                              
