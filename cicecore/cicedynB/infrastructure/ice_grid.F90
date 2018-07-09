@@ -42,6 +42,7 @@
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
+         grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
@@ -76,6 +77,9 @@
          cxm    , & ! 0.5*HTN - 1.5*HTN
          dxhy   , & ! 0.5*(HTE - HTE)
          dyhx       ! 0.5*(HTN - HTN)
+      real (kind=dbl_kind), public ::  &
+         x_spacing, & !  user_specified spacing (m) in x-direction
+         y_spacing    !  user_specified spacing (m) in y-direction
 
       ! Corners of grid boxes for history output
       real (kind=dbl_kind), dimension (4,nx_block,ny_block,max_blocks), public :: &
@@ -119,11 +123,11 @@
          lmask_s    ! southern hemisphere mask
 
       ! grid dimensions for rectangular grid
-      real (kind=dbl_kind), parameter ::  &
-!         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
-!         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
-         dxrect = 16.e5_dbl_kind   ,&! uniform HTN (cm)
-         dyrect = 16.e5_dbl_kind     ! uniform HTE (cm)
+      real (kind=dbl_kind), public ::  &
+         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
+         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
+!         dxrect = 16.e5_dbl_kind   ,&! uniform HTN (cm)
+!         dyrect = 16.e5_dbl_kind     ! uniform HTE (cm)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          rndex_global       ! global index for local subdomain (dbl)
@@ -232,6 +236,12 @@
         write(nu_diag,'(a26,i6)') '  Block size:  nx_block = ',nx_block
         write(nu_diag,'(a26,i6)') '               ny_block = ',ny_block
       endif
+      if (trim(grid_spacing) == 'user_specified') then
+       dxrect = x_spacing
+       dyrect = y_spacing
+      endif     
+        write(nu_diag,*), 'dxrect= ', dxrect
+        write(nu_diag,*), 'dyrect= ', dyrect
 
       end subroutine init_grid1
 
