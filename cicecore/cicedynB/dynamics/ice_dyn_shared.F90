@@ -30,6 +30,9 @@
          kdyn     , & ! type of dynamics ( 1 = evp, 2 = eap )
          ndte         ! number of subcycles:  ndte=dt/dte
 
+         character (len=char_len), public :: &
+         coriolis     ! 'constant' or 'default'
+
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure
 
@@ -130,8 +133,11 @@
          rdg_shear(i,j,iblk) = c0
 
          ! Coriolis parameter
-!!         fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+         if (trim(coriolis) == 'constant') then
+         fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+         else
          fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
+         endif
 
          ! stress tensor,  kg/s^2
          stressp_1 (i,j,iblk) = c0
@@ -154,6 +160,7 @@
       enddo                     ! j
       enddo                     ! iblk
       !$OMP END PARALLEL DO
+         write (nu_diag,*) 'fcor_blk(1,1,1)=', fcor_blk(1,1,1)
 
       end subroutine init_evp
 
