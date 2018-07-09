@@ -343,7 +343,7 @@ The logical masks `tmask` and `umask` (which correspond to the real masks
 `hm` and `uvm`, respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
-*evp\_prep* in order to reduce the dynamics component’s work on a global
+*dyn\_prep* in order to reduce the dynamics component’s work on a global
 grid. At each time step the logical masks `ice\_tmask` and `ice\_umask` are
 determined from the current ice extent, such that they have the value
 “true” wherever ice exists. They also include a border of cells around

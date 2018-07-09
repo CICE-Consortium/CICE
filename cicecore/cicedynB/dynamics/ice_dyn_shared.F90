@@ -22,7 +22,7 @@
       implicit none
       private
       public :: init_evp, set_evp_parameters, stepu, principal_stress, &
-                evp_prep1, evp_prep2, evp_finish, basal_stress_coeff
+                dyn_prep1, dyn_prep2, dyn_finish, basal_stress_coeff
 
       ! namelist parameters
 
@@ -250,7 +250,7 @@
 !
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine evp_prep1 (nx_block,  ny_block, & 
+      subroutine dyn_prep1 (nx_block,  ny_block, & 
                             ilo, ihi,  jlo, jhi, &
                             aice,      vice,     & 
                             vsno,      tmask,    & 
@@ -353,7 +353,7 @@
       enddo
       enddo
 
-      end subroutine evp_prep1
+      end subroutine dyn_prep1
 
 !=======================================================================
 ! Computes quantities needed in the stress tensor (sigma)
@@ -365,7 +365,7 @@
 !
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine evp_prep2 (nx_block,   ny_block,   & 
+      subroutine dyn_prep2 (nx_block,   ny_block,   & 
                             ilo, ihi,   jlo, jhi,   &
                             icellt,     icellu,     & 
                             indxti,     indxtj,     & 
@@ -604,7 +604,7 @@
          forcey(i,j) = strairy(i,j) + strtlty(i,j)
       enddo
 
-      end subroutine evp_prep2
+      end subroutine dyn_prep2
 
 !=======================================================================
 
@@ -765,7 +765,7 @@
 !
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine evp_finish (nx_block, ny_block, &
+      subroutine dyn_finish (nx_block, ny_block, &
                              icellu,   Cw,       &
                              indxui,   indxuj,   &
                              uvel,     vvel,     &
@@ -857,7 +857,7 @@
          strocnyT(i,j) = strocny(i,j) / aiu(i,j)
       enddo
 
-      end subroutine evp_finish
+      end subroutine dyn_finish
 
 !=======================================================================
 ! Computes basal stress Tbu coefficients (landfast ice)
