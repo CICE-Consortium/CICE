@@ -11,23 +11,27 @@
       use ice_kinds_mod
 
       implicit none
+      private
+
+      public :: ice_init_constants
+      public :: ice_query_constants
 
       !-----------------------------------------------------------------
       ! physical constants
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), parameter, public :: &
-         omega     = SHR_CONST_OMEGA ,&! angular velocity of earth (rad/sec)
-         radius    = SHR_CONST_REARTH  ! earth radius (m)
+      real (kind=dbl_kind), public :: &
+         omega     = 7.292e-5_dbl_kind   ,&! angular velocity of earth (rad/sec)
+         radius    = 6.37e6_dbl_kind       ! earth radius (m)
 
-      real (kind=dbl_kind), parameter, public :: &
-         spval_dbl = SHR_CONST_SPVAL    ! special value
+      real (kind=dbl_kind), public :: &
+         spval_dbl = 1.0e30_dbl_kind    ! special value (double precision)
 
-      real (kind=real_kind), parameter, public :: &
+      real (kind=real_kind), public :: &
          spval     = 1.0e30_real_kind   ! special value for netCDF output
 
       ! these are currently set so as to have no effect on the decomposition
-      real (kind=dbl_kind), parameter, public :: &
+      real (kind=dbl_kind), public :: &
          shlat  =  30.0_dbl_kind   ,&! artificial masking edge (deg)
          nhlat  = -30.0_dbl_kind     ! artificial masking edge (deg)
    
@@ -79,6 +83,7 @@
         p666 = c2/c3, &
         p055 = p111*p5, &
         p027 = p055*p5, &
+        eps04  = 1.0e-4_dbl_kind, &
         eps13  = 1.0e-13_dbl_kind, &
         eps16  = 1.0e-16_dbl_kind
 
@@ -118,10 +123,61 @@
         kg_to_g       = 1000._dbl_kind  ,&! kilograms to grams
         mps_to_cmpdy  = 8.64e6_dbl_kind   ! m per s to cm per day
 
-#ifndef USE_ESMF
-      integer (kind=int_kind), parameter :: &
-         ESMF_SUCCESS = 0   ! otherwise ESMF defines this parameter
-#endif
+!=======================================================================
+
+      contains
+
+!=======================================================================
+
+! subroutine to set the cice constants
+
+      subroutine ice_init_constants(   &
+         omega_in, radius_in, spval_dbl_in, spval_in, shlat_in, nhlat_in)
+
+      real (kind=dbl_kind), intent(in), optional :: &
+         omega_in     , &   ! angular velocity of earth (rad/sec)
+         radius_in    , &   ! earth radius (m)
+         spval_dbl_in , &   ! special value (double precision)
+         spval_in     , &   ! special value for netCDF output
+         shlat_in     , &   ! artificial masking edge (deg)
+         nhlat_in           ! artificial masking edge (deg)
+
+      character(len=*),parameter :: subname='(ice_init_constants)'
+
+      if (present(omega_in)) omega = omega_in
+      if (present(radius_in)) radius = radius_in
+      if (present(spval_dbl_in)) spval_dbl = spval_dbl_in
+      if (present(spval_in)) spval = spval_in
+      if (present(shlat_in)) shlat = shlat_in
+      if (present(nhlat_in)) nhlat = nhlat_in
+
+      end subroutine ice_init_constants
+
+!=======================================================================
+
+! subroutine to set the cice constants
+
+      subroutine ice_query_constants(   &
+         omega_out, radius_out, spval_dbl_out, spval_out, shlat_out, nhlat_out)
+
+      real (kind=dbl_kind), intent(out), optional :: &
+         omega_out     , &   ! angular velocity of earth (rad/sec)
+         radius_out    , &   ! earth radius (m)
+         spval_dbl_out , &   ! special value (double precision)
+         spval_out     , &   ! special value for netCDF output
+         shlat_out     , &   ! artificial masking edge (deg)
+         nhlat_out           ! artificial masking edge (deg)
+
+      character(len=*),parameter :: subname='(ice_query_constants)'
+
+      if (present(omega_out)) omega_out = omega
+      if (present(radius_out)) radius_out = radius
+      if (present(spval_dbl_out)) spval_dbl_out = spval_dbl
+      if (present(spval_out)) spval_out = spval
+      if (present(shlat_out)) shlat_out = shlat
+      if (present(nhlat_out)) nhlat_out = nhlat
+
+      end subroutine ice_query_constants
 
 !=======================================================================
 

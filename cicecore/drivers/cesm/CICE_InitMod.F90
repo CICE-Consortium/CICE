@@ -17,6 +17,8 @@
       use ice_exit, only: abort_ice
       use ice_fileunits, only: init_fileunits, nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
 
       implicit none
       private
@@ -57,7 +59,6 @@
           ocean_bio_all, ice_bio_net, snow_bio_net
       use ice_calendar, only: dt, dt_dyn, write_ic, &
           init_calendar, calendar, time
-      use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
@@ -77,17 +78,19 @@
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
-      use icepack_intfc, only: tr_aero, tr_zaero
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-      use icepack_intfc, only: skl_bgc, z_tracers
       use icepack_intfc, only: icepack_configure
+      use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
 #ifdef popcice
       use drv_forcing, only: sst_sss
 #endif
 
       integer (kind=int_kind), optional, intent(in) :: &
          mpicom_ice ! communicator for sequential ccsm
+
+      logical (kind=log_kind) :: &
+         tr_aero, tr_zaero, skl_bgc, z_tracers
 
       character(len=*), parameter :: subname='(cice_init)'
 
@@ -126,10 +129,12 @@
       call icepack_init_itd(ncat, hin_max) ! ice thickness distribution
 
       if (my_task == master_task) then
-         call icepack_clear_warnings()
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
-         call icepack_print_warnings(nu_diag)
       endif
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+          file=__FILE__, line=__LINE__)
+
       call calendar(time)       ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
@@ -142,6 +147,12 @@
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
+
+      call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+          file=__FILE__, line=__LINE__)
 
       if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
                                                    !property tables
@@ -212,15 +223,32 @@
       use ice_restart_driver, only: restartfile, restartfile_v4
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
-      use icepack_intfc, only: tr_iage, tr_FY, tr_lvl, nt_alvl, nt_vlvl, &
-          tr_pond_cesm, nt_apnd, nt_hpnd, tr_pond_lvl, nt_ipnd, &
-          tr_pond_topo, tr_aero, tr_brine, nt_iage, nt_FY, nt_aero
-      use icepack_intfc, only: skl_bgc, z_tracers, solve_zsal
 
-      integer(kind=int_kind) :: &
+      integer (kind=int_kind) :: &
          i, j        , & ! horizontal indices
          iblk        , & ! block index
          ltmp
+
+      logical (kind=log_kind) :: &
+          tr_iage, tr_FY, tr_lvl, &
+          tr_pond_cesm, tr_pond_lvl, &
+          tr_pond_topo, tr_aero, tr_brine, &
+          skl_bgc, z_tracers, solve_zsal
+      integer (kind=int_kind) :: &
+          nt_alvl, nt_vlvl, &
+          nt_apnd, nt_hpnd, nt_ipnd, &
+          nt_iage, nt_FY, nt_aero
+
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
+          tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+          tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine)
+      call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
+          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
+          nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+          file=__FILE__, line=__LINE__)
 
       if (trim(runtype) == 'continue') then 
          ! start from core restart file

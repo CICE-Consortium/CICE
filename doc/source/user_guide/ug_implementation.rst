@@ -375,12 +375,68 @@ Performance
 ***************
 
 Namelist options (*domain\_nml*) provide considerable flexibility for
-finding the most efficient processor and block configuration. Some of
-these choices are illustration in :ref:`fig-distrb`. `processor\_shape`
-chooses between tall, thin processor domains (`slenderX1` or `slenderX2`,
+finding efficient processor and block configuration. Some of
+these choices are illustrated in :ref:`fig-distrb`.  Users have control
+of many aspects of the decomposition such as the block size (set at 
+compile via CPP), the `distribution\_type`, the `distribution\_wght`,
+the `distribution\_wght\_file` (when `distribution\_type` = `wghtfile`), 
+and the `processor\_shape` (when `distribution\_type` = `cartesian`).
+
+The user specifies the total number of processors and the block
+size in the setup/build scripts. The main trades offs are the relative
+efficiency of large square blocks versus model internal load balance
+as CICE computation cost is very small for ice-free blocks.
+Smaller, more numerous blocks provides an opportunity for better load
+balance by allocating each processor both ice-covered and ice-free
+blocks.  But smaller, more numerous blocks becomes
+less efficient due to MPI communication associated with halo updates.
+In practice, blocks should probably not have fewer than about 8 to 10 grid 
+cells in each direction, and more square blocks tend to optimize the 
+volume-to-surface ratio important for communication cost.  Often 3 to 8
+blocks per processor provide the decompositions even flexiblity to
+create reasonable load balance configurations.
+
+The `distribution\_type` options allow standard cartesian distributions 
+of blocks, redistribution via a ‘rake’ algorithm for improved load
+balancing across processors, and redistribution based on space-filling
+curves. There are also additional distribution types
+(‘roundrobin,’ ‘sectrobin,’ ‘sectcart’, and 'spiralcenter') that support 
+alternative decompositions and also allow more flexibility in the number of
+processors used.  Finally, there is a 'wghtfile' decomposition that
+generates a decomposition based on weights specified in an input file.
+
+.. _fig-distrb:
+
+.. figure:: ./figures/distrb.png
+   :scale: 50%
+
+   Figure 9a
+
+:ref:`fig-distrb` : Distribution of 256 blocks across 16 processors,
+represented by colors, on the gx1 grid: (a) cartesian, slenderX1, (b)
+cartesian, slenderX2, (c) cartesian, square-ice (square-pop is
+equivalent here), (d) rake with block weighting, (e) rake with
+latitude weighting, (f) spacecurve. Each block consists of 20x24 grid
+cells, and white blocks consist entirely of land cells.
+
+.. _fig-distrbB:
+
+.. figure:: ./figures/distrbB.png
+   :scale: 50%
+
+   Figure 9b
+
+:ref:`fig-distrbB` : Sample decompositions for (a) spiral center and
+(b) wghtfile for an Arctic polar grid.  Figure (c) is the weight field
+in the input file use to drive the decompostion in (b).
+
+`processor\_shape` is used with the `distribution\_type` cartesian option,
+and it allocates blocks to processors in various groupings such as
+tall, thin processor domains (`slenderX1` or `slenderX2`,
 often better for sea ice simulations on global grids where nearly all of
 the work is at the top and bottom of the grid with little to do in
-between) and close-to-square domains, which maximize the volume to
+between) and close-to-square domains (`square-pop` or `square-ice`), 
+which maximize the volume to
 surface ratio (and therefore on-processor computations to message
 passing, if there were ice in every grid cell). In cases where the
 number of processors is not a perfect square (4, 9, 16...), the
@@ -391,44 +447,17 @@ arranged 4x2 (`square-ice`) rather than 2x4 (`square-pop`). The latter
 option is offered for direct-communication compatibility with POP, in
 which this is the default.
 
-The user provides the total number of processors and the block
-dimensions in the setup script (**comp\_ice**). When moving toward
-smaller, more numerous blocks, there is a point where the code becomes
-less efficient; blocks should not have fewer than about 20 grid cells in
-each direction. Squarish blocks optimize the volume-to-surface ratio for
-communications.
-
-.. _fig-distrb:
-
-.. figure:: ./figures/distrb.png
-   :scale: 50%
-
-   Figure 9
-
-:ref:`fig-distrb` : Distribution of 256 blocks across 16 processors,
-represented by colors, on the gx1 grid: (a) cartesian, slenderX1, (b)
-cartesian, slenderX2, (c) cartesian, square-ice (square-pop is
-equivalent here), (d) rake with block weighting, (e) rake with
-latitude weighting, (f) spacecurve. Each block consists of 20x24 grid
-cells, and white blocks consist entirely of land cells.
-
-The `distribution\_type` options allow standard Cartesian distribution of
-blocks, redistribution via a ‘rake’ algorithm for improved load
-balancing across processors, and redistribution based on space-filling
-curves. There are also three additional distribution types
-(‘roundrobin,’ ‘sectrobin,’ ‘sectcart’) that improve land-block
-elimination rates and also allow more flexibility in the number of
-processors used. The rake and space-filling curve algorithms are
-primarily helpful when using squarish processor domains where some
-processors (located near the equator) would otherwise have little work
-to do. Processor domains need not be rectangular, however.
-
 `distribution\_wght` chooses how the work-per-block estimates are
-weighted. The ‘block’ option is the default in POP, which uses a lot of
+weighted. The ‘block’ option is the default in POP and it weights each
+block equally.  This is useful in POP which always has work in
+each block and is written with a lot of
 array syntax requiring calculations over entire blocks (whether or not
-land is present), and is provided here for direct-communication
-compatibility with POP. The ‘latitude’ option weights the blocks based
-on latitude and the number of ocean grid cells they contain.
+land is present).  This option is provided in CICE as well for 
+direct-communication compatibility with POP. The ‘latitude’ option 
+weights the blocks based on latitude and the number of ocean grid 
+cells they contain.  Many of the non-cartesian decompositions support 
+automatic land block elimination and provide alternative ways to
+decompose blocks without needing the `distribution\_wght`.
 
 The rake distribution type is initialized as a standard, Cartesian
 distribution. Using the work-per-block estimates, blocks are “raked"
@@ -441,11 +470,11 @@ to one dimension. The curve is composed of a string of blocks that is
 snipped into sections, again based on the work per processor, and each
 piece is placed on a processor for optimal load balancing. This option
 requires that the block size be chosen such that the number of blocks in
-the x direction equals the number of blocks in the y direction, and that
-number must be factorable as :math:`2^n 3^m 5^p` where :math:`n, m, p`
+the x direction and the number of blocks in the y direction
+must be factorable as :math:`2^n 3^m 5^p` where :math:`n, m, p`
 are integers. For example, a 16x16 array of blocks, each containing
 20x24 grid cells, fills the gx1 grid (:math:`n=4, m=p=0`). If either of
-these conditions is not met, a Cartesian distribution is used instead.
+these conditions is not met, the spacecurve decomposition will fail.
 
 While the Cartesian distribution groups sets of blocks by processor, the
 ‘roundrobin’ distribution loops through the blocks and processors
@@ -456,13 +485,22 @@ communicate. The ‘sectrobin’ and ‘sectcart’ algorithms loop similarly,
 but put groups of blocks on each processor to improve the communication
 characteristics. In the ‘sectcart’ case, the domain is divided into two
 (east-west) halves and the loops are done over each, sequentially.
-:ref:`fig-distribscorecard` provides an overview of the pros and cons
-for the distribution types.
+
+The `wghtfile` decomposition drives the decomposition based on 
+weights provided in a weight file.  That file should be a netcdf
+file with a double real field called `wght` containing the relative
+weight of each gridcell.  :ref:`fig-distrbB` (b) and (c) show
+an example.  The weights associated with each gridcell will be
+summed on a per block basis and normalized to about 10 bins to
+carry out the distribution of highest to lowest block weights 
+to processors.  :ref:`fig-distribscorecard` provides an overview 
+of the pros and cons of the various distribution types.
+
 
 .. _fig-distribscorecard:
 
 .. figure:: ./figures/scorecard.png
-   :scale: 20%
+   :scale: 50%
 
    Figure 10
 

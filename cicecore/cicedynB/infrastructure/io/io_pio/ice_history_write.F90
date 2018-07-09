@@ -22,6 +22,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
       private
@@ -45,7 +46,7 @@
       use ice_calendar, only: time, sec, idate, idate0, write_ic, &
           histfreq, dayyr, days_per_year, use_leap_years
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c360, secday, spval, spval_dbl, rad_to_deg
+      use ice_constants, only: c0, c360, spval, spval_dbl
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: nx_global, ny_global, max_blocks, max_nstrm
       use ice_gather_scatter, only: gather_global
@@ -133,6 +134,11 @@
       integer (kind=int_kind), dimension(2) ::  &
          bnd_start,bnd_length          ! dimension quantities for netCDF
 
+      real (kind=dbl_kind) :: secday
+      real (kind=dbl_kind) :: rad_to_deg
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
 
       if (my_task == master_task) then
         call construct_filename(ncfile(ns),'nc',ns)
