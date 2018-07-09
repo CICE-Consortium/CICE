@@ -30,3 +30,6 @@ f_uatm         = 'd'
 f_vatm         = 'd'
 f_uocn         = 'd'
 f_vocn         = 'd'
+coriolis       = 'constant'
+x_spacing      = 16.e3
+y_spacing      = 16.e3

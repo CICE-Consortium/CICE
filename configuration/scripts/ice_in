@@ -48,6 +48,8 @@
     kmt_file     = 'kmt'
     gridcpl_file = 'unknown_gridcpl_file'
     kcatbound    = 0
+    x_spacing    = 30.e3
+    y_spacing    = 30.e3
 /
 
 &domain_nml
@@ -104,6 +106,7 @@
     Ktens           = 0.
     e_ratio         = 2.
     basalstress     = .false.
+    coriolis        = 'default'
 /
 
 &shortwave_nml
