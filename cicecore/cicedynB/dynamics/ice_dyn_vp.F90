@@ -540,12 +540,6 @@
                             cxm       (:,:,iblk), cym       (:,:,iblk), & 
                             tarear    (:,:,iblk), tinyarea  (:,:,iblk), & 
                             zetaD     (:,:,iblk,:),                     &
-                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
-                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
-                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
-                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                             shear     (:,:,iblk), divu      (:,:,iblk), & 
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
                             strtmp    (:,:,:))                                                             
@@ -965,13 +959,318 @@
       
 !=======================================================================
 
-! Computes the rates of strain and internal stress components for
-! each of the four corners on each T-grid cell.
-! Computes stress terms for the momentum equation
-!
-! author: Elizabeth C. Hunke, LANL,  JF Lemieux, ECCC
+! Computes VP stress without the rep. pressure Pr (included in b vector)
 
       subroutine stress_vp (nx_block,   ny_block,   & 
+                            kOL,        icellt,     & 
+                            indxti,     indxtj,     & 
+                            uvel,       vvel,       & 
+                            dxt,        dyt,        & 
+                            dxhy,       dyhx,       & 
+                            cxp,        cyp,        & 
+                            cxm,        cym,        & 
+                            tarear,     tinyarea,   & 
+                            zetaD,                  & 
+                            shear,      divu,       & 
+                            rdg_conv,   rdg_shear,  & 
+                            str )
+
+      integer (kind=int_kind), intent(in) :: & 
+         nx_block, ny_block, & ! block dimensions
+         kOL               , & ! subcycling step
+         icellt                ! no. of cells where icetmask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), & 
+         intent(in) :: &
+         indxti   , & ! compressed index in i-direction
+         indxtj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvel     , & ! x-component of velocity (m/s)
+         vvel     , & ! y-component of velocity (m/s)
+         dxt      , & ! width of T-cell through the middle (m)
+         dyt      , & ! height of T-cell through the middle (m)
+         dxhy     , & ! 0.5*(HTE - HTE)
+         dyhx     , & ! 0.5*(HTN - HTN)
+         cyp      , & ! 1.5*HTE - 0.5*HTE
+         cxp      , & ! 1.5*HTN - 0.5*HTN
+         cym      , & ! 0.5*HTE - 1.5*HTE
+         cxm      , & ! 0.5*HTN - 1.5*HTN
+         tarear   , & ! 1/tarea
+         tinyarea     ! puny*tarea
+         
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+         intent(in) :: &
+         zetaD          ! 2*zeta   
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
+         intent(inout) :: &
+         shear    , & ! strain rate II component (1/s)
+         divu     , & ! strain rate I component, velocity divergence (1/s)
+         rdg_conv , & ! convergence term for ridging (1/s)
+         rdg_shear    ! shear term for ridging (1/s)
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
+         intent(out) :: &
+         str          ! stress combinations
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+        divune, divunw, divuse, divusw            , & ! divergence
+        tensionne, tensionnw, tensionse, tensionsw, & ! tension
+        shearne, shearnw, shearse, shearsw        , & ! shearing
+        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        puny                                      , & ! puny
+        ssigpn, ssigps, ssigpe, ssigpw            , &
+        ssigmn, ssigms, ssigme, ssigmw            , &
+        ssig12n, ssig12s, ssig12e, ssig12w        , &
+        ssigp1, ssigp2, ssigm1, ssigm2, ssig121, ssig122, &
+        csigpne, csigpnw, csigpse, csigpsw        , &
+        csigmne, csigmnw, csigmse, csigmsw        , &
+        csig12ne, csig12nw, csig12se, csig12sw    , &
+        str12ew, str12we, str12ns, str12sn        , &
+        strp_tmp, strm_tmp, tmp
+        
+      real (kind=dbl_kind) :: &
+         stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22 (without Pr)
+         stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
+         stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12        
+
+      !-----------------------------------------------------------------
+      ! Initialize
+      !-----------------------------------------------------------------
+
+      str(:,:,:) = c0
+
+!DIR$ CONCURRENT !Cray
+!cdir nodep      !NEC
+!ocl novrec      !Fujitsu
+
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
+
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+         ! divergence  =  e_11 + e_22
+         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
+                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
+         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
+                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
+         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
+                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
+         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
+                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
+
+         ! tension strain rate  =  e_11 - e_22
+         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
+                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
+         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
+                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
+         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
+                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
+         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
+                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
+
+         ! shearing strain rate  =  e_12
+         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
+                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
+         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
+                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
+         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
+                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
+         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
+                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
+         
+         ! Delta (in the denominator of zeta, eta)
+         Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
+         Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
+         Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
+         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+
+      !-----------------------------------------------------------------
+      ! on last subcycle, save quantities for mechanical redistribution
+      !-----------------------------------------------------------------
+         if (kOL == 100) then ! jfl MODIF
+            divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
+            tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(i,j)
+            rdg_conv(i,j)  = -min(divu(i,j),c0)
+            rdg_shear(i,j) = p5*(tmp-abs(divu(i,j))) 
+
+            ! diagnostic only
+            ! shear = sqrt(tension**2 + shearing**2)
+            shear(i,j) = p25*tarear(i,j)*sqrt( &
+                 (tensionne + tensionnw + tensionse + tensionsw)**2 &
+                +  (shearne +   shearnw +   shearse +   shearsw)**2)
+
+         endif
+
+      !-----------------------------------------------------------------
+      ! the stresses                            ! kg/s^2
+      ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+      ! JFL commented part of stressp is for the rep pressure Pr
+      !-----------------------------------------------------------------
+
+         stressp_1 = zetaD(i,j,1)*(divune*(c1+Ktens))! - Deltane*(c1-Ktens))
+         stressp_2 = zetaD(i,j,2)*(divunw*(c1+Ktens))! - Deltanw*(c1-Ktens))
+         stressp_3 = zetaD(i,j,3)*(divusw*(c1+Ktens))! - Deltasw*(c1-Ktens))
+         stressp_4 = zetaD(i,j,4)*(divuse*(c1+Ktens))! - Deltase*(c1-Ktens))
+         
+         stressm_1 = zetaD(i,j,1)*tensionne*(c1+Ktens)*ecci
+         stressm_2 = zetaD(i,j,2)*tensionnw*(c1+Ktens)*ecci
+         stressm_3 = zetaD(i,j,3)*tensionsw*(c1+Ktens)*ecci
+         stressm_4 = zetaD(i,j,4)*tensionse*(c1+Ktens)*ecci
+         
+         stress12_1 = zetaD(i,j,1)*shearne*p5*(c1+Ktens)*ecci
+         stress12_2 = zetaD(i,j,2)*shearnw*p5*(c1+Ktens)*ecci
+         stress12_3 = zetaD(i,j,3)*shearsw*p5*(c1+Ktens)*ecci
+         stress12_4 = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
+
+      !-----------------------------------------------------------------
+      ! Eliminate underflows.
+      ! The following code is commented out because it is relatively 
+      ! expensive and most compilers include a flag that accomplishes
+      ! the same thing more efficiently.  This code is cheaper than
+      ! handling underflows if the compiler lacks a flag; uncomment
+      ! it in that case.  The compiler flag is often described with the 
+      ! phrase "flush to zero".
+      !-----------------------------------------------------------------
+
+!      call icepack_query_parameters(puny_out=puny)
+!      call icepack_warnings_flush(nu_diag)
+!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+!         file=__FILE__, line=__LINE__)
+
+!      stressp_1(i,j) = sign(max(abs(stressp_1(i,j)),puny),stressp_1(i,j))
+!      stressp_2(i,j) = sign(max(abs(stressp_2(i,j)),puny),stressp_2(i,j))
+!      stressp_3(i,j) = sign(max(abs(stressp_3(i,j)),puny),stressp_3(i,j))
+!      stressp_4(i,j) = sign(max(abs(stressp_4(i,j)),puny),stressp_4(i,j))
+
+!      stressm_1(i,j) = sign(max(abs(stressm_1(i,j)),puny),stressm_1(i,j))
+!      stressm_2(i,j) = sign(max(abs(stressm_2(i,j)),puny),stressm_2(i,j))
+!      stressm_3(i,j) = sign(max(abs(stressm_3(i,j)),puny),stressm_3(i,j))
+!      stressm_4(i,j) = sign(max(abs(stressm_4(i,j)),puny),stressm_4(i,j))
+
+!      stress12_1(i,j) = sign(max(abs(stress12_1(i,j)),puny),stress12_1(i,j))
+!      stress12_2(i,j) = sign(max(abs(stress12_2(i,j)),puny),stress12_2(i,j))
+!      stress12_3(i,j) = sign(max(abs(stress12_3(i,j)),puny),stress12_3(i,j))
+!      stress12_4(i,j) = sign(max(abs(stress12_4(i,j)),puny),stress12_4(i,j))
+
+      !-----------------------------------------------------------------
+      ! combinations of the stresses for the momentum equation ! kg/s^2
+      !-----------------------------------------------------------------
+
+         ssigpn  = stressp_1 + stressp_2
+         ssigps  = stressp_3 + stressp_4
+         ssigpe  = stressp_1 + stressp_4
+         ssigpw  = stressp_2 + stressp_3
+         ssigp1  =(stressp_1 + stressp_3)*p055
+         ssigp2  =(stressp_2 + stressp_4)*p055
+
+         ssigmn  = stressm_1 + stressm_2
+         ssigms  = stressm_3 + stressm_4
+         ssigme  = stressm_1 + stressm_4
+         ssigmw  = stressm_2 + stressm_3
+         ssigm1  =(stressm_1 + stressm_3)*p055
+         ssigm2  =(stressm_2 + stressm_4)*p055
+
+         ssig12n = stress12_1 + stress12_2
+         ssig12s = stress12_3 + stress12_4
+         ssig12e = stress12_1 + stress12_4
+         ssig12w = stress12_2 + stress12_3
+         ssig121 =(stress12_1 + stress12_3)*p111
+         ssig122 =(stress12_2 + stress12_4)*p111
+
+         csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
+         csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
+         csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
+         csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+         
+         csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
+         csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
+         csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
+         csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+         
+         csig12ne = p222*stress12_1 + ssig122 &
+                  + p055*stress12_3
+         csig12nw = p222*stress12_2 + ssig121 &
+                  + p055*stress12_4
+         csig12sw = p222*stress12_3 + ssig122 &
+                  + p055*stress12_1
+         csig12se = p222*stress12_4 + ssig121 &
+                  + p055*stress12_2
+
+         str12ew = p5*dxt(i,j)*(p333*ssig12e + p166*ssig12w)
+         str12we = p5*dxt(i,j)*(p333*ssig12w + p166*ssig12e)
+         str12ns = p5*dyt(i,j)*(p333*ssig12n + p166*ssig12s)
+         str12sn = p5*dyt(i,j)*(p333*ssig12s + p166*ssig12n)
+
+      !-----------------------------------------------------------------
+      ! for dF/dx (u momentum)
+      !-----------------------------------------------------------------
+         strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
+         strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+
+         ! northeast (i,j)
+         str(i,j,1) = -strp_tmp - strm_tmp - str12ew &
+              + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
+
+         ! northwest (i+1,j)
+         str(i,j,2) = strp_tmp + strm_tmp - str12we &
+              + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
+
+         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
+         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+
+         ! southeast (i,j+1)
+         str(i,j,3) = -strp_tmp - strm_tmp + str12ew &
+              + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
+
+         ! southwest (i+1,j+1)
+         str(i,j,4) = strp_tmp + strm_tmp + str12we &
+              + dxhy(i,j)*(-csigpsw + csigmsw) + dyhx(i,j)*csig12sw
+
+      !-----------------------------------------------------------------
+      ! for dF/dy (v momentum)
+      !-----------------------------------------------------------------
+         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
+         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+
+         ! northeast (i,j)
+         str(i,j,5) = -strp_tmp + strm_tmp - str12ns &
+              - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
+
+         ! southeast (i,j+1)
+         str(i,j,6) = strp_tmp - strm_tmp - str12sn &
+              - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
+
+         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
+         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+
+         ! northwest (i+1,j)
+         str(i,j,7) = -strp_tmp + strm_tmp + str12ns &
+              - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
+
+         ! southwest (i+1,j+1)
+         str(i,j,8) = strp_tmp - strm_tmp + str12sn &
+              - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
+
+      enddo                     ! ij
+
+      end subroutine stress_vp      
+      
+      
+!=======================================================================
+
+! Computes the VP stress (as diagnostic)
+
+      subroutine Diagstress_vp (nx_block,   ny_block,   & 
                             kOL,        icellt,     & 
                             indxti,     indxtj,     & 
                             uvel,       vvel,       & 
@@ -1279,7 +1578,7 @@
 
       enddo                     ! ij
 
-      end subroutine stress_vp
+      end subroutine Diagstress_vp
       
 !=======================================================================
 
