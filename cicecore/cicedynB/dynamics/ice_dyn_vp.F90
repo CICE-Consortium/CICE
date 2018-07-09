@@ -162,7 +162,7 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp,    & ! stress combinations for momentum equation !JFL CHECK PAS SUR QUE OK
-         stPrtmp      ! doit etre (nx_block,ny_block,max_blocks,8)????
+         stPrtmp      ! doit etre (nx_block,ny_block,max_blocks,8)???? PAs besoin des 2? reuse?
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
          zetaD      ! zetaD = 2zeta (viscous coeff)
@@ -428,17 +428,17 @@
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
             
-            call calc_zeta_Pr  (nx_block           , ny_block,           &
-                                kOL                , icellt(iblk),       & 
-                                indxti   (:,iblk)  , indxtj(:,iblk),     & 
-                                uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
-                                dxt      (:,:,iblk), dyt   (:,:,iblk),   & 
-                                dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
-                                cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
-                                cxm      (:,:,iblk), cym   (:,:,iblk),   & 
-                                tarear   (:,:,iblk), tinyarea (:,:,iblk),& 
-                                strength (:,:,iblk), zetaD (:,:,iblk,:) ,&
-                                stPrtmp    (:,:,:))                      
+            call calc_zeta_Pr (nx_block           , ny_block,           &
+                               kOL                , icellt(iblk),       & 
+                               indxti   (:,iblk)  , indxtj(:,iblk),     & 
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                               dxt      (:,:,iblk), dyt   (:,:,iblk),   & 
+                               dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
+                               cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
+                               cxm      (:,:,iblk), cym   (:,:,iblk),   & 
+                               tarear   (:,:,iblk), tinyarea (:,:,iblk),& 
+                               strength (:,:,iblk), zetaD (:,:,iblk,:) ,&
+                               stPrtmp  (:,:,:) )                      
             
             call calc_vrel_Cb (nx_block           , ny_block,           &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), & 
@@ -453,12 +453,13 @@
                             icellu       (iblk),                     & 
                             indxui     (:,iblk), indxuj    (:,iblk), &
                             kOL                , Cdn_ocn (:,:,iblk), &
-                            aiu      (:,:,iblk),                     & 
+                            aiu      (:,:,iblk), uarear  (:,:,iblk), & 
                             uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
                             ulin     (:,:,iblk), vlin    (:,:,iblk), & 
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
-                            bx       (:,:,iblk), by      (:,:,iblk))
+                            bx       (:,:,iblk), by      (:,:,iblk), &
+                            stPrtmp  (:,:,:))
                             
          enddo
          !$OMP END PARALLEL DO                            
@@ -1532,12 +1533,13 @@
                        icellu,               &
                        indxui,     indxuj,   &
                        kOL,        Cw,       &
-                       aiu,                  &
+                       aiu,        uarear,   &
                        uocn,       vocn,     &
                        waterx,     watery,   &
                        uvel,       vvel,     &
                        bxfix,      byfix,    &
-                       bx,         by)
+                       bx,         by,       &
+                       stPr)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1551,8 +1553,10 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
-         vvel    , & ! y-component of velocity (m/s)         
+         vvel    , & ! y-component of velocity (m/s)
+         Cw      , & ! ocean-ice neutral drag coefficient
          aiu     , & ! ice fraction on u-grid
+         uarear  , & ! 1/uarea
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          bxfix   , & ! bx = taux + bxfix !jfl
@@ -1560,15 +1564,15 @@
          uocn    , & ! ocean current, x-direction (m/s)
          vocn        ! ocean current, y-direction (m/s)
          
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
+         intent(in) :: &
+         stPr
+         
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          bx      , & ! b vector, bx = taux + bxfix (N/m^2) !jfl
          by          ! b vector, by = tauy + byfix (N/m^2) !jfl
          
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
-         Cw                   ! ocean-ice neutral drag coefficient
-
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1578,6 +1582,7 @@
          vrel              , & ! relative ice-ocean velocity
          utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
          taux, tauy        , & ! part of ocean stress term
+         strintx, strinty  , & ! divergence of the internal stress tensor (only Pr part)
          rhow                  !
          
       !-----------------------------------------------------------------
@@ -1602,12 +1607,15 @@
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
          tauy = vrel*watery(i,j) ! ocn stress term
-
-         bx(i,j) = bxfix(i,j) + taux
-         by(i,j) = byfix(i,j) + tauy
          
-!         bvec(2*ij-1)= bvecfix(2*ij-1) + taux
-!         bvec(2*ij)  = bvecfix(2*ij) + tauy
+         ! divergence of the internal stress tensor (only Pr part, i.e. dPr/dx)
+         strintx = uarear(i,j)* &
+             (stPr(i,j,1) + stPr(i+1,j,2) + stPr(i,j+1,3) + stPr(i+1,j+1,4))
+         strinty = uarear(i,j)* &
+             (stPr(i,j,5) + stPr(i,j+1,6) + stPr(i+1,j,7) + stPr(i+1,j+1,8))
+
+         bx(i,j) = bxfix(i,j) + taux + strintx
+         by(i,j) = byfix(i,j) + tauy + strinty
          
       enddo                     ! ij
 
