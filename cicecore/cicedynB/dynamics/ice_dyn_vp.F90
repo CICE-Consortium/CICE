@@ -106,6 +106,7 @@
          kmax           , & ! jfl put in namelist
          ntot           , & ! size of problem for fgmres (for given cpu)
          icode          , & ! for fgmres
+         iconvNL        , & ! code for NL convergence criterion
          iout           , & ! for printing fgmres info
          its            , & ! iteration nb for fgmres
          ischmi         , & ! Quesse ca!?!?! jfl
@@ -158,7 +159,7 @@
       real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
-      real (kind=dbl_kind) :: conv, gamma, krelax
+      real (kind=dbl_kind) :: conv, gamma, gammaNL, tolNL, krelax
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp,    & ! stress combinations for momentum equation !JFL CHECK PAS SUR QUE OK
@@ -191,7 +192,9 @@
       
       im_fgmres = 50 
       maxits = 50    
-      kmax=200
+      kmax=1000
+      gammaNL=1e-2_dbl_kind 
+      iconv=0 ! equals 1 when NL convergence is reached
       krelax=c1
 
        ! This call is needed only if dt changes during runtime.
@@ -469,11 +472,10 @@
 !-----------------------------------------------------------------------                             
          
       icode  = 0
-      conv   = 1.d0
       iout   = 1 !0: nothing printed, 1: 1st ite only, 2: all iterations
 !      its    = 0 
       ischmi = 0 
-      gamma  = 0.1d0 ! linear stopping criterion: gamma*(res_ini)
+      gamma  = 0.25_dbl_kind ! linear stopping criterion: gamma*(res_ini)
          
          ! form b vector from matrices (nblocks matrices)      
          call arrays_to_vec (nx_block, ny_block, nblocks,    &
@@ -498,8 +500,10 @@
       !                     sol_eps, maxits,its,conv,icode )
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
-                   gamma, maxits,iout,icode,fgmres_its,kOL)                     
+                   gamma, gammaNL, tolNL, maxits,iout,icode,iconvNL,fgmres_its,kOL)                     
 
+      if (iconv .eq. 1) exit             
+                   
       if (icode == 1) then
 
 !         if (sol2D_precond_S == 'JACOBI')   then

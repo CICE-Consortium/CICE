@@ -1,5 +1,5 @@
       subroutine fgmres (n,im,rhs,sol,i,vv,w,wk1, wk2, &
-                  gamma,maxits,iout,icode,its,kOL) 
+                  gamma,gammaNL,tolNL,maxits,iout,icode,iconv,its,kOL) 
 
 !-----------------------------------------------------------------------
 ! jfl Dec 1st 2006. We modified the routine so that it is double precison.
@@ -20,9 +20,9 @@
 !-----------------------------------------------------------------------
 
       implicit double precision (a-h,o-z) !jfl modification
-      integer n, im, maxits, iout, icode, kOL
+      integer n, im, maxits, iout, icode, iconv, kOL
       double precision rhs(*), sol(*), vv(n,im+1),w(n,im)
-      double precision wk1(n), wk2(n), gamma
+      double precision wk1(n), wk2(n), gamma, gammaNL
 !-----------------------------------------------------------------------
 ! flexible GMRES routine. This is a version of GMRES which allows a 
 ! a variable preconditioner. Implemented with a reverse communication 
@@ -147,8 +147,17 @@
          vv(j,1) = vv(j,1)*t 
       enddo
 !      if (its .eq. 0) eps1=eps
-      if (its .eq. 0) r0 = ro
-      if (its .eq. 0) eps1=gamma*ro
+      if (its .eq. 0) then 
+       r0 = ro
+       eps1=gamma*ro
+       if (kOL .eq. 1) tolNL=gammaNL*ro
+      endif 
+      
+      if (ro .lt. tolNL) then
+       iconv = 1
+       goto 999
+      endif 
+      
       if (iout .gt. 0) write(*, 199) kOL, its, ro!&
 !     
 !     initialize 1-st term  of rhs of hessenberg system..
