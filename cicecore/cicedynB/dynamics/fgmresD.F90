@@ -1,5 +1,5 @@
       subroutine fgmres (n,im,rhs,sol,i,vv,w,wk1, wk2, &
-                  eps,maxits,iout,icode,its) 
+                  eps,maxits,iout,icode,its,kOL) 
 
 !-----------------------------------------------------------------------
 ! jfl Dec 1st 2006. We modified the routine so that it is double precison.
@@ -20,7 +20,7 @@
 !-----------------------------------------------------------------------
 
       implicit double precision (a-h,o-z) !jfl modification
-      integer n, im, maxits, iout, icode
+      integer n, im, maxits, iout, icode, kOL
       double precision rhs(*), sol(*), vv(n,im+1),w(n,im)
       double precision wk1(n), wk2(n), eps
 !-----------------------------------------------------------------------
@@ -85,6 +85,8 @@
 !
 ! iout  == output unit number number for printing intermediate results
 !          if (iout .le. 0) no statistics are printed.
+!          if (iout .eq. 1) L2norm of 1st ite is printed.
+!          if (iout .gt. 1) L2norm of all ite are printed.
 ! 
 ! icode = integer. indicator for the reverse communication protocole.
 !         ON ENTRY : icode should be set to icode = 0.
@@ -146,8 +148,7 @@
       enddo
       if (its .eq. 0) eps1=eps
       if (its .eq. 0) r0 = ro
-      if (iout .gt. 0) write(*, 199) its, ro!&
-!           print *,'chau',its, ro !write(iout, 199) its, ro
+      if (iout .gt. 0) write(*, 199) kOL, its, ro!&
 !     
 !     initialize 1-st term  of rhs of hessenberg system..
 !     
@@ -225,8 +226,8 @@
 !     
       hh(i,i) = c(i)*hh(i,i) + s(i)*hh(i1,i)
       ro = abs(rs(i1))
-      if (iout .gt. 0) &
-           write(*, 199) its, ro
+      if (iout .gt. 1) &
+           write(*, 199) kOL, its, ro
       if (i .lt. im .and. (ro .gt. eps1))  goto 4
 !     
 !     now compute solution. first solve upper triangular system.
@@ -274,7 +275,7 @@
      goto 20
  999  icode = 0
 
- 199  format('   -- fmgres its =', i4, ' res. norm =', d26.16)
+ 199  format('Picard its=', i4, ' fmgres its =', i4, ' res. norm =', d26.16)
 !     
       return 
 !-----end-of-fgmres----------------------------------------------------- 

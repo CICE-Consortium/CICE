@@ -409,7 +409,7 @@
       endif
       
       do kOL = 1,kmax        ! outer loop 
-      print *, 'Picard iteration', kOL
+      
       !-----------------------------------------------------------------
       ! Calc zetaD, vrel, Cb and vrel = f(uprev_k, vprev_k)
       !-----------------------------------------------------------------
@@ -470,7 +470,7 @@
          
       icode  = 0
       conv   = 1.d0
-      iout   = 1
+      iout   = 1 !0: nothing printed, 1: 1st ite only, 2: all iterations
 !      its    = 0 
       ischmi = 0 
       sol_eps = 1d-05
@@ -498,7 +498,7 @@
       !                     sol_eps, maxits,its,conv,icode )
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
-                   sol_eps, maxits,iout,icode,fgmres_its)                     
+                   sol_eps, maxits,iout,icode,fgmres_its,kOL)                     
 
       if (icode == 1) then
 
