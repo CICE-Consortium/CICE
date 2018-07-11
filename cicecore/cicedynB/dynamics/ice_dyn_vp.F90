@@ -158,7 +158,7 @@
       real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
-      real (kind=dbl_kind) :: conv, sol_eps, krelax
+      real (kind=dbl_kind) :: conv, gamma, krelax
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp,    & ! stress combinations for momentum equation !JFL CHECK PAS SUR QUE OK
@@ -191,7 +191,7 @@
       
       im_fgmres = 50 
       maxits = 50    
-      kmax=50
+      kmax=200
       krelax=c1
 
        ! This call is needed only if dt changes during runtime.
@@ -473,7 +473,7 @@
       iout   = 1 !0: nothing printed, 1: 1st ite only, 2: all iterations
 !      its    = 0 
       ischmi = 0 
-      sol_eps = 1d-05
+      gamma  = 0.1d0 ! linear stopping criterion: gamma*(res_ini)
          
          ! form b vector from matrices (nblocks matrices)      
          call arrays_to_vec (nx_block, ny_block, nblocks,    &
@@ -498,7 +498,7 @@
       !                     sol_eps, maxits,its,conv,icode )
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
-                   sol_eps, maxits,iout,icode,fgmres_its,kOL)                     
+                   gamma, maxits,iout,icode,fgmres_its,kOL)                     
 
       if (icode == 1) then
 
