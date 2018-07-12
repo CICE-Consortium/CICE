@@ -134,22 +134,22 @@
          watery   , & ! for ocean stress calculation, y (m/s)
          forcex   , & ! work array: combined atm stress and ocn tilt, x
          forcey   , & ! work array: combined atm stress and ocn tilt, y
-         bxfix    , & ! bx = taux + bxfix !jfl
-         byfix    , & ! by = tauy + byfix !jfl
-         bx       , & ! b vector, bx = taux + bxfix !jfl
-         by       , & ! b vector, by = tauy + byfix !jfl
-         Au       , & ! matvec, Fx = Au - bx ! jfl
-         Av       , & ! matvec, Fy = Av - by ! jfl
+         bxfix    , & ! part of bx that is constant during Picard 
+         byfix    , & ! part of by that is constant during Picard 
+         bx       , & ! b vector
+         by       , & ! b vector
+         Au       , & ! matvec, Fx = Au - bx
+         Av       , & ! matvec, Fy = Av - by
          Diagu    , & ! Diagonal (u component) of the matrix A
          Diagv    , & ! Diagonal (v component) of the matrix A
-         Fx       , & ! x residual vector, Fx = Au - bx ! jfl
-         Fy       , & ! y residual vector, Fy = Av - by ! jfl
+         Fx       , & ! x residual vector, Fx = Au - bx 
+         Fy       , & ! y residual vector, Fy = Av - by 
          uprev_k  , & ! uvel at previous Picard iteration
          vprev_k  , & ! vvel at previous Picard iteration
          ulin     , & ! uvel to linearize vrel
          vlin     , & ! vvel to linearize vrel
-         vrel     , & ! coeff for tauw ! jfl
-         Cb       , & ! seabed stress coeff ! jfl
+         vrel     , & ! coeff for tauw 
+         Cb       , & ! seabed stress coeff
          aiu      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
@@ -1490,36 +1490,6 @@
          stress12_4(i,j) = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
 
       !-----------------------------------------------------------------
-      ! Eliminate underflows.
-      ! The following code is commented out because it is relatively 
-      ! expensive and most compilers include a flag that accomplishes
-      ! the same thing more efficiently.  This code is cheaper than
-      ! handling underflows if the compiler lacks a flag; uncomment
-      ! it in that case.  The compiler flag is often described with the 
-      ! phrase "flush to zero".
-      !-----------------------------------------------------------------
-
-!      call icepack_query_parameters(puny_out=puny)
-!      call icepack_warnings_flush(nu_diag)
-!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
-!         file=__FILE__, line=__LINE__)
-
-!      stressp_1(i,j) = sign(max(abs(stressp_1(i,j)),puny),stressp_1(i,j))
-!      stressp_2(i,j) = sign(max(abs(stressp_2(i,j)),puny),stressp_2(i,j))
-!      stressp_3(i,j) = sign(max(abs(stressp_3(i,j)),puny),stressp_3(i,j))
-!      stressp_4(i,j) = sign(max(abs(stressp_4(i,j)),puny),stressp_4(i,j))
-
-!      stressm_1(i,j) = sign(max(abs(stressm_1(i,j)),puny),stressm_1(i,j))
-!      stressm_2(i,j) = sign(max(abs(stressm_2(i,j)),puny),stressm_2(i,j))
-!      stressm_3(i,j) = sign(max(abs(stressm_3(i,j)),puny),stressm_3(i,j))
-!      stressm_4(i,j) = sign(max(abs(stressm_4(i,j)),puny),stressm_4(i,j))
-
-!      stress12_1(i,j) = sign(max(abs(stress12_1(i,j)),puny),stress12_1(i,j))
-!      stress12_2(i,j) = sign(max(abs(stress12_2(i,j)),puny),stress12_2(i,j))
-!      stress12_3(i,j) = sign(max(abs(stress12_3(i,j)),puny),stress12_3(i,j))
-!      stress12_4(i,j) = sign(max(abs(stress12_4(i,j)),puny),stress12_4(i,j))
-
-      !-----------------------------------------------------------------
       ! combinations of the stresses for the momentum equation ! kg/s^2
       !-----------------------------------------------------------------
 
@@ -1744,26 +1714,18 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-!         strocnx , & ! ice-ocean stress, x-direction
-!         strocny , & ! ice-ocean stress, y-direction
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
-!         taubx   , & ! basal stress, x-direction (N/m^2)
-!         tauby   , & ! basal stress, y-direction (N/m^2)
          Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
          Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
 
-! JFL strintx and y do not need to be inout...         
-         
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, ij
 
       real (kind=dbl_kind) :: &
-         utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
+         utp, vtp          , & ! utp = uvel, vtp = vvel
          ccaimp,ccb        , & ! intermediate variables
-         rhow                  !
+         strintx, strinty
 
       !-----------------------------------------------------------------
       ! integrate the momentum equation
@@ -1785,22 +1747,13 @@
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel(i,j) * sinw ! kg/m^2 s
 
          ! divergence of the internal stress tensor
-         strintx(i,j) = uarear(i,j)* &
+         strintx = uarear(i,j)* &
              (str(i,j,1) + str(i+1,j,2) + str(i,j+1,3) + str(i+1,j+1,4))
-         strinty(i,j) = uarear(i,j)* &
+         strinty = uarear(i,j)* &
              (str(i,j,5) + str(i,j+1,6) + str(i+1,j,7) + str(i+1,j+1,8))
 
-         Au(i,j) = ccaimp*utp - ccb*vtp - strintx(i,j)
-         Av(i,j) = ccaimp*vtp + ccb*utp - strinty(i,j)
-         
-!         Aw(2*ij-1)= ccaimp*utp - ccb*vtp - strintx(i,j)
-!         Aw(2*ij)  = ccaimp*vtp + ccb*utp - strinty(i,j)
-      !-----------------------------------------------------------------
-      ! ocean-ice stress for coupling
-      ! here, strocn includes the factor of aice
-      !-----------------------------------------------------------------
-!         strocnx(i,j) = taux ! jfl could be moved
-!         strocny(i,j) = tauy
+         Au(i,j) = ccaimp*utp - ccb*vtp - strintx
+         Av(i,j) = ccaimp*vtp + ccb*utp - strinty
          
       ! calculate basal stress component for outputs ! jfl move this
 !         if (ksub == ndte) then ! on last subcycling iteration
@@ -1851,8 +1804,6 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
-! jfl move in ice_dyn_vp
-
       !-----------------------------------------------------------------
       ! Define variables for momentum equation
       !-----------------------------------------------------------------
@@ -1863,8 +1814,6 @@
 
          bxfix(i,j) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
          byfix(i,j) = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
-!         bvecfix(2*ij-1) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
-!         bvecfix(2*ij)   = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
          
       enddo
 
@@ -1932,6 +1881,8 @@
       ! calc b vector
       !-----------------------------------------------------------------
 
+      !JFL vrel could be sent here (already calc before...
+      
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -2351,11 +2302,9 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         Diagu   , & ! matvec, Fx = Au - bx (N/m^2)! jfl
-         Diagv       ! matvec, Fy = Av - by (N/m^2)! jfl    
+         Diagu   , & ! matvec, Fx = Au - bx (N/m^2)
+         Diagv       ! matvec, Fy = Av - by (N/m^2)
 
-! JFL strintx and y do not need to be inout...         
-         
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -2472,8 +2421,6 @@
 
       L2norm = sqrt(L2norm)
       
-!      print *, 'ici uvel', nx_block, ny_block, icellu, L2norm
-      
       end subroutine calc_L2norm
       
             !=======================================================================
@@ -2529,8 +2476,6 @@
        enddo
       enddo! ij
 
-!      print *, 'NTOT', max_blocks, tot, ntot
-      
       end subroutine arrays_to_vec
       
             !=======================================================================
