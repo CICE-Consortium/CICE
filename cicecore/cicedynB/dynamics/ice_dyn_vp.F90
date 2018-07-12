@@ -195,7 +195,8 @@
       im_fgmres = 50 
       maxits = 50    
       kmax=1000
-      gammaNL=1e-2_dbl_kind 
+      gammaNL=1e-2_dbl_kind
+      gamma=1e-1_dbl_kind
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
       precond=2 ! 1: identity, 2: diagonal
@@ -2325,7 +2326,7 @@
       subroutine formDiag_step2 (nx_block,   ny_block, &
                                  icellu,               &
                                  indxui,     indxuj,   &
-                                 vrel,       Dstr,     &
+                                 Dstr,       vrel,     &
                                  umassdti,             &
                                  uarear,     Cb,       &
                                  Diagu,      Diagv )
