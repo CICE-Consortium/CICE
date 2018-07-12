@@ -365,7 +365,7 @@
       enddo
       ntot = 2*ntot ! times 2 because of u and v
       
-      allocate(bvec(ntot), sol(ntot), wk11(ntot), wk22(ntot))
+      allocate(bvec(ntot), sol(ntot), diagvec(ntot), wk11(ntot), wk22(ntot))
       allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
       
       !-----------------------------------------------------------------
