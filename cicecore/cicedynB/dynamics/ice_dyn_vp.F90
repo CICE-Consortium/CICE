@@ -113,6 +113,7 @@
          maxits         , & ! max nb of iteration for fgmres
          fgmres_its     , & ! final nb of fgmres_its
          im_fgmres      , & ! for size of Krylov subspace
+         precond        , & ! 1: identity, 2: diagonal
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
@@ -139,10 +140,10 @@
          by       , & ! b vector, by = tauy + byfix !jfl
          Au       , & ! matvec, Fx = Au - bx ! jfl
          Av       , & ! matvec, Fy = Av - by ! jfl
+         Diagu    , & ! Diagonal (u component) of the matrix A
+         Diagv    , & ! Diagonal (v component) of the matrix A
          Fx       , & ! x residual vector, Fx = Au - bx ! jfl
          Fy       , & ! y residual vector, Fy = Av - by ! jfl
-         Diagu    , & ! diagonal matrix coeff for u component
-         Diagv    , & ! diagonal matrix coeff for v component
          uprev_k  , & ! uvel at previous Picard iteration
          vprev_k  , & ! vvel at previous Picard iteration
          ulin     , & ! uvel to linearize vrel
@@ -155,7 +156,7 @@
          
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
-      real (kind=dbl_kind), allocatable :: bvec(:), sol(:), wk11(:), wk22(:)
+      real (kind=dbl_kind), allocatable :: bvec(:), sol(:), diagvec(:), wk11(:), wk22(:)
       real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
@@ -163,7 +164,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp,    & ! stress combinations for momentum equation !JFL CHECK PAS SUR QUE OK
-         stPrtmp      ! doit etre (nx_block,ny_block,max_blocks,8)???? PAs besoin des 2? reuse?
+         stPrtmp,   & ! doit etre (nx_block,ny_block,max_blocks,8)???? PAs besoin des 3? reuse?
+         Dstrtmp
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
          zetaD      ! zetaD = 2zeta (viscous coeff)
@@ -194,8 +196,9 @@
       maxits = 50    
       kmax=1000
       gammaNL=1e-2_dbl_kind 
-      iconv=0 ! equals 1 when NL convergence is reached
+      iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
+      precond=2 ! 1: identity, 2: diagonal
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -451,7 +454,8 @@
                                uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                                ulin     (:,:,iblk), vlin    (:,:,iblk), & 
                                vrel     (:,:,iblk), Cb      (:,:,iblk))
-                               
+
+!     prepare b vector (RHS)                                                
             call calc_bvec (nx_block           , ny_block,           &
                             icellu       (iblk),                     & 
                             indxui     (:,iblk), indxuj    (:,iblk), &
@@ -463,7 +467,25 @@
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
                             stPrtmp  (:,:,:))
-                            
+
+!     prepare precond matrix                                                        
+           call formDiag_step1 (nx_block           , ny_block,       &
+                                icellt       (iblk),                 & 
+                                indxti     (:,iblk), indxtj(:,iblk), &
+                                dxt      (:,:,iblk), dyt (:,:,iblk), & 
+                                dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
+                                cxp      (:,:,iblk), cyp (:,:,iblk), & 
+                                cxm      (:,:,iblk), cym (:,:,iblk), & 
+                                zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
+                                
+           call formDiag_step2 (nx_block           , ny_block,           &
+                                icellu       (iblk),                     & 
+                                indxui     (:,iblk), indxuj    (:,iblk), &
+                                Dstrtmp  (:,:,:)   , vrel    (:,:,iblk), &
+                                umassdti (:,:,iblk),                     & 
+                                uarear   (:,:,iblk), Cb      (:,:,iblk), & 
+                                Diagu    (:,:,iblk), Diagv   (:,:,iblk))         
+                                
          enddo
          !$OMP END PARALLEL DO                            
 
@@ -488,7 +510,14 @@
                              max_blocks, icellu (:), ntot,   &  
                              indxui    (:,:), indxuj(:,:),     &
                              uprev_k (:,:,:), vprev_k (:,:,:), &
-                             sol(:))    
+                             sol(:))
+                             
+         ! form matrix diagonal as a vector from Diagu and Diagv arrays      
+         call arrays_to_vec (nx_block, ny_block, nblocks,    &
+                             max_blocks, icellu (:), ntot,   & 
+                             indxui      (:,:), indxuj(:,:), &
+                             Diagu     (:,:,:), Diagv(:,:,:),&
+                             diagvec(:))                             
 
 !-----------------------------------------------------------------------
 !     F G M R E S   L O O P
@@ -502,7 +531,7 @@
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
                    gamma, gammaNL, tolNL, maxits,iout,icode,iconvNL,fgmres_its,kOL)                     
 
-      if (iconv .eq. 1) exit             
+      if (iconvNL .eq. 1) exit             
                    
       if (icode == 1) then
 
@@ -1714,6 +1743,8 @@
 !         tauby   , & ! basal stress, y-direction (N/m^2)
          Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
          Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
+
+! JFL strintx and y do not need to be inout...         
          
       ! local variables
 
@@ -1995,348 +2026,11 @@
       
 !=======================================================================
 
-      subroutine OLDprecondD  (nx_block,   ny_block,   & 
-                            kOL,        icellt,     & 
-                            indxti,     indxtj,     & 
-                            dxt,        dyt,        & 
-                            dxhy,       dyhx,       & 
-                            cxp,        cyp,        & 
-                            cxm,        cym,        & 
-                            uarear,                 &
-                            vrel,       Cb,         &
-                            umassdti,   zetaD,      &
-                            Diagu, Diagv)
-
-      integer (kind=int_kind), intent(in) :: & 
-         nx_block, ny_block, & ! block dimensions
-         kOL               , & ! subcycling step
-         icellt                ! no. of cells where icetmask = 1
-
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
-         intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
-         dxhy     , & ! 0.5*(HTE - HTE)
-         dyhx     , & ! 0.5*(HTN - HTN)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
-         uarear      ! 1/uarea
-         
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &         
-         vrel,     & ! coefficient for tauw
-         Cb,       & ! coefficient for basal stress
-         umassdti    ! mass of U-cell/dt (kg/m^2 s)
-         
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
-         intent(in) :: &
-         zetaD          ! 2*zeta   
-         
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &         
-         Diagu,     & ! diagonal matrix coefficients for u component
-         Diagv        ! diagonal matrix coefficients for v component
-         
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, ij
-
-      real (kind=dbl_kind) :: &
-        divuneDu, divunwDu, divuseDu, divuswDu            , & ! divergence
-        divuneDv, divunwDv, divuseDv, divuswDv            , & ! divergence
-        tensionneDu, tensionnwDu, tensionseDu, tensionswDu, & ! tension
-        tensionneDv, tensionnwDv, tensionseDv, tensionswDv, & ! tension
-        shearneDu, shearnwDu, shearseDu, shearswDu        , & ! shearing
-        shearneDv, shearnwDv, shearseDv, shearswDv        , & ! shearing
-        stressp_1u, stressp_2u, stressp_3u, stressp_4u    , & 
-        stressp_1v, stressp_2v, stressp_3v, stressp_4v    , & 
-        stressm_1u, stressm_2u, stressm_3u, stressm_4u    , & 
-        stressm_1v, stressm_2v, stressm_3v, stressm_4v    , & 
-        stress12_1u, stress12_2u, stress12_3u, stress12_4u, & 
-        stress12_1v, stress12_2v, stress12_3v, stress12_4v, & 
-        ssigpnu, ssigpsu, ssigpeu, ssigpwu                , &
-        ssigpnv, ssigpsv, ssigpev, ssigpwv                , &
-        ssigmnu, ssigmsu, ssigmeu, ssigmwu                , &
-        ssigmnv, ssigmsv, ssigmev, ssigmwv                , &
-        ssig12nu, ssig12su, ssig12eu, ssig12wu            , &
-        ssig12nv, ssig12sv, ssig12ev, ssig12wv            , &
-        ssigp1u, ssigp2u, ssigm1u, ssigm2u, ssig121u, ssig122u, &
-        ssigp1v, ssigp2v, ssigm1v, ssigm2v, ssig121v, ssig122v, &
-        csigpneu, csigpnwu, csigpseu, csigpswu            , &
-        csigpnev, csigpnwv, csigpsev, csigpswv            , &
-        csigmneu, csigmnwu, csigmseu, csigmswu            , &
-        csigmnev, csigmnwv, csigmsev, csigmswv            , &
-        csig12neu, csig12nwu, csig12seu, csig12swu        , &
-        csig12nev, csig12nwv, csig12sev, csig12swv        , &
-        str12ewu, str12weu, str12nsu, str12snu            , &
-        str12ewv, str12wev, str12nsv, str12snv            , &
-        strp_tmpu, strm_tmpu, strp_tmpv, strm_tmpv        , &
-        str1, str2, str3, str4, str5, str6, str7, str8  
-
-      !-----------------------------------------------------------------
-      ! Initialize
-      !-----------------------------------------------------------------
-
-      Diagu(:,:) = c0
-      Diagv(:,:) = c0
-
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
-
-
-! ATTENTION ICI CEST icellt et non pas icellu....MODIF A FAIRE!!!
-
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
-
-      !-----------------------------------------------------------------
-      ! JFL watchout currently on LHS
-      !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divuneDu  = cyp(i,j) ! D=diagonal
-         divuneDv  = cxp(i,j)
-         divunwDu  = dyt(i,j)
-         divuseDv  = dxt(i,j)
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionneDu = -cym(i,j)
-         tensionneDv = cxm(i,j)
-         tensionnwDu = dyt(i,j)
-         tensionseDv = -dxt(i,j)
-
-         ! shearing strain rate  =  e_12
-         shearneDu = -cxm(i,j)
-         shearneDv = -cym(i,j)      
-         shearnwDv = dyt(i,j)
-         shearseDu = dxt(i,j)
-
-      !-----------------------------------------------------------------
-      ! the stresses                            ! kg/s^2
-      ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
-      !-----------------------------------------------------------------
-
-! IMProve: delete stress coeff not needed instead of setting them to 0.
-!          no need for divuneDu...just plug them directly in eqs below. 
-      
-         stressp_1u = zetaD(i,j,1)*divuneDu*(c1+Ktens)
-         stressp_1v = zetaD(i,j,1)*divuneDv*(c1+Ktens)
-         stressp_2u = zetaD(i,j,2)*divunwDu*(c1+Ktens)
-         stressp_2v = c0
-         stressp_3u = c0
-         stressp_3v = c0
-         stressp_4u = c0
-         stressp_4v = zetaD(i,j,4)*divuseDv*(c1+Ktens)
-         
-         stressm_1u = zetaD(i,j,1)*tensionneDu*(c1+Ktens)*ecci
-         stressm_1v = zetaD(i,j,1)*tensionneDv*(c1+Ktens)*ecci
-         stressm_2u = zetaD(i,j,2)*tensionnwDu*(c1+Ktens)*ecci
-         stressm_2v = c0
-         stressm_3u = c0
-         stressm_3v = c0
-         stressm_4u = c0
-         stressm_4v = zetaD(i,j,4)*tensionseDv*(c1+Ktens)*ecci
-         
-         stress12_1u = zetaD(i,j,1)*shearneDu*p5*(c1+Ktens)*ecci
-         stress12_1v = zetaD(i,j,1)*shearneDv*p5*(c1+Ktens)*ecci
-         stress12_2u = c0
-         stress12_2v = zetaD(i,j,2)*shearnwDv*p5*(c1+Ktens)*ecci
-         stress12_3u = c0
-         stress12_3v = c0
-         stress12_4u = zetaD(i,j,4)*shearseDu*p5*(c1+Ktens)*ecci
-         stress12_4v = c0
-
-      !-----------------------------------------------------------------
-      ! Eliminate underflows.
-      ! The following code is commented out because it is relatively 
-      ! expensive and most compilers include a flag that accomplishes
-      ! the same thing more efficiently.  This code is cheaper than
-      ! handling underflows if the compiler lacks a flag; uncomment
-      ! it in that case.  The compiler flag is often described with the 
-      ! phrase "flush to zero".
-      !-----------------------------------------------------------------
-
-!      call icepack_query_parameters(puny_out=puny)
-!      call icepack_warnings_flush(nu_diag)
-!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
-!         file=__FILE__, line=__LINE__)
-
-!      stressp_1(i,j) = sign(max(abs(stressp_1(i,j)),puny),stressp_1(i,j))
-!      stressp_2(i,j) = sign(max(abs(stressp_2(i,j)),puny),stressp_2(i,j))
-!      stressp_3(i,j) = sign(max(abs(stressp_3(i,j)),puny),stressp_3(i,j))
-!      stressp_4(i,j) = sign(max(abs(stressp_4(i,j)),puny),stressp_4(i,j))
-
-!      stressm_1(i,j) = sign(max(abs(stressm_1(i,j)),puny),stressm_1(i,j))
-!      stressm_2(i,j) = sign(max(abs(stressm_2(i,j)),puny),stressm_2(i,j))
-!      stressm_3(i,j) = sign(max(abs(stressm_3(i,j)),puny),stressm_3(i,j))
-!      stressm_4(i,j) = sign(max(abs(stressm_4(i,j)),puny),stressm_4(i,j))
-
-!      stress12_1(i,j) = sign(max(abs(stress12_1(i,j)),puny),stress12_1(i,j))
-!      stress12_2(i,j) = sign(max(abs(stress12_2(i,j)),puny),stress12_2(i,j))
-!      stress12_3(i,j) = sign(max(abs(stress12_3(i,j)),puny),stress12_3(i,j))
-!      stress12_4(i,j) = sign(max(abs(stress12_4(i,j)),puny),stress12_4(i,j))
-
-      !-----------------------------------------------------------------
-      ! combinations of the stresses for the momentum equation ! kg/s^2
-      !-----------------------------------------------------------------
-
-         ssigpnu  = stressp_1u + stressp_2u
-         ssigpnv  = stressp_1v + stressp_2v
-         ssigpsu  = stressp_3u + stressp_4u
-         ssigpsv  = stressp_3v + stressp_4v
-         ssigpeu  = stressp_1u + stressp_4v
-         ssigpev  = stressp_1v + stressp_4v
-         ssigpwu  = stressp_2u + stressp_3u
-         ssigpwv  = stressp_2v + stressp_3v
-         ssigp1u  =(stressp_1u + stressp_3u)*p055
-         ssigp1v  =(stressp_1v + stressp_3v)*p055
-         ssigp2u  =(stressp_2u + stressp_4u)*p055
-         ssigp2v  =(stressp_2v + stressp_4v)*p055
-
-         ssigmnu  = stressm_1u + stressm_2u
-         ssigmnv  = stressm_1v + stressm_2v
-         ssigmsu  = stressm_3u + stressm_4u
-         ssigmsv  = stressm_3v + stressm_4v
-         ssigmeu  = stressm_1u + stressm_4u
-         ssigmev  = stressm_1v + stressm_4v
-         ssigmwu  = stressm_2u + stressm_3u
-         ssigmwv  = stressm_2v + stressm_3v
-         ssigm1u  =(stressm_1u + stressm_3u)*p055
-         ssigm1v  =(stressm_1v + stressm_3v)*p055
-         ssigm2u  =(stressm_2u + stressm_4u)*p055
-         ssigm2v  =(stressm_2v + stressm_4v)*p055
-
-         ssig12nu = stress12_1u + stress12_2u
-         ssig12nv = stress12_1v + stress12_2v
-         ssig12su = stress12_3u + stress12_4u
-         ssig12sv = stress12_3v + stress12_4v
-         ssig12eu = stress12_1u + stress12_4u
-         ssig12ev = stress12_1v + stress12_4v
-         ssig12wu = stress12_2u + stress12_3u
-         ssig12wv = stress12_2v + stress12_3v
-         ssig121u =(stress12_1u + stress12_3u)*p111
-         ssig121v =(stress12_1v + stress12_3v)*p111
-         ssig122u =(stress12_2u + stress12_4u)*p111
-         ssig122v =(stress12_2v + stress12_4v)*p111
-
-         csigpneu = p111*stressp_1u + ssigp2u + p027*stressp_3u
-         csigpnev = p111*stressp_1v + ssigp2v + p027*stressp_3v
-         csigpnwu = p111*stressp_2u + ssigp1u + p027*stressp_4u
-         csigpnwv = p111*stressp_2v + ssigp1v + p027*stressp_4v
-         csigpswu = p111*stressp_3u + ssigp2u + p027*stressp_1u
-         csigpswv = p111*stressp_3v + ssigp2v + p027*stressp_1v
-         csigpseu = p111*stressp_4u + ssigp1u + p027*stressp_2u
-         csigpsev = p111*stressp_4v + ssigp1v + p027*stressp_2v
-         
-         csigmneu = p111*stressm_1u + ssigm2u + p027*stressm_3u
-         csigmnev = p111*stressm_1v + ssigm2v + p027*stressm_3v
-         csigmnwu = p111*stressm_2u + ssigm1u + p027*stressm_4u
-         csigmnwv = p111*stressm_2v + ssigm1v + p027*stressm_4v
-         csigmswu = p111*stressm_3u + ssigm2u + p027*stressm_1u
-         csigmswv = p111*stressm_3v + ssigm2v + p027*stressm_1v
-         csigmseu = p111*stressm_4u + ssigm1u + p027*stressm_2u
-         csigmsev = p111*stressm_4v + ssigm1v + p027*stressm_2v
-         
-         csig12neu = p222*stress12_1u + ssig122u &
-                  + p055*stress12_3u
-         csig12nev = p222*stress12_1v + ssig122v &
-                  + p055*stress12_3v             
-         csig12nwu = p222*stress12_2u + ssig121u &
-                  + p055*stress12_4u
-         csig12nwv = p222*stress12_2v + ssig121v &
-                  + p055*stress12_4v
-         csig12swu = p222*stress12_3u + ssig122u &
-                  + p055*stress12_1u
-         csig12swv = p222*stress12_3v + ssig122v &
-                  + p055*stress12_1v
-         csig12seu = p222*stress12_4u + ssig121u &
-                  + p055*stress12_2u
-         csig12sev = p222*stress12_4v + ssig121v &
-                  + p055*stress12_2v         
-
-         str12ewu = p5*dxt(i,j)*(p333*ssig12eu + p166*ssig12wu)
-         str12ewv = p5*dxt(i,j)*(p333*ssig12ev + p166*ssig12wv)
-         str12weu = p5*dxt(i,j)*(p333*ssig12wu + p166*ssig12eu)
-         str12wev = p5*dxt(i,j)*(p333*ssig12wv + p166*ssig12ev)
-         str12nsu = p5*dyt(i,j)*(p333*ssig12nu + p166*ssig12su)
-         str12nsv = p5*dyt(i,j)*(p333*ssig12nv + p166*ssig12sv)
-         str12snu = p5*dyt(i,j)*(p333*ssig12su + p166*ssig12nu)
-         str12snv = p5*dyt(i,j)*(p333*ssig12sv + p166*ssig12nv)
-
-      !-----------------------------------------------------------------
-      ! for dF/dx (u momentum)
-      !-----------------------------------------------------------------
-         strp_tmpu  = p25*dyt(i,j)*(p333*ssigpnu  + p166*ssigpsu)
-         strm_tmpu  = p25*dyt(i,j)*(p333*ssigmnu  + p166*ssigmsu)
-
-         ! northeast (i,j)
-         str1 = -strp_tmpu - strm_tmpu - str12ewu &
-              + dxhy(i,j)*(-csigpneu + csigmneu) + dyhx(i,j)*csig12neu
-
-         ! northwest (i+1,j)
-         str2 = strp_tmpu + strm_tmpu - str12weu &
-              + dxhy(i,j)*(-csigpnwu + csigmnwu) + dyhx(i,j)*csig12nwu
-
-         strp_tmpu  = p25*dyt(i,j)*(p333*ssigpsu  + p166*ssigpnu)
-         strm_tmpu  = p25*dyt(i,j)*(p333*ssigmsu  + p166*ssigmnu)
-
-         ! southeast (i,j+1)
-         str3 = -strp_tmpu - strm_tmpu + str12ewu &
-              + dxhy(i,j)*(-csigpseu + csigmseu) + dyhx(i,j)*csig12seu
-
-         ! southwest (i+1,j+1)
-         str4 = strp_tmpu + strm_tmpu + str12weu &
-              + dxhy(i,j)*(-csigpswu + csigmswu) + dyhx(i,j)*csig12swu
-
-         Diagu(i,j) = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) & 
-                  -uarear(i,j)*(str1 + str2 + str3 + str4) ! -sign to bring it on LHS
-         
-      !-----------------------------------------------------------------
-      ! for dF/dy (v momentum)
-      !-----------------------------------------------------------------
-         strp_tmpv  = p25*dxt(i,j)*(p333*ssigpev  + p166*ssigpwv)
-         strm_tmpv  = p25*dxt(i,j)*(p333*ssigmev  + p166*ssigmwv)
-
-         ! northeast (i,j)
-         str5 = -strp_tmpv + strm_tmpv - str12nsv &
-              - dyhx(i,j)*(csigpnev + csigmnev) + dxhy(i,j)*csig12nev
-
-         ! southeast (i,j+1)
-         str6 = strp_tmpv - strm_tmpv - str12snv &
-              - dyhx(i,j)*(csigpsev + csigmsev) + dxhy(i,j)*csig12sev
-
-         strp_tmpv  = p25*dxt(i,j)*(p333*ssigpwv  + p166*ssigpev)
-         strm_tmpv  = p25*dxt(i,j)*(p333*ssigmwv  + p166*ssigmev)
-
-         ! northwest (i+1,j)
-         str7 = -strp_tmpv + strm_tmpv + str12nsv &
-              - dyhx(i,j)*(csigpnwv + csigmnwv) + dxhy(i,j)*csig12nwv
-
-         ! southwest (i+1,j+1)
-         str8 = strp_tmpv - strm_tmpv + str12snv &
-              - dyhx(i,j)*(csigpswv + csigmswv) + dxhy(i,j)*csig12swv
-
-         Diagv(i,j) = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) &
-                  -uarear(i,j)*(str5 + str6 + str7 + str8) ! -sign to bring it on LHS              
-              
-      enddo                     ! ij
-
-      end subroutine OLDprecondD
-      
-!=======================================================================
-
 ! Calc diagonal term related to rheology for precond 
 
-      subroutine precondD_stress (nx_block,   ny_block,   & 
+      subroutine formDiag_step1  (nx_block,   ny_block,   & 
                                   icellt,     & 
                                   indxti,     indxtj,     & 
-                                  uvel,       vvel,       & 
                                   dxt,        dyt,        & 
                                   dxhy,       dyhx,       & 
                                   cxp,        cyp,        & 
@@ -2353,9 +2047,6 @@
          indxtj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         strength , & ! ice strength (N/m)
-         uvel     , & ! x-component of velocity (m/s)
-         vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTE)
@@ -2618,7 +2309,81 @@
 
       enddo                     ! ij
 
-      end subroutine precondD_stress
+      end subroutine formDiag_step1
+      
+!=======================================================================
+
+      subroutine formDiag_step2 (nx_block,   ny_block, &
+                                 icellu,               &
+                                 indxui,     indxuj,   &
+                                 vrel,       Dstr,     &
+                                 umassdti,             &
+                                 uarear,     Cb,       &
+                                 Diagu,      Diagv )
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icellu                ! total count when iceumask is true
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+         intent(in) :: &
+         indxui  , & ! compressed index in i-direction
+         indxuj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         vrel,     & ! coefficient for tauw
+         Cb,       & ! coefficient for basal stress
+         umassdti, & ! mass of U-cell/dt (kg/m^2 s)
+         uarear      ! 1/uarea
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
+         intent(in) :: &
+         Dstr
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), &
+         intent(inout) :: &
+         Diagu   , & ! matvec, Fx = Au - bx (N/m^2)! jfl
+         Diagv       ! matvec, Fy = Av - by (N/m^2)! jfl    
+
+! JFL strintx and y do not need to be inout...         
+         
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+         utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
+         ccaimp,ccb        , & ! intermediate variables
+         rhow              , & !
+         strintx, strinty
+
+      !-----------------------------------------------------------------
+      ! integrate the momentum equation
+      !-----------------------------------------------------------------
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         file=__FILE__, line=__LINE__)
+
+      do ij =1, icellu
+         i = indxui(ij)
+         j = indxuj(ij)
+
+         ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
+               
+         ! divergence of the internal stress tensor
+         strintx = uarear(i,j)* &
+             (Dstr(i,j,1) + Dstr(i+1,j,2) + Dstr(i,j+1,3) + Dstr(i+1,j+1,4))
+         strinty = uarear(i,j)* &
+             (Dstr(i,j,5) + Dstr(i,j+1,6) + Dstr(i+1,j,7) + Dstr(i+1,j+1,8))
+
+         Diagu(i,j) = ccaimp - strintx
+         Diagv(i,j) = ccaimp - strinty
+         
+      enddo                     ! ij
+
+      end subroutine formDiag_step2     
       
       !=======================================================================
 
