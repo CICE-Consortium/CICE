@@ -542,8 +542,17 @@
 !            call dcopy (nloc, wk11, 1, wk22, 1) ! precond=identity
 !         endif
 
-         wk22(:)=wk11(:) ! precond=identity
+         if (precond .eq. 1) then
 
+           wk22(:)=wk11(:) ! precond=identity
+           
+         elseif (precond .eq. 2) then ! use diagonal of A for precond step
+          
+           call precond_diag (ntot,            & 
+                              diagvec (:),     &
+                              wk11 (:), wk22 (:) )
+         endif
+         
          goto 1
 
       else
@@ -2385,7 +2394,41 @@
 
       end subroutine formDiag_step2     
       
-      !=======================================================================
+!=======================================================================
+      
+     subroutine precond_diag   (ntot,    &
+                                diagvec, &
+                                wk1, wk2)
+
+      integer (kind=int_kind), intent(in) :: &
+         ntot                  ! size of problem for fgmres
+
+      real (kind=dbl_kind), dimension (ntot), intent(in) :: &
+         diagvec, wk1
+         
+      real (kind=dbl_kind), dimension (ntot), intent(out) :: &
+         wk2 
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i         
+
+      !-----------------------------------------------------------------
+      ! form vector (converts from max_blocks arrays to single vector
+      !-----------------------------------------------------------------
+
+      wk2(:)=c0
+      
+      do i=1, ntot
+
+	wk2(i) = wk1(i)/diagvec(i)
+      
+      enddo! i
+
+      end subroutine precond_diag
+      
+!=======================================================================      
 
       subroutine calc_L2norm (nx_block,   ny_block, &
                               icellu,               &
