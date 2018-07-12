@@ -690,7 +690,7 @@
          
       enddo                     ! outer loop
 
-      deallocate(bvec, sol, wk11, wk22, vv, ww)
+      deallocate(bvec, sol, diagvec, wk11, wk22, vv, ww)
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
