@@ -194,9 +194,9 @@
       
       im_fgmres = 50 
       maxits = 50    
-      kmax=1000
-      gammaNL=1e-2_dbl_kind
-      gamma=1e-1_dbl_kind
+      kmax=2
+      gammaNL=1e-2_dbl_kind !linear stopping criterion: gamma*(res_ini)
+      gamma=1e-6_dbl_kind   !nonlinear stopping criterion:
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
       precond=2 ! 1: identity, 2: diagonal
@@ -495,10 +495,9 @@
 !-----------------------------------------------------------------------                             
          
       icode  = 0
-      iout   = 1 !0: nothing printed, 1: 1st ite only, 2: all iterations
+      iout   = 2 !0: nothing printed, 1: 1st ite only, 2: all iterations
 !      its    = 0 
       ischmi = 0 
-      gamma  = 0.25_dbl_kind ! linear stopping criterion: gamma*(res_ini)
          
          ! form b vector from matrices (nblocks matrices)      
          call arrays_to_vec (nx_block, ny_block, nblocks,    &
