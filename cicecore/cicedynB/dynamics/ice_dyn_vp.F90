@@ -1991,14 +1991,14 @@
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm          ! 0.5*HTN - 1.5*HTN
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
-         intent(out) :: &
-         Dstr          ! stress combinations
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
          intent(in) :: &
          zetaD          ! 2*zeta      
+         
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
+         intent(inout) :: &
+         Dstr          ! stress combinations         
 
       ! local variables
 
