@@ -1183,36 +1183,6 @@
          stress12_4 = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
 
       !-----------------------------------------------------------------
-      ! Eliminate underflows.
-      ! The following code is commented out because it is relatively 
-      ! expensive and most compilers include a flag that accomplishes
-      ! the same thing more efficiently.  This code is cheaper than
-      ! handling underflows if the compiler lacks a flag; uncomment
-      ! it in that case.  The compiler flag is often described with the 
-      ! phrase "flush to zero".
-      !-----------------------------------------------------------------
-
-!      call icepack_query_parameters(puny_out=puny)
-!      call icepack_warnings_flush(nu_diag)
-!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
-!         file=__FILE__, line=__LINE__)
-
-!      stressp_1(i,j) = sign(max(abs(stressp_1(i,j)),puny),stressp_1(i,j))
-!      stressp_2(i,j) = sign(max(abs(stressp_2(i,j)),puny),stressp_2(i,j))
-!      stressp_3(i,j) = sign(max(abs(stressp_3(i,j)),puny),stressp_3(i,j))
-!      stressp_4(i,j) = sign(max(abs(stressp_4(i,j)),puny),stressp_4(i,j))
-
-!      stressm_1(i,j) = sign(max(abs(stressm_1(i,j)),puny),stressm_1(i,j))
-!      stressm_2(i,j) = sign(max(abs(stressm_2(i,j)),puny),stressm_2(i,j))
-!      stressm_3(i,j) = sign(max(abs(stressm_3(i,j)),puny),stressm_3(i,j))
-!      stressm_4(i,j) = sign(max(abs(stressm_4(i,j)),puny),stressm_4(i,j))
-
-!      stress12_1(i,j) = sign(max(abs(stress12_1(i,j)),puny),stress12_1(i,j))
-!      stress12_2(i,j) = sign(max(abs(stress12_2(i,j)),puny),stress12_2(i,j))
-!      stress12_3(i,j) = sign(max(abs(stress12_3(i,j)),puny),stress12_3(i,j))
-!      stress12_4(i,j) = sign(max(abs(stress12_4(i,j)),puny),stress12_4(i,j))
-
-      !-----------------------------------------------------------------
       ! combinations of the stresses for the momentum equation ! kg/s^2
       !-----------------------------------------------------------------
 
