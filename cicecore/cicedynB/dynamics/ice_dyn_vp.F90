@@ -469,24 +469,26 @@
                             bx       (:,:,iblk), by      (:,:,iblk), &
                             stPrtmp  (:,:,:))
 
-!     prepare precond matrix                                                        
-           call formDiag_step1 (nx_block           , ny_block,       &
-                                icellt       (iblk), 1             , & ! for u comp
-                                indxti     (:,iblk), indxtj(:,iblk), &
-                                dxt      (:,:,iblk), dyt (:,:,iblk), & 
-                                dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
-                                cxp      (:,:,iblk), cyp (:,:,iblk), & 
-                                cxm      (:,:,iblk), cym (:,:,iblk), & 
-                                zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
+!     prepare precond matrix
+           if (precond .eq. 3) then
+            call formDiag_step1 (nx_block           , ny_block,       &
+                                 icellt       (iblk), 1             , & ! for u comp
+                                 indxti     (:,iblk), indxtj(:,iblk), &
+                                 dxt      (:,:,iblk), dyt (:,:,iblk), & 
+                                 dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
+                                 cxp      (:,:,iblk), cyp (:,:,iblk), & 
+                                 cxm      (:,:,iblk), cym (:,:,iblk), & 
+                                 zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
                                 
-           call formDiag_step1 (nx_block           , ny_block,       &
-                                icellt       (iblk), 2             , & ! for v comp
-                                indxti     (:,iblk), indxtj(:,iblk), &
-                                dxt      (:,:,iblk), dyt (:,:,iblk), & 
-                                dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
-                                cxp      (:,:,iblk), cyp (:,:,iblk), & 
-                                cxm      (:,:,iblk), cym (:,:,iblk), & 
-                                zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )                                
+            call formDiag_step1 (nx_block           , ny_block,       &
+                                 icellt       (iblk), 2             , & ! for v comp
+                                 indxti     (:,iblk), indxtj(:,iblk), &
+                                 dxt      (:,:,iblk), dyt (:,:,iblk), & 
+                                 dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
+                                 cxp      (:,:,iblk), cyp (:,:,iblk), & 
+                                 cxm      (:,:,iblk), cym (:,:,iblk), & 
+                                 zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )                             
+          endif                       
                                 
            call formDiag_step2 (nx_block           , ny_block,           &
                                 icellu       (iblk), precond,            & 
