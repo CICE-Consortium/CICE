@@ -471,6 +471,7 @@
 
 !     prepare precond matrix
            if (precond .eq. 3) then
+           print *, "BUG in formDiag_step1 due to confusion between icellt and icellu"
             call formDiag_step1 (nx_block           , ny_block,       &
                                  icellt       (iblk), 1             , & ! for u comp
                                  indxti     (:,iblk), indxtj(:,iblk), &
@@ -569,10 +570,6 @@
       else
 
          if (icode >= 2) then
-
-!            if (Lun_debug_L.and.print_conv_L) write(lun_out, 199) conv,its
-!            call sol_matvec ( wk22, wk11, Minx, Maxx, Miny, Maxy, &
-!                           nil,njl, F_nk, minx1,maxx1,minx2,maxx2 )
 
          call vec_to_arrays (nx_block, ny_block, nblocks,      &
                              max_blocks, icellu (:), ntot,     & 
