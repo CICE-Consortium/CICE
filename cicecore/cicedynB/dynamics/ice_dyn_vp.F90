@@ -113,7 +113,7 @@
          maxits         , & ! max nb of iteration for fgmres
          fgmres_its     , & ! final nb of fgmres_its
          im_fgmres      , & ! for size of Krylov subspace
-         precond        , & ! 1: identity, 2: diagonal
+         precond        , & ! 1: identity, 2: diagonal (free drift), 3: complete diagonal
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
@@ -199,7 +199,7 @@
       gamma=1e-6_dbl_kind   !nonlinear stopping criterion:
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
-      precond=2 ! 1: identity, 2: diagonal
+      precond=2 ! 1: identity, 2: diagonal (fd), 3: complete diagonal 
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -489,7 +489,7 @@
                                 zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )                                
                                 
            call formDiag_step2 (nx_block           , ny_block,           &
-                                icellu       (iblk),                     & 
+                                icellu       (iblk), precond,            & 
                                 indxui     (:,iblk), indxuj    (:,iblk), &
                                 Dstrtmp  (:,:,:)   , vrel    (:,:,iblk), &
                                 umassdti (:,:,iblk),                     & 
@@ -555,7 +555,7 @@
 
            wk22(:)=wk11(:) ! precond=identity
            
-         elseif (precond .eq. 2) then ! use diagonal of A for precond step
+         elseif (precond .gt. 1) then ! use diagonal of A for precond step
           
            call precond_diag (ntot,            & 
                               diagvec (:),     &
@@ -2518,7 +2518,7 @@
 !=======================================================================
 
       subroutine formDiag_step2 (nx_block,   ny_block, &
-                                 icellu,               &
+                                 icellu,     precond,  &
                                  indxui,     indxuj,   &
                                  Dstr,       vrel,     &
                                  umassdti,             &
@@ -2527,7 +2527,8 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
+         icellu,             & ! total count when iceumask is true
+         precond               ! precond type
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -2566,17 +2567,21 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
+      strintx=c0
+      strinty=c0
+         
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
          ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
-               
-         ! divergence of the internal stress tensor
-         strintx = uarear(i,j)* &
+         
+         if (precond .eq. 3) then
+          strintx = uarear(i,j)* &
              (Dstr(i,j,1) + Dstr(i+1,j,2) + Dstr(i,j+1,3) + Dstr(i+1,j+1,4))
-         strinty = uarear(i,j)* &
+          strinty = uarear(i,j)* &
              (Dstr(i,j,5) + Dstr(i,j+1,6) + Dstr(i+1,j,7) + Dstr(i+1,j+1,8))
+         endif    
 
          Diagu(i,j) = ccaimp - strintx
          Diagv(i,j) = ccaimp - strinty
