@@ -199,7 +199,7 @@
       gamma=1e-6_dbl_kind   !nonlinear stopping criterion:
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
-      precond=2 ! 1: identity, 2: diagonal (fd), 3: complete diagonal 
+      precond=3 ! 1: identity, 2: diagonal (fd), 3: complete diagonal 
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -471,24 +471,16 @@
 
 !     prepare precond matrix
            if (precond .eq. 3) then
-           print *, "BUG in formDiag_step1 due to confusion between icellt and icellu"
-            call formDiag_step1 (nx_block           , ny_block,       &
-                                 icellt       (iblk), 1             , & ! for u comp
-                                 indxti     (:,iblk), indxtj(:,iblk), &
+
+           call formDiag_step1  (nx_block           , ny_block,       & ! D term due to rheology
+                                 icellu       (iblk),                 &
+                                 indxui     (:,iblk), indxuj(:,iblk), &
                                  dxt      (:,:,iblk), dyt (:,:,iblk), & 
                                  dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
                                  cxp      (:,:,iblk), cyp (:,:,iblk), & 
                                  cxm      (:,:,iblk), cym (:,:,iblk), & 
                                  zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
                                 
-            call formDiag_step1 (nx_block           , ny_block,       &
-                                 icellt       (iblk), 2             , & ! for v comp
-                                 indxti     (:,iblk), indxtj(:,iblk), &
-                                 dxt      (:,:,iblk), dyt (:,:,iblk), & 
-                                 dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
-                                 cxp      (:,:,iblk), cyp (:,:,iblk), & 
-                                 cxm      (:,:,iblk), cym (:,:,iblk), & 
-                                 zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )                             
           endif                       
                                 
            call formDiag_step2 (nx_block           , ny_block,           &
@@ -580,19 +572,19 @@
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks                                  
          
-            call stress_vp (nx_block,             ny_block,             & 
-                            kOL,                  icellt(iblk),         & 
-                            indxti      (:,iblk), indxtj      (:,iblk), & 
-                            uvel      (:,:,iblk), vvel      (:,:,iblk), &     
-                            dxt       (:,:,iblk), dyt       (:,:,iblk), & 
-                            dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
-                            cxp       (:,:,iblk), cyp       (:,:,iblk), & 
-                            cxm       (:,:,iblk), cym       (:,:,iblk), & 
-                            tarear    (:,:,iblk), tinyarea  (:,:,iblk), & 
-                            zetaD     (:,:,iblk,:),                     &
-                            shear     (:,:,iblk), divu      (:,:,iblk), & 
-                            rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
-                            strtmp    (:,:,:))                                                             
+            call stress_prime_vp (nx_block,             ny_block,             & 
+                                  kOL,                  icellt(iblk),         & 
+                                  indxti      (:,iblk), indxtj      (:,iblk), & 
+                                  uvel      (:,:,iblk), vvel      (:,:,iblk), &     
+                                  dxt       (:,:,iblk), dyt       (:,:,iblk), & 
+                                  dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
+                                  cxp       (:,:,iblk), cyp       (:,:,iblk), & 
+                                  cxm       (:,:,iblk), cym       (:,:,iblk), & 
+                                  tarear    (:,:,iblk), tinyarea  (:,:,iblk), & 
+                                  zetaD     (:,:,iblk,:),                     &
+                                  shear     (:,:,iblk), divu      (:,:,iblk), & 
+                                  rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
+                                  strtmp    (:,:,:))                                                             
                                
             call matvec (nx_block           , ny_block,           &
                          icellu       (iblk),                     & 
@@ -1010,19 +1002,19 @@
 
 ! Computes VP stress without the rep. pressure Pr (included in b vector)
 
-      subroutine stress_vp (nx_block,   ny_block,   & 
-                            kOL,        icellt,     & 
-                            indxti,     indxtj,     & 
-                            uvel,       vvel,       & 
-                            dxt,        dyt,        & 
-                            dxhy,       dyhx,       & 
-                            cxp,        cyp,        & 
-                            cxm,        cym,        & 
-                            tarear,     tinyarea,   & 
-                            zetaD,                  & 
-                            shear,      divu,       & 
-                            rdg_conv,   rdg_shear,  & 
-                            str )
+      subroutine stress_prime_vp (nx_block,   ny_block,   & 
+                                  kOL,        icellt,     & 
+                                  indxti,     indxtj,     & 
+                                  uvel,       vvel,       & 
+                                  dxt,        dyt,        & 
+                                  dxhy,       dyhx,       & 
+                                  cxp,        cyp,        & 
+                                  cxm,        cym,        & 
+                                  tarear,     tinyarea,   & 
+                                  zetaD,                  & 
+                                  shear,      divu,       & 
+                                  rdg_conv,   rdg_shear,  & 
+                                  str )
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1282,14 +1274,14 @@
 
       enddo                     ! ij
 
-      end subroutine stress_vp      
+      end subroutine stress_prime_vp      
       
       
 !=======================================================================
 
 ! Computes the VP stress (as diagnostic)
 
-      subroutine Diagstress_vp (nx_block,   ny_block,   & 
+      subroutine stress_vp (nx_block,   ny_block,   & 
                             kOL,        icellt,     & 
                             indxti,     indxtj,     & 
                             uvel,       vvel,       & 
@@ -1567,7 +1559,7 @@
 
       enddo                     ! ij
 
-      end subroutine Diagstress_vp
+      end subroutine stress_vp
       
 !=======================================================================
 
@@ -1963,6 +1955,373 @@
 !=======================================================================
 
       subroutine formDiag_step1  (nx_block,   ny_block,   & 
+                                  icellu,                 & 
+                                  indxui,     indxuj,     & 
+                                  dxt,        dyt,        & 
+                                  dxhy,       dyhx,       & 
+                                  cxp,        cyp,        & 
+                                  cxm,        cym,        & 
+                                  zetaD,      Dstr )
+
+      integer (kind=int_kind), intent(in) :: & 
+         nx_block, ny_block, & ! block dimensions
+         icellu                ! no. of cells where icetmask = 1 JFL
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), & 
+         intent(in) :: &
+         indxui   , & ! compressed index in i-direction JFL
+         indxuj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         dxt      , & ! width of T-cell through the middle (m)
+         dyt      , & ! height of T-cell through the middle (m)
+         dxhy     , & ! 0.5*(HTE - HTE)
+         dyhx     , & ! 0.5*(HTN - HTN)
+         cyp      , & ! 1.5*HTE - 0.5*HTE
+         cxp      , & ! 1.5*HTN - 0.5*HTN
+         cym      , & ! 0.5*HTE - 1.5*HTE
+         cxm          ! 0.5*HTN - 1.5*HTN
+         
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+         intent(in) :: &
+         zetaD          ! 2*zeta      
+         
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
+         intent(inout) :: &
+         Dstr          ! stress combinations         
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, iu, ju, di, dj, cc
+
+      real (kind=dbl_kind) :: &
+        divune, divunw, divuse, divusw            , & ! divergence
+        tensionne, tensionnw, tensionse, tensionsw, & ! tension
+        shearne, shearnw, shearse, shearsw        , & ! shearing
+        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        uij,ui1j,uij1,ui1j1,vij,vi1j,vij1,vi1j1   , & ! c0 or c1
+        stressp_1, stressp_2, stressp_3, stressp_4, &
+        stressm_1, stressm_2, stressm_3, stressm_4, &
+        stress12_1,stress12_2,stress12_3,stress12_4,&
+        ssigpn, ssigps, ssigpe, ssigpw            , &
+        ssigmn, ssigms, ssigme, ssigmw            , &
+        ssig12n, ssig12s, ssig12e, ssig12w        , &
+        ssigp1, ssigp2, ssigm1, ssigm2, ssig121, ssig122, &
+        csigpne, csigpnw, csigpse, csigpsw        , &
+        csigmne, csigmnw, csigmse, csigmsw        , &
+        csig12ne, csig12nw, csig12se, csig12sw    , &
+        str12ew, str12we, str12ns, str12sn        , &
+        strp_tmp, strm_tmp, tmp
+
+      !-----------------------------------------------------------------
+      ! Initialize
+      !-----------------------------------------------------------------
+
+!DIR$ CONCURRENT !Cray
+!cdir nodep      !NEC
+!ocl novrec      !Fujitsu
+
+      Dstr(:,:,:) = c0
+       
+!      strintx = uarear(i,j)* &
+ !            (Dstr(i,j,1) + Dstr(i+1,j,2) + Dstr(i,j+1,3) + Dstr(i+1,j+1,4))
+ !         strinty = uarear(i,j)* &
+ !            (Dstr(i,j,5) + Dstr(i,j+1,6) + Dstr(i+1,j,7) + Dstr(i+1,j+1,8))
+             
+      do cc=1, 8 ! 4 for u and 4 for v
+      
+       if (cc .eq. 1) then     ! u comp, T cell i,j
+        uij   = c1
+        ui1j  = c0
+        uij1  = c0
+        ui1j1 = c0
+        vij   = c0
+        vi1j  = c0
+        vij1  = c0
+        vi1j1 = c0
+        di    = 0
+        dj    = 0
+       elseif (cc .eq. 2) then ! u comp, T cell i+1,j
+        uij   = c0
+        ui1j  = c1
+        uij1  = c0
+        ui1j1 = c0
+        vij   = c0
+        vi1j  = c0
+        vij1  = c0
+        vi1j1 = c0
+        di    = 1
+        dj    = 0
+       elseif (cc .eq. 3) then ! u comp, T cell i,j+1
+        uij   = c0
+        ui1j  = c0
+        uij1  = c1
+        ui1j1 = c0
+        vij   = c0
+        vi1j  = c0
+        vij1  = c0
+        vi1j1 = c0
+        di    = 0
+        dj    = 1
+       elseif (cc .eq. 4) then ! u comp, T cell i+1,j+1
+        uij   = c0
+        ui1j  = c0
+        uij1  = c0
+        ui1j1 = c1
+        vij   = c0
+        vi1j  = c0
+        vij1  = c0
+        vi1j1 = c0
+        di    = 1
+        dj    = 1
+       elseif (cc .eq. 5) then ! v comp, T cell i,j
+        uij   = c0
+        ui1j  = c0
+        uij1  = c0
+        ui1j1 = c0
+        vij   = c1
+        vi1j  = c0
+        vij1  = c0
+        vi1j1 = c0
+        di    = 0
+        dj    = 0
+       elseif (cc .eq. 6) then ! v comp, T cell i,j+1
+        uij   = c0
+        ui1j  = c0
+        uij1  = c0
+        ui1j1 = c0
+        vij   = c0
+        vi1j  = c0
+        vij1  = c1
+        vi1j1 = c0
+        di    = 0
+        dj    = 1
+       elseif (cc .eq. 7) then ! v comp, T cell i+1,j
+        uij   = c0
+        ui1j  = c0
+        uij1  = c0
+        ui1j1 = c0
+        vij   = c0
+        vi1j  = c1
+        vij1  = c0
+        vi1j1 = c0
+        di    = 1
+        dj    = 0
+       elseif (cc .eq. 8) then ! v comp, T cell i+1,j+1
+        uij   = c0
+        ui1j  = c0
+        uij1  = c0
+        ui1j1 = c0
+        vij   = c0
+        vi1j  = c0
+        vij1  = c0
+        vi1j1 = c1
+        di    = 1
+        dj    = 1
+       endif 
+       
+      do ij = 1, icellu
+      
+         iu = indxui(ij)
+         ju = indxuj(ij)
+         i=iu+di
+         j=ju+dj
+          
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+         ! divergence  =  e_11 + e_22
+         divune    = cyp(i,j)*uij - dyt(i,j)*ui1j &
+                   + cxp(i,j)*vij - dxt(i,j)*vij1
+         divunw    = cym(i,j)*ui1j + dyt(i,j)*uij &
+                   + cxp(i,j)*vi1j - dxt(i,j)*vi1j1
+         divusw    = cym(i,j)*ui1j1 + dyt(i,j)*uij1 &
+                   + cxm(i,j)*vi1j1 + dxt(i,j)*vi1j
+         divuse    = cyp(i,j)*uij1 - dyt(i,j)*ui1j1 &
+                   + cxm(i,j)*vij1 + dxt(i,j)*vij
+
+         ! tension strain rate  =  e_11 - e_22
+         tensionne = -cym(i,j)*uij - dyt(i,j)*ui1j &
+                   +  cxm(i,j)*vij + dxt(i,j)*vij1
+         tensionnw = -cyp(i,j)*ui1j + dyt(i,j)*uij &
+                   +  cxm(i,j)*vi1j + dxt(i,j)*vi1j1
+         tensionsw = -cyp(i,j)*ui1j1 + dyt(i,j)*uij1 &
+                   +  cxp(i,j)*vi1j1 - dxt(i,j)*vi1j
+         tensionse = -cym(i,j)*uij1  - dyt(i,j)*ui1j1 &
+                   +  cxp(i,j)*vij1 - dxt(i,j)*vij
+
+         ! shearing strain rate  =  e_12
+         shearne = -cym(i,j)*vij - dyt(i,j)*vi1j &
+                 -  cxm(i,j)*uij - dxt(i,j)*uij1
+         shearnw = -cyp(i,j)*vi1j + dyt(i,j)*vij &
+                 -  cxm(i,j)*ui1j - dxt(i,j)*ui1j1
+         shearsw = -cyp(i,j)*vi1j1 + dyt(i,j)*vij1 &
+                 -  cxp(i,j)*ui1j1 + dxt(i,j)*ui1j
+         shearse = -cym(i,j)*vij1 - dyt(i,j)*vi1j1 &
+                 -  cxp(i,j)*uij1 + dxt(i,j)*uij
+         
+      !-----------------------------------------------------------------
+      ! the stresses                            ! kg/s^2
+      ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+      !-----------------------------------------------------------------
+         
+         stressp_1 = zetaD(i,j,1)*divune*(c1+Ktens)
+         stressp_2 = zetaD(i,j,2)*divunw*(c1+Ktens)
+         stressp_3 = zetaD(i,j,3)*divusw*(c1+Ktens)
+         stressp_4 = zetaD(i,j,4)*divuse*(c1+Ktens)
+         
+         stressm_1 = zetaD(i,j,1)*tensionne*(c1+Ktens)*ecci
+         stressm_2 = zetaD(i,j,2)*tensionnw*(c1+Ktens)*ecci
+         stressm_3 = zetaD(i,j,3)*tensionsw*(c1+Ktens)*ecci
+         stressm_4 = zetaD(i,j,4)*tensionse*(c1+Ktens)*ecci
+                          
+         stress12_1 = zetaD(i,j,1)*shearne*p5*(c1+Ktens)*ecci
+         stress12_2 = zetaD(i,j,2)*shearnw*p5*(c1+Ktens)*ecci
+         stress12_3 = zetaD(i,j,3)*shearsw*p5*(c1+Ktens)*ecci
+         stress12_4 = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
+
+      !-----------------------------------------------------------------
+      ! combinations of the stresses for the momentum equation ! kg/s^2
+      !-----------------------------------------------------------------
+
+         ssigpn  = stressp_1 + stressp_2
+         ssigps  = stressp_3 + stressp_4
+         ssigpe  = stressp_1 + stressp_4
+         ssigpw  = stressp_2 + stressp_3
+         ssigp1  =(stressp_1 + stressp_3)*p055
+         ssigp2  =(stressp_2 + stressp_4)*p055
+
+         ssigmn  = stressm_1 + stressm_2
+         ssigms  = stressm_3 + stressm_4
+         ssigme  = stressm_1 + stressm_4
+         ssigmw  = stressm_2 + stressm_3
+         ssigm1  =(stressm_1 + stressm_3)*p055
+         ssigm2  =(stressm_2 + stressm_4)*p055
+
+         ssig12n = stress12_1 + stress12_2
+         ssig12s = stress12_3 + stress12_4
+         ssig12e = stress12_1 + stress12_4
+         ssig12w = stress12_2 + stress12_3
+         ssig121 =(stress12_1 + stress12_3)*p111
+         ssig122 =(stress12_2 + stress12_4)*p111
+
+         csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
+         csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
+         csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
+         csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+         
+         csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
+         csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
+         csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
+         csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+         
+         csig12ne = p222*stress12_1 + ssig122 &
+                  + p055*stress12_3
+         csig12nw = p222*stress12_2 + ssig121 &
+                  + p055*stress12_4
+         csig12sw = p222*stress12_3 + ssig122 &
+                  + p055*stress12_1
+         csig12se = p222*stress12_4 + ssig121 &
+                  + p055*stress12_2
+
+         str12ew = p5*dxt(i,j)*(p333*ssig12e + p166*ssig12w)
+         str12we = p5*dxt(i,j)*(p333*ssig12w + p166*ssig12e)
+         str12ns = p5*dyt(i,j)*(p333*ssig12n + p166*ssig12s)
+         str12sn = p5*dyt(i,j)*(p333*ssig12s + p166*ssig12n)
+
+      !-----------------------------------------------------------------
+      ! for dF/dx (u momentum)
+      !-----------------------------------------------------------------
+      
+         if (cc .eq. 1) then ! T cell i,j
+         
+          strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
+          strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+
+         ! northeast (i,j)
+         Dstr(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
+              + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
+              
+         elseif (cc .eq. 2) then ! T cell i+1,j     
+          
+          strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
+          strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+          
+         ! northwest (i+1,j)
+         Dstr(iu,ju,2) = strp_tmp + strm_tmp - str12we &
+              + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
+
+         elseif (cc .eq. 3) then ! T cell i,j+1        
+              
+         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
+         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+
+         ! southeast (i,j+1)
+         Dstr(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
+              + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
+
+         elseif (cc .eq. 4) then ! T cell i+1,j+1     
+              
+         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
+         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)     
+              
+         ! southwest (i+1,j+1)
+         Dstr(iu,ju,4) = strp_tmp + strm_tmp + str12we &
+              + dxhy(i,j)*(-csigpsw + csigmsw) + dyhx(i,j)*csig12sw
+
+      !-----------------------------------------------------------------
+      ! for dF/dy (v momentum)
+      !-----------------------------------------------------------------
+         
+         elseif (cc .eq. 5) then ! T cell i,j 
+         
+         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
+         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+
+         ! northeast (i,j)
+         Dstr(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
+              - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
+
+         elseif (cc .eq. 6) then ! T cell i,j+1      
+              
+         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
+         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)              
+              
+         ! southeast (i,j+1)
+         Dstr(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
+              - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
+
+         elseif (cc .eq. 7) then ! T cell i,j+1     
+              
+         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
+         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+
+         ! northwest (i+1,j)
+         Dstr(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
+              - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
+
+         elseif (cc .eq. 8) then ! T cell i+1,j+1        
+              
+         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
+         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)     
+              
+         ! southwest (i+1,j+1)
+         Dstr(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
+              - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
+              
+         endif     
+
+      enddo                     ! ij
+      
+      enddo                     ! cc
+
+      end subroutine formDiag_step1      
+      
+      !=======================================================================
+
+      subroutine OLDformDiag_step1  (nx_block,   ny_block,   & 
                                   icellt,     velcode,    & 
                                   indxti,     indxtj,     & 
                                   dxt,        dyt,        & 
@@ -2060,6 +2419,13 @@
       endif
       
 
+!      strintx = uarear(i,j)* &
+ !            (Dstr(i,j,1) + Dstr(i+1,j,2) + Dstr(i,j+1,3) + Dstr(i+1,j+1,4))
+ !         strinty = uarear(i,j)* &
+ !            (Dstr(i,j,5) + Dstr(i,j+1,6) + Dstr(i+1,j,7) + Dstr(i+1,j+1,8))
+             
+             !attention!!!!!!!!!!!!!!!!
+      
       do ij = 1, icellt
          i = indxti(ij)
          j = indxtj(ij)
@@ -2172,6 +2538,10 @@
       !-----------------------------------------------------------------
       ! for dF/dx (u momentum)
       !-----------------------------------------------------------------
+      
+      !JFL contribution des cell (i,j), (i+1,j), (i,j+1) et (i+1,j+1) autour du point u(i,j)
+      ! pour chaque cell (T) il y a les 4 corners qui sont utilises et tout est combine ici...
+      
          strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
          strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
 
@@ -2225,7 +2595,7 @@
               
       enddo                     ! ij
 
-      end subroutine formDiag_step1      
+      end subroutine OLDformDiag_step1      
       
 !=======================================================================
 
