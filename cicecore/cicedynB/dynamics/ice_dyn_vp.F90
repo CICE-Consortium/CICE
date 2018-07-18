@@ -199,7 +199,7 @@
       gamma=1e-6_dbl_kind   !nonlinear stopping criterion:
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
-      precond=2 ! 1: identity, 2: diagonal (fd), 3: complete diagonal 
+      precond=3 ! 1: identity, 2: diagonal (fd), 3: complete diagonal 
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -1988,7 +1988,8 @@
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
          intent(inout) :: &
-         Dstr          ! stress combinations         
+         Dstr          ! intermediate calc for diagonal components of matrix A associated 
+                       ! with rheology term         
 
       ! local variables
 
@@ -2022,12 +2023,17 @@
 !cdir nodep      !NEC
 !ocl novrec      !Fujitsu
 
-      Dstr(:,:,:) = c0
+      Dstr(:,:,:) = c0 ! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8 
+                       ! come from the surrounding T cells but are all refrerenced to the i,j (u point)  
        
-!      strintx = uarear(i,j)* &
- !            (Dstr(i,j,1) + Dstr(i+1,j,2) + Dstr(i,j+1,3) + Dstr(i+1,j+1,4))
- !         strinty = uarear(i,j)* &
- !            (Dstr(i,j,5) + Dstr(i,j+1,6) + Dstr(i+1,j,7) + Dstr(i+1,j+1,8))
+ !      Dstr(i,j,1) corresponds to str(i,j,1)
+ !      Dstr(i,j,2) corresponds to str(i+1,j,2)
+ !      Dstr(i,j,3) corresponds to str(i,j+1,3) 
+ !      Dstr(i,j,4) corresponds to str(i+1,j+1,4))
+ !      Dstr(i,j,5) corresponds to str(i,j,5) 
+ !      Dstr(i,j,6) corresponds to str(i,j+1,6)
+ !      Dstr(i,j,7) corresponds to str(i+1,j,7) 
+ !      Dstr(i,j,8) corresponds to str(i+1,j+1,8))
              
       do cc=1, 8 ! 4 for u and 4 for v
       
@@ -2375,6 +2381,18 @@
       strintx=c0
       strinty=c0
          
+! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8 
+! come from the surrounding T cells but are all refrerenced to the i,j (u point)  
+       
+ !      Dstr(i,j,1) corresponds to str(i,j,1)
+ !      Dstr(i,j,2) corresponds to str(i+1,j,2)
+ !      Dstr(i,j,3) corresponds to str(i,j+1,3) 
+ !      Dstr(i,j,4) corresponds to str(i+1,j+1,4))
+ !      Dstr(i,j,5) corresponds to str(i,j,5) 
+ !      Dstr(i,j,6) corresponds to str(i,j+1,6)
+ !      Dstr(i,j,7) corresponds to str(i+1,j,7) 
+ !      Dstr(i,j,8) corresponds to str(i+1,j+1,8))
+         
       do ij =1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -2383,9 +2401,9 @@
          
          if (precond .eq. 3) then
           strintx = uarear(i,j)* &
-             (Dstr(i,j,1) + Dstr(i+1,j,2) + Dstr(i,j+1,3) + Dstr(i+1,j+1,4))
+             (Dstr(i,j,1) + Dstr(i,j,2) + Dstr(i,j,3) + Dstr(i,j,4))
           strinty = uarear(i,j)* &
-             (Dstr(i,j,5) + Dstr(i,j+1,6) + Dstr(i+1,j,7) + Dstr(i+1,j+1,8))
+             (Dstr(i,j,5) + Dstr(i,j,6) + Dstr(i,j,7) + Dstr(i,j,8))
          endif    
 
          Diagu(i,j) = ccaimp - strintx
