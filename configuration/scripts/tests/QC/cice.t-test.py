@@ -14,6 +14,10 @@ import numpy.ma as ma
 import logging
 
 def maenumerate(marr):
+    '''
+    This function provides the enumerate functionality for masked arrays
+    '''
+
     mask = ~marr.mask.ravel()
     try:   # Python 2
         import itertools
@@ -23,7 +27,12 @@ def maenumerate(marr):
         for i,m in zip(np.ndindex(marr.shape[-2:]),mask):
             if m: yield i
 
-def read_data(base_dir,test_dir):
+def read_data(base_dir,test_dir,var):
+    '''
+    Read the baseline and test data for sea ice thickness.  The calculate
+    the difference for all locations where sea ice thickness is greater
+    than 0.01 meters.
+    '''
     # The path to output files for simulation 'a' (the '-bc' simulation)
     if base_dir.endswith(('history','history/')):
         path_a = base_dir
@@ -63,7 +72,6 @@ def read_data(base_dir,test_dir):
     data_b = np.zeros((num_files,nj,ni))
     
     # Read in the data 
-    var = 'hi'
     cnt = 0
     for fname in sorted(files_a):
         nfid = nc.Dataset("{}/{}".format(path_a,fname),'r')
@@ -71,6 +79,7 @@ def read_data(base_dir,test_dir):
         data_a[cnt,:,:] = nfid.variables[var][:]
         cnt += 1
         nfid.close()
+    data_a[data_a==fill_value_a] = 0.0
     
     cnt = 0
     for fname in sorted(files_b):
@@ -79,11 +88,16 @@ def read_data(base_dir,test_dir):
         data_b[cnt,:,:] = nfid.variables[var][:]
         cnt += 1
         nfid.close()
-    
+    data_b[data_b==fill_value_b] = 0.0
+
     # Calculate the difference and mask the points where the the difference at
-    #   every timestep is 0.
+    #   every timestep is 0, or the sea ice thickness for every timestep is < 0.01 meters
+    #   for data_a or data_b
     data_d = data_a - data_b
-    mask_d = np.all(np.equal(data_d,0.),axis=0)
+    mask_d = np.logical_or(\
+                  np.logical_or(\
+                       np.all(np.equal(data_d,0.),axis=0),np.all(data_a < 0.01,axis=0))\
+                  ,np.all(data_b < 0.01,axis=0))
     mask_array_a = np.zeros_like(data_d)
     mask_array_b = np.zeros_like(data_d)
     mask_array_d = np.zeros_like(data_d)
@@ -137,17 +151,26 @@ def two_stage_test(data_a,data_b,num_files,data_d):
     t_crit_table = nfid.variables['tcrit'][:]
     nfid.close()
     t_crit = np.zeros_like(t_val)
+
+    # Calculate critical t-value for each grid cell, based on the t_crit table
     for x in maenumerate(data_d):
         min_val = np.min(np.abs(df[x]-df_table))
         idx = np.where(np.abs(df[x]-df_table)==min_val)
         t_crit[x] = t_crit_table[idx]
     
+    # Create an array of Pass / Fail values for each grid cell
+    passed_array = abs(t_val) > t_crit
+
+    # Initialize variable that defines whether or not to calculate the area-weighted
+    #   fraction of failures to false.
+    calc_fval = False
+
     if np.any(abs(t_val) > t_crit):
-        logger.info('Two-Stage Test Failed')
+        # A non-zero number of grid cells failed
         passed = False
     
     elif np.all(abs(t_val)<=t_crit) and np.all(n_eff >= 30):
-        logger.info('Two-Stage Test Passed')
+        # Every grid cell passed, and has an effective sample size >= 30
         passed = True
     
     elif np.all(abs(t_val) <= t_crit) and np.any(n_eff < 30):
@@ -155,24 +178,31 @@ def two_stage_test(data_a,data_b,num_files,data_d):
         t_val = mean_d / np.sqrt(variance_d / num_files)
     
         # Find t_crit from the nearest value on the Lookup Table Test
-        nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_t_lookup_p0.8_n1825.nc",'r')
+        nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_Lookup_Table_p0.8_n1825.nc",'r')
         r1_table = nfid.variables['r1'][:]
         t_crit_table = nfid.variables['tcrit'][:]
         nfid.close()
         
+        # Fill t_crit based on lookup table
         for x in maenumerate(data_d):
             min_val = np.min(np.abs(r1[x]-r1_table))
             idx = np.where(np.abs(r1[x]-r1_table)==min_val)
             t_crit[x] = t_crit_table[idx]
     
+        # Create an array showing locations of Pass / Fail grid cells
         passed_array = abs(t_val) > t_crit
 
         if np.any(abs(t_val) > t_crit):
-            logger.info('Two-Stage Test Failed')
+            # A non-zero number of grid cells has failed
             passed = False
+
         elif np.all(abs(t_val) <= t_crit):
-            logger.info('Two-Stage Test Passed')
+            # All grid cells passed the t-test
             passed = True
+            # Set variable to make the script calculate the area-weighted fraction
+            #   of failure grid cells
+            calc_fval = True
+
         else:
             logger.error('TWO-STAGE TEST NOT CONCLUSIVE')
             passed = False
@@ -181,13 +211,45 @@ def two_stage_test(data_a,data_b,num_files,data_d):
         logger.error('TEST NOT CONCLUSIVE')
         passed = False
 
-    try:
-        return passed, passed_array
-    except:
-        return passed, 0
+    # Calculate the area-weighted fraction of the test region that failed (f_val).
+    #   If f_val is greater than or equal to the critical fraction, the test fails"
+    if calc_fval:
+        f_val = critical_fraction(data_a,passed_array)
+        f_crit = 0.5
+        if f_val >= f_crit:
+            passed = False
+            logger.info('Area-weighted fraction of failures is greater than ' + \
+                        'critical fraction.  Test failed.')
+            logger.info('Area-weighted fraction of failures = {}'.format(f_val))
+            return passed, passed_array
 
-# Calculate Taylor Skill Score
+    if passed:
+        logger.info('Two-Stage Test Passed')
+    else:
+        logger.info('Two-Stage Test Failed')
+
+    return passed, passed_array
+
+def critical_fraction(data_a,passed_array):
+    # First calculate the weight attributed to each grid point (based on Area)
+    nfid = nc.Dataset("{}/{}".format(path_a,fname),'r')
+    tarea = nfid.variables['tarea'][:]
+    nfid.close()
+    tarea = ma.masked_array(tarea,mask=data_a[0,:,:].mask)
+    area_weight = tarea / np.sum(tarea)
+
+    # Calculate the area weight of the failing grid cells
+    weight_tot = 0
+    weight_fail = 0
+    for x in maenumerate(data_a):
+        weight_tot += area_weight[x]
+        if passed_array[x]:
+            weight_fail += area_weight[x]
+
+    return weight_fail/weight_tot
+
 def skill_test(path_a,fname,data_a,data_b,num_files,tlat,hemisphere):
+    '''Calculate Taylor Skill Score'''
     # First calculate the weight attributed to each grid point (based on Area)
     nfid = nc.Dataset("{}/{}".format(path_a,fname),'r')
     tarea = nfid.variables['tarea'][:]
@@ -346,7 +408,58 @@ def post_to_cdash(passed):
     import shutil
     shutil.rmtree('Testing/')
 
+def plot_data(data,lat,lon,units):
+    '''This function plots CICE data and creates a .png file (ice_thickness_map.png).'''
+
+    try:
+        logger.info('Creating map of the data (ice_thickness_map.png)')
+        # Load the necessary plotting libraries
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.basemap import Basemap
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        from matplotlib.colors import LinearSegmentedColormap
+    except:
+        logger.warning('Error loading necessary Python modules in plot_data function')
+
+    # Suppress Matplotlib deprecation warnings
+    import warnings
+    warnings.filterwarnings("ignore",category=UserWarning)
+
+    # Create the figure and axis
+    fig = plt.figure(figsize=(12,8))
+    ax = fig.add_axes([0.05,0.08,0.9,0.9])
+ 
+    # Create the basemap, and draw boundaries
+    m = Basemap(projection='kav7',lon_0=180.,resolution='l')
+    m.drawmapboundary(fill_color='white')
+    m.drawcoastlines()
+    m.drawcountries()
+
+    # Plot the data as a scatter plot
+    x,y=m(lon,lat)
+    sc = m.scatter(x,y,c=data,cmap='jet',lw=0)
+ 
+    m.drawmeridians(np.arange(0,360,60),labels=[0,0,0,1],fontsize=10)
+    m.drawparallels(np.arange(-90,90,30),labels=[1,0,0,0],fontsize=10)
+
+    plt.title('CICE Ice Thickness')
+
+    # Create the colorbar and add Pass / Fail labels
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("bottom",size="5%",pad=0.5)
+    cb = plt.colorbar(sc,cax=cax,orientation="horizontal",format="%.2f")
+    cb.set_label(units,x=1.0)
+
+    plt.savefig('ice_thickness_map.png',dpi=300)
+
 def plot_two_stage_failures(data,lat,lon):
+    '''This function plots each grid cell and whether or not it Passed or Failed 
+       the two-stage test.  It then either creates a .png file 
+       (two_stage_test_failure_map.png), or saves the failure locations to a 
+       text file.
+    '''
+
+    # Convert the boolean array (data) to an integer array
     int_data = data.astype(int)
 
     try: 
@@ -438,7 +551,8 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     logger.addHandler(fh)
     
-    data_a, data_b, data_d, num_files, path_a, fname = read_data(args.base_dir,args.test_dir)
+    var = 'hi'
+    data_a, data_b, data_d, num_files, path_a, fname = read_data(args.base_dir,args.test_dir,var)
 
     if np.ma.all(data_d.mask):
         logger.info("Data is bit-for-bit.  No need to run QC test")
@@ -447,14 +561,17 @@ if __name__ == "__main__":
     # Run the two-stage test
     passed,passed_array = two_stage_test(data_a,data_b,num_files,data_d)
     
+    # Get the latitude and longitude information for the domain
     nfid = nc.Dataset("{}/{}".format(path_a,fname),'r')
     tlat = nfid.variables['TLAT'][:]
     tlon = nfid.variables['TLON'][:]
     nfid.close()
-    
+
+    # If test failed, attempt to create a plot of the failure locations
     if not passed:
         plot_two_stage_failures(passed_array,tlat,tlon)
 
+    # Create a northern hemisphere and southern hemisphere mask
     mask_tlat = tlat < 0
     mask_nh = np.zeros_like(data_a)
     mask_sh = np.zeros_like(data_a)
