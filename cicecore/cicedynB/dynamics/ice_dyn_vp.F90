@@ -39,7 +39,7 @@
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, c4, p027, p055, p111, p166, &
           p2, p222, p25, p333, p5, c1
-      use ice_dyn_shared, only: evp_prep1, evp_prep2, evp_finish, &
+      use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           yield_curve, ecci, cosw, sinw, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens
       use ice_fileunits, only: nu_diag
@@ -66,7 +66,7 @@
 ! Wind stress is set during this routine from the values supplied
 ! via NEMO (unless calc_strair is true).  These values are supplied 
 ! rotated on u grid and multiplied by aice.  strairxT = 0 in this 
-! case so operations in evp_prep1 are pointless but carried out to 
+! case so operations in dyn_prep1 are pointless but carried out to 
 ! minimise code changes.
 #endif
 !
@@ -194,9 +194,9 @@
       
       im_fgmres = 50 
       maxits = 50    
-      kmax=2
-      gammaNL=1e-2_dbl_kind !linear stopping criterion: gamma*(res_ini)
-      gamma=1e-6_dbl_kind   !nonlinear stopping criterion:
+      kmax=1000
+      gammaNL=1e-6_dbl_kind !linear stopping criterion: gamma*(res_ini)
+      gamma=2e-1_dbl_kind   !nonlinear stopping criterion:
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
       precond=3 ! 1: identity, 2: diagonal (fd), 3: complete diagonal 
@@ -232,7 +232,7 @@
          enddo
 
       !-----------------------------------------------------------------
-      ! preparation for dynamics JFL change names of evp_prep1 and 2
+      ! preparation for dynamics 
       !-----------------------------------------------------------------
 
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -241,7 +241,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call evp_prep1 (nx_block,           ny_block,           & 
+         call dyn_prep1 (nx_block,           ny_block,           & 
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), & 
                          vsno    (:,:,iblk), tmask   (:,:,iblk), & 
@@ -295,7 +295,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call evp_prep2 (nx_block,             ny_block,             & 
+         call dyn_prep2 (nx_block,             ny_block,             & 
                          ilo, ihi,             jlo, jhi,             &
                          icellt(iblk),         icellu(iblk),         & 
                          indxti      (:,iblk), indxtj      (:,iblk), & 
@@ -378,7 +378,7 @@
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
-      ! velocities may have changed in evp_prep2
+      ! velocities may have changed in dyn_prep2
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
       call ice_timer_stop(timer_bound)
@@ -499,7 +499,7 @@
 !-----------------------------------------------------------------------                             
          
       icode  = 0
-      iout   = 2 !0: nothing printed, 1: 1st ite only, 2: all iterations
+      iout   = 1 !0: nothing printed, 1: 1st ite only, 2: all iterations
 !      its    = 0 
       ischmi = 0 
          
@@ -780,7 +780,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
-         call evp_finish                               & 
+         call dyn_finish                               & 
               (nx_block,           ny_block,           & 
                icellu      (iblk), Cdn_ocn (:,:,iblk), & 
                indxui    (:,iblk), indxuj    (:,iblk), & 
