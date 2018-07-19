@@ -199,7 +199,7 @@
       gamma=2e-1_dbl_kind   !nonlinear stopping criterion:
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
-      precond=3 ! 1: identity, 2: diagonal (fd), 3: complete diagonal 
+      precond=3 ! 1: identity, 2: diagonal (fd), 3: complete diagonal, 4: gmres+complete diag
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -470,7 +470,7 @@
                             stPrtmp  (:,:,:))
 
 !     prepare precond matrix
-           if (precond .eq. 3) then
+           if (precond .ge. 3) then
 
            call formDiag_step1  (nx_block           , ny_block,       & ! D term due to rheology
                                  icellu       (iblk),                 &
@@ -550,11 +550,15 @@
 
            wk22(:)=wk11(:) ! precond=identity
            
-         elseif (precond .gt. 1) then ! use diagonal of A for precond step
+         elseif (precond .eq. 2 .or. precond .eq. 3) then ! use diagonal of A for precond step
           
            call precond_diag (ntot,            & 
                               diagvec (:),     &
                               wk11 (:), wk22 (:) )
+                              
+         elseif (precond .eq. 4) then
+         
+         
          endif
          
          goto 1

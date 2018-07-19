@@ -1,0 +1,219 @@
+
+!**s/r pgmres -  preconditionner for GEM_H : PGmres
+!
+
+       subroutine pgmres(sol,rhs,n,im, eps, maxits, iout,ierr)
+!-----------------------------------------------------------------------
+
+        use grid_options
+        use prec
+       implicit none
+
+#include <arch_specific.hf>
+
+       integer n, im, maxits, iout, ierr
+       real*8 rhs(n), sol(n) ,eps
+!       Abdessamad Qaddouri -  2018
+!
+!revision
+! v5.0 - Qaddouri A.       - initial version
+
+       real*8 vv(n,im+1), gam,eps1
+       real*8  wk(n),r0
+!----------------------------------------------------------------------*
+       integer kmax,ii,i,j,n1,its,k1,i1,jj,k
+       parameter (kmax=50)
+
+       real*8 hh(kmax+1,kmax), c(kmax), s(kmax), rs(kmax+1),t
+       real*8 hhloc(kmax+1,kmax)
+!-------------------------------------------------------------
+! arnoldi size should not exceed kmax=50 in this version..
+! to reset modify paramter kmax accordingly.
+!-------------------------------------------------------------
+       real*8 epsmac ,ro,ddot,dnrm2
+       parameter (epsmac=1.d-16)
+       integer l
+       character(len= 9) communicate_S
+       communicate_S = "GRID"
+       if (Grd_yinyang_L) communicate_S = "MULTIGRID"
+
+
+
+       n1 = n + 1
+       its = 0
+       sol=0.0
+!-------------------------------------------------------------
+! outer loop starts here..
+!-------------- compute initial residual vector --------------
+       do 21 j=1,n
+         vv(j,1) = rhs(j) 
+ 21    continue
+       
+!-------------------------------------------------------------
+  20   continue
+       ro = ddot(n, vv,1,vv,1)
+       ro = dsqrt(ro)
+
+       if (iout .gt. 0 .and. its .eq. 0)&
+           write(iout, 199) its, ro ,eps1
+!      write(6,199) its, ro
+        r0=ro
+ 
+       if (ro .eq. 0.0d0) goto 999
+       t = 1.0d0/ ro
+       do 210 j=1, n
+          vv(j,1) = vv(j,1)*t
+ 210   continue
+       if (its .eq. 0) eps1=eps*ro
+!     ** initialize 1-st term  of rhs of hessenberg system..
+       rs(1) = ro
+       i = 0
+ 4     i=i+1
+       its = its + 1
+       i1 = i + 1
+
+       do l=1,n
+       rhs(l)= 0.0 
+       wk(l)=  vv(l,i)
+       enddo
+! precond
+        call pre_jacobi
+
+!  matrix-vector
+        call sol_matvec_H 
+                         
+
+!     classical gram - schmidt...
+!
+      do 55 j=1, i
+         hhloc(j,i) = ddot(n, vv(1,j), 1, vv(1,i1), 1)
+         hh(j,i) =  hhloc(j,i)
+ 55   continue
+
+      do 56 j=1, i
+         call daxpy(n, -hh(j,i), vv(1,j), 1, vv(1,i1), 1)
+ 56   continue
+      t = ddot(n, vv(1,i1), 1, vv(1,i1), 1)
+!
+       t=dsqrt(t)
+!
+
+       hh(i1,i) = t
+       if ( t .eq. 0.0d0) goto 58
+       t = 1.0d0/t
+       do 57  k=1,n
+          vv(k,i1) = vv(k,i1)*t
+ 57    continue
+!
+!     done with modified gram schimd and arnoldi step..
+!     now  update factorization of hh
+!
+ 58   if (i == 1) goto 121
+!
+!     perfrom previous transformations  on i-th column of h
+!
+      do 66 k=2,i
+         k1 = k-1
+         t = hh(k1,i)
+         hh(k1,i) = c(k1)*t + s(k1)*hh(k,i)
+         hh(k,i) = -s(k1)*t + c(k1)*hh(k,i)
+ 66   continue
+ 121  gam = sqrt(hh(i,i)**2 + hh(i1,i)**2)
+
+!     if gamma is zero then any small value will do...
+!     will affect only residual estimate
+!
+      if (gam == 0.0d0) gam = epsmac
+!-----------#determinenextplane rotation  #-------------------
+      c(i) = hh(i,i)/gam
+      s(i) = hh(i1,i)/gam
+      rs(i1) = -s(i)*rs(i)
+      rs(i) =  c(i)*rs(i)
+
+!
+!     detrermine residual norm and test for convergence-
+!
+       hh(i,i) = c(i)*hh(i,i) + s(i)*hh(i1,i)
+       ro = abs(rs(i1))
+       if (iout .gt. 0) &
+           write(iout, 199) its, ro , eps1
+       if (i .lt. im .and. (ro .gt. eps1))  goto 4
+!
+!     now compute solution. first solve upper triangular system.
+!
+       rs(i) = rs(i)/hh(i,i)
+       do 30 ii=2,i
+          k=i-ii+1
+          k1 = k+1
+          t=rs(k)
+          do 40 j=k1,i
+             t = t-hh(k,j)*rs(j)
+ 40       continue
+          rs(k) = t/hh(k,k)
+ 30    continue
+!
+!     form linear combination of
+!,i)'s to get solution
+!
+       t = rs(1)
+       do 15 k=1, n
+          rhs(k) = vv(k,1)*t
+ 15    continue
+       do 16 j=2, i
+          t = rs(j)
+          do 161 k=1, n
+             rhs(k) = rhs(k)+t*vv(k,j)
+ 161      continue
+ 16    continue
+!
+!     call preconditioner.
+!
+
+       do l=1,n
+       wk(l)=  rhs(l)
+       rhs(l)=0.0
+       enddo
+! precond
+       call pre_jacobi
+
+
+       do 17 k=1, n
+          sol(k) = sol(k) + rhs(k)
+ 17    continue
+!
+!     restart outer loop  when necessary
+!
+       if (ro .le. eps1) goto 990
+       if (its .ge. maxits) goto 991
+!
+!     else compute residual vector and continue..
+!
+       do 24 j=1,i
+          jj = i1-j+1
+          rs(jj-1) = -s(jj-1)*rs(jj)
+          rs(jj) = c(jj-1)*rs(jj)
+ 24    continue
+       do 25  j=1,i1
+          t = rs(j)
+          if (j .eq. 1)  t = t-1.0d0
+          call daxpy (n, t, vv(1,j), 1,  vv, 1)
+ 25    continue
+ 199   format('   its =', i4, ' res. norm =', d20.6, ' eps1 =', d20.6)
+!     restart outer loop.
+       goto 20
+ 990   ierr = 0
+!           write(iout, 198) its, ro/r0 
+ 198   format('   its =', i4, ' conv =', d20.6)
+       return
+ 991   ierr = 1
+!           write(iout, 198) its, ro/r0
+
+       return
+ 999   continue
+       ierr = -1
+!           write(iout, 198) its, ro/r0
+
+       return
+!-----------------end of pgmres ---------------------------------------
+!-----------------------------------------------------------------------
+       end
