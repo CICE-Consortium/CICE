@@ -2,17 +2,75 @@
 !**s/r pgmres -  preconditionner for GEM_H : PGmres
 !
 
-       subroutine pgmres(sol,rhs,n,im, eps, maxits, iout,ierr)
+       subroutine pgmres(nx_block,   ny_block, &
+                         icellu,               &
+                         indxui,     indxuj,   &
+                         kOL,        icellt,   &
+                         indxti,     indxtj,   &
+                         dxt,        dyt,      & 
+                         dxhy,       dyhx,     & 
+                         cxp,        cyp,      & 
+                         cxm,        cym,      & 
+                         tarear,     tinyarea, & 
+                         vrel,       Cb,       &
+                         zetaD,      aiu,      & 
+                         umassdti,   fm,       &
+                         uarear,               &
+                         sol,        rhs,      &
+                         n,          im,       &
+                         eps,        maxits,   &
+                         iout,       ierr)
+                         
 !-----------------------------------------------------------------------
 
-        use grid_options
-        use prec
+!        use grid_options
+!        use prec
+       use ice_kinds_mod
+
        implicit none
 
-#include <arch_specific.hf>
+!#include <arch_specific.hf>
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icellu,             & ! total count when iceumask is true
+         kOL,                & ! outer loop iteration
+         icellt                ! no. of cells where icetmask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+         intent(in) :: &
+         indxui  , & ! compressed index in i-direction
+         indxuj  , & ! compressed index in j-direction
+         indxti  , & ! compressed index in i-direction
+         indxtj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         dxt      , & ! width of T-cell through the middle (m)
+         dyt      , & ! height of T-cell through the middle (m)
+         dxhy     , & ! 0.5*(HTE - HTE)
+         dyhx     , & ! 0.5*(HTN - HTN)
+         cyp      , & ! 1.5*HTE - 0.5*HTE
+         cxp      , & ! 1.5*HTN - 0.5*HTN
+         cym      , & ! 0.5*HTE - 1.5*HTE
+         cxm      , & ! 0.5*HTN - 1.5*HTN
+         tarear   , & ! 1/tarea
+         tinyarea     ! puny*tarea   
+         
+      real (kind=dbl_kind), dimension (nx_block,ny_block), &
+         intent(in) :: &
+         vrel    , & ! coefficient for tauw
+         Cb      , & ! coefficient for basal stress
+         aiu     , & ! ice fraction on u-grid
+         umassdti, & ! mass of U-cell/dt (kg/m^2 s)
+         fm      , & ! Coriolis param. * mass in U-cell (kg/s)
+         uarear      ! 1/uarea
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+         intent(in) :: &
+         zetaD          ! 2*zeta   
 
        integer n, im, maxits, iout, ierr
-       real*8 rhs(n), sol(n) ,eps
+       real*8 rhs(n), sol(n) ,eps ! wk11, wk22, eps
 !       Abdessamad Qaddouri -  2018
 !
 !revision
@@ -33,9 +91,9 @@
        real*8 epsmac ,ro,ddot,dnrm2
        parameter (epsmac=1.d-16)
        integer l
-       character(len= 9) communicate_S
-       communicate_S = "GRID"
-       if (Grd_yinyang_L) communicate_S = "MULTIGRID"
+!       character(len= 9) communicate_S
+!       communicate_S = "GRID"
+!       if (Grd_yinyang_L) communicate_S = "MULTIGRID"
 
 
 
@@ -77,10 +135,10 @@
        wk(l)=  vv(l,i)
        enddo
 ! precond
-        call pre_jacobi
+!        call pre_jacobi JFL
 
 !  matrix-vector
-        call sol_matvec_H 
+!        call sol_matvec_H JFL
                          
 
 !     classical gram - schmidt...
@@ -174,7 +232,7 @@
        rhs(l)=0.0
        enddo
 ! precond
-       call pre_jacobi
+!       call pre_jacobi JFL
 
 
        do 17 k=1, n

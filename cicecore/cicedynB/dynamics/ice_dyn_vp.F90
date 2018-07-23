@@ -108,12 +108,15 @@
          icode          , & ! for fgmres
          iconvNL        , & ! code for NL convergence criterion
          iout           , & ! for printing fgmres info
+         ioutpgmres     , & ! for printing pgmres info
          its            , & ! iteration nb for fgmres
          ischmi         , & ! Quesse ca!?!?! jfl
          maxits         , & ! max nb of iteration for fgmres
          fgmres_its     , & ! final nb of fgmres_its
-         im_fgmres      , & ! for size of Krylov subspace
+         im_fgmres      , & ! for size of fgmres Krylov subspace
+         im_pgmres      , & ! for size of pgmres Krylov subspace
          precond        , & ! 1: identity, 2: diagonal (free drift), 3: complete diagonal
+         ierr           , & ! for pgmres precond
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
@@ -160,7 +163,7 @@
       real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
-      real (kind=dbl_kind) :: conv, gamma, gammaNL, tolNL, krelax
+      real (kind=dbl_kind) :: conv, gamma, gammaNL, tolNL, krelax, epsprecond
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          stPrtmp,   & ! doit etre (nx_block,ny_block,max_blocks,8)???? PAs besoin des 2? reuse?
@@ -192,10 +195,12 @@
       !-----------------------------------------------------------------
       
       im_fgmres = 50 
+      im_pgmres = 50 
       maxits = 50    
       kmax=1000
       gammaNL=1e-6_dbl_kind !linear stopping criterion: gamma*(res_ini)
       gamma=2e-1_dbl_kind   !nonlinear stopping criterion:
+      epsprecond=1e-6_dbl_kind ! for pgmres
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
       precond=3 ! 1: identity, 2: diagonal (fd), 3: complete diagonal, 4: gmres+complete diag
@@ -499,6 +504,7 @@
          
       icode  = 0
       iout   = 1 !0: nothing printed, 1: 1st ite only, 2: all iterations
+      ioutpgmres = 1
 !      its    = 0 
       ischmi = 0 
          
@@ -550,7 +556,24 @@
                               
          elseif (precond .eq. 4) then
          
-         
+          call pgmres (nx_block             , ny_block,            &
+                       icellu   (iblk)      ,                      & 
+                       indxui   (:,iblk)    , indxuj   (:,iblk)  , &
+                       kOL                  , icellt   (iblk)    , & 
+                       indxti   (:,iblk)    , indxtj   (:,iblk)  , &
+                       dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
+                       dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
+                       cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
+                       cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
+                       tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                       vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
+                       zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                       umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
+                       uarear   (:,:,iblk)  ,                      &
+                       wk22     (:)         , wk11(:)            , &
+                       ntot                 , im_pgmres          , &
+                       epsprecond           , maxits             , &
+                       ioutpgmres           , ierr )         
          endif
          
          goto 1
