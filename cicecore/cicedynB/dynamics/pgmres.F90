@@ -26,7 +26,7 @@
 !        use grid_options
 !        use prec
        use ice_kinds_mod
-       use ice_dyn_vp, only: matvec, arrays_to_vec, vec_to_arrays
+       use ice_dyn_vp, only: matvec, arrays_to_vec, vec_to_arrays, precond_diag
 
        implicit none
 
@@ -149,11 +149,11 @@
        wk(l)=  vv(l,i)
        enddo
 ! precond
-!       call precond_diag (ntot,            & 
-!                          diagvec (:),     &
-!                          rhs (:), wk22 (:) )
+       call precond_diag (n,            & 
+                          diagvec (:),     &
+                          wk (:), rhs (:) )
 
-       rhs = wk !!! JFL       
+!       rhs = wk !!! JFL       
 
 !  matrix-vector
 !        call sol_matvec_H JFL
@@ -285,12 +285,10 @@
        rhs(l)=0.0
        enddo
 ! precond
-! precond
-!       call precond_diag (ntot,            & 
-!                          diagvec (:),     &
-!                          rhs (:), wk22 (:) )
-
-       rhs = wk !!! JFL       
+       call precond_diag (n,            & 
+                          diagvec (:),     &
+                          wk (:), rhs (:) )
+!       rhs = wk !!! JFL       
 
        do 17 k=1, n
           sol(k) = sol(k) + rhs(k)

@@ -52,7 +52,7 @@
 
       implicit none
       private
-      public :: imp_solver, matvec, arrays_to_vec, vec_to_arrays
+      public :: imp_solver, matvec, arrays_to_vec, vec_to_arrays, precond_diag
 
 !=======================================================================
 
