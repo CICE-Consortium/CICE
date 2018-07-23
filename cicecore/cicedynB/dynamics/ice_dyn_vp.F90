@@ -52,7 +52,7 @@
 
       implicit none
       private
-      public :: imp_solver
+      public :: imp_solver, matvec, arrays_to_vec, vec_to_arrays
 
 !=======================================================================
 
@@ -556,24 +556,24 @@
                               
          elseif (precond .eq. 4) then
          
-          call pgmres (nx_block             , ny_block,            &
-                       icellu   (iblk)      ,                      & 
-                       indxui   (:,iblk)    , indxuj   (:,iblk)  , &
-                       kOL                  , icellt   (iblk)    , & 
-                       indxti   (:,iblk)    , indxtj   (:,iblk)  , &
-                       dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
-                       dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
-                       cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
-                       cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
-                       tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
-                       vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
-                       zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
-                       umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
-                       uarear   (:,:,iblk)  ,                      &
-                       wk22     (:)         , wk11(:)            , &
-                       ntot                 , im_pgmres          , &
-                       epsprecond           , maxits             , &
-                       ioutpgmres           , ierr )         
+          call pgmres (nx_block,    ny_block,    nblocks       , &
+                       max_blocks         , icellu   (:)       , & 
+                       indxui   (:,:)     , indxuj   (:,:)     , &
+                       kOL                , icellt   (:)       , & 
+                       indxti   (:,:)     , indxtj   (:,:)     , &
+                       dxt      (:,:,:)   , dyt      (:,:,:)   , & 
+                       dxhy     (:,:,:)   , dyhx     (:,:,:)   , & 
+                       cxp      (:,:,:)   , cyp      (:,:,:)   , & 
+                       cxm      (:,:,:)   , cym      (:,:,:)   , & 
+                       tarear   (:,:,:)   , tinyarea (:,:,:)   , &
+                       vrel     (:,:,:)   , Cb       (:,:,:)   , &  
+                       zetaD    (:,:,:,:) , aiu      (:,:,:)   , &
+                       umassdti (:,:,:)   , fm       (:,:,:)   , & 
+                       uarear   (:,:,:)   , diagvec(:)         , &
+                       wk22     (:)       , wk11(:)            , &
+                       ntot               , im_pgmres          , &
+                       epsprecond         , maxits             , &
+                       ioutpgmres         , ierr )         
          endif
          
          goto 1

@@ -2,23 +2,23 @@
 !**s/r pgmres -  preconditionner for GEM_H : PGmres
 !
 
-       subroutine pgmres(nx_block,   ny_block, &
-                         icellu,               &
-                         indxui,     indxuj,   &
-                         kOL,        icellt,   &
-                         indxti,     indxtj,   &
-                         dxt,        dyt,      & 
-                         dxhy,       dyhx,     & 
-                         cxp,        cyp,      & 
-                         cxm,        cym,      & 
-                         tarear,     tinyarea, & 
-                         vrel,       Cb,       &
-                         zetaD,      aiu,      & 
-                         umassdti,   fm,       &
-                         uarear,               &
-                         sol,        rhs,      &
-                         n,          im,       &
-                         eps,        maxits,   &
+       subroutine pgmres(nx_block, ny_block, nblocks, &
+                         max_blocks, icellu,          &
+                         indxui,     indxuj,          &
+                         kOL,        icellt,          &
+                         indxti,     indxtj,          &
+                         dxt,        dyt,             & 
+                         dxhy,       dyhx,            & 
+                         cxp,        cyp,             & 
+                         cxm,        cym,             & 
+                         tarear,     tinyarea,        & 
+                         vrel,       Cb,              &
+                         zetaD,      aiu,             & 
+                         umassdti,   fm,              &
+                         uarear,     diagvec,         &
+                         sol,        rhs,             &
+                         n,          im,              &
+                         eps,        maxits,          &
                          iout,       ierr)
                          
 !-----------------------------------------------------------------------
@@ -26,6 +26,7 @@
 !        use grid_options
 !        use prec
        use ice_kinds_mod
+       use ice_dyn_vp, only: matvec, arrays_to_vec, vec_to_arrays
 
        implicit none
 
@@ -33,18 +34,23 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         kOL,                & ! outer loop iteration
+         nblocks,            & ! nb of blocks
+         max_blocks,         & ! max nb of blocks
+         kOL                   ! outer loop iteration
+
+         
+      integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
+         icellu  , &
          icellt                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
+      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
          intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj  , & ! compressed index in j-direction
          indxti  , & ! compressed index in i-direction
          indxtj      ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTE)
@@ -56,7 +62,7 @@
          tarear   , & ! 1/tarea
          tinyarea     ! puny*tarea   
          
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), &
          intent(in) :: &
          vrel    , & ! coefficient for tauw
          Cb      , & ! coefficient for basal stress
@@ -65,11 +71,20 @@
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), & 
          intent(in) :: &
          zetaD          ! 2*zeta   
+         
+      real (kind=dbl_kind), dimension (n), intent(in) :: &
+         diagvec
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         utp     , & ! x-component of velocity (m/s)
+         vtp     , & ! y-component of velocity (m/s)         
+         Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
+         Av          ! matvec, Fy = Av - by (N/m^2)! jfl       
 
-       integer n, im, maxits, iout, ierr
+       integer n, im, maxits, iout, ierr, iblk
        real*8 rhs(n), sol(n) ,eps ! wk11, wk22, eps
 !       Abdessamad Qaddouri -  2018
 !
@@ -94,7 +109,6 @@
 !       character(len= 9) communicate_S
 !       communicate_S = "GRID"
 !       if (Grd_yinyang_L) communicate_S = "MULTIGRID"
-
 
 
        n1 = n + 1
@@ -135,12 +149,51 @@
        wk(l)=  vv(l,i)
        enddo
 ! precond
-!        call pre_jacobi JFL
+!       call precond_diag (ntot,            & 
+!                          diagvec (:),     &
+!                          rhs (:), wk22 (:) )
+
+       rhs = wk !!! JFL       
 
 !  matrix-vector
 !        call sol_matvec_H JFL
+
+       call vec_to_arrays (nx_block, ny_block, nblocks,      &
+                           max_blocks, icellu (:), n,        & 
+                           indxui    (:,:), indxuj(:,:),     &
+                           rhs (:),                         &
+                           utp (:,:,:), vtp (:,:,:))    
                          
 
+       !$OMP PARALLEL DO PRIVATE(iblk)
+       do iblk = 1, nblocks                          
+        call matvec (nx_block             , ny_block,            &
+                     icellu   (iblk)      ,                      & 
+                     indxui   (:,iblk)    , indxuj   (:,iblk)  , &
+                     kOL                  , icellt   (iblk)    , & 
+                     indxti   (:,iblk)    , indxtj   (:,iblk)  , &
+                     dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
+                     dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
+                     cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
+                     cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
+                     tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                     utp      (:,:,iblk)  , vtp      (:,:,iblk), &      
+                     vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
+                     zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                     umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
+                     uarear   (:,:,iblk)  ,                      & 
+                     Au       (:,:,iblk)  , Av       (:,:,iblk)) 
+                    
+       enddo
+       !$OMP END PARALLEL DO                     
+                    
+               ! form wk2 from Au and Av arrays        
+       call arrays_to_vec (nx_block, ny_block, nblocks,      &
+                           max_blocks, icellu (:), n,        & 
+                           indxui    (:,:), indxuj(:,:),     &
+                           Au      (:,:,:), Av    (:,:,:),   &
+                           vv(1,i1))                  
+                         
 !     classical gram - schmidt...
 !
       do 55 j=1, i
@@ -232,8 +285,12 @@
        rhs(l)=0.0
        enddo
 ! precond
-!       call pre_jacobi JFL
+! precond
+!       call precond_diag (ntot,            & 
+!                          diagvec (:),     &
+!                          rhs (:), wk22 (:) )
 
+       rhs = wk !!! JFL       
 
        do 17 k=1, n
           sol(k) = sol(k) + rhs(k)
