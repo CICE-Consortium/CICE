@@ -111,7 +111,8 @@
          ioutpgmres     , & ! for printing pgmres info
          its            , & ! iteration nb for fgmres
          ischmi         , & ! Quesse ca!?!?! jfl
-         maxits         , & ! max nb of iteration for fgmres
+         maxits_fgmres  , & ! max nb of iteration for fgmres
+         maxits_pgmres  , & ! max nb of iteration for fgmres
          fgmres_its     , & ! final nb of fgmres_its
          im_fgmres      , & ! for size of fgmres Krylov subspace
          im_pgmres      , & ! for size of pgmres Krylov subspace
@@ -196,7 +197,8 @@
       
       im_fgmres = 50 
       im_pgmres = 50 
-      maxits = 50    
+      maxits_fgmres = 50 
+      maxits_pgmres = 4
       kmax=1000
       gammaNL=1e-6_dbl_kind !linear stopping criterion: gamma*(res_ini)
       gamma=2e-1_dbl_kind   !nonlinear stopping criterion:
@@ -538,7 +540,8 @@
       !                     sol_eps, maxits,its,conv,icode )
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
-                   gamma, gammaNL, tolNL, maxits,iout,icode,iconvNL,fgmres_its,kOL)                     
+                   gamma, gammaNL, tolNL, maxits_fgmres,iout,   &
+                   icode,iconvNL,fgmres_its,kOL)                     
 
       if (iconvNL .eq. 1) exit             
                    
@@ -572,7 +575,7 @@
                        uarear   (:,:,:)   , diagvec(:)         , &
                        wk22     (:)       , wk11(:)            , &
                        ntot               , im_pgmres          , &
-                       epsprecond         , maxits             , &
+                       epsprecond         , maxits_pgmres      , &
                        ioutpgmres         , ierr )         
          endif
          
