@@ -113,7 +113,7 @@
 
        n1 = n + 1
        its = 0
-       sol=0.0
+       sol=0.0 !JFL ...veut-on vraiment mettre sol = 0 ici??????
 !-------------------------------------------------------------
 ! outer loop starts here..
 !-------------- compute initial residual vector --------------

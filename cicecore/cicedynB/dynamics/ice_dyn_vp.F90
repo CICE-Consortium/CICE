@@ -196,12 +196,12 @@
       !-----------------------------------------------------------------
       
       im_fgmres = 50 
-      im_pgmres = 50 
+      im_pgmres = 5 
       maxits_fgmres = 50 
-      maxits_pgmres = 4
-      kmax=1000
-      gammaNL=1e-6_dbl_kind !linear stopping criterion: gamma*(res_ini)
-      gamma=2e-1_dbl_kind   !nonlinear stopping criterion:
+      maxits_pgmres = 5
+      kmax=1
+      gamma=2e-1_dbl_kind   ! linear stopping criterion: gamma(res(k)
+      gammaNL=1e-6_dbl_kind ! nonlinear stopping criterion: gammaNL*res(k=0)
       epsprecond=1e-6_dbl_kind ! for pgmres
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
