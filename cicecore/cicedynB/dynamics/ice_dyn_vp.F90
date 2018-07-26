@@ -116,7 +116,7 @@
          fgmres_its     , & ! final nb of fgmres_its
          im_fgmres      , & ! for size of fgmres Krylov subspace
          im_pgmres      , & ! for size of pgmres Krylov subspace
-         precond        , & ! 1: identity, 2: diagonal (free drift), 3: complete diagonal
+         precond        , & ! 1: identity, 2: diagonal 3: pgmres
          ierr           , & ! for pgmres precond
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
@@ -205,7 +205,7 @@
       epsprecond=1e-6_dbl_kind ! for pgmres
       iconvNL=0 ! equals 1 when NL convergence is reached
       krelax=c1
-      precond=3 ! 1: identity, 2: diagonal (fd), 3: complete diagonal, 4: gmres+complete diag
+      precond=2 ! 1: identity, 2: diagonal 3: gmres + diag
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -476,7 +476,7 @@
                             stPrtmp  (:,:,:))
 
 !     prepare precond matrix
-           if (precond .ge. 3) then
+           if (precond .gt. 1) then
 
            call formDiag_step1  (nx_block           , ny_block,       & ! D term due to rheology
                                  icellu       (iblk),                 &
@@ -487,16 +487,16 @@
                                  cxm      (:,:,iblk), cym (:,:,iblk), & 
                                  zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
                                 
-          endif                       
-                                
            call formDiag_step2 (nx_block           , ny_block,           &
-                                icellu       (iblk), precond,            & 
+                                icellu       (iblk),                     & 
                                 indxui     (:,iblk), indxuj    (:,iblk), &
                                 Dstrtmp  (:,:,:)   , vrel    (:,:,iblk), &
                                 umassdti (:,:,iblk),                     & 
                                 uarear   (:,:,iblk), Cb      (:,:,iblk), & 
                                 Diagu    (:,:,iblk), Diagv   (:,:,iblk))         
-                                
+                     
+          endif                     
+                     
          enddo
          !$OMP END PARALLEL DO                            
 
@@ -551,13 +551,13 @@
 
            wk22(:)=wk11(:) ! precond=identity
            
-         elseif (precond .eq. 2 .or. precond .eq. 3) then ! use diagonal of A for precond step
+         elseif (precond .eq. 2) then ! use diagonal of A for precond step
           
            call precond_diag (ntot,            & 
                               diagvec (:),     &
                               wk11 (:), wk22 (:) )
                               
-         elseif (precond .eq. 4) then
+         elseif (precond .eq. 3) then
          
           call pgmres (nx_block,    ny_block,    nblocks       , &
                        max_blocks         , icellu   (:)       , & 
@@ -2713,7 +2713,7 @@
 !=======================================================================
 
       subroutine formDiag_step2 (nx_block,   ny_block, &
-                                 icellu,     precond,  &
+                                 icellu,               &
                                  indxui,     indxuj,   &
                                  Dstr,       vrel,     &
                                  umassdti,             &
@@ -2722,8 +2722,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         precond               ! precond type
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -2783,12 +2782,10 @@
 
          ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
          
-         if (precond .eq. 3) then
-          strintx = uarear(i,j)* &
+         strintx = uarear(i,j)* &
              (Dstr(i,j,1) + Dstr(i,j,2) + Dstr(i,j,3) + Dstr(i,j,4))
-          strinty = uarear(i,j)* &
+         strinty = uarear(i,j)* &
              (Dstr(i,j,5) + Dstr(i,j,6) + Dstr(i,j,7) + Dstr(i,j,8))
-         endif    
 
          Diagu(i,j) = ccaimp - strintx
          Diagv(i,j) = ccaimp - strinty
