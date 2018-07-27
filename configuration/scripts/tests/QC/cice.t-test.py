@@ -127,9 +127,6 @@ def read_data(path_a, path_b, files_a, files_b, ni, nj):
     data_a = fill_data_array(path_a, files_a, nj, ni)
     data_b = fill_data_array(path_b, files_b, nj, ni)
 
-    logger.warning('debug, mdt :: scale data_b')
-    data_b = data_b * np.random.rand(len(files_a), nj, ni)   # debug, mdt
-
     data_a, data_b, data_d = calc_diff(data_a, data_b)
 
     return data_a, data_b, data_d
