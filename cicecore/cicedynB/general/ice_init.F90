@@ -610,7 +610,6 @@
          if (my_task == master_task) &
             write(nu_diag,*) 'WARNING: ice_ic = none or default, setting restart flags to .false.'
          restart = .false.
-         restart_ext =  .false. 
          restart_aero =  .false. 
          restart_age =  .false. 
          restart_fy =  .false. 
@@ -622,6 +621,8 @@
 !         restart_bgc =  .false. 
 !         restart_hbrine =  .false. 
 !         restart_zsal =  .false. 
+! tcraig, OK to leave as true, needed for boxrestore case
+!         restart_ext =  .false. 
       endif
 
       if (trim(runtype) == 'initial' .and. .not.(restart) .and. &
