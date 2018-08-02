@@ -10,6 +10,7 @@ smoke          gx3     4x1        diag1,run5day,thread   smoke_gx3_8x2_diag1_run
 decomp         gx3     4x2x25x29x5
 restart        gx1     40x4       droundrobin,short
 restart        gx3     4x4        none
+restart        gx3     4x4        iobinary
 restart        gx3     6x2        alt01
 restart        gx3     8x2        alt02
 restart        gx3     4x2        alt03
