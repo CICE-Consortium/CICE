@@ -77,7 +77,7 @@
           sss_data_type,   sst_data_type, ocn_data_dir, &
           oceanmixed_file, restore_sst,   trestore
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format, &
-                          grid_spacing, x_spacing, y_spacing
+                          dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 basalstress, Ktens, e_ratio, coriolis
       use ice_transport_driver, only: advection
@@ -142,8 +142,7 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
-        kcatbound,      gridcpl_file, grid_spacing,     x_spacing,      &
-        y_spacing
+        kcatbound,      gridcpl_file,    dxrect,        dyrect
 
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,                       &
@@ -476,9 +475,8 @@
       call broadcast_scalar(pointer_file,       master_task)
       call broadcast_scalar(ice_ic,             master_task)
       call broadcast_scalar(grid_format,        master_task)
-      call broadcast_scalar(grid_spacing,       master_task)
-      call broadcast_scalar(x_spacing,          master_task)
-      call broadcast_scalar(y_spacing,          master_task)
+      call broadcast_scalar(dxrect,             master_task)
+      call broadcast_scalar(dyrect,             master_task)
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)

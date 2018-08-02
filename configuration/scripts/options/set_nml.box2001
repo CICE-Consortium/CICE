@@ -31,5 +31,5 @@ f_vatm         = 'd'
 f_uocn         = 'd'
 f_vocn         = 'd'
 coriolis       = 'constant'
-x_spacing      = 16.e3
-y_spacing      = 16.e3
+dxrect         = 16.e5
+dyrect         = 16.e5

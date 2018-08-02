@@ -48,8 +48,8 @@
     kmt_file     = 'kmt'
     gridcpl_file = 'unknown_gridcpl_file'
     kcatbound    = 0
-    x_spacing    = 30.e3
-    y_spacing    = 30.e3
+    dxrect         = 30.e5
+    dyrect         = 30.e5
 /
 
 &domain_nml
