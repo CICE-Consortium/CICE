@@ -33,3 +33,4 @@ f_vocn         = 'd'
 coriolis       = 'constant'
 dxrect         = 16.e5
 dyrect         = 16.e5
+kdyn           = 0
