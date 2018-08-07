@@ -233,13 +233,13 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
     if np.all(H1):
         # H1 in all grid cells
         logger.debug('H1 in all cells, stage 2')
-        logger.info('2 stage test failed 1')
+        logger.info('2 Stage Test Failed')
         return False, H1
 
     elif np.all(H1 == False):
         # H0 confirmed in all grid cells
         logger.debug('H0 confirmed in all cells with n_eff < 30')
-        logger.info('2 stage test passed 1')
+        logger.info('2 Stage Test Passed')
         return True, H1
 
 ####### Some grid cells have H0 confirmed, and some do not ######
@@ -249,13 +249,13 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
     f_val = critical_fraction(data_a, H1, fname, path)
     f_crit = 0.5
     if f_val >= f_crit:
-        logger.info('2-stage test failed')
+        logger.info('2 Stage Test Failed')
         logger.debug('Area-weighted fraction of failures is greater than ' + \
                     'critical fraction.  Test failed.')
         logger.debug('Area-weighted fraction of failures = %f', f_val)
         return False, H1
     else:
-        logger.info('2-stage test passed')
+        logger.info('2 Stage Test Passed')
         logger.debug('Area-weighted fraction of failures = %f', f_val)
         return True, H1
 
