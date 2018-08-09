@@ -24,7 +24,7 @@ set QC_SUCCESS=0
 set QC_FAIL=1
 
 # Perform the comparisons
-echo "===== Running QC tests and writing output to validate_qc.log ====="
+echo "===== Running QC tests and writing output to $QC_DIR/validate_qc.log ====="
 echo "Running QC test on base and bfb directories."
 echo "Expected result: PASSED"
 ./configuration/scripts/tests/QC/cice.t-test.py $base_histdir $bfb_histdir >& $QC_DIR/validate_qc.log
