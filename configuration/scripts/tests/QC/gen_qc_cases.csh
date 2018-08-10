@@ -49,14 +49,14 @@ SYNOPSIS
 DESCRIPTION
     --help, -h : help
     --mach, -m : machine, machine name (required)
-    --env,  -e : compiler (default = $compilers)
-    --pes,  -p : tasks x threads [x blocksize_x x blocksize_y [x maxblocks]] (default is ${pesx})
+    --env,  -e : compiler
+    --pes,  -p : tasks x threads [x blocksize_x x blocksize_y [x maxblocks]]
     --acct     : account number for the batch submission
-    --grid, -g : grid, grid (default = ${grid})
+    --grid, -g : grid, grid
     --queue    : queue for the batch submission
 
 EXAMPLES
-    gen_qc_cases.csh -m $machine -e intel -p 8x4
+    gen_qc_cases.csh -m conrad -e intel -p 8x4
 
 EOF1
 endif
