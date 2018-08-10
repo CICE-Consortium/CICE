@@ -172,7 +172,7 @@ and ``qc_fail``.  ``qc_base`` is the base test case with the default QC namelist
 when compared to ``qc_base``, but not climate changing.  ``qc_fail`` is a test that is not
 bit-for-bit and also climate changing.
 
-In order to perform the validation, perform the following steps.
+In order to perform the validation, execute the following commands.
 
 .. code-block:: bash
 
@@ -188,15 +188,13 @@ In order to perform the validation, perform the following steps.
   # Perform the comparisons
   ./compare_qc_cases.csh
 
-The ``compare_qc_cases.csh`` script will perform the QC script on the following combinations:
+The ``compare_qc_cases.csh`` script will run the QC script on the following combinations:
 
 * ``qc_base`` vs. ``qc_bfb``
 * ``qc_base`` vs. ``qc_nonbfb``
 * ``qc_base`` vs. ``qc_fail``
 
-An example of the output from ``compare_qc_cases.csh`` is shown below.
-
-.. code-block:: bash
+An example of the output from ``compare_qc_cases.csh`` is shown below.::
 
   ===== Running QC tests and writing output to validate_qc.log =====
   Running QC test on base and bfb directories.
