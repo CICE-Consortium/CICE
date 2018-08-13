@@ -73,7 +73,7 @@ contains
     logical (kind=log_kind) :: tr_lvl, tr_zaero, tr_bgc_Nit 
     real (kind=dbl_kind)    :: tffresh
     logical (kind=log_kind) :: first_call = .true.
-    character(len=*),parameter :: subname = 'ice_import'
+    character(len=*), parameter :: subname = '(ice_import)'
     !-----------------------------------------------------
 
     call icepack_query_parameters(tfrz_option_out=tfrz_option, &
@@ -83,7 +83,7 @@ contains
        tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
        tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
     call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
 
     ! Note that the precipitation fluxes received  from the coupler
@@ -538,13 +538,13 @@ contains
     type(block)        :: this_block       ! block information for current block
     integer :: icnt,icnt1,iblk1,icnt1sum,icnt1max  ! gridcell and block counters
     logical :: flag
-    character(len=*),parameter :: subname = 'ice_export'
+    character(len=*), parameter :: subname = '(ice_export)'
     !-----------------------------------------------------
 
     call icepack_query_parameters(Tffresh_out=Tffresh, vonkar_out=vonkar, zref_out=zref, &
        iceruf_out=iceruf)
     call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
 
     flag=.false.

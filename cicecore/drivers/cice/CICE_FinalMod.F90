@@ -44,7 +44,7 @@
       call ice_timer_print_all(stats=.false.) ! print timing information
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
       if (my_task == master_task) then

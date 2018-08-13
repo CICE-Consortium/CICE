@@ -67,11 +67,12 @@
       real (kind=dbl_kind), dimension(npnt,nilyr) :: &
          pSin, pSin1
 
+      character(len=*), parameter :: subname = '(hbrine_diags)'
 
       call icepack_query_parameters(ktherm_out=ktherm)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_fbri_out=nt_fbri)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -256,6 +257,7 @@
          pchlsw
       real (kind=dbl_kind), dimension(npnt,nslyr+nilyr+2,icepack_max_aero) :: &
          pzaerosw
+      character(len=*), parameter :: subname = '(bgc_diags)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, dEdd_algae_out=dEdd_algae)
       call icepack_query_tracer_flags( &
@@ -278,7 +280,7 @@
          nlt_bgc_DOC_out=nlt_bgc_DOC, nlt_bgc_DON_out=nlt_bgc_DON, nlt_bgc_DMSPp_out=nlt_bgc_DMSPp, &
          nlt_bgc_DMS_out=nlt_bgc_DMS)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       zspace(:) = c1/real(nblyr,kind=dbl_kind)
@@ -911,13 +913,14 @@
       logical (kind=log_kind) :: tr_brine
 
       integer (kind=int_kind) :: nt_fbri, nt_bgc_S, nt_sice
+      character(len=*), parameter :: subname = '(zsal_diags)'
 
       call icepack_query_parameters(rhosi_out=rhosi, rhow_out=rhow, rhos_out=rhos)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_bgc_S_out=nt_bgc_S, &
            nt_sice_out=nt_sice)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------

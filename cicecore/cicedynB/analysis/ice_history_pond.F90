@@ -74,6 +74,7 @@
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       logical (kind=log_kind) :: tr_pond
+      character(len=*), parameter :: subname = '(init_hist_pond_2D)'
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -81,7 +82,7 @@
 
       call icepack_query_tracer_flags(tr_pond_out=tr_pond)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call get_fileunit(nu_nml)
@@ -102,7 +103,7 @@
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
          close (nu_nml)
-         call abort_ice('ice: error reading icefields_pond_nml')
+         call abort_ice(subname//'ERROR: reading icefields_pond_nml')
       endif
 
       if (.not. tr_pond) then
@@ -194,6 +195,7 @@
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
+      character(len=*), parameter :: subname = '(init_hist_pond_3Dc)'
       
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
@@ -256,6 +258,8 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(accum_hist_pond)'
+
       !---------------------------------------------------------------
       ! increment field
       !---------------------------------------------------------------
@@ -266,7 +270,7 @@
          call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
               nt_alvl_out=nt_alvl, nt_ipnd_out=nt_ipnd)
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
          if (tr_pond_cesm) then

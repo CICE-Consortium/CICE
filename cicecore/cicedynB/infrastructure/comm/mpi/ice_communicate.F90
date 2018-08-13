@@ -71,6 +71,8 @@
    logical            :: flag  ! MPI logical flag
    integer (int_kind) :: ice_comm
 
+   character(len=*), parameter :: subname = '(init_communicate)'
+
 !-----------------------------------------------------------------------
 !
 !  initiate mpi environment and create communicator for internal
@@ -123,6 +125,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: ierr
+   character(len=*), parameter :: subname = '(get_num_procs)'
 
 !-----------------------------------------------------------------------
 
@@ -145,6 +148,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: ierr
+   character(len=*), parameter :: subname = '(ice_barrier)'
 
 !-----------------------------------------------------------------------
 
@@ -188,6 +192,8 @@
    integer (int_kind), dimension(3) :: &
      range                   ! range of tasks assigned to new dist
                              !  (assumed 0,num_procs-1)
+
+   character(len=*), parameter :: subname = '(create_communicator)'
 
 !-----------------------------------------------------------------------
 !

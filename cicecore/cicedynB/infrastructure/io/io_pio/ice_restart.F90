@@ -57,6 +57,8 @@
 
       integer (kind=int_kind) :: status
 
+      character(len=*), parameter :: subname = '(init_restart_read)'
+
       if (present(ice_ic)) then 
          filename = trim(ice_ic)
       else
@@ -166,6 +168,8 @@
 
       character (len=3) :: nchar, ncharb
 
+      character(len=*), parameter :: subname = '(init_restart_write)'
+
       call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
@@ -180,7 +184,7 @@
       call icepack_query_parameters(solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, &
           z_tracers_out=z_tracers)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       ! construct path/file
@@ -669,6 +673,8 @@
 
       real (kind=dbl_kind) :: amin,amax,asum
 
+      character(len=*), parameter :: subname = '(read_restart_field)'
+
       if (restart_format == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file read: ',vname
@@ -678,7 +684,7 @@
          status = pio_inq_varid(File,trim(vname),vardesc)
 
          if (status /= 0) then
-            call abort_ice("CICE4 restart? Missing variable: "//trim(vname))
+            call abort_ice(subname//"ERROR: CICE4 restart? Missing variable: "//trim(vname))
          endif
 
          call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
@@ -725,7 +731,7 @@
          
          endif
       else
-         call abort_ice("Invalid restart_format: "//restart_format)
+         call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
       endif
 
       end subroutine read_restart_field
@@ -772,6 +778,8 @@
 
       real (kind=dbl_kind) :: amin,amax,asum
 
+      character(len=*), parameter :: subname = '(write_restart_field)'
+
       if (restart_format == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file write: ',vname
@@ -812,7 +820,7 @@
             endif
          endif
       else
-         call abort_ice("Invalid restart_format: "//restart_format)
+         call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
       endif
 
       end subroutine write_restart_field
@@ -826,6 +834,8 @@
 
       use ice_calendar, only: istep1, time, time_forc
       use ice_communicate, only: my_task, master_task
+
+      character(len=*), parameter :: subname = '(final_restart)'
 
       if (restart_format == 'pio') then
          call PIO_freeDecomp(File,iodesc2d)
@@ -851,6 +861,8 @@
 
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine
+
+      character(len=*), parameter :: subname = '(define_rest_field)'
 
       status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
         

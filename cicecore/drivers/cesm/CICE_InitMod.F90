@@ -41,6 +41,8 @@
 
       subroutine CICE_Initialize
 
+      character(len=*), parameter :: subname = '(CICE_Initialize)'
+
    !--------------------------------------------------------------------
    ! model initialization
    !--------------------------------------------------------------------
@@ -132,7 +134,7 @@
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
       endif
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       call calendar(time)       ! determine the initial date
@@ -151,7 +153,7 @@
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
@@ -239,6 +241,8 @@
           nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero
 
+      character(len=*), parameter :: subname = '(init_restart)'
+
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
           tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
@@ -247,7 +251,7 @@
           nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       if (trim(runtype) == 'continue') then 
@@ -417,13 +421,14 @@
 
       character(len=char_len_long) :: filename
       logical :: lexist = .false.
+      character(len=*), parameter :: subname = '(check_finished_file)'
 
       if (my_task == master_task) then
            
          filename = trim(restart_dir)//"finished"
          inquire(file=filename, exist=lexist)
          if (lexist) then
-            call abort_ice("Found already finished file - quitting")
+            call abort_ice(subname//"ERROR: Found already finished file - quitting")
          end if
 
       endif

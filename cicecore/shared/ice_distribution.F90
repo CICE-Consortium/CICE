@@ -78,6 +78,9 @@
    type (distrb) :: &
       create_distribution   ! resulting structure describing
                             !  distribution of blocks
+
+   character(len=*),parameter :: subname='(create_distribution)'
+
 !----------------------------------------------------------------------
 !
 !  select the appropriate distribution type
@@ -121,7 +124,7 @@
 
    case default
 
-      call abort_ice('ice distribution: unknown distribution type')
+      call abort_ice(subname//'ERROR: ice distribution: unknown distribution type')
 
    end select
 
@@ -155,6 +158,8 @@
 
    logical (log_kind) :: dbug
 
+   character(len=*),parameter :: subname='(create_local_block_ids)'
+
 !-----------------------------------------------------------------------
 !
 !  first determine number of local blocks to allocate array
@@ -183,7 +188,7 @@
             block_ids(distribution%blockLocalID(n)) = n
 
             if (dbug) then
-            write(nu_diag,*) 'block id, proc, local_block: ', &
+            write(nu_diag,*) subname,'block id, proc, local_block: ', &
                              block_ids(distribution%blockLocalID(n)), &
                              distribution%blockLocation(n), &
                              distribution%blockLocalID(n)
@@ -218,6 +223,8 @@
 
    real (real_kind) :: &
       square                       ! square root of nprocs
+
+   character(len=*),parameter :: subname='(proc_decomposition)'
 
 !----------------------------------------------------------------------
 !
@@ -320,11 +327,11 @@
    end do proc_loop
 
    if (nprocs_x == 0) then
-      call abort_ice('ice: Unable to find 2d processor config')
+      call abort_ice(subname//'ERROR: Unable to find 2d processor config')
    endif
 
    if (my_task == master_task) then
-     write(nu_diag,'(a23,i4,a3,i4)') '  Processors (X x Y) = ', &
+     write(nu_diag,'(a,a23,i4,a3,i4)') subname,'  Processors (X x Y) = ', &
                                         nprocs_x,' x ',nprocs_y
    endif
 
@@ -349,6 +356,8 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: istat  ! status flag for deallocate
+
+   character(len=*),parameter :: subname='(ice_distributionDestroy)'
 
 !----------------------------------------------------------------------
 !
@@ -397,6 +406,8 @@
          blockLocalID      ,&! local  block id for all blocks
          blockGlobalID       ! global block id for each local block
 
+   character(len=*),parameter :: subname='(ice_distributionGet)'
+
 !-----------------------------------------------------------------------
 !
 !  depending on which optional arguments are present, extract the
@@ -412,8 +423,7 @@
       if (associated(distribution%blockLocation)) then
          blockLocation => distribution%blockLocation
       else
-        call abort_ice( &
-            'ice_distributionGet: blockLocation not allocated')
+         call abort_ice(subname//'ERROR: blockLocation not allocated')
          return
       endif
    endif
@@ -422,8 +432,7 @@
       if (associated(distribution%blockLocalID)) then
          blockLocalID = distribution%blockLocalID
       else
-        call abort_ice( &
-            'ice_distributionGet: blockLocalID not allocated')
+         call abort_ice(subname//'ERROR: blockLocalID not allocated')
          return
       endif
    endif
@@ -432,8 +441,7 @@
       if (associated(distribution%blockGlobalID)) then
          blockGlobalID = distribution%blockGlobalID
       else
-        call abort_ice( &
-            'ice_distributionGet: blockGlobalID not allocated')
+         call abort_ice(subname//'ERROR: blockGlobalID not allocated')
          return
       endif
    endif
@@ -463,6 +471,8 @@
       processor,            &! processor on which block resides
       localID                ! local index for this block on this proc
 
+   character(len=*),parameter :: subname='(ice_distributionGetBlockLoc)'
+
 !-----------------------------------------------------------------------
 !
 !  check for valid blockID
@@ -470,8 +480,7 @@
 !-----------------------------------------------------------------------
 
    if (blockID < 0 .or. blockID > nblocks_tot) then
-     call abort_ice( &
-         'ice_distributionGetBlockLoc: invalid block id')
+      call abort_ice(subname//'ERROR: invalid block id')
       return
    endif
 
@@ -506,6 +515,8 @@
    integer (int_kind), intent(out) :: &
       blockID                ! global block id for this local block
 
+   character(len=*),parameter :: subname='(ice_distributionGetBlockID)'
+
 !-----------------------------------------------------------------------
 !
 !  check for valid localID
@@ -513,8 +524,7 @@
 !-----------------------------------------------------------------------
 
    if (localID < 0 .or. localID > distribution%numLocalBlocks) then
-     call abort_ice( &
-         'ice_distributionGetBlockID: invalid local id')
+      call abort_ice(subname//'ERROR: invalid local id')
       return
    endif
 
@@ -565,6 +575,8 @@
       nprocsY,             &! num of procs in y for global domain
       numBlocksXPerProc,     &! num of blocks per processor in x
       numBlocksYPerProc       ! num of blocks per processor in y
+
+   character(len=*),parameter :: subname='(create_distrb_cart)'
 
 !----------------------------------------------------------------------
 !
@@ -724,6 +736,8 @@
       procTmp              ! temp processor id for rake algrthm
 
    type (distrb) :: dist  ! temp hold distribution
+
+   character(len=*),parameter :: subname='(create_distrb_rake)'
 
 !----------------------------------------------------------------------
 !
@@ -907,16 +921,14 @@
    newDistrb%numLocalBlocks = procTmp(my_task+1)
 
    if (minval(procTmp) < 1) then
-      call abort_ice( &
-         'create_distrb_rake: processors left with no blocks')
+      call abort_ice(subname//'ERROR: processors left with no blocks')
       return
    endif
 
    deallocate(procTmp, stat=istat)
 
    if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_rake: error allocating last procTmp')
+      call abort_ice(subname//'ERROR: allocating last procTmp')
       return
    endif
 
@@ -924,8 +936,7 @@
             stat=istat)
 
    if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_rake: error allocating blockGlobalID')
+      call abort_ice(subname//'ERROR: allocating blockGlobalID')
       return
    endif
 
@@ -979,6 +990,8 @@
    integer (int_kind), dimension(:), allocatable :: &
       proc_tmp           ! temp processor id
    
+   character(len=*),parameter :: subname='(create_distrb_roundrobin)'
+
 !----------------------------------------------------------------------
 !
 !  create communicator for this distribution
@@ -1030,7 +1043,7 @@
          proc_tmp(processor) = proc_tmp(processor) + 1
          localID = proc_tmp(processor)
          if (localID > max_blocks) then
-            call abort_ice('create_distrb_roundrobin: max_blocks too small')
+            call abort_ice(subname//'ERROR: max_blocks too small')
             return
          endif
          newDistrb%blockLocation(globalID) = processor
@@ -1112,6 +1125,8 @@
    integer (int_kind), dimension(:,:), allocatable :: &
       blockchk           ! temp block check array
    
+   character(len=*),parameter :: subname='(create_distrb_spiralcenter)'
+
 !----------------------------------------------------------------------
 !
 !  create communicator for this distribution
@@ -1233,7 +1248,7 @@
 
    if (nblocklist /= nblocks_x*nblocks_y .or. &
        maxval(blockchk) /= 1 .or. minval(blockchk) /= 1) then
-     call abort_ice('create_distrb_spiralcenter: blockchk invalid')
+     call abort_ice(subname//'ERROR: blockchk invalid')
      return
    endif
    deallocate(blockchk)
@@ -1253,7 +1268,7 @@
        proc_tmp(processor) = proc_tmp(processor) + 1
        localID = proc_tmp(processor)
        if (localID > max_blocks) then
-          call abort_ice('create_distrb_spiralcenter: max_blocks too small')
+          call abort_ice(subname//'ERROR: max_blocks too small')
           return
        endif
        newDistrb%blockLocation(globalID) = processor
@@ -1334,6 +1349,8 @@
 
    logical (log_kind) ::  up   ! direction of pe counting
    
+   character(len=*),parameter :: subname='(create_distrb_wghtfile)'
+
 !----------------------------------------------------------------------
 !
 !  create communicator for this distribution
@@ -1378,10 +1395,10 @@
    newDistrb%blockIndex(:,:) = 0
 
    if (my_task == master_task) &
-      write(nu_diag,*) 'create_distrb_wghtfile: workPerBlock = ',minval(workPerBlock),maxval(workPerBlock)
+      write(nu_diag,*) subname,' workPerBlock = ',minval(workPerBlock),maxval(workPerBlock)
    if (minval(workPerBlock) < 0 .or. maxval(workPerBlock) > 12) then
-      write(nu_diag,*) 'create_distrb_wghtfile: workPerBlock = ',minval(workPerBlock),maxval(workPerBlock)
-      call abort_ice('create_distrb_wghtfile: workPerBlock incorrect')
+      write(nu_diag,*) subname,' workPerBlock = ',minval(workPerBlock),maxval(workPerBlock)
+      call abort_ice(subname//'ERROR: workPerBlock incorrect')
       return
    endif
 
@@ -1418,7 +1435,7 @@
          proc_tmp(processor) = proc_tmp(processor) + 1
          localID = proc_tmp(processor)
          if (localID > max_blocks) then
-            call abort_ice('create_distrb_wghtfile: max_blocks too small')
+            call abort_ice(subname//'ERROR: max_blocks too small')
             return
          endif
          newDistrb%blockLocation(globalID) = processor
@@ -1428,7 +1445,7 @@
 
    end do
    end do
-   write(nu_diag,*) 'create_distrb_wghtfile n cnt = ',n,cnt
+!   write(nu_diag,*) 'create_distrb_wghtfile n cnt = ',n,cnt
    end do
 
    newDistrb%numLocalBlocks = proc_tmp(my_task+1)
@@ -1502,6 +1519,8 @@
    integer (int_kind) :: cnt, blktogether, i2
    integer (int_kind) :: totblocks, nchunks
    logical (log_kind) :: keepgoing
+
+   character(len=*),parameter :: subname='(create_distrb_sectrobin)'
 
 !----------------------------------------------------------------------
 !
@@ -1598,7 +1617,7 @@
             proc_tmp(processor) = proc_tmp(processor) + 1
             localID = proc_tmp(processor)
             if (localID > max_blocks) then
-               call abort_ice('create_distrb_sectrobin: max_blocks too small')
+               call abort_ice(subname//'ERROR: max_blocks too small')
                return
             endif
             newDistrb%blockLocation(globalID) = processor
@@ -1649,7 +1668,7 @@
             proc_tmp(processor) = proc_tmp(processor) + 1
             localID = proc_tmp(processor)
             if (localID > max_blocks) then
-               call abort_ice('create_distrb_sectrobin: max_blocks too small')
+               call abort_ice(subname//'ERROR: max_blocks too small')
                return
             endif
             newDistrb%blockLocation(globalID) = processor
@@ -1709,7 +1728,7 @@
          proc_tmp(processor) = proc_tmp(processor) + 1
          localID = proc_tmp(processor)
          if (localID > max_blocks) then
-            call abort_ice('create_distrb_sectrobin: max_blocks too small')
+            call abort_ice(subname//'ERROR: max_blocks too small')
             return
          endif
          newDistrb%blockLocation(globalID) = processor
@@ -1794,6 +1813,8 @@
    
    integer (int_kind) :: n
 
+   character(len=*),parameter :: subname='(create_distrb_sectcart)'
+
 !----------------------------------------------------------------------
 !
 !  create communicator for this distribution
@@ -1839,8 +1860,7 @@
    ! --- phase 2 is north to south, east to west on the right half of the domain
 
    if (mod(nblocks_x,2) /= 0) then
-      call abort_ice( &
-         'create_distrb_sectcart: nblocks_x not divisible by 2')
+      call abort_ice(subname//'ERROR: nblocks_x not divisible by 2')
       return
    endif
 
@@ -1869,7 +1889,7 @@
          proc_tmp(processor) = proc_tmp(processor) + 1
          localID = proc_tmp(processor)
          if (localID > max_blocks) then
-            call abort_ice('create_distrb_sectcart: max_blocks too small')
+            call abort_ice(subname//'ERROR: max_blocks too small')
             return
          endif
          newDistrb%blockLocation(globalID) = processor
@@ -1971,6 +1991,8 @@
       proc_tmp             ! temp processor id for rake algrthm
 
    type (distrb) :: dist   ! temp hold distribution
+
+   character(len=*),parameter :: subname='(create_distrb_spacecurve)'
 
    !------------------------------------------------------
    ! Space filling curves only work if:
@@ -2243,6 +2265,8 @@
       meanWork, maxWork,     &! mean,max work per processor
       diffWork, residual,    &! work differences and residual work
       numTransfers            ! counter for number of block transfers
+
+   character(len=*),parameter :: subname='(ice_distributionRake)'
 
 !----------------------------------------------------------------------
 !

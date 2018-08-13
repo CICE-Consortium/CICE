@@ -104,6 +104,8 @@
    integer (int_kind) :: &
       nml_error          ! namelist read error flag
 
+   character(len=*), parameter :: subname = '(init_domain_blocks)'
+
 !----------------------------------------------------------------------
 !
 !  input namelists
@@ -155,7 +157,7 @@
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call abort_ice('ice: error reading domain_nml')
+      call abort_ice(subname//'ERROR: error reading domain_nml')
    endif
 
    call broadcast_scalar(nprocs,            master_task)
@@ -179,7 +181,7 @@
       !***
       !*** domain size zero or negative
       !***
-      call abort_ice('ice: Invalid domain: size < 1') ! no domain
+      call abort_ice(subname//'ERROR: Invalid domain: size < 1') ! no domain
    else if (nprocs /= get_num_procs()) then
       !***
       !*** input nprocs does not match system (eg MPI) request
@@ -187,13 +189,13 @@
 #if (defined CESMCOUPLED)
       nprocs = get_num_procs()
 #else
-      call abort_ice('ice: Input nprocs not same as system request')
+      call abort_ice(subname//'ERROR: Input nprocs not same as system request')
 #endif
    else if (nghost < 1) then
       !***
       !*** must have at least 1 layer of ghost cells
       !***
-      call abort_ice('ice: Not enough ghost cells allocated')
+      call abort_ice(subname//'ERROR: Not enough ghost cells allocated')
    endif
 
 !----------------------------------------------------------------------
@@ -302,6 +304,8 @@
    real (dbl_kind), dimension(:,:), allocatable :: &
       wght                 ! wghts from file
 
+   character(len=*), parameter :: subname = '(init_domain_distribution)'
+
 !----------------------------------------------------------------------
 !
 !  check that there are at least nghost+1 rows or columns of land cells
@@ -312,7 +316,7 @@
 
    call icepack_query_parameters(puny_out=puny, rad_to_deg_out=rad_to_deg)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
    if (trim(ns_boundary_type) == 'closed') then
@@ -348,7 +352,7 @@
          endif
          if (nocn(n) > 0) then
             print*, 'ice: Not enough land cells along ns edge'
-            call abort_ice('ice: Not enough land cells along ns edge')
+            call abort_ice(subname//'ERROR: Not enough land cells along ns edge')
          endif
       enddo
       deallocate(nocn)
@@ -386,7 +390,7 @@
          endif
          if (nocn(n) > 0) then
             print*, 'ice: Not enough land cells along ew edge'
-            call abort_ice('ice: Not enough land cells along ew edge')
+            call abort_ice(subname//'ERROR: Not enough land cells along ew edge')
          endif
       enddo
       deallocate(nocn)
@@ -415,13 +419,13 @@
          write(nu_diag,*) 'read ',trim(distribution_wght_file),minval(wght),maxval(wght)
          status = nf90_open(distribution_wght_file, NF90_NOWRITE, fid)
          if (status /= nf90_noerr) then
-            call abort_ice ('ice_domain nf_open: Cannot open '//trim(distribution_wght_file))
+            call abort_ice (subname//'ERROR: Cannot open '//trim(distribution_wght_file))
          endif
          status = nf90_inq_varid(fid, 'wght', varid)
          status = nf90_get_var(fid, varid, wght)
          status = nf90_close(fid)
 #else
-         call abort_ice ('ice_domain distribution_wght = file needs netcdf ')
+         call abort_ice (subname//'ERROR: distribution_wght file needs ncdf cpp ')
 #endif
       endif
       call broadcast_array(wght, master_task)
@@ -547,14 +551,14 @@
    if (nblocks_max > max_blocks) then
      write(outstring,*) &
          'ERROR: ice no. blocks exceed max: increase max to', nblocks_max
-     call abort_ice("subname"//trim(outstring), &
+     call abort_ice(subname//trim(outstring), &
         file=__FILE__, line=__LINE__)
    else if (nblocks_max < max_blocks) then
      write(outstring,*) &
          'WARNING: ice no. blocks too large: decrease max to', nblocks_max
      if (my_task == master_task) then
         write(nu_diag,*) ' ********WARNING***********'
-        write(nu_diag,*) "subname",trim(outstring)
+        write(nu_diag,*) subname,trim(outstring)
         write(nu_diag,*) ' **************************'
         write(nu_diag,*) ' '
      endif
