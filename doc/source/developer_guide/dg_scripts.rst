@@ -146,10 +146,16 @@ it's working properly.
 Code Compliance Script
 ----------------------
 
-The directory **configuration/scripts/tests/QC** contains scripts related to the non bit-for-bit
-compliance testing described in :ref:`compliance`.  Any modificaitons to the code compliance
-script (``cice.t-test.py``) must be validated using the QC validation process.  Two scripts 
-have been created to automatically validate the code compliance script.  These scripts are:
+The code compliance test validates non bit-for-bit model changes.  The directory 
+**configuration/scripts/tests/QC** contains scripts related to the compliance testing,
+and this process is described in :ref:`compliance`.  This section will describe a set
+of scripts that test and validate the code compliance process.  This should be done 
+when the compliance test or compliance test scripts (i.e., ``cice.t-test.py``) are modified.  
+Again, this section **documents a validation process for the compliance scripts**; it does not
+describe to how run the compliance test itself.  
+
+Two scripts have been created to automatically validate the code compliance script.  
+These scripts are:
 
 * ``gen_qc_cases.csh``, which creates the 4 test cases required for validation,
   builds the executable, and submits to the queue.
