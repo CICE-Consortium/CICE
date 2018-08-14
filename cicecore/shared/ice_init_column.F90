@@ -1754,7 +1754,7 @@
       F_abs_chl(3) = F_abs_chl_phaeo
 
       R_Fe2DON(1) = ratio_Fe2DON
-      R_C2N(1) = ratio_C2N_proteins
+      R_C2N_DON(1) = ratio_C2N_proteins
      
       R_Fe2DOC(1) = ratio_Fe2DOC_s
       R_Fe2DOC(2) = ratio_Fe2DOC_l
@@ -1854,7 +1854,10 @@
          dustFe_sol_in=dustFe_sol, T_max_in=T_max, fr_mort2min_in=fr_mort2min, fr_dFe_in=fr_dFe, &
          op_dep_min_in=op_dep_min, fr_graze_s_in=fr_graze_s, fr_graze_e_in=fr_graze_e, &
          k_nitrif_in=k_nitrif, t_iron_conv_in=t_iron_conv, max_loss_in=max_loss, max_dfe_doc1_in=max_dfe_doc1, &
-         fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox)
+         fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox, &
+         mu_max_in=mu_max, R_Si2N_in=R_Si2N, R_C2N_DON_in=R_C2N_DON, chlabs_in=chlabs, &
+         alpha2max_low_in=alpha2max_low, beta2max_in=beta2max, grow_Tdep_in=grow_Tdep, &
+         fr_graze_in=fr_graze, mort_pre_in=mort_pre)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
