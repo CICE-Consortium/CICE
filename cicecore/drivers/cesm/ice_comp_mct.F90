@@ -163,7 +163,7 @@ contains
     logical (kind=log_kind) :: atm_aero, tr_aero, tr_zaero
     real(r8) :: mrss, mrss0,msize,msize0
     real(r8) :: eccen, obliqr, lambm0, mvelpp
-    character(len=*), parameter  :: SubName = "ice_init_mct"
+    character(len=*), parameter :: subname = '(ice_init_mct)'
 ! !REVISION HISTORY:
 ! Author: Mariana Vertenstein
 !EOP
@@ -200,7 +200,7 @@ contains
        snowpatch_in = 0.005_dbl_kind, &
        dragio_in = 0.00962_dbl_kind)
     call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
 
     !--------------------------------------------------------------------------
@@ -228,7 +228,7 @@ contains
     call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, &
          lambm0_in=lambm0, obliqr_in=obliqr)
     call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
 
     !   call shr_init_memusage()
@@ -458,7 +458,7 @@ contains
 
     call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
     call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
 
     ! Error check
@@ -534,10 +534,10 @@ contains
     real(r8) :: eccen, obliqr, lambm0, mvelpp
     character(len=char_len_long) :: fname
     character(len=char_len_long) :: string1, string2
-    character(len=*), parameter  :: SubName = "ice_run_mct"
 
     real(r8) :: mrss, mrss0,msize,msize0
     logical, save :: first_time = .true.
+    character(len=*), parameter :: subname = '(ice_run_mct)'
 
 !
 ! !REVISION HISTORY:
@@ -570,7 +570,7 @@ contains
     call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, &
          lambm0_in=lambm0, obliqr_in=obliqr)
     call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
 
     ! Get clock information
@@ -701,6 +701,8 @@ contains
     type(seq_cdata), intent(inout) :: cdata_i
     type(mct_aVect), intent(inout) :: x2i_i
     type(mct_aVect), intent(inout) :: i2x_i
+
+    character(len=*), parameter :: subname = '(ice_final_mct)'
 !
 ! !REVISION HISTORY:
 !
@@ -736,6 +738,7 @@ contains
     integer     :: ier
     integer     :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
     type(block) :: this_block         ! block information for current block
+    character(len=*), parameter :: subname = '(ice_SetGSMap_mct)'
     !-------------------------------------------------------------------
 
     ! Build the CICE grid numbering for MCT
@@ -824,6 +827,7 @@ contains
     real(dbl_kind) :: rad_to_deg
     integer       , pointer :: idata(:)    ! temporary
     type(block)             :: this_block  ! block information for current block
+    character(len=*), parameter :: subname = '(ice_domain_mct)'
     !-------------------------------------------------------------------
 
     call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
@@ -963,7 +967,7 @@ contains
 
     !-----------------------------------------------------
     type(mct_aVect)   , intent(inout) :: i2x_i
-
+    character(len=*), parameter :: subname = '(ice_setdef_mct)'
     !-----------------------------------------------------
 
     call mct_aVect_zero(i2x_i)
@@ -994,7 +998,7 @@ contains
     integer :: lsizea,lsizeb
     integer :: iam,ierr
     integer, pointer :: ipoints(:)
-    character(len=*),parameter :: subname = "ice_coffset_mct"
+    character(len=*), parameter :: subname = '(ice_coffset_mct)'
 
     call mpi_comm_rank(mpicom_i,iam,ierr)
 
@@ -1110,7 +1114,7 @@ contains
     type(mct_avect) :: avg, av1
     integer :: fid,did,vid
     character(len=8) :: avfld,dofld
-    character(len=*), parameter  :: SubName = "ice_setcoupling_mct"
+    character(len=*), parameter :: subname = '(ice_setcoupling_mct)'
 
     call MPI_comm_rank(mpicom_i,iam,ierr)
     call MPI_comm_size(mpicom_i,npes,ierr)

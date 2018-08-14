@@ -139,6 +139,8 @@
    type (block) :: &
       this_block     ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_dbl)'
+
 !-----------------------------------------------------------------------
 
    if (bfbflag) then
@@ -357,6 +359,8 @@
    type (block) :: &
       this_block     ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_real)'
+
 !-----------------------------------------------------------------------
 
 #ifdef REPRODUCIBLE
@@ -539,6 +543,8 @@
    type (block) :: &
       this_block     ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_int)'
+
 !-----------------------------------------------------------------------
 
    localSum  = 0_int_kind
@@ -688,6 +694,8 @@
 !      scalarTmp, globalSumTmp  ! higher precision for reproducibility
 !#endif
 
+   character(len=*), parameter :: subname = '(global_sum_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 !
 !  get communicator for MPI calls
@@ -764,6 +772,8 @@
       scalarTmp, globalSumTmp  ! higher precision for reproducibility
 #endif
 
+   character(len=*), parameter :: subname = '(global_sum_scalar_real)'
+
 !-----------------------------------------------------------------------
 !
 !  get communicator for MPI calls
@@ -832,6 +842,8 @@
       numProcs,     &! number of processor participating
       numBlocks,    &! number of local blocks
       communicator   ! communicator for this distribution
+
+   character(len=*), parameter :: subname = '(global_sum_scalar_int)'
 
 !-----------------------------------------------------------------------
 !
@@ -922,6 +934,8 @@
 
    type (block) :: &
       this_block     ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_sum_prod_dbl)'
 
 !-----------------------------------------------------------------------
 
@@ -1148,6 +1162,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_prod_real)'
+
 !-----------------------------------------------------------------------
 
 #ifdef REPRODUCIBLE
@@ -1336,6 +1352,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_prod_int)'
+
 !-----------------------------------------------------------------------
 
    localSum  = 0_int_kind
@@ -1494,6 +1512,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_maxval_dbl)'
+
 !-----------------------------------------------------------------------
 
    localMaxval  = -HUGE(0.0_dbl_kind)
@@ -1594,6 +1614,8 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_maxval_real)'
 
 !-----------------------------------------------------------------------
 
@@ -1696,6 +1718,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_maxval_int)'
+
 !-----------------------------------------------------------------------
 
    localMaxval  = -HUGE(0_int_kind)
@@ -1784,6 +1808,8 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+   character(len=*), parameter :: subname = '(global_maxval_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 
    call ice_distributionGet(dist, &
@@ -1836,6 +1862,8 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+   character(len=*), parameter :: subname = '(global_maxval_scalar_real)'
+
 !-----------------------------------------------------------------------
 
    call ice_distributionGet(dist, &
@@ -1887,6 +1915,8 @@
       ierr,            &! mpi error flag
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
+
+   character(len=*), parameter :: subname = '(global_maxval_scalar_int)'
 
 !-----------------------------------------------------------------------
 
@@ -1952,6 +1982,8 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_minval_dbl)'
 
 !-----------------------------------------------------------------------
 
@@ -2054,6 +2086,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_minval_real)'
+
 !-----------------------------------------------------------------------
 
    localMinval  = HUGE(0.0_real_kind)
@@ -2155,6 +2189,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_minval_int)'
+
 !-----------------------------------------------------------------------
 
    localMinval  = HUGE(0_int_kind)
@@ -2243,6 +2279,8 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+   character(len=*), parameter :: subname = '(global_minval_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 
    call ice_distributionGet(dist, &
@@ -2295,6 +2333,8 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+   character(len=*), parameter :: subname = '(global_minval_scalar_real)'
+
 !-----------------------------------------------------------------------
 
    call ice_distributionGet(dist, &
@@ -2346,6 +2386,8 @@
       ierr,            &! mpi error flag
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
+
+   character(len=*), parameter :: subname = '(global_minval_scalar_int)'
 
 !-----------------------------------------------------------------------
 

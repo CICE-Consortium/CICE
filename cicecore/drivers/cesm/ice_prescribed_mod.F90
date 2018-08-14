@@ -133,8 +133,8 @@ contains
    integer(kind=int_kind) :: nml_error ! namelist i/o error flag
    integer(kind=int_kind) :: n, nFile, ierr   
    character(len=8)       :: fillalgo
-   character(*),parameter :: subName = "('ice_prescribed_init2')"
-   character(*),parameter :: F00 = "('(ice_prescribed_init2) ',4a)"
+   character(len=*), parameter :: subname = '(ice_prescribed_init)'
+   character(*),parameter :: F00 = "(4a)"
 
    namelist /ice_prescribed_nml/  &
         prescribed_ice,      &
@@ -185,7 +185,7 @@ contains
    call release_fileunit(nu_nml)
    call broadcast_scalar(nml_error,master_task)
    if (nml_error /= 0) then
-      call abort_ice ('ice: Namelist read error in ice_prescribed_mod')
+      call abort_ice (subname//' ERROR: Namelist read error in ice_prescribed_mod')
    endif
 
    call broadcast_scalar(prescribed_ice,master_task)
@@ -310,8 +310,8 @@ subroutine ice_prescribed_run(mDateIn, secIn)
    type (block)           :: this_block
    real(kind=dbl_kind)    :: aice_max         ! maximun ice concentration
    logical, save          :: first_time = .true.
-   character(*),parameter :: subName = "('ice_prescribed_run')"
-   character(*),parameter :: F00 = "('(ice_prescribed_run) ',a,2g20.13)"
+   character(len=*), parameter :: subname = '(ice_prescribed_run)'
+   character(*),parameter :: F00 = "(a,2g20.13)"
  
    !------------------------------------------------------------------------
    ! Interpolate to new ice coverage
@@ -344,7 +344,7 @@ subroutine ice_prescribed_run(mDateIn, secIn)
       aice_max = maxval(ice_cov)
 
       if (aice_max > c10) then
-         write(nu_diag,F00) "ERROR: Ice conc data must be in fraction, aice_max= ",&
+         write(nu_diag,F00) subname,"ERROR: Ice conc data must be in fraction, aice_max= ",&
               aice_max
          call abort_ice(subName)
       end if
@@ -415,6 +415,7 @@ subroutine ice_prescribed_phys
    real(kind=dbl_kind), parameter :: nsal    = 0.407_dbl_kind
    real(kind=dbl_kind), parameter :: msal    = 0.573_dbl_kind
    real(kind=dbl_kind), parameter :: saltmax = 3.2_dbl_kind   ! max salinity at ice base (ppm)
+   character(len=*), parameter :: subname = '(ice_prescribed_phys)'
 
    call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
       nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
@@ -423,7 +424,7 @@ subroutine ice_prescribed_phys
       puny_out=puny, rhoi_out=rhoi, rhos_out=rhos, cp_ice_out=cp_ice, cp_ocn_out=cp_ocn, &
       lfresh_out=lfresh, depressT_out=depressT)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
    !-----------------------------------------------------------------
@@ -557,7 +558,7 @@ subroutine ice_prescribed_phys
    enddo                 ! iblk
 
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
    do iblk = 1, nblocks

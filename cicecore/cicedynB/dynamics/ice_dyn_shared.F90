@@ -104,6 +104,8 @@
          i, j, &
          iblk            ! block index
 
+      character(len=*), parameter :: subname = '(init_evp)'
+
       call set_evp_parameters (dt)
 
       if (my_task == master_task) then
@@ -187,6 +189,8 @@
          dte         , & ! subcycling timestep for EVP dynamics, s
          ecc         , & ! (ratio of major to minor ellipse axes)^2
          tdamp2          ! 2*(wave damping time scale T)
+
+      character(len=*), parameter :: subname = '(set_evp_parameters)'
 
       ! elastic time step
       dte = dt/real(ndte,kind=dbl_kind)        ! s
@@ -297,9 +301,11 @@
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          tmphm               ! temporary mask
 
+      character(len=*), parameter :: subname = '(dyn_prep1)'
+
       call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
@@ -472,6 +478,8 @@
 
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          iceumask_old      ! old-time iceumask
+
+      character(len=*), parameter :: subname = '(dyn_prep2)'
 
       !-----------------------------------------------------------------
       ! Initialize
@@ -693,13 +701,15 @@
       real (kind=dbl_kind) :: &
          u0 = 5e-5_dbl_kind    ! residual velocity for basal stress (m/s)
          
+      character(len=*), parameter :: subname = '(stepu)'
+
       !-----------------------------------------------------------------
       ! integrate the momentum equation
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do ij =1, icellu
@@ -814,9 +824,11 @@
          intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient 
 
+      character(len=*), parameter :: subname = '(dyn_finish)'
+
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
@@ -911,6 +923,8 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
+      character(len=*), parameter :: subname = '(basal_stress_coeff)'
+
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -965,9 +979,11 @@
 
       real (kind=dbl_kind) :: puny
 
+      character(len=*), parameter :: subname = '(principal_stress)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block

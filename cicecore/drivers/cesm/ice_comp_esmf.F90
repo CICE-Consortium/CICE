@@ -110,6 +110,7 @@ contains
 subroutine ice_register_esmf(comp, rc)
     type(ESMF_GridComp)  :: comp
     integer, intent(out) :: rc
+    character(len=*), parameter :: subname = '(ice_register_esmf)'
 
     rc = ESMF_SUCCESS
     print *, "In ice register routine"
@@ -190,7 +191,7 @@ end subroutine
     real(r8), pointer      :: fptr(:,:)
     character(ESMF_MAXSTR) :: convCIM, purpComp
     real(r8) :: mrss, mrss0,msize,msize0
-    character(len=*), parameter  :: SubName = "ice_init_esmf"
+    character(len=*), parameter :: subname = '(ice_init_esmf)'
 ! !REVISION HISTORY:
 ! Author: Mariana Vertenstein
 !EOP
@@ -643,7 +644,7 @@ end subroutine
     integer :: n, nyrp
     type(ESMF_Array)             :: i2x, x2i
     real(R8), pointer            :: fptr(:,:)
-    character(len=*), parameter  :: SubName = "ice_run_esmf"
+    character(len=*), parameter :: subname = '(ice_run_esmf)'
 
     real(r8) :: mrss, mrss0,msize,msize0
     logical, save :: first_time = .true.
@@ -826,6 +827,8 @@ end subroutine
    type(ESMF_State)             :: export_state
    type(ESMF_Clock)             :: EClock
    integer, intent(out)         :: rc
+
+   character(len=*), parameter :: subname = '(ice_final_esmf)'
 !
 ! !REVISION HISTORY:
 !
@@ -872,6 +875,7 @@ end subroutine
     integer     :: rc
     integer     :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
     type(block) :: this_block         ! block information for current block
+    character(len=*), parameter :: subname = '(ice_distgrid_esmf)'
     !-------------------------------------------------------------------
 
     ! number the local grid
@@ -941,6 +945,7 @@ end subroutine
     type(block)       :: this_block                  ! block information for current block
     real(R8), pointer :: fptr (:,:)
     integer           :: rc
+    character(len=*), parameter :: subname = '(ice_domain_esmf)'
     !-------------------------------------------------------------------
 
     call ESMF_ArrayGet(dom, localDe=0, farrayPtr=fptr, rc=rc)

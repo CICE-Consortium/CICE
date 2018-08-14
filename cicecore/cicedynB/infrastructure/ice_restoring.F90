@@ -79,17 +79,19 @@
    type (block) :: &
      this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(ice_HaloRestore_init)'
+
    if (.not. restore_ice) return
 
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
    if ((ew_boundary_type == 'open' .or. &
         ns_boundary_type == 'open') .and. .not.(restart_ext)) then
       if (my_task == master_task) write (nu_diag,*) 'ERROR: restart_ext=F and open boundaries'
-      call abort_ice(error_message="subname"//'open boundary and restart_ext=F', &
+      call abort_ice(error_message=subname//'open boundary and restart_ext=F', &
          file=__FILE__, line=__LINE__)
    endif
 
@@ -372,11 +374,13 @@
       real (kind=dbl_kind), dimension(nslyr) :: &
          qsn             ! snow enthalpy (J/m3)
 
+      character(len=*), parameter :: subname = '(set_restore_var)'
+
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_fbri_out=nt_fbri, &
            nt_qice_out=nt_qice, nt_sice_out=nt_sice, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       indxi(:) = 0
@@ -536,7 +540,7 @@
          enddo                  ! ncat
 
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
    end subroutine set_restore_var
@@ -575,11 +579,13 @@
      secday,             &!
      ctime                ! dt/trest
 
+   character(len=*), parameter :: subname = '(ice_HaloRestore)'
+
    call ice_timer_start(timer_bound)
    call icepack_query_parameters(secday_out=secday)
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
 !-----------------------------------------------------------------------

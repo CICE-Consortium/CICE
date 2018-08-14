@@ -33,6 +33,8 @@
       use ice_restart_shared, only: runid
       use ice_timers, only: ice_timer_stop, ice_timer_print_all, timer_total
 
+      character(len=*), parameter :: subname = '(CICE_Finalize)'
+
    !-------------------------------------------------------------------
    ! stop timers and print timer info
    !-------------------------------------------------------------------
@@ -72,6 +74,7 @@
       use ice_communicate, only: my_task, master_task
 
       character(len=char_len_long) :: filename
+      character(len=*), parameter :: subname = '(writeout_finished_file)'
 
       if (my_task == master_task) then
            
