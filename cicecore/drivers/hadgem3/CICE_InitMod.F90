@@ -430,7 +430,7 @@
          filename = trim(restart_dir)//"finished"
          inquire(file=filename, exist=lexist)
          if (lexist) then
-            call abort_ice("Found already finished file - quitting")
+            call abort_ice("subname"//"ERROR: Found already finished file - quitting")
          end if
 
       endif

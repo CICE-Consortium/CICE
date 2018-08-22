@@ -119,6 +119,8 @@ contains
 
    logical     :: debug = .FALSE.
 
+   character(len=*),parameter :: subname='(Cinco)'
+
 !-----------------------------------------------------------------------
      ll = l
      if(ll .gt. 1) ltype = fact%factors(ll-1) ! Set the next type of space curve
@@ -629,6 +631,8 @@ contains
 
    logical     :: debug = .FALSE.
 
+   character(len=*),parameter :: subname='(PeanoM)'
+
 !-----------------------------------------------------------------------
 
      ll = l
@@ -851,6 +855,8 @@ contains
 
    logical     :: debug = .FALSE.
 
+   character(len=*),parameter :: subname='(Hilbert)'
+
 !-----------------------------------------------------------------------
      ll = l
      if(ll .gt. 1) ltype = fact%factors(ll-1) ! Set the next type of space curve
@@ -957,6 +963,8 @@ contains
 ! !OUTPUT PARAMETERS:
      integer(int_kind) :: ierr ! error return code
 
+     character(len=*),parameter :: subname='(IncrementCurve)'
+
      !-----------------------------
      ! mark the newly visited point
      !-----------------------------
@@ -1006,13 +1014,15 @@ contains
 
    integer(int_kind) ::  tmp
 
+   character(len=*),parameter :: subname='(log2)'
+
    !-------------------------------
    !  Find the log2 of input value
    !  Abort if n < 1
    !-------------------------------
 
    if (n < 1) then
-      call abort_ice ('ice: spacecurve log2 error')
+      call abort_ice (subname//'ERROR: spacecurve log2 error')
 
    elseif (n == 1) then
       log2 = 0
@@ -1064,6 +1074,8 @@ contains
 	
    integer(int_kind)   :: tmp1 ! temporary int
 
+   character(len=*),parameter :: subname='(IsLoadBalanced)'
+
 !-----------------------------------------------------------------------
    tmp1 = nelem/npart
 
@@ -1109,6 +1121,9 @@ contains
 
 !EOP
 !BOC
+
+   character(len=*),parameter :: subname='(GenCurve)'
+
 !-----------------------------------------------------------------------
 
    !-------------------------------------------------
@@ -1134,6 +1149,7 @@ contains
        integer :: res
        logical :: found
        integer (int_kind) :: i
+       character(len=*),parameter :: subname='(FirstFactor)'
 
        found = .false.
        res = -1
@@ -1154,6 +1170,7 @@ contains
        logical :: found
        logical :: f2
        integer (int_kind) :: i
+       character(len=*),parameter :: subname='(FindandMark)'
 
        found = .false.
        i=1
@@ -1181,7 +1198,8 @@ contains
       integer :: val
       integer :: val1
       logical :: found
-!     logical :: tmp
+      logical :: tmp
+      character(len=*),parameter :: subname='(MatchFactor)'
 
       found = .false.
 
@@ -1202,6 +1220,7 @@ contains
    type (factor_t) :: fac
    integer :: res
    integer (int_kind) :: i
+   character(len=*),parameter :: subname='(ProdFactor)'
 
      res = 1
      do i=1,fac%numfact
@@ -1218,11 +1237,12 @@ contains
       character(len=*) :: msg
       type (factor_t) :: fac
       integer (int_kind) :: i
+      character(len=*),parameter :: subname='(PrintFactor)'
 
-      write(*,*) ' '
-      write(*,*) 'PrintFactor: ',msg
-      write(*,*) (fac%factors(i),i=1,fac%numfact)
-      write(*,*) (fac%used(i),i=1,fac%numfact)
+      write(*,*) subname,' '
+      write(*,*) subname,'msg = ',trim(msg)
+      write(*,*) subname,(fac%factors(i),i=1,fac%numfact)
+      write(*,*) subname,(fac%used(i),i=1,fac%numfact)
 
 
    end subroutine PrintFactor
@@ -1262,6 +1282,7 @@ contains
 	tmp,tmp2,tmp3,tmp5   ! tempories for the factorization algorithm
    integer(int_kind)   :: i,n    ! loop tempories
    logical             :: found  ! logical temporary
+   character(len=*),parameter :: subname='(Factor)'
 
    ! --------------------------------------
    ! Allocate allocate for max # of factors
@@ -1369,6 +1390,7 @@ contains
 !-----------------------------------------------------------------------
 
    type (factor_t)     :: fact  ! data structure to store factor information
+   character(len=*),parameter :: subname='(IsFactorable)'
 
    fact = Factor(n)
    if(fact%numfact .ne. -1) then
@@ -1412,6 +1434,7 @@ contains
 	d, 		 & ! dimension of curve only 2D is supported
 	type,		 & ! type of space-filling curve to start off
         ierr   		   ! error return code
+   character(len=*),parameter :: subname='(map)'
 
    d = SIZE(pos)
 
@@ -1457,10 +1480,13 @@ contains
      integer(int_kind) ::  &
         gridsize,	   &! order of space-filling curve
         i		    ! loop temporary
+     character(len=*),parameter :: subname='(PrintCurve)'
 
 !-----------------------------------------------------------------------
 
      gridsize = SIZE(Mesh,dim=1)
+
+     write(*,*) subname,":"
 
      if(gridsize == 2) then
         write (*,*) "A Level 1 Hilbert Curve:"
@@ -1667,6 +1693,8 @@ contains
 
    integer(int_kind) :: gridsize   ! number of points on a side
    
+   character(len=*),parameter :: subname='(GenSpaceCurve)'
+
 !-----------------------------------------------------------------------
 
    !-----------------------------------------
@@ -1705,6 +1733,7 @@ contains
    
     integer, intent(inout) :: a(:)
     integer :: split
+    character(len=*),parameter :: subname='(qsort)'
    
     if(SIZE(a) > 1) then 
       call partition(a,split)
@@ -1719,6 +1748,7 @@ contains
      INTEGER, INTENT(IN OUT) :: a(:)
      INTEGER, INTENT(OUT) :: marker
      INTEGER :: left, right, pivot, temp
+     character(len=*),parameter :: subname='(partition)'
  
      pivot = (a(1) + a(size(a))) / 2  ! Average of first and last elements to prevent quadratic 
      left = 0                         ! behavior with sorted or reverse sorted data

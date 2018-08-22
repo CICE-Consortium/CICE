@@ -21,7 +21,7 @@
       implicit none
       private
       public :: init_evp, set_evp_parameters, stepu, principal_stress, &
-                evp_prep1, evp_prep2, evp_finish, basal_stress_coeff
+                dyn_prep1, dyn_prep2, dyn_finish, basal_stress_coeff
 
       ! namelist parameters
 
@@ -102,6 +102,8 @@
       integer (kind=int_kind) :: &
          i, j, &
          iblk            ! block index
+
+      character(len=*), parameter :: subname = '(init_evp)'
 
       call set_evp_parameters (dt)
 
@@ -187,6 +189,8 @@
          ecc         , & ! (ratio of major to minor ellipse axes)^2
          tdamp2          ! 2*(wave damping time scale T)
 
+      character(len=*), parameter :: subname = '(set_evp_parameters)'
+
       ! elastic time step
       dte = dt/real(ndte,kind=dbl_kind)        ! s
       dtei = c1/dte              ! 1/s
@@ -249,7 +253,7 @@
 !
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine evp_prep1 (nx_block,  ny_block, & 
+      subroutine dyn_prep1 (nx_block,  ny_block, & 
                             ilo, ihi,  jlo, jhi, &
                             aice,      vice,     & 
                             vsno,      tmask,    & 
@@ -296,9 +300,11 @@
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          tmphm               ! temporary mask
 
+      character(len=*), parameter :: subname = '(dyn_prep1)'
+
       call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
@@ -352,7 +358,7 @@
       enddo
       enddo
 
-      end subroutine evp_prep1
+      end subroutine dyn_prep1
 
 !=======================================================================
 ! Computes quantities needed in the stress tensor (sigma)
@@ -364,7 +370,7 @@
 !
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine evp_prep2 (nx_block,   ny_block,   & 
+      subroutine dyn_prep2 (nx_block,   ny_block,   & 
                             ilo, ihi,   jlo, jhi,   &
                             icellt,     icellu,     & 
                             indxti,     indxtj,     & 
@@ -471,6 +477,8 @@
 
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          iceumask_old      ! old-time iceumask
+
+      character(len=*), parameter :: subname = '(dyn_prep2)'
 
       !-----------------------------------------------------------------
       ! Initialize
@@ -603,7 +611,7 @@
          forcey(i,j) = strairy(i,j) + strtlty(i,j)
       enddo
 
-      end subroutine evp_prep2
+      end subroutine dyn_prep2
 
 !=======================================================================
 
@@ -692,13 +700,15 @@
       real (kind=dbl_kind) :: &
          u0 = 5e-5_dbl_kind    ! residual velocity for basal stress (m/s)
          
+      character(len=*), parameter :: subname = '(stepu)'
+
       !-----------------------------------------------------------------
       ! integrate the momentum equation
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do ij =1, icellu
@@ -764,7 +774,7 @@
 !
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine evp_finish (nx_block, ny_block, &
+      subroutine dyn_finish (nx_block, ny_block, &
                              icellu,   Cw,       &
                              indxui,   indxuj,   &
                              uvel,     vvel,     &
@@ -813,9 +823,11 @@
          intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient 
 
+      character(len=*), parameter :: subname = '(dyn_finish)'
+
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
@@ -856,7 +868,7 @@
          strocnyT(i,j) = strocny(i,j) / aiu(i,j)
       enddo
 
-      end subroutine evp_finish
+      end subroutine dyn_finish
 
 !=======================================================================
 ! Computes basal stress Tbu coefficients (landfast ice)
@@ -909,6 +921,8 @@
 
       integer (kind=int_kind) :: &
          i, j, ij
+
+      character(len=*), parameter :: subname = '(basal_stress_coeff)'
 
       do ij = 1, icellu
          i = indxui(ij)
@@ -964,9 +978,11 @@
 
       real (kind=dbl_kind) :: puny
 
+      character(len=*), parameter :: subname = '(principal_stress)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block

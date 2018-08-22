@@ -79,7 +79,7 @@
       call icepack_query_parameters(depressT_out=depressT)
       call icepack_init_thermo(nilyr, sprofile)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -179,7 +179,7 @@
          nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, nt_fbri_out=nt_fbri, nt_tsfc_out=nt_tsfc, &
          nlt_chl_sw_out=nlt_chl_sw, nlt_zaero_sw_out=nlt_zaero_sw)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
       !!$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block, &
@@ -387,7 +387,7 @@
       enddo ! iblk
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine init_shortwave
@@ -399,6 +399,7 @@
       subroutine init_age(iage)
 
       real(kind=dbl_kind), dimension(:,:,:), intent(out) :: iage
+      character(len=*),parameter :: subname='(init_age)'
 
       iage(:,:,:) = c0
 
@@ -411,6 +412,7 @@
       subroutine init_FY(firstyear)
 
       real(kind=dbl_kind), dimension(:,:,:), intent(out) :: firstyear
+      character(len=*),parameter :: subname='(init_FY)'
 
       firstyear(:,:,:) = c0
 
@@ -430,6 +432,7 @@
       real (kind=dbl_kind), dimension(:,:,:), intent(out) :: &
          alvl , & ! level ice area fraction
          vlvl     ! level ice volume
+      character(len=*),parameter :: subname='(init_lvl)'
 
       alvl(:,:,:) = c1 ! level ice area fraction
       vlvl(:,:,:) = c1 ! level ice volume
@@ -447,6 +450,7 @@
       real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
          apnd , & ! melt pond area fraction
          hpnd     ! melt pond depth
+      character(len=*),parameter :: subname='(init_meltponds_cesm)'
 
       apnd(:,:,:) = c0
       hpnd(:,:,:) = c0
@@ -464,6 +468,7 @@
          hpnd , & ! melt pond depth
          ipnd , & ! melt pond refrozen lid thickness
          dhsn     ! depth difference for snow on sea ice and pond ice
+      character(len=*),parameter :: subname='(init_meltponds_lvl)'
 
       apnd(:,:,:) = c0
       hpnd(:,:,:) = c0
@@ -482,6 +487,7 @@
          apnd , & ! melt pond area fraction
          hpnd , & ! melt pond depth
          ipnd     ! melt pond refrozen lid thickness
+      character(len=*),parameter :: subname='(init_meltponds_topo)'
 
       apnd(:,:,:) = c0
       hpnd(:,:,:) = c0
@@ -497,6 +503,7 @@
 
       real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: &
          aero ! aerosol tracers
+      character(len=*),parameter :: subname='(init_aerosol)'
 
       aero(:,:,:,:) = c0
 
@@ -578,7 +585,7 @@
            max_algae_out=max_algae, max_don_out=max_don, max_doc_out=max_doc,   &
            max_dic_out=max_dic, max_aero_out=max_aero, max_fe_out=max_fe)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
       !-----------------------------------------------------------------
@@ -614,7 +621,7 @@
             enddo      ! j  
          enddo         ! iblk
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
       endif ! solve_zsal
 
@@ -652,7 +659,7 @@
          enddo     ! iblk
 
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
          call init_bgc_data(fed(:,:,1,:),fep(:,:,1,:)) ! input dFe from file
@@ -696,7 +703,7 @@
       enddo     ! iblk
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (.not. restart_bgc) then       
@@ -722,7 +729,7 @@
          enddo     ! iblk
 
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
       endif ! .not. restart
@@ -752,24 +759,24 @@
 
       call icepack_query_parameters(phi_snow_out=phi_snow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
       call icepack_init_hbrine(bgrid, igrid, cgrid, icgrid, &
             swgrid, nblyr, nilyr, phi_snow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       call icepack_init_parameters(phi_snow_in=phi_snow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
       first_ice(:,:,:,:) = .true.            
@@ -1078,7 +1085,7 @@
       call icepack_query_tracer_flags(tr_aero_out=tr_aero)
       call icepack_query_parameters(ktherm_out=ktherm, shortwave_out=shortwave)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -1269,7 +1276,7 @@
       endif
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
-         call abort_ice('error reading zbgc namelist')
+         call abort_ice(subname//'ERROR: reading zbgc namelist')
       endif
       call release_fileunit(nu_nml)
 
@@ -1277,34 +1284,34 @@
       ! zsalinity and brine
       !-----------------------------------------------------------------
       if (solve_zsal .and. TRZS == 0) then
-         write(nu_diag,*) 'WARNING: solve_zsal=T but 0 zsalinity tracers'
-         write(nu_diag,*) 'WARNING: setting solve_zsal = F'
+         write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
+         write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
          solve_zsal = .false.      
       elseif (solve_zsal .and. nblyr < 1)  then
-         write(nu_diag,*) 'WARNING: solve_zsal=T but 0 zsalinity tracers'
-         write(nu_diag,*) 'WARNING: setting solve_zsal = F'
+         write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
+         write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
          solve_zsal = .false.     
       endif 
 
       if (solve_zsal .and. ((.not. tr_brine) .or. (ktherm /= 1))) then
-         write(nu_diag,*) 'WARNING: solve_zsal needs tr_brine=T and ktherm=1'
-         write(nu_diag,*) 'WARNING: setting tr_brine=T and ktherm=1'
+         write(nu_diag,*) subname,'WARNING: solve_zsal needs tr_brine=T and ktherm=1'
+         write(nu_diag,*) subname,'WARNING: setting tr_brine=T and ktherm=1'
          tr_brine = .true.
          ktherm = 1
       endif
 
       if (tr_brine .and. TRBRI == 0 ) then
          write(nu_diag,*) &
-            'WARNING: tr_brine=T but no brine height compiled'
+            subname,'WARNING: tr_brine=T but no brine height compiled'
          write(nu_diag,*) &
-            'WARNING: setting solve_zsal and tr_brine = F'
+            subname,'WARNING: setting solve_zsal and tr_brine = F'
          solve_zsal = .false.
          tr_brine  = .false.
       elseif (tr_brine .and. nblyr < 1 ) then
          write(nu_diag,*) &
-            'WARNING: tr_brine=T but no biology layers compiled'
+            subname,'WARNING: tr_brine=T but no biology layers compiled'
          write(nu_diag,*) &
-            'WARNING: setting solve_zsal and tr_brine = F'
+            subname,'WARNING: setting solve_zsal and tr_brine = F'
          solve_zsal = .false.
          tr_brine  = .false.
       endif 
@@ -1338,36 +1345,35 @@
 
       if (.not. tr_brine) then
          if (solve_zbgc) then
-            write(nu_diag,*) 'WARNING: tr_brine = F and solve_zbgc = T'
-            write(nu_diag,*) 'WARNING: setting solve_zbgc = F'
+            write(nu_diag,*) subname,'WARNING: tr_brine = F and solve_zbgc = T'
+            write(nu_diag,*) subname,'WARNING: setting solve_zbgc = F'
             solve_zbgc = .false.
          endif
          if (tr_zaero) then
-            write(nu_diag,*) 'WARNING: tr_brine = F and tr_zaero = T'
-            write(nu_diag,*) 'WARNING: setting tr_zaero = F'
+            write(nu_diag,*) subname,'WARNING: tr_brine = F and tr_zaero = T'
+            write(nu_diag,*) subname,'WARNING: setting tr_zaero = F'
             tr_zaero = .false.
          endif
       endif
 
       if ((skl_bgc .AND. solve_zbgc) .or. (skl_bgc .AND. z_tracers)) &
-              call abort_ice('error:skl_bgc &
-            & and solve_zbgc or z_tracers are both true')
+         call abort_ice(subname//'ERROR: bgc and solve_zbgc or z_tracers are both true')
 
       if (skl_bgc .AND. tr_zaero) then
-         write(nu_diag,*) 'WARNING: skl bgc does not use vertical tracers'
-         write(nu_diag,*) 'WARNING: setting tr_zaero = F'
+         write(nu_diag,*) subname,'WARNING: skl bgc does not use vertical tracers'
+         write(nu_diag,*) subname,'WARNING: setting tr_zaero = F'
          tr_zaero = .false.
       endif
 
       if (dEdd_algae .AND. trim(shortwave) /= 'dEdd') then 
-         write(nu_diag,*) 'WARNING: dEdd_algae = T but shortwave /= dEdd'
-         write(nu_diag,*) 'WARNING: setting dEdd_algae = F'
+         write(nu_diag,*) subname,'WARNING: dEdd_algae = T but shortwave /= dEdd'
+         write(nu_diag,*) subname,'WARNING: setting dEdd_algae = F'
          dEdd_algae = .false.
       endif
 
       if (dEdd_algae .AND. (.NOT. tr_bgc_N) .AND. (.NOT. tr_zaero)) then 
-         write(nu_diag,*) 'WARNING: need tr_bgc_N or tr_zaero for dEdd_algae'
-         write(nu_diag,*) 'WARNING: setting dEdd_algae = F'
+         write(nu_diag,*) subname,'WARNING: need tr_bgc_N or tr_zaero for dEdd_algae'
+         write(nu_diag,*) subname,'WARNING: setting dEdd_algae = F'
          dEdd_algae = .false.
       endif
 
@@ -1376,35 +1382,35 @@
       endif
          
       if (modal_aero .AND. trim(shortwave) /= 'dEdd') then 
-         write(nu_diag,*) 'WARNING: modal_aero = T but shortwave /= dEdd'
-         write(nu_diag,*) 'WARNING: setting modal_aero = F'
+         write(nu_diag,*) subname,'WARNING: modal_aero = T but shortwave /= dEdd'
+         write(nu_diag,*) subname,'WARNING: setting modal_aero = F'
          modal_aero = .false.
       endif
-      if (n_algae > icepack_max_algae) call abort_ice('error:number of algal &
+      if (n_algae > icepack_max_algae) call abort_ice(subname//'ERROR: number of algal &
           & types exceeds icepack_max_algae')
-      if (n_doc > icepack_max_doc) call abort_ice('error:number of doc &
+      if (n_doc > icepack_max_doc) call abort_ice(subname//'ERROR: number of doc &
           & types exceeds icepack_max_doc')
-      if (n_dic > icepack_max_doc) call abort_ice('error:number of dic &
+      if (n_dic > icepack_max_doc) call abort_ice(subname//'ERROR: number of dic &
           & types exceeds icepack_max_dic')
-      if (n_don > icepack_max_don) call abort_ice('error:number of don &
+      if (n_don > icepack_max_don) call abort_ice(subname//'ERROR: number of don &
           & types exceeds icepack_max_don')
-      if (n_fed  > icepack_max_fe ) call abort_ice('error:number of dissolved fe &
+      if (n_fed  > icepack_max_fe ) call abort_ice(subname//'ERROR: number of dissolved fe &
           & types exceeds icepack_max_fe ')
-      if (n_fep  > icepack_max_fe ) call abort_ice('error:number of particulate fe &
+      if (n_fep  > icepack_max_fe ) call abort_ice(subname//'ERROR: number of particulate fe &
           & types exceeds icepack_max_fe ')
       if ((TRBGCS == 0 .and. skl_bgc) .or. (TRALG == 0 .and. skl_bgc)) then
          write(nu_diag,*) &
-            'WARNING: skl_bgc=T but 0 bgc or algal tracers compiled'
+            subname,'WARNING: skl_bgc=T but 0 bgc or algal tracers compiled'
          write(nu_diag,*) &
-            'WARNING: setting skl_bgc = F'
+            subname,'WARNING: setting skl_bgc = F'
          skl_bgc = .false.
       endif
 
       if ((TRBGCZ == 0 .and. solve_zbgc) .or. (TRALG == 0 .and. solve_zbgc)) then
          write(nu_diag,*) &
-            'WARNING: solve_zbgc=T but 0 zbgc or algal tracers compiled'
+            subname,'WARNING: solve_zbgc=T but 0 zbgc or algal tracers compiled'
          write(nu_diag,*) &
-            'WARNING: setting solve_zbgc = F'
+            subname,'WARNING: setting solve_zbgc = F'
          solve_zbgc = .false.
       endif
 
@@ -1452,8 +1458,8 @@
       !-----------------------------------------------------------------
       if (tr_zaero .and. .not. z_tracers) z_tracers = .true.
 
-      if (n_zaero > icepack_max_aero) call abort_ice('error:number of z aerosols &
-          & exceeds icepack_max_aero')
+      if (n_zaero > icepack_max_aero) call abort_ice(subname//'ERROR: &
+          & number of z aerosols exceeds icepack_max_aero')
          
       call broadcast_scalar(z_tracers,          master_task)
       call broadcast_scalar(tr_zaero,           master_task)
@@ -1581,31 +1587,31 @@
       call broadcast_scalar(ratio_C2N_proteins ,  master_task) 
 
       if (skl_bgc .and. n_bgc < 2) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'comp_ice must have number of bgc tracers >= 2'
-         write (nu_diag,*) 'number of bgc tracers compiled:',n_bgc
-         call abort_ice ('init_zbgc error: skl_bgc and n_bgc < 2')
+         write (nu_diag,*) subname,' '
+         write (nu_diag,*) subname,'comp_ice must have number of bgc tracers >= 2'
+         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
+         call abort_ice (subname//'ERROR: skl_bgc and n_bgc < 2')
       endif
 
       if (solve_zbgc .and. n_bgc < 2) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'comp_ice must have number of zbgc tracers >= 2'
-         write (nu_diag,*) 'number of bgc tracers compiled:',n_bgc
-         call abort_ice ('init_zbgc error: solve_zbgc and n_bgc < 2')
+         write (nu_diag,*) subname,' '
+         write (nu_diag,*) subname,'comp_ice must have number of zbgc tracers >= 2'
+         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
+         call abort_ice (subname//'ERROR: solve_zbgc and n_bgc < 2')
       endif
 
       if (tr_zaero .and. TRZAERO <  1) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'comp_ice must have number of TRZAERO > 0'
-         write (nu_diag,*) 'in order to solve z aerosols:',TRZAERO
-         call abort_ice ('init_zbgc error: tr_zaero and tr zaero < 1')
+         write (nu_diag,*) subname,' '
+         write (nu_diag,*) subname,'comp_ice must have number of TRZAERO > 0'
+         write (nu_diag,*) subname,'in order to solve z aerosols:',TRZAERO
+         call abort_ice (subname//'ERROR: tr_zaero and tr zaero < 1')
       endif
 
 ! tcx, tcraig, this is not set yet
 !      call icepack_init_tracer_indices( &
 !          nbtrcr_in=nbtrcr)
 !      call icepack_warnings_flush(nu_diag)
-!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+!      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
 !          file=__FILE__, line=__LINE__)
 
       call icepack_init_parameters( &
@@ -1619,7 +1625,7 @@
           phi_snow_in=phi_snow, &
           modal_aero_in=modal_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -1849,7 +1855,7 @@
          k_nitrif_in=k_nitrif, t_iron_conv_in=t_iron_conv, max_loss_in=max_loss, max_dfe_doc1_in=max_dfe_doc1, &
          fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       if (skl_bgc) then
@@ -2145,13 +2151,13 @@
          zbgc_init_frac_in=zbgc_init_frac, tau_ret_in=tau_ret, tau_rel_in=tau_rel, &
          zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       call icepack_init_tracer_numbers( &
           ntrcr_in=ntrcr, ntrcr_o_in=ntrcr_o, nbtrcr_in=nbtrcr, nbtrcr_sw_in=nbtrcr_sw)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       call icepack_init_tracer_flags( &
@@ -2162,7 +2168,7 @@
           tr_bgc_DON_in=tr_bgc_DON, tr_bgc_Fe_in =tr_bgc_Fe,  tr_zaero_in  =tr_zaero,     &
           tr_bgc_hum_in=tr_bgc_hum)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       call icepack_init_tracer_indices( &
@@ -2186,32 +2192,32 @@
           n_fed_in=n_fed,             n_fep_in=n_fep,               n_zaero_in=n_zaero, &
           bio_index_o_in=bio_index_o, bio_index_in=bio_index)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! final consistency checks
       !----------------------------------------------------------------- 
       if (nbtrcr > icepack_max_nbtrcr) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'nbtrcr > icepack_max_nbtrcr'
-         write (nu_diag,*) 'nbtrcr, icepack_max_nbtrcr:',nbtrcr, icepack_max_nbtrcr
-         call abort_ice ('init_zbgc error: nbtrcr > icepack_max_nbtrcr')
+         write (nu_diag,*) subname,' '
+         write (nu_diag,*) subname,'nbtrcr > icepack_max_nbtrcr'
+         write (nu_diag,*) subname,'nbtrcr, icepack_max_nbtrcr:',nbtrcr, icepack_max_nbtrcr
+         call abort_ice (subname//'ERROR: nbtrcr > icepack_max_nbtrcr')
       endif
       if (.NOT. dEdd_algae) nbtrcr_sw = 1
 
       if (nbtrcr_sw > max_nsw) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'nbtrcr_sw > max_nsw'
-         write (nu_diag,*) 'nbtrcr_sw, max_nsw:',nbtrcr_sw, max_nsw
-         call abort_ice ('init_zbgc error: nbtrcr_sw > max_nsw')
+         write (nu_diag,*) subname,' '
+         write (nu_diag,*) subname,'nbtrcr_sw > max_nsw'
+         write (nu_diag,*) subname,'nbtrcr_sw, max_nsw:',nbtrcr_sw, max_nsw
+         call abort_ice (subname//'ERROR: nbtrcr_sw > max_nsw')
       endif
 
       if (ntrcr > max_ntrcr) then
-         write(nu_diag,*) 'max_ntrcr < number of namelist tracers'
-         write(nu_diag,*) 'max_ntrcr = ',max_ntrcr,' ntrcr = ',ntrcr
-         call abort_ice('max_ntrcr < number of namelist tracers')
-      endif                               
+         write(nu_diag,*) subname,'max_ntrcr < number of namelist tracers'
+         write(nu_diag,*) subname,'max_ntrcr = ',max_ntrcr,' ntrcr = ',ntrcr
+         call abort_ice(subname//'ERROR: max_ntrcr < number of namelist tracers')
+      endif
 
       !-----------------------------------------------------------------
       ! spew

@@ -90,6 +90,7 @@
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      character(len=*), parameter :: subname = '(init_hist)'
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -102,7 +103,7 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_pond_out=tr_pond, tr_aero_out=tr_aero, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call get_fileunit(nu_nml)
@@ -123,7 +124,7 @@
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
          close (nu_nml)
-         call abort_ice('ice: error reading icefields_nml')
+         call abort_ice(subname//'ERROR: reading icefields_nml')
       endif
 
       ! histfreq options ('1','h','d','m','y')
@@ -135,11 +136,11 @@
                 nstreams = nstreams + 1
                 if (ns >= 2) then
                    if (histfreq(ns-1) == 'x') then
-                      call abort_ice('ice: histfreq all non x must be at start of array')
+                      call abort_ice(subname//'ERROR: histfreq all non x must be at start of array')
                    endif
                 endif
          else if (histfreq(ns) /= 'x') then
-             call abort_ice('ice: histfreq contains illegal element')
+             call abort_ice(subname//'ERROR: histfreq contains illegal element')
          endif
       enddo
       if (nstreams == 0) write (nu_diag,*) 'WARNING: No history output'
@@ -147,7 +148,7 @@
          do ns2 = 1, nstreams
             if (histfreq(ns1) == histfreq(ns2) .and. ns1/=ns2 &
                .and. my_task == master_task) then
-               call abort_ice('ice: histfreq elements must be unique')
+               call abort_ice(subname//'ERROR: histfreq elements must be unique')
             endif
          enddo
       enddo
@@ -1250,6 +1251,7 @@
 
       type (block) :: &
          this_block           ! block information for current block
+      character(len=*), parameter :: subname = '(accum_hist)'
 
       call icepack_query_parameters(awtvdr_out=awtvdr, awtidr_out=awtidr, &
            awtvdf_out=awtvdf, awtidf_out=awtidf, puny_out=puny, secday_out=secday)
@@ -1259,7 +1261,7 @@
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_Tsfc_out=nt_Tsfc)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !---------------------------------------------------------------
@@ -1701,7 +1703,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !---------------------------------------------------------------

@@ -155,13 +155,15 @@
       real (kind=dbl_kind) :: &
          rad_to_deg
 
+      character(len=*), parameter :: subname = '(init_grid1)'
+
       !-----------------------------------------------------------------
       ! Get global ULAT and KMT arrays used for block decomposition.
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       allocate(work_g1(nx_global,ny_global))
@@ -270,13 +272,15 @@
       type (block) :: &
          this_block           ! block information for current block
       
+      character(len=*), parameter :: subname = '(init_grid2)'
+
       !-----------------------------------------------------------------
       ! lat, lon, cell widths, angle, land mask
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (trim(grid_type) == 'displaced_pole' .or. &
@@ -388,8 +392,8 @@
       out_of_range = .false.
       where (ANGLE < -pi .or. ANGLE > pi) out_of_range = .true.
       if (count(out_of_range) > 0) then
-         write(nu_diag,*) "subname",' angle = ',minval(ANGLE),maxval(ANGLE),count(out_of_range)
-         call abort_ice ("subname"//' ANGLE out of expected range', &
+         write(nu_diag,*) subname,' angle = ',minval(ANGLE),maxval(ANGLE),count(out_of_range)
+         call abort_ice (subname//' ANGLE out of expected range', &
              file=__FILE__, line=__LINE__)
       endif
 
@@ -539,6 +543,8 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(popgrid)'
+
       call ice_open(nu_grid,grid_file,64)
       call ice_open(nu_kmt,kmt_file,32)
 
@@ -665,9 +671,11 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(popgrid_nc)'
+
       call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_open_nc(grid_file,fid_grid)
@@ -782,9 +790,6 @@
       integer (kind=int_kind) :: &
          ni, nj, ncid, dimid, varid, ier
 
-      character (len=char_len) :: &
-         subname='latlongrid' ! subroutine name
-
       type (block) :: &
          this_block           ! block information for current block
 
@@ -814,7 +819,10 @@
       real (kind=dbl_kind) :: &
          pos_scmlon,&         ! temporary
          pi, &
+         puny, &
          scamdata             ! temporary
+
+      character(len=*), parameter :: subname = '(lonlatgrid)'
 
       !-----------------------------------------------------------------
       ! - kmt file is actually clm fractional land file
@@ -823,9 +831,9 @@
       ! - Read in ocean from "kmt" file (1 for ocean, 0 for land)
       !-----------------------------------------------------------------
 
-      call icepack_query_parameters(pi_out=pi)
+      call icepack_query_parameters(pi_out=pi, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! Determine dimension of domain file and check for consistency
@@ -849,7 +857,7 @@
                write(nu_diag,*) 'Because you have selected the column model flag'
                write(nu_diag,*) 'Please set nx_global=ny_global=1 in file'
                write(nu_diag,*) 'ice_domain_size.F and recompile'
-               call abort_ice ('latlongrid: check nx_global, ny_global')
+               call abort_ice (subname//'ERROR: check nx_global, ny_global')
             endif
          end if
 
@@ -921,7 +929,7 @@
             if (nx_global /= ni .and. ny_global /= nj) then
               write(nu_diag,*) 'latlongrid: ni,nj = ',ni,nj
               write(nu_diag,*) 'latlongrid: nx_g,ny_g = ',nx_global, ny_global
-              call abort_ice ('latlongrid: ni,nj not equal to nx_global,ny_global')
+              call abort_ice (subname//'ERROR: ni,nj not equal to nx_global,ny_global')
             end if
          end if
 
@@ -1056,13 +1064,15 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
 
+      character(len=*), parameter :: subname = '(rectgrid)'
+
       !-----------------------------------------------------------------
       ! Calculate various geometric 2d arrays
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
@@ -1186,7 +1196,7 @@
 
          elseif (trim(ew_boundary_type) == 'closed') then
 
-            call abort_ice('closed boundaries not available')
+            call abort_ice(subname//'ERROR: closed boundaries not available')
 
          endif
       endif
@@ -1237,9 +1247,11 @@
       type (block) :: &
            this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(cpomgrid)'
+
       call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_open(nu_grid,grid_file,64)
@@ -1333,6 +1345,8 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
 
+      character(len=*), parameter :: subname = '(primary_grid_lengths_HTN)'
+
       if (my_task == master_task) then
          allocate(work_g2(nx_global,ny_global))
       else
@@ -1400,6 +1414,8 @@
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
+
+      character(len=*), parameter :: subname = '(primary_grid_lengths_HTE)'
 
       if (my_task == master_task) then
          allocate(work_g2(nx_global,ny_global))
@@ -1474,9 +1490,11 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(makemask)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
@@ -1585,9 +1603,11 @@
       type (block) :: &
            this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(Tlatlon)'
+
       call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       TLAT(:,:,:) = c0
@@ -1724,6 +1744,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      character(len=*), parameter :: subname = '(t2ugrid_vector)'
+
       work1(:,:,:) = work(:,:,:)
 
       call ice_timer_start(timer_bound)
@@ -1756,6 +1778,8 @@
 
       type (block) :: &
          this_block           ! block information for current block
+
+      character(len=*), parameter :: subname = '(to_ugrid)'
 
       ! local variables
 
@@ -1811,6 +1835,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      character(len=*), parameter :: subname = '(u2tgrid_vector)'
+
       work1(:,:,:) = work(:,:,:)
 
       call ice_timer_start(timer_bound)
@@ -1847,6 +1873,8 @@
       type (block) :: &
          this_block           ! block information for current block
       
+      character(len=*), parameter :: subname = '(to_tgrid)'
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1905,9 +1933,11 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(gridbox_corners)'
+
       call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-------------------------------------------------------------
@@ -2100,9 +2130,11 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      character(len=*), parameter :: subname = '(gridbox_verts)'
+
       call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
@@ -2223,9 +2255,11 @@
             250.0000_dbl_kind,  250.0000_dbl_kind,  250.0000_dbl_kind, &
             250.0000_dbl_kind   /)
 
+      character(len=*), parameter :: subname = '(get_bathymetry)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! convert to total depth
@@ -2270,6 +2304,8 @@
          fieldname
 
       logical (kind=log_kind) :: diag=.true.
+
+      character(len=*), parameter :: subname = '(read_basalstress_bathy)'
 
       init_file='bathymetry.nc'
 

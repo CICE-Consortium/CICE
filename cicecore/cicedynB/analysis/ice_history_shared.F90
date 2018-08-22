@@ -476,6 +476,7 @@
 
       integer (kind=int_kind) :: iyear, imonth, iday, isec
       character (len=1) :: cstream
+      character(len=*), parameter :: subname = '(construct_filename)'
 
         iyear = nyr + year_init - 1 ! set year_init=1 in ice_in to get iyear=nyr
         imonth = month
@@ -588,8 +589,10 @@
 
       character (len=40) :: stmp
 
+      character(len=*), parameter :: subname = '(define_hist_field)'
+
       if (histfreq(ns) == 'x') then
-         call abort_ice("define_hist_fields has histfreq x")
+         call abort_ice(subname//'ERROR: define_hist_fields has histfreq x')
       endif
 
       if (ns == 1) id(:) = 0
@@ -617,7 +620,7 @@
             endif
 
             if (num_avail_hist_fields_tot > max_avail_hist_fields) &
-               call abort_ice("Need to increase max_avail_hist_fields")
+               call abort_ice(subname//'ERROR: Need to increase max_avail_hist_fields')
 
             if (num_avail_hist_fields_tot /= &
                 num_avail_hist_fields_2D  + &
@@ -627,7 +630,7 @@
                 num_avail_hist_fields_3Da + &
                 num_avail_hist_fields_4Di + &
                 num_avail_hist_fields_4Ds) then 
-                call abort_ice("num_avail_hist_fields error")
+                call abort_ice(subname//'ERROR: num_avail_hist_fields error')
              endif
 
             id(ns) = num_avail_hist_fields_tot
@@ -683,6 +686,8 @@
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D)'
 
       !---------------------------------------------------------------
       ! increment field
@@ -745,6 +750,8 @@
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j,k, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_3D)'
 
       !---------------------------------------------------------------
       ! increment field
@@ -810,6 +817,8 @@
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j,k,n,ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_4D)'
 
       !---------------------------------------------------------------
       ! increment field

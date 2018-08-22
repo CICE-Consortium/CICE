@@ -135,6 +135,7 @@
     calc_Tsfc       = .true.
     precip_units    = 'mm_per_month'
     ustar_min       = 0.0005
+    emissivity      = 0.95
     fbot_xfer_type  = 'constant'
     update_ocn_f    = .false.
     l_mpond_fresh   = .false.

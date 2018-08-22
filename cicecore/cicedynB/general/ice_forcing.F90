@@ -3052,7 +3052,7 @@
 
       logical (kind=log_kind) :: readm
 
-      character(len=*), parameter :: subname = '(ocean_data_clim)'
+      character(len=*), parameter :: subname = '(ocn_data_clim)'
 
       if (my_task == master_task .and. istep == 1) then
          if (trim(sss_data_type)=='clim') then

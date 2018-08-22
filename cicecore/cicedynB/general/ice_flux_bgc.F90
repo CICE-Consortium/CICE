@@ -170,6 +170,8 @@
       integer (kind=int_kind), dimension(icepack_max_aero) :: &
           nlt_zaero              ! non-reacting layer aerosols
 
+      character(len=*), parameter :: subname = '(bgcflux_ice_to_ocn)'
+
       call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zbgc_out=solve_zbgc)
       call icepack_query_tracer_flags( &
           tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_N_out=tr_bgc_N, &
@@ -184,7 +186,7 @@
           nlt_bgc_Sil_out=nlt_bgc_Sil, nlt_bgc_DMSPd_out=nlt_bgc_DMSPd, &
           nlt_bgc_DMS_out=nlt_bgc_DMS, nlt_bgc_hum_out=nlt_bgc_hum)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       f_nit    (:,:) = c0

@@ -149,6 +149,8 @@ contains
       tripoleBlock,         &! flag for identifying north tripole blocks
       tripoleTFlag           ! flag for processing tripole buffer as T-fold
 
+   character(len=*), parameter :: subname = '(ice_HaloCreate)'
+
 !-----------------------------------------------------------------------
 !
 !  Initialize some useful variables and return if this task not
@@ -186,8 +188,7 @@ contains
                    stat=istat)
 
          if (istat > 0) then
-            call abort_ice( &
-               'ice_HaloCreate: error allocating tripole buffers')
+            call abort_ice(subname//'ERROR: allocating tripole buffers')
             return
          endif
       endif
@@ -210,7 +211,7 @@ contains
    allocate (sendCount(numProcs), recvCount(numProcs), stat=istat)
 
    if (istat > 0) then
-      call abort_ice('ice_HaloCreate: error allocating count arrays')
+      call abort_ice(subname//'ERROR: allocating count arrays')
       return
    endif
 
@@ -433,8 +434,7 @@ contains
             stat = istat)
 
    if (istat > 0) then
-      call abort_ice( &
-         'ice_HaloCreate: error allocating halo message info arrays')
+      call abort_ice(subname//'ERROR: allocating halo message info arrays')
       return
    endif
 
@@ -444,8 +444,7 @@ contains
    deallocate(sendCount, recvCount, stat=istat)
 
    if (istat > 0) then
-      call abort_ice( &
-         'ice_HaloCreate: error deallocating count arrays')
+      call abort_ice(subname//'ERROR: deallocating count arrays')
       return
    endif
 
@@ -587,6 +586,8 @@ contains
    logical (log_kind) :: &
       tripoleTFlag           ! flag for processing tripole buffer as T-fold
 
+   character(len=*), parameter :: subname = '(ice_HaloMask)'
+
 !-----------------------------------------------------------------------
 !
 !  allocate and initialize halo
@@ -604,8 +605,7 @@ contains
                stat = istat)
 
       if (istat > 0) then
-         call abort_ice( &
-            'ice_HaloMask: error allocating halo message info arrays')
+         call abort_ice(subname//'ERROR: allocating halo message info arrays')
          return
       endif
 
@@ -670,6 +670,8 @@ contains
    real (dbl_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   character(len=*), parameter :: subname = '(ice_HaloUpdate2DR8)'
 
 !-----------------------------------------------------------------------
 !
@@ -755,8 +757,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate2DR8: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -807,8 +808,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       else ! tripole u-fold
@@ -859,8 +859,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -958,6 +957,8 @@ contains
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate2DR4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -1042,8 +1043,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate2DR4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -1094,8 +1094,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select        
 
       else ! tripole u-fold
@@ -1146,8 +1145,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -1245,6 +1243,8 @@ contains
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate2DI4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -1329,8 +1329,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate2DI4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -1381,8 +1380,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       else ! tripole u-fold  
@@ -1433,8 +1431,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -1536,6 +1533,8 @@ contains
    real (dbl_kind), dimension(:,:,:), allocatable :: &
       bufTripole                  ! 3d tripole buffer
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate3DR8)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -1629,8 +1628,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate3DR8: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -1685,8 +1683,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select 
   
       else ! tripole u-fold
@@ -1741,8 +1738,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -1849,6 +1845,8 @@ contains
    real (real_kind), dimension(:,:,:), allocatable :: &
       bufTripole                  ! 3d tripole buffer
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate3DR4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -1942,8 +1940,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate3DR4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -1998,8 +1995,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select  
   
       else ! tripole u-fold  
@@ -2054,8 +2050,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -2162,6 +2157,8 @@ contains
    integer (int_kind), dimension(:,:,:), allocatable :: &
       bufTripole                  ! 3d tripole buffer
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate3DI4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -2255,8 +2252,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate3DI4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -2311,8 +2307,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
   
       else ! tripole u-fold  
@@ -2367,8 +2362,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
  
       endif
@@ -2475,6 +2469,8 @@ contains
    real (dbl_kind), dimension(:,:,:,:), allocatable :: &
       bufTripole                  ! 4d tripole buffer
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate4DR8)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -2575,8 +2571,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate4DR8: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -2635,8 +2630,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select  
   
       else ! tripole u-fold  
@@ -2695,8 +2689,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
  
       endif
@@ -2805,6 +2798,8 @@ contains
    real (real_kind), dimension(:,:,:,:), allocatable :: &
       bufTripole                  ! 4d tripole buffer
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate4DR4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -2905,8 +2900,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate4DR4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -2965,8 +2959,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select  
   
       else ! tripole u-fold  
@@ -3025,8 +3018,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
  
       endif
@@ -3135,6 +3127,8 @@ contains
    integer (int_kind), dimension(:,:,:,:), allocatable :: &
       bufTripole                  ! 4d tripole buffer
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate4DI4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -3235,8 +3229,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate4DI4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -3295,8 +3288,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select 
   
       else ! tripole u-fold  
@@ -3355,8 +3347,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
  
       endif
@@ -3456,6 +3447,8 @@ contains
    real (dbl_kind) :: &
       fill                        ! value to use for unknown points
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate_stress)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -3535,8 +3528,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate_stress: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       select case (fieldLoc)
@@ -3561,8 +3553,7 @@ contains
          joffset = 1
 
       case default
-         call abort_ice( &
-               'ice_HaloUpdate_stress: Unknown field location')
+         call abort_ice(subname//'ERROR: Unknown field location')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -3625,6 +3616,8 @@ contains
       sndCounter,       &! array for counting messages to be sent
       rcvCounter         ! array for counting messages to be received
 
+   character(len=*), parameter :: subname = '(ice_HaloIncrementMsgCount)'
+
 !-----------------------------------------------------------------------
 !
 !  error check
@@ -3634,8 +3627,7 @@ contains
    if (srcProc < 0 .or. dstProc < 0 .or. &
        srcProc > size(sndCounter)   .or. &
        dstProc > size(rcvCounter)) then
-      call abort_ice( &
-         'ice_HaloIncrementMsgCount: invalid processor number')
+      call abort_ice(subname//'ERROR: invalid processor number')
       return
    endif
 
@@ -3723,6 +3715,8 @@ contains
 
    integer (int_kind), dimension(:), pointer :: &
       iGlobal                 ! global i index for location in tripole
+
+   character(len=*), parameter :: subname = '(ice_HaloMsgCreate)'
 
 !-----------------------------------------------------------------------
 !
@@ -3891,8 +3885,7 @@ contains
             !*** update
 
             if (jeSrc - jbSrc + 1 < halo%tripoleRows) then
-               call abort_ice( &
-               'ice_HaloMsgCreate: not enough points in block for tripole')
+               call abort_ice(subname//'ERROR: not enough points in block for tripole')
                return
             endif 
 
@@ -4133,8 +4126,7 @@ contains
 
       case default
 
-         call abort_ice( &
-            'ice_HaloMsgCreate: unknown direction local copy')
+         call abort_ice(subname//'ERROR: unknown direction local copy')
          return
 
       end select
@@ -4365,8 +4357,7 @@ contains
 
       case default
 
-         call abort_ice( &
-            'ice_HaloMsgCreate: unknown direction local copy')
+         call abort_ice(subname//'ERROR: unknown direction local copy')
          return
 
       end select
@@ -4426,6 +4417,8 @@ contains
 
    type (block) :: &
      this_block  ! block info for current block
+
+   character(len=*), parameter :: subname = '(ice_HaloExtrapolate2DR8)'
 
 !-----------------------------------------------------------------------
 !
@@ -4503,6 +4496,9 @@ contains
 
    integer (int_kind) ::           &
       istat                      ! error or status flag for MPI,alloc
+
+   character(len=*), parameter :: subname = '(ice_HaloDestroy)'
+
 !-----------------------------------------------------------------------
 
    deallocate(halo%srcLocalAddr, stat=istat)

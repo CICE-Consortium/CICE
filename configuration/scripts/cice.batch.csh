@@ -47,7 +47,7 @@ EOF0
 if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFB
 #PBS -j oe 
-#PBS -m ae 
+###PBS -m ae 
 #PBS -V
 #PBS -q ${queue}
 #PBS -N ${ICE_CASENAME}
@@ -59,7 +59,7 @@ EOFB
 else if (${ICE_MACHINE} =~ hobart*) then
 cat >> ${jobfile} << EOFB
 #PBS -j oe 
-#PBS -m ae 
+###PBS -m ae 
 #PBS -V
 #PBS -q short
 #PBS -N ${ICE_CASENAME}

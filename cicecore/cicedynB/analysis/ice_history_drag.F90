@@ -66,6 +66,7 @@
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      character(len=*), parameter :: subname = '(init_hist_drag_2D)'
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -90,7 +91,7 @@
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
          close (nu_nml)
-         call abort_ice('ice: error reading icefields_drag_nml')
+         call abort_ice(subname//'ERROR: reading icefields_drag_nml')
       endif
 
       call broadcast_scalar (f_Cdn_atm, master_task)
@@ -235,6 +236,7 @@
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
+      character(len=*), parameter :: subname = '(accum_hist_drag)'
 
       !---------------------------------------------------------------
       ! increment field

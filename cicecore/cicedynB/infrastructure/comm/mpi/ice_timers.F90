@@ -128,6 +128,8 @@
 
    integer (int_kind) :: n ! dummy loop index
 
+   character(len=*), parameter :: subname = '(init_ice_timers)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize timer structures
@@ -214,6 +216,8 @@
       n,                 &! dummy loop index
       srch_error          ! error flag for search
 
+   character(len=*), parameter :: subname = '(get_ice_timer)'
+
 !-----------------------------------------------------------------------
 !
 !  search for next free timer
@@ -248,7 +252,7 @@
    end do srch_loop
 
    if (srch_error /= 0) &
-      call abort_ice('get_ice_timer: Exceeded maximum number of timers')
+      call abort_ice(subname//'ERROR: Exceeded maximum number of timers')
                     
 
 !-----------------------------------------------------------------------
@@ -265,6 +269,8 @@
 
    integer (int_kind), intent(in) :: &
       timer_id                ! timer number
+
+   character(len=*), parameter :: subname = '(ice_timer_clear)'
 
 !-----------------------------------------------------------------------
 !
@@ -287,8 +293,7 @@
       all_timers(timer_id)%block_cycles2(:)    = c0
       all_timers(timer_id)%block_accum_time(:) = c0
    else
-      call abort_ice &
-                 ('ice_timer_clear: attempt to reset undefined timer')
+      call abort_ice(subname//'ERROR: attempt to reset undefined timer')
                     
    endif
 
@@ -317,6 +322,8 @@
 
    double precision MPI_WTIME
    external MPI_WTIME
+
+   character(len=*), parameter :: subname = '(ice_timer_start)'
 
 !-----------------------------------------------------------------------
 !
@@ -378,8 +385,7 @@
 
       endif
    else
-      call abort_ice &
-                 ('ice_timer_start: attempt to start undefined timer')
+      call abort_ice(subname//'ERROR: attempt to start undefined timer')
                     
    endif
 
@@ -416,6 +422,8 @@
 
    real (dbl_kind) :: &
       cycles1, cycles2   ! temps to hold cycle info before correction
+
+   character(len=*), parameter :: subname = '(ice_timer_stop)'
 
 !-----------------------------------------------------------------------
 !
@@ -487,8 +495,7 @@
 
       endif
    else
-      call abort_ice &
-                 ('ice_timer_stop: attempt to stop undefined timer')
+      call abort_ice(subname//'ERROR: attempt to stop undefined timer')
                     
    endif
 
@@ -541,6 +548,8 @@
       stats_fmt3 = "('                      mean= ',f11.2,' seconds')",&
       stats_fmt4 = "('  Timer stats(block): min = ',f11.2,' seconds')"
 
+   character(len=*), parameter :: subname = '(ice_timer_print)'
+
 !-----------------------------------------------------------------------
 !
 !  if timer has been defined, check to see whether it is currently
@@ -550,7 +559,7 @@
 
    call icepack_query_parameters(bignum_out=bignum)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
        file=__FILE__, line=__LINE__)
 
    if (all_timers(timer_id)%in_use) then
@@ -634,9 +643,7 @@
 
       if (lrestart_timer) call ice_timer_start(timer_id)
    else
-      call abort_ice &
-                 ('ice_timer_print: attempt to print undefined timer')
-                    
+      call abort_ice(subname//'ERROR: attempt to print undefined timer')
    endif
 
 !-----------------------------------------------------------------------
@@ -662,6 +669,8 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: n ! dummy loop index
+
+   character(len=*), parameter :: subname = '(ice_timer_print_all)'
 
 !-----------------------------------------------------------------------
 !
@@ -705,6 +714,8 @@
                                ! from which it is called
                                ! (if timer called outside of block
                                ! region, no block info required)
+
+   character(len=*), parameter :: subname = '(ice_timer_check)'
 
 !-----------------------------------------------------------------------
 !

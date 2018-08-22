@@ -36,10 +36,10 @@
       use ice_kinds_mod
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
-      use ice_constants, only: c0, p027, p055, p111, p166, &
-          p222, p25, p333, p5, c1
-      use ice_dyn_shared, only: stepu, evp_prep1, evp_prep2, evp_finish, &
-          ndte, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
+      use ice_constants, only: c0, c4, p027, p055, p111, p166, &
+          p2, p222, p25, p333, p5, c1
+      use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
+          ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -65,7 +65,7 @@
 ! Wind stress is set during this routine from the values supplied
 ! via NEMO (unless calc_strair is true).  These values are supplied 
 ! rotated on u grid and multiplied by aice.  strairxT = 0 in this 
-! case so operations in evp_prep1 are pointless but carried out to 
+! case so operations in dyn_prep1 are pointless but carried out to 
 ! minimise code changes.
 #endif
 !
@@ -144,6 +144,8 @@
       type (block) :: &
          this_block           ! block information for current block
       
+      character(len=*), parameter :: subname = '(evp)'
+
       call ice_timer_start(timer_dynamics) ! dynamics
 
       !-----------------------------------------------------------------
@@ -192,7 +194,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call evp_prep1 (nx_block,           ny_block,           & 
+         call dyn_prep1 (nx_block,           ny_block,           & 
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), & 
                          vsno    (:,:,iblk), tmask   (:,:,iblk), & 
@@ -246,7 +248,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call evp_prep2 (nx_block,             ny_block,             & 
+         call dyn_prep2 (nx_block,             ny_block,             & 
                          ilo, ihi,             jlo, jhi,             &
                          icellt(iblk),         icellu(iblk),         & 
                          indxti      (:,iblk), indxtj      (:,iblk), & 
@@ -300,13 +302,13 @@
       !$TCXOMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
-      ! velocities may have changed in evp_prep2
+      ! velocities may have changed in dyn_prep2
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
       call ice_timer_stop(timer_bound)
@@ -334,13 +336,15 @@
       !-----------------------------------------------------------------
       
       if (basalstress) then
+       !$OMP PARALLEL DO PRIVATE(iblk)
        do iblk = 1, nblocks
          call basal_stress_coeff (nx_block,         ny_block,       &
                                   icellu  (iblk),                   &
                                   indxui(:,iblk),   indxuj(:,iblk), &
                                   vice(:,:,iblk),   aice(:,:,iblk), &
                                   hwater(:,:,iblk), Tbu(:,:,iblk))
-       enddo                           
+       enddo
+       !$OMP END PARALLEL DO
       endif
       
       do ksub = 1,ndte        ! subcycling
@@ -499,7 +503,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
-         call evp_finish                               & 
+         call dyn_finish                               & 
               (nx_block,           ny_block,           & 
                icellu      (iblk), Cdn_ocn (:,:,iblk), & 
                indxui    (:,iblk), indxuj    (:,iblk), & 
@@ -614,6 +618,8 @@
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp, tmp
 
+      character(len=*), parameter :: subname = '(stress)'
+
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
@@ -664,8 +670,8 @@
          ! Delta (in the denominator of zeta, eta)
          Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
          Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
          Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
+         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
 
       !-----------------------------------------------------------------
       ! on last subcycle, save quantities for mechanical redistribution
@@ -739,7 +745,7 @@
 
 !      call icepack_query_parameters(puny_out=puny)
 !      call icepack_warnings_flush(nu_diag)
-!      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+!      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
 !         file=__FILE__, line=__LINE__)
 
 !      stressp_1(i,j) = sign(max(abs(stressp_1(i,j)),puny),stressp_1(i,j))

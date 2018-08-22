@@ -66,6 +66,8 @@
       character (len=16) :: c_aice
       logical (kind=log_kind) :: diag
 
+      character(len=*), parameter :: subname = '(ice_write_hist)'
+
       diag = .false.
 
       if (my_task == master_task) then

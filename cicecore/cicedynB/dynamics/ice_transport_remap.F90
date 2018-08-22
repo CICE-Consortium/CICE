@@ -262,6 +262,8 @@
       integer (kind=int_kind) ::     &
  	 i, j, iblk     ! standard indices
 
+      character(len=*), parameter :: subname = '(init_remap)'
+
       ! Compute grid cell average geometric quantities on the scaled
       ! rectangular grid with dx = 1, dy = 1.
       !
@@ -455,6 +457,8 @@
       type (block) ::     &
          this_block       ! block information for current block
 
+      character(len=*), parameter :: subname = '(horizontal_remap)'
+
 !---!-------------------------------------------------------------------
 !---! Remap the ice area and associated tracers.
 !---! Remap the open water area (without tracers).
@@ -558,7 +562,7 @@
                  write(nu_diag,*) 'Global i and j:',     &
                                   this_block%i_glob(istop),     &
                                   this_block%j_glob(jstop) 
-            call abort_ice('remap transport: bad departure points')
+            call abort_ice(subname//'ERROR: bad departure points')
          endif
 
       enddo                     ! iblk
@@ -817,7 +821,7 @@
                  write(nu_diag,*) 'Global i and j:',              &
                                   this_block%i_glob(istop),       &
                                   this_block%j_glob(jstop) 
-            call abort_ice ('ice remap_transport: negative area (open water)')
+            call abort_ice (subname//'ERROR: negative area (open water)')
          endif
 
          ! ice categories
@@ -842,7 +846,7 @@
                     write(nu_diag,*) 'Global i and j:',     &
                                      this_block%i_glob(istop),     &
                                      this_block%j_glob(jstop) 
-               call abort_ice ('ice remap_transport: negative area (ice)')
+               call abort_ice (subname//'ERROR: negative area (ice)')
             endif
          enddo                  ! n
 
@@ -919,9 +923,11 @@
       real (kind=dbl_kind) :: &
            puny             !
 
+      character(len=*), parameter :: subname = '(make_masks)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do n = 0, ncat
@@ -1113,6 +1119,8 @@
          puny, &
          w1, w2, w3, w7   ! work variables
 
+      character(len=*), parameter :: subname = '(construct_fields)'
+
     !-------------------------------------------------------------------
     ! Compute field values at the geometric center of each grid cell,
     ! and compute limited gradients in the x and y directions.
@@ -1158,7 +1166,7 @@
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do j = 1, ny_block
@@ -1401,9 +1409,11 @@
           puny, &        !
           gxtmp, gytmp   ! temporary term for x- and y- limited gradient
 
+      character(len=*), parameter :: subname = '(limited_gradient)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       gx(:,:) = c0
@@ -1556,6 +1566,8 @@
                           ! relative to cell corner
          mpxt, mpyt     ,&! midpoint coordinates relative to cell center
          ump,  vmp        ! corrected velocity at midpoint
+
+      character(len=*), parameter :: subname = '(departure_points)'
 
     !-------------------------------------------------------------------
     ! Estimate departure points.
@@ -1800,6 +1812,8 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block) ::   &
          areasum          ! sum of triangle areas for a given edge
       
+      character(len=*), parameter :: subname = '(locate_triangles)'
+
     !-------------------------------------------------------------------
     ! Triangle notation:
     ! For each edge, there are 20 triangles that can contribute,
@@ -1855,7 +1869,7 @@
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       areafac_c(:,:) = c0
@@ -3117,6 +3131,7 @@
            i, j, ij          ,&! horizontal indices
            ng                  ! triangle index
 
+      character(len=*), parameter :: subname = '(triangle_coordinates)'
 
       if (integral_order == 1) then ! linear (1-point formula)
 
@@ -3287,6 +3302,8 @@
            mtsum            ,&! sum of mass*tracer
            mtxsum           ,&! sum of mass*tracer*x
            mtysum             ! sum of mass*tracer*y
+
+      character(len=*), parameter :: subname = '(transport_integrals)'
 
     !-------------------------------------------------------------------
     ! Initialize
@@ -3589,13 +3606,15 @@
          icells         ,&! number of cells with mm > 0.
          ij               ! combined i/j horizontal index
 
+      character(len=*), parameter :: subname = '(update_fields)'
+
     !-------------------------------------------------------------------
     ! Save starting values of mass*tracer
     !-------------------------------------------------------------------
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (present(tm)) then

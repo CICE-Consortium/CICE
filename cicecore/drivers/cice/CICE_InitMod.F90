@@ -43,6 +43,7 @@
 
       subroutine CICE_Initialize
 
+      character(len=*), parameter :: subname='(CICE_Initialize)'
    !--------------------------------------------------------------------
    ! model initialization
    !--------------------------------------------------------------------
@@ -86,7 +87,7 @@
 #endif
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
-      character(len=*),parameter :: subname = '(cice_init)'
+      character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
       call init_fileunits       ! unit numbers
@@ -127,7 +128,7 @@
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
       endif
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=trim(subname), &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 !     call calendar(time)       ! determine the initial date
@@ -234,7 +235,11 @@
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero
 
+<<<<<<< HEAD
       character(len=*),parameter :: subname = '(init_restart)'
+=======
+      character(len=*), parameter :: subname = '(init_restart)'
+>>>>>>> ab22e48640be8a2bebc16dd973471378634b665e
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
@@ -245,7 +250,11 @@
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
            nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
       call icepack_warnings_flush(nu_diag)
+<<<<<<< HEAD
       if (icepack_warnings_aborted()) call abort_ice(error_message=trim(subname), &
+=======
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+>>>>>>> ab22e48640be8a2bebc16dd973471378634b665e
          file=__FILE__, line=__LINE__)
 
       if (trim(runtype) == 'continue') then 
@@ -400,7 +409,11 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
+<<<<<<< HEAD
       if (icepack_warnings_aborted()) call abort_ice(error_message=trim(subname), &
+=======
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+>>>>>>> ab22e48640be8a2bebc16dd973471378634b665e
          file=__FILE__, line=__LINE__)
 
       end subroutine init_restart
@@ -420,13 +433,14 @@
 
       character(len=char_len_long) :: filename
       logical :: lexist = .false.
+      character(len=*), parameter :: subname='(check_finished_file)'
 
       if (my_task == master_task) then
            
          filename = trim(restart_dir)//"finished"
          inquire(file=filename, exist=lexist)
          if (lexist) then
-            call abort_ice("Found already finished file - quitting")
+            call abort_ice(subname//"ERROR: Found already finished file - quitting")
          end if
 
       endif

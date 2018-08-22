@@ -77,7 +77,7 @@
 ! Wind stress is set during this routine from the values supplied
 ! via NEMO (unless calc_strair is true).  These values are supplied  
 ! rotated on u grid and multiplied by aice.  strairxT = 0 in this  
-! case so operations in evp_prep1 are pointless but carried out to  
+! case so operations in dyn_prep1 are pointless but carried out to  
 ! minimise code changes.
 #endif
 
@@ -88,9 +88,9 @@
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
-          denom1, uvel_init, vvel_init, arlx1i, &
-          evp_prep1, evp_prep2, stepu, evp_finish, &
+      use ice_dyn_shared, only: fcor_blk, ndte, dtei, a_min, m_min, &
+          cosw, sinw, denom1, uvel_init, vvel_init, arlx1i, &
+          dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           basal_stress_coeff, basalstress
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
@@ -159,6 +159,8 @@
       type (block) :: &
          this_block           ! block information for current block
       
+      character(len=*), parameter :: subname = '(eap)'
+
       call ice_timer_start(timer_dynamics) ! dynamics
 
       !-----------------------------------------------------------------
@@ -200,7 +202,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call evp_prep1 (nx_block,           ny_block,           & 
+         call dyn_prep1 (nx_block,           ny_block,           & 
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), & 
                          vsno    (:,:,iblk), tmask   (:,:,iblk), & 
@@ -255,7 +257,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call evp_prep2 (nx_block,             ny_block,             & 
+         call dyn_prep2 (nx_block,             ny_block,             & 
                          ilo, ihi,             jlo, jhi,             &
                          icellt(iblk),         icellu(iblk),         & 
                          indxti      (:,iblk), indxtj      (:,iblk), & 
@@ -330,13 +332,13 @@
       !$TCXOMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
-      ! velocities may have changed in evp_prep2
+      ! velocities may have changed in dyn_prep2
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
       call ice_timer_stop(timer_bound)
@@ -364,13 +366,15 @@
       !-----------------------------------------------------------------
       
       if (basalstress) then
+       !$OMP PARALLEL DO PRIVATE(iblk)
        do iblk = 1, nblocks
          call basal_stress_coeff (nx_block,         ny_block,       &
                                   icellu  (iblk),                   &
                                   indxui(:,iblk),   indxuj(:,iblk), &
                                   vice(:,:,iblk),   aice(:,:,iblk), &
                                   hwater(:,:,iblk), Tbu(:,:,iblk))
-       enddo                           
+       enddo
+       !$OMP END PARALLEL DO 
       endif
       
       do ksub = 1,ndte        ! subcycling
@@ -497,7 +501,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
-         call evp_finish                               & 
+         call dyn_finish                               & 
               (nx_block,           ny_block,           & 
                icellu      (iblk), Cdn_ocn (:,:,iblk), & 
                indxui    (:,iblk), indxuj    (:,iblk), & 
@@ -553,9 +557,11 @@
          da, dx, dy, dz, &
          pi, pih, piq, phi
 
+      character(len=*), parameter :: subname = '(init_eap)'
+
       call icepack_query_parameters(pi_out=pi, pih_out=pih, piq_out=piq)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
       phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
 
@@ -663,6 +669,7 @@
       double precision, intent(in) :: a
 
       real (kind=dbl_kind) :: w1
+      character(len=*), parameter :: subname = '(w1)'
 
       w1 = - 223.87569446_dbl_kind &
            + 2361.2198663_dbl_kind*a &
@@ -682,6 +689,7 @@
       double precision, intent(in) :: a
 
       real (kind=dbl_kind) :: w2
+      character(len=*), parameter :: subname = '(w2)'
 
       w2 = - 6670.68911883_dbl_kind &
            + 70222.33061536_dbl_kind*a &
@@ -715,10 +723,11 @@
 !     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
+      character(len=*), parameter :: subname = '(s11kr)'
 
       call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       p = phi
@@ -785,10 +794,11 @@
 !     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
+      character(len=*), parameter :: subname = '(s12kr)'
 
       call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       p = phi
@@ -855,10 +865,11 @@
 !     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
+      character(len=*), parameter :: subname = '(s22kr)'
 
       call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       p = phi
@@ -924,10 +935,11 @@
       IIn1t2, IIn2t1, IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
+      character(len=*), parameter :: subname = '(s11ks)'
 
       call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       p = phi
@@ -992,10 +1004,11 @@
       IIn1t2, IIn2t1, IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
+      character(len=*), parameter :: subname = '(s12ks)'
 
       call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       p =phi
@@ -1062,10 +1075,11 @@
       IIn1t2, IIn2t1, IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
+      character(len=*), parameter :: subname = '(s22ks)'
 
       call icepack_query_parameters(pih_out=pih, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       p = phi
@@ -1241,13 +1255,15 @@
         alpharne, alpharnw, alpharsw, alpharse,     &
         alphasne, alphasnw, alphassw, alphasse
 
+      character(len=*), parameter :: subname = '(stress_eap)'
+
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       strtmp(:,:,:) = c0
@@ -1580,10 +1596,12 @@
       real (kind=dbl_kind), parameter :: &
          kfriction = 0.45_dbl_kind
 
+      character(len=*), parameter :: subname = '(update_stress_rdg)'
+
          call icepack_query_parameters(puny_out=puny, &
             pi_out=pi, pi2_out=pi2, piq_out=piq)
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
 ! Factor to maintain the same stress as in EVP (see Section 3)
@@ -1778,6 +1796,8 @@
       real (kind=dbl_kind), parameter :: &
         kth  = p2*p001             
 
+      character(len=*), parameter :: subname = '(stepa)'
+
       dteikth = c1 / (dtei + kth)
       p5kth = p5 * kth
 
@@ -1882,6 +1902,8 @@
          kfrac = p001, &
          threshold = c3*p1
 
+      character(len=*), parameter :: subname = '(calc_ffrac)'
+
        sigma11 = p5*(stressp+stressm) 
        sigma12 = stress12 
        sigma22 = p5*(stressp-stressm) 
@@ -1940,6 +1962,8 @@
 
       logical (kind=log_kind) :: diag
 
+      character(len=*), parameter :: subname = '(write_restart_eap)'
+
       diag = .true.
 
       !-----------------------------------------------------------------
@@ -1981,6 +2005,8 @@
 
       logical (kind=log_kind) :: &
          diag
+
+      character(len=*), parameter :: subname = '(read_restart_eap)'
 
       diag = .true.
 

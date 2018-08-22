@@ -272,6 +272,7 @@
           tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
           tr_bgc_DON,    tr_bgc_Fe,    tr_bgc_hum,   &
           skl_bgc, solve_zsal, z_tracers
+      character(len=*), parameter :: subname = '(init_hist_bgc_2D)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
@@ -284,7 +285,7 @@
           tr_bgc_chl_out=tr_bgc_chl, tr_bgc_DON_out=tr_bgc_DON, &
           tr_bgc_Fe_out =tr_bgc_Fe,  tr_bgc_hum_out=tr_bgc_hum ) 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -309,7 +310,7 @@
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
          close (nu_nml)
-         call abort_ice('ice: error reading icefields_bgc_nml')
+         call abort_ice(subname//'ERROR: reading icefields_bgc_nml')
       endif
 
       if (.not. tr_aero) then
@@ -1732,6 +1733,7 @@
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
+      character(len=*), parameter :: subname = '(init_hist_bgc_3Dc)'
       
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
@@ -1753,12 +1755,13 @@
 
       integer (kind=int_kind) :: ns
       real (kind=dbl_kind) :: secday
+      character(len=*), parameter :: subname = '(init_hist_bgc_3Db)'
       
       ! biology vertical grid
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do ns = 1, nstreams
@@ -1884,6 +1887,8 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(accum_hist_bgc)'
+
       call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi, &
          rhow_out=rhow, puny_out=puny, sk_l_out=sk_l)
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
@@ -1911,7 +1916,7 @@
          nlt_bgc_Fed_out=nlt_bgc_Fed,   nlt_bgc_Fep_out=nlt_bgc_Fep,  &
          nt_bgc_hum_out=nt_bgc_hum,    nlt_bgc_hum_out=nlt_bgc_hum)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
           
       this_block = get_block(blocks_ice(iblk),iblk)         
@@ -3078,6 +3083,7 @@
       integer (kind=int_kind) :: ns, n
       character (len=3) :: nchar
       character (len=16):: vname_in     ! variable name
+      character(len=*), parameter :: subname = '(init_hist_bgc_3Da)'
       
       ! snow+bio grid
 
@@ -3323,6 +3329,8 @@
       use ice_flux_bgc, only: flux_bio, flux_bio_ai, fnit, fsil, &
           famm, fdmsp, fdms, fhum, fdust, falgalN, fdoc, fdic, &
           fdon, ffep, ffed
+
+      character(len=*), parameter :: subname = '(init_history_bgc)'
 
       PP_net        (:,:,:) = c0
       grow_net      (:,:,:) = c0

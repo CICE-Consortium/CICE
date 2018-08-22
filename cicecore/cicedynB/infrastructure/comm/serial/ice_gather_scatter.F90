@@ -101,6 +101,8 @@
    type (block) :: &
      this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(gather_global_dbl)'
+
    if (present(spc_val)) then
       special_value = spc_val
    else
@@ -192,6 +194,8 @@
    type (block) :: &
       this_block   ! block info for current block
 
+   character(len=*), parameter :: subname = '(gather_global_real)'
+
 !-----------------------------------------------------------------------
 !
 !  copy local array into block decomposition
@@ -277,6 +281,8 @@
    type (block) :: &
       this_block    ! block info for current block
 
+   character(len=*), parameter :: subname = '(gather_global_int)'
+
 !-----------------------------------------------------------------------
 !
 !  copy local array into block decomposition
@@ -353,6 +359,8 @@
 
    type (block) :: &
      this_block  ! block info for current block
+
+   character(len=*), parameter :: subname = '(gather_global_ext)'
 
    if (present(spc_val)) then
       special_value = spc_val
@@ -528,6 +536,8 @@
    type (block) :: &
      this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(scatter_global_dbl)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize return array to zero and set up tripole quantities
@@ -585,7 +595,7 @@
    case (field_type_noupdate) ! ghost cells not needed - use cell center
       isign =  1
    case default
-      call abort_ice('Unknown field type in scatter')
+      call abort_ice(subname//'ERROR: Unknown field type in scatter')
    end select
 
 !-----------------------------------------------------------------------
@@ -774,6 +784,8 @@
    type (block) :: &
      this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(scatter_global_real)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize return array to zero and set up tripole quantities
@@ -831,7 +843,7 @@
    case (field_type_noupdate) ! ghost cells not needed - use cell center
       isign =  1
    case default
-      call abort_ice('Unknown field type in scatter')
+      call abort_ice(subname//'ERROR: Unknown field type in scatter')
    end select
 
 !-----------------------------------------------------------------------
@@ -1020,6 +1032,8 @@
    type (block) :: &
       this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(scatter_global_int)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize return array to zero and set up tripole quantities
@@ -1077,7 +1091,7 @@
    case (field_type_noupdate) ! ghost cells not needed - use cell center
       isign =  1
    case default
-      call abort_ice('Unknown field type in scatter')
+      call abort_ice(subname//'ERROR: Unknown field type in scatter')
    end select
 
 !-----------------------------------------------------------------------
@@ -1249,6 +1263,8 @@
    type (block) :: &
      this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(scatter_global_ext)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize return array to zero 
@@ -1411,6 +1427,8 @@
 
    type (block) :: &
      this_block  ! block info for current block
+
+   character(len=*), parameter :: subname = '(scatter_global_stress)'
 
 !-----------------------------------------------------------------------
 !

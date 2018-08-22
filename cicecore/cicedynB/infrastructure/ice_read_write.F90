@@ -84,6 +84,8 @@
 
       character (*) :: filename
 
+      character(len=*), parameter :: subname = '(ice_open)'
+
       if (my_task == master_task) then
 
          if (nbits == 0) then   ! sequential access
@@ -117,6 +119,8 @@
 
       integer (kind=int_kind) :: &
            nx, ny        ! grid dimensions including ghost cells
+
+      character(len=*), parameter :: subname = '(ice_open_ext)'
 
       if (my_task == master_task) then
 
@@ -196,6 +200,8 @@
 
       integer(selected_int_kind(13)), dimension(:,:), allocatable :: &
          work_gi8
+
+      character(len=*), parameter :: subname = '(ice_read_xyt)'
 
       if (my_task == master_task) then
          allocate(work_g1(nx_global,ny_global))
@@ -342,6 +348,8 @@
       real (kind=real_kind), dimension(:,:,:), allocatable :: &
          work_gr3
 
+      character(len=*), parameter :: subname = '(ice_read_xyzt)'
+
       if (my_task == master_task) then
          allocate(work_g4(nx_global,ny_global,nblyr+2))
       else
@@ -480,6 +488,8 @@
       integer(selected_int_kind(13)), dimension(:,:), allocatable :: &
          work_gi8
 
+      character(len=*), parameter :: subname = '(ice_read_global)'
+
       work_g(:,:) = c0
 
       if (my_task == master_task) then
@@ -591,6 +601,8 @@
 
       integer(selected_int_kind(13)), dimension(:,:), allocatable :: &
          work_gi8
+
+      character(len=*), parameter :: subname = '(ice_read_ext)'
 
       nx = nx_global + 2*nghost
       ny = ny_global + 2*nghost
@@ -716,6 +728,8 @@
       integer(selected_int_kind(13)), dimension(:,:), allocatable :: &
          work_gi8
 
+      character(len=*), parameter :: subname = '(ice_write_xyt)'
+
     !-------------------------------------------------------------------
     ! Gather data from individual processors
     !-------------------------------------------------------------------
@@ -815,6 +829,8 @@
 
       integer(selected_int_kind(13)), dimension(:,:,:), allocatable :: &
          work_gi9
+
+      character(len=*), parameter :: subname = '(ice_write_xyzt)'
 
     !-------------------------------------------------------------------
     ! Gather data from individual processors
@@ -920,6 +936,8 @@
       integer(selected_int_kind(13)), dimension(:,:), allocatable :: &
          work_gi8
 
+      character(len=*), parameter :: subname = '(ice_write_ext)'
+
     !-------------------------------------------------------------------
     ! Gather data from individual processors
     !-------------------------------------------------------------------
@@ -994,6 +1012,8 @@
 
       ! local variables
 
+      character(len=*), parameter :: subname = '(ice_open_nc)'
+
 #ifdef ncdf
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine 
@@ -1002,8 +1022,7 @@
 
           status = nf90_open(filename, NF90_NOWRITE, fid)
           if (status /= nf90_noerr) then
-             call abort_ice ( & 
-                   'ice_open_nc: Cannot open '//trim(filename) )
+             call abort_ice (subname//'ERROR: Cannot open '//trim(filename) )
           endif
 
       endif                      ! my_task = master_task
@@ -1050,6 +1069,8 @@
            field_type        ! type of field (scalar, vector, angle)
 
       ! local variables
+
+      character(len=*), parameter :: subname = '(ice_read_nc_xy)'
 
 #ifdef ncdf
 ! netCDF file diagnostics:
@@ -1109,8 +1130,7 @@
          status = nf90_inq_varid(fid, trim(varname), varid)
  
          if (status /= nf90_noerr) then
-           call abort_ice ( & 
-               'ice_read_nc_xy: Cannot find variable '//trim(varname) )
+           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif
 
        !--------------------------------------------------------------
@@ -1223,6 +1243,8 @@
 
       ! local variables
 
+      character(len=*), parameter :: subname = '(ice_read_nc_xyz)'
+
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
@@ -1282,8 +1304,7 @@
          status = nf90_inq_varid(fid, trim(varname), varid)
  
          if (status /= nf90_noerr) then
-           call abort_ice ( & 
-               'ice_read_nc_xyz: Cannot find variable '//trim(varname) )
+           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif
 
        !--------------------------------------------------------------
@@ -1395,6 +1416,8 @@
 
       ! local variables
 
+      character(len=*), parameter :: subname = '(ice_read_nc_point)'
+
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
@@ -1419,8 +1442,7 @@
          status = nf90_inq_varid(fid, trim(varname), varid)
  
          if (status /= nf90_noerr) then
-           call abort_ice ( & 
-               'ice_read_nc_point: Cannot find variable '//trim(varname) )
+           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif
 
        !--------------------------------------------------------------
@@ -1432,8 +1454,7 @@
                count=(/ 1 /) )
 
           if (status /= nf90_noerr) then
-           call abort_ice ( & 
-               'ice_read_nc_point: Cannot get variable '//trim(varname) )
+           call abort_ice (subname//'ERROR: Cannot get variable '//trim(varname) )
          endif
       endif                     ! my_task = master_task
 
@@ -1492,6 +1513,8 @@
       real (kind=dbl_kind), dimension(:), allocatable :: &
          work_z
 
+      character(len=*), parameter :: subname = '(ice_read_nc_z)'
+
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
@@ -1515,8 +1538,7 @@
          status = nf90_inq_varid(fid, trim(varname), varid)
  
          if (status /= nf90_noerr) then
-           call abort_ice ( & 
-               'ice_read_nc: Cannot find variable '//trim(varname) )
+           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif
 
        !--------------------------------------------------------------
@@ -1583,6 +1605,8 @@
            varname           ! variable name
 
       ! local variables
+
+      character(len=*), parameter :: subname = '(ice_read_nc_xy)'
 
 #ifdef ncdf
 ! netCDF file diagnostics:
@@ -1701,6 +1725,8 @@
            varname           ! variable name
 
       ! local variables
+
+      character(len=*), parameter :: subname = '(ice_read_nc_xyz)'
 
 #ifdef ncdf
 ! netCDF file diagnostics:
@@ -1827,6 +1853,8 @@
 
       ! local variables
 
+      character(len=*), parameter :: subname = '(ice_read_global_nc)'
+
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
@@ -1865,8 +1893,7 @@
          status = nf90_inq_varid(fid, trim(varname), varid)
 
          if (status /= nf90_noerr) then
-           call abort_ice ( & 
-            'ice_read_global_nc: Cannot find variable '//trim(varname) )
+           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif
 
        !--------------------------------------------------------------
@@ -1926,6 +1953,8 @@
 
       ! local variables
 
+      character(len=*), parameter :: subname = '(ice_close_nc)'
+
 #ifdef ncdf
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine 
@@ -1976,6 +2005,8 @@
 
       ! local variables
 
+      character(len=*), parameter :: subname = '(ice_read_nc_uv)'
+
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
@@ -2021,8 +2052,7 @@
          status = nf90_inq_varid(fid, trim(varname), varid)
  
          if (status /= nf90_noerr) then
-           call abort_ice ( & 
-               'ice_read_nc_xy: Cannot find variable '//trim(varname) )
+           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif
 
        !--------------------------------------------------------------

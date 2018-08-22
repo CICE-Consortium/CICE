@@ -75,6 +75,7 @@
 ! Ends run by calling MPI_FINALIZE.
 
       integer (int_kind) :: ierr ! MPI error flag
+      character(len=*), parameter :: subname = '(end_run)'
 
       call MPI_FINALIZE(ierr)
 

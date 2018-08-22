@@ -96,6 +96,8 @@
 
       subroutine init_fileunits
 
+         character(len=*),parameter :: subname='(init_fileunits)'
+
          nu_diag = ice_stdout  ! default
 
          ice_IOUnitsInUse = .false.
@@ -140,39 +142,41 @@
 
       subroutine get_fileunit(iunit)
 
-   integer (kind=int_kind), intent(out) :: &
-      iunit                     ! next free I/O unit
+         integer (kind=int_kind), intent(out) :: &
+            iunit                     ! next free I/O unit
 
-   ! local variables
+         ! local variables
 
 #ifndef CESMCOUPLED
-   integer (kind=int_kind) :: n  ! dummy loop index
-   logical (kind=log_kind) :: alreadyInUse
+         integer (kind=int_kind) :: n  ! dummy loop index
+         logical (kind=log_kind) :: alreadyInUse
 #endif
 
+         character(len=*),parameter :: subname='(get_fileunit)'
+
 #ifdef CESMCOUPLED
-   iunit = shr_file_getUnit()
+         iunit = shr_file_getUnit()
 #else
 
-   srch_units: do n=ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
-      if (.not. ice_IOUnitsInUse(n)) then   ! I found one, I found one
+         srch_units: do n=ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
+            if (.not. ice_IOUnitsInUse(n)) then   ! I found one, I found one
 
-         !*** make sure not in use by library or calling routines
-         INQUIRE (unit=n,OPENED=alreadyInUse)
+               !*** make sure not in use by library or calling routines
+               INQUIRE (unit=n,OPENED=alreadyInUse)
 
-         if (.not. alreadyInUse) then
-            iunit = n        ! return the free unit number
-            ice_IOUnitsInUse(iunit) = .true.  ! mark iunit as being in use
-            exit srch_units
-         else
-            !*** if inquire shows this unit in use, mark it as
-            !***    in use to prevent further queries
-            ice_IOUnitsInUse(n) = .true.
-         endif
-      endif
-   end do srch_units
+               if (.not. alreadyInUse) then
+                  iunit = n        ! return the free unit number
+                  ice_IOUnitsInUse(iunit) = .true.  ! mark iunit as being in use
+                  exit srch_units
+               else
+                  !*** if inquire shows this unit in use, mark it as
+                  !***    in use to prevent further queries
+                  ice_IOUnitsInUse(n) = .true.
+               endif
+            endif
+         end do srch_units
 
-   if (iunit > ice_IOUnitsMaxUnit) stop 'ice_IOUnitsGet: No free units'
+         if (iunit > ice_IOUnitsMaxUnit) stop 'ice_IOUnitsGet: No free units'
 
 #endif
 
@@ -183,6 +187,8 @@
 !  This routine releases unit numbers at the end of a run. 
 
       subroutine release_all_fileunits
+
+         character(len=*),parameter :: subname='(release_all_fileunits)'
 
          call release_fileunit(nu_grid)
          call release_fileunit(nu_kmt)
@@ -221,19 +227,21 @@
 
       subroutine release_fileunit(iunit)
 
-   integer (kind=int_kind), intent(in) :: &
-      iunit                    ! I/O unit to be released
+         integer (kind=int_kind), intent(in) :: &
+            iunit                    ! I/O unit to be released
+
+         character(len=*),parameter :: subname='(release_fileunit)'
 
 #ifdef CESMCOUPLED
          call shr_file_freeUnit(iunit)
 #else
 !  check for proper unit number
-   if (iunit < 1 .or. iunit > ice_IOUnitsMaxUnit) then
-      stop 'release_fileunit: bad unit'
-   endif
+         if (iunit < 1 .or. iunit > ice_IOUnitsMaxUnit) then
+            stop 'release_fileunit: bad unit'
+         endif
 
 !  mark the unit as not in use
-   ice_IOUnitsInUse(iunit) = .false.  !  that was easy...
+         ice_IOUnitsInUse(iunit) = .false.  !  that was easy...
 #endif
 
       end subroutine release_fileunit
@@ -252,11 +260,13 @@
       subroutine flush_fileunit(iunit)
 
 #ifdef CESMCOUPLED
-      use shr_sys_mod, only : shr_sys_flush
+         use shr_sys_mod, only : shr_sys_flush
 #endif
 
-   integer (kind=int_kind), intent(in) :: &
-      iunit                    ! I/O unit to be flushed
+         integer (kind=int_kind), intent(in) :: &
+            iunit                    ! I/O unit to be flushed
+
+         character(len=*),parameter :: subname='(flush_fileunit)'
 
 !-----------------------------------------------------------------------
 !
@@ -265,12 +275,13 @@
 !-----------------------------------------------------------------------
 
 #ifdef CESMCOUPLED
-   call shr_sys_flush(iunit)
+         call shr_sys_flush(iunit)
 #else
+#if (defined IRIX64 || defined CRAY || defined OSF1 || defined SUNOS || defined LINUX || defined NEC_SX | defined UNICOSMP)
+         call flush(iunit)
+#endif
 #if (defined AIX)
-   call flush_(iunit)
-#else
-   flush(iunit)
+         call flush_(iunit)
 #endif
 #endif
 

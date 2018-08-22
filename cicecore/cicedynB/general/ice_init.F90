@@ -95,7 +95,7 @@
       logical :: exists
 
       real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
-        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, &
+        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg
@@ -167,7 +167,7 @@
         atmbndy,        fyear_init,      ycycle,        atm_data_format,&
         atm_data_type,  atm_data_dir,    calc_strair,   calc_Tsfc,      &
         precip_units,   update_ocn_f,    l_mpond_fresh, ustar_min,      &
-        fbot_xfer_type,                                                 &
+        fbot_xfer_type, emissivity,                                     &
         oceanmixed_ice, ocn_data_format, sss_data_type, sst_data_type,  &
         ocn_data_dir,   oceanmixed_file, restore_sst,   trestore,       &
         restore_ice,    formdrag,        highfreq,      natmiter,       &
@@ -263,6 +263,7 @@
       calc_Tsfc = .true.     ! calculate surface temperature
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
+      emissivity = 0.95      ! emissivity of snow and ice
       l_mpond_fresh = .false.     ! logical switch for including meltpond freshwater
                                   ! flux feedback to ocean model
       fbot_xfer_type = 'constant' ! transfer coefficient type for ocn heat flux
@@ -528,6 +529,7 @@
       call broadcast_scalar(update_ocn_f,       master_task)
       call broadcast_scalar(l_mpond_fresh,      master_task)
       call broadcast_scalar(ustar_min,          master_task)
+      call broadcast_scalar(emissivity,         master_task)
       call broadcast_scalar(fbot_xfer_type,     master_task)
       call broadcast_scalar(precip_units,       master_task)
       call broadcast_scalar(oceanmixed_ice,     master_task)
@@ -602,6 +604,25 @@
          if (my_task == master_task) &
             write(nu_diag,*) 'WARNING: runtype ne continue and ice_ic=none|default, setting restart=.false.'
          restart = .false.
+      endif
+
+      if (trim(runtype) /= 'continue' .and. (ice_ic == 'none' .or. ice_ic == 'default')) then
+         if (my_task == master_task) &
+            write(nu_diag,*) 'WARNING: ice_ic = none or default, setting restart flags to .false.'
+         restart = .false.
+         restart_aero =  .false. 
+         restart_age =  .false. 
+         restart_fy =  .false. 
+         restart_lvl =  .false. 
+         restart_pond_cesm =  .false. 
+         restart_pond_lvl =  .false. 
+         restart_pond_topo =  .false. 
+! tcraig, probably needs to be uncommented when we can test bgc
+!         restart_bgc =  .false. 
+!         restart_hbrine =  .false. 
+!         restart_zsal =  .false. 
+! tcraig, OK to leave as true, needed for boxrestore case
+!         restart_ext =  .false. 
       endif
 
       if (trim(runtype) == 'initial' .and. .not.(restart) .and. &
@@ -949,6 +970,7 @@
          write(nu_diag,1010) ' update_ocn_f              = ', update_ocn_f
          write(nu_diag,1010) ' l_mpond_fresh             = ', l_mpond_fresh
          write(nu_diag,1005) ' ustar_min                 = ', ustar_min
+         write(nu_diag,1005) ' emissivity                = ', emissivity
          write(nu_diag, *)   ' fbot_xfer_type            = ', &
                                trim(fbot_xfer_type)
          write(nu_diag,1010) ' oceanmixed_ice            = ', &
@@ -1143,7 +1165,7 @@
 
       call flush_fileunit(nu_diag)
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
-         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, &
+         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, emissivity_in=emissivity, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
          R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
          kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &

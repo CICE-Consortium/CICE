@@ -84,6 +84,8 @@
           nt_sice, nt_fbri, nt_iage, nt_FY, nt_alvl, nt_vlvl, &
           nt_apnd, nt_hpnd, nt_ipnd, nt_bgc_Nit, nt_bgc_S
 
+      character(len=*), parameter :: subname = '(init_transport)'
+
       call ice_timer_start(timer_advect)  ! advection 
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
@@ -93,7 +95,7 @@
           nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
           nt_ipnd_out=nt_ipnd, nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ntrace = 2 + ntrcr ! hice,hsno,trcr
@@ -136,8 +138,8 @@
                 if (nt1 > nt) then
                    write(nu_diag,*)     &
                       'Tracer nt2 =',nt,' depends on tracer nt1 =',nt1
-                   call abort_ice       &
-                      ('ice: remap transport: Must have nt2 > nt1')
+                   call abort_ice(subname//       &
+                      'ERROR: remap transport: Must have nt2 > nt1')
                 endif
              endif
           enddo                 ! ntrace
@@ -296,10 +298,12 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      character(len=*), parameter :: subname = '(transport_remap)'
+
       call ice_timer_start(timer_advect)  ! advection 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 !---!-------------------------------------------------------------------
@@ -428,7 +432,7 @@
                   STAT=alloc_error)
 
          if (alloc_error /= 0)      &
-              call abort_ice ('ice: allocation error')
+              call abort_ice (subname//'ERROR: allocation error')
 
          tmin(:,:,:,:,:) = c0
          tmax(:,:,:,:,:) = c0
@@ -589,7 +593,7 @@
                write (nu_diag,*) 'istep1, my_task, iblk =',     &
                                   istep1, my_task, iblk
                write (nu_diag,*) 'transport: conservation error, cat 0'
-               call abort_ice('ice remap transport: conservation error')
+               call abort_ice(subname//'ERROR: conservation error1')
             endif
 
             do n = 1, ncat               
@@ -602,8 +606,7 @@
                   write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
                                      istep1, my_task, iblk, n
                   write (nu_diag,*) 'transport: conservation error, cat ',n
-                  call abort_ice     &
-                       ('ice remap transport: conservation error')
+                  call abort_ice(subname//'ERROR: conservation error2')
                endif
             enddo               ! n
 
@@ -640,7 +643,7 @@
                if (l_stop) then
                   write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
                                      istep1, my_task, iblk, n
-                  call abort_ice('ice remap transport: monotonicity error')
+                  call abort_ice(subname//'ERROR: monotonicity error')
                endif
             enddo               ! n
 
@@ -648,7 +651,7 @@
          !$OMP END PARALLEL DO
 
          deallocate(tmin, tmax, STAT=alloc_error)
-         if (alloc_error /= 0) call abort_ice ('deallocation error')
+         if (alloc_error /= 0) call abort_ice (subname//'ERROR: deallocation error')
 
       endif                     ! l_monotonicity_check
 
@@ -697,11 +700,13 @@
       type (block) ::     &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(transport_upwind)'
+
       call ice_timer_start(timer_advect)  ! advection 
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       narr = 1 + ncat*(3+ntrcr) ! max number of state variable arrays
@@ -881,11 +886,13 @@
       integer (kind=int_kind), dimension(0:ncat) ::     &
            icells         ! number of cells with ice
 
+      character(len=*), parameter :: subname = '(state_to_tracers)'
+
       call icepack_query_parameters(puny_out=puny, rhos_out=rhos, &
            Lfresh_out=Lfresh)
       call icepack_query_tracer_indices(nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       aim(:,:,0) = aice0(:,:)
@@ -1004,10 +1011,12 @@
       integer (kind=int_kind), dimension (nx_block*ny_block) ::     &
            indxi, indxj      ! compressed indices
 
+      character(len=*), parameter :: subname = '(tracers_to_state)'
+
       call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh)
       call icepack_query_tracer_indices(nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       aice0(:,:) = aim(:,:,0)
@@ -1088,9 +1097,11 @@
            puny        ,&!
            diff          ! difference between initial and final values
 
+      character(len=*), parameter :: subname = '(global_conservation)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (asum_init > puny) then
@@ -1177,6 +1188,8 @@
            phi_nw, phi_n, phi_ne ,&! field values in 8 neighbor cells
            phi_w, phi_e          ,&
            phi_sw, phi_s, phi_se
+
+      character(len=*), parameter :: subname = '(local_max_min)'
 
       do nt = 1, ntrace
 
@@ -1269,6 +1282,8 @@
            i, j          ,&! horizontal indices
            nt              ! tracer index
 
+      character(len=*), parameter :: subname = '(quasilocal_max_min)'
+
       do nt = 1, ntrace
 
          do j = jlo, jhi
@@ -1341,9 +1356,11 @@
       logical (kind=log_kind), dimension (nx_block, ny_block) ::   &
            l_check        ! if true, check monotonicity
 
+      character(len=*), parameter :: subname = '(check_monotonicity)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do nt = 1, ntrace
@@ -1487,12 +1504,14 @@
          i, j, n, it    ,&! counting indices
          narrays          ! counter for number of state variable arrays
 
+      character(len=*), parameter :: subname = '(state_to_work)'
+
       call icepack_query_tracer_flags(tr_pond_cesm_out=tr_pond_cesm, &
            tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, &
            nt_fbri_out=nt_fbri)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -1647,6 +1666,8 @@
       real (kind=dbl_kind), dimension (nx_block*ny_block,narr) ::      &
          work 
 
+      character(len=*), parameter :: subname = '(work_to_state)'
+
       ! for call to compute_tracers
       icells = 0
       do j = 1, ny_block
@@ -1693,7 +1714,7 @@
       enddo                     ! ncat
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine work_to_state
@@ -1738,6 +1759,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
          worka, workb
+
+      character(len=*), parameter :: subname = '(upwind_field)'
 
     !-------------------------------------------------------------------
     ! upwind transport

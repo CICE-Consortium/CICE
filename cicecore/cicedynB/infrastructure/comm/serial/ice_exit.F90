@@ -60,6 +60,8 @@
 
       subroutine end_run
 
+      character(len=*), parameter :: subname = '(end_run)'
+
 ! Ends parallel run by calling MPI_FINALIZE.
 ! Does nothing in serial runs.
 

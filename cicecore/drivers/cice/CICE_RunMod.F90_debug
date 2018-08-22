@@ -52,6 +52,7 @@
           timer_couple, timer_step
       logical (kind=log_kind) :: &
           tr_aero, tr_zaero, skl_bgc, z_tracers
+      character(len=*), parameter :: subname = '(CICE_Run)'
 
    !--------------------------------------------------------------------
    !  initialize error code and step timer
@@ -62,7 +63,7 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 #ifndef CICE_IN_NEMO
@@ -169,6 +170,8 @@
 
       character (len=char_len) :: plabeld
 
+      character(len=*), parameter :: subname = '(ice_step)'
+
       plabeld = 'beginning time step'
       do iblk = 1, nblocks
          call debug_ice (iblk, plabeld)
@@ -180,7 +183,7 @@
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -390,11 +393,13 @@
          rhofresh    , & !
          netsw           ! flag for shortwave radiation presence
 
+      character(len=*), parameter :: subname = '(coupling_prep)'
+
          call icepack_query_parameters(puny_out=puny, rhofresh_out=rhofresh)
          call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
          call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -611,9 +616,11 @@
           puny, &          !
           rLsub            ! 1/Lsub
 
+      character(len=*), parameter :: subname = '(sfcflux_to_ocn)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
       rLsub = c1 / Lsub
 

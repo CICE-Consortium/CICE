@@ -42,6 +42,8 @@
 
       character*(*) label
 
+      character(len=*),parameter :: subname='(lenstr)'
+
       ! local variables
 
       integer (kind=int_kind) :: &

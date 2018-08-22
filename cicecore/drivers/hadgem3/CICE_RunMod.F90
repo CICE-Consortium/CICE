@@ -667,8 +667,8 @@
      !----------------------------------------------------------------
 
      if (nilyr /= 1 .or. nslyr /= 1 .or. ntrcr /= 1) &
-        call abort_ice & 
-         ('da_state_update: only works for 1 cat, 1 layer, 1 tracer runs')
+        call abort_ice("subname"// & 
+         'ERROR: da_state_update: only works for 1 cat, 1 layer, 1 tracer runs')
 
      !------------------------------------------------------------------
      ! Set thickness for new ice

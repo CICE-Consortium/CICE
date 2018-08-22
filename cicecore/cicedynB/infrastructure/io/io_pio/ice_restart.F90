@@ -15,6 +15,8 @@
       use ice_pio
       use pio
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
+      use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_numbers
 
       implicit none
       private
@@ -52,6 +54,8 @@
          filename, filename0
 
       integer (kind=int_kind) :: status
+
+      character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then 
          filename = trim(ice_ic)
@@ -124,16 +128,23 @@
                                  n_aero, nblyr, n_zaero, n_algae, n_doc,   &
                                  n_dic, n_don, n_fed, n_fep
       use ice_dyn_shared, only: kdyn
-      use icepack_intfc, only: oceanmixed_ice, solve_zsal, skl_bgc, z_tracers
-      use icepack_intfc, only: tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
-                             tr_pond_topo, tr_pond_lvl, tr_brine, nbtrcr, &
-                             tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
-                             tr_bgc_Sil, tr_bgc_DMS, &
-                             tr_bgc_chl,  tr_bgc_Am, &
-                             tr_bgc_PON, tr_bgc_DON, &
-                             tr_zaero,    tr_bgc_Fe, &
-                             tr_bgc_hum
+      use ice_arrays_column, only: oceanmixed_ice
 
+      logical (kind=log_kind) :: &
+          solve_zsal, skl_bgc, z_tracers
+
+      logical (kind=log_kind) :: &
+          tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
+          tr_pond_topo, tr_pond_lvl, tr_brine, &
+          tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
+          tr_bgc_Sil, tr_bgc_DMS, &
+          tr_bgc_chl,  tr_bgc_Am, &
+          tr_bgc_PON, tr_bgc_DON, &
+          tr_zaero,    tr_bgc_Fe, &
+          tr_bgc_hum
+
+      integer (kind=int_kind) :: &
+          nbtrcr
 
       character(len=char_len_long), intent(in), optional :: filename_spec
 
@@ -154,6 +165,25 @@
         status        ! status variable from netCDF routine
 
       character (len=3) :: nchar, ncharb
+
+      character(len=*), parameter :: subname = '(init_restart_write)'
+
+      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_flags( &
+          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
+          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine, &
+          tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
+          tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
+          tr_bgc_chl_out=tr_bgc_chl,  tr_bgc_Am_out=tr_bgc_Am, &
+          tr_bgc_PON_out=tr_bgc_PON, tr_bgc_DON_out=tr_bgc_DON, &
+          tr_zaero_out=tr_zaero,    tr_bgc_Fe_out=tr_bgc_Fe, &
+          tr_bgc_hum_out=tr_bgc_hum)
+      call icepack_query_parameters(solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, &
+          z_tracers_out=z_tracers)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       ! construct path/file
       if (present(filename_spec)) then
@@ -641,6 +671,8 @@
 
       real (kind=dbl_kind) :: amin,amax,asum
 
+      character(len=*), parameter :: subname = '(read_restart_field)'
+
       if (restart_format == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file read: ',vname
@@ -650,7 +682,7 @@
          status = pio_inq_varid(File,trim(vname),vardesc)
 
          if (status /= 0) then
-            call abort_ice("CICE4 restart? Missing variable: "//trim(vname))
+            call abort_ice(subname//"ERROR: CICE4 restart? Missing variable: "//trim(vname))
          endif
 
          call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
@@ -697,7 +729,7 @@
          
          endif
       else
-         call abort_ice("Invalid restart_format: "//restart_format)
+         call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
       endif
 
       end subroutine read_restart_field
@@ -744,6 +776,8 @@
 
       real (kind=dbl_kind) :: amin,amax,asum
 
+      character(len=*), parameter :: subname = '(write_restart_field)'
+
       if (restart_format == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file write: ',vname
@@ -784,7 +818,7 @@
             endif
          endif
       else
-         call abort_ice("Invalid restart_format: "//restart_format)
+         call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
       endif
 
       end subroutine write_restart_field
@@ -798,6 +832,8 @@
 
       use ice_calendar, only: istep1, time, time_forc
       use ice_communicate, only: my_task, master_task
+
+      character(len=*), parameter :: subname = '(final_restart)'
 
       if (restart_format == 'pio') then
          call PIO_freeDecomp(File,iodesc2d)
@@ -823,6 +859,8 @@
 
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine
+
+      character(len=*), parameter :: subname = '(define_rest_field)'
 
       status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
         

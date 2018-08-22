@@ -165,6 +165,8 @@
 
       type (ice_halo) :: halo_info_aicemask
 
+      character(len=*), parameter :: subname = '(bound_state)'
+
       call ice_HaloUpdate (aicen,            halo_info, &
                            field_loc_center, field_type_scalar)
 

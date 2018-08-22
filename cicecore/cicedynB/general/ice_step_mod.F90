@@ -73,6 +73,8 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(prep_radiation)'
+
       call ice_timer_start(timer_sw)      ! shortwave
 
       alvdr_init(:,:,:) = c0
@@ -113,7 +115,7 @@
          enddo               ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_sw)     ! shortwave
@@ -189,6 +191,8 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(step_therm1)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
@@ -203,7 +207,7 @@
          nt_qice_out=nt_qice, nt_sice_out=nt_sice, &
          nt_aero_out=nt_aero, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 #ifndef CESMCOUPLED
@@ -362,7 +366,7 @@
       enddo ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine step_therm1
@@ -409,9 +413,11 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(step_therm2)'
+
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)         
@@ -456,7 +462,7 @@
       enddo                     ! j
          
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine step_therm2
@@ -502,7 +508,7 @@
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-------------------------------------------------------------------
@@ -561,7 +567,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine update_state
@@ -585,6 +591,8 @@
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! dynamics time step
+
+      character(len=*), parameter :: subname = '(step_dyn_horiz)'
 
       call init_history_dyn     ! initialize dynamic history variables
 
@@ -651,6 +659,8 @@
          ntrcr,           & !
          nbtrcr             !
 
+      character(len=*), parameter :: subname = '(step_dyn_ridge)'
+
       !-----------------------------------------------------------------
       ! Ridging
       !-----------------------------------------------------------------
@@ -660,7 +670,7 @@
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk), iblk)
@@ -710,7 +720,7 @@
       enddo ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_ridge)
@@ -783,6 +793,8 @@
          debug, &           ! flag for printing debugging information
          l_print_point      ! flag for printing debugging information
 
+      character(len=*), parameter :: subname = '(step_radiation)'
+
       call ice_timer_start(timer_sw)      ! shortwave
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, &
@@ -796,7 +808,7 @@
          nt_fbri_out=nt_fbri, nt_zaero_out=nt_zaero)
       call icepack_query_parameters(dEdd_algae_out=dEdd_algae, modal_aero_out=modal_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       allocate(ztrcr(ntrcr,ncat))
@@ -888,7 +900,7 @@
       enddo ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       deallocate(ztrcr)
@@ -954,11 +966,13 @@
       type (block) :: &
          this_block         ! block information for current block
 
+      character(len=*), parameter :: subname = '(ocn_mixed_layer)'
+
       !-----------------------------------------------------------------
 
          call icepack_query_parameters(albocn_out=albocn)
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -1023,7 +1037,7 @@
          enddo ! ij
 
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -1063,7 +1077,7 @@
       enddo                    ! ij
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine ocean_mixed_layer
@@ -1129,7 +1143,7 @@
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
       call icepack_query_tracer_indices(bio_index_o_out=bio_index_o)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (tr_brine .or. skl_bgc) then
@@ -1223,7 +1237,7 @@
       enddo               ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_bgc) ! biogeochemistry
