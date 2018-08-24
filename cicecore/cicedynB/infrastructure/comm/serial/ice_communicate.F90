@@ -20,6 +20,7 @@
 
    public  :: init_communicate,          &
               get_num_procs,             &
+              ice_barrier,               &
               create_communicator
 
    integer (int_kind), public :: &
@@ -49,6 +50,8 @@
 
    integer (int_kind) :: ierr  ! MPI error flag
 #endif
+
+   character(len=*), parameter :: subname = '(init_communicate)'
 
 !-----------------------------------------------------------------------
 !
@@ -91,6 +94,8 @@
 
    integer (int_kind) :: get_num_procs
 
+   character(len=*), parameter :: subname = '(get_num_procs)'
+
 !-----------------------------------------------------------------------
 !
 !  serial execution, must be only 1
@@ -102,6 +107,26 @@
 !-----------------------------------------------------------------------
 
  end function get_num_procs
+
+!***********************************************************************
+
+ subroutine ice_barrier()
+
+!  This function is an MPI_BARRIER on the MPI side
+
+   character(len=*), parameter :: subname = '(ice_barrier)'
+
+!-----------------------------------------------------------------------
+!
+!  serial execution, no-op
+!
+!-----------------------------------------------------------------------
+
+   ! do nothing
+
+!-----------------------------------------------------------------------
+
+ end subroutine ice_barrier
 
 !***********************************************************************
 
@@ -146,6 +171,8 @@
    integer (int_kind), dimension(3) :: &
      range                   ! range of tasks assigned to new dist
                              !  (assumed 0,num_procs-1)
+
+   character(len=*), parameter :: subname = '(create_communicator)'
 
 !-----------------------------------------------------------------------
 !

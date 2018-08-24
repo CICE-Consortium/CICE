@@ -183,6 +183,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2
 
+      character(len=*), parameter :: subname = '(runtime_diags)'
+
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
            tr_pond_topo_out=tr_pond_topo)
@@ -194,7 +196,7 @@
            rhofresh_out=rhofresh, lfresh_out=lfresh, lvap_out=lvap, &
            ice_ref_salinity_out=ice_ref_salinity)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -1023,13 +1025,15 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      character(len=*), parameter :: subname = '(init_mass_diags)'
+
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_pond_topo_out=tr_pond_topo)
       call icepack_query_tracer_indices( &
          nt_hpnd_out=nt_hpnd, nt_apnd_out=nt_apnd, nt_aero_out=nt_aero)
       call icepack_query_parameters( &
          rhoi_out=rhoi, rhos_out=rhos, rhofresh_out=rhofresh)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! total ice volume
@@ -1145,9 +1149,11 @@
         i, j, k, n, iblk, ij, &
         nt_qice, nt_qsno
 
+      character(len=*), parameter :: subname = '(total_energy)'
+
       call icepack_query_tracer_indices(nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
@@ -1231,9 +1237,11 @@
         i, j, k, n, iblk, ij, &
         nt_sice
 
+      character(len=*), parameter :: subname = '(total_salt)'
+
       call icepack_query_tracer_indices(nt_sice_out=nt_sice)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
@@ -1309,12 +1317,14 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(init_diags)'
+
 !tcraig, do this all the time now for print_points_state usage
 !      if (print_points) then
 
          call icepack_query_parameters(puny_out=puny, rad_to_deg_out=rad_to_deg)
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
          if (my_task==master_task) then
@@ -1452,13 +1462,15 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(print_state)'
+
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1592,13 +1604,14 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      character(len=*), parameter :: subname = '(print_points_state)'
       ! ----------------------
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno)
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do m = 1, npnt
@@ -1729,9 +1742,11 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(diagnostic_abort)'
+
       call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1748,7 +1763,7 @@
                          TLON(istop,jstop,iblk)*rad_to_deg
       write (nu_diag,*) 'aice:', &
                          aice(istop,jstop,iblk)
-      call abort_ice (stop_label)
+      call abort_ice (subname//'ERROR: '//trim(stop_label))
 
       end subroutine diagnostic_abort
 

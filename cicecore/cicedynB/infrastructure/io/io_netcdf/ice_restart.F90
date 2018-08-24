@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restart.F90 607 2013-03-29 15:49:42Z eclare $
 !=======================================================================
 
 ! Read and write ice model restart files using netCDF or binary
@@ -52,6 +51,8 @@
 
       integer (kind=int_kind) :: status
 
+      character(len=*), parameter :: subname = '(init_restart_read)'
+
       if (present(ice_ic)) then 
          filename = trim(ice_ic)
       else
@@ -69,8 +70,8 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
 
          status = nf90_open(trim(filename), nf90_nowrite, ncid)
-         if (status /= nf90_noerr) call abort_ice( &
-            'ice: Error reading restart ncfile '//trim(filename))
+         if (status /= nf90_noerr) call abort_ice(subname// &
+            'ERROR: reading restart ncfile '//trim(filename))
       
          if (use_restart_time) then
          status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
@@ -90,6 +91,7 @@
       call broadcast_scalar(istep0,master_task)
       call broadcast_scalar(time,master_task)
       call broadcast_scalar(time_forc,master_task)
+      call broadcast_scalar(nyr,master_task)
       
       istep1 = istep0
 
@@ -133,10 +135,10 @@
          tr_bgc_hum
 
       integer (kind=int_kind) :: &
-          k,  n,                & ! index
-          nx, ny,               & ! global array size
-          iyear, imonth, iday,  & ! year, month, day
-          nbtrcr
+         k,  n,                & ! index
+         nx, ny,               & ! global array size
+         iyear, imonth, iday,  & ! year, month, day
+         nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
 
@@ -150,6 +152,8 @@
         status        ! status variable from netCDF routine
 
       character (len=3) :: nchar, ncharb
+
+      character(len=*), parameter :: subname = '(init_restart_write)'
 
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
@@ -166,7 +170,7 @@
          tr_zaero_out=tr_zaero,   tr_bgc_Fe_out=tr_bgc_Fe, &
          tr_bgc_hum_out=tr_bgc_hum)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! construct path/file
@@ -193,8 +197,8 @@
          iflag = 0
          if (lcdf64) iflag = nf90_64bit_offset
          status = nf90_create(trim(filename), iflag, ncid)
-         if (status /= nf90_noerr) call abort_ice( &
-            'ice: Error creating restart ncfile '//trim(filename))
+         if (status /= nf90_noerr) call abort_ice(subname// &
+            'ERROR: creating restart ncfile '//trim(filename))
 
          status = nf90_put_att(ncid,nf90_global,'istep1',istep1)
          status = nf90_put_att(ncid,nf90_global,'time',time)
@@ -651,6 +655,8 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
            work2              ! input array (real, 8-byte)
 
+      character(len=*), parameter :: subname = '(read_restart_field)'
+
          if (present(field_loc)) then
             if (ndim3 == ncat) then
                if (restart_ext) then
@@ -730,6 +736,8 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
            work2              ! input array (real, 8-byte)
 
+      character(len=*), parameter :: subname = '(write_restart_field)'
+
          status = nf90_inq_varid(ncid,trim(vname),varid)
          if (ndim3 == ncat) then 
             if (restart_ext) then
@@ -762,6 +770,8 @@
 
       integer (kind=int_kind) :: status
 
+      character(len=*), parameter :: subname = '(final_restart)'
+
       status = nf90_close(ncid)
 
       if (my_task == master_task) &
@@ -784,6 +794,8 @@
 
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine
+
+      character(len=*), parameter :: subname = '(define_rest_field)'
 
       status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid)
         

@@ -129,6 +129,8 @@
    type (block) :: &
       this_block     ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_dbl)'
+
 !-----------------------------------------------------------------------
 
 #ifdef REPRODUCIBLE
@@ -299,6 +301,8 @@
    type (block) :: &
       this_block     ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_real)'
+
 !-----------------------------------------------------------------------
 
 #ifdef REPRODUCIBLE
@@ -463,6 +467,8 @@
    type (block) :: &
       this_block     ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_int)'
+
 !-----------------------------------------------------------------------
 
    globalSum = 0_int_kind
@@ -581,6 +587,8 @@
    real (dbl_kind) :: &
       globalSum            ! resulting global sum
 
+   character(len=*), parameter :: subname = '(global_sum_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 !
 !  no operation needed for serial execution
@@ -615,6 +623,8 @@
    real (real_kind) :: &
       globalSum            ! resulting global sum
 
+   character(len=*), parameter :: subname = '(global_sum_scalar_real)'
+
 !-----------------------------------------------------------------------
 !
 !  no operation needed for serial execution
@@ -648,6 +658,8 @@
 
    integer (int_kind) :: &
       globalSum            ! resulting global sum
+
+   character(len=*), parameter :: subname = '(global_sum_scalar_int)'
 
 !-----------------------------------------------------------------------
 !
@@ -720,6 +732,8 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_sum_prod_dbl)'
 
 !-----------------------------------------------------------------------
 
@@ -897,6 +911,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_prod_real)'
+
 !-----------------------------------------------------------------------
 
 #ifdef REPRODUCIBLE
@@ -1067,6 +1083,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_prod_int)'
+
 !-----------------------------------------------------------------------
 
    globalSum = 0_int_kind
@@ -1207,6 +1225,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_maxval_dbl)'
+
 !-----------------------------------------------------------------------
 
    globalMaxval = -HUGE(0.0_dbl_kind)
@@ -1289,6 +1309,8 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_maxval_real)'
 
 !-----------------------------------------------------------------------
 
@@ -1373,6 +1395,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_maxval_int)'
+
 !-----------------------------------------------------------------------
 
    globalMaxval = -HUGE(0_int_kind)
@@ -1436,6 +1460,8 @@
    real (dbl_kind) :: &
       globalMaxval         ! resulting maximum value
 
+   character(len=*), parameter :: subname = '(global_maxval_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 !
 !  no operations required for serial execution
@@ -1468,6 +1494,8 @@
    real (real_kind) :: &
       globalMaxval         ! resulting maximum value
 
+   character(len=*), parameter :: subname = '(global_maxval_scalar_real)'
+
 !-----------------------------------------------------------------------
 !
 !  no operations required for serial execution
@@ -1499,6 +1527,8 @@
 
    integer (int_kind) :: &
       globalMaxval         ! resulting maximum value
+
+   character(len=*), parameter :: subname = '(global_maxval_scalar_int)'
 
 !-----------------------------------------------------------------------
 !
@@ -1551,6 +1581,8 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_minval_dbl)'
 
 !-----------------------------------------------------------------------
 
@@ -1635,6 +1667,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_minval_real)'
+
 !-----------------------------------------------------------------------
 
    globalMinval = HUGE(0.0_real_kind)
@@ -1718,6 +1752,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_minval_int)'
+
 !-----------------------------------------------------------------------
 
    globalMinval = HUGE(0_int_kind)
@@ -1781,6 +1817,8 @@
    real (dbl_kind) :: &
       globalMinval         ! resulting minimum value
 
+   character(len=*), parameter :: subname = '(global_minval_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 !
 !  no operations required for serial execution
@@ -1813,6 +1851,8 @@
    real (real_kind) :: &
       globalMinval         ! resulting minimum value
 
+   character(len=*), parameter :: subname = '(global_minval_scalar_real)'
+
 !-----------------------------------------------------------------------
 !
 !  no operations required for serial execution
@@ -1844,6 +1884,8 @@
 
    integer (int_kind) :: &
       globalMinval         ! resulting minimum value
+
+   character(len=*), parameter :: subname = '(global_minval_scalar_int)'
 
 !-----------------------------------------------------------------------
 !

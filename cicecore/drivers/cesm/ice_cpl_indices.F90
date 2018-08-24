@@ -133,6 +133,8 @@ contains
     type(mct_aVect) :: i2x      ! temporary
     type(mct_aVect) :: x2i      ! temporary
 
+    character(len=*), parameter :: subname = '(ice_cpl_indices_set)'
+
     ! Determine attribute vector indices
 
     ! create temporary attribute vectors

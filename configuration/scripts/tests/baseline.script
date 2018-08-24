@@ -47,6 +47,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
   if (-e ${baseline_data} ) then
     if ( { cmp -s ${test_data} ${baseline_data} } ) then
       echo "PASS ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn}" >> ${ICE_CASEDIR}/test_output
+      echo "Regression baseline and test dataset are identical"
     else
       echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn} different-data" >> ${ICE_CASEDIR}/test_output
       echo "Regression baseline and test dataset are different"
@@ -84,6 +85,7 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
   if (-e ${comp_data} && -e ${test_data}) then
     if ( { cmp -s ${test_data} ${comp_data} } ) then
       echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
+      echo "bfbcomp and test dataset are identical"
     else
       echo "FAIL ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} different-data" >> ${ICE_CASEDIR}/test_output
       echo "bfbcomp and test dataset are different"

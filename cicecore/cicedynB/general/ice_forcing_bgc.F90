@@ -95,11 +95,13 @@
          nit_file   , & ! nitrate input file
          sil_file       ! silicate input file
 
+      character(len=*), parameter :: subname = '(get_forcing_bgc)'
+
       call icepack_query_parameters(secday_out=secday)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
            tr_bgc_Sil_out=tr_bgc_Sil)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (.not. trim(nit_data_type)=='ISPOL' .AND. &
@@ -411,6 +413,8 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(get_atm_bgc)'
+
       !-----------------------------------------------------------------
       ! initialize
       !-----------------------------------------------------------------
@@ -418,7 +422,7 @@
       call icepack_query_tracer_flags(tr_zaero_out=tr_zaero)
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       flux_bio_atm(:,:,:,:) = c0
@@ -455,6 +459,8 @@
       subroutine faero_default
 
       use ice_flux_bgc, only: faero_atm
+
+      character(len=*), parameter :: subname = '(faero_default)'
 
         faero_atm(:,:,1,:) = 1.e-12_dbl_kind ! kg/m^2 s
         faero_atm(:,:,2,:) = 1.e-13_dbl_kind
@@ -499,6 +505,8 @@
          midmonth        ! middle day of month
 
       logical (kind=log_kind) :: readm
+
+      character(len=*), parameter :: subname = '(faero_data)'
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -595,9 +603,11 @@
 
       logical (kind=log_kind) :: readm
 
+      character(len=*), parameter :: subname = '(fzaero_data)'
+
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
     !-------------------------------------------------------------------
@@ -679,6 +689,8 @@
       character (char_len_long) :: & 
          iron_file,   &   ! netcdf filename
          fieldname        ! field name in netcdf file
+
+      character(len=*), parameter :: subname = '(init_bgc_data)'
 
       nbits = 64              ! double precision data
 
@@ -775,6 +787,8 @@
          optics_file,   &   ! netcdf filename
          fieldname          ! field name in netcdf file
 
+      character(len=*), parameter :: subname = '(faero_optics)'
+
       ! this data is used in bulk aerosol treatment in dEdd radiation
       kaer_tab = reshape((/ &      ! aerosol mass extinction cross section (m2/kg)
           11580.61872,   5535.41835,   2793.79690, &
@@ -845,9 +859,10 @@
 
     call icepack_query_parameters(modal_aero_out=modal_aero)
     call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
        file=__FILE__, line=__LINE__)
 
+#ifdef ncdf
     if (modal_aero) then
        diag = .true.   ! write diagnostic information 
        optics_file =  &
@@ -866,8 +881,7 @@
           status = nf90_inq_varid(fid, trim(fieldname), varid)
  
            if (status /= nf90_noerr) then
-             call abort_ice ( & 
-               'faero_optics: Cannot find variable '//trim(fieldname) )
+             call abort_ice (subname//'ERROR: Cannot find variable '//trim(fieldname))
            endif
            status = nf90_get_var( fid, varid, bcenh, &
                start=(/1,1,1,1/), & 
@@ -886,6 +900,11 @@
             enddo
          enddo          
       endif      ! modal_aero
+#else
+    if (modal_aero) then
+      call abort_ice(subname//'ERROR: netcdf required for modal_aero')
+    endif
+#endif
 
       end subroutine faero_optics
 

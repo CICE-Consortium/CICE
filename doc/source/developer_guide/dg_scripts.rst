@@ -5,8 +5,8 @@
 Scripts Implementation
 ========================
 
-The scripts are the third part of the icepack package.  They support setting up
-cases, building, and running the icepack stand-alone model.
+The scripts are the third part of the cice package.  They support setting up
+cases, building, and running the cice stand-alone model.
 
 File List
 --------------
@@ -15,21 +15,22 @@ The directory structure under configure/scripts is as follows.
 
 | **configuration/scripts/**
 |        **Makefile**              primary makefile
-|        **icepack.batch.csh**     creates batch scripts for particular machines
-|        **icepack.build**         compiles the code
-|        **icepack.launch.csh**    creates script logic that runs the executable
-|        **icepack.run.setup.csh** sets up the run scripts
-|        **icepack.run.suite.csh** sets up the test suite
-|        **icepack.settings**      defines environment, model configuration and run settings
-|        **icepack.test.setup.csh**   creates configurations for testing the model
-|        **icepack_decomp.csh**    defines the grid size
-|        **icepack_in**            namelist input data
+|        **cice.batch.csh**        creates batch scripts for particular machines
+|        **cice.build**            compiles the code
+|        **cice.decomp.csh**       computes a decomposition given a grid and task/thread count
+|        **cice.launch.csh**       creates script logic that runs the executable
+|        **cice.run.setup.csh**    sets up the run scripts
+|        **cice.settings**         defines environment, model configuration and run settings
+|        **cice.test.setup.csh**   creates configurations for testing the model
+|        **ice_in**                namelist input data
 |        **machines/**             machine specific files to set env and Macros
 |        **makdep.c**              determines module dependencies
-|        **options/**              other namelist configurations available from the icepack.setup command line
+|        **options/**              other namelist configurations available from the cice.setup command line
 |        **parse_namelist.sh**     replaces namelist with command-line configuration
-|        **parse_namelist_from_settings.sh**   replaces namelist with values from icepack.settings
+|        **parse_namelist_from_settings.sh**   replaces namelist with values from cice.settings
 |        **parse_settings.sh**     replaces settings with command-line configuration
+|        **setup_run_dirs.csh      creates the case run directories
+|        **set_version_number.csh** updates the model version number from the **cice.setup** command line
 |        **tests/**                scripts for configuring and running basic tests
 
 .. _dev_strategy:
@@ -37,39 +38,40 @@ The directory structure under configure/scripts is as follows.
 Strategy
 -----------
 
-The icepack scripts are implemented such that everything is resolved after
-**icepack.setup** is called.  This is done by both copying specific files
-into the case directory and running scripts as part of the **icepack.setup**
+The cice scripts are implemented such that everything is resolved after
+**cice.setup** is called.  This is done by both copying specific files
+into the case directory and running scripts as part of the **cice.setup**
 command line to setup various files.
 
-**icepack.setup** drives the case setup.  It is written in csh.  All supporting
-scripts are relatively simple csh or sh scripts.
+**cice.setup** drives the case setup.  It is written in csh.  All supporting
+scripts are relatively simple csh or sh scripts.  See :ref:`scripts` for additional
+details.
 
-The file **icepack.settings** specifies a set of env defaults for the case.  The file
-**icepack_in** defines the namelist input for the icepack driver.
+The file **cice.settings** specifies a set of env defaults for the case.  The file
+**ice_in** defines the namelist input for the cice driver.
+
 
 .. _dev_options:
 
 Preset Case Options
 ---------------------
 
-
-``icepack.setup -s`` option allows the user to choose some predetermined icepack
+The ``cice.setup --set`` option allows the user to choose some predetermined cice
 settings and namelist.  Those options are defined in **configurations/scripts/options/**
-and the files are prefixed by either set_env, set_nml, or test_nml.  When **icepack.setup**
+and the files are prefixed by either set_env or set_nml.  When **cice.setup**
 is executed, the appropriate files are read from **configurations/scripts/options/**
-and the **icepack.settings** and/or **icepack_in** files are updated in the case directory
+and the **cice.settings** and/or **ice_in** files are updated in the case directory
 based on the values in those files.
 
 The filename suffix determines the name of the -s option.  So, for instance, 
 
-  ``icepack.setup -s diag1,debug,bgcISPOL``
+  ``cice.setup -s diag1,debug,bgcISPOL``
 
 will search for option files with suffixes of diag1, debug, and bgcISPOL and then
 apply those settings.  
 
 **parse_namelist.sh**, **parse_settings.sh**, and **parse_namelist_from_settings.sh** 
-are the three scripts that modify **icepack_in** and **icepack.settings**.
+are the three scripts that modify **ice_in** and **cice.settings**.
 
 To add new options, just add new files to the **configurations/scripts/options/** directory
 with appropriate names and syntax.  The set_nml file syntax is the same as namelist
@@ -84,8 +86,31 @@ Machines
 Machine specific information is contained in **configuration/scripts/machines**.  That
 directory contains a Macros file and an env file for each supported machine.
 One other files will need to be
-changed to support a port, that is **configuration/scripts/icepack.batch.csh**.
+changed to support a port, that is **configuration/scripts/cice.batch.csh**.
 To port to a new machine, see :ref:`porting`.  
+
+.. _dev_options:
+
+Test Options
+---------------
+
+Values that are associated with the `--sets` cice.setup are defined in 
+**configuration/scripts/options**.  Those files are text files and cice.setup
+uses the values in those files to modify the `cice.settings` and `ice_in` files
+in the case as the case is created.  Files name `set_env.$option` are associated
+with values in the `cice.settings` file.  Files named `set_nml.$option` are associated
+with values in `ice.in`.  These files contain simple keyword pair values one line
+at a time.  A line starting with # is a comment.  Files names that start with `test_`
+are used specifically for tests.
+
+That directory also contains files named `set_files.$option`.  This provides an
+extra layer on top of the individual setting files that allows settings to be
+defined based on groups of other settings.  The `set_files.$option` files
+contain a list of `--sets` options to be applied.  
+
+The $option part of the filename is the argument to `--sets` argument in `cice.setup`.
+Multiple options can be specified by creating a comma delimited list.  In the case
+where settings contradict each other, the last defined is used.
 
 .. _dev_testing:
 
@@ -93,17 +118,29 @@ Test scripts
 -------------
 
 Under **configuration/scripts/tests** are several files including the scripts to 
-setup the smoke and restart tests (**test_smoke.script**, **test_restart.script*).
-A baseline test script (**baseline.script**) is also there to setup the regression
+setup the various tests, such as smoke and restart tests (**test_smoke.script**, **test_restart.script**)
+and the files that describe with options files are needed for each test (ie. **test_smoke.files**, **test_restart.files**).
+A baseline test script (**baseline.script**) is also there to setup the general regression
 and comparison testing.  That directory also contains the preset test suites 
 (ie. **base_suite.ts**) and a file that supports post-processing on the model
-output (**timeseries.csh**).  
+output (**timeseries.csh**).  There is also a script **report_results.csh** that pushes results 
+from test suites back to the CICE-Consortium test results wiki page.
 
-There is a subdirectory, **configuration/scripts/tests/CTest**, that supports the
-CTest scripts.  These scripts allow test reporting to CDash.
+The directory **configuration/scripts/tests/QC** contains scripts related to the non bit-for-bit
+compliance testing described in :ref:`compliance`.
 
-To add a new test, a file associated with that test will need to be added to the
-**configuration/scripts/tests** directory similar to **test_smoke.script** 
-and **test_restart.script**.  In addition, some new options files in 
-**configuration/scripts/options** may need to be added similar to **test_nml.restart1**,
-**test_nml.restart2**, and **set_nml.restart**.  
+To add a new test (for example newtest), several files may be needed,
+
+- **configuration/scripts/tests/test_newtest.script** defines how to run the test.  This chunk
+  of script will be incorporated into the case test script
+- **configuration/scripts/tests/test_newtest.files** list the set of options files found in
+  **configuration/scripts/options/** needed to
+  run this test.  Those files will be copied into the test directory when the test is invoked
+  so they are available for the **test_newtest.script** to use.
+- some new files may be needed in **configuration/scripts/options/**.  These could be relatively
+  generic **set_nml** or **set_env** files, or they could be test specific files typically carrying
+  a prefix of **test_nml**.
+
+Generating a new test, particularly the **test_newtest.script** usually takes some iteration before
+it's working properly.
+

@@ -36,6 +36,7 @@
       use CICE_FinalMod
 
       implicit none
+      character(len=*), parameter :: subname='(icemodel)'
 
       !-----------------------------------------------------------------
       ! Initialize CICE
@@ -80,6 +81,7 @@
 
       ! local 
       integer (kind=int_kind) :: i, j
+      character(len=*), parameter :: subname='(debug_ice)'
 
       if (istep1 >= check_step .and. &
           iblk==iblkp .and. my_task==mtask) then

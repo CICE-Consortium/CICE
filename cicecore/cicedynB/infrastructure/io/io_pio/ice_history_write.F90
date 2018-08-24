@@ -22,6 +22,7 @@
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_query_parameters
 
       implicit none
       private
@@ -45,7 +46,7 @@
       use ice_calendar, only: time, sec, idate, idate0, write_ic, &
           histfreq, dayyr, days_per_year, use_leap_years
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c360, secday, spval, spval_dbl, rad_to_deg
+      use ice_constants, only: c0, c360, spval, spval_dbl
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: nx_global, ny_global, max_blocks, max_nstrm
       use ice_gather_scatter, only: gather_global
@@ -133,6 +134,16 @@
       integer (kind=int_kind), dimension(2) ::  &
          bnd_start,bnd_length          ! dimension quantities for netCDF
 
+      real (kind=dbl_kind) :: secday
+      real (kind=dbl_kind) :: rad_to_deg
+
+      character(len=*), parameter :: subname = '(ice_write_hist)'
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
         call construct_filename(ncfile(ns),'nc',ns)
@@ -203,7 +214,7 @@
         elseif (use_leap_years) then
            status = pio_put_att(File,varid,'calendar','Gregorian')
         else
-           call abort_ice( 'ice Error: invalid calendar settings')
+           call abort_ice(subname//'ERROR: invalid calendar settings')
         endif
 
         if (hist_avg .and. histfreq(ns) /= '1') then
@@ -879,8 +890,8 @@
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice( &
-               'ice: Error getting varid for '//avail_hist_fields(n)%vname)
+            if (status /= pio_noerr) call abort_ice(subname// &
+               'ERROR getting varid for '//avail_hist_fields(n)%vname)
             workr2(:,:,:) = a2D(:,:,n,1:nblocks)
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
             call pio_write_darray(File, varid, iodesc2d,&
@@ -896,8 +907,8 @@
          nn = n - n2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice( &
-               'ice: Error getting varid for '//avail_hist_fields(n)%vname)
+            if (status /= pio_noerr) call abort_ice(subname// &
+               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, ncat_hist
                workr3(:,:,j,i) = a3Dc(:,:,i,nn,j)
@@ -916,8 +927,8 @@
          nn = n - n3Dccum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice( &
-               'ice: Error getting varid for '//avail_hist_fields(n)%vname)
+            if (status /= pio_noerr) call abort_ice(subname// &
+               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzilyr
                workr3(:,:,j,i) = a3Dz(:,:,i,nn,j)
@@ -936,8 +947,8 @@
          nn = n - n3Dzcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice( &
-               'ice: Error getting varid for '//avail_hist_fields(n)%vname)
+            if (status /= pio_noerr) call abort_ice(subname// &
+               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzblyr
                workr3(:,:,j,i) = a3Db(:,:,i,nn,j)
@@ -956,8 +967,8 @@
          nn = n - n3Dbcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice( &
-               'ice: Error getting varid for '//avail_hist_fields(n)%vname)
+            if (status /= pio_noerr) call abort_ice(subname// &
+               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzalyr
                workr3(:,:,j,i) = a3Da(:,:,i,nn,j)
@@ -977,8 +988,8 @@
          nn = n - n3Dacum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice( &
-               'ice: Error getting varid for '//avail_hist_fields(n)%vname)
+            if (status /= pio_noerr) call abort_ice(subname// &
+               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nzilyr
@@ -999,8 +1010,8 @@
          nn = n - n4Dicum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice( &
-               'ice: Error getting varid for '//avail_hist_fields(n)%vname)
+            if (status /= pio_noerr) call abort_ice(subname// &
+               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nzslyr

@@ -15,6 +15,7 @@ module ice_comp_mct
 ! use shr_mem_mod,  only : shr_get_memusage, shr_init_memusage
   use shr_file_mod, only : shr_file_getlogunit, shr_file_getloglevel,  &
 		           shr_file_setloglevel, shr_file_setlogunit
+  use shr_const_mod
   use mct_mod
 #ifdef USE_ESMF_LIB
   use esmf
@@ -42,15 +43,14 @@ module ice_comp_mct
   use ice_blocks,      only : block, get_block, nx_block, ny_block
   use ice_grid,        only : tlon, tlat, tarea, tmask, anglet, hm, &
  		              grid_type, t2ugrid_vector, gridcpl_file, ocn_gridcell_frac
-  use ice_constants,   only : c0, c1, spval_dbl, rad_to_deg, radius, secday
+  use ice_constants,   only : c0, c1, spval_dbl, radius
+  use ice_constants,   only : ice_init_constants
   use ice_communicate, only : my_task, master_task, MPI_COMM_ICE
   use ice_calendar,    only : istep, istep1, force_restart_now, write_ic,&
                               idate, idate0, mday, time, month, daycal,  &
 		              sec, dt, dt_dyn, calendar,                 &
                               calendar_type, nextsw_cday, days_per_year, &
                               nyr, new_year, time2sec, year_init
-  use icepack_intfc, only : eccen, obliqr, lambm0, mvelpp
-  use icepack_intfc, only: tr_zaero, tr_aero
   use ice_timers
 
   use ice_kinds_mod,   only : int_kind, dbl_kind, char_len_long, log_kind
@@ -65,6 +65,8 @@ module ice_comp_mct
   use CICE_RunMod
   use ice_exit, only: abort_ice
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+  use icepack_intfc, only: icepack_init_orbit, icepack_init_parameters
+  use icepack_intfc, only: icepack_query_tracer_flags
 
 ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
@@ -158,9 +160,10 @@ contains
     integer            :: daycal(13)  !number of cumulative days per month
     integer            :: nleaps      ! number of leap days before current year
     integer            :: mpicom_loc  ! temporary mpicom
-    logical (kind=log_kind) :: atm_aero
+    logical (kind=log_kind) :: atm_aero, tr_aero, tr_zaero
     real(r8) :: mrss, mrss0,msize,msize0
-    character(len=*), parameter  :: SubName = "ice_init_mct"
+    real(r8) :: eccen, obliqr, lambm0, mvelpp
+    character(len=*), parameter :: subname = '(ice_init_mct)'
 ! !REVISION HISTORY:
 ! Author: Mariana Vertenstein
 !EOP
@@ -168,6 +171,37 @@ contains
 
     call t_barrierf('cice_init_total_BARRIER',MPI_COMM_ICE)
     call t_startf ('cice_init_total')
+
+    call ice_init_constants(omega_in=SHR_CONST_OMEGA, radius_in=SHR_CONST_REARTH, &
+       spval_dbl_in=SHR_CONST_SPVAL)
+    call icepack_init_parameters( &
+       secday_in = SHR_CONST_CDAY, &
+       rhoi_in   = SHR_CONST_RHOICE, &
+       rhow_in   = SHR_CONST_RHOSW, &
+       cp_air_in = SHR_CONST_CPDAIR, &
+       cp_ice_in = SHR_CONST_CPICE, &
+       cp_ocn_in = SHR_CONST_CPSW, &
+       gravit_in = SHR_CONST_G, &
+       rhofresh_in = SHR_CONST_RHOFW, &
+       zvir_in   = SHR_CONST_ZVIR, &
+       vonkar_in = SHR_CONST_KARMAN, &
+       cp_wv_in  = SHR_CONST_CPWV, &
+       stefan_boltzmann_in = SHR_CONST_STEBOL, &
+       Tffresh_in= SHR_CONST_TKFRZ, &
+       Lsub_in   = SHR_CONST_LATSUB, &
+       Lvap_in   = SHR_CONST_LATVAP, &
+!       Lfresh_in = SHR_CONST_LATICE, & ! computed in init_parameters as Lsub-Lvap
+       Timelt_in = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
+       Tsmelt_in = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
+       ice_ref_salinity_in = SHR_CONST_ICE_REF_SAL, &
+       depressT_in = 0.054_dbl_kind, &
+       Tocnfrz_in= -34.0_dbl_kind*0.054_dbl_kind, &
+       pi_in     = SHR_CONST_PI, &
+       snowpatch_in = 0.005_dbl_kind, &
+       dragio_in = 0.00962_dbl_kind)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
     !--------------------------------------------------------------------------
     ! Determine attribute vector indices
@@ -191,6 +225,11 @@ contains
     ! Determine orbital parameters
     call seq_infodata_GetData(infodata, orb_eccen=eccen, orb_mvelpp=mvelpp, &
          orb_lambm0=lambm0, orb_obliqr=obliqr)
+    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, &
+         lambm0_in=lambm0, obliqr_in=obliqr)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
     !   call shr_init_memusage()
 
@@ -293,8 +332,11 @@ contains
                trim(subname),' resetting idate to match sync clock'
        end if
 
-       idate0 = curr_ymd - (year_init*10000)
-       idate = curr_ymd - (year_init*10000)
+       idate0 = curr_ymd
+       idate = curr_ymd
+
+!       idate0 = curr_ymd - (year_init*10000)
+!       idate = curr_ymd - (year_init*10000)
 
        if (idate < 0) then
           write(nu_diag,*) trim(subname),' ERROR curr_ymd,year_init =',curr_ymd,year_init
@@ -312,7 +354,12 @@ contains
           write(nu_diag,*) trim(subname),' cice start ymds = ',iyear,month,mday,start_tod
        endif
 
-       call time2sec(iyear,month,mday,time)
+       if (calendar_type /= "GREGORIAN") then
+          call time2sec(iyear-year_init,month,mday,time)
+       else
+          call time2sec(iyear-(year_init-1),month,mday,time)
+       endif
+
        time = time+start_tod
 
        call shr_sys_flush(nu_diag)
@@ -342,9 +389,9 @@ contains
        call ice_domain_mct( lsize_loc, gsMap_iloc, dom_iloc )
  
        call ice_setcoupling_mct(MPI_COMM_ICE, ICEID, gsmap_ice, dom_i)
-       lsize = mct_gsMap_lsize(gsMap_ice, MPI_COMM_ICE)
- 
        call ice_coffset_mct(xoff,yoff,gsmap_iloc,dom_iloc,gsmap_ice,dom_i,MPI_COMM_ICE)
+       call mct_gsmap_clean(gsmap_ice)
+       call mct_gGrid_clean(dom_i)
  
        call ice_SetGSMap_mct( MPI_COMM_ICE, ICEID, gsmap_extend, xoff, yoff, nxcpl, nycpl)
        if (lsize_loc /= mct_gsmap_lsize(gsmap_extend,MPI_COMM_ICE)) then
@@ -352,6 +399,12 @@ contains
              mct_gsmap_lsize(gsmap_extend,MPI_COMM_ICE)
           call shr_sys_abort(subname//' :: error in gsmap_extend extended')
        endif
+
+       ! set gsmap_ice to match as much as possible gsmap_extend
+       call ice_setcoupling_mct(MPI_COMM_ICE, ICEID, gsmap_ice, dom_i, gsmap_extend)
+       ! or just set default decomp
+!tcx       call ice_setcoupling_mct(MPI_COMM_ICE, ICEID, gsmap_ice, dom_i)
+       lsize = mct_gsMap_lsize(gsMap_ice, MPI_COMM_ICE)
 
        call mct_rearr_init(gsmap_ice, gsmap_extend, MPI_COMM_ICE, rearr_ice2iloc)
        call mct_rearr_init(gsmap_extend, gsmap_ice, MPI_COMM_ICE, rearr_iloc2ice)
@@ -402,6 +455,11 @@ contains
     call seq_infodata_PutData( infodata, ice_prognostic=.true., &
       ice_nx = nxg, ice_ny = nyg )
     call t_stopf ('cice_mct_init')
+
+    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
     ! Error check
     if ((tr_aero .or. tr_zaero) .and. .not. atm_aero) then
@@ -473,12 +531,13 @@ contains
     type(mct_gGrid)        , pointer :: dom_i
     type(seq_infodata_type), pointer :: infodata   
     type(mct_gsMap)        , pointer :: gsMap_i
+    real(r8) :: eccen, obliqr, lambm0, mvelpp
     character(len=char_len_long) :: fname
     character(len=char_len_long) :: string1, string2
-    character(len=*), parameter  :: SubName = "ice_run_mct"
 
     real(r8) :: mrss, mrss0,msize,msize0
     logical, save :: first_time = .true.
+    character(len=*), parameter :: subname = '(ice_run_mct)'
 
 !
 ! !REVISION HISTORY:
@@ -508,6 +567,11 @@ contains
     ! Determine orbital parameters
     call seq_infodata_GetData(infodata, orb_eccen=eccen, orb_mvelpp=mvelpp, &
                               orb_lambm0=lambm0, orb_obliqr=obliqr)
+    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, &
+         lambm0_in=lambm0, obliqr_in=obliqr)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
     ! Get clock information
     call seq_timemgr_EClockGetData(EClock,               &
@@ -515,15 +579,15 @@ contains
 
     force_restart_now = seq_timemgr_RestartAlarmIsOn(EClock)
 
-    if (calendar_type .eq. "GREGORIAN") then 	
-       nyrp = nyr
-       nyr = (curr_ymd/10000)+1           ! integer year of basedate
-       if (nyr /= nyrp) then
-          new_year = .true.
-       else
-          new_year = .false.
-       end if
-    end if
+!    if (calendar_type .eq. "GREGORIAN") then 	
+!       nyrp = nyr
+!       nyr = (curr_ymd/10000)+1           ! integer year of basedate
+!       if (nyr /= nyrp) then
+!          new_year = .true.
+!       else
+!          new_year = .false.
+!       end if
+!    end if
 
     !-------------------------------------------------------------------
     ! get import state
@@ -637,6 +701,8 @@ contains
     type(seq_cdata), intent(inout) :: cdata_i
     type(mct_aVect), intent(inout) :: x2i_i
     type(mct_aVect), intent(inout) :: i2x_i
+
+    character(len=*), parameter :: subname = '(ice_final_mct)'
 !
 ! !REVISION HISTORY:
 !
@@ -672,6 +738,7 @@ contains
     integer     :: ier
     integer     :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
     type(block) :: this_block         ! block information for current block
+    character(len=*), parameter :: subname = '(ice_SetGSMap_mct)'
     !-------------------------------------------------------------------
 
     ! Build the CICE grid numbering for MCT
@@ -756,11 +823,15 @@ contains
     !
     integer :: i, j, iblk, n, gi           ! indices
     integer :: ilo, ihi, jlo, jhi          ! beginning and end of physical domain
-    real(dbl_kind), pointer :: work_dom(:) ! temporary
     real(dbl_kind), pointer :: data(:)     ! temporary
+    real(dbl_kind) :: rad_to_deg
     integer       , pointer :: idata(:)    ! temporary
     type(block)             :: this_block  ! block information for current block
+    character(len=*), parameter :: subname = '(ice_domain_mct)'
     !-------------------------------------------------------------------
+
+    call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
+
     !
     ! Initialize mct domain type
     ! lat/lon in degrees,  area in radians^2, mask is 1 (ocean), 0 (non-ocean)
@@ -790,8 +861,6 @@ contains
     !
     ! Fill in correct values for domain components
     !
-    allocate(work_dom(lsize)) 
-    work_dom(:) = 0.0_dbl_kind
 
     data(:) = -9999.0_R8 
     n=0
@@ -889,7 +958,6 @@ contains
 
     deallocate(data)
     deallocate(idata)
-    deallocate(work_dom)
 
   end subroutine ice_domain_mct
 
@@ -899,7 +967,7 @@ contains
 
     !-----------------------------------------------------
     type(mct_aVect)   , intent(inout) :: i2x_i
-
+    character(len=*), parameter :: subname = '(ice_setdef_mct)'
     !-----------------------------------------------------
 
     call mct_aVect_zero(i2x_i)
@@ -930,7 +998,7 @@ contains
     integer :: lsizea,lsizeb
     integer :: iam,ierr
     integer, pointer :: ipoints(:)
-    character(len=*),parameter :: subname = "ice_coffset_mct"
+    character(len=*), parameter :: subname = '(ice_coffset_mct)'
 
     call mpi_comm_rank(mpicom_i,iam,ierr)
 
@@ -1020,7 +1088,7 @@ contains
 
   !=======================================================================
 
-  subroutine ice_setcoupling_mct(mpicom_i, ICEID, gsmap_i, dom_i)
+  subroutine ice_setcoupling_mct(mpicom_i, ICEID, gsmap_i, dom_i, gsmap_base)
 
     include 'netcdf.inc'
 
@@ -1028,6 +1096,7 @@ contains
     integer        , intent(in)    :: ICEID
     type(mct_gsmap), intent(inout) :: gsmap_i
     type(mct_ggrid), intent(inout) :: dom_i
+    type(mct_gsmap), intent(in), optional :: gsmap_base
 
     integer :: n     ! counter
     integer :: iam   ! pe rank
@@ -1037,18 +1106,21 @@ contains
     integer :: nx,ny ! grid size
     integer :: gsize ! global size
     integer :: lsize ! local size
+    integer :: cnt, num, numax, ngseg, npe
+    integer, pointer :: pelayout(:)
     integer, pointer :: start(:),length(:),pe_loc(:)
     integer, pointer :: idata(:)
     real(dbl_kind),pointer :: data(:)
     type(mct_avect) :: avg, av1
     integer :: fid,did,vid
     character(len=8) :: avfld,dofld
-    character(len=*), parameter  :: SubName = "ice_setcoupling_mct"
+    character(len=*), parameter :: subname = '(ice_setcoupling_mct)'
 
     call MPI_comm_rank(mpicom_i,iam,ierr)
     call MPI_comm_size(mpicom_i,npes,ierr)
 
     allocate(start(npes),length(npes),pe_loc(npes))
+    ngseg = npes
 
     if (iam == 0) then
        rcode = nf_open(gridcpl_file(1:len_trim(gridcpl_file)),NF_NOWRITE,fid)
@@ -1060,32 +1132,104 @@ contains
        nxcpl = nx
        nycpl = ny
 
-       length = gsize / npes
-       do n = 1,npes
-          if (n <= mod(gsize,npes)) length(n) = length(n) + 1
-       enddo
-
-       start(1) = 1
-       pe_loc(1) = 0
-       do n = 2,npes    
-          pe_loc(n) = n-1
-          start(n) = start(n-1) + length(n-1)
-       enddo
-       if ((start(npes) + length(npes) - 1) /= gsize) then
-          write(nu_diag,*) &
-            subname,' gsize, start, length = ',gsize,start(npes),length(npes)
-          call shr_sys_flush(nu_diag)
-          call shr_sys_abort( SubName//":: decomp inconsistent")
-       endif
-
        write(nu_diag,*) subname,' read ',trim(gridcpl_file)
        write(nu_diag,*) subname,' size ',nx,ny,gsize
+
+       if (present(gsmap_base)) then
+          allocate(pelayout(gsize))
+          pelayout = -1
+          cnt = 0
+          do n = 1,gsmap_base%ngseg
+             pelayout(gsmap_base%start(n):gsmap_base%start(n)+gsmap_base%length(n)-1) = gsmap_base%pe_loc(n)
+             cnt = cnt + gsmap_base%length(n)
+          enddo
+
+          num = 0
+          npe = 0
+          numax = (gsize-cnt)/npes
+          if (npe <= mod(gsize-cnt,npes)) numax = numax + 1
+          do n = 1,gsize
+             if (pelayout(n) < 0) then
+                num = num + 1
+                if (num > numax) then
+                   num = 0
+                   npe = mod(npe + 1,npes)
+                   numax = (gsize-cnt)/npes
+                   if (npe <= mod(gsize-cnt,npes)) numax = numax + 1
+                endif
+                pelayout(n) = npe
+             endif
+          enddo
+
+          ngseg = 0
+          npe = -1
+          do n = 1,gsize
+             if (pelayout(n) < 0 .or. pelayout(n) > npes-1) then
+                write(nu_diag,*) &
+                  subname,' gsize, n, pelayout = ',gsize,n,pelayout(n)
+                call shr_sys_flush(nu_diag)
+                call shr_sys_abort( SubName//":: decomp incorrect from base")
+             endif
+             if (pelayout(n) /= npe) then
+                ngseg = ngseg + 1
+                npe = pelayout(n)
+             endif
+          enddo
+
+          deallocate(start,length,pe_loc)
+          allocate(start(ngseg),length(ngseg),pe_loc(ngseg))
+
+          ngseg = 0
+          npe = -1
+          do n = 1,gsize
+             if (pelayout(n) /= npe) then
+                ngseg = ngseg + 1
+                npe = pelayout(n)
+                start(ngseg) = n
+                length(ngseg) = 1
+                pe_loc(ngseg) = pelayout(n)
+             else
+                length(ngseg) = length(ngseg) + 1
+             endif
+          enddo
+
+          if (ngseg /= size(start)) then
+             write(nu_diag,*) &
+               subname,' ngseg, size(start) = ',ngseg,size(start)
+             call shr_sys_flush(nu_diag)
+             call shr_sys_abort( SubName//":: decomp ngseg incorrect")
+          endif
+
+          deallocate(pelayout)
+
+       else
+
+          length = gsize / npes
+          do n = 1,npes
+             if (n <= mod(gsize,npes)) length(n) = length(n) + 1
+          enddo
+
+          start(1) = 1
+          pe_loc(1) = 0
+          do n = 2,npes    
+             pe_loc(n) = n-1
+             start(n) = start(n-1) + length(n-1)
+          enddo
+          if ((start(npes) + length(npes) - 1) /= gsize) then
+             write(nu_diag,*) &
+               subname,' gsize, start, length = ',gsize,start(npes),length(npes)
+             call shr_sys_flush(nu_diag)
+             call shr_sys_abort( SubName//":: decomp inconsistent")
+          endif
+
+       endif
+
     endif
 
     call shr_mpi_bcast(nxcpl,mpicom_i)
     call shr_mpi_bcast(nycpl,mpicom_i)
     call shr_mpi_bcast(gsize,mpicom_i)
-    call mct_gsmap_init(gsmap_i,npes,start,length,pe_loc,0,mpicom_i,ICEID,gsize)
+    call mct_gsmap_init(gsmap_i,ngseg,start,length,pe_loc,0,mpicom_i,ICEID,gsize)
     deallocate(start,length,pe_loc)
 
     lsize = mct_gsmap_lsize(gsmap_i,mpicom_i)

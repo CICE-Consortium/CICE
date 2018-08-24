@@ -58,7 +58,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: ew_boundary_type, ns_boundary_type, &
           nblocks, blocks_ice
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, hm
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_restart_shared, only: restart_ext
 
@@ -79,18 +79,20 @@
    type (block) :: &
      this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(ice_HaloRestore_init)'
+
    if (.not. restore_ice) return
 
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
-   if (ew_boundary_type == 'open' .and. &
-       ns_boundary_type == 'open' .and. .not.(restart_ext)) then
-      if (my_task == master_task) write (nu_diag,*) &
-            'WARNING: Setting restart_ext = T for open boundaries'
-      restart_ext = .true.
+   if ((ew_boundary_type == 'open' .or. &
+        ns_boundary_type == 'open') .and. .not.(restart_ext)) then
+      if (my_task == master_task) write (nu_diag,*) 'ERROR: restart_ext=F and open boundaries'
+      call abort_ice(error_message=subname//'open boundary and restart_ext=F', &
+         file=__FILE__, line=__LINE__)
    endif
 
    allocate (aicen_rest(nx_block,ny_block,ncat,max_blocks), &
@@ -254,6 +256,26 @@
 
    endif ! restore_ic
 
+      !-----------------------------------------------------------------
+      ! Impose land mask
+      !-----------------------------------------------------------------
+
+   do iblk = 1, nblocks
+      do n = 1, ncat
+         do j = 1, ny_block
+         do i = 1, nx_block
+            aicen_rest(i,j,n,iblk) = aicen_rest(i,j,n,iblk) * hm(i,j,iblk)
+            vicen_rest(i,j,n,iblk) = vicen_rest(i,j,n,iblk) * hm(i,j,iblk)
+            vsnon_rest(i,j,n,iblk) = vsnon_rest(i,j,n,iblk) * hm(i,j,iblk)
+            do nt = 1, ntrcr
+               trcrn_rest(i,j,nt,n,iblk) = trcrn_rest(i,j,nt,n,iblk) &
+                                                            * hm(i,j,iblk)
+            enddo
+         enddo
+         enddo
+      enddo
+   enddo
+
    if (my_task == master_task) &
       write (nu_diag,*) 'ice restoring timescale = ',trestore,' days' 
 
@@ -352,11 +374,13 @@
       real (kind=dbl_kind), dimension(nslyr) :: &
          qsn             ! snow enthalpy (J/m3)
 
+      character(len=*), parameter :: subname = '(set_restore_var)'
+
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_fbri_out=nt_fbri, &
            nt_qice_out=nt_qice, nt_sice_out=nt_sice, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       indxi(:) = 0
@@ -516,7 +540,7 @@
          enddo                  ! ncat
 
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
    end subroutine set_restore_var
@@ -555,11 +579,13 @@
      secday,             &!
      ctime                ! dt/trest
 
+   character(len=*), parameter :: subname = '(ice_HaloRestore)'
+
    call ice_timer_start(timer_bound)
    call icepack_query_parameters(secday_out=secday)
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
 !-----------------------------------------------------------------------

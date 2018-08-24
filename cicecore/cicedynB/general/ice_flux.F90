@@ -110,7 +110,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Cbu          ! coefficient for basal stress (landfast ice)
+         Tbu          ! coefficient for basal stress (N/m^2)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -357,6 +357,8 @@
 
       integer :: i, j, iblk
 
+      character(len=*), parameter :: subname = '(init_coupler_flux)'
+
       data fcondtopn_d / -50.0_dbl_kind,-17.0_dbl_kind,-12.0_dbl_kind, &
                           -9.0_dbl_kind, -7.0_dbl_kind, -3.0_dbl_kind /
       data fsurfn_d    /  0.20_dbl_kind, 0.15_dbl_kind, 0.10_dbl_kind, &
@@ -365,7 +367,7 @@
       call icepack_query_parameters(stefan_boltzmann_out=stefan_boltzmann, &
          Tffresh_out=Tffresh, vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -531,6 +533,8 @@
 
       subroutine init_flux_atm
 
+      character(len=*), parameter :: subname = '(init_flux_atm)'
+
       !-----------------------------------------------------------------
       ! initialize albedo and fluxes
       !-----------------------------------------------------------------
@@ -566,6 +570,8 @@
       subroutine init_flux_ocn
 
       use ice_flux_bgc, only: faero_ocn
+
+      character(len=*), parameter :: subname = '(init_flux_ocn)'
 
       !-----------------------------------------------------------------
       ! fluxes sent
@@ -608,13 +614,15 @@
           zref, &
           iceruf
 
+      character(len=*), parameter :: subname = '(init_history_therm)'
+
       call icepack_query_parameters(formdrag_out=formdrag)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_query_parameters( dragio_out=dragio, &
          vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       fsurf  (:,:,:) = c0
@@ -694,10 +702,12 @@
       integer (kind=int_kind) :: &
           nt_iage
 
+      character(len=*), parameter :: subname = '(init_history_dyn)'
+
       call icepack_query_tracer_flags(tr_iage_out=tr_iage)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       sig1    (:,:,:) = c0
@@ -839,10 +849,12 @@
       integer (kind=int_kind) :: &
           i, j    ! horizontal indices
 
+      character(len=*), parameter :: subname = '(scale_fluxes)'
+
       call icepack_query_parameters(stefan_boltzmann_out=stefan_boltzmann, &
          Tffresh_out=Tffresh)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 !DIR$ CONCURRENT !Cray

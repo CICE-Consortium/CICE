@@ -50,18 +50,6 @@
     kcatbound    = 0
 /
 
-&domain_nml
-    nprocs = 4
-    processor_shape   = 'slenderX2'
-    distribution_type = 'cartesian'
-    distribution_wght = 'latitude'
-    ew_boundary_type  = 'cyclic'
-    ns_boundary_type  = 'open'
-    maskhalo_dyn      = .false.
-    maskhalo_remap    = .false.
-    maskhalo_bound    = .false.
-/
-
 &tracer_nml
     tr_iage      = .true.
     restart_age  = .false.
@@ -131,6 +119,48 @@
     rfracmin        = 0.15
     rfracmax        = 1.
     pndaspect       = 0.8
+/
+
+&forcing_nml
+    formdrag        = .false.
+    atmbndy         = 'default'
+    fyear_init      = 1997
+    ycycle          = 1
+    atm_data_format = 'bin'
+    atm_data_type   = 'ncar'
+    atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
+    calc_strair     = .true.
+    highfreq        = .false.
+    natmiter        = 5
+    calc_Tsfc       = .true.
+    precip_units    = 'mm_per_month'
+    ustar_min       = 0.0005
+    emissivity      = 0.95
+    fbot_xfer_type  = 'constant'
+    update_ocn_f    = .false.
+    l_mpond_fresh   = .false.
+    tfrz_option     = 'mushy'
+    oceanmixed_ice  = .true.
+    ocn_data_format = 'bin'
+    sss_data_type   = 'default'
+    sst_data_type   = 'default'
+    ocn_data_dir    = 'unknown_ocn_data_dir'
+    oceanmixed_file = 'unknown_oceanmixed_file'
+    restore_sst     = .false.
+    trestore        =  90
+    restore_ice     = .false.
+/
+
+&domain_nml
+    nprocs = 4
+    processor_shape   = 'slenderX2'
+    distribution_type = 'cartesian'
+    distribution_wght = 'latitude'
+    ew_boundary_type  = 'cyclic'
+    ns_boundary_type  = 'open'
+    maskhalo_dyn      = .false.
+    maskhalo_remap    = .false.
+    maskhalo_bound    = .false.
 /
 
 &zbgc_nml
@@ -284,35 +314,6 @@
     F_abs_chl_sp       = 4.0
     F_abs_chl_phaeo    = 5.0
     ratio_C2N_proteins = 7.0
-/
-
-&forcing_nml
-    formdrag        = .false.
-    atmbndy         = 'default'
-    fyear_init      = 1997
-    ycycle          = 1
-    atm_data_format = 'bin'
-    atm_data_type   = 'ncar'
-    atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
-    calc_strair     = .true.
-    highfreq        = .false.
-    natmiter        = 5
-    calc_Tsfc       = .true.
-    precip_units    = 'mm_per_month'
-    ustar_min       = 0.0005
-    fbot_xfer_type  = 'constant'
-    update_ocn_f    = .false.
-    l_mpond_fresh   = .false.
-    tfrz_option     = 'mushy'
-    oceanmixed_ice  = .true.
-    ocn_data_format = 'bin'
-    sss_data_type   = 'default'
-    sst_data_type   = 'default'
-    ocn_data_dir    = 'unknown_ocn_data_dir'
-    oceanmixed_file = 'unknown_oceanmixed_file'
-    restore_sst     = .false.
-    trestore        =  90
-    restore_ice     = .false.
 /
 
 &icefields_nml
