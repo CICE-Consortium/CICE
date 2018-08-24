@@ -6,7 +6,8 @@ This repository contains the files and code needed to run the CICE sea ice numer
 
 CICE consists of a top level driver and dynamical core plus the Icepack column physics code, which is included in CICE as a git submodule.  Because Icepack is a submodule of CICE, Icepack and CICE development are handled independently with respect to the github repositories even though development and testing may be done together. 
 
-If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories. Basic instructions for working with CICE and Icepack are found in the Git Workflow Guidance, linked from the Resource Index (below).
+If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories. Basic instructions for working with CICE and Icepack are found in the Git Workflow Guidance, linked from the Resource Index (below). In order to incorporate your developments into the Consortium code it is
+imperative you follow the guidance for Pull Requests and requisite testing.
 
 ## Useful links
 * **CICE wiki**: https://github.com/CICE-Consortium/CICE/wiki
