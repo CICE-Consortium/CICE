@@ -38,11 +38,11 @@ System Model (RASM). In particular, the relative atmosphere-ice velocity
 velocity for computing turbulent fluxes in the atmospheric boundary
 layer.
 
-:ref:`tab-flux-cpl`: *Data exchanged between the CESM flux coupler and the sea ice model*
+Table :ref:`tab-flux-cpl` shows data exchanged between the CESM flux coupler and the sea ice model.
 
 .. _tab-flux-cpl:
 
-.. table:: Table 1
+.. table:: Data Exchange Table
 
    ===========================   ======================================   =======================================================================================
    Variable                       Description                              Interaction with flux coupler 
