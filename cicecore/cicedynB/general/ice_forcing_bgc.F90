@@ -688,8 +688,6 @@
 
       character(len=*), parameter :: subname = '(init_bgc_data)'
 
-      nbits = 64              ! double precision data
-
     !-------------------------------------------------------------------
     ! Annual average data from Tagliabue, 2012 (top 50 m average
     ! poisson grid filled on gx1v6
