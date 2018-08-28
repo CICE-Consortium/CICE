@@ -128,7 +128,9 @@ html_theme_options = {"stickysidebar": "true"}
 
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
-#html_title = u'CICE 6.0.dev'
+# If you do not want the default, uncomment the following line and specify version.
+# Otherwise this should not be changed with specific version releases.
+#html_title = u'CICE XXX'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
