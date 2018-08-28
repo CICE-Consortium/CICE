@@ -344,11 +344,11 @@ directories that you will need to edit for your own environment.
 points automatically to scratch space, is intended to be a disk where
 the run directory resides. `SHRDIR` is a path to the CESM shared code.
 
-:ref:`comp-ice` : Configuration options available in **comp_ice**.
+Table :ref:`comp-ice` shows configuration options available in **comp_ice**.
 
 .. _comp-ice:
 
-.. table:: Table 6
+.. table:: **comp_ice** configurations
 
    +---------------------+--------------------------------------+------------------------------------------------------------------------------------+
    | variable            | options                              | description                                                                        |

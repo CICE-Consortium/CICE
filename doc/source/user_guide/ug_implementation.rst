@@ -140,9 +140,9 @@ on model performance.
    :align: center
    :scale: 20%
 
-   Figure 8
+   Grid parameters
 
-:ref:`fig-grid` : Grid parameters for a sample one-dimensional, 20-cell
+Figure :ref:`fig-grid` shows the grid parameters for a sample one-dimensional, 20-cell
 global domain decomposed into four local subdomains. Each local
 domain has one ghost (halo) cell on each side, and the physical
 portion of the local domains are labeled `ilo:ihi`. The parameter
@@ -410,9 +410,9 @@ generates a decomposition based on weights specified in an input file.
 .. figure:: ./figures/distrb.png
    :scale: 50%
 
-   Figure 9a
+   Distribution options
 
-:ref:`fig-distrb` : Distribution of 256 blocks across 16 processors,
+Figure :ref:`fig-distrb` shows distribution of 256 blocks across 16 processors,
 represented by colors, on the gx1 grid: (a) cartesian, slenderX1, (b)
 cartesian, slenderX2, (c) cartesian, square-ice (square-pop is
 equivalent here), (d) rake with block weighting, (e) rake with
@@ -424,10 +424,10 @@ cells, and white blocks consist entirely of land cells.
 .. figure:: ./figures/distrbB.png
    :scale: 50%
 
-   Figure 9b
+   Decomposition options
 
-:ref:`fig-distrbB` : Sample decompositions for (a) spiral center and
-(b) wghtfile for an Arctic polar grid.  Figure (c) is the weight field
+Figure :ref:`fig-distrbB` shows sample decompositions for (a) spiral center and
+(b) wghtfile for an Arctic polar grid. (c) is the weight field
 in the input file use to drive the decompostion in (b).
 
 `processor\_shape` is used with the `distribution\_type` cartesian option,
@@ -502,9 +502,9 @@ of the pros and cons of the various distribution types.
 .. figure:: ./figures/scorecard.png
    :scale: 50%
 
-   Figure 10
+   Scorecard
 
-:ref:`fig-distribscorecard` : Scorecard for block distribution choices in
+Figure :ref:`fig-distribscorecard` shows the scorecard for block distribution choices in
 CICE, courtesy T. Craig. For more information, see
 http://www.cesm.ucar.edu/events/ws.2012/Presentations/SEWG2/craig.pdf
 
@@ -545,9 +545,9 @@ calculate it for each thickness category.
 .. figure:: ./figures/histograms.png
    :scale: 20%
 
-   Figure 11
+   Timings
 
-:ref:`fig-timings` : Change in ‘TimeLoop’ timings from the 7-layer
+Figure :ref:`fig-timings` shows change in ‘TimeLoop’ timings from the 7-layer
 configuration using BL99 thermodynamics and EVP dynamics. Timings
 were made on a nondedicated machine, with variations of about
 :math:`\pm3`\ % in identically configured runs (light grey). Darker
@@ -612,14 +612,14 @@ and are intended merely to provide guidance for the user to write his or
 her own routines. Whether the code is to be run in stand-alone or
 coupled mode is determined at compile time, as described below.
 
-:ref:`tab-ic` : *Ice initial state resulting from combinations of*
-`ice\_ic`, `runtype` and `restart`. :math:`^a`\ *If false, restart is reset to
-true.* :math:`^b`\ *restart is reset to false.* :math:`^c`\ ice\_ic *is
-reset to ‘none.’*
+Table :ref:`tab-ic` shows ice initial state resulting from combinations of
+`ice\_ic`, `runtype` and `restart`. :math:`^a`\ If false, restart is reset to
+true. :math:`^b`\ restart is reset to false. :math:`^c`\ ice\_ic is
+reset to ‘none.’
 
 .. _tab-ic:
 
-.. table:: Table 4
+.. table:: Ice Initial State
 
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
    | ice\_ic        |                          |                                      |                                        |
@@ -656,7 +656,7 @@ CFL condition, under remapping yields
 Numerical estimates for this bound for several POP grids, assuming
 :math:`\max(u, v)=0.5` m/s, are as follows:
 
-.. csv-table::
+.. csv-table:: *Time Step Bound*
    :widths: 20,40,40,40,40
    
    grid label,N pole singularity,dimensions,min :math:`\sqrt{\Delta x\cdot\Delta y}`,max :math:`\Delta t_{dyn}`
@@ -868,11 +868,9 @@ the code, including the dynamics and advection routines.
 The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
 *system\_clock* for single-processor runs.
 
-:ref:`timers` : *CICE timers*
-
 .. _timers:
 
-.. table:: Table 5
+.. table:: CICE timers
 
    +--------------+-------------+----------------------------------------------------+
    | **Timer**    |             |                                                    |
