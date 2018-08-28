@@ -164,20 +164,20 @@
 
       character(len=*), parameter :: subname = '(init_forcing_atmo)'
 
-      fsw_data(:,:,:,:) = c0
-      cldf_data(:,:,:,:) = c0
-      fsnow_data(:,:,:,:) = c0
-      Tair_data(:,:,:,:) = c0
-      uatm_data(:,:,:,:) = c0
-      vatm_data(:,:,:,:) = c0
-      wind_data(:,:,:,:) = c0
-      strax_data(:,:,:,:) = c0
-      stray_data(:,:,:,:) = c0
-      Qa_data(:,:,:,:) = c0
-      rhoa_data(:,:,:,:) = c0
-      flw_data(:,:,:,:) = c0
-      sublim_data(:,:,:,:) = c0
-      frain_data(:,:,:,:) = c0
+!     fsw_data(:,:,:,:) = c0
+!     cldf_data(:,:,:,:) = c0
+!     fsnow_data(:,:,:,:) = c0
+!     Tair_data(:,:,:,:) = c0
+!     uatm_data(:,:,:,:) = c0
+!     vatm_data(:,:,:,:) = c0
+!     wind_data(:,:,:,:) = c0
+!     strax_data(:,:,:,:) = c0
+!     stray_data(:,:,:,:) = c0
+!     Qa_data(:,:,:,:) = c0
+!     rhoa_data(:,:,:,:) = c0
+!     flw_data(:,:,:,:) = c0
+!     sublim_data(:,:,:,:) = c0
+!     frain_data(:,:,:,:) = c0
 
       fyear       = fyear_init + mod(nyr-1,ycycle) ! current year
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
@@ -268,10 +268,10 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      sst_data(:,:,:,:) = c0
-      sss_data(:,:,:,:) = c0
-      uocn_data(:,:,:,:) = c0
-      vocn_data(:,:,:,:) = c0
+!     sst_data(:,:,:,:) = c0
+!     sss_data(:,:,:,:) = c0
+!     uocn_data(:,:,:,:) = c0
+!     vocn_data(:,:,:,:) = c0
 
       nbits = 64              ! double precision data
 
@@ -1338,9 +1338,9 @@
          rhoa (i,j) = max(rhoa(i,j),c0)
          Qa   (i,j) = max(Qa(i,j),c0)
 
-         if (rhoa(i,j) .lt. puny) rhoa(i,j) = 1.3_dbl_kind            
-         if (Tair(i,j) .lt. puny) Tair(i,j) = Tffresh
-         if (Qa(i,j) .lt. puny) Qa(i,j) = 0.0035_dbl_kind
+!        if (rhoa(i,j) .lt. puny) rhoa(i,j) = 1.3_dbl_kind            
+!        if (Tair(i,j) .lt. puny) Tair(i,j) = Tffresh
+!        if (Qa(i,j) .lt. puny) Qa(i,j) = 0.0035_dbl_kind
       enddo                     ! i
       enddo                     ! j
 

@@ -77,10 +77,10 @@
 
       call ice_timer_start(timer_sw)      ! shortwave
 
-      alvdr_init(:,:,:) = c0
-      alvdf_init(:,:,:) = c0
-      alidr_init(:,:,:) = c0
-      alidf_init(:,:,:) = c0
+!     alvdr_init(:,:,:) = c0
+!     alvdf_init(:,:,:) = c0
+!     alidr_init(:,:,:) = c0
+!     alidf_init(:,:,:) = c0
 
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
@@ -984,14 +984,17 @@
          indxi(:) = 0
          indxj(:) = 0
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
+!        this_block = get_block(blocks_ice(iblk),iblk)         
+!        ilo = this_block%ilo
+!        ihi = this_block%ihi
+!        jlo = this_block%jlo
+!        jhi = this_block%jhi
 
-         do j = jlo, jhi
-         do i = ilo, ihi
+!        do j = jlo, jhi
+!        do i = ilo, ihi
+         do j = 1, ny_block
+         do i = 1, nx_block
+
             if (tmask(i,j,iblk)) then
                icells = icells + 1
                indxi(icells) = i
