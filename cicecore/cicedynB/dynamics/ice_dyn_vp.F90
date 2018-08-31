@@ -104,6 +104,8 @@
       integer (kind=int_kind) :: & 
          kOL            , & ! outer loop iteration
          kmax           , & ! jfl put in namelist
+         krre           , & ! RRE1 cycling iteration
+         kmaxrre        , & ! nb of RRE1 iterations (hard coded 3)
          ntot           , & ! size of problem for fgmres (for given cpu)
          icode          , & ! for fgmres
          iconvNL        , & ! code for NL convergence criterion
@@ -161,7 +163,7 @@
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
       real (kind=dbl_kind), allocatable :: bvec(:), sol(:), diagvec(:), wk11(:), wk22(:)
-      real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
+      real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:), uRRE(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
       real (kind=dbl_kind) :: conv, gamma, gammaNL, tolNL, epsprecond
@@ -182,6 +184,8 @@
 
       type (block) :: &
          this_block           ! block information for current block
+         
+      logical :: RRE1 ! acceleration method for Picard (see C. Roland PhD thesis)
       
       call ice_timer_start(timer_dynamics) ! dynamics
 
@@ -201,10 +205,11 @@
       maxits_pgmres = 5
       kmax=1000
       gamma=1e-2_dbl_kind   ! linear stopping criterion: gamma(res(k)
-      gammaNL=1e-6_dbl_kind ! nonlinear stopping criterion: gammaNL*res(k=0)
+      gammaNL=1e-8_dbl_kind ! nonlinear stopping criterion: gammaNL*res(k=0)
       epsprecond=1e-6_dbl_kind ! for pgmres
       iconvNL=0 ! equals 1 when NL convergence is reached
       precond=3 ! 1: identity, 2: diagonal 3: gmres + diag
+      RRE1=.false.
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -374,6 +379,13 @@
       allocate(bvec(ntot), sol(ntot), diagvec(ntot), wk11(ntot), wk22(ntot))
       allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
       
+      if (RRE1) then
+       kmaxrre=3
+       allocate(uRRE(ntot,kmaxrre))
+      else
+       kmaxrre=1
+      endif
+      
       !-----------------------------------------------------------------
       
       call icepack_warnings_flush(nu_diag)
@@ -429,13 +441,13 @@
       !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
-	    if (kOL .eq. 1) then
+!	    if (kOL .eq. 1) then
 	      ulin(:,:,iblk) = uvel(:,:,iblk)
 	      vlin(:,:,iblk) = vvel(:,:,iblk)
-	    else
-	      ulin(:,:,iblk) = p5*uprev_k(:,:,iblk) + p5*uvel(:,:,iblk)
-	      vlin(:,:,iblk) = p5*vprev_k(:,:,iblk) + p5*vvel(:,:,iblk)
-	    endif
+!	    else
+!	      ulin(:,:,iblk) = p5*uprev_k(:,:,iblk) + p5*uvel(:,:,iblk)
+!	      vlin(:,:,iblk) = p5*vprev_k(:,:,iblk) + p5*vvel(:,:,iblk)
+!	    endif
          
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
@@ -458,7 +470,7 @@
                                kOL                ,                     &
                                aiu      (:,:,iblk), Tbu     (:,:,iblk), &
                                uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                               ulin     (:,:,iblk), vlin    (:,:,iblk), & 
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
                                vrel     (:,:,iblk), Cb      (:,:,iblk))
 
 !     prepare b vector (RHS)                                                
@@ -469,7 +481,7 @@
                             aiu      (:,:,iblk), uarear  (:,:,iblk), & 
                             uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
-                            ulin     (:,:,iblk), vlin    (:,:,iblk), & 
+                            uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
                             stPrtmp  (:,:,:))
@@ -690,6 +702,10 @@
       
       deallocate(bvec, sol, diagvec, wk11, wk22, vv, ww)
       deallocate(fld2)
+      
+      if (RRE1) then
+       deallocate(uRRE)
+      endif
       
       call deformations (nx_block,             ny_block,             & 
                          icellt(iblk),                               & 
