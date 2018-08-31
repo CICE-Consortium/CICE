@@ -164,7 +164,7 @@
       real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
-      real (kind=dbl_kind) :: conv, gamma, gammaNL, tolNL, krelax, epsprecond
+      real (kind=dbl_kind) :: conv, gamma, gammaNL, tolNL, epsprecond
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          stPrtmp,   & ! doit etre (nx_block,ny_block,max_blocks,8)???? PAs besoin des 2? reuse?
@@ -199,13 +199,12 @@
       im_pgmres = 5 
       maxits_fgmres = 50 
       maxits_pgmres = 5
-      kmax=1
-      gamma=2e-1_dbl_kind   ! linear stopping criterion: gamma(res(k)
+      kmax=1000
+      gamma=1e-2_dbl_kind   ! linear stopping criterion: gamma(res(k)
       gammaNL=1e-6_dbl_kind ! nonlinear stopping criterion: gammaNL*res(k=0)
       epsprecond=1e-6_dbl_kind ! for pgmres
       iconvNL=0 ! equals 1 when NL convergence is reached
-      krelax=c1
-      precond=2 ! 1: identity, 2: diagonal 3: gmres + diag
+      precond=3 ! 1: identity, 2: diagonal 3: gmres + diag
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -653,10 +652,10 @@
                              uvel (:,:,:), vvel (:,:,:))    
 
          !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-              uvel(:,:,iblk) = (c1-krelax)*uprev_k(:,:,iblk) + krelax*uvel(:,:,iblk)
-              vvel(:,:,iblk) = (c1-krelax)*vprev_k(:,:,iblk) + krelax*vvel(:,:,iblk)
-         enddo
+!         do iblk = 1, nblocks
+!              uvel(:,:,iblk) = (c1-krelax)*uprev_k(:,:,iblk) + krelax*uvel(:,:,iblk)
+!              vvel(:,:,iblk) = (c1-krelax)*vprev_k(:,:,iblk) + krelax*vvel(:,:,iblk)
+!         enddo
          !$OMP END PARALLEL DO  
                             
          !$OMP PARALLEL DO PRIVATE(iblk)
