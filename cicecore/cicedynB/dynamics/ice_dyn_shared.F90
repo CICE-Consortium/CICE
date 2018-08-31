@@ -475,6 +475,10 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
+#ifdef coupled
+      real (kind=dbl_kind) :: gravit
+#endif
+
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          iceumask_old      ! old-time iceumask
 
@@ -585,6 +589,13 @@
       !-----------------------------------------------------------------
       ! Define variables for momentum equation
       !-----------------------------------------------------------------
+
+#ifdef coupled
+      call icepack_query_parameters(gravit_out=gravit)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+#endif
 
       do ij = 1, icellu
          i = indxui(ij)
