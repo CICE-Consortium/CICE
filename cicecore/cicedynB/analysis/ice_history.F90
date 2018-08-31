@@ -467,7 +467,7 @@
              "if >0, new ice forms; if <0, ice melts", c1, c0,         &
              ns1, f_frzmlt)
       
-         call define_hist_field(n_fswfac,"fswfac","1",tstr2D, tcstr, &
+         call define_hist_field(n_fswfac,"scale_factor","1",tstr2D, tcstr, &
              "shortwave scaling factor",                           &
              "ratio of netsw new:old", c1, c0,                     &
              ns1, f_fswfac)
@@ -1198,7 +1198,7 @@
           yieldstress11, yieldstress12, yieldstress22
       use ice_dyn_shared, only: kdyn, principal_stress
       use ice_flux, only: fsw, flw, fsnow, frain, sst, sss, uocn, vocn, &
-          frzmlt_init, fswfac, fswabs, fswthru, alvdr, alvdf, alidr, alidf, &
+          frzmlt_init, scale_factor, fswabs, fswthru, alvdr, alvdf, alidr, alidf, &
           albice, albsno, albpnd, coszen, flat, fsens, flwout, evap, &
           Tair, Tref, Qref, congel, frazil, snoice, dsnow, &
           melts, meltb, meltt, meltl, fresh, fsalt, fresh_ai, fsalt_ai, &
@@ -1400,7 +1400,7 @@
              call accum_hist_field(n_frzmlt, iblk, frzmlt_init(:,:,iblk), a2D)
 
          if (f_fswfac (1:1) /= 'x') &
-             call accum_hist_field(n_fswfac, iblk, fswfac(:,:,iblk), a2D)
+             call accum_hist_field(n_fswfac, iblk, scale_factor(:,:,iblk), a2D)
          if (f_fswabs (1:1) /= 'x') &
              call accum_hist_field(n_fswabs, iblk, fswabs(:,:,iblk), a2D)
 
