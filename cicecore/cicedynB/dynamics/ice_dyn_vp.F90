@@ -384,6 +384,7 @@
        allocate(uRRE(ntot,kmaxrre))
       else
        kmaxrre=1
+       krre=1 ! JFL TEMP
       endif
       
       !-----------------------------------------------------------------
@@ -395,8 +396,8 @@
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
-      ! velocities may have changed in dyn_prep2
-      call ice_HaloUpdate (fld2,               halo_info, &
+      ! velocities may have changed in dyn_prep2 ! JFL prends en compte la grille spherique qui se referme sur elle meme...
+      call ice_HaloUpdate (fld2,               halo_info, & 
                            field_loc_NEcorner, field_type_vector)
       call ice_timer_stop(timer_bound)
 
@@ -552,7 +553,7 @@
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
                    gamma, gammaNL, tolNL, maxits_fgmres,iout,   &
-                   icode,iconvNL,fgmres_its,kOL)                     
+                   icode,iconvNL,fgmres_its,kOL, krre)                     
 
       if (iconvNL .eq. 1) exit             
                    
@@ -601,6 +602,24 @@
                              indxui    (:,:), indxuj(:,:),     &
                              wk11 (:),                         &
                              uvel (:,:,:), vvel (:,:,:))    
+                             
+         ! JFL halo update could be in subroutine...                    
+         !$OMP PARALLEL DO PRIVATE(iblk) 
+         do iblk = 1, nblocks                             
+            fld2(:,:,1,iblk) = uvel(:,:,iblk)
+            fld2(:,:,2,iblk) = vvel(:,:,iblk)            
+         enddo
+         !$OMP END PARALLEL DO                           
+
+         call ice_HaloUpdate (fld2,               halo_info, & 
+                              field_loc_NEcorner, field_type_vector)
+
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            uvel(:,:,iblk) = fld2(:,:,1,iblk)
+            vvel(:,:,iblk) = fld2(:,:,2,iblk)
+         enddo
+         !$OMP END PARALLEL DO                             
 
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks                                  

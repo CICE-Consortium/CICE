@@ -1,5 +1,5 @@
       subroutine fgmres (n,im,rhs,sol,i,vv,w,wk1, wk2, &
-                  gamma,gammaNL,tolNL,maxits,iout,icode,iconv,its,kOL) 
+                  gamma,gammaNL,tolNL,maxits,iout,icode,iconv,its,kOL, krre) 
 
 !-----------------------------------------------------------------------
 ! jfl Dec 1st 2006. We modified the routine so that it is double precison.
@@ -20,7 +20,7 @@
 !-----------------------------------------------------------------------
 
       implicit double precision (a-h,o-z) !jfl modification
-      integer n, im, maxits, iout, icode, iconv, kOL
+      integer n, im, maxits, iout, icode, iconv, kOL, krre
       double precision rhs(*), sol(*), vv(n,im+1),w(n,im)
       double precision wk1(n), wk2(n), gamma, gammaNL
 !-----------------------------------------------------------------------
@@ -150,15 +150,15 @@
       if (its .eq. 0) then 
        r0 = ro
        eps1=gamma*ro
-       if (kOL .eq. 1) tolNL=gammaNL*ro
+       if (kOL .eq. 1 .and. krre .eq. 1) tolNL=gammaNL*ro
       endif 
       
-      if (ro .lt. tolNL) then
+      if (ro .lt. tolNL .and. krre .eq. 1) then
        iconv = 1
        goto 999
       endif 
       
-      if (iout .gt. 0) write(*, 199) kOL, its, ro!&
+      if (iout .gt. 0) write(*, 199) kOL, krre, its, ro!&
 !     
 !     initialize 1-st term  of rhs of hessenberg system..
 !     
@@ -237,7 +237,7 @@
       hh(i,i) = c(i)*hh(i,i) + s(i)*hh(i1,i)
       ro = abs(rs(i1))
       if (iout .gt. 1) &
-           write(*, 199) kOL, its, ro
+           write(*, 199) kOL, krre, its, ro
       if (i .lt. im .and. (ro .gt. eps1))  goto 4
 !     
 !     now compute solution. first solve upper triangular system.
@@ -285,7 +285,7 @@
      goto 20
  999  icode = 0
 
- 199  format('Picard its=', i4, ' fmgres its =', i4, ' res. norm =', d26.16)
+ 199  format('Picard i=', i4, 'cycling i=', i4, ' fmgres i =', i4, ' L2norm =', d26.16)
 !     
       return 
 !-----end-of-fgmres----------------------------------------------------- 
