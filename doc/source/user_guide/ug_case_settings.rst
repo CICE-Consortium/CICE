@@ -90,7 +90,7 @@ to support the CICE model.
 Table of namelist options
 -------------------------------
 
-.. csv-table:: Table 8
+.. csv-table:: *Namelist options*
    :header: "variable", "options/format", "description", "recommended value"
    :widths: 15, 15, 30, 15 
 

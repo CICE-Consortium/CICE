@@ -620,14 +620,14 @@ simulations (:math:`N=1824`) at the two-sided 80% confidence interval
 (:math:`\alpha=0.2`). We choose this interval to limit Type II errors,
 whereby a QC test erroneously confirms :math:`H_0`.
 
-:ref:`Table-Lookup` : Summary of two-sided :math:`t_{crit}` values for the Table
+Table :ref:`Table-Lookup` shows the summary of two-sided :math:`t_{crit}` values for the Table
 Lookup Test of :cite:`Zwiers1995` at the 80% confidence
 interval generated for :math:`N=1824` degrees of freedom and lag-1
 autocorrelation :math:`r_1`.
 
 .. _Table-Lookup:
 
-.. csv-table:: Table 1
+.. csv-table:: Two-sided :math:`t_{crit}` values
    :widths: 10, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
 
    :math:`r_1`,-0.05,0.0,0.2,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.97,0.99

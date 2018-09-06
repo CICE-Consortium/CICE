@@ -56,14 +56,13 @@ thickness distribution is used if :math:`N_C` = 7; if :math:`N_C` = 5 or
 shown in :ref:`tab-itd` for the delta-function ITD. Users may
 substitute their own preferred boundaries in *init\_itd*.
 
-:ref:`tab-itd` : *Data exchanged between the CESM flux coupler and the sea ice model
-Lower boundary values for thickness categories, in meters, for 
-the three distribution options (* `kcatbound` *) and linear remapping (* `kitd` = 1 *). 
-In the WMO case, the distribution used depends on the number of categories used.*
+Table :ref:`tab-itd` shows lower boundary values for thickness categories, in meters, for
+the three distribution options (*``kcatbound``*) and linear remapping (*``kitd``* = 1).
+In the WMO case, the distribution used depends on the number of categories used.
 
 .. _tab-itd:
 
-.. table:: Table 2 
+.. table:: Lower Boundary Values
 
    +----------------+------------+---------+--------+--------+--------+
    | distribution   | original   | round   |           WMO            |
@@ -270,7 +269,11 @@ ice fraction, :math:`q a_i` is the average value over the grid cell.
 Thus for cesm or topo melt ponds, :math:`h_{pnd}` can be considered the
 actual pond depth, :math:`h_{pnd}a_{pnd}` is the mean pond depth over
 the sea ice, and :math:`h_{pnd}a_{pnd}a_i` is the mean pond depth over
-the grid cell. These quantities are illustrated in :ref:`fig-tracers`.
+the grid cell. These quantities are illustrated in Figure :ref:`fig-tracers`.
+The graphic on the right illustrates the *grid cell* fraction of ponds or
+level ice as defined by the tracers. The chart on the left provides
+corresponding ice thickness and pond depth averages over the grid cell,
+sea ice and pond area fractions.
 
 .. _fig-tracers:
 
@@ -278,9 +281,9 @@ the grid cell. These quantities are illustrated in :ref:`fig-tracers`.
    :align: center
    :scale: 50%  
 
-   Figure 1
+   Melt pond tracer definitions
 
-:ref:`fig-tracers` : Melt pond tracer definitions. The graphic on the right
+The right graphic on Figure :ref:`fig-tracers` 
 illustrates the *grid cell* fraction of ponds or level ice as defined
 by the tracers. The chart on the left provides corresponding ice
 thickness and pond depth averages over the grid cell, sea ice and
@@ -1106,9 +1109,9 @@ edge.
    :align: center
    :scale: 20%
  
-   Figure 2
+   Departure Region
 
-:ref:`fig-deparr` : In incremental remapping, conserved quantities are
+Figure :ref:`fig-deparr` shows that in incremental remapping, conserved quantities are
 remapped from the shaded departure region, a quadrilateral formed by
 connecting the backward trajectories from the four cell corners, to
 the grid cell labeled :math:`H`. The region fluxed across the north
@@ -1117,7 +1120,7 @@ edge of cell :math:`H` consists of a triangle (:math:`abc`) in the
 :math:`ade`) in the :math:`N` cell.
 
 
-:ref:`fig-triangles`, reproduced from :cite:`DB00`, shows
+Figure :ref:`fig-triangles`, reproduced from :cite:`DB00`, shows
 all possible triangles that can contribute fluxes across the north edge
 of a grid cell. There are 20 triangles, which can be organized into five
 groups of four mutually exclusive triangles as shown in
@@ -1136,28 +1139,23 @@ rotation through 90 degrees.
    :align: center
    :scale: 20%
 
-   Figure 3
+   Triangles
 
-:ref:`fig-triangles` : The 20 possible triangles that can contribute fluxes
-across the north edge of a grid cell.
-
-:ref:`tab-triangle` : *Evaluation of contributions from the 20
-triangles across the north cell edge. The coordinates* :math:`x_1`,
-:math:`x_2`, :math:`y_1`, :math:`y_2`, :math:`y_a`, *and* :math:`y_b` *are
-defined in the text. We define* :math:`\tilde{y}_1 =
-y_1` *if* :math:`x_1>0`, *else* :math:`\tilde{y}_1 = y_a`. *Similarly,*
+Table :ref:`tab-triangle` show the evaluation of contributions from the 20
+triangles across the north cell edge. The coordinates :math:`x_1`,
+:math:`x_2`, :math:`y_1`, :math:`y_2`, :math:`y_a`, and :math:`y_b` are
+defined in the text. We define :math:`\tilde{y}_1 =
+y_1` if :math:`x_1>0`, else :math:`\tilde{y}_1 = y_a`. Similarly,
 :math:`\tilde{y}_2
-= y_2` if :math:`x_2<0`, *else* :math:`\tilde{y}_2 = y_b`.
+= y_2` if :math:`x_2<0`, else :math:`\tilde{y}_2 = y_b`.
 
 .. _tab-triangle:
 
-.. table:: Table 3 
+.. table:: Triangular Contributions
 
    +------------+------------+--------------------------------------------------------+----+
-   | Triangle   | Triangle   | Selecting logical                                      |    |
-   +------------+------------+--------------------------------------------------------+----+
-   | group      | label      | condition                                              |    |
-   +------------+------------+--------------------------------------------------------+----+
+   | Triangle   | Triangle   | Selecting logical condition                            |    |
+   | group      | label      |                                                        |    |
    +------------+------------+--------------------------------------------------------+----+
    | 1          | NW         | :math:`y_a>0` and :math:`y_1\geq0` and :math:`x_1<0`   |    |
    +------------+------------+--------------------------------------------------------+----+
@@ -1745,9 +1743,9 @@ effect balances to zero.
    :align: center
    :scale: 15%
 
-   Figure 5
+   Diamond-shaped floes
 
-:ref:`fig-EAP` : Geometry of interlocking diamond-shaped floes (taken from
+Figure :ref:`fig-EAP` shows geometry of interlocking diamond-shaped floes (taken from
 :cite:`WF06`). :math:`\phi` is half of the acute angle
 of the diamonds. :math:`L` is the edge length.
 :math:`\boldsymbol n_{1}`, :math:`\boldsymbol n_{2}` and
@@ -2154,9 +2152,11 @@ valid with :math:`\eta_R` redefined as :math:`H_C - H_L`. And if
 and :math:`H_C`. In this case, :eq:`g0` and :eq:`g1` apply with
 :math:`\eta_R = H_R - H_C` and :math:`\eta_n = h_n - H_C`.
 
-:ref:`fig-gplot` illustrates the linear reconstruction of :math:`g`
-for the simple cases :math:`H_L = 0`, :math:`H_R = 1`, :math:`a_n = 1`,
-and :math:`h_n =` 0.2, 0.4, 0.6, and 0.8. Note that :math:`g` slopes
+Figure :ref:`fig-gplot` illustrates the linear reconstruction of the thickness
+distribution function :math:`g`
+for the simple cases with left boundary :math:`H_L = 0`, 
+right boundary :math:`H_R = 1`, fractional area :math:`a_n = 1`,
+and mean ice thickness :math:`h_n =` 0.2, 0.4, 0.6, and 0.8. Note that :math:`g` slopes
 downward (:math:`g_1 < 0`) when :math:`h_n` is less than the midpoint
 thickness, :math:`(H_L + H_R)/2 = 1/2`, and upward when :math:`h_n`
 exceeds the midpoint thickness. For :math:`h_n = 0.2` and 0.8,
@@ -2168,12 +2168,7 @@ exceeds the midpoint thickness. For :math:`h_n = 0.2` and 0.8,
    :align: center
    :scale: 20%
 
-   Figure 4
-
-:ref:`fig-gplot` : Linear approximation of the thickness distribution
-function :math:`g(h)` for an ice category with left boundary
-:math:`H_L = 0`, right boundary :math:`H_R = 1`, fractional area
-:math:`a_n = 1`, and mean ice thickness :math:`h_n = 0.2, 0.4, 0.6,` and :math:`0.8`.
+   Thickness distribution function
 
 Finally, we remap the thickness distribution to the original boundaries
 by transferring area and volume between categories. We compute the ice
@@ -2679,9 +2674,9 @@ hydrostatic equilibrium.
    :align: center
    :scale: 75%
 
-   Figure 6
+   Ponding
 
-:ref:`fig-topo` : (a) Schematic illustration of the relationship between the
+Figure :ref:`fig-topo` shows (a) Schematic illustration of the relationship between the
 height of the pond surface :math:`h_{pnd,tot}`, the volume of water
 :math:`V_{Pk}` required to completely fill up to category :math:`k`, the
 volume of water :math:`V_{P} - V_{Pk}`, and the depth to which this
@@ -3272,9 +3267,13 @@ albedos, where the fractional snow-covered area is
 .. math:: 
    f_{snow} = \frac{h_s}{h_s + h_{snowpatch}},
 
-and :math:`h_{snowpatch} = 0.02 \ {\mathrm m}`. The envelope
-of albedo values is shown in :ref:`fig-albedo`. This albedo
-formulation incorporates the effects of melt ponds implicitly; the
+and :math:`h_{snowpatch} = 0.02 \ {\mathrm m}`. Figure
+:ref:`fig-albedo` shows the envelope of possible albedo values
+as a function of ice thickness and temperature,
+for the two extrema in snow depth, for the default (CCSM3) shortwave
+option. Maximum snow depth is computed based on Archimedes’ Principle
+for the given ice thickness.  This albedo formulation incorporates 
+the effects of melt ponds implicitly; the
 explicit melt pond parameterization is not used in this case.
 
 .. _fig-albedo:
@@ -3283,13 +3282,7 @@ explicit melt pond parameterization is not used in this case.
    :align: center
    :scale: 20%
  
-   Figure 7
-
-:ref:`fig-albedo` : Albedo as a function of ice thickness and temperature,
-for the two extrema in snow depth, for the default (CCSM3) shortwave
-option. Maximum snow depth is computed based on Archimedes’ Principle
-for the given ice thickness. These curves represent the envelope of
-possible albedo values. 
+   Albedo
 
 The net absorbed shortwave flux is :math:`F_{swabs} = \sum
 (1-\alpha_j) F_{sw\downarrow}`, where the summation is over four
