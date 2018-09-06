@@ -175,7 +175,9 @@
          Tref    , & ! 2m atm reference temperature (K)
          Qref    , & ! 2m atm reference spec humidity (kg/kg)
          Uref    , & ! 10m atm reference wind speed (m/s)
-         evap        ! evaporative water flux (kg/m^2/s)
+         evap    , & ! evaporative water flux (kg/m^2/s)
+         evaps   , & ! evaporative water flux over snow (kg/m^2/s)
+         evapi       ! evaporative water flux over ice (kg/m^2/s)
 
        ! albedos aggregated over categories (if calc_Tsfc)
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), public :: &
@@ -258,7 +260,10 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          fsurf , & ! net surface heat flux (excluding fcondtop)(W/m^2)
          fcondtop,&! top surface conductive flux        (W/m^2)
+         fcondbot,&! bottom surface conductive flux     (W/m^2)
          fbot,   & ! heat flux at bottom surface of ice (excluding excess) (W/m^2)
+         Tbot,   & ! temperature at bottom surface of ice (deg C)
+         Tsnic,  & ! temperature at snow ice interface (deg C)
          congel, & ! basal ice growth         (m/step-->cm/day)
          frazil, & ! frazil ice growth        (m/step-->cm/day)
          snoice, & ! snow-ice formation       (m/step-->cm/day)
@@ -278,6 +283,7 @@
          dimension (nx_block,ny_block,ncat,max_blocks), public :: &
          fsurfn,   & ! category fsurf
          fcondtopn,& ! category fcondtop
+         fcondbotn,& ! category fcondbot
          fsensn,   & ! category sensible heat flux
          flatn       ! category latent heat flux
 
@@ -475,6 +481,8 @@
       flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4   
                         ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
+      evaps   (:,:,:) = c0
+      evapi   (:,:,:) = c0
       Tref    (:,:,:) = c0
       Qref    (:,:,:) = c0
       Uref    (:,:,:) = c0
@@ -628,8 +636,11 @@
 
       fsurf  (:,:,:) = c0
       fcondtop(:,:,:)= c0
+      fcondbot(:,:,:)= c0
       congel (:,:,:) = c0
       fbot   (:,:,:) = c0
+      Tbot   (:,:,:) = c0
+      Tsnic  (:,:,:) = c0
       frazil (:,:,:) = c0
       snoice (:,:,:) = c0
       dsnow  (:,:,:) = c0
@@ -646,6 +657,7 @@
       endif
       fsurfn    (:,:,:,:) = c0
       fcondtopn (:,:,:,:) = c0
+      fcondbotn (:,:,:,:) = c0
       flatn     (:,:,:,:) = c0
       fsensn    (:,:,:,:) = c0
       fresh_ai  (:,:,:) = c0

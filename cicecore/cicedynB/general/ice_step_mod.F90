@@ -140,12 +140,12 @@
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero
-      use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, &
+      use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnic, &
           meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, &
           wind, rhoa, potT, Qa, zlvl, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
-          flw, fsnow, fpond, sss, mlt_onset, frz_onset, &
+          flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, &
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
-          flat, fswabs, flwout, evap, Tref, Qref, Uref, fresh, fsalt, fhocn, &
+          flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
           fswthru, meltt, melts, meltb, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn
@@ -317,11 +317,13 @@
                             sss         (i,j,  iblk), Tf          (i,j,  iblk), &
                             strocnxT    (i,j,  iblk), strocnyT    (i,j,  iblk), &
                             fbot        (i,j,  iblk),                           &
+                            Tbot        (i,j,  iblk), Tsnic       (i,j, iblk),  &
                             frzmlt      (i,j,  iblk), rside       (i,j,  iblk), &
                             fsnow       (i,j,  iblk), frain       (i,j,  iblk), &
                             fpond       (i,j,  iblk),                           &
                             fsurf       (i,j,  iblk), fsurfn      (i,j,:,iblk), &
                             fcondtop    (i,j,  iblk), fcondtopn   (i,j,:,iblk), &
+                            fcondbot    (i,j,  iblk), fcondbotn   (i,j,:,iblk), &
                             fswsfcn     (i,j,:,iblk), fswintn     (i,j,:,iblk), &
                             fswthrun    (i,j,:,iblk), fswabs      (i,j,  iblk), &
                             flwout      (i,j,  iblk),                           &
@@ -330,6 +332,7 @@
                             fsens       (i,j,  iblk), fsensn      (i,j,:,iblk), &
                             flat        (i,j,  iblk), flatn       (i,j,:,iblk), &
                             evap        (i,j,  iblk),                           &
+                            evaps       (i,j,  iblk), evapi       (i,j,  iblk), &
                             fresh       (i,j,  iblk), fsalt       (i,j,  iblk), &
                             fhocn       (i,j,  iblk), fswthru     (i,j,  iblk), &
                             flatn_f     (i,j,:,iblk), fsensn_f    (i,j,:,iblk), &
@@ -478,7 +481,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
       use ice_domain_size, only: ncat
-      use ice_grid, only: tmask
+!     use ice_grid, only: tmask
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
                            aice,  trcr,  vice,  vsno, aice0, trcr_depend, &
                            bound_state, trcr_base, nt_strata, n_trcr_strata
@@ -924,8 +927,6 @@
 
       use ice_arrays_column, only: Cdn_atm, Cdn_atm_ratio
       use ice_blocks, only: nx_block, ny_block
-      use ice_blocks, only: block, get_block
-      use ice_domain, only: blocks_ice
       use ice_flux, only: sst, Tf, Qa, uatm, vatm, wind, potT, rhoa, zlvl, &
            frzmlt, fhocn, fswthru, flw, flwout_ocn, fsens_ocn, flat_ocn, evap_ocn, &
            alvdr_ocn, alidr_ocn, alvdf_ocn, alidf_ocn, swidf, swvdf, swidr, swvdr, &
@@ -947,7 +948,6 @@
          frzmlt_max = c1000   ! max magnitude of frzmlt (W/m^2)
 
       integer (kind=int_kind) :: &
-         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j           , & ! horizontal indices
          ij                 ! combined ij index
 
@@ -962,9 +962,6 @@
 
       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
          indxi, indxj    ! compressed indices for ocean cells
-
-      type (block) :: &
-         this_block         ! block information for current block
 
       character(len=*), parameter :: subname = '(ocn_mixed_layer)'
 
@@ -984,14 +981,6 @@
          indxi(:) = 0
          indxj(:) = 0
 
-!        this_block = get_block(blocks_ice(iblk),iblk)         
-!        ilo = this_block%ilo
-!        ihi = this_block%ihi
-!        jlo = this_block%jlo
-!        jhi = this_block%jhi
-
-!        do j = jlo, jhi
-!        do i = ilo, ihi
          do j = 1, ny_block
          do i = 1, nx_block
 
