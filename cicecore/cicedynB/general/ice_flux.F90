@@ -263,7 +263,7 @@
          fcondbot,&! bottom surface conductive flux     (W/m^2)
          fbot,   & ! heat flux at bottom surface of ice (excluding excess) (W/m^2)
          Tbot,   & ! temperature at bottom surface of ice (deg C)
-         Tsnic,  & ! temperature at snow ice interface (deg C)
+         Tsnice,  & ! temperature at snow ice interface (deg C)
          congel, & ! basal ice growth         (m/step-->cm/day)
          frazil, & ! frazil ice growth        (m/step-->cm/day)
          snoice, & ! snow-ice formation       (m/step-->cm/day)
@@ -640,7 +640,7 @@
       congel (:,:,:) = c0
       fbot   (:,:,:) = c0
       Tbot   (:,:,:) = c0
-      Tsnic  (:,:,:) = c0
+      Tsnice  (:,:,:) = c0
       frazil (:,:,:) = c0
       snoice (:,:,:) = c0
       dsnow  (:,:,:) = c0
