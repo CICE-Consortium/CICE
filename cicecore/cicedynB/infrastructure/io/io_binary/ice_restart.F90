@@ -650,7 +650,7 @@
          if (present(field_loc)) then
             do n=1,ndim3
                if (restart_ext) then
-                  call ice_read_ext(nu,nrec,work2,atype,diag,field_loc,field_type)
+                  call ice_read_ext(nu,nrec,work2,atype,diag)
                else
                   call ice_read(nu,nrec,work2,atype,diag,field_loc,field_type)
                endif

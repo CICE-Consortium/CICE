@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_diagnostics.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Diagnostic information output during run
@@ -14,7 +13,7 @@
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0
-      use ice_calendar, only: diagfreq, istep1, istep
+      use ice_calendar, only: istep1
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: flush_fileunit
       use ice_exit, only: abort_ice
@@ -86,7 +85,7 @@
 
       ! printing info for routine print_state
       ! iblkp, ip, jp, mtask identify the grid cell to print
-      character (char_len) :: plabel
+!     character (char_len) :: plabel
       integer (kind=int_kind), parameter, public :: &
          check_step = 999999999, & ! begin printing at istep1=check_step
          iblkp = 1, &      ! block number 
@@ -116,14 +115,14 @@
       use ice_domain_size, only: ncat, n_aero, max_blocks
       use ice_flux, only: alvdr, alidr, alvdf, alidf, evap, fsnow, frazil, &
           fswabs, fswthru, flw, flwout, fsens, fsurf, flat, frzmlt_init, frain, fpond, &
-          coszen, fhocn_ai, fsalt_ai, fresh_ai, frazil_diag, &
+          fhocn_ai, fsalt_ai, fresh_ai, frazil_diag, &
           update_ocn_f, Tair, Qa, fsw, fcondtop, meltt, meltb, meltl, snoice, &
           dsnow, congel, sst, sss, Tf, fhocn, &
           swvdr, swvdf, swidr, swidf, &
           alvdr_init, alvdf_init, alidr_init, alidf_init
       use ice_flux_bgc, only: faero_atm, faero_ocn
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
-      use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_type
+      use ice_grid, only: lmask_n, lmask_s, tarean, tareas
       use ice_state   ! everything
 #ifdef CESMCOUPLED
       use ice_prescribed_mod, only: prescribed_ice
@@ -1216,7 +1215,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks
+      use ice_domain_size, only: ncat, nilyr, max_blocks
       use ice_grid, only: tmask
       use ice_state, only: vicen, trcrn
 
@@ -1595,7 +1594,7 @@
 
       real (kind=dbl_kind) :: &
            eidebug, esdebug, &
-           qi, qs, Tsnow, &
+           qi, qs, &
            puny
 
       integer (kind=int_kind) :: m, n, k, i, j, iblk, nt_Tsfc, nt_qice, nt_qsno
@@ -1675,41 +1674,41 @@
       write(nu_diag,*) trim(llabel),'uvel=',uvel(i,j,iblk)
       write(nu_diag,*) trim(llabel),'vvel=',vvel(i,j,iblk)
 
-      !  write(nu_diag,*) ' '
-      !  write(nu_diag,*) 'atm states and fluxes'
-      !  write(nu_diag,*) '            uatm    = ',uatm (i,j,iblk)
-      !  write(nu_diag,*) '            vatm    = ',vatm (i,j,iblk)
-      !  write(nu_diag,*) '            potT    = ',potT (i,j,iblk)
-      !  write(nu_diag,*) '            Tair    = ',Tair (i,j,iblk)
-      !  write(nu_diag,*) '            Qa      = ',Qa   (i,j,iblk)
-      !  write(nu_diag,*) '            rhoa    = ',rhoa (i,j,iblk)
-      !  write(nu_diag,*) '            swvdr   = ',swvdr(i,j,iblk)
-      !  write(nu_diag,*) '            swvdf   = ',swvdf(i,j,iblk)
-      !  write(nu_diag,*) '            swidr   = ',swidr(i,j,iblk)
-      !  write(nu_diag,*) '            swidf   = ',swidf(i,j,iblk)
-      !  write(nu_diag,*) '            flw     = ',flw  (i,j,iblk)
-      !  write(nu_diag,*) '            frain   = ',frain(i,j,iblk)
-      !  write(nu_diag,*) '            fsnow   = ',fsnow(i,j,iblk)
-      !  write(nu_diag,*) ' '
-      !  write(nu_diag,*) 'ocn states and fluxes'
-      !  write(nu_diag,*) '            frzmlt  = ',frzmlt (i,j,iblk)
-      !  write(nu_diag,*) '            sst     = ',sst    (i,j,iblk)
-      !  write(nu_diag,*) '            sss     = ',sss    (i,j,iblk)
-      !  write(nu_diag,*) '            Tf      = ',Tf     (i,j,iblk)
-      !  write(nu_diag,*) '            uocn    = ',uocn   (i,j,iblk)
-      !  write(nu_diag,*) '            vocn    = ',vocn   (i,j,iblk)
-      !  write(nu_diag,*) '            strtltx = ',strtltx(i,j,iblk)
-      !  write(nu_diag,*) '            strtlty = ',strtlty(i,j,iblk)
-      !  write(nu_diag,*) ' '
-      !  write(nu_diag,*) 'srf states and fluxes'
-      !  write(nu_diag,*) '            Tref    = ',Tref  (i,j,iblk)
-      !  write(nu_diag,*) '            Qref    = ',Qref  (i,j,iblk)
-      !  write(nu_diag,*) '            Uref    = ',Uref  (i,j,iblk)
-      !  write(nu_diag,*) '            fsens   = ',fsens (i,j,iblk)
-      !  write(nu_diag,*) '            flat    = ',flat  (i,j,iblk)
-      !  write(nu_diag,*) '            evap    = ',evap  (i,j,iblk)
-      !  write(nu_diag,*) '            flwout  = ',flwout(i,j,iblk)
-      !  write(nu_diag,*) ' '
+      write(nu_diag,*) ' '
+      write(nu_diag,*) 'atm states and fluxes'
+      write(nu_diag,*) '            uatm    = ',uatm (i,j,iblk)
+      write(nu_diag,*) '            vatm    = ',vatm (i,j,iblk)
+      write(nu_diag,*) '            potT    = ',potT (i,j,iblk)
+      write(nu_diag,*) '            Tair    = ',Tair (i,j,iblk)
+      write(nu_diag,*) '            Qa      = ',Qa   (i,j,iblk)
+      write(nu_diag,*) '            rhoa    = ',rhoa (i,j,iblk)
+      write(nu_diag,*) '            swvdr   = ',swvdr(i,j,iblk)
+      write(nu_diag,*) '            swvdf   = ',swvdf(i,j,iblk)
+      write(nu_diag,*) '            swidr   = ',swidr(i,j,iblk)
+      write(nu_diag,*) '            swidf   = ',swidf(i,j,iblk)
+      write(nu_diag,*) '            flw     = ',flw  (i,j,iblk)
+      write(nu_diag,*) '            frain   = ',frain(i,j,iblk)
+      write(nu_diag,*) '            fsnow   = ',fsnow(i,j,iblk)
+      write(nu_diag,*) ' '
+      write(nu_diag,*) 'ocn states and fluxes'
+      write(nu_diag,*) '            frzmlt  = ',frzmlt (i,j,iblk)
+      write(nu_diag,*) '            sst     = ',sst    (i,j,iblk)
+      write(nu_diag,*) '            sss     = ',sss    (i,j,iblk)
+      write(nu_diag,*) '            Tf      = ',Tf     (i,j,iblk)
+      write(nu_diag,*) '            uocn    = ',uocn   (i,j,iblk)
+      write(nu_diag,*) '            vocn    = ',vocn   (i,j,iblk)
+      write(nu_diag,*) '            strtltx = ',strtltx(i,j,iblk)
+      write(nu_diag,*) '            strtlty = ',strtlty(i,j,iblk)
+      write(nu_diag,*) ' '
+      write(nu_diag,*) 'srf states and fluxes'
+      write(nu_diag,*) '            Tref    = ',Tref  (i,j,iblk)
+      write(nu_diag,*) '            Qref    = ',Qref  (i,j,iblk)
+      write(nu_diag,*) '            Uref    = ',Uref  (i,j,iblk)
+      write(nu_diag,*) '            fsens   = ',fsens (i,j,iblk)
+      write(nu_diag,*) '            flat    = ',flat  (i,j,iblk)
+      write(nu_diag,*) '            evap    = ',evap  (i,j,iblk)
+      write(nu_diag,*) '            flwout  = ',flwout(i,j,iblk)
+      write(nu_diag,*) ' '
 
       endif   ! my_task
       enddo   ! ncnt

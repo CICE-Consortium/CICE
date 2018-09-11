@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_diagnostics_bgc.F90 1447 2016-04-28 18:09:53Z afrobert@nps.edu $
 !=======================================================================
 
 ! Diagnostic information output during run
@@ -14,12 +13,11 @@
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, mps_to_cmpdy, c100, p5, c1
-      use ice_calendar, only: diagfreq, istep1, istep
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: flush_fileunit
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_max_algae, icepack_max_aero, icepack_max_dic
+      use icepack_intfc, only: icepack_max_algae, icepack_max_aero
       use icepack_intfc, only: icepack_max_doc, icepack_max_don, icepack_max_fe
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices
@@ -42,17 +40,13 @@
 !          Cecilia M. Bitz, UW
 !          Nicole Jeffery, LANL
 
-      subroutine hbrine_diags (dt)
+      subroutine hbrine_diags
               
       use ice_arrays_column, only: darcy_V
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, pbloc, &
-                                plat, plon
-      use ice_domain_size, only: ncat, nltrcr, nilyr
+      use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, pbloc
+      use ice_domain_size, only: nilyr
       use ice_state, only: aice, aicen, vicen, vice, trcr, trcrn
-
-      real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
 
       ! local variables
 
@@ -161,25 +155,21 @@
 ! authors: Elizabeth C. Hunke, LANL
 !          Nicole Jeffery, LANL
 
-      subroutine bgc_diags (dt)
+      subroutine bgc_diags
 
       use ice_arrays_column, only: ocean_bio, zfswin, fbio_atmice, fbio_snoice, &
           Zoo, grow_net, ice_bio_net, trcrn_sw
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, pbloc
-      use ice_domain_size, only: ncat, nltrcr, nblyr, n_algae, n_zaero, &
-          n_dic, n_doc, n_don, n_fed, n_fep, nilyr, nslyr
+      use ice_domain_size, only: ncat, nblyr, n_algae, n_zaero, &
+          n_doc, n_don, n_fed, n_fep, nilyr, nslyr
       use ice_flux_bgc, only: flux_bio, flux_bio_atm
-      use ice_state, only:aice, vicen, vice, trcr
-      use ice_timers, only: timer_bgc, ice_timer_start, ice_timer_stop
-
-      real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
+      use ice_state, only: vicen, vice, trcr
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, k, n, nn, ii,jj, iblk,kk, klev
+         i, j, k, n, nn, iblk,kk, klev
       ! fields at diagnostic points
       real (kind=dbl_kind), dimension(npnt) :: &
          pNit_sk, pAm_sk, pSil_sk, phum_sk, &
@@ -870,24 +860,20 @@
 !          Cecilia M. Bitz, UW
 !          Nicole Jeffery, LANL
 
-      subroutine zsal_diags (dt)
+      subroutine zsal_diags
 
       use ice_arrays_column, only: fzsal, fzsal_g, sice_rho, bTiz, &
           iDi, bphi, dhbr_top, dhbr_bot, darcy_V
-      use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, &
-          pbloc, plat, plon
-      use ice_domain_size, only: max_blocks, nblyr, ncat, nilyr
+          pbloc
+      use ice_domain_size, only: nblyr, ncat, nilyr
       use ice_state, only: aicen, aice, vice, trcr, trcrn, vicen, vsno
-
-      real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, k, n, nn, ii,jj, iblk
+         i, j, k, n, nn, iblk
 
       ! fields at diagnostic points
       real (kind=dbl_kind), dimension(npnt) :: &
@@ -897,15 +883,12 @@
 
       ! vertical  fields of category 1 at diagnostic points for bgc layer model
       real (kind=dbl_kind), dimension(npnt,nblyr+2) :: &
-         pphin, pgrid, pphin1
+         pphin, pphin1
       real (kind=dbl_kind), dimension(npnt,nblyr) :: &
          pSin, pSice, pSin1
 
       real (kind=dbl_kind), dimension(npnt,nblyr+1) :: &
          pbTiz, piDin
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1, work2
 
       real (kind=dbl_kind) :: &
          rhosi, rhow, rhos

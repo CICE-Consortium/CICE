@@ -278,11 +278,10 @@
 #ifdef CESMCOUPLED
          call shr_sys_flush(iunit)
 #else
-#if (defined IRIX64 || defined CRAY || defined OSF1 || defined SUNOS || defined LINUX || defined NEC_SX | defined UNICOSMP)
-         call flush(iunit)
-#endif
-#if (defined AIX)
-         call flush_(iunit)
+#ifndef NO_F2003
+         flush(iunit)
+#else
+! Place holder for old call.
 #endif
 #endif
 

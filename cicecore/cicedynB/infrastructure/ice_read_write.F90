@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_read_write.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Routines for opening, reading and writing external files
@@ -560,7 +559,6 @@
 ! (subroutine ice_HaloUpdate need not be called).
 
       subroutine ice_read_ext(nu,  nrec,  work, atype, diag, &
-                          field_loc, field_type, &
                           ignore_eof, hit_eof)
 
       use ice_gather_scatter, only: scatter_global_ext
@@ -579,10 +577,6 @@
 
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
-
-      integer (kind=int_kind), optional, intent(in) :: &
-           field_loc, &      ! location of field on staggered grid
-           field_type        ! type of field (scalar, vector, angle)
 
       logical (kind=log_kind), optional, intent(in)  :: ignore_eof
       logical (kind=log_kind), optional, intent(out) :: hit_eof
@@ -1082,16 +1076,16 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
-         status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         id,              & ! dimension index
-         dimlen             ! size of dimension
+         status             ! status output from netcdf routines
+!        ndim, nvar,      & ! sizes of netcdf file
+!        id,              & ! dimension index
+!        dimlen             ! dimension size
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-      character (char_len) :: &
-         dimname            ! dimension name            
+!     character (char_len) :: &
+!        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1254,18 +1248,18 @@
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
-         varid         , & ! variable id
-         status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         id,              & ! dimension index
          n,               & ! ncat index
-         dimlen             ! size of dimension
+         varid         , & ! variable id
+         status            ! status output from netcdf routines
+!        ndim, nvar,      & ! sizes of netcdf file
+!        id,              & ! dimension index
+!        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-      character (char_len) :: &
-         dimname            ! dimension name            
+!     character (char_len) :: &
+!        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -1399,8 +1393,8 @@
 ! Read a netCDF file
 ! Adapted by Alison McLaren, Met Office from ice_read
 
-      subroutine ice_read_nc_point(fid,  nrec,  varname, work,  diag, &
-                             field_loc, field_type)
+      subroutine ice_read_nc_point(fid,  nrec,  varname, work, diag, &
+                                   field_loc, field_type)
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
@@ -1412,13 +1406,13 @@
       character (char_len), intent(in) :: & 
            varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), &
-           intent(out) :: &
-           work              ! output variable (real, 8-byte)
-
       integer (kind=int_kind), optional, intent(in) :: &
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
+
+      real (kind=dbl_kind), &
+           intent(out) :: &
+           work              ! output variable (real, 8-byte)
 
       ! local variables
 
@@ -1492,7 +1486,7 @@
 ! Adapted by Nicole Jeffery, LANL
 
       subroutine ice_read_nc_z(fid,  nrec,  varname, work,  diag, &
-                             field_loc, field_type)
+                               field_loc, field_type)
 
       use ice_domain_size, only: nilyr
 
@@ -1506,13 +1500,13 @@
       character (char_len), intent(in) :: & 
            varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nilyr), &
-           intent(out) :: &
-           work              ! output array (real, 8-byte)
-
       integer (kind=int_kind), optional, intent(in) :: &
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
+
+      real (kind=dbl_kind), dimension(nilyr), &
+           intent(out) :: &
+           work              ! output array (real, 8-byte)
 
       ! local variables
 
@@ -1617,10 +1611,10 @@
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
-         status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         id,              & ! dimension index
-         dimlen             ! size of dimension
+         status             ! status output from netcdf routines
+!        ndim, nvar,      & ! sizes of netcdf file
+!        id,              & ! dimension index
+!        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
@@ -1737,11 +1731,11 @@
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
-         status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         id,              & ! dimension index
          n,               & ! ncat index
-         dimlen             ! size of dimension
+         status             ! status output from netcdf routines
+!        ndim, nvar,      & ! sizes of netcdf file
+!        id,              & ! dimension index
+!        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
@@ -1865,16 +1859,16 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid,           & ! netcdf id for field
-         status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         id,              & ! dimension index
-         dimlen             ! size of dimension      
+         status             ! status output from netcdf routines
+!        ndim, nvar,      & ! sizes of netcdf file
+!        id,              & ! dimension index
+!        dimlen             ! size of dimension      
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-     character (char_len) :: &
-         dimname            ! dimension name            
+!    character (char_len) :: &
+!        dimname            ! dimension name            
 !
 #ifdef ORCA_GRID
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
@@ -2017,16 +2011,16 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
-         status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         id,              & ! dimension index
-         dimlen             ! size of dimension
+         status             ! status output from netcdf routines
+!        ndim, nvar,      & ! sizes of netcdf file
+!        id,              & ! dimension index
+!        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-      character (char_len) :: &
-         dimname            ! dimension name            
+!     character (char_len) :: &
+!        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1

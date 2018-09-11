@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_domain_size.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Defines the global domain size and number of categories and layers.

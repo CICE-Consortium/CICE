@@ -12,7 +12,6 @@
 ! Regridding and data cycling capabilities are included.
 !
 ! !REVISION HISTORY:
-!  SVN:$Id: ice_prescribed_mod.F90 40 2006-12-01 19:09:30Z eclare $
 !
 ! 2010-May-15 - Tony Craig and Mariana Vertenstein - updated to latest streams
 ! 2006-Aug-22 - D. Bailey, E. Hunke, modified to fit with CICE

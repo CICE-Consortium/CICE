@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restart_column.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=========================================================================
 !
 ! Restart routines for the column package.
@@ -13,7 +12,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p5
       use ice_constants, only: field_loc_center, field_type_scalar
-      use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, nblyr
+      use ice_domain_size, only: ncat, nblyr
       use ice_restart,only: read_restart_field, write_restart_field
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
@@ -729,7 +728,7 @@
       subroutine write_restart_bgc()
 
       use ice_arrays_column, only: Rayleigh_criteria, Rayleigh_real
-      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic, &
           n_don, n_zaero, n_fed, n_fep
@@ -746,8 +745,6 @@
        i, j, k, iblk    , & ! horizontal, vertical and block indices
        mm               , & ! n_algae
        ilo,ihi,jlo,jhi      ! beginning and end of physical domain
-
-      real (kind=dbl_kind) :: cszn ! counter for history averaging
 
       logical (kind=log_kind) :: diag
 

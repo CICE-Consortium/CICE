@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_flux.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Flux variable declarations; these include fields sent from the coupler
@@ -176,7 +175,9 @@
          Tref    , & ! 2m atm reference temperature (K)
          Qref    , & ! 2m atm reference spec humidity (kg/kg)
          Uref    , & ! 10m atm reference wind speed (m/s)
-         evap        ! evaporative water flux (kg/m^2/s)
+         evap    , & ! evaporative water flux (kg/m^2/s)
+         evaps   , & ! evaporative water flux over snow (kg/m^2/s)
+         evapi       ! evaporative water flux over ice (kg/m^2/s)
 
        ! albedos aggregated over categories (if calc_Tsfc)
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), public :: &
@@ -219,7 +220,6 @@
 
       real (kind=dbl_kind), &
          dimension (nx_block,ny_block,max_blocks), public :: &
-         fswfac  , & ! for history
          scale_factor! scaling factor for shortwave components
 
       logical (kind=log_kind), public :: &
@@ -260,7 +260,10 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
          fsurf , & ! net surface heat flux (excluding fcondtop)(W/m^2)
          fcondtop,&! top surface conductive flux        (W/m^2)
+         fcondbot,&! bottom surface conductive flux     (W/m^2)
          fbot,   & ! heat flux at bottom surface of ice (excluding excess) (W/m^2)
+         Tbot,   & ! temperature at bottom surface of ice (deg C)
+         Tsnice,  & ! temperature at snow ice interface (deg C)
          congel, & ! basal ice growth         (m/step-->cm/day)
          frazil, & ! frazil ice growth        (m/step-->cm/day)
          snoice, & ! snow-ice formation       (m/step-->cm/day)
@@ -280,6 +283,7 @@
          dimension (nx_block,ny_block,ncat,max_blocks), public :: &
          fsurfn,   & ! category fsurf
          fcondtopn,& ! category fcondtop
+         fcondbotn,& ! category fcondbot
          fsensn,   & ! category sensible heat flux
          flatn       ! category latent heat flux
 
@@ -330,7 +334,6 @@
       subroutine init_coupler_flux
 
       use ice_arrays_column, only: Cdn_atm
-      use ice_constants, only: p001
       use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
            fdoc, fdon, fdic, ffed, ffep
@@ -445,6 +448,7 @@
       uocn  (:,:,:) = c0              ! surface ocean currents (m/s)
       vocn  (:,:,:) = c0
       frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
+      frzmlt_init(:,:,:) = c0         ! freezing/melting potential (W/m^2)
       sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
 
       do iblk = 1, size(Tf,3)
@@ -473,9 +477,12 @@
       fsens   (:,:,:) = c0
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
+      fswint_ai(:,:,:) = c0
       flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4   
                         ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
+      evaps   (:,:,:) = c0
+      evapi   (:,:,:) = c0
       Tref    (:,:,:) = c0
       Qref    (:,:,:) = c0
       Uref    (:,:,:) = c0
@@ -492,6 +499,7 @@
       strocnyT(:,:,:) = c0    ! ice-ocean stress, y-direction (T-cell)
       fresh   (:,:,:) = c0
       fsalt   (:,:,:) = c0
+      fpond   (:,:,:) = c0
       fhocn   (:,:,:) = c0
       fswthru (:,:,:) = c0
       fresh_da(:,:,:) = c0    ! data assimilation
@@ -579,6 +587,7 @@
 
       fresh    (:,:,:)   = c0
       fsalt    (:,:,:)   = c0
+      fpond    (:,:,:)   = c0
       fhocn    (:,:,:)   = c0
       fswthru  (:,:,:)   = c0
       faero_ocn(:,:,:,:) = c0
@@ -627,7 +636,11 @@
 
       fsurf  (:,:,:) = c0
       fcondtop(:,:,:)= c0
+      fcondbot(:,:,:)= c0
       congel (:,:,:) = c0
+      fbot   (:,:,:) = c0
+      Tbot   (:,:,:) = c0
+      Tsnice  (:,:,:) = c0
       frazil (:,:,:) = c0
       snoice (:,:,:) = c0
       dsnow  (:,:,:) = c0
@@ -644,9 +657,9 @@
       endif
       fsurfn    (:,:,:,:) = c0
       fcondtopn (:,:,:,:) = c0
+      fcondbotn (:,:,:,:) = c0
       flatn     (:,:,:,:) = c0
       fsensn    (:,:,:,:) = c0
-      fpond     (:,:,:) = c0
       fresh_ai  (:,:,:) = c0
       fsalt_ai  (:,:,:) = c0
       fhocn_ai  (:,:,:) = c0
@@ -663,10 +676,10 @@
       Cdn_ocn(:,:,:) = dragio
       Cdn_atm(:,:,:) = (vonkar/log(zref/iceruf)) &
                      * (vonkar/log(zref/iceruf)) ! atmo drag for RASM
+      Cdn_atm_ratio(:,:,:)= c0
 
       if (formdrag) then
         Cdn_atm_rdg (:,:,:) = c0
-        Cdn_atm_ratio(:,:,:)= c0
         Cdn_atm_floe(:,:,:) = c0
         Cdn_atm_pond(:,:,:) = c0
         Cdn_atm_skin(:,:,:) = c0
@@ -694,7 +707,7 @@
 
       subroutine init_history_dyn
 
-      use ice_state, only: aice, vice, trcr
+      use ice_state, only: aice, vice, trcr, strength
 
       logical (kind=log_kind) :: &
           tr_iage
@@ -714,6 +727,7 @@
       sig2    (:,:,:) = c0
       taubx   (:,:,:) = c0
       tauby   (:,:,:) = c0
+      strength (:,:,:) = c0
       strocnx (:,:,:) = c0
       strocny (:,:,:) = c0
       strairx (:,:,:) = c0
