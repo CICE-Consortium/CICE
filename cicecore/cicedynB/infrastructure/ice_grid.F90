@@ -1191,6 +1191,22 @@
             enddo
             enddo
 
+            if (nx_global == 80 .and. ny_global == 80) then !added land for  box problem
+              do i=1,80
+                work_g1(i,1)  = c0
+                work_g1(i,2)  = c0
+                work_g1(i,79) = c0
+                work_g1(i,80) = c0
+              enddo
+  
+              do j=1,80
+                work_g1(1,j)  = c0
+                work_g1(2,j)  = c0
+                work_g1(79,j)  = c0
+                work_g1(80,j) = c0
+              enddo
+            endif
+
             endif
 
          elseif (trim(ew_boundary_type) == 'closed') then
