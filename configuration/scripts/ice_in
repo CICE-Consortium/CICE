@@ -95,6 +95,7 @@
 
 &dynamics_nml
     kdyn            = 1
+    thermo          = 1
     ndte            = 120
     revised_evp     = .false.
     advection       = 'remap'

@@ -28,6 +28,7 @@
 
       integer (kind=int_kind), public :: &
          kdyn     , & ! type of dynamics ( 1 = evp, 2 = eap )
+         thermo   , & ! thermodynamics off (0) or on (1)
          ndte         ! number of subcycles:  ndte=dt/dte
 
          character (len=char_len), public :: &
@@ -135,6 +136,8 @@
          ! Coriolis parameter
          if (trim(coriolis) == 'constant') then
          fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+         else if (trim(coriolis) == 'zero') then
+         fcor_blk(i,j,iblk) = 0.0
          else
          fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
          endif

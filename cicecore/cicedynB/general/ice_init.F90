@@ -79,7 +79,7 @@
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                basalstress, Ktens, e_ratio, coriolis
+                                basalstress, Ktens, e_ratio, coriolis, thermo
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -151,7 +151,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        advection,      coriolis,                                       &
+        advection,      coriolis,       thermo,                         &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress
 
@@ -246,6 +246,7 @@
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
       kdyn = 1           ! type of dynamics (1 = evp, 2 = eap)
+      thermo = 1         ! set to 1 for thoermodynamics on, and thermo off (0=thermo off)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -484,6 +485,7 @@
       call broadcast_scalar(kitd,               master_task)
       call broadcast_scalar(kcatbound,          master_task)
       call broadcast_scalar(kdyn,               master_task)
+      call broadcast_scalar(thermo,             master_task)
       call broadcast_scalar(ndtd,               master_task)
       call broadcast_scalar(ndte,               master_task)
       call broadcast_scalar(revised_evp,        master_task)
@@ -863,6 +865,7 @@
          write(nu_diag,1020) ' kcatbound                 = ', &
                                kcatbound
          write(nu_diag,1020) ' kdyn                      = ', kdyn
+         write(nu_diag,1020) ' thermo                    = ', thermo
          write(nu_diag,1020) ' ndtd                      = ', ndtd
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &

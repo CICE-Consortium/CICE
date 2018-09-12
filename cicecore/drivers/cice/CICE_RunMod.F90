@@ -25,6 +25,8 @@
       use icepack_intfc, only: icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_numbers
+      use ice_blocks, only: nx_block, ny_block
+      use ice_flux, only: uatm, vatm, strairxT, strairyT, wind, rhoa
 
       implicit none
       private
@@ -136,7 +138,7 @@
       use ice_domain, only: halo_info, nblocks
       use ice_domain_size, only: nslyr
       use ice_dyn_eap, only: write_restart_eap
-      use ice_dyn_shared, only: kdyn
+      use ice_dyn_shared, only: kdyn, thermo
       use ice_flux, only: scale_factor, init_history_therm, &
           daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
       use ice_history, only: accum_hist
@@ -158,10 +160,12 @@
 
       integer (kind=int_kind) :: &
          iblk        , & ! block index 
+         i,j         , & ! loop counter
          k               ! dynamics supercycling index
 
       real (kind=dbl_kind) :: &
-         offset          ! d(age)/dt time offset
+         offset      , & ! d(age)/dt time offset
+         tau             ! part of wind stress
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, &
@@ -202,7 +206,7 @@
       !-----------------------------------------------------------------
       ! Scale radiation fields
       !-----------------------------------------------------------------
-
+            if(thermo.ne.0) then
             if (calc_Tsfc) call prep_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
@@ -212,6 +216,20 @@
             call step_therm1     (dt, iblk) ! vertical thermodynamics
             call biogeochemistry (dt, iblk) ! biogeochemistry
             call step_therm2     (dt, iblk) ! ice thickness distribution thermo
+
+            else  ! for box problem
+            !wind stress
+
+               do j = 1, ny_block  
+               do i = 1, nx_block  
+                   wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
+                   tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
+                   strairxT(i,j,iblk) = tau * uatm(i,j,iblk)
+                   strairyT(i,j,iblk) = tau * vatm(i,j,iblk)
+            enddo
+            enddo
+
+            endif
 
          enddo ! iblk
          !$OMP END PARALLEL DO
@@ -255,7 +273,7 @@
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
-            call step_radiation (dt, iblk)
+            if (thermo.ne.0) call step_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
       ! get ready for coupling and the next time step
