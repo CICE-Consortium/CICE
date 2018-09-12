@@ -228,7 +228,7 @@ boundary around the entire domain.  It includes the following namelist modificat
 - ``thermo``: ``0`` (disables thermodynamics)
 - ``coriolis``: ``zero`` (zero coriolis force)
 
-Ocean stressed are computed as in :cite:`Hunke01` where they are circular and centered 
+Ocean stresses are computed as in :cite:`Hunke01` where they are circular and centered 
 in the square domain.  The ice distribution is fixed, with a constant 2 meter ice 
 thickness and a concentration field that varies linearly in the x-direction from ``0``
 to ``1`` and is constant in the y-direction.  No islands are included in this
