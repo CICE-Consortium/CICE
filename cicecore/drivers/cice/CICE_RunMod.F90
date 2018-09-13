@@ -207,18 +207,18 @@
       ! Scale radiation fields
       !-----------------------------------------------------------------
             if(thermo.ne.0) then
-            if (calc_Tsfc) call prep_radiation (dt, iblk)
+               if (calc_Tsfc) call prep_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
             
-            call step_therm1     (dt, iblk) ! vertical thermodynamics
-            call biogeochemistry (dt, iblk) ! biogeochemistry
-            call step_therm2     (dt, iblk) ! ice thickness distribution thermo
+               call step_therm1     (dt, iblk) ! vertical thermodynamics
+               call biogeochemistry (dt, iblk) ! biogeochemistry
+               call step_therm2     (dt, iblk) ! ice thickness distribution thermo
 
             else  ! for box problem
-            !wind stress
+               !wind stress
 
                do j = 1, ny_block  
                do i = 1, nx_block  
@@ -226,8 +226,8 @@
                    tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
                    strairxT(i,j,iblk) = tau * uatm(i,j,iblk)
                    strairyT(i,j,iblk) = tau * vatm(i,j,iblk)
-            enddo
-            enddo
+               enddo
+               enddo
 
             endif
 

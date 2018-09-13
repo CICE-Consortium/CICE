@@ -31,7 +31,7 @@
          thermo   , & ! thermodynamics off (0) or on (1)
          ndte         ! number of subcycles:  ndte=dt/dte
 
-         character (len=char_len), public :: &
+      character (len=char_len), public :: &
          coriolis     ! 'constant' or 'default'
 
       logical (kind=log_kind), public :: &
@@ -135,11 +135,11 @@
 
          ! Coriolis parameter
          if (trim(coriolis) == 'constant') then
-         fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+            fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
          else if (trim(coriolis) == 'zero') then
-         fcor_blk(i,j,iblk) = 0.0
+            fcor_blk(i,j,iblk) = 0.0
          else
-         fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
+            fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
          endif
 
          ! stress tensor,  kg/s^2
@@ -163,7 +163,6 @@
       enddo                     ! j
       enddo                     ! iblk
       !$OMP END PARALLEL DO
-         write (nu_diag,*) 'fcor_blk(1,1,1)=', fcor_blk(1,1,1)
 
       end subroutine init_evp
 
