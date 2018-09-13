@@ -43,7 +43,7 @@
 
       implicit none
       private
-      public :: init_forcing_atmo, init_forcing_ocn, &
+      public :: init_forcing_atmo, init_forcing_ocn, alloc_forcing, &
                 get_forcing_atmo, get_forcing_ocn, &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
@@ -87,10 +87,10 @@
            oldrecnum = 0  , & ! old record number (save between steps)
            oldrecnum4X = 0    !
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
           cldf                ! cloud fraction
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks) :: &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable :: &
             fsw_data, & ! field values at 2 temporal data points
            cldf_data, &
           fsnow_data, &
@@ -113,7 +113,7 @@
           frain_data
 
       real (kind=dbl_kind), & 
-           dimension(nx_block,ny_block,2,max_blocks,ncat) :: &
+           dimension(:,:,:,:,:), allocatable :: &
         topmelt_data, &
         botmelt_data
 
@@ -143,7 +143,7 @@
          frcidf = 0.17_dbl_kind    ! frac of incoming sw in near IR diffuse band
 
       real (kind=dbl_kind), &
-       dimension (nx_block,ny_block,max_blocks,nfld,12) :: & 
+       dimension (:,:,:,:,:), allocatable :: &
          ocn_frc_m   ! ocn data for 12 months
 
       logical (kind=log_kind), public :: &
@@ -163,6 +163,43 @@
       contains
 
 !=======================================================================
+!
+! Allocate space for all variables 
+!
+      subroutine alloc_forcing
+      integer (int_kind) :: ierr
+
+      allocate ( &
+                 cldf(nx_block,ny_block, max_blocks), & ! cloud fraction
+            fsw_data(nx_block,ny_block,2,max_blocks), & ! field values at 2 temporal data points
+           cldf_data(nx_block,ny_block,2,max_blocks), &
+          fsnow_data(nx_block,ny_block,2,max_blocks), &
+           Tair_data(nx_block,ny_block,2,max_blocks), &
+           uatm_data(nx_block,ny_block,2,max_blocks), &
+           vatm_data(nx_block,ny_block,2,max_blocks), &
+           wind_data(nx_block,ny_block,2,max_blocks), &
+          strax_data(nx_block,ny_block,2,max_blocks), &
+          stray_data(nx_block,ny_block,2,max_blocks), &
+             Qa_data(nx_block,ny_block,2,max_blocks), &
+           rhoa_data(nx_block,ny_block,2,max_blocks), &
+           potT_data(nx_block,ny_block,2,max_blocks), &
+           zlvl_data(nx_block,ny_block,2,max_blocks), &
+            flw_data(nx_block,ny_block,2,max_blocks), &
+            sst_data(nx_block,ny_block,2,max_blocks), &
+            sss_data(nx_block,ny_block,2,max_blocks), &
+           uocn_data(nx_block,ny_block,2,max_blocks), &
+           vocn_data(nx_block,ny_block,2,max_blocks), &
+         sublim_data(nx_block,ny_block,2,max_blocks), &
+          frain_data(nx_block,ny_block,2,max_blocks), &
+        topmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
+        botmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
+           ocn_frc_m(nx_block,ny_block,  max_blocks,nfld,12), & ! ocn data for 12 months
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_forcing): Out of Memory')
+
+      end subroutine alloc_forcing
+
+!=======================================================================
 
       subroutine init_forcing_atmo
 
@@ -170,6 +207,9 @@
 ! namelist input; initialize the atmospheric forcing data filenames.
 
       character(len=*), parameter :: subname = '(init_forcing_atmo)'
+
+      ! Allocate forcing arrays 
+      call alloc_forcing()
 
       fyear       = fyear_init + mod(nyr-1,ycycle) ! current year
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle

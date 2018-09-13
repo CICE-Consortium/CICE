@@ -93,7 +93,7 @@
 
    use ice_distribution, only: processor_shape
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
-       nx_global, ny_global
+       nx_global, ny_global, block_size_x, block_size_y
 
 !----------------------------------------------------------------------
 !
@@ -113,6 +113,11 @@
 !----------------------------------------------------------------------
 
    namelist /domain_nml/ nprocs, &
+                         max_blocks,   &
+                         block_size_x, &
+                         block_size_y, &
+                         nx_global,    &
+                         ny_global,    &
                          processor_shape,   &
                          distribution_type, &
                          distribution_wght, &
@@ -139,6 +144,11 @@
    maskhalo_dyn      = .false.     ! if true, use masked halos for dynamics
    maskhalo_remap    = .false.     ! if true, use masked halos for transport
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
+   max_blocks        = -1           ! max number of blocks per processor
+   block_size_x      = -1          ! size of block in first horiz dimension
+   block_size_y      = -1          ! size of block in second horiz dimension
+   nx_global         = -1          ! NXGLOB,  i-axis size
+   ny_global         = -1          ! NYGLOB,  j-axis size
 
    call get_fileunit(nu_nml)
    if (my_task == master_task) then
@@ -170,6 +180,19 @@
    call broadcast_scalar(maskhalo_dyn,      master_task)
    call broadcast_scalar(maskhalo_remap,    master_task)
    call broadcast_scalar(maskhalo_bound,    master_task)
+   if (my_task == master_task) then
+     if (max_blocks < 1) then
+       max_blocks=( ((nx_global-1)/block_size_x + 1) *         &
+                    ((ny_global-1)/block_size_y + 1) ) / nprocs
+       write(nu_diag,'(/,a52,i6,/)') &
+         '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
+     endif
+   endif
+   call broadcast_scalar(max_blocks,        master_task)
+   call broadcast_scalar(block_size_x,      master_task)
+   call broadcast_scalar(block_size_y,      master_task)
+   call broadcast_scalar(nx_global,         master_task)
+   call broadcast_scalar(ny_global,         master_task)
 
 !----------------------------------------------------------------------
 !

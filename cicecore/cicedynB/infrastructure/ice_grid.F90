@@ -35,7 +35,7 @@
       private
       public :: init_grid1, init_grid2, &
                 t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid
+                to_ugrid, to_tgrid, alloc_grid
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
@@ -45,7 +45,7 @@
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          dxt    , & ! width of T-cell through the middle (m)
          dyt    , & ! height of T-cell through the middle (m)
          dxu    , & ! width of U-cell through the middle (m)
@@ -69,7 +69,7 @@
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          cyp    , & ! 1.5*HTE - 0.5*HTE
          cxp    , & ! 1.5*HTN - 0.5*HTN
          cym    , & ! 0.5*HTE - 1.5*HTE
@@ -78,14 +78,14 @@
          dyhx       ! 0.5*(HTN - HTN)
 
       ! Corners of grid boxes for history output
-      real (kind=dbl_kind), dimension (4,nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          lont_bounds, & ! longitude of gridbox corners for T point
          latt_bounds, & ! latitude of gridbox corners for T point
          lonu_bounds, & ! longitude of gridbox corners for U point
          latu_bounds    ! latitude of gridbox corners for U point       
 
       ! geometric quantities used for remapping transport
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          xav  , & ! mean T-cell value of x
          yav  , & ! mean T-cell value of y
          xxav , & ! mean T-cell value of xx
@@ -98,21 +98,21 @@
 !         yyyav    ! mean T-cell value of yyy
 
       real (kind=dbl_kind), &
-         dimension (2,2,nx_block,ny_block,max_blocks), public :: &
+         dimension (:,:,:,:,:), allocatable, public :: &
          mne, & ! matrices used for coordinate transformations in remapping
          mnw, & ! ne = northeast corner, nw = northwest, etc.
          mse, & 
          msw
 
       ! masks
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
          uvm    , & ! land/boundary mask, velocity (U-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), &
-         dimension (nx_block,ny_block,max_blocks), public :: &
+         dimension (:,:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
          umask  , & ! land/boundary mask, velocity (U-cell)
          lmask_n, & ! northern hemisphere mask
@@ -123,12 +123,74 @@
          dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
          dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
 
 !=======================================================================
 
       contains
+
+!=======================================================================
+!
+! Allocate space for all variables 
+!
+      subroutine alloc_grid
+
+      integer (int_kind) :: ierr
+
+      allocate( &
+         dxt      (nx_block,ny_block,max_blocks), & ! width of T-cell through the middle (m)
+         dyt      (nx_block,ny_block,max_blocks), & ! height of T-cell through the middle (m)
+         dxu      (nx_block,ny_block,max_blocks), & ! width of U-cell through the middle (m)
+         dyu      (nx_block,ny_block,max_blocks), & ! height of U-cell through the middle (m)
+         HTE      (nx_block,ny_block,max_blocks), & ! length of eastern edge of T-cell (m)
+         HTN      (nx_block,ny_block,max_blocks), & ! length of northern edge of T-cell (m)
+         tarea    (nx_block,ny_block,max_blocks), & ! area of T-cell (m^2)
+         uarea    (nx_block,ny_block,max_blocks), & ! area of U-cell (m^2)
+         tarear   (nx_block,ny_block,max_blocks), & ! 1/tarea
+         uarear   (nx_block,ny_block,max_blocks), & ! 1/uarea
+         tinyarea (nx_block,ny_block,max_blocks), & ! puny*tarea
+         tarean   (nx_block,ny_block,max_blocks), & ! area of NH T-cells
+         tareas   (nx_block,ny_block,max_blocks), & ! area of SH T-cells
+         ULON     (nx_block,ny_block,max_blocks), & ! longitude of velocity pts (radians)
+         ULAT     (nx_block,ny_block,max_blocks), & ! latitude of velocity pts (radians)
+         TLON     (nx_block,ny_block,max_blocks), & ! longitude of temp pts (radians)
+         TLAT     (nx_block,ny_block,max_blocks), & ! latitude of temp pts (radians)
+         ANGLE    (nx_block,ny_block,max_blocks), & ! for conversions between POP grid and lat/lon
+         ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
+         bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
+         ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
+         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTE
+         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTN
+         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTE
+         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTN
+         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTE)
+         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTN)
+         xav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of x
+         yav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of y
+         xxav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of xx
+         yyav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of yy
+         hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
+         bm       (nx_block,ny_block,max_blocks), & ! task/block id
+         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
+         tmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
+         umask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
+         lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
+         rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
+         lont_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for T point
+         latt_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for T point
+         lonu_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for U point
+         latu_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for U point       
+         mne  (2,2,nx_block,ny_block,max_blocks), & ! matrices used for coordinate transformations in remapping
+         mnw  (2,2,nx_block,ny_block,max_blocks), & ! ne = northeast corner, nw = northwest, etc.
+         mse  (2,2,nx_block,ny_block,max_blocks), &
+         msw  (2,2,nx_block,ny_block,max_blocks), &
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_grid): Out of memory')
+
+      end subroutine alloc_grid
 
 !=======================================================================
 

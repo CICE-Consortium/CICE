@@ -43,9 +43,8 @@
    integer (int_kind), parameter, public :: &
       nghost = 1       ! number of ghost cells around each block
 
-   integer (int_kind), parameter, public :: &! size of block domain in
-      nx_block = block_size_x + 2*nghost,   &!  x,y dir including ghost
-      ny_block = block_size_y + 2*nghost     !  cells 
+   integer (int_kind), public :: &! size of block domain in
+      nx_block, ny_block          !  x,y dir including ghost
 
    ! predefined directions for neighbor id routine
    ! Note: the directions that are commented out are implemented in 
@@ -147,6 +146,8 @@ contains
 !
 !----------------------------------------------------------------------
 
+   nx_block    = block_size_x + 2*nghost ! size of block domain in x,y dir
+   ny_block    = block_size_y + 2*nghost !  including ghost cells
    nblocks_x   = (nx_global-1)/block_size_x + 1
    nblocks_y   = (ny_global-1)/block_size_y + 1
    nblocks_tot = nblocks_x*nblocks_y
