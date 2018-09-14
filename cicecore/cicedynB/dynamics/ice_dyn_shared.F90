@@ -216,8 +216,9 @@
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
-         arlx1i = c2*xi/Se        ! 1/alpha1
-         brlx = c2*Se*xi*gamma/xmin**2 ! beta
+         denom1 = c1
+         !TAR: According to mail of Martin Loesch: for a ~25km grid:
+         !      brlx=300 , arlx1i = c1/brlx
 
 ! classic evp parameters (but modified equations)
 !         arlx1i = dte2T
@@ -227,6 +228,8 @@
          revp   = c0
          arlx1i = dte2T
          brlx   = dt*dtei
+         denom1 = c1/(c1+arlx1i)
+
 
 ! revised evp parameters
 !         arlx1i = c2*xi/Se        ! 1/alpha1
@@ -240,8 +243,6 @@
                   p5*brlx/gamma*xmin**2, &
                   p5*xmin*sqrt(brlx*arlx1i/gamma)
       endif            
-
-      denom1 = c1/(c1+arlx1i)
 
       end subroutine set_evp_parameters
 
@@ -496,6 +497,8 @@
          taubx    (i,j) = c0
          tauby    (i,j) = c0
 
+         ! Don't understand why this differs between revp and none revp.
+         ! However equal nevertheless
          if (revp==1) then               ! revised evp
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
