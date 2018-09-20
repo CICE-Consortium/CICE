@@ -880,9 +880,9 @@
          write(nu_diag,1020) ' kcatbound                 = ', &
                                kcatbound
          if (kdyn == 1) then
-           write(nu_diag,1020) ' kdyn                      = evp ', kdyn
+           write(nu_diag,1021) ' kdyn                      = ','evp ', kdyn
          elseif (kdyn == 2) then
-           write(nu_diag,1020) ' kdyn                      = eap ', kdyn
+           write(nu_diag,1021) ' kdyn                      = ','eap ', kdyn
          else
            write(nu_diag,1020) ' kdyn                      = ', kdyn
          endif
@@ -1121,6 +1121,7 @@
  1005    format (a30,2x,f9.6)  ! float
  1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
+ 1021    format (a30,2x,a8,i6) ! char, int
  1030    format (a30,   a8)    ! character
  1040    format (a30,2x,6i6)   ! integer
  1050    format (a30,2x,6a6)   ! character
