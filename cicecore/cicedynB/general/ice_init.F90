@@ -191,9 +191,10 @@
       abort_flag = 0
 
       call icepack_query_parameters(puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
-         file=__FILE__, line=__LINE__)
+! nu_diag not yet defined
+!      call icepack_warnings_flush(nu_diag)
+!      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
+!         file=__FILE__, line=__LINE__)
 
       days_per_year = 365    ! number of days in a year
       use_leap_years= .false.! if true, use leap years (Feb 29)
@@ -878,7 +879,13 @@
          write(nu_diag,1020) ' kitd                      = ', kitd
          write(nu_diag,1020) ' kcatbound                 = ', &
                                kcatbound
-         write(nu_diag,1020) ' kdyn                      = ', kdyn
+         if (kdyn == 1) then
+           write(nu_diag,1020) ' kdyn                      = evp ', kdyn
+         elseif (kdyn == 2) then
+           write(nu_diag,1020) ' kdyn                      = eap ', kdyn
+         else
+           write(nu_diag,1020) ' kdyn                      = ', kdyn
+         endif
          write(nu_diag,1020) ' ndtd                      = ', ndtd
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &

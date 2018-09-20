@@ -1491,26 +1491,23 @@
       endif
 
       if (my_task == master_task) then
-      do j = 1, ny_global
-      do i = 1, nx_global
-         work_g(i,j) = work_g(i,j) * cm_to_m                ! HTE
-      enddo
-      enddo
-      do j = 1, ny_global-1
+         do j = 1, ny_global
+         do i = 1, nx_global
+            work_g(i,j) = work_g(i,j) * cm_to_m                ! HTE
+         enddo
+         enddo
+         do j = 1, ny_global-1
          do i = 1, nx_global
             work_g2(i,j) = p5*(work_g(i,j) + work_g(i,j+1)) ! dyu
          enddo
-      enddo
-      ! extrapolate to obtain dyu along j=ny_global
-      ! for CESM: use NYGLOB to prevent a compile time out of bounds 
-      ! error when ny_global=1 as in the se dycore; this code is not 
-      ! exersized in prescribed mode.
-#if (NYGLOB>2)
-      do i = 1, nx_global
-         work_g2(i,ny_global) = c2*work_g(i,ny_global-1) &
-                                 - work_g(i,ny_global-2) ! dyu
-      enddo
-#endif
+         enddo
+         ! extrapolate to obtain dyu along j=ny_global
+         if (ny_global > 1) then
+            do i = 1, nx_global
+               work_g2(i,ny_global) = c2*work_g(i,ny_global-1) &
+                                       - work_g(i,ny_global-2) ! dyu
+            enddo
+         endif
       endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)
