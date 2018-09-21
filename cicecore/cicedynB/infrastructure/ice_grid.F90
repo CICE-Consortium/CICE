@@ -1232,8 +1232,8 @@
 
             ! land in the upper left and lower right corners,
             ! otherwise open boundaries
-            imid = aint(real(nx_global)/c2,kind=int_kind)
-            jmid = aint(real(ny_global)/c2,kind=int_kind)
+            imid = nint(aint(real(nx_global)/c2))
+            jmid = nint(aint(real(ny_global)/c2))
 
             do j = 3,ny_global-2
             do i = 3,nx_global-2
