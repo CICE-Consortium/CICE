@@ -191,9 +191,10 @@
       abort_flag = 0
 
       call icepack_query_parameters(puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
-         file=__FILE__, line=__LINE__)
+! nu_diag not yet defined
+!      call icepack_warnings_flush(nu_diag)
+!      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
+!         file=__FILE__, line=__LINE__)
 
       days_per_year = 365    ! number of days in a year
       use_leap_years= .false.! if true, use leap years (Feb 29)
@@ -878,7 +879,13 @@
          write(nu_diag,1020) ' kitd                      = ', kitd
          write(nu_diag,1020) ' kcatbound                 = ', &
                                kcatbound
-         write(nu_diag,1020) ' kdyn                      = ', kdyn
+         if (kdyn == 1) then
+           write(nu_diag,1021) ' kdyn                      = ','evp ', kdyn
+         elseif (kdyn == 2) then
+           write(nu_diag,1021) ' kdyn                      = ','eap ', kdyn
+         else
+           write(nu_diag,1020) ' kdyn                      = ', kdyn
+         endif
          write(nu_diag,1020) ' ndtd                      = ', ndtd
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &
@@ -1114,6 +1121,7 @@
  1005    format (a30,2x,f9.6)  ! float
  1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
+ 1021    format (a30,2x,a8,i6) ! char, int
  1030    format (a30,   a8)    ! character
  1040    format (a30,2x,6i6)   ! integer
  1050    format (a30,2x,6a6)   ! character
