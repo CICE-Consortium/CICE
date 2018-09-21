@@ -28,11 +28,10 @@
 
       integer (kind=int_kind), public :: &
          kdyn     , & ! type of dynamics ( 1 = evp, 2 = eap )
-         thermo   , & ! thermodynamics off (0) or on (1)
          ndte         ! number of subcycles:  ndte=dt/dte
 
       character (len=char_len), public :: &
-         coriolis     ! 'constant' or 'default'
+         coriolis     ! 'constant', 'zero', or 'default'
 
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure

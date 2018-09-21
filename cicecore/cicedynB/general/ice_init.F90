@@ -56,6 +56,7 @@
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
       use ice_domain_size, only: max_nstrm, nilyr, nslyr, max_ntrcr, ncat, n_aero
+      use ice_domain, only: land_override
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
                               dumpfreq, dumpfreq_n, diagfreq, nstreams, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
@@ -79,7 +80,7 @@
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                basalstress, Ktens, e_ratio, coriolis, thermo
+                                basalstress, Ktens, e_ratio, coriolis
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -142,7 +143,8 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
-        kcatbound,      gridcpl_file,    dxrect,        dyrect
+        kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
+        land_override
 
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,                       &
@@ -151,7 +153,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        advection,      coriolis,       thermo,                         &
+        advection,      coriolis,                                       &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress
 
@@ -246,7 +248,6 @@
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
       kdyn = 1           ! type of dynamics (1 = evp, 2 = eap)
-      thermo = 1         ! set to 1 for thoermodynamics on, and thermo off (0=thermo off)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -256,13 +257,14 @@
       krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
       Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
+      land_override = 0      ! 1 = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
       shortwave = 'default'  ! 'default' or 'dEdd' (delta-Eddington)
       albedo_type = 'default'! or 'constant'
-      ktherm = 1             ! 0 = 0-layer, 1 = BL99, 2 = mushy thermo
+      ktherm = 1             ! -1 = off, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
       coriolis = 'default'   ! latitude dependent, or 'constant'
       calc_Tsfc = .true.     ! calculate surface temperature
@@ -478,6 +480,7 @@
       call broadcast_scalar(grid_format,        master_task)
       call broadcast_scalar(dxrect,             master_task)
       call broadcast_scalar(dyrect,             master_task)
+      call broadcast_scalar(land_override,      master_task)
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)
@@ -485,7 +488,6 @@
       call broadcast_scalar(kitd,               master_task)
       call broadcast_scalar(kcatbound,          master_task)
       call broadcast_scalar(kdyn,               master_task)
-      call broadcast_scalar(thermo,             master_task)
       call broadcast_scalar(ndtd,               master_task)
       call broadcast_scalar(ndte,               master_task)
       call broadcast_scalar(revised_evp,        master_task)
@@ -864,8 +866,9 @@
          write(nu_diag,1020) ' kitd                      = ', kitd
          write(nu_diag,1020) ' kcatbound                 = ', &
                                kcatbound
+         write(nu_diag,1020) ' land_override             = ', &
+                               land_override
          write(nu_diag,1020) ' kdyn                      = ', kdyn
-         write(nu_diag,1020) ' thermo                    = ', thermo
          write(nu_diag,1020) ' ndtd                      = ', ndtd
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &

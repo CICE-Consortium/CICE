@@ -34,7 +34,8 @@
               init_domain_distribution
 
    integer (int_kind), public :: &
-      nblocks            ! actual number of blocks on this processor
+      nblocks, &         ! actual number of blocks on this processor
+      land_override      ! 
 
    integer (int_kind), dimension(:), pointer, public :: &
       blocks_ice         ! block ids for local blocks

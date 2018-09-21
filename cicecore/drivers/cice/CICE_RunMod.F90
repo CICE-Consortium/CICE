@@ -138,7 +138,7 @@
       use ice_domain, only: halo_info, nblocks
       use ice_domain_size, only: nslyr
       use ice_dyn_eap, only: write_restart_eap
-      use ice_dyn_shared, only: kdyn, thermo
+      use ice_dyn_shared, only: kdyn
       use ice_flux, only: scale_factor, init_history_therm, &
           daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
       use ice_history, only: accum_hist
@@ -161,7 +161,8 @@
       integer (kind=int_kind) :: &
          iblk        , & ! block index 
          i,j         , & ! loop counter
-         k               ! dynamics supercycling index
+         k           , & ! dynamics supercycling index
+         ktherm          ! switch to turn thermo "off" (-1) or "on" (0, 1, or 2)
 
       real (kind=dbl_kind) :: &
          offset      , & ! d(age)/dt time offset
@@ -173,7 +174,7 @@
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers
 
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
-           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
+           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero)
@@ -206,7 +207,7 @@
       !-----------------------------------------------------------------
       ! Scale radiation fields
       !-----------------------------------------------------------------
-            if(thermo.ne.0) then
+            if(ktherm.ne.-1) then
                if (calc_Tsfc) call prep_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
@@ -216,18 +217,6 @@
                call step_therm1     (dt, iblk) ! vertical thermodynamics
                call biogeochemistry (dt, iblk) ! biogeochemistry
                call step_therm2     (dt, iblk) ! ice thickness distribution thermo
-
-            else  ! for box problem
-               !wind stress
-
-               do j = 1, ny_block  
-               do i = 1, nx_block  
-                   wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
-                   tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-                   strairxT(i,j,iblk) = tau * uatm(i,j,iblk)
-                   strairyT(i,j,iblk) = tau * vatm(i,j,iblk)
-               enddo
-               enddo
 
             endif
 
@@ -273,7 +262,7 @@
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
-            if (thermo.ne.0) call step_radiation (dt, iblk)
+            if (ktherm.ne.-1) call step_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
       ! get ready for coupling and the next time step
@@ -348,7 +337,7 @@
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
-          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyt, &
+          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           fsurfn_f, flatn_f, scale_fluxes, frzmlt_init, frzmlt
       use ice_flux_bgc, only: faero_ocn, fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai

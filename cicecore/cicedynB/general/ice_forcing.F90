@@ -4468,7 +4468,8 @@
       use ice_domain, only: nblocks
       use ice_constants, only: c0, c1, c2, c3, c4, c5, p2
       use ice_blocks, only: nx_block, ny_block, nghost
-      use ice_flux, only: uocn, vocn, uatm, vatm
+      use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strairxT, &
+                          strairyT
       use ice_fileunits, only: nu_diag, nu_forcing
 
 !
@@ -4484,7 +4485,7 @@
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
       real (kind=dbl_kind) :: &
-          secday, pi , c10, c12, c20, puny, period, pi2
+          secday, pi , c10, c12, c20, puny, period, pi2, tau
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
         period = c4*secday 
@@ -4511,12 +4512,11 @@
                                        /real(nx_global,kind=dbl_kind)) &
                               * sin(pi2*real(j-nghost, kind=dbl_kind)  &
                                        /real(ny_global,kind=dbl_kind))
-!echmod symm
-!         uocn(i,j,iblk) = c0
-!         vocn(i,j,iblk) = c0
-        ! uatm(i,j,iblk) = p1
-        ! vatm(i,j,iblk) = c0
-!echmod symm
+!wind stress
+         wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
+         tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
+         strairxT(i,j,iblk) = tau * uatm(i,j,iblk)
+         strairyT(i,j,iblk) = tau * vatm(i,j,iblk)
 
 ! initialization test
        ! Diagonal wind vectors 1

@@ -50,6 +50,7 @@
     kcatbound    = 0
     dxrect         = 30.e5
     dyrect         = 30.e5
+    land_override  = 0
 /
 
 &domain_nml
@@ -95,7 +96,6 @@
 
 &dynamics_nml
     kdyn            = 1
-    thermo          = 1
     ndte            = 120
     revised_evp     = .false.
     advection       = 'remap'

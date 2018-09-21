@@ -149,6 +149,7 @@
       use ice_broadcast, only: broadcast_array
       use ice_constants, only: c1
       use ice_domain_size, only: max_blocks
+      use ice_domain, only: land_override
 
       integer (kind=int_kind) :: &
          fid_grid, &     ! file id for netCDF grid file
@@ -236,8 +237,6 @@
         write(nu_diag,'(a26,i6)') '  Block size:  nx_block = ',nx_block
         write(nu_diag,'(a26,i6)') '               ny_block = ',ny_block
       endif
-      write(nu_diag,*), 'dxrect= ', dxrect
-      write(nu_diag,*), 'dyrect= ', dyrect
 
       end subroutine init_grid1
 
@@ -1053,6 +1052,7 @@
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
       use ice_domain_size, only: max_blocks
+      use ice_domain, only: land_override
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1191,19 +1191,19 @@
             enddo
             enddo
 
-            if (nx_global == 80 .and. ny_global == 80) then !added land for  box problem
-              do i=1,80
+            if (land_override == 1) then !land added for box problem
+              do i=1,nx_global
                 work_g1(i,1)  = c0
                 work_g1(i,2)  = c0
-                work_g1(i,79) = c0
-                work_g1(i,80) = c0
+                work_g1(i,ny_global-1) = c0
+                work_g1(i,ny_global) = c0
               enddo
   
-              do j=1,80
+              do j=1,ny_global
                 work_g1(1,j)  = c0
                 work_g1(2,j)  = c0
-                work_g1(79,j)  = c0
-                work_g1(80,j) = c0
+                work_g1(nx_global-1,j)  = c0
+                work_g1(nx_global,j) = c0
               enddo
             endif
 
