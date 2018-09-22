@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_global_reductions.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_global_reductions
@@ -16,7 +15,6 @@
    use ice_distribution, only: distrb, ice_distributionGet, &
        ice_distributionGetBlockID
    use ice_domain_size, only: nx_global
-   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 

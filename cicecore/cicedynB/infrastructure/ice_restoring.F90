@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restoring.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Reads and interpolates forcing data for atmosphere and ocean quantities.
@@ -9,11 +8,10 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, c2, p2, p5
-      use ice_domain_size, only: ncat, max_blocks, max_ntrcr
+      use ice_constants, only: c0, c1, c2, p2
+      use ice_domain_size, only: ncat, max_blocks
       use ice_forcing, only: trestore, trest
-      use ice_state, only: aicen, vicen, vsnon, trcrn, bound_state, &
-          aice_init, aice0, aice, vice, vsno, trcr, trcr_depend
+      use ice_state, only: aicen, vicen, vsnon, trcrn
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
@@ -126,7 +124,7 @@
                                ilo, ihi,            jlo, jhi,            &
                                iglob,               jglob,               &
                                iblock,              jblock,              &
-                               Tair (:,:,    iblk), sst  (:,:,    iblk), &
+                               Tair (:,:,    iblk), &
                                Tf   (:,:,    iblk),                      &
                                salinz(:,:,:, iblk), Tmltz(:,:,:,  iblk), &
                                tmask(:,:,    iblk),                      &
@@ -290,7 +288,7 @@
                                 ilo, ihi, jlo, jhi, &
                                 iglob,    jglob,    &
                                 iblock,   jblock,   &
-                                Tair,     sst,      &
+                                Tair, &
                                 Tf,                 &
                                 salinz,   Tmltz,    &
                                 tmask,    aicen,    &
@@ -315,8 +313,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tair    , & ! air temperature  (K)
-         Tf      , & ! freezing temperature (C) 
-         sst         ! sea surface temperature (C) ! currently not used
+         Tf          ! freezing temperature (C) 
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,nilyr), &
          intent(in) :: &

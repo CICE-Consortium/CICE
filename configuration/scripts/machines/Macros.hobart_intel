@@ -15,7 +15,7 @@ FC_AUTO_R8 := -r8
 FFLAGS_NOOPT:=
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS   := -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+  FFLAGS   := -qno-opt-dynamic-align  -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -fp-model source -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
 endif
 
 ifeq ($(ICE_COMMDIR), mpi)
@@ -29,9 +29,7 @@ MPICC:= mpicc
 MPIFC:= mpif90
 LD:= $(MPIFC)
 
-NETCDF_PATH := /usr/local/netcdf-intel-cluster
-
-INCLDIR := -I/usr/local/netcdf-intel-cluster/include -I/usr/mpi/intel/mvapich2-2.1-qlc/include
+INCLDIR := -I$(NETCDF_PATH)/include -I$(MPI_PATH)/include
 
 LIB_NETCDF := $(NETCDF_PATH)/lib
 LIB_PNETCDF := $(PNETCDF_PATH)/lib

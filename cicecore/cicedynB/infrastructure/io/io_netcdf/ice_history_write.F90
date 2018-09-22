@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_write.F90 567 2013-01-07 02:57:36Z eclare $
 !=======================================================================
 !
 ! Writes history in netCDF format
@@ -79,7 +78,7 @@
       integer (kind=int_kind), dimension(5) :: dimidcz
       integer (kind=int_kind), dimension(3) :: dimid_nverts
       integer (kind=int_kind), dimension(5) :: dimidex
-      real (kind=real_kind) :: ltime
+!     real (kind=real_kind) :: ltime
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title
       character (char_len_long) :: ncfile(max_nstrm)
@@ -126,7 +125,7 @@
 
       if (my_task == master_task) then
 
-        ltime=time/int(secday)
+!       ltime=time/int(secday)
         ltime2=time/int(secday)
 
         call construct_filename(ncfile(ns),'nc',ns)

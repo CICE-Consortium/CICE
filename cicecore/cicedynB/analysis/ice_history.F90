@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Driver for core history output
@@ -69,7 +68,7 @@
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, max_nstrm
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: mlt_onset, frz_onset, albcnt, taubx, tauby
+      use ice_flux, only: mlt_onset, frz_onset, albcnt
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
@@ -1208,9 +1207,9 @@
           taubx, tauby, strocnx, strocny, fm, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
           fcondtop, fsurfn, fcondtopn, flatn, fsensn, albcnt, &
           stressp_1, stressm_1, stress12_1, &
-          stressp_2, stressm_2, stress12_2, &
-          stressp_3, stressm_3, stress12_3, &
-          stressp_4, stressm_4, stress12_4, sig1, sig2, sigP, &
+          stressp_2, &
+          stressp_3, &
+          stressp_4, sig1, sig2, sigP, &
           mlt_onset, frz_onset, dagedtt, dagedtd, fswint_ai, keffn_top, &
           snowfrac, alvdr_ai, alvdf_ai, alidr_ai, alidf_ai
       use ice_arrays_column, only: snowfracn
@@ -1240,9 +1239,7 @@
 
       real (kind=dbl_kind) :: & 
            qn                , & ! temporary variable for enthalpy
-           sn                , & ! temporary variable for salinity
-           Tmlts             , & !  temporary variable for melting temperature
-           Tn                    !  temporary variable for ice temperature
+           sn                    ! temporary variable for salinity
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
          worka, workb
@@ -1331,7 +1328,7 @@
       !---------------------------------------------------------------
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP             k,n,qn,ns,worka,workb,Tinz4d,Sinz4d,Tsnz4d)
+      !$OMP             k,n,qn,ns,sn,worka,workb,Tinz4d,Sinz4d,Tsnz4d)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
