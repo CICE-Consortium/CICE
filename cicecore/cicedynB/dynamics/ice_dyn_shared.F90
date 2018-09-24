@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_dyn_shared.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Elastic-viscous-plastic sea ice dynamics model code shared with other
@@ -105,12 +104,12 @@
       use ice_constants, only: c0, c2, omega
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: rdg_conv, rdg_shear, iceumask, fm, &
+      use ice_flux, only: rdg_conv, rdg_shear, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_state, only: uvel, vvel, divu, shear
-      use ice_grid, only: ULAT, ULON
+      use ice_grid, only: ULAT
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -187,10 +186,11 @@
 
       subroutine set_evp_parameters (dt)
 
-      use ice_constants, only: p25, c1, c2, c4, p5
+      use ice_communicate, only: my_task, master_task
+      use ice_constants, only: p25, c1, c2, p5
       use ice_domain, only: distrb_info
-      use ice_global_reductions, only: global_minval, global_maxval
-      use ice_grid, only: dxt, dyt, tmask, tarea
+      use ice_global_reductions, only: global_minval
+      use ice_grid, only: dxt, dyt, tmask
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step

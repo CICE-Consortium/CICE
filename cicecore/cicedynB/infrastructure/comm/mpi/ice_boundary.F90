@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_boundary.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_boundary
@@ -21,7 +20,6 @@
          field_loc_center,  field_loc_NEcorner, &
          field_loc_Nface, field_loc_Eface
    use ice_global_reductions, only: global_maxval
-   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -194,7 +192,6 @@ contains
 
    logical (log_kind) :: &
       resize,               &! flag for resizing buffers
-      tripoleFlag,          &! flag for allocating tripole buffers
       tripoleBlock,         &! flag for identifying north tripole blocks
       tripoleTFlag           ! flag for processing tripole buffer as T-fold
 
@@ -225,7 +222,6 @@ contains
    tripoleRows = nghost+1
 
    if (nsBoundaryType == 'tripole' .or. nsBoundaryType == 'tripoleT') then
-      tripoleFlag = .true.
       tripoleTFlag = (nsBoundaryType == 'tripoleT')
       if (tripoleTflag) tripoleRows = tripoleRows+1
 
@@ -244,7 +240,6 @@ contains
       endif
 
    else
-      tripoleFlag = .false.
       tripoleTFlag = .false.
    endif
    halo%tripoleTFlag = tripoleTFlag
@@ -5131,7 +5126,7 @@ contains
 !  local variables
 
    integer (int_kind) ::           &
-      i,j,n,nmsg,                &! dummy loop indices
+      n,nmsg,                    &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
@@ -5150,8 +5145,7 @@ contains
       rcvStatus         ! MPI status flags
 
    real (dbl_kind) :: &
-      fill,            &! value to use for unknown points
-      x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+      fill              ! value to use for unknown points
 
    integer (int_kind) ::  len  ! length of messages
 
@@ -5508,7 +5502,6 @@ contains
 
    integer (int_kind) :: &
       msgIndx,               &! message counter and index into msg array
-      blockIndx,             &! block counter and index into msg array
       bufSize,               &! size of message buffer
       ibSrc, ieSrc, jbSrc, jeSrc, &! phys domain info for source block
       ibDst, ieDst, jbDst, jeDst, &! phys domain info for dest   block
@@ -6734,6 +6727,11 @@ contains
    deallocate(halo%sendAddr, stat=istat)
    deallocate(halo%recvAddr, stat=istat)
 
+   if (istat > 0) then
+      call abort_ice( &
+         'ice_HaloDestroy: error deallocating')
+      return
+   endif
 end subroutine ice_HaloDestroy
 
 !***********************************************************************

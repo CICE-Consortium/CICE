@@ -29,9 +29,7 @@ MPICC:= mpicc
 MPIFC:= mpif90
 LD:= $(MPIFC)
 
-NETCDF_PATH := /usr/local/netcdf_c-4.3.2_f-4.4.1-nag-6.0
-
-INCLDIR := -I/usr/local/netcdf_c-4.3.2_f-4.4.1-nag-6.0/include -I/cluster/mvapich2-2.2rc1-gcc-g++-4.8.5-nag-6.1/include
+INCLDIR := -I$(NETCDF_PATH)/include -I$(MPI_PATH)/include
 
 LIB_NETCDF := $(NETCDF_PATH)/lib
 LIB_PNETCDF := $(PNETCDF_PATH)/lib

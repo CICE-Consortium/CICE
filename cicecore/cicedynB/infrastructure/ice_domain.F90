@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_domain.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_domain
@@ -14,7 +13,7 @@
 !  and not used anyhow).
 
    use ice_kinds_mod
-   use ice_constants, only: shlat, nhlat, c180
+   use ice_constants, only: shlat, nhlat
    use ice_communicate, only: my_task, master_task, get_num_procs
    use ice_broadcast, only: broadcast_scalar, broadcast_array
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
@@ -41,7 +40,7 @@
       nblocks            ! actual number of blocks on this processor
 
    integer (int_kind), dimension(:), pointer, public :: &
-      blocks_ice         ! block ids for local blocks
+      blocks_ice => null()        ! block ids for local blocks
 
    type (distrb), public :: &
       distrb_info        ! block distribution info

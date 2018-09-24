@@ -1,4 +1,3 @@
-!  SVN:$Id: CICE.F90 1229 2017-05-24 02:22:58Z eclare $
 !=======================================================================
 ! Copyright (c) 2017, Los Alamos National Security, LLC 
 ! All rights reserved.
@@ -73,7 +72,6 @@
       use ice_calendar, only: istep1
       use ice_communicate, only: my_task
       use ice_diagnostics, only: check_step, iblkp, ip, jp, mtask, print_state
-      use ice_domain, only: nblocks
       use ice_blocks, only: nx_block, ny_block
 
       character (char_len), intent(in) :: plabeld

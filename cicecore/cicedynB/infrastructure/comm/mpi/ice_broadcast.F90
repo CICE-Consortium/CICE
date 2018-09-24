@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_broadcast.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_broadcast
@@ -11,7 +10,6 @@
 
    use ice_kinds_mod
    use ice_communicate, only: mpiR8, mpir4, MPI_COMM_ICE
-   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 

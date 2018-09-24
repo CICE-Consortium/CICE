@@ -1,4 +1,3 @@
-!  SVN:$Id: CICE_InitMod.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 !  This module contains the CICE initialization routine that sets model
@@ -59,10 +58,9 @@
 
       subroutine cice_init
 
+      use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
-      use ice_arrays_column, only: hin_max, c_hi_range, zfswin, trcrn_sw, &
-          ocean_bio_all, ice_bio_net, snow_bio_net, alloc_arrays_column
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
       use ice_communicate, only: init_communicate, my_task, master_task
@@ -76,7 +74,7 @@
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
           get_forcing_atmo, get_forcing_ocn, alloc_forcing
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_data, faero_default, faero_optics, alloc_forcing_bgc
+          faero_default, faero_optics, alloc_forcing_bgc
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
@@ -98,7 +96,7 @@
 
       call icepack_configure()  ! initialize icepack
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(subname, &
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
       call input_data           ! namelist variables
@@ -142,7 +140,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call calendar(time)       ! determine the initial date
+!     call calendar(time)       ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
@@ -158,7 +156,7 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(subname, &
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
       if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
@@ -219,7 +217,6 @@
       use ice_domain_size, only: ncat, max_ntrcr, n_aero
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: sss
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
@@ -233,7 +230,7 @@
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
-      use ice_restart_driver, only: restartfile, restartfile_v4
+      use ice_restart_driver, only: restartfile
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
 
@@ -306,7 +303,7 @@
             call read_restart_lvl
          else
             do iblk = 1, nblocks 
-               call init_lvl(trcrn(:,:,nt_alvl,:,iblk), &
+               call init_lvl(iblk,trcrn(:,:,nt_alvl,:,iblk), &
                              trcrn(:,:,nt_vlvl,:,iblk))
             enddo ! iblk
          endif

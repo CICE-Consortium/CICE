@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_state.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Primary state variables in various configurations
@@ -37,11 +36,8 @@
       module ice_state
 
       use ice_kinds_mod
-      use ice_domain_size, only: max_blocks, ncat, max_ntrcr, n_aero
+      use ice_domain_size, only: max_blocks, ncat, max_ntrcr
       use ice_blocks, only: nx_block, ny_block
-      use ice_fileunits, only: nu_diag
-      use ice_exit, only: abort_ice
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private

@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_drag.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! 2013 module for form drag parameters
@@ -8,10 +7,9 @@
 
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm
-      use ice_constants, only: c0, c1, c100, mps_to_cmpdy
+      use ice_constants, only: c0, c1
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
-      use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -230,8 +228,7 @@
 
       subroutine accum_hist_drag (iblk)
 
-      use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
-          accum_hist_field
+      use ice_history_shared, only: a2D, accum_hist_field
       use ice_arrays_column, only: hfreebd, hdraft, hridge, distrdg, hkeel, &
           dkeel, lfloe, dfloe, Cdn_atm, Cdn_atm_skin, Cdn_atm_floe, &
           Cdn_atm_pond, Cdn_atm_rdg, Cdn_atm_ratio, Cdn_ocn_skin, &

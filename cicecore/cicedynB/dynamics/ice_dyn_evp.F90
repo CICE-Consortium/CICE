@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_dyn_evp.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Elastic-viscous-plastic sea ice dynamics model
@@ -88,6 +87,9 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
+#ifdef CICE_IN_NEMO
+      use ice_flux, only: strax, stray
+#endif
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
           grid_type

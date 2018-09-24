@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_shared.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Output files: netCDF or binary data, Fortran unformatted dumps
@@ -25,7 +24,6 @@
       module ice_history_shared
 
       use ice_kinds_mod
-      use ice_fileunits, only: nu_diag,ice_stderr
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, max_nstrm
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -466,7 +464,7 @@
 
       subroutine construct_filename(ncfile,suffix,ns)
 
-      use ice_calendar, only: time, sec, nyr, month, daymo,  &
+      use ice_calendar, only: sec, nyr, month, daymo,  &
                               mday, write_ic, histfreq, histfreq_n, &
                               year_init, new_year, new_month, new_day, &
                               dt
@@ -560,7 +558,7 @@
                                    vdesc, vcomment, cona, conb, &
                                    ns, vhistfreq)
 
-      use ice_calendar, only: histfreq, histfreq_n, nstreams
+      use ice_calendar, only: histfreq, histfreq_n
       use ice_domain_size, only: max_nstrm
 
       integer (int_kind), dimension(max_nstrm), intent(out) :: &
