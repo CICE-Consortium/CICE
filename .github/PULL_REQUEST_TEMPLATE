@@ -6,8 +6,7 @@
 
 - Are the code changes bit for bit, different at roundoff level, or more substantial?
 
-- To verify that this PR passes the initial QC tests, lease include the link to test results
-or paste in below the summary block from the bottom of the testing output.
+- Please include the link to test results or paste the summary block from the bottom of the testing output below.
 
 - Does this PR create or have dependencies on Icepack or any other models? 
 
