@@ -1,4 +1,4 @@
-!======================================================================= 
+!=======================================================================
 ! Driver for core history output
 !
 ! The following variables are currently hard-wired as snapshots 

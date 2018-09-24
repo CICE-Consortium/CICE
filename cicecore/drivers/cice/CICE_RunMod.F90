@@ -429,8 +429,6 @@
          do n = 1, ncat
          do j = jlo, jhi
          do i = ilo, ihi
-!        do j = 1, ny_block
-!        do i = 1, nx_block
             if (aicen(i,j,n,iblk) > puny) then
                   
             alvdf(i,j,iblk) = alvdf(i,j,iblk) &
