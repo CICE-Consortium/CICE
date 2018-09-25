@@ -472,7 +472,7 @@
       fsens   (:,:,:) = c0
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
-      fswint_ai(:,:,:) = c0
+!     fswint_ai(:,:,:) = c0
       flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4   
                         ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
@@ -492,7 +492,7 @@
       strocnyT(:,:,:) = c0    ! ice-ocean stress, y-direction (T-cell)
       fresh   (:,:,:) = c0
       fsalt   (:,:,:) = c0
-      fpond   (:,:,:) = c0
+!     fpiond   (:,:,:) = c0
       fhocn   (:,:,:) = c0
       fswthru (:,:,:) = c0
       fresh_da(:,:,:) = c0    ! data assimilation
@@ -518,7 +518,7 @@
 
       coszen  (:,:,:) = c0            ! Cosine of the zenith angle
       fsw     (:,:,:) = c0            ! shortwave radiation (W/m^2)
-      fswfac  (:,:,:) = c0
+!     fswfac  (:,:,:) = c0
       scale_factor(:,:,:) = c1        ! shortwave scaling factor 
       wind    (:,:,:) = sqrt(uatm(:,:,:)**2 &
                            + vatm(:,:,:)**2)  ! wind speed, (m/s)
@@ -581,6 +581,7 @@
 
       fresh    (:,:,:)   = c0
       fsalt    (:,:,:)   = c0
+!     fpond    (:,:,:)   = c0
       fhocn    (:,:,:)   = c0
       fswthru  (:,:,:)   = c0
       faero_ocn(:,:,:,:) = c0
@@ -630,7 +631,7 @@
       fsurf  (:,:,:) = c0
       fcondtop(:,:,:)= c0
       congel (:,:,:) = c0
-      fbot   (:,:,:) = c0
+!     fbot   (:,:,:) = c0
       frazil (:,:,:) = c0
       snoice (:,:,:) = c0
       dsnow  (:,:,:) = c0
@@ -665,7 +666,7 @@
       Cdn_ocn(:,:,:) = dragio
       Cdn_atm(:,:,:) = (vonkar/log(zref/iceruf)) &
                      * (vonkar/log(zref/iceruf)) ! atmo drag for RASM
-      Cdn_atm_ratio(:,:,:)= c0
+!     Cdn_atm_ratio(:,:,:)= c0
 
       if (formdrag) then
         Cdn_atm_rdg (:,:,:) = c0
@@ -716,7 +717,7 @@
       sig2    (:,:,:) = c0
       taubx   (:,:,:) = c0
       tauby   (:,:,:) = c0
-      strength (:,:,:) = c0
+!     strength (:,:,:) = c0
       strocnx (:,:,:) = c0
       strocny (:,:,:) = c0
       strairx (:,:,:) = c0

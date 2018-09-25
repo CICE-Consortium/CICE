@@ -278,7 +278,11 @@
 #ifdef CESMCOUPLED
          call shr_sys_flush(iunit)
 #else
+#ifndef NO_F2003
          flush(iunit)
+#else
+! Place holder for old call.
+#endif
 #endif
 
       end subroutine flush_fileunit

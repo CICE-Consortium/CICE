@@ -29,9 +29,7 @@ MPICC:= mpicc
 MPIFC:= mpif90
 LD:= $(MPIFC)
 
-NETCDF_PATH := /usr/local/netcdf-intel-cluster
-
-INCLDIR := -I/usr/local/netcdf-intel-cluster/include -I/usr/mpi/intel/mvapich2-2.1-qlc/include
+INCLDIR := -I$(NETCDF_PATH)/include -I$(MPI_PATH)/include
 
 LIB_NETCDF := $(NETCDF_PATH)/lib
 LIB_PNETCDF := $(PNETCDF_PATH)/lib
