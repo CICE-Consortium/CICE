@@ -443,7 +443,7 @@
       uocn  (:,:,:) = c0              ! surface ocean currents (m/s)
       vocn  (:,:,:) = c0
       frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
-      frzmlt_init(:,:,:) = c0         ! freezing/melting potential (W/m^2)
+!     frzmlt_init(:,:,:) = c0         ! freezing/melting potential (W/m^2)
       sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
 
       do iblk = 1, size(Tf,3)
@@ -650,6 +650,7 @@
       fcondtopn (:,:,:,:) = c0
       flatn     (:,:,:,:) = c0
       fsensn    (:,:,:,:) = c0
+      fpond     (:,:,:) = c0
       fresh_ai  (:,:,:) = c0
       fsalt_ai  (:,:,:) = c0
       fhocn_ai  (:,:,:) = c0
@@ -670,6 +671,7 @@
 
       if (formdrag) then
         Cdn_atm_rdg (:,:,:) = c0
+        Cdn_atm_ratio(:,:,:)= c0
         Cdn_atm_floe(:,:,:) = c0
         Cdn_atm_pond(:,:,:) = c0
         Cdn_atm_skin(:,:,:) = c0

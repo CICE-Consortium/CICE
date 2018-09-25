@@ -375,24 +375,8 @@
 !----------------------------------------------------------------------
 
    deallocate(distribution%blockLocation, stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'ice_distributionDestroy: error deallocating blockLocation')
-      return
-   endif
-
    deallocate(distribution%blockLocalID , stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'ice_distributionDestroy: error deallocating blockLocalID')
-      return
-   endif
    deallocate(distribution%blockGlobalID, stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'ice_distributionDestroy: error deallocating blockGlobalID')
-      return
-   endif
 
 !-----------------------------------------------------------------------
 
