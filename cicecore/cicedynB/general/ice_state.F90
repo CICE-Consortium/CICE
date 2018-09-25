@@ -38,6 +38,7 @@
       use ice_kinds_mod
       use ice_domain_size, only: max_blocks, ncat, max_ntrcr
       use ice_blocks, only: nx_block, ny_block
+      use ice_exit, only: abort_ice
 
       implicit none
       private
