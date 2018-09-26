@@ -27,15 +27,41 @@
 
       implicit none
       private
-      public :: get_forcing_bgc, get_atm_bgc, fzaero_data, &
+      public :: get_forcing_bgc, get_atm_bgc, fzaero_data, alloc_forcing_bgc, &
                 init_bgc_data, faero_data, faero_default, faero_optics
 
       integer (kind=int_kind) :: &
          bgcrecnum = 0   ! old record number (save between steps)
 
+      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
+          nitdat      , & ! data value toward which nitrate is restored
+          sildat          ! data value toward which silicate is restored
+
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, save :: &
+         nit_data, & ! field values at 2 temporal data points
+         sil_data
+
 !=======================================================================
 
       contains
+
+!=======================================================================
+!
+! Allocate space for forcing_bgc variables
+!
+      subroutine alloc_forcing_bgc
+
+      integer (int_kind) :: ierr
+
+      allocate( &
+          nitdat  (nx_block,ny_block,max_blocks), & ! data value toward which nitrate is restored
+          sildat  (nx_block,ny_block,max_blocks), & ! data value toward which silicate is restored
+          nit_data(nx_block,ny_block,2,max_blocks), & ! field values at 2 temporal data points
+          sil_data(nx_block,ny_block,2,max_blocks), &
+          stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_forcing_bgc): Out of memory')
+
+      end subroutine alloc_forcing_bgc
 
 !=======================================================================
 !
@@ -71,14 +97,6 @@
          met_file,   &    ! netcdf filename
          fieldname        ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-          nitdat      , & ! data value toward which nitrate is restored
-          sildat          ! data value toward which silicate is restored
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), save :: &
-         nit_data, & ! field values at 2 temporal data points
-         sil_data
-          
       real (kind=dbl_kind), dimension(2), save :: &
          sil_data_p      , &  ! field values at 2 temporal data points
          nit_data_p           ! field values at 2 temporal data points
@@ -486,7 +504,7 @@
 #ifdef ncdf 
       ! local parameters
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, &
          save :: &
          aero1_data    , & ! field values at 2 temporal data points
          aero2_data    , & ! field values at 2 temporal data points
@@ -505,6 +523,11 @@
       logical (kind=log_kind) :: readm
 
       character(len=*), parameter :: subname = '(faero_data)'
+
+      allocate( aero1_data(nx_block,ny_block,2,max_blocks), &
+                aero2_data(nx_block,ny_block,2,max_blocks), &
+                aero3_data(nx_block,ny_block,2,max_blocks)  )
+
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -562,6 +585,7 @@
 
       where (faero_atm(:,:,:,:) > 1.e20) faero_atm(:,:,:,:) = c0
 
+      deallocate( aero1_data, aero2_data, aero3_data )
 #endif
 
       end subroutine faero_data
@@ -581,7 +605,7 @@
 #ifdef ncdf 
       ! local parameters
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, &
          save :: &
          aero_data    ! field values at 2 temporal data points
 
@@ -606,6 +630,8 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      allocate( aero_data(nx_block,ny_block,2,max_blocks) )
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -653,6 +679,7 @@
 
       where (faero_atm(:,:,nlt_zaero(1),:) > 1.e20) faero_atm(:,:,nlt_zaero(1),:) = c0
 
+      deallocate( aero_data )
 #endif
 
       end subroutine fzaero_data

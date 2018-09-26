@@ -17,15 +17,15 @@ setenv ICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
 setenv ICE_CLEANBUILD true
 setenv ICE_QUIETMODE  false
 setenv ICE_GRID       undefined
-setenv ICE_NXGLOB     undefined
-setenv ICE_NYGLOB     undefined
+#setenv ICE_NXGLOB     undefined  # moved to namelist
+#setenv ICE_NYGLOB     undefined  # moved to namelist
 setenv ICE_NTASKS     undefined
 setenv ICE_NTHRDS     undefined
-setenv ICE_BLCKX      undefined
-setenv ICE_BLCKY      undefined
-setenv ICE_MXBLCKS    undefined
-setenv ICE_TEST       undefined   # Define if this is a test case
-setenv ICE_TESTNAME   undefined   # Define if this is a test case
+#setenv ICE_BLCKX      undefined  # moved to namelist
+#setenv ICE_BLCKY      undefined  # moved to namelist
+#setenv ICE_MXBLCKS    undefined  # moved to namelist
+setenv ICE_TEST       undefined
+setenv ICE_TESTNAME   undefined
 setenv ICE_BASELINE   undefined
 setenv ICE_BASEGEN    undefined
 setenv ICE_BASECOM    undefined

@@ -19,32 +19,32 @@
       implicit none
       private
 
-      public :: bgcflux_ice_to_ocn 
+      public :: bgcflux_ice_to_ocn, alloc_flux_bgc
 
       ! in from atmosphere
 
       real (kind=dbl_kind), &   !coupling variable for both tr_aero and tr_zaero
-         dimension (nx_block,ny_block,icepack_max_aero,max_blocks), public :: &
+         dimension (:,:,:,:), allocatable, public :: &
          faero_atm   ! aerosol deposition rate (kg/m^2 s)   
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), public :: &
+         dimension (:,:,:,:), allocatable, public :: &
          flux_bio_atm  ! all bio fluxes to ice from atmosphere
 
       ! in from ocean
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,icepack_max_aero,max_blocks), public :: &
+         dimension (:,:,:,:), allocatable, public :: &
          faero_ocn   ! aerosol flux to ocean  (kg/m^2/s)
 
       ! out to ocean 
 
       real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), public :: &
+         dimension (:,:,:,:), allocatable, public :: &
          flux_bio   , & ! all bio fluxes to ocean
          flux_bio_ai    ! all bio fluxes to ocean, averaged over grid cell
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fzsal_ai, & ! salt flux to ocean from zsalinity (kg/m^2/s) 
          fzsal_g_ai  ! gravity drainage salt flux to ocean (kg/m^2/s) 
 
@@ -53,11 +53,11 @@
       logical (kind=log_kind), public :: &
          cpl_bgc         ! switch to couple BGC via drivers
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          hin_old     , & ! old ice thickness
          dsnown          ! change in snow thickness in category n (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          nit        , & ! ocean nitrate (mmol/m^3)          
          amm        , & ! ammonia/um (mmol/m^3)
          sil        , & ! silicate (mmol/m^3)
@@ -72,32 +72,81 @@
          fhum       , & ! ice-ocean humic material carbon (mmol/m^2/s), positive to ocean
          fdust          ! ice-ocean dust flux (kg/m^2/s), positive to ocean
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_algae, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          algalN     , & ! ocean algal nitrogen (mmol/m^3) (diatoms, pico, phaeo)
          falgalN        ! ice-ocean algal nitrogen flux (mmol/m^2/s) (diatoms, pico, phaeo)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_doc, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          doc         , & ! ocean doc (mmol/m^3)  (saccharids, lipids, tbd )
          fdoc            ! ice-ocean doc flux (mmol/m^2/s)  (saccharids, lipids, tbd)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_don, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          don         , & ! ocean don (mmol/m^3) (proteins and amino acids)
          fdon            ! ice-ocean don flux (mmol/m^2/s) (proteins and amino acids)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_dic, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          dic         , & ! ocean dic (mmol/m^3) 
          fdic            ! ice-ocean dic flux (mmol/m^2/s) 
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_fe, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fed, fep    , & ! ocean dissolved and particulate fe (nM) 
          ffed, ffep      ! ice-ocean dissolved and particulate fe flux (umol/m^2/s) 
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,icepack_max_aero, max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          zaeros          ! ocean aerosols (mmol/m^3) 
 
 !=======================================================================
 
       contains
+
+!=======================================================================
+!
+! Allocate space for all variables 
+!
+      subroutine alloc_flux_bgc
+
+      integer (int_kind) :: ierr
+
+      allocate( &
+         fzsal_ai    (nx_block,ny_block,max_blocks), & ! salt flux to ocean from zsalinity (kg/m^2/s) 
+         fzsal_g_ai  (nx_block,ny_block,max_blocks), & ! gravity drainage salt flux to ocean (kg/m^2/s) 
+         nit         (nx_block,ny_block,max_blocks), & ! ocean nitrate (mmol/m^3)          
+         amm         (nx_block,ny_block,max_blocks), & ! ammonia/um (mmol/m^3)
+         sil         (nx_block,ny_block,max_blocks), & ! silicate (mmol/m^3)
+         dmsp        (nx_block,ny_block,max_blocks), & ! dmsp (mmol/m^3)
+         dms         (nx_block,ny_block,max_blocks), & ! dms (mmol/m^3)
+         hum         (nx_block,ny_block,max_blocks), & ! humic material carbon (mmol/m^3)
+         fnit        (nx_block,ny_block,max_blocks), & ! ice-ocean nitrate flux (mmol/m^2/s), positive to ocean
+         famm        (nx_block,ny_block,max_blocks), & ! ice-ocean ammonia/um flux (mmol/m^2/s), positive to ocean
+         fsil        (nx_block,ny_block,max_blocks), & ! ice-ocean silicate flux (mmol/m^2/s), positive to ocean
+         fdmsp       (nx_block,ny_block,max_blocks), & ! ice-ocean dmsp (mmol/m^2/s), positive to ocean
+         fdms        (nx_block,ny_block,max_blocks), & ! ice-ocean dms (mmol/m^2/s), positive to ocean
+         fhum        (nx_block,ny_block,max_blocks), & ! ice-ocean humic material carbon (mmol/m^2/s), positive to ocean
+         fdust       (nx_block,ny_block,max_blocks), & ! ice-ocean dust flux (kg/m^2/s), positive to ocean
+         hin_old     (nx_block,ny_block,ncat,max_blocks), & ! old ice thickness
+         dsnown      (nx_block,ny_block,ncat,max_blocks), & ! change in snow thickness in category n (m)
+         faero_atm   (nx_block,ny_block,icepack_max_aero,max_blocks), & ! aerosol deposition rate (kg/m^2 s)   
+         faero_ocn   (nx_block,ny_block,icepack_max_aero,max_blocks), & ! aerosol flux to ocean  (kg/m^2/s)
+         zaeros      (nx_block,ny_block,icepack_max_aero,max_blocks), & ! ocean aerosols (mmol/m^3) 
+         flux_bio_atm(nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! all bio fluxes to ice from atmosphere
+         flux_bio    (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! all bio fluxes to ocean
+         flux_bio_ai (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! all bio fluxes to ocean, averaged over grid cell
+         algalN      (nx_block,ny_block,icepack_max_algae,max_blocks), & ! ocean algal nitrogen (mmol/m^3) (diatoms, pico, phaeo)
+         falgalN     (nx_block,ny_block,icepack_max_algae,max_blocks), & ! ice-ocean algal nitrogen flux (mmol/m^2/s) (diatoms, pico, phaeo)
+         doc         (nx_block,ny_block,icepack_max_doc,max_blocks), & ! ocean doc (mmol/m^3)  (saccharids, lipids, tbd )
+         fdoc        (nx_block,ny_block,icepack_max_doc,max_blocks), & ! ice-ocean doc flux (mmol/m^2/s)  (saccharids, lipids, tbd)
+         don         (nx_block,ny_block,icepack_max_don,max_blocks), & ! ocean don (mmol/m^3) (proteins and amino acids)
+         fdon        (nx_block,ny_block,icepack_max_don,max_blocks), & ! ice-ocean don flux (mmol/m^2/s) (proteins and amino acids)
+         dic         (nx_block,ny_block,icepack_max_dic,max_blocks), & ! ocean dic (mmol/m^3) 
+         fdic        (nx_block,ny_block,icepack_max_dic,max_blocks), & ! ice-ocean dic flux (mmol/m^2/s) 
+         fed         (nx_block,ny_block,icepack_max_fe, max_blocks), & ! ocean dissolved fe (nM) 
+         fep         (nx_block,ny_block,icepack_max_fe, max_blocks), & ! ocean particulate fe (nM) 
+         ffed        (nx_block,ny_block,icepack_max_fe, max_blocks), & ! ice-ocean dissolved fe flux (umol/m^2/s) 
+         ffep        (nx_block,ny_block,icepack_max_fe, max_blocks), & ! ice-ocean particulate fe flux (umol/m^2/s) 
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_flux_bgc): Out of memory')
+
+      end subroutine alloc_flux_bgc
 
 !=======================================================================
 

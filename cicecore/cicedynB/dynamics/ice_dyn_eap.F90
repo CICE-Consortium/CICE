@@ -33,7 +33,8 @@
 
       implicit none
       private
-      public :: eap, init_eap, write_restart_eap, read_restart_eap
+      public :: eap, init_eap, write_restart_eap, read_restart_eap, &
+                alloc_dyn_eap
 
       ! Look-up table needed for calculating structure tensor
       integer (int_kind), parameter :: & 
@@ -44,12 +45,12 @@
       real (kind=dbl_kind), dimension (nx_yield,ny_yield,na_yield) :: & 
         s11r, s12r, s22r, s11s, s12s, s22s           
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable :: &
          a11_1, a11_2, a11_3, a11_4,                  & ! components of 
          a12_1, a12_2, a12_3, a12_4                     ! structure tensor
 
       ! history
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
          e11      , & ! components of strain rate tensor (1/s)
          e12      , & 
          e22      , &
@@ -65,6 +66,38 @@
 !=======================================================================
 
       contains
+
+!=======================================================================
+!
+! Allocate space for all variables 
+!
+      subroutine alloc_dyn_eap
+
+      integer (int_kind) :: ierr
+
+      allocate( a11_1        (nx_block,ny_block,max_blocks), &
+                a11_2        (nx_block,ny_block,max_blocks), &
+                a11_3        (nx_block,ny_block,max_blocks), &
+                a11_4        (nx_block,ny_block,max_blocks), &
+                a12_1        (nx_block,ny_block,max_blocks), &
+                a12_2        (nx_block,ny_block,max_blocks), &
+                a12_3        (nx_block,ny_block,max_blocks), &
+                a12_4        (nx_block,ny_block,max_blocks), &
+                e11          (nx_block,ny_block,max_blocks), &
+                e12          (nx_block,ny_block,max_blocks), &
+                e22          (nx_block,ny_block,max_blocks), &
+                yieldstress11(nx_block,ny_block,max_blocks), &
+                yieldstress12(nx_block,ny_block,max_blocks), &
+                yieldstress22(nx_block,ny_block,max_blocks), &
+                s11          (nx_block,ny_block,max_blocks), &
+                s12          (nx_block,ny_block,max_blocks), &
+                s22          (nx_block,ny_block,max_blocks), &
+                a11          (nx_block,ny_block,max_blocks), &
+                a12          (nx_block,ny_block,max_blocks), &
+                stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_dyn_eap): Out of memory')
+
+      end subroutine alloc_dyn_eap
 
 !=======================================================================
 !
