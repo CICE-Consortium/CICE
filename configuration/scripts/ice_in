@@ -153,6 +153,11 @@
 
 &domain_nml
     nprocs = 4
+    nx_global         = 100
+    ny_global         = 116
+    block_size_x      = 25
+    block_size_y      = 29
+    max_blocks        = -1
     processor_shape   = 'slenderX2'
     distribution_type = 'cartesian'
     distribution_wght = 'latitude'
