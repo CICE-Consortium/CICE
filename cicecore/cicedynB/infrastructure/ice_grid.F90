@@ -1945,8 +1945,8 @@
       ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
       !-------------------------------------------------------------
 
-!     latu_bounds(:,:,:,:) = c0
-!     lonu_bounds(:,:,:,:) = c0
+      latu_bounds(:,:,:,:) = c0
+      lonu_bounds(:,:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
