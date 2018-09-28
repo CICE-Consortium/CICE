@@ -47,7 +47,8 @@
       subroutine CICE_Run
 
       use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
-      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn
+      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, atm_data_type
+      use ice_domain, only: land_override
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, & 
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
@@ -105,8 +106,11 @@
 #endif
          if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-         call init_flux_atm     ! initialize atmosphere fluxes sent to coupler
-         call init_flux_ocn     ! initialize ocean fluxes sent to coupler
+         
+         if (trim(atm_data_type) /= 'box' .or. land_override == 0)  then
+           call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
+           call init_flux_ocn  ! initialize ocean fluxes sent to coupler
+         end if
 
          call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
