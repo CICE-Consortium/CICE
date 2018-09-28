@@ -10,6 +10,7 @@
       module ice_dyn_shared
 
       use ice_kinds_mod
+      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p01, p001
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
@@ -21,7 +22,8 @@
       implicit none
       private
       public :: init_evp, set_evp_parameters, stepu, principal_stress, &
-                dyn_prep1, dyn_prep2, dyn_finish, basal_stress_coeff
+                dyn_prep1, dyn_prep2, dyn_finish, basal_stress_coeff,  &
+                alloc_dyn_shared
 
       ! namelist parameters
 
@@ -60,7 +62,7 @@
       real (kind=dbl_kind), allocatable, public :: & 
          fcor_blk(:,:,:)   ! Coriolis parameter (1/s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: & 
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          uvel_init, & ! x-component of velocity (m/s), beginning of timestep
          vvel_init    ! y-component of velocity (m/s), beginning of timestep
          
@@ -76,6 +78,22 @@
       contains
 
 !=======================================================================
+!
+! Allocate space for all variables 
+!
+      subroutine alloc_dyn_shared
+
+      integer (int_kind) :: ierr
+
+      allocate( &
+         uvel_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
+         vvel_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_dyn_shared): Out of memory')
+
+      end subroutine alloc_dyn_shared
+
+!=======================================================================
 
 ! Initialize parameters and variables needed for the evp dynamics
 ! author: Elizabeth C. Hunke, LANL
@@ -83,7 +101,6 @@
       subroutine init_evp (dt)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c2, omega
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
