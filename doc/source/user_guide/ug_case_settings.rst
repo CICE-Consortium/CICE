@@ -354,7 +354,7 @@ Table of namelist options
    "``trestore``", "integer", "sst restoring time scale (days)", ""
    "``restore_ice``", "true/false", "restore ice state along lateral boundaries", ""
    "", "", "", ""
-   "*icefields_tracer_nml*", "", "", ""
+   "*icefields_nml*", "", "", ""
    "", "", "*History Fields*", ""
    "``f_<var>``", "string", "frequency units for writing ``<var>`` to history", ""
    "", "``y``", "write history every ``histfreq_n`` years", ""
