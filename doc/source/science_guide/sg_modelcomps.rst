@@ -1439,7 +1439,7 @@ where :math:`m` is the combined mass of ice and snow per unit area and
 :math:`\vec{\tau}_a` and :math:`\vec{\tau}_w` are wind and ocean
 stresses, respectively. The term :math:`\vec{\tau}_b` is a 
 seabed stress (also referred to as basal stress) that represents the grounding of pressure
-ridges in shallow water :cite:`Lemieux2016`. The strength of the ice is represented by the
+ridges in shallow water :cite:`LDBRSF16`. The strength of the ice is represented by the
 internal stress tensor :math:`\sigma_{ij}`, and the other two terms on
 the right hand side are stresses due to Coriolis effects and the sea
 surface slope. The parameterization for the wind and ice–ocean stress
@@ -1537,7 +1537,7 @@ pending further testing.
 Seabed stress
 ***************
 
-The parameterization for the seabed stress is described in :cite:`Lemieux2016`. The components of the basal seabed stress are 
+The parameterization for the seabed stress is described in :cite:`LDBRSF16`. The components of the basal seabed stress are 
 :math:`\tau_{bx}=C_bu` and :math:`\tau_{by}=C_bv`, where :math:`C_b` is a coefficient expressed as
 
 .. math::
@@ -1590,7 +1590,7 @@ is therefore simply equal to :math:`-\sigma_1/2`.
 *Elastic-Viscous-Plastic*
 
 In the EVP model the internal stress tensor is determined from a
-regularized version of the VP constitutive law. Following the approach of :cite:`KH2010` (see also :cite:`Lemieux2016`), the 
+regularized version of the VP constitutive law. Following the approach of :cite:`KH2010` (see also :cite:`LDBRSF16`), the 
 elliptical yield curve can be modified such that the ice has isotropic tensile strength. 
 The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P` 
 where :math:`k_t` should be set to a value between 0 and 1. The constitutive law is therefore 

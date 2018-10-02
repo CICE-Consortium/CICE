@@ -836,10 +836,13 @@ the grid cell area. Our naming convention attaches the suffix “\_ai" to
 the grid-cell-mean variable names.
 
 In this version of CICE, history variables requested by the Sea Ice Model Intercomparison 
-Project (SIMIP) have been added as possible history output variables (e.g. 
-`f_sithick`, `f_sidmassgrowthbottom`, etc.). A full list of SIMIP variables is 
-available at the following site
-<https://earthsystemcog.org/projects/wip/CMIP6DataRequest>. 
+Project (SIMIP) :cite:`NJHHMSTV16` have been added as possible history output variables (e.g. 
+`f_sithick`, `f_sidmassgrowthbottom`, etc.). The lists of
+`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
+`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
+requested  SIMIP variables provide the names of possible history fields in CICE. 
+However, each of the additional variables can be output at any temporal frequency 
+specified in the **icefields\_nml** section of **ice\_in** as detailed above.
 Additionally, a new history output variable, `f_CMIP`, has been added. When `f_CMIP`
 is added to the **icefields\_nml** section of **ice\_in** then all SIMIP variables
 will be turned on for output at the frequency specified by `f_CMIP`. 
