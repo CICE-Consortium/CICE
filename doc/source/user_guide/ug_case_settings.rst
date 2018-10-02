@@ -94,6 +94,7 @@ Table of namelist options
    :header: "variable", "options/format", "description", "recommended value"
    :widths: 15, 15, 30, 15 
 
+   "", "", "", ""
    "*setup_nml*", "", "", ""
    "", "", "*Time, Diagnostics*", ""
    "``days_per_year``", "``360`` or ``365``", "number of days in a model year", "365"

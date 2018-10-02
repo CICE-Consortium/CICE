@@ -1590,7 +1590,7 @@ is therefore simply equal to :math:`-\sigma_1/2`.
 *Elastic-Viscous-Plastic*
 
 In the EVP model the internal stress tensor is determined from a
-regularized version of the VP constitutive law. Following the approach of :cite:`KH2010` (see also :cite:`LDBRSF16`), the 
+regularized version of the VP constitutive law. Following the approach of :cite:`KH10` (see also :cite:`LDBRSF16`), the 
 elliptical yield curve can be modified such that the ice has isotropic tensile strength. 
 The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P` 
 where :math:`k_t` should be set to a value between 0 and 1. The constitutive law is therefore 
