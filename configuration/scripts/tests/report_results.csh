@@ -187,7 +187,7 @@ if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
   if (${fcomp}  == "FAIL") set rcomp  = ${red}
   if (${ftime}  == "FAIL") set rtime  = ${red}
 
-  if (${fbuild} == "") set rbuild = ${red}
+  if (${fbuild} == "") set rbuild = ${gray}
   if (${frun}   == "") set rrun   = ${red}
   if (${ftest}  == "") set rtest  = ${red}
   if (${fregr}  == "") set rregr  = ${gray}
