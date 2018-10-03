@@ -13,6 +13,8 @@
     use_restart_time = .true.
     restart_format = 'nc'
     lcdf64         = .false.
+    numin          = 21
+    numax          = 89
     restart_dir    = './restart/'
     restart_file   = 'iced'
     pointer_file   = './ice.restart_file'

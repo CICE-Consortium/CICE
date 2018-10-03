@@ -17,7 +17,8 @@
       use ice_constants, only: c0, c1, c2, c3, p2, p5
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
-          ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit
+          ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
+          ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
       use ice_fileunits, only: inst_suffix
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
@@ -118,6 +119,7 @@
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
+      integer (kind=int_kind) :: numin, numax  ! unit number limits
 
       real (kind=real_kind) :: rpcesm, rplvl, rptopo 
       real (kind=dbl_kind) :: Cf, puny
@@ -131,8 +133,8 @@
 
       namelist /setup_nml/ &
         days_per_year,  use_leap_years, year_init,       istep0,        &
-        dt,             npt,            ndtd,                           &
-        runtype,        runid,          bfbflag,                        &
+        dt,             npt,            ndtd,            numin,         &
+        runtype,        runid,          bfbflag,         numax,         &
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
@@ -212,6 +214,8 @@
 #ifndef CESMCOUPLED
       dt = 3600.0_dbl_kind   ! time step, s      
 #endif
+      numin = 11             ! min allowed unit number
+      numax = 99             ! max allowed unit number
       npt = 99999            ! total number of time steps (dt) 
       diagfreq = 24          ! how often diag output is written
       print_points = .false. ! if true, print point data
@@ -469,6 +473,8 @@
       ! broadcast namelist settings
       !-----------------------------------------------------------------
 
+      call broadcast_scalar(numin,              master_task)
+      call broadcast_scalar(numax,              master_task)
       call broadcast_scalar(days_per_year,      master_task)
       call broadcast_scalar(use_leap_years,     master_task)
       call broadcast_scalar(year_init,          master_task)
@@ -856,6 +862,9 @@
          abort_flag = 18
       endif
 
+      ice_IOUnitsMinUnit = numin
+      ice_IOUnitsMaxUnit = numax
+
       call icepack_init_parameters(Cf_in=Cf)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort1', &
@@ -885,6 +894,8 @@
          write(nu_diag,1010) ' print_global              = ', print_global
          write(nu_diag,1010) ' print_points              = ', print_points
          write(nu_diag,1010) ' bfbflag                   = ', bfbflag
+         write(nu_diag,1020) ' numin                     = ', numin
+         write(nu_diag,1020) ' numax                     = ', numax
          write(nu_diag,1050) ' histfreq                  = ', histfreq(:)
          write(nu_diag,1040) ' histfreq_n                = ', histfreq_n(:)
          write(nu_diag,1010) ' hist_avg                  = ', hist_avg
