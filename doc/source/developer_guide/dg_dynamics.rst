@@ -62,21 +62,19 @@ Constants
 **cicecore/shared/ice_constants.F90** defines several model constants.  Some are hardwired parameters
 while others have internal defaults and can be set thru namelist.
 
-Static Array Allocation
+Dyamic Array Allocation
 **************************
 
-CICE is implemented using mainly static arrays.  CICE arrays tend to be defined based on the 
-block size and tracer count.  Those block sizes and tracer counts are defined in the case
-**cice.settings** file, are passed to the build script as CPPs, like
-::
+CICE version 5 and before was implemented using mainly static arrays and required several CPPs to be set to define grid size,
+blocks sizes, tracer numbers, and so forth.  With CICE versions 6 and later, arrays are dynamically allocated and those
+parameters are namelist settings.  The following CPPs are no longer used in CICE version 6 and above,
 
-       ftn -c ... -DNXGLOB=100 -DNYGLOB=116 -DBLCKX=25 -DBLCKY=29 -DMXBLCKS=4 -DNICELYR=7
-       -DNSNWLYR=1 -DNICECAT=5 -DTRAGE=1 -DTRFY=1 -DTRLVL=1 -DTRPND=1 -DTRBRI=0 -DNTRAERO=1
-       -DTRZS=0 -DNBGCLYR=7 -DTRALG=0 -DTRBGCZ=0 -DTRDOC=0 -DTRDOC=0 -DTRDIC=0 -DTRDON=0
-       -DTRFED=0 -DTRFEP=0 -DTRZAERO=0 -DTRBGCS=0 -DNUMIN=11 -DNUMAX=99 ...
+ -DNXGLOB=100 -DNYGLOB=116 -DBLCKX=25 -DBLCKY=29 -DMXBLCKS=4 -DNICELYR=7 -DNSNWLYR=1 -DNICECAT=5 -DTRAGE=1 -DTRFY=1 -DTRLVL=1 -DTRPND=1 -DTRBRI=0 -DNTRAERO=1  -DTRZS=0 -DNBGCLYR=7 -DTRALG=0 -DTRBGCZ=0 -DTRDOC=0 -DTRDOC=0 -DTRDIC=0 -DTRDON=0 -DTRFED=0 -DTRFEP=0 -DTRZAERO=0 -DTRBGCS=0 -DNUMIN=11 -DNUMAX=99
 
-and then those CPPs replace variable strings in the file **cicecore/shared/ice_domain_size.F90**.
-Data in **ice_domain_size.F90** provides parameters for static array allocations throughout CICE.
+as they have been migrated to :ref:`tabnamelist`
+
+  nx_global, ny_global, block_size_x, block_size_y, max_blocks, nilyr, nslyr, ncat, nblyr, n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep, n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trage, n_trfy, n_trlvl, n_trpnd, n_trbgcs, numin, numax
+
 
 Time Manager
 ****************

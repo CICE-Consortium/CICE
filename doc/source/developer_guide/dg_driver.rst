@@ -33,6 +33,7 @@ The initialize calling sequence looks something like::
       call init_zbgc            ! vertical biogeochemistry namelist
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
+      call alloc_*              ! allocate arrays
       call init_ice_timers      ! initialize all timers
       call init_grid2           ! grid variables
       call init_calendar        ! initialize some calendar stuff
