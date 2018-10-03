@@ -24,7 +24,7 @@
       module ice_history_shared
 
       use ice_kinds_mod
-      use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, max_nstrm
+      use ice_domain_size, only: max_nstrm
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -99,11 +99,11 @@
          n4Dscum     ! n4Dicum + num_avail_hist_fields_4Ds
 
       ! could set nzilyr = nilyr + nslyr and write Tin+Tsn together into Tinz
-      integer (kind=int_kind), parameter, public :: &
-         nzilyr = nilyr,   & ! vertical dimension (allows alternative grids)
-         nzslyr = nslyr,   & ! snow
-         nzblyr = nblyr+2, & ! bio grid
-         nzalyr = nblyr+4    ! aerosols (2 snow & nblyr+2 bio)
+      integer (kind=int_kind), public :: &
+         nzilyr , & ! vertical dimension (allows alternative grids)
+         nzslyr , & ! snow
+         nzblyr , & ! bio grid
+         nzalyr     ! aerosols (2 snow & nblyr+2 bio)
 
       type (ice_hist_field), dimension(max_avail_hist_fields), public :: &
          avail_hist_fields
@@ -111,8 +111,10 @@
       integer (kind=int_kind), parameter, public :: &
          nvar = 12              , & ! number of grid fields that can be written
                                     !   excluding grid vertices
-         nvarz = 5              , & ! number of category/vertical grid fields written
-         ncat_hist = ncat           ! number of ice categories written <= ncat
+         nvarz = 5                  ! number of category/vertical grid fields written
+
+      integer (kind=int_kind), public :: &
+         ncat_hist                  ! number of ice categories written <= ncat
 
       real (kind=real_kind), public :: time_beg(max_nstrm), & ! bounds for averaging
                                        time_end(max_nstrm), &

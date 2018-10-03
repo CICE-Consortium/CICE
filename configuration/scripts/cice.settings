@@ -39,6 +39,8 @@ setenv ICE_QUEUE      undefined
 
 setenv ICE_THREADED   false
 if (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true
+setenv ICE_COMMDIR mpi
+if (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial
 
 ### Layers
 setenv NICELYR   7         # number of vertical layers in the ice

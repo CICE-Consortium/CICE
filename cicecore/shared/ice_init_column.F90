@@ -15,6 +15,7 @@
       use ice_domain_size, only: n_aero, n_zaero, n_algae
       use ice_domain_size, only: n_doc, n_dic, n_don
       use ice_domain_size, only: n_fed, n_fep, max_nsw, n_bgc
+      use ice_domain_size, only: n_trzs, n_trbri, n_trbgcs, n_algae, n_trbgcz
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: nu_nml, nml_filename, get_fileunit, &
                                release_fileunit
@@ -1283,7 +1284,7 @@
       !-----------------------------------------------------------------
       ! zsalinity and brine
       !-----------------------------------------------------------------
-      if (solve_zsal .and. TRZS == 0) then
+      if (solve_zsal .and. n_trzs == 0) then
          write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
          write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
          solve_zsal = .false.      
@@ -1300,7 +1301,7 @@
          ktherm = 1
       endif
 
-      if (tr_brine .and. TRBRI == 0 ) then
+      if (tr_brine .and. n_trbri == 0 ) then
          write(nu_diag,*) &
             subname,'WARNING: tr_brine=T but no brine height compiled'
          write(nu_diag,*) &
@@ -1398,7 +1399,7 @@
           & types exceeds icepack_max_fe ')
       if (n_fep  > icepack_max_fe ) call abort_ice(subname//'ERROR: number of particulate fe &
           & types exceeds icepack_max_fe ')
-      if ((TRBGCS == 0 .and. skl_bgc) .or. (TRALG == 0 .and. skl_bgc)) then
+      if ((n_trbgcs == 0 .and. skl_bgc) .or. (n_algae == 0 .and. skl_bgc)) then
          write(nu_diag,*) &
             subname,'WARNING: skl_bgc=T but 0 bgc or algal tracers compiled'
          write(nu_diag,*) &
@@ -1406,7 +1407,7 @@
          skl_bgc = .false.
       endif
 
-      if ((TRBGCZ == 0 .and. solve_zbgc) .or. (TRALG == 0 .and. solve_zbgc)) then
+      if ((n_trbgcz == 0 .and. solve_zbgc) .or. (n_algae == 0 .and. solve_zbgc)) then
          write(nu_diag,*) &
             subname,'WARNING: solve_zbgc=T but 0 zbgc or algal tracers compiled'
          write(nu_diag,*) &
@@ -1600,10 +1601,10 @@
          call abort_ice (subname//'ERROR: solve_zbgc and n_bgc < 2')
       endif
 
-      if (tr_zaero .and. TRZAERO <  1) then
+      if (tr_zaero .and. n_zaero <  1) then
          write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'comp_ice must have number of TRZAERO > 0'
-         write (nu_diag,*) subname,'in order to solve z aerosols:',TRZAERO
+         write (nu_diag,*) subname,'comp_ice must have number of n_zaero > 0'
+         write (nu_diag,*) subname,'in order to solve z aerosols:',n_zaero
          call abort_ice (subname//'ERROR: tr_zaero and tr zaero < 1')
       endif
 

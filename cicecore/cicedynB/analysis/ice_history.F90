@@ -65,7 +65,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: yday, days_per_year, histfreq, &
           histfreq_n, nstreams
-      use ice_domain_size, only: max_blocks, max_nstrm
+      use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: mlt_onset, frz_onset, albcnt
       use ice_history_shared ! everything
@@ -90,6 +90,16 @@
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       character(len=*), parameter :: subname = '(init_hist)'
+
+      !-----------------------------------------------------------------
+      ! set history dimensions
+      !-----------------------------------------------------------------
+
+      ncat_hist = ncat    ! number of ice categories written <= ncat
+      nzilyr = nilyr      ! vertical dimension (allows alternative grids)
+      nzslyr = nslyr      ! snow
+      nzblyr = nblyr+2    ! bio grid
+      nzalyr = nblyr+4    ! aerosols (2 snow & nblyr+2 bio)
 
       !-----------------------------------------------------------------
       ! read namelist
