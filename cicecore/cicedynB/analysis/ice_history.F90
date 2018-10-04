@@ -546,14 +546,14 @@
              "positive is y direction on U grid", c1, c0,         &
              ns1, f_vatm)
 
-         call define_hist_field(n_atmspd,"atmspd","m/s",ustr2D, ucstr,  &
+         call define_hist_field(n_atmspd,"atmspd","m/s",ustr2D, ucstr, &
              "atmosphere wind speed",                                  &
-             "vector magnitude", c1, c0,         &
+             "vector magnitude", c1, c0,                               &
              ns1, f_atmspd)
       
-         call define_hist_field(n_atmdir,"atmdir","deg",ustr2D, ucstr,  &
-             "atmosphere wind direction",                                  &
-             "vector direction - coming from", c1, c0,         &
+         call define_hist_field(n_atmdir,"atmdir","deg",ustr2D, ucstr, &
+             "atmosphere wind direction",                              &
+             "vector direction - coming from", c1, c0,                 &
              ns1, f_atmdir)
       
          call define_hist_field(n_sice,"sice","ppt",tstr2D, tcstr,  &
@@ -616,14 +616,14 @@
              "positive is y direction on U grid", c1, c0,        &
              ns1, f_vocn)
 
-         call define_hist_field(n_ocnspd,"ocnspd","m/s",ustr2D, ucstr,  &
-             "ocean current speed",                                  &
-             "vector magnitude", c1, c0,         &
+         call define_hist_field(n_ocnspd,"ocnspd","m/s",ustr2D, ucstr, &
+             "ocean current speed",                                    &
+             "vector magnitude", c1, c0,                               &
              ns1, f_ocnspd)
       
-         call define_hist_field(n_ocndir,"ocndir","deg",ustr2D, ucstr,  &
-             "ocean current direction",                                  &
-             "vector direction - going to", c1, c0,         &
+         call define_hist_field(n_ocndir,"ocndir","deg",ustr2D, ucstr, &
+             "ocean current direction",                                &
+             "vector direction - going to", c1, c0,                    &
              ns1, f_ocndir)
       
          call define_hist_field(n_frzmlt,"frzmlt","W/m^2",tstr2D, tcstr, &
@@ -1175,8 +1175,8 @@
              ns1, f_sispeed)
 
          call define_hist_field(n_sidir,"sidir","deg",ustr2D, ucstr,  &
-             "ice direction",                                  &
-             "vector direction - going to", c1, c0,         &
+             "ice direction",                                         &
+             "vector direction - going to", c1, c0,                   &
              ns1, f_sidir)
       
          call define_hist_field(n_sialb,"sialb","1",tstr2D, tcstr,  &
@@ -1855,7 +1855,7 @@
            do i = ilo, ihi
               if (abs(uatm(i,j,iblk)) > puny .or. abs(vatm(i,j,iblk)) > puny) &
                  worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
-                 worka(i,j) = worka(i,j) + c360
+                 worka(i,j) = worka(i,j) + c180
            enddo
            enddo
            call accum_hist_field(n_atmdir, iblk, worka(:,:), a2D)
@@ -1912,7 +1912,7 @@
               if (worka(i,j) < 0.0 ) then
                  worka(i,j) = worka(i,j) + c360
               else
-                 worka(i,j) = worka(i,j)
+                 worka(i,j) = worka(i,j) * c1
               endif
            enddo
            enddo
@@ -2205,7 +2205,7 @@
               if (worka(i,j) < 0.0 ) then
                  worka(i,j) = worka(i,j) + c360
               else
-                 worka(i,j) = worka(i,j)
+                 worka(i,j) = worka(i,j) * c1
               endif
            enddo
            enddo
