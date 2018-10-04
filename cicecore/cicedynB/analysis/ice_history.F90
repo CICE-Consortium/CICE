@@ -30,8 +30,8 @@
       module ice_history
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, c2, c100, p001, p25, p5, &
-          mps_to_cmpdy, kg_to_g, spval
+      use ice_constants, only: c0, c1, c2, c100, c180, c360, p001, & 
+          p25, p5, mps_to_cmpdy, kg_to_g, spval, rad_to_deg
       use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
           get_fileunit, release_fileunit
       use ice_exit, only: abort_ice
@@ -302,6 +302,8 @@
       call broadcast_scalar (f_vvel, master_task)
       call broadcast_scalar (f_uatm, master_task)
       call broadcast_scalar (f_vatm, master_task)
+      call broadcast_scalar (f_atmspd, master_task)
+      call broadcast_scalar (f_atmdir, master_task)
       call broadcast_scalar (f_sice, master_task)
       call broadcast_scalar (f_fswup, master_task)
       call broadcast_scalar (f_fswdn, master_task)
@@ -314,6 +316,8 @@
       call broadcast_scalar (f_sss, master_task)
       call broadcast_scalar (f_uocn, master_task)
       call broadcast_scalar (f_vocn, master_task)
+      call broadcast_scalar (f_ocnspd, master_task)
+      call broadcast_scalar (f_ocndir, master_task)
       call broadcast_scalar (f_frzmlt, master_task)
       call broadcast_scalar (f_fswfac, master_task)
       call broadcast_scalar (f_fswint_ai, master_task)
@@ -404,6 +408,7 @@
       call broadcast_scalar (f_sistryubot, master_task)
       call broadcast_scalar (f_sicompstren, master_task)
       call broadcast_scalar (f_sispeed, master_task)
+      call broadcast_scalar (f_sidir, master_task)
       call broadcast_scalar (f_sialb, master_task)
       call broadcast_scalar (f_sihc, master_task)
       call broadcast_scalar (f_sisnhc, master_task)
@@ -540,6 +545,16 @@
              "atm velocity (y)",                                  &
              "positive is y direction on U grid", c1, c0,         &
              ns1, f_vatm)
+
+         call define_hist_field(n_atmspd,"atmspd","m/s",ustr2D, ucstr,  &
+             "atmosphere wind speed",                                  &
+             "vector magnitude", c1, c0,         &
+             ns1, f_atmspd)
+      
+         call define_hist_field(n_atmdir,"atmdir","deg",ustr2D, ucstr,  &
+             "atmosphere wind direction",                                  &
+             "vector direction - coming from", c1, c0,         &
+             ns1, f_atmdir)
       
          call define_hist_field(n_sice,"sice","ppt",tstr2D, tcstr,  &
              "bulk ice salinity",                                 &
@@ -600,6 +615,16 @@
              "ocean current (y)",                                &
              "positive is y direction on U grid", c1, c0,        &
              ns1, f_vocn)
+
+         call define_hist_field(n_ocnspd,"ocnspd","m/s",ustr2D, ucstr,  &
+             "ocean current speed",                                  &
+             "vector magnitude", c1, c0,         &
+             ns1, f_ocnspd)
+      
+         call define_hist_field(n_ocndir,"ocndir","deg",ustr2D, ucstr,  &
+             "ocean current direction",                                  &
+             "vector direction - going to", c1, c0,         &
+             ns1, f_ocndir)
       
          call define_hist_field(n_frzmlt,"frzmlt","W/m^2",tstr2D, tcstr, &
              "freeze/melt potential",                                  &
@@ -1148,6 +1173,11 @@
              "ice speed",                                  &
              "none", c1, c0,         &
              ns1, f_sispeed)
+
+         call define_hist_field(n_sidir,"sidir","deg",ustr2D, ucstr,  &
+             "ice direction",                                  &
+             "vector direction - going to", c1, c0,         &
+             ns1, f_sidir)
       
          call define_hist_field(n_sialb,"sialb","1",tstr2D, tcstr,  &
              "sea ice albedo",                                  &
@@ -1814,7 +1844,23 @@
              call accum_hist_field(n_uatm,   iblk, uatm(:,:,iblk), a2D)
          if (f_vatm   (1:1) /= 'x') &
              call accum_hist_field(n_vatm,   iblk, vatm(:,:,iblk), a2D)
-
+! AKD addition - start
+         if (f_atmspd   (1:1) /= 'x') &
+             call accum_hist_field(n_atmspd,   iblk, sqrt( &
+                                  (uatm(:,:,iblk)*uatm(:,:,iblk)) + &
+                                  (vatm(:,:,iblk)*vatm(:,:,iblk))), a2D)
+         if (f_atmdir(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uatm(i,j,iblk)) > puny .or. abs(vatm(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
+                 worka(i,j) = worka(i,j) + c360
+           enddo
+           enddo
+           call accum_hist_field(n_atmdir, iblk, worka(:,:), a2D)
+         endif
+! AKD addition - end
          if (f_sice   (1:1) /= 'x') then
              do j = jlo, jhi
              do i = ilo, ihi
@@ -1852,6 +1898,27 @@
              call accum_hist_field(n_uocn,   iblk, uocn(:,:,iblk), a2D)
          if (f_vocn   (1:1) /= 'x') &
              call accum_hist_field(n_vocn,   iblk, vocn(:,:,iblk), a2D)
+! AKD addition - start
+         if (f_ocnspd   (1:1) /= 'x') &
+             call accum_hist_field(n_ocnspd,   iblk, sqrt( &
+                                  (uocn(:,:,iblk)*uocn(:,:,iblk)) + &
+                                  (vocn(:,:,iblk)*vocn(:,:,iblk))), a2D)
+         if (f_ocndir(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uocn(i,j,iblk)) > puny .or. abs(vocn(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uocn(i,j,iblk),vocn(i,j,iblk))*rad_to_deg
+              if (worka(i,j) < 0.0 ) then
+                 worka(i,j) = worka(i,j) + c360
+              else
+                 worka(i,j) = worka(i,j)
+              endif
+           enddo
+           enddo
+           call accum_hist_field(n_ocndir, iblk, worka(:,:), a2D)
+         endif
+! AKD addition - end
          if (f_frzmlt (1:1) /= 'x') &
              call accum_hist_field(n_frzmlt, iblk, frzmlt_init(:,:,iblk), a2D)
 
@@ -2128,6 +2195,23 @@
            enddo
            call accum_hist_field(n_sispeed, iblk, worka(:,:), a2D)
          endif
+! AKD addition - start
+         if (f_sidir(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
+              if (worka(i,j) < 0.0 ) then
+                 worka(i,j) = worka(i,j) + c360
+              else
+                 worka(i,j) = worka(i,j)
+              endif
+           enddo
+           enddo
+           call accum_hist_field(n_icedir, iblk, worka(:,:), a2D)
+         endif
+! AKD addition - end
 
          if (f_sidmasstranx(1:1) /= 'x') then
            worka(:,:) = c0

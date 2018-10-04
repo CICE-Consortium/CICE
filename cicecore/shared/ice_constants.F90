@@ -84,7 +84,8 @@
         p027 = p055*p5, &
         eps04  = 1.0e-4_dbl_kind, &
         eps13  = 1.0e-13_dbl_kind, &
-        eps16  = 1.0e-16_dbl_kind
+        eps16  = 1.0e-16_dbl_kind, &
+        pi   = 3.14159265358979323846_dbl_kind
 
       !-----------------------------------------------------------------
       ! location of fields for staggered grids
@@ -120,7 +121,8 @@
         m_to_cm       = 100._dbl_kind   ,&! meters to cm
         m2_to_km2     = 1.e-6_dbl_kind  ,&! m^2 to km^2
         kg_to_g       = 1000._dbl_kind  ,&! kilograms to grams
-        mps_to_cmpdy  = 8.64e6_dbl_kind   ! m per s to cm per day
+        mps_to_cmpdy  = 8.64e6_dbl_kind ,&! m per s to cm per day
+        rad_to_deg    = 180.0_dbl_kind/pi ! radians to degrees
 
 !=======================================================================
 

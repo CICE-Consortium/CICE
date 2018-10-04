@@ -188,12 +188,14 @@
            f_Tsfc      = 'm', f_aice       = 'm', &
            f_uvel      = 'm', f_vvel       = 'm', &
            f_uatm      = 'm', f_vatm       = 'm', &
+           f_atmspd    = 'm', f_atmdir     = 'm', &
            f_fswup     = 'm', &
            f_fswdn     = 'm', f_flwdn      = 'm', &
            f_snow      = 'm', f_snow_ai    = 'm', &
            f_rain      = 'm', f_rain_ai    = 'm', &
            f_sst       = 'm', f_sss        = 'm', &
            f_uocn      = 'm', f_vocn       = 'm', &
+           f_ocnspd    = 'm', f_ocndir     = 'm', &
            f_sice      = 'm', f_frzmlt     = 'm', &
            f_fswfac    = 'm', f_fswint_ai  = 'x', &
            f_fswabs    = 'm', f_fswabs_ai  = 'm', &
@@ -235,11 +237,12 @@
            f_mlt_onset = 'm', f_frz_onset  = 'm', &
            f_iage      = 'm', f_FY         = 'm', &
            f_hisnap    = 'm', f_aisnap     = 'm', &
-           f_CMIP = 'x', &
+           f_CMIP = 'x'     , &
            f_sithick   = 'x', f_sisnthick  = 'x', &
-           f_siage      = 'x', &
+           f_siage     = 'x', &
            f_sitemptop = 'x', f_sitempsnic = 'x', &
-           f_sitempbot = 'x', f_sispeed    = 'x', &
+           f_sitempbot = 'x', &
+           f_sispeed   = 'x', f_sidir      = 'x', &
            f_siu       = 'x', f_siv        = 'x', &
            f_sidmasstranx = 'x', f_sidmasstrany = 'x', &
            f_sistrxdtop = 'x', f_sistrydtop = 'x', &
@@ -328,12 +331,14 @@
            f_Tsfc,      f_aice     , &
            f_uvel,      f_vvel     , &
            f_uatm,      f_vatm     , &
+           f_atmspd,    f_atmdir   , &
            f_fswup,     &
            f_fswdn,     f_flwdn    , &
            f_snow,      f_snow_ai  , &     
            f_rain,      f_rain_ai  , &
            f_sst,       f_sss      , &
            f_uocn,      f_vocn     , &
+           f_ocnspd,    f_ocndir   , &
            f_sice,      f_frzmlt   , &
            f_fswfac,    f_fswint_ai, &
            f_fswabs,    f_fswabs_ai, &
@@ -484,6 +489,7 @@
            n_Tsfc       , n_aice       , &
            n_uvel       , n_vvel       , &
            n_uatm       , n_vatm       , &
+           n_atmspd     , n_atmdir     , &
            n_sice       , &
            n_fswup      , &
            n_fswdn      , n_flwdn      , &
@@ -491,6 +497,7 @@
            n_rain       , n_rain_ai    , &
            n_sst        , n_sss        , &
            n_uocn       , n_vocn       , &
+           n_ocnspd     , n_ocndir     , &
            n_frzmlt     , n_fswfac     , &
            n_fswint_ai  , &
            n_fswabs     , n_fswabs_ai  , &
@@ -535,7 +542,8 @@
            n_sithick    , n_sisnthick  , &
            n_siage,       &
            n_sitemptop  , n_sitempsnic , &
-           n_sitempbot  , n_sispeed,     &
+           n_sitempbot  , &
+           n_sispeed    , n_sidir      , &
            n_siu,         n_siv,         &
            n_sidmasstranx, n_sidmasstrany, &
            n_sistrxdtop,  n_sistrydtop,  &
