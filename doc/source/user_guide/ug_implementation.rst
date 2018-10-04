@@ -509,7 +509,7 @@ of the pros and cons of the various distribution types.
    Scorecard
 
 Figure :ref:`fig-distribscorecard` shows the scorecard for block distribution choices in
-CICE, courtesy T. Craig. For more information, see
+CICE, courtesy T. Craig. For more information, see :cite:`Craig2014` or
 http://www.cesm.ucar.edu/events/workshops/ws.2012/presentations/sewg/craig.pdf
 
 The `maskhalo` options in the namelist improve performance by removing
