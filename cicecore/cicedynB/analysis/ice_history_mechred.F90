@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_mechred.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Mechanical redistribution history output
@@ -90,11 +89,12 @@
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       real    (kind=dbl_kind) :: secday
       logical (kind=log_kind) :: tr_lvl
+      character(len=*), parameter :: subname = '(init_hist_mechred_2D)'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_query_tracer_flags(tr_lvl_out=tr_lvl)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -119,7 +119,7 @@
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
          close (nu_nml)
-         call abort_ice('ice: error reading icefields_mechred_nml')
+         call abort_ice(subname//'ERROR: reading icefields_mechred_nml')
       endif
 
       if (.not. tr_lvl) then
@@ -216,6 +216,7 @@
 
       integer (kind=int_kind) :: ns
       real (kind=dbl_kind) :: secday
+      character(len=*), parameter :: subname = '(init_hist_mechred_3Dc)'
 
       !-----------------------------------------------------------------
       ! 3D (category) variables must be looped separately
@@ -223,7 +224,7 @@
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do ns = 1, nstreams
@@ -319,10 +320,11 @@
 
       integer (kind=int_kind) :: &
            nt_alvl, nt_vlvl
+      character(len=*), parameter :: subname = '(accum_hist_mechred)'
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !---------------------------------------------------------------

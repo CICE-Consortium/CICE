@@ -1,16 +1,23 @@
 #!/bin/csh -f
 
+if (! -e results.log) then
+  echo " "
+  echo "${0}: ERROR results.log does not exist, try running results.csh"
+  echo " "
+  exit -1
+endif
+
 set wikirepo = "https://github.com/CICE-Consortium/Test-Results.wiki.git"
 set wikiname = Test-Results.wiki
 
-set tsubdir = cice_testing
-set hfile = "cice_by_hash"
-set mfile = "cice_by_mach"
-set vfile = "cice_by_vers"
-set bfile = "cice_by_bran"
-
 rm -r -f ${wikiname}
 git clone ${wikirepo} ${wikiname}
+if ($status != 0) then
+  echo " "
+  echo "${0}: ERROR git clone failed"
+  echo " "
+  exit -1
+endif
 
 set repo = `grep "#repo = " results.log | cut -c 9-`
 set bran = `grep "#bran = " results.log | cut -c 9-`
@@ -49,7 +56,13 @@ set xcdat = `echo $cdat | sed 's|-||g' | cut -c 3-`
 set xctim = `echo $ctim | sed 's|:||g'`
 set shrepo = `echo $repo | tr '[A-Z]' '[a-z]'`
 
+set tsubdir = cice_master
+set hfile = "cice_by_hash"
+set mfile = "cice_by_mach"
+set vfile = "cice_by_vers"
+set bfile = "cice_by_bran"
 if ("${shrepo}" !~ "*cice-consortium*") then
+  set tsubdir = cice_dev
   set hfile = {$hfile}_forks
   set mfile = {$mfile}_forks
   set vfile = {$vfile}_forks
@@ -79,7 +92,7 @@ foreach compiler ( ${compilers} )
 
 cat >! ${outfile} << EOF
 
-| Build | Run | Test | Regression | Compare | Timing | Case |
+|Bld|Run|Test| Regr | Compare | Timing | Case |
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
 EOF
 
@@ -93,25 +106,64 @@ EOF
 foreach case ( ${cases} )
 if ( ${case} =~ *_${compiler}_* ) then
 
-  @ ttotl = $ttotl + 1
+# check thata case results are meaningful
+  set fbuild = `grep " ${case} " results.log | grep " build"   | cut -c 1-4`
+  set frun   = `grep " ${case} " results.log | grep " run"     | cut -c 1-4`
+  set ftest  = `grep " ${case} " results.log | grep " test"    | cut -c 1-4`
 
-  set tchkpass = 1
+if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
 
-  set fbuild = `grep " ${case} " results.log | grep " build" | cut -c 1-4`
+  set fbuild = `grep " ${case} " results.log | grep " build"   | cut -c 1-4`
+  set frun   = `grep " ${case} " results.log | grep " run"     | cut -c 1-4`
+  set ftest  = `grep " ${case} " results.log | grep " test"    | cut -c 1-4`
   set fregr  = `grep " ${case} " results.log | grep " compare" | cut -c 1-4`
   set fcomp  = `grep " ${case} " results.log | grep " bfbcomp" | cut -c 1-4`
+  if (${ftest}  == "PASS") set frun   = "PASS"
+  if (${frun}   == "PASS") set fbuild = "PASS"
+
   set vregr  = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 4 | sed 's/\./ /g' `
   set vcomp  = `grep " ${case} " results.log | grep " bfbcomp" | cut -d " " -f 4`
-  set ftime  = ""
 
-  if (${case} =~ *_restart_*) then
-    set frun   = `grep " ${case} " results.log | grep " run-initial" | cut -c 1-4`
-    set frun   = `grep " ${case} " results.log | grep " run-restart" | cut -c 1-4`
-    set ftest  = `grep " ${case} " results.log | grep " exact-restart" | cut -c 1-4`
-  else if (${case} =~ *_smoke_*) then
-    set frun   = `grep " ${case} " results.log | grep " run" | cut -c 1-4`
-    set ftest  = `grep " ${case} " results.log | grep " run" | cut -c 1-4`
+  set vtime1 = `grep " ${case} " results.log | grep " run" | cut -d " " -f 4`
+  set vtime2 = `grep " ${case} " results.log | grep " run" | cut -d " " -f 5`
+  set vtime3 = `grep " ${case} " results.log | grep " run" | cut -d " " -f 6`
+
+  set btime1 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 5`
+  set btime2 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 6`
+  set btime3 = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 7`
+
+  if (${btime1} != "") then
+    if (`echo "${btime1} < 0.0" | bc`) set btime1 = ""
   endif
+  if (${btime2} != "") then
+    if (`echo "${btime2} < 0.0" | bc`) set btime2 = ""
+  endif
+  if (${btime3} != "") then
+    if (`echo "${btime3} < 0.0" | bc`) set btime3 = ""
+  endif
+
+  set vtime  = ""
+  if (${vtime1} != "") set vtime = "$vtime TL=${vtime1}(${btime1})"
+  if (${vtime2} != "") set vtime = "$vtime Dyn=${vtime2}(${btime2})"
+  if (${vtime3} != "") set vtime = "$vtime Col=${vtime3}(${btime3})"
+
+  set scale1 = 1.2
+  set scale2 = 1.5
+  set ftime  = ""
+  if (${vtime1} != "" && ${btime1} != "") then
+    if (`echo "${vtime1} > 0.0" | bc` && `echo "${btime1} > 0.0" | bc`) then
+      if (`echo "$vtime1 > $btime1*$scale2" | bc`) then
+        set ftime = "FAIL"
+      else if (`echo "$vtime1 > $btime1*$scale1" | bc`) then
+        set ftime = "NOTSOGOOD"
+      else
+        set ftime = "PASS"
+      endif
+    endif
+  endif
+
+  @ ttotl = $ttotl + 1
+  set tchkpass = 1
 
   set noglob
   set rbuild = ${yellow}
@@ -126,12 +178,14 @@ if ( ${case} =~ *_${compiler}_* ) then
   if (${ftest}  == "PASS") set rtest  = ${green}
   if (${fregr}  == "PASS") set rregr  = ${green}
   if (${fcomp}  == "PASS") set rcomp  = ${green}
+  if (${ftime}  == "PASS") set rtime  = ${green}
 
   if (${fbuild} == "FAIL") set rbuild = ${red}
   if (${frun}   == "FAIL") set rrun   = ${red}
   if (${ftest}  == "FAIL") set rtest  = ${red}
   if (${fregr}  == "FAIL") set rregr  = ${red}
   if (${fcomp}  == "FAIL") set rcomp  = ${red}
+  if (${ftime}  == "FAIL") set rtime  = ${red}
 
   if (${fbuild} == "") set rbuild = ${red}
   if (${frun}   == "") set rrun   = ${red}
@@ -140,8 +194,12 @@ if ( ${case} =~ *_${compiler}_* ) then
   if (${fcomp}  == "") set rcomp  = ${gray}
   if (${ftime}  == "") set rtime  = ${gray}
 
-  set fregrx  = `grep " ${case} " results.log | grep " compare" | grep "baseline-does-not-exist" | wc -l `
-  if ($fregrx > 0) set rregr = ${gray}
+  if (${fbuild} == "MISS") set rbuild = ${gray}
+  if (${frun}   == "MISS") set rrun   = ${gray}
+  if (${ftest}  == "MISS") set rtest  = ${gray}
+  if (${fregr}  == "MISS") set rregr  = ${gray}
+  if (${fcomp}  == "MISS") set rcomp  = ${gray}
+  if (${ftime}  == "MISS") set rtime  = ${gray}
 
   if (${rbuild} == ${red}) set tchkpass = 0
   if (${rrun}   == ${red}) set tchkpass = 0
@@ -163,11 +221,14 @@ if ( ${case} =~ *_${compiler}_* ) then
 
   unset noglob
 
-  set xcase = `echo $case | sed 's|_| |g'`
-  set xvcomp = `echo $vcomp | sed 's|_| |g'`
+  # remove final .string which is the testid isn't needed here
+  set wvcomp = `echo ${vcomp} | sed  's|^\(.*\)\.[^.]*$|\1|g'`
+  set xvcomp = `echo ${wvcomp} | sed 's|_| |g'`
+  set xcase  = `echo ${case}   | sed 's|_| |g'`
   #echo "debug | ${rbuild} | ${rrun} | ${rtest} | ${rregr} ${vregr} | ${rcomp} ${vcomp} | ${case} |" 
-  echo "| ${rbuild} | ${rrun} | ${rtest} | ${rregr} ${vregr} | ${rcomp} ${xvcomp} | ${rtime} | ${xcase} |" >> ${outfile}
+  echo "| ${rbuild} | ${rrun} | ${rtest} | ${rregr} ${vregr} | ${rcomp} ${xvcomp} | ${rtime} ${vtime} | ${xcase} |" >> ${outfile}
 
+endif
 endif
 end
 
@@ -194,13 +255,13 @@ endif
 unset noglob
 
 mv ${outfile} ${outfile}.hold
+#- raw results: ${totl} total tests: ${pass} pass, ${fail} fail
 cat >! ${outfile} << EOF
 - repo = **${repo}** : **${bran}**
 - hash = ${hash}
 - hash created by ${hashuser} ${hashdate}
 - vers = ${vers}
 - tested on ${mach}, ${compiler}, ${user}, ${cdat} ${ctim} UTC
-- raw results: ${totl} total tests: ${pass} pass, ${fail} fail
 - ${ttotl} total tests: ${tpass} pass, ${tfail} fail
 - ${ttotl} total regressions: ${rpass} pass, ${rfail} fail, ${rothr} other
 EOF
@@ -325,13 +386,13 @@ end
 #=====================
 
 cd ${wikiname}
-#git add ${tsubdir}/${shhash}.${mach}*.md
-#git add ${tsubdir}/${ofile}.md
-#git add ${tsubdir}/${hfile}.md
-#git add ${tsubdir}/${mfile}.md
-#git add ${tsubdir}/${vfile}.md
-#git add ${tsubdir}/${bfile}.md
-#git commit -a -m "update $hash $mach"
-#git push origin master
+git add ${tsubdir}/${shhash}.${mach}*.md
+git add ${tsubdir}/${ofile}.md
+git add ${tsubdir}/${hfile}.md
+git add ${tsubdir}/${mfile}.md
+git add ${tsubdir}/${vfile}.md
+git add ${tsubdir}/${bfile}.md
+git commit -a -m "update $hash $mach"
+git push origin master
 cd ../
 

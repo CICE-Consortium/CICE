@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_domain_size.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Defines the global domain size and number of categories and layers.
@@ -19,9 +18,14 @@
       implicit none
       private
 
+      integer (kind=int_kind), public :: &
+        max_blocks  , & ! max number of blocks per processor
+        block_size_x, & ! size of block in first horiz dimension
+        block_size_y, & ! size of block in second horiz dimension
+        nx_global   , & ! i-axis size
+        ny_global       ! j-axis size
+
       integer (kind=int_kind), parameter, public :: &
-        nx_global = NXGLOB    , & ! i-axis size
-        ny_global = NYGLOB    , & ! j-axis size
         ncat      = NICECAT   , & ! number of categories
         nilyr     = NICELYR   , & ! number of ice layers per category
         nslyr     = NSNWLYR   , & ! number of snow layers per category
@@ -60,10 +64,6 @@
                   + 1         , & ! for unused tracer flags
         max_nstrm =   5           ! max number of history output streams
 
-      integer (kind=int_kind), parameter, public :: &
-        block_size_x = BLCKX  , & ! size of block in first horiz dimension
-        block_size_y = BLCKY      ! size of block in second horiz dimension
-
    !*** The model will inform the user of the correct
    !*** values for the parameter below.  A value higher than
    !*** necessary will not cause the code to fail, but will
@@ -73,9 +73,6 @@
    !*** max_blocks = (nx_global/block_size_x)*(ny_global/block_size_y)/
    !***               num_procs
  
-      integer (kind=int_kind), parameter, public :: &
-        max_blocks = MXBLCKS      ! max number of blocks per processor
-
 !=======================================================================
 
       end module ice_domain_size

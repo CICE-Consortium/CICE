@@ -1,0 +1,2 @@
+distribution_type = 'cartesian'
+processor_shape   = 'square-pop'

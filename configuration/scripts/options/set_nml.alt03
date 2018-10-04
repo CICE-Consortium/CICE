@@ -1,0 +1,16 @@
+kcatbound = 2
+ice_ic = 'default'
+restart = .false.
+distribution_type = 'sectcart'
+tr_iage      = .false.
+tr_FY        = .false.
+tr_lvl       = .false.
+tr_pond_cesm = .false.
+tr_pond_topo = .true.
+tr_pond_lvl  = .false.
+tr_aero      = .false.
+kdyn  =  2
+revised_evp = .false.
+Ktens          = 0.
+e_ratio        = 2.
+basalstress    = .true.

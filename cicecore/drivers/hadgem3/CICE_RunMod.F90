@@ -1,4 +1,3 @@
-!  SVN:$Id: CICE_RunMod.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 !  Main driver for time stepping of CICE.
@@ -668,8 +667,8 @@
      !----------------------------------------------------------------
 
      if (nilyr /= 1 .or. nslyr /= 1 .or. ntrcr /= 1) &
-        call abort_ice & 
-         ('da_state_update: only works for 1 cat, 1 layer, 1 tracer runs')
+        call abort_ice("subname"// & 
+         'ERROR: da_state_update: only works for 1 cat, 1 layer, 1 tracer runs')
 
      !------------------------------------------------------------------
      ! Set thickness for new ice

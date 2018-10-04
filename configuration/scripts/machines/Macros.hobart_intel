@@ -1,0 +1,63 @@
+#==============================================================================
+# Makefile macros for NCAR hobart, NAG compiler
+#==============================================================================
+
+CPP        := /usr/bin/cpp
+CPPFLAGS   := $(CFLAGS)  -lifcore
+CPPDEFS    := $(CPPDEFS)  -DFORTRANUNDERSCORE -DCPRINTEL
+CFLAGS     := -qno-opt-dynamic-align -fp-model precise -std=gnu99
+
+FIXEDFLAGS := -fixed -132
+FREEFLAGS  := -free
+FFLAGS     := -qno-opt-dynamic-align  -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -fp-model source -O2 -debug minimal
+FC_AUTO_R8 := -r8
+
+FFLAGS_NOOPT:=
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS   := -qno-opt-dynamic-align  -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -fp-model source -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+endif
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC         := mpif90
+else
+  FC         := ifort
+endif
+
+MPICC:= mpicc
+
+MPIFC:= mpif90
+LD:= $(MPIFC)
+
+INCLDIR := -I$(NETCDF_PATH)/include -I$(MPI_PATH)/include
+
+LIB_NETCDF := $(NETCDF_PATH)/lib
+LIB_PNETCDF := $(PNETCDF_PATH)/lib
+LIB_MPI := $(IMPILIBDIR)
+
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L/usr/lib64 -llapack -mkl=cluster
+
+SCC:= icc 
+
+SFC:= ifort
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif
+
+## if using parallel I/O, load all 3 libraries.  PIO must be first!
+ifeq ($(IO_TYPE), pio)
+   PIO_PATH:=
+   INCLDIR += -I
+   SLIBS   := $(SLIB) -L$(PIO_PATH) -lpiofS
+
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif
+
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif

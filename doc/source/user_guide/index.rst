@@ -11,10 +11,9 @@ User Guide
 .. toctree::
    :maxdepth: 3
  
-   ug_citing.rst
    ug_implementation.rst
    ug_running.rst
-   ug_performance.rst
-   ug_adding.rst
-   ug_troubleshooting.rst
    ug_testing.rst
+   ug_case_settings.rst
+   ug_troubleshooting.rst
+

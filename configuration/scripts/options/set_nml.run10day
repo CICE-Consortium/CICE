@@ -2,4 +2,5 @@ npt            = 240
 dumpfreq       = 'd'
 dumpfreq_n     = 10
 histfreq       = 'd','x','x','x','x'
+f_aice         = 'd'
 

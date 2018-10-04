@@ -1,4 +1,3 @@
-!  SVN:$Id: CICE_InitMod.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 !  This module contains the CICE initialization routine that sets model
@@ -44,6 +43,7 @@
 
       subroutine CICE_Initialize
 
+      character(len=*), parameter :: subname='(CICE_Initialize)'
    !--------------------------------------------------------------------
    ! model initialization
    !--------------------------------------------------------------------
@@ -58,23 +58,24 @@
 
       subroutine cice_init
 
-      use ice_arrays_column, only: hin_max, c_hi_range, zfswin, trcrn_sw, &
-          ocean_bio_all, ice_bio_net, snow_bio_net
+      use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
+      use ice_state, only: alloc_state
+      use ice_flux_bgc, only: alloc_flux_bgc
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat
-      use ice_dyn_eap, only: init_eap
-      use ice_dyn_shared, only: kdyn, init_evp, basalstress
+      use ice_dyn_eap, only: init_eap, alloc_dyn_eap
+      use ice_dyn_shared, only: kdyn, init_evp, alloc_dyn_shared
       use ice_flux, only: init_coupler_flux, init_history_therm, &
-          init_history_dyn, init_flux_atm, init_flux_ocn
+          init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn
+          get_forcing_atmo, get_forcing_ocn, alloc_forcing
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_data, faero_default, faero_optics
-      use ice_grid, only: init_grid1, init_grid2
+          faero_default, faero_optics, alloc_forcing_bgc
+      use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
       use ice_init, only: input_data, init_state
@@ -88,14 +89,14 @@
 #endif
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
-      character(len=*),parameter :: subname = '(cice_init)'
+      character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
       call init_fileunits       ! unit numbers
 
       call icepack_configure()  ! initialize icepack
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(subname, &
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
       call input_data           ! namelist variables
@@ -105,6 +106,12 @@
 
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
+      call alloc_grid           ! allocate grid arrays
+      call alloc_arrays_column  ! allocate column arrays
+      call alloc_state          ! allocate state arrays
+      call alloc_dyn_shared     ! allocate dyn shared arrays
+      call alloc_flux_bgc       ! allocate flux_bgc arrays
+      call alloc_flux           ! allocate flux arrays
       call init_ice_timers      ! initialize all timers
       call ice_timer_start(timer_total)   ! start timing entire run
       call init_grid2           ! grid variables
@@ -113,6 +120,7 @@
       call init_hist (dt)       ! initialize output history file
 
       if (kdyn == 2) then
+         call alloc_dyn_eap     ! allocate dyn_eap arrays
          call init_eap (dt_dyn) ! define eap dynamics parameters, variables
       else                      ! for both kdyn = 0 or 1
          call init_evp (dt_dyn) ! define evp dynamics parameters, variables
@@ -129,10 +137,10 @@
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
       endif
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call calendar(time)       ! determine the initial date
+!     call calendar(time)       ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
@@ -148,7 +156,7 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(subname, &
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
       if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
@@ -181,6 +189,7 @@
       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
       if (tr_aero .or. tr_zaero)  call faero_default    ! default values
 
+      if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! allocate biogeochemistry arrays
       if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
 #endif
 #endif
@@ -208,7 +217,6 @@
       use ice_domain_size, only: ncat, max_ntrcr, n_aero
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: sss
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
@@ -222,7 +230,7 @@
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
-      use ice_restart_driver, only: restartfile, restartfile_v4
+      use ice_restart_driver, only: restartfile
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
 
@@ -237,6 +245,8 @@
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero
 
+      character(len=*), parameter :: subname = '(init_restart)'
+
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
@@ -246,7 +256,7 @@
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
            nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (trim(runtype) == 'continue') then 
@@ -293,7 +303,7 @@
             call read_restart_lvl
          else
             do iblk = 1, nblocks 
-               call init_lvl(trcrn(:,:,nt_alvl,:,iblk), &
+               call init_lvl(iblk,trcrn(:,:,nt_alvl,:,iblk), &
                              trcrn(:,:,nt_vlvl,:,iblk))
             enddo ! iblk
          endif
@@ -401,7 +411,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine init_restart
@@ -421,13 +431,14 @@
 
       character(len=char_len_long) :: filename
       logical :: lexist = .false.
+      character(len=*), parameter :: subname='(check_finished_file)'
 
       if (my_task == master_task) then
            
          filename = trim(restart_dir)//"finished"
          inquire(file=filename, exist=lexist)
          if (lexist) then
-            call abort_ice("Found already finished file - quitting")
+            call abort_ice(subname//"ERROR: Found already finished file - quitting")
          end if
 
       endif

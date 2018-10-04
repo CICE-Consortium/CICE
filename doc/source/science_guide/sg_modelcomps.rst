@@ -56,14 +56,13 @@ thickness distribution is used if :math:`N_C` = 7; if :math:`N_C` = 5 or
 shown in :ref:`tab-itd` for the delta-function ITD. Users may
 substitute their own preferred boundaries in *init\_itd*.
 
-:ref:`tab-itd` : *Data exchanged between the CESM flux coupler and the sea ice model
-Lower boundary values for thickness categories, in meters, for 
-the three distribution options (* `kcatbound` *) and linear remapping (* `kitd` = 1 *). 
-In the WMO case, the distribution used depends on the number of categories used.*
+Table :ref:`tab-itd` shows lower boundary values for thickness categories, in meters, for
+the three distribution options (*``kcatbound``*) and linear remapping (*``kitd``* = 1).
+In the WMO case, the distribution used depends on the number of categories used.
 
 .. _tab-itd:
 
-.. table:: Table 2 
+.. table:: Lower Boundary Values
 
    +----------------+------------+---------+--------+--------+--------+
    | distribution   | original   | round   |           WMO            |
@@ -270,7 +269,11 @@ ice fraction, :math:`q a_i` is the average value over the grid cell.
 Thus for cesm or topo melt ponds, :math:`h_{pnd}` can be considered the
 actual pond depth, :math:`h_{pnd}a_{pnd}` is the mean pond depth over
 the sea ice, and :math:`h_{pnd}a_{pnd}a_i` is the mean pond depth over
-the grid cell. These quantities are illustrated in :ref:`fig-tracers`.
+the grid cell. These quantities are illustrated in Figure :ref:`fig-tracers`.
+The graphic on the right illustrates the *grid cell* fraction of ponds or
+level ice as defined by the tracers. The chart on the left provides
+corresponding ice thickness and pond depth averages over the grid cell,
+sea ice and pond area fractions.
 
 .. _fig-tracers:
 
@@ -278,9 +281,9 @@ the grid cell. These quantities are illustrated in :ref:`fig-tracers`.
    :align: center
    :scale: 50%  
 
-   Figure 1
+   Melt pond tracer definitions
 
-:ref:`fig-tracers` : Melt pond tracer definitions. The graphic on the right
+The right graphic on Figure :ref:`fig-tracers` 
 illustrates the *grid cell* fraction of ponds or level ice as defined
 by the tracers. The chart on the left provides corresponding ice
 thickness and pond depth averages over the grid cell, sea ice and
@@ -1106,9 +1109,9 @@ edge.
    :align: center
    :scale: 20%
  
-   Figure 2
+   Departure Region
 
-:ref:`fig-deparr` : In incremental remapping, conserved quantities are
+Figure :ref:`fig-deparr` shows that in incremental remapping, conserved quantities are
 remapped from the shaded departure region, a quadrilateral formed by
 connecting the backward trajectories from the four cell corners, to
 the grid cell labeled :math:`H`. The region fluxed across the north
@@ -1117,7 +1120,7 @@ edge of cell :math:`H` consists of a triangle (:math:`abc`) in the
 :math:`ade`) in the :math:`N` cell.
 
 
-:ref:`fig-triangles`, reproduced from :cite:`DB00`, shows
+Figure :ref:`fig-triangles`, reproduced from :cite:`DB00`, shows
 all possible triangles that can contribute fluxes across the north edge
 of a grid cell. There are 20 triangles, which can be organized into five
 groups of four mutually exclusive triangles as shown in
@@ -1136,28 +1139,23 @@ rotation through 90 degrees.
    :align: center
    :scale: 20%
 
-   Figure 3
+   Triangles
 
-:ref:`fig-triangles` : The 20 possible triangles that can contribute fluxes
-across the north edge of a grid cell.
-
-:ref:`tab-triangle` : *Evaluation of contributions from the 20
-triangles across the north cell edge. The coordinates* :math:`x_1`,
-:math:`x_2`, :math:`y_1`, :math:`y_2`, :math:`y_a`, *and* :math:`y_b` *are
-defined in the text. We define* :math:`\tilde{y}_1 =
-y_1` *if* :math:`x_1>0`, *else* :math:`\tilde{y}_1 = y_a`. *Similarly,*
+Table :ref:`tab-triangle` show the evaluation of contributions from the 20
+triangles across the north cell edge. The coordinates :math:`x_1`,
+:math:`x_2`, :math:`y_1`, :math:`y_2`, :math:`y_a`, and :math:`y_b` are
+defined in the text. We define :math:`\tilde{y}_1 =
+y_1` if :math:`x_1>0`, else :math:`\tilde{y}_1 = y_a`. Similarly,
 :math:`\tilde{y}_2
-= y_2` if :math:`x_2<0`, *else* :math:`\tilde{y}_2 = y_b`.
+= y_2` if :math:`x_2<0`, else :math:`\tilde{y}_2 = y_b`.
 
 .. _tab-triangle:
 
-.. table:: Table 3 
+.. table:: Triangular Contributions
 
    +------------+------------+--------------------------------------------------------+----+
-   | Triangle   | Triangle   | Selecting logical                                      |    |
-   +------------+------------+--------------------------------------------------------+----+
-   | group      | label      | condition                                              |    |
-   +------------+------------+--------------------------------------------------------+----+
+   | Triangle   | Triangle   | Selecting logical condition                            |    |
+   | group      | label      |                                                        |    |
    +------------+------------+--------------------------------------------------------+----+
    | 1          | NW         | :math:`y_a>0` and :math:`y_1\geq0` and :math:`x_1<0`   |    |
    +------------+------------+--------------------------------------------------------+----+
@@ -1434,12 +1432,14 @@ vertical direction:
 
 .. math::
    m{\partial {\bf u}\over\partial t} = \nabla\cdot{\bf \sigma}
-   + \vec{\tau}_a+\vec{\tau}_w - \hat{k}\times mf{\bf u} - mg\nabla H_\circ,
+   + \vec{\tau}_a+\vec{\tau}_w + \vec{\tau}_b - \hat{k}\times mf{\bf u} - mg\nabla H_\circ,
    :label: vpmom
 
 where :math:`m` is the combined mass of ice and snow per unit area and
 :math:`\vec{\tau}_a` and :math:`\vec{\tau}_w` are wind and ocean
-stresses, respectively. The strength of the ice is represented by the
+stresses, respectively. The term :math:`\vec{\tau}_b` is a 
+seabed stress (also referred to as basal stress) that represents the grounding of pressure
+ridges in shallow water :cite:`Lemieux2016`. The strength of the ice is represented by the
 internal stress tensor :math:`\sigma_{ij}`, and the other two terms on
 the right hand side are stresses due to Coriolis effects and the sea
 surface slope. The parameterization for the wind and ice–ocean stress
@@ -1457,20 +1457,21 @@ EVP approach. First, for clarity, the two components of Equation :eq:`vpmom` are
    m{\partial u\over\partial t} &=& {\partial\sigma_{1j}\over\partial x_j} + \tau_{ax} + 
      a_i c_w \rho_w
      \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\cos\theta - \left(V_w-v\right)\sin\theta\right]
-     +mfv - mg{\partial H_\circ\over\partial x}, \\
+     -C_bu +mfv - mg{\partial H_\circ\over\partial x}, \\
    m{\partial v\over\partial t} &=& {\partial\sigma_{2j}\over\partial x_j} + \tau_{ay} + 
      a_i c_w \rho_w
      \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\sin\theta - \left(V_w-v\right)\cos\theta\right]
-     -mfu - mg{\partial H_\circ\over\partial y}. \end{aligned}
+     -C_bv-mfu - mg{\partial H_\circ\over\partial y}. \end{aligned}
 
 In the code,
-:math:`{\tt vrel}=a_i c_w \rho_w\left|{\bf U}_w - {\bf u}^k\right|`,
+:math:`{\tt vrel}=a_i c_w \rho_w\left|{\bf U}_w - {\bf u}^k\right|` and 
+:math:`C_b=T_b \left( \sqrt{(u^k)^2+(v^k)^2}+u_0 \right)`, 
 where :math:`k` denotes the subcycling step. The following equations
 illustrate the time discretization and define some of the other
 variables used in the code.
 
 .. math::
-   \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca} u^{k+1} 
+   \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\ + C_b \right)}_{\tt cca} u^{k+1} 
    - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{k+1}
     =  \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx} 
     + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex}
@@ -1479,7 +1480,7 @@ variables used in the code.
 
 .. math::
     \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{k+1} 
-   + \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\right)}_{\tt cca}v^{k+1}
+   + \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca}v^{k+1}
     =  \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty} 
     + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey}
      + {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t_e}v^k,
@@ -1502,8 +1503,8 @@ where :math:`{\bf F} = \nabla\cdot\sigma^{k+1}`. Then
 
 .. math::
    \begin{aligned}
-   \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\right)u^{k+1} - \left(mf + {\tt vrel}\sin\theta\right) v^{k+1} &=& \hat{u}  \\
-   \left(mf + {\tt vrel}\sin\theta\right) u^{k+1} + \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\right)v^{k+1} &=& \hat{v}.\end{aligned}
+   \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\ + C_b \right)u^{k+1} - \left(mf + {\tt vrel}\sin\theta\right) v^{k+1} &=& \hat{u}  \\
+   \left(mf + {\tt vrel}\sin\theta\right) u^{k+1} + \left({m\over\Delta t_e} +{\tt vrel}\cos\theta + C_b \right)v^{k+1} &=& \hat{v}.\end{aligned}
 
 Solving simultaneously for :math:`u^{k+1}` and :math:`v^{k+1}`,
 
@@ -1515,7 +1516,7 @@ Solving simultaneously for :math:`u^{k+1}` and :math:`v^{k+1}`,
 where
 
 .. math::
-   a = {m\over\Delta t_e} + {\tt vrel}\cos\theta \\
+   a = {m\over\Delta t_e} + {\tt vrel}\cos\theta + C_b \\
    :label: cevpa
 
 .. math::
@@ -1530,6 +1531,46 @@ The Hibler-Bryan form for the ice-ocean stress :cite:`HB87`
 is included in **ice\_dyn\_shared.F90** but is currently commented out,
 pending further testing.
 
+.. _seabed-stress:
+
+***************
+Seabed stress
+***************
+
+The parameterization for the seabed stress is described in :cite:`Lemieux2016`. The components of the basal seabed stress are 
+:math:`\tau_{bx}=C_bu` and :math:`\tau_{by}=C_bv`, where :math:`C_b` is a coefficient expressed as
+
+.. math::
+   C_b= k_2 \max [0,(h_u - h_{cu})]  e^{-\alpha_b * (1 - a_u)} (\sqrt{u^2+v^2}+u_0)^{-1}, \\
+   :label: Cb 
+
+where :math:`k_2` determines the maximum seabed stress that can be sustained by the grounded parameterized ridge(s), :math:`u_0` 
+is a small residual velocity and :math:`\alpha_b=20` is a parameter to ensure that the seabed stress quickly drops when 
+the ice concentration is smaller than 1. In the code, :math:`k_2 \max [0,(h_u - h_{cu})]  e^{-\alpha_b * (1 - a_u)}` is defined as 
+:math:`T_b`. The quantities :math:`h_u`, :math:`a_{u}` and :math:`h_{cu}` are calculated at 
+the 'u' point based on local ice conditions (surrounding tracer points). They are respectively given by 
+
+.. math::
+   h_u=\max[v_i(i,j),v_i(i+1,j),v_i(i,j+1),v_i(i+1,j+1)], \\
+   :label: hu 
+   
+.. math::
+   a_u=\max[a_i(i,j),a_i(i+1,j),a_i(i,j+1),a_i(i+1,j+1)]. \\
+   :label: au      
+   
+.. math::
+   h_{cu}=a_u h_{wu} / k_1, \\
+   :label: hcu
+
+where the :math:`a_i` and :math:`v_i` are the total ice concentrations and ice volumes around the :math:`u` point :math:`i,j` and 
+:math:`k_1` is a parameter that defines the critical ice thickness :math:`h_{cu}` at which the parameterized 
+ridge(s) reaches the seafloor for a water depth :math:`h_{wu}=\min[h_w(i,j),h_w(i+1,j),h_w(i,j+1),h_w(i+1,j+1)]`.
+
+Given the formulation of :math:`C_b` in equation :eq:`Cb`, the seabed stress components are non-zero only when :math:`h_u > h_{cu}`, which means
+that the parameterized ridge is thick enough to reach the seafloor. The maximum seabed stress depends on the weigth of the ridge 
+above hydrostatic balance and the value of :math:`k_2`. Note that the user must provide a bathymetry field for using this grounding 
+scheme.
+   
 .. _internal-stress:
 
 ***************
@@ -1542,14 +1583,21 @@ terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
 divergence, :math:`D_D`, and the horizontal tension and shearing
 strain rates, :math:`D_T` and :math:`D_S` respectively.
 
+CICE now outputs the internal ice pressure which is an important field to support navigation in ice-infested water.
+The internal ice pressure :math:`(sigP)` is the average of the normal stresses multiplied by :math:`-1` and 
+is therefore simply equal to :math:`-\sigma_1/2`.
+
 *Elastic-Viscous-Plastic*
 
 In the EVP model the internal stress tensor is determined from a
-regularized version of the VP constitutive law,
+regularized version of the VP constitutive law. Following the approach of :cite:`KH2010` (see also :cite:`Lemieux2016`), the 
+elliptical yield curve can be modified such that the ice has isotropic tensile strength. 
+The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P` 
+where :math:`k_t` should be set to a value between 0 and 1. The constitutive law is therefore 
 
 .. math::
    {1\over E}{\partial\sigma_1\over\partial t} + {\sigma_1\over 2\zeta} 
-     + {P\over 2\zeta} = D_D, \\
+     + {P_R(1-k_t)\over 2\zeta} = D_D, \\
    :label: sig1 
 
 .. math::
@@ -1576,19 +1624,19 @@ where
    \dot{\epsilon}_{ij} = {1\over 2}\left({{\partial u_i}\over{\partial x_j}} + {{\partial u_j}\over{\partial x_i}}\right), 
 
 .. math::
-   \zeta = {P\over 2\Delta}, 
+   \zeta = {P(1+k_t)\over 2\Delta}, 
 
 .. math::
-   \eta  = {P\over {2\Delta e^2}}, 
+   \eta  = {P(1+k_t)\over {2\Delta e^2}}, 
 
 .. math::
    \Delta = \left[D_D^2 + {1\over e^2}\left(D_T^2 + D_S^2\right)\right]^{1/2},
 
-and :math:`P` is a function of the ice thickness and concentration,
-described in Section :ref:`mech-red`. The dynamics component
-employs a “replacement pressure” (see :cite:`GHA98`, for
+and :math:`P_R` is a “replacement pressure” (see :cite:`GHA98`, for
 example), which serves to prevent residual ice motion due to spatial
-variations of :math:`P` when the rates of strain are exactly zero.
+variations of :math:`P` when the rates of strain are exactly zero. The ice strength :math:`P` 
+is a function of the ice thickness and concentration
+as it is described in Section :ref:`mech-red`.
 
 Viscosities are updated during the subcycling, so that the entire
 dynamics component is subcycled within the time step, and the elastic
@@ -1605,15 +1653,14 @@ become
 .. math::
    \begin{aligned}
    {\partial\sigma_1\over\partial t} + {\sigma_1\over 2T} 
-     + {P\over 2T} &=& {P\over 2T\Delta} D_D, \\
-   {\partial\sigma_2\over\partial t} + {e^2\sigma_2\over 2T} &=& {P\over
+     + {P_R(1-k_t)\over 2T} &=& {P(1+k_t)\over 2T\Delta} D_D, \\
+   {\partial\sigma_2\over\partial t} + {e^2\sigma_2\over 2T} &=& {P(1+k_t)\over
      2T\Delta} D_T,\\
    {\partial\sigma_{12}\over\partial t} + {e^2\sigma_{12}\over  2T} &=&
-     {P\over 4T\Delta}D_S.\end{aligned}
+     {P(1+k_t)\over 4T\Delta}D_S.\end{aligned}
 
 All coefficients on the left-hand side are constant except for
-:math:`P`, which changes only on the longer time step :math:`\Delta t`.
-This modification compensates for the decreased efficiency of including
+:math:`P_R`. This modification compensates for the decreased efficiency of including
 the viscosity terms in the subcycling. (Note that the viscosities do not
 appear explicitly.) Choices of the parameters used to define :math:`E`,
 :math:`T` and :math:`\Delta t_e` are discussed in
@@ -1696,9 +1743,9 @@ effect balances to zero.
    :align: center
    :scale: 15%
 
-   Figure 5
+   Diamond-shaped floes
 
-:ref:`fig-EAP` : Geometry of interlocking diamond-shaped floes (taken from
+Figure :ref:`fig-EAP` shows geometry of interlocking diamond-shaped floes (taken from
 :cite:`WF06`). :math:`\phi` is half of the acute angle
 of the diamonds. :math:`L` is the edge length.
 :math:`\boldsymbol n_{1}`, :math:`\boldsymbol n_{2}` and
@@ -2105,9 +2152,11 @@ valid with :math:`\eta_R` redefined as :math:`H_C - H_L`. And if
 and :math:`H_C`. In this case, :eq:`g0` and :eq:`g1` apply with
 :math:`\eta_R = H_R - H_C` and :math:`\eta_n = h_n - H_C`.
 
-:ref:`fig-gplot` illustrates the linear reconstruction of :math:`g`
-for the simple cases :math:`H_L = 0`, :math:`H_R = 1`, :math:`a_n = 1`,
-and :math:`h_n =` 0.2, 0.4, 0.6, and 0.8. Note that :math:`g` slopes
+Figure :ref:`fig-gplot` illustrates the linear reconstruction of the thickness
+distribution function :math:`g`
+for the simple cases with left boundary :math:`H_L = 0`, 
+right boundary :math:`H_R = 1`, fractional area :math:`a_n = 1`,
+and mean ice thickness :math:`h_n =` 0.2, 0.4, 0.6, and 0.8. Note that :math:`g` slopes
 downward (:math:`g_1 < 0`) when :math:`h_n` is less than the midpoint
 thickness, :math:`(H_L + H_R)/2 = 1/2`, and upward when :math:`h_n`
 exceeds the midpoint thickness. For :math:`h_n = 0.2` and 0.8,
@@ -2119,12 +2168,7 @@ exceeds the midpoint thickness. For :math:`h_n = 0.2` and 0.8,
    :align: center
    :scale: 20%
 
-   Figure 4
-
-:ref:`fig-gplot` : Linear approximation of the thickness distribution
-function :math:`g(h)` for an ice category with left boundary
-:math:`H_L = 0`, right boundary :math:`H_R = 1`, fractional area
-:math:`a_n = 1`, and mean ice thickness :math:`h_n = 0.2, 0.4, 0.6,` and :math:`0.8`.
+   Thickness distribution function
 
 Finally, we remap the thickness distribution to the original boundaries
 by transferring area and volume between categories. We compute the ice
@@ -2630,9 +2674,9 @@ hydrostatic equilibrium.
    :align: center
    :scale: 75%
 
-   Figure 6
+   Ponding
 
-:ref:`fig-topo` : (a) Schematic illustration of the relationship between the
+Figure :ref:`fig-topo` shows (a) Schematic illustration of the relationship between the
 height of the pond surface :math:`h_{pnd,tot}`, the volume of water
 :math:`V_{Pk}` required to completely fill up to category :math:`k`, the
 volume of water :math:`V_{P} - V_{Pk}`, and the depth to which this
@@ -3223,9 +3267,13 @@ albedos, where the fractional snow-covered area is
 .. math:: 
    f_{snow} = \frac{h_s}{h_s + h_{snowpatch}},
 
-and :math:`h_{snowpatch} = 0.02 \ {\mathrm m}`. The envelope
-of albedo values is shown in :ref:`fig-albedo`. This albedo
-formulation incorporates the effects of melt ponds implicitly; the
+and :math:`h_{snowpatch} = 0.02 \ {\mathrm m}`. Figure
+:ref:`fig-albedo` shows the envelope of possible albedo values
+as a function of ice thickness and temperature,
+for the two extrema in snow depth, for the default (CCSM3) shortwave
+option. Maximum snow depth is computed based on Archimedes’ Principle
+for the given ice thickness.  This albedo formulation incorporates 
+the effects of melt ponds implicitly; the
 explicit melt pond parameterization is not used in this case.
 
 .. _fig-albedo:
@@ -3234,13 +3282,7 @@ explicit melt pond parameterization is not used in this case.
    :align: center
    :scale: 20%
  
-   Figure 7
-
-:ref:`fig-albedo` : Albedo as a function of ice thickness and temperature,
-for the two extrema in snow depth, for the default (CCSM3) shortwave
-option. Maximum snow depth is computed based on Archimedes’ Principle
-for the given ice thickness. These curves represent the envelope of
-possible albedo values. 
+   Albedo
 
 The net absorbed shortwave flux is :math:`F_{swabs} = \sum
 (1-\alpha_j) F_{sw\downarrow}`, where the summation is over four

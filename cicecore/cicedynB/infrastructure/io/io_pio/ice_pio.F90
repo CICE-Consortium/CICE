@@ -64,7 +64,7 @@
    logical :: lcdf64
    integer :: status
    integer :: nmode
-   character(*),parameter :: subName = '(ice_pio_wopen) '
+   character(len=*), parameter :: subname = '(ice_pio_init)'
    logical, save :: first_call = .true.
 
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
@@ -118,7 +118,7 @@
             if(my_task==master_task) then
                write(nu_diag,*) 'ice_pio_ropen ERROR: file invalid ',trim(filename)
             end if
-            call abort_ice('aborting in ice-pio_ropen with invalid file')
+            call abort_ice(subname//'ERROR: aborting with invalid file')
          endif
       end if
 
@@ -138,6 +138,7 @@
       type(block) :: this_block 
 
       integer(kind=int_kind), pointer :: dof2d(:)
+      character(len=*), parameter :: subname = '(ice_pio_initdecomp_2d)'
 
       allocate(dof2d(nx_block*ny_block*nblocks))
 
@@ -185,6 +186,7 @@
       type(block) :: this_block 
       logical :: lremap
       integer(kind=int_kind), pointer :: dof3d(:)
+      character(len=*), parameter :: subname = '(ice_pio_initdecomp_2d)'
 
       allocate(dof3d(nx_block*ny_block*nblocks*ndim3))
       lremap=.false.
@@ -264,6 +266,8 @@
 
       integer(kind=int_kind), pointer :: dof3d(:)
 
+      character(len=*), parameter :: subname = '(ice_pio_initdecomp_3d_inner)'
+
       allocate(dof3d(nx_block*ny_block*nblocks*ndim3))
 
       n=0
@@ -299,6 +303,8 @@
 
    end subroutine ice_pio_initdecomp_3d_inner
 
+!================================================================================
+
    subroutine ice_pio_initdecomp_4d (ndim3, ndim4, iodesc)
 
       integer(kind=int_kind), intent(in) :: ndim3, ndim4
@@ -310,6 +316,8 @@
       type(block) :: this_block 
 
       integer(kind=int_kind), pointer :: dof4d(:)
+
+      character(len=*), parameter :: subname = '(ice_pio_initdecomp_4d)'
 
       allocate(dof4d(nx_block*ny_block*nblocks*ndim3*ndim4))
 

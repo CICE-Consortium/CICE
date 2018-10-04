@@ -4,17 +4,32 @@
 echo "running cice.launch.csh"
 
 source ./cice.settings
+source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 set jobfile = $1
 
 set ntasks = ${ICE_NTASKS}
 set nthrds = ${ICE_NTHRDS}
+set maxtpn = ${ICE_MACHINE_TPNODE}
+
+@ ncores = ${ntasks} * ${nthrds}
+@ taskpernode = ${maxtpn} / $nthrds
+@ nnodes = ${ntasks} / ${taskpernode}
+if (${nnodes} * ${taskpernode} < ${ntasks}) @ nnodes = $nnodes + 1
+set taskpernodelimit = ${taskpernode}
+if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
+@ corespernode = ${taskpernodelimit} * ${nthrds}
 
 #==========================================
 
 if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFR
 mpiexec_mpt -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
+else if (${ICE_MACHINE} =~ hobart*) then
+cat >> ${jobfile} << EOFR
+mpiexec -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 else if (${ICE_MACHINE} =~ thunder*) then
@@ -24,12 +39,12 @@ EOFR
 
 else if (${ICE_MACHINE} =~ onyx*) then
 cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${ntasks} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
 cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${ntasks} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 else if (${ICE_MACHINE} =~ cori*) then

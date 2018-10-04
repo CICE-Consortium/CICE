@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restart_driver.F90 607 2013-03-29 15:49:42Z eclare $
 !=======================================================================
 
 ! Read and write ice model restart files
@@ -23,9 +22,8 @@
       use ice_constants, only: c0, c1, p5, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
-      use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr
+      use ice_restart_shared, only: restart_dir, pointer_file, &
+          runid, use_restart_time, lenstr
       use ice_restart
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
@@ -53,17 +51,16 @@
       subroutine dumpfile(filename_spec)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_calendar, only: sec, month, mday, nyr, istep1, &
-                              time, time_forc, year_init
-      use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
       use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, iceumask, coszen, &
+          strocnxT, strocnyT, sst, frzmlt, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_read_write, only: ice_open, ice_write
+#ifdef CESMCOUPLED
+      use ice_flux, only: coszen
+#endif
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel
 
       character(len=char_len_long), intent(in), optional :: filename_spec
@@ -71,11 +68,8 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-          i, j, k, n, iblk, &     ! counting indices
-          nt_Tsfc, nt_sice, nt_qice, nt_qsno, &
-          iyear, imonth, iday     ! year, month, day
-
-      character(len=char_len_long) :: filename
+          i, j, k, iblk, &     ! counting indices
+          nt_Tsfc, nt_sice, nt_qice, nt_qsno
 
       logical (kind=log_kind) :: diag
 
@@ -84,10 +78,12 @@
 
       character (len=3) :: nchar
 
+      character(len=*), parameter :: subname = '(dumpfile)'
+
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
            nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (present(filename_spec)) then
@@ -202,21 +198,21 @@
       subroutine restartfile (ice_ic)
 
       use ice_boundary, only: ice_HaloUpdate_stress
-      use ice_broadcast, only: broadcast_scalar
       use ice_blocks, only: nghost, nx_block, ny_block
-      use ice_calendar, only: istep0, istep1, time, time_forc, calendar, npt
+      use ice_calendar, only: istep0, npt
       use ice_communicate, only: my_task, master_task
-      use ice_domain, only: nblocks, distrb_info, halo_info
-      use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
+      use ice_domain, only: nblocks, halo_info
+      use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_ntrcr, max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, iceumask, coszen, &
+          strocnxT, strocnyT, sst, frzmlt, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_gather_scatter, only: scatter_global_stress
+#ifdef CESMCOUPLED
+      use ice_flux, only: coszen
+#endif
       use ice_grid, only: tmask, grid_type
-      use ice_read_write, only: ice_open, ice_read, ice_read_global
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           trcr_base, nt_strata, n_trcr_strata
@@ -226,15 +222,8 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, k, n, iblk, &     ! counting indices
-         nt_Tsfc, nt_sice, nt_qice, nt_qsno, &
-         iignore                 ! dummy variable
-
-      real (kind=real_kind) :: &
-         rignore                 ! dummy variable
-
-      character(len=char_len_long) :: &
-         filename, filename0
+         i, j, k, iblk, &     ! counting indices
+         nt_Tsfc, nt_sice, nt_qice, nt_qsno
 
       logical (kind=log_kind) :: &
          diag
@@ -242,15 +231,14 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
-      real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g1, work_g2
-
       character (len=3) :: nchar
+
+      character(len=*), parameter :: subname = '(restartfile)'
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
            nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call init_restart_read(ice_ic)
@@ -523,7 +511,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! if runid is bering then need to correct npt for istep0
@@ -583,10 +571,12 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1, work_g2
 
+      character(len=*), parameter :: subname = '(restartfile_v4)'
+
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
            nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (present(ice_ic)) then
@@ -878,7 +868,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! creates netcdf if restart_format = 'nc'

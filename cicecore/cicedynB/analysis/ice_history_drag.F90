@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_drag.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! 2013 module for form drag parameters
@@ -8,10 +7,9 @@
 
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm
-      use ice_constants, only: c0, c1, c100, mps_to_cmpdy
+      use ice_constants, only: c0, c1
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
-      use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -68,6 +66,7 @@
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      character(len=*), parameter :: subname = '(init_hist_drag_2D)'
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -92,7 +91,7 @@
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
          close (nu_nml)
-         call abort_ice('ice: error reading icefields_drag_nml')
+         call abort_ice(subname//'ERROR: reading icefields_drag_nml')
       endif
 
       call broadcast_scalar (f_Cdn_atm, master_task)
@@ -229,8 +228,7 @@
 
       subroutine accum_hist_drag (iblk)
 
-      use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
-          accum_hist_field
+      use ice_history_shared, only: a2D, accum_hist_field
       use ice_arrays_column, only: hfreebd, hdraft, hridge, distrdg, hkeel, &
           dkeel, lfloe, dfloe, Cdn_atm, Cdn_atm_skin, Cdn_atm_floe, &
           Cdn_atm_pond, Cdn_atm_rdg, Cdn_atm_ratio, Cdn_ocn_skin, &
@@ -238,6 +236,7 @@
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
+      character(len=*), parameter :: subname = '(accum_hist_drag)'
 
       !---------------------------------------------------------------
       ! increment field

@@ -1,4 +1,3 @@
-!  SVN:$Id: CICE.F90 1229 2017-05-24 02:22:58Z eclare $
 !=======================================================================
 ! Copyright (c) 2017, Los Alamos National Security, LLC 
 ! All rights reserved.
@@ -36,6 +35,7 @@
       use CICE_FinalMod
 
       implicit none
+      character(len=*), parameter :: subname='(icemodel)'
 
       !-----------------------------------------------------------------
       ! Initialize CICE
@@ -72,7 +72,6 @@
       use ice_calendar, only: istep1
       use ice_communicate, only: my_task
       use ice_diagnostics, only: check_step, iblkp, ip, jp, mtask, print_state
-      use ice_domain, only: nblocks
       use ice_blocks, only: nx_block, ny_block
 
       character (char_len), intent(in) :: plabeld
@@ -80,6 +79,7 @@
 
       ! local 
       integer (kind=int_kind) :: i, j
+      character(len=*), parameter :: subname='(debug_ice)'
 
       if (istep1 >= check_step .and. &
           iblk==iblkp .and. my_task==mtask) then

@@ -6,8 +6,13 @@
 
 - Are the code changes bit for bit, different at roundoff level, or more substantial?
 
+- Please include the link to test results or paste the summary block from the bottom of the testing output below.
+
+- Does this PR create or have dependencies on Icepack or any other models? 
+
 - Is the documentation being updated with this PR? (Y/N)
 If not, does the documentation need to be updated separately at a later time? (Y/N)
+
 Note: "Documentation" includes information on the wiki and .rst files in doc/source/, 
 which are used to create the online technical docs at https://readthedocs.org/projects/cice-consortium-cice/.
 

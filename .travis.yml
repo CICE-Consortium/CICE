@@ -31,7 +31,7 @@ install:
 script:
   - "./cice.setup --suite travis_suite --testid travisCItest
     --mach travisCI --env gnu;
-    cd travis_suite.travisCItest &&
+    cd testsuite.travisCItest &&
     ./results.csh"
 
 notifications:

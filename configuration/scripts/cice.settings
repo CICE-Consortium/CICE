@@ -13,22 +13,19 @@ setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
 setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
 setenv ICE_LOGDIR     ${ICE_CASEDIR}/logs
 setenv ICE_DRVOPT     cice
-setenv ICE_CONSTOPT   cice
 setenv ICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
 setenv ICE_CLEANBUILD true
 setenv ICE_QUIETMODE  false
-setenv ICE_GRID       gx3
-setenv ICE_NXGLOB     100
-setenv ICE_NYGLOB     116
-setenv ICE_NTASKS     4
-setenv ICE_NTHRDS     1
-setenv ICE_BLCKX      25
-setenv ICE_BLCKY      29
-setenv ICE_MXBLCKS    4
-setenv ICE_DECOMP     cartesian
-setenv ICE_DSHAPE     slenderX2
-setenv ICE_TEST       undefined   # Define if this is a test case
-setenv ICE_TESTNAME   undefined   # Define if this is a test case
+setenv ICE_GRID       undefined
+#setenv ICE_NXGLOB     undefined  # moved to namelist
+#setenv ICE_NYGLOB     undefined  # moved to namelist
+setenv ICE_NTASKS     undefined
+setenv ICE_NTHRDS     undefined
+#setenv ICE_BLCKX      undefined  # moved to namelist
+#setenv ICE_BLCKY      undefined  # moved to namelist
+#setenv ICE_MXBLCKS    undefined  # moved to namelist
+setenv ICE_TEST       undefined
+setenv ICE_TESTNAME   undefined
 setenv ICE_BASELINE   undefined
 setenv ICE_BASEGEN    undefined
 setenv ICE_BASECOM    undefined
@@ -36,6 +33,7 @@ setenv ICE_BFBCOMP    undefined
 setenv ICE_SPVAL      undefined
 setenv ICE_RUNLENGTH  0
 setenv ICE_ACCOUNT    undefined
+setenv ICE_QUEUE      undefined
 
 #======================================================
 

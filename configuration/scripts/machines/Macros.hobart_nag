@@ -1,0 +1,49 @@
+#==============================================================================
+# Makefile macros for NCAR hobart, NAG compiler
+#==============================================================================
+
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_CRAY_POINTERS -DNO_SHR_VMATH -DCPRNAG $(ICE_CPPDEFS)
+CFLAGS     := -std=gnu99
+
+FIXEDFLAGS := -fixed
+FREEFLAGS  := -free
+FFLAGS     := -Wp,-macro=no_com -convert=BIG_ENDIAN -ieee=full -O2 -wmismatch=mpi_bcast,mpi_isend,mpi_irecv,mpi_send,mpi_recv,mpi_allreduce -gline
+
+FFLAGS_NOOPT:= -Wp,-macro=no_com -convert=BIG_ENDIAN -ieee=full -wmismatch=mpi_bcast,mpi_isend,mpi_irecv,mpi_send,mpi_recv,mpi_allreduce -gline
+FC_AUTO_R8 := -r8
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS   := -Wp,-macro=no_com -convert=BIG_ENDIAN -wmismatch=mpi_bcast,mpi_isend,mpi_irecv,mpi_send,mpi_recv,mpi_allreduce -gline -C=all -g -time -f2003 -ieee=stop
+endif
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC         := mpif90
+else
+  FC         := nagfor
+endif
+
+MPICC:= mpicc
+
+MPIFC:= mpif90
+LD:= $(MPIFC)
+
+INCLDIR := -I$(NETCDF_PATH)/include -I$(MPI_PATH)/include
+
+LIB_NETCDF := $(NETCDF_PATH)/lib
+LIB_PNETCDF := $(PNETCDF_PATH)/lib
+LIB_MPI := $(IMPILIBDIR)
+
+SLIBS   := -L/usr/local/nag-6.2/lib/NAG_Fortran -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L/usr/lib64 -llapack -lblas
+
+SCC:= nagcc 
+
+SFC:= nagfor
+
+## if using parallel I/O, load all 3 libraries.  PIO must be first!
+ifeq ($(IO_TYPE), pio)
+   PIO_PATH:=
+   INCLDIR += -I
+   SLIBS   := $(SLIB) -L$(PIO_PATH) -lpiof
+endif

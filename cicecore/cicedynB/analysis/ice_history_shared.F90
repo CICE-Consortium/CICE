@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_shared.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Output files: netCDF or binary data, Fortran unformatted dumps
@@ -25,7 +24,6 @@
       module ice_history_shared
 
       use ice_kinds_mod
-      use ice_fileunits, only: nu_diag,ice_stderr
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, max_nstrm
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -237,6 +235,58 @@
            f_mlt_onset = 'm', f_frz_onset  = 'm', &
            f_iage      = 'm', f_FY         = 'm', &
            f_hisnap    = 'm', f_aisnap     = 'm', &
+           f_CMIP = 'x', &
+           f_sithick   = 'x', f_sisnthick  = 'x', &
+           f_siage      = 'x', &
+           f_sitemptop = 'x', f_sitempsnic = 'x', &
+           f_sitempbot = 'x', f_sispeed    = 'x', &
+           f_siu       = 'x', f_siv        = 'x', &
+           f_sidmasstranx = 'x', f_sidmasstrany = 'x', &
+           f_sistrxdtop = 'x', f_sistrydtop = 'x', &
+           f_sistrxubot = 'x', f_sistryubot = 'x', &
+           f_sicompstren = 'x', &
+           f_sialb     = 'x', &
+           f_sihc      = 'x', f_sisnhc     = 'x', &
+           f_sidconcth = 'x', f_sidconcdyn = 'x', &
+           f_sidmassth = 'x', f_sidmassdyn = 'x', &
+           f_sidmassgrowthwat = 'x', &
+           f_sidmassgrowthbot = 'x', &
+           f_sidmasssi = 'x', &
+           f_sidmassevapsubl = 'x', &
+           f_sndmasssubl = 'x', &
+           f_sidmassmelttop = 'x', &
+           f_sidmassmeltbot = 'x', &
+           f_sidmasslat = 'x', &
+           f_sndmasssnf = 'x', &
+           f_sndmassmelt = 'x', &
+           f_siflswdtop = 'x', &
+           f_siflswutop = 'x', &
+           f_siflswdbot = 'x', &
+           f_sifllwdtop = 'x', &
+           f_sifllwutop = 'x', &
+           f_siflsenstop = 'x', &
+           f_siflsensupbot = 'x', &
+           f_sifllatstop = 'x', &
+           f_siflcondtop = 'x', &
+           f_siflcondbot = 'x', &
+           f_sipr = 'x', &
+           f_sifb = 'x', &
+           f_siflsaltbot = 'x', &
+           f_siflfwbot = 'x', &
+           f_siflfwdrain = 'x', &
+           f_siforcetiltx = 'x', &
+           f_siforcetilty = 'x', &
+           f_siforcecoriolx = 'x', &
+           f_siforcecorioly = 'x', &
+           f_siforceintstrx = 'x', &
+           f_siforceintstry = 'x', &
+           f_siitdconc = 'x', &
+           f_siitdthick = 'x', &
+           f_siitdsnthick = 'x', &
+           f_sidragtop = 'x', &
+           f_sirdgthick = 'x', &
+           f_sistreave = 'x', &
+           f_sistremax = 'x', &
            f_aicen     = 'x', f_vicen      = 'x', &
            f_vsnon     = 'x', &
            f_trsig     = 'm', f_icepresent = 'm', &
@@ -325,6 +375,58 @@
            f_mlt_onset, f_frz_onset, &
            f_iage,      f_FY       , &
            f_hisnap,    f_aisnap   , &
+           f_CMIP, &
+           f_sithick,   f_sisnthick, &
+           f_siage,     &
+           f_sitemptop, f_sitempsnic,&
+           f_sitempbot, f_sispeed,   &
+           f_siu,       f_siv,       &
+           f_sidmasstranx, f_sidmasstrany, &
+           f_sistrxdtop, f_sistrydtop, &
+           f_sistrxubot, f_sistryubot, &
+           f_sicompstren, &
+           f_sialb, &
+           f_sihc,      f_sisnhc,    &
+           f_sidconcth, f_sidconcdyn,&
+           f_sidmassth, f_sidmassdyn,&
+           f_sidmassgrowthwat, &
+           f_sidmassgrowthbot, &
+           f_sidmasssi, &
+           f_sidmassevapsubl, &
+           f_sndmasssubl, &
+           f_sidmassmelttop, &
+           f_sidmassmeltbot, &
+           f_sidmasslat, &
+           f_sndmasssnf, &
+           f_sndmassmelt, &
+           f_siflswdtop, &
+           f_siflswutop, &
+           f_siflswdbot, &
+           f_sifllwdtop, &
+           f_sifllwutop, &
+           f_siflsenstop, &
+           f_siflsensupbot, &
+           f_sifllatstop, &
+           f_siflcondtop, &
+           f_siflcondbot, &
+           f_sipr, &
+           f_sifb, &
+           f_siflsaltbot, &
+           f_siflfwbot, &
+           f_siflfwdrain, &
+           f_siforcetiltx, &
+           f_siforcetilty, &
+           f_siforcecoriolx, &
+           f_siforcecorioly, &
+           f_siforceintstrx, &
+           f_siforceintstry, &
+           f_siitdconc, &
+           f_siitdthick, &
+           f_siitdsnthick, &
+           f_sidragtop, &
+           f_sirdgthick, &
+           f_sistreave, &
+           f_sistremax, &
            f_aicen,     f_vicen    , &
            f_vsnon,     &
            f_trsig,     f_icepresent,&
@@ -430,6 +532,57 @@
            n_dagedtt    , n_dagedtd    , &
            n_mlt_onset  , n_frz_onset  , &
            n_hisnap     , n_aisnap     , &
+           n_sithick    , n_sisnthick  , &
+           n_siage,       &
+           n_sitemptop  , n_sitempsnic , &
+           n_sitempbot  , n_sispeed,     &
+           n_siu,         n_siv,         &
+           n_sidmasstranx, n_sidmasstrany, &
+           n_sistrxdtop,  n_sistrydtop,  &
+           n_sistrxubot,  n_sistryubot,  &
+           n_sicompstren, &
+           n_sialb, &
+           n_sihc       , n_sisnhc,      &
+           n_sidconcth  , n_sidconcdyn,  &
+           n_sidmassth  , n_sidmassdyn,  &
+           n_sidmassgrowthwat,  &
+           n_sidmassgrowthbot,  &
+           n_sidmasssi,  &
+           n_sidmassevapsubl,  &
+           n_sndmasssubl,  &
+           n_sidmassmelttop,  &
+           n_sidmassmeltbot,  &
+           n_sidmasslat,  &
+           n_sndmasssnf,  &
+           n_sndmassmelt,  &
+           n_siflswdtop,  &
+           n_siflswutop,  &
+           n_siflswdbot,  &
+           n_sifllwdtop,  &
+           n_sifllwutop,  &
+           n_siflsenstop,  &
+           n_siflsensupbot,  &
+           n_sifllatstop,  &
+           n_siflcondtop,  &
+           n_siflcondbot,  &
+           n_sipr,  &
+           n_sifb,  &
+           n_siflsaltbot,  &
+           n_siflfwbot,  &
+           n_siflfwdrain,  &
+           n_siforcetiltx,  &
+           n_siforcetilty,  &
+           n_siforcecoriolx,  &
+           n_siforcecorioly,  &
+           n_siforceintstrx,  &
+           n_siforceintstry,  &
+           n_siitdconc, &
+           n_siitdthick, &
+           n_siitdsnthick, &
+           n_sidragtop, &
+           n_sirdgthick, &
+           n_sistreave, &
+           n_sistremax, &
            n_trsig      , n_icepresent , &
            n_iage       , n_FY         , &
            n_fsurf_ai   , &
@@ -466,7 +619,7 @@
 
       subroutine construct_filename(ncfile,suffix,ns)
 
-      use ice_calendar, only: time, sec, nyr, month, daymo,  &
+      use ice_calendar, only: sec, nyr, month, daymo,  &
                               mday, write_ic, histfreq, histfreq_n, &
                               year_init, new_year, new_month, new_day, &
                               dt
@@ -478,6 +631,7 @@
 
       integer (kind=int_kind) :: iyear, imonth, iday, isec
       character (len=1) :: cstream
+      character(len=*), parameter :: subname = '(construct_filename)'
 
         iyear = nyr + year_init - 1 ! set year_init=1 in ice_in to get iyear=nyr
         imonth = month
@@ -559,7 +713,7 @@
                                    vdesc, vcomment, cona, conb, &
                                    ns, vhistfreq)
 
-      use ice_calendar, only: histfreq, histfreq_n, nstreams
+      use ice_calendar, only: histfreq, histfreq_n
       use ice_domain_size, only: max_nstrm
 
       integer (int_kind), dimension(max_nstrm), intent(out) :: &
@@ -590,8 +744,10 @@
 
       character (len=40) :: stmp
 
+      character(len=*), parameter :: subname = '(define_hist_field)'
+
       if (histfreq(ns) == 'x') then
-         call abort_ice("define_hist_fields has histfreq x")
+         call abort_ice(subname//'ERROR: define_hist_fields has histfreq x')
       endif
 
       if (ns == 1) id(:) = 0
@@ -619,7 +775,7 @@
             endif
 
             if (num_avail_hist_fields_tot > max_avail_hist_fields) &
-               call abort_ice("Need to increase max_avail_hist_fields")
+               call abort_ice(subname//'ERROR: Need to increase max_avail_hist_fields')
 
             if (num_avail_hist_fields_tot /= &
                 num_avail_hist_fields_2D  + &
@@ -629,7 +785,7 @@
                 num_avail_hist_fields_3Da + &
                 num_avail_hist_fields_4Di + &
                 num_avail_hist_fields_4Ds) then 
-                call abort_ice("num_avail_hist_fields error")
+                call abort_ice(subname//'ERROR: num_avail_hist_fields error')
              endif
 
             id(ns) = num_avail_hist_fields_tot
@@ -685,6 +841,8 @@
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D)'
 
       !---------------------------------------------------------------
       ! increment field
@@ -747,6 +905,8 @@
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j,k, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_3D)'
 
       !---------------------------------------------------------------
       ! increment field
@@ -812,6 +972,8 @@
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j,k,n,ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_4D)'
 
       !---------------------------------------------------------------
       ! increment field
