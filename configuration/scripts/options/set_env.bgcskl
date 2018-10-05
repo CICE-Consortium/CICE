@@ -3,7 +3,7 @@ setenv NICELYR   7         # number of vertical layers in the ice
 setenv NSNWLYR   1         # number of vertical layers in the snow
 setenv NICECAT   5         # number of ice thickness categories
 
-### Tracers                # match ice_in tracer_nml to conserve memory
+### Tracers                # match icepack_in tracer_nml to conserve memory
 setenv TRAGE     1         # set to 1 for ice age tracer
 setenv TRFY      1         # set to 1 for first-year ice area tracer
 setenv TRLVL     1         # set to 1 for level and deformed ice tracers
@@ -14,12 +14,12 @@ setenv NTRAERO   0         # number of aerosol tracers
 setenv TRBRI     1         # set to 1 for brine height tracer
 setenv TRZS      0         # set to 1 for zsalinity tracer
                            # (needs TRBRI = 1)
-setenv TRBGCS    0         # set to 1 for skeletal layer tracers  
+setenv TRBGCS    1         # set to 1 for skeletal layer tracers  
                            # (needs TRBGCZ = 0) 
-setenv TRBGCZ    1         # set to 1 for zbgc tracers
+setenv TRBGCZ    0         # set to 1 for zbgc tracers
                            # (needs TRBGCS = 0 and TRBRI = 1)         
-setenv NBGCLYR   7         # number of zbgc layers 
-setenv TRZAERO   3         # number of z aerosol tracers 
+setenv NBGCLYR   1         # number of zbgc layers 
+setenv TRZAERO   0         # number of z aerosol tracers 
                            # (up to max_aero = 6)
 setenv TRALG     3         # number of algal tracers
                            # (up to max_algae = 3)
