@@ -743,8 +743,10 @@ History files
 
 Model output data is averaged over the period(s) given by `histfreq` and
 `histfreq\_n`, and written to binary or  files prepended by `history\_file`
-in **ice\_in**. That is, if `history\_file` = ‘iceh’ then the filenames
-will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
+in **ice\_in**. These settings for history files are set in the 
+**setup\_nml** section of **ice\_in** (see :ref:`tabnamelist`). 
+If `history\_file` = ‘iceh’ then the 
+filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
 depending on the output file format chosen in **comp\_ice** (set
 `IO\_TYPE`). The  history files are CF-compliant; header information for
 data contained in the  files is displayed with the command `ncdump -h
@@ -752,9 +754,10 @@ filename.nc`. Parallel  output is available using the PIO library; the
 attribute `io\_flavor` distinguishes output files written with PIO from
 those written with standard netCDF. With binary files, a separate header
 file is written with equivalent information. Standard fields are output
-according to settings in the **icefields\_nml** namelist in **ice\_in**.
+according to settings in the **icefields\_nml** section of **ice\_in** 
+(see :ref:`tabnamelist`).
 The user may add (or subtract) variables not already available in the
-namelist by following the instructions in section :ref:`addhist`.
+namelist by following the instructions in section :ref:`addhist`. 
 
 With this release, the history module has been divided into several
 modules based on the desired formatting and on the variables
@@ -779,7 +782,7 @@ with a given `histfreq` value, or if an element of `histfreq\_n` is 0, then
 no file will be written at that frequency. The output period can be
 discerned from the filenames.
 
-For example, in namelist:
+For example, in the namelist:
 
 ::
 
@@ -831,6 +834,19 @@ representing an average over the sea ice fraction of the grid cell, and
 another that is multiplied by :math:`a_i`, representing an average over
 the grid cell area. Our naming convention attaches the suffix “\_ai" to
 the grid-cell-mean variable names.
+
+In this version of CICE, history variables requested by the Sea Ice Model Intercomparison 
+Project (SIMIP) :cite:`NJHHMSTV16` have been added as possible history output variables (e.g. 
+`f_sithick`, `f_sidmassgrowthbottom`, etc.). The lists of
+`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
+`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
+requested  SIMIP variables provide the names of possible history fields in CICE. 
+However, each of the additional variables can be output at any temporal frequency 
+specified in the **icefields\_nml** section of **ice\_in** as detailed above.
+Additionally, a new history output variable, `f_CMIP`, has been added. When `f_CMIP`
+is added to the **icefields\_nml** section of **ice\_in** then all SIMIP variables
+will be turned on for output at the frequency specified by `f_CMIP`. 
+
 
 ****************
 Diagnostic files

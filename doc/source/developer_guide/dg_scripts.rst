@@ -29,7 +29,7 @@ The directory structure under configure/scripts is as follows.
 |        **parse_namelist.sh**     replaces namelist with command-line configuration
 |        **parse_namelist_from_settings.sh**   replaces namelist with values from cice.settings
 |        **parse_settings.sh**     replaces settings with command-line configuration
-|        **setup_run_dirs.csh      creates the case run directories
+|        **setup_run_dirs.csh**    creates the case run directories
 |        **set_version_number.csh** updates the model version number from the **cice.setup** command line
 |        **tests/**                scripts for configuring and running basic tests
 
@@ -51,7 +51,7 @@ The file **cice.settings** specifies a set of env defaults for the case.  The fi
 **ice_in** defines the namelist input for the cice driver.
 
 
-.. _dev_options:
+.. _dev_preset_options:
 
 Preset Case Options
 ---------------------
@@ -89,7 +89,7 @@ One other files will need to be
 changed to support a port, that is **configuration/scripts/cice.batch.csh**.
 To port to a new machine, see :ref:`porting`.  
 
-.. _dev_options:
+.. _dev_test_options:
 
 Test Options
 ---------------

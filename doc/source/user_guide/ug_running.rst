@@ -182,7 +182,9 @@ Some of the options are
 
 ``bgc*`` which turns of various bgc configurations
 
-and there are others.  These may change as needed.  Use ``cice.setup --help`` to see the latest.  To add a new option, just add the appropriate file in **configuration/scripts/options**.  For more information, see :ref:`dev_options`
+and there are others.  These may change as needed.  Use ``cice.setup --help`` to see the latest.  
+To add a new option, just add the appropriate file in **configuration/scripts/options**.  
+For more information, see :ref:`dev_test_options`
 
 Examples
 ~~~~~~~~~
