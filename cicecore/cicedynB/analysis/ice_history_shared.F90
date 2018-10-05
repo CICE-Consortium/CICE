@@ -56,7 +56,7 @@
       ! (1) Add to frequency flags (f_<field>)
       ! (2) Add to namelist (here and also in ice_in)
       ! (3) Add to index list
-      !     In init_hist:
+      !     In init_hist (in ice_history.F90):
       ! (4) Add define_hist_field call with vname, vdesc, vunit,
       !     and vcomment, vcellmeas, and conversion factor if necessary.
       ! (5) Add flag to broadcast list
@@ -384,7 +384,8 @@
            f_sithick,   f_sisnthick, &
            f_siage,     &
            f_sitemptop, f_sitempsnic,&
-           f_sitempbot, f_sispeed,   &
+           f_sitempbot, &
+           f_sispeed,   f_sidir,     &
            f_siu,       f_siv,       &
            f_sidmasstranx, f_sidmasstrany, &
            f_sistrxdtop, f_sistrydtop, &
