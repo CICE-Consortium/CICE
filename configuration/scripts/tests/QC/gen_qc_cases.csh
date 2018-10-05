@@ -12,6 +12,7 @@ set grid = ${spval}
 set pesx = ${spval}
 set queue = ${spval}
 set acct = ${spval}
+set testid = ${spval}
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -54,6 +55,7 @@ DESCRIPTION
     --acct     : account number for the batch submission
     --grid, -g : grid, grid
     --queue    : queue for the batch submission
+    --testid   : test ID, user-defined id for testing
 
 EXAMPLES
     gen_qc_cases.csh -m conrad -e intel -p 8x4
@@ -108,6 +110,8 @@ while (1)
     set pesx = $argv[1]
   else if ("$option" == "--acct") then
     set acct = $argv[1]
+  else if ("$option" == "--testid") then
+    set testid = $argv[1]
   else
     echo "${0}: ERROR unknown option $option, use -h for help"
     exit -1
@@ -150,19 +154,59 @@ endif
 
 # Generate the base case
 echo "Generating base case"
-set base_dir = `./cice.setup $options -s qc,long --testid qc_base | grep 'Test case dir' | awk '{print$NF}'`
+if ($testid != $spval) then
+  set result = `./cice.setup $options -s qc,long --testid qc_base_$testid | grep 'Test case dir\|already exists'`
+else
+  set result = `./cice.setup $options -s qc,long --testid qc_base | grep 'Test case dir\|already exists'`
+endif
+set base_dir = `echo "$result" | awk '{print$NF}'`
+if ($base_dir == "exists") then
+  # Case already exists.  Exit
+  echo "$result"
+  exit -1
+endif
 
 # Generate the BFB case
 echo "Generating bfb case"
-set bfb_dir = `./cice.setup $options -s qc,long --testid qc_bfb | grep 'Test case dir' | awk '{print$NF}'`
+if ($testid != $spval) then
+  set result = `./cice.setup $options -s qc,long --testid qc_bfb_$testid | grep 'Test case dir\|already exists'`
+else
+  set result = `./cice.setup $options -s qc,long --testid qc_bfb | grep 'Test case dir\|already exists'`
+endif
+set bfb_dir = `echo "$result" | awk '{print$NF}'`
+if ($bfb_dir == "exists") then
+  # Case already exists.  Exit
+  echo "$result"
+  exit -1
+endif
 
 # Generate the non-BFB but non-climate-changing case
 echo "Generating nonbfb case"
-set nonbfb_dir = `./cice.setup $options -s qc_nonbfb,long --testid qc_test | grep 'Test case dir' | awk '{print$NF}'`
+if ($testid != $spval) then
+  set result = `./cice.setup $options -s qc_nonbfb,long --testid qc_test_$testid | grep 'Test case dir\|already exists'`
+else
+  set result = `./cice.setup $options -s qc_nonbfb,long --testid qc_test | grep 'Test case dir\|already exists'`
+endif
+set nonbfb_dir = `echo "$result" | awk '{print$NF}'`
+if ($nonbfb_dir == "exists") then
+  # Case already exists.  Exit
+  echo "$result"
+  exit -1
+endif
 
 # Generate the non-BFB and climate changing case
 echo "Generating fail case"
-set fail_dir = `./cice.setup $options -s alt02,qc,long --testid qc_fail | grep 'Test case dir' | awk '{print$NF}'`
+if ($testid != $spval) then
+  set result = `./cice.setup $options -s alt02,qc,long --testid qc_fail_$testid | grep 'Test case dir\|already exists'`
+else
+  set result = `./cice.setup $options -s alt02,qc,long --testid qc_fail | grep 'Test case dir\|already exists'`
+endif
+set fail_dir = `echo "$result" | awk '{print$NF}'`
+if ($fail_dir == "exists") then
+  # Case already exists.  Exit
+  echo "$result"
+  exit -1
+endif
 
 #------------------------------------------------------------
 # Print case directories to file
