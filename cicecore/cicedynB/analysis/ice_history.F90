@@ -972,7 +972,7 @@
              "none", c1, c0,                              &
              ns1, f_aisnap)
       
-         call define_hist_field(n_trsig,"trsig","N/m^2",tstr2D, tcstr, &
+         call define_hist_field(n_trsig,"trsig","N/m",tstr2D, tcstr, &
              "internal stress tensor trace",                         &
              "ice strength approximation", c1, c0,                   &
              ns1, f_trsig)
