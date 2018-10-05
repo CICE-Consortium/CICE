@@ -997,7 +997,7 @@
              "none", c1, c0,                              &
              ns1, f_aisnap)
       
-         call define_hist_field(n_trsig,"trsig","N/m^2",tstr2D, tcstr, &
+         call define_hist_field(n_trsig,"trsig","N/m",tstr2D, tcstr, &
              "internal stress tensor trace",                         &
              "ice strength approximation", c1, c0,                   &
              ns1, f_trsig)
@@ -1844,7 +1844,6 @@
              call accum_hist_field(n_uatm,   iblk, uatm(:,:,iblk), a2D)
          if (f_vatm   (1:1) /= 'x') &
              call accum_hist_field(n_vatm,   iblk, vatm(:,:,iblk), a2D)
-! AKD addition - start
          if (f_atmspd   (1:1) /= 'x') &
              call accum_hist_field(n_atmspd,   iblk, sqrt( &
                                   (uatm(:,:,iblk)*uatm(:,:,iblk)) + &
@@ -1860,7 +1859,6 @@
            enddo
            call accum_hist_field(n_atmdir, iblk, worka(:,:), a2D)
          endif
-! AKD addition - end
          if (f_sice   (1:1) /= 'x') then
              do j = jlo, jhi
              do i = ilo, ihi
@@ -1898,7 +1896,6 @@
              call accum_hist_field(n_uocn,   iblk, uocn(:,:,iblk), a2D)
          if (f_vocn   (1:1) /= 'x') &
              call accum_hist_field(n_vocn,   iblk, vocn(:,:,iblk), a2D)
-! AKD addition - start
          if (f_ocnspd   (1:1) /= 'x') &
              call accum_hist_field(n_ocnspd,   iblk, sqrt( &
                                   (uocn(:,:,iblk)*uocn(:,:,iblk)) + &
@@ -1918,7 +1915,6 @@
            enddo
            call accum_hist_field(n_ocndir, iblk, worka(:,:), a2D)
          endif
-! AKD addition - end
          if (f_frzmlt (1:1) /= 'x') &
              call accum_hist_field(n_frzmlt, iblk, frzmlt_init(:,:,iblk), a2D)
 
@@ -2195,7 +2191,6 @@
            enddo
            call accum_hist_field(n_sispeed, iblk, worka(:,:), a2D)
          endif
-! AKD addition - start
          if (f_sidir(1:1) /= 'x') then
            worka(:,:) = c0
            do j = jlo, jhi
@@ -2209,10 +2204,8 @@
               endif
            enddo
            enddo
-           call accum_hist_field(n_icedir, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidir, iblk, worka(:,:), a2D)
          endif
-! AKD addition - end
-
          if (f_sidmasstranx(1:1) /= 'x') then
            worka(:,:) = c0
            do j = jlo, jhi
