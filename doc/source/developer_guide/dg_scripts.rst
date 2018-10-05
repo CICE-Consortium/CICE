@@ -171,6 +171,7 @@ to the ``cice.setup`` script.  These options include:
 * ``--acct``    : Account number for batch submission
 * ``--grid, -g``: Grid
 * ``--queue``   : Queue for the batch submission
+* ``--testid``  : test ID, user-defined id for testing
 
 The script creates 4 test cases, with testIDs ``qc_base``, ``qc_bfb``, ``qc_nonbfb``,
 and ``qc_fail``.  ``qc_base`` is the base test case with the default QC namelist.
@@ -178,7 +179,24 @@ and ``qc_fail``.  ``qc_base`` is the base test case with the default QC namelist
 when compared to ``qc_base``, but not climate changing.  ``qc_fail`` is a test that is not
 bit-for-bit and also climate changing.
 
-In order to perform the validation, execute the following commands.
+In order to run the ``compare_qc_cases.csh`` script, the following requirements must be met:
+
+* Python v2.7 or later
+* netCDF Python package
+* numpy Python package
+
+To install the necessary Python packages, the ``pip`` Python utility can be used.
+
+.. code-block:: bash
+
+  pip install --user netCDF4
+  pip install --user numpy
+
+**Note:** Some machines might report ``pip: Command not found.``  If you encounter this error,
+check to see if there is any Python module (``module avail python``) that you might need
+to load prior to using ``pip``.
+
+To perform the validation, execute the following commands.
 
 .. code-block:: bash
 
