@@ -1853,7 +1853,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (abs(uatm(i,j,iblk)) > puny .or. abs(vatm(i,j,iblk)) > puny) &
-                 worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
+                 worka(i,j) = atan2(uatm(i,j,iblk),vatm(i,j,iblk))*rad_to_deg
                  worka(i,j) = worka(i,j) + c180
            enddo
            enddo
