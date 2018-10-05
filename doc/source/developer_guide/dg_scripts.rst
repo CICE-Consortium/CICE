@@ -126,9 +126,6 @@ and comparison testing.  That directory also contains the preset test suites
 output (**timeseries.csh**).  There is also a script **report_results.csh** that pushes results 
 from test suites back to the CICE-Consortium test results wiki page.
 
-The directory **configuration/scripts/tests/QC** contains scripts related to the non bit-for-bit
-compliance testing described in :ref:`compliance`.
-
 To add a new test (for example newtest), several files may be needed,
 
 - **configuration/scripts/tests/test_newtest.script** defines how to run the test.  This chunk
@@ -143,4 +140,99 @@ To add a new test (for example newtest), several files may be needed,
 
 Generating a new test, particularly the **test_newtest.script** usually takes some iteration before
 it's working properly.
+
+.. _dev_compliance:
+
+Code Compliance Script
+----------------------
+
+The code compliance test validates non bit-for-bit model changes.  The directory 
+**configuration/scripts/tests/QC** contains scripts related to the compliance testing,
+and this process is described in :ref:`compliance`.  This section will describe a set
+of scripts that test and validate the code compliance process.  This should be done 
+when the compliance test or compliance test scripts (i.e., ``cice.t-test.py``) are modified.  
+Again, this section **documents a validation process for the compliance scripts**; it does not
+describe to how run the compliance test itself.  
+
+Two scripts have been created to automatically validate the code compliance script.  
+These scripts are:
+
+* ``gen_qc_cases.csh``, which creates the 4 test cases required for validation,
+  builds the executable, and submits to the queue.
+* ``compare_qc_cases.csh``, which runs the code compliance script on three combinations
+  of the 4 test cases and outputs whether or not the correct response was received.
+
+The ``gen_qc_cases.csh`` script allows users to pass some arguments similar
+to the ``cice.setup`` script.  These options include:
+
+* ``--mach, -m``: Machine (REQUIRED)
+* ``--env,  -e``: Compiler
+* ``--pes,  -p``: tasks x threads
+* ``--acct``    : Account number for batch submission
+* ``--grid, -g``: Grid
+* ``--queue``   : Queue for the batch submission
+* ``--testid``  : test ID, user-defined id for testing
+
+The script creates 4 test cases, with testIDs ``qc_base``, ``qc_bfb``, ``qc_nonbfb``,
+and ``qc_fail``.  ``qc_base`` is the base test case with the default QC namelist.
+``qc_bfb`` is identical to ``qc_base``.  ``qc_nonbfb`` is a test that is not bit-for-bit
+when compared to ``qc_base``, but not climate changing.  ``qc_fail`` is a test that is not
+bit-for-bit and also climate changing.
+
+In order to run the ``compare_qc_cases.csh`` script, the following requirements must be met:
+
+* Python v2.7 or later
+* netCDF Python package
+* numpy Python package
+
+To install the necessary Python packages, the ``pip`` Python utility can be used.
+
+.. code-block:: bash
+
+  pip install --user netCDF4
+  pip install --user numpy
+
+**Note:** Some machines might report ``pip: Command not found.``  If you encounter this error,
+check to see if there is any Python module (``module avail python``) that you might need
+to load prior to using ``pip``.
+
+To perform the validation, execute the following commands.
+
+.. code-block:: bash
+
+  # From the CICE base directory
+  cp configuration/scripts/tests/QC/gen_qc_cases.csh .
+  cp configuration/scripts/tests/QC/compare_qc_cases.csh
+  
+  # Create the required test cases
+  ./gen_qc_cases.csh -m <machine> --acct <acct>
+
+  # Wait for all 4 jobs to complete
+
+  # Perform the comparisons
+  ./compare_qc_cases.csh
+
+The ``compare_qc_cases.csh`` script will run the QC script on the following combinations:
+
+* ``qc_base`` vs. ``qc_bfb``
+* ``qc_base`` vs. ``qc_nonbfb``
+* ``qc_base`` vs. ``qc_fail``
+
+An example of the output from ``compare_qc_cases.csh`` is shown below.::
+
+  ===== Running QC tests and writing output to validate_qc.log =====
+  Running QC test on base and bfb directories.
+  Expected result: PASSED
+  Result: PASSED
+  -----------------------------------------------
+  Running QC test on base and non-bfb directories.
+  Expected result: PASSED
+  Result: PASSED
+  -----------------------------------------------
+  Running QC test on base and climate-changing directories.
+  Expected result: FAILED
+  Result: FAILED
+  
+  
+  QC Test has validated
 

@@ -480,6 +480,10 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     logger.addHandler(fh)
 
+    logger.info('Running QC test on the following directories:')
+    logger.info('  {}'.format(args.base_dir))
+    logger.info('  {}'.format(args.test_dir))
+
     dir_a, dir_b, files_base, files_test = gen_filenames(args.base_dir, args.test_dir)
 
     nfiles = len(files_base)
