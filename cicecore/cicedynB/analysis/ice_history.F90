@@ -30,8 +30,8 @@
       module ice_history
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, c2, c100, c180, c360, p001, & 
-          p25, p5, mps_to_cmpdy, kg_to_g, spval, rad_to_deg
+      use ice_constants, only: c0, c1, c2, c100, c360, c180, &
+          p001, p25, p5, mps_to_cmpdy, kg_to_g, spval
       use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
           get_fileunit, release_fileunit
       use ice_exit, only: abort_ice
@@ -81,7 +81,7 @@
 
       ! local variables
 
-      real (kind=dbl_kind) :: rhofresh, Tffresh, secday
+      real (kind=dbl_kind) :: rhofresh, Tffresh, secday, rad_to_deg
       logical (kind=log_kind) :: formdrag
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_brine
       logical (kind=log_kind) :: skl_bgc, solve_zsal, solve_zbgc, z_tracers
@@ -96,7 +96,7 @@
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(rhofresh_out=rhofresh, Tffresh_out=Tffresh, &
-         secday_out=secday)
+         secday_out=secday, rad_to_deg_out=rad_to_deg)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, &
          solve_zsal_out=solve_zsal, solve_zbgc_out=solve_zbgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
@@ -1722,7 +1722,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat_hist) :: &
          ravgipn, worka3
 
-      real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday
+      real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday, rad_to_deg
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
       real (kind=dbl_kind) :: rho_ice, rho_ocn, Tice, Sbr, phi, rhob, dfresh, dfsalt
       logical (kind=log_kind) :: formdrag, skl_bgc
@@ -1736,7 +1736,8 @@
       character(len=*), parameter :: subname = '(accum_hist)'
 
       call icepack_query_parameters(awtvdr_out=awtvdr, awtidr_out=awtidr, &
-           awtvdf_out=awtvdf, awtidf_out=awtidf, puny_out=puny, secday_out=secday)
+           awtvdf_out=awtvdf, awtidf_out=awtidf, puny_out=puny, secday_out=secday, &
+           rad_to_deg_out=rad_to_deg)
       call icepack_query_parameters(Tffresh_out=Tffresh, rhoi_out=rhoi, rhos_out=rhos, &
            rhow_out=rhow, ice_ref_salinity_out=ice_ref_salinity)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, ktherm_out=ktherm)
