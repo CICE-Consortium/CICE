@@ -114,8 +114,8 @@ else
 
   set base_log = `ls -t1 ${ICE_CASEDIR}/logs/cice.runlog* | head -2 | tail -1`
   set test_log = `ls -t1 ${ICE_CASEDIR}/logs/cice.runlog* | head -1`
-  set base_out = `awk "BEGIN{found=0;minmax=0;} /$test_data/{found=1} {if (found) if(/min, max, sum =/) minmax=1; else minmax=0; if(minmax) print }" $base_log`
-  set test_out = `awk "BEGIN{found=0;minmax=0;} /$test_data/{found=1} {if (found) if(/min, max, sum =/) minmax=1; else minmax=0; if(minmax) print }" $test_log`
+  set base_out = `awk "BEGIN{found=0;minmax=0;} /$test_data/{found=1} {if (found) if(/min, max, sum =|write_global/) minmax=1; else minmax=0; if(minmax) print }" $base_log`
+  set test_out = `awk "BEGIN{found=0;minmax=0;} /$test_data/{found=1} {if (found) if(/min, max, sum =|write_global/) minmax=1; else minmax=0; if(minmax) print }" $test_log`
   echo ""
   echo ""
   echo "Performing comparison between log files:"
