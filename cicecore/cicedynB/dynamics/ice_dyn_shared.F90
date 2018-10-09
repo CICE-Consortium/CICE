@@ -27,11 +27,13 @@
       ! namelist parameters
 
       integer (kind=int_kind), public :: &
-         kdyn     , & ! type of dynamics ( 1 = evp, 2 = eap )
+         kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap )
+         kridge     , & ! set to "-1" to turn off ridging
+         ktransport , & ! set to "-1" to turn off transport
          ndte         ! number of subcycles:  ndte=dt/dte
 
       character (len=char_len), public :: &
-         coriolis     ! 'constant', 'zero', or 'default'
+         coriolis     ! 'constant', 'zero', or 'latitude'
 
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure

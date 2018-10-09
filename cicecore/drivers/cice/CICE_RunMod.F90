@@ -48,7 +48,6 @@
 
       use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, atm_data_type
-      use ice_domain, only: land_override
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, & 
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
@@ -56,6 +55,8 @@
           timer_couple, timer_step
       logical (kind=log_kind) :: &
           tr_aero, tr_zaero, skl_bgc, z_tracers
+      integer (kind=int_kind) :: &
+          land_override   ! if=1, set land on edges of outer 2 rows/columns
 
    !--------------------------------------------------------------------
    !  initialize error code and step timer
@@ -139,10 +140,10 @@
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
-      use ice_domain, only: halo_info, nblocks
+      use ice_domain, only: halo_info, nblocks, land_override
       use ice_domain_size, only: nslyr
       use ice_dyn_eap, only: write_restart_eap
-      use ice_dyn_shared, only: kdyn
+      use ice_dyn_shared, only: kdyn, kridge, ktransport
       use ice_flux, only: scale_factor, init_history_therm, &
           daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
       use ice_history, only: accum_hist
@@ -211,7 +212,7 @@
       !-----------------------------------------------------------------
       ! Scale radiation fields
       !-----------------------------------------------------------------
-            if(ktherm.ne.-1) then
+            if(ktherm.gt.0) then
                if (calc_Tsfc) call prep_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
@@ -241,12 +242,12 @@
          do k = 1, ndtd
 
             ! momentum, stress, transport
-            call step_dyn_horiz (dt_dyn)
+            if(ktransport.gt.0) call step_dyn_horiz (dt_dyn)
 
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
-               call step_dyn_ridge (dt_dyn, ndtd, iblk)
+               if(kridge.gt.0) call step_dyn_ridge (dt_dyn, ndtd, iblk)
             enddo
             !$OMP END PARALLEL DO
 
@@ -266,7 +267,7 @@
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
-            if (ktherm.ne.-1) call step_radiation (dt, iblk)
+            if (ktherm.gt.0) call step_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
       ! get ready for coupling and the next time step

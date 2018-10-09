@@ -107,7 +107,9 @@
     Ktens           = 0.
     e_ratio         = 2.
     basalstress     = .false.
-    coriolis        = 'default'
+    coriolis        = 'latitude'
+    kridge          = 1
+    ktransport      = 1
 /
 
 &shortwave_nml

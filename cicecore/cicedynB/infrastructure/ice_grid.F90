@@ -1191,22 +1191,13 @@
             enddo
             enddo
 
-            if (land_override == 1) then !land added for box problem
-              do i=1,nx_global
-                work_g1(i,1)  = c0
-                work_g1(i,2)  = c0
-                work_g1(i,ny_global-1) = c0
-                work_g1(i,ny_global) = c0
-              enddo
-  
-              do j=1,ny_global
-                work_g1(1,j)  = c0
-                work_g1(2,j)  = c0
-                work_g1(nx_global-1,j)  = c0
-                work_g1(nx_global,j) = c0
-              enddo
             endif
 
+            if (land_override.eq.1) then
+              work_g1(:, 1:2) = c0
+              work_g1(:, ny_global-1:ny_global) = c0
+              work_g1(1:2, :) = c0
+              work_g1(nx_global-1:nx_global, :) = c0
             endif
 
          elseif (trim(ew_boundary_type) == 'closed') then

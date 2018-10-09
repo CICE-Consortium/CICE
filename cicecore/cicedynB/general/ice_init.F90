@@ -80,7 +80,8 @@
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                basalstress, Ktens, e_ratio, coriolis
+                                basalstress, Ktens, e_ratio, coriolis, &
+                                kridge, ktransport
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -153,7 +154,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        advection,      coriolis,                                       &
+        advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress
 
@@ -247,7 +248,7 @@
 
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
-      kdyn = 1           ! type of dynamics (1 = evp, 2 = eap)
+      kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -267,6 +268,8 @@
       ktherm = 1             ! -1 = off, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
       coriolis = 'default'   ! latitude dependent, or 'constant'
+      kridge   = 1           ! -1 = off, 1 = on
+      ktransport = 1         ! -1 = off, 1 = on
       calc_Tsfc = .true.     ! calculate surface temperature
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
@@ -505,6 +508,8 @@
       call broadcast_scalar(albedo_type,        master_task)
       call broadcast_scalar(ktherm,             master_task)
       call broadcast_scalar(coriolis,           master_task)
+      call broadcast_scalar(kridge,             master_task)
+      call broadcast_scalar(ktransport,         master_task)
       call broadcast_scalar(conduct,            master_task)
       call broadcast_scalar(R_ice,              master_task)
       call broadcast_scalar(R_pnd,              master_task)
@@ -877,7 +882,9 @@
          write(nu_diag,*)    ' yield_curve               = ', &
                                trim(yield_curve)
          write(nu_diag,1020) ' kstrength                 = ', kstrength
-         write(nu_diag,1030) ' coriolis                 = ', coriolis
+         write(nu_diag,1030) ' coriolis                  = ', coriolis
+         write(nu_diag,1030) ' kridge                    = ', kridge
+         write(nu_diag,1030) ' ktransport                = ', ktransport
          write(nu_diag,1020) ' krdg_partic               = ', &
                                krdg_partic
          write(nu_diag,1020) ' krdg_redist               = ', &
