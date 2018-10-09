@@ -32,10 +32,18 @@ else
 endif
 
 # Prepend 'baseline_' to the final restart file to save for comparison
-set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
-set test_data = ${ICE_RUNDIR}/restart/${test_file}
-set base_data = ${ICE_RUNDIR}/restart/base_${test_file}
-mv ${test_data} ${base_data}
+if ( "${ICE_IOTYPE}" == "binary" ) then
+  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | awk -F'.' '{print $NF}'`
+  foreach file (${ICE_RUNDIR}/restart/*${end_date})
+    set surname = `echo $file | awk -F'/' '{print $NF}'`
+    mv $file ${ICE_RUNDIR}/restart/base_$surname
+  end
+else
+  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
+  set test_data = ${ICE_RUNDIR}/restart/${test_file}
+  set base_data = ${ICE_RUNDIR}/restart/base_${test_file}
+  mv ${test_data} ${base_data}
+endif
 
 #-----------------------------------------------------------
 # Run the CICE model for the restart simulation
@@ -72,14 +80,53 @@ else
   echo "PASS ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
 
   echo "Exact Restart Comparison Mode:"
-  echo "Performing binary comparison between files:"
-  echo "base: $base_data"
-  echo "test: $test_data"
-  if ( { cmp -s $test_data $base_data } ) then
-    echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  if ( "${ICE_IOTYPE}" == "binary" ) then
+    set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | awk -F'.' '{print $NF}'`
+    set failure = 0
+    foreach file (${ICE_RUNDIR}/restart/base_*${end_date})
+      echo "Performing binary comparison between files:"
+      set base_data = `echo $file | awk -F'/' '{print $NF}'`
+      set test_data = `echo $file | awk -F'/' '{print $NF}' | cut -c6-`
+      echo "base: $base_data"
+      echo "test: $test_data"
+      cmp -s $base_data $test_data
+      if ( $? == 1 ) then
+        set failure = 1
+        echo "Failure in data comparison"
+        break
+      endif
+    end
+    if ( $failure == 0 ) then
+      echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+    else
+      echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+    endif
   else
-    echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+    echo "Performing binary comparison between files:"
+    echo "base: $base_data"
+    echo "test: $test_data"
+    if ( { cmp -s $test_data $base_data } ) then
+      echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+    else
+      echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+    endif
   endif
+
+  set base_log = `ls -t1 ${ICE_CASEDIR}/logs/cice.runlog* | head -2 | tail -1`
+  set test_log = `ls -t1 ${ICE_CASEDIR}/logs/cice.runlog* | head -1`
+  set base_out = `awk "BEGIN{found=0;minmax=0;} /$test_data/{found=1} {if (found) if(/min, max, sum =/) minmax=1; else minmax=0; if(minmax) print }" $base_log`
+  set test_out = `awk "BEGIN{found=0;minmax=0;} /$test_data/{found=1} {if (found) if(/min, max, sum =/) minmax=1; else minmax=0; if(minmax) print }" $test_log`
+  echo ""
+  echo ""
+  echo "Performing comparison between log files:"
+  echo "base: $base_log"
+  echo "test: $test_log"
+  if ( "$base_out" == "$test_out" ) then
+    echo "PASS ${ICE_TESTNAME} test_log " >> ${ICE_CASEDIR}/test_output
+  else
+    echo "FAIL ${ICE_TESTNAME} test_log " >> ${ICE_CASEDIR}/test_output
+  endif
+  
 endif
 
 #-----------------------------------------------------------
