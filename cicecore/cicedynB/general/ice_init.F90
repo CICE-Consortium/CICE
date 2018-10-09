@@ -146,6 +146,7 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
+        ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file
 
       namelist /thermo_nml/ &
@@ -188,7 +189,6 @@
         tr_pond_lvl, restart_pond_lvl, &
         tr_pond_topo, restart_pond_topo, &
         tr_aero, restart_aero, &
-        ncat, nilyr, nslyr, nblyr, &
         n_aero, n_zaero, n_algae, &
         n_doc, n_dic, n_don, n_fed, n_fep, &
         n_trbgcz, n_trzs, n_trbri, n_trzaero, &
@@ -254,6 +254,10 @@
       gridcpl_file = 'unknown_gridcpl_file'
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
+      ncat  = 0
+      nilyr = 0
+      nslyr = 0
+      nblyr = 0
 
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
@@ -354,10 +358,6 @@
       tr_aero      = .false. ! aerosols
       restart_aero = .false. ! aerosols restart
 
-      ncat = 0
-      nilyr = 0
-      nslyr = 0
-      nblyr = 0
       n_aero = 0
       n_zaero = 0
       n_algae = 0

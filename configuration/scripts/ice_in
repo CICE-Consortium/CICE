@@ -50,13 +50,13 @@
     kmt_file     = 'kmt'
     gridcpl_file = 'unknown_gridcpl_file'
     kcatbound    = 0
-/
-
-&tracer_nml
     ncat         = 5
     nilyr        = 7
     nslyr        = 1
     nblyr        = 7
+/
+
+&tracer_nml
     n_aero       = 1
     n_zaero      = 0
     n_algae      = 0
