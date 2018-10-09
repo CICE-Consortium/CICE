@@ -125,7 +125,7 @@ Testing will be described in greater detail in the :ref:`testing` section.
   specifies a batch account number.  This is optional.  See :ref:`account` for more information.
 
 ``--grid``, ``-g`` GRID
-  specifies the grid.  This is a string and for the current CICE driver, gx1 and gx3 are supported. (default = gx3)
+  specifies the grid.  This is a string and for the current CICE driver, gx1, gx3, and tx1 are supported. (default = gx3)
 
 ``--set``,  ``-s`` SET1,SET2,SET3
   specifies the optional settings for the case.  The settings for ``--suite`` are defined in the suite file.  Multiple settings can be specified by providing a comma deliminated set of values without spaces between settings.  The available settings are in **configurations/scripts/options** and ``cice.setup --help`` will also list them.  These settings files can change either the namelist values or overall case settings (such as the debug flag).
@@ -162,7 +162,7 @@ Some of the options are
 
 ``short``, ``medium``, ``long`` which change the batch time limit
 
-``gx3`` and ``gx1`` are associate with grid specific settings
+``gx3``, ``gx1``, ``tx1`` are associate with grid specific settings
 
 ``diag1`` which turns on diagnostics each timestep
 
@@ -287,4 +287,3 @@ should be rebuilt before being resubmitted.  It is always recommended that users
 modify the scripts and input settings in the case directory, NOT the run directory.
 In general, files in the run directory are overwritten by versions in the case
 directory when the model is built, submitted, and run.
-

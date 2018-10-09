@@ -100,7 +100,9 @@ including that used for the column configuration. The input files
 **global\_gx3.grid** and **global\_gx3.kmt** contain the
 :math:`\left<3^\circ\right>` POP grid and land mask;
 **global\_gx1.grid** and **global\_gx1.kmt** contain the
-:math:`\left<1^\circ\right>` grid and land mask. These are binary
+:math:`\left<1^\circ\right>` grid and land mask, and **global\_tx1.grid** 
+and **global\_tx1.kmt** contain the :math:`\left<1^\circ\right>` POP 
+tripole grid and land mask. These are binary
 unformatted, direct access files produced on an SGI (Big Endian). If you
 are using an incompatible (Little Endian) architecture, choose
 `rectangular` instead of `displaced\_pole` in **ice\_in**, or follow
