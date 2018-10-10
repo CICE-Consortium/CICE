@@ -534,7 +534,7 @@ and CICE have not significantly altered simulated ice volume using previous mode
 configurations.  Here we describe the CICE testing tools, which are applies to output 
 from five-year gx-1 simulations that use the standard CICE atmospheric forcing. 
 A scientific justification of the testing is provided in
-:cite:`HRALTCDBHWDG18`.
+:cite:`Hunke18`.
 
 .. _paired:
 
@@ -582,15 +582,15 @@ equations (:eq:`t-distribution`). That is:
    \bar{h}_d=\frac{1}{n} \sum \limits_{i=1}^{n} {h}_{di}
    :label: short-means
 
-Following :cite:`ZvS95`, the effective sample size is
+Following :cite:`Zwiers95`, the effective sample size is
 limited to :math:`n_{eff}\in[2,n]`. This definition of :math:`n_{eff}`
 assumes ice thickness evolves as an AR(1) process
-:cite:`vSZ99`, which can be justified by analyzing
+:cite:`vonstorch99`, which can be justified by analyzing
 the spectral density of daily samples of ice thickness from 5-year
-records in CICE Consortium member models :cite:`HRALTCDBHWDG18`.
+records in CICE Consortium member models :cite:`Hunke18`.
 The AR(1) approximation is inadmissible for paired velocity samples,
 because ice drift possesses periodicity from inertia and tides
-:cite:`HRHPSL06,LOSF12,RCWODHNCB15`. Conversely,
+:cite:`Hibler06,Lepparanta12,Roberts15`. Conversely,
 tests of paired ice concentration samples may be less sensitive to ice
 drift than ice thickness. In short, ice thickness is the best variable
 for CICE Consortium quality control (QC), and for the test of the mean
@@ -599,7 +599,7 @@ in particular.
 Care is required in analyzing mean sea ice thickness changes using
 (:eq:`t-distribution`) with
 :math:`N{=}n_{eff}{-}1` degrees of freedom.
-:cite:`ZvS95` demonstrate that the :math:`t`-test in
+:cite:`Zwiers95` demonstrate that the :math:`t`-test in
 (:eq:`t-distribution`) becomes conservative when
 :math:`n_{eff} < 30`, meaning that :math:`H_0` may be erroneously
 confirmed for highly auto-correlated series. Strong autocorrelation
@@ -607,7 +607,7 @@ frequently occurs in modeled sea ice thickness, and :math:`r_1>0.99` is
 possible in parts of the gx-1 domain for the five-year QC simulations.
 In the event that :math:`H_0` is confirmed but :math:`2\leq n_{eff}<30`,
 the :math:`t`-test progresses to the ‘Table Lookup Test’ of
-:cite:`ZvS95`, to check that the first-stage test
+:cite:`Zwiers95`, to check that the first-stage test
 using (:eq:`t-distribution`) was not
 conservative. The Table Lookup Test chooses critical :math:`t` values
 :math:`|t|<t_{crit}({1{-}\alpha/2},N)` at the :math:`\alpha`
@@ -615,13 +615,13 @@ significance level based on :math:`r_1`. It uses the conventional
 :math:`t={\bar{h}_{d} \sqrt{n}}/{\sigma_d}` statistic with degrees of
 freedom :math:`N{=}n{-}1`, but with :math:`t_{crit}` values generated
 using the Monte Carlo technique described in
-:cite:`ZvS95`, and summarized in :ref:`Table-Lookup` for 5-year QC
+:cite:`Zwiers95`, and summarized in :ref:`Table-Lookup` for 5-year QC
 simulations (:math:`N=1824`) at the two-sided 80% confidence interval
 (:math:`\alpha=0.2`). We choose this interval to limit Type II errors,
 whereby a QC test erroneously confirms :math:`H_0`.
 
 Table :ref:`Table-Lookup` shows the summary of two-sided :math:`t_{crit}` values for the Table
-Lookup Test of :cite:`ZvS95` at the 80% confidence
+Lookup Test of :cite:`Zwiers95` at the 80% confidence
 interval generated for :math:`N=1824` degrees of freedom and lag-1
 autocorrelation :math:`r_1`.
 
@@ -719,7 +719,7 @@ score :math:`S` is calculated separately for the northern and southern
 hemispheres, and must exceed a critical value nominally set to
 :math:`S_{crit}=0.99` to pass the test. Practical illustrations of this
 test and the Two-Stage test described in the previous section are
-provided in :cite:`HRALTCDBHWDG18`.
+provided in :cite:`Hunke18`.
 
 
 Code Compliance Testing Procedure

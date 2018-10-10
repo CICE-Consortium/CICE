@@ -11,7 +11,7 @@ coupled atmosphere--land global climate model. It was
 designed to be compatible with the Parallel Ocean Program
 (POP), an ocean circulation model developed at 
 Los Alamos National Laboratory for use on massively parallel computers
-:cite:`SDM92,DSM93,DSM94`. The current version of the
+:cite:`Smith92,Dukowicz93,Dukowicz94`. The current version of the
 model has been enhanced greatly through collaborations with members of
 the community.
 
