@@ -152,19 +152,22 @@ portion of the local domains are labeled `ilo:ihi`. The parameter
 ghost cells, and the same numbering system is applied to each of the
 four subdomains.
 
-The user chooses a block size `BLCKX` :math:`\times`\ `BLCKY` and the
-number of processors `NTASK` in **comp\_ice**. Parameters in the
-*domain\_nml* namelist in **ice\_in** determine how the blocks are
+The user sets the `NTASKS` and `NTHRDS` settings in **cice.settings** 
+and chooses a block size `block\_size\_x` :math:`\times`\ `block\_size\_y`, 
+`max\_blocks`, and decomposition information `distribution\_type`, `processor\_shape`, 
+and `distribution\_type` in **ice\_in**. That information is used to
+determine how the blocks are
 distributed across the processors, and how the processors are
 distributed across the grid domain. Recommended combinations of these
 parameters for best performance are given in Section :ref:`performance`.
-The script **comp\_ice** computes the maximum number of blocks on each
-processor for typical Cartesian distributions, but for non-Cartesian
-cases `MXBLCKS` may need to be set in the script. The code will print this
-information to the log file before aborting, and the user will need to
-adjust `MXBLCKS` in **comp\_ice** and recompile. The code will also print
-a warning if the maximum number of blocks is too large. Although this is
-not fatal, it does require excess memory.
+The script **cice.setup** computes some default decompositions and layouts
+but the user can overwrite the defaults by manually changing the values in 
+`ice\_in`.  At runtime, the model will print decomposition
+information to the log file, and if the block size or max blocks is 
+inconsistent with the task and thread size, the model will abort.  The 
+code will also print a warning if the maximum number of blocks is too large. 
+Although this is not fatal, it does use extra memory.  If `max\_blocks` is
+set to -1, the code will compute a `max\_blocks` on the fly.
 
 A loop at the end of routine *create\_blocks* in module
 **ice\_blocks.F90** will print the locations for all of the blocks on
@@ -176,9 +179,9 @@ into processors and blocks can be ascertained. The dbug flag must be
 manually set in the code in each case (independently of the dbug flag in
 **ice\_in**), as there may be hundreds or thousands of blocks to print
 and this information should be needed only rarely. This information is
-much easier to look at using a debugger such as Totalview.
-
-Alternatively, a new variable is provided in the history files, `blkmask`,
+much easier to look at using a debugger such as Totalview.  There is also
+an output field that can be activated in `icefields\_nml`, `f\_blkmask`, 
+that prints out the variable `blkmask` to the history file and 
 which labels the blocks in the grid decomposition according to `blkmask` =
 `my\_task` + `iblk/100`.
 
@@ -379,13 +382,14 @@ Performance
 Namelist options (*domain\_nml*) provide considerable flexibility for
 finding efficient processor and block configuration. Some of
 these choices are illustrated in :ref:`fig-distrb`.  Users have control
-of many aspects of the decomposition such as the block size (set at 
-compile via CPP), the `distribution\_type`, the `distribution\_wght`,
+of many aspects of the decomposition such as the block size (`block\_size\_x`,
+`block\_size\_y`), the `distribution\_type`, the `distribution\_wght`,
 the `distribution\_wght\_file` (when `distribution\_type` = `wghtfile`), 
 and the `processor\_shape` (when `distribution\_type` = `cartesian`).
 
-The user specifies the total number of processors and the block
-size in the setup/build scripts. The main trades offs are the relative
+The user specifies the total number of tasks and threads in **cice.settings**
+and the block size and decompostion in the namelist file. The main trades 
+offs are the relative
 efficiency of large square blocks versus model internal load balance
 as CICE computation cost is very small for ice-free blocks.
 Smaller, more numerous blocks provides an opportunity for better load
@@ -395,7 +399,7 @@ less efficient due to MPI communication associated with halo updates.
 In practice, blocks should probably not have fewer than about 8 to 10 grid 
 cells in each direction, and more square blocks tend to optimize the 
 volume-to-surface ratio important for communication cost.  Often 3 to 8
-blocks per processor provide the decompositions even flexiblity to
+blocks per processor provide the decompositions flexiblity to
 create reasonable load balance configurations.
 
 The `distribution\_type` options allow standard cartesian distributions 
@@ -485,8 +489,8 @@ This provides good load balancing but poor communication characteristics
 due to the number of neighbors and the amount of data needed to
 communicate. The ‘sectrobin’ and ‘sectcart’ algorithms loop similarly,
 but put groups of blocks on each processor to improve the communication
-characteristics. In the ‘sectcart’ case, the domain is divided into two
-(east-west) halves and the loops are done over each, sequentially.
+characteristics. In the ‘sectcart’ case, the domain is divided into four
+(east-west,north-south) quarters and the loops are done over each, sequentially.
 
 The `wghtfile` decomposition drives the decomposition based on 
 weights provided in a weight file.  That file should be a netcdf
@@ -507,8 +511,8 @@ of the pros and cons of the various distribution types.
    Scorecard
 
 Figure :ref:`fig-distribscorecard` shows the scorecard for block distribution choices in
-CICE, courtesy T. Craig. For more information, see
-http://www.cesm.ucar.edu/events/ws.2012/Presentations/SEWG2/craig.pdf
+CICE, courtesy T. Craig. For more information, see :cite:`Craig2014` or
+http://www.cesm.ucar.edu/events/workshops/ws.2012/presentations/sewg/craig.pdf
 
 The `maskhalo` options in the namelist improve performance by removing
 unnecessary halo communications where there is no ice. There is some

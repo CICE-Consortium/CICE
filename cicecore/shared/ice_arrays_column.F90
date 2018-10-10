@@ -12,7 +12,7 @@
       use ice_blocks, only: nx_block, ny_block
       use icepack_intfc, only: icepack_nspint
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
-           nblyr, max_nsw , max_ntrcr
+           nblyr, max_ntrcr
       use icepack_intfc, only: icepack_max_nbtrcr, icepack_max_algae, icepack_max_aero, &
            icepack_nmodal1, icepack_nmodal2
 
@@ -58,10 +58,10 @@
 !-------------------------------------------------------------------
 
       ! icepack_itd.F90
-      real (kind=dbl_kind), public :: &
-         hin_max(0:ncat) ! category limits (m)
+      real (kind=dbl_kind), public, allocatable :: &
+         hin_max(:) ! category limits (m)
 
-      character (len=35), public :: c_hi_range(ncat)
+      character (len=35), public, allocatable :: c_hi_range(:)
 
       ! icepack_meltpond_lvl.F90
       real (kind=dbl_kind), public, &
@@ -127,13 +127,9 @@
 
       ! biogeochemistry components
 
-      real (kind=dbl_kind), dimension (nblyr+2), public :: &
-         bgrid              ! biology nondimensional vertical grid points
-
-      real (kind=dbl_kind), dimension (nblyr+1), public :: &
-         igrid              ! biology vertical interface points
- 
-      real (kind=dbl_kind), dimension (nilyr+1), public :: &
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+         bgrid            , &  ! biology nondimensional vertical grid points
+         igrid            , &  ! biology vertical interface points
          cgrid            , &  ! CICE vertical coordinate   
          icgrid           , &  ! interface grid for CICE (shortwave variable)
          swgrid                ! grid for ice tracers used in dEdd scheme
@@ -355,7 +351,18 @@
          bTiz         (nx_block,ny_block,nblyr+2,ncat,max_blocks), &    ! layer temperatures interpolated on bio grid (C)
          algal_peak   (nx_block,ny_block,icepack_max_algae,max_blocks), & ! vertical location of algal maximum, 0 if no maximum 
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_arrays_column): Out of Memory')
+      if (ierr/=0) call abort_ice('(alloc_arrays_column): Out of Memory1')
+
+      allocate(                                       &
+         hin_max(0:ncat)            , & ! category limits (m)
+         c_hi_range(ncat)           , & !
+         bgrid(nblyr+2)             , & ! biology nondimensional vertical grid points
+         igrid(nblyr+1)             , &  ! biology vertical interface points
+         cgrid(nilyr+1)             , &  ! CICE vertical coordinate   
+         icgrid(nilyr+1)            , &  ! interface grid for CICE (shortwave variable)
+         swgrid(nilyr+1)            , &  ! grid for ice tracers used in dEdd scheme
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_arrays_column): Out of Memory2')
 
       end subroutine alloc_arrays_column
 

@@ -1,5 +1,34 @@
 #! /bin/csh -f
 
+#====================================
+# If the cice binary is passed as an argument and the file exists,
+# copy it into the run directory and don't build the model.
+
+set ciceexe = "UnDEFineD"
+if ($#argv == 1) then
+  set ciceexe = $1
+  echo "${0}: tcx ciceexe = ${ciceexe}"
+  if (-e ${ciceexe}) then
+
+    source ./cice.settings
+    source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} -nomodules || exit 2
+    if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
+    cp -p ${ciceexe} ${ICE_RUNDIR}/cice
+
+    echo "`date` ${0}:${ICE_CASENAME} build copied ${ciceexe}"  >> ${ICE_CASEDIR}/README.case
+    if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
+      echo "#---" >! ${ICE_CASEDIR}/test_output
+      echo "COPY ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
+      echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
+    endif
+
+    exit 0
+
+  endif
+endif
+
+#====================================
+
 source ./cice.settings
 source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
@@ -26,16 +55,12 @@ if !(-d ${ICE_OBJDIR}) mkdir -p ${ICE_OBJDIR}
 cd ${ICE_OBJDIR}
 
 #setenv ICE_CPPDEFS "-DNXGLOB=${ICE_NXGLOB} -DNYGLOB=${ICE_NYGLOB} -DBLCKX=${ICE_BLCKX} -DBLCKY=${ICE_BLCKY} -DMXBLCKS=${ICE_MXBLCKS} -DNICELYR=${NICELYR} -DNSNWLYR=${NSNWLYR} -DNICECAT=${NICECAT} -DTRAGE=${TRAGE} -DTRFY=${TRFY} -DTRLVL=${TRLVL} -DTRPND=${TRPND} -DTRBRI=${TRBRI} -DNTRAERO=${NTRAERO}  -DTRZS=${TRZS} -DNBGCLYR=${NBGCLYR} -DTRALG=${TRALG} -DTRBGCZ=${TRBGCZ} -DTRDOC=${TRDOC} -DTRDOC=${TRDOC} -DTRDIC=${TRDIC} -DTRDON=${TRDON} -DTRFED=${TRFED} -DTRFEP=${TRFEP} -DTRZAERO=${TRZAERO} -DTRBGCS=${TRBGCS} -DNUMIN=${NUMIN} -DNUMAX=${NUMAX}"
-setenv ICE_CPPDEFS "-DNICELYR=${NICELYR} -DNSNWLYR=${NSNWLYR} -DNICECAT=${NICECAT} -DTRAGE=${TRAGE} -DTRFY=${TRFY} -DTRLVL=${TRLVL} -DTRPND=${TRPND} -DTRBRI=${TRBRI} -DNTRAERO=${NTRAERO}  -DTRZS=${TRZS} -DNBGCLYR=${NBGCLYR} -DTRALG=${TRALG} -DTRBGCZ=${TRBGCZ} -DTRDOC=${TRDOC} -DTRDOC=${TRDOC} -DTRDIC=${TRDIC} -DTRDON=${TRDON} -DTRFED=${TRFED} -DTRFEP=${TRFEP} -DTRZAERO=${TRZAERO} -DTRBGCS=${TRBGCS} -DNUMIN=${NUMIN} -DNUMAX=${NUMAX}"
+#setenv ICE_CPPDEFS "-DNICELYR=${NICELYR} -DNSNWLYR=${NSNWLYR} -DNICECAT=${NICECAT} -DTRAGE=${TRAGE} -DTRFY=${TRFY} -DTRLVL=${TRLVL} -DTRPND=${TRPND} -DTRBRI=${TRBRI} -DNTRAERO=${NTRAERO}  -DTRZS=${TRZS} -DNBGCLYR=${NBGCLYR} -DTRALG=${TRALG} -DTRBGCZ=${TRBGCZ} -DTRDOC=${TRDOC} -DTRDOC=${TRDOC} -DTRDIC=${TRDIC} -DTRDON=${TRDON} -DTRFED=${TRFED} -DTRFEP=${TRFEP} -DTRZAERO=${TRZAERO} -DTRBGCS=${TRBGCS} -DNUMIN=${NUMIN} -DNUMAX=${NUMAX}"
+#setenv ICE_CPPDEFS "-DNUMIN=${NUMIN} -DNUMAX=${NUMAX}"
+setenv ICE_CPPDEFS " "
 
 if ($DITTO == 'yes') then
   setenv ICE_CPPDEFS "${ICE_CPPDEFS} -DREPRODUCIBLE"
-endif
-
-if (${ICE_NTASKS} == 1) then
-   setenv ICE_COMMDIR serial
-else
-   setenv ICE_COMMDIR mpi 
 endif
 
 if (${ICE_IOTYPE} == 'netcdf') then
@@ -74,9 +99,6 @@ echo "building makdep"
 cc -o makdep ${ICE_CASEDIR}/makdep.c     || exit 2
 
 echo "building cice > ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
-if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
-  echo "#---" >! ${ICE_CASEDIR}/test_output
-endif
 
 if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
 if !($?ICE_MACHINE_BLDTHRDS) then
@@ -87,11 +109,11 @@ if (-e ${ICE_BLDLOG_FILE}) rm ${ICE_BLDLOG_FILE}
 if (${ICE_CLEANBUILD} == 'true') then
   echo "gmake clean"
   if (${quiet} == "true") then
-    ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack \
+    ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
         CPPDEFS="${ICE_CPPDEFS}" \
         -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean >& ${ICE_BLDLOG_FILE}
   else
-    ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/icepack \
+    ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
         CPPDEFS="${ICE_CPPDEFS}" \
         -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean | tee ${ICE_BLDLOG_FILE}
   endif
@@ -122,6 +144,7 @@ if (${bldstat} != 0) then
   endif
   if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
     # This is a test case.  Write output to test_output file
+    echo "#---" >! ${ICE_CASEDIR}/test_output
     echo "FAIL ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
     echo "FAIL ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
   endif
@@ -131,6 +154,7 @@ endif
 echo "`date` ${0}:${ICE_CASENAME} build completed ${ICE_BLDLOG_FILE}"  >> ${ICE_CASEDIR}/README.case
 echo "${0}: COMPILE SUCCESSFUL, ${ICE_LOGDIR}/${ICE_BLDLOG_FILE}"
 if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
+  echo "#---" >! ${ICE_CASEDIR}/test_output
   echo "PASS ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
   echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
 endif
