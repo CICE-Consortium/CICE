@@ -74,6 +74,7 @@
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name
       use ice_flux, only: update_ocn_f, l_mpond_fresh
+      use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
           ycycle,          fyear_init,    dbug, &
@@ -104,7 +105,7 @@
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg
+        phi_c_slow_mode, phi_i_mushy, kalg 
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -172,14 +173,14 @@
         hp1
 
       namelist /forcing_nml/ &
-        atmbndy,        fyear_init,      ycycle,        atm_data_format,&
-        atm_data_type,  atm_data_dir,    calc_strair,   calc_Tsfc,      &
-        precip_units,   update_ocn_f,    l_mpond_fresh, ustar_min,      &
-        fbot_xfer_type, emissivity,                                     &
-        oceanmixed_ice, ocn_data_format, bgc_data_type, ocn_data_type,  &
-        ocn_data_dir,   oceanmixed_file, restore_ocn,   trestore,       &
-        restore_ice,    formdrag,        highfreq,      natmiter,       &
-        tfrz_option
+        atmbndy,        calc_strair,     calc_Tsfc,     update_ocn_f,   &
+        l_mpond_fresh,  ustar_min,      fbot_xfer_type, oceanmixed_ice, &
+        emissivity,     formdrag,        highfreq,      natmiter,       &
+        tfrz_option,    default_season,  precip_units,  fyear_init,     &
+        ycycle,         restore_ocn,     trestore,      restore_ice,    &
+        atm_data_type,  ocn_data_type,   bgc_data_type,                 &
+        atm_data_format, ocn_data_format,  oceanmixed_file,             &
+        atm_data_dir,   ocn_data_dir   
 
       namelist /tracer_nml/   &
         tr_iage, restart_age, &
@@ -308,7 +309,7 @@
       albsnowi  = 0.70_dbl_kind   ! cold snow albedo, near IR
       ahmax     = 0.3_dbl_kind    ! thickness above which ice albedo is constant (m)
       atmbndy   = 'default'       ! or 'constant'
-
+      default_season  = 'winter'  ! default forcing data, if data is not read in
       fyear_init = 1900           ! first year of forcing cycle
       ycycle = 1                  ! number of years in forcing cycle
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
@@ -1036,7 +1037,9 @@
                                trim(atm_data_dir)
             write(nu_diag,*) ' precip_units              = ', &
                                trim(precip_units)
-         endif 
+         elseif (trim(atm_data_type)=='default') then
+             write(nu_diag,*)    ' default_season            = ', trim(default_season)
+         endif
 
          write(nu_diag,1010) ' update_ocn_f              = ', update_ocn_f
          write(nu_diag,1010) ' l_mpond_fresh             = ', l_mpond_fresh

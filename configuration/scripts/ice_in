@@ -145,33 +145,34 @@
 /
 
 &forcing_nml
-    formdrag        = .false.
     atmbndy         = 'default'
-    fyear_init      = 1997
-    ycycle          = 1
-    atm_data_format = 'bin'
-    atm_data_type   = 'ncar'
-    atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
     calc_strair     = .true.
-    highfreq        = .false.
-    natmiter        = 5
     calc_Tsfc       = .true.
-    precip_units    = 'mm_per_month'
-    ustar_min       = 0.0005
-    emissivity      = 0.95
-    fbot_xfer_type  = 'constant'
     update_ocn_f    = .false.
     l_mpond_fresh   = .false.
-    tfrz_option     = 'mushy'
+    ustar_min       = 0.0005
+    fbot_xfer_type  = 'constant'
     oceanmixed_ice  = .true.
-    ocn_data_format = 'bin'
-    bgc_data_type   = 'default'
-    ocn_data_type   = 'default'
-    ocn_data_dir    = 'unknown_ocn_data_dir'
-    oceanmixed_file = 'unknown_oceanmixed_file'
+    emissivity      = 0.95
+    formdrag        = .false.
+    highfreq        = .false.
+    natmiter        = 5
+    tfrz_option     = 'mushy'
+    default_season  = 'winter'
+    precip_units    = 'mm_per_month'
+    fyear_init      = 1997
+    ycycle          = 1
     restore_ocn     = .false.
     trestore        =  90
     restore_ice     = .false.
+    atm_data_type   = 'ncar'
+    ocn_data_type   = 'default'
+    bgc_data_type   = 'default'
+    atm_data_format = 'bin'
+    ocn_data_format = 'bin'
+    oceanmixed_file = 'unknown_oceanmixed_file'
+    atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
+    ocn_data_dir    = 'unknown_ocn_data_dir'
 /
 
 &domain_nml
