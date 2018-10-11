@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_kinds_mod.F90 1226 2017-05-22 22:45:03Z tcraig $
 !=======================================================================
 
 ! Defines variable precision for all common data types

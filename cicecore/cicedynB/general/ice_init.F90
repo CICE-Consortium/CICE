@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_init.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! parameter and variable initializations
@@ -18,7 +17,8 @@
       use ice_constants, only: c0, c1, c2, c3, p2, p5
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
-          ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit
+          ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
+          ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
       use ice_fileunits, only: inst_suffix
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
@@ -55,10 +55,15 @@
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
-      use ice_domain_size, only: max_nstrm, nilyr, nslyr, max_ntrcr, ncat, n_aero
       use ice_domain, only: land_override
+      use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
+                                 n_aero, n_zaero, n_algae, &
+                                 n_doc, n_dic, n_don, n_fed, n_fep, &
+                                 n_trbgcz, n_trzs, n_trbri, n_trzaero, &
+                                 n_trage, n_trfy, n_trlvl, n_trpnd, n_trbgcs, &
+                                 n_bgc, nltrcr, max_nsw, max_ntrcr, max_nstrm
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
-                              dumpfreq, dumpfreq_n, diagfreq, nstreams, &
+                              dumpfreq, dumpfreq_n, diagfreq, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
                               write_ic, dump_last
       use ice_arrays_column, only: oceanmixed_ice
@@ -95,12 +100,11 @@
         n            ! loop index
 
       character (len=6) :: chartmp
-      character (len=32) :: str
 
       logical :: exists
 
       real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
-        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, &
+        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg
@@ -118,6 +122,7 @@
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
+      integer (kind=int_kind) :: numin, numax  ! unit number limits
 
       real (kind=real_kind) :: rpcesm, rplvl, rptopo 
       real (kind=dbl_kind) :: Cf, puny
@@ -131,8 +136,8 @@
 
       namelist /setup_nml/ &
         days_per_year,  use_leap_years, year_init,       istep0,        &
-        dt,             npt,            ndtd,                           &
-        runtype,        runid,          bfbflag,                        &
+        dt,             npt,            ndtd,            numin,         &
+        runtype,        runid,          bfbflag,         numax,         &
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
@@ -144,6 +149,7 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
+        ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
         land_override
 
@@ -173,7 +179,7 @@
         atmbndy,        fyear_init,      ycycle,        atm_data_format,&
         atm_data_type,  atm_data_dir,    calc_strair,   calc_Tsfc,      &
         precip_units,   update_ocn_f,    l_mpond_fresh, ustar_min,      &
-        fbot_xfer_type,                                                 &
+        fbot_xfer_type, emissivity,                                     &
         oceanmixed_ice, ocn_data_format, sss_data_type, sst_data_type,  &
         ocn_data_dir,   oceanmixed_file, restore_sst,   trestore,       &
         restore_ice,    formdrag,        highfreq,      natmiter,       &
@@ -186,7 +192,11 @@
         tr_pond_cesm, restart_pond_cesm, &
         tr_pond_lvl, restart_pond_lvl, &
         tr_pond_topo, restart_pond_topo, &
-        tr_aero, restart_aero
+        tr_aero, restart_aero, &
+        n_aero, n_zaero, n_algae, &
+        n_doc, n_dic, n_don, n_fed, n_fep, &
+        n_trbgcz, n_trzs, n_trbri, n_trzaero, &
+        n_trage, n_trfy, n_trlvl, n_trpnd, n_trbgcs
 
       !-----------------------------------------------------------------
       ! default values
@@ -195,9 +205,10 @@
       abort_flag = 0
 
       call icepack_query_parameters(puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
-         file=__FILE__, line=__LINE__)
+! nu_diag not yet defined
+!      call icepack_warnings_flush(nu_diag)
+!      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
+!         file=__FILE__, line=__LINE__)
 
       days_per_year = 365    ! number of days in a year
       use_leap_years= .false.! if true, use leap years (Feb 29)
@@ -207,6 +218,8 @@
 #ifndef CESMCOUPLED
       dt = 3600.0_dbl_kind   ! time step, s      
 #endif
+      numin = 11             ! min allowed unit number
+      numax = 99             ! max allowed unit number
       npt = 99999            ! total number of time steps (dt) 
       diagfreq = 24          ! how often diag output is written
       print_points = .false. ! if true, print point data
@@ -245,6 +258,10 @@
       gridcpl_file = 'unknown_gridcpl_file'
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
+      ncat  = 0
+      nilyr = 0
+      nslyr = 0
+      nblyr = 0
 
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
@@ -273,6 +290,7 @@
       calc_Tsfc = .true.     ! calculate surface temperature
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
+      emissivity = 0.95      ! emissivity of snow and ice
       l_mpond_fresh = .false.     ! logical switch for including meltpond freshwater
                                   ! flux feedback to ocean model
       fbot_xfer_type = 'constant' ! transfer coefficient type for ocn heat flux
@@ -347,6 +365,24 @@
       restart_pond_topo = .false. ! melt ponds restart
       tr_aero      = .false. ! aerosols
       restart_aero = .false. ! aerosols restart
+
+      n_aero = 0
+      n_zaero = 0
+      n_algae = 0
+      n_doc = 0
+      n_dic = 0
+      n_don = 0
+      n_fed = 0
+      n_fep = 0
+      n_trbgcz = 0
+      n_trzs = 0
+      n_trbri = 0
+      n_trzaero = 0
+      n_trage = 0
+      n_trfy = 0
+      n_trlvl = 0
+      n_trpnd = 0
+      n_trbgcs = 0
 
       ! mushy layer gravity drainage physics
       a_rapid_mode      =  0.5e-3_dbl_kind ! channel radius for rapid drainage mode (m)
@@ -445,6 +481,8 @@
       ! broadcast namelist settings
       !-----------------------------------------------------------------
 
+      call broadcast_scalar(numin,              master_task)
+      call broadcast_scalar(numax,              master_task)
       call broadcast_scalar(days_per_year,      master_task)
       call broadcast_scalar(use_leap_years,     master_task)
       call broadcast_scalar(year_init,          master_task)
@@ -544,6 +582,7 @@
       call broadcast_scalar(update_ocn_f,       master_task)
       call broadcast_scalar(l_mpond_fresh,      master_task)
       call broadcast_scalar(ustar_min,          master_task)
+      call broadcast_scalar(emissivity,         master_task)
       call broadcast_scalar(fbot_xfer_type,     master_task)
       call broadcast_scalar(precip_units,       master_task)
       call broadcast_scalar(oceanmixed_ice,     master_task)
@@ -581,6 +620,27 @@
       call broadcast_scalar(tr_pond,            master_task)
       call broadcast_scalar(tr_aero,            master_task)
       call broadcast_scalar(restart_aero,       master_task)
+      call broadcast_scalar(ncat,               master_task)
+      call broadcast_scalar(nilyr,              master_task)
+      call broadcast_scalar(nslyr,              master_task)
+      call broadcast_scalar(nblyr,              master_task)
+      call broadcast_scalar(n_aero,             master_task)
+      call broadcast_scalar(n_zaero,            master_task)
+      call broadcast_scalar(n_algae,            master_task)
+      call broadcast_scalar(n_doc,              master_task)
+      call broadcast_scalar(n_dic,              master_task)
+      call broadcast_scalar(n_don,              master_task)
+      call broadcast_scalar(n_fed,              master_task)
+      call broadcast_scalar(n_fep,              master_task)
+      call broadcast_scalar(n_trbgcz,           master_task)
+      call broadcast_scalar(n_trzs,             master_task)
+      call broadcast_scalar(n_trbri,            master_task)
+      call broadcast_scalar(n_trzaero,          master_task)
+      call broadcast_scalar(n_trage,            master_task)
+      call broadcast_scalar(n_trfy,             master_task)
+      call broadcast_scalar(n_trlvl,            master_task)
+      call broadcast_scalar(n_trpnd,            master_task)
+      call broadcast_scalar(n_trbgcs,           master_task)
       call broadcast_scalar(a_rapid_mode,       master_task)
       call broadcast_scalar(Rac_rapid_mode,     master_task)
       call broadcast_scalar(aspect_rapid_mode,  master_task)
@@ -618,6 +678,25 @@
          if (my_task == master_task) &
             write(nu_diag,*) 'WARNING: runtype ne continue and ice_ic=none|default, setting restart=.false.'
          restart = .false.
+      endif
+
+      if (trim(runtype) /= 'continue' .and. (ice_ic == 'none' .or. ice_ic == 'default')) then
+         if (my_task == master_task) &
+            write(nu_diag,*) 'WARNING: ice_ic = none or default, setting restart flags to .false.'
+         restart = .false.
+         restart_aero =  .false. 
+         restart_age =  .false. 
+         restart_fy =  .false. 
+         restart_lvl =  .false. 
+         restart_pond_cesm =  .false. 
+         restart_pond_lvl =  .false. 
+         restart_pond_topo =  .false. 
+! tcraig, probably needs to be uncommented when we can test bgc
+!         restart_bgc =  .false. 
+!         restart_hbrine =  .false. 
+!         restart_zsal =  .false. 
+! tcraig, OK to leave as true, needed for boxrestore case
+!         restart_ext =  .false. 
       endif
 
       if (trim(runtype) == 'initial' .and. .not.(restart) .and. &
@@ -797,6 +876,9 @@
          abort_flag = 18
       endif
 
+      ice_IOUnitsMinUnit = numin
+      ice_IOUnitsMaxUnit = numax
+
       call icepack_init_parameters(Cf_in=Cf)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort1', &
@@ -826,6 +908,8 @@
          write(nu_diag,1010) ' print_global              = ', print_global
          write(nu_diag,1010) ' print_points              = ', print_points
          write(nu_diag,1010) ' bfbflag                   = ', bfbflag
+         write(nu_diag,1020) ' numin                     = ', numin
+         write(nu_diag,1020) ' numax                     = ', numax
          write(nu_diag,1050) ' histfreq                  = ', histfreq(:)
          write(nu_diag,1040) ' histfreq_n                = ', histfreq_n(:)
          write(nu_diag,1010) ' hist_avg                  = ', hist_avg
@@ -873,7 +957,13 @@
                                kcatbound
          write(nu_diag,1020) ' land_override             = ', &
                                land_override
-         write(nu_diag,1020) ' kdyn                      = ', kdyn
+         if (kdyn == 1) then
+           write(nu_diag,1021) ' kdyn                      = ','evp ', kdyn
+         elseif (kdyn == 2) then
+           write(nu_diag,1021) ' kdyn                      = ','eap ', kdyn
+         else
+           write(nu_diag,1020) ' kdyn                      = ', kdyn
+         endif
          write(nu_diag,1020) ' ndtd                      = ', ndtd
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &
@@ -970,6 +1060,7 @@
          write(nu_diag,1010) ' update_ocn_f              = ', update_ocn_f
          write(nu_diag,1010) ' l_mpond_fresh             = ', l_mpond_fresh
          write(nu_diag,1005) ' ustar_min                 = ', ustar_min
+         write(nu_diag,1005) ' emissivity                = ', emissivity
          write(nu_diag, *)   ' fbot_xfer_type            = ', &
                                trim(fbot_xfer_type)
          write(nu_diag,1010) ' oceanmixed_ice            = ', &
@@ -1029,6 +1120,51 @@
          write(nu_diag,1010) ' restart_pond_topo         = ', restart_pond_topo
          write(nu_diag,1010) ' tr_aero                   = ', tr_aero
          write(nu_diag,1010) ' restart_aero              = ', restart_aero
+
+         write(nu_diag,1020) ' ncat                      = ', ncat
+         write(nu_diag,1020) ' nilyr                     = ', nilyr
+         write(nu_diag,1020) ' nslyr                     = ', nslyr
+         write(nu_diag,1020) ' nblyr                     = ', nblyr
+         write(nu_diag,1020) ' n_aero                    = ', n_aero
+         write(nu_diag,1020) ' n_zaero                   = ', n_zaero
+         write(nu_diag,1020) ' n_algae                   = ', n_algae
+         write(nu_diag,1020) ' n_doc                     = ', n_doc
+         write(nu_diag,1020) ' n_dic                     = ', n_dic
+         write(nu_diag,1020) ' n_don                     = ', n_don
+         write(nu_diag,1020) ' n_fed                     = ', n_fed
+         write(nu_diag,1020) ' n_fep                     = ', n_fep
+         write(nu_diag,1020) ' n_trbgcz                  = ', n_trbgcz
+         write(nu_diag,1020) ' n_trzs                    = ', n_trzs
+         write(nu_diag,1020) ' n_trbri                   = ', n_trbri
+         write(nu_diag,1020) ' n_trzaero                 = ', n_trzaero
+         write(nu_diag,1020) ' n_trage                   = ', n_trage
+         write(nu_diag,1020) ' n_trfy                    = ', n_trfy
+         write(nu_diag,1020) ' n_trlvl                   = ', n_trlvl
+         write(nu_diag,1020) ' n_trpnd                   = ', n_trpnd
+         write(nu_diag,1020) ' n_trbgcs                  = ', n_trbgcs
+
+         n_bgc     = (n_algae*2 + n_doc + n_dic + n_don + n_fed + &
+                      n_fep + n_zaero + 8)    ! nit, am, sil, dmspp, dmspd, dms, pon, humic
+         nltrcr    = (n_bgc*n_trbgcz+n_trzs)*n_trbri    ! number of zbgc (includes zaero)
+                                                        ! and zsalinity tracers
+         max_nsw   = (nilyr+nslyr+2) & ! total chlorophyll plus aerosols
+                   * (1+n_trzaero)     ! number of tracers active in shortwave calculation
+         max_ntrcr =   1         & ! 1 = surface temperature
+                   + nilyr       & ! ice salinity
+                   + nilyr       & ! ice enthalpy
+                   + nslyr       & ! snow enthalpy
+                               !!!!! optional tracers:
+                   + n_trage     & ! age
+                   + n_trfy      & ! first-year area
+                   + n_trlvl*2   & ! level/deformed ice
+                   + n_trpnd*3   & ! ponds
+                   + n_aero*4    & ! number of aerosols * 4 aero layers
+                   + n_trbri     & ! brine height
+                   + n_trbgcs*n_bgc           & ! skeletal layer BGC
+                   + n_trzs  *n_trbri* nblyr  & ! zsalinity  (off if n_trbri=0)
+                   + n_bgc*n_trbgcz*n_trbri*(nblyr+3) & ! zbgc (off if n_trbri=0)
+                   + n_bgc*n_trbgcz           & ! mobile/stationary phase tracer
+                   + 1             ! for unused tracer flags
 
          nt_Tsfc = 1           ! index tracers, starting with Tsfc = 1
          ntrcr = 1             ! count tracers, starting with Tsfc = 1
@@ -1097,20 +1233,26 @@
          endif                               
 
          write(nu_diag,*) ' '
-         write(nu_diag,1020) 'ntrcr = ', ntrcr
+         write(nu_diag,1020) ' n_bgc                     = ', n_bgc
+         write(nu_diag,1020) ' nltrcr                    = ', nltrcr
+         write(nu_diag,1020) ' max_nsw                   = ', max_nsw
+         write(nu_diag,1020) ' max_ntrcr                 = ', max_ntrcr
          write(nu_diag,*) ' '
-         write(nu_diag,1020)'nt_sice = ', nt_sice
-         write(nu_diag,1020)'nt_qice = ', nt_qice
-         write(nu_diag,1020)'nt_qsno = ', nt_qsno
+         write(nu_diag,1020) ' ntrcr                     = ', ntrcr
+         write(nu_diag,*) ' '
+         write(nu_diag,1020) ' nt_sice                   = ', nt_sice
+         write(nu_diag,1020) ' nt_qice                   = ', nt_qice
+         write(nu_diag,1020) ' nt_qsno                   = ', nt_qsno
          write(nu_diag,*)' '
-         write(nu_diag,1020)'nilyr', nilyr
-         write(nu_diag,1020)'nslyr', nslyr
+         write(nu_diag,1020) ' nilyr                     = ', nilyr
+         write(nu_diag,1020) ' nslyr                     = ', nslyr
          write(nu_diag,*)' '
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
  1005    format (a30,2x,f9.6)  ! float
  1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
+ 1021    format (a30,2x,a8,i6) ! char, int
  1030    format (a30,   a8)    ! character
  1040    format (a30,2x,6i6)   ! integer
  1050    format (a30,2x,6a6)   ! character
@@ -1142,6 +1284,10 @@
       call broadcast_scalar(nt_hpnd,  master_task)
       call broadcast_scalar(nt_ipnd,  master_task)
       call broadcast_scalar(nt_aero,  master_task)
+      call broadcast_scalar(n_bgc,    master_task)
+      call broadcast_scalar(nltrcr,   master_task)
+      call broadcast_scalar(max_nsw,  master_task)
+      call broadcast_scalar(max_ntrcr,master_task)
 
       if (formdrag) then
          if (nt_apnd==0) then
@@ -1164,7 +1310,7 @@
 
       call flush_fileunit(nu_diag)
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
-         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, &
+         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, emissivity_in=emissivity, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
          R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
          kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &
@@ -1211,7 +1357,7 @@
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, max_ntrcr, n_aero
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
-      use ice_grid, only: tmask, ULON, ULAT, TLON, TLAT
+      use ice_grid, only: tmask, ULON, TLAT
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
           aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
           n_trcr_strata, nt_strata, trcr_base
@@ -1332,6 +1478,8 @@
          enddo
       endif
 
+      trcr_base = c0
+
       do it = 1, ntrcr
          ! mask for base quantity on which tracers are carried
          if (trcr_depend(it) == 0) then      ! area
@@ -1394,8 +1542,8 @@
                              ilo, ihi,            jlo, jhi,            &
                              iglob,               jglob,               &
                              ice_ic,              tmask(:,:,    iblk), &
-                             ULON (:,:,    iblk), ULAT (:,:,    iblk), &
-                             TLON (:,:,    iblk), TLAT (:,:,    iblk), &
+                             ULON (:,:,    iblk), &
+                             TLAT (:,:,    iblk), &
                              Tair (:,:,    iblk), sst  (:,:,    iblk), &
                              Tf   (:,:,    iblk),                      &
                              salinz(:,:,:, iblk), Tmltz(:,:,:,  iblk), &
@@ -1471,8 +1619,8 @@
                                 ilo, ihi, jlo, jhi, &
                                 iglob,    jglob,    &
                                 ice_ic,   tmask,    &
-                                ULON,     ULAT, &
-                                TLON,     TLAT, &
+                                ULON, &
+                                TLAT, &
                                 Tair,     sst,  &
                                 Tf,       &
                                 salinz,   Tmltz, &
@@ -1501,8 +1649,6 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(in) :: &
          ULON   , & ! longitude of velocity pts (radians)
-         ULAT   , & ! latitude of velocity pts (radians)
-         TLON   , & ! longitude of temperature pts (radians)
          TLAT       ! latitude of temperature pts (radians)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &

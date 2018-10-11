@@ -1,6 +1,4 @@
 %=======================================================================
-% SVN: $Id: master_list.bib 5 2005-12-12 17:41:05Z mvr $
-%=======================================================================
 %   ****************************************
 %   * File: SAMPLE.BIB                     *
 %   ****************************************
@@ -47,12 +45,14 @@
 @string{NTN = {NCAR Tech. Note}}
 @string{BGC = {Biogeochemistry}}
 @string{EFM = {Eng. Fract. Mech.}}
+@string{GMD = {Geosci. Model Dev.}}
+@string{CRST = {Cold Reg. Sci. Technol.}}
 
-% Individual entries (roughly sequential, then alphabetical but first-author’s last name)
+% Individual entries (roughly sequential, then alphabetical by first-author's last name)
 @incollection{Assur58,
   author =  "A. Assur",
   title  = "Composition of sea ice and its tensile strength",
-  booktitle = "Arctic sea ice; conference held at Easton, Maryland, February 24–27, 1958",
+  booktitle = "Arctic sea ice; conference held at Easton, Maryland, February 24-27, 1958",
   publisher = "Publs. Natl. Res. Coun. Wash.",
   address = "Washington, D.C.",
   year =  "1958",
@@ -294,6 +294,16 @@
   year = "1995",
   url = {https://github.com/CICE-Consortium/CICE/blob/master/doc/PDF/LAUR-95-1146.pdf}
 }
+@article{ZvS95,
+  author = "F.W. Zwiers and H. von Storch",
+  title = "{Taking serial correlation into account in tests of the mean}",  
+  journal = JC,
+  year = "1995",
+  volume = {8},  
+  number = {2},
+  pages = {336-351},
+  url = {https://doi.org/10.1175/1520-0442(1995)008<0336:TSCIAI>2.0.CO;2}
+}
 @Article{Murray96
   author = "R.J. Murray",
   title = "{Explicit generation of orthogonal grids for ocean models}",
@@ -421,6 +431,16 @@
   volume = {68},
   pages = {1839-1887},
   url = {http://dx.doi.org/10.1016/S0013-7944(01)00037-6}
+}
+@article{Taylor01,
+  author = "K.E. Taylor",
+  title = {Summarizing multiple aspects of model performance in a single diagram},
+  journal = JGRA,
+  year = "2001",
+  volume = {106},
+  number = {D7},
+  pages = {7183-7192},
+  url = {https://doi.org/10.1029/2000JD900719}
 }
 @Article{TWMH01
   author = "H.J. Trodahl and S.O.F. Wilkinson and M.J. McGuinness and T.G. Haskeel",
@@ -552,6 +572,14 @@
   year =  "2006",
   volume = {4},
 }
+@article{HRHPSL06,
+  author = "W.D. Hibler and A. Roberts and P. Heil and A.Y. Proshutinsky and H.L. Simmons and J. Lovick",
+  title = "{Modeling M2 tidal variability in Arctic sea-ice drift and deformation}",
+  journal = AG,
+  volume = {44},
+  year = {2006},
+  url = {https://doi.org/10.3189/172756406781811178}
+}
 @Article{WF06
   author = "A.V. Wilchinsky and D.L. Feltham",
   title = "{Modelling the rheology of sea ice as a collection of diamond-shaped floes}",
@@ -648,6 +676,15 @@
   number = {C8},
   url = {http://dx.doi.org/10.1029/2009JC005568}
 }
+@Article{KH10
+  author = "C. Konig Beatty and D.M. Holland",
+  title = "{Modeling landfast ice by adding tensile strength}",
+  journal = JPO,
+  year = "2010",
+  volume = {40},
+  pages = {185-198},
+  url = {https://doi.org/10.1175/2009JPO4105.1}
+}
 @Article{ABTH11
   author = "K.C. Armour and C.M. Bitz and L. Thompson and E.C. Hunke",
   title = "{Controls on Arctic sea ice from first-year and multi-year ice survivability}",
@@ -667,7 +704,7 @@
   url = {http://dx.doi.org/10.1029/2010JC006409}
 }
 @Article{LLCL11
-  author = "P. Lu and Z. Li and B. Cheng and M. Lepparanta",
+  author = "P. Lu and Z. Li and B. Cheng and M. Lepp{\"{a}}ranta",
   title = "{A parametrization fo the ice-ocean drag coefficient}",
   journal = JGRO,
   year = "2011",
@@ -701,6 +738,15 @@
   volume = {25},
   pages = {1413-1430},
   url = {http://dx.doi.org/10.1175/JCLI-D-11-00078.1}
+}
+@article{LOSF12,
+  author = "M. Lepp{\"{a}}ranta and A. Oikkonen and K. Shirasawa and Y. Fukamachi",
+  title = "{A treatise on frequency spectrum of drift ice velocity}",
+  year = "2012",
+  journal = CRST,
+  volume = {76-77},
+  pages = {83-91},
+  doi = {https://doi.org/10.1016/j.coldregions.2011.12.005}
 }
 @Article{LGHA12
   author = "C. Lüpkes and V.M. Gryanik and  J. Hartmann and E.L. Andreas",
@@ -756,128 +802,67 @@
   pages = {1329-1353},
   url = {https://doi.org/10.1175/JPO-D-13-0215.1}
 }
-
-@Article{KH2010
-  author = "C. Konig Beatty and D.M. Holland",
-  title = "{Modeling landfast ice by adding tensile strength}",
-  journal = JPO,
-  year = "2010",
-  volume = {40},
-  pages = {185-198},
-  url = {https://doi.org/10.1175/2009JPO4105.1}
+@article{RCWODHNCB15,
+  author = "A.F. Roberts and A.P. Craig and W. Maslowski and R. Osinski and A.K. DuVivier and M. Hughes and B. Nijssen and J.J. Cassano and M. Brunke",
+  title = "{Simulating transient ice-ocean Ekman transport in the Regional Arctic System Model and Community Earth System Model}",
+  year = "2015",
+  journal = AG,
+  volume = {56},
+  number = {69},
+  pages = {211-228},
+  url = {https://doi.org/10.3189/2015AoG69A760}
 }
-
-@Article{Lemieux2016
-  author = "J.F. Lemieux and F.Dupont and P. Blain and F. Roy and G.C. Smith and G.M. Flato",
-  title = "{Improving the simulation of landfast ice by combining tensile strength and a parameterization for
-grounded ridges,}",
+@Article{LDBRSF16
+  author = "J.F. Lemieux and F. Dupont and P. Blain and F. Roy and G.C. Smith and G.M. Flato",
+  title = "{Improving the simulation of landfast ice by combining tensile strength and a parameterization for grounded ridges}",
   journal = JGRO,
   year = "2016",
   volume = {121},
-  pages = {},
+  pages = {7354-7368},
   url = {https://doi.org/10.1002/2016JC012006}
 }
-
-@article{Hunke2018,
-  author = {Hunke, Elizabeth and Roberts, Andrew and Allard, Richard and Lemieux, Jean-Fran{\c{c}}ois and Turner, Matthew and Craig, Tony and DuVivier, Alice and Bailey, David and Holland, Marika and Winton, Michael and Dupont, Frederic and Grumbine, Robert},
-  title = {{The CICE Consortium Sea Ice Modeling Suite}},
-  journal = {},
-  year = {In Prep.}
+@Article{NJHHMSTV16
+  author = "D. Notz and A. Jahn and E. Hunke and F. Massonnet and J. Stroeve and B. Tremblay and M. Vancoppenolle",
+  title = "{The CMIP6 Sea-Ice Model Intercomparison Project (SIMIP): understanding sea ice through climate-model simulations}",
+  journal = GMD,
+  year = "2016",
+  volume = {9},
+  pages = {3427-3446},
+  url = {https://doi.org/10.5194/gmd-9-3427-2016}
 }
-
-@article{Roberts2015,
-  author = {Roberts, Andrew F. and Craig, Anthony and Maslowski, Wieslaw and Osinski, Robert and Duvivier, Alice and Hughes, Mimi and Nijssen, Bart and Cassano, John J. and Brunke, Michael},
-  doi = {10.3189/2015AoG69A760},
-  journal = {Ann. Glaciol.},
-  number = {69},
-  pages = {211--228},
-  title = {{Simulating transient ice – ocean Ekman transport in the Regional Arctic System Model and Community Earth System Model}},
-  volume = {56},
-  year = {2015}
-}
-
-@article{Taylor2001,
-  author = {Taylor, Karl E},
-  journal = {J. Geophys. Res.},
-  number = {D7},
-  pages = {7183--7192},
-  title = {{Summarizing multiple aspects of model performance}},
-  volume = {106},
-  year = {2001}
-}
-
-@article{HiblerIII2006,
-  author = {Hibler, III, W. D. and Roberts, Andrew F. and Heil, Petra and Proshutinsky, A Y and Simmons, H L and Lovick, J},
-  doi = {10.3189/172756406781811178},
-  journal = {Ann. Glaciol.},
-  pages = {418--428},
-  title = {{Modeling M2 tidal variability in Arctic sea-ice drift and deformation}},
-  volume = {44},
-  year = {2006}
-}
-
-@article{Hibler2006,
-  author = {Hibler, W.D. and Roberts, A. and Heil, P. and Proshutinsky, A.Y. and Simmons, H.L. and Lovick, J.},
-  doi = {10.3189/172756406781811178},
-  journal = {Ann. Glaciol.},
-  title = {{Modeling M2 tidal variability in Arctic sea-ice drift and deformation}},
-  volume = {44},
-  year = {2006}
-}
-
-@article{Zwiers1995,
-  author = {Zwiers, Francis W. and von Storch, Hans},
-  doi = {10.1175/1520-0442(1995)008<0336:TSCIAI>2.0.CO;2},
-  journal = {J. Clim.},
-  number = {2},
-  pages = {336--351},
-  title = {{Taking serial correlation into account in tests of the mean}},
-  volume = {8},
-  year = {1995}
-}
-
-@book{VonStorch1999,
-  author = {von Storch, Hans and Zwiers, Francis W},
-  pages = {484},
-  publisher = {Cambridge University Press},
-  title = {{Statistical Analysis in Climate Research}},
-  year = {1999}
+@article{HRALTCDBHWDG18,
+  author = {E.C. Hunke and A. Roberts and R. Allard and J.F. Lemieux and M. Turner, and A.P. Craig and A.K. DuVivier and D. Bailey and M.M. Holland and M. Winton and F. Dupont and R. Grumbine},
+  title = "{The CICE Consortium Sea Ice Modeling Suite}",
+  journal = {In Prep.},
+  year = {2018 - In Prep.},
+  url = {https://doi.org}
 }
 
 @article{Roberts2018,
-  author = {Roberts, A. and Maslowski, W. and Hunke, E. and Osinski, R. and Cassano, J. and DuVivier, A. and Hughes, M. and Seefeldt, M. and Nijssen, B. and Hamman, J. and Hutchings, J. and Tsamados, M. and Feltham, D.},
-  journal = {Prep.},
-  title = {{Inter-comparison of isotropic and anisotropic sea-ice mechanics in a high-resolution fully coupled climate model}},
-  year = {2018}
+  author = "A. Roberts and W. Maslowski and E.C. Hunke and R. Osinski and J.J. Cassano and A.K. DuVivier and M. Hughes and M. Seefeldt and B. Nijssen and J. Hamman and J. Hutchings and M. Tsamados and D. Feltham",
+  title = "{Inter-comparison of isotropic and anisotropic sea-ice mechanics in a high-resolution fully coupled climate model}",
+  journal = {In Prep.},
+  year = {2018 - In Prep.},
+  url = {https://doi.org}
+}
+
+@article{Craig2014,
+  author = {Craig, A. and Mickelson, S. and Hunke, E. and Bailey, D.},
+  doi = {10.1177/1094342014548771},
+  journal = {International Journal of High Performance Computing},
+  title = {{Improved parallel performance of the CICE model in CESM1}},
+  volume = {29},
+  number = {2},
+  pages = {154--165},
+  year = {2014},
 }
 
 @article{Irving2015,
-  author = {Irving, Damien},
-  doi = {10.1175/BAMS-D-15-00010.1},
-  journal = {Bull. Am. Meteorol. Soc.},
-  number = {July},
-  pages = {151007152952002},
-  title = {{A minimum standard for publishing computational results in the weather and climate sciences}},
-  year = {2015}
+  author = "D. Irving",
+  title = "{A minimum standard for publishing computational results in the weather and climate sciences}",
+  year = "2015",
+  journal = BAMS,
+  number = {97},
+  pages = {1149-1158},
+  url = {https://doi.org/10.1175/BAMS-D-15-00010.1}
 }
-
-@article{Lepparanta2012,
-  author = {Lepp{\"{a}}ranta, Matti and Oikkonen, Annu and Shirasawa, Kunio and Fukamachi, Yasushi},
-  doi = {10.1016/j.coldregions.2011.12.005},
-  journal = {Cold Reg. Sci. Technol.},
-  month = {jun},
-  pages = {83--91},
-  title = {{A treatise on frequency spectrum of drift ice velocity}},
-  volume = {76-77},
-  year = {2012}
-}
-
-@book{Wilks2006,
-  author = {Wilks, Daniel S},
-  edition = {2nd},
-  pages = {627},
-  publisher = {Academic Press},
-  title = {{Statistical methods in the atmospheric sciences}},
-  year = {2006}
-}
-

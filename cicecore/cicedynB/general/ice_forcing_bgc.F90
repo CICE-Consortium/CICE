@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_forcing.F90 973 2015-04-15 21:07:21Z akt $
 !=======================================================================
 !
 ! Reads and interpolates forcing data for biogeochemistry
@@ -12,11 +11,11 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_communicate, only: my_task, master_task
-      use ice_calendar, only: dt, istep, sec, mday, month, daymo
+      use ice_calendar, only: dt, istep, sec, mday, month
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: restore_bgc, &
          bgc_data_dir, sil_data_type, nit_data_type, fe_data_type
-      use ice_constants, only: c0, p01, p1
+      use ice_constants, only: c0, p1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -28,15 +27,41 @@
 
       implicit none
       private
-      public :: get_forcing_bgc, get_atm_bgc, fzaero_data, &
+      public :: get_forcing_bgc, get_atm_bgc, fzaero_data, alloc_forcing_bgc, &
                 init_bgc_data, faero_data, faero_default, faero_optics
 
       integer (kind=int_kind) :: &
          bgcrecnum = 0   ! old record number (save between steps)
 
+      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
+          nitdat      , & ! data value toward which nitrate is restored
+          sildat          ! data value toward which silicate is restored
+
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, save :: &
+         nit_data, & ! field values at 2 temporal data points
+         sil_data
+
 !=======================================================================
 
       contains
+
+!=======================================================================
+!
+! Allocate space for forcing_bgc variables
+!
+      subroutine alloc_forcing_bgc
+
+      integer (int_kind) :: ierr
+
+      allocate( &
+          nitdat  (nx_block,ny_block,max_blocks), & ! data value toward which nitrate is restored
+          sildat  (nx_block,ny_block,max_blocks), & ! data value toward which silicate is restored
+          nit_data(nx_block,ny_block,2,max_blocks), & ! field values at 2 temporal data points
+          sil_data(nx_block,ny_block,2,max_blocks), &
+          stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_forcing_bgc): Out of memory')
+
+      end subroutine alloc_forcing_bgc
 
 !=======================================================================
 !
@@ -58,7 +83,7 @@
           read_data_nc_point, c1intp, c2intp
 
       integer (kind=int_kind) :: &
-          i, j, k,iblk, & ! horizontal indices
+          i, j, iblk,   & ! horizontal indices
           ixm,ixp, ixx, & ! record numbers for neighboring months
           maxrec      , & ! maximum record number
           recslot     , & ! spline slot for current record
@@ -66,21 +91,12 @@
           recnum      , & ! record number
           dataloc     , & ! = 1 for data located in middle of time interval
                           ! = 2 for date located at end of time interval
-          sec_day     , & !  fix time to noon
           ks              ! bgc tracer index (bio_index_o)
 
       character (char_len_long) :: & 
          met_file,   &    ! netcdf filename
          fieldname        ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-          nitdat      , & ! data value toward which nitrate is restored
-          sildat          ! data value toward which silicate is restored
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), save :: &
-         nit_data, & ! field values at 2 temporal data points
-         sil_data
-          
       real (kind=dbl_kind), dimension(2), save :: &
          sil_data_p      , &  ! field values at 2 temporal data points
          nit_data_p           ! field values at 2 temporal data points
@@ -95,11 +111,13 @@
          nit_file   , & ! nitrate input file
          sil_file       ! silicate input file
 
+      character(len=*), parameter :: subname = '(get_forcing_bgc)'
+
       call icepack_query_parameters(secday_out=secday)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
            tr_bgc_Sil_out=tr_bgc_Sil)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (.not. trim(nit_data_type)=='ISPOL' .AND. &
@@ -390,8 +408,8 @@
 
       subroutine get_atm_bgc 
 
-      use ice_blocks, only: nx_block, ny_block, block, get_block
-      use ice_domain, only: nblocks, distrb_info, blocks_ice
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: n_zaero 
       use ice_flux_bgc, only: flux_bio_atm, faero_atm
 
@@ -411,6 +429,8 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(get_atm_bgc)'
+
       !-----------------------------------------------------------------
       ! initialize
       !-----------------------------------------------------------------
@@ -418,7 +438,7 @@
       call icepack_query_tracer_flags(tr_zaero_out=tr_zaero)
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       flux_bio_atm(:,:,:,:) = c0
@@ -456,6 +476,8 @@
 
       use ice_flux_bgc, only: faero_atm
 
+      character(len=*), parameter :: subname = '(faero_default)'
+
         faero_atm(:,:,1,:) = 1.e-12_dbl_kind ! kg/m^2 s
         faero_atm(:,:,2,:) = 1.e-13_dbl_kind
         faero_atm(:,:,3,:) = 1.e-14_dbl_kind 
@@ -482,7 +504,7 @@
 #ifdef ncdf 
       ! local parameters
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, &
          save :: &
          aero1_data    , & ! field values at 2 temporal data points
          aero2_data    , & ! field values at 2 temporal data points
@@ -499,6 +521,13 @@
          midmonth        ! middle day of month
 
       logical (kind=log_kind) :: readm
+
+      character(len=*), parameter :: subname = '(faero_data)'
+
+      allocate( aero1_data(nx_block,ny_block,2,max_blocks), &
+                aero2_data(nx_block,ny_block,2,max_blocks), &
+                aero3_data(nx_block,ny_block,2,max_blocks)  )
+
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -556,6 +585,7 @@
 
       where (faero_atm(:,:,:,:) > 1.e20) faero_atm(:,:,:,:) = c0
 
+      deallocate( aero1_data, aero2_data, aero3_data )
 #endif
 
       end subroutine faero_data
@@ -568,7 +598,6 @@
 
       subroutine fzaero_data
 
-      use ice_domain_size, only: n_zaero
       use ice_blocks, only: nx_block, ny_block
       use ice_flux_bgc, only: faero_atm
       use ice_forcing, only: interp_coeff_monthly, read_clim_data_nc, interpolate_data
@@ -576,7 +605,7 @@
 #ifdef ncdf 
       ! local parameters
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, &
          save :: &
          aero_data    ! field values at 2 temporal data points
 
@@ -595,10 +624,14 @@
 
       logical (kind=log_kind) :: readm
 
+      character(len=*), parameter :: subname = '(fzaero_data)'
+
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      allocate( aero_data(nx_block,ny_block,2,max_blocks) )
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -646,6 +679,7 @@
 
       where (faero_atm(:,:,nlt_zaero(1),:) > 1.e20) faero_atm(:,:,nlt_zaero(1),:) = c0
 
+      deallocate( aero_data )
 #endif
 
       end subroutine fzaero_data
@@ -671,8 +705,7 @@
       ! local parameters
 
       integer (kind=int_kind) :: &
-         fid              , & ! file id for netCDF file 
-         nbits
+         fid              ! file id for netCDF file 
 
       logical (kind=log_kind) :: diag
 
@@ -680,7 +713,7 @@
          iron_file,   &   ! netcdf filename
          fieldname        ! field name in netcdf file
 
-      nbits = 64              ! double precision data
+      character(len=*), parameter :: subname = '(init_bgc_data)'
 
     !-------------------------------------------------------------------
     ! Annual average data from Tagliabue, 2012 (top 50 m average
@@ -738,7 +771,7 @@
       subroutine faero_optics
 
       use ice_broadcast, only: broadcast_array
-      use ice_read_write, only: ice_open_nc, ice_read_nc, ice_close_nc
+      use ice_read_write, only: ice_open_nc, ice_close_nc
       use ice_communicate, only: my_task, master_task
       use ice_arrays_column, only: &
          kaer_tab, & ! aerosol mass extinction cross section (m2/kg)
@@ -760,20 +793,19 @@
          status         , & ! status output from netcdf routines
          n,  k              ! index
 
-      integer (kind=int_kind), dimension(4):: & 
-         start, count   
-
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
       integer (kind=int_kind) :: &
          fid                ! file id for netCDF file 
 
-      logical (kind=log_kind) :: diag, modal_aero
+      logical (kind=log_kind) :: modal_aero
 
       character (char_len_long) :: & 
          optics_file,   &   ! netcdf filename
          fieldname          ! field name in netcdf file
+
+      character(len=*), parameter :: subname = '(faero_optics)'
 
       ! this data is used in bulk aerosol treatment in dEdd radiation
       kaer_tab = reshape((/ &      ! aerosol mass extinction cross section (m2/kg)
@@ -845,12 +877,11 @@
 
     call icepack_query_parameters(modal_aero_out=modal_aero)
     call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
        file=__FILE__, line=__LINE__)
 
 #ifdef ncdf
     if (modal_aero) then
-       diag = .true.   ! write diagnostic information 
        optics_file =  &
         '/usr/projects/climate/njeffery/DATA/CAM/snicar/snicar_optics_5bnd_mam_c140303.nc'
 
@@ -867,8 +898,7 @@
           status = nf90_inq_varid(fid, trim(fieldname), varid)
  
            if (status /= nf90_noerr) then
-             call abort_ice ( & 
-               'faero_optics: Cannot find variable '//trim(fieldname) )
+             call abort_ice (subname//'ERROR: Cannot find variable '//trim(fieldname))
            endif
            status = nf90_get_var( fid, varid, bcenh, &
                start=(/1,1,1,1/), & 
@@ -889,7 +919,7 @@
       endif      ! modal_aero
 #else
     if (modal_aero) then
-      call abort_ice('faero_optics: netcdf required for modal_aero')
+      call abort_ice(subname//'ERROR: netcdf required for modal_aero')
     endif
 #endif
 

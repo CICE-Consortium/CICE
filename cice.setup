@@ -518,7 +518,7 @@ foreach compiler ( $ncompilers )
     end
 
     # from basic script dir to casescr
-    foreach file (parse_namelist.sh parse_settings.sh parse_namelist_from_settings.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
+    foreach file (parse_namelist.sh parse_settings.sh parse_namelist_from_env.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
       if !(-e ${ICE_SCRIPTS}/$file) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
         exit -1
@@ -527,7 +527,7 @@ foreach compiler ( $ncompilers )
     end
 
     cd ${casedir}
-    source ./env.${machcomp} || exit 2
+    source ./env.${machcomp} -nomodules || exit 2
 
     set quietmode = false
     if ($?ICE_MACHINE_QUIETMODE) then
@@ -603,6 +603,7 @@ foreach compiler ( $ncompilers )
     echo "ICE_COMPILER = ${compiler}"
     echo "ICE_PES      = ${task}x${thrd}"
     echo "ICE_GRID     = ${grid} (${ICE_DECOMP_NXGLOB}x${ICE_DECOMP_NYGLOB}) blocksize=${ICE_DECOMP_BLCKX}x${ICE_DECOMP_BLCKY}x${ICE_DECOMP_MXBLCKS}"
+    echo "ICE_DECOMP   = ${ICE_DECOMP_DECOMP} ${ICE_DECOMP_DSHAPE}"
 
     #------------------------------------------------------------
     # Copy in and update cice.settings and ice_in files
@@ -618,7 +619,12 @@ foreach compiler ( $ncompilers )
 cat >! ${fimods} << EOF1
 # cice.setup settings
 
-nprocs = ${task}
+nprocs            = ${task}
+nx_global         = ${ICE_DECOMP_NXGLOB}
+ny_global         = ${ICE_DECOMP_NYGLOB}
+block_size_x      = ${ICE_DECOMP_BLCKX}
+block_size_y      = ${ICE_DECOMP_BLCKY}
+max_blocks        = ${ICE_DECOMP_MXBLCKS}
 distribution_type = '${ICE_DECOMP_DECOMP}'
 processor_shape   = '${ICE_DECOMP_DSHAPE}'
 version_name      = '${ICE_VERSION}'
@@ -651,13 +657,13 @@ setenv ICE_COMPILER ${compiler}
 setenv ICE_MACHCOMP ${machcomp}
 setenv ICE_RUNDIR   ${ICE_MACHINE_WKDIR}/${casename}
 setenv ICE_GRID     ${grid}
-setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}
-setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}
+#setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}  # moved to namelist
+#setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}  # moved to namelist
 setenv ICE_NTASKS   ${task}
 setenv ICE_NTHRDS   ${thrd}
-setenv ICE_MXBLCKS  ${ICE_DECOMP_MXBLCKS}
-setenv ICE_BLCKX    ${ICE_DECOMP_BLCKX}
-setenv ICE_BLCKY    ${ICE_DECOMP_BLCKY}
+#setenv ICE_MXBLCKS  ${ICE_DECOMP_MXBLCKS}  # moved to namelist
+#setenv ICE_BLCKX    ${ICE_DECOMP_BLCKX}  # moved to namelist
+#setenv ICE_BLCKY    ${ICE_DECOMP_BLCKY}  # moved to namelist
 setenv ICE_BASELINE ${basedir_tmp}
 setenv ICE_BASEGEN  ${baseGen}
 setenv ICE_BASECOM  ${baseCom}
@@ -753,14 +759,11 @@ EOF2
     ${casescr}/parse_settings.sh cice.settings ${fsmods}
     ${casescr}/parse_namelist.sh ice_in ${fimods}
     source ./cice.settings
-    source ./env.${machcomp} || exit 2
-    ${casescr}/parse_namelist_from_settings.sh ice_in cice.settings
+    source ./env.${machcomp} -nomodules || exit 2
+    ${casescr}/parse_namelist_from_env.sh ice_in
 
     #------------------------------------------------------------
     # Generate run script
-
-    source ./cice.settings
-    source ./env.${machcomp} || exit 2
 
     ${casescr}/cice.run.setup.csh
     if ($status != 0) then
@@ -799,10 +802,16 @@ cat $testname_base/test_output >> results.log
 EOF
 
 cat >> ./${tsdir}/suite.run << EOF
-cd $testname_base
-./cice.build
+echo "-------test--------------"
+echo "${testname_base}"
+cd ${testname_base}
+source ./cice.settings
+set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
+./cice.build \${ciceexe}
+if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
 ./cice.submit
 cd ..
+
 EOF
     
       # Reset case for the next test in suite

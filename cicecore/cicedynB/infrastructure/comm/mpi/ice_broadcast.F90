@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_broadcast.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_broadcast
@@ -11,7 +10,6 @@
 
    use ice_kinds_mod
    use ice_communicate, only: mpiR8, mpir4, MPI_COMM_ICE
-   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -77,6 +75,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: ierr  ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_scalar_dbl)'
 
 !-----------------------------------------------------------------------
 
@@ -110,6 +109,7 @@ subroutine broadcast_scalar_real(scalar, root_pe)
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: ierr  ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_scalar_real)'
 
 !-----------------------------------------------------------------------
 
@@ -143,6 +143,7 @@ subroutine broadcast_scalar_int(scalar, root_pe)
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: ierr  ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_scalar_int)'
 
 !-----------------------------------------------------------------------
 
@@ -178,6 +179,7 @@ subroutine broadcast_scalar_log(scalar, root_pe)
    integer (int_kind) :: &
      itmp,               &! local temporary
      ierr                 ! MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_scalar_log)'
 
 !-----------------------------------------------------------------------
 
@@ -225,6 +227,7 @@ subroutine broadcast_scalar_char(scalar, root_pe)
    integer (int_kind) :: &
      clength,            &! length of character
      ierr                 ! MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_scalar_char)'
 
 !-----------------------------------------------------------------------
 
@@ -262,6 +265,7 @@ subroutine broadcast_array_dbl_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,       &! size of array
      ierr              ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_dbl_1d)'
 
 !-----------------------------------------------------------------------
 
@@ -299,6 +303,7 @@ subroutine broadcast_array_real_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,          &! size of array to be broadcast
      ierr                 ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_real_1d)'
 
 !-----------------------------------------------------------------------
 
@@ -336,6 +341,7 @@ subroutine broadcast_array_int_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,          &! size of array to be broadcast
      ierr                 ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_int_1d)'
 
 !-----------------------------------------------------------------------
 
@@ -376,6 +382,8 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
       nelements,          &! size of array to be broadcast
       ierr                 ! local MPI error flag
+
+   character(len=*), parameter :: subname = '(broadcast_array_log_1d)'
 
 !-----------------------------------------------------------------------
 
@@ -429,6 +437,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
       nelements,         &! size of array
       ierr                ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_dbl_2d)'
 
 !-----------------------------------------------------------------------
 
@@ -466,6 +475,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,          &! size of array to be broadcast
      ierr                 ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_real_2d)'
 
 !-----------------------------------------------------------------------
 
@@ -503,6 +513,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,          &! size of array to be broadcast
      ierr                 ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_int_2d)'
 
 !-----------------------------------------------------------------------
 
@@ -543,6 +554,8 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,          &! size of array to be broadcast
      ierr                 ! local MPI error flag
+
+   character(len=*), parameter :: subname = '(broadcast_array_log_2d)'
 
 !-----------------------------------------------------------------------
 
@@ -596,6 +609,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,       &! size of array
      ierr              ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_dbl_3d)'
 
 !-----------------------------------------------------------------------
 
@@ -633,6 +647,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,          &! size of array to be broadcast
      ierr                 ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_real_3d)'
 
 !-----------------------------------------------------------------------
 
@@ -670,6 +685,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,          &! size of array to be broadcast
      ierr                 ! local MPI error flag
+   character(len=*), parameter :: subname = '(broadcast_array_int_3d)'
 
 !-----------------------------------------------------------------------
 
@@ -710,6 +726,8 @@ subroutine broadcast_array_log_1d(array, root_pe)
    integer (int_kind) :: &
      nelements,          &! size of array to be broadcast
      ierr                 ! local MPI error flag
+
+   character(len=*), parameter :: subname = '(broadcast_array_log_3d)'
 
 !-----------------------------------------------------------------------
 

@@ -2,11 +2,11 @@ module ice_import_export
 
   use shr_kind_mod      , only: r8 => shr_kind_r8, cl=>shr_kind_cl
   use shr_sys_mod       , only: shr_sys_abort, shr_sys_flush
-  use ice_kinds_mod     , only: int_kind, dbl_kind, char_len_long, log_kind
-  use ice_constants     , only: c0, c1, puny, tffresh, spval_dbl
+  use shr_mpi_mod       , only: shr_mpi_max, shr_mpi_sum
+  use ice_kinds_mod     , only: int_kind, dbl_kind, char_len, char_len_long, log_kind
+  use ice_constants     , only: c0, c1, spval_dbl
   use ice_constants     , only: field_loc_center, field_type_scalar
   use ice_constants     , only: field_type_vector, c100
-  use ice_constants     , only: vonkar, zref, iceruf
   use ice_constants     , only: p001, p5
   use ice_blocks        , only: block, get_block, nx_block, ny_block
   use ice_flux          , only: strairxt, strairyt, strocnxt, strocnyt           
@@ -22,16 +22,17 @@ module ice_import_export
                           fhum, ffed, ffep, fdust, cpl_bgc
   use ice_exit, only: abort_ice
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-  use icepack_intfc , only: tfrz_option, modal_aero, z_tracers, skl_bgc
-  use ice_arrays_column , only: Cdn_atm
+  use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
+  use ice_arrays_column , only: Cdn_atm, R_C2N
   use ice_state         , only: vice, vsno, aice, trcr
-  use icepack_intfc, only: tr_aero, tr_iage, tr_FY, tr_pond, tr_lvl, tr_zaero, tr_bgc_Nit 
-  use icepack_intfc , only: R_C2N
+
   use ice_domain        , only: nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size   , only: nx_global, ny_global, block_size_x, block_size_y, max_blocks
   use ice_grid          , only: tlon, tlat, tarea, tmask, anglet, hm
   use ice_grid          , only: grid_type, t2ugrid_vector
   use ice_boundary      , only: ice_HaloUpdate 
+  use ice_communicate   , only: my_task, master_task, MPI_COMM_ICE, get_num_procs
+  use ice_calendar      , only: istep, istep1, diagfreq
   use ice_fileunits     , only: nu_diag
   use ice_prescribed_mod
   use ice_cpl_indices
@@ -62,13 +63,28 @@ contains
     integer     :: i, j, iblk, n
     integer     :: ilo, ihi, jlo, jhi !beginning and end of physical domain
     type(block) :: this_block         ! block information for current block
-    integer,parameter                :: nflds=17,nfldv=6,nfldb=27
+    integer,parameter       :: nflds=17,nfldv=6,nfldb=27
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
-    real (kind=dbl_kind)             :: workx, worky
-    real (kind=dbl_kind) :: MIN_RAIN_TEMP, MAX_SNOW_TEMP 
-    logical (kind=log_kind)          :: first_call = .true.
-    character(len=*),parameter :: subname = 'ice_import'
+    real (kind=dbl_kind)    :: workx, worky
+    real (kind=dbl_kind)    :: MIN_RAIN_TEMP, MAX_SNOW_TEMP 
+    character(len=char_len) :: tfrz_option
+    logical (kind=log_kind) :: modal_aero, z_tracers, skl_bgc
+    logical (kind=log_kind) :: tr_aero, tr_iage, tr_FY, tr_pond
+    logical (kind=log_kind) :: tr_lvl, tr_zaero, tr_bgc_Nit 
+    real (kind=dbl_kind)    :: tffresh
+    logical (kind=log_kind) :: first_call = .true.
+    character(len=*), parameter :: subname = '(ice_import)'
     !-----------------------------------------------------
+
+    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
+       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
+       Tffresh_out=Tffresh)
+    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
+       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
+       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
     ! Note that the precipitation fluxes received  from the coupler
     ! are in units of kg/s/m^2 which is what CICE requires.
@@ -288,7 +304,7 @@ contains
                               + x2i(index_x2i_Faxa_dstdry4,n)
                 endif
              endif
-             if (cpl_bgc .or. (z_tracers .and. tr_bgc_Nit) .or. skl_bgc) then       
+             if (cpl_bgc .or. (z_tracers .and. tr_bgc_Nit) .or. skl_bgc) then
                 aflds(i,j,4,iblk)      = x2i(index_x2i_So_diat, n)
                 aflds(i,j,5,iblk)      = x2i(index_x2i_So_sp, n)
                 aflds(i,j,6,iblk)      = x2i(index_x2i_So_phaeo, n)
@@ -332,7 +348,16 @@ contains
              faero_atm(i,j,1,iblk) = aflds(i,j,1,iblk)
              faero_atm(i,j,2,iblk) = aflds(i,j,2,iblk)
              faero_atm(i,j,3,iblk) = aflds(i,j,3,iblk)    
-             if (cpl_bgc) then
+          enddo    !i
+       enddo    !j
+    enddo        !iblk
+    !$OMP END PARALLEL DO
+
+    if (cpl_bgc) then
+       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+       do iblk = 1, nblocks
+          do j = 1,ny_block
+             do i = 1,nx_block
                 algalN(i,j,1,iblk)    = aflds(i,j,4,iblk)    
                 algalN(i,j,2,iblk)    = aflds(i,j,5,iblk)
                 algalN(i,j,3,iblk)    = aflds(i,j,6,iblk)
@@ -357,11 +382,11 @@ contains
                 zaeros(i,j,4,iblk)    = aflds(i,j,25,iblk)
                 zaeros(i,j,5,iblk)    = aflds(i,j,26,iblk)
                 zaeros(i,j,6,iblk)    = aflds(i,j,27,iblk)
-             endif
-          enddo    !i
-       enddo    !j
-    enddo        !iblk
-    !$OMP END PARALLEL DO
+             enddo    !i
+          enddo      !j
+       enddo        !iblk
+       !$OMP END PARALLEL DO
+    endif
 
     deallocate(aflds)
 
@@ -421,7 +446,7 @@ contains
                 call shr_sys_abort(subname//' ERROR: unknown tfrz_option = '//trim(tfrz_option))
              endif
 
-             if (cpl_bgc) then   ! rasm cpl_bgc logic
+             if (cpl_bgc) then
                 ! convert from mmol C/m^3 to mmol N/m^3
                 algalN(i,j,1,iblk)    = algalN(i,j,1,iblk)/R_C2N(1)
                 algalN(i,j,2,iblk)    = algalN(i,j,2,iblk)/R_C2N(2)
@@ -507,10 +532,20 @@ contains
     real (kind=dbl_kind) :: &
          workx, worky           ! tmps for converting grid
 
-    type(block)        :: this_block                           ! block information for current block
+    real (kind=dbl_kind) :: &
+         vonkar, zref, iceruf, tffresh 
+
+    type(block)        :: this_block       ! block information for current block
+    integer :: icnt,icnt1,iblk1,icnt1sum,icnt1max  ! gridcell and block counters
     logical :: flag
-    character(len=*),parameter :: subname = 'ice_export'
+    character(len=*), parameter :: subname = '(ice_export)'
     !-----------------------------------------------------
+
+    call icepack_query_parameters(Tffresh_out=Tffresh, vonkar_out=vonkar, zref_out=zref, &
+       iceruf_out=iceruf)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
     flag=.false.
 
@@ -577,6 +612,8 @@ contains
     i2x(:,:) = spval_dbl
 
     n=0
+    icnt1 = 0
+    iblk1 = 0
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)         
        ilo = this_block%ilo
@@ -584,6 +621,7 @@ contains
        jlo = this_block%jlo
        jhi = this_block%jhi
 
+       icnt = 0
        do j = jlo, jhi
           do i = ilo, ihi
 
@@ -597,6 +635,7 @@ contains
              i2x(index_i2x_Si_ifrac ,n)    = ailohi(i,j,iblk)   
 
              if ( tmask(i,j,iblk) .and. ailohi(i,j,iblk) > c0 ) then
+                icnt = icnt + 1
                 !-------states-------------------- 
                 i2x(index_i2x_Si_t     ,n)    = Tsrf(i,j,iblk)
                 i2x(index_i2x_Si_avsdr ,n)    = alvdr(i,j,iblk)
@@ -663,7 +702,19 @@ contains
             endif
           enddo    !i
        enddo    !j
+!tcx       write(1000+my_task,'(a,5i8)') 'ice count0: ',my_task,istep1,nblocks,iblk,icnt
+       if (icnt > 0) iblk1 = iblk1 + 1
+       icnt1 = icnt1 + icnt
     enddo        !iblk
+
+    if (mod(istep,diagfreq) == 0) then
+!tcx    write(1000+my_task,'(a,5i8)') 'ice count1: ',my_task,istep1,nblocks,iblk1,icnt1
+       call shr_mpi_max(icnt1,icnt1max,MPI_COMM_ICE,'icnt1max',all=.false.)
+       call shr_mpi_sum(icnt1,icnt1sum,MPI_COMM_ICE,'icnt1sum',all=.false.)
+       if (my_task == master_task) then
+          write(nu_diag,'(a,f12.2,i8)') 'ice gridcell counts mean, max = ',float(icnt1sum)/float(get_num_procs()),icnt1max
+       endif
+    endif
 
   end subroutine ice_export
 

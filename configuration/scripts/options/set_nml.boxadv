@@ -1,3 +1,4 @@
+nilyr = 1
 ice_ic = 'default'
 restart = .false.
 restart_ext = .false.

@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_step_mod.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 !  Contains CICE component driver routines common to all drivers.
@@ -49,21 +48,18 @@
 !
 ! authors: Elizabeth Hunke, LANL
 
-      subroutine prep_radiation (dt, iblk)
+      subroutine prep_radiation (iblk)
 
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, fswfac, &
+          alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, &
           alvdr_init, alvdf_init, alidr_init, alidf_init
       use ice_arrays_column, only: fswsfcn, fswintn, fswthrun, &
            fswpenln, Sswabsn, Iswabsn
       use ice_state, only: aice, aicen
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_sw
-
-      real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
 
       integer (kind=int_kind), intent(in) :: &
          iblk    ! block index
@@ -74,12 +70,17 @@
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j               ! horizontal indices
 
-      real (kind=dbl_kind) :: netsw 
-
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(prep_radiation)'
+
       call ice_timer_start(timer_sw)      ! shortwave
+
+      alvdr_init(:,:,:) = c0
+      alvdf_init(:,:,:) = c0
+      alidr_init(:,:,:) = c0
+      alidf_init(:,:,:) = c0
 
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
@@ -114,7 +115,7 @@
          enddo               ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_sw)     ! shortwave
@@ -136,21 +137,19 @@
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           fswsfcn, fswintn, fswthrun, Sswabsn, Iswabsn
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_calendar, only: yday, istep1
-      use ice_communicate, only: my_task
-      use ice_diagnostics, only: diagnostic_abort
+      use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero
-      use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, &
+      use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, &
           wind, rhoa, potT, Qa, zlvl, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
-          flw, fsnow, fpond, sss, mlt_onset, frz_onset, &
+          flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, &
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
-          flat, fswabs, flwout, evap, Tref, Qref, Uref, fresh, fsalt, fhocn, &
-          fswthru, meltt, melts, meltb, meltl, congel, snoice, &
+          flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
+          fswthru, meltt, melts, meltb, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn
-      use ice_grid, only: lmask_n, lmask_s
+      use ice_grid, only: lmask_n, lmask_s, tmask
       use ice_state, only: aice, aicen, aice_init, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
 
@@ -192,6 +191,8 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(step_therm1)'
+
       call icepack_query_parameters(puny_out=puny)
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
@@ -206,7 +207,7 @@
          nt_qice_out=nt_qice, nt_sice_out=nt_sice, &
          nt_aero_out=nt_aero, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 #ifndef CESMCOUPLED
@@ -275,6 +276,7 @@
             enddo
          endif ! tr_aero
 
+         if (tmask(i,j,iblk)) &
          call icepack_step_therm1(dt, ncat, nilyr, nslyr, n_aero,                &
                             aicen_init  (i,j,:,iblk),                           &
                             vicen_init  (i,j,:,iblk), vsnon_init  (i,j,:,iblk), &
@@ -315,11 +317,13 @@
                             sss         (i,j,  iblk), Tf          (i,j,  iblk), &
                             strocnxT    (i,j,  iblk), strocnyT    (i,j,  iblk), &
                             fbot        (i,j,  iblk),                           &
+                            Tbot        (i,j,  iblk), Tsnice       (i,j, iblk),  &
                             frzmlt      (i,j,  iblk), rside       (i,j,  iblk), &
                             fsnow       (i,j,  iblk), frain       (i,j,  iblk), &
                             fpond       (i,j,  iblk),                           &
                             fsurf       (i,j,  iblk), fsurfn      (i,j,:,iblk), &
                             fcondtop    (i,j,  iblk), fcondtopn   (i,j,:,iblk), &
+                            fcondbot    (i,j,  iblk), fcondbotn   (i,j,:,iblk), &
                             fswsfcn     (i,j,:,iblk), fswintn     (i,j,:,iblk), &
                             fswthrun    (i,j,:,iblk), fswabs      (i,j,  iblk), &
                             flwout      (i,j,  iblk),                           &
@@ -328,6 +332,7 @@
                             fsens       (i,j,  iblk), fsensn      (i,j,:,iblk), &
                             flat        (i,j,  iblk), flatn       (i,j,:,iblk), &
                             evap        (i,j,  iblk),                           &
+                            evaps       (i,j,  iblk), evapi       (i,j,  iblk), &
                             fresh       (i,j,  iblk), fsalt       (i,j,  iblk), &
                             fhocn       (i,j,  iblk), fswthru     (i,j,  iblk), &
                             flatn_f     (i,j,:,iblk), fsensn_f    (i,j,:,iblk), &
@@ -364,7 +369,7 @@
       enddo ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine step_therm1
@@ -381,9 +386,7 @@
       use ice_arrays_column, only: hin_max, fzsal, ocean_bio, &
           first_ice, bgrid, cgrid, igrid
       use ice_blocks, only: block, get_block
-      use ice_calendar, only: istep1, yday
-      use ice_communicate, only: my_task
-      use ice_diagnostics, only: diagnostic_abort
+      use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nltrcr
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
@@ -413,9 +416,11 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      character(len=*), parameter :: subname = '(step_therm2)'
+
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)         
@@ -460,7 +465,7 @@
       enddo                     ! j
          
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine step_therm2
@@ -476,7 +481,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
       use ice_domain_size, only: ncat
-      use ice_grid, only: tmask
+!     use ice_grid, only: tmask
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
                            aice,  trcr,  vice,  vsno, aice0, trcr_depend, &
                            bound_state, trcr_base, nt_strata, n_trcr_strata
@@ -506,7 +511,7 @@
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       !-------------------------------------------------------------------
@@ -528,7 +533,7 @@
       ! Aggregate the updated state variables (includes ghost cells). 
       !----------------------------------------------------------------- 
  
-         if (tmask(i,j,iblk)) &
+!        if (tmask(i,j,iblk)) &
          call icepack_aggregate (ncat,               aicen(i,j,:,iblk),   &
                                trcrn(i,j,1:ntrcr,:,iblk),               &
                                vicen(i,j,:,iblk), vsnon(i,j,  :,iblk),  &
@@ -565,7 +570,7 @@
       !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine update_state
@@ -589,6 +594,8 @@
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! dynamics time step
+
+      character(len=*), parameter :: subname = '(step_dyn_horiz)'
 
       call init_history_dyn     ! initialize dynamic history variables
 
@@ -621,10 +628,8 @@
       subroutine step_dyn_ridge (dt, ndtd, iblk)
 
       use ice_arrays_column, only: hin_max, fzsal, first_ice
-      use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_calendar, only: istep1
-      use ice_diagnostics, only: diagnostic_abort
-      use ice_domain, only: blocks_ice, nblocks
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
       use ice_flux, only: &
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
@@ -634,7 +639,7 @@
       use ice_flux_bgc, only: flux_bio, faero_ocn
       use ice_grid, only: tmask
       use ice_state, only: trcrn, vsnon, aicen, vicen, &
-          aice, trcr, vice, vsno, aice0, trcr_depend, n_trcr_strata, &
+          aice, aice0, trcr_depend, n_trcr_strata, &
           trcr_base, nt_strata
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
           timer_ridge
@@ -657,6 +662,8 @@
          ntrcr,           & !
          nbtrcr             !
 
+      character(len=*), parameter :: subname = '(step_dyn_ridge)'
+
       !-----------------------------------------------------------------
       ! Ridging
       !-----------------------------------------------------------------
@@ -666,7 +673,7 @@
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk), iblk)
@@ -716,7 +723,7 @@
       enddo ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_ridge)
@@ -789,6 +796,8 @@
          debug, &           ! flag for printing debugging information
          l_print_point      ! flag for printing debugging information
 
+      character(len=*), parameter :: subname = '(step_radiation)'
+
       call ice_timer_start(timer_sw)      ! shortwave
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, &
@@ -802,7 +811,7 @@
          nt_fbri_out=nt_fbri, nt_zaero_out=nt_zaero)
       call icepack_query_parameters(dEdd_algae_out=dEdd_algae, modal_aero_out=modal_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       allocate(ztrcr(ntrcr,ncat))
@@ -894,7 +903,7 @@
       enddo ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       deallocate(ztrcr)
@@ -918,6 +927,8 @@
 
       use ice_arrays_column, only: Cdn_atm, Cdn_atm_ratio
       use ice_blocks, only: nx_block, ny_block
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: blocks_ice
       use ice_flux, only: sst, Tf, Qa, uatm, vatm, wind, potT, rhoa, zlvl, &
            frzmlt, fhocn, fswthru, flw, flwout_ocn, fsens_ocn, flat_ocn, evap_ocn, &
            alvdr_ocn, alidr_ocn, alvdf_ocn, alidf_ocn, swidf, swvdf, swidr, swvdr, &
@@ -933,15 +944,13 @@
 
       ! local variables
 
-      real (kind=dbl_kind) :: &
-         albocn,& ! 
-         TsfK , & ! surface temperature (K)
-         swabs    ! surface absorbed shortwave heat flux (W/m^2)
+      real (kind=dbl_kind) :: albocn
 
       real (kind=dbl_kind), parameter :: &
          frzmlt_max = c1000   ! max magnitude of frzmlt (W/m^2)
 
       integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j           , & ! horizontal indices
          ij                 ! combined ij index
 
@@ -957,12 +966,16 @@
       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
          indxi, indxj    ! compressed indices for ocean cells
 
+      type (block) :: &
+         this_block         ! block information for current block
+
+      character(len=*), parameter :: subname = '(ocn_mixed_layer)'
 
       !-----------------------------------------------------------------
 
          call icepack_query_parameters(albocn_out=albocn)
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -973,8 +986,10 @@
          icells = 0
          indxi(:) = 0
          indxj(:) = 0
+
          do j = 1, ny_block
          do i = 1, nx_block
+
             if (tmask(i,j,iblk)) then
                icells = icells + 1
                indxi(icells) = i
@@ -1020,7 +1035,7 @@
          enddo ! ij
 
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -1060,7 +1075,7 @@
       enddo                    ! ij
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       end subroutine ocean_mixed_layer
@@ -1070,7 +1085,7 @@
       subroutine biogeochemistry (dt, iblk)
 
       use ice_arrays_column, only: upNO, upNH, iDi, iki, zfswin, &
-                           trcrn_sw, zsal_tot, darcy_V, grow_net,  &
+                           zsal_tot, darcy_V, grow_net,  &
                            PP_net, hbri,dhbr_bot, dhbr_top, Zoo,&
                            fbio_snoice, fbio_atmice, ocean_bio,  &
                            first_ice, fswpenln, bphi, bTiz, ice_bio_net,  &
@@ -1078,8 +1093,6 @@
                            ocean_bio_all, sice_rho, fzsal, fzsal_g, &
                            bgrid, igrid, icgrid, cgrid
       use ice_blocks, only: block, get_block
-      use ice_calendar, only: istep1
-      use ice_diagnostics, only: diagnostic_abort
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: nblyr, nilyr, nslyr, n_algae, n_zaero, ncat, &
                                  n_doc, n_dic,  n_don, n_fed, n_fep
@@ -1101,9 +1114,8 @@
 
       integer (kind=int_kind) :: &
          i, j           , & ! horizontal indices
-         k              , & ! vertical index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-         n, mm              ! tracer index
+         mm              ! tracer index
 
       type (block) :: &
          this_block      ! block information for current block
@@ -1129,7 +1141,7 @@
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
       call icepack_query_tracer_indices(bio_index_o_out=bio_index_o)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (tr_brine .or. skl_bgc) then
@@ -1223,7 +1235,7 @@
       enddo               ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_bgc) ! biogeochemistry

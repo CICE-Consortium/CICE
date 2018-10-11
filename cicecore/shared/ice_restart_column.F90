@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restart_column.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=========================================================================
 !
 ! Restart routines for the column package.
@@ -13,7 +12,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p5
       use ice_constants, only: field_loc_center, field_type_scalar
-      use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, nblyr
+      use ice_domain_size, only: ncat, nblyr
       use ice_restart,only: read_restart_field, write_restart_field
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
@@ -67,10 +66,11 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_iage
+      character(len=*),parameter :: subname='(write_restart_age)'
 
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -97,15 +97,16 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_iage
+      character(len=*),parameter :: subname='(read_restart_age)'
 
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
 
-      if (my_task == master_task) write(nu_diag,*) 'min/max age (s)'
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max age (s)'
 
       call read_restart_field(nu_restart_age,0,trcrn(:,:,nt_iage,:,:),'ruf8', &
                        'iage',ncat,diag,field_loc_center,field_type_scalar)
@@ -127,10 +128,11 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_FY
+      character(len=*),parameter :: subname='(write_restart_FY)'
 
       call icepack_query_tracer_indices(nt_FY_out=nt_FY)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -160,20 +162,21 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_FY
+      character(len=*),parameter :: subname='(read_restart_FY)'
 
       call icepack_query_tracer_indices(nt_FY_out=nt_FY)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
 
-      if (my_task == master_task) write(nu_diag,*) 'min/max first-year ice area'
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max first-year ice area'
 
       call read_restart_field(nu_restart_FY,0,trcrn(:,:,nt_FY,:,:),'ruf8', &
                       'FY',ncat,diag,field_loc_center,field_type_scalar)
 
-      if (my_task == master_task) write(nu_diag,*) 'min/max frz_onset'
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max frz_onset'
 
       call read_restart_field(nu_restart_FY,0,frz_onset,'ruf8', &
                   'frz_onset',1,diag,field_loc_center,field_type_scalar)
@@ -195,10 +198,11 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_alvl, nt_vlvl
+      character(len=*),parameter :: subname='(write_restart_lvl)'
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -228,15 +232,16 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_alvl, nt_vlvl
+      character(len=*),parameter :: subname='(read_restart_lvl)'
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
 
-      if (my_task == master_task) write(nu_diag,*) 'min/max level ice area, volume'
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max level ice area, volume'
 
       call read_restart_field(nu_restart_lvl,0,trcrn(:,:,nt_alvl,:,:),'ruf8', &
                        'alvl',ncat,diag,field_loc_center,field_type_scalar)
@@ -261,10 +266,11 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_apnd, nt_hpnd
+      character(len=*),parameter :: subname='(write_restart_pond_cesm)'
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -293,15 +299,16 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_apnd, nt_hpnd
+      character(len=*),parameter :: subname='(read_restart_pond_cesm)'
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
 
-      if (my_task == master_task) write(nu_diag,*) 'min/max cesm ponds'
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max cesm ponds'
 
       call read_restart_field(nu_restart_pond,0,trcrn(:,:,nt_apnd,:,:),'ruf8', &
                               'apnd',ncat,diag,field_loc_center,field_type_scalar)
@@ -327,11 +334,12 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_apnd, nt_hpnd, nt_ipnd
+      character(len=*),parameter :: subname='(write_restart_pond_lvl)'
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
            nt_ipnd_out=nt_ipnd)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -369,16 +377,17 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_apnd, nt_hpnd, nt_ipnd
+      character(len=*),parameter :: subname='(read_restart_pond_lvl)'
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
            nt_ipnd_out=nt_ipnd)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
 
-      if (my_task == master_task) write(nu_diag,*) 'min/max level-ice ponds'
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max level-ice ponds'
 
       call read_restart_field(nu_restart_pond,0, trcrn(:,:,nt_apnd,:,:),'ruf8', &
                               'apnd',ncat,diag,field_loc_center,field_type_scalar)
@@ -411,11 +420,12 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_apnd, nt_hpnd, nt_ipnd
+      character(len=*),parameter :: subname='(write_restart_pond_topo)'
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
            nt_ipnd_out=nt_ipnd)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -446,16 +456,17 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_apnd, nt_hpnd, nt_ipnd
+      character(len=*),parameter :: subname='(read_restart_pond_topo)'
 
       call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
            nt_ipnd_out=nt_ipnd)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
 
-      if (my_task == master_task) write(nu_diag,*) 'min/max topo ponds'
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max topo ponds'
 
       call read_restart_field(nu_restart_pond,0,trcrn(:,:,nt_apnd,:,:),'ruf8', &
                               'apnd',ncat,diag,field_loc_center,field_type_scalar)
@@ -489,14 +500,15 @@
 
       character (len=3)       :: nchar
       integer (kind=int_kind) :: nt_aero
+      character(len=*),parameter :: subname='(write_restart_aero)'
 
       !-----------------------------------------------------------------
 
-      if (my_task == master_task) write(nu_diag,*) 'write_restart_aero (aerosols)'
+      if (my_task == master_task) write(nu_diag,*) subname,'aerosols'
 
       call icepack_query_tracer_indices(nt_aero_out=nt_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -543,14 +555,15 @@
       integer (kind=int_kind) :: nt_aero
 
       character (len=3)       :: nchar
+      character(len=*),parameter :: subname='(read_restart_aero)'
 
       !-----------------------------------------------------------------
 
-      if (my_task == master_task) write(nu_diag,*) 'read_restart_aero (aerosols)'
+      if (my_task == master_task) write(nu_diag,*) subname,'aerosols'
 
       call icepack_query_tracer_indices(nt_aero_out=nt_aero)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -602,14 +615,16 @@
 
       integer (kind=int_kind) :: nt_fbri
 
+      character(len=*),parameter :: subname='(read_restart_hbrine)'
+
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
 
-      if (my_task == master_task) write(nu_diag,*) 'brine restart'
+      if (my_task == master_task) write(nu_diag,*) subname,'brine restart'
 
       call read_restart_field(nu_restart_hbrine,0,trcrn(:,:,nt_fbri,:,:),'ruf8', &
                               'fbrn',ncat,diag,field_loc_center,field_type_scalar)
@@ -666,10 +681,11 @@
 
       type (block) :: &
          this_block      ! block information for current block
+      character(len=*),parameter :: subname='(write_restart_hbrine)'
 
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -712,7 +728,7 @@
       subroutine write_restart_bgc()
 
       use ice_arrays_column, only: Rayleigh_criteria, Rayleigh_real
-      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic, &
           n_don, n_zaero, n_fed, n_fep
@@ -729,8 +745,6 @@
        i, j, k, iblk    , & ! horizontal, vertical and block indices
        mm               , & ! n_algae
        ilo,ihi,jlo,jhi      ! beginning and end of physical domain
-
-      real (kind=dbl_kind) :: cszn ! counter for history averaging
 
       logical (kind=log_kind) :: diag
 
@@ -775,6 +789,8 @@
       integer (kind=int_kind) :: &
          ipoint
 
+      character(len=*),parameter :: subname='(write_restart_bgc)'
+
       call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
@@ -792,7 +808,7 @@
           nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_bgc_Fed_out=nt_bgc_Fed, &
           nt_bgc_hum_out=nt_bgc_hum, nt_bgc_Fep_out=nt_bgc_Fep, nt_zbgc_frac_out=nt_zbgc_frac)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -1183,6 +1199,8 @@
 
       character (len=3) :: nchar, ncharb
 
+      character(len=*),parameter :: subname='(read_restart_bgc)'
+
       call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
@@ -1200,7 +1218,7 @@
           nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_bgc_Fed_out=nt_bgc_Fed, &
           nt_bgc_Fep_out=nt_bgc_Fep, nt_zbgc_frac_out=nt_zbgc_frac, nt_bgc_hum_out=nt_bgc_hum)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       diag = .true.
@@ -1211,14 +1229,14 @@
 
       if (restart_zsal) then 
 
-      if (my_task == master_task) write(nu_diag,*)'zSalinity restart'
+      if (my_task == master_task) write(nu_diag,*) subname,'zSalinity restart'
       do k = 1,nblyr
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_S+k-1,:,:),'ruf8', &
               'zSalinity'//trim(nchar),ncat,diag,field_loc_center,field_type_scalar)
       enddo
  
-      if (my_task == master_task) write(nu_diag,*) 'sea surface salinity'
+      if (my_task == master_task) write(nu_diag,*) subname,'sea surface salinity'
       call read_restart_field(nu_restart_bgc,0,sss,'ruf8','sss',1,diag)
       call read_restart_field(nu_restart_bgc,0,Rayleigh_real,'ruf8','Rayleigh',1,diag)
 
@@ -1248,7 +1266,7 @@
       if (restart_bgc) then
 
       if (skl_bgc) then
-       if (my_task == master_task) write(nu_diag,*) 'skl bgc restart'
+       if (my_task == master_task) write(nu_diag,*) subname,'skl bgc restart'
 
        do k = 1, n_algae
           write(nchar,'(i3.3)') k
@@ -1333,7 +1351,7 @@
       !-----------------------------------------------------------------
 
       if (tr_bgc_Nit) then
-      if (my_task == master_task) write(nu_diag,*) 'z bgc restart: min/max Nitrate'
+      if (my_task == master_task) write(nu_diag,*) subname,'z bgc restart: min/max Nitrate'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_Nit+k-1,:,:),'ruf8', &
@@ -1343,7 +1361,7 @@
       if (tr_bgc_N) then
       do mm = 1,n_algae
       write(ncharb,'(i3.3)') mm
-      if (my_task == master_task) write(nu_diag,*) ' min/max Algal N'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max Algal N'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0, &
@@ -1351,7 +1369,7 @@
               'bgc_N'//trim(ncharb)//trim(nchar),ncat,diag,field_loc_center,field_type_scalar)
       enddo
       if (tr_bgc_chl) then
-      if (my_task == master_task) write(nu_diag,*) ' min/max Algal chla'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max Algal chla'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,  &
@@ -1364,7 +1382,7 @@
       if (tr_bgc_C) then
      ! do mm = 1,n_algae
      ! write(ncharb,'(i3.3)') mm
-     ! if (my_task == master_task) write(nu_diag,*) ' min/max Algal C'
+     ! if (my_task == master_task) write(nu_diag,*) subname,' min/max Algal C'
      ! do k=1,nblyr+3
      !    write(nchar,'(i3.3)') k
      !    call read_restart_field(nu_restart_bgc,0,  &
@@ -1374,7 +1392,7 @@
      ! enddo  !mm
       do mm = 1,n_doc
       write(ncharb,'(i3.3)') mm
-      if (my_task == master_task) write(nu_diag,*) ' min/max DOC'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max DOC'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,  &
@@ -1384,7 +1402,7 @@
       enddo  !mm
       do mm = 1,n_dic
       write(ncharb,'(i3.3)') mm
-      if (my_task == master_task) write(nu_diag,*) ' min/max DIC'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max DIC'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,  &
@@ -1394,7 +1412,7 @@
       enddo  !mm
       endif  ! tr_bgc_C
       if (tr_bgc_Am) then
-      if (my_task == master_task) write(nu_diag,*) ' min/max ammonium'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max ammonium'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_Am+k-1,:,:),'ruf8', &
@@ -1402,7 +1420,7 @@
       enddo
       endif
       if (tr_bgc_Sil) then
-      if (my_task == master_task) write(nu_diag,*) ' min/max silicate'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max silicate'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_Sil+k-1,:,:),'ruf8', &
@@ -1410,7 +1428,7 @@
       enddo
       endif
       if (tr_bgc_hum) then
-      if (my_task == master_task) write(nu_diag,*) ' min/max humic material'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max humic material'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_hum+k-1,:,:),'ruf8', &
@@ -1419,22 +1437,22 @@
       endif
       if (tr_bgc_DMS) then
       do k=1,nblyr+3
-      if (my_task == master_task) write(nu_diag,*) ' min/max DMSPp'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max DMSPp'
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_DMSPp+k-1,:,:),'ruf8', &
               'bgc_DMSPp'//trim(nchar),ncat,diag,field_loc_center,field_type_scalar)
-      if (my_task == master_task) write(nu_diag,*) ' min/max DMSPd'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max DMSPd'
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_DMSPd+k-1,:,:),'ruf8', &
               'bgc_DMSPd'//trim(nchar),ncat,diag,field_loc_center,field_type_scalar)
-      if (my_task == master_task) write(nu_diag,*) ' min/max DMS'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max DMS'
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_DMS+k-1,:,:),'ruf8', &
               'bgc_DMS'//trim(nchar),ncat,diag,field_loc_center,field_type_scalar)
       enddo
       endif
       if (tr_bgc_PON) then
-      if (my_task == master_task) write(nu_diag,*) ' min/max PON'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max PON'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_PON+k-1,:,:),'ruf8', &
@@ -1444,7 +1462,7 @@
       if (tr_bgc_DON) then
       do mm = 1,n_don
       write(ncharb,'(i3.3)') mm
-      if (my_task == master_task) write(nu_diag,*) ' min/max DON'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max DON'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,  &
@@ -1456,7 +1474,7 @@
       if (tr_bgc_Fe) then
       do mm = 1,n_fed
       write(ncharb,'(i3.3)') mm
-      if (my_task == master_task) write(nu_diag,*) ' min/max dFe '
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max dFe '
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,  &
@@ -1466,7 +1484,7 @@
       enddo  !mm
       do mm = 1,n_fep
       write(ncharb,'(i3.3)') mm
-      if (my_task == master_task) write(nu_diag,*) ' min/max pFe '
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max pFe '
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,  &
@@ -1478,7 +1496,7 @@
       if (tr_zaero) then
       do mm = 1,n_zaero
       write(ncharb,'(i3.3)') mm
-      if (my_task == master_task) write(nu_diag,*) ' min/max z aerosols'
+      if (my_task == master_task) write(nu_diag,*) subname,' min/max z aerosols'
       do k=1,nblyr+3
          write(nchar,'(i3.3)') k
          call read_restart_field(nu_restart_bgc,0,  &
@@ -1499,7 +1517,7 @@
       ! Ocean BGC
       !-----------------------------------------------------------------
 
-      if (my_task == master_task) write(nu_diag,*) 'mixed layer ocean bgc restart'
+      if (my_task == master_task) write(nu_diag,*) subname,'mixed layer ocean bgc restart'
       if (tr_bgc_N) then
       do k = 1,n_algae
          write(nchar,'(i3.3)') k

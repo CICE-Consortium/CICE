@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_communicate.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_communicate
@@ -11,7 +10,6 @@
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
    use ice_kinds_mod
-   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -50,6 +48,8 @@
 
    integer (int_kind) :: ierr  ! MPI error flag
 #endif
+
+   character(len=*), parameter :: subname = '(init_communicate)'
 
 !-----------------------------------------------------------------------
 !
@@ -92,6 +92,8 @@
 
    integer (int_kind) :: get_num_procs
 
+   character(len=*), parameter :: subname = '(get_num_procs)'
+
 !-----------------------------------------------------------------------
 !
 !  serial execution, must be only 1
@@ -109,6 +111,8 @@
  subroutine ice_barrier()
 
 !  This function is an MPI_BARRIER on the MPI side
+
+   character(len=*), parameter :: subname = '(ice_barrier)'
 
 !-----------------------------------------------------------------------
 !
@@ -165,6 +169,8 @@
    integer (int_kind), dimension(3) :: &
      range                   ! range of tasks assigned to new dist
                              !  (assumed 0,num_procs-1)
+
+   character(len=*), parameter :: subname = '(create_communicator)'
 
 !-----------------------------------------------------------------------
 !

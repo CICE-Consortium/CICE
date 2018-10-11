@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_broadcast.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_broadcast
@@ -12,7 +11,6 @@
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
    use ice_kinds_mod
-   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -69,6 +67,8 @@
    real (dbl_kind), intent(inout) :: &
       scalar               ! scalar to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -90,6 +90,8 @@
 
    real (real_kind), intent(inout) :: &
       scalar               ! scalar to be broadcast
+
+   character(len=*), parameter :: subname = '(broadcast_scalar_real)'
 
 !-----------------------------------------------------------------------
 !
@@ -113,6 +115,8 @@
    integer (int_kind), intent(inout) :: &
       scalar                ! scalar to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_scalar_int)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -134,6 +138,8 @@
 
    logical (log_kind), intent(inout) :: &
      scalar               ! scalar to be broadcast
+
+   character(len=*), parameter :: subname = '(broadcast_scalar_log)'
 
 !-----------------------------------------------------------------------
 !
@@ -157,6 +163,8 @@
    character (*), intent(inout) :: &
      scalar               ! scalar to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_scalar_char)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -178,6 +186,8 @@
 
    real (dbl_kind), dimension(:), intent(inout) :: &
      array             ! array to be broadcast
+
+   character(len=*), parameter :: subname = '(broadcast_array_dbl_1d)'
 
 !-----------------------------------------------------------------------
 !
@@ -201,6 +211,8 @@
    real (real_kind), dimension(:), intent(inout) :: &
      array                ! array to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_array_real_1d)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -222,6 +234,8 @@
 
    integer (int_kind), dimension(:), intent(inout) :: &
        array              ! array to be broadcast
+
+   character(len=*), parameter :: subname = '(broadcast_array_int_1d)'
 
 !-----------------------------------------------------------------------
 !
@@ -245,6 +259,8 @@
    logical (log_kind), dimension(:), intent(inout) :: &
      array                ! array to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_array_log_1d)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -266,6 +282,8 @@
 
    real (dbl_kind), dimension(:,:), intent(inout) :: &
      array             ! array to be broadcast
+
+   character(len=*), parameter :: subname = '(broadcast_array_dbl_2d)'
 
 !-----------------------------------------------------------------------
 !
@@ -289,6 +307,8 @@
    real (real_kind), dimension(:,:), intent(inout) :: &
      array                ! array to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_array_real_2d)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -310,6 +330,8 @@
 
    integer (int_kind), dimension(:,:), intent(inout) :: &
        array              ! array to be broadcast
+
+   character(len=*), parameter :: subname = '(broadcast_array_int_2d)'
 
 !-----------------------------------------------------------------------
 !
@@ -333,6 +355,8 @@
    logical (log_kind), dimension(:,:), intent(inout) :: &
      array                ! array to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_array_log_2d)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -354,6 +378,8 @@
 
    real (dbl_kind), dimension(:,:,:), intent(inout) :: &
      array             ! array to be broadcast
+
+   character(len=*), parameter :: subname = '(broadcast_array_dbl_3d)'
 
 !-----------------------------------------------------------------------
 !
@@ -377,6 +403,8 @@
    real (real_kind), dimension(:,:,:), intent(inout) :: &
      array                ! array to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_array_real_3d)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -399,6 +427,8 @@
    integer (int_kind), dimension(:,:,:), intent(inout) :: &
        array              ! array to be broadcast
 
+   character(len=*), parameter :: subname = '(broadcast_array_int_3d)'
+
 !-----------------------------------------------------------------------
 !
 !  for serial codes, nothing is required
@@ -420,6 +450,8 @@
 
    logical (log_kind), dimension(:,:,:), intent(inout) :: &
      array                ! array to be broadcast
+
+   character(len=*), parameter :: subname = '(broadcast_array_log_3d)'
 
 !-----------------------------------------------------------------------
 !

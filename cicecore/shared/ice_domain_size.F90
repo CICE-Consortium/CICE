@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_domain_size.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Defines the global domain size and number of categories and layers.
@@ -19,50 +18,48 @@
       implicit none
       private
 
-      integer (kind=int_kind), parameter, public :: &
-        nx_global = NXGLOB    , & ! i-axis size
-        ny_global = NYGLOB    , & ! j-axis size
-        ncat      = NICECAT   , & ! number of categories
-        nilyr     = NICELYR   , & ! number of ice layers per category
-        nslyr     = NSNWLYR   , & ! number of snow layers per category
-        n_aero    = NTRAERO   , & ! number of aerosols in use
-        n_zaero   = TRZAERO   , & ! number of z aerosols in use 
-        n_algae   = TRALG     , & ! number of algae in use 
-        n_doc     = TRDOC     , & ! number of DOC pools in use
-        n_dic     = TRDIC     , & ! number of DIC pools in use
-        n_don     = TRDON     , & ! number of DON pools in use
-        n_fed     = TRFED     , & ! number of Fe  pools in use dissolved Fe
-        n_fep     = TRFEP     , & ! number of Fe  pools in use particulate Fe
-        nblyr     = NBGCLYR   , & ! number of bio/brine layers per category 
-                                  ! maximum number of biology tracers + aerosols
-                                  ! *** add to kscavz in icepack_zbgc_shared.F90 
-        n_bgc     = (n_algae*2 + n_doc + n_dic + n_don + n_fed + n_fep + n_zaero &
-                  + 8)        , & ! nit, am, sil, dmspp, dmspd, dms, pon, humic 
-        nltrcr    = (n_bgc*TRBGCZ+TRZS)*TRBRI, & ! number of zbgc (includes zaero)
-                                                 ! and zsalinity tracers 
-        max_nsw   = (nilyr+nslyr+2) & ! total chlorophyll plus aerosols
-                  * (1+TRZAERO),& ! number of tracers active in shortwave calculation
-        max_ntrcr =   1         & ! 1 = surface temperature              
-                  + nilyr       & ! ice salinity
-                  + nilyr       & ! ice enthalpy
-                  + nslyr       & ! snow enthalpy
-                              !!!!! optional tracers:
-                  + TRAGE       & ! age
-                  + TRFY        & ! first-year area
-                  + TRLVL*2     & ! level/deformed ice
-                  + TRPND*3     & ! ponds
-                  + n_aero*4    & ! number of aerosols * 4 aero layers
-                  + TRBRI       & ! brine height 
-                  + TRBGCS*n_bgc           & ! skeletal layer BGC 
-                  + TRZS  *TRBRI* nblyr    & ! zsalinity  (off if TRBRI=0)
-                  + n_bgc*TRBGCZ*TRBRI*(nblyr+3) & ! zbgc (off if TRBRI=0) 
-                  + n_bgc*TRBGCZ           & ! mobile/stationary phase tracer 
-                  + 1         , & ! for unused tracer flags
-        max_nstrm =   5           ! max number of history output streams
+      ! namelist
 
-      integer (kind=int_kind), parameter, public :: &
-        block_size_x = BLCKX  , & ! size of block in first horiz dimension
-        block_size_y = BLCKY      ! size of block in second horiz dimension
+      integer (kind=int_kind), public :: &
+        max_blocks  , & ! max number of blocks per processor
+        block_size_x, & ! size of block in first horiz dimension
+        block_size_y, & ! size of block in second horiz dimension
+        nx_global   , & ! i-axis size
+        ny_global       ! j-axis size
+
+      integer (kind=int_kind), public :: &
+        ncat      , & ! number of categories
+        nilyr     , & ! number of ice layers per category
+        nslyr     , & ! number of snow layers per category
+        n_aero    , & ! number of aerosols in use
+        n_zaero   , & ! number of z aerosols in use 
+        n_algae   , & ! number of algae in use 
+        n_doc     , & ! number of DOC pools in use
+        n_dic     , & ! number of DIC pools in use
+        n_don     , & ! number of DON pools in use
+        n_fed     , & ! number of Fe  pools in use dissolved Fe
+        n_fep     , & ! number of Fe  pools in use particulate Fe
+        nblyr     , & ! number of bio/brine layers per category 
+        n_trbgcz  , & ! zbgc
+        n_trzs    , & ! zsalinity
+        n_trbri   , & ! brine height
+        n_trzaero , & ! tracers active in shortwave calculation
+        n_trage   , & ! age
+        n_trfy    , & ! first-year area
+        n_trlvl   , & ! level/deformed ice
+        n_trpnd   , & ! ponds
+        n_trbgcs      ! skeleltel layer bgc
+
+      ! derived from namelist above
+
+      integer (kind=int_kind), public :: &
+        n_bgc     , & ! nit, am, sil, dmspp, dmspd, dms, pon, humic 
+        nltrcr    , & ! number of zbgc (includes zaero) and zsalinity tracers 
+        max_nsw   , & !
+        max_ntrcr     !
+
+      integer (kind=int_kind), public, parameter :: &
+        max_nstrm =   5           ! max number of history output streams
 
    !*** The model will inform the user of the correct
    !*** values for the parameter below.  A value higher than
@@ -73,9 +70,6 @@
    !*** max_blocks = (nx_global/block_size_x)*(ny_global/block_size_y)/
    !***               num_procs
  
-      integer (kind=int_kind), parameter, public :: &
-        max_blocks = MXBLCKS      ! max number of blocks per processor
-
 !=======================================================================
 
       end module ice_domain_size

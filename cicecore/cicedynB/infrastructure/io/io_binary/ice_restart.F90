@@ -69,6 +69,8 @@
       character(len=char_len_long) :: &
          string1, string2
 
+      character(len=*), parameter :: subname = '(init_restart_read)'
+
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal)
       call icepack_query_tracer_numbers( &
@@ -78,7 +80,7 @@
          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (present(ice_ic)) then 
@@ -121,7 +123,7 @@
       if (kdyn == 2) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('eap restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: eap restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -141,7 +143,7 @@
       if (tr_iage) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('iage restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: iage restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -161,7 +163,7 @@
       if (tr_FY) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('FY restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: FY restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -181,7 +183,7 @@
       if (tr_lvl) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('lvl restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: lvl restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -201,7 +203,7 @@
       if (tr_pond_cesm) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('pond_cesm restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: pond_cesm restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -221,7 +223,7 @@
       if (tr_pond_lvl) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('pond_lvl restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR:pond_lvl restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -241,7 +243,7 @@
       if (tr_pond_topo) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('pond_topo restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: pond_topo restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -261,7 +263,7 @@
       if (tr_brine) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('brine restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: brine restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -281,7 +283,7 @@
       if (solve_zsal .or. nbtrcr > 0) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('bgc restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: bgc restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -301,7 +303,7 @@
       if (tr_aero) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice('aero restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//'ERROR: aero restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -353,6 +355,8 @@
 
       character(len=char_len_long) :: filename
 
+      character(len=*), parameter :: subname = '(init_restart_write)'
+
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal)
       call icepack_query_tracer_numbers( &
@@ -362,7 +366,7 @@
          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! construct path/file
@@ -640,11 +644,13 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
            work2              ! input array (real, 8-byte)
 
+      character(len=*), parameter :: subname = '(read_restart_field)'
+
          write(nu_diag,*) 'vname ',trim(vname)
          if (present(field_loc)) then
             do n=1,ndim3
                if (restart_ext) then
-                  call ice_read_ext(nu,nrec,work2,atype,diag,field_loc,field_type)
+                  call ice_read_ext(nu,nrec,work2,atype,diag)
                else
                   call ice_read(nu,nrec,work2,atype,diag,field_loc,field_type)
                endif
@@ -702,6 +708,8 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
            work2              ! input array (real, 8-byte)
 
+      character(len=*), parameter :: subname = '(write_restart_field)'
+
          do n=1,ndim3
             work2(:,:,:) = work(:,:,n,:)
             if (restart_ext) then
@@ -732,6 +740,8 @@
          nbtrcr, &               ! number of bgc tracers
          status
 
+      character(len=*), parameter :: subname = '(final_restart)'
+
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal)
       call icepack_query_tracer_numbers( &
@@ -741,7 +751,7 @@
          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then

@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_exit.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Exit the model. 
@@ -76,6 +75,7 @@
 ! Ends run by calling MPI_FINALIZE.
 
       integer (int_kind) :: ierr ! MPI error flag
+      character(len=*), parameter :: subname = '(end_run)'
 
       call MPI_FINALIZE(ierr)
 

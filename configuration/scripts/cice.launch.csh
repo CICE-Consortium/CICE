@@ -3,8 +3,8 @@
 #echo ${0}
 echo "running cice.launch.csh"
 
-source ./cice.settings
-source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
+#source ./cice.settings
+#source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 set jobfile = $1
 
@@ -25,6 +25,11 @@ if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
 if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFR
 mpiexec_mpt -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
+else if (${ICE_MACHINE} =~ hobart*) then
+cat >> ${jobfile} << EOFR
+mpiexec -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 else if (${ICE_MACHINE} =~ thunder*) then

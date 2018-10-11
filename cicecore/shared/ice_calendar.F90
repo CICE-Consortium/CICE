@@ -1,4 +1,3 @@
-! $Id: ice_calendar.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Calendar routines for managing time
@@ -128,9 +127,11 @@
 
       real    (kind=dbl_kind) :: secday           ! seconds per day
 
+      character(len=*),parameter :: subname='(init_calendar)'
+
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       istep = 0         ! local timestep number
@@ -170,7 +171,7 @@
          daymo  = daymo365
          daycal = daycal365
       else 
-         call abort_ice('ice: days_per_year must be 360 or 365')
+         call abort_ice(subname//'ERROR: days_per_year must be 360 or 365')
       endif
 
       ! Get the time in seconds from calendar zero to start of initial year
@@ -216,10 +217,11 @@
          elapsed_hours              , & ! since beginning this run
          month0
       real    (kind=dbl_kind) :: secday ! seconds per day
+      character(len=*),parameter :: subname='(calendar)'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       nyrp=nyr
@@ -343,10 +345,11 @@
       real    (kind=dbl_kind) :: days_since_calz   ! days since calendar zero
       real    (kind=dbl_kind) :: secday            ! seconds per day
       integer (kind=int_kind) :: years_since_calz  ! days since calendar zero
+      character(len=*),parameter :: subname='(time2sec)'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (dayyr == 360) then
@@ -415,10 +418,11 @@
       real    (kind=dbl_kind) :: days_since_calz  ! days since calendar zero
       real    (kind=dbl_kind) :: secday           ! seconds per day
       integer (kind=int_kind) :: k                ! counter
+      character(len=*),parameter :: subname='(sec2time)'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       days_since_calz = int(tsec/secday)
@@ -504,6 +508,7 @@
 
       ! Internal variable
       logical (kind=log_kind) :: isleap   ! Leap year logical
+      character(len=*),parameter :: subname='(set_calendar)'
 
       isleap = .false. ! not a leap year
       if (mod(year,  4) == 0) isleap = .true.

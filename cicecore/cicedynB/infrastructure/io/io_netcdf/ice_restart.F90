@@ -10,8 +10,8 @@
       use ice_kinds_mod
       use netcdf
       use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr
+          restart_ext, restart_dir, restart_file, pointer_file, &
+          runid, use_restart_time, lcdf64, lenstr
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
@@ -38,9 +38,8 @@
       subroutine init_restart_read(ice_ic)
 
       use ice_calendar, only: sec, month, mday, nyr, istep0, istep1, &
-                              time, time_forc, year_init, npt
+                              time, time_forc, npt
       use ice_communicate, only: my_task, master_task
-      use ice_domain, only: nblocks
 
       character(len=char_len_long), intent(in), optional :: ice_ic
 
@@ -50,6 +49,8 @@
          filename, filename0
 
       integer (kind=int_kind) :: status
+
+      character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then 
          filename = trim(ice_ic)
@@ -68,8 +69,8 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
 
          status = nf90_open(trim(filename), nf90_nowrite, ncid)
-         if (status /= nf90_noerr) call abort_ice( &
-            'ice: Error reading restart ncfile '//trim(filename))
+         if (status /= nf90_noerr) call abort_ice(subname// &
+            'ERROR: reading restart ncfile '//trim(filename))
       
          if (use_restart_time) then
          status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
@@ -151,6 +152,8 @@
 
       character (len=3) :: nchar, ncharb
 
+      character(len=*), parameter :: subname = '(init_restart_write)'
+
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_numbers( &
@@ -166,7 +169,7 @@
          tr_zaero_out=tr_zaero,   tr_bgc_Fe_out=tr_bgc_Fe, &
          tr_bgc_hum_out=tr_bgc_hum)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       ! construct path/file
@@ -174,8 +177,6 @@
          filename = trim(filename_spec)
       else
          iyear = nyr + year_init - 1
-         imonth = month
-         iday = mday
       
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
@@ -193,8 +194,8 @@
          iflag = 0
          if (lcdf64) iflag = nf90_64bit_offset
          status = nf90_create(trim(filename), iflag, ncid)
-         if (status /= nf90_noerr) call abort_ice( &
-            'ice: Error creating restart ncfile '//trim(filename))
+         if (status /= nf90_noerr) call abort_ice(subname// &
+            'ERROR: creating restart ncfile '//trim(filename))
 
          status = nf90_put_att(ncid,nf90_global,'istep1',istep1)
          status = nf90_put_att(ncid,nf90_global,'time',time)
@@ -617,7 +618,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat
-      use ice_read_write, only: ice_read, ice_read_nc
+      use ice_read_write, only: ice_read_nc
 
       integer (kind=int_kind), intent(in) :: &
            nu            , & ! unit number (not used for netcdf)
@@ -650,6 +651,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
            work2              ! input array (real, 8-byte)
+
+      character(len=*), parameter :: subname = '(read_restart_field)'
 
          if (present(field_loc)) then
             if (ndim3 == ncat) then
@@ -700,7 +703,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat
-      use ice_read_write, only: ice_write, ice_write_nc
+      use ice_read_write, only: ice_write_nc
 
       integer (kind=int_kind), intent(in) :: &
            nu            , & ! unit number
@@ -723,12 +726,13 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-        n,     &      ! dimension counter
         varid, &      ! variable id
         status        ! status variable from netCDF routine
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
            work2              ! input array (real, 8-byte)
+
+      character(len=*), parameter :: subname = '(write_restart_field)'
 
          status = nf90_inq_varid(ncid,trim(vname),varid)
          if (ndim3 == ncat) then 
@@ -762,6 +766,8 @@
 
       integer (kind=int_kind) :: status
 
+      character(len=*), parameter :: subname = '(final_restart)'
+
       status = nf90_close(ncid)
 
       if (my_task == master_task) &
@@ -784,6 +790,8 @@
 
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine
+
+      character(len=*), parameter :: subname = '(define_rest_field)'
 
       status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid)
         

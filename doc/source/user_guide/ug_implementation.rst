@@ -100,7 +100,9 @@ including that used for the column configuration. The input files
 **global\_gx3.grid** and **global\_gx3.kmt** contain the
 :math:`\left<3^\circ\right>` POP grid and land mask;
 **global\_gx1.grid** and **global\_gx1.kmt** contain the
-:math:`\left<1^\circ\right>` grid and land mask. These are binary
+:math:`\left<1^\circ\right>` grid and land mask, and **global\_tx1.grid** 
+and **global\_tx1.kmt** contain the :math:`\left<1^\circ\right>` POP 
+tripole grid and land mask. These are binary
 unformatted, direct access files produced on an SGI (Big Endian). If you
 are using an incompatible (Little Endian) architecture, choose
 `rectangular` instead of `displaced\_pole` in **ice\_in**, or follow
@@ -140,9 +142,9 @@ on model performance.
    :align: center
    :scale: 20%
 
-   Figure 8
+   Grid parameters
 
-:ref:`fig-grid` : Grid parameters for a sample one-dimensional, 20-cell
+Figure :ref:`fig-grid` shows the grid parameters for a sample one-dimensional, 20-cell
 global domain decomposed into four local subdomains. Each local
 domain has one ghost (halo) cell on each side, and the physical
 portion of the local domains are labeled `ilo:ihi`. The parameter
@@ -150,19 +152,22 @@ portion of the local domains are labeled `ilo:ihi`. The parameter
 ghost cells, and the same numbering system is applied to each of the
 four subdomains.
 
-The user chooses a block size `BLCKX` :math:`\times`\ `BLCKY` and the
-number of processors `NTASK` in **comp\_ice**. Parameters in the
-*domain\_nml* namelist in **ice\_in** determine how the blocks are
+The user sets the `NTASKS` and `NTHRDS` settings in **cice.settings** 
+and chooses a block size `block\_size\_x` :math:`\times`\ `block\_size\_y`, 
+`max\_blocks`, and decomposition information `distribution\_type`, `processor\_shape`, 
+and `distribution\_type` in **ice\_in**. That information is used to
+determine how the blocks are
 distributed across the processors, and how the processors are
 distributed across the grid domain. Recommended combinations of these
 parameters for best performance are given in Section :ref:`performance`.
-The script **comp\_ice** computes the maximum number of blocks on each
-processor for typical Cartesian distributions, but for non-Cartesian
-cases `MXBLCKS` may need to be set in the script. The code will print this
-information to the log file before aborting, and the user will need to
-adjust `MXBLCKS` in **comp\_ice** and recompile. The code will also print
-a warning if the maximum number of blocks is too large. Although this is
-not fatal, it does require excess memory.
+The script **cice.setup** computes some default decompositions and layouts
+but the user can overwrite the defaults by manually changing the values in 
+`ice\_in`.  At runtime, the model will print decomposition
+information to the log file, and if the block size or max blocks is 
+inconsistent with the task and thread size, the model will abort.  The 
+code will also print a warning if the maximum number of blocks is too large. 
+Although this is not fatal, it does use extra memory.  If `max\_blocks` is
+set to -1, the code will compute a `max\_blocks` on the fly.
 
 A loop at the end of routine *create\_blocks* in module
 **ice\_blocks.F90** will print the locations for all of the blocks on
@@ -174,9 +179,9 @@ into processors and blocks can be ascertained. The dbug flag must be
 manually set in the code in each case (independently of the dbug flag in
 **ice\_in**), as there may be hundreds or thousands of blocks to print
 and this information should be needed only rarely. This information is
-much easier to look at using a debugger such as Totalview.
-
-Alternatively, a new variable is provided in the history files, `blkmask`,
+much easier to look at using a debugger such as Totalview.  There is also
+an output field that can be activated in `icefields\_nml`, `f\_blkmask`, 
+that prints out the variable `blkmask` to the history file and 
 which labels the blocks in the grid decomposition according to `blkmask` =
 `my\_task` + `iblk/100`.
 
@@ -343,7 +348,7 @@ The logical masks `tmask` and `umask` (which correspond to the real masks
 `hm` and `uvm`, respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
-*evp\_prep* in order to reduce the dynamics component’s work on a global
+*dyn\_prep* in order to reduce the dynamics component’s work on a global
 grid. At each time step the logical masks `ice\_tmask` and `ice\_umask` are
 determined from the current ice extent, such that they have the value
 “true” wherever ice exists. They also include a border of cells around
@@ -375,12 +380,69 @@ Performance
 ***************
 
 Namelist options (*domain\_nml*) provide considerable flexibility for
-finding the most efficient processor and block configuration. Some of
-these choices are illustration in :ref:`fig-distrb`. `processor\_shape`
-chooses between tall, thin processor domains (`slenderX1` or `slenderX2`,
+finding efficient processor and block configuration. Some of
+these choices are illustrated in :ref:`fig-distrb`.  Users have control
+of many aspects of the decomposition such as the block size (`block\_size\_x`,
+`block\_size\_y`), the `distribution\_type`, the `distribution\_wght`,
+the `distribution\_wght\_file` (when `distribution\_type` = `wghtfile`), 
+and the `processor\_shape` (when `distribution\_type` = `cartesian`).
+
+The user specifies the total number of tasks and threads in **cice.settings**
+and the block size and decompostion in the namelist file. The main trades 
+offs are the relative
+efficiency of large square blocks versus model internal load balance
+as CICE computation cost is very small for ice-free blocks.
+Smaller, more numerous blocks provides an opportunity for better load
+balance by allocating each processor both ice-covered and ice-free
+blocks.  But smaller, more numerous blocks becomes
+less efficient due to MPI communication associated with halo updates.
+In practice, blocks should probably not have fewer than about 8 to 10 grid 
+cells in each direction, and more square blocks tend to optimize the 
+volume-to-surface ratio important for communication cost.  Often 3 to 8
+blocks per processor provide the decompositions flexiblity to
+create reasonable load balance configurations.
+
+The `distribution\_type` options allow standard cartesian distributions 
+of blocks, redistribution via a ‘rake’ algorithm for improved load
+balancing across processors, and redistribution based on space-filling
+curves. There are also additional distribution types
+(‘roundrobin,’ ‘sectrobin,’ ‘sectcart’, and 'spiralcenter') that support 
+alternative decompositions and also allow more flexibility in the number of
+processors used.  Finally, there is a 'wghtfile' decomposition that
+generates a decomposition based on weights specified in an input file.
+
+.. _fig-distrb:
+
+.. figure:: ./figures/distrb.png
+   :scale: 50%
+
+   Distribution options
+
+Figure :ref:`fig-distrb` shows distribution of 256 blocks across 16 processors,
+represented by colors, on the gx1 grid: (a) cartesian, slenderX1, (b)
+cartesian, slenderX2, (c) cartesian, square-ice (square-pop is
+equivalent here), (d) rake with block weighting, (e) rake with
+latitude weighting, (f) spacecurve. Each block consists of 20x24 grid
+cells, and white blocks consist entirely of land cells.
+
+.. _fig-distrbB:
+
+.. figure:: ./figures/distrbB.png
+   :scale: 50%
+
+   Decomposition options
+
+Figure :ref:`fig-distrbB` shows sample decompositions for (a) spiral center and
+(b) wghtfile for an Arctic polar grid. (c) is the weight field
+in the input file use to drive the decompostion in (b).
+
+`processor\_shape` is used with the `distribution\_type` cartesian option,
+and it allocates blocks to processors in various groupings such as
+tall, thin processor domains (`slenderX1` or `slenderX2`,
 often better for sea ice simulations on global grids where nearly all of
 the work is at the top and bottom of the grid with little to do in
-between) and close-to-square domains, which maximize the volume to
+between) and close-to-square domains (`square-pop` or `square-ice`), 
+which maximize the volume to
 surface ratio (and therefore on-processor computations to message
 passing, if there were ice in every grid cell). In cases where the
 number of processors is not a perfect square (4, 9, 16...), the
@@ -391,44 +453,17 @@ arranged 4x2 (`square-ice`) rather than 2x4 (`square-pop`). The latter
 option is offered for direct-communication compatibility with POP, in
 which this is the default.
 
-The user provides the total number of processors and the block
-dimensions in the setup script (**comp\_ice**). When moving toward
-smaller, more numerous blocks, there is a point where the code becomes
-less efficient; blocks should not have fewer than about 20 grid cells in
-each direction. Squarish blocks optimize the volume-to-surface ratio for
-communications.
-
-.. _fig-distrb:
-
-.. figure:: ./figures/distrb.png
-   :scale: 50%
-
-   Figure 9
-
-:ref:`fig-distrb` : Distribution of 256 blocks across 16 processors,
-represented by colors, on the gx1 grid: (a) cartesian, slenderX1, (b)
-cartesian, slenderX2, (c) cartesian, square-ice (square-pop is
-equivalent here), (d) rake with block weighting, (e) rake with
-latitude weighting, (f) spacecurve. Each block consists of 20x24 grid
-cells, and white blocks consist entirely of land cells.
-
-The `distribution\_type` options allow standard Cartesian distribution of
-blocks, redistribution via a ‘rake’ algorithm for improved load
-balancing across processors, and redistribution based on space-filling
-curves. There are also three additional distribution types
-(‘roundrobin,’ ‘sectrobin,’ ‘sectcart’) that improve land-block
-elimination rates and also allow more flexibility in the number of
-processors used. The rake and space-filling curve algorithms are
-primarily helpful when using squarish processor domains where some
-processors (located near the equator) would otherwise have little work
-to do. Processor domains need not be rectangular, however.
-
 `distribution\_wght` chooses how the work-per-block estimates are
-weighted. The ‘block’ option is the default in POP, which uses a lot of
+weighted. The ‘block’ option is the default in POP and it weights each
+block equally.  This is useful in POP which always has work in
+each block and is written with a lot of
 array syntax requiring calculations over entire blocks (whether or not
-land is present), and is provided here for direct-communication
-compatibility with POP. The ‘latitude’ option weights the blocks based
-on latitude and the number of ocean grid cells they contain.
+land is present).  This option is provided in CICE as well for 
+direct-communication compatibility with POP. The ‘latitude’ option 
+weights the blocks based on latitude and the number of ocean grid 
+cells they contain.  Many of the non-cartesian decompositions support 
+automatic land block elimination and provide alternative ways to
+decompose blocks without needing the `distribution\_wght`.
 
 The rake distribution type is initialized as a standard, Cartesian
 distribution. Using the work-per-block estimates, blocks are “raked"
@@ -441,11 +476,11 @@ to one dimension. The curve is composed of a string of blocks that is
 snipped into sections, again based on the work per processor, and each
 piece is placed on a processor for optimal load balancing. This option
 requires that the block size be chosen such that the number of blocks in
-the x direction equals the number of blocks in the y direction, and that
-number must be factorable as :math:`2^n 3^m 5^p` where :math:`n, m, p`
+the x direction and the number of blocks in the y direction
+must be factorable as :math:`2^n 3^m 5^p` where :math:`n, m, p`
 are integers. For example, a 16x16 array of blocks, each containing
 20x24 grid cells, fills the gx1 grid (:math:`n=4, m=p=0`). If either of
-these conditions is not met, a Cartesian distribution is used instead.
+these conditions is not met, the spacecurve decomposition will fail.
 
 While the Cartesian distribution groups sets of blocks by processor, the
 ‘roundrobin’ distribution loops through the blocks and processors
@@ -454,21 +489,30 @@ This provides good load balancing but poor communication characteristics
 due to the number of neighbors and the amount of data needed to
 communicate. The ‘sectrobin’ and ‘sectcart’ algorithms loop similarly,
 but put groups of blocks on each processor to improve the communication
-characteristics. In the ‘sectcart’ case, the domain is divided into two
-(east-west) halves and the loops are done over each, sequentially.
-:ref:`fig-distribscorecard` provides an overview of the pros and cons
-for the distribution types.
+characteristics. In the ‘sectcart’ case, the domain is divided into four
+(east-west,north-south) quarters and the loops are done over each, sequentially.
+
+The `wghtfile` decomposition drives the decomposition based on 
+weights provided in a weight file.  That file should be a netcdf
+file with a double real field called `wght` containing the relative
+weight of each gridcell.  :ref:`fig-distrbB` (b) and (c) show
+an example.  The weights associated with each gridcell will be
+summed on a per block basis and normalized to about 10 bins to
+carry out the distribution of highest to lowest block weights 
+to processors.  :ref:`fig-distribscorecard` provides an overview 
+of the pros and cons of the various distribution types.
+
 
 .. _fig-distribscorecard:
 
 .. figure:: ./figures/scorecard.png
-   :scale: 20%
+   :scale: 50%
 
-   Figure 10
+   Scorecard
 
-:ref:`fig-distribscorecard` : Scorecard for block distribution choices in
-CICE, courtesy T. Craig. For more information, see
-http://www.cesm.ucar.edu/events/ws.2012/Presentations/SEWG2/craig.pdf
+Figure :ref:`fig-distribscorecard` shows the scorecard for block distribution choices in
+CICE, courtesy T. Craig. For more information, see :cite:`Craig2014` or
+http://www.cesm.ucar.edu/events/workshops/ws.2012/presentations/sewg/craig.pdf
 
 The `maskhalo` options in the namelist improve performance by removing
 unnecessary halo communications where there is no ice. There is some
@@ -507,9 +551,9 @@ calculate it for each thickness category.
 .. figure:: ./figures/histograms.png
    :scale: 20%
 
-   Figure 11
+   Timings
 
-:ref:`fig-timings` : Change in ‘TimeLoop’ timings from the 7-layer
+Figure :ref:`fig-timings` shows change in ‘TimeLoop’ timings from the 7-layer
 configuration using BL99 thermodynamics and EVP dynamics. Timings
 were made on a nondedicated machine, with variations of about
 :math:`\pm3`\ % in identically configured runs (light grey). Darker
@@ -574,14 +618,14 @@ and are intended merely to provide guidance for the user to write his or
 her own routines. Whether the code is to be run in stand-alone or
 coupled mode is determined at compile time, as described below.
 
-:ref:`tab-ic` : *Ice initial state resulting from combinations of*
-`ice\_ic`, `runtype` and `restart`. :math:`^a`\ *If false, restart is reset to
-true.* :math:`^b`\ *restart is reset to false.* :math:`^c`\ ice\_ic *is
-reset to ‘none.’*
+Table :ref:`tab-ic` shows ice initial state resulting from combinations of
+`ice\_ic`, `runtype` and `restart`. :math:`^a`\ If false, restart is reset to
+true. :math:`^b`\ restart is reset to false. :math:`^c`\ ice\_ic is
+reset to ‘none.’
 
 .. _tab-ic:
 
-.. table:: Table 4
+.. table:: Ice Initial State
 
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
    | ice\_ic        |                          |                                      |                                        |
@@ -618,7 +662,7 @@ CFL condition, under remapping yields
 Numerical estimates for this bound for several POP grids, assuming
 :math:`\max(u, v)=0.5` m/s, are as follows:
 
-.. csv-table::
+.. csv-table:: *Time Step Bound*
    :widths: 20,40,40,40,40
    
    grid label,N pole singularity,dimensions,min :math:`\sqrt{\Delta x\cdot\Delta y}`,max :math:`\Delta t_{dyn}`
@@ -705,8 +749,10 @@ History files
 
 Model output data is averaged over the period(s) given by `histfreq` and
 `histfreq\_n`, and written to binary or  files prepended by `history\_file`
-in **ice\_in**. That is, if `history\_file` = ‘iceh’ then the filenames
-will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
+in **ice\_in**. These settings for history files are set in the 
+**setup\_nml** section of **ice\_in** (see :ref:`tabnamelist`). 
+If `history\_file` = ‘iceh’ then the 
+filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
 depending on the output file format chosen in **comp\_ice** (set
 `IO\_TYPE`). The  history files are CF-compliant; header information for
 data contained in the  files is displayed with the command `ncdump -h
@@ -714,9 +760,10 @@ filename.nc`. Parallel  output is available using the PIO library; the
 attribute `io\_flavor` distinguishes output files written with PIO from
 those written with standard netCDF. With binary files, a separate header
 file is written with equivalent information. Standard fields are output
-according to settings in the **icefields\_nml** namelist in **ice\_in**.
+according to settings in the **icefields\_nml** section of **ice\_in** 
+(see :ref:`tabnamelist`).
 The user may add (or subtract) variables not already available in the
-namelist by following the instructions in section :ref:`addhist`.
+namelist by following the instructions in section :ref:`addhist`. 
 
 With this release, the history module has been divided into several
 modules based on the desired formatting and on the variables
@@ -741,7 +788,7 @@ with a given `histfreq` value, or if an element of `histfreq\_n` is 0, then
 no file will be written at that frequency. The output period can be
 discerned from the filenames.
 
-For example, in namelist:
+For example, in the namelist:
 
 ::
 
@@ -794,6 +841,19 @@ another that is multiplied by :math:`a_i`, representing an average over
 the grid cell area. Our naming convention attaches the suffix “\_ai" to
 the grid-cell-mean variable names.
 
+In this version of CICE, history variables requested by the Sea Ice Model Intercomparison 
+Project (SIMIP) :cite:`NJHHMSTV16` have been added as possible history output variables (e.g. 
+`f_sithick`, `f_sidmassgrowthbottom`, etc.). The lists of
+`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
+`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
+requested  SIMIP variables provide the names of possible history fields in CICE. 
+However, each of the additional variables can be output at any temporal frequency 
+specified in the **icefields\_nml** section of **ice\_in** as detailed above.
+Additionally, a new history output variable, `f_CMIP`, has been added. When `f_CMIP`
+is added to the **icefields\_nml** section of **ice\_in** then all SIMIP variables
+will be turned on for output at the frequency specified by `f_CMIP`. 
+
+
 ****************
 Diagnostic files
 ****************
@@ -830,11 +890,9 @@ the code, including the dynamics and advection routines.
 The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
 *system\_clock* for single-processor runs.
 
-:ref:`timers` : *CICE timers*
-
 .. _timers:
 
-.. table:: Table 5
+.. table:: CICE timers
 
    +--------------+-------------+----------------------------------------------------+
    | **Timer**    |             |                                                    |

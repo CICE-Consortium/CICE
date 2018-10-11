@@ -118,8 +118,8 @@ if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
   set ftest  = `grep " ${case} " results.log | grep " test"    | cut -c 1-4`
   set fregr  = `grep " ${case} " results.log | grep " compare" | cut -c 1-4`
   set fcomp  = `grep " ${case} " results.log | grep " bfbcomp" | cut -c 1-4`
-  if (${ftest}  == "PASS") set frun   = "PASS"
-  if (${frun}   == "PASS") set fbuild = "PASS"
+#  if (${ftest}  == "PASS") set frun   = "PASS"
+#  if (${frun}   == "PASS") set fbuild = "PASS"
 
   set vregr  = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 4 | sed 's/\./ /g' `
   set vcomp  = `grep " ${case} " results.log | grep " bfbcomp" | cut -d " " -f 4`
@@ -187,13 +187,14 @@ if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
   if (${fcomp}  == "FAIL") set rcomp  = ${red}
   if (${ftime}  == "FAIL") set rtime  = ${red}
 
-  if (${fbuild} == "") set rbuild = ${red}
+  if (${fbuild} == "") set rbuild = ${gray}
   if (${frun}   == "") set rrun   = ${red}
   if (${ftest}  == "") set rtest  = ${red}
   if (${fregr}  == "") set rregr  = ${gray}
   if (${fcomp}  == "") set rcomp  = ${gray}
   if (${ftime}  == "") set rtime  = ${gray}
 
+  if (${fbuild} == "COPY") set rbuild = ${gray}
   if (${fbuild} == "MISS") set rbuild = ${gray}
   if (${frun}   == "MISS") set rrun   = ${gray}
   if (${ftest}  == "MISS") set rtest  = ${gray}

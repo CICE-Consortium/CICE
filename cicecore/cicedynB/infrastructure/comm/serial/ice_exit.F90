@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_exit.F90 700 2013-08-15 19:17:39Z eclare $
 !=======================================================================
 !
 ! Exit the model.
@@ -60,6 +59,8 @@
 !=======================================================================
 
       subroutine end_run
+
+      character(len=*), parameter :: subname = '(end_run)'
 
 ! Ends parallel run by calling MPI_FINALIZE.
 ! Does nothing in serial runs.

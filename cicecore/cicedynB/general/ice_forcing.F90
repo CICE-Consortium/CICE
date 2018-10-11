@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_forcing.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Reads and interpolates forcing data for atmosphere and ocean quantities.
@@ -20,7 +19,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
       use ice_communicate, only: my_task, master_task
-      use ice_calendar, only: istep, istep1, time, time_forc, year_init, &
+      use ice_calendar, only: istep, istep1, time, time_forc, &
                               sec, mday, month, nyr, yday, daycal, dayyr, &
                               daymo, days_per_year
       use ice_fileunits, only: nu_diag, nu_forcing
@@ -37,13 +36,12 @@
       use ice_constants, only: field_loc_center, field_type_scalar, &
                                field_type_vector, field_loc_NEcorner
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_liquidus_temperature
       use icepack_intfc, only: icepack_sea_freezing_temperature
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_parameters
 
       implicit none
       private
-      public :: init_forcing_atmo, init_forcing_ocn, &
+      public :: init_forcing_atmo, init_forcing_ocn, alloc_forcing, &
                 get_forcing_atmo, get_forcing_ocn, &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
@@ -56,13 +54,11 @@
          fyear_final         ! last year in cycle
 
       character (char_len_long) :: &        ! input data file names
-         height_file, &
           uwind_file, &
           vwind_file, &
            wind_file, &
           strax_file, &
           stray_file, &
-           potT_file, &
            tair_file, &
           humid_file, &
            rhoa_file, &
@@ -71,11 +67,10 @@
            rain_file, &
             sst_file, &
             sss_file, &
-           pslv_file, &
          sublim_file, &
            snow_file  
 
-      character (char_len_long), dimension(ncat) :: &  ! input data file names
+      character (char_len_long), dimension(:), allocatable :: &  ! input data file names
         topmelt_file, &
         botmelt_file
 
@@ -87,10 +82,10 @@
            oldrecnum = 0  , & ! old record number (save between steps)
            oldrecnum4X = 0    !
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
           cldf                ! cloud fraction
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks) :: &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable :: &
             fsw_data, & ! field values at 2 temporal data points
            cldf_data, &
           fsnow_data, &
@@ -102,8 +97,6 @@
           stray_data, &
              Qa_data, &
            rhoa_data, &
-           potT_data, &
-           zlvl_data, &
             flw_data, &
             sst_data, &
             sss_data, & 
@@ -113,7 +106,7 @@
           frain_data
 
       real (kind=dbl_kind), & 
-           dimension(nx_block,ny_block,2,max_blocks,ncat) :: &
+           dimension(:,:,:,:,:), allocatable :: &
         topmelt_data, &
         botmelt_data
 
@@ -143,7 +136,7 @@
          frcidf = 0.17_dbl_kind    ! frac of incoming sw in near IR diffuse band
 
       real (kind=dbl_kind), &
-       dimension (nx_block,ny_block,max_blocks,nfld,12) :: & 
+       dimension (:,:,:,:,:), allocatable :: &
          ocn_frc_m   ! ocn data for 12 months
 
       logical (kind=log_kind), public :: &
@@ -163,6 +156,43 @@
       contains
 
 !=======================================================================
+!
+! Allocate space for all variables 
+!
+      subroutine alloc_forcing
+      integer (int_kind) :: ierr
+
+      allocate ( &
+                 cldf(nx_block,ny_block, max_blocks), & ! cloud fraction
+            fsw_data(nx_block,ny_block,2,max_blocks), & ! field values at 2 temporal data points
+           cldf_data(nx_block,ny_block,2,max_blocks), &
+          fsnow_data(nx_block,ny_block,2,max_blocks), &
+           Tair_data(nx_block,ny_block,2,max_blocks), &
+           uatm_data(nx_block,ny_block,2,max_blocks), &
+           vatm_data(nx_block,ny_block,2,max_blocks), &
+           wind_data(nx_block,ny_block,2,max_blocks), &
+          strax_data(nx_block,ny_block,2,max_blocks), &
+          stray_data(nx_block,ny_block,2,max_blocks), &
+             Qa_data(nx_block,ny_block,2,max_blocks), &
+           rhoa_data(nx_block,ny_block,2,max_blocks), &
+            flw_data(nx_block,ny_block,2,max_blocks), &
+            sst_data(nx_block,ny_block,2,max_blocks), &
+            sss_data(nx_block,ny_block,2,max_blocks), &
+           uocn_data(nx_block,ny_block,2,max_blocks), &
+           vocn_data(nx_block,ny_block,2,max_blocks), &
+         sublim_data(nx_block,ny_block,2,max_blocks), &
+          frain_data(nx_block,ny_block,2,max_blocks), &
+        topmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
+        botmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
+           ocn_frc_m(nx_block,ny_block,  max_blocks,nfld,12), & ! ocn data for 12 months
+        topmelt_file(ncat), &
+        botmelt_file(ncat), &
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_forcing): Out of Memory')
+
+      end subroutine alloc_forcing
+
+!=======================================================================
 
       subroutine init_forcing_atmo
 
@@ -170,6 +200,9 @@
 ! namelist input; initialize the atmospheric forcing data filenames.
 
       character(len=*), parameter :: subname = '(init_forcing_atmo)'
+
+      ! Allocate forcing arrays 
+      call alloc_forcing()
 
       fyear       = fyear_init + mod(nyr-1,ycycle) ! current year
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
@@ -204,9 +237,9 @@
       elseif (trim(atm_data_type) == 'monthly') then
          call monthly_files(fyear)
       elseif (trim(atm_data_type) == 'oned') then
-         call oned_files(fyear)
+         call oned_files
       elseif (trim(atm_data_type) == 'ISPOL') then 
-         call ISPOL_files(fyear)
+         call ISPOL_files
       endif
 
       end subroutine init_forcing_atmo
@@ -259,6 +292,11 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+!     sst_data(:,:,:,:) = c0
+!     sss_data(:,:,:,:) = c0
+!     uocn_data(:,:,:,:) = c0
+!     vocn_data(:,:,:,:) = c0
 
       nbits = 64              ! double precision data
 
@@ -580,7 +618,7 @@
          call ocn_data_hadgem(dt) 
       elseif (trim(sst_data_type) == 'oned' .or.  &
               trim(sss_data_type) == 'oned') then
-         call ocn_data_oned(dt)   
+         call ocn_data_oned
       endif
 
       end subroutine get_forcing_ocn
@@ -619,7 +657,7 @@
          maxrec                  ! maximum record value
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-         intent(out) :: &
+         intent(inout) :: &
          field_data              ! 2 values needed for interpolation
 
       integer (kind=int_kind), intent(in) :: &
@@ -918,7 +956,7 @@
            field_type        ! type of field (scalar, vector, angle)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-        intent(out) :: &
+        intent(inout) :: &
         field_data         ! 2 values needed for interpolation
 
       ! local variables
@@ -1010,7 +1048,6 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-        nbits          , & ! = 32 for single precision, 64 for double
         nrec           , & ! record number to read
         arg            , & ! value of time argument in field_data
         fid                ! file id for netCDF routines
@@ -1018,8 +1055,6 @@
       character(len=*), parameter :: subname = '(read_clim_data_nc)'
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
-
-      nbits = 64                ! double precision data
 
       if (istep1 > check_step) dbug = .true.  !! debugging
 
@@ -1269,7 +1304,6 @@
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
 
       real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in) :: &
-         Tair    , & ! air temperature  (K)
          ANGLET  , & ! ANGLE converted to T-cells
          Tsfc    , & ! ice skin temperature
          sst     , & ! sea surface temperature
@@ -1282,6 +1316,7 @@
          cldf    , & ! cloud fraction
          frain   , & ! rainfall rate (kg/m^2 s)
          fsnow   , & ! snowfall rate (kg/m^2 s)
+         Tair    , & ! air temperature  (K)
          Qa      , & ! specific humidity (kg/kg)
          rhoa    , & ! air density (kg/m^3)
          uatm    , & ! wind velocity components (m/s)
@@ -1303,13 +1338,13 @@
          i, j
 
       real (kind=dbl_kind) :: workx, worky, &
-         precip_factor, zlvl0, secday, Tffresh
+         precip_factor, zlvl0, secday, Tffresh, puny
 
       logical (kind=log_kind) :: calc_strair
 
       character(len=*), parameter :: subname = '(prepare_forcing)'
 
-      call icepack_query_parameters(Tffresh_out=Tffresh)
+      call icepack_query_parameters(Tffresh_out=Tffresh, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
       call icepack_query_parameters(calc_strair_out=calc_strair)
       call icepack_warnings_flush(nu_diag)
@@ -1330,6 +1365,9 @@
          rhoa (i,j) = max(rhoa(i,j),c0)
          Qa   (i,j) = max(Qa(i,j),c0)
 
+!        if (rhoa(i,j) .lt. puny) rhoa(i,j) = 1.3_dbl_kind            
+!        if (Tair(i,j) .lt. puny) Tair(i,j) = Tffresh
+!        if (Qa(i,j) .lt. puny) Qa(i,j) = 0.0035_dbl_kind
       enddo                     ! i
       enddo                     ! j
 
@@ -2390,7 +2428,6 @@
       use ice_domain, only: nblocks
       use ice_flux, only: fsnow, frain, uatm, vatm, strax, stray, wind, &
           fsw, flw, Tair, rhoa, Qa, fcondtopn_f, fsurfn_f, flatn_f
-      use ice_state, only: aice, aicen
 
       integer (kind=int_kind) :: &
           i, j        , & ! horizontal indices
@@ -2862,8 +2899,6 @@
 
       subroutine oned_data
 
-      use ice_blocks, only: block, get_block
-      use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: uatm, vatm, Tair, fsw, fsnow, Qa, rhoa, frain
 
 #ifdef ncdf 
@@ -2886,13 +2921,6 @@
       integer (kind=int_kind) :: &
          status           ! status flag
 
-      integer (kind=int_kind) :: &
-         iblk, &          ! block index
-         ilo,jlo          ! beginning of physical domain
-
-      type (block) :: &
-         this_block       ! block information for current block
-      
       real (kind=dbl_kind) :: & ! used to determine specific humidity
          Temp               , & ! air temperature (K)
          rh                 , & ! relative humidity (%)
@@ -2913,11 +2941,6 @@
 
       diag = .false.   ! write diagnostic information 
    
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
-         ilo = this_block%ilo
-         jlo = this_block%jlo
-
       if (trim(atm_data_format) == 'nc') then     ! read nc file
 
         ! hourly data beginning Jan 1, 1989, 01:00   
@@ -2983,18 +3006,13 @@
         cldf (:,:,:) = p25          ! cloud fraction
         frain(:,:,:) = c0           ! this is available in hourlymet_rh file
   
-      enddo ! nblocks
-
 #endif
 
       end subroutine oned_data
 
 !=======================================================================
 
-      subroutine oned_files(yr)
-
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
+      subroutine oned_files
 
       character(len=*), parameter :: subname = '(oned_files)'
 
@@ -3042,7 +3060,7 @@
 ! author: Elizabeth C. Hunke and William H. Lipscomb, LANL
 
       use ice_domain, only: nblocks
-      use ice_flux, only: Tf, sss, sst, uocn, vocn, ss_tltx, ss_tlty
+      use ice_flux, only: sss, sst
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -3061,7 +3079,7 @@
 
       logical (kind=log_kind) :: readm
 
-      character(len=*), parameter :: subname = '(ocean_data_clim)'
+      character(len=*), parameter :: subname = '(ocn_data_clim)'
 
       if (my_task == master_task .and. istep == 1) then
          if (trim(sss_data_type)=='clim') then
@@ -3662,16 +3680,11 @@
 ! ocean data for oned configuration
 ! Current (released) values are the same as the defaults (ice_flux.F90)
 
-      subroutine ocn_data_oned(dt)
+      subroutine ocn_data_oned
 
       use ice_flux, only: sss, sst, Tf, uocn, vocn, ss_tltx, ss_tlty, &
             qdp, hmix, frzmlt
 
-      real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
-
-      integer :: i, j, iblk
- 
       character(len=*), parameter :: subname = '(ocn_data_oned)'
 
       sss    (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
@@ -3706,10 +3719,9 @@
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
- 
-     integer (kind=int_kind) :: &
-          i, j        , & ! horizontal indices
-          iblk        , & ! block index
+
+      integer (kind=int_kind) :: &
+          i, j, iblk  , &
           ixm,ixp     , & ! record numbers for neighboring months
           maxrec      , & ! maximum record number
           recslot     , & ! spline slot for current record
@@ -3836,7 +3848,7 @@
      ! and change  units
      !----------------------------------------------------------------- 
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
@@ -3911,7 +3923,7 @@
            field_type        ! type of field (scalar, vector, angle)
 
       real (kind=dbl_kind), dimension(2), &
-         intent(out) :: &
+         intent(inout) :: &
          field_data              ! 2 values needed for interpolation
 
       character(len=*), parameter :: subname = '(read_data_nc_point)'
@@ -3925,6 +3937,8 @@
          fid                  ! file id for netCDF routines
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
+
+      field_data = c0 ! to satisfy intent(out) attribute
 
       if (istep1 > check_step) dbug = .true.  !! debugging
 
@@ -4033,10 +4047,7 @@
 
 !=======================================================================
 
-      subroutine ISPOL_files(yr)
-
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
+      subroutine ISPOL_files
 
       character(len=*), parameter :: subname = '(ISPOL_files)'
 
@@ -4083,12 +4094,8 @@
 
 ! authors: Nicole Jeffery, LANL
 !
-      use ice_global_reductions, only: global_minval, global_maxval
-      use ice_domain, only: nblocks, distrb_info, blocks_ice
-      use ice_flux, only: uatm, vatm, Tair, fsw,  Qa, qdp, rhoa, &
+      use ice_flux, only: uatm, vatm, Tair, fsw,  Qa, rhoa, &
           frain, fsnow, flw
-      use ice_grid, only:  tmask
-      use ice_diagnostics, only: latpnt, lonpnt 
 #ifdef ncdf
       use netcdf
 #endif
@@ -4100,27 +4107,7 @@
          fieldname        ! field name in netcdf file
 
       integer (kind=int_kind) :: &
-         fid              ! file id for netCDF file 
-
-      real (kind=dbl_kind):: &
-         work             ! temporary variable
- 
-      real (kind=dbl_kind) :: &
-          vmin, vmax
-
-      logical (kind=log_kind) :: diag
-
-      integer (kind=int_kind) :: &
          status           ! status flag
-
-      integer (kind=int_kind) :: &
-         iblk             ! block index
-
-      real (kind=dbl_kind) :: & ! used to determine specific humidity
-         Temp               , & ! air temperature (K)
-         rh                 , & ! relative humidity (%)
-         Psat               , & ! saturation vapour pressure (hPa)
-         ws                     ! saturation mixing ratio
 
       real (kind=dbl_kind), dimension(2), save :: &
          Tair_data_p      , &      ! air temperature (K) for interpolation
@@ -4141,38 +4128,24 @@
     
       ! for interpolation of hourly data                
       integer (kind=int_kind) :: &
-          i, j, k     , &
           ixm,ixx,ixp , & ! record numbers for neighboring months
           recnum      , & ! record number
           recnum4X    , & ! record number
           maxrec      , & ! maximum record number
           recslot     , & ! spline slot for current record
-          dataloc     , & ! = 1 for data located in middle of time interval
+          dataloc         ! = 1 for data located in middle of time interval
                           ! = 2 for date located at end of time interval
-          sec_day        !  fix time to noon
-
        real (kind=dbl_kind) :: &
-         hour_angle, &
-         solar_time, &
-         declin    , &
-         cosZ      , &
-         year_day  , &
-         e, d      , &
-         sw0       , &
-         deg2rad   , &
-         fsw_pnt   , &
-         sumsw0    , &
          secday    , &
          Qa_pnt                
 
       real (kind=dbl_kind) :: &
           sec1hr              ! number of seconds in 1 hour
 
-      logical (kind=log_kind) :: readm, read1
+      logical (kind=log_kind) :: read1
 
       character(len=*), parameter :: subname = '(ISPOL_data)'
 
-      diag = .false.   ! write diagnostic information 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -4356,7 +4329,6 @@
 !
 ! authors: Nicole Jeffery, LANL
 !
-      use ice_domain, only: nblocks, distrb_info
       use ice_gather_scatter
       use ice_read_write
 #ifdef ncdf
@@ -4365,9 +4337,7 @@
 
       integer (kind=int_kind) :: & 
         n   , & ! field index
-        m   , & ! month index
-        nrec, & ! record number for direct access
-        nbits
+        m       ! month index
 
       character(char_len) :: &
         vname(nfld) ! variable names to search for in file
@@ -4379,13 +4349,10 @@
            work              
 
       integer (kind=int_kind) :: &
-        fid        , & ! file id 
-        dimid          ! dimension id 
+        fid         ! file id 
 
       integer (kind=int_kind) :: &
-        status  , & ! status flag
-        nlat    , & ! number of longitudes of data
-        nlon        ! number of latitudes  of data
+        status      ! status flag
 
       character(len=*), parameter :: subname = '(ocn_data_ispol_init)'
 

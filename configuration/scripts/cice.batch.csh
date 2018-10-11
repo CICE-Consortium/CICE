@@ -6,8 +6,8 @@ else
   echo ${0:t}
 endif
 
-source ./cice.settings
-source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
+#source ./cice.settings
+#source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 set jobfile = $1
 
@@ -47,13 +47,23 @@ EOF0
 if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFB
 #PBS -j oe 
-#PBS -m ae 
+###PBS -m ae 
 #PBS -V
 #PBS -q ${queue}
 #PBS -N ${ICE_CASENAME}
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
 #PBS -l walltime=${batchtime}
+EOFB
+
+else if (${ICE_MACHINE} =~ hobart*) then
+cat >> ${jobfile} << EOFB
+#PBS -j oe 
+###PBS -m ae 
+#PBS -V
+#PBS -q short
+#PBS -N ${ICE_CASENAME}
+#PBS -l nodes=1:ppn=24
 EOFB
 
 else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then

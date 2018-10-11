@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_global_reductions.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_global_reductions
@@ -13,10 +12,13 @@
 !            and global_sum_prod_dbl by T Craig NCAR
 
    use ice_kinds_mod
-   use ice_blocks, only: block, get_block, nblocks_tot, nx_block, ny_block
+   use ice_blocks, only: block, get_block, nx_block, ny_block
+#ifdef REPRODUCIBLE
+   use ice_blocks, only: nblocks_tot
+#endif
    use ice_communicate, only: my_task, mpiR8, mpiR4, master_task
    use ice_constants, only: field_loc_Nface, field_loc_NEcorner
-   use ice_fileunits, only: bfbflag, nu_diag
+   use ice_fileunits, only: bfbflag
    use ice_exit, only: abort_ice
    use ice_distribution, only: distrb, ice_distributionGet, &
        ice_distributionGetBlockID
@@ -138,6 +140,8 @@
 
    type (block) :: &
       this_block     ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_sum_dbl)'
 
 !-----------------------------------------------------------------------
 
@@ -357,6 +361,8 @@
    type (block) :: &
       this_block     ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_real)'
+
 !-----------------------------------------------------------------------
 
 #ifdef REPRODUCIBLE
@@ -539,6 +545,8 @@
    type (block) :: &
       this_block     ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_int)'
+
 !-----------------------------------------------------------------------
 
    localSum  = 0_int_kind
@@ -688,6 +696,8 @@
 !      scalarTmp, globalSumTmp  ! higher precision for reproducibility
 !#endif
 
+   character(len=*), parameter :: subname = '(global_sum_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 !
 !  get communicator for MPI calls
@@ -764,6 +774,8 @@
       scalarTmp, globalSumTmp  ! higher precision for reproducibility
 #endif
 
+   character(len=*), parameter :: subname = '(global_sum_scalar_real)'
+
 !-----------------------------------------------------------------------
 !
 !  get communicator for MPI calls
@@ -832,6 +844,8 @@
       numProcs,     &! number of processor participating
       numBlocks,    &! number of local blocks
       communicator   ! communicator for this distribution
+
+   character(len=*), parameter :: subname = '(global_sum_scalar_int)'
 
 !-----------------------------------------------------------------------
 !
@@ -922,6 +936,8 @@
 
    type (block) :: &
       this_block     ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_sum_prod_dbl)'
 
 !-----------------------------------------------------------------------
 
@@ -1148,6 +1164,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_prod_real)'
+
 !-----------------------------------------------------------------------
 
 #ifdef REPRODUCIBLE
@@ -1336,6 +1354,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_sum_prod_int)'
+
 !-----------------------------------------------------------------------
 
    localSum  = 0_int_kind
@@ -1494,6 +1514,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_maxval_dbl)'
+
 !-----------------------------------------------------------------------
 
    localMaxval  = -HUGE(0.0_dbl_kind)
@@ -1594,6 +1616,8 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_maxval_real)'
 
 !-----------------------------------------------------------------------
 
@@ -1696,6 +1720,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_maxval_int)'
+
 !-----------------------------------------------------------------------
 
    localMaxval  = -HUGE(0_int_kind)
@@ -1784,6 +1810,8 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+   character(len=*), parameter :: subname = '(global_maxval_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 
    call ice_distributionGet(dist, &
@@ -1836,6 +1864,8 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+   character(len=*), parameter :: subname = '(global_maxval_scalar_real)'
+
 !-----------------------------------------------------------------------
 
    call ice_distributionGet(dist, &
@@ -1887,6 +1917,8 @@
       ierr,            &! mpi error flag
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
+
+   character(len=*), parameter :: subname = '(global_maxval_scalar_int)'
 
 !-----------------------------------------------------------------------
 
@@ -1952,6 +1984,8 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_minval_dbl)'
 
 !-----------------------------------------------------------------------
 
@@ -2054,6 +2088,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_minval_real)'
+
 !-----------------------------------------------------------------------
 
    localMinval  = HUGE(0.0_real_kind)
@@ -2155,6 +2191,8 @@
    type (block) :: &
       this_block          ! holds local block information
 
+   character(len=*), parameter :: subname = '(global_minval_int)'
+
 !-----------------------------------------------------------------------
 
    localMinval  = HUGE(0_int_kind)
@@ -2243,6 +2281,8 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+   character(len=*), parameter :: subname = '(global_minval_scalar_dbl)'
+
 !-----------------------------------------------------------------------
 
    call ice_distributionGet(dist, &
@@ -2295,6 +2335,8 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+   character(len=*), parameter :: subname = '(global_minval_scalar_real)'
+
 !-----------------------------------------------------------------------
 
    call ice_distributionGet(dist, &
@@ -2346,6 +2388,8 @@
       ierr,            &! mpi error flag
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
+
+   character(len=*), parameter :: subname = '(global_minval_scalar_int)'
 
 !-----------------------------------------------------------------------
 

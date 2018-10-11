@@ -1,3 +1,4 @@
+nilyr = 1
 ice_ic = 'default'
 restart = .false.
 distribution_type = 'roundrobin'
@@ -23,4 +24,3 @@ atm_data_type = 'default'
 highfreq = .true.
 fbot_xfer_type = 'Cdn_ocn'
 tfrz_option = 'minus1p8'
-

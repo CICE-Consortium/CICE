@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_restoring.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Reads and interpolates forcing data for atmosphere and ocean quantities.
@@ -9,11 +8,10 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, c2, p2, p5
-      use ice_domain_size, only: ncat, max_blocks, max_ntrcr
+      use ice_constants, only: c0, c1, c2, p2
+      use ice_domain_size, only: ncat, max_blocks
       use ice_forcing, only: trestore, trest
-      use ice_state, only: aicen, vicen, vsnon, trcrn, bound_state, &
-          aice_init, aice0, aice, vice, vsno, trcr, trcr_depend
+      use ice_state, only: aicen, vicen, vsnon, trcrn
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
@@ -79,17 +77,19 @@
    type (block) :: &
      this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(ice_HaloRestore_init)'
+
    if (.not. restore_ice) return
 
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
    if ((ew_boundary_type == 'open' .or. &
         ns_boundary_type == 'open') .and. .not.(restart_ext)) then
       if (my_task == master_task) write (nu_diag,*) 'ERROR: restart_ext=F and open boundaries'
-      call abort_ice(error_message="subname"//'open boundary and restart_ext=F', &
+      call abort_ice(error_message=subname//'open boundary and restart_ext=F', &
          file=__FILE__, line=__LINE__)
    endif
 
@@ -124,7 +124,7 @@
                                ilo, ihi,            jlo, jhi,            &
                                iglob,               jglob,               &
                                iblock,              jblock,              &
-                               Tair (:,:,    iblk), sst  (:,:,    iblk), &
+                               Tair (:,:,    iblk), &
                                Tf   (:,:,    iblk),                      &
                                salinz(:,:,:, iblk), Tmltz(:,:,:,  iblk), &
                                tmask(:,:,    iblk),                      &
@@ -288,7 +288,7 @@
                                 ilo, ihi, jlo, jhi, &
                                 iglob,    jglob,    &
                                 iblock,   jblock,   &
-                                Tair,     sst,      &
+                                Tair, &
                                 Tf,                 &
                                 salinz,   Tmltz,    &
                                 tmask,    aicen,    &
@@ -313,8 +313,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tair    , & ! air temperature  (K)
-         Tf      , & ! freezing temperature (C) 
-         sst         ! sea surface temperature (C) ! currently not used
+         Tf          ! freezing temperature (C) 
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,nilyr), &
          intent(in) :: &
@@ -372,11 +371,13 @@
       real (kind=dbl_kind), dimension(nslyr) :: &
          qsn             ! snow enthalpy (J/m3)
 
+      character(len=*), parameter :: subname = '(set_restore_var)'
+
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_fbri_out=nt_fbri, &
            nt_qice_out=nt_qice, nt_sice_out=nt_sice, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       indxi(:) = 0
@@ -536,7 +537,7 @@
          enddo                  ! ncat
 
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
    end subroutine set_restore_var
@@ -575,11 +576,13 @@
      secday,             &!
      ctime                ! dt/trest
 
+   character(len=*), parameter :: subname = '(ice_HaloRestore)'
+
    call ice_timer_start(timer_bound)
    call icepack_query_parameters(secday_out=secday)
    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
-   if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+   if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
 !-----------------------------------------------------------------------

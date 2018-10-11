@@ -38,11 +38,11 @@ System Model (RASM). In particular, the relative atmosphere-ice velocity
 velocity for computing turbulent fluxes in the atmospheric boundary
 layer.
 
-:ref:`tab-flux-cpl`: *Data exchanged between the CESM flux coupler and the sea ice model*
+Table :ref:`tab-flux-cpl` shows data exchanged between the CESM flux coupler and the sea ice model.
 
 .. _tab-flux-cpl:
 
-.. table:: Table 1
+.. table:: Data Exchange Table
 
    ===========================   ======================================   =======================================================================================
    Variable                       Description                              Interaction with flux coupler 
@@ -393,7 +393,7 @@ source. In our case, the sea surface height :math:`H_\circ` is a
 prognostic variable in POP—the flux coupler can provide the surface
 slope directly, rather than inferring it from the currents. (The option
 of computing it from the currents is provided in subroutine
-*evp\_prep*.) The sea ice model uses the surface layer currents
+*dyn\_prep2*.) The sea ice model uses the surface layer currents
 :math:`\vec{U}_w` to determine the stress between the ocean and the ice,
 and subsequently the ice velocity :math:`\vec{u}`. This stress, relative
 to the ice,

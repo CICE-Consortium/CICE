@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_boundary.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_boundary
@@ -21,7 +20,6 @@
          field_loc_center,  field_loc_NEcorner, &
          field_loc_Nface, field_loc_Eface
    use ice_global_reductions, only: global_maxval
-   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -194,9 +192,10 @@ contains
 
    logical (log_kind) :: &
       resize,               &! flag for resizing buffers
-      tripoleFlag,          &! flag for allocating tripole buffers
       tripoleBlock,         &! flag for identifying north tripole blocks
       tripoleTFlag           ! flag for processing tripole buffer as T-fold
+
+   character(len=*), parameter :: subname = '(ice_HaloCreate)'
 
 !-----------------------------------------------------------------------
 !
@@ -223,7 +222,6 @@ contains
    tripoleRows = nghost+1
 
    if (nsBoundaryType == 'tripole' .or. nsBoundaryType == 'tripoleT') then
-      tripoleFlag = .true.
       tripoleTFlag = (nsBoundaryType == 'tripoleT')
       if (tripoleTflag) tripoleRows = tripoleRows+1
 
@@ -236,14 +234,12 @@ contains
                    stat=istat)
 
          if (istat > 0) then
-            call abort_ice( &
-               'ice_HaloCreate: error allocating tripole buffers')
+            call abort_ice(subname//'ERROR: allocating tripole buffers')
             return
          endif
       endif
 
    else
-      tripoleFlag = .false.
       tripoleTFlag = .false.
    endif
    halo%tripoleTFlag = tripoleTFlag
@@ -262,8 +258,7 @@ contains
    allocate (sendCount(numProcs), recvCount(numProcs), stat=istat)
 
    if (istat > 0) then
-      call abort_ice( &
-                        'ice_HaloCreate: error allocating count arrays')
+      call abort_ice(subname//'ERROR: allocating count arrays')
       return
    endif
 
@@ -600,8 +595,7 @@ contains
                bufRecvR8(bufSizeRecv, numMsgRecv), stat=istat)
 
       if (istat > 0) then
-         call abort_ice( &
-            'ice_HaloCreate: error allocating 2d buffers')
+         call abort_ice(subname//'ERROR: allocating 2d buffers')
          return
       endif
 
@@ -626,8 +620,7 @@ contains
                     bufRecvR4, bufSendR8, bufRecvR8, stat=istat)
 
          if (istat > 0) then
-            call abort_ice( &
-               'ice_HaloCreate: error deallocating 2d buffers')
+            call abort_ice(subname//'ERROR: deallocating 2d buffers')
             return
          endif
 
@@ -639,8 +632,7 @@ contains
                   bufRecvR8(bufSizeRecv, numMsgRecv), stat=istat)
 
          if (istat > 0) then
-            call abort_ice( &
-               'ice_HaloCreate: error reallocating 2d buffers')
+            call abort_ice(subname//'ERROR: reallocating 2d buffers')
             return
          endif
 
@@ -667,8 +659,7 @@ contains
             stat = istat)
 
    if (istat > 0) then
-      call abort_ice( &
-         'ice_HaloCreate: error allocating halo message info arrays')
+      call abort_ice(subname//'ERROR: allocating halo message info arrays')
       return
    endif
 
@@ -686,8 +677,7 @@ contains
    deallocate(sendCount, recvCount, stat=istat)
 
    if (istat > 0) then
-      call abort_ice( &
-         'ice_HaloCreate: error deallocating count arrays')
+      call abort_ice(subname//'ERROR: deallocating count arrays')
       return
    endif
 
@@ -1019,6 +1009,7 @@ contains
 
    type (ice_halo) :: &
       halo               ! a new halo type with info for halo updates
+   character(len=*), parameter :: subname = '(ice_HaloMask)'
 
 !-----------------------------------------------------------------------
 !
@@ -1069,8 +1060,7 @@ contains
                stat = istat)
 
       if (istat > 0) then
-         call abort_ice( &
-            'ice_HaloMask: error allocating halo message info arrays')
+         call abort_ice(subname//'ERROR: allocating halo message info arrays')
          return
       endif
 
@@ -1211,6 +1201,8 @@ contains
 
    integer (int_kind) ::  len  ! length of messages
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate2DR8)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -1241,8 +1233,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate2DR8: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -1376,8 +1367,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate2DR8: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -1428,8 +1418,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       else ! tripole u-fold
@@ -1480,8 +1469,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -1536,8 +1524,7 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate2DR8: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
@@ -1604,7 +1591,9 @@ contains
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
-    integer (int_kind) :: len  ! length of messages
+   integer (int_kind) :: len  ! length of messages
+
+   character(len=*), parameter :: subname = '(ice_HaloUpdate2DR4)'
 
 !-----------------------------------------------------------------------
 !
@@ -1636,8 +1625,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate2DR4: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -1771,8 +1759,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate2DR4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -1823,8 +1810,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select        
 
       else ! tripole u-fold
@@ -1875,8 +1861,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -1931,8 +1916,7 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate2DR4: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
@@ -2001,6 +1985,8 @@ contains
 
    integer (int_kind) :: len ! length of messages
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate2DI4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -2031,8 +2017,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate2DI4: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -2166,8 +2151,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate2DI4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -2218,8 +2202,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       else ! tripole u-fold  
@@ -2270,8 +2253,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate2DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -2326,8 +2308,7 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate2DI4: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
@@ -2403,6 +2384,8 @@ contains
 
    integer (int_kind) :: len ! length of message 
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate3DR8)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -2430,8 +2413,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DR8: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -2449,8 +2431,7 @@ contains
             stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DR8: error allocating buffers')
+      call abort_ice(subname//'ERROR: allocating buffers')
       return
    endif
 
@@ -2603,8 +2584,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate3DR8: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -2659,8 +2639,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select 
   
       else ! tripole u-fold
@@ -2715,8 +2694,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -2774,16 +2752,14 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DR8: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
    deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DR8: error deallocating 3d buffers')
+      call abort_ice(subname//'ERROR: deallocating 3d buffers')
       return
    endif
 
@@ -2859,6 +2835,8 @@ contains
 
    integer (int_kind) :: len ! length of message 
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate3DR4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -2886,8 +2864,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DR4: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -2905,8 +2882,7 @@ contains
             stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DR4: error allocating buffers')
+      call abort_ice(subname//'ERROR: allocating buffers')
       return
    endif
 
@@ -3059,8 +3035,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate3DR4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -3115,8 +3090,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select  
   
       else ! tripole u-fold  
@@ -3171,8 +3145,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
       endif
@@ -3230,16 +3203,14 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DR4: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
    deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DR4: error deallocating 3d buffers')
+      call abort_ice(subname//'ERROR: deallocating 3d buffers')
       return
    endif
 
@@ -3315,6 +3286,8 @@ contains
 
    integer (int_kind) :: len ! length of message
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate3DI4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -3342,8 +3315,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DI4: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -3361,8 +3333,7 @@ contains
             stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DI4: error allocating buffers')
+      call abort_ice(subname//'ERROR: allocating buffers')
       return
    endif
 
@@ -3515,8 +3486,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate3DI4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -3571,8 +3541,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
   
       else ! tripole u-fold  
@@ -3627,8 +3596,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate3DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
  
       endif
@@ -3686,16 +3654,14 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DI4: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
    deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate3DI4: error deallocating 3d buffers')
+      call abort_ice(subname//'ERROR: deallocating 3d buffers')
       return
    endif
 
@@ -3771,6 +3737,8 @@ contains
 
    integer (int_kind) :: len ! length of message
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate4DR8)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -3798,8 +3766,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DR8: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -3818,8 +3785,7 @@ contains
             stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DR8: error allocating buffers')
+      call abort_ice(subname//'ERROR: allocating buffers')
       return
    endif
 
@@ -3985,8 +3951,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate4DR8: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -4045,8 +4010,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select  
   
       else ! tripole u-fold  
@@ -4105,8 +4069,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DR8: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
  
       endif
@@ -4166,16 +4129,14 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DR8: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
    deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DR8: error deallocating 4d buffers')
+      call abort_ice(subname//'ERROR: deallocating 4d buffers')
       return
    endif
 
@@ -4251,6 +4212,8 @@ contains
 
    integer (int_kind) :: len ! length of message
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate4DR4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -4278,8 +4241,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DR4: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -4298,8 +4260,7 @@ contains
             stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DR4: error allocating buffers')
+      call abort_ice(subname//'ERROR: allocating buffers')
       return
    endif
 
@@ -4465,8 +4426,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate4DR4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -4525,8 +4485,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select  
   
       else ! tripole u-fold  
@@ -4585,8 +4544,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DR4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
  
       endif
@@ -4646,16 +4604,14 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DR4: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
    deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DR4: error deallocating 4d buffers')
+      call abort_ice(subname//'ERROR: deallocating 4d buffers')
       return
    endif
 
@@ -4731,6 +4687,8 @@ contains
 
    integer (int_kind) :: len  ! length of messages
 
+   character(len=*), parameter :: subname = '(ice_HaloUpdate4DI4)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize error code and fill value
@@ -4758,8 +4716,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DI4: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -4778,8 +4735,7 @@ contains
             stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DI4: error allocating buffers')
+      call abort_ice(subname//'ERROR: allocating buffers')
       return
    endif
 
@@ -4945,8 +4901,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate4DI4: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       if (halo%tripoleTFlag) then
@@ -5005,8 +4960,7 @@ contains
            joffset = 1
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select 
   
       else ! tripole u-fold  
@@ -5065,8 +5019,7 @@ contains
            end do
   
         case default
-           call abort_ice( &
-              'ice_HaloUpdate4DI4: Unknown field location')
+           call abort_ice(subname//'ERROR: Unknown field location')
         end select
  
       endif
@@ -5126,16 +5079,14 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DI4: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
    deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate4DI4: error deallocating 4d buffers')
+      call abort_ice(subname//'ERROR: deallocating 4d buffers')
       return
    endif
 
@@ -5175,7 +5126,7 @@ contains
 !  local variables
 
    integer (int_kind) ::           &
-      i,j,n,nmsg,                &! dummy loop indices
+      n,nmsg,                    &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
@@ -5194,10 +5145,11 @@ contains
       rcvStatus         ! MPI status flags
 
    real (dbl_kind) :: &
-      fill,            &! value to use for unknown points
-      x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+      fill              ! value to use for unknown points
 
    integer (int_kind) ::  len  ! length of messages
+
+   character(len=*), parameter :: subname = '(ice_HaloUpdate_stress)'
 
 !-----------------------------------------------------------------------
 !
@@ -5229,8 +5181,7 @@ contains
             rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate_stress: error allocating req,status arrays')
+      call abort_ice(subname//'ERROR: allocating req,status arrays')
       return
    endif
 
@@ -5358,8 +5309,7 @@ contains
       case (field_type_angle)
          isign = -1
       case default
-         call abort_ice( &
-            'ice_HaloUpdate_stress: Unknown field kind')
+         call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
       select case (fieldLoc)
@@ -5384,8 +5334,7 @@ contains
          joffset = 1
 
       case default
-         call abort_ice( &
-               'ice_HaloUpdate_stress: Unknown field location')
+         call abort_ice(subname//'ERROR: Unknown field location')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -5436,8 +5385,7 @@ contains
    deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
 
    if (ierr > 0) then
-      call abort_ice( &
-         'ice_HaloUpdate_stress: error deallocating req,status arrays')
+      call abort_ice(subname//'ERROR: deallocating req,status arrays')
       return
    endif
 
@@ -5464,6 +5412,7 @@ contains
       sndCounter,       &! array for counting messages to be sent
       rcvCounter         ! array for counting messages to be received
 
+   character(len=*), parameter :: subname = '(ice_HaloIncrementMsgCount)'
 !-----------------------------------------------------------------------
 !
 !  error check
@@ -5473,8 +5422,7 @@ contains
    if (srcProc < 0 .or. dstProc < 0 .or. &
        srcProc > size(sndCounter)   .or. &
        dstProc > size(rcvCounter)) then
-      call abort_ice( &
-         'ice_HaloIncrementMsgCount: invalid processor number')
+      call abort_ice(subname//'ERROR: invalid processor number')
       return
    endif
 
@@ -5554,7 +5502,6 @@ contains
 
    integer (int_kind) :: &
       msgIndx,               &! message counter and index into msg array
-      blockIndx,             &! block counter and index into msg array
       bufSize,               &! size of message buffer
       ibSrc, ieSrc, jbSrc, jeSrc, &! phys domain info for source block
       ibDst, ieDst, jbDst, jeDst, &! phys domain info for dest   block
@@ -5564,6 +5511,7 @@ contains
    integer (int_kind), dimension(:), pointer :: &
       iGlobal                 ! global i index for location in tripole
 
+   character(len=*), parameter :: subname = '(ice_HaloMsgCreate)'
 !-----------------------------------------------------------------------
 !
 !  initialize
@@ -5624,8 +5572,7 @@ contains
 
       if (msgIndx > size(halo%srcLocalAddr,dim=2) .or. &
           msgIndx > size(halo%dstLocalAddr,dim=2)) then
-         call abort_ice( &
-            'ice_HaloMsgCreate: msg count > array size')
+         call abort_ice(subname//'ERROR: msg count > array size')
          return
       endif
 
@@ -5706,8 +5653,7 @@ contains
             !*** update
 
             if (jeSrc - jbSrc + 1 < halo%tripoleRows) then
-               call abort_ice( &
-               'ice_HaloMsgCreate: not enough points in block for tripole')
+               call abort_ice(subname//'ERROR: not enough points in block for tripole')
                return
             endif 
 
@@ -5880,8 +5826,7 @@ contains
 
       case default
 
-         call abort_ice( &
-            'ice_HaloMsgCreate: unknown direction local copy')
+         call abort_ice(subname//'ERROR: unknown direction local copy')
          return
 
       end select
@@ -5890,8 +5835,7 @@ contains
 
       if (msgIndx > size(halo%srcLocalAddr,dim=2) .or. &
           msgIndx > size(halo%dstLocalAddr,dim=2)) then
-         call abort_ice( &
-            'ice_HaloMsgCreate: msg count > array size')
+         call abort_ice(subname//'ERROR: msg count > array size')
          return
       endif
 
@@ -5908,8 +5852,7 @@ contains
 
       if (msgIndx > size(halo%srcLocalAddr,dim=2) .or. &
           msgIndx > size(halo%dstLocalAddr,dim=2)) then
-         call abort_ice( &
-            'ice_HaloMsgCreate: msg count > array size')
+         call abort_ice(subname//'ERROR: msg count > array size')
          return
       endif
 
@@ -6098,8 +6041,7 @@ contains
 
       case default
 
-         call abort_ice( &
-            'ice_HaloMsgCreate: unknown direction local copy')
+         call abort_ice(subname//'ERROR: unknown direction local copy')
          return
 
       end select
@@ -6108,8 +6050,7 @@ contains
 
       if (msgIndx > size(halo%srcLocalAddr,dim=2) .or. &
           msgIndx > size(halo%dstLocalAddr,dim=2)) then
-         call abort_ice( &
-            'ice_HaloMsgCreate: msg count > array size')
+         call abort_ice(subname//'ERROR: msg count > array size')
          return
       endif
 
@@ -6694,6 +6635,7 @@ contains
    type (block) :: &
      this_block  ! block info for current block
 
+   character(len=*), parameter :: subname = '(ice_HaloExtrapolate2DR8)'
 !-----------------------------------------------------------------------
 !
 !  Linear extrapolation
@@ -6770,6 +6712,8 @@ contains
 
    integer (int_kind) ::           &
       istat                      ! error or status flag for MPI,alloc
+
+   character(len=*), parameter :: subname = '(ice_HaloDestroy)'
 !-----------------------------------------------------------------------
 
    deallocate(halo%sendTask, stat=istat)
@@ -6783,6 +6727,11 @@ contains
    deallocate(halo%sendAddr, stat=istat)
    deallocate(halo%recvAddr, stat=istat)
 
+   if (istat > 0) then
+      call abort_ice( &
+         'ice_HaloDestroy: error deallocating')
+      return
+   endif
 end subroutine ice_HaloDestroy
 
 !***********************************************************************
