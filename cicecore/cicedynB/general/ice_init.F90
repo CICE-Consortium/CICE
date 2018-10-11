@@ -276,8 +276,8 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
-      shortwave = 'default'  ! 'default' or 'dEdd' (delta-Eddington)
-      albedo_type = 'default'! or 'constant'
+      shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
+      albedo_type = 'ccsm3'  ! 'ccsm3' or 'constant'
       ktherm = 1             ! 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
       calc_Tsfc = .true.     ! calculate surface temperature

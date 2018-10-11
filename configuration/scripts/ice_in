@@ -119,7 +119,7 @@
 
 &shortwave_nml
     shortwave       = 'dEdd'
-    albedo_type     = 'default'
+    albedo_type     = 'ccsm3'
     albicev         = 0.78
     albicei         = 0.36
     albsnowv        = 0.98
