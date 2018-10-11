@@ -165,11 +165,11 @@
     tfrz_option     = 'mushy'
     oceanmixed_ice  = .true.
     ocn_data_format = 'bin'
-    sss_data_type   = 'default'
-    sst_data_type   = 'default'
+    bgc_data_type   = 'default'
+    ocn_data_type   = 'default'
     ocn_data_dir    = 'unknown_ocn_data_dir'
     oceanmixed_file = 'unknown_oceanmixed_file'
-    restore_sst     = .false.
+    restore_ocn     = .false.
     trestore        =  90
     restore_ice     = .false.
 /

@@ -79,8 +79,8 @@
           ycycle,          fyear_init,    dbug, &
           atm_data_type,   atm_data_dir,  precip_units, &
           atm_data_format, ocn_data_format, &
-          sss_data_type,   sst_data_type, ocn_data_dir, &
-          oceanmixed_file, restore_sst,   trestore
+          bgc_data_type,   ocn_data_type, ocn_data_dir, &
+          oceanmixed_file, restore_ocn,   trestore
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 basalstress, Ktens, e_ratio
@@ -176,8 +176,8 @@
         atm_data_type,  atm_data_dir,    calc_strair,   calc_Tsfc,      &
         precip_units,   update_ocn_f,    l_mpond_fresh, ustar_min,      &
         fbot_xfer_type, emissivity,                                     &
-        oceanmixed_ice, ocn_data_format, sss_data_type, sst_data_type,  &
-        ocn_data_dir,   oceanmixed_file, restore_sst,   trestore,       &
+        oceanmixed_ice, ocn_data_format, bgc_data_type, ocn_data_type,  &
+        ocn_data_dir,   oceanmixed_file, restore_ocn,   trestore,       &
         restore_ice,    formdrag,        highfreq,      natmiter,       &
         tfrz_option
 
@@ -323,11 +323,11 @@
       tfrz_option     = 'mushy'   ! freezing temp formulation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
-      sss_data_type   = 'default'
-      sst_data_type   = 'default'
+      bgc_data_type   = 'default'
+      ocn_data_type   = 'default'
       ocn_data_dir    = ' '
       oceanmixed_file = 'unknown_oceanmixed_file' ! ocean forcing data
-      restore_sst     = .false.   ! restore sst if true
+      restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
       restore_ice     = .false.   ! restore ice state on grid edges if true
       dbug      = .false.         ! true writes diagnostics for input forcing
@@ -574,11 +574,11 @@
       call broadcast_scalar(oceanmixed_ice,     master_task)
       call broadcast_scalar(tfrz_option,        master_task)
       call broadcast_scalar(ocn_data_format,    master_task)
-      call broadcast_scalar(sss_data_type,      master_task)
-      call broadcast_scalar(sst_data_type,      master_task)
+      call broadcast_scalar(bgc_data_type,      master_task)
+      call broadcast_scalar(ocn_data_type,      master_task)
       call broadcast_scalar(ocn_data_dir,       master_task)
       call broadcast_scalar(oceanmixed_file,    master_task)
-      call broadcast_scalar(restore_sst,        master_task)
+      call broadcast_scalar(restore_ocn,        master_task)
       call broadcast_scalar(trestore,           master_task)
       call broadcast_scalar(restore_ice,        master_task)
       call broadcast_scalar(dbug,               master_task)
@@ -1048,25 +1048,25 @@
                                oceanmixed_ice
          write(nu_diag,*)    ' tfrz_option               = ', &
                                trim(tfrz_option)
-         if (trim(sss_data_type) == 'ncar' .or. &
-             trim(sst_data_type) == 'ncar') then
+         if (trim(bgc_data_type) == 'ncar' .or. &
+             trim(ocn_data_type) == 'ncar') then
             write(nu_diag,*) ' oceanmixed_file           = ', &
                                trim(oceanmixed_file)
          endif
-         write(nu_diag,*)    ' sss_data_type             = ', &
-                               trim(sss_data_type)
-         write(nu_diag,*)    ' sst_data_type             = ', &
-                               trim(sst_data_type)
-         if (trim(sss_data_type) /= 'default' .or. &
-             trim(sst_data_type) /= 'default') then
+         write(nu_diag,*)    ' bgc_data_type             = ', &
+                               trim(bgc_data_type)
+         write(nu_diag,*)    ' ocn_data_type             = ', &
+                               trim(ocn_data_type)
+         if (trim(bgc_data_type) /= 'default' .or. &
+             trim(ocn_data_type) /= 'default') then
             write(nu_diag,*) ' ocn_data_dir              = ', &
                                trim(ocn_data_dir)
-            write(nu_diag,1010) ' restore_sst               = ', &
-                               restore_sst
+            write(nu_diag,1010) ' restore_ocn               = ', &
+                               restore_ocn
          endif 
          write(nu_diag,1010) ' restore_ice               = ', &
                                restore_ice
-         if (restore_ice .or. restore_sst) &
+         if (restore_ice .or. restore_ocn) &
          write(nu_diag,1020) ' trestore                  = ', trestore
  
 #ifdef coupled
