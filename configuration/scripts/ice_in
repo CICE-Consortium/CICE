@@ -53,18 +53,6 @@
     dxrect         = 30.e5
     dyrect         = 30.e5
     land_override  = 0
-/
-
-&domain_nml
-    nprocs = 4
-    processor_shape   = 'slenderX2'
-    distribution_type = 'cartesian'
-    distribution_wght = 'latitude'
-    ew_boundary_type  = 'cyclic'
-    ns_boundary_type  = 'open'
-    maskhalo_dyn      = .false.
-    maskhalo_remap    = .false.
-    maskhalo_bound    = .false.
     ncat         = 5
     nilyr        = 7
     nslyr        = 1
