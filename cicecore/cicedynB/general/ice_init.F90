@@ -81,7 +81,8 @@
           atm_data_format, ocn_data_format, &
           sss_data_type,   sst_data_type, ocn_data_dir, &
           oceanmixed_file, restore_sst,   trestore
-      use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
+      use ice_grid, only: grid_file, gridcpl_file, kmt_file, bathymetry_file, &
+                          grid_type, grid_format
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 basalstress, Ktens, e_ratio
       use ice_transport_driver, only: advection
@@ -146,6 +147,7 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
+        bathymetry_file,                                                &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file
 
@@ -252,6 +254,7 @@
       grid_type    = 'rectangular'  ! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
       gridcpl_file = 'unknown_gridcpl_file'
+      bathymetry_file    = 'unknown_bathymetry_file'
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0
@@ -514,6 +517,7 @@
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)
+      call broadcast_scalar(bathymetry_file,    master_task)
       call broadcast_scalar(kmt_file,           master_task)
       call broadcast_scalar(kitd,               master_task)
       call broadcast_scalar(kcatbound,          master_task)
@@ -935,6 +939,8 @@
                                trim(grid_file)
             write(nu_diag,*) ' gridcpl_file              = ', &
                                trim(gridcpl_file)
+            write(nu_diag,*) ' bathymetry_file           = ', &
+                               trim(bathymetry_file)
             write(nu_diag,*) ' kmt_file                  = ', &
                                trim(kmt_file)
          endif

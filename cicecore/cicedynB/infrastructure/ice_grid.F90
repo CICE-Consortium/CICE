@@ -41,6 +41,7 @@
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
+         bathymetry_file, & !  input bathymetry for basalstress
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
@@ -2321,20 +2322,28 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      ! convert to total depth
-      depth(1) = thick(1)
-      do k = 2, nlevel
-         depth(k) = depth(k-1) + thick(k)
-      enddo
+      if (trim(bathymetry_file) /= "unknown_bathymetry_file") then
 
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            k = kmt(i,j,iblk)
-            if (k > puny) bathymetry(i,j,iblk) = depth(k)
+         call read_basalstress_bathy
+
+      else
+
+         ! convert to total depth
+         depth(1) = thick(1)
+         do k = 2, nlevel
+            depth(k) = depth(k-1) + thick(k)
          enddo
+
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               k = kmt(i,j,iblk)
+               if (k > puny) bathymetry(i,j,iblk) = depth(k)
+            enddo
+            enddo
          enddo
-      enddo
+
+      endif ! bathymetry_file
 
       end subroutine get_bathymetry
 
@@ -2359,25 +2368,22 @@
          fid_init        ! file id for netCDF init file
       
       character (char_len_long) :: &        ! input data file names
-         init_file, &
          fieldname
 
       logical (kind=log_kind) :: diag=.true.
 
       character(len=*), parameter :: subname = '(read_basalstress_bathy)'
 
-      init_file='bathymetry.nc'
-
       if (my_task == master_task) then
 
           write (nu_diag,*) ' '
-          write (nu_diag,*) 'Initial ice file: ', trim(init_file)
-          write (*,*) 'Initial ice file: ', trim(init_file)
+          write (nu_diag,*) 'Bathymetry file: ', trim(bathymetry_file)
+          write (*,*) 'Bathymetry file: ', trim(bathymetry_file)
           call icepack_warnings_flush(nu_diag)
 
       endif
 
-      call ice_open_nc(init_file,fid_init)
+      call ice_open_nc(bathymetry_file,fid_init)
 
       fieldname='Bathymetry'
 
@@ -2393,7 +2399,7 @@
       call ice_close_nc(fid_init)
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'closing file ',TRIM(init_file)
+         write(nu_diag,*) 'closing file ',TRIM(bathymetry_file)
          call icepack_warnings_flush(nu_diag)
       endif
 
