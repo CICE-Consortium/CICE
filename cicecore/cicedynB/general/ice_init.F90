@@ -83,6 +83,7 @@
           oceanmixed_file, restore_sst,   trestore
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
+                                evp_kernel_ver, &
                                 basalstress, Ktens, e_ratio
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
@@ -156,6 +157,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
+        evp_kernel_ver,                                                 &
         advection,                                                      &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress
@@ -264,6 +266,7 @@
       kdyn = 1           ! type of dynamics (1 = evp, 2 = eap)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
+      evp_kernel_ver = 0 ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
       yield_curve = 'ellipse'
       kstrength = 1          ! 1 = Rothrock 75 strength, 0 = Hibler 79
@@ -520,6 +523,7 @@
       call broadcast_scalar(kdyn,               master_task)
       call broadcast_scalar(ndtd,               master_task)
       call broadcast_scalar(ndte,               master_task)
+      call broadcast_scalar(evp_kernel_ver,     master_task)
       call broadcast_scalar(revised_evp,        master_task)
       call broadcast_scalar(yield_curve,        master_task)
       call broadcast_scalar(kstrength,          master_task)
@@ -952,6 +956,8 @@
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &
                                revised_evp
+         write(nu_diag,1020) ' evp_kernel_ver            = ', &
+                               evp_kernel_ver
          if (kdyn == 1) &
          write(nu_diag,*)    ' yield_curve               = ', &
                                trim(yield_curve)
@@ -1507,6 +1513,7 @@
       ! Set state variables
       !-----------------------------------------------------------------
 
+!MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     iglob,jglob)
       do iblk = 1, nblocks
