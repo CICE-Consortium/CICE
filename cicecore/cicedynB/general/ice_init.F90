@@ -973,8 +973,8 @@
                                trim(yield_curve)
          write(nu_diag,1020) ' kstrength                 = ', kstrength
          write(nu_diag,1030) ' coriolis                  = ', coriolis
-         write(nu_diag,1030) ' kridge                    = ', kridge
-         write(nu_diag,1030) ' ktransport                = ', ktransport
+         write(nu_diag,1020) ' kridge                    = ', kridge
+         write(nu_diag,1020) ' ktransport                = ', ktransport
          write(nu_diag,1020) ' krdg_partic               = ', &
                                krdg_partic
          write(nu_diag,1020) ' krdg_redist               = ', &
