@@ -15,33 +15,49 @@
 # Check to see if this is a restart case (i.e., only 1 directory is passed)
 if ( $#argv == 1 ) then
   set restart = 1
+  set compare = 0
   set base_dir = $argv[1]
 else if ( $#argv == 2 ) then
-  set restart = 0
-  set base_dir = $argv[1]
-  set test_dir = $argv[2]
+  if ( -f $argv[1] ) then
+    # Files were passed
+    set compare = 1
+    set restart = 0
+    set base_file = $argv[1]
+    set test_file = $argv[2]
+  else
+    # Directories were passed
+    set compare = 0
+    set restart = 0
+    set base_dir = $argv[1]
+    set test_dir = $argv[2]
+  endif
 else
   echo "Error in ${0}"
   echo "Usage: ${0} <base_dir> <test_dir>"
   echo "<test_dir> only included for non-restart tests"
 endif
 
-# Check to see if the base directory includes runlogs, or restart files
-set numfiles = `find $base_dir -maxdepth 1 -name 'cice.runlog*' | wc -l`
-if ( $numfiles > 0 ) then
-  # Compare log files
-  set logcmp = 1
-else
-  # Compare restart files
-  set numfiles = `find $base_dir -maxdepth 1 -name '*.nc' | wc -l`
+if ( $compare == 0 ) then
+  # Check to see if the base directory includes runlogs, or restart files
+  set numfiles = `find $base_dir -maxdepth 1 -name 'cice.runlog*' | wc -l`
   if ( $numfiles > 0 ) then
-    # Compare netcdf files
-    set binary = 0
+    # Compare log files
+    set logcmp = 1
   else
-    # Compare binary files
-    set binary = 1
+    # Compare restart files
+    set numfiles = `find $base_dir -maxdepth 1 -name '*.nc' | wc -l`
+    if ( $numfiles > 0 ) then
+      # Compare netcdf files
+      set binary = 0
+    else
+      # Compare binary files
+      set binary = 1
+    endif
+    set logcmp = 0
   endif
+else
   set logcmp = 0
+  set binary = 0
 endif
 
 if ( $logcmp == 1 ) then
@@ -60,20 +76,42 @@ if ( $logcmp == 1 ) then
     set base_log = `ls -t1 $base_dir/cice.runlog* | head -1`
     set test_log = `ls -t1 $test_dir/cice.runlog* | head -1`
   endif
-
-  set base_out = `tac $base_log | awk 'BEGIN{found=1;} /istep1:/ {found=0} {if (found) print}' | tac | grep '= ' | grep -v 'min, max, sum'`
-  set test_out = `tac $test_log | awk 'BEGIN{found=1;} /istep1:/ {found=0} {if (found) print}' | tac | grep '= ' | grep -v 'min, max, sum'`
-
   echo "base: $base_log"
   echo "test: $test_log"
-  if ( "$base_out" == "$test_out" ) then
+
+  set base_out = `tac $base_log | awk 'BEGIN{found=1;} /istep1:/ {found=0} {if (found) print}' | tac | grep '= ' | grep -v 'min, max, sum' | tr '\n' ','`
+  set test_out = `tac $test_log | awk 'BEGIN{found=1;} /istep1:/ {found=0} {if (found) print}' | tac | grep '= ' | grep -v 'min, max, sum'`
+
+  # Ensure that there is diagnostic output
+  if ( ${#base_out} < 10 || ${#test_out} < 10 ) then
+    echo "No diagnostic output for comparison"
+    exit 1
+  endif
+
+  set failure = 0
+  # Loop through each line of diagnostic output and check for differences
+  foreach line ( "`echo '$base_out' | tr ',' '\n'`" )
+    foreach word ( $line )
+      if ( "$word" != "$test_out[1]" ) then
+        # Print the difference to the log
+        echo "Difference in:"
+        echo "$line"
+        echo "Base value: $word"
+        echo "Test value: $test_out[1]"
+        set failure = 1
+      endif
+      shift test_out
+    end
+  end
+
+  if ( $failure == 0 ) then
     exit 0
     #echo "PASS ${ICE_TESTNAME} log " >> ${ICE_CASEDIR}/test_output
   else
     exit 1
     #echo "FAIL ${ICE_TESTNAME} log " >> ${ICE_CASEDIR}/test_output
   endif
-else
+else if ( $compare == 0 ) then
   echo "Exact Restart Comparison Mode:"
   if ( $binary == 1 ) then
     if ( $restart == 1 ) then
@@ -139,4 +177,25 @@ else
       #echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
     endif
   endif
+else if ( $compare == 1 ) then
+  # Compare restart files for differing cases (bfbcomp)
+  echo ""
+  echo "BFB Compare Mode:"
+  if ( "$base_file" =~ *.nc && "$test_file" =~ *.nc ) then
+    echo "Comparing netcdf files"
+  else if ( "$base_file" !=~ *.nc && "$test_file" !=~ *.nc ) then
+    echo "Comparing binary files"
+  else
+    echo "${0}: A comparison cannot be performed between netcdf and binary files."
+    exit 1
+  endif
+  echo "base: $base_file"
+  echo "test: $test_file"
+  if ( { cmp -s $test_file $base_file } ) then
+    exit 0
+  else
+    exit 1
+  endif
+else
+  echo "${0}: script failure"
 endif  # if logcmp
