@@ -85,12 +85,12 @@ else
   else
     echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
   endif
-  ${ICE_CASEDIR}/casescripts/comparebfb.csh ${ICE_RUNDIR}/
-  if ( $? == 0 ) then
-    echo "PASS ${ICE_TESTNAME} log " >> ${ICE_CASEDIR}/test_output
-  else
-    echo "FAIL ${ICE_TESTNAME} log " >> ${ICE_CASEDIR}/test_output
-  endif
+  #${ICE_CASEDIR}/casescripts/comparebfb.csh ${ICE_RUNDIR}/
+  #if ( $? == 0 ) then
+  #  echo "PASS ${ICE_TESTNAME} log " >> ${ICE_CASEDIR}/test_output
+  #else
+  #  echo "FAIL ${ICE_TESTNAME} log " >> ${ICE_CASEDIR}/test_output
+  #endif
 endif
 
 #-----------------------------------------------------------
