@@ -802,7 +802,7 @@
           nt_strata      
       use ice_arrays_column, only: bgc_data_dir
       use ice_arrays_column, only: sil_data_type, nit_data_type, fe_data_type
-      use ice_arrays_column, only: R_C2N, R_chl2N
+      use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N
 
       character (len=char_len) :: &
          shortwave        ! from icepack
@@ -951,16 +951,9 @@
          zaerotype
 
       real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-! tcraig, moved to ice_arrays_column
-!         R_C2N     ,      & ! algal C to N (mole/mole)
-!         R_chl2N   ,      & ! 3 algal chlorophyll to N (mg/mmol)
          F_abs_chl          ! to scale absorption in Dedd
 
-!     real (kind=dbl_kind), dimension(icepack_max_don) :: &  ! increase compare to algal R_Fe2C
-!        R_C2N_DON
-
        real (kind=dbl_kind),  dimension(icepack_max_algae) :: &
-!        R_Si2N     , & ! algal Sil to N (mole/mole) 
          R_S2N      , & ! algal S to N (mole/mole)
          ! Marchetti et al 2006, 3 umol Fe/mol C for iron limited Pseudo-nitzschia
          R_Fe2C     , & ! algal Fe to carbon (umol/mmol)
@@ -973,13 +966,13 @@
          R_Fe2DOC       ! Fe to C of DOC (nmol/umol)
 
       real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-!        chlabs           , & ! chla absorption 1/m/(mg/m^3)
-!        alpha2max_low    , & ! light limitation (1/(W/m^2))
-!        beta2max         , & ! light inhibition (1/(W/m^2))
-!        mu_max           , & ! maximum growth rate (1/d)
-!        grow_Tdep        , & ! T dependence of growth (1/C)
-!        fr_graze         , & ! fraction of algae grazed
-!        mort_pre         , & ! mortality (1/day)
+         chlabs           , & ! chla absorption 1/m/(mg/m^3)
+         alpha2max_low    , & ! light limitation (1/(W/m^2))
+         beta2max         , & ! light inhibition (1/(W/m^2))
+         mu_max           , & ! maximum growth rate (1/d)
+         grow_Tdep        , & ! T dependence of growth (1/C)
+         fr_graze         , & ! fraction of algae grazed
+         mort_pre         , & ! mortality (1/day)
          mort_Tdep        , & ! T dependence of mortality (1/C)
          k_exude          , & ! algal carbon  exudation rate (1/d)
          K_Nit            , & ! nitrate half saturation (mmol/m^3) 
@@ -993,7 +986,7 @@
          f_don_Am             ! fraction of remineralized DON to Am
 
       real (kind=dbl_kind), dimension(icepack_max_DOC) :: &
-!        f_doc            , & ! fraction of mort_N that goes to each doc pool
+         f_doc            , & ! fraction of mort_N that goes to each doc pool
          f_exude          , & ! fraction of exuded carbon to each DOC pool
          k_bac                ! Bacterial degredation of DOC (1/d)    
 
@@ -1725,9 +1718,9 @@
       !-----------------------------------------------------------------
       ! Define array parameters
       !-----------------------------------------------------------------
-!     R_Si2N(1) = ratio_Si2N_diatoms
-!     R_Si2N(2) = ratio_Si2N_sp
-!     R_Si2N(3) = ratio_Si2N_phaeo
+      R_Si2N(1) = ratio_Si2N_diatoms
+      R_Si2N(2) = ratio_Si2N_sp
+      R_Si2N(3) = ratio_Si2N_phaeo
 
       R_S2N(1) = ratio_S2N_diatoms
       R_S2N(2) = ratio_S2N_sp
@@ -1760,33 +1753,33 @@
       R_Fe2DOC(2) = ratio_Fe2DOC_l
       R_Fe2DOC(3) = c0
 
-!     chlabs(1) = chlabs_diatoms
-!     chlabs(2) = chlabs_sp
-!     chlabs(3) = chlabs_phaeo
+      chlabs(1) = chlabs_diatoms
+      chlabs(2) = chlabs_sp
+      chlabs(3) = chlabs_phaeo
 
-!     alpha2max_low(1) = alpha2max_low_diatoms
-!     alpha2max_low(2) = alpha2max_low_sp
-!     alpha2max_low(3) = alpha2max_low_phaeo
+      alpha2max_low(1) = alpha2max_low_diatoms
+      alpha2max_low(2) = alpha2max_low_sp
+      alpha2max_low(3) = alpha2max_low_phaeo
 
-!     beta2max(1) = beta2max_diatoms
-!     beta2max(2) = beta2max_sp
-!     beta2max(3) = beta2max_phaeo
+      beta2max(1) = beta2max_diatoms
+      beta2max(2) = beta2max_sp
+      beta2max(3) = beta2max_phaeo
 
-!     mu_max(1) = mu_max_diatoms
-!     mu_max(2) = mu_max_sp
-!     mu_max(3) = mu_max_phaeo
+      mu_max(1) = mu_max_diatoms
+      mu_max(2) = mu_max_sp
+      mu_max(3) = mu_max_phaeo
 
-!     grow_Tdep(1) = grow_Tdep_diatoms
-!     grow_Tdep(2) = grow_Tdep_sp
-!     grow_Tdep(3) = grow_Tdep_phaeo
+      grow_Tdep(1) = grow_Tdep_diatoms
+      grow_Tdep(2) = grow_Tdep_sp
+      grow_Tdep(3) = grow_Tdep_phaeo
 
-!     fr_graze(1) = fr_graze_diatoms
-!     fr_graze(2) = fr_graze_sp
-!     fr_graze(3) = fr_graze_phaeo
+      fr_graze(1) = fr_graze_diatoms
+      fr_graze(2) = fr_graze_sp
+      fr_graze(3) = fr_graze_phaeo
 
-!     mort_pre(1) = mort_pre_diatoms
-!     mort_pre(2) = mort_pre_sp
-!     mort_pre(3) = mort_pre_phaeo
+      mort_pre(1) = mort_pre_diatoms
+      mort_pre(2) = mort_pre_sp
+      mort_pre(3) = mort_pre_phaeo
 
       mort_Tdep(1) = mort_Tdep_diatoms
       mort_Tdep(2) = mort_Tdep_sp

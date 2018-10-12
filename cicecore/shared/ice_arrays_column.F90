@@ -14,7 +14,7 @@
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
            nblyr, max_ntrcr
       use icepack_intfc, only: icepack_max_nbtrcr, icepack_max_algae, icepack_max_aero, &
-           icepack_nmodal1, icepack_nmodal2
+           icepack_nmodal1, icepack_nmodal2, icepack_max_don
 
       implicit none
       public :: alloc_arrays_column
@@ -263,9 +263,13 @@
          fe_data_type   , & ! 'default', 'clim'
          bgc_data_dir   ! directory for biogeochemistry data
 
+      real (kind=dbl_kind), dimension(icepack_max_don) :: &  
+         R_C2N_DON      ! carbon to nitrogen mole ratio of DON pool
+
       real (kind=dbl_kind), dimension(icepack_max_algae) :: &
          R_C2N     ,      & ! algal C to N (mole/mole)
-         R_chl2N            ! 3 algal chlorophyll to N (mg/mmol)
+         R_chl2N   ,      & ! 3 algal chlorophyll to N (mg/mmol)
+	 R_Si2N             ! silica to nitrogen mole ratio for algal groups
 
 !=======================================================================
 

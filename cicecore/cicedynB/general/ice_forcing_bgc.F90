@@ -72,9 +72,10 @@
 
       subroutine get_forcing_bgc
 
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: nblocks, blocks_ice
       use ice_arrays_column, only: ocean_bio_all
       use ice_calendar, only:  yday
-      use ice_domain, only: nblocks
       use ice_flux, only: sss
       use ice_flux_bgc, only: sil, nit
       use ice_forcing, only: trestore, trest, fyear, &
@@ -84,6 +85,7 @@
 
       integer (kind=int_kind) :: &
           i, j, iblk,   & ! horizontal indices
+          ilo,ihi,jlo,jhi, &   ! beginning and end of physical domain
           ixm,ixp, ixx, & ! record numbers for neighboring months
           maxrec      , & ! maximum record number
           recslot     , & ! spline slot for current record
@@ -110,6 +112,9 @@
       character (char_len_long) :: &        ! input data file names
          nit_file   , & ! nitrate input file
          sil_file       ! silicate input file
+
+      type (block) :: &
+         this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(get_forcing_bgc)'
 
@@ -194,43 +199,70 @@
          call interpolate_data (sil_data, sildat)
          
          if (istep == 1 .or. .NOT. restore_bgc) then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               sil(i,j,iblk) = sildat(i,j,iblk)
-               ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
-            enddo
-            enddo
+
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      	    do iblk = 1, nblocks
+
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+
+	       do j = jlo, jhi
+      	       do i = ilo, ihi
+
+                  sil(i,j,iblk) = sildat(i,j,iblk)
+                  ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
+               enddo
+               enddo
          enddo
+
          !$OMP END PARALLEL DO
          elseif (restore_bgc) then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               sil(i,j,iblk) = sil(i,j,iblk)  &
+
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      	    do iblk = 1, nblocks
+
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+
+	       do j = jlo, jhi
+      	       do i = ilo, ihi
+
+                  sil(i,j,iblk) = sil(i,j,iblk)  &
                          + (sildat(i,j,iblk)-sil(i,j,iblk))*dt/trest
-               ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
+                  ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
+               enddo
+               enddo
             enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
          endif  !restore
         elseif (tr_bgc_Sil) then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               sil(i,j,iblk) = 25.0_dbl_kind
-               ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      	    do iblk = 1, nblocks
+
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+
+	       do j = jlo, jhi
+      	       do i = ilo, ihi
+
+	          sil(i,j,iblk) = 25.0_dbl_kind
+                  ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
+               enddo
+               enddo
             enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
 
       endif  !tr_bgc_Sil
     !-------------------------------------------------------------------
@@ -249,67 +281,97 @@
          call interpolate_data (nit_data, nitdat)
 
          if (istep == 1 .or. .NOT. restore_bgc) then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               nit(i,j,iblk) = nitdat(i,j,iblk)
-               ks = icepack_max_algae + 1
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
-               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      	    do iblk = 1, nblocks
+
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+
+	       do j = jlo, jhi
+      	       do i = ilo, ihi
+
+	          nit(i,j,iblk) = nitdat(i,j,iblk)
+                  ks = icepack_max_algae + 1
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
+                  ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON
+               enddo
+               enddo
             enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
          elseif (restore_bgc ) then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               nit(i,j,iblk) = nit(i,j,iblk)  &
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      	    do iblk = 1, nblocks
+
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+
+	       do j = jlo, jhi
+      	       do i = ilo, ihi
+
+                  nit(i,j,iblk) = nit(i,j,iblk)  &
                          + (nitdat(i,j,iblk)-nit(i,j,iblk))*dt/trest     
-               ks = icepack_max_algae + 1
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
-               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON
+                  ks = icepack_max_algae + 1
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
+                  ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON
+               enddo
+               enddo
             enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
         endif  !restore_bgc
 
       elseif (trim(nit_data_type) == 'sss'  .AND.  tr_bgc_Nit) then 
-          
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               nit(i,j,iblk) =  sss(i,j,iblk)      
-               ks = icepack_max_algae + 1
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit 
-               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON      
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      	    do iblk = 1, nblocks
+
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+
+	       do j = jlo, jhi
+      	       do i = ilo, ihi
+
+                  nit(i,j,iblk) =  sss(i,j,iblk)      
+                  ks = icepack_max_algae + 1
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit 
+                  ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON      
+               enddo
+               enddo
             enddo
-            enddo
-         enddo
          !$OMP END PARALLEL DO
 
       elseif (tr_bgc_Nit) then 
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      	    do iblk = 1, nblocks
+
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+
+	       do j = jlo, jhi
+      	       do i = ilo, ihi
        
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               nit(i,j,iblk) = 12.0_dbl_kind
-               ks = icepack_max_algae + 1
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit 
-               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON      
+                  nit(i,j,iblk) = 12.0_dbl_kind
+                  ks = icepack_max_algae + 1
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit 
+                  ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON      
+               enddo
+               enddo
             enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
 
       endif   !tr_bgc_Nit
 
@@ -381,20 +443,28 @@
                   + c2intp * nit_data_p(2)
          endif
          
-       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil  
-               ks = icepack_max_algae + 1
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
-               ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
-               ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON    
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      	    do iblk = 1, nblocks
+
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+
+	       do j = jlo, jhi
+      	       do i = ilo, ihi
+       
+                  ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil  
+                  ks = icepack_max_algae + 1
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
+                  ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
+                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON    
+               enddo
+               enddo
             enddo
-            enddo
-         enddo
-       !$OMP END PARALLEL DO
+          !$OMP END PARALLEL DO
 
        ! Save record number for next time step
        bgcrecnum = recnum

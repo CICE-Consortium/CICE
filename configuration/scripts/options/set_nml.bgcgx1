@@ -19,3 +19,16 @@ tr_bgc_PON      = .true.
 tr_bgc_hum      = .true.
 tr_bgc_DON      = .true.
 tr_bgc_Fe       = .true. 
+    n_aero       = 0
+    n_zaero      = 3
+    n_algae      = 3
+    n_doc        = 2
+    n_dic        = 0
+    n_don        = 1
+    n_fed        = 1
+    n_fep        = 1
+    n_trbgcz     = 1
+    n_trzs       = 0
+    n_trbri      = 1
+    n_trzaero    = 1
+
