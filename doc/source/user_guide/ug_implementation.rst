@@ -78,11 +78,11 @@ Grid, boundary conditions and masks
 
 The spatial discretization is specialized for a generalized orthogonal
 B-grid as in :cite:`Murray96` or
-:cite:`SKM95`. The ice and snow area, volume and energy are
+:cite:`Smith95`. The ice and snow area, volume and energy are
 given at the center of the cell, velocity is defined at the corners, and
 the internal ice stress tensor takes four different values within a grid
 cell; bilinear approximations are used for the stress tensor and the ice
-velocity across the cell, as described in :cite:`HD02`.
+velocity across the cell, as described in :cite:`Hunke02`.
 This tends to avoid the grid decoupling problems associated with the
 B-grid. EVP is available on the C-grid through the MITgcm code
 distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/. 
@@ -100,7 +100,9 @@ including that used for the column configuration. The input files
 **global\_gx3.grid** and **global\_gx3.kmt** contain the
 :math:`\left<3^\circ\right>` POP grid and land mask;
 **global\_gx1.grid** and **global\_gx1.kmt** contain the
-:math:`\left<1^\circ\right>` grid and land mask. These are binary
+:math:`\left<1^\circ\right>` grid and land mask, and **global\_tx1.grid** 
+and **global\_tx1.kmt** contain the :math:`\left<1^\circ\right>` POP 
+tripole grid and land mask. These are binary
 unformatted, direct access files produced on an SGI (Big Endian). If you
 are using an incompatible (Little Endian) architecture, choose
 `rectangular` instead of `displaced\_pole` in **ice\_in**, or follow
@@ -150,19 +152,22 @@ portion of the local domains are labeled `ilo:ihi`. The parameter
 ghost cells, and the same numbering system is applied to each of the
 four subdomains.
 
-The user chooses a block size `BLCKX` :math:`\times`\ `BLCKY` and the
-number of processors `NTASK` in **comp\_ice**. Parameters in the
-*domain\_nml* namelist in **ice\_in** determine how the blocks are
+The user sets the `NTASKS` and `NTHRDS` settings in **cice.settings** 
+and chooses a block size `block\_size\_x` :math:`\times`\ `block\_size\_y`, 
+`max\_blocks`, and decomposition information `distribution\_type`, `processor\_shape`, 
+and `distribution\_type` in **ice\_in**. That information is used to
+determine how the blocks are
 distributed across the processors, and how the processors are
 distributed across the grid domain. Recommended combinations of these
 parameters for best performance are given in Section :ref:`performance`.
-The script **comp\_ice** computes the maximum number of blocks on each
-processor for typical Cartesian distributions, but for non-Cartesian
-cases `MXBLCKS` may need to be set in the script. The code will print this
-information to the log file before aborting, and the user will need to
-adjust `MXBLCKS` in **comp\_ice** and recompile. The code will also print
-a warning if the maximum number of blocks is too large. Although this is
-not fatal, it does require excess memory.
+The script **cice.setup** computes some default decompositions and layouts
+but the user can overwrite the defaults by manually changing the values in 
+`ice\_in`.  At runtime, the model will print decomposition
+information to the log file, and if the block size or max blocks is 
+inconsistent with the task and thread size, the model will abort.  The 
+code will also print a warning if the maximum number of blocks is too large. 
+Although this is not fatal, it does use extra memory.  If `max\_blocks` is
+set to -1, the code will compute a `max\_blocks` on the fly.
 
 A loop at the end of routine *create\_blocks* in module
 **ice\_blocks.F90** will print the locations for all of the blocks on
@@ -174,9 +179,9 @@ into processors and blocks can be ascertained. The dbug flag must be
 manually set in the code in each case (independently of the dbug flag in
 **ice\_in**), as there may be hundreds or thousands of blocks to print
 and this information should be needed only rarely. This information is
-much easier to look at using a debugger such as Totalview.
-
-Alternatively, a new variable is provided in the history files, `blkmask`,
+much easier to look at using a debugger such as Totalview.  There is also
+an output field that can be activated in `icefields\_nml`, `f\_blkmask`, 
+that prints out the variable `blkmask` to the history file and 
 which labels the blocks in the grid decomposition according to `blkmask` =
 `my\_task` + `iblk/100`.
 
@@ -377,13 +382,14 @@ Performance
 Namelist options (*domain\_nml*) provide considerable flexibility for
 finding efficient processor and block configuration. Some of
 these choices are illustrated in :ref:`fig-distrb`.  Users have control
-of many aspects of the decomposition such as the block size (set at 
-compile via CPP), the `distribution\_type`, the `distribution\_wght`,
+of many aspects of the decomposition such as the block size (`block\_size\_x`,
+`block\_size\_y`), the `distribution\_type`, the `distribution\_wght`,
 the `distribution\_wght\_file` (when `distribution\_type` = `wghtfile`), 
 and the `processor\_shape` (when `distribution\_type` = `cartesian`).
 
-The user specifies the total number of processors and the block
-size in the setup/build scripts. The main trades offs are the relative
+The user specifies the total number of tasks and threads in **cice.settings**
+and the block size and decompostion in the namelist file. The main trades 
+offs are the relative
 efficiency of large square blocks versus model internal load balance
 as CICE computation cost is very small for ice-free blocks.
 Smaller, more numerous blocks provides an opportunity for better load
@@ -393,7 +399,7 @@ less efficient due to MPI communication associated with halo updates.
 In practice, blocks should probably not have fewer than about 8 to 10 grid 
 cells in each direction, and more square blocks tend to optimize the 
 volume-to-surface ratio important for communication cost.  Often 3 to 8
-blocks per processor provide the decompositions even flexiblity to
+blocks per processor provide the decompositions flexiblity to
 create reasonable load balance configurations.
 
 The `distribution\_type` options allow standard cartesian distributions 
@@ -483,8 +489,8 @@ This provides good load balancing but poor communication characteristics
 due to the number of neighbors and the amount of data needed to
 communicate. The ‘sectrobin’ and ‘sectcart’ algorithms loop similarly,
 but put groups of blocks on each processor to improve the communication
-characteristics. In the ‘sectcart’ case, the domain is divided into two
-(east-west) halves and the loops are done over each, sequentially.
+characteristics. In the ‘sectcart’ case, the domain is divided into four
+(east-west,north-south) quarters and the loops are done over each, sequentially.
 
 The `wghtfile` decomposition drives the decomposition based on 
 weights provided in a weight file.  That file should be a netcdf
@@ -505,8 +511,8 @@ of the pros and cons of the various distribution types.
    Scorecard
 
 Figure :ref:`fig-distribscorecard` shows the scorecard for block distribution choices in
-CICE, courtesy T. Craig. For more information, see
-http://www.cesm.ucar.edu/events/ws.2012/Presentations/SEWG2/craig.pdf
+CICE, courtesy T. Craig. For more information, see :cite:`Craig14` or
+http://www.cesm.ucar.edu/events/workshops/ws.2012/presentations/sewg/craig.pdf
 
 The `maskhalo` options in the namelist improve performance by removing
 unnecessary halo communications where there is no ice. There is some
@@ -665,7 +671,7 @@ Numerical estimates for this bound for several POP grids, assuming
    p4,Canada,:math:`900\times 600`,:math:`6.5\times 10^3` m,1.8hr
 
 As discussed in section :ref:`mech-red` and
-:cite:`LHMJ07`, the maximum time step in practice is
+:cite:`Lipscomb07`, the maximum time step in practice is
 usually determined by the time scale for large changes in the ice
 strength (which depends in part on wind strength). Using the strength
 parameterization of :cite:`Rothrock75`, as in
@@ -698,7 +704,7 @@ damping timescale :math:`T`, described in Section :ref:`dynam`, as
 `eyc`\ * `dt\_dyn`. The forcing terms are not updated during the subcycling.
 Given the small step (`dte`) at which the EVP dynamics model is subcycled,
 the elastic parameter :math:`E` is also limited by stability
-constraints, as discussed in :cite:`HD97`. Linear stability
+constraints, as discussed in :cite:`Hunke97`. Linear stability
 analysis for the dynamics component shows that the numerical method is
 stable as long as the subcycling time step :math:`\Delta t_e`
 sufficiently resolves the damping timescale :math:`T`. For the stability
@@ -712,7 +718,7 @@ the order of 1 hour.
 For the revised EVP approach (`kdyn` = 1, `revised\_evp` = true), the
 relaxation parameter `arlx1i` effectively sets the damping timescale in
 the problem, and `brlx` represents the effective subcycling
-:cite:`BFLM13`. In practice the parameters :math:`S_e>0.5`
+:cite:`Bouillon13`. In practice the parameters :math:`S_e>0.5`
 and :math:`\xi<1` are set, along with an estimate of the ice strength
 per unit mass, and the damping and subcycling parameters are then
 calculated. With the addition of the revised EVP approach to CICE, the
@@ -724,8 +730,8 @@ stability of the dynamics component; :math:`\Delta t` does not. Although
 the time step may not be tightly limited by stability considerations,
 large time steps (*e.g.,* :math:`\Delta t=1` day, given daily forcing)
 do not produce accurate results in the dynamics component. The reasons
-for this error are discussed in :cite:`HD97`; see
-:cite:`HZ99` for its practical effects. The thermodynamics
+for this error are discussed in :cite:`Hunke97`; see
+:cite:`Hunke99` for its practical effects. The thermodynamics
 component is stable for any time step, as long as the surface
 temperature :math:`T_{sfc}` is computed internally. The
 numerical constraint on the thermodynamics time step is associated with
@@ -743,8 +749,10 @@ History files
 
 Model output data is averaged over the period(s) given by `histfreq` and
 `histfreq\_n`, and written to binary or  files prepended by `history\_file`
-in **ice\_in**. That is, if `history\_file` = ‘iceh’ then the filenames
-will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
+in **ice\_in**. These settings for history files are set in the 
+**setup\_nml** section of **ice\_in** (see :ref:`tabnamelist`). 
+If `history\_file` = ‘iceh’ then the 
+filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
 depending on the output file format chosen in **comp\_ice** (set
 `IO\_TYPE`). The  history files are CF-compliant; header information for
 data contained in the  files is displayed with the command `ncdump -h
@@ -752,9 +760,10 @@ filename.nc`. Parallel  output is available using the PIO library; the
 attribute `io\_flavor` distinguishes output files written with PIO from
 those written with standard netCDF. With binary files, a separate header
 file is written with equivalent information. Standard fields are output
-according to settings in the **icefields\_nml** namelist in **ice\_in**.
+according to settings in the **icefields\_nml** section of **ice\_in** 
+(see :ref:`tabnamelist`).
 The user may add (or subtract) variables not already available in the
-namelist by following the instructions in section :ref:`addhist`.
+namelist by following the instructions in section :ref:`addhist`. 
 
 With this release, the history module has been divided into several
 modules based on the desired formatting and on the variables
@@ -779,7 +788,7 @@ with a given `histfreq` value, or if an element of `histfreq\_n` is 0, then
 no file will be written at that frequency. The output period can be
 discerned from the filenames.
 
-For example, in namelist:
+For example, in the namelist:
 
 ::
 
@@ -831,6 +840,19 @@ representing an average over the sea ice fraction of the grid cell, and
 another that is multiplied by :math:`a_i`, representing an average over
 the grid cell area. Our naming convention attaches the suffix “\_ai" to
 the grid-cell-mean variable names.
+
+In this version of CICE, history variables requested by the Sea Ice Model Intercomparison 
+Project (SIMIP) :cite:`Notz16` have been added as possible history output variables (e.g. 
+`f_sithick`, `f_sidmassgrowthbottom`, etc.). The lists of
+`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
+`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
+requested  SIMIP variables provide the names of possible history fields in CICE. 
+However, each of the additional variables can be output at any temporal frequency 
+specified in the **icefields\_nml** section of **ice\_in** as detailed above.
+Additionally, a new history output variable, `f_CMIP`, has been added. When `f_CMIP`
+is added to the **icefields\_nml** section of **ice\_in** then all SIMIP variables
+will be turned on for output at the frequency specified by `f_CMIP`. 
+
 
 ****************
 Diagnostic files

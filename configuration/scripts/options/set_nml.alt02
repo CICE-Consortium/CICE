@@ -1,3 +1,4 @@
+ncat = 1
 kcatbound = -1
 ice_ic = 'default'
 restart = .false.

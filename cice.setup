@@ -527,7 +527,7 @@ foreach compiler ( $ncompilers )
     end
 
     cd ${casedir}
-    source ./env.${machcomp} || exit 2
+    source ./env.${machcomp} -nomodules || exit 2
 
     set quietmode = false
     if ($?ICE_MACHINE_QUIETMODE) then
@@ -759,14 +759,11 @@ EOF2
     ${casescr}/parse_settings.sh cice.settings ${fsmods}
     ${casescr}/parse_namelist.sh ice_in ${fimods}
     source ./cice.settings
-    source ./env.${machcomp} || exit 2
+    source ./env.${machcomp} -nomodules || exit 2
     ${casescr}/parse_namelist_from_env.sh ice_in
 
     #------------------------------------------------------------
     # Generate run script
-
-    source ./cice.settings
-    source ./env.${machcomp} || exit 2
 
     ${casescr}/cice.run.setup.csh
     if ($status != 0) then
@@ -805,10 +802,16 @@ cat $testname_base/test_output >> results.log
 EOF
 
 cat >> ./${tsdir}/suite.run << EOF
-cd $testname_base
-./cice.build
+echo "-------test--------------"
+echo "${testname_base}"
+cd ${testname_base}
+source ./cice.settings
+set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
+./cice.build \${ciceexe}
+if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
 ./cice.submit
 cd ..
+
 EOF
     
       # Reset case for the next test in suite

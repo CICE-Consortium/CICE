@@ -14,7 +14,7 @@ coupled.  Within the **cicecore/drivers/cice/** directory, the following files a
 **CICE.F90** is the top level program file and that calls CICE_Initialize, CICE_Run, and CICE_Finalize methods.
 **CICE_InitMod.F90** contains the CICE_Initialize method and other next level source code.
 **CICE_RunMod.F90** contains the CICE_Run method and other next level source code.
-**CICE_FinalMod.F90 ** contains the CICE_Finalize method and other next level source code.
+**CICE_FinalMod.F90** contains the CICE_Finalize method and other next level source code.
 
 Other **cicecore/drivers/** directories are similarly implemented with a top level coupling layer,
 that is largely specified by an external coupled system and then some version of the **CICE_InitMod.F90**,
@@ -33,6 +33,7 @@ The initialize calling sequence looks something like::
       call init_zbgc            ! vertical biogeochemistry namelist
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
+      call alloc_*              ! allocate arrays
       call init_ice_timers      ! initialize all timers
       call init_grid2           ! grid variables
       call init_calendar        ! initialize some calendar stuff

@@ -70,7 +70,7 @@
          sublim_file, &
            snow_file  
 
-      character (char_len_long), dimension(ncat) :: &  ! input data file names
+      character (char_len_long), dimension(:), allocatable :: &  ! input data file names
         topmelt_file, &
         botmelt_file
 
@@ -185,6 +185,8 @@
         topmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
         botmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
            ocn_frc_m(nx_block,ny_block,  max_blocks,nfld,12), & ! ocn data for 12 months
+        topmelt_file(ncat), &
+        botmelt_file(ncat), &
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_forcing): Out of Memory')
 

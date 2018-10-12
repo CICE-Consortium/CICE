@@ -6,8 +6,8 @@ else
   echo ${0:t}
 endif
 
-source ./cice.settings
-source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
+#source ./cice.settings
+#source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 set jobfile = $1
 
