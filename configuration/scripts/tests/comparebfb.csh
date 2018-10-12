@@ -88,6 +88,11 @@ if ( $logcmp == 1 ) then
     exit 1
   endif
 
+  # Replace all asterisks (*) with a period (!) as workaround for errors
+  #   encountered looping through words with asterisks in csh
+  set base_out = `echo "$base_out" | sed 's/\*/./g'`
+  set test_out = `echo "$test_out" | sed 's/\*/./g'`
+
   set failure = 0
   # Loop through each line of diagnostic output and check for differences
   foreach line ( "`echo '$base_out' | tr ',' '\n'`" )
