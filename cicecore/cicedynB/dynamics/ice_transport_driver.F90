@@ -364,6 +364,7 @@
 !      call ice_timer_stop(timer_bound)
 
 
+! MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
@@ -517,6 +518,7 @@
     ! Given new fields, recompute state variables.
     !-------------------------------------------------------------------
 
+! MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 

@@ -416,6 +416,7 @@
       ! stress tensor equation, total surface stress
       !-----------------------------------------------------------------
 
+! MHRI: CHECK THIS OMP (similar to ice_dyn_evp.F90)
          !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 

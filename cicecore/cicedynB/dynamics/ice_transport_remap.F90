@@ -464,6 +464,7 @@
 !---! Remap the open water area (without tracers).
 !---!-------------------------------------------------------------------
 
+! MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,m, &
       !$OMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop)
       do iblk = 1, nblocks
