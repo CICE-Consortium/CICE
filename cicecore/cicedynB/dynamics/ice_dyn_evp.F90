@@ -691,8 +691,7 @@
          endif
 
       !-----------------------------------------------------------------
-      ! replacement pressure/Delta                   ! kg/s
-      ! save replacement pressure for principal stress calculation
+      ! strength/Delta                   ! kg/s
       !-----------------------------------------------------------------
          c0ne = strength(i,j)/max(Deltane,tinyarea(i,j))
          c0nw = strength(i,j)/max(Deltanw,tinyarea(i,j))
