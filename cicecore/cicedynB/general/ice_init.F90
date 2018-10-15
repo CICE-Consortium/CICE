@@ -80,8 +80,11 @@
           ycycle,          fyear_init,    dbug, &
           atm_data_type,   atm_data_dir,  precip_units, &
           atm_data_format, ocn_data_format, &
-          bgc_data_type,   ocn_data_type, ocn_data_dir, &
+          bgc_data_type, &
+          ocn_data_type, ocn_data_dir,      &
           oceanmixed_file, restore_ocn,   trestore
+      use ice_arrays_column, only: bgc_data_dir, &
+          sil_data_type, nit_data_type, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 basalstress, Ktens, e_ratio
@@ -179,8 +182,9 @@
         tfrz_option,    default_season,  precip_units,  fyear_init,     &
         ycycle,         restore_ocn,     trestore,      restore_ice,    &
         atm_data_type,  ocn_data_type,   bgc_data_type,                 &
+        sil_data_type,  nit_data_type,   fe_data_type,                  &
         atm_data_format, ocn_data_format,  oceanmixed_file,             &
-        atm_data_dir,   ocn_data_dir   
+        atm_data_dir,   ocn_data_dir,    bgc_data_dir   
 
       namelist /tracer_nml/   &
         tr_iage, restart_age, &
@@ -325,8 +329,12 @@
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'
+      sil_data_type   = 'default'
+      nit_data_type   = 'default' 
+      fe_data_type    = 'default'
+      bgc_data_dir    = 'unknown_bgc_data_dir'
       ocn_data_type   = 'default'
-      ocn_data_dir    = ' '
+      ocn_data_dir    = 'unknown_ocn_data_dir'
       oceanmixed_file = 'unknown_oceanmixed_file' ! ocean forcing data
       restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
@@ -576,6 +584,10 @@
       call broadcast_scalar(tfrz_option,        master_task)
       call broadcast_scalar(ocn_data_format,    master_task)
       call broadcast_scalar(bgc_data_type,      master_task)
+      call broadcast_scalar(sil_data_type,      master_task)
+      call broadcast_scalar(nit_data_type,      master_task)
+      call broadcast_scalar(fe_data_type,       master_task)
+      call broadcast_scalar(bgc_data_dir,       master_task)
       call broadcast_scalar(ocn_data_type,      master_task)
       call broadcast_scalar(ocn_data_dir,       master_task)
       call broadcast_scalar(oceanmixed_file,    master_task)
@@ -1058,6 +1070,14 @@
          endif
          write(nu_diag,*)    ' bgc_data_type             = ', &
                                trim(bgc_data_type)
+         write(nu_diag,*)    ' sil_data_type             = ', &
+                               trim(sil_data_type)
+         write(nu_diag,*)    ' nit_data_type             = ', &
+                               trim(nit_data_type)
+         write(nu_diag,*)    ' fe_data_type              = ', &
+                               trim(fe_data_type)
+         write(nu_diag,*)    ' bgc_data_dir              = ', &
+                               trim(bgc_data_dir)
          write(nu_diag,*)    ' ocn_data_type             = ', &
                                trim(ocn_data_type)
          if (trim(bgc_data_type) /= 'default' .or. &

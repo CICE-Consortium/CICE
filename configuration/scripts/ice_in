@@ -168,11 +168,15 @@
     atm_data_type   = 'ncar'
     ocn_data_type   = 'default'
     bgc_data_type   = 'default'
+    sil_data_type   = 'default'
+    nit_data_type   = 'default'
+    fe_data_type    = 'default'
     atm_data_format = 'bin'
     ocn_data_format = 'bin'
     oceanmixed_file = 'unknown_oceanmixed_file'
     atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
-    ocn_data_dir    = 'unknown_ocn_data_dir'
+    ocn_data_dir    = '/unknown_ocn_data_dir'
+    bgc_data_dir    = '/uknown_bgc_data_dir'
 /
 
 &domain_nml
@@ -207,10 +211,6 @@
     scale_bgc       = .false.
     solve_zsal      = .false.
     restart_zsal    = .false.
-    bgc_data_dir    = '/uknown_bgc_data_dir'
-    sil_data_type   = 'default'
-    nit_data_type   = 'default'
-    fe_data_type    = 'default'
     tr_bgc_Nit      = .true.
     tr_bgc_C        = .true.
     tr_bgc_chl      = .false.
