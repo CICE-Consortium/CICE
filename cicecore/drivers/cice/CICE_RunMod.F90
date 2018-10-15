@@ -163,13 +163,11 @@
 
       integer (kind=int_kind) :: &
          iblk        , & ! block index 
-         i,j         , & ! loop counter
          k           , & ! dynamics supercycling index
          ktherm          ! switch to turn thermo "off" (-1) or "on" (0, 1, or 2)
 
       real (kind=dbl_kind) :: &
-         offset      , & ! d(age)/dt time offset
-         tau             ! part of wind stress
+         offset          ! d(age)/dt time offset
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, &
