@@ -523,7 +523,7 @@ and CICE have not significantly altered simulated ice volume using previous mode
 configurations.  Here we describe the CICE testing tools, which are applies to output 
 from five-year gx-1 simulations that use the standard CICE atmospheric forcing. 
 A scientific justification of the testing is provided in
-:cite:`Hunke18`.
+:cite:`Hunke18`. The following sections follow :cite:`Roberts18`.
 
 .. _paired:
 
