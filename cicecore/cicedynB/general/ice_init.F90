@@ -176,15 +176,17 @@
         hp1
 
       namelist /forcing_nml/ &
-        atmbndy,        calc_strair,     calc_Tsfc,     update_ocn_f,   &
-        l_mpond_fresh,  ustar_min,      fbot_xfer_type, oceanmixed_ice, &
-        emissivity,     formdrag,        highfreq,      natmiter,       &
-        tfrz_option,    default_season,  precip_units,  fyear_init,     &
-        ycycle,         restore_ocn,     trestore,      restore_ice,    &
+        formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
+        highfreq,       natmiter,        ustar_min,     emissivity,     &
+        fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
+        oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
+        precip_units,   default_season,                                 &
         atm_data_type,  ocn_data_type,   bgc_data_type,                 &
         sil_data_type,  nit_data_type,   fe_data_type,                  &
-        atm_data_format, ocn_data_format,  oceanmixed_file,             &
-        atm_data_dir,   ocn_data_dir,    bgc_data_dir   
+        fyear_init,     ycycle,                                         &
+        atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
+        atm_data_format, ocn_data_format,                               &
+        oceanmixed_file
 
       namelist /tracer_nml/   &
         tr_iage, restart_age, &
