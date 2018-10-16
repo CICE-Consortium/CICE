@@ -29,7 +29,7 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
-      use ice_constants, only: c0, c1, c2, c3, c4, c5, c10, c12, c20, &
+      use ice_constants, only: c0, c1, c2, c4, c10, c12, c20, &
                                c180, c365, c1000, c3600
       use ice_constants, only: p001, p01, p1, p25, p5, p6
       use ice_constants, only: cm_to_m
