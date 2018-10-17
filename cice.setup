@@ -837,7 +837,7 @@ cat >> ./${tsdir}/results.csh << EOF
 cat ./results.log
 set pends = \`cat ./results.log | grep PEND | wc -l\`
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
-set success = \`cat ./results.log | grep PASS | wc -l\`
+set success = \`cat ./results.log | grep 'PASS\|COPY' | wc -l\`
 set comments = \`cat ./results.log | grep "#" | wc -l\`
 set alltotal = \`cat ./results.log | wc -l\`
 @ total = \$alltotal - \$comments
