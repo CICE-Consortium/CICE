@@ -943,7 +943,7 @@
          hu,  & ! volume per unit area of ice at u location (mean thickness)
          hwu, & ! water depth at u location
          hcu, & ! critical thickness at u location
-         k1 = 20.0_dbl_kind , &  ! first free parameter for landfast parametrization 
+         k1 = 8.0_dbl_kind , &  ! first free parameter for landfast parametrization 
          k2 = 15.0_dbl_kind , &  ! second free parameter (N/m^3) for landfast parametrization 
          alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
 

@@ -78,11 +78,11 @@ Grid, boundary conditions and masks
 
 The spatial discretization is specialized for a generalized orthogonal
 B-grid as in :cite:`Murray96` or
-:cite:`SKM95`. The ice and snow area, volume and energy are
+:cite:`Smith95`. The ice and snow area, volume and energy are
 given at the center of the cell, velocity is defined at the corners, and
 the internal ice stress tensor takes four different values within a grid
 cell; bilinear approximations are used for the stress tensor and the ice
-velocity across the cell, as described in :cite:`HD02`.
+velocity across the cell, as described in :cite:`Hunke02`.
 This tends to avoid the grid decoupling problems associated with the
 B-grid. EVP is available on the C-grid through the MITgcm code
 distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/. 
@@ -511,7 +511,7 @@ of the pros and cons of the various distribution types.
    Scorecard
 
 Figure :ref:`fig-distribscorecard` shows the scorecard for block distribution choices in
-CICE, courtesy T. Craig. For more information, see :cite:`Craig2014` or
+CICE, courtesy T. Craig. For more information, see :cite:`Craig14` or
 http://www.cesm.ucar.edu/events/workshops/ws.2012/presentations/sewg/craig.pdf
 
 The `maskhalo` options in the namelist improve performance by removing
@@ -671,7 +671,7 @@ Numerical estimates for this bound for several POP grids, assuming
    p4,Canada,:math:`900\times 600`,:math:`6.5\times 10^3` m,1.8hr
 
 As discussed in section :ref:`mech-red` and
-:cite:`LHMJ07`, the maximum time step in practice is
+:cite:`Lipscomb07`, the maximum time step in practice is
 usually determined by the time scale for large changes in the ice
 strength (which depends in part on wind strength). Using the strength
 parameterization of :cite:`Rothrock75`, as in
@@ -704,7 +704,7 @@ damping timescale :math:`T`, described in Section :ref:`dynam`, as
 `eyc`\ * `dt\_dyn`. The forcing terms are not updated during the subcycling.
 Given the small step (`dte`) at which the EVP dynamics model is subcycled,
 the elastic parameter :math:`E` is also limited by stability
-constraints, as discussed in :cite:`HD97`. Linear stability
+constraints, as discussed in :cite:`Hunke97`. Linear stability
 analysis for the dynamics component shows that the numerical method is
 stable as long as the subcycling time step :math:`\Delta t_e`
 sufficiently resolves the damping timescale :math:`T`. For the stability
@@ -718,7 +718,7 @@ the order of 1 hour.
 For the revised EVP approach (`kdyn` = 1, `revised\_evp` = true), the
 relaxation parameter `arlx1i` effectively sets the damping timescale in
 the problem, and `brlx` represents the effective subcycling
-:cite:`BFLM13`. In practice the parameters :math:`S_e>0.5`
+:cite:`Bouillon13`. In practice the parameters :math:`S_e>0.5`
 and :math:`\xi<1` are set, along with an estimate of the ice strength
 per unit mass, and the damping and subcycling parameters are then
 calculated. With the addition of the revised EVP approach to CICE, the
@@ -730,8 +730,8 @@ stability of the dynamics component; :math:`\Delta t` does not. Although
 the time step may not be tightly limited by stability considerations,
 large time steps (*e.g.,* :math:`\Delta t=1` day, given daily forcing)
 do not produce accurate results in the dynamics component. The reasons
-for this error are discussed in :cite:`HD97`; see
-:cite:`HZ99` for its practical effects. The thermodynamics
+for this error are discussed in :cite:`Hunke97`; see
+:cite:`Hunke99` for its practical effects. The thermodynamics
 component is stable for any time step, as long as the surface
 temperature :math:`T_{sfc}` is computed internally. The
 numerical constraint on the thermodynamics time step is associated with
@@ -842,7 +842,7 @@ the grid cell area. Our naming convention attaches the suffix “\_ai" to
 the grid-cell-mean variable names.
 
 In this version of CICE, history variables requested by the Sea Ice Model Intercomparison 
-Project (SIMIP) :cite:`NJHHMSTV16` have been added as possible history output variables (e.g. 
+Project (SIMIP) :cite:`Notz16` have been added as possible history output variables (e.g. 
 `f_sithick`, `f_sidmassgrowthbottom`, etc.). The lists of
 `monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
 `daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 

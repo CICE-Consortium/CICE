@@ -12,7 +12,7 @@ ice lies in each thickness range. Thus the basic problem in sea ice
 modeling is to describe the evolution of the ice thickness distribution
 (ITD) in time and space.
 
-The fundamental equation solved by CICE is :cite:`TRMC75`:
+The fundamental equation solved by CICE is :cite:`Thorndike75`:
 
 .. math::
    \frac{\partial g}{\partial t} = -\nabla \cdot (g {\bf u}) 
@@ -32,7 +32,7 @@ each grid cell into discrete thickness categories. The number of
 categories can be set by the user, with a default value :math:`N_C = 5`.
 (Five categories, plus open water, are generally sufficient to simulate
 the annual cycles of ice thickness, ice strength, and surface fluxes
-:cite:`BHWE01,Lipscomb01`.) Each category :math:`n` has
+:cite:`Bitz01,Lipscomb01`.) Each category :math:`n` has
 lower thickness bound :math:`H_{n-1}` and upper bound :math:`H_n`. The
 lower bound of the thinnest ice category, :math:`H_0`, is set to zero.
 The other boundaries are chosen with greater resolution for small
@@ -133,22 +133,22 @@ thermodynamic growth and melting; and (3) transport in thickness space
 equation by operator splitting in three stages, with two of the three
 terms on the right set to zero in each stage. We compute horizontal
 transport using the incremental remapping scheme of
-:cite:`DB00` as adapted for sea ice by
-:cite:`LH04`; this scheme is discussed in
+:cite:`Dukowicz00` as adapted for sea ice by
+:cite:`Lipscomb04`; this scheme is discussed in
 Section :ref:`horiz-trans`. Ice is transported in thickness space
 using the remapping scheme of :cite:`Lipscomb01`, as
 described in Section :ref:`itd-trans`. The mechanical
-redistribution scheme, based on :cite:`TRMC75`, :cite:`Rothrock75`,
-:cite:`Hibler80`, :cite:`FH95`, and :cite:`LHMJ07` is outlined
+redistribution scheme, based on :cite:`Thorndike75`, :cite:`Rothrock75`,
+:cite:`Hibler80`, :cite:`Flato95`, and :cite:`Lipscomb07` is outlined
 in Section :ref:`mech-red`. To solve the horizontal transport and
 ridging equations, we need the ice velocity :math:`{\bf u}`, and to
 compute transport in thickness space, we must know the the ice growth
 rate :math:`f` in each thickness category. We use the
 elastic-viscous-plastic (EVP) ice dynamics scheme of
-:cite:`HD97`, as modified by :cite:`CGHM04`,
-:cite:`Hunke01`, :cite:`HD02` and
-:cite:`HD03`, or a new elastic-anisotropic-plastic model
-:cite:`WF06,WS09,TFW13` to find the velocity, as
+:cite:`Hunke97`, as modified by :cite:`Connolley04`,
+:cite:`Hunke01`, :cite:`Hunke02` and
+:cite:`Hunke03`, or a new elastic-anisotropic-plastic model
+:cite:`Wilchinsky06,Weiss09,Tsamados13` to find the velocity, as
 described in Section :ref:`dynam`. Finally, we use a thermodynamic
 model to compute :math:`f` (Section :ref:`thermo`). The order in which
 these computations are performed in the code itself was chosen so that
@@ -356,7 +356,7 @@ timestep. Freezing directly onto the bottom of the ice does not affect
 the age, nor does melting. Mechanical redistribution processes and
 advection alter the age of ice in any given grid cell in a conservative
 manner following changes in ice area. The sea ice age tracer is
-validated in :cite:`HB09`.
+validated in :cite:`Hunke09`.
 
 Another age-related tracer, the area covered by first-year ice
 :math:`a_{FY}`, is an area tracer (`trcr\_depend` = 0) that corresponds
@@ -366,7 +366,7 @@ September (`yday` = 259) in the northern hemisphere and 15 March (`yday` =
 75) in the southern hemisphere, in non-leap years. This tracer is
 increased when new ice forms in open water, in subroutine
 *add\_new\_ice* in **ice\_therm\_itd.F90**. The first-year area tracer
-is discussed in :cite:`ABTH11`.
+is discussed in :cite:`Armour11`.
 
 .. _ice-bgc:
 
@@ -378,7 +378,7 @@ Ice algal photosynthesis leads to carbon fixation and pigment buildup
 throughout much of the pack ice in springtime, including warm layers in
 contact with seawater and the central ice matrix. Turbulence moves seed
 organisms and trace elements upward across the ocean interface from the
-mixed layer :cite:`AKS93`, and convection allows them to
+mixed layer :cite:`Arrigo93`, and convection allows them to
 penetrate deep into the brine channel network. Gravity drainage is
 strongly coupled to carbonate and alkalinity relationships; bio-active
 gases including molecular oxygen, dimethyl sulfide (DMS) and methane
@@ -408,15 +408,15 @@ the more general term.
 Ecological succession in the bottom zone interacts intimately with
 chemistry of the upper ocean–atmosphere system. Photosynthesis is
 constrained initially by light limitation but soon becomes a matter of
-resource availability :cite:`AKS93,DJEHMJ11`. Radiation
+resource availability :cite:`Arrigo93,Deal11`. Radiation
 intensity dictates the timing of bloom inception. The direct inflow of
 salt laden water can then be filtered immediately for the dissolved
 nutrient forms, which are converted locally into biomass. In association
 with the carbon storage, considerable DMS and molecular oxygen are
-generated :cite:`EDHHJJLS12`. Melt and flush periods cause
+generated :cite:`Elliott12`. Melt and flush periods cause
 bottom ice organisms to be rejected from the matrix mechanically. The
 dominant primary producers among them are pennate diatoms, a class
-subject to rapid sinking :cite:`LDM05`. Hence the amount of
+subject to rapid sinking :cite:`Lavoie05`. Hence the amount of
 bottom layer biological activity dictates high latitude nutrient and
 trace gas levels in the early spring, then carbon drawdown moving into
 the period of breakup.
@@ -428,26 +428,26 @@ release treats inflow of the primary Arctic nutrients nitrate and
 silicate, along with the major pathway for nitrogen recycling via
 ammonia. Both fertilizers and byproducts are permitted to exchange back
 out of the porous bottom volume on a time scale of order hours
-:cite:`AKS93,LDM05`. Biomass multiplies exponentially as
+:cite:`Arrigo93,Lavoie05`. Biomass multiplies exponentially as
 light and nutrient restrictions are lifted, following the rising polar
 sun. Uptake accelerates until there is a transition to flux limitation
-:cite:`EDHHJJLS12`. At variable times and locations, a
+:cite:`Elliott12`. At variable times and locations, a
 kinetic balance is often reached in which dissolved nitrogen is
 sequestered faster than it can leave the porous volume. Computational
 terms involved in the ecodynamic simulation resemble Michaelis-Menten
 enzyme kinetics, and have been adapted here from a series of pioneering
 ice biogeochemistry models
-:cite:`AKS93,JDWSTWLG06,LDM05`. CICE biogeochemical
+:cite:`Arrigo93,Jin06,Lavoie05`. CICE biogeochemical
 applications include a series of Pan-Arctic simulations, conceptually
 extending from primary production and carbon cycling to the release of
 trace gases into the ice domain
-:cite:`DJEHMJ11,EDHHJJLS12`.
+:cite:`Deal11,Elliott12`.
 
 The bottom ice biogeochemistry module described here is designed for
 ready attachment of extra-nutrient cycling, including byproduct and
 detrital processing. Our own mechanism for the generation of DMS is
 included in the release as an example. For full details please see
-descriptions and schematics in :cite:`EDHHJJLS12`.
+descriptions and schematics in :cite:`Elliott12`.
 Generally speaking, the primary nutrient flow as nitrogen simultaneously
 supports formation of silicate frustules by the ice diatoms, along with
 carbon biomass production and the implied chlorophyll buildup. Synthesis
@@ -455,9 +455,9 @@ of organosulfur metabolites is handled simultaneously and in direct
 proportion. DMS spins off of this subsystem at much higher levels than
 those familiar from open water studies, since the ice algae are
 especially abundant and suffer strong cryological, osmotic and oxidant
-stress in an extreme environmental regime :cite:`SSTMB07`.
+stress in an extreme environmental regime :cite:`Stefels07`.
 The sulfur transformations are governed by a typical pattern of routing
-kinetics within and below the ice :cite:`EDHHJJLS12`, which
+kinetics within and below the ice :cite:`Elliott12`, which
 reduces the net yield of volatile gas but still permits considerable
 buildup and release during the spring thaw.
 
@@ -501,9 +501,9 @@ linearly restored to climatology according to the restoring timescale
 For each horizontal grid point, local biogeochemical tracer equations
 are solved in **ice\_algae.F90**. There are two types of ice–ocean
 tracer flux formulations: ‘Jin2006’ modelled after the growth rate
-dependent piston velocity of :cite:`JDWSTWLG06`, and
+dependent piston velocity of :cite:`Jin06`, and
 ‘constant’ modelled after the constant piston velocity of
-:cite:`EDHHJJLS12`. The formulation is specified in
+:cite:`Elliott12`. The formulation is specified in
 **ice\_in** by setting `bgc\_flux\_type` equal to ‘Jin2006’ or ‘constant’.
 
 In addition to horizontal advection and transport among thickness
@@ -516,7 +516,7 @@ the form
    :label: tracer1
 
 where :math:`R_b` represents the nonlinear biochemical reaction terms
-detailed in :cite:`EDHHJJLS12` and :math:`\Delta z` is a
+detailed in :cite:`Elliott12` and :math:`\Delta z` is a
 length scale representing the molecular sublayer of the ice–ocean
 interface. Its value is absorbed in the piston velocity parameters. The
 piston velocity :math:`w_b` depends on the particular tracer and the
@@ -585,13 +585,13 @@ This bottom-specific biogeochemistry module necessarily simplifies the
 full sea ice ecosystem. For the moment, zooplankton comprise an
 imaginary tracer of indefinite mass that make their presence felt mainly
 through the recycling of ammonia
-:cite:`EDHHJJLS12,JDWSTWLG06`. Consumer organisms are
+:cite:`Elliott12,Jin06`. Consumer organisms are
 essentially siphoned off of the standard primary production pathway as
-a fixed fraction of overall growth :cite:`AKS93`. Transfer
+a fixed fraction of overall growth :cite:`Arrigo93`. Transfer
 velocities relating the upper water column to ice fluids and solutes are
 now parameterized as a function of off-line congelation rates, based on
 laboratory brine expulsion data
-:cite:`AKS93,EDHHJJLS12,JDWSTWLG06`. Thus far we have
+:cite:`Arrigo93,Elliott12,Jin06`. Thus far we have
 tested removal from the active bottom zone as a single adjustable time
 constant, but results have not been formalized or adequately evaluated
 against data. Internally consistent connections with gravity drainage
@@ -636,7 +636,7 @@ aerosols are transferred to the ocean.
 The aerosol tracer flag `tr\_aero` must be set to true in **ice\_in**, and
 the number of aerosol species is set in **comp\_ice**; CESM uses 3.
 Results using the aerosol code in the context of CESM are documented in
-:cite:`HBBLH12`. Global diagnostics are available when
+:cite:`Holland12`. Global diagnostics are available when
 `print\_global` is true, and history variables include the mass density
 for each layer (snow and ice SSL and interior), and atmospheric and
 oceanic fluxes, for each species.
@@ -821,8 +821,8 @@ equations for ice and/or snow density may be included in future model
 versions but have not yet been implemented.
 
 Two transport schemes are available: upwind and the incremental
-remapping scheme of :cite:`DB00` as modified for sea ice by
-:cite:`LH04`. The remapping scheme has several desirable features:
+remapping scheme of :cite:`Dukowicz00` as modified for sea ice by
+:cite:`Lipscomb04`. The remapping scheme has several desirable features:
 
 -  It conserves the quantity being transported (area, volume, or
    energy).
@@ -897,7 +897,7 @@ to the values at the cell center. For example, the mean ice area must
 equal the value at the centroid, which may not lie at the cell center.
 
 Consider first the fractional ice area, the analog to fluid density
-:math:`\rho` in :cite:`DB00`. For each thickness category
+:math:`\rho` in :cite:`Dukowicz00`. For each thickness category
 we construct a field :math:`a({\bf r})` whose mean is :math:`\bar{a}`,
 where :math:`{\bf r} =
 (x,y)` is the position vector relative to the cell center. That is, we
@@ -942,8 +942,8 @@ means such as :math:`\overline{x^2}`, :math:`\overline{xy}`, and
 
 Next consider the ice and snow thickness and enthalpy fields. Thickness
 is analogous to the tracer concentration :math:`T` in
-:cite:`DB00`, but there is no analog in
-:cite:`DB00` to the enthalpy. The reconstructed ice or snow
+:cite:`Dukowicz00`, but there is no analog in
+:cite:`Dukowicz00` to the enthalpy. The reconstructed ice or snow
 thickness :math:`h({\bf r})` and enthalpy :math:`q(\mathbf{r})` must
 satisfy
 
@@ -1076,7 +1076,7 @@ Locating departure triangles
 ****************************
 
 The method for locating departure triangles is discussed in detail by
-:cite:`DB00`. The basic idea is illustrated in
+:cite:`Dukowicz00`. The basic idea is illustrated in
 :ref:`fig-deparr`, which shows a shaded quadrilateral departure region
 whose contents are transported to the target or home grid cell, labeled
 :math:`H`. The neighboring grid cells are labeled by compass directions:
@@ -1120,7 +1120,7 @@ edge of cell :math:`H` consists of a triangle (:math:`abc`) in the
 :math:`ade`) in the :math:`N` cell.
 
 
-Figure :ref:`fig-triangles`, reproduced from :cite:`DB00`, shows
+Figure :ref:`fig-triangles`, reproduced from :cite:`Dukowicz00`, shows
 all possible triangles that can contribute fluxes across the north edge
 of a grid cell. There are 20 triangles, which can be organized into five
 groups of four mutually exclusive triangles as shown in
@@ -1256,7 +1256,7 @@ but not both of the grid cells that share the edge. Since this option
 has yet to be fully tested in CICE, the current default is
 `l\_fixed\_area` = false.
 
-We made one other change in the scheme of :cite:`DB00` for
+We made one other change in the scheme of :cite:`Dukowicz00` for
 locating triangles. In their paper, departure points are defined by
 projecting cell corner velocities directly backward. That is,
 
@@ -1320,7 +1320,7 @@ three points,
 
 where :math:`\mathbf{x}_i^\prime = (\mathbf{x}_0+\mathbf{x}_i)/2` are
 points lying halfway between the midpoint and the three vertices.
-:cite:`DB00` use this formula to compute transports of the
+:cite:`Dukowicz00` use this formula to compute transports of the
 product :math:`\rho \, T`, which is analogous to ice volume. Equation
 :eq:`I2` does not work for ice and snow energies, which are cubic
 functions—products of area, thickness, and enthalpy. Integrals of a
@@ -1392,32 +1392,32 @@ elastic-viscous-plastic (EVP) model represents a modification of the
 standard viscous-plastic (VP) model for sea ice dynamics
 :cite:`Hibler79`. The elastic-anisotropic-plastic (EAP) model,
 on the other hand, explicitly accounts for the observed sub-continuum
-anisotropy of the sea ice cover :cite:`WF06,WS09`. If
+anisotropy of the sea ice cover :cite:`Wilchinsky06,Weiss09`. If
 `kdyn` = 1 in the namelist then the EVP rheology is used (module
 **ice\_dyn\_evp.F90**), while `kdyn` = 2 is associated with the EAP
 rheology (**ice\_dyn\_eap.F90**). At times scales associated with the
 wind forcing, the EVP model reduces to the VP model while the EAP model
 reduces to the anisotropic rheology described in detail in
-:cite:`WF06,TFW13`. At shorter time scales the
+:cite:`Wilchinsky06,Tsamados13`. At shorter time scales the
 adjustment process takes place in both models by a numerically more
 efficient elastic wave mechanism. While retaining the essential physics,
 this elastic wave modification leads to a fully explicit numerical
 scheme which greatly improves the model’s computational efficiency.
 
 The EVP sea ice dynamics model is thoroughly documented in
-:cite:`HD97`, :cite:`Hunke01`,
-:cite:`HD02` and :cite:`HD03` and the EAP
-dynamics in :cite:`TFW13`. Simulation results and
+:cite:`Hunke97`, :cite:`Hunke01`,
+:cite:`Hunke02` and :cite:`Hunke03` and the EAP
+dynamics in :cite:`Tsamados13`. Simulation results and
 performance of the EVP and EAP models have been compared with the VP
 model and with each other in realistic simulations of the Arctic
-respectively in :cite:`HZ99` and
-:cite:`TFW13`. Here we summarize the equations and
+respectively in :cite:`Hunke99` and
+:cite:`Tsamados13`. Here we summarize the equations and
 direct the reader to the above references for details. The numerical
-implementation in this code release is that of :cite:`HD02`
-and :cite:`HD03`, with revisions to the numerical solver as
-in :cite:`BFLM13`. The implementation of the EAP sea ice
+implementation in this code release is that of :cite:`Hunke02`
+and :cite:`Hunke03`, with revisions to the numerical solver as
+in :cite:`Bouillon13`. The implementation of the EAP sea ice
 dynamics into CICE is described in detail in
-:cite:`TFW13`.
+:cite:`Tsamados13`.
 
 .. _momentum:
 
@@ -1439,15 +1439,15 @@ where :math:`m` is the combined mass of ice and snow per unit area and
 :math:`\vec{\tau}_a` and :math:`\vec{\tau}_w` are wind and ocean
 stresses, respectively. The term :math:`\vec{\tau}_b` is a 
 seabed stress (also referred to as basal stress) that represents the grounding of pressure
-ridges in shallow water :cite:`LDBRSF16`. The strength of the ice is represented by the
+ridges in shallow water :cite:`Lemieux16`. The strength of the ice is represented by the
 internal stress tensor :math:`\sigma_{ij}`, and the other two terms on
 the right hand side are stresses due to Coriolis effects and the sea
 surface slope. The parameterization for the wind and ice–ocean stress
 terms must contain the ice concentration as a multiplicative factor to
 be consistent with the formal theory of free drift in low ice
 concentration regions. A careful explanation of the issue and its
-continuum solution is provided in :cite:`HD03` and
-:cite:CGHM04`.
+continuum solution is provided in :cite:`Hunke03` and
+:cite:Connolley04`.
 
 The momentum equation is discretized in time as follows, for the classic
 EVP approach. First, for clarity, the two components of Equation :eq:`vpmom` are
@@ -1527,7 +1527,7 @@ When the subcycling is finished for each (thermodynamic) time step, the
 ice–ocean stress must be constructed from `taux(y)` and the terms
 containing `vrel` on the left hand side of the equations.
 
-The Hibler-Bryan form for the ice-ocean stress :cite:`HB87`
+The Hibler-Bryan form for the ice-ocean stress :cite:`Hibler87`
 is included in **ice\_dyn\_shared.F90** but is currently commented out,
 pending further testing.
 
@@ -1537,7 +1537,7 @@ pending further testing.
 Seabed stress
 ***************
 
-The parameterization for the seabed stress is described in :cite:`LDBRSF16`. The components of the basal seabed stress are 
+The parameterization for the seabed stress is described in :cite:`Lemieux16`. The components of the basal seabed stress are 
 :math:`\tau_{bx}=C_bu` and :math:`\tau_{by}=C_bv`, where :math:`C_b` is a coefficient expressed as
 
 .. math::
@@ -1590,7 +1590,7 @@ is therefore simply equal to :math:`-\sigma_1/2`.
 *Elastic-Viscous-Plastic*
 
 In the EVP model the internal stress tensor is determined from a
-regularized version of the VP constitutive law. Following the approach of :cite:`KH10` (see also :cite:`LDBRSF16`), the 
+regularized version of the VP constitutive law. Following the approach of :cite:`Konig10` (see also :cite:`Lemieux16`), the 
 elliptical yield curve can be modified such that the ice has isotropic tensile strength. 
 The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P` 
 where :math:`k_t` should be set to a value between 0 and 1. The constitutive law is therefore 
@@ -1632,7 +1632,7 @@ where
 .. math::
    \Delta = \left[D_D^2 + {1\over e^2}\left(D_T^2 + D_S^2\right)\right]^{1/2},
 
-and :math:`P_R` is a “replacement pressure” (see :cite:`GHA98`, for
+and :math:`P_R` is a “replacement pressure” (see :cite:`Geiger98`, for
 example), which serves to prevent residual ice motion due to spatial
 variations of :math:`P` when the rates of strain are exactly zero. The ice strength :math:`P` 
 is a function of the ice thickness and concentration
@@ -1672,7 +1672,7 @@ now used, which enabled the discrete equations to be derived from the
 continuous equations written in curvilinear coordinates. In this
 manner, metric terms associated with the curvature of the grid are
 incorporated into the discretization explicitly. Details pertaining to
-the spatial discretization are found in :cite:`HD02`.
+the spatial discretization are found in :cite:`Hunke02`.
 
 *Elastic-Anisotropic-Plastic*
 
@@ -1719,7 +1719,7 @@ processes (thermal cracking, melting, freezing together of floes) that
 contribute to a more isotropic nature to the ice cover.
 :math:`\mathbf F_{frac}` is a function determining the ice floe
 re-orientation due to fracture, and explicitly depends upon sea ice
-stress (but not its magnitude). Following :cite:`WF06`,
+stress (but not its magnitude). Following :cite:`Wilchinsky06`,
 based on laboratory experiments by :cite:`Schulson01` we
 consider four failure mechanisms for the Arctic sea ice cover. These
 are determined by the ratio of the principal values of the sea ice
@@ -1746,7 +1746,7 @@ effect balances to zero.
    Diamond-shaped floes
 
 Figure :ref:`fig-EAP` shows geometry of interlocking diamond-shaped floes (taken from
-:cite:`WF06`). :math:`\phi` is half of the acute angle
+:cite:`Wilchinsky06`). :math:`\phi` is half of the acute angle
 of the diamonds. :math:`L` is the edge length.
 :math:`\boldsymbol n_{1}`, :math:`\boldsymbol n_{2}` and
 :math:`\boldsymbol\tau_{1}`, :math:`\boldsymbol\tau_{2}` are
@@ -1776,8 +1776,8 @@ of two equations:
 where the first terms on the right hand side correspond to the
 isotropic contribution, :math:`F_{iso}`, and :math:`M_{11}` and
 :math:`M_{12}` are the components of the term :math:`F_{frac}` in
-Equation :eq:`evolutionA` that are given in :cite:`WF06` and
-:cite:`TFW13`. These evolution equations are
+Equation :eq:`evolutionA` that are given in :cite:`Wilchinsky06` and
+:cite:`Tsamados13`. These evolution equations are
 discretized semi-implicitly in time. The degree of anisotropy is
 measured by the largest eigenvalue (:math:`A_{1}`) of this tensor
 (:math:`A_{2}=1-A_{1}`). :math:`A_{1}=1` corresponds to perfectly
@@ -1787,7 +1787,7 @@ diamond floes, through prescribing :math:`\phi`, we make no assumption
 about the size of the diamonds so that formally the theory is scale
 invariant.
 
-As described in greater detail in :cite:`WF06`, the
+As described in greater detail in :cite:`Wilchinsky06`, the
 internal ice stress for a single orientation of the ice floes can be
 calculated explicitly and decomposed, for an average ice thickness
 :math:`h`, into its ridging (r) and sliding (s) contributions
@@ -1841,7 +1841,7 @@ for discrete values of the largest eigenvalue of the structure tensor,
 :math:`\frac{1}{2}\le A_{1}\le 1`, the angle :math:`0\le\theta\le2\pi`,
 and the angle :math:`-\pi/2\le y\le\pi/2` between the major principal
 axis of the strain rate tensor and the structure tensor
-:cite:`TFW13`. The updated stress, after the elastic
+:cite:`Tsamados13`. The updated stress, after the elastic
 relaxation, is then passed to the momentum equation and the sea ice
 velocities are updated in the usual manner within the subcycling loop of
 the EVP rheology. The structure tensor evolution equations are solved
@@ -1850,7 +1850,7 @@ velocities and internal stresses. Finally, to be coherent with our new
 rheology we compute the area loss rate due to ridging as
 :math:`\vert\dot{\boldsymbol\epsilon}\vert\alpha_{r}(\theta)`, with
 :math:`\alpha_r(\theta)` and :math:`\alpha_s(\theta)` given by
-:cite:`WF04`,
+:cite:`Wilchinsky04`,
 
 .. math::
    \begin{aligned}
@@ -1866,7 +1866,7 @@ Revised approach
 ****************
 
 A modification of the standard elastic-viscous-plastic (EVP) approach
-for sea ice dynamics has been proposed by :cite:`BFLM13`,
+for sea ice dynamics has been proposed by :cite:`Bouillon13`,
 that generalizes the EVP elastic modulus :math:`E` and the time
 stepping approach for both momentum and stress to use an
 under-relaxation technique. In general terms, the momentum and stress
@@ -1943,7 +1943,7 @@ then Equation :eq:`sig1time` becomes
 .. math:: 
    \sigma_1^{k+1}\left(1+\alpha_1\right) = \alpha_1\sigma_1^k + {P\over\Delta} \left(\dot{\epsilon} - \Delta\right).
 
-This is equivalent to Eq. (23) in :cite:`BFLM13`, but
+This is equivalent to Eq. (23) in :cite:`Bouillon13`, but
 using :math:`\sigma` at the current subcycle :math:`k+1` in the last
 term on the right-hand side. Likewise, setting
 
@@ -1951,12 +1951,12 @@ term on the right-hand side. Likewise, setting
    \alpha_2 = {2T\over e^2\Delta t_e} = {\alpha_1\over e^2}
 
 produces equations equivalent to Eq. (23) in
-:cite:`BFLM13` for :math:`\sigma_2` and
+:cite:`Bouillon13` for :math:`\sigma_2` and
 :math:`\sigma_{12}`. Therefore the only change needed in the stress
 code is to use :math:`\alpha_1` and :math:`\alpha_2` instead of
 :math:`2T / \Delta t_e` and :math:`2T /e^2 \Delta t_e`.
 
-However, :cite:`BFLM13` introduce another change to the EVP
+However, :cite:`Bouillon13` introduce another change to the EVP
 stress equations by altering the form of Young’s modulus in the elastic
 term: the coefficient of :math:`\partial\sigma_1/\partial t` is
 :math:`1/E`, but it is :math:`e^2/E` in the :math:`\sigma_2` and
@@ -2227,7 +2227,7 @@ The right boundary :math:`H_N` is not fixed but varies with
 or melt rates in a given grid cell are too large, the thickness
 remapping scheme will not work. Instead, the thickness categories in
 that grid cell are treated as delta functions following
-:cite:`BHWE01`, and categories outside their prescribed
+:cite:`Bitz01`, and categories outside their prescribed
 boundaries are merged with neighboring categories as needed. For time
 steps of less than a day and category thickness ranges of 10 cm or more,
 this simplification is needed rarely, if ever.
@@ -2248,9 +2248,9 @@ The last term on the right-hand side of Equation :eq:`transport-g`
 is :math:`\psi`, which describes the redistribution
 of ice in thickness space due to ridging and other mechanical processes.
 The mechanical redistribution scheme in CICE is based on
-:cite:`TRMC75`, :cite:`Rothrock75`,
-:cite:`Hibler80`, :cite:`FH95`, and
-:cite:`LHMJ07`. This scheme converts thinner ice to thicker
+:cite:`Thorndike75`, :cite:`Rothrock75`,
+:cite:`Hibler80`, :cite:`Flato95`, and
+:cite:`Lipscomb07`. This scheme converts thinner ice to thicker
 ice and is applied after horizontal transport. When the ice is
 converging, enough ice ridges to ensure that the ice area does not
 exceed the grid cell area.
@@ -2261,7 +2261,7 @@ use “ridging” as shorthand for all forms of mechanical redistribution,
 including rafting.) The weighting function :math:`b(h)` favors ridging
 of thin ice and closing of open water in preference to ridging of
 thicker ice. There are two options for the form of :math:`b(h)`. If
-`krdg\_partic` = 0 in the namelist, we follow :cite:`TRMC75`
+`krdg\_partic` = 0 in the namelist, we follow :cite:`Thorndike75`
 and set
 
 .. math::
@@ -2291,7 +2291,7 @@ Equation :eq:`partic-old-discrete` is valid with :math:`G^*` replacing
 :math:`G_n`, and if :math:`G_{n-1} > G^*`, then :math:`a_{Pn} = 0`. If
 the open water fraction :math:`a_0 > G^*`, no ice can ridge, because
 “ridging” simply reduces the area of open water. As in
-:cite:`TRMC75` we set :math:`G^* = 0.15`.
+:cite:`Thorndike75` we set :math:`G^* = 0.15`.
 
 If the spatial resolution is too fine for a given time step
 :math:`\Delta t`, the weighting function Equation :eq:`partic-old-contin` can
@@ -2306,7 +2306,7 @@ velocity, strength, divergence, and shear can become noisy and
 unphysical.
 
 A more stable weighting function was suggested by
-:cite:`LHMJ07`:
+:cite:`Lipscomb07`:
 
 .. math::
    b(h) = \frac{\exp[-G(h)/a^*]}
@@ -2327,7 +2327,7 @@ participating in ridging is :math:`a^*`, as compared to :math:`G^*/3`
 for Equation :eq:`partic-old-contin`. For typical ice thickness distributions,
 setting :math:`a^* = 0.05` with `krdg\_partic` = 1 gives participation
 fractions similar to those given by :math:`G^* = 0.15` with `krdg\_partic`
-= 0. See :cite:`LHMJ07` for a detailed comparison of these
+= 0. See :cite:`Lipscomb07` for a detailed comparison of these
 two participation functions.
 
 Thin ice is converted to thick, ridged ice in a way that reduces the
@@ -2339,8 +2339,8 @@ forms ridges whose area is distributed uniformly between
 :cite:`Hibler80`. The default value of :math:`H^*` is 25 m, as
 in earlier versions of CICE. Observations suggest that
 :math:`H^* = 50` m gives a better fit to first-year ridges
-:cite:`AMI04`, although the lower value may be appropriate
-for multiyear ridges :cite:`FH95`. The ratio of the mean
+:cite:`Amundrud04`, although the lower value may be appropriate
+for multiyear ridges :cite:`Flato95`. The ratio of the mean
 ridge thickness to the thickness of ridging ice is
 :math:`k_n = (H_{\min} + H_{\max}) / (2 h_n)`. If the area of category
 :math:`n` is reduced by ridging at the rate :math:`r_n`, the area of
@@ -2368,9 +2368,9 @@ to category :math:`m` is
 
 This uniform redistribution function tends to produce too little ice in
 the 3–5 m range and too much ice thicker than 10 m
-:cite:`AMI04`. Observations show that the ITD of ridges is
+:cite:`Amundrud04`. Observations show that the ITD of ridges is
 better approximated by a negative exponential. Setting `krdg\_redist` = 1
-gives ridges with an exponential ITD :cite:`LHMJ07`:
+gives ridges with an exponential ITD :cite:`Lipscomb07`:
 
 .. math::
    g_R(h) \propto \exp[-(h - H_{\min})/\lambda]
@@ -2415,7 +2415,7 @@ instead of added to the new ridge.
 The net area removed by ridging and closing is a function of the strain
 rates. Let :math:`R_{\mathrm{net}}` be the net rate of area loss for the
 ice pack (i.e., the rate of open water area closing, plus the net rate
-of ice area loss due to ridging). Following :cite:`FH95`,
+of ice area loss due to ridging). Following :cite:`Flato95`,
 :math:`R_{\mathrm{net}}` is given by
 
 .. math::
@@ -2510,7 +2510,7 @@ where :math:`C_P = (g/2)(\rho_i/\rho_w)(\rho_w-\rho_i)`,
 :math:`\beta =R_{\mathrm{tot}}/R_{\mathrm{net}} > 1`
 from Equation :eq:`Rtot-Rnet`, and :math:`C_f` is an empirical parameter that
 accounts for frictional energy dissipation. Following
-:cite:`FH95`, we set :math:`C_f = 17`. The first term in
+:cite:`Flato95`, we set :math:`C_f = 17`. The first term in
 the summation is the potential energy of ridging ice, and the second,
 larger term is the potential energy of the resulting ridges. The factor
 of :math:`\beta` is included because :math:`a_{Pn}` is normalized with
@@ -2529,7 +2529,7 @@ The energy-based ice strength given by Equations :eq:`roth-strength0` or
 :eq:`roth-strength1` is more physically realistic than the strength
 given by Equation :eq:`hib-strength`. However, use of Equation :eq:`hib-strength` is
 less likely to allow numerical instability at a given resolution and
-time step. See :cite:`LHMJ07` for more details.
+time step. See :cite:`Lipscomb07` for more details.
 
 .. _thermo:
 
@@ -2539,10 +2539,10 @@ Thermodynamics
 
 The current CICE version includes three thermodynamics
 options, the “zero-layer" thermodynamics of :cite:`Semtner76`
-(`ktherm` = 0), the Bitz and Lipscomb model :cite:`BL99`
+(`ktherm` = 0), the Bitz and Lipscomb model :cite:`Bitz99`
 (`ktherm` = 1) that assumes a fixed salinity profile, and a new “mushy"
 formulation (`ktherm` = 2) in which salinity evolves
-:cite:`THB13`. For each thickness category, CICE computes
+:cite:`Turner13`. For each thickness category, CICE computes
 changes in the ice and snow thickness and vertical temperature profile
 resulting from radiative, turbulent, and conductive heat fluxes. The ice
 has a temperature-dependent specific heam to simulate the effect of
@@ -2651,14 +2651,14 @@ and thickness are computed according to the assumed pond shape, and the
 pond area is then reduced in the presence of snow for the radiation
 calculation. Ponds are allowed only on ice at least 1 cm thick. This
 formulation differs slightly from that documented in
-:cite:`HBBLH12`.
+:cite:`Holland12`.
 
 **Topographic formulation** (`tr\_pond\_topo` = true)
 
 The principle concept of this scheme is that melt water runs downhill
 under the influence of gravity and collects on sea ice with increasing
 surface height starting at the lowest height
-:cite:`FF07,FFT10,FSFH12`. Thus, the topography of the
+:cite:`Flocco07,Flocco10,Flocco12`. Thus, the topography of the
 ice cover plays a crucial role in determining the melt pond cover.
 However, CICE does not explicitly represent the topography of sea ice.
 Therefore, we split the existing ice thickness distribution function
@@ -2790,7 +2790,7 @@ ice class :math:`k + 1`,
 As the melting season progresses, not only does melt water accumulate
 upon the upper surface of the sea ice, but the sea ice beneath the melt
 water becomes more porous owing to a reduction in solid fraction
-:cite:`EGPRF04`. The hydraulic head of melt water on sea
+:cite:`Eicken04`. The hydraulic head of melt water on sea
 ice (i.e., its height above sea level) drives flushing of melt water
 through the porous sea ice and into the underlying ocean. The mushy
 thermodynamics scheme (`ktherm` :math:`= 2`) handles flushing. For
@@ -2808,7 +2808,7 @@ tensor (assumed to be isotropic in the horizontal), :math:`\mu` is the
 viscosity of water, :math:`\rho_o` is the ocean density, :math:`g` is
 gravitational acceleration, :math:`\Delta H` is the the hydraulic head,
 and :math:`h_i` is the thickness of the ice through which the pond
-flushes. As proposed by :cite:`GEHMPZ07` the vertical
+flushes. As proposed by :cite:`Golden07` the vertical
 permeability of sea ice can be calculated from the liquid fraction
 :math:`\phi`:
 
@@ -2820,7 +2820,7 @@ Since the solid fraction varies throughout the depth of the sea ice, so
 does the permeability. The rate of vertical drainage is determined by
 the lowest (least permeable) layer, corresponding to the highest solid
 fraction. From the equations describing sea ice as a mushy layer
-:cite:`FUWW06`, the solid fraction is determined by:
+:cite:`Feltham06`, the solid fraction is determined by:
 
 .. math::
    \phi = \frac{c_i-S}{c_i-S_{br}(T)},
@@ -2868,7 +2868,7 @@ volume, :math:`T_i` and :math:`T_p` are the ice surface and pond
 temperatures, and :math:`k_i` and :math:`k_p` are the thermal
 conductivity of the ice lid and pond respectively. The second term on
 the right hand-side is close to zero since the pond is almost uniformly
-at the freezing temperature :cite:`TF04`. Approximating the
+at the freezing temperature :cite:`Taylor04`. Approximating the
 temperature gradient in the ice lid as linear, the Stefan condition
 yields the classic Stefan solution for ice lid depth
 
@@ -2891,8 +2891,8 @@ once the pond is completely refrozen.
 
 As the sea ice area shrinks due to melting and ridging, the pond volume
 over the lost area is released to the ocean immediately. In
-:cite:`FFT10`, the pond volume was carried as an ice area
-tracer, but in :cite:`FSFH12` and here, pond area and
+:cite:`Flocco10`, the pond volume was carried as an ice area
+tracer, but in :cite:`Flocco12` and here, pond area and
 thickness are carried as separate tracers, as in
 Section :ref:`tracers`.
 
@@ -2911,7 +2911,7 @@ with global diagnostics in **ice\_diagnostics.F90**.
 
 This meltpond parameterization represents a combination of ideas from
 the empirical CESM melt pond scheme and the topo approach, and is
-documented in :cite:`HHL13`. The ponds evolve according to
+documented in :cite:`Hunke13`. The ponds evolve according to
 physically based process descriptions, assuming a thickness-area ratio
 for changes in pond volume. A novel aspect of the new scheme is that the
 ponds are carried as tracers on the level (undeformed) ice area of each
@@ -3225,7 +3225,7 @@ effects of inclusions in the ice/snow matrix such as dust and algae can
 also be included, along with radiative treatment of melt ponds and other
 changes in physical properties, for example granularization associated
 with snow aging. The Delta-Eddington formulation is described in detail
-in :cite:`BL07`. Since publication of this technical paper,
+in :cite:`Briegleb07`. Since publication of this technical paper,
 a number of improvements have been made to the Delta-Eddington scheme,
 including a surface scattering layer and internal shortwave absorption
 for snow, generalization for multiple snow layers and more than four
@@ -3240,9 +3240,9 @@ additional tuning parameters are available for this scheme, `dT\_mlt` and
 `rsnw\_mlt`. `dT\_mlt` is the temperature change needed for a change in snow
 grain radius from non-melting to melting, and `rsnw\_mlt` is the maximum
 snow grain radius when melting. An absorption coefficient for algae
-(`kalg`) may also be set. See :cite:`BL07` for details; the
+(`kalg`) may also be set. See :cite:`Briegleb07` for details; the
 CESM melt pond and Delta-Eddington parameterizations are further
-explained and validated in :cite:`HBBLH12`.
+explained and validated in :cite:`Holland12`.
 
 *Shortwave radiation: CCSM3*
 
@@ -3300,7 +3300,7 @@ where :math:`I(z)` is the shortwave flux that reaches depth :math:`z`
 beneath the surface without being absorbed, and :math:`\kappa_i` is the
 bulk extinction coefficient for solar radiation in ice, set to
 :math:`1.4 \
-{\mathrm m^{-1}}` for visible wavelengths :cite:`ESC95`. A
+{\mathrm m^{-1}}` for visible wavelengths :cite:`Ebert95`. A
 fraction :math:`\exp(-\kappa_i h_i)` of the penetrating solar radiation
 passes through the ice to the ocean
 (:math:`F_{sw\Downarrow}`). 
@@ -3340,7 +3340,7 @@ where :math:`q_1 = 1.16378 \times 10^7 \, \mathrm{kg/m^3}`,
 Kelvin, and :math:`\rho_a` is the surface air density.
 
 The net downward heat flux from the ice to the ocean is given by
-:cite:`MM95`:
+:cite:`Maykut95`:
 
 .. math::
    F_{bot} = -\rho_w c_w c_h u_* (T_w - T_f),
@@ -3357,7 +3357,7 @@ depend on the ocean forcing used and can be as low as 0.
 :math:`F_{bot}` is limited by the total amount of heat available from
 the ocean, :math:`F_{frzmlt}`. Additional heat,
 :math:`F_{side}`, is used to melt the ice laterally following
-:cite:`MP87` and :cite:`Steele92`.
+:cite:`Maykut87` and :cite:`Steele92`.
 :math:`F_{bot}` and the fraction of ice melting laterally are scaled so
 that :math:`F_{bot} + F_{side} \ge F_{frzmlt}` in the case that
 :math:` F_{frzmlt}<0` (melting; see
@@ -3379,8 +3379,8 @@ other configurations, which we describe here.
 
 **Bitz and Lipscomb thermodynamics** (`ktherm` = 1)
 
-The “BL99" thermodynamic sea ice model is based on
-:cite:`MU71` and :cite:`BL99`, and is
+The “Bitz99" thermodynamic sea ice model is based on
+:cite:`Maykut71` and :cite:`Bitz99`, and is
 described more fully in :cite:`Lipscomb98`. The vertical
 salinity profile is prescribed and is unchanging in time. The snow is
 assumed to be fresh, and the midpoint salinity :math:`S_{ik}` in each
@@ -3396,7 +3396,7 @@ least-squares fit to the salinity profile observed in multiyear sea
 ice by :cite:`Schwarzacher59`. This profile varies from
 :math:`S=0` at the top surface (:math:`z = 0`) to :math:`S=S_{\max}`
 at the bottom surface (:math:`z=1`) and is similar to that used by
-:cite:`MU71`. Equation :eq:`salinity` is fairly accurate
+:cite:`Maykut71`. Equation :eq:`salinity` is fairly accurate
 for ice that has drained at the top surface due to summer melting. It
 is not a good approximation for cold first-year ice, which has a more
 vertically uniform salinity because it has not yet drained. However,
@@ -3440,7 +3440,7 @@ conservatively by the transport modules; they are simply ignored by the
 thermodynamics.)
 
 The rate of temperature change in the ice interior is given by
-:cite:`MU71`:
+:cite:`Maykut71`:
 
 .. math::
    \rho_i c_i \frac{\partial T_i}{\partial t} =
@@ -3476,8 +3476,8 @@ fresh ice at , and :math:`\mu = 0.054` deg/ppt is the (liquidus) ratio
 between the freezing temperature and salinity of brine.
 
 Following :cite:`Untersteiner64` and
-:cite:`MU71`, the standard thermal conductivity
-(`conduct` = ‘MU71’) is given by
+:cite:`Maykut71`, the standard thermal conductivity
+(`conduct` = ‘Maykut71’) is given by
 
 .. math::
    K_i(T,S) = K_0 + \frac{\beta S}{T},
@@ -3485,14 +3485,14 @@ Following :cite:`Untersteiner64` and
 
 where :math:`K_0 = 2.03` W/m/deg is the conductivity of fresh ice and
 :math:`\beta = 0.13` W/m/ppt is an empirical constant. Experimental
-results :cite:`TWMH01` suggest that Equation :eq:`conductivity` may
+results :cite:`Trodahl01` suggest that Equation :eq:`conductivity` may
 not be a good description of the thermal conductivity of sea ice. In
 particular, the measured conductivity does not markedly decrease as
 :math:`T` approaches , but does decrease near the top surface
 (regardless of temperature).
 
 An alternative parameterization based on the “bubbly brine" model of
-:cite:`PETB07` for conductivity is available
+:cite:`Pringle07` for conductivity is available
 (`conduct` = ‘bubbly’):
 
 .. math::
@@ -3766,7 +3766,7 @@ The other root is unphysical.
 **Mushy thermodynamics** (`ktherm` = 2)
 
 The “mushy" thermodynamics option treats the sea ice as a mushy layer
-:cite:`FUWW06` in which the ice is assumed to be composed
+:cite:`Feltham06` in which the ice is assumed to be composed
 of microscopic brine inclusions surrounded by a matrix of pure water
 ice. Both enthalpy and salinity are prognostic variables. The size of
 the brine inclusions is assumed to be much smaller than the size of
@@ -3821,7 +3821,7 @@ and ice are fixed at the values of :math:`\rho_w` and :math:`\rho_i`,
 respectively.
 
 The permeability of ice is computed from the liquid fraction as in
-:cite:`GEHMPZ07`:
+:cite:`Golden07`:
 
 
 .. math:: 
@@ -3866,7 +3866,7 @@ Fitting to the data, :math:`T_0=-7.636^\circ`\ C,
 *Two stage outer iteration.* 
 
 As for the BL99 thermodynamics
-:cite:`BL99` there are two qualitatively different
+:cite:`Bitz99` there are two qualitatively different
 situations that must be considered when solving for the vertical
 thermodynamics: the surface can be melting and at the melting
 temperature, or the surface can be colder than the melting temperature
@@ -3927,7 +3927,7 @@ conductivity of pure ice and
 conductivity of the brine. The thermal conductivity of brine is a
 function of temperature and salinity, but here we take it as a constant
 value for the middle of the temperature range experienced by sea ice,
-:math:`-10^\circ`\ C :cite:`SP86`, assuming the brine
+:math:`-10^\circ`\ C :cite:`Siedler86`, assuming the brine
 liquidus salinity at :math:`-10^\circ`\ C.
 
 We discretize the terms that include temperature in the heat
@@ -4002,7 +4002,7 @@ saltier brine is denser than the underlying sea water and the brine
 undergoes convective overturning with the ocean. As the dense, cold
 brine drains out of the ice, it is replaced by fresher seawater,
 lowering the bulk salinity of the ice. Following
-:cite:`THB13`, gravity drainage is assumed to occur as two
+:cite:`Turner13`, gravity drainage is assumed to occur as two
 simultaneously operating modes: a rapid mode operating principally near
 the ice base and a slow mode occurring everywhere.
 
@@ -4258,7 +4258,7 @@ old and new layers, respectively. The enthalpies of the new layers are
 
 Lateral melting is accomplished by multiplying the state variables by
 :math:`1-r_{side}`, where :math:`r_{side}` is the fraction of ice melted
-laterally :cite:`MP87,Steele92`, and adjusting the ice
+laterally :cite:`Maykut87,Steele92`, and adjusting the ice
 energy and fluxes as appropriate. We assume a floe diameter of 300 m.
 
 *Snow ice formation.* 
