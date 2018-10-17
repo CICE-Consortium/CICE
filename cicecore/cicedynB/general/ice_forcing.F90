@@ -29,7 +29,7 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
-      use ice_constants, only: c0, c1, c2, c4, c10, c12, c20, &
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, c10, c12, c20, &
                                c180, c365, c1000, c3600
       use ice_constants, only: p001, p01, p1, p25, p5, p6
       use ice_constants, only: cm_to_m
@@ -240,6 +240,8 @@
          call oned_files
       elseif (trim(atm_data_type) == 'ISPOL') then 
          call ISPOL_files
+      elseif (trim(atm_data_type) == 'box') then
+         call box_data(fyear)
       endif
 
       end subroutine init_forcing_atmo
@@ -4408,43 +4410,21 @@
       end subroutine ocn_data_ispol_init
 
 !=======================================================================
-
-!      end module ice_forcing
-
-!=======================================================================
-!=======================================================================
-!
-!BOP
-!
-! !IROUTINE: box_data - define atmospheric data fields 
-!
-! !INTERFACE:
 !
       subroutine box_data (yr)
-!
-! !DESCRIPTION:
-!
+
 ! wind and current fields as in Hunke, JCP 2001
-!
-! !REVISION HISTORY:
-!
 ! authors: Elizabeth Hunke, LANL
-!
-! !USES:
-!
+
       use ice_domain, only: nblocks
       use ice_constants, only: c0, c1, c2, c3, c4, c5, p2
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strairxT, &
                           strairyT
       use ice_fileunits, only: nu_diag, nu_forcing
+      use ice_grid, only: uvm
 
-!
-! !INPUT/OUTPUT PARAMETERS:
-! 
-! EOP
-! 
-!local parameters
+      ! local parameters
 
       integer (kind=int_kind) :: &
          iblk, i,j           ! loop indices
@@ -4455,18 +4435,22 @@
           secday, pi , c10, c12, c20, puny, period, pi2, tau
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
-        period = c4*secday 
+
+      period = c4*secday
 
       do iblk = 1, nblocks
          do j = 1, ny_block   
          do i = 1, nx_block   
 
          ! ocean current
-         ! constant in time---could be initialized in ice_flux.F90
+         ! constant in time, could be initialized in ice_flux.F90
          uocn(i,j,iblk) =  p2*real(j-nghost, kind=dbl_kind) &
                             / real(nx_global,kind=dbl_kind) - p1
          vocn(i,j,iblk) = -p2*real(i-nghost, kind=dbl_kind) &
                             / real(ny_global,kind=dbl_kind) + p1
+
+         uocn(i,j,iblk) = uocn(i,j,iblk) * uvm(i,j,iblk)
+         vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)
 
          ! wind components
          uatm(i,j,iblk) = c5 + (sin(pi2*time/period)-c3) &
@@ -4479,7 +4463,7 @@
                                        /real(nx_global,kind=dbl_kind)) &
                               * sin(pi2*real(j-nghost, kind=dbl_kind)  &
                                        /real(ny_global,kind=dbl_kind))
-!wind stress
+         ! wind stress
          wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
          tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
          strairxT(i,j,iblk) = tau * uatm(i,j,iblk)
@@ -4509,12 +4493,15 @@
         !                    / real(ny_global,kind=dbl_kind)
 ! initialization test
 
-
          enddo  
          enddo  
       enddo ! nblocks
 
       end subroutine box_data
 
+!=======================================================================
+
       end module ice_forcing
+
+!=======================================================================
 
