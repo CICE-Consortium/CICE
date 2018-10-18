@@ -130,10 +130,13 @@
       if (trim(nit_data_type) == 'clim'.or. &
           trim(sil_data_type) == 'clim') then
 
-         nit_file = trim(bgc_data_dir)//'nitrate_climatologyWOA_gx1v6f.nc'
+         nit_file = 'nitrate_climatologyWOA_gx1v6f_20150107.nc'
                              !'nitrate_WOA2005_surface_monthly'  ! gx1 only
-         sil_file = trim(bgc_data_dir)//'silicate_climatologyWOA_gx1v6f.nc'
+         sil_file = 'silicate_climatologyWOA_gx1v6f_20150107.nc'
                              !'silicate_WOA2005_surface_monthly' ! gx1 only
+
+         nit_file = trim(bgc_data_dir)//'/'//trim(nit_file)
+         sil_file = trim(bgc_data_dir)//'/'//trim(sil_file)
 
          if (my_task == master_task .and. istep == 1) then
          if (trim(sil_data_type)=='clim' .AND. tr_bgc_Sil) then

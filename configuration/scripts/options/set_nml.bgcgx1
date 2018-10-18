@@ -28,7 +28,6 @@ tr_zaero        = .true.
 z_tracers       = .true.
 solve_zbgc      = .true.
 scale_bgc       = .true.
-bgc_data_dir    = '/turquoise/usr/projects/climate/njeffery/DATA/gx1/nutrients/'
 sil_data_type   = 'clim'
 nit_data_type   = 'clim'
 tr_bgc_Nit      = .true.

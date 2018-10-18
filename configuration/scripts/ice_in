@@ -206,7 +206,7 @@
     scale_bgc       = .false.
     solve_zsal      = .false.
     restart_zsal    = .false.
-    bgc_data_dir    = '/uknown_bgc_data_dir'
+    bgc_data_dir    = 'unknown_bgc_data_dir'
     sil_data_type   = 'default'
     nit_data_type   = 'default'
     fe_data_type    = 'default'
