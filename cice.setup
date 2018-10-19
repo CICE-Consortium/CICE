@@ -33,6 +33,7 @@ set stime = `date -u "+%H%M%S"`
 set docase = 0
 set dotest = 0
 set dosuite = 0
+set doqc = 0
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -101,6 +102,7 @@ DESCRIPTION
     --testid   : test ID, user-defined id for testing (REQUIRED with --test or --suite)
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
+    --qc       : perform the quality control test
 
 EXAMPLES
     cice.setup --version
@@ -212,6 +214,10 @@ while (1)
     set report = 1
     shift argv
 
+  else if ("$option" == "--qc") then
+    set doqc = 1
+    shift argv
+
 # arguments with settings
   else
     shift argv
@@ -272,14 +278,14 @@ if (${machine} == ${spval}) then
   exit -1
 endif
 
-@ dosum = ${docase} + ${dotest} + ${dosuite}
+@ dosum = ${docase} + ${dotest} + ${dosuite} + ${doqc}
 if (${dosum} == 0) then
-  echo "${0}: ERROR in arguments, --case, --test, or --suite required"
+  echo "${0}: ERROR in arguments, --case, --test, --qc, or --suite required"
   exit -1
 endif
 
 if (${dosum} > 1) then
-  echo "${0}: ERROR in arguments, cannot use more than one of --case, --test, and --suite"
+  echo "${0}: ERROR in arguments, cannot use more than one of --case, --test, --qc, and --suite"
   exit -1
 endif
 
@@ -303,6 +309,32 @@ endif
 if ((${dosuite} == 1 || ${dotest} == 1) && ${testid} == ${spval}) then
   echo "${0}: ERROR in arguments.  --testid must be passed if using --suite or --test"
   exit -1
+endif
+
+#---------------------------------------------------------------------
+# Run the `run_qc.csh` script to perform the QC test, then exit
+if ( ${doqc} == 1 ) then
+  set options = "-m $machine"
+  if ($acct != $spval) then
+    set options = "$options --acct $acct"
+  endif
+  if ($grid != $spval) then
+    set options = "$options --grid $grid"
+  endif
+  if ($compiler != $spval) then
+    set options = "$options -e $compiler"
+  endif
+  if ($pesx != $spval) then
+    set options = "$options -p $pesx"
+  endif
+  if ($queue != $spval) then
+    set options = "$options --queue $queue"
+  endif
+  if ($testid != $spval) then
+    set options = "$options --testid $testid"
+  endif
+  ${ICE_SCRIPTS}/tests/QC/run_qc.csh ${options}
+  exit 0
 endif
 
 #---------------------------------------------------------------------
