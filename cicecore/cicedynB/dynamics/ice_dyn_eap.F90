@@ -19,6 +19,7 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
+      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: max_blocks, ncat
       use ice_constants, only: c0, c1, c2, c3, c12, p1, p2, p5, &
           p001, p027, p055, p111, p166, p222, p25, p333
@@ -416,7 +417,7 @@
       ! stress tensor equation, total surface stress
       !-----------------------------------------------------------------
 
-         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+         !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
 !      call ice_timer_start(timer_tmp1) ! dynamics
@@ -502,7 +503,7 @@
             endif
 !      call ice_timer_stop(timer_tmp3) ! dynamics
          enddo
-         !$OMP END PARALLEL DO
+         !$TCXOMP END PARALLEL DO
 
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
@@ -1624,7 +1625,7 @@
          gamma, alpha, x, y, dx, dy, da, &
          invdx, invdy, invda, invsin, &
          invleng, dtemp1, dtemp2, atempprime, &
-         puny, pi, pi2, piq
+         puny, pi, pi2, piq, pih
 
       real (kind=dbl_kind), parameter :: &
          kfriction = 0.45_dbl_kind
@@ -1632,7 +1633,7 @@
       character(len=*), parameter :: subname = '(update_stress_rdg)'
 
          call icepack_query_parameters(puny_out=puny, &
-            pi_out=pi, pi2_out=pi2, piq_out=piq)
+            pi_out=pi, pi2_out=pi2, piq_out=piq, pih_out=pih)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
@@ -1649,8 +1650,12 @@
 
          a22 = c1-a11
 
-! gamma: angle between general coordiantes and principal axis 
-         gamma = p5*atan2((c2*a12),(a11 - a22))
+! gamma: angle between general coordiantes and principal axis
+         if ((a11-a22) == c0) then
+           gamma = p5*(pih)
+         else
+           gamma = p5*atan2((c2*a12),(a11 - a22))
+         endif
 
 ! rotational tensor from general coordinates into principal axis
          Q11 = cos(gamma)
@@ -1673,7 +1678,11 @@
          dtemp22 = p5*(divu - tension)
 
 ! alpha: angle between general coordiantes and principal axis
-         alpha = p5*atan2((c2*dtemp12),(dtemp11 - dtemp22))
+         if ((dtemp11-dtemp22) == c0) then
+           alpha = p5*(pih)
+         else
+           alpha = p5*atan2((c2*dtemp12),(dtemp11 - dtemp22))
+         endif
 
 ! y: angle between major principal axis of strain rate and structure tensor
 ! to make sure y between 0 and pi/2
@@ -1699,7 +1708,11 @@
            invleng = c1/sqrt(dtemp1*dtemp1 + dtemp2*dtemp2)
            dtemp1 = dtemp1*invleng
            dtemp2 = dtemp2*invleng
-           x = atan2(dtemp2,dtemp1)
+           if ((dtemp1) == c0) then
+             x = (pih)
+           else
+             x = atan2(dtemp2,dtemp1)
+           endif
          endif
 
 !echmod to ensure the angle lies between pi/4 and 9 pi/4 
@@ -1928,7 +1941,7 @@
 
       real (kind=dbl_kind) :: &
          sigma11, sigma12, sigma22, &
-         gamma, sigma_1, sigma_2, &
+         gamma, sigma_1, sigma_2, pih, &
          Q11, Q12, Q11Q11, Q11Q12, Q12Q12
 
       real (kind=dbl_kind), parameter :: &
@@ -1937,11 +1950,20 @@
 
       character(len=*), parameter :: subname = '(calc_ffrac)'
 
+       call icepack_query_parameters(pih_out=pih)
+       call icepack_warnings_flush(nu_diag)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
        sigma11 = p5*(stressp+stressm) 
        sigma12 = stress12 
        sigma22 = p5*(stressp-stressm) 
 
-       gamma = p5*atan2((c2*sigma12),(sigma11-sigma22))
+       if ((sigma11-sigma22) == c0) then
+         gamma = p5*(pih)
+       else
+         gamma = p5*atan2((c2*sigma12),(sigma11-sigma22))
+       endif
 
 ! rotate tensor to get into sigma principal axis
 
@@ -2023,7 +2045,6 @@
 
       use ice_blocks, only: nghost
       use ice_boundary, only: ice_HaloUpdate_stress
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only:  &
           field_loc_center, field_type_scalar
       use ice_domain, only: nblocks, halo_info

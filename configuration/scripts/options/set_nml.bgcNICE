@@ -25,7 +25,7 @@
  restore_ocn     = .true.
  trestore        =  1
  atm_data_type   = 'NICE'
- ocn_data_type   = 'NICE'
+ sst_data_type   = 'NICE'
  bgc_data_type   = 'NICE'
  tr_brine        = .true.
  tr_zaero        = .false.

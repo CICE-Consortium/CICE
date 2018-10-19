@@ -25,7 +25,7 @@
  restore_ocn     = .true.
  trestore        = 7
  atm_data_type   = 'ISPOL'
- ocn_data_type   = 'ISPOL'
+ sst_data_type   = 'ISPOL'
  bgc_data_type   = 'ISPOL'
  tr_brine        = .true.
  tr_zaero        = .true.
