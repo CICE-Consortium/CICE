@@ -21,10 +21,9 @@ restart        gbox128  4x2       none
 restart        gbox128  4x2       boxdyn
 restart        gbox128  2x2       boxadv
 restart        gbox128  4x4       boxrestore
-smoke          gx3     8x2        bgcISPOL,short
-smoke          gx3     8x2        bgcNICE,debug
-smoke          gx3     8x1        bgcNICE
-smoke          gx3     4x2        bgcNICE,thread   smoke_gx3_8x1_bgcNICE
-smoke          gx3     1x1        bgcNICE          smoke_gx3_4x2_bgcNICE_thread
-restart        gx1     4x2        bgcskl,medium
-restart        gx1     8x1        bgcz,medium
+smoke          gx3     8x2        bgcz
+smoke          gx3     8x2        bgcz,debug
+smoke          gx3     8x1        bgcskl,debug
+#smoke          gx3     4x1        bgcz,thread        smoke_gx3_8x2_bgcz
+restart        gx1     4x2        bgcsklclim,medium
+restart        gx1     8x1        bgczclim,medium
