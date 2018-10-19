@@ -1120,7 +1120,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
-      use ice_domain, only: land_override
+      use ice_domain, only: close_boundaries
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1263,7 +1263,7 @@
 
             endif
 
-            if (land_override.eq.1) then
+            if (close_boundaries) then
               work_g1(:, 1:2) = c0
               work_g1(:, ny_global-1:ny_global) = c0
               work_g1(1:2, :) = c0

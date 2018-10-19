@@ -52,8 +52,6 @@
           timer_couple, timer_step
       logical (kind=log_kind) :: &
           tr_aero, tr_zaero, skl_bgc, z_tracers
-      integer (kind=int_kind) :: &
-          land_override   ! if=1, set land on edges of outer 2 rows/columns
       character(len=*), parameter :: subname = '(CICE_Run)'
 
    !--------------------------------------------------------------------

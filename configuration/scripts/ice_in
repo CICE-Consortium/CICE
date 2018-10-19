@@ -52,7 +52,7 @@
     kcatbound    = 0
     dxrect         = 30.e5
     dyrect         = 30.e5
-    land_override  = 0
+    close_boundaries = .false.
     ncat         = 5
     nilyr        = 7
     nslyr        = 1

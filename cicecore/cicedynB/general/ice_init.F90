@@ -55,7 +55,7 @@
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
-      use ice_domain, only: land_override
+      use ice_domain, only: close_boundaries
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
                                  n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
@@ -151,7 +151,7 @@
         grid_format,    grid_type,       grid_file,     kmt_file,       &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
-        land_override
+        close_boundaries
 
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,                       &
@@ -275,7 +275,7 @@
       krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
       Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
-      land_override = 0      ! 1 = set land on edges of grid
+      close_boundaries = .false.   ! true = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
@@ -521,7 +521,7 @@
       call broadcast_scalar(grid_format,        master_task)
       call broadcast_scalar(dxrect,             master_task)
       call broadcast_scalar(dyrect,             master_task)
-      call broadcast_scalar(land_override,      master_task)
+      call broadcast_scalar(close_boundaries,   master_task)
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)
@@ -955,8 +955,8 @@
          write(nu_diag,1020) ' kitd                      = ', kitd
          write(nu_diag,1020) ' kcatbound                 = ', &
                                kcatbound
-         write(nu_diag,1020) ' land_override             = ', &
-                               land_override
+         write(nu_diag,1010) ' close_boundaries          = ', &
+                               close_boundaries
          if (kdyn == 1) then
            write(nu_diag,1021) ' kdyn                      = ','evp ', kdyn
          elseif (kdyn == 2) then
