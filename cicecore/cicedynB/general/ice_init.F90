@@ -284,7 +284,7 @@
       albedo_type = 'default'! or 'constant'
       ktherm = 1             ! -1 = off, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
-      coriolis = 'default'   ! latitude dependent, or 'constant'
+      coriolis = 'latitude'  ! latitude dependent, or 'constant'
       kridge   = 1           ! -1 = off, 1 = on
       ktransport = 1         ! -1 = off, 1 = on
       calc_Tsfc = .true.     ! calculate surface temperature
