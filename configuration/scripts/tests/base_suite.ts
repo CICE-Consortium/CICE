@@ -19,5 +19,5 @@ restart        gx3     4x4        alt04
 restart        gx3     4x4        alt05
 restart        gbox128  4x2       none
 restart        gbox128  4x2       boxdyn
-restart        gbox128  2x2       boxadv
+restart        gbox128  2x2       boxadv,short
 restart        gbox128  4x4       boxrestore
