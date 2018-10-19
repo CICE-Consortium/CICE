@@ -74,13 +74,17 @@
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name
       use ice_flux, only: update_ocn_f, l_mpond_fresh
+      use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
           ycycle,          fyear_init,    dbug, &
           atm_data_type,   atm_data_dir,  precip_units, &
           atm_data_format, ocn_data_format, &
-          sss_data_type,   sst_data_type, ocn_data_dir, &
-          oceanmixed_file, restore_sst,   trestore
+          bgc_data_type, &
+          ocn_data_type, ocn_data_dir,      &
+          oceanmixed_file, restore_ocn,   trestore
+      use ice_arrays_column, only: bgc_data_dir, &
+          sil_data_type, nit_data_type, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 basalstress, Ktens, e_ratio
@@ -104,7 +108,7 @@
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg
+        phi_c_slow_mode, phi_i_mushy, kalg 
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -172,14 +176,17 @@
         hp1
 
       namelist /forcing_nml/ &
-        atmbndy,        fyear_init,      ycycle,        atm_data_format,&
-        atm_data_type,  atm_data_dir,    calc_strair,   calc_Tsfc,      &
-        precip_units,   update_ocn_f,    l_mpond_fresh, ustar_min,      &
-        fbot_xfer_type, emissivity,                                     &
-        oceanmixed_ice, ocn_data_format, sss_data_type, sst_data_type,  &
-        ocn_data_dir,   oceanmixed_file, restore_sst,   trestore,       &
-        restore_ice,    formdrag,        highfreq,      natmiter,       &
-        tfrz_option
+        formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
+        highfreq,       natmiter,        ustar_min,     emissivity,     &
+        fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
+        oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
+        precip_units,   default_season,                                 &
+        atm_data_type,  ocn_data_type,   bgc_data_type,                 &
+        sil_data_type,  nit_data_type,   fe_data_type,                  &
+        fyear_init,     ycycle,                                         &
+        atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
+        atm_data_format, ocn_data_format,                               &
+        oceanmixed_file
 
       namelist /tracer_nml/   &
         tr_iage, restart_age, &
@@ -275,8 +282,8 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
-      shortwave = 'default'  ! 'default' or 'dEdd' (delta-Eddington)
-      albedo_type = 'default'! or 'constant'
+      shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
+      albedo_type = 'ccsm3'  ! 'ccsm3' or 'constant'
       ktherm = 1             ! 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
       calc_Tsfc = .true.     ! calculate surface temperature
@@ -308,7 +315,7 @@
       albsnowi  = 0.70_dbl_kind   ! cold snow albedo, near IR
       ahmax     = 0.3_dbl_kind    ! thickness above which ice albedo is constant (m)
       atmbndy   = 'default'       ! or 'constant'
-
+      default_season  = 'winter'  ! default forcing data, if data is not read in
       fyear_init = 1900           ! first year of forcing cycle
       ycycle = 1                  ! number of years in forcing cycle
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
@@ -323,11 +330,15 @@
       tfrz_option     = 'mushy'   ! freezing temp formulation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
-      sss_data_type   = 'default'
-      sst_data_type   = 'default'
-      ocn_data_dir    = ' '
+      bgc_data_type   = 'default'
+      sil_data_type   = 'default'
+      nit_data_type   = 'default' 
+      fe_data_type    = 'default'
+      bgc_data_dir    = 'unknown_bgc_data_dir'
+      ocn_data_type   = 'default'
+      ocn_data_dir    = 'unknown_ocn_data_dir'
       oceanmixed_file = 'unknown_oceanmixed_file' ! ocean forcing data
-      restore_sst     = .false.   ! restore sst if true
+      restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
       restore_ice     = .false.   ! restore ice state on grid edges if true
       dbug      = .false.         ! true writes diagnostics for input forcing
@@ -574,11 +585,15 @@
       call broadcast_scalar(oceanmixed_ice,     master_task)
       call broadcast_scalar(tfrz_option,        master_task)
       call broadcast_scalar(ocn_data_format,    master_task)
-      call broadcast_scalar(sss_data_type,      master_task)
-      call broadcast_scalar(sst_data_type,      master_task)
+      call broadcast_scalar(bgc_data_type,      master_task)
+      call broadcast_scalar(sil_data_type,      master_task)
+      call broadcast_scalar(nit_data_type,      master_task)
+      call broadcast_scalar(fe_data_type,       master_task)
+      call broadcast_scalar(bgc_data_dir,       master_task)
+      call broadcast_scalar(ocn_data_type,      master_task)
       call broadcast_scalar(ocn_data_dir,       master_task)
       call broadcast_scalar(oceanmixed_file,    master_task)
-      call broadcast_scalar(restore_sst,        master_task)
+      call broadcast_scalar(restore_ocn,        master_task)
       call broadcast_scalar(trestore,           master_task)
       call broadcast_scalar(restore_ice,        master_task)
       call broadcast_scalar(dbug,               master_task)
@@ -1036,7 +1051,9 @@
                                trim(atm_data_dir)
             write(nu_diag,*) ' precip_units              = ', &
                                trim(precip_units)
-         endif 
+         elseif (trim(atm_data_type)=='default') then
+             write(nu_diag,*)    ' default_season            = ', trim(default_season)
+         endif
 
          write(nu_diag,1010) ' update_ocn_f              = ', update_ocn_f
          write(nu_diag,1010) ' l_mpond_fresh             = ', l_mpond_fresh
@@ -1048,25 +1065,33 @@
                                oceanmixed_ice
          write(nu_diag,*)    ' tfrz_option               = ', &
                                trim(tfrz_option)
-         if (trim(sss_data_type) == 'ncar' .or. &
-             trim(sst_data_type) == 'ncar') then
+         if (trim(bgc_data_type) == 'ncar' .or. &
+             trim(ocn_data_type) == 'ncar') then
             write(nu_diag,*) ' oceanmixed_file           = ', &
                                trim(oceanmixed_file)
          endif
-         write(nu_diag,*)    ' sss_data_type             = ', &
-                               trim(sss_data_type)
-         write(nu_diag,*)    ' sst_data_type             = ', &
-                               trim(sst_data_type)
-         if (trim(sss_data_type) /= 'default' .or. &
-             trim(sst_data_type) /= 'default') then
+         write(nu_diag,*)    ' bgc_data_type             = ', &
+                               trim(bgc_data_type)
+         write(nu_diag,*)    ' sil_data_type             = ', &
+                               trim(sil_data_type)
+         write(nu_diag,*)    ' nit_data_type             = ', &
+                               trim(nit_data_type)
+         write(nu_diag,*)    ' fe_data_type              = ', &
+                               trim(fe_data_type)
+         write(nu_diag,*)    ' bgc_data_dir              = ', &
+                               trim(bgc_data_dir)
+         write(nu_diag,*)    ' ocn_data_type             = ', &
+                               trim(ocn_data_type)
+         if (trim(bgc_data_type) /= 'default' .or. &
+             trim(ocn_data_type) /= 'default') then
             write(nu_diag,*) ' ocn_data_dir              = ', &
                                trim(ocn_data_dir)
-            write(nu_diag,1010) ' restore_sst               = ', &
-                               restore_sst
+            write(nu_diag,1010) ' restore_ocn               = ', &
+                               restore_ocn
          endif 
          write(nu_diag,1010) ' restore_ice               = ', &
                                restore_ice
-         if (restore_ice .or. restore_sst) &
+         if (restore_ice .or. restore_ocn) &
          write(nu_diag,1020) ' trestore                  = ', trestore
  
 #ifdef coupled

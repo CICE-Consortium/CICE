@@ -28,6 +28,9 @@
       public :: init_coupler_flux, init_history_therm, init_history_dyn, &
                 init_flux_ocn, init_flux_atm, scale_fluxes, alloc_flux
 
+      character (char_len), public :: &
+         default_season ! seasonal default values for forcing
+
       !-----------------------------------------------------------------
       ! Dynamics component
       !-----------------------------------------------------------------
@@ -529,22 +532,9 @@
 
       integer (kind=int_kind) :: n
 
-#ifdef CESMCOUPLED
-      logical (kind=log_kind), parameter ::     & 
-         l_winter = .false.  , &  ! winter/summer default switch
-         l_spring = .false.      ! spring example
-#else
-      logical (kind=log_kind), parameter ::     & 
-         l_winter = .true.  , &  ! winter/summer default switch
-         l_spring = .false.      ! spring example
-#endif
-
-      real (kind=dbl_kind) :: fcondtopn_d(6), fsurfn_d(6), &
-         stefan_boltzmann, &
-         Tffresh, &
-         vonkar, &
-         zref, &
-         iceruf
+      real (kind=dbl_kind) :: fcondtopn_d(6), fsurfn_d(6)
+      real (kind=dbl_kind) :: stefan_boltzmann, Tffresh
+      real (kind=dbl_kind) :: vonkar, zref, iceruf
 
       integer :: i, j, iblk
 
@@ -572,24 +562,8 @@
       stray (:,:,:) = 0.05_dbl_kind
       fsnow (:,:,:) = c0              ! snowfall rate (kg/m2/s)
                                       ! fsnow must be 0 for exact restarts
-      if (l_spring) then
-         !typical spring values
-         potT  (:,:,:) = 263.15_dbl_kind ! air potential temp (K)
-         Tair  (:,:,:) = 263.15_dbl_kind ! air temperature  (K)
-         Qa    (:,:,:) = 0.001_dbl_kind  ! specific humidity (kg/kg)
-         swvdr (:,:,:) = 25._dbl_kind    ! shortwave radiation (W/m^2)
-         swvdf (:,:,:) = 25._dbl_kind    ! shortwave radiation (W/m^2)
-         swidr (:,:,:) = 25._dbl_kind    ! shortwave radiation (W/m^2)
-         swidf (:,:,:) = 25._dbl_kind    ! shortwave radiation (W/m^2)
-         flw   (:,:,:) = 230.0_dbl_kind  ! incoming longwave rad (W/m^2)
-         do n = 1, ncat                  ! surface heat flux (W/m^2)
-            fsurfn_f(:,:,n,:) = fsurfn_d(n)
-         enddo
-         fcondtopn_f(:,:,:,:) = 0.0_dbl_kind ! conductive heat flux (W/m^2)
-         flatn_f(:,:,:,:) = -1.0_dbl_kind    ! latent heat flux (W/m^2)
-         fsensn_f(:,:,:,:) = c0              ! sensible heat flux (W/m^2)
-      elseif (l_winter) then
-         !typical winter values
+      if (trim(default_season) == 'winter') then
+         ! typical winter values
          potT  (:,:,:) = 253.0_dbl_kind  ! air potential temp (K)
          Tair  (:,:,:) = 253.0_dbl_kind  ! air temperature  (K)
          Qa    (:,:,:) = 0.0006_dbl_kind ! specific humidity (kg/kg)
@@ -599,14 +573,14 @@
          swidf (:,:,:) = c0              ! shortwave radiation (W/m^2)
          flw   (:,:,:) = c180            ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
-         do n = 1, ncat                  ! conductive heat flux (W/m^2)
+         do n = 1, ncat              ! conductive heat flux (W/m^2)
             fcondtopn_f(:,:,n,:) = fcondtopn_d(n)
          enddo
-         fsurfn_f = fcondtopn_f          ! surface heat flux (W/m^2)
-         flatn_f(:,:,:,:) = c0           ! latent heat flux (kg/m2/s)
-         fsensn_f(:,:,:,:) = c0              ! sensible heat flux (W/m^2)
-      else
-         !typical summer values
+         fsurfn_f = fcondtopn_f      ! surface heat flux (W/m^2)
+         flatn_f (:,:,:,:) = c0          ! latent heat flux (kg/m2/s)
+         fsensn_f(:,:,:,:) = c0          ! sensible heat flux (W/m^2)
+      elseif (trim(default_season) == 'summer') then
+         ! typical summer values
          potT  (:,:,:) = 273.0_dbl_kind  ! air potential temp (K)
          Tair  (:,:,:) = 273.0_dbl_kind  ! air temperature  (K)
          Qa    (:,:,:) = 0.0035_dbl_kind ! specific humidity (kg/kg)
@@ -616,13 +590,30 @@
          swidf (:,:,:) = 50._dbl_kind    ! shortwave radiation (W/m^2)
          flw   (:,:,:) = 280.0_dbl_kind  ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
-         do n = 1, ncat                  ! surface heat flux (W/m^2)
+         do n = 1, ncat                   ! surface heat flux (W/m^2)
             fsurfn_f(:,:,n,:) = fsurfn_d(n)
          enddo
-         fcondtopn_f(:,:,:,:) = 0.0_dbl_kind ! conductive heat flux (W/m^2)
-         flatn_f(:,:,:,:) = -2.0_dbl_kind    ! latent heat flux (W/m^2)
-         fsensn_f(:,:,:,:) = c0              ! sensible heat flux (W/m^2)
-      endif !     l_winter
+         fcondtopn_f(:,:,:,:) =  0.0_dbl_kind ! conductive heat flux (W/m^2)
+         flatn_f    (:,:,:,:) = -2.0_dbl_kind ! latent heat flux (W/m^2)
+         fsensn_f   (:,:,:,:) =  c0           ! sensible heat flux (W/m^2)
+      else
+         ! typical spring values
+         potT  (:,:,:) = 263.15_dbl_kind ! air potential temp (K)
+         Tair  (:,:,:) = 263.15_dbl_kind ! air temperature  (K)
+         Qa    (:,:,:) = 0.001_dbl_kind  ! specific humidity (kg/kg)
+         swvdr (:,:,:) = 25._dbl_kind    ! shortwave radiation (W/m^2)
+         swvdf (:,:,:) = 25._dbl_kind    ! shortwave radiation (W/m^2)
+         swidr (:,:,:) = 25._dbl_kind    ! shortwave radiation (W/m^2)
+         swidf (:,:,:) = 25._dbl_kind    ! shortwave radiation (W/m^2)
+         flw   (:,:,:) = 230.0_dbl_kind  ! incoming longwave rad (W/m^2)
+         frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
+         do n = 1, ncat                   ! surface heat flux (W/m^2)
+            fsurfn_f(:,:,n,:) = fsurfn_d(n)
+         enddo
+         fcondtopn_f(:,:,:,:) =  c0           ! conductive heat flux (W/m^2)
+         flatn_f    (:,:,:,:) = -1.0_dbl_kind ! latent heat flux (W/m^2)
+         fsensn_f   (:,:,:,:) =  c0           ! sensible heat flux (W/m^2)
+      endif !   
 
       faero_atm (:,:,:,:) = c0           ! aerosol deposition rate (kg/m2/s)
       flux_bio_atm (:,:,:,:) = c0        ! zaero and bio deposition rate (kg/m2/s)

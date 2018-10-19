@@ -119,7 +119,7 @@
 
 &shortwave_nml
     shortwave       = 'dEdd'
-    albedo_type     = 'default'
+    albedo_type     = 'ccsm3'
     albicev         = 0.78
     albicei         = 0.36
     albsnowv        = 0.98
@@ -147,16 +147,10 @@
 &forcing_nml
     formdrag        = .false.
     atmbndy         = 'default'
-    fyear_init      = 1997
-    ycycle          = 1
-    atm_data_format = 'bin'
-    atm_data_type   = 'ncar'
-    atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
     calc_strair     = .true.
+    calc_Tsfc       = .true.
     highfreq        = .false.
     natmiter        = 5
-    calc_Tsfc       = .true.
-    precip_units    = 'mm_per_month'
     ustar_min       = 0.0005
     emissivity      = 0.95
     fbot_xfer_type  = 'constant'
@@ -164,14 +158,25 @@
     l_mpond_fresh   = .false.
     tfrz_option     = 'mushy'
     oceanmixed_ice  = .true.
-    ocn_data_format = 'bin'
-    sss_data_type   = 'default'
-    sst_data_type   = 'default'
-    ocn_data_dir    = 'unknown_ocn_data_dir'
-    oceanmixed_file = 'unknown_oceanmixed_file'
-    restore_sst     = .false.
-    trestore        =  90
     restore_ice     = .false.
+    restore_ocn     = .false.
+    trestore        =  90
+    precip_units    = 'mm_per_month'
+    default_season  = 'winter'
+    atm_data_type   = 'ncar'
+    ocn_data_type   = 'default'
+    bgc_data_type   = 'default'
+    sil_data_type   = 'default'
+    nit_data_type   = 'default'
+    fe_data_type    = 'default'
+    fyear_init      = 1997
+    ycycle          = 1
+    atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
+    ocn_data_dir    = '/unknown_ocn_data_dir'
+    bgc_data_dir    = '/uknown_bgc_data_dir'
+    atm_data_format = 'bin'
+    ocn_data_format = 'bin'
+    oceanmixed_file = 'unknown_oceanmixed_file'
 /
 
 &domain_nml
@@ -206,10 +211,6 @@
     scale_bgc       = .false.
     solve_zsal      = .false.
     restart_zsal    = .false.
-    bgc_data_dir    = '/uknown_bgc_data_dir'
-    sil_data_type   = 'default'
-    nit_data_type   = 'default'
-    fe_data_type    = 'default'
     tr_bgc_Nit      = .true.
     tr_bgc_C        = .true.
     tr_bgc_chl      = .false.
