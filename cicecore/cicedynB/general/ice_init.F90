@@ -86,7 +86,8 @@
           oceanmixed_file, restore_ocn,   trestore
       use ice_arrays_column, only: bgc_data_dir, &
           sil_data_type, nit_data_type, fe_data_type
-      use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
+      use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format, &
+                          dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 basalstress, Ktens, e_ratio, coriolis, &
                                 kridge, ktransport
