@@ -57,7 +57,13 @@ cat >! ${subfile} << EOFS
 #!/bin/csh -f 
 
 ${ICE_MACHINE_SUBMIT} ./${jobfile}
-echo "\`date\` \${0}: ${ICE_CASENAME} job submitted"  >> ${ICE_CASEDIR}/README.case
+set rc = \$?
+if ( \$rc == 0 ) then
+  echo "\`date\` \${0}: ${ICE_CASENAME} job submitted"  >> ${ICE_CASEDIR}/README.case
+else
+  echo "\${0}: Job failed to submit.  Return code: \$rc"
+  exit \$rc
+endif
 
 EOFS
 
