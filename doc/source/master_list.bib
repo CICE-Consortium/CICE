@@ -7,19 +7,26 @@
 %   * format.                              *
 %   * The order is unimportant and there   *
 %   * may be more entries than references  *
-%   * in the text. The format for the      *
-%   * article abbreviations is first       *
-%   * letter of last names and last two    *
-%   * digits of the year OR if it is a     *
-%   * single author the full last name and *
-%   * last two digits of the year. The     *
-%   * entries are roughly sequential from  *
+%   * in the text and the documentation will *
+%   * build properly. However, the Consortium *
+%   * requests that you only add references that*
+%   * are cited in the text. *
+%   * -------*
+%   * See 'example' below for the format for *
+%   * how to enter information for new bibliographic* 
+%   * entries. *
+%   * ------* 
+%   * Then put your new entry in the list below *
+%   * which is organized as: sequential from  *
 %   * oldest to newest, then               *
-&   * alphabetized by first-author last    *
-&   * name.                                *
+%   * alphabetized by first-author last    *
+%   * name.                                *
 %   ****************************************
 % 
-% journal title abbreviation for this file
+%
+%   ****************************************
+%  Journal title abbreviations used below
+%   ****************************************
 @string{JGR = {J. Geophys. Res.}}
 @string{JGRO = {J. Geophys. Res. Oceans}}
 @string{JGRB = {J. Geophys. Res. Biogeo.}}
@@ -47,8 +54,25 @@
 @string{EFM = {Eng. Fract. Mech.}}
 @string{GMD = {Geosci. Model Dev.}}
 @string{CRST = {Cold Reg. Sci. Technol.}}
+@string{IJHPCA={Int. J High Perform. Comput. Appl}}
+@string{PTRSA={Philos. Trans. Royal Soc. A}}
 
-% Individual entries (roughly sequential, then alphabetical by first-author's last name)
+
+%   ****************************************
+%  List of individual sources and their meta data
+%   ****************************************
+% ** example template **
+%@Article{LASTNAME1YY
+%  author = "F.N.1 LASTNAME1 and F.N.2 LASTNAME2 and F.N.3 LASTNAME3",
+%  title = "{TITLE}",
+%  journal = ACRONYMN-SEE-ABOVE,
+%  year = "YYYY",
+%  volume = {N},
+%  issue = {I},
+%  pages = {PP-PP},
+%  url = {http://dx.doi.org/XXXXX}
+% }
+
 @incollection{Assur58,
   author =  "A. Assur",
   title  = "Composition of sea ice and its tensile strength",
@@ -87,7 +111,7 @@
   volume = "I",
   pages =  "599--610"
 }
-@Article{MU71
+@Article{Maykut71
   author = "G.A. Maykut and N. Untersteiner",
   title = "{Some results from a time dependent thermodynamic model of sea ice}",
   journal = JGR,
@@ -122,7 +146,7 @@
   pages = {4514-4519},
   url = {http://dx.doi.org/10.1029/JC080i033p04514}
 }
-@Article{TRMC75
+@Article{Thorndike75
   author = "A.S. Thorndike and D.A. Rothrock and G.A. Maykut and R. Colony",
   title = "{The thickness distribution of sea ice}",
   journal = JGR,
@@ -149,7 +173,7 @@
   pages = {817-846},
   url = {http://dx.doi.org/10.1175/1520-0485(1979)009<0815:ADTSIM>2.0.CO;2}
 }
-@Article{PW79
+@Article{Parkinson79
   author = "C.L. Parkinson and W.M. Washington",
   title = "{A large-scale numerical model of sea ice}",
   journal = JGRO,
@@ -177,7 +201,7 @@
   pages = {7971-7984},
   url = {http://dx.doi.org/10.1029/JC087iC10p07971}
 }
-@incollection{SP86
+@incollection{Siedler86
   author = "G. Siedler and H. Peters",
   title  = "Physical properties (general) of sea water",
   booktitle = "Landolt-Börnstein: Numerical data and functional relationships in science and technology,  New Series V/3a",
@@ -185,7 +209,7 @@
   year =  "1986",
   pages = {233-264},
 }
-@Article{HB87
+@Article{Hibler87
   author = "W.D. Hibler and K. Bryan",
   title = "{A diagnostic ice-ocean model}",
   journal = JPO,
@@ -194,7 +218,7 @@
   pages = {987-1015},
   url = {http://dx.doi.org/10.1175/1520-0485(1987)017<0987:ADIM>2.0.CO;2}
 }
-@Article{MP87
+@Article{Maykut87
   author = "G.A. Maykut and D.K. Perovich",
   title = "{The role of shortwave radiation in the summer decay of a sea ice cover}",
   journal = JGRO,
@@ -203,14 +227,14 @@
   pages = {7032-7044},
   url = {http://dx.doi.org/10.1029/JC092iC07p07032}
 }
-@Article{RM88
+@Article{Rosati88
   author = "A. Rosati and K. Miyakoda",
   title = "{A general circulation model for upper ocean simulation}",
   journal = JPO,
   year = "1988",
   volume = {18},
   pages = {1601-1626},
-  url = {https://doi.org/10.1175/1520-0485(1988)018<1601:AGCMFU>2.0.CO;2}
+  url = {http://dx.doi.org/10.1175/1520-0485(1988)018<1601:AGCMFU>2.0.CO;2}
 }
 @Article{Steele92
   author = "M. Steele",
@@ -221,7 +245,7 @@
   pages = {17729-17738},
   url = {http://dx.doi.org/10.1029/92JC01755}
 }
-@Article{SDM92
+@Article{Smith92
   author = "R.D. Smith and J.K. Dukowicz and R.C. Malone",
   title = "{Parallel ocean general circulation modeling}",
   journal = PHYS,
@@ -229,9 +253,9 @@
   volume = {60},
   number = {1},
   pages = {38-61},
-  url = {https://doi.org/10.1016/0167-2789(92)90225-C}
+  url = {http://dx.doi.org/10.1016/0167-2789(92)90225-C}
 }
-@Article{AKS93
+@Article{Arrigo93
   author = "K.R. Arrigo and J.N. Kremer and C.W. Sullivan",
   title = "{A simulated Antarctic fast ice ecosystem}",
   journal = JGRO,
@@ -240,7 +264,7 @@
   pages = {6929-6946},
   url = {http://dx.doi.org/10.1029/93JC00141}
 }
-@Article{DSM93
+@Article{Dukowicz93
   author = "J.K. Dukowicz and R.D. Smith and R.C. Malone",
   title = "{A reformulation and implementation of the Bryan-Cox-Semtner ocean model on the connection machine}",
   journal = JTECH,
@@ -248,9 +272,9 @@
   volume = {10},
   number = {1},
   pages = {195-208},
-  url = {https://doi.org/10.1175/1520-0426(1993)010<0195:ARAIOT>2.0.CO;2}
+  url = {http://dx.doi.org/10.1175/1520-0426(1993)010<0195:ARAIOT>2.0.CO;2}
 }
-@Article{DSM94
+@Article{Dukowicz94
   author = "J.K. Dukowicz and R.D. Smith and R.C. Malone",
   title = "{Implicit free-surface method for the Bryan-Cox-Semtner ocean model}",
   journal = JGRO,
@@ -260,7 +284,7 @@
   pages = {7991-8014},
   url = {http://dx.doi.org/10.1029/93JC03455}
 }
-@Article{ESC95
+@Article{Ebert95
   author = "E.E. Ebert and J.L. Schramm and J.A. Curry",
   title = "{Disposition of solar radiation in sea ice and the upper ocean}",
   journal = JGRO,
@@ -269,7 +293,7 @@
   pages = {15965-15975},
   url = {http://dx.doi.org/10.1029/95JC01672}
 }
-@Article{FH95
+@Article{Flato95
   author = "G.M. Flato and W.D. Hibler",
   title = "{Ridging and strength in modeling the thickness distribution of Arctic sea ice}",
   journal = JGRO,
@@ -278,7 +302,7 @@
   pages = {18611-18626},
   url = {http://dx.doi.org/10.1029/95JC02091}
 }
-@Article{MM95
+@Article{Maykut95
   author = "G.A. Maykut and M.G. McPhee",
   title = "{Solar heating of the Arctic mixed layer}",
   journal = JGRO,
@@ -287,14 +311,14 @@
   pages = {24691-24703},
   url = {http://dx.doi.org/10.1029/95JC02554}
 }
-@Manual{SKM95
+@Manual{Smith95
   author = "R.D. Smith and S. Kortas and B. Meltz",
   title = "{Curvilinear coordinates for global ocean models}",
   organization = "Technical Report LA-UR-95-1146, Los Alamos National Laboratory",
   year = "1995",
   url = {https://github.com/CICE-Consortium/CICE/blob/master/doc/PDF/LAUR-95-1146.pdf}
 }
-@article{ZvS95,
+@Article{Zwiers95,
   author = "F.W. Zwiers and H. von Storch",
   title = "{Taking serial correlation into account in tests of the mean}",  
   journal = JC,
@@ -302,7 +326,7 @@
   volume = {8},  
   number = {2},
   pages = {336-351},
-  url = {https://doi.org/10.1175/1520-0442(1995)008<0336:TSCIAI>2.0.CO;2}
+  url = {http://dx.doi.org/10.1175/1520-0442(1995)008<0336:TSCIAI>2.0.CO;2}
 }
 @Article{Murray96
   author = "R.J. Murray",
@@ -313,7 +337,7 @@
   pages = {251-273},
   url = {http://dx.doi.org/10.1006/jcph.1996.0136}
 }
-@Article{HD97
+@Article{Hunke97
   author = "E.C. Hunke and J.K. Dukowicz",
   title = "{An elastic-viscous-plastic model for sea ice dynamics}",
   journal = JPO,
@@ -322,7 +346,7 @@
   pages = {1849-1867},
   url = {http://dx.doi.org/10.1175/1520-0485(1997)027<1849:AEVPMF>2.0.CO;2}
 }
-@Article{SZRS97
+@Article{Steele97
   author = "M. Steele and J. Zhang and D. Rothrock and H. Stern",
   title = "{The force balance of sea ice in a numerical model of the Arctic Ocean}",
   journal = JGRO,
@@ -332,7 +356,7 @@
   pages = {21061-21079},
   url = {http://dx.doi.org/10.1029/97JC01454}
 }
-@Article{GHA98
+@Article{Geiger98
   author = "C.A. Geiger and W.D. Hibler and S.F. Ackley",
   title = "{Large-scale sea ice drift and deformation: Comparison between models and observations in the western Weddell Sea during 1992}",
   journal = JGRO,
@@ -350,7 +374,7 @@
   year = "1998",
   url = {http://hdl.handle.net/1773/10081}
 }
-@Article{BL99
+@Article{Bitz99
   author = "C.M. Bitz and W.H. Lipscomb",
   title = "{An energy-conserving thermodynamic sea ice model for climate study}",
   journal = JGRO,
@@ -360,7 +384,7 @@
   pages = {15669-15677},
   url = {http://dx.doi.org/10.1029/1999JC900100}
 }
-@Article{HZ99
+@Article{Hunke99
   author = "E.C. Hunke and Y. Zhang",
   title = "{A comparison of sea ice dynamics models at high resolution}",
   journal = MWR,
@@ -369,7 +393,7 @@
   pages = {396-408},
   url = {http://dx.doi.org/10.1175/1520-0493(1999)127<0396:ACOSID>2.0.CO;2}
 }
-@Article{JAM99
+@Article{Jordan99
   author = "R.E. Jordan and E.L. Andreas and A.P. Makshtas",
   title = "{Heat budget of snow-covered sea ice at North Pole 4}",
   journal = JGRO,
@@ -379,7 +403,7 @@
   pages = {7785-7806},
   url = {http://dx.doi.org/10.1029/1999JC900011}
 }
-@Book{vSZ99
+@Book{vonstorch99
   author = "H. von Storch and F.W. Zwiers",
   title = "{Statistical Analysis in Climate Research}",
   publisher = "Cambridge University Press",
@@ -387,7 +411,7 @@
   year = "1999",
   pages = {484 pp},
 }
-@Article{DB00
+@Article{Dukowicz00
   author = "J.K. Dukowicz and J.R. Baumgardner",
   title = "{Incremental remapping as a transport/advection algorithm}",
   journal = JCT,
@@ -396,7 +420,7 @@
   pages = {318-335},
   url = {http://dx.doi.org/10.1006/jcph.2000.6465}
 }
-@Article{BHWE01
+@Article{Bitz01
   author = "C.M. Bitz and M.M. Holland and M. Eby and A.J. Weaver",
   title = "{Simulating the ice-thickness distribution in a coupled climate model}",
   journal = JGRO,
@@ -432,7 +456,7 @@
   pages = {1839-1887},
   url = {http://dx.doi.org/10.1016/S0013-7944(01)00037-6}
 }
-@article{Taylor01,
+@Article{Taylor01,
   author = "K.E. Taylor",
   title = {Summarizing multiple aspects of model performance in a single diagram},
   journal = JGRA,
@@ -440,9 +464,9 @@
   volume = {106},
   number = {D7},
   pages = {7183-7192},
-  url = {https://doi.org/10.1029/2000JD900719}
+  url = {http://dx.doi.org/10.1029/2000JD900719}
 }
-@Article{TWMH01
+@Article{Trodahl01
   author = "H.J. Trodahl and S.O.F. Wilkinson and M.J. McGuinness and T.G. Haskeel",
   title = "{Thermal conductivity of sea ice: dependence on temperature and depth}",
   journal = GRL,
@@ -451,7 +475,7 @@
   pages = {1279-1282},
   url = {http://dx.doi.org/10.1029/2000GL012088}
 }
-@Article{HD02
+@Article{Hunke02
   author = "E.C. Hunke and J.K. Dukowicz",
   title = "{The Elastic-Viscous-Plastic sea ice dynamics model in general orthogonal curvilinear coordinates on a sphere—Effect of metric terms}",
   journal = MWR,
@@ -460,21 +484,21 @@
   pages = {1848-1865},
   url = {http://dx.doi.org/10.1175/1520-0493(2002)130<1848:TEVPSI>2.0.CO;2}
 }
-@Article{KL02
+@Manual{Kauffman02
   author = "B.G. Kauffman and W.G. Large",
   title = "{The CCSM coupler, version 5.0.1}",
   journal = NTN,
   year = "2002",
   url = {https://github.com/CICE-Consortium/CICE/blob/master/doc/PDF/KL_NCAR2002.pdf}
 }
-@Manual{HD03
+@Manual{Hunke03
   author = "E.C. Hunke and J.K. Dukowicz",
   title = "{The sea ice momentum equation in the free drift regime}",
   organization = "Technical Report LA-UR-03-2219, Los Alamos National Laboratory",
   year = "2003",
   url = {https://github.com/CICE-Consortium/CICE/blob/master/doc/PDF/LAUR-03-2219.pdf}
 }
-@Article{AMI04
+@Article{Amundrud04
   author = "T.L. Amundrud and H. Malling and R.G. Ingram",
   title = "{Geometrical constraints on the evolution of ridged sea ice}",
   journal = JGRO,
@@ -483,7 +507,7 @@
   issue = {C6},
   url = {http://dx.doi.org/10.1029/2003JC002251}
 }
-@Article{CGHM04
+@Article{Connolley04
   author = "W.M. Connolley and J.M. Gregory and E.C. Hunke and A.J. McLaren",
   title = "{On the consistent scaling of terms in the sea ice dynamics equation}",
   journal = JPO,
@@ -492,7 +516,7 @@
   pages = {1776-1780},
   url = {http://dx.doi.org/10.1175/1520-0485(2004)034<1776:OTCSOT>2.0.CO;2}
 }
-@Article{EGPRF04
+@Article{Eicken04
   author = "H. Eicken and T.C. Grenfell and D.K. Perovich and J.A Richter-Menge and K. Frey",
   title = "{Hydraulic controls of summer Arctic pack ice albedo}",
   journal = JGRO,
@@ -501,7 +525,7 @@
   issue = {C8},
   url = {http://dx.doi.org/10.1029/2003JC001989}
 }
-@Article{LH04
+@Article{Lipscomb04
   author = "W.H. Lipscomb and E.C. Hunke",
   title = "{Modeling sea ice transport using incremental remapping}",
   journal = MWR,
@@ -510,7 +534,7 @@
   pages = {1341-1354},
   url = {http://dx.doi.org/10.1175/1520-0493(2004)132<1341:MSITUI>2.0.CO;2}
 }
-@Article{TF04
+@Article{Taylor04
   author = "P.D. Taylor and D.L. Feltham",
   title = "{A model of melt pond evolution on sea ice}",
   journal = JGRO,
@@ -519,7 +543,7 @@
   issue = {C12},
   url = {http://dx.doi.org/10.1029/2004JC002361}
 }
-@Article{WF04
+@Article{Wilchinsky04
   author = "A.V. Wilchinsky and D.L. Feltham",
   title = "{Dependence of sea ice yield-curve shape on ice thickness}",
   journal = JPO,
@@ -528,7 +552,7 @@
   pages = {2852-2856},
   url = {http://dx.doi.org/10.1175/JPO2667.1}
 }
-@Article{LDM05
+@Article{Lavoie05
   author = "D. Lavoie and K. Denman and C. Michel",
   title = "{Modeling ice algal growth and decline in a seasonally ice- covered region of the Arctic (Resolute Passage, Canadian Archipelago)}",
   journal = JGRO,
@@ -545,16 +569,7 @@
   year = "2005",
   url = {http://ulmss-newton.lib.cam.ac.uk/vwebv/holdingsInfo?bibId=27224}
 }
-@Article{JDWSTWLG06
-  author = "M. Jin and C. Deal and J. Wang and K.H. Shin and N. Tanaka and T.E. Whiteledge and S.H. Lee and R.R. Gradinger",
-  title = "{Controls of the landfast ice-ocean ecosystem offshore Barrow, Alaska}",
-  journal = AG,
-  year = "2006",
-  volume = {44},
-  pages = {63-72},
-  url = {https://github.com/CICE-Consortium/CICE/blob/master/doc/PDF/JDWSTWLG06.pdf}
-}
-@Article{FUWW06
+@Article{Feltham06
   author = "D.L. Feltham and N. Untersteiner and J.S. Wettlaufer and M.G. Worster",
   title = "{Sea ice is a mushy layer}",
   journal = GRL,
@@ -563,7 +578,7 @@
   issue = {14},
   url = {http://dx.doi.org/10.1029/2006GL026290}
 }
-@incollection{GLBA06,
+@incollection{Garcia06,
   author = "H.E. Garcia and R.A. Locarnini and T.P. Boyer and J.I. Antonov",
   title  = "Nutrients (Phosphate, Nitrate, Silicate)",
   booktitle = "World Ocean Atlas 2005",
@@ -572,15 +587,24 @@
   year =  "2006",
   volume = {4},
 }
-@article{HRHPSL06,
+@Article{Hibler06,
   author = "W.D. Hibler and A. Roberts and P. Heil and A.Y. Proshutinsky and H.L. Simmons and J. Lovick",
   title = "{Modeling M2 tidal variability in Arctic sea-ice drift and deformation}",
   journal = AG,
   volume = {44},
   year = {2006},
-  url = {https://doi.org/10.3189/172756406781811178}
+  url = {http://dx.doi.org/10.3189/172756406781811178}
 }
-@Article{WF06
+@Article{Jin06
+  author = "M. Jin and C. Deal and J. Wang and K.H. Shin and N. Tanaka and T.E. Whiteledge and S.H. Lee and R.R. Gradinger",
+  title = "{Controls of the landfast ice-ocean ecosystem offshore Barrow, Alaska}",
+  journal = AG,
+  year = "2006",
+  volume = {44},
+  pages = {63-72},
+  url = {https://github.com/CICE-Consortium/CICE/blob/master/doc/PDF/JDWSTWLG06.pdf}
+}
+@Article{Wilchinsky06
   author = "A.V. Wilchinsky and D.L. Feltham",
   title = "{Modelling the rheology of sea ice as a collection of diamond-shaped floes}",
   journal = JNON,
@@ -597,14 +621,14 @@
   year = "2006",
   pages = {627 pp},
 }
-@Manual{BL07
+@Manual{Briegleb07
   author = "B.P. Briegleb and B. Light",
   title = "{A Delta-Eddington multiple scattering parameterization for solar radiation in the sea ice component of the Community Climate System Model}",
   organization = "NCAR Technical Note NCAR/TN-472+STR, National Center for Atmospheric Research",
   year = "2007",
   url = {https://github.com/CICE-Consortium/CICE/blob/master/doc/PDF/BL_NCAR2007.pdf}
 }
-@Article{FF07
+@Article{Flocco07
   author = "D. Flocco and D.L. Feltham",
   title = "{A continuum model of melt pond evolution on Arctic sea ice}",
   journal = JGRO,
@@ -613,7 +637,7 @@
   number = {C8},
   url = {http://dx.doi.org/10.1029/2006JC003836}
 }
-@Article{GEHMPZ07
+@Article{Golden07
   author = "K.M. Golden and H. Eicken and A.L. Heaton and J. Miner and D.J. Pringle and J. Zhu",
   title = "{Thermal evolution of permeability and microstructure in sea ice}",
   journal = GRL,
@@ -622,7 +646,7 @@
   issue = {16},
   url = {http://dx.doi.org/10.1029/2007GL030447}
 }
-@Article{LHMJ07
+@Article{Lipscomb07
   author = "W.H. Lipscomb and E.C. Hunke and W. Maslowski and J. Jakacki",
   title = "{Ridging, strength, and stability in high-resolution sea ice models}",
   journal = JGRO,
@@ -631,7 +655,7 @@
   issue = {C3},
   url = {http://dx.doi.org/10.1029/2005JC003355}
 }
-@Article{PETB07
+@Article{Pringle07
   author = "D.J. Pringle and H. Eicken and H.J. Trodahl and L.G.E. Backstrom",
   title = "{Thermal conductivity of landfast Antarctic and Arctic sea ice}",
   journal = JGRO,
@@ -640,7 +664,7 @@
   issue = {C4},
   url = {http://dx.doi.org/10.1029/2006JC003641}
 }
-@Article{SSTMB07
+@Article{Stefels07
   author = "J. Stefels and M. Steinke and S. Turner and G. Malin and S. Belviso",
   title = "{Environmental constraints on the production and removal of the climatically active gas dimethylsulphide (DMS) and implications for ecosystem modelling}",
   journal = BGC,
@@ -649,7 +673,7 @@
   pages = {245-275},
   url = {http://dx.doi.org/10.1007/978-1-4020-6214-8_18}
 }
-@Article{HB09
+@Article{Hunke09
   author = "E.C. Hunke and C.M. Bitz",
   title = "{Age characteristics in a multidecadal Arctic sea ice simulation}",
   journal = JGRO,
@@ -658,16 +682,16 @@
   issue = {CB},
   url = {http://dx.doi.org/10.1029/2008JC005186}
 }
-@Article{WS09
+@Article{Weiss09
   author = "J. Weiss and E.M. Schulson",
   title = "{Coulombic faulting from the grain scale to the geophysical scale: lessons from ice}",
   journal = JPD,
   year = "2009",
   volume = {42},
   pages = {214017},
-  url = {http://stacks.iop.org/0022-3727/42/i=21/a=214017}
+  url = {http://dx.doi.org/10.1088/0022-3727/42/21/214017}
 }
-@Article{FFT10
+@Article{Flocco10
   author = "D. Flocco and D.L. Feltham and A.K. Turner",
   title = "{Incorporation of a physically based melt pond scheme into the sea ice component of a climate model}",
   journal = JGRO,
@@ -676,16 +700,16 @@
   number = {C8},
   url = {http://dx.doi.org/10.1029/2009JC005568}
 }
-@Article{KH10
+@Article{Konig10
   author = "C. Konig Beatty and D.M. Holland",
   title = "{Modeling landfast ice by adding tensile strength}",
   journal = JPO,
   year = "2010",
   volume = {40},
   pages = {185-198},
-  url = {https://doi.org/10.1175/2009JPO4105.1}
+  url = {http://dx.doi.org/10.1175/2009JPO4105.1}
 }
-@Article{ABTH11
+@Article{Armour11
   author = "K.C. Armour and C.M. Bitz and L. Thompson and E.C. Hunke",
   title = "{Controls on Arctic sea ice from first-year and multi-year ice survivability}",
   journal = JC,
@@ -694,7 +718,7 @@
   pages = {2378-2390},
   url = {http://dx.doi.org/10.1175/2010JCLI3823.1}
 }
-@Article{DJEHMJ11
+@Article{Deal11
   author = "C. Deal and M. Jin and S. Elliott and E. Hunke and M. Maltrud and N. Jeffery",
   title = "{Large scale modeling of primary production and ice algal biomass within Arctic sea ice in 1992}",
   journal = JGRO,
@@ -703,7 +727,7 @@
   issue = {C7},
   url = {http://dx.doi.org/10.1029/2010JC006409}
 }
-@Article{LLCL11
+@Article{Lu11
   author = "P. Lu and Z. Li and B. Cheng and M. Lepp{\"{a}}ranta",
   title = "{A parametrization fo the ice-ocean drag coefficient}",
   journal = JGRO,
@@ -712,7 +736,7 @@
   number = {C7},
   url = {http://dx.doi.org/10.1029/2010JC006878}
 }
-@Article{EDHHJJLS12
+@Article{Elliott12
   author = "S. Elliott and C. Deal and G. Humphries and E. Hunke and N. Jeffery and M. Jin and M. Levasseur and J. Stefels",
   title = "{Pan-Arctic simulation of coupled nutrient-sulfur cycling due to sea ice biology: Preliminary results}",
   journal = JGRB,
@@ -721,7 +745,7 @@
   issue = {G1},
   url = {http://dx.doi.org/10.1029/2011JG001649}
 }
-@Article{FSFH12
+@Article{Flocco12
   author = "D. Flocco and D. Schroeder and D.L. Feltham and E.C. Hunke",
   title = "{Impact of melt ponds on Arctic sea ice simulations from 1990 to 2007}",
   journal = JGRO,
@@ -730,7 +754,7 @@
   number = {C9},
   url = {http://dx.doi.org/10.1029/2012JC008195}
 }
-@Article{HBBLH12
+@Article{Holland12
   author = "M.M. Holland and D.A. Bailey and B.P. Briegleb and B. Light and E. Hunke",
   title = "{Improved sea ice shortwave radiation physics in CCSM4: The impact of melt ponds and aerosols on Arctic sea ice}",
   journal = JC,
@@ -739,16 +763,16 @@
   pages = {1413-1430},
   url = {http://dx.doi.org/10.1175/JCLI-D-11-00078.1}
 }
-@article{LOSF12,
+@Article{Lepparanta12,
   author = "M. Lepp{\"{a}}ranta and A. Oikkonen and K. Shirasawa and Y. Fukamachi",
   title = "{A treatise on frequency spectrum of drift ice velocity}",
   year = "2012",
   journal = CRST,
   volume = {76-77},
   pages = {83-91},
-  doi = {https://doi.org/10.1016/j.coldregions.2011.12.005}
+  doi = {http://dx.doi.org/10.1016/j.coldregions.2011.12.005}
 }
-@Article{LGHA12
+@Article{Lupkes12
   author = "C. Lüpkes and V.M. Gryanik and  J. Hartmann and E.L. Andreas",
   title = "{A parametrization, based on sea ice morphology, of the neutral atmospheric drag coefficients for weather prediction and climate models}",
   journal = JGRA,
@@ -757,7 +781,7 @@
   number = {D13},
   url = {http://dx.doi.org/10.1029/2012JD017630}
 }
-@Article{BFLM13
+@Article{Bouillon13
   author = "S. Bouillon and T. Fichefet and V. Legat and G. Madec",
   title = "{The elastic-viscous-plastic method revisited}",
   journal = OM,
@@ -766,7 +790,7 @@
   pages = {1-12},
   url = {http://dx.doi.org/10.1016/j.ocemod.2013.05.013}
 }
-@Article{HHL13
+@Article{Hunke13
   author = "E.C. Hunke and D.A. Hebert and O. Lecomte",
   title = "{Level-ice melt ponds in the Los Alamos Sea Ice Model, CICE}",
   journal = OM,
@@ -775,7 +799,7 @@
   pages = {26-42},
   url = {http://dx.doi.org/10.1016/j.ocemod.2012.11.008}
 }
-@Article{TFW13
+@Article{Tsamados13
   author = "M. Tsamados and D.L. Feltham and A.V. Wilchinsky",
   title = "{Impact of a new anisotropic rheology on simulations of Arctic sea ice}",
   journal = JGRO,
@@ -784,7 +808,7 @@
   pages = {91-107},
   url = {http://dx.doi.org/10.1029/2012JC007990}
 }
-@Article{THB13
+@Article{Turner13
   author = "A.K. Turner and E.C. Hunke and C.M. Bitz",
   title = "{Two modes of sea-ice gravity drainage: a parameterization for large-scale modeling}",
   journal = JGRO,
@@ -793,16 +817,26 @@
   pages = {2279-2294},
   url = {http://dx.doi.org/10.1002/jgrc.20171}
 }
-@Article{TFSFFKLB14
+@Article{Craig14,
+  author = {A. Craig and S. Mickelson and E.C. Hunke and D. Bailey},
+  title = "{Improved parallel performance of the CICE model in CESM1}",
+  journal = {IIJHPCA},
+  year = "2014",
+  volume = {29},
+  number = {2},
+  pages = {154-165},
+  url = {http://dx.doi.org/10.1177/1094342014548771}
+}
+@Article{Tsamados14
   author = "M. Tsamados and D.L. Feltham and D. Schroeder and D. Flocco and S.L. Farrell and N.T. Kurtz and S.W. Laxon and S. Bacon",
   title = "{Impact of variable atmospheric and oceanic form drag on simulations of Arctic sea ice}",
   journal = JPO,
   year = "1999",
   volume = {44},
   pages = {1329-1353},
-  url = {https://doi.org/10.1175/JPO-D-13-0215.1}
+  url = {http://dx.doi.org/10.1175/JPO-D-13-0215.1}
 }
-@article{RCWODHNCB15,
+@Article{Roberts15,
   author = "A.F. Roberts and A.P. Craig and W. Maslowski and R. Osinski and A.K. DuVivier and M. Hughes and B. Nijssen and J.J. Cassano and M. Brunke",
   title = "{Simulating transient ice-ocean Ekman transport in the Regional Arctic System Model and Community Earth System Model}",
   year = "2015",
@@ -810,59 +844,50 @@
   volume = {56},
   number = {69},
   pages = {211-228},
-  url = {https://doi.org/10.3189/2015AoG69A760}
+  url = {http://dx.doi.org/10.3189/2015AoG69A760}
 }
-@Article{LDBRSF16
+@Article{Lemieux16
   author = "J.F. Lemieux and F. Dupont and P. Blain and F. Roy and G.C. Smith and G.M. Flato",
   title = "{Improving the simulation of landfast ice by combining tensile strength and a parameterization for grounded ridges}",
   journal = JGRO,
   year = "2016",
   volume = {121},
   pages = {7354-7368},
-  url = {https://doi.org/10.1002/2016JC012006}
+  url = {http://dx.doi.org/10.1002/2016JC012006}
 }
-@Article{NJHHMSTV16
+@Article{Notz16
   author = "D. Notz and A. Jahn and E. Hunke and F. Massonnet and J. Stroeve and B. Tremblay and M. Vancoppenolle",
   title = "{The CMIP6 Sea-Ice Model Intercomparison Project (SIMIP): understanding sea ice through climate-model simulations}",
   journal = GMD,
   year = "2016",
   volume = {9},
   pages = {3427-3446},
-  url = {https://doi.org/10.5194/gmd-9-3427-2016}
+  url = {http://dx.doi.org/10.5194/gmd-9-3427-2016}
 }
-@article{HRALTCDBHWDG18,
+@Article{Hunke18,
   author = {E.C. Hunke and A. Roberts and R. Allard and J.F. Lemieux and M. Turner, and A.P. Craig and A.K. DuVivier and D. Bailey and M.M. Holland and M. Winton and F. Dupont and R. Grumbine},
   title = "{The CICE Consortium Sea Ice Modeling Suite}",
   journal = {In Prep.},
   year = {2018 - In Prep.},
-  url = {https://doi.org}
+  url = {http://dx.doi.org/}
+}
+@Article{Roberts18,
+  author = "A. Roberts and E.C. Hunke and R. Allard and D.A. Bailey and A.P. Craig and J. Lemieux and M.D. Turner",
+  title = "{Quality control for community-based sea-ice model development}",
+  journal = {PTRSA},
+  year = "2018",
+  volume = {376}
+  url = {http://dx.doi.org/10.1098/rsta.2017.0344}
 }
 
-@article{Roberts2018,
-  author = "A. Roberts and W. Maslowski and E.C. Hunke and R. Osinski and J.J. Cassano and A.K. DuVivier and M. Hughes and M. Seefeldt and B. Nijssen and J. Hamman and J. Hutchings and M. Tsamados and D. Feltham",
-  title = "{Inter-comparison of isotropic and anisotropic sea-ice mechanics in a high-resolution fully coupled climate model}",
-  journal = {In Prep.},
-  year = {2018 - In Prep.},
-  url = {https://doi.org}
-}
-
-@article{Craig2014,
-  author = {Craig, A. and Mickelson, S. and Hunke, E. and Bailey, D.},
-  doi = {10.1177/1094342014548771},
-  journal = {International Journal of High Performance Computing},
-  title = {{Improved parallel performance of the CICE model in CESM1}},
-  volume = {29},
-  number = {2},
-  pages = {154--165},
-  year = {2014},
-}
-
-@article{Irving2015,
-  author = "D. Irving",
-  title = "{A minimum standard for publishing computational results in the weather and climate sciences}",
-  year = "2015",
-  journal = BAMS,
-  number = {97},
-  pages = {1149-1158},
-  url = {https://doi.org/10.1175/BAMS-D-15-00010.1}
-}
+% ** example template **
+%@Article{LASTNAME1YY
+%  author = "F.N.1 LASTNAME1 and F.N.2 LASTNAME2 and F.N.3 LASTNAME3",
+%  title = "{TITLE}",
+%  journal = ACRONYMN-SEE-ABOVE,
+%  year = "YYYY",
+%  volume = {N},
+%  issue = {I},
+%  pages = {PP-PP},
+%  url = {http://dx.doi.org/XXXXX}
+% }

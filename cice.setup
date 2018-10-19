@@ -703,6 +703,7 @@ EOF1
       # from test options to casescr in case any test time changes are applied
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
+        cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)
           if (-e ${ICE_SCRIPTS}/options/$file) then
             cp -f -p ${ICE_SCRIPTS}/options/$file ${casescr}
@@ -837,7 +838,7 @@ cat >> ./${tsdir}/results.csh << EOF
 cat ./results.log
 set pends = \`cat ./results.log | grep PEND | wc -l\`
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
-set success = \`cat ./results.log | grep PASS | wc -l\`
+set success = \`cat ./results.log | grep 'PASS\|COPY' | wc -l\`
 set comments = \`cat ./results.log | grep "#" | wc -l\`
 set alltotal = \`cat ./results.log | wc -l\`
 @ total = \$alltotal - \$comments

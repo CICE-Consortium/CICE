@@ -22,6 +22,7 @@ The testing scripts support several features
  - Ability to compare results to prior baselines to verify bit-for-bit (``--bcmp``)
  - Ability to define where baseline tests are stored (``--bdir``)
  - Ability to compare tests against each other (``--diff``)
+ - Ability to set account number (``--acct``), which is otherwise not set and may result in tests not being submitted
 
 .. _indtests:
 
@@ -70,15 +71,15 @@ with ``--case`` for regression and comparision testing,
      specifies the name of the directory under [bdir] that the current tests will be compared to.  When this flag is set, it automatically invokes regression testing and compares results from the current test to those prior results.  If DIR is set to ``default``, then the script will automatically generate the last directory name in the [bdir] directory.  This can be useful for automated regression testing.
 
 ``--diff`` LONG_TESTNAME
-     invokes a comparison against another local test.  This allows different tests to be compared to each other for bit-for-bit-ness.  This is different than ``--bcmp``.  ``--bcmp`` is regression testing, comparing identical test results between different model versions.  ``--diff`` allows comparison of two different test cases against each other.  For instance, different block sizes, decompositions, and other model features are expected to produced identical results and ``--diff`` supports that testing.  The restrictions for use of ``--diff`` are that the test has to already be completed and the testid has to match.  The LONG_TESTNAME string should be of format [test]_[grid]_[pes]_[sets].  The [machine], [env], and [testid] will be added to that string to complete the testname being compared.  (See also :ref:`examplediff`)
+     invokes a comparison against another local test.  This allows different tests to be compared to each other for bit-for-bit-ness.  This is different than ``--bcmp``.  ``--bcmp`` is regression testing, comparing identical test results between different model versions.  ``--diff`` allows comparison of two different test cases against each other.  For instance, different block sizes, decompositions, and other model features are expected to produced identical results and ``--diff`` supports that testing.  The restrictions for use of ``--diff`` are that the test has to already be completed and the testid has to match.  The LONG_TESTNAME string should be of format [test]_[grid]_[pes]_[sets].  The [machine], [env], and [testid] will be added to that string to complete the testname being compared.  (See also :ref:`examplediff` #5)
 
 The format of the case directory name for a test will always be 
 ``[machine]_[env]_[test]_[grid]_[pes]_[sets].[testid]``
 The [sets] will always be sorted alphabetically by the script so ``--set debug,diag1`` and
 ``--set diag1,debug`` produces the same testname and test with _debug_diag1 in that order.
 
-To build and run a test, the process is the same as a case.  cd to the 
-test directory, run the build script, and run the submit script::
+To build and run a test after invoking the ./cice.setup command, the process is the same as for a case.  
+cd to the test directory, run the build script, and run the submit script::
 
  cd [test_case]
  ./cice.build
@@ -110,103 +111,96 @@ Adding a new test
 See :ref:`dev_testing`
 
 
-Example.  Basic default single test
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Define the test, mach, env, and testid.
-::
-
-  ./cice.setup --test smoke --mach wolf --env gnu --testid t00
-  cd wolf_gnu_smoke_col_1x1.t00
-  ./cice.build
-  ./cice.submit
-  ./cat test_output
-
-
-Example. Simple test with some options
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Add ``--set``
-::
-
-  ./cice.setup --test smoke --mach wolf --env gnu --set diag1,debug --testid t00
-  cd wolf_gnu_smoke_col_1x1_debug_diag1.t00
-  ./cice.build
-  ./cice.submit
-  ./cat test_output
-
-
-Example. Single test, generate a baseline dataset
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Add ``--bgen``
-::
-
-  ./cice.setup --test smoke --mach wolf -env gnu --bgen cice.v01 --testid t00 --set diag1
-  cd wolf_gnu_smoke_col_1x1_diag1.t00
-  ./cice.build
-  ./cice.submit
-  ./cat test_output
-
-
-Example. Single test, compare results to a prior baseline.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Add ``--bcmp``.  For this to work,
-the prior baseline must exist and have the exact same base testname 
-[machine]_[env]_[test]_[grid]_[pes]_[sets] 
-::
-
-  ./cice.setup --test smoke --mach wolf -env gnu --bcmp cice.v01 --testid t01 --set diag1
-  cd wolf_gnu_smoke_col_1x1_diag1.t01
-  ./cice.build
-  ./cice.submit
-  ./cat test_output
-
-
-Example. Simple test, generate a baseline dataset and compare to a prior baseline
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Use ``--bgen`` and ``--bcmp``.  The prior baseline must exist already.
-::
-
-  ./cice.setup --test smoke --mach wolf -env gnu --bgen cice.v02 --bcmp cice.v01 --testid t02 --set diag1
-  cd wolf_gnu_smoke_col_1x1_diag1.t02
-  ./cice.build
-  ./cice.submit
-  ./cat test_output
-
 .. _examplediff:
 
-Example. Simple test, comparison against another test
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Individual Test Examples
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-``--diff`` provides a way to compare tests with each other.  
-For this to work, the tests have to be run in a specific order and
-the testids need to match.  The test 
-is always compared relative to the current case directory.
+ 1) **Basic default single test**
+     
+    Define the test, mach, env, and testid.
+    ::
 
-To run the first test,
-::
+      ./cice.setup --test smoke --mach wolf --env gnu --testid t00
+      cd wolf_gnu_smoke_col_1x1.t00
+      ./cice.build
+      ./cice.submit
+      ./cat test_output
 
-  ./cice.setup --test smoke --mach wolf -env gnu --testid tx01 --set debug
-  cd wolf_gnu_smoke_col_1x1_debug.tx01
-  ./cice.build
-  ./cice.submit
-  ./cat test_output
+ 2) **Simple test with some options**
 
-Then to run the second test and compare to the results from the first test
-::
+    Add ``--set``
+    ::
 
-  ./cice.setup --test smoke --mach wolf -env gnu --testid tx01 --diff smoke_col_1x1_debug
-  cd wolf_gnu_smoke_col_1x1.tx01
-  ./cice.build
-  ./cice.submit
-  ./cat test_output
+      ./cice.setup --test smoke --mach wolf --env gnu --set diag1,debug --testid t00
+      cd wolf_gnu_smoke_col_1x1_debug_diag1.t00
+      ./cice.build
+      ./cice.submit
+      ./cat test_output
 
-The scripts will add a [machine]_[environment] to the beginning of the diff 
-argument and the same testid to the end of the diff argument.  Then the runs 
-will be compared for bit-for-bit and a result will be produced in test_output.  
+ 3) **Single test, generate a baseline dataset**
+
+    Add ``--bgen`` 
+    ::
+
+      ./cice.setup --test smoke --mach wolf -env gnu --bgen cice.v01 --testid t00 --set diag1
+      cd wolf_gnu_smoke_col_1x1_diag1.t00
+      ./cice.build
+      ./cice.submit
+      ./cat test_output
+
+ 3) **Single test, compare results to a prior baseline**
+
+    Add ``--bcmp``.  For this to work,
+    the prior baseline must exist and have the exact same base testname 
+    [machine]_[env]_[test]_[grid]_[pes]_[sets] 
+    ::
+
+      ./cice.setup --test smoke --mach wolf -env gnu --bcmp cice.v01 --testid t01 --set diag1
+      cd wolf_gnu_smoke_col_1x1_diag1.t01
+      ./cice.build
+      ./cice.submit
+      ./cat test_output
+
+ 4) **Simple test, generate a baseline dataset and compare to a prior baseline**
+
+    Use ``--bgen`` and ``--bcmp``.  The prior baseline must exist already.
+    ::
+
+      ./cice.setup --test smoke --mach wolf -env gnu --bgen cice.v02 --bcmp cice.v01 --testid t02 --set diag1
+      cd wolf_gnu_smoke_col_1x1_diag1.t02
+      ./cice.build
+      ./cice.submit
+      ./cat test_output
+
+ 5) **Simple test, comparison against another test**
+
+    ``--diff`` provides a way to compare tests with each other.  
+    For this to work, the tests have to be run in a specific order and
+    the testids need to match.  The test 
+    is always compared relative to the current case directory.
+
+    To run the first test,
+    ::
+
+      ./cice.setup --test smoke --mach wolf -env gnu --testid tx01 --set debug
+      cd wolf_gnu_smoke_col_1x1_debug.tx01
+      ./cice.build
+      ./cice.submit
+      ./cat test_output
+
+    Then to run the second test and compare to the results from the first test
+    ::
+
+      ./cice.setup --test smoke --mach wolf -env gnu --testid tx01 --diff smoke_col_1x1_debug
+      cd wolf_gnu_smoke_col_1x1.tx01
+      ./cice.build
+      ./cice.submit
+      ./cat test_output
+
+    The scripts will add a [machine]_[environment] to the beginning of the diff 
+    argument and the same testid to the end of the diff argument.  Then the runs 
+    will be compared for bit-for-bit and a result will be produced in test_output.  
 
 Specific Test Cases
 ~~~~~~~~~~~~~~~~~~~
@@ -255,6 +249,9 @@ results.csh script in the [suite_name].[testid]::
 
   cd testsuite.[testid]
   ./results.csh
+
+To report the test results, as is required for Pull Requests to be accepted into 
+the master the CICE Consortium code see :ref:`testreporting`.
 
 Multiple suites are supported on the command line as comma separated arguments::
 
@@ -332,181 +329,170 @@ following options are valid for suites,
 Please see :ref:`case_options` and :ref:`indtests` for more details about how these options are used.
 
 
-Example. Basic test suite
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Test Suite Examples
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-Specify suite, mach, env, testid.
-::
+ 1) **Basic test suite**
+     
+    Specify suite, mach, env, testid.
+    ::
 
-  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a
-  cd base_suite.v01a
-  #wait for runs to complete
-  ./results.csh
+     ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a
+     cd base_suite.v01a
+     #wait for runs to complete
+     ./results.csh
 
+ 2) **Basic test suite on multiple environments**
 
-Example. Basic test suite on multiple environments
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Specify multiple envs.
+    ::
 
-Specify multiple envs.
-::
+      ./cice.setup --suite base_suite --mach conrad --env cray,pgi,intel,gnu --testid v01a
+      cd base_suite.v01a
+      #wait for runs to complete
+      ./results.csh
 
-  ./cice.setup --suite base_suite --mach conrad --env cray,pgi,intel,gnu --testid v01a
-  cd base_suite.v01a
-  #wait for runs to complete
-  ./results.csh
+    Each env can be run as a separate invokation of `cice.setup` but if that
+    approach is taken, it is recommended that different testids be used.
 
-Each env can be run as a separate invokation of `cice.setup` but if that
-approach is taken, it is recommended that different testids be used.
+ 3) **Basic test suite with generate option defined**
 
+    Add ``--set``
+    ::
 
-Example. Basic test suite with generate option defined
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       ./cice.setup --suite base_suite --mach conrad --env gnu --testid v01b --set diag1
+       cd base_suite.v01b
+       #wait for runs to complete
+      ./results.csh
 
-Add ``--set``
-::
+    If there are conflicts between the ``--set`` options in the suite and on the command line,
+    the suite will take precedent.
 
-  ./cice.setup --suite base_suite --mach conrad --env gnu --testid v01b --set diag1
-  cd base_suite.v01b
-  #wait for runs to complete
-  ./results.csh
+ 4) **Multiple test suites from a single command line**
 
-If there are conflicts between the ``--set`` options in the suite and on the command line,
-the suite will take precedent.
+    Add comma delimited list of suites
+    ::
 
+      ./cice.setup --suite base_suite,decomp_suite --mach conrad --env gnu --testid v01c
+      cd base_suite.v01c
+      #wait for runs to complete
+      ./results.csh
 
-Example. Multiple test suites from a single command line
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     If there are redundant tests in multiple suites, the scripts will understand that and only
+     create one test.
 
-Add comma delimited list of suites
-::
+ 5) **Basic test suite, store baselines in user defined name**
 
-  ./cice.setup --suite base_suite,decomp_suite --mach conrad --env gnu --testid v01c
-  cd base_suite.v01c
-  #wait for runs to complete
-  ./results.csh
+    Add ``--bgen``
+    ::
 
-If there are redundant tests in multiple suites, the scripts will understand that and only
-create one test.
+      ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a
+      cd base_suite.v01a
+      #wait for runs to complete
+      ./results.csh
 
+     This will store the results in the default [bdir] directory under the subdirectory cice.v01a.
 
-Example. Basic test suite, store baselines in user defined name
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 6) **Basic test suite, store baselines in user defined top level directory**
 
-Add ``--bgen``
-::
+    Add ``--bgen`` and ``--bdir``
+    ::
 
-  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a
-  cd base_suite.v01a
-  #wait for runs to complete
-  ./results.csh
+      ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a --bdir /tmp/user/CICE_BASELINES
+      cd base_suite.v01a
+      #wait for runs to complete
+      ./results.csh
 
-This will store the results in the default [bdir] directory under the subdirectory cice.v01a.
+    This will store the results in /tmp/user/CICE_BASELINES/cice.v01a.
 
-Example. Basic test suite, store baselines in user defined top level directory
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 7) **Basic test suite, store baselines in auto-generated directory**
 
-Add ``--bgen`` and ``--bdir``
-::
+    Add ``--bgen default``
+    ::
 
-  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a --bdir /tmp/user/CICE_BASELINES
-  cd base_suite.v01a
-  #wait for runs to complete
-  ./results.csh
+      ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen default
+      cd base_suite.v01a
+      #wait for runs to complete
+      ./results.csh
 
-This will store the results in /tmp/user/CICE_BASELINES/cice.v01a.
+     This will store the results in the default [bdir] directory under a directory name generated by the script
+     that includes the hash and date.
 
+ 8) **Basic test suite, compare to prior baselines**
 
-Example. Basic test suite, store baselines in auto-generated directory
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Add ``--bcmp``
+    ::
 
-Add ``--bgen default``
-::
+      ./cice.setup --suite base_suite --mach conrad --env cray --testid v02a --bcmp cice.v01a
+      cd base_suite.v02a
+      #wait for runs to complete
+      ./results.csh
 
-  ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen default
-  cd base_suite.v01a
-  #wait for runs to complete
-  ./results.csh
+    This will compare to results saved in the baseline [bdir] directory under
+    the subdirectory cice.v01a. With the ``--bcmp`` option, the results will be tested
+    against prior baselines to verify bit-for-bit, which is an important step prior 
+    to approval of many (not all, see :ref:`compliance`) Pull Requests to incorporate code into 
+    the CICE Consortium master code. You can use other regression options as well.
+    (``--bdir`` and ``--bgen``)
 
-This will store the results in the default [bdir] directory under a directory name generated by the script that includes the hash and date.
+ 9) **Basic test suite, use of default string in regression testing**
 
+    default is a special argument to ``--bgen`` and ``--bcmp``.  When used, the
+    scripts will automate generation of the directories.  In the case of ``--bgen``,
+    a unique directory name consisting of the hash and a date will be created.
+    In the case of ``--bcmp``, the latest directory in [bdir] will automatically
+    be used.  This provides a number of useful features
 
-Example. Basic test suite, compare to prior baselines
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     - the ``--bgen`` directory will be named after the hash automatically
+     - the ``--bcmp`` will always find the most recent set of baselines
+     - the ``--bcmp`` reporting will include information about the comparison directory 
+       name which will include hash information
+     - automation can be invoked easily, especially if ``--bdir`` is used to create separate
+       baseline directories as needed.
 
-Add ``--bcmp``
-::
+    Imagine the case where the default settings are used and ``--bdir`` is used to 
+    create a unique location.  You could easily carry out regular builds automatically via,
+    ::
 
-  ./cice.setup --suite base_suite --mach conrad --env cray --testid v02a --bcmp cice.v01a
-  cd base_suite.v02a
-  #wait for runs to complete
-  ./results.csh
+      set mydate = `date -u "+%Y%m%d"`
+      git clone https://github.com/myfork/cice cice.$mydate --recursive
+      cd cice.$mydate
+      ./cice.setup --suite base_suite --mach conrad --env cray,gnu,intel,pgi --testid $mydate --bcmp default --bgen default --bdir /tmp/work/user/CICE_BASELINES_MASTER
 
-This will compare to results saved in the baseline [bdir] directory under
-the subdirectory cice.v01a.  You can use other regression options as well
-(``--bdir`` and ``--bgen``)
+    When this is invoked, a new set of baselines will be generated and compared to the prior
+    results each time without having to change the arguments.
 
+ 10) **Create and test a custom suite**
 
-Example. Basic test suite, use of default string in regression testing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Create your own input text file consisting of 5 columns of data,
+     - Test
+     - Grid
+     - pes
+     - sets (optional)
+     - diff test (optional)
 
-default is a special argument to ``--bgen`` and ``--bcmp``.  When used, the
-scripts will automate generation of the directories.  In the case of ``--bgen``,
-a unique directory name consisting of the hash and a date will be created.
-In the case of ``--bcmp``, the latest directory in [bdir] will automatically
-be used.  This provides a number of useful features
+    such as
+    ::
 
- - the ``--bgen`` directory will be named after the hash automatically
- - the ``--bcmp`` will always find the most recent set of baselines
- - the ``--bcmp`` reporting will include information about the comparison directory
-   name which will include hash information
- - automation can be invoked easily, especially if ``--bdir`` is used to create separate
-   baseline directories as needed.
+       > cat mysuite
+       smoke    col  1x1  diag1,debug
+       restart  col  1x1
+       restart  col  1x1  diag1,debug    restart_col_1x1
+       restart  col  1x1  mynewoption,diag1,debug
 
-Imagine the case where the default settings are used and ``--bdir`` is used to 
-create a unique location.  You could easily carry out regular builds automatically via,
-::
+    then use that input file, mysuite
+    ::
 
-  set mydate = `date -u "+%Y%m%d"`
-  git clone https://github.com/myfork/cice cice.$mydate --recursive
-  cd cice.$mydate
-  ./cice.setup --suite base_suite --mach conrad --env cray,gnu,intel,pgi --testid $mydate --bcmp default --bgen default --bdir /tmp/work/user/CICE_BASELINES_MASTER
+      ./cice.setup --suite mysuite --mach conrad --env cray --testid v01a --bgen default
+      cd mysuite.v01a
+      #wait for runs to complete
+      ./results.csh
 
-When this is invoked, a new set of baselines will be generated and compared to the prior
-results each time without having to change the arguments.
-
-
-Example. Create and test a custom suite
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Create your own input text file consisting of 5 columns of data,
- - Test
- - Grid
- - pes
- - sets (optional)
- - diff test (optional)
-
-such as
-::
-
-   > cat mysuite
-   smoke    col  1x1  diag1,debug
-   restart  col  1x1
-   restart  col  1x1  diag1,debug    restart_col_1x1
-   restart  col  1x1  mynewoption,diag1,debug
-
-then use that input file, mysuite
-::
-
-  ./cice.setup --suite mysuite --mach conrad --env cray --testid v01a --bgen default
-  cd mysuite.v01a
-  #wait for runs to complete
-  ./results.csh
-
-You can use all the standard regression testing options (``--bgen``, ``--bcmp``, 
-``--bdir``).  Make sure any "diff" testing that goes on is on tests that
-are created earlier in the test list, as early as possible.  Unfortunately,
-there is still no absolute guarantee the tests will be completed in the correct 
-sequence.
+    You can use all the standard regression testing options (``--bgen``, ``--bcmp``, 
+    ``--bdir``).  Make sure any "diff" testing that goes on is on tests that
+    are created earlier in the test list, as early as possible.  Unfortunately,
+    there is still no absolute guarantee the tests will be completed in the correct 
+    sequence.
 
 
 .. _testreporting:
@@ -515,9 +501,12 @@ Test Reporting
 ---------------
 
 The CICE testing scripts have the capability to post test results
-to the official `wiki page <https://github.com/CICE-Consortium/Test-Results/wiki>`_.
-You may need write permission on the wiki.  If you are interested in using the
-wiki, please contact the consortium.
+to the official CICE Consortium Test-Results 
+`wiki page <https://github.com/CICE-Consortium/Test-Results/wiki>`_.
+You may need write permission on the wiki. If you are interested in using the
+wiki, please contact the consortium. Note that in order for code to be 
+accepted to the CICE Consortium master through a Pull Request it is necessary
+for the developer to provide proof that their code passes relevant tests. 
 
 To post results, once a test suite is complete, run ``results.csh`` and
 ``report_results.csh`` from the suite directory,
@@ -562,7 +551,7 @@ and CICE have not significantly altered simulated ice volume using previous mode
 configurations.  Here we describe the CICE testing tools, which are applies to output 
 from five-year gx-1 simulations that use the standard CICE atmospheric forcing. 
 A scientific justification of the testing is provided in
-:cite:`HRALTCDBHWDG18`.
+:cite:`Hunke18`. The following sections follow :cite:`Roberts18`.
 
 .. _paired:
 
@@ -610,15 +599,15 @@ equations (:eq:`t-distribution`). That is:
    \bar{h}_d=\frac{1}{n} \sum \limits_{i=1}^{n} {h}_{di}
    :label: short-means
 
-Following :cite:`ZvS95`, the effective sample size is
+Following :cite:`Zwiers95`, the effective sample size is
 limited to :math:`n_{eff}\in[2,n]`. This definition of :math:`n_{eff}`
 assumes ice thickness evolves as an AR(1) process
-:cite:`vSZ99`, which can be justified by analyzing
+:cite:`vonstorch99`, which can be justified by analyzing
 the spectral density of daily samples of ice thickness from 5-year
-records in CICE Consortium member models :cite:`HRALTCDBHWDG18`.
+records in CICE Consortium member models :cite:`Hunke18`.
 The AR(1) approximation is inadmissible for paired velocity samples,
 because ice drift possesses periodicity from inertia and tides
-:cite:`HRHPSL06,LOSF12,RCWODHNCB15`. Conversely,
+:cite:`Hibler06,Lepparanta12,Roberts15`. Conversely,
 tests of paired ice concentration samples may be less sensitive to ice
 drift than ice thickness. In short, ice thickness is the best variable
 for CICE Consortium quality control (QC), and for the test of the mean
@@ -627,7 +616,7 @@ in particular.
 Care is required in analyzing mean sea ice thickness changes using
 (:eq:`t-distribution`) with
 :math:`N{=}n_{eff}{-}1` degrees of freedom.
-:cite:`ZvS95` demonstrate that the :math:`t`-test in
+:cite:`Zwiers95` demonstrate that the :math:`t`-test in
 (:eq:`t-distribution`) becomes conservative when
 :math:`n_{eff} < 30`, meaning that :math:`H_0` may be erroneously
 confirmed for highly auto-correlated series. Strong autocorrelation
@@ -635,7 +624,7 @@ frequently occurs in modeled sea ice thickness, and :math:`r_1>0.99` is
 possible in parts of the gx-1 domain for the five-year QC simulations.
 In the event that :math:`H_0` is confirmed but :math:`2\leq n_{eff}<30`,
 the :math:`t`-test progresses to the ‘Table Lookup Test’ of
-:cite:`ZvS95`, to check that the first-stage test
+:cite:`Zwiers95`, to check that the first-stage test
 using (:eq:`t-distribution`) was not
 conservative. The Table Lookup Test chooses critical :math:`t` values
 :math:`|t|<t_{crit}({1{-}\alpha/2},N)` at the :math:`\alpha`
@@ -643,13 +632,13 @@ significance level based on :math:`r_1`. It uses the conventional
 :math:`t={\bar{h}_{d} \sqrt{n}}/{\sigma_d}` statistic with degrees of
 freedom :math:`N{=}n{-}1`, but with :math:`t_{crit}` values generated
 using the Monte Carlo technique described in
-:cite:`ZvS95`, and summarized in :ref:`Table-Lookup` for 5-year QC
+:cite:`Zwiers95`, and summarized in :ref:`Table-Lookup` for 5-year QC
 simulations (:math:`N=1824`) at the two-sided 80% confidence interval
 (:math:`\alpha=0.2`). We choose this interval to limit Type II errors,
 whereby a QC test erroneously confirms :math:`H_0`.
 
 Table :ref:`Table-Lookup` shows the summary of two-sided :math:`t_{crit}` values for the Table
-Lookup Test of :cite:`ZvS95` at the 80% confidence
+Lookup Test of :cite:`Zwiers95` at the 80% confidence
 interval generated for :math:`N=1824` degrees of freedom and lag-1
 autocorrelation :math:`r_1`.
 
@@ -747,7 +736,7 @@ score :math:`S` is calculated separately for the northern and southern
 hemispheres, and must exceed a critical value nominally set to
 :math:`S_{crit}=0.99` to pass the test. Practical illustrations of this
 test and the Two-Stage test described in the previous section are
-provided in :cite:`HRALTCDBHWDG18`.
+provided in :cite:`Hunke18`.
 
 
 Code Compliance Testing Procedure
