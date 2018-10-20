@@ -135,7 +135,7 @@
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
       use ice_dyn_eap, only: write_restart_eap
-      use ice_dyn_shared, only: kdyn, kridge, ktransport
+      use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
           daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
       use ice_history, only: accum_hist

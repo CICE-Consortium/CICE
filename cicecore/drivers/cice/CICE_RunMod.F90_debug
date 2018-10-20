@@ -52,8 +52,6 @@
           timer_couple, timer_step
       logical (kind=log_kind) :: &
           tr_aero, tr_zaero, skl_bgc, z_tracers
-      integer (kind=int_kind) :: &
-          land_override   ! if=1, set land on edges of outer 2 rows/columns
       character(len=*), parameter :: subname = '(CICE_Run)'
 
    !--------------------------------------------------------------------
@@ -105,10 +103,8 @@
 #endif
          if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-         if (trim(atm_data_type) /= 'box' .or. land_override == 0)  then
-           call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
-           call init_flux_ocn  ! initialize ocean fluxes sent to coupler
-         end if
+         call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
+         call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
          call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
@@ -139,7 +135,7 @@
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
       use ice_dyn_eap, only: write_restart_eap
-      use ice_dyn_shared, only: kdyn, kridge, ktransport
+      use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
           daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
       use ice_history, only: accum_hist
@@ -262,7 +258,7 @@
          do k = 1, ndtd
 
             ! momentum, stress, transport
-            if (ktransport > 0) call step_dyn_horiz (dt_dyn)
+            call step_dyn_horiz (dt_dyn)
 
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
