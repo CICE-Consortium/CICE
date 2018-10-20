@@ -237,7 +237,7 @@
          do k = 1, ndtd
 
             ! momentum, stress, transport
-            if (ktransport > 0) call step_dyn_horiz (dt_dyn)
+            call step_dyn_horiz (dt_dyn)
 
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
