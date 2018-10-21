@@ -241,7 +241,7 @@
       elseif (trim(atm_data_type) == 'ISPOL') then 
          call ISPOL_files
       elseif (trim(atm_data_type) == 'box') then
-         call box_data(fyear)
+         call box_data
       endif
 
       end subroutine init_forcing_atmo
@@ -533,7 +533,7 @@
       elseif (trim(atm_data_type) == 'oned') then
          call oned_data
       elseif (trim(atm_data_type) == 'box') then
-         call box_data(fyear)
+         call box_data
       else    ! default values set in init_flux
          return
       endif
@@ -4411,7 +4411,7 @@
 
 !=======================================================================
 !
-      subroutine box_data (yr)
+      subroutine box_data
 
 ! wind and current fields as in Hunke, JCP 2001
 ! authors: Elizabeth Hunke, LANL
@@ -4419,8 +4419,7 @@
       use ice_domain, only: nblocks
       use ice_constants, only: c0, c1, c2, c3, c4, c5, p2
       use ice_blocks, only: nx_block, ny_block, nghost
-      use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strairxT, &
-                          strairyT
+      use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
       use ice_fileunits, only: nu_diag, nu_forcing
       use ice_grid, only: uvm
 
@@ -4429,8 +4428,6 @@
       integer (kind=int_kind) :: &
          iblk, i,j           ! loop indices
 
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
       real (kind=dbl_kind) :: &
           secday, pi , c10, c12, c20, puny, period, pi2, tau
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
@@ -4466,8 +4463,8 @@
          ! wind stress
          wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
          tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-         strairxT(i,j,iblk) = tau * uatm(i,j,iblk)
-         strairyT(i,j,iblk) = tau * vatm(i,j,iblk)
+         strax(i,j,iblk) = tau * uatm(i,j,iblk)
+         stray(i,j,iblk) = tau * vatm(i,j,iblk)
 
 ! initialization test
        ! Diagonal wind vectors 1

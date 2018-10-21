@@ -27,9 +27,6 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_ice_strength
-#ifdef CICE_IN_NEMO
-      use icepack_intfc, only: calc_strair
-#endif
 
       implicit none
       private
@@ -133,9 +130,6 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-#ifdef CICE_IN_NEMO
-      use ice_flux, only: strax, stray
-#endif
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, to_ugrid, t2ugrid_vector, u2tgrid_vector
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
@@ -181,6 +175,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation
+
+      logical (kind=log_kind) :: calc_strair
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
          icetmask, &  ! ice extent mask (T-cell)
@@ -258,21 +254,22 @@
       call to_ugrid(tmass,umass)
       call to_ugrid(aice_init, aiu)
 
-#ifdef CICE_IN_NEMO
       !----------------------------------------------------------------
-      ! Set wind stress to values supplied via NEMO
+      ! Set wind stress to values supplied via NEMO or other forcing
       ! This wind stress is rotated on u grid and multiplied by aice
       !----------------------------------------------------------------
+      call icepack_query_parameters(calc_strair_out=calc_strair)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
       if (.not. calc_strair) then       
          strairx(:,:,:) = strax(:,:,:)
          strairy(:,:,:) = stray(:,:,:)
       else
-#endif
          call t2ugrid_vector(strairx)
          call t2ugrid_vector(strairy)
-#ifdef CICE_IN_NEMO
       endif
-#endif
 
 ! tcraig, tcx, turned off this threaded region, in evp, this block and 
 ! the icepack_ice_strength call seems to not be thread safe.  more

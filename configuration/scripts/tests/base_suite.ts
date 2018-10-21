@@ -21,3 +21,4 @@ restart        gbox128  4x2       none
 restart        gbox128  4x2       boxdyn
 restart        gbox128  2x2       boxadv
 restart        gbox128  4x4       boxrestore
+restart        gbox80   1x1       box2001
