@@ -202,6 +202,34 @@ Individual Test Examples
     argument and the same testid to the end of the diff argument.  Then the runs 
     will be compared for bit-for-bit and a result will be produced in test_output.  
 
+Specific Test Cases
+~~~~~~~~~~~~~~~~~~~
+
+In addition to the test implemented in the general testing framework, specific
+tests have been developed to validate specific portions of the model.  These
+specific tests are detailed in this section.
+
+``box2001``
+^^^^^^^^^^^^
+
+The ``box2001`` test case is configured to perform the rectangular-grid box test 
+detailed in :cite:`Hunke01`.  It is configured to run a 72-hour simulation with 
+thermodynamics disabled in a rectangular domain (80 x 80 grid cells) with a land
+boundary around the entire domain.  It includes the following namelist modifications:
+
+- ``dxrect``: ``16.e5`` meters
+- ``dyrect``: ``16.e5`` meters
+- ``thermo``: ``0`` (disables thermodynamics)
+- ``coriolis``: ``zero`` (zero coriolis force)
+
+Ocean stresses are computed as in :cite:`Hunke01` where they are circular and centered 
+in the square domain.  The ice distribution is fixed, with a constant 2 meter ice 
+thickness and a concentration field that varies linearly in the x-direction from ``0``
+to ``1`` and is constant in the y-direction.  No islands are included in this
+configuration.  The test is configured to run on a single processor.
+
+To run the test: ``./cice.setup -m <machine> --test smoke -s box2001 --testid <test_id>
+--grid gbox80 --acct <queue manager account> -p 1x1``
 
 .. _testsuites:
 

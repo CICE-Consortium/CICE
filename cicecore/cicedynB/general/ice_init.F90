@@ -55,6 +55,7 @@
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
+      use ice_domain, only: close_boundaries
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
                                  n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
@@ -85,9 +86,11 @@
           oceanmixed_file, restore_ocn,   trestore
       use ice_arrays_column, only: bgc_data_dir, &
           sil_data_type, nit_data_type, fe_data_type
-      use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
+      use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format, &
+                          dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                basalstress, Ktens, e_ratio
+                                basalstress, Ktens, e_ratio, coriolis, &
+                                kridge, ktransport
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -151,7 +154,8 @@
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
         ncat,           nilyr,           nslyr,         nblyr,          &
-        kcatbound,      gridcpl_file
+        kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
+        close_boundaries
 
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,                       &
@@ -160,7 +164,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        advection,                                                      &
+        advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress
 
@@ -268,7 +272,7 @@
 
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
-      kdyn = 1           ! type of dynamics (1 = evp, 2 = eap)
+      kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -278,14 +282,18 @@
       krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
       Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
+      close_boundaries = .false.   ! true = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
       shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
       albedo_type = 'ccsm3'  ! 'ccsm3' or 'constant'
-      ktherm = 1             ! 0 = 0-layer, 1 = BL99, 2 = mushy thermo
+      ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
+      coriolis = 'latitude'  ! latitude dependent, or 'constant'
+      kridge   = 1           ! -1 = off, 1 = on
+      ktransport = 1         ! -1 = off, 1 = on
       calc_Tsfc = .true.     ! calculate surface temperature
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
@@ -522,6 +530,9 @@
       call broadcast_scalar(pointer_file,       master_task)
       call broadcast_scalar(ice_ic,             master_task)
       call broadcast_scalar(grid_format,        master_task)
+      call broadcast_scalar(dxrect,             master_task)
+      call broadcast_scalar(dyrect,             master_task)
+      call broadcast_scalar(close_boundaries,   master_task)
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)
@@ -545,6 +556,9 @@
       call broadcast_scalar(shortwave,          master_task)
       call broadcast_scalar(albedo_type,        master_task)
       call broadcast_scalar(ktherm,             master_task)
+      call broadcast_scalar(coriolis,           master_task)
+      call broadcast_scalar(kridge,             master_task)
+      call broadcast_scalar(ktransport,         master_task)
       call broadcast_scalar(conduct,            master_task)
       call broadcast_scalar(R_ice,              master_task)
       call broadcast_scalar(R_pnd,              master_task)
@@ -956,6 +970,8 @@
          write(nu_diag,1020) ' kitd                      = ', kitd
          write(nu_diag,1020) ' kcatbound                 = ', &
                                kcatbound
+         write(nu_diag,1010) ' close_boundaries          = ', &
+                               close_boundaries
          if (kdyn == 1) then
            write(nu_diag,1021) ' kdyn                      = ','evp ', kdyn
          elseif (kdyn == 2) then
@@ -971,6 +987,9 @@
          write(nu_diag,*)    ' yield_curve               = ', &
                                trim(yield_curve)
          write(nu_diag,1020) ' kstrength                 = ', kstrength
+         write(nu_diag,1030) ' coriolis                  = ', coriolis
+         write(nu_diag,1020) ' kridge                    = ', kridge
+         write(nu_diag,1020) ' ktransport                = ', ktransport
          write(nu_diag,1020) ' krdg_partic               = ', &
                                krdg_partic
          write(nu_diag,1020) ' krdg_redist               = ', &
@@ -1852,8 +1871,8 @@
                if (trim(atm_data_type) == 'box') then
                   if (hinit(n) > c0) then
 !                  ! constant slope from 0 to 1 in x direction
-!                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
-!                                  / (real(nx_global,kind=dbl_kind))
+                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
+                                  / (real(nx_global,kind=dbl_kind))
 !                  ! constant slope from 0 to 0.5 in x direction
 !                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
 !                                  / (real(nx_global,kind=dbl_kind)) * p5
@@ -1862,12 +1881,12 @@
 !                                         / (real(nx_global,kind=dbl_kind)) &
 !                                         * (real(jglob(j), kind=dbl_kind)-p5) &
 !                                         / (real(ny_global,kind=dbl_kind)) * p5)
-                     aicen(i,j,n) = max(c0,(real(nx_global, kind=dbl_kind) &
-                                         -  real(iglob(i), kind=dbl_kind)-p5) &
-                                         / (real(nx_global,kind=dbl_kind)) &
-                                         * (real(ny_global, kind=dbl_kind) &
-                                         -  real(jglob(j), kind=dbl_kind)-p5) &
-                                         / (real(ny_global,kind=dbl_kind)) * p5)
+!                     aicen(i,j,n) = max(c0,(real(nx_global, kind=dbl_kind) &
+!                                         -  real(iglob(i), kind=dbl_kind)-p5) &
+!                                         / (real(nx_global,kind=dbl_kind)) &
+!                                         * (real(ny_global, kind=dbl_kind) &
+!                                         -  real(jglob(j), kind=dbl_kind)-p5) &
+!                                         / (real(ny_global,kind=dbl_kind)) * p5)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
                else

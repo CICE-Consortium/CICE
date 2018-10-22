@@ -50,6 +50,9 @@
     kmt_file     = 'kmt'
     gridcpl_file = 'unknown_gridcpl_file'
     kcatbound    = 0
+    dxrect         = 30.e5
+    dyrect         = 30.e5
+    close_boundaries = .false.
     ncat         = 5
     nilyr        = 7
     nslyr        = 1
@@ -115,6 +118,9 @@
     Ktens           = 0.
     e_ratio         = 2.
     basalstress     = .false.
+    coriolis        = 'latitude'
+    kridge          = 1
+    ktransport      = 1
 /
 
 &shortwave_nml
