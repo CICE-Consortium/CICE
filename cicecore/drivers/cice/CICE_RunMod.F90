@@ -202,7 +202,7 @@
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
-            if (ktherm > 0) then
+            if (ktherm >= 0) then
 
       !-----------------------------------------------------------------
       ! scale radiation fields
@@ -262,7 +262,7 @@
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
-            if (ktherm > 0) call step_radiation (dt, iblk)
+            if (ktherm >= 0) call step_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
       ! get ready for coupling and the next time step
