@@ -37,7 +37,10 @@
               init_domain_distribution
 
    integer (int_kind), public :: &
-      nblocks            ! actual number of blocks on this processor
+      nblocks         ! actual number of blocks on this processor
+
+   logical (kind=log_kind), public :: &
+      close_boundaries
 
    integer (int_kind), dimension(:), pointer, public :: &
       blocks_ice => null()        ! block ids for local blocks

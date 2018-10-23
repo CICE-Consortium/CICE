@@ -29,7 +29,7 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
-      use ice_constants, only: c0, c1, c2, c4, c10, c12, c20, &
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, c10, c12, c20, &
                                c180, c365, c1000, c3600
       use ice_constants, only: p001, p01, p1, p25, p5, p6
       use ice_constants, only: cm_to_m
@@ -115,8 +115,8 @@
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 
                           ! 'LYq' or 'hadgem' or 'oned'
-         sss_data_type, & ! 'default', 'clim', 'ncar', 'oned'
-         sst_data_type, & ! 'default', 'clim', 'ncar', 'oned',
+         bgc_data_type, & ! 'default', 'clim', 'ncar', 'oned'
+         ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks'
  
@@ -140,7 +140,7 @@
          ocn_frc_m   ! ocn data for 12 months
 
       logical (kind=log_kind), public :: &
-         restore_sst                 ! restore sst if true
+         restore_ocn                 ! restore sst if true
 
       integer (kind=int_kind), public :: &
          trestore                    ! restoring time scale (days)
@@ -240,6 +240,8 @@
          call oned_files
       elseif (trim(atm_data_type) == 'ISPOL') then 
          call ISPOL_files
+      elseif (trim(atm_data_type) == 'box') then
+         call box_data
       endif
 
       end subroutine init_forcing_atmo
@@ -253,9 +255,9 @@
 ! Read sst data for current month, and adjust sst based on freezing
 ! temperature.  No interpolation in time.
 
-! Note: SST is subsequently prognosed if CICE is run with a mixed layer
-! ocean (oceanmixed_ice = T), and can be restored to data 
-! (restore_sst = T). SSS is not prognosed by CICE. 
+! Note: SST is subsequently prognosed if CICE is run 
+! with a mixed layer ocean (oceanmixed_ice = T), and can be 
+! restored to data (restore_ocn = T).
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
@@ -300,7 +302,7 @@
 
       nbits = 64              ! double precision data
 
-      if (restore_sst .or. restore_bgc) then
+      if (restore_ocn .or. restore_bgc) then
          if (trestore == 0) then
             trest = dt        ! use data instantaneously
          else
@@ -313,7 +315,7 @@
     ! initialize to annual climatology created from monthly data
     !-------------------------------------------------------------------
 
-      if (trim(sss_data_type) == 'clim') then
+      if (trim(bgc_data_type) == 'clim') then
 
          sss_file = trim(ocn_data_dir)//'/sss.mm.100x116.da' ! gx3 only
 
@@ -357,14 +359,14 @@
 
          if (my_task == master_task) close(nu_forcing)
 
-      endif                     ! sss_data_type
+      endif                     ! bgc_data_type
 
     !-------------------------------------------------------------------
     ! Sea surface temperature (SST)
     ! initialize to data for current month
     !-------------------------------------------------------------------
 
-      if (trim(sst_data_type) == 'clim') then
+      if (trim(ocn_data_type) == 'clim') then
 
          if (nx_global == 320) then ! gx1
             sst_file = trim(ocn_data_dir)//'/sst_clim_hurrell.dat'
@@ -399,8 +401,8 @@
       endif                     ! init_sst_data
 
 
-      if (trim(sst_data_type) == 'hadgem_sst' .or.  &
-          trim(sst_data_type) == 'hadgem_sst_uvocn') then
+      if (trim(ocn_data_type) == 'hadgem_sst' .or.  &
+          trim(ocn_data_type) == 'hadgem_sst_uvocn') then
 
        	 diag = .true.   ! write diagnostic information 
 
@@ -431,10 +433,10 @@
          enddo
          !$OMP END PARALLEL DO
 
-      endif                        ! sst_data_type
+      endif                        ! ocn_data_type
 
-      if (trim(sst_data_type) == 'ncar' .or.  &
-          trim(sss_data_type) == 'ncar') then
+      if (trim(ocn_data_type) == 'ncar' .or.  &
+          trim(bgc_data_type) == 'ncar') then
 !         call ocn_data_ncar_init
          call ocn_data_ncar_init_3D
       endif
@@ -530,6 +532,8 @@
          call monthly_data
       elseif (trim(atm_data_type) == 'oned') then
          call oned_data
+      elseif (trim(atm_data_type) == 'box') then
+         call box_data
       else    ! default values set in init_flux
          return
       endif
@@ -603,19 +607,19 @@
 
       character(len=*), parameter :: subname = '(get_forcing_ocn)'
 
-      if (trim(sst_data_type) == 'clim' .or.  &
-          trim(sss_data_type) == 'clim') then
+      if (trim(ocn_data_type) == 'clim' .or.  &
+          trim(bgc_data_type) == 'clim') then
          call ocn_data_clim(dt)
-      elseif (trim(sst_data_type) == 'ncar' .or.  &
-              trim(sss_data_type) == 'ncar'.or.  &
-              trim(sst_data_type) == 'ISPOL' .or. & 
-              trim(sss_data_type) == 'ISPOL') then
+      elseif (trim(ocn_data_type) == 'ncar' .or.  &
+              trim(bgc_data_type) == 'ncar'.or.  &
+              trim(ocn_data_type) == 'ISPOL' .or. & 
+              trim(bgc_data_type) == 'ISPOL') then
          call ocn_data_ncar(dt)      
-      elseif (trim(sst_data_type) == 'hadgem_sst' .or.  &
-              trim(sst_data_type) == 'hadgem_sst_uvocn') then
+      elseif (trim(ocn_data_type) == 'hadgem_sst' .or.  &
+              trim(ocn_data_type) == 'hadgem_sst_uvocn') then
          call ocn_data_hadgem(dt) 
-      elseif (trim(sst_data_type) == 'oned' .or.  &
-              trim(sss_data_type) == 'oned') then
+      elseif (trim(ocn_data_type) == 'oned' .or.  &
+              trim(bgc_data_type) == 'oned') then
          call ocn_data_oned
       endif
 
@@ -3080,16 +3084,16 @@
       character(len=*), parameter :: subname = '(ocn_data_clim)'
 
       if (my_task == master_task .and. istep == 1) then
-         if (trim(sss_data_type)=='clim') then
+         if (trim(bgc_data_type)=='clim') then
             write (nu_diag,*) ' '
             write (nu_diag,*) 'SSS data interpolated to timestep:'
             write (nu_diag,*) trim(sss_file)
          endif
-         if (trim(sst_data_type)=='clim') then
+         if (trim(ocn_data_type)=='clim') then
             write (nu_diag,*) ' '
             write (nu_diag,*) 'SST data interpolated to timestep:'
             write (nu_diag,*) trim(sst_file)
-            if (restore_sst) write (nu_diag,*) &
+            if (restore_ocn) write (nu_diag,*) &
               'SST restoring timescale (days) =', trestore
          endif
       endif                     ! my_task, istep
@@ -3101,8 +3105,8 @@
     ! month.
     !-------------------------------------------------------------------
 
-      if (trim(sss_data_type)=='clim' .or.  &
-          trim(sst_data_type)=='clim') then
+      if (trim(bgc_data_type)=='clim' .or.  &
+          trim(ocn_data_type)=='clim') then
 
          midmonth = 15          ! data is given on 15th of every month
 !!!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
@@ -3128,14 +3132,14 @@
          readm = .false.
          if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
 
-      endif   ! sss/sst_data_type
+      endif   ! bgc/ocn_data_type
 
     !-------------------------------------------------------------------
     ! Read two monthly SSS values and interpolate.
     ! Note: SSS is restored instantaneously to data.
     !-------------------------------------------------------------------
 
-      if (trim(sss_data_type)=='clim') then
+      if (trim(bgc_data_type)=='clim') then
          call read_clim_data (readm, 0, ixm, month, ixp, &
                               sss_file, sss_data, &
                               field_loc_center, field_type_scalar)
@@ -3159,13 +3163,13 @@
     ! Restore toward interpolated value.
     !-------------------------------------------------------------------
 
-      if (trim(sst_data_type)=='clim') then
+      if (trim(ocn_data_type)=='clim') then
          call read_clim_data (readm, 0, ixm, month, ixp, &
                               sst_file, sst_data, &
                               field_loc_center, field_type_scalar)
          call interpolate_data (sst_data, sstdat)
 
-         if (restore_sst) then
+         if (restore_ocn) then
          !$OMP PARALLEL DO PRIVATE(iblk,i,j)
          do iblk = 1, nblocks
             do j = 1, ny_block
@@ -3248,7 +3252,7 @@
          write (nu_diag,*) 'WARNING: not data from ocean forcing file.'
          write (nu_diag,*) 'WARNING: Alter ice_dyn_evp.F90 if desired.'
 
-         if (restore_sst) write (nu_diag,*)  &
+         if (restore_ocn) write (nu_diag,*)  &
              'SST restoring timescale = ',trestore,' days' 
 
          sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
@@ -3400,7 +3404,7 @@
          write (nu_diag,*) 'WARNING: not data from ocean forcing file.'
          write (nu_diag,*) 'WARNING: Alter ice_dyn_evp.F if desired.'
 
-         if (restore_sst) write (nu_diag,*)  &
+         if (restore_ocn) write (nu_diag,*)  &
              'SST restoring timescale = ',trestore,' days' 
 
          sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
@@ -3604,7 +3608,7 @@
 
       call ocn_freezing_temperature
 
-      if (restore_sst) then
+      if (restore_ocn) then
         do j = 1, ny_block 
          do i = 1, nx_block 
            sst(i,j,:) = sst(i,j,:) + (work1(i,j,:)-sst(i,j,:))*dt/trest 
@@ -3705,7 +3709,7 @@
       subroutine ocn_data_hadgem(dt)
 
 !  Reads in HadGEM ocean forcing data as required from netCDF files
-!  Current options (selected by sst_data_type)
+!  Current options (selected by ocn_data_type)
 !  hadgem_sst: 		read in sst only 
 !  hadgem_sst_uvocn:	read in sst plus uocn and vocn	
 
@@ -3776,9 +3780,9 @@
          write (nu_diag,*) ' '
          write (nu_diag,*) 'SST data interpolated to timestep:'
          write (nu_diag,*) trim(ocn_data_dir)//'/MONTHLY/sst.1997.nc'
-         if (restore_sst) write (nu_diag,*) &
+         if (restore_ocn) write (nu_diag,*) &
               'SST restoring timescale (days) =', trestore
-         if (trim(sst_data_type)=='hadgem_sst_uvocn') then
+         if (trim(ocn_data_type)=='hadgem_sst_uvocn') then
             write (nu_diag,*) ' '
             write (nu_diag,*) 'uocn and vocn interpolated to timestep:'
             write (nu_diag,*) trim(ocn_data_dir)//'/MONTHLY/uocn.1997.nc'
@@ -3799,7 +3803,7 @@
       call interpolate_data (sst_data, sstdat)
 
       ! Restore SSTs if required
-        if (restore_sst) then
+        if (restore_ocn) then
          !$OMP PARALLEL DO PRIVATE(iblk,i,j)
          do iblk = 1, nblocks
             do j = 1, ny_block
@@ -3821,7 +3825,7 @@
       ! Also need to be converted from cm s-1 (UM) to m s-1 (CICE)
       ! -----------------------------------------------------------
 
-      if (trim(sst_data_type)=='hadgem_sst_uvocn') then
+      if (trim(ocn_data_type)=='hadgem_sst_uvocn') then
 
       	filename = trim(ocn_data_dir)//'/MONTHLY/uocn.1997.nc'	
       	fieldname='uocn'
@@ -3873,7 +3877,7 @@
          call t2ugrid_vector(uocn)
          call t2ugrid_vector(vocn)
 
-     endif    !   sst_data_type = hadgem_sst_uvocn
+     endif    !   ocn_data_type = hadgem_sst_uvocn
 
      end subroutine ocn_data_hadgem
 
@@ -4356,7 +4360,7 @@
 
       if (my_task == master_task) then
 
-         if (restore_sst) write (nu_diag,*)  &
+         if (restore_ocn) write (nu_diag,*)  &
              'SST restoring timescale = ',trestore,' days' 
 
          sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
@@ -4406,7 +4410,95 @@
       end subroutine ocn_data_ispol_init
 
 !=======================================================================
+!
+      subroutine box_data
+
+! wind and current fields as in Hunke, JCP 2001
+! authors: Elizabeth Hunke, LANL
+
+      use ice_domain, only: nblocks
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, p2
+      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
+      use ice_fileunits, only: nu_diag, nu_forcing
+      use ice_grid, only: uvm
+
+      ! local parameters
+
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
+
+      real (kind=dbl_kind) :: &
+          secday, pi , c10, c12, c20, puny, period, pi2, tau
+      call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
+      call icepack_query_parameters(secday_out=secday)
+
+      period = c4*secday
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block   
+         do i = 1, nx_block   
+
+         ! ocean current
+         ! constant in time, could be initialized in ice_flux.F90
+         uocn(i,j,iblk) =  p2*real(j-nghost, kind=dbl_kind) &
+                            / real(nx_global,kind=dbl_kind) - p1
+         vocn(i,j,iblk) = -p2*real(i-nghost, kind=dbl_kind) &
+                            / real(ny_global,kind=dbl_kind) + p1
+
+         uocn(i,j,iblk) = uocn(i,j,iblk) * uvm(i,j,iblk)
+         vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)
+
+         ! wind components
+         uatm(i,j,iblk) = c5 + (sin(pi2*time/period)-c3) &
+                              * sin(pi2*real(i-nghost, kind=dbl_kind)  &
+                                       /real(nx_global,kind=dbl_kind)) &
+                              * sin(pi *real(j-nghost, kind=dbl_kind)  &
+                                       /real(ny_global,kind=dbl_kind))
+         vatm(i,j,iblk) = c5 + (sin(pi2*time/period)-c3) &
+                              * sin(pi *real(i-nghost, kind=dbl_kind)  &
+                                       /real(nx_global,kind=dbl_kind)) &
+                              * sin(pi2*real(j-nghost, kind=dbl_kind)  &
+                                       /real(ny_global,kind=dbl_kind))
+         ! wind stress
+         wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
+         tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
+         strax(i,j,iblk) = tau * uatm(i,j,iblk)
+         stray(i,j,iblk) = tau * vatm(i,j,iblk)
+
+! initialization test
+       ! Diagonal wind vectors 1
+         !uatm(i,j,iblk) = c1 *real(j-nghost, kind=dbl_kind) &
+         !                   / real(ny_global,kind=dbl_kind)
+         !vatm(i,j,iblk) = c1 *real(j-nghost, kind=dbl_kind) &
+         !                   / real(ny_global,kind=dbl_kind)
+
+       ! Diagonal wind vectors 2
+         !uatm(i,j,iblk) = c1 *real(i-nghost, kind=dbl_kind) &
+         !                   / real(nx_global,kind=dbl_kind)
+         !vatm(i,j,iblk) = -c1 *real(i-nghost, kind=dbl_kind) &
+         !                   / real(nx_global,kind=dbl_kind)
+
+       ! Wind in x direction
+        ! uatm(i,j,iblk) = c1 *real(i-nghost, kind=dbl_kind) &
+        !                    / real(nx_global,kind=dbl_kind)
+        ! vatm(i,j,iblk) = c0
+
+       ! Wind in y direction
+        ! uatm(i,j,iblk) = c0
+        ! vatm(i,j,iblk) = c1 *real(j-nghost, kind=dbl_kind) &
+        !                    / real(ny_global,kind=dbl_kind)
+! initialization test
+
+         enddo  
+         enddo  
+      enddo ! nblocks
+
+      end subroutine box_data
+
+!=======================================================================
 
       end module ice_forcing
 
 !=======================================================================
+

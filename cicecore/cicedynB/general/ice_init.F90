@@ -55,6 +55,7 @@
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
+      use ice_domain, only: close_boundaries
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
                                  n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
@@ -74,16 +75,22 @@
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name
       use ice_flux, only: update_ocn_f, l_mpond_fresh
+      use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
           ycycle,          fyear_init,    dbug, &
           atm_data_type,   atm_data_dir,  precip_units, &
           atm_data_format, ocn_data_format, &
-          sss_data_type,   sst_data_type, ocn_data_dir, &
-          oceanmixed_file, restore_sst,   trestore
-      use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format
+          bgc_data_type, &
+          ocn_data_type, ocn_data_dir,      &
+          oceanmixed_file, restore_ocn,   trestore
+      use ice_arrays_column, only: bgc_data_dir, &
+          sil_data_type, nit_data_type, fe_data_type
+      use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format, &
+                          dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                basalstress, Ktens, e_ratio
+                                basalstress, Ktens, e_ratio, coriolis, &
+                                kridge, ktransport
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -104,7 +111,7 @@
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg
+        phi_c_slow_mode, phi_i_mushy, kalg 
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -147,7 +154,8 @@
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
         ncat,           nilyr,           nslyr,         nblyr,          &
-        kcatbound,      gridcpl_file
+        kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
+        close_boundaries
 
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,                       &
@@ -156,7 +164,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        advection,                                                      &
+        advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress
 
@@ -172,14 +180,17 @@
         hp1
 
       namelist /forcing_nml/ &
-        atmbndy,        fyear_init,      ycycle,        atm_data_format,&
-        atm_data_type,  atm_data_dir,    calc_strair,   calc_Tsfc,      &
-        precip_units,   update_ocn_f,    l_mpond_fresh, ustar_min,      &
-        fbot_xfer_type, emissivity,                                     &
-        oceanmixed_ice, ocn_data_format, sss_data_type, sst_data_type,  &
-        ocn_data_dir,   oceanmixed_file, restore_sst,   trestore,       &
-        restore_ice,    formdrag,        highfreq,      natmiter,       &
-        tfrz_option
+        formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
+        highfreq,       natmiter,        ustar_min,     emissivity,     &
+        fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
+        oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
+        precip_units,   default_season,                                 &
+        atm_data_type,  ocn_data_type,   bgc_data_type,                 &
+        sil_data_type,  nit_data_type,   fe_data_type,                  &
+        fyear_init,     ycycle,                                         &
+        atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
+        atm_data_format, ocn_data_format,                               &
+        oceanmixed_file
 
       namelist /tracer_nml/   &
         tr_iage, restart_age, &
@@ -261,7 +272,7 @@
 
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
-      kdyn = 1           ! type of dynamics (1 = evp, 2 = eap)
+      kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -271,14 +282,18 @@
       krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
       Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
+      close_boundaries = .false.   ! true = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
-      shortwave = 'default'  ! 'default' or 'dEdd' (delta-Eddington)
-      albedo_type = 'default'! or 'constant'
-      ktherm = 1             ! 0 = 0-layer, 1 = BL99, 2 = mushy thermo
+      shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
+      albedo_type = 'ccsm3'  ! 'ccsm3' or 'constant'
+      ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
+      coriolis = 'latitude'  ! latitude dependent, or 'constant'
+      kridge   = 1           ! -1 = off, 1 = on
+      ktransport = 1         ! -1 = off, 1 = on
       calc_Tsfc = .true.     ! calculate surface temperature
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
@@ -308,7 +323,7 @@
       albsnowi  = 0.70_dbl_kind   ! cold snow albedo, near IR
       ahmax     = 0.3_dbl_kind    ! thickness above which ice albedo is constant (m)
       atmbndy   = 'default'       ! or 'constant'
-
+      default_season  = 'winter'  ! default forcing data, if data is not read in
       fyear_init = 1900           ! first year of forcing cycle
       ycycle = 1                  ! number of years in forcing cycle
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
@@ -323,11 +338,15 @@
       tfrz_option     = 'mushy'   ! freezing temp formulation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
-      sss_data_type   = 'default'
-      sst_data_type   = 'default'
-      ocn_data_dir    = ' '
+      bgc_data_type   = 'default'
+      sil_data_type   = 'default'
+      nit_data_type   = 'default' 
+      fe_data_type    = 'default'
+      bgc_data_dir    = 'unknown_bgc_data_dir'
+      ocn_data_type   = 'default'
+      ocn_data_dir    = 'unknown_ocn_data_dir'
       oceanmixed_file = 'unknown_oceanmixed_file' ! ocean forcing data
-      restore_sst     = .false.   ! restore sst if true
+      restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
       restore_ice     = .false.   ! restore ice state on grid edges if true
       dbug      = .false.         ! true writes diagnostics for input forcing
@@ -511,6 +530,9 @@
       call broadcast_scalar(pointer_file,       master_task)
       call broadcast_scalar(ice_ic,             master_task)
       call broadcast_scalar(grid_format,        master_task)
+      call broadcast_scalar(dxrect,             master_task)
+      call broadcast_scalar(dyrect,             master_task)
+      call broadcast_scalar(close_boundaries,   master_task)
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)
@@ -534,6 +556,9 @@
       call broadcast_scalar(shortwave,          master_task)
       call broadcast_scalar(albedo_type,        master_task)
       call broadcast_scalar(ktherm,             master_task)
+      call broadcast_scalar(coriolis,           master_task)
+      call broadcast_scalar(kridge,             master_task)
+      call broadcast_scalar(ktransport,         master_task)
       call broadcast_scalar(conduct,            master_task)
       call broadcast_scalar(R_ice,              master_task)
       call broadcast_scalar(R_pnd,              master_task)
@@ -574,11 +599,15 @@
       call broadcast_scalar(oceanmixed_ice,     master_task)
       call broadcast_scalar(tfrz_option,        master_task)
       call broadcast_scalar(ocn_data_format,    master_task)
-      call broadcast_scalar(sss_data_type,      master_task)
-      call broadcast_scalar(sst_data_type,      master_task)
+      call broadcast_scalar(bgc_data_type,      master_task)
+      call broadcast_scalar(sil_data_type,      master_task)
+      call broadcast_scalar(nit_data_type,      master_task)
+      call broadcast_scalar(fe_data_type,       master_task)
+      call broadcast_scalar(bgc_data_dir,       master_task)
+      call broadcast_scalar(ocn_data_type,      master_task)
       call broadcast_scalar(ocn_data_dir,       master_task)
       call broadcast_scalar(oceanmixed_file,    master_task)
-      call broadcast_scalar(restore_sst,        master_task)
+      call broadcast_scalar(restore_ocn,        master_task)
       call broadcast_scalar(trestore,           master_task)
       call broadcast_scalar(restore_ice,        master_task)
       call broadcast_scalar(dbug,               master_task)
@@ -941,6 +970,8 @@
          write(nu_diag,1020) ' kitd                      = ', kitd
          write(nu_diag,1020) ' kcatbound                 = ', &
                                kcatbound
+         write(nu_diag,1010) ' close_boundaries          = ', &
+                               close_boundaries
          if (kdyn == 1) then
            write(nu_diag,1021) ' kdyn                      = ','evp ', kdyn
          elseif (kdyn == 2) then
@@ -956,6 +987,9 @@
          write(nu_diag,*)    ' yield_curve               = ', &
                                trim(yield_curve)
          write(nu_diag,1020) ' kstrength                 = ', kstrength
+         write(nu_diag,1030) ' coriolis                  = ', coriolis
+         write(nu_diag,1020) ' kridge                    = ', kridge
+         write(nu_diag,1020) ' ktransport                = ', ktransport
          write(nu_diag,1020) ' krdg_partic               = ', &
                                krdg_partic
          write(nu_diag,1020) ' krdg_redist               = ', &
@@ -1036,7 +1070,9 @@
                                trim(atm_data_dir)
             write(nu_diag,*) ' precip_units              = ', &
                                trim(precip_units)
-         endif 
+         elseif (trim(atm_data_type)=='default') then
+             write(nu_diag,*)    ' default_season            = ', trim(default_season)
+         endif
 
          write(nu_diag,1010) ' update_ocn_f              = ', update_ocn_f
          write(nu_diag,1010) ' l_mpond_fresh             = ', l_mpond_fresh
@@ -1048,25 +1084,33 @@
                                oceanmixed_ice
          write(nu_diag,*)    ' tfrz_option               = ', &
                                trim(tfrz_option)
-         if (trim(sss_data_type) == 'ncar' .or. &
-             trim(sst_data_type) == 'ncar') then
+         if (trim(bgc_data_type) == 'ncar' .or. &
+             trim(ocn_data_type) == 'ncar') then
             write(nu_diag,*) ' oceanmixed_file           = ', &
                                trim(oceanmixed_file)
          endif
-         write(nu_diag,*)    ' sss_data_type             = ', &
-                               trim(sss_data_type)
-         write(nu_diag,*)    ' sst_data_type             = ', &
-                               trim(sst_data_type)
-         if (trim(sss_data_type) /= 'default' .or. &
-             trim(sst_data_type) /= 'default') then
+         write(nu_diag,*)    ' bgc_data_type             = ', &
+                               trim(bgc_data_type)
+         write(nu_diag,*)    ' sil_data_type             = ', &
+                               trim(sil_data_type)
+         write(nu_diag,*)    ' nit_data_type             = ', &
+                               trim(nit_data_type)
+         write(nu_diag,*)    ' fe_data_type              = ', &
+                               trim(fe_data_type)
+         write(nu_diag,*)    ' bgc_data_dir              = ', &
+                               trim(bgc_data_dir)
+         write(nu_diag,*)    ' ocn_data_type             = ', &
+                               trim(ocn_data_type)
+         if (trim(bgc_data_type) /= 'default' .or. &
+             trim(ocn_data_type) /= 'default') then
             write(nu_diag,*) ' ocn_data_dir              = ', &
                                trim(ocn_data_dir)
-            write(nu_diag,1010) ' restore_sst               = ', &
-                               restore_sst
+            write(nu_diag,1010) ' restore_ocn               = ', &
+                               restore_ocn
          endif 
          write(nu_diag,1010) ' restore_ice               = ', &
                                restore_ice
-         if (restore_ice .or. restore_sst) &
+         if (restore_ice .or. restore_ocn) &
          write(nu_diag,1020) ' trestore                  = ', trestore
  
 #ifdef coupled
@@ -1827,8 +1871,8 @@
                if (trim(atm_data_type) == 'box') then
                   if (hinit(n) > c0) then
 !                  ! constant slope from 0 to 1 in x direction
-!                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
-!                                  / (real(nx_global,kind=dbl_kind))
+                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
+                                  / (real(nx_global,kind=dbl_kind))
 !                  ! constant slope from 0 to 0.5 in x direction
 !                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
 !                                  / (real(nx_global,kind=dbl_kind)) * p5
@@ -1837,12 +1881,12 @@
 !                                         / (real(nx_global,kind=dbl_kind)) &
 !                                         * (real(jglob(j), kind=dbl_kind)-p5) &
 !                                         / (real(ny_global,kind=dbl_kind)) * p5)
-                     aicen(i,j,n) = max(c0,(real(nx_global, kind=dbl_kind) &
-                                         -  real(iglob(i), kind=dbl_kind)-p5) &
-                                         / (real(nx_global,kind=dbl_kind)) &
-                                         * (real(ny_global, kind=dbl_kind) &
-                                         -  real(jglob(j), kind=dbl_kind)-p5) &
-                                         / (real(ny_global,kind=dbl_kind)) * p5)
+!                     aicen(i,j,n) = max(c0,(real(nx_global, kind=dbl_kind) &
+!                                         -  real(iglob(i), kind=dbl_kind)-p5) &
+!                                         / (real(nx_global,kind=dbl_kind)) &
+!                                         * (real(ny_global, kind=dbl_kind) &
+!                                         -  real(jglob(j), kind=dbl_kind)-p5) &
+!                                         / (real(ny_global,kind=dbl_kind)) * p5)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
                else

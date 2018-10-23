@@ -7,7 +7,7 @@
 set ciceexe = "UnDEFineD"
 if ($#argv == 1) then
   set ciceexe = $1
-  echo "${0}: tcx ciceexe = ${ciceexe}"
+  echo "${0}: ciceexe = ${ciceexe}"
   if (-e ${ciceexe}) then
 
     source ./cice.settings

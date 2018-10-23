@@ -481,7 +481,7 @@
       ! compute aggregate ice state and open water area
       !-----------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
 
       do j = 1, ny_block
