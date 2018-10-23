@@ -15,3 +15,4 @@ Ktens          = 0.
 e_ratio        = 2.
 basalstress    = .true.
 bathymetry_file = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx3/global_gx3.bathy.nc'
+use_bathymetry = .true.

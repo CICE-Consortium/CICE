@@ -115,6 +115,9 @@
          uvm    , & ! land/boundary mask, velocity (U-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
+      logical (kind=log_kind), public :: &
+         use_bathymetry     ! flag for reading in bathymetry_file
+
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
@@ -2336,7 +2339,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (trim(bathymetry_file) /= "unknown_bathymetry_file") then
+      if (use_bathymetry) then
 
          call read_basalstress_bathy
 

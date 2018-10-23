@@ -17,6 +17,7 @@ conduct = 'bubbly'
 kdyn  =  0
 basalstress = .true.
 bathymetry_file = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx3/global_gx3.bathy.nc'
+use_bathymetry = .true.
 shortwave = 'ccsm3'
 albedo_type = 'constant'
 formdrag = .true.
