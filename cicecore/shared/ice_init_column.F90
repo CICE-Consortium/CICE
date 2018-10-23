@@ -1809,6 +1809,9 @@
       kn_bac(1) = kn_bac_protein
       f_don_Am(1) = f_don_Am_protein
 
+      f_doc(1) = f_doc_s
+      f_doc(2) = f_doc_l
+
       f_exude(1) = f_exude_s
       f_exude(2) = f_exude_l
       k_bac(1) = k_bac_s
@@ -1850,7 +1853,7 @@
          fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox, &
          mu_max_in=mu_max, R_Si2N_in=R_Si2N, R_C2N_DON_in=R_C2N_DON, chlabs_in=chlabs, &
          alpha2max_low_in=alpha2max_low, beta2max_in=beta2max, grow_Tdep_in=grow_Tdep, &
-         fr_graze_in=fr_graze, mort_pre_in=mort_pre)
+         fr_graze_in=fr_graze, mort_pre_in=mort_pre, f_doc_in=f_doc,fsal_in=fsal)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
