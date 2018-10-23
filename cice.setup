@@ -499,6 +499,13 @@ foreach compiler ( $ncompilers )
     set casescr = "${casedir}/casescripts"
     if !( -d ${casescr}) mkdir ${casescr}
 
+    # set default test output as failure
+    if (${docase} == 0) then
+      echo "#---" >! test_output
+      echo "FAIL ${testname_noid} build" >> test_output
+      echo "FAIL ${testname_noid} run" >> test_output
+    endif
+
     # from basic script dir to case
     foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh)
       if !(-e ${ICE_SCRIPTS}/$file) then
@@ -703,6 +710,7 @@ EOF1
       # from test options to casescr in case any test time changes are applied
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
+        cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)
           if (-e ${ICE_SCRIPTS}/options/$file) then
             cp -f -p ${ICE_SCRIPTS}/options/$file ${casescr}
@@ -758,6 +766,10 @@ EOF2
 
     ${casescr}/parse_settings.sh cice.settings ${fsmods}
     ${casescr}/parse_namelist.sh ice_in ${fimods}
+    if ($status != 0) then
+      echo "${0}: ERROR, parse_namelist.sh aborted"
+      exit -1
+    endif
     source ./cice.settings
     source ./env.${machcomp} -nomodules || exit 2
     ${casescr}/parse_namelist_from_env.sh ice_in
@@ -785,9 +797,9 @@ EOF2
         exit -1
       endif
 
-      # Initial test_output file
-      echo "#---" >! test_output
-      echo "PEND ${testname_noid} " >> test_output
+#      # Initial test_output file
+#      echo "#---" >! test_output
+#      echo "PEND ${testname_noid} " >> test_output
     endif
 
     #------------------------------------------------------------
@@ -837,7 +849,7 @@ cat >> ./${tsdir}/results.csh << EOF
 cat ./results.log
 set pends = \`cat ./results.log | grep PEND | wc -l\`
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
-set success = \`cat ./results.log | grep PASS | wc -l\`
+set success = \`cat ./results.log | grep 'PASS\|COPY' | wc -l\`
 set comments = \`cat ./results.log | grep "#" | wc -l\`
 set alltotal = \`cat ./results.log | wc -l\`
 @ total = \$alltotal - \$comments

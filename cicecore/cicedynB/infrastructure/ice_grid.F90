@@ -42,6 +42,7 @@
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
          bathymetry_file, & !  input bathymetry for basalstress
+         grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
@@ -76,6 +77,9 @@
          cxm    , & ! 0.5*HTN - 1.5*HTN
          dxhy   , & ! 0.5*(HTE - HTE)
          dyhx       ! 0.5*(HTN - HTN)
+      real (kind=dbl_kind), public ::  &
+         dxrect, & !  user_specified spacing (m) in x-direction
+         dyrect    !  user_specified spacing (m) in y-direction
 
       ! Corners of grid boxes for history output
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
@@ -119,9 +123,11 @@
          lmask_s    ! southern hemisphere mask
 
       ! grid dimensions for rectangular grid
-      real (kind=dbl_kind), parameter ::  &
-         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
-         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
+!      real (kind=dbl_kind), public ::  &
+!         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
+!         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
+!         dxrect = 16.e5_dbl_kind   ,&! uniform HTN (cm)
+!         dyrect = 16.e5_dbl_kind     ! uniform HTE (cm)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
@@ -1115,6 +1121,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
+      use ice_domain, only: close_boundaries
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1255,6 +1262,13 @@
             enddo
             enddo
 
+            endif
+
+            if (close_boundaries) then
+              work_g1(:, 1:2) = c0
+              work_g1(:, ny_global-1:ny_global) = c0
+              work_g1(1:2, :) = c0
+              work_g1(nx_global-1:nx_global, :) = c0
             endif
 
          elseif (trim(ew_boundary_type) == 'closed') then

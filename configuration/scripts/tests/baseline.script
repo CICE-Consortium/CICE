@@ -77,19 +77,8 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     set comp_data = "NoThInG__Here"
   endif
 
-  echo ""
-  echo "BFB Compare Mode:"
-  echo "Performing binary comparison between files"
-  echo "comp_data: ${comp_data}"
-  echo "test_data: ${test_data}"
   if (-e ${comp_data} && -e ${test_data}) then
-    if ( { cmp -s ${test_data} ${comp_data} } ) then
-      echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
-      echo "bfbcomp and test dataset are identical"
-    else
-      echo "FAIL ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} different-data" >> ${ICE_CASEDIR}/test_output
-      echo "bfbcomp and test dataset are different"
-    endif
+    ${ICE_CASEDIR}/casescripts/comparebfb.csh $test_data $comp_data
   else
     echo "MISS ${ICE_TESTNAME} bfbcomp missing-data" >> ${ICE_CASEDIR}/test_output
     echo "Missing data"

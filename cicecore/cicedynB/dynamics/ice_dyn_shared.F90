@@ -28,8 +28,13 @@
       ! namelist parameters
 
       integer (kind=int_kind), public :: &
-         kdyn     , & ! type of dynamics ( 1 = evp, 2 = eap )
+         kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap )
+         kridge     , & ! set to "-1" to turn off ridging
+         ktransport , & ! set to "-1" to turn off transport
          ndte         ! number of subcycles:  ndte=dt/dte
+
+      character (len=char_len), public :: &
+         coriolis     ! 'constant', 'zero', or 'latitude'
 
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure
@@ -148,8 +153,13 @@
          rdg_shear(i,j,iblk) = c0
 
          ! Coriolis parameter
-!!         fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
-         fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
+         if (trim(coriolis) == 'constant') then
+            fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+         else if (trim(coriolis) == 'zero') then
+            fcor_blk(i,j,iblk) = 0.0
+         else
+            fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
+         endif
 
          ! stress tensor,  kg/s^2
          stressp_1 (i,j,iblk) = c0
@@ -943,7 +953,7 @@
          hu,  & ! volume per unit area of ice at u location (mean thickness)
          hwu, & ! water depth at u location
          hcu, & ! critical thickness at u location
-         k1 = 20.0_dbl_kind , &  ! first free parameter for landfast parametrization 
+         k1 = 8.0_dbl_kind , &  ! first free parameter for landfast parametrization 
          k2 = 15.0_dbl_kind , &  ! second free parameter (N/m^3) for landfast parametrization 
          alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
 

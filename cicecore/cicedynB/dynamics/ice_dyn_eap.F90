@@ -19,6 +19,7 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
+      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: max_blocks, ncat
       use ice_constants, only: c0, c1, c2, c3, c12, p1, p2, p5, &
           p001, p027, p055, p111, p166, p222, p25, p333
@@ -27,9 +28,6 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_ice_strength
-#ifdef CICE_IN_NEMO
-      use icepack_intfc, only: calc_strair
-#endif
 
       implicit none
       private
@@ -133,9 +131,6 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-#ifdef CICE_IN_NEMO
-      use ice_flux, only: strax, stray
-#endif
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, to_ugrid, t2ugrid_vector, u2tgrid_vector
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
@@ -181,6 +176,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation
+
+      logical (kind=log_kind) :: calc_strair
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
          icetmask, &  ! ice extent mask (T-cell)
@@ -258,21 +255,22 @@
       call to_ugrid(tmass,umass)
       call to_ugrid(aice_init, aiu)
 
-#ifdef CICE_IN_NEMO
       !----------------------------------------------------------------
-      ! Set wind stress to values supplied via NEMO
+      ! Set wind stress to values supplied via NEMO or other forcing
       ! This wind stress is rotated on u grid and multiplied by aice
       !----------------------------------------------------------------
+      call icepack_query_parameters(calc_strair_out=calc_strair)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
       if (.not. calc_strair) then       
          strairx(:,:,:) = strax(:,:,:)
          strairy(:,:,:) = stray(:,:,:)
       else
-#endif
          call t2ugrid_vector(strairx)
          call t2ugrid_vector(strairy)
-#ifdef CICE_IN_NEMO
       endif
-#endif
 
 ! tcraig, tcx, turned off this threaded region, in evp, this block and 
 ! the icepack_ice_strength call seems to not be thread safe.  more
@@ -416,7 +414,7 @@
       ! stress tensor equation, total surface stress
       !-----------------------------------------------------------------
 
-         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+         !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
 !      call ice_timer_start(timer_tmp1) ! dynamics
@@ -502,7 +500,7 @@
             endif
 !      call ice_timer_stop(timer_tmp3) ! dynamics
          enddo
-         !$OMP END PARALLEL DO
+         !$TCXOMP END PARALLEL DO
 
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
@@ -1624,7 +1622,7 @@
          gamma, alpha, x, y, dx, dy, da, &
          invdx, invdy, invda, invsin, &
          invleng, dtemp1, dtemp2, atempprime, &
-         puny, pi, pi2, piq
+         puny, pi, pi2, piq, pih
 
       real (kind=dbl_kind), parameter :: &
          kfriction = 0.45_dbl_kind
@@ -1632,7 +1630,7 @@
       character(len=*), parameter :: subname = '(update_stress_rdg)'
 
          call icepack_query_parameters(puny_out=puny, &
-            pi_out=pi, pi2_out=pi2, piq_out=piq)
+            pi_out=pi, pi2_out=pi2, piq_out=piq, pih_out=pih)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
@@ -1649,8 +1647,12 @@
 
          a22 = c1-a11
 
-! gamma: angle between general coordiantes and principal axis 
-         gamma = p5*atan2((c2*a12),(a11 - a22))
+! gamma: angle between general coordiantes and principal axis
+         if ((a11-a22) == c0) then
+           gamma = p5*(pih)
+         else
+           gamma = p5*atan2((c2*a12),(a11 - a22))
+         endif
 
 ! rotational tensor from general coordinates into principal axis
          Q11 = cos(gamma)
@@ -1673,7 +1675,11 @@
          dtemp22 = p5*(divu - tension)
 
 ! alpha: angle between general coordiantes and principal axis
-         alpha = p5*atan2((c2*dtemp12),(dtemp11 - dtemp22))
+         if ((dtemp11-dtemp22) == c0) then
+           alpha = p5*(pih)
+         else
+           alpha = p5*atan2((c2*dtemp12),(dtemp11 - dtemp22))
+         endif
 
 ! y: angle between major principal axis of strain rate and structure tensor
 ! to make sure y between 0 and pi/2
@@ -1699,7 +1705,11 @@
            invleng = c1/sqrt(dtemp1*dtemp1 + dtemp2*dtemp2)
            dtemp1 = dtemp1*invleng
            dtemp2 = dtemp2*invleng
-           x = atan2(dtemp2,dtemp1)
+           if ((dtemp1) == c0) then
+             x = (pih)
+           else
+             x = atan2(dtemp2,dtemp1)
+           endif
          endif
 
 !echmod to ensure the angle lies between pi/4 and 9 pi/4 
@@ -1928,7 +1938,7 @@
 
       real (kind=dbl_kind) :: &
          sigma11, sigma12, sigma22, &
-         gamma, sigma_1, sigma_2, &
+         gamma, sigma_1, sigma_2, pih, &
          Q11, Q12, Q11Q11, Q11Q12, Q12Q12
 
       real (kind=dbl_kind), parameter :: &
@@ -1937,11 +1947,20 @@
 
       character(len=*), parameter :: subname = '(calc_ffrac)'
 
+       call icepack_query_parameters(pih_out=pih)
+       call icepack_warnings_flush(nu_diag)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
        sigma11 = p5*(stressp+stressm) 
        sigma12 = stress12 
        sigma22 = p5*(stressp-stressm) 
 
-       gamma = p5*atan2((c2*sigma12),(sigma11-sigma22))
+       if ((sigma11-sigma22) == c0) then
+         gamma = p5*(pih)
+       else
+         gamma = p5*atan2((c2*sigma12),(sigma11-sigma22))
+       endif
 
 ! rotate tensor to get into sigma principal axis
 
@@ -2023,7 +2042,6 @@
 
       use ice_blocks, only: nghost
       use ice_boundary, only: ice_HaloUpdate_stress
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only:  &
           field_loc_center, field_type_scalar
       use ice_domain, only: nblocks, halo_info
