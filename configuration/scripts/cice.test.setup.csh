@@ -1,7 +1,7 @@
 #! /bin/csh -f
 
-source ./cice.settings
-source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
+#source ./cice.settings
+#source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
 
 set jobfile = cice.test
 set subfile = cice.submit

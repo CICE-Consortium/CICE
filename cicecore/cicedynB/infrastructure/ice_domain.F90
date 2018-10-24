@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_domain.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_domain
@@ -14,7 +13,7 @@
 !  and not used anyhow).
 
    use ice_kinds_mod
-   use ice_constants, only: shlat, nhlat, c180
+   use ice_constants, only: shlat, nhlat
    use ice_communicate, only: my_task, master_task, get_num_procs
    use ice_broadcast, only: broadcast_scalar, broadcast_array
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
@@ -38,10 +37,13 @@
               init_domain_distribution
 
    integer (int_kind), public :: &
-      nblocks            ! actual number of blocks on this processor
+      nblocks         ! actual number of blocks on this processor
+
+   logical (kind=log_kind), public :: &
+      close_boundaries
 
    integer (int_kind), dimension(:), pointer, public :: &
-      blocks_ice         ! block ids for local blocks
+      blocks_ice => null()        ! block ids for local blocks
 
    type (distrb), public :: &
       distrb_info        ! block distribution info
@@ -93,7 +95,7 @@
 
    use ice_distribution, only: processor_shape
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
-       nx_global, ny_global
+       nx_global, ny_global, block_size_x, block_size_y
 
 !----------------------------------------------------------------------
 !
@@ -113,6 +115,11 @@
 !----------------------------------------------------------------------
 
    namelist /domain_nml/ nprocs, &
+                         max_blocks,   &
+                         block_size_x, &
+                         block_size_y, &
+                         nx_global,    &
+                         ny_global,    &
                          processor_shape,   &
                          distribution_type, &
                          distribution_wght, &
@@ -139,6 +146,11 @@
    maskhalo_dyn      = .false.     ! if true, use masked halos for dynamics
    maskhalo_remap    = .false.     ! if true, use masked halos for transport
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
+   max_blocks        = -1           ! max number of blocks per processor
+   block_size_x      = -1          ! size of block in first horiz dimension
+   block_size_y      = -1          ! size of block in second horiz dimension
+   nx_global         = -1          ! NXGLOB,  i-axis size
+   ny_global         = -1          ! NYGLOB,  j-axis size
 
    call get_fileunit(nu_nml)
    if (my_task == master_task) then
@@ -170,6 +182,19 @@
    call broadcast_scalar(maskhalo_dyn,      master_task)
    call broadcast_scalar(maskhalo_remap,    master_task)
    call broadcast_scalar(maskhalo_bound,    master_task)
+   if (my_task == master_task) then
+     if (max_blocks < 1) then
+       max_blocks=( ((nx_global-1)/block_size_x + 1) *         &
+                    ((ny_global-1)/block_size_y + 1) ) / nprocs
+       write(nu_diag,'(/,a52,i6,/)') &
+         '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
+     endif
+   endif
+   call broadcast_scalar(max_blocks,        master_task)
+   call broadcast_scalar(block_size_x,      master_task)
+   call broadcast_scalar(block_size_y,      master_task)
+   call broadcast_scalar(nx_global,         master_task)
+   call broadcast_scalar(ny_global,         master_task)
 
 !----------------------------------------------------------------------
 !

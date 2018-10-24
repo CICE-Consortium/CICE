@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_transport_remap.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Transports quantities using the second-order conservative remapping
@@ -31,7 +30,7 @@
       module ice_transport_remap
 
       use ice_kinds_mod
-      use ice_communicate, only: my_task, master_task
+      use ice_communicate, only: my_task
       use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, &
           eps13, eps16, &
           field_loc_center, field_type_scalar, &
@@ -327,7 +326,7 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_remap
       use ice_blocks, only: block, get_block, nghost, nx_block, ny_block
       use ice_grid, only: HTE, HTN, dxu, dyu,       &
-                          tarea, tarear, hm,                  &
+                          tarear, hm,                  &
                           xav, yav, xxav, yyav
 !                          xyav, xxxav, xxyav, xyyav, yyyav
       use ice_calendar, only: istep1
@@ -1118,7 +1117,7 @@
 
       real (kind=dbl_kind) ::   &
          puny, &
-         w1, w2, w3, w4, w5, w6, w7   ! work variables
+         w1, w2, w3, w7   ! work variables
 
       character(len=*), parameter :: subname = '(construct_fields)'
 
@@ -1279,10 +1278,10 @@
                         + mx(i,j)*tc(i,j,nt)
                      w3 = mc(i,j)*ty(i,j,nt)   &
                         + my(i,j)*tc(i,j,nt)
-                     w4 = mx(i,j)*tx(i,j,nt)
-                     w5 = mx(i,j)*ty(i,j,nt)   &
-                        + my(i,j)*tx(i,j,nt)
-                     w6 = my(i,j)*ty(i,j,nt)
+!                    w4 = mx(i,j)*tx(i,j,nt)
+!                    w5 = mx(i,j)*ty(i,j,nt)   &
+!                       + my(i,j)*tx(i,j,nt)
+!                    w6 = my(i,j)*ty(i,j,nt)
                      w7 = c1 / (mm(i,j)*tm(i,j,nt))
 !echmod: grid arrays = 0
                      mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j))   &

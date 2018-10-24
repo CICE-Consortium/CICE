@@ -1,4 +1,3 @@
-!  SVN:$Id: CICE_RunMod.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 !  Main driver for time stepping of CICE.
@@ -45,8 +44,8 @@
       subroutine CICE_Run
 
       use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
-      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn
-      use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, & 
+      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, atm_data_type
+      use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
@@ -104,8 +103,8 @@
 #endif
          if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-         call init_flux_atm     ! initialize atmosphere fluxes sent to coupler
-         call init_flux_ocn     ! initialize ocean fluxes sent to coupler
+         call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
+         call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
          call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
@@ -135,9 +134,8 @@
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
-      use ice_domain_size, only: nslyr
       use ice_dyn_eap, only: write_restart_eap
-      use ice_dyn_shared, only: kdyn
+      use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
           daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
       use ice_history, only: accum_hist
@@ -149,17 +147,17 @@
           write_restart_bgc, write_restart_hbrine
       use ice_restart_driver, only: dumpfile
       use ice_restoring, only: restore_ice, ice_HaloRestore
-      use ice_state, only: trcrn
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
-          biogeochemistry
+          biogeochemistry, save_init
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
           timer_hist, timer_readwrite
 
       integer (kind=int_kind) :: &
          iblk        , & ! block index 
-         k               ! dynamics supercycling index
+         k           , & ! dynamics supercycling index
+         ktherm          ! thermodynamics is off when ktherm = -1
 
       real (kind=dbl_kind) :: &
          offset          ! d(age)/dt time offset
@@ -172,7 +170,7 @@
       character(len=*), parameter :: subname = '(ice_step)'
 
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
-           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
+           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero)
@@ -187,7 +185,7 @@
          if (restore_ice) call ice_HaloRestore
 
       !-----------------------------------------------------------------
-      ! initialize diagnostics
+      ! initialize diagnostics and save initial state values
       !-----------------------------------------------------------------
 
          call ice_timer_start(timer_diags)  ! diagnostics/history
@@ -199,22 +197,28 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
+         call save_init
+
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
+            if (ktherm >= 0) then
+
       !-----------------------------------------------------------------
-      ! Scale radiation fields
+      ! scale radiation fields
       !-----------------------------------------------------------------
 
-            if (calc_Tsfc) call prep_radiation (dt, iblk)
+               if (calc_Tsfc) call prep_radiation (iblk)
 
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
             
-            call step_therm1     (dt, iblk) ! vertical thermodynamics
-            call biogeochemistry (dt, iblk) ! biogeochemistry
-            call step_therm2     (dt, iblk) ! ice thickness distribution thermo
+               call step_therm1     (dt, iblk) ! vertical thermodynamics
+               call biogeochemistry (dt, iblk) ! biogeochemistry
+               call step_therm2     (dt, iblk) ! ice thickness distribution thermo
+
+            endif
 
          enddo ! iblk
          !$OMP END PARALLEL DO
@@ -238,7 +242,7 @@
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
-               call step_dyn_ridge (dt_dyn, ndtd, iblk)
+               if (kridge > 0) call step_dyn_ridge (dt_dyn, ndtd, iblk)
             enddo
             !$OMP END PARALLEL DO
 
@@ -258,7 +262,7 @@
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
-            call step_radiation (dt, iblk)
+            if (ktherm >= 0) call step_radiation (dt, iblk)
 
       !-----------------------------------------------------------------
       ! get ready for coupling and the next time step
@@ -284,9 +288,9 @@
          call ice_timer_start(timer_diags)  ! diagnostics
          if (mod(istep,diagfreq) == 0) then
             call runtime_diags(dt)          ! log file
-            if (solve_zsal) call zsal_diags(dt)  
-            if (skl_bgc .or. z_tracers)  call bgc_diags (dt)
-            if (tr_brine) call hbrine_diags(dt)
+            if (solve_zsal) call zsal_diags
+            if (skl_bgc .or. z_tracers)  call bgc_diags
+            if (tr_brine) call hbrine_diags
          endif
          call ice_timer_stop(timer_diags)   ! diagnostics
 
@@ -325,20 +329,25 @@
 
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
           albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
-      use ice_blocks, only: block, nx_block, ny_block
+      use ice_blocks, only: nx_block, ny_block, get_block, block
+      use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
       use ice_domain_size, only: ncat
       use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
-          albpnd, albcnt, apeff_ai, coszen, fpond, fresh, l_mpond_fresh, &
+          albpnd, albcnt, apeff_ai, fpond, fresh, l_mpond_fresh, &
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
-          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyt, &
+          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
-          fsurfn_f, flatn_f, scale_fluxes, frzmlt_init, frzmlt
+          scale_fluxes, frzmlt_init, frzmlt
       use ice_flux_bgc, only: faero_ocn, fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
       use ice_grid, only: tmask
-      use ice_state, only: aicen, aice, aice_init
+      use ice_state, only: aicen, aice
+#ifdef CICE_IN_NEMO
+      use ice_state, only: aice_init
+      use ice_flux, only: flatn_f, fsurfn_f
+#endif
       use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
 
@@ -348,10 +357,14 @@
       ! local variables
 
       integer (kind=int_kind) :: & 
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          n           , & ! thickness category index
          i,j         , & ! horizontal indices
          k           , & ! tracer index
          nbtrcr          !
+
+      type (block) :: &
+         this_block         ! block information for current block
 
       logical (kind=log_kind) :: &
          calc_Tsfc       !
@@ -413,11 +426,18 @@
             enddo
          enddo
          enddo
+
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
          do n = 1, ncat
-         do j = 1, ny_block
-         do i = 1, nx_block
+         do j = jlo, jhi
+         do i = ilo, ihi
             if (aicen(i,j,n,iblk) > puny) then
-                  
+
             alvdf(i,j,iblk) = alvdf(i,j,iblk) &
                + alvdfn(i,j,n,iblk)*aicen(i,j,n,iblk)
             alidf(i,j,iblk) = alidf(i,j,iblk) &
@@ -442,7 +462,7 @@
                + apeffn(i,j,n,iblk)*aicen(i,j,n,iblk)
             snowfrac(i,j,iblk) = snowfrac(i,j,iblk) &       ! for history
                + snowfracn(i,j,n,iblk)*aicen(i,j,n,iblk)
-               
+
             endif ! aicen > puny
          enddo
          enddo
@@ -516,6 +536,7 @@
                             fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
                             flux_bio(:,:,1:nbtrcr,iblk))
  
+#ifdef CICE_IN_NEMO
 !echmod - comment this out for efficiency, if .not. calc_Tsfc
          if (.not. calc_Tsfc) then
 
@@ -531,10 +552,12 @@
                           fresh    (:,:,iblk),   fhocn    (:,:,iblk))
          endif                 
 !echmod
-
+#endif
          call ice_timer_stop(timer_couple)   ! atm/ocn coupling
 
       end subroutine coupling_prep
+
+#ifdef CICE_IN_NEMO
 
 !=======================================================================
 !
@@ -575,7 +598,6 @@
           fresh        , & ! fresh water flux to ocean         (kg/m2/s)
           fhocn            ! actual ocn/ice heat flx           (W/m**2)
 
-#ifdef CICE_IN_NEMO
 
       ! local variables
       integer (kind=int_kind) :: &
@@ -606,9 +628,10 @@
          enddo   ! j
       enddo      ! n
 
-#endif 
 
       end subroutine sfcflux_to_ocn
+
+#endif
 
 !=======================================================================
 

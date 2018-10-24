@@ -1,3 +1,4 @@
+nilyr = 1
 ice_ic = 'default'
 restart = .false.
 distribution_type = 'roundrobin'
@@ -18,9 +19,8 @@ basalstress = .true.
 shortwave = 'ccsm3'
 albedo_type = 'constant'
 formdrag = .true.
-calc_tsfc = .true.
+calc_Tsfc = .true.
 atm_data_type = 'default'
 highfreq = .true.
 fbot_xfer_type = 'Cdn_ocn'
 tfrz_option = 'minus1p8'
-

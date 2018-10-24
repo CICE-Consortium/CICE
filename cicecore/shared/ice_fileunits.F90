@@ -73,11 +73,11 @@
          ice_stdout =  6, & ! reserved unit for standard output
          ice_stderr =  6    ! reserved unit for standard error
 
-      integer (kind=int_kind), parameter :: &
-         ice_IOUnitsMinUnit = NUMIN, & ! do not use unit numbers below 
-         ice_IOUnitsMaxUnit = NUMAX    ! or above
+      integer (kind=int_kind), public :: &
+         ice_IOUnitsMinUnit = 11, & ! do not use unit numbers below 
+         ice_IOUnitsMaxUnit = 99    ! or above, set by setup_nml
 
-      logical (kind=log_kind), dimension(ice_IOUnitsMaxUnit) :: &
+      logical (kind=log_kind), dimension(:), allocatable :: &
          ice_IOUnitsInUse   ! flag=.true. if unit currently open
 
       ! instance control
@@ -101,6 +101,7 @@
 
          nu_diag = ice_stdout  ! default
 
+         allocate(ice_IOUnitsInUse(ice_IOUnitsMaxUnit))
          ice_IOUnitsInUse = .false.
          ice_IOUnitsInUse(ice_stdin)  = .true. ! reserve unit 5
          ice_IOUnitsInUse(ice_stdout) = .true. ! reserve unit 6
@@ -278,11 +279,10 @@
 #ifdef CESMCOUPLED
          call shr_sys_flush(iunit)
 #else
-#if (defined IRIX64 || defined CRAY || defined OSF1 || defined SUNOS || defined LINUX || defined NEC_SX | defined UNICOSMP)
-         call flush(iunit)
-#endif
-#if (defined AIX)
-         call flush_(iunit)
+#ifndef NO_F2003
+         flush(iunit)
+#else
+! Place holder for old call.
 #endif
 #endif
 

@@ -17,15 +17,10 @@ setenv ICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
 setenv ICE_CLEANBUILD true
 setenv ICE_QUIETMODE  false
 setenv ICE_GRID       undefined
-setenv ICE_NXGLOB     undefined
-setenv ICE_NYGLOB     undefined
 setenv ICE_NTASKS     undefined
 setenv ICE_NTHRDS     undefined
-setenv ICE_BLCKX      undefined
-setenv ICE_BLCKY      undefined
-setenv ICE_MXBLCKS    undefined
-setenv ICE_TEST       undefined   # Define if this is a test case
-setenv ICE_TESTNAME   undefined   # Define if this is a test case
+setenv ICE_TEST       undefined
+setenv ICE_TESTNAME   undefined
 setenv ICE_BASELINE   undefined
 setenv ICE_BASEGEN    undefined
 setenv ICE_BASECOM    undefined
@@ -39,50 +34,12 @@ setenv ICE_QUEUE      undefined
 
 setenv ICE_THREADED   false
 if (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true
-
-### Layers
-setenv NICELYR   7         # number of vertical layers in the ice
-setenv NSNWLYR   1         # number of vertical layers in the snow
-setenv NICECAT   5         # number of ice thickness categories
-
-### Tracers                # match ice_in tracer_nml to conserve memory
-setenv TRAGE     1         # set to 1 for ice age tracer
-setenv TRFY      1         # set to 1 for first-year ice area tracer
-setenv TRLVL     1         # set to 1 for level and deformed ice tracers
-setenv TRPND     1         # set to 1 for melt pond tracers
-setenv NTRAERO   1         # number of aerosol tracers 
-                           # (up to max_aero in ice_domain_size.F90) 
-                           # CESM uses 3 aerosol tracers
-setenv TRBRI     0         # set to 1 for brine height tracer
-setenv TRZS      0         # set to 1 for zsalinity tracer
-                           # (needs TRBRI = 1)
-setenv TRBGCS    0         # set to 1 for skeletal layer tracers  
-                           # (needs TRBGCZ = 0) 
-setenv TRBGCZ    0         # set to 1 for zbgc tracers
-                           # (needs TRBGCS = 0 and TRBRI = 1)         
-setenv NBGCLYR   7         # number of zbgc layers
-setenv TRZAERO   0         # number of z aerosol tracers 
-                           # (up to max_aero = 6)
-setenv TRALG     0         # number of algal tracers
-                           # (up to max_algae = 3)
-setenv TRDOC     0         # number of dissolve organic carbon 
-                           # (up to max_doc = 3)
-setenv TRDIC     0         # number of dissolve inorganic carbon 
-                           # (up to max_dic = 1)
-setenv TRDON     0         # number of dissolve organic nitrogen
-                           # (up to max_don = 1)
-setenv TRFEP     0         # number of particulate iron tracers 
-                           # (up to max_fe  = 2) 
-setenv TRFED     0         # number of dissolved iron tracers 
-                           # (up to max_fe  = 2)
+setenv ICE_COMMDIR mpi
+if (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial
 
 ### Specialty code
 setenv CAM_ICE  no           # set to yes for CAM runs (single column) 
 setenv DITTO    no           # reproducible diagnostics
 setenv BARRIERS no           # prevent MPI buffer overflow during gather/scatter 
 setenv ICE_BLDDEBUG  false  # build debug flags
-
-### File unit numbers
-setenv NUMIN    11         # minimum file unit number
-setenv NUMAX    99         # maximum file unit number
 

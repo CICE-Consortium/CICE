@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_history_write.F90 567 2013-01-07 02:57:36Z eclare $
 !=======================================================================
 !
 ! Writes history in netCDF format
@@ -79,7 +78,7 @@
       integer (kind=int_kind), dimension(5) :: dimidcz
       integer (kind=int_kind), dimension(3) :: dimid_nverts
       integer (kind=int_kind), dimension(5) :: dimidex
-      real (kind=real_kind) :: ltime
+!     real (kind=real_kind) :: ltime
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title
       character (char_len_long) :: ncfile(max_nstrm)
@@ -126,7 +125,7 @@
 
       if (my_task == master_task) then
 
-        ltime=time/int(secday)
+!       ltime=time/int(secday)
         ltime2=time/int(secday)
 
         call construct_filename(ncfile(ns),'nc',ns)
@@ -506,6 +505,8 @@
             if (hist_avg) then
               if (TRIM(avail_hist_fields(n)%vname)/='sig1' &
               .or.TRIM(avail_hist_fields(n)%vname)/='sig2' & 
+              .or.TRIM(avail_hist_fields(n)%vname)/='sistreave' & 
+              .or.TRIM(avail_hist_fields(n)%vname)/='sistremax' & 
               .or.TRIM(avail_hist_fields(n)%vname)/='sigP') then
                 status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
                 if (status /= nf90_noerr) call abort_ice(subname// &
@@ -517,6 +518,7 @@
                 .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
                 .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
+                .or. n==n_sistreave(ns) .or. n==n_sistremax(ns) &
                 .or. n==n_mlt_onset(ns) .or. n==n_frz_onset(ns) &
                 .or. n==n_hisnap(ns)    .or. n==n_aisnap(ns)) then
                status = nf90_put_att(ncid,varid,'time_rep','instantaneous')

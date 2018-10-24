@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_grid.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 
 ! Spatial grids, masks, and boundary conditions
@@ -35,17 +34,18 @@
       private
       public :: init_grid1, init_grid2, &
                 t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid
+                to_ugrid, to_tgrid, alloc_grid
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
+         grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          dxt    , & ! width of T-cell through the middle (m)
          dyt    , & ! height of T-cell through the middle (m)
          dxu    , & ! width of U-cell through the middle (m)
@@ -69,23 +69,26 @@
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          cyp    , & ! 1.5*HTE - 0.5*HTE
          cxp    , & ! 1.5*HTN - 0.5*HTN
          cym    , & ! 0.5*HTE - 1.5*HTE
          cxm    , & ! 0.5*HTN - 1.5*HTN
          dxhy   , & ! 0.5*(HTE - HTE)
          dyhx       ! 0.5*(HTN - HTN)
+      real (kind=dbl_kind), public ::  &
+         dxrect, & !  user_specified spacing (m) in x-direction
+         dyrect    !  user_specified spacing (m) in y-direction
 
       ! Corners of grid boxes for history output
-      real (kind=dbl_kind), dimension (4,nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          lont_bounds, & ! longitude of gridbox corners for T point
          latt_bounds, & ! latitude of gridbox corners for T point
          lonu_bounds, & ! longitude of gridbox corners for U point
          latu_bounds    ! latitude of gridbox corners for U point       
 
       ! geometric quantities used for remapping transport
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          xav  , & ! mean T-cell value of x
          yav  , & ! mean T-cell value of y
          xxav , & ! mean T-cell value of xx
@@ -98,37 +101,101 @@
 !         yyyav    ! mean T-cell value of yyy
 
       real (kind=dbl_kind), &
-         dimension (2,2,nx_block,ny_block,max_blocks), public :: &
+         dimension (:,:,:,:,:), allocatable, public :: &
          mne, & ! matrices used for coordinate transformations in remapping
          mnw, & ! ne = northeast corner, nw = northwest, etc.
          mse, & 
          msw
 
       ! masks
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
          uvm    , & ! land/boundary mask, velocity (U-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), &
-         dimension (nx_block,ny_block,max_blocks), public :: &
+         dimension (:,:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
          umask  , & ! land/boundary mask, velocity (U-cell)
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
 
       ! grid dimensions for rectangular grid
-      real (kind=dbl_kind), parameter ::  &
-         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
-         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
+!      real (kind=dbl_kind), public ::  &
+!         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
+!         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
+!         dxrect = 16.e5_dbl_kind   ,&! uniform HTN (cm)
+!         dyrect = 16.e5_dbl_kind     ! uniform HTE (cm)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
 
 !=======================================================================
 
       contains
+
+!=======================================================================
+!
+! Allocate space for all variables 
+!
+      subroutine alloc_grid
+
+      integer (int_kind) :: ierr
+
+      allocate( &
+         dxt      (nx_block,ny_block,max_blocks), & ! width of T-cell through the middle (m)
+         dyt      (nx_block,ny_block,max_blocks), & ! height of T-cell through the middle (m)
+         dxu      (nx_block,ny_block,max_blocks), & ! width of U-cell through the middle (m)
+         dyu      (nx_block,ny_block,max_blocks), & ! height of U-cell through the middle (m)
+         HTE      (nx_block,ny_block,max_blocks), & ! length of eastern edge of T-cell (m)
+         HTN      (nx_block,ny_block,max_blocks), & ! length of northern edge of T-cell (m)
+         tarea    (nx_block,ny_block,max_blocks), & ! area of T-cell (m^2)
+         uarea    (nx_block,ny_block,max_blocks), & ! area of U-cell (m^2)
+         tarear   (nx_block,ny_block,max_blocks), & ! 1/tarea
+         uarear   (nx_block,ny_block,max_blocks), & ! 1/uarea
+         tinyarea (nx_block,ny_block,max_blocks), & ! puny*tarea
+         tarean   (nx_block,ny_block,max_blocks), & ! area of NH T-cells
+         tareas   (nx_block,ny_block,max_blocks), & ! area of SH T-cells
+         ULON     (nx_block,ny_block,max_blocks), & ! longitude of velocity pts (radians)
+         ULAT     (nx_block,ny_block,max_blocks), & ! latitude of velocity pts (radians)
+         TLON     (nx_block,ny_block,max_blocks), & ! longitude of temp pts (radians)
+         TLAT     (nx_block,ny_block,max_blocks), & ! latitude of temp pts (radians)
+         ANGLE    (nx_block,ny_block,max_blocks), & ! for conversions between POP grid and lat/lon
+         ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
+         bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
+         ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
+         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTE
+         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTN
+         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTE
+         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTN
+         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTE)
+         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTN)
+         xav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of x
+         yav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of y
+         xxav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of xx
+         yyav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of yy
+         hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
+         bm       (nx_block,ny_block,max_blocks), & ! task/block id
+         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
+         tmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
+         umask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
+         lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
+         rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
+         lont_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for T point
+         latt_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for T point
+         lonu_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for U point
+         latu_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for U point       
+         mne  (2,2,nx_block,ny_block,max_blocks), & ! matrices used for coordinate transformations in remapping
+         mnw  (2,2,nx_block,ny_block,max_blocks), & ! ne = northeast corner, nw = northwest, etc.
+         mse  (2,2,nx_block,ny_block,max_blocks), &
+         msw  (2,2,nx_block,ny_block,max_blocks), &
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_grid): Out of memory')
+
+      end subroutine alloc_grid
 
 !=======================================================================
 
@@ -142,7 +209,6 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_array
       use ice_constants, only: c1
-      use ice_domain_size, only: max_blocks
 
       integer (kind=int_kind) :: &
          fid_grid, &     ! file id for netCDF grid file
@@ -293,9 +359,11 @@
          else
             call popgrid        ! read POP grid lengths directly
          endif 
+#ifdef CESMCOUPLED
       elseif (trim(grid_type) == 'latlon') then
          call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
          return
+#endif
       elseif (trim(grid_type) == 'cpom_grid') then
          call cpomgrid          ! cpom model orca1 type grid
       else
@@ -305,6 +373,8 @@
       !-----------------------------------------------------------------
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
+
+!     tarea(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -641,7 +711,7 @@
 
 #ifdef ncdf
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, p5, p25, &
+      use ice_constants, only: c0, c1, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
@@ -764,6 +834,7 @@
 #endif
       end subroutine popgrid_nc
 
+#ifdef CESMCOUPLED
 !=======================================================================
 
 ! Read in kmt file that matches CAM lat-lon grid and has single column 
@@ -776,9 +847,7 @@
 #ifdef ncdf
 !     use ice_boundary
       use ice_domain_size
-#ifdef CESMCOUPLED
       use ice_scam, only : scmlat, scmlon, single_column
-#endif
       use ice_constants, only: c0, c1, p5, p25, &
           field_loc_center, field_type_scalar, radius
       use netcdf
@@ -829,7 +898,6 @@
       ! - Read in lon/lat centers in degrees from kmt file
       ! - Read in ocean from "kmt" file (1 for ocean, 0 for land)
       !-----------------------------------------------------------------
-#ifdef CESMCOUPLED
 
       call icepack_query_parameters(pi_out=pi, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
@@ -1037,9 +1105,9 @@
 
       call makemask
 #endif
-#endif
 
       end subroutine latlongrid
+#endif
 
 !=======================================================================
 
@@ -1052,7 +1120,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
-      use ice_domain_size, only: max_blocks
+      use ice_domain, only: close_boundaries
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1170,8 +1238,8 @@
 
             ! land in the upper left and lower right corners,
             ! otherwise open boundaries
-            imid = aint(real(nx_global)/c2,kind=int_kind)
-            jmid = aint(real(ny_global)/c2,kind=int_kind)
+            imid = nint(aint(real(nx_global)/c2))
+            jmid = nint(aint(real(ny_global)/c2))
 
             do j = 3,ny_global-2
             do i = 3,nx_global-2
@@ -1193,6 +1261,13 @@
             enddo
             enddo
 
+            endif
+
+            if (close_boundaries) then
+              work_g1(:, 1:2) = c0
+              work_g1(:, ny_global-1:ny_global) = c0
+              work_g1(1:2, :) = c0
+              work_g1(nx_global-1:nx_global, :) = c0
             endif
 
          elseif (trim(ew_boundary_type) == 'closed') then
@@ -1331,11 +1406,9 @@
 
       subroutine primary_grid_lengths_HTN(work_g)
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: p5, c2, cm_to_m, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Nface, field_type_scalar
-      use ice_domain_size, only: max_blocks
 
       real (kind=dbl_kind), dimension(:,:) :: work_g ! global array holding HTN
 
@@ -1403,11 +1476,9 @@
 
       subroutine primary_grid_lengths_HTE(work_g)
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: p5, c2, cm_to_m, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Eface, field_type_scalar
-      use ice_domain_size, only: max_blocks
 
       real (kind=dbl_kind), dimension(:,:) :: work_g ! global array holding HTE
 
@@ -1429,26 +1500,23 @@
       endif
 
       if (my_task == master_task) then
-      do j = 1, ny_global
-      do i = 1, nx_global
-         work_g(i,j) = work_g(i,j) * cm_to_m                ! HTE
-      enddo
-      enddo
-      do j = 1, ny_global-1
+         do j = 1, ny_global
+         do i = 1, nx_global
+            work_g(i,j) = work_g(i,j) * cm_to_m                ! HTE
+         enddo
+         enddo
+         do j = 1, ny_global-1
          do i = 1, nx_global
             work_g2(i,j) = p5*(work_g(i,j) + work_g(i,j+1)) ! dyu
          enddo
-      enddo
-      ! extrapolate to obtain dyu along j=ny_global
-      ! for CESM: use NYGLOB to prevent a compile time out of bounds 
-      ! error when ny_global=1 as in the se dycore; this code is not 
-      ! exersized in prescribed mode.
-#if (NYGLOB>2)
-      do i = 1, nx_global
-         work_g2(i,ny_global) = c2*work_g(i,ny_global-1) &
-                                 - work_g(i,ny_global-2) ! dyu
-      enddo
-#endif
+         enddo
+         ! extrapolate to obtain dyu along j=ny_global
+         if (ny_global > 1) then
+            do i = 1, nx_global
+               work_g2(i,ny_global) = c2*work_g(i,ny_global-1) &
+                                       - work_g(i,ny_global-2) ! dyu
+            enddo
+         endif
       endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)
@@ -1514,6 +1582,8 @@
       !-----------------------------------------------------------------
 
       bm = c0
+!     uvm = c0
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1948,6 +2018,9 @@
       ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
       !-------------------------------------------------------------
 
+      latu_bounds(:,:,:,:) = c0
+      lonu_bounds(:,:,:,:) = c0
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -1985,6 +2058,8 @@
       endif
 
       work1(:,:,:) = latu_bounds(2,:,:,:)
+!     work_g2 = c0
+
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -2289,17 +2364,12 @@
       subroutine read_basalstress_bathy
 
       ! use module
-      use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_domain_size, only: max_blocks
       use ice_read_write
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_type_scalar
 
       ! local variables
       integer (kind=int_kind) :: &
-         i, j,     &     ! index inside block
-         iblk,     &     ! block index
          fid_init        ! file id for netCDF init file
       
       character (char_len_long) :: &        ! input data file names

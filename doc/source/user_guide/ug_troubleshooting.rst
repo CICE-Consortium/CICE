@@ -5,7 +5,7 @@
 Troubleshooting 
 ===============
 
-Check the FAQ: https://github.com/CICE-Consortium/Icepack/wiki
+Check the FAQ: https://github.com/CICE-Consortium/CICE/wiki
 
 .. _setup:
 
@@ -22,12 +22,12 @@ if scripts in the case directory are run again later.
 
 If changes are needed in the **cice.run.setup.csh** script, it must be manually modified.
 
-Ensure that the block size ``ICE_BLCKX``, ``ICE_BLCKY``, and ``ICE_MXBLCKS`` in **cice.settings** is
+Ensure that the block size ``block\_size\_x``, ``block\_size\_y``, and ``max\_blocks`` is
 compatible with the processor\_shape and other domain options in **ice\_in**
 
 If using the rake or space-filling curve algorithms for block
 distribution (`distribution\_type` in **ice\_in**) the code will abort
-if `MXBLCKS` is not large enough. The correct value is provided in the
+if ``max\_blocks\` is not large enough. The correct value is provided in the
 diagnostic output.  Also, the spacecurve setting can only be used with certain
 block sizes that results in number of blocks in the x and y directions being
 only multiples of 2, 3, or 5.
@@ -56,7 +56,7 @@ Manual restart tests require the path to the restart file be included in ``ice_i
 namelist file.
 
 Ensure that ``kcatbound`` is the same as that used to create the restart file.  
-Other configuration parameters, such as ``NICELYR``, must also be consistent between runs.
+Other configuration parameters, such as ``nilyr``, must also be consistent between runs.
 
 ..
       this is commented out now

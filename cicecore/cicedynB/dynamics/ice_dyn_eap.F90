@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_dyn_eap.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Elastic-anisotropic sea ice dynamics model
@@ -20,21 +19,20 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
+      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: max_blocks, ncat
       use ice_constants, only: c0, c1, c2, c3, c12, p1, p2, p5, &
-          p001, p025, p027, p05, p055, p111, p166, p222, p25, p333
+          p001, p027, p055, p111, p166, p222, p25, p333
       use ice_fileunits, only: nu_diag, nu_dump_eap, nu_restart_eap
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_ice_strength
-#ifdef CICE_IN_NEMO
-      use icepack_intfc, only: calc_strair
-#endif
 
       implicit none
       private
-      public :: eap, init_eap, write_restart_eap, read_restart_eap
+      public :: eap, init_eap, write_restart_eap, read_restart_eap, &
+                alloc_dyn_eap
 
       ! Look-up table needed for calculating structure tensor
       integer (int_kind), parameter :: & 
@@ -45,12 +43,12 @@
       real (kind=dbl_kind), dimension (nx_yield,ny_yield,na_yield) :: & 
         s11r, s12r, s22r, s11s, s12s, s22s           
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable :: &
          a11_1, a11_2, a11_3, a11_4,                  & ! components of 
          a12_1, a12_2, a12_3, a12_4                     ! structure tensor
 
       ! history
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), public :: &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
          e11      , & ! components of strain rate tensor (1/s)
          e12      , & 
          e22      , &
@@ -66,6 +64,38 @@
 !=======================================================================
 
       contains
+
+!=======================================================================
+!
+! Allocate space for all variables 
+!
+      subroutine alloc_dyn_eap
+
+      integer (int_kind) :: ierr
+
+      allocate( a11_1        (nx_block,ny_block,max_blocks), &
+                a11_2        (nx_block,ny_block,max_blocks), &
+                a11_3        (nx_block,ny_block,max_blocks), &
+                a11_4        (nx_block,ny_block,max_blocks), &
+                a12_1        (nx_block,ny_block,max_blocks), &
+                a12_2        (nx_block,ny_block,max_blocks), &
+                a12_3        (nx_block,ny_block,max_blocks), &
+                a12_4        (nx_block,ny_block,max_blocks), &
+                e11          (nx_block,ny_block,max_blocks), &
+                e12          (nx_block,ny_block,max_blocks), &
+                e22          (nx_block,ny_block,max_blocks), &
+                yieldstress11(nx_block,ny_block,max_blocks), &
+                yieldstress12(nx_block,ny_block,max_blocks), &
+                yieldstress22(nx_block,ny_block,max_blocks), &
+                s11          (nx_block,ny_block,max_blocks), &
+                s12          (nx_block,ny_block,max_blocks), &
+                s22          (nx_block,ny_block,max_blocks), &
+                a11          (nx_block,ny_block,max_blocks), &
+                a12          (nx_block,ny_block,max_blocks), &
+                stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_dyn_eap): Out of memory')
+
+      end subroutine alloc_dyn_eap
 
 !=======================================================================
 !
@@ -93,7 +123,7 @@
           cosw, sinw, denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           basal_stress_coeff, basalstress
-      use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
+      use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
           strocnxT, strocnyT, strax, stray, &
@@ -102,7 +132,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, tinyarea, to_ugrid, t2ugrid_vector, u2tgrid_vector
+          tarear, uarear, to_ugrid, t2ugrid_vector, u2tgrid_vector
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
 !      use ice_timers, only: timer_dynamics, timer_bound, &
@@ -147,6 +177,8 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation
 
+      logical (kind=log_kind) :: calc_strair
+
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
          icetmask, &  ! ice extent mask (T-cell)
          halomask     ! ice mask for halo update
@@ -175,7 +207,7 @@
          do j = 1, ny_block 
          do i = 1, nx_block 
             rdg_conv (i,j,iblk) = c0 
-            rdg_shear(i,j,iblk) = c0 
+!           rdg_shear(i,j,iblk) = c0 
             divu (i,j,iblk) = c0 
             shear(i,j,iblk) = c0 
             e11(i,j,iblk) = c0
@@ -223,21 +255,22 @@
       call to_ugrid(tmass,umass)
       call to_ugrid(aice_init, aiu)
 
-#ifdef CICE_IN_NEMO
       !----------------------------------------------------------------
-      ! Set wind stress to values supplied via NEMO
+      ! Set wind stress to values supplied via NEMO or other forcing
       ! This wind stress is rotated on u grid and multiplied by aice
       !----------------------------------------------------------------
+      call icepack_query_parameters(calc_strair_out=calc_strair)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
       if (.not. calc_strair) then       
          strairx(:,:,:) = strax(:,:,:)
          strairy(:,:,:) = stray(:,:,:)
       else
-#endif
          call t2ugrid_vector(strairx)
          call t2ugrid_vector(strairy)
-#ifdef CICE_IN_NEMO
       endif
-#endif
 
 ! tcraig, tcx, turned off this threaded region, in evp, this block and 
 ! the icepack_ice_strength call seems to not be thread safe.  more
@@ -381,7 +414,7 @@
       ! stress tensor equation, total surface stress
       !-----------------------------------------------------------------
 
-         !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+         !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
 !      call ice_timer_start(timer_tmp1) ! dynamics
@@ -396,7 +429,6 @@
                               cxp       (:,:,iblk), cyp       (:,:,iblk), &
                               cxm       (:,:,iblk), cym       (:,:,iblk), &
                               tarear    (:,:,iblk), strength  (:,:,iblk), &
-                              a11       (:,:,iblk), a12  (:,:,iblk),      &
                               a11_1     (:,:,iblk), a11_2   (:,:,iblk),   &
                               a11_3     (:,:,iblk), a11_4   (:,:,iblk),   &
                               a12_1     (:,:,iblk), a12_2   (:,:,iblk),   &
@@ -415,7 +447,8 @@
                               yieldstress11 (:,:,iblk),                   &
                               yieldstress12 (:,:,iblk),                   &
                               yieldstress22 (:,:,iblk),                   &
-                              rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
+!                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
+                              rdg_conv  (:,:,iblk), &
                               strtmp    (:,:,:))
 !      call ice_timer_stop(timer_tmp1) ! dynamics
 
@@ -467,7 +500,7 @@
             endif
 !      call ice_timer_stop(timer_tmp3) ! dynamics
          enddo
-         !$OMP END PARALLEL DO
+         !$TCXOMP END PARALLEL DO
 
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
@@ -529,10 +562,8 @@
       subroutine init_eap (dt)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
       use ice_dyn_shared, only: init_evp
-      use ice_restart_shared, only: runtype
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -540,21 +571,21 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, k, &
+         i, j, &
          iblk          ! block index
 
       real (kind=dbl_kind), parameter :: & 
          eps6 = 1.0e-6_dbl_kind
 
       integer (kind=int_kind) :: & 
-         ix, iy, ip, iz, n, ia
+         ix, iy, iz, ia
 
       integer (kind=int_kind), parameter :: & 
          nz = 100
 
       real (kind=dbl_kind) :: & 
-         ainit, xinit, yinit, pinit, zinit, &
-         da, dx, dy, dp, dz, a1, &
+         ainit, xinit, yinit, zinit, &
+         da, dx, dy, dz, &
          pi, pih, piq, phi
 
       character(len=*), parameter :: subname = '(init_eap)'
@@ -716,10 +747,11 @@
       real (kind=dbl_kind) :: &
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
-      t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+!     t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
+!     t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
-      IIn1t2, IIn2t1, IIt1t2, &
+      IIn1t2, IIn2t1, &
+!     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
       character(len=*), parameter :: subname = '(s11kr)'
@@ -739,14 +771,14 @@
       n2t1i12 = cos(z-pih+p) * sin(z-p)
       n2t1i21 = sin(z-pih+p) * cos(z-p)
       n2t1i22 = sin(z-pih+p) * sin(z-p)
-      t1t2i11 = cos(z-p) * cos(z+p)
-      t1t2i12 = cos(z-p) * sin(z+p)
-      t1t2i21 = sin(z-p) * cos(z+p)
-      t1t2i22 = sin(z-p) * sin(z+p)
-      t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t1t2i11 = cos(z-p) * cos(z+p)
+!     t1t2i12 = cos(z-p) * sin(z+p)
+!     t1t2i21 = sin(z-p) * cos(z+p)
+!     t1t2i22 = sin(z-p) * sin(z+p)
+!     t2t1i11 = cos(z+p) * cos(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
 ! In expression of tensor d, with this formulatin d(x)=-d(x+pi)
 ! Solution, when diagonalizing always check sgn(a11-a22) if > then keep x else x=x-pi/2
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
@@ -754,7 +786,7 @@
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
       IIn1t2 = n1t2i11 * d11 + (n1t2i12 + n1t2i21) * d12 + n1t2i22 * d22
       IIn2t1 = n2t1i11 * d11 + (n2t1i12 + n2t1i21) * d12 + n2t1i22 * d22
-      IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
+!     IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
 
       if (-IIn1t2>=puny) then
       Hen1t2 = c1
@@ -786,10 +818,11 @@
       real (kind=dbl_kind) :: &
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
-      t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+!     t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
+!     t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
-      IIn1t2, IIn2t1, IIt1t2, &
+      IIn1t2, IIn2t1, &
+!     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
       character(len=*), parameter :: subname = '(s12kr)'
@@ -809,20 +842,20 @@
       n2t1i12 = cos(z-pih+p) * sin(z-p)
       n2t1i21 = sin(z-pih+p) * cos(z-p)
       n2t1i22 = sin(z-pih+p) * sin(z-p)
-      t1t2i11 = cos(z-p) * cos(z+p)
-      t1t2i12 = cos(z-p) * sin(z+p)
-      t1t2i21 = sin(z-p) * cos(z+p)
-      t1t2i22 = sin(z-p) * sin(z+p)
-      t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t1t2i11 = cos(z-p) * cos(z+p)
+!     t1t2i12 = cos(z-p) * sin(z+p)
+!     t1t2i21 = sin(z-p) * cos(z+p)
+!     t1t2i22 = sin(z-p) * sin(z+p)
+!     t2t1i11 = cos(z+p) * cos(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
       d12 = cos(y)*cos(y)*tan(y)*(-cos(x)+sin(x))
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
       IIn1t2 = n1t2i11 * d11 + (n1t2i12 + n1t2i21) * d12 + n1t2i22 * d22
       IIn2t1 = n2t1i11 * d11 + (n2t1i12 + n2t1i21) * d12 + n2t1i22 * d22
-      IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
+!     IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
 
       if (-IIn1t2>=puny) then
       Hen1t2 = c1
@@ -856,10 +889,11 @@
       real (kind=dbl_kind) :: &
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
-      t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+!     t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
+!     t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
-      IIn1t2, IIn2t1, IIt1t2, &
+      IIn1t2, IIn2t1, &
+!     IIt1t2, &
       Hen1t2, Hen2t1, &
       pih, puny
       character(len=*), parameter :: subname = '(s22kr)'
@@ -879,20 +913,20 @@
       n2t1i12 = cos(z-pih+p) * sin(z-p)
       n2t1i21 = sin(z-pih+p) * cos(z-p)
       n2t1i22 = sin(z-pih+p) * sin(z-p)
-      t1t2i11 = cos(z-p) * cos(z+p)
-      t1t2i12 = cos(z-p) * sin(z+p)
-      t1t2i21 = sin(z-p) * cos(z+p)
-      t1t2i22 = sin(z-p) * sin(z+p)
-      t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t1t2i11 = cos(z-p) * cos(z+p)
+!     t1t2i12 = cos(z-p) * sin(z+p)
+!     t1t2i21 = sin(z-p) * cos(z+p)
+!     t1t2i22 = sin(z-p) * sin(z+p)
+!     t2t1i11 = cos(z+p) * cos(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
       d12 = cos(y)*cos(y)*tan(y)*(-cos(x)+sin(x))
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
       IIn1t2 = n1t2i11 * d11 + (n1t2i12 + n1t2i21) * d12 + n1t2i22 * d22
       IIn2t1 = n2t1i11 * d11 + (n2t1i12 + n2t1i21) * d12 + n2t1i22 * d22
-      IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
+!     IIt1t2 = t1t2i11 * d11 + (t1t2i12 + t1t2i21) * d12 + t1t2i22 * d22
 
       if (-IIn1t2>=puny) then
       Hen1t2 = c1
@@ -924,8 +958,10 @@
       real (kind=dbl_kind) :: &
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
-      t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+      t1t2i11, &
+      t1t2i12, t1t2i21, t1t2i22, &
+      t2t1i11, &
+!     t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
       Hen1t2, Hen2t1, &
@@ -952,9 +988,9 @@
       t1t2i21 = sin(z-p) * cos(z+p)
       t1t2i22 = sin(z-p) * sin(z+p)
       t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
       d12 = cos(y)*cos(y)*tan(y)*(-cos(x)+sin(x))
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
@@ -993,7 +1029,8 @@
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
       t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+!     t2t1i11, t2t1i22, &
+      t2t1i12, t2t1i21, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
       Hen1t2, Hen2t1, &
@@ -1019,10 +1056,10 @@
       t1t2i12 = cos(z-p) * sin(z+p)
       t1t2i21 = sin(z-p) * cos(z+p)
       t1t2i22 = sin(z-p) * sin(z+p)
-      t2t1i11 = cos(z+p) * cos(z-p)
+!     t2t1i11 = cos(z+p) * cos(z-p)
       t2t1i12 = cos(z+p) * sin(z-p)
       t2t1i21 = sin(z+p) * cos(z-p)
-      t2t1i22 = sin(z+p) * sin(z-p)
+!     t2t1i22 = sin(z+p) * sin(z-p)
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
       d12 = cos(y)*cos(y)*tan(y)*(-cos(x)+sin(x))
       d22 = cos(y)*cos(y)*(sin(x)+cos(x)*tan(y)*tan(y))
@@ -1063,7 +1100,8 @@
       n1t2i11, n1t2i12, n1t2i21, n1t2i22, &
       n2t1i11, n2t1i12, n2t1i21, n2t1i22, &
       t1t2i11, t1t2i12, t1t2i21, t1t2i22, &
-      t2t1i11, t2t1i12, t2t1i21, t2t1i22, &
+!     t2t1i11, t2t1i12, t2t1i21, &
+      t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
       Hen1t2, Hen2t1, &
@@ -1089,9 +1127,9 @@
       t1t2i12 = cos(z-p) * sin(z+p)
       t1t2i21 = sin(z-p) * cos(z+p)
       t1t2i22 = sin(z-p) * sin(z+p)
-      t2t1i11 = cos(z+p) * cos(z-p)
-      t2t1i12 = cos(z+p) * sin(z-p)
-      t2t1i21 = sin(z+p) * cos(z-p)
+!     t2t1i11 = cos(z+p) * cos(z-p)
+!     t2t1i12 = cos(z+p) * sin(z-p)
+!     t2t1i21 = sin(z+p) * cos(z-p)
       t2t1i22 = sin(z+p) * sin(z-p)
       d11 = cos(y)*cos(y)*(cos(x)+sin(x)*tan(y)*tan(y))
       d12 = cos(y)*cos(y)*tan(y)*(-cos(x)+sin(x))
@@ -1135,7 +1173,6 @@
                               cxp,        cyp,            &
                               cxm,        cym,            &
                               tarear,     strength,       &
-                              a11, a12,                   &
                               a11_1, a11_2, a11_3, a11_4, &
                               a12_1, a12_2, a12_3, a12_4, &
                               stressp_1,  stressp_2,      &
@@ -1152,7 +1189,8 @@
                               yieldstress11,              &
                               yieldstress12,              &
                               yieldstress22,              &
-                              rdg_conv,   rdg_shear,      &
+!                             rdg_conv,   rdg_shear,      &
+                              rdg_conv, &
                               strtmp)
 
 !echmod tmp
@@ -1197,7 +1235,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         a11, a12, a11_1, a11_2, a11_3, a11_4, & ! structure tensor
+         a11_1, a11_2, a11_3, a11_4, & ! structure tensor
          a12_1, a12_2, a12_3, a12_4              ! structure tensor
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), & 
@@ -1213,8 +1251,8 @@
          yieldstress11, & ! components of yield stress tensor (kg/s^2)
          yieldstress12, &
          yieldstress22, &
-         rdg_conv , & ! convergence term for ridging (1/s)
-         rdg_shear    ! shear term for ridging (1/s)
+         rdg_conv     ! convergence term for ridging (1/s)
+!        rdg_shear    ! shear term for ridging (1/s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
          intent(out) :: &
@@ -1576,9 +1614,6 @@
          a22, Q11, Q12, Qd11, Qd12, &
          Q11Q11, Q11Q12, Q12Q12, &
          dtemp11, dtemp12, dtemp22, &
-         fxinvdx, fyinvdy, fainvda, &
-         mfxinvdx, mfyinvdy, mfainvda, &
-         fff, ffm, fmm, mmm, mmf, mff, fmf, mfm, &
          rotstemp11r, rotstemp12r, rotstemp22r,   &
          rotstemp11s, rotstemp12s, rotstemp22s, &
          sig11, sig12, sig22, &
@@ -1586,8 +1621,8 @@
 	 invstressconviso, &
          gamma, alpha, x, y, dx, dy, da, &
          invdx, invdy, invda, invsin, &
-         invleng, dtemp1, dtemp2, atempprime, a, &
-         puny, pi, pi2, piq
+         invleng, dtemp1, dtemp2, atempprime, &
+         puny, pi, pi2, piq, pih
 
       real (kind=dbl_kind), parameter :: &
          kfriction = 0.45_dbl_kind
@@ -1595,7 +1630,7 @@
       character(len=*), parameter :: subname = '(update_stress_rdg)'
 
          call icepack_query_parameters(puny_out=puny, &
-            pi_out=pi, pi2_out=pi2, piq_out=piq)
+            pi_out=pi, pi2_out=pi2, piq_out=piq, pih_out=pih)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
@@ -1612,8 +1647,12 @@
 
          a22 = c1-a11
 
-! gamma: angle between general coordiantes and principal axis 
-         gamma = p5*atan2((c2*a12),(a11 - a22))
+! gamma: angle between general coordiantes and principal axis
+         if ((a11-a22) == c0) then
+           gamma = p5*(pih)
+         else
+           gamma = p5*atan2((c2*a12),(a11 - a22))
+         endif
 
 ! rotational tensor from general coordinates into principal axis
          Q11 = cos(gamma)
@@ -1636,7 +1675,11 @@
          dtemp22 = p5*(divu - tension)
 
 ! alpha: angle between general coordiantes and principal axis
-         alpha = p5*atan2((c2*dtemp12),(dtemp11 - dtemp22))
+         if ((dtemp11-dtemp22) == c0) then
+           alpha = p5*(pih)
+         else
+           alpha = p5*atan2((c2*dtemp12),(dtemp11 - dtemp22))
+         endif
 
 ! y: angle between major principal axis of strain rate and structure tensor
 ! to make sure y between 0 and pi/2
@@ -1662,7 +1705,11 @@
            invleng = c1/sqrt(dtemp1*dtemp1 + dtemp2*dtemp2)
            dtemp1 = dtemp1*invleng
            dtemp2 = dtemp2*invleng
-           x = atan2(dtemp2,dtemp1)
+           if ((dtemp1) == c0) then
+             x = (pih)
+           else
+             x = atan2(dtemp2,dtemp1)
+           endif
          endif
 
 !echmod to ensure the angle lies between pi/4 and 9 pi/4 
@@ -1891,7 +1938,7 @@
 
       real (kind=dbl_kind) :: &
          sigma11, sigma12, sigma22, &
-         gamma, sigma_1, sigma_2, &
+         gamma, sigma_1, sigma_2, pih, &
          Q11, Q12, Q11Q11, Q11Q12, Q12Q12
 
       real (kind=dbl_kind), parameter :: &
@@ -1900,11 +1947,20 @@
 
       character(len=*), parameter :: subname = '(calc_ffrac)'
 
+       call icepack_query_parameters(pih_out=pih)
+       call icepack_warnings_flush(nu_diag)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
        sigma11 = p5*(stressp+stressm) 
        sigma12 = stress12 
        sigma22 = p5*(stressp-stressm) 
 
-       gamma = p5*atan2((c2*sigma12),(sigma11-sigma22))
+       if ((sigma11-sigma22) == c0) then
+         gamma = p5*(pih)
+       else
+         gamma = p5*atan2((c2*sigma12),(sigma11-sigma22))
+       endif
 
 ! rotate tensor to get into sigma principal axis
 
@@ -1956,11 +2012,6 @@
 
       ! local variables
 
-      integer (kind=int_kind) :: &
-          iyear, imonth, iday     ! year, month, day
-
-      character(len=char_len_long) :: filename
-
       logical (kind=log_kind) :: diag
 
       character(len=*), parameter :: subname = '(write_restart_eap)'
@@ -1991,7 +2042,6 @@
 
       use ice_blocks, only: nghost
       use ice_boundary, only: ice_HaloUpdate_stress
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only:  &
           field_loc_center, field_type_scalar
       use ice_domain, only: nblocks, halo_info

@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_boundary.F90 1228 2017-05-23 21:33:34Z tcraig $
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_boundary
@@ -21,7 +20,6 @@
            field_loc_center,  field_loc_NEcorner, &
            field_loc_Nface, field_loc_Eface
    use ice_global_reductions, only: global_maxval
-   use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -148,7 +146,6 @@ contains
       sendCount, recvCount          ! count number of words to each proc
 
    logical (log_kind) :: &
-      tripoleFlag,          &! flag for allocating tripole buffers
       tripoleBlock,         &! flag for identifying north tripole blocks
       tripoleTFlag           ! flag for processing tripole buffer as T-fold
 
@@ -178,7 +175,6 @@ contains
    tripoleRows = nghost+1
 
    if (nsBoundaryType == 'tripole' .or. nsBoundaryType == 'tripoleT') then
-      tripoleFlag = .true.
       tripoleTFlag = (nsBoundaryType == 'tripoleT')
       if (tripoleTflag) tripoleRows = tripoleRows+1
       northMsgSize = tripoleRows*blockSizeX
@@ -198,7 +194,6 @@ contains
       endif
 
    else
-      tripoleFlag = .false.
       tripoleTFlag = .false.
       northMsgSize = nghost*blockSizeX
    endif

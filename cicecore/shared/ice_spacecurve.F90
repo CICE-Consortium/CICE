@@ -8,7 +8,6 @@ module ice_spacecurve
 !  create space-filling curves.   
 !
 ! !REVISION HISTORY:
-!  SVN:$Id: ice_spacecurve.F90 1228 2017-05-23 21:33:34Z tcraig $
 !
 ! author: John Dennis, NCAR
 
@@ -124,6 +123,7 @@ contains
    character(len=*),parameter :: subname='(Cinco)'
 
 !-----------------------------------------------------------------------
+     ltype = type
      ll = l
      if(ll .gt. 1) ltype = fact%factors(ll-1) ! Set the next type of space curve
 
@@ -638,6 +638,7 @@ contains
 
 !-----------------------------------------------------------------------
 
+     ltype = type
      ll = l
      if(ll .gt. 1) ltype = fact%factors(ll-1) ! Set the next type of space curve
      !--------------------------------------------------------------
@@ -862,6 +863,7 @@ contains
    character(len=*),parameter :: subname='(Hilbert)'
 
 !-----------------------------------------------------------------------
+     ltype = type
      ll = l
      if(ll .gt. 1) ltype = fact%factors(ll-1) ! Set the next type of space curve
      !--------------------------------------------------------------
