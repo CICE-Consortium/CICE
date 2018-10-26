@@ -22,3 +22,9 @@ restart        gbox128  4x2       boxdyn
 restart        gbox128  2x2       boxadv,short
 restart        gbox128  4x4       boxrestore
 restart        gbox80   1x1       box2001
+smoke          gx3     8x2        bgcz
+smoke          gx3     8x2        bgcz,debug
+smoke          gx3     8x1        bgcskl,debug
+#smoke          gx3     4x1        bgcz,thread        smoke_gx3_8x2_bgcz
+restart        gx1     4x2        bgcsklclim,medium
+restart        gx1     8x1        bgczclim,medium

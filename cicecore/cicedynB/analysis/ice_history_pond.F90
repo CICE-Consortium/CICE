@@ -131,6 +131,8 @@
       call broadcast_scalar (f_ipond_ai, master_task)
       call broadcast_scalar (f_apeff_ai, master_task)
 
+      if (tr_pond) then
+
       ! 2D variables
       do ns = 1, nstreams
 
@@ -183,6 +185,8 @@
              ns, f_apeff_ai)
 
       enddo ! nstreams
+
+      endif ! tr_pond
       
       end subroutine init_hist_pond_2D
 
@@ -194,7 +198,15 @@
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
+      logical (kind=log_kind) :: tr_pond
       character(len=*), parameter :: subname = '(init_hist_pond_3Dc)'
+
+      call icepack_query_tracer_flags(tr_pond_out=tr_pond)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      if (tr_pond) then
       
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
@@ -216,6 +228,8 @@
              ns, f_apeffn)
 
       enddo ! ns
+
+      endif ! tr_pond
 
       end subroutine init_hist_pond_3Dc
 

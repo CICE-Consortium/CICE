@@ -464,8 +464,10 @@
 !---! Remap the open water area (without tracers).
 !---!-------------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,m, &
-      !$OMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop)
+      !--- tcraig, tcx, this omp loop leads to a seg fault in gnu
+      !--- need to check private variables and debug further
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,m, &
+      !$TCXOMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop)
       do iblk = 1, nblocks
 
          l_stop = .false.
@@ -566,7 +568,7 @@
          endif
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+      !$TCXOMP END PARALLEL DO
 
     !-------------------------------------------------------------------
     ! Ghost cell updates
@@ -992,6 +994,7 @@
          if (present(tm)) then
 
             tmask(:,:,:,n) = c0
+
             do nt = 1, ntrace
                if (has_dependents(nt)) then
                   do ij = 1, icells(n)

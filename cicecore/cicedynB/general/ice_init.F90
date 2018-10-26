@@ -632,7 +632,6 @@
       call broadcast_scalar(restart_pond_lvl,   master_task)
       call broadcast_scalar(tr_pond_topo,       master_task)
       call broadcast_scalar(restart_pond_topo,  master_task)
-      call broadcast_scalar(tr_pond,            master_task)
       call broadcast_scalar(tr_aero,            master_task)
       call broadcast_scalar(restart_aero,       master_task)
       call broadcast_scalar(ncat,               master_task)
