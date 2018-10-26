@@ -771,7 +771,7 @@
       use netcdf
 #endif
            
-      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(inout) :: &
            fed1, &  ! first dissolved iron pool (nM)
            fep1    ! first particulate iron pool (nM)
 

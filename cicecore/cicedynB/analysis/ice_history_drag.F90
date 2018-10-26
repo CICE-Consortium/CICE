@@ -9,9 +9,10 @@
       use ice_domain_size, only: max_nstrm
       use ice_constants, only: c0, c1
       use ice_fileunits, only: nu_nml, nml_filename, &
-          get_fileunit, release_fileunit
+          get_fileunit, release_fileunit, nu_diag
       use ice_exit, only: abort_ice
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted, &
+          icepack_query_parameters
 
       implicit none
       private
@@ -66,7 +67,13 @@
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      logical (kind=log_kind) :: formdrag
       character(len=*), parameter :: subname = '(init_hist_drag_2D)'
+
+      call icepack_query_parameters(formdrag_out=formdrag)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -97,6 +104,8 @@
       call broadcast_scalar (f_Cdn_atm, master_task)
       call broadcast_scalar (f_Cdn_ocn, master_task)
       call broadcast_scalar (f_drag, master_task)
+
+      if (formdrag) then
 
       ! 2D variables
 
@@ -220,6 +229,8 @@
 
       enddo ! nstreams
 
+      endif ! formdrag
+
       end subroutine init_hist_drag_2D
 
 !=======================================================================
@@ -236,13 +247,21 @@
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
+      logical (kind=log_kind) :: formdrag
       character(len=*), parameter :: subname = '(accum_hist_drag)'
 
       !---------------------------------------------------------------
       ! increment field
       !---------------------------------------------------------------
 
-         ! 2D fields
+      call icepack_query_parameters(formdrag_out=formdrag)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      if (formdrag) then
+
+      ! 2D fields
 
       if (f_Cdn_atm     (1:1) /= 'x') &
         call accum_hist_field(n_Cdn_atm, iblk, Cdn_atm(:,:,iblk), a2D)
@@ -274,6 +293,8 @@
         call accum_hist_field(n_Cdn_ocn_skin, &
                               iblk, Cdn_ocn_skin(:,:,iblk), a2D)  
       end if
+
+      endif ! formdrag
 
       end subroutine accum_hist_drag
 

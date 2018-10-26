@@ -94,6 +94,9 @@
       call init_communicate     ! initial setup for message passing
       call init_fileunits       ! unit numbers
 
+      ! tcx debug, this will create a different logfile for each pe
+      ! if (my_task /= master_task) nu_diag = 100+my_task
+
       call icepack_configure()  ! initialize icepack
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &

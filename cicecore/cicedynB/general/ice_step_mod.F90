@@ -1169,7 +1169,7 @@
                 fep(i,j,:,iblk), zaeros(i,j,:,iblk), &
                 ocean_bio_all(i,j,:,iblk), &
                 hum(i,j,  iblk))
-        
+
          do mm = 1,nbtrcr
             ocean_bio(i,j,mm,iblk) = ocean_bio_all(i,j,bio_index_o(mm),iblk)  
          enddo  ! mm    

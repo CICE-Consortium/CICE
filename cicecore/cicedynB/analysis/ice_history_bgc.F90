@@ -757,34 +757,37 @@
       call broadcast_scalar (f_zaerofrac,    master_task) 
 
       ! 2D variables
-      do ns = 1, nstreams
 
-       ! zsalinity 
+    if (tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
+
+    do ns = 1, nstreams
+
+      ! zsalinity 
      
-         call define_hist_field(n_fzsal,"fzsal","kg/m^2/s",tstr2D, tcstr, &
-             "prognostic salt flux ice to ocn (cpl)",                              &
-             "if positive, ocean gains salt", c1, c0,                   &
-             ns, f_fzsal)
+      call define_hist_field(n_fzsal,"fzsal","kg/m^2/s",tstr2D, tcstr, &
+          "prognostic salt flux ice to ocn (cpl)",                     &
+          "if positive, ocean gains salt", c1, c0,                     &
+          ns, f_fzsal)
       
-         call define_hist_field(n_fzsal_ai,"fzsal_ai","kg/m^2/s",tstr2D, tcstr, &
-             "prognostic salt flux ice to ocean",                                        &
-             "weighted by ice area", c1, c0,                                  &
-             ns, f_fzsal_ai)
+      call define_hist_field(n_fzsal_ai,"fzsal_ai","kg/m^2/s",tstr2D, tcstr, &
+          "prognostic salt flux ice to ocean",                         &
+          "weighted by ice area", c1, c0,                              &
+          ns, f_fzsal_ai)
       
-         call define_hist_field(n_fzsal_g,"fzsal_g","kg/m^2/s",tstr2D, tcstr, &
-             "Gravity drainage salt flux ice to ocn (cpl)",                              &
-             "if positive, ocean gains salt", c1, c0,                   &
-             ns, f_fzsal_g)
+      call define_hist_field(n_fzsal_g,"fzsal_g","kg/m^2/s",tstr2D, tcstr, &
+          "Gravity drainage salt flux ice to ocn (cpl)",               &
+          "if positive, ocean gains salt", c1, c0,                     &
+          ns, f_fzsal_g)
       
-         call define_hist_field(n_fzsal_g_ai,"fzsal_g_ai","kg/m^2/s",tstr2D, tcstr, &
-             "Gravity drainage salt flux ice to ocean",                                        &
-             "weighted by ice area", c1, c0,                                  &
-             ns, f_fzsal_g_ai)
+      call define_hist_field(n_fzsal_g_ai,"fzsal_g_ai","kg/m^2/s",tstr2D, tcstr, &
+          "Gravity drainage salt flux ice to ocean",                   &
+          "weighted by ice area", c1, c0,                              &
+          ns, f_fzsal_g_ai)
       
-         call define_hist_field(n_zsal,"zsal_tot","g/m^2",tstr2D, tcstr,        &
-             "Total Salt content",                     &
-             "In ice volume*fbri", c1, c0,       &
-             ns, f_zsal)
+      call define_hist_field(n_zsal,"zsal_tot","g/m^2",tstr2D, tcstr,  &
+          "Total Salt content",                                        &
+          "In ice volume*fbri", c1, c0,                                &
+          ns, f_zsal)
 
       ! Aerosols
       if (f_aero(1:1) /= 'x') then
@@ -829,14 +832,16 @@
          enddo
       endif
 
-      ! skeletal layer tracers
       if (skl_bgc) then
+        ! skeletal layer tracers
+
+
         if (f_bgc_N(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algal_N', trim(nchar)
             call define_hist_field(n_bgc_N(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
-             "Bulk ice bottom algae (nitrogen)",                                    &
+             "Bulk ice bottom algae (nitrogen)",                           &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_N)
          enddo
@@ -846,7 +851,7 @@
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algal_chl', trim(nchar)
             call define_hist_field(n_bgc_chl(n,:),vname_in,"mg chl/m^2",tstr2D, tcstr, &
-             "Bulk ice bottom algae (chlorophyll)",                                      &
+             "Bulk ice bottom algae (chlorophyll)",                             &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_chl)
           enddo
@@ -856,7 +861,7 @@
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algal_C', trim(nchar)
             call define_hist_field(n_bgc_C(n,:),vname_in,"mmol C/m^2",tstr2D, tcstr, &
-             "Bulk ice bottom diatoms (carbon)",                                      &
+             "Bulk ice bottom diatoms (carbon)",                             &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_C)
           enddo
@@ -886,7 +891,7 @@
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DON', trim(nchar)
             call define_hist_field(n_bgc_DON(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
-             "Bulk ice bottom DON (nitrogen)",                                      &
+             "Bulk ice bottom DON (nitrogen)",                             &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_DON)
           enddo
@@ -896,7 +901,7 @@
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'dFe', trim(nchar)
             call define_hist_field(n_bgc_Fed (n,:),vname_in,"umol/m^2",tstr2D, tcstr, &
-             "Bulk ice bottom dissolved Fe (iron)",                                      &
+             "Bulk ice bottom dissolved Fe (iron)",                             &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Fed )
           enddo
@@ -904,7 +909,7 @@
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'pFe', trim(nchar)
             call define_hist_field(n_bgc_Fep (n,:),vname_in,"umol/m^2",tstr2D, tcstr, &
-             "Bulk ice bottom particulate Fe (iron)",                                    &
+             "Bulk ice bottom particulate Fe (iron)",                           &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Fep )
           enddo
@@ -912,42 +917,42 @@
  
         if (f_bgc_Nit(1:1) /= 'x') &
           call define_hist_field(n_bgc_Nit,"Nit","mmol/m^2",tstr2D, tcstr, &
-             "Bulk skeletal nutrient (nitrate)",                                      &
+             "Bulk skeletal nutrient (nitrate)",                             &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Nit)
         if (f_bgc_Am(1:1) /= 'x') &
           call define_hist_field(n_bgc_Am,"Am","mmol/m^2",tstr2D, tcstr, &
-             "Bulk skeletal nutrient (ammonia/um)",                                 &
+             "Bulk skeletal nutrient (ammonia/um)",                        &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Am)
-       if (f_bgc_Sil(1:1) /= 'x') &
+        if (f_bgc_Sil(1:1) /= 'x') &
           call define_hist_field(n_bgc_Sil,"Sil","mmol/m^2",tstr2D, tcstr, &
-             "Bulk skeletal nutrient (silicate)",                                     &
+             "Bulk skeletal nutrient (silicate)",                            &
              "skelelal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Sil)
-       if (f_bgc_hum(1:1) /= 'x') &
+        if (f_bgc_hum(1:1) /= 'x') &
           call define_hist_field(n_bgc_hum,"hum","mmol/m^2",tstr2D, tcstr, &
-             "Bulk skeletal humic material (carbon)",                       &
+             "Bulk skeletal humic material (carbon)",              &
              "skelelal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_hum)
-       if (f_bgc_PON(1:1) /= 'x') &
+        if (f_bgc_PON(1:1) /= 'x') &
           call define_hist_field(n_bgc_PON,"PON","mmol/m^2",tstr2D, tcstr, &
-             "Bulk skeletal nutrient (silicate)",                                     &
+             "Bulk skeletal nutrient (silicate)",                            &
              "skelelal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_PON)
-       if (f_bgc_DMSPp(1:1) /= 'x') &
+        if (f_bgc_DMSPp(1:1) /= 'x') &
           call define_hist_field(n_bgc_DMSPp,"DMSPp","mmol/m^2",tstr2D, tcstr, &
-             "Bulk particulate S in algae (DMSPp)",                                       &
+             "Bulk particulate S in algae (DMSPp)",                              &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_DMSPp)
-       if (f_bgc_DMSPd(1:1) /= 'x') &
+        if (f_bgc_DMSPd(1:1) /= 'x') &
           call define_hist_field(n_bgc_DMSPd,"DMSPd","mmol/m^2",tstr2D, tcstr, &
-             "Bulk dissolved skl precursor (DSMPd)",                                      &
+             "Bulk dissolved skl precursor (DSMPd)",                             &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_DMSPd)
-       if (f_bgc_DMS(1:1) /= 'x') &
+        if (f_bgc_DMS(1:1) /= 'x') &
           call define_hist_field(n_bgc_DMS,"DMS","mmol/m^2",tstr2D, tcstr, &
-             "Bulk dissolved skl trace gas (DMS)",                                    &
+             "Bulk dissolved skl trace gas (DMS)",                           &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_DMS)
  
@@ -955,759 +960,759 @@
 
       ! vertical and skeletal layer biogeochemistry
 
-       if (f_bgc_DOC_ml(1:1) /= 'x') then
+        if (f_bgc_DOC_ml(1:1) /= 'x') then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_DOC', trim(nchar)
             call define_hist_field(n_bgc_DOC_ml(n,:),vname_in,"mmol/m^3",tstr2D, tcstr, &
-             "mixed layer DOC (carbon)",                                      &
+             "mixed layer DOC (carbon)",                             &
              "upper ocean", c1, c0,                &
              ns, f_bgc_DOC_ml)
           enddo
-       endif
-       if (f_bgc_DIC_ml(1:1) /= 'x') then
+        endif
+        if (f_bgc_DIC_ml(1:1) /= 'x') then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_DIC', trim(nchar)
             call define_hist_field(n_bgc_DIC_ml(n,:),vname_in,"mmol/m^3",tstr2D, tcstr, &
-             "mixed layer DIC (carbon)",                                      &
+             "mixed layer DIC (carbon)",                             &
              "upper ocean", c1, c0,                &
              ns, f_bgc_DIC_ml)
           enddo
-       endif
-       if (f_bgc_DON_ml(1:1) /= 'x') then
+        endif
+        if (f_bgc_DON_ml(1:1) /= 'x') then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_DON', trim(nchar)
             call define_hist_field(n_bgc_DON_ml(n,:),vname_in,"mmol/m^3",tstr2D, tcstr, &
-             "mixed layer DON (nitrogen)",                                    &
+             "mixed layer DON (nitrogen)",                           &
              "upper ocean", c1, c0,                &
              ns, f_bgc_DON_ml)
           enddo
-       endif
-       if (f_bgc_Fed_ml (1:1) /= 'x') then
+        endif
+        if (f_bgc_Fed_ml (1:1) /= 'x') then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_dFe', trim(nchar)
             call define_hist_field(n_bgc_Fed_ml (n,:),vname_in,"nM",tstr2D, tcstr, &
-             "mixed layer dissolved Fe (iron)",                                    &
+             "mixed layer dissolved Fe (iron)",                           &
              "upper ocean", c1, c0,                &
              ns, f_bgc_Fed_ml )
           enddo
-       endif
-       if (f_bgc_Fep_ml (1:1) /= 'x') then
+        endif
+        if (f_bgc_Fep_ml (1:1) /= 'x') then
           do n = 1, n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_pFe', trim(nchar)
             call define_hist_field(n_bgc_Fep_ml (n,:),vname_in,"nM",tstr2D, tcstr, &
-             "mixed layer particulate Fe (iron)",                                    &
+             "mixed layer particulate Fe (iron)",                           &
              "upper ocean", c1, c0,                &
              ns, f_bgc_Fep_ml )
           enddo
-       endif
-       if (f_bgc_N_ml(1:1) /= 'x') then
+        endif
+        if (f_bgc_N_ml(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_N', trim(nchar)
             call define_hist_field(n_bgc_N_ml(n,:),vname_in,"mmol/m^3",tstr2D, tcstr, &
-             "mixed layer nitrogen",                                      &
+             "mixed layer nitrogen",                             &
              "upper ocean", c1, c0,                &
              ns, f_bgc_N_ml)
           enddo
-       endif
-      if (f_bgc_Nit_ml(1:1) /= 'x') &
+        endif
+        if (f_bgc_Nit_ml(1:1) /= 'x') &
           call define_hist_field(n_bgc_Nit_ml,"ml_Nit","mmol/m^3",tstr2D, tcstr, &
-             "mixed layer nutrient (nitrate)",                                  &
+             "mixed layer nutrient (nitrate)",                         &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_Nit_ml)
-      if (f_bgc_Am_ml(1:1) /= 'x') &
+        if (f_bgc_Am_ml(1:1) /= 'x') &
           call define_hist_field(n_bgc_Am_ml,"ml_Am","mmol/m^3",tstr2D, tcstr, &
-             "mixed layer nutrient (ammonia/um)",                             &
+             "mixed layer nutrient (ammonia/um)",                    &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_Am_ml)
-      if (f_bgc_Sil_ml(1:1) /= 'x') &
+        if (f_bgc_Sil_ml(1:1) /= 'x') &
           call define_hist_field(n_bgc_Sil_ml,"ml_Sil","mmol/m^3",tstr2D, tcstr, &
-             "mixed layer nutrient (silicate)",                                 &
+             "mixed layer nutrient (silicate)",                        &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_Sil_ml)
-      if (f_bgc_hum_ml(1:1) /= 'x') &
+        if (f_bgc_hum_ml(1:1) /= 'x') &
           call define_hist_field(n_bgc_hum_ml,"ml_hum","mmol/m^3",tstr2D, tcstr, &
-             "mixed layer humic material (carbon)",                                      &
+             "mixed layer humic material (carbon)",                             &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_hum_ml) 
-      if (f_bgc_DMSP_ml(1:1) /= 'x') &
+        if (f_bgc_DMSP_ml(1:1) /= 'x') &
           call define_hist_field(n_bgc_DMSP_ml,"ml_DMSP","mmol/m^3",tstr2D, tcstr, &
-             "mixed layer precursor (DMSP)",                                      &
+             "mixed layer precursor (DMSP)",                             &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_DMSP_ml)
-      if (f_bgc_DMS_ml(1:1) /= 'x') &
+        if (f_bgc_DMS_ml(1:1) /= 'x') &
           call define_hist_field(n_bgc_DMS_ml,"ml_DMS","mmol/m^3",tstr2D, tcstr, &
-             "mixed layer trace gas (DMS)",                                     &
+             "mixed layer trace gas (DMS)",                            &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_DMS_ml)
             
-      if (f_fNit(1:1) /= 'x') &
-         call define_hist_field(n_fNit,"fNit","mmol/m^2/s",tstr2D, tcstr, &
+        if (f_fNit(1:1) /= 'x') &
+          call define_hist_field(n_fNit,"fNit","mmol/m^2/s",tstr2D, tcstr, &
              "nitrate flux ice to ocn (cpl)",                           &
              "if positive, ocean gains nitrate", c1, c0,                &
              ns, f_fNit)
       
-      if (f_fNit_ai(1:1) /= 'x') &
-         call define_hist_field(n_fNit_ai,"fNit_ai","mmol/m^2/s",tstr2D, tcstr, &
-             "nitrate flux ice to ocean",                                     &
-             "weighted by ice area", c1, c0,                                  &
+        if (f_fNit_ai(1:1) /= 'x') &
+          call define_hist_field(n_fNit_ai,"fNit_ai","mmol/m^2/s",tstr2D, tcstr, &
+             "nitrate flux ice to ocean",                            &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fNit_ai)
            
-      if (f_fAm(1:1) /= 'x') &
-         call define_hist_field(n_fAm,"fAm","mmol/m^2/s",tstr2D, tcstr, &
-             "ammonium flux ice to ocn (cpl)",                              &
-             "if positive, ocean gains ammonium", c1, c0,                   &
+        if (f_fAm(1:1) /= 'x') &
+          call define_hist_field(n_fAm,"fAm","mmol/m^2/s",tstr2D, tcstr, &
+             "ammonium flux ice to ocn (cpl)",                     &
+             "if positive, ocean gains ammonium", c1, c0,          &
              ns, f_fAm)
  
-      if (f_fAm_ai(1:1) /= 'x') &
-         call define_hist_field(n_fAm_ai,"fAm_ai","mmol/m^2/s",tstr2D, tcstr, &
-             "ammonium flux ice to ocean",                                    &
-             "weighted by ice area", c1, c0,                                  &
+        if (f_fAm_ai(1:1) /= 'x') &
+          call define_hist_field(n_fAm_ai,"fAm_ai","mmol/m^2/s",tstr2D, tcstr, &
+             "ammonium flux ice to ocean",                           &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fAm_ai)             
-      if (f_fN(1:1) /= 'x') then
+        if (f_fN(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fN', trim(nchar)
             call define_hist_field(n_fN(n,:),vname_in,"mmol/m^2/s",tstr2D, tcstr, &
-             "algal N flux ice to ocn (cpl)",                              &
-             "if positive, ocean gains algal N", c1, c0,                   &
+             "algal N flux ice to ocn (cpl)",                     &
+             "if positive, ocean gains algal N", c1, c0,          &
              ns, f_fN)
-         enddo
-      endif
-      if (f_fN_ai(1:1) /= 'x') then
+          enddo
+        endif
+        if (f_fN_ai(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fN_ai', trim(nchar)
             call define_hist_field(n_fN_ai(n,:),vname_in,"mmol/m^2/s",tstr2D, tcstr, &
-             "algal N flux ice to ocean",                                     &
-             "weighted by ice area", c1, c0,                                  &
+             "algal N flux ice to ocean",                            &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fN_ai)
           enddo
-      endif
-      if (f_fDOC(1:1) /= 'x') then
+        endif
+        if (f_fDOC(1:1) /= 'x') then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDOC', trim(nchar)
             call define_hist_field(n_fDOC(n,:),vname_in,"mmol/m^2/s",tstr2D, tcstr, &
-             "DOC flux ice to ocn (cpl)",                              &
+             "DOC flux ice to ocn (cpl)",                     &
              "positive to ocean", c1, c0,                   &
              ns, f_fDOC)
-         enddo
-      endif
-      if (f_fDOC_ai(1:1) /= 'x') then
+          enddo
+        endif
+        if (f_fDOC_ai(1:1) /= 'x') then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDOC_ai', trim(nchar)
             call define_hist_field(n_fDOC_ai(n,:),vname_in,"mmol/m^2/s",tstr2D, tcstr, &
              "DOC flux ice to ocn",                              &
-             "weighted by ice area", c1, c0,                                  &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fDOC_ai)
           enddo
-      endif        
-      if (f_fDIC(1:1) /= 'x') then
+        endif        
+        if (f_fDIC(1:1) /= 'x') then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDIC', trim(nchar)
             call define_hist_field(n_fDIC(n,:),vname_in,"mmol/m^2/s",tstr2D, tcstr, &
-             "DIC flux ice to ocn (cpl)",                              &
+             "DIC flux ice to ocn (cpl)",                     &
              "positive to ocean", c1, c0,                   &
              ns, f_fDIC)
-         enddo
-      endif
-      if (f_fDIC_ai(1:1) /= 'x') then
+          enddo
+        endif
+        if (f_fDIC_ai(1:1) /= 'x') then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDIC_ai', trim(nchar)
             call define_hist_field(n_fDIC_ai(n,:),vname_in,"mmol/m^2/s",tstr2D, tcstr, &
              "DIC flux ice to ocn",                              &
-             "weighted by ice area", c1, c0,                                  &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fDIC_ai)
           enddo
-      endif               
-      if (f_fDON(1:1) /= 'x') then
+        endif               
+        if (f_fDON(1:1) /= 'x') then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDON', trim(nchar)
             call define_hist_field(n_fDON(n,:),vname_in,"mmol/m^2/s",tstr2D, tcstr, &
-             "DON flux ice to ocn (cpl)",                              &
+             "DON flux ice to ocn (cpl)",                     &
              "positive to ocean", c1, c0,                   &
              ns, f_fDON)
-         enddo
-      endif
-      if (f_fDON_ai(1:1) /= 'x') then
+          enddo
+        endif
+        if (f_fDON_ai(1:1) /= 'x') then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDON_ai', trim(nchar)
             call define_hist_field(n_fDON_ai(n,:),vname_in,"mmol/m^2/s",tstr2D, tcstr, &
              "DON flux ice to ocn",                              &
-             "weighted by ice area", c1, c0,                                  &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fDON_ai)
           enddo
-      endif               
-      if (f_fFed(1:1) /= 'x') then
+        endif               
+        if (f_fFed(1:1) /= 'x') then
           do n = 1, n_fed
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fdFe', trim(nchar)
             call define_hist_field(n_fFed (n,:),vname_in,"umol/m^2/s",tstr2D, tcstr, &
-             "dFe flux ice to ocn (cpl)",                              &
+             "dFe flux ice to ocn (cpl)",                     &
              "positive to ocean", c1, c0,                   &
              ns, f_fFed )
-         enddo
-      endif              
-      if (f_fFep(1:1) /= 'x') then
-          do n = 1, n_fep
-            write(nchar,'(i3.3)') n
-            write(vname_in,'(a,a)') 'fpFe', trim(nchar)
-            call define_hist_field(n_fFep (n,:),vname_in,"umol/m^2/s",tstr2D, tcstr, &
-             "pFe flux ice to ocn (cpl)",                              &
-             "positive to ocean", c1, c0,                   &
-             ns, f_fFep )
-         enddo
-      endif
-      if (f_fFed_ai (1:1) /= 'x') then
+          enddo
+        endif              
+        if (f_fFed_ai (1:1) /= 'x') then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fdFe_ai', trim(nchar)
             call define_hist_field(n_fFed_ai (n,:),vname_in,"umol/m^2/s",tstr2D, tcstr, &
              "dFe flux ice to ocn",                              &
-             "weighted by ice area", c1, c0,                                  &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fFed_ai )
           enddo
-      endif       
-      if (f_fFep_ai (1:1) /= 'x') then
+        endif       
+        if (f_fFep(1:1) /= 'x') then
+          do n = 1, n_fep
+            write(nchar,'(i3.3)') n
+            write(vname_in,'(a,a)') 'fpFe', trim(nchar)
+            call define_hist_field(n_fFep (n,:),vname_in,"umol/m^2/s",tstr2D, tcstr, &
+             "pFe flux ice to ocn (cpl)",                     &
+             "positive to ocean", c1, c0,                   &
+             ns, f_fFep )
+          enddo
+        endif
+        if (f_fFep_ai (1:1) /= 'x') then
           do n = 1, n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fpFe_ai', trim(nchar)
             call define_hist_field(n_fFep_ai (n,:),vname_in,"umol/m^2/s",tstr2D, tcstr, &
              "pFe flux ice to ocn",                              &
-             "weighted by ice area", c1, c0,                                  &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fFep_ai )
           enddo
-      endif        
-      if (f_fSil(1:1) /= 'x') &
-         call define_hist_field(n_fSil,"fSil","mmol/m^2/s",tstr2D, tcstr, &
-             "silicate flux ice to ocn (cpl)",                              &
-             "positive into ocean", c1, c0,                   &
+        endif        
+        if (f_fSil(1:1) /= 'x') &
+          call define_hist_field(n_fSil,"fSil","mmol/m^2/s",tstr2D, tcstr, &
+             "silicate flux ice to ocn (cpl)",                     &
+             "positive into ocean", c1, c0,          &
              ns, f_fSil)
       
-      if (f_fSil_ai(1:1) /= 'x') &
-         call define_hist_field(n_fSil_ai,"fSil_ai","mmol/m^2/s",tstr2D, tcstr, &
-             "silicate flux ice to ocean",                                        &
-             "weighted by ice area", c1, c0,                                  &
+        if (f_fSil_ai(1:1) /= 'x') &
+          call define_hist_field(n_fSil_ai,"fSil_ai","mmol/m^2/s",tstr2D, tcstr, &
+             "silicate flux ice to ocean",                               &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fSil_ai)
      
-      if (f_fhum(1:1) /= 'x') &
-         call define_hist_field(n_fhum,"fhum","mmol/m^2/s",tstr2D, tcstr, &
-             "humic matter (carbon) flux ice to ocn (cpl)",                              &
+        if (f_fhum(1:1) /= 'x') &
+          call define_hist_field(n_fhum,"fhum","mmol/m^2/s",tstr2D, tcstr, &
+             "humic matter (carbon) flux ice to ocn (cpl)",          &
              "positive into ocean", c1, c0,                   &
              ns, f_fhum)
       
-      if (f_fhum_ai(1:1) /= 'x') &
-         call define_hist_field(n_fhum_ai,"fhum_ai","mmol/m^2/s",tstr2D, tcstr, &
-             "humic matter (carbon) flux ice to ocean",                                        &
-             "weighted by ice area", c1, c0,                                  &
+        if (f_fhum_ai(1:1) /= 'x') &
+          call define_hist_field(n_fhum_ai,"fhum_ai","mmol/m^2/s",tstr2D, tcstr, &
+             "humic matter (carbon) flux ice to ocean",              &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fhum_ai)
 
-      if (f_fPON(1:1) /= 'x') &
-         call define_hist_field(n_fPON,"fPON","mmol/m^2/s",tstr2D, tcstr, &
-             "PON flux ice to ocean",                                        &
-             "positive into ocean", c1, c0,                                  &
+        if (f_fPON(1:1) /= 'x') &
+          call define_hist_field(n_fPON,"fPON","mmol/m^2/s",tstr2D, tcstr, &
+             "PON flux ice to ocean",                               &
+             "positive into ocean", c1, c0,                         &
              ns, f_fPON)
 
-      if (f_fPON_ai(1:1) /= 'x') &
-         call define_hist_field(n_fPON_ai,"fPON_ai","mmol/m^2/s",tstr2D, tcstr, &
-             "PON flux ice to ocean",                                        &
-             "weighted by ice area", c1, c0,                                  &
+        if (f_fPON_ai(1:1) /= 'x') &
+          call define_hist_field(n_fPON_ai,"fPON_ai","mmol/m^2/s",tstr2D, tcstr, &
+             "PON flux ice to ocean",                               &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fPON_ai)
 
-      if (f_fDMS(1:1) /= 'x') &
-         call define_hist_field(n_fDMS,"fDMS","mmol/m^2/s",tstr2D, tcstr, &
-             "DMS flux ice to ocean",                                        &
-             "positive into ocean", c1, c0,                                  &
+        if (f_fDMS(1:1) /= 'x') &
+          call define_hist_field(n_fDMS,"fDMS","mmol/m^2/s",tstr2D, tcstr, &
+             "DMS flux ice to ocean",                               &
+             "positive into ocean", c1, c0,                         &
              ns, f_fDMS)
 
-      if (f_fDMS_ai(1:1) /= 'x') &
-         call define_hist_field(n_fDMS_ai,"fDMS_ai","mmol/m^2/s",tstr2D, tcstr, &
-             "DMS flux ice to ocean",                                        &
-             "weighted by ice area", c1, c0,                                  &
+        if (f_fDMS_ai(1:1) /= 'x') &
+          call define_hist_field(n_fDMS_ai,"fDMS_ai","mmol/m^2/s",tstr2D, tcstr, &
+             "DMS flux ice to ocean",                               &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fDMS_ai)
 
-      if (f_fDMSPd(1:1) /= 'x') &
-         call define_hist_field(n_fDMSPd,"fDMSPd","mmol/m^2/s",tstr2D, tcstr, &
-             "DMSPd flux ice to ocean",                                        &
-             "positive into ocean", c1, c0,                                  &
+        if (f_fDMSPd(1:1) /= 'x') &
+          call define_hist_field(n_fDMSPd,"fDMSPd","mmol/m^2/s",tstr2D, tcstr, &
+             "DMSPd flux ice to ocean",                               &
+             "positive into ocean", c1, c0,                         &
              ns, f_fDMSPd)
 
-      if (f_fDMSPd_ai(1:1) /= 'x') &
-         call define_hist_field(n_fDMSPd_ai,"fDMSPd_ai","mmol/m^2/s",tstr2D, tcstr, &
-             "DMSPd flux ice to ocean",                                        &
-             "weighted by ice area", c1, c0,                                  &
+        if (f_fDMSPd_ai(1:1) /= 'x') &
+          call define_hist_field(n_fDMSPd_ai,"fDMSPd_ai","mmol/m^2/s",tstr2D, tcstr, &
+             "DMSPd flux ice to ocean",                               &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fDMSPd_ai)
 
-      if (f_fDMSPp(1:1) /= 'x') &
-         call define_hist_field(n_fDMSPp,"fDMSPp","mmol/m^2/s",tstr2D, tcstr, &
-             "DMSPp flux ice to ocean",                                        &
-             "positive into ocean", c1, c0,                                  &
+        if (f_fDMSPp(1:1) /= 'x') &
+          call define_hist_field(n_fDMSPp,"fDMSPp","mmol/m^2/s",tstr2D, tcstr, &
+             "DMSPp flux ice to ocean",                               &
+             "positive into ocean", c1, c0,                         &
              ns, f_fDMSPp)
 
-      if (f_fDMSPp_ai(1:1) /= 'x') &
-         call define_hist_field(n_fDMSPp_ai,"fDMSPp_ai","mmol/m^2/s",tstr2D, tcstr, &
-             "DMSPp flux ice to ocean",                                        &
-             "weighted by ice area", c1, c0,                                  &
+        if (f_fDMSPp_ai(1:1) /= 'x') &
+          call define_hist_field(n_fDMSPp_ai,"fDMSPp_ai","mmol/m^2/s",tstr2D, tcstr, &
+             "DMSPp flux ice to ocean",                               &
+             "weighted by ice area", c1, c0,                         &
              ns, f_fDMSPp_ai)
 
-      if (f_PPnet(1:1) /= 'x') &
-         call define_hist_field(n_PPnet,"PP_net","mg C/m^2/d",tstr2D, tcstr,        &
-             "Net Primary Production",                     &
+        if (f_PPnet(1:1) /= 'x') &
+          call define_hist_field(n_PPnet,"PP_net","mg C/m^2/d",tstr2D, tcstr, &
+             "Net Primary Production",            &
              "weighted by ice area", c1, c0,       &
              ns, f_PPnet)
 
-      if (f_grownet(1:1) /= 'x') &
-         call define_hist_field(n_grownet,"grow_net","m/d",tstr2D, tcstr,        &
+        if (f_grownet(1:1) /= 'x') &
+          call define_hist_field(n_grownet,"grow_net","m/d",tstr2D, tcstr, &
              "Net specific growth",                     &
              "weighted by brine or skl volume ", c1, c0,       &
              ns, f_grownet)
 
-       if (f_upNO(1:1) /= 'x') & 
-         call define_hist_field(n_upNO,"upNO","mmol/m^2/d",tstr2D, tcstr, &
-             "Tot algal Nit uptake rate",                           &
+        if (f_upNO(1:1) /= 'x') & 
+          call define_hist_field(n_upNO,"upNO","mmol/m^2/d",tstr2D, tcstr, &
+             "Tot algal Nit uptake rate",                  &
              "weighted by ice area", c1, c0, &
              ns, f_upNO)
 
-       if (f_upNH(1:1) /= 'x') &  
-         call define_hist_field(n_upNH,"upNH","mmol/m^2/d",tstr2D, tcstr, &
-             "Tot algal Am uptake rate",                           &
+        if (f_upNH(1:1) /= 'x') &  
+          call define_hist_field(n_upNH,"upNH","mmol/m^2/d",tstr2D, tcstr, &
+             "Tot algal Am uptake rate",                  &
              "weighted by ice area", c1, c0,&
              ns, f_upNH)
 
-      ! vertical biogeochemistry  
+        ! vertical biogeochemistry  
       if (z_tracers) then
 
-      if (f_fzaero(1:1) /= 'x') then
+        if (f_fzaero(1:1) /= 'x') then
           do n = 1, n_zaero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fzaero', trim(nchar)
             call define_hist_field(n_fzaero(n,:),vname_in,"kg/m^2/s",tstr2D, tcstr, &
-             "z aerosol flux ice to ocn (cpl)",                              &
+             "z aerosol flux ice to ocn (cpl)",                     &
              "positive to ocean", c1, c0,                   &
              ns, f_fzaero)
-         enddo
-      endif
-      if (f_fzaero_ai(1:1) /= 'x') then
+          enddo
+        endif
+        if (f_fzaero_ai(1:1) /= 'x') then
           do n = 1, n_zaero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fzaero_ai', trim(nchar)
             call define_hist_field(n_fzaero_ai(n,:),vname_in,"kg/m^2/s",tstr2D, tcstr, &
-             "z aerosol flux ice to ocn",                              &
+             "z aerosol flux ice to ocn",                     &
              "weighted by ice area", c1, c0,                   &
              ns, f_fzaero_ai)
-         enddo
-      endif
-      if (f_algalpeak(1:1) /= 'x') then
+          enddo
+        endif
+        if (f_algalpeak(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'peak_loc', trim(nchar)
-            call define_hist_field(n_algalpeak(n,:),vname_in,"1",tstr2D, tcstr,        &
-             "zgrid level of peak chla",                     &
+            call define_hist_field(n_algalpeak(n,:),vname_in,"1",tstr2D, tcstr, &
+             "zgrid level of peak chla",            &
              "0 if no distinct peak", c1, c0,       &
              ns, f_algalpeak)
-         enddo
-      endif
-      if (f_peakval(1:1) /= 'x') then
+          enddo
+        endif
+        if (f_peakval(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'peak_val', trim(nchar)
-            call define_hist_field(n_peakval(n,:),vname_in,"mg/m^3",tstr2D, tcstr,        &
-             "Bulk concentration of peak chla",                     &
+            call define_hist_field(n_peakval(n,:),vname_in,"mg/m^3",tstr2D, tcstr, &
+             "Bulk concentration of peak chla",            &
              "at peak_loc", c1, c0,       &
              ns, f_peakval)
-         enddo
-      endif
-      if (f_zaeronet(1:1) /= 'x')  then
+          enddo
+        endif
+        if (f_zaeronet(1:1) /= 'x')  then
           do n = 1, n_zaero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'zaero_net', trim(nchar)
-             call define_hist_field(n_zaeronet(n,:),vname_in,"kg/m^2",tstr2D, tcstr,        &
+             call define_hist_field(n_zaeronet(n,:),vname_in,"kg/m^2",tstr2D, tcstr, &
              "Net z aerosol",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_zaeronet)
           enddo
-      endif  !f_zaeronet
-      if (f_chlnet(1:1) /= 'x')  then
+        endif  !f_zaeronet
+        if (f_chlnet(1:1) /= 'x')  then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'chl_net', trim(nchar)
-             call define_hist_field(n_chlnet(n,:),vname_in,"mg chl/m^2",tstr2D, tcstr,        &
+             call define_hist_field(n_chlnet(n,:),vname_in,"mg chl/m^2",tstr2D, tcstr, &
              "Net chlorophyll",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_chlnet)
           enddo
-      endif  !f_chlnet
-      if (f_Nnet(1:1) /= 'x') then
+        endif  !f_chlnet
+        if (f_Nnet(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalN_net', trim(nchar)
-            call define_hist_field(n_Nnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_Nnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Net algal nitrogen",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_Nnet)
-         enddo
-      endif !f_Nnet
+          enddo
+        endif !f_Nnet
 
-      if (f_Cnet(1:1) /= 'x') then
+        if (f_Cnet(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalC_net', trim(nchar)
-            call define_hist_field(n_Cnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_Cnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Net algal carbon",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_Cnet)
-         enddo
-      endif !f_Cnet
-      if (f_DOCnet(1:1) /= 'x') then
+          enddo
+        endif !f_Cnet
+        if (f_DOCnet(1:1) /= 'x') then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DOC_net', trim(nchar)
-            call define_hist_field(n_DOCnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_DOCnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Net DOC",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_DOCnet)
-         enddo
-      endif !f_DOCnet
-      if (f_DICnet(1:1) /= 'x') then
+          enddo
+        endif !f_DOCnet
+        if (f_DICnet(1:1) /= 'x') then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DIC_net', trim(nchar)
-            call define_hist_field(n_DICnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_DICnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Net DIC",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_DICnet)
-         enddo
-      endif !f_DICnet
-      if (f_DONnet(1:1) /= 'x') then
+          enddo
+        endif !f_DICnet
+        if (f_DONnet(1:1) /= 'x') then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DON_net', trim(nchar)
-            call define_hist_field(n_DONnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_DONnet(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Net DON",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_DONnet)
-         enddo
-      endif !f_DONnet
-      if (f_Fednet (1:1) /= 'x') then
+          enddo
+        endif !f_DONnet
+        if (f_Fednet (1:1) /= 'x') then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'dFe_net', trim(nchar)
-            call define_hist_field(n_Fednet (n,:),vname_in,"umol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_Fednet (n,:),vname_in,"umol/m^2",tstr2D, tcstr, &
              "Net dFe",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_Fednet )
-         enddo
-      endif !f_Fednet 
-      if (f_Fepnet (1:1) /= 'x') then
+          enddo
+        endif !f_Fednet 
+        if (f_Fepnet (1:1) /= 'x') then
           do n = 1, n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'pFe_net', trim(nchar)
-            call define_hist_field(n_Fepnet (n,:),vname_in,"umol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_Fepnet (n,:),vname_in,"umol/m^2",tstr2D, tcstr, &
              "Net pFe",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_Fepnet )
-         enddo
-      endif !f_Fepnet 
-      if (f_Nitnet(1:1) /= 'x') &
-         call define_hist_field(n_Nitnet,"Nit_net","mmol/m^2",tstr2D, tcstr,        &
+          enddo
+        endif !f_Fepnet 
+        if (f_Nitnet(1:1) /= 'x') &
+          call define_hist_field(n_Nitnet,"Nit_net","mmol/m^2",tstr2D, tcstr, &
              "Net Nitrate",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Nitnet)
-      if (f_Amnet(1:1) /= 'x') &
-         call define_hist_field(n_Amnet,"Am_net","mmol/m^2",tstr2D, tcstr,        &
+        if (f_Amnet(1:1) /= 'x') &
+          call define_hist_field(n_Amnet,"Am_net","mmol/m^2",tstr2D, tcstr, &
              "Net Ammonium",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Amnet)
-      if (f_Silnet(1:1) /= 'x') &
-         call define_hist_field(n_Silnet,"Sil_net","mmol/m^2",tstr2D, tcstr,        &
+        if (f_Silnet(1:1) /= 'x') &
+          call define_hist_field(n_Silnet,"Sil_net","mmol/m^2",tstr2D, tcstr, &
              "Net Silicate",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Silnet)
-      if (f_humnet(1:1) /= 'x') &
-         call define_hist_field(n_humnet,"hum_net","mmol/m^2",tstr2D, tcstr,        &
+        if (f_humnet(1:1) /= 'x') &
+          call define_hist_field(n_humnet,"hum_net","mmol/m^2",tstr2D, tcstr, &
              "Net humic material (carbon)",               &
              "weighted by ice area", c1, c0,       &
              ns, f_humnet) 
-      if (f_DMSPpnet(1:1) /= 'x') &
-         call define_hist_field(n_DMSPpnet,"DMSPp_net","mmol/m^2",tstr2D, tcstr,        &
+        if (f_DMSPpnet(1:1) /= 'x') &
+          call define_hist_field(n_DMSPpnet,"DMSPp_net","mmol/m^2",tstr2D, tcstr, &
              "Net DMSPp",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSPpnet)
-      if (f_DMSPdnet(1:1) /= 'x') &
-         call define_hist_field(n_DMSPdnet,"DMSPd_net","mmol/m^2",tstr2D, tcstr,        &
+        if (f_DMSPdnet(1:1) /= 'x') &
+          call define_hist_field(n_DMSPdnet,"DMSPd_net","mmol/m^2",tstr2D, tcstr, &
              "Net DMSPd",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSPdnet)
-      if (f_DMSnet(1:1) /= 'x') &
-         call define_hist_field(n_DMSnet,"DMS_net","mmol/m^2",tstr2D, tcstr,        &
+        if (f_DMSnet(1:1) /= 'x') &
+          call define_hist_field(n_DMSnet,"DMS_net","mmol/m^2",tstr2D, tcstr, &
              "Net DMS",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSnet)
-      if (f_PONnet(1:1) /= 'x') &
-         call define_hist_field(n_PONnet,"PON_net","mmol/m^2",tstr2D, tcstr,        &
+        if (f_PONnet(1:1) /= 'x') &
+          call define_hist_field(n_PONnet,"PON_net","mmol/m^2",tstr2D, tcstr, &
              "Net Nitrate if no reactions",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_PONnet)
 
-      if (f_zaerosnow(1:1) /= 'x')  then
+        if (f_zaerosnow(1:1) /= 'x')  then
           do n = 1, n_zaero 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'zaero_snow', trim(nchar)
-             call define_hist_field(n_zaerosnow(n,:),vname_in,"kg/m^2",tstr2D, tcstr,        &
+             call define_hist_field(n_zaerosnow(n,:),vname_in,"kg/m^2",tstr2D, tcstr, &
              "Snow z aerosol",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_zaerosnow)
           enddo
-      endif  !f_chlnet
-      if (f_chlsnow(1:1) /= 'x')  then
+        endif  !f_chlnet
+        if (f_chlsnow(1:1) /= 'x')  then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'chl_snow', trim(nchar)
-             call define_hist_field(n_chlsnow(n,:),vname_in,"mg chl/m^2",tstr2D, tcstr,        &
+             call define_hist_field(n_chlsnow(n,:),vname_in,"mg chl/m^2",tstr2D, tcstr, &
              "Snow chlorophyll",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_chlsnow)
           enddo
-      endif  !f_chlnet
-      if (f_Nsnow(1:1) /= 'x') then
+        endif  !f_chlnet
+        if (f_Nsnow(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalN_snow', trim(nchar)
-            call define_hist_field(n_Nsnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_Nsnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Snow algal nitrogen",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_Nsnow)
-         enddo
-      endif !f_Nsnow
-      if (f_Csnow(1:1) /= 'x') then
+          enddo
+        endif !f_Nsnow
+        if (f_Csnow(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalC_snow', trim(nchar)
-            call define_hist_field(n_Csnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_Csnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Snow algal carbon",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_Csnow)
-         enddo
-      endif !f_Csnow
-      if (f_DOCsnow(1:1) /= 'x') then
+          enddo
+        endif !f_Csnow
+        if (f_DOCsnow(1:1) /= 'x') then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DOC_snow', trim(nchar)
-            call define_hist_field(n_DOCsnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_DOCsnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Snow DOC",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_DOCsnow)
-         enddo
-      endif !f_DOCsnow
-      if (f_DICsnow(1:1) /= 'x') then
+          enddo
+        endif !f_DOCsnow
+        if (f_DICsnow(1:1) /= 'x') then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DIC_snow', trim(nchar)
-            call define_hist_field(n_DICsnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_DICsnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Snow DIC",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_DICsnow)
-         enddo
-      endif !f_DICsnow
-      if (f_DONsnow(1:1) /= 'x') then
+          enddo
+        endif !f_DICsnow
+        if (f_DONsnow(1:1) /= 'x') then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DON_snow', trim(nchar)
-            call define_hist_field(n_DONsnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_DONsnow(n,:),vname_in,"mmol/m^2",tstr2D, tcstr, &
              "Snow DON",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_DONsnow)
-         enddo
-      endif !f_DONsnow
-      if (f_Fedsnow (1:1) /= 'x') then
+          enddo
+        endif !f_DONsnow
+        if (f_Fedsnow (1:1) /= 'x') then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'dFe_snow', trim(nchar)
-            call define_hist_field(n_Fedsnow (n,:),vname_in,"umol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_Fedsnow (n,:),vname_in,"umol/m^2",tstr2D, tcstr, &
              "Snow dFe",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_Fedsnow )
-         enddo
-      endif !f_Fedsnow 
-      if (f_Fepsnow (1:1) /= 'x') then
+          enddo
+        endif !f_Fedsnow 
+        if (f_Fepsnow (1:1) /= 'x') then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'pFe_snow', trim(nchar)
-            call define_hist_field(n_Fepsnow (n,:),vname_in,"umol/m^2",tstr2D, tcstr,        &
+            call define_hist_field(n_Fepsnow (n,:),vname_in,"umol/m^2",tstr2D, tcstr, &
              "Snow pFe",                     &
              "weighted by ice area ", c1, c0,       &
              ns, f_Fepsnow )
-         enddo
-      endif !f_Fepsnow 
-      if (f_Nitsnow(1:1) /= 'x') &
-         call define_hist_field(n_Nitsnow,"Nit_snow","mmol/m^2",tstr2D, tcstr,        &
+          enddo
+        endif !f_Fepsnow 
+        if (f_Nitsnow(1:1) /= 'x') &
+          call define_hist_field(n_Nitsnow,"Nit_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow Nitrate",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Nitsnow)
-      if (f_Amsnow(1:1) /= 'x') &
-         call define_hist_field(n_Amsnow,"Am_snow","mmol/m^2",tstr2D, tcstr,        &
+        if (f_Amsnow(1:1) /= 'x') &
+          call define_hist_field(n_Amsnow,"Am_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow Ammonium",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Amsnow)
-      if (f_Silsnow(1:1) /= 'x') &
-         call define_hist_field(n_Silsnow,"Sil_snow","mmol/m^2",tstr2D, tcstr,        &
+        if (f_Silsnow(1:1) /= 'x') &
+          call define_hist_field(n_Silsnow,"Sil_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow Silicate",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Silsnow)
-      if (f_humsnow(1:1) /= 'x') &
-         call define_hist_field(n_humsnow,"hum_snow","mmol/m^2",tstr2D, tcstr,        &
+        if (f_humsnow(1:1) /= 'x') &
+          call define_hist_field(n_humsnow,"hum_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow humic material (carbon)",               &
              "weighted by ice area", c1, c0,       &
              ns, f_humsnow) 
-      if (f_DMSPpsnow(1:1) /= 'x') &
-         call define_hist_field(n_DMSPpsnow,"DMSPp_snow","mmol/m^2",tstr2D, tcstr,        &
+        if (f_DMSPpsnow(1:1) /= 'x') &
+          call define_hist_field(n_DMSPpsnow,"DMSPp_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow DMSPp",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSPpsnow)
-      if (f_DMSPdsnow(1:1) /= 'x') &
-         call define_hist_field(n_DMSPdsnow,"DMSPd_snow","mmol/m^2",tstr2D, tcstr,        &
+        if (f_DMSPdsnow(1:1) /= 'x') &
+          call define_hist_field(n_DMSPdsnow,"DMSPd_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow DMSPd",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSPdsnow)
-      if (f_DMSsnow(1:1) /= 'x') &
-         call define_hist_field(n_DMSsnow,"DMS_snow","mmol/m^2",tstr2D, tcstr,        &
+        if (f_DMSsnow(1:1) /= 'x') &
+          call define_hist_field(n_DMSsnow,"DMS_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow DMS",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSsnow)
-      if (f_PONsnow(1:1) /= 'x') &
-         call define_hist_field(n_PONsnow,"PON_snow","mmol/m^2",tstr2D, tcstr,        &
+        if (f_PONsnow(1:1) /= 'x') &
+          call define_hist_field(n_PONsnow,"PON_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow Nitrate if no reactions",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_PONsnow)
 
-      if (f_zaerofrac(1:1) /= 'x')  then
+        if (f_zaerofrac(1:1) /= 'x')  then
           do n = 1, n_zaero 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'zaero_frac', trim(nchar)
-             call define_hist_field(n_zaerofrac(n,:),vname_in,"1",tstr2D, tcstr,        &
+             call define_hist_field(n_zaerofrac(n,:),vname_in,"1",tstr2D, tcstr, &
              "Mobile frac z aerosol",                     &
              "averaged over depth ", c1, c0,       &
              ns, f_zaerofrac)
           enddo
-      endif  !f_chlnet
-      if (f_chlfrac(1:1) /= 'x')  then
+        endif  !f_chlnet
+        if (f_chlfrac(1:1) /= 'x')  then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'chl_frac', trim(nchar)
-             call define_hist_field(n_chlfrac(n,:),vname_in,"mg chl/m^2",tstr2D, tcstr,        &
+             call define_hist_field(n_chlfrac(n,:),vname_in,"mg chl/m^2",tstr2D, tcstr, &
              "Mobile frac chlorophyll",                     &
              "averaged over depth ", c1, c0,       &
              ns, f_chlfrac)
           enddo
-      endif  !f_chlnet
-      if (f_Nfrac(1:1) /= 'x') then
+        endif  !f_chlnet
+        if (f_Nfrac(1:1) /= 'x') then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalN_frac', trim(nchar)
-            call define_hist_field(n_Nfrac(n,:),vname_in,"1",tstr2D, tcstr,        &
+            call define_hist_field(n_Nfrac(n,:),vname_in,"1",tstr2D, tcstr, &
              "Mobile frac algal nitrogen",                     &
              "averaged over depth ", c1, c0,       &
              ns, f_Nfrac)
-         enddo
-      endif !f_Nfrac
-      if (f_DOCfrac(1:1) /= 'x') then
+          enddo
+        endif !f_Nfrac
+        if (f_DOCfrac(1:1) /= 'x') then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DOC_frac', trim(nchar)
-            call define_hist_field(n_DOCfrac(n,:),vname_in,"1",tstr2D, tcstr,        &
+            call define_hist_field(n_DOCfrac(n,:),vname_in,"1",tstr2D, tcstr, &
              "Mobile frac DOC",                     &
              "averaged over depth ", c1, c0,       &
              ns, f_DOCfrac)
-         enddo
-      endif !f_DOCfrac
-      if (f_DICfrac(1:1) /= 'x') then
+          enddo
+        endif !f_DOCfrac
+        if (f_DICfrac(1:1) /= 'x') then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DIC_frac', trim(nchar)
-            call define_hist_field(n_DICfrac(n,:),vname_in,"1",tstr2D, tcstr,        &
+            call define_hist_field(n_DICfrac(n,:),vname_in,"1",tstr2D, tcstr, &
              "Mobile frac DIC",                     &
              "averaged over depth ", c1, c0,       &
              ns, f_DICfrac)
-         enddo
-      endif !f_DICfrac
-      if (f_DONfrac(1:1) /= 'x') then
+          enddo
+        endif !f_DICfrac
+        if (f_DONfrac(1:1) /= 'x') then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DON_frac', trim(nchar)
-            call define_hist_field(n_DONfrac(n,:),vname_in,"1",tstr2D, tcstr,        &
+            call define_hist_field(n_DONfrac(n,:),vname_in,"1",tstr2D, tcstr, &
              "Mobile frac DON",                     &
              "averaged over depth ", c1, c0,       &
              ns, f_DONfrac)
          enddo
-      endif !f_DONfrac
-      if (f_Fedfrac (1:1) /= 'x') then
+        endif !f_DONfrac
+        if (f_Fedfrac (1:1) /= 'x') then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'dFe_frac', trim(nchar)
-            call define_hist_field(n_Fedfrac (n,:),vname_in,"1",tstr2D, tcstr,        &
+            call define_hist_field(n_Fedfrac (n,:),vname_in,"1",tstr2D, tcstr, &
              "Mobile frac dFe",                     &
              "averaged over depth ", c1, c0,       &
              ns, f_Fedfrac )
-         enddo
-      endif !f_Fedfrac 
-      if (f_Fepfrac (1:1) /= 'x') then
+          enddo
+        endif !f_Fedfrac 
+        if (f_Fepfrac (1:1) /= 'x') then
           do n = 1, n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'pFe_frac', trim(nchar)
-            call define_hist_field(n_Fepfrac (n,:),vname_in,"1",tstr2D, tcstr,        &
+            call define_hist_field(n_Fepfrac (n,:),vname_in,"1",tstr2D, tcstr, &
              "Mobile frac pFe",                     &
              "averaged over depth ", c1, c0,       &
              ns, f_Fepfrac )
-         enddo
-      endif !f_Fepfrac 
-      if (f_Nitfrac(1:1) /= 'x') &
-         call define_hist_field(n_Nitfrac,"Nit_frac","1",tstr2D, tcstr,        &
+          enddo
+        endif !f_Fepfrac 
+        if (f_Nitfrac(1:1) /= 'x') &
+          call define_hist_field(n_Nitfrac,"Nit_frac","1",tstr2D, tcstr, &
              "Mobile frac Nitrate",                     &
              "averaged over depth", c1, c0,       &
              ns, f_Nitfrac)
-      if (f_Amfrac(1:1) /= 'x') &
-         call define_hist_field(n_Amfrac,"Am_frac","1",tstr2D, tcstr,        &
+        if (f_Amfrac(1:1) /= 'x') &
+          call define_hist_field(n_Amfrac,"Am_frac","1",tstr2D, tcstr, &
              "Mobile frac Ammonium",                     &
              "averaged over depth", c1, c0,       &
              ns, f_Amfrac)
-      if (f_Silfrac(1:1) /= 'x') &
-         call define_hist_field(n_Silfrac,"Sil_frac","1",tstr2D, tcstr,        &
+        if (f_Silfrac(1:1) /= 'x') &
+          call define_hist_field(n_Silfrac,"Sil_frac","1",tstr2D, tcstr, &
              "Mobile frac Silicate",                     &
              "averaged over depth", c1, c0,       &
              ns, f_Silfrac)
-      if (f_humfrac(1:1) /= 'x') &
-         call define_hist_field(n_humfrac,"hum_frac","1",tstr2D, tcstr,        &
+        if (f_humfrac(1:1) /= 'x') &
+          call define_hist_field(n_humfrac,"hum_frac","1",tstr2D, tcstr, &
              "Mobile frac humic material",               &
              "averaged over depth", c1, c0,       &
              ns, f_humfrac) 
-      if (f_DMSPpfrac(1:1) /= 'x') &
-         call define_hist_field(n_DMSPpfrac,"DMSPp_frac","1",tstr2D, tcstr,        &
+        if (f_DMSPpfrac(1:1) /= 'x') &
+          call define_hist_field(n_DMSPpfrac,"DMSPp_frac","1",tstr2D, tcstr, &
              "Mobile frac DMSPp",                     &
              "averaged over depth", c1, c0,       &
              ns, f_DMSPpfrac)
-      if (f_DMSPdfrac(1:1) /= 'x') &
-         call define_hist_field(n_DMSPdfrac,"DMSPd_frac","1",tstr2D, tcstr,        &
+        if (f_DMSPdfrac(1:1) /= 'x') &
+          call define_hist_field(n_DMSPdfrac,"DMSPd_frac","1",tstr2D, tcstr, &
              "Mobile frac DMSPd",                     &
              "averaged over depth", c1, c0,       &
              ns, f_DMSPdfrac)
-      if (f_DMSfrac(1:1) /= 'x') &
-         call define_hist_field(n_DMSfrac,"DMS_frac","1",tstr2D, tcstr,        &
+        if (f_DMSfrac(1:1) /= 'x') &
+          call define_hist_field(n_DMSfrac,"DMS_frac","1",tstr2D, tcstr, &
              "Mobile frac DMS",                     &
              "averaged over depth", c1, c0,       &
              ns, f_DMSfrac)
-      if (f_PONfrac(1:1) /= 'x') &
-         call define_hist_field(n_PONfrac,"PON_frac","1",tstr2D, tcstr,        &
+        if (f_PONfrac(1:1) /= 'x') &
+          call define_hist_field(n_PONfrac,"PON_frac","1",tstr2D, tcstr, &
              "Mobile frac Nitrate if no reactions",                     &
              "averaged over depth", c1, c0,       &
              ns, f_PONfrac)
@@ -1716,12 +1721,14 @@
 
       ! brine
       if (f_hbri(1:1) /= 'x') &
-         call define_hist_field(n_hbri,"hbrine","m",tstr2D, tcstr,        &
+         call define_hist_field(n_hbri,"hbrine","m",tstr2D, tcstr, &
              "Brine height",                     &
              "distance from ice bottom to brine surface", c1, c0,       &
              ns, f_hbri)
 
-      enddo ! nstreams
+    enddo ! nstreams
+
+    endif ! tr_aero, etc 
       
       end subroutine init_hist_bgc_2D
 
@@ -1733,8 +1740,16 @@
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
+      logical (kind=log_kind) :: tr_brine
       character(len=*), parameter :: subname = '(init_hist_bgc_3Dc)'
-      
+
+      call icepack_query_tracer_flags(tr_brine_out=tr_brine)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+    if (tr_brine) then
+
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
         if (f_fbri(1:1) /= 'x') &
@@ -1743,6 +1758,8 @@
              "none", c1, c0,       &
              ns, f_fbri)
       enddo ! ns
+
+    endif
 
       end subroutine init_hist_bgc_3Dc
 
@@ -1755,14 +1772,19 @@
 
       integer (kind=int_kind) :: ns
       real (kind=dbl_kind) :: secday
+      logical (kind=log_kind) :: solve_zsal, z_tracers
       character(len=*), parameter :: subname = '(init_hist_bgc_3Db)'
       
       ! biology vertical grid
 
       call icepack_query_parameters(secday_out=secday)
+      call icepack_query_parameters( &
+          solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+    if (z_tracers .or. solve_zsal) then
 
       do ns = 1, nstreams
  
@@ -1798,6 +1820,8 @@
                 ns, f_zfswin)
     
       enddo  ! ns
+
+    endif  ! z_tracers or solve_zsal
 
       end subroutine init_hist_bgc_3Db
 
@@ -1849,7 +1873,7 @@
          workii
 
       logical (kind=log_kind) :: &
-         skl_bgc, z_tracers
+         skl_bgc, z_tracers, tr_aero, tr_brine, solve_zsal
 
       integer(kind=int_kind) :: nt_aero, nt_fbri, &
          nt_bgc_Nit,   nt_bgc_Am,   nt_bgc_Sil, nt_bgc_DMSPp, &
@@ -1891,8 +1915,10 @@
 
       call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi, &
          rhow_out=rhow, puny_out=puny, sk_l_out=sk_l)
+      call icepack_query_tracer_flags( &
+         tr_aero_out=tr_aero, tr_brine_out=tr_brine)
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
-         z_tracers_out=z_tracers)
+         solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
       call icepack_query_tracer_indices( nt_aero_out=nt_aero, &
          nt_fbri_out=nt_fbri, nt_bgc_DOC_out=nt_bgc_DOC, &
          nt_zaero_out=nt_zaero, nt_bgc_DIC_out=nt_bgc_DIC, &
@@ -1928,6 +1954,10 @@
       !---------------------------------------------------------------
       ! increment field
       !---------------------------------------------------------------
+
+    if (tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
+      ! 2d bgc fields
+
 
       ! zsalinity
       if (f_fzsal  (1:1) /= 'x') &  
@@ -1967,8 +1997,9 @@
          enddo
       endif
 
+    if (skl_bgc) then
+
       ! skeletal layer bgc
-      if (skl_bgc) then
 
       if (f_bgc_N(1:1)/= 'x') then
          do n=1,n_algae
@@ -2030,6 +2061,9 @@
       if (f_bgc_hum(1:1)/= 'x') &
          call accum_hist_field(n_bgc_hum,  iblk, &
                 sk_l*trcr(:,:,nt_bgc_hum,  iblk), a2D)  
+      if (f_bgc_PON(1:1)/= 'x') &
+         call accum_hist_field(n_bgc_PON,  iblk, &
+                sk_l*trcr(:,:,nt_bgc_PON,  iblk), a2D)  
       if (f_bgc_DMSPp(1:1)/= 'x') &
          call accum_hist_field(n_bgc_DMSPp,iblk, &
                 sk_l*trcr(:,:,nt_bgc_DMSPp,iblk), a2D)  
@@ -2039,20 +2073,11 @@
       if (f_bgc_DMS(1:1)/= 'x') &
          call accum_hist_field(n_bgc_DMS,  iblk, &
                 sk_l*trcr(:,:,nt_bgc_DMS,  iblk), a2D)   
-      if (f_bgc_PON(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_PON,  iblk, &
-                sk_l*trcr(:,:,nt_bgc_PON,  iblk), a2D)  
 
-      endif  !skl_bgc 
+    endif  !skl_bgc 
 
       ! skeletal layer and vertical bgc 
 
-      if (f_bgc_N_ml(1:1)/= 'x') then
-         do n=1,n_algae
-            call accum_hist_field(n_bgc_N_ml(n,:), iblk, &
-                   ocean_bio(:,:,nlt_bgc_N(n),      iblk), a2D)
-         enddo
-      endif
       if (f_bgc_DOC_ml(1:1)/= 'x') then
          do n=1,n_doc
             call accum_hist_field(n_bgc_DOC_ml(n,:), iblk, &
@@ -2083,6 +2108,12 @@
                    ocean_bio(:,:,nlt_bgc_Fep (n),      iblk), a2D)
          enddo
       endif
+      if (f_bgc_N_ml(1:1)/= 'x') then
+         do n=1,n_algae
+            call accum_hist_field(n_bgc_N_ml(n,:), iblk, &
+                   ocean_bio(:,:,nlt_bgc_N(n),      iblk), a2D)
+         enddo
+      endif
       if (f_bgc_Nit_ml(1:1)/= 'x') &
          call accum_hist_field(n_bgc_Nit_ml,  iblk, &
                ocean_bio(:,:,nlt_bgc_Nit,     iblk), a2D)  
@@ -2102,6 +2133,19 @@
          call accum_hist_field(n_bgc_DMS_ml,  iblk, &
                ocean_bio(:,:,nlt_bgc_DMS,     iblk), a2D) 
 
+      if (f_fNit  (1:1) /= 'x') &
+         call accum_hist_field(n_fNit,     iblk, &
+                  flux_bio(:,:,nlt_bgc_Nit,iblk), a2D)
+      if (f_fNit_ai(1:1)/= 'x') &
+         call accum_hist_field(n_fNit_ai,  iblk, &
+               flux_bio_ai(:,:,nlt_bgc_Nit,iblk), a2D)
+
+      if (f_fAm  (1:1) /= 'x') &
+         call accum_hist_field(n_fAm,     iblk, &
+                  flux_bio(:,:,nlt_bgc_Am,iblk), a2D)
+      if (f_fAm_ai(1:1)/= 'x') &
+         call accum_hist_field(n_fAm_ai,  iblk, &
+               flux_bio_ai(:,:,nlt_bgc_Am,iblk), a2D)
       if (f_fN(1:1)/= 'x') then
          do n=1,n_algae
             call accum_hist_field(n_fN(n,:),    iblk, &
@@ -2112,6 +2156,30 @@
          do n=1,n_algae
             call accum_hist_field(n_fN_ai(n,:),    iblk, &
                   flux_bio_ai(:,:,nlt_bgc_N(n),iblk), a2D)
+         enddo
+      endif
+      if (f_fDOC(1:1)/= 'x') then
+         do n=1,n_doc
+            call accum_hist_field(n_fDOC(n,:),    iblk, &
+                  flux_bio(:,:,nlt_bgc_DOC(n),iblk), a2D)
+         enddo
+      endif
+      if (f_fDOC_ai(1:1)/= 'x') then
+         do n=1,n_doc
+            call accum_hist_field(n_fDOC_ai(n,:),    iblk, &
+                  flux_bio_ai(:,:,nlt_bgc_DOC(n),iblk), a2D)
+         enddo
+      endif
+      if (f_fDIC(1:1)/= 'x') then
+         do n=1,n_dic
+            call accum_hist_field(n_fDIC(n,:),    iblk, &
+                  flux_bio(:,:,nlt_bgc_DIC(n),iblk), a2D)
+         enddo
+      endif
+      if (f_fDIC_ai(1:1)/= 'x') then
+         do n=1,n_dic
+            call accum_hist_field(n_fDIC_ai(n,:),    iblk, &
+                  flux_bio_ai(:,:,nlt_bgc_DIC(n),iblk), a2D)
          enddo
       endif
       if (f_fDON(1:1)/= 'x') then
@@ -2150,43 +2218,6 @@
                   flux_bio_ai(:,:,nlt_bgc_Fep (n),iblk), a2D)
          enddo
       endif
-      if (f_fDIC(1:1)/= 'x') then
-         do n=1,n_dic
-            call accum_hist_field(n_fDIC(n,:),    iblk, &
-                  flux_bio(:,:,nlt_bgc_DIC(n),iblk), a2D)
-         enddo
-      endif
-      if (f_fDIC_ai(1:1)/= 'x') then
-         do n=1,n_dic
-            call accum_hist_field(n_fDIC_ai(n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_bgc_DIC(n),iblk), a2D)
-         enddo
-      endif
-      if (f_fDOC(1:1)/= 'x') then
-         do n=1,n_doc
-            call accum_hist_field(n_fDOC(n,:),    iblk, &
-                  flux_bio(:,:,nlt_bgc_DOC(n),iblk), a2D)
-         enddo
-      endif
-      if (f_fDOC_ai(1:1)/= 'x') then
-         do n=1,n_doc
-            call accum_hist_field(n_fDOC_ai(n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_bgc_DOC(n),iblk), a2D)
-         enddo
-      endif
-      if (f_fNit  (1:1) /= 'x') &
-         call accum_hist_field(n_fNit,     iblk, &
-                  flux_bio(:,:,nlt_bgc_Nit,iblk), a2D)
-      if (f_fNit_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fNit_ai,  iblk, &
-               flux_bio_ai(:,:,nlt_bgc_Nit,iblk), a2D)
-
-      if (f_fAm  (1:1) /= 'x') &
-         call accum_hist_field(n_fAm,     iblk, &
-                  flux_bio(:,:,nlt_bgc_Am,iblk), a2D)
-      if (f_fAm_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fAm_ai,  iblk, &
-               flux_bio_ai(:,:,nlt_bgc_Am,iblk), a2D)
       if (f_fSil  (1:1) /= 'x') &
          call accum_hist_field(n_fSil,    iblk, &
                  flux_bio(:,:,nlt_bgc_Sil,iblk), a2D)
@@ -2199,6 +2230,12 @@
       if (f_fhum_ai(1:1)/= 'x') &
          call accum_hist_field(n_fhum_ai, iblk, &
               flux_bio_ai(:,:,nlt_bgc_hum,iblk), a2D)
+      if (f_fPON  (1:1) /= 'x') &
+         call accum_hist_field(n_fPON,    iblk, &
+                 flux_bio(:,:,nlt_bgc_PON,iblk), a2D)
+      if (f_fPON_ai(1:1)/= 'x') &
+         call accum_hist_field(n_fPON_ai, iblk, &
+              flux_bio_ai(:,:,nlt_bgc_PON,iblk), a2D)
       if (f_fDMS  (1:1) /= 'x') &
          call accum_hist_field(n_fDMS,    iblk, &
                  flux_bio(:,:,nlt_bgc_DMS,iblk), a2D)
@@ -2217,12 +2254,6 @@
       if (f_fDMSPp_ai(1:1)/= 'x') &
          call accum_hist_field(n_fDMSPp_ai, iblk, &
               flux_bio_ai(:,:,nlt_bgc_DMSPp,iblk), a2D)
-      if (f_fPON  (1:1) /= 'x') &
-         call accum_hist_field(n_fPON,    iblk, &
-                 flux_bio(:,:,nlt_bgc_PON,iblk), a2D)
-      if (f_fPON_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fPON_ai, iblk, &
-              flux_bio_ai(:,:,nlt_bgc_PON,iblk), a2D)
       if (f_PPnet  (1:1) /= 'x') &
          call accum_hist_field(n_PPnet,   iblk, &
                                PP_net(:,:,iblk), a2D)
@@ -2238,8 +2269,20 @@
 
       ! vertical biogeochemistry  
 
-      if (z_tracers) then
+    if (z_tracers) then
 
+      if (f_fzaero(1:1)/= 'x') then
+         do n=1,n_zaero
+            call accum_hist_field(n_fzaero(n,:),    iblk, &
+                  flux_bio(:,:,nlt_zaero(n),iblk), a2D)
+         enddo
+      endif
+      if (f_fzaero_ai(1:1)/= 'x') then
+         do n=1,n_zaero
+            call accum_hist_field(n_fzaero_ai(n,:),    iblk, &
+                  flux_bio_ai(:,:,nlt_zaero(n),iblk), a2D)
+         enddo
+      endif
       if (f_algalpeak  (1:1) /= 'x') then
          do n=1,n_algae
             do j = jlo, jhi
@@ -2265,21 +2308,9 @@
          enddo      ! n
       endif !f_algalpeak
 
-      if (f_fzaero(1:1)/= 'x') then
-         do n=1,n_zaero
-            call accum_hist_field(n_fzaero(n,:),    iblk, &
-                  flux_bio(:,:,nlt_zaero(n),iblk), a2D)
-         enddo
-      endif
-      if (f_fzaero_ai(1:1)/= 'x') then
-         do n=1,n_zaero
-            call accum_hist_field(n_fzaero_ai(n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_zaero(n),iblk), a2D)
-         enddo
-      endif
-!  
-! ice_bio_net
-!
+      !  
+      ! ice_bio_net
+      !
       if (f_zaeronet  (1:1) /= 'x') then
          do n=1,n_zaero
             call accum_hist_field(n_zaeronet(n,:),    iblk, &
@@ -2338,15 +2369,15 @@
       if (f_Nitnet  (1:1) /= 'x') &
          call accum_hist_field(n_Nitnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_Nit, iblk), a2D)
+      if (f_Amnet  (1:1) /= 'x') &
+         call accum_hist_field(n_Amnet,   iblk, &
+                   ice_bio_net(:,:,nlt_bgc_Am, iblk), a2D)
       if (f_Silnet  (1:1) /= 'x') &
          call accum_hist_field(n_Silnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_Sil, iblk), a2D)
       if (f_humnet  (1:1) /= 'x') &
          call accum_hist_field(n_humnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_hum, iblk), a2D)
-      if (f_Amnet  (1:1) /= 'x') &
-         call accum_hist_field(n_Amnet,   iblk, &
-                   ice_bio_net(:,:,nlt_bgc_Am, iblk), a2D)
       if (f_DMSPpnet  (1:1) /= 'x') &
          call accum_hist_field(n_DMSPpnet,   iblk, &
                   ice_bio_net(:,:,nlt_bgc_DMSPp, iblk), a2D)
@@ -2359,9 +2390,9 @@
       if (f_PONnet  (1:1) /= 'x') &
          call accum_hist_field(n_PONnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_PON, iblk), a2D)
-!
-!  snow_bio_net
-! 
+      !
+      !  snow_bio_net
+      ! 
       if (f_zaerosnow  (1:1) /= 'x') then
          do n=1,n_zaero
             call accum_hist_field(n_zaerosnow(n,:),    iblk, &
@@ -2420,15 +2451,15 @@
       if (f_Nitsnow  (1:1) /= 'x') &
          call accum_hist_field(n_Nitsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_Nit, iblk), a2D)
+      if (f_Amsnow  (1:1) /= 'x') &
+         call accum_hist_field(n_Amsnow,   iblk, &
+                   snow_bio_net(:,:,nlt_bgc_Am, iblk), a2D)
       if (f_Silsnow  (1:1) /= 'x') &
          call accum_hist_field(n_Silsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_Sil, iblk), a2D)
       if (f_humsnow  (1:1) /= 'x') &
          call accum_hist_field(n_humsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_hum, iblk), a2D)
-      if (f_Amsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_Amsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_Am, iblk), a2D)
       if (f_DMSPpsnow  (1:1) /= 'x') &
          call accum_hist_field(n_DMSPpsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_DMSPp, iblk), a2D)
@@ -2441,9 +2472,9 @@
       if (f_PONsnow  (1:1) /= 'x') &
          call accum_hist_field(n_PONsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_PON, iblk), a2D)
-!
-! mobile frac
-! 
+      !
+      ! mobile frac
+      ! 
       if (f_zaerofrac  (1:1) /= 'x') then
          do n=1,n_zaero
             call accum_hist_field(n_zaerofrac(n,:),    iblk, &
@@ -2496,15 +2527,15 @@
       if (f_Nitfrac  (1:1) /= 'x') &
          call accum_hist_field(n_Nitfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Nit, iblk), a2D)
+      if (f_Amfrac  (1:1) /= 'x') &
+         call accum_hist_field(n_Amfrac,   iblk, &
+                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Am, iblk), a2D)
       if (f_Silfrac  (1:1) /= 'x') &
          call accum_hist_field(n_Silfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Sil, iblk), a2D)
       if (f_humfrac  (1:1) /= 'x') &
          call accum_hist_field(n_humfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_hum, iblk), a2D) 
-      if (f_Amfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_Amfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Am, iblk), a2D)
       if (f_DMSPpfrac  (1:1) /= 'x') &
          call accum_hist_field(n_DMSPpfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMSPp, iblk), a2D)
@@ -2525,12 +2556,20 @@
          call accum_hist_field(n_hbri,     iblk, &
                         hbri(:,:,iblk), a2D)
 
+    endif  ! 2d bgc tracers, tr_aero, tr_brine, solve_zsal, skl_bgc
+
+
       ! 3D category fields
+
+    if (tr_brine) then
+      ! 3Dc bgc category fields
 
       if (f_fbri   (1:1) /= 'x') &
          call accum_hist_field(n_fbri-n2D, iblk, ncat_hist, &
                                trcrn(:,:,nt_fbri,1:ncat_hist,iblk), a3Dc)
+    endif
 
+    if (z_tracers .or. solve_zsal) then
       ! 3Db category fields
 
       if (f_bTin  (1:1) /= 'x')  then
@@ -2636,8 +2675,10 @@
                                   workz(:,:,1:nzblyr), a3Db)
       endif
 
-     ! 3Da category fields
-     if (z_tracers) then
+    endif  ! 3Db fields
+
+    if (z_tracers) then
+      ! 3Da category fields
 
       if (f_zaero   (1:1) /= 'x') then
          do k = 1,n_zaero
@@ -3068,8 +3109,8 @@
          call accum_hist_field(n_bgc_PON_cat1-n3Dbcum, iblk, nzalyr,  &
                                   workz2(:,:,1:nzalyr), a3Da)
       endif
-        
-      endif   ! z_tracers
+
+    endif   ! z_tracers, 3Da tracers
 
       end subroutine accum_hist_bgc
 
@@ -3081,13 +3122,21 @@
       use ice_history_shared, only: tstr3Da, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns, n
+      logical (kind=log_kind) :: z_tracers
       character (len=3) :: nchar
       character (len=16):: vname_in     ! variable name
       character(len=*), parameter :: subname = '(init_hist_bgc_3Da)'
       
-      ! snow+bio grid
+      call icepack_query_parameters(z_tracers_out=z_tracers)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
-      do ns = 1, nstreams
+    ! snow+bio grid
+
+    if (z_tracers) then
+
+    do ns = 1, nstreams
  
 !----------------------------------------------------------------------------
 ! snow+bio grid ==>
@@ -3101,7 +3150,7 @@
             call define_hist_field(n_zaeros(n,:),vname_in,"kg/kg",tstr3Da, tcstr, &
                 "bulk z aerosol mass fraction", "snow+bio grid", c1, c0, &
                 ns, f_zaero)
-          enddo
+         enddo
        endif
      
        if (f_bgc_Nit(1:1) /= 'x') & 
@@ -3121,7 +3170,7 @@
             call define_hist_field(n_bgc_N(n,:),vname_in,"mmol/m^3",tstr3Da, tcstr, &
                 "bulk algal N conc. ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_N)
-          enddo
+         enddo
        endif
        if (f_bgc_C(1:1) /= 'x') then
          do n=1,n_algae
@@ -3130,7 +3179,7 @@
             call define_hist_field(n_bgc_C(n,:),vname_in,"mmol C/m^3",tstr3Da, tcstr, &
                 "bulk algal C conc. ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_C)
-          enddo
+         enddo
        endif
        if (f_bgc_chl(1:1) /= 'x') then
          do n=1,n_algae
@@ -3139,7 +3188,7 @@
             call define_hist_field(n_bgc_chl(n,:),vname_in,"mg chl/m^3",tstr3Da, tcstr, &
                 "bulk algal chl conc. ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_chl)
-          enddo
+         enddo
        endif
        if (f_bgc_DOC(1:1) /= 'x') then
          do n=1,n_doc
@@ -3148,7 +3197,7 @@
             call define_hist_field(n_bgc_DOC(n,:),vname_in,"mmol/m^3",tstr3Da, tcstr, &
                 "bulk DOC conc. ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DOC)
-          enddo
+         enddo
        endif
        if (f_bgc_DIC(1:1) /= 'x') then
          do n=1,n_dic
@@ -3157,7 +3206,7 @@
             call define_hist_field(n_bgc_DIC(n,:),vname_in,"mmol/m^3",tstr3Da, tcstr, &
                 "bulk DIC conc. ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DIC)
-          enddo
+         enddo
        endif
        if (f_bgc_DON(1:1) /= 'x') then
          do n=1,n_don
@@ -3166,7 +3215,7 @@
             call define_hist_field(n_bgc_DON(n,:),vname_in,"mmol/m^3",tstr3Da, tcstr, &
                 "bulk DON conc. ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DON)
-          enddo
+         enddo
        endif
        if (f_bgc_Fed (1:1) /= 'x') then
          do n=1,n_fed 
@@ -3175,7 +3224,7 @@
             call define_hist_field(n_bgc_Fed (n,:),vname_in,"umol/m^3",tstr3Da, tcstr, &
                 "bulk dFe conc. ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_Fed )
-          enddo
+         enddo
        endif
        if (f_bgc_Fep (1:1) /= 'x') then
          do n=1,n_fep 
@@ -3184,7 +3233,7 @@
             call define_hist_field(n_bgc_Fep (n,:),vname_in,"umol/m^3",tstr3Da, tcstr, &
                 "bulk pFe conc. ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_Fep )
-          enddo
+         enddo
        endif
      
        if (f_bgc_Sil(1:1) /= 'x') &
@@ -3216,9 +3265,10 @@
             call define_hist_field(n_bgc_PON,"bgc_PON","mmol/m^3",tstr3Da, tcstr, &
                 "other bulk nitrogen pool ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_PON)
-!--------------------------------------------
-!   Category 1 BGC
-!----------------------------------------------
+
+       !--------------------------------------------
+       !   Category 1 BGC
+       !----------------------------------------------
 
        if (f_bgc_Nit_cat1(1:1) /= 'x') & 
             call define_hist_field(n_bgc_Nit_cat1,"bgc_Nit_cat1","mmol/m^3",tstr3Da, tcstr, &
@@ -3237,7 +3287,7 @@
             call define_hist_field(n_bgc_N_cat1(n,:),vname_in,"mmol/m^3",tstr3Da, tcstr, &
                 "bulk algal N conc. in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_N_cat1)
-          enddo
+         enddo
        endif
        if (f_bgc_DOC_cat1(1:1) /= 'x') then
          do n=1,n_doc
@@ -3246,7 +3296,7 @@
             call define_hist_field(n_bgc_DOC_cat1(n,:),vname_in,"mmol/m^3",tstr3Da, tcstr, &
                 "bulk DOC conc. in cat 1 ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DOC_cat1)
-          enddo
+         enddo
        endif
        if (f_bgc_DIC_cat1(1:1) /= 'x') then
          do n=1,n_dic
@@ -3255,7 +3305,7 @@
             call define_hist_field(n_bgc_DIC_cat1(n,:),vname_in,"mmol/m^3",tstr3Da, tcstr, &
                 "bulk DIC conc. in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DIC_cat1)
-          enddo
+         enddo
        endif
        if (f_bgc_DON_cat1(1:1) /= 'x') then
          do n=1,n_don
@@ -3264,7 +3314,7 @@
             call define_hist_field(n_bgc_DON_cat1(n,:),vname_in,"mmol/m^3",tstr3Da, tcstr, &
                 "bulk DON conc. in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DON_cat1)
-          enddo
+         enddo
        endif
        if (f_bgc_Fed_cat1 (1:1) /= 'x') then
          do n=1,n_fed 
@@ -3273,7 +3323,7 @@
             call define_hist_field(n_bgc_Fed_cat1 (n,:),vname_in,"umol/m^3",tstr3Da, tcstr, &
                 "bulk dFe conc. in cat 1 ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_Fed_cat1 )
-          enddo
+         enddo
        endif
        if (f_bgc_Fep_cat1 (1:1) /= 'x') then
          do n=1,n_fep 
@@ -3282,7 +3332,7 @@
             call define_hist_field(n_bgc_Fep_cat1 (n,:),vname_in,"umol/m^3",tstr3Da, tcstr, &
                 "bulk pFe conc. in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_Fep_cat1 )
-          enddo
+         enddo
        endif
      
        if (f_bgc_Sil_cat1(1:1) /= 'x') &
@@ -3310,7 +3360,9 @@
                 "other bulk nitrogen pool in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_PON_cat1)
     
-      enddo  !ns
+    enddo  !ns
+
+    endif ! z_tracers
 
       end subroutine init_hist_bgc_3Da
 
