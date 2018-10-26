@@ -16,6 +16,9 @@ foreach line ( "`cat suite.log`" )
     if ( "$line" =~ *'COMPILE SUCCESSFUL'* ) then
       set job_id = 1
     endif
+    if ( "$line" =~ *'ciceexe'* ) then
+      set job_id = 1
+    endif
   endif
 end
 

@@ -31,11 +31,19 @@ else
   echo "PASS ${ICE_TESTNAME} initialrun" >> ${ICE_CASEDIR}/test_output
 endif
 
-# Prepend 'baseline_' to the final restart file to save for comparison
-set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
-set test_data = ${ICE_RUNDIR}/restart/${test_file}
-set base_data = ${ICE_RUNDIR}/restart/base_${test_file}
-mv ${test_data} ${base_data}
+# Prepend 'base_' to the final restart file to save for comparison
+if ( "${ICE_IOTYPE}" == "binary" ) then
+  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | awk -F'.' '{print $NF}'`
+  foreach file (${ICE_RUNDIR}/restart/*${end_date})
+    set surname = `echo $file | awk -F'/' '{print $NF}'`
+    mv $file ${ICE_RUNDIR}/restart/base_$surname
+  end
+else
+  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
+  set test_data = ${ICE_RUNDIR}/restart/${test_file}
+  set base_data = ${ICE_RUNDIR}/restart/base_${test_file}
+  mv ${test_data} ${base_data}
+endif
 
 #-----------------------------------------------------------
 # Run the CICE model for the restart simulation
@@ -71,15 +79,18 @@ else
   if (${tcolumn}   == "") set tcolumn = -1
   echo "PASS ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
 
-  echo "Exact Restart Comparison Mode:"
-  echo "Performing binary comparison between files:"
-  echo "base: $base_data"
-  echo "test: $test_data"
-  if ( { cmp -s $test_data $base_data } ) then
+  ${ICE_CASEDIR}/casescripts/comparebfb.csh ${ICE_RUNDIR}/restart
+  if ( $? == 0 ) then
     echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
   else
     echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
   endif
+  #${ICE_CASEDIR}/casescripts/comparebfb.csh ${ICE_RUNDIR}/
+  #if ( $? == 0 ) then
+  #  echo "PASS ${ICE_TESTNAME} log " >> ${ICE_CASEDIR}/test_output
+  #else
+  #  echo "FAIL ${ICE_TESTNAME} log " >> ${ICE_CASEDIR}/test_output
+  #endif
 endif
 
 #-----------------------------------------------------------

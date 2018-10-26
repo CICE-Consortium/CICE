@@ -36,11 +36,32 @@
 
       public :: step_therm1, step_therm2, step_dyn_horiz, step_dyn_ridge, &
                 prep_radiation, step_radiation, ocean_mixed_layer, &
-                update_state, biogeochemistry
+                update_state, biogeochemistry, save_init
 
 !=======================================================================
 
       contains
+
+!=======================================================================
+
+      subroutine save_init
+! saves initial values for aice, aicen, vicen, vsnon
+
+      use ice_state, only: aice, aicen, aice_init, aicen_init, &
+          vicen, vicen_init, vsnon, vsnon_init
+
+      !-----------------------------------------------------------------
+      ! Save the ice area passed to the coupler (so that history fields
+      !  can be made consistent with coupler fields).
+      ! Save the initial ice area and volume in each category.
+      !-----------------------------------------------------------------
+
+          aice_init = aice
+         aicen_init = aicen
+         vicen_init = vicen
+         vsnon_init = vsnon
+
+      end subroutine save_init
 
 !=======================================================================
 !
@@ -217,24 +238,10 @@
       aerosno(:,:,:) = c0
       aeroice(:,:,:) = c0
 
+#ifdef CICE_IN_NEMO
       do j = 1, ny_block
       do i = 1, nx_block
 
-      !-----------------------------------------------------------------
-      ! Save the ice area passed to the coupler (so that history fields
-      !  can be made consistent with coupler fields).
-      ! Save the initial ice area and volume in each category.
-      !-----------------------------------------------------------------
-
-         aice_init (i,j,  iblk) = aice (i,j,  iblk)
-
-         do n = 1, ncat
-            aicen_init(i,j,n,iblk) = aicen(i,j,n,iblk)
-            vicen_init(i,j,n,iblk) = vicen(i,j,n,iblk)
-            vsnon_init(i,j,n,iblk) = vsnon(i,j,n,iblk)
-         enddo
-
-#ifdef CICE_IN_NEMO
       !---------------------------------------------------------------
       ! Scale frain and fsnow by ice concentration as these fields
       ! are supplied by NEMO multiplied by ice concentration
@@ -248,10 +255,10 @@
             frain(i,j,iblk) = c0
             fsnow(i,j,iblk) = c0
          endif
-#endif
 
       enddo ! i
       enddo ! j
+#endif
 
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
@@ -588,7 +595,7 @@
 
       use ice_dyn_evp, only: evp
       use ice_dyn_eap, only: eap
-      use ice_dyn_shared, only: kdyn
+      use ice_dyn_shared, only: kdyn, ktransport
       use ice_flux, only: init_history_dyn
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
@@ -610,10 +617,12 @@
       ! Horizontal ice transport
       !-----------------------------------------------------------------
 
+      if (ktransport > 0) then
       if (advection == 'upwind') then
          call transport_upwind (dt)    ! upwind
       else
          call transport_remap (dt)     ! incremental remapping
+      endif
       endif
 
       end subroutine step_dyn_horiz

@@ -10,6 +10,7 @@ filemods=$2
 
 #echo "$0 $1 $2" 
 echo "running parse_namelist.sh"
+foundstring="FoundSTRING"
 
 while read -r line
 do
@@ -24,10 +25,20 @@ do
 #    echo "$line $vname $value"
 
     #sed -i 's|\(^\s*'"$vname"'\s*\=\s*\)\(.*$\)|\1'"$value"'|g' $filename
-    sed -i.sedbak -e 's|\(^[[:space:]]*'"$vname"'[[:space:]]*=[[:space:]]*\)\(.*$\)|\1'"$value"'|g' $filename
-    if [[ -e "${filename}.sedbak" ]]; then
-      rm ${filename}.sedbak
+    cp ${filename} ${filename}.check
+    sed -i -e 's|\(^[[:space:]]*'"$vname"'[[:space:]]*=[[:space:]]*\)\(.*$\)|\1'"$foundstring"'|g' ${filename}.check
+    grep -q ${foundstring} ${filename}.check
+    if [ $? -eq 0 ]; then
+      sed -i.sedbak -e 's|\(^[[:space:]]*'"$vname"'[[:space:]]*=[[:space:]]*\)\(.*$\)|\1'"$value"'|g' ${filename}
+      if [[ -e "${filename}.sedbak" ]]; then
+        rm ${filename}.sedbak
+      fi
+    else
+      echo "$0 ERROR: parsing error for ${vname}"
+      exit -99
     fi
+    rm ${filename}.check
+
   fi
 
 done < "$filemods"
