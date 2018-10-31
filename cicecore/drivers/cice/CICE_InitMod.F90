@@ -94,6 +94,9 @@
       call init_communicate     ! initial setup for message passing
       call init_fileunits       ! unit numbers
 
+      ! tcx debug, this will create a different logfile for each pe
+      ! if (my_task /= master_task) nu_diag = 100+my_task
+
       call icepack_configure()  ! initialize icepack
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
@@ -102,7 +105,6 @@
       call input_data           ! namelist variables
 
       if (trim(runid) == 'bering') call check_finished_file
-      call init_zbgc            ! vertical biogeochemistry namelist
 
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
@@ -115,6 +117,7 @@
       call init_ice_timers      ! initialize all timers
       call ice_timer_start(timer_total)   ! start timing entire run
       call init_grid2           ! grid variables
+      call init_zbgc            ! vertical biogeochemistry namelist
 
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
@@ -147,13 +150,14 @@
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
 
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
+      if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! allocate biogeochemistry arrays
       call init_restart         ! initialize restart variables
 
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
@@ -188,8 +192,6 @@
       ! if (tr_aero)  call faero_data                   ! data file
       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
       if (tr_aero .or. tr_zaero)  call faero_default    ! default values
-
-      if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! allocate biogeochemistry arrays
       if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
 #endif
 #endif
