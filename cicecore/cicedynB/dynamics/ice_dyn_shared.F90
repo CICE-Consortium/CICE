@@ -256,6 +256,7 @@
       else                        ! Hunke, JCP 2013 with modified stress eq
          revp   = c0
          arlx1i = dte2T
+         arlx   = c1/arlx1i
          brlx   = dt*dtei
          denom1 = c1/(c1+arlx1i)
 
