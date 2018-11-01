@@ -273,6 +273,8 @@ Table of namelist options
    "", "``-1``", "Ridging Disabled", ""
    "``ktransport``", "``1``", "Transport Enabled", "1"
    "", "``-1``", "Transport Disabled", ""
+   "``basalstress``", "true/false", "use basal stress parameterization for landfast ice", ""
+   "``k1``", "real", "1st free parameter for landfast parameterization", "8."
    "", "", "", ""
    "*shortwave_nml*", "", "", ""
    "", "", "*Shortwave*", ""
