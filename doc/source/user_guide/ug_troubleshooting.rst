@@ -27,7 +27,7 @@ compatible with the processor\_shape and other domain options in **ice\_in**
 
 If using the rake or space-filling curve algorithms for block
 distribution (`distribution\_type` in **ice\_in**) the code will abort
-if ``max\_blocks\` is not large enough. The correct value is provided in the
+if ``max\_blocks`` is not large enough. The correct value is provided in the
 diagnostic output.  Also, the spacecurve setting can only be used with certain
 block sizes that results in number of blocks in the x and y directions being
 only multiples of 2, 3, or 5.
