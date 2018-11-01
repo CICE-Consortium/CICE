@@ -340,6 +340,8 @@
       type (block) :: &
          this_block           ! block information for current block
       
+      logical :: lexist = .false.
+
       character(len=*), parameter :: subname = '(init_grid2)'
 
       !-----------------------------------------------------------------
@@ -541,7 +543,12 @@
       ! bathymetry
       !-----------------------------------------------------------------
 
-      call get_bathymetry
+      inquire(file='bathymetry.nc', exist=lexist)
+      if (lexist) then
+        call read_basalstress_bathy
+      else
+        call get_bathymetry
+      endif
 
       !----------------------------------------------------------------
       ! Corner coordinates for CF compliant history files
@@ -794,7 +801,7 @@
                                ew_boundary_type, ns_boundary_type)
 
       fieldname='ulon'
-      call ice_read_global_nc(fid_grid,2,fieldname,work_g1,diag) ! ULON
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULON
       call gridbox_verts(work_g1,lont_bounds)       
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
@@ -802,7 +809,7 @@
                                ew_boundary_type, ns_boundary_type)
 
       fieldname='angle'
-      call ice_read_global_nc(fid_grid,7,fieldname,work_g1,diag) ! ANGLE    
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_angle)
 
@@ -817,11 +824,11 @@
       !-----------------------------------------------------------------
 
       fieldname='htn'
-      call ice_read_global_nc(fid_grid,3,fieldname,work_g1,diag) ! HTN
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
       call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
 
       fieldname='hte'
-      call ice_read_global_nc(fid_grid,4,fieldname,work_g1,diag) ! HTE
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
 
       deallocate(work_g1)
@@ -2358,6 +2365,9 @@
 ! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode 
 ! (e.g. CICE-NEMO), hwater should be uptated at each time level so that 
 ! it varies with ocean dynamics.
+
+! Grid record number, field and units are:
+! (1) Bathymetry (m)
 !
 ! author: Fred Dupont, CMC
       
@@ -2381,33 +2391,23 @@
       character(len=*), parameter :: subname = '(read_basalstress_bathy)'
 
       init_file='bathymetry.nc'
-
-      if (my_task == master_task) then
-
-          write (nu_diag,*) ' '
-          write (nu_diag,*) 'Initial ice file: ', trim(init_file)
-          write (*,*) 'Initial ice file: ', trim(init_file)
-          call icepack_warnings_flush(nu_diag)
-
-      endif
-
-      call ice_open_nc(init_file,fid_init)
-
       fieldname='Bathymetry'
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'reading ',TRIM(fieldname)
-         write(*,*) 'reading ',TRIM(fieldname)
+         write(nu_diag,*)' '
+         write(nu_diag,*)'Initial basalstress bathymetry file: ', trim(init_file)
+         write(nu_diag,*)'reading: ',trim(fieldname)
          call icepack_warnings_flush(nu_diag)
       endif
-      call ice_read_nc(fid_init,1,fieldname,bathymetry,diag, &
-                    field_loc=field_loc_center, &
-                    field_type=field_type_scalar)
 
+      call ice_open_nc(init_file,fid_init)
+      call ice_read_nc(fid_init,1,fieldname,bathymetry,diag, &
+                       field_loc=field_loc_center, &
+                       field_type=field_type_scalar)
       call ice_close_nc(fid_init)
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'closing file ',TRIM(init_file)
+         write(nu_diag,*)'closing file: ',trim(init_file)
          call icepack_warnings_flush(nu_diag)
       endif
 

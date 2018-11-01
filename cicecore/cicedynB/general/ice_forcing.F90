@@ -21,10 +21,11 @@
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, time, time_forc, &
                               sec, mday, month, nyr, yday, daycal, dayyr, &
-                              daymo, days_per_year
+                              daymo, days_per_year, hc_jday
       use ice_fileunits, only: nu_diag, nu_forcing
       use ice_exit, only: abort_ice
       use ice_read_write, only: ice_open, ice_read, &
+                                ice_get_ncvarsize, ice_read_vec_nc, &
                                 ice_open_nc, ice_read_nc, ice_close_nc
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound
@@ -118,7 +119,7 @@
          bgc_data_type, & ! 'default', 'clim', 'ncar', 'oned'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
-         precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks'
+         precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
  
       character(char_len_long), public :: & 
          atm_data_dir , & ! top directory for atmospheric data
@@ -150,6 +151,12 @@
 
       logical (kind=log_kind), public :: &
          dbug             ! prints debugging output if true
+
+      real (dbl_kind), dimension(:), allocatable, public :: &
+         jday_atm  ! jday time vector from atm forcing files
+
+      integer (kind=int_kind), public :: &
+         Njday_atm ! Number of atm forcing timesteps
 
 !=======================================================================
 
@@ -242,6 +249,8 @@
          call ISPOL_files
       elseif (trim(atm_data_type) == 'box') then
          call box_data
+      elseif (trim(atm_data_type) == 'hycom_atm') then
+         call hycom_atm_files
       endif
 
       end subroutine init_forcing_atmo
@@ -441,6 +450,11 @@
          call ocn_data_ncar_init_3D
       endif
 
+      if (trim(ocn_data_type) == 'hycom' .or.  &
+          trim(bgc_data_type) == 'hycom') then
+         call ocn_data_hycom_init
+      endif
+
       end subroutine init_forcing_ocn
 
 !=======================================================================
@@ -534,6 +548,8 @@
          call oned_data
       elseif (trim(atm_data_type) == 'box') then
          call box_data
+      elseif (trim(atm_data_type) == 'hycom_atm') then
+         call hycom_atm_data
       else    ! default values set in init_flux
          return
       endif
@@ -621,6 +637,10 @@
       elseif (trim(ocn_data_type) == 'oned' .or.  &
               trim(bgc_data_type) == 'oned') then
          call ocn_data_oned
+      elseif (trim(ocn_data_type) == 'hycom' .or.  &
+              trim(bgc_data_type) == 'hycom') then
+!         call ocn_data_hycom(dt)
+!MHRI: NOT IMPLEMENTED YET
       endif
 
       end subroutine get_forcing_ocn
@@ -825,7 +845,7 @@
 
       character(len=*), parameter :: subname = '(read_data_nc)'
 
-#ifdef ncdf 
+#ifdef ncdf
       integer (kind=int_kind) :: &
          nrec             , & ! record number to read
          n2, n4           , & ! like ixm and ixp, but
@@ -930,6 +950,81 @@
       field_data = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine read_data_nc
+
+!=======================================================================
+
+      subroutine read_data_nc_hycom (flag, recd,  &
+                            data_file, fieldname, field_data, &
+                            field_loc, field_type)
+
+!  Data is assumed to cover the entire time period of simulation.
+!  It is not bounded by start of year nor end of year
+!  Data must be accesible both before and after (or on) the point in time
+!    Assume increasing timeaxis within the forcing files, but they do not
+!      have to be equal spaced. Read time vector from "MT" in "init_hycom"
+!
+! Adapted by Mads Hvid Ribergaard, DMI from read_data_nc
+
+      use ice_diagnostics, only: check_step
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
+
+      logical (kind=log_kind), intent(in) :: flag
+
+      integer (kind=int_kind), intent(in) :: &
+         recd                    ! baseline record number
+
+      character (char_len_long) :: &
+         data_file               ! data file to be read
+      character (char_len), intent(in) :: &
+         fieldname               ! field name in netCDF file
+
+      integer (kind=int_kind), intent(in) :: &
+           field_loc, &      ! location of field on staggered grid
+           field_type        ! type of field (scalar, vector, angle)
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
+         intent(out) :: &
+         field_data              ! 2 values needed for interpolation
+
+#ifdef ncdf
+      ! local variables
+      integer (kind=int_kind) :: &
+         fid                  ! file id for netCDF routines
+
+      call ice_timer_start(timer_readwrite)  ! reading/writing
+
+      if (istep1 > check_step) dbug = .true.  !! debugging
+
+      if (my_task==master_task .and. (dbug)) then
+         write(nu_diag,*) '  ', trim(data_file)
+      endif
+
+      if (flag) then
+
+         call ice_open_nc (data_file, fid)
+      !-----------------------------------------------------------------
+      ! read data
+      !-----------------------------------------------------------------
+         call ice_read_nc &
+               (fid, recd , fieldname, field_data(:,:,1,:), dbug, &
+                field_loc, field_type)
+
+         call ice_read_nc &
+              (fid, recd+1, fieldname, field_data(:,:,2,:), dbug, &
+               field_loc, field_type)
+
+         call ice_close_nc(fid)
+
+      endif                     ! flag
+
+      call ice_timer_stop(timer_readwrite)  ! reading/writing
+
+#else
+      field_data = c0 ! to satisfy intent(out) attribute
+      write(*,*)'ERROR: CICE not compiled with NetCDF'
+      stop
+#endif
+      end subroutine read_data_nc_hycom
 
 !=======================================================================
 
@@ -1218,6 +1313,24 @@
 
 !=======================================================================
 
+      subroutine interp_coeff2 (tt, t1, t2)
+
+! Compute coefficients for interpolating data to current time step.
+! Works for any data interval using decimal daynumbers
+
+      ! local variables
+      real (kind=dbl_kind), intent(in) :: &
+          tt      , &  ! current decimal daynumber
+          t1, t2       ! first+last decimal daynumber
+
+      ! Compute coefficients
+      c1intp =  abs((t2 - tt) / (t2 - t1))
+      c2intp =  c1 - c1intp
+
+      end subroutine interp_coeff2
+
+!=======================================================================
+
       subroutine interpolate_data (field_data, field)
 
 ! Linear interpolation
@@ -1450,6 +1563,8 @@
       elseif (trim(precip_units) == 'mm_per_sec' .or. &
               trim(precip_units) == 'mks') then 
          precip_factor = c1    ! mm/sec = kg/m^2 s
+      elseif (trim(precip_units) == 'm_per_sec') then
+         precip_factor = c1000
       endif
 
       do j = jlo, jhi
@@ -2913,7 +3028,7 @@
          fieldname        ! field name in netcdf file
 
       integer (kind=int_kind) :: &
-         fid              ! file id for netCDF file 
+         fid              ! file id for netCDF file
 
       real (kind=dbl_kind):: &
          work             ! temporary variable
@@ -3880,6 +3995,252 @@
      endif    !   ocn_data_type = hadgem_sst_uvocn
 
      end subroutine ocn_data_hadgem
+
+!=======================================================================
+
+      subroutine ocn_data_hycom_init
+        ! Read SSS+SST from a HYCOM file converted to NetCDF format.
+        ! HYCOM binary2NetCDF: hcdata2ncdf2d (or hcdata2ncdf3z)
+        !   + rename/link file
+        use ice_blocks, only: nx_block, ny_block
+        use ice_domain, only: nblocks
+        use ice_domain_size, only: max_blocks
+        use ice_flux, only: sss, sst, Tf
+#ifdef ncdf
+        use netcdf
+#endif
+
+        integer (kind=int_kind) :: &
+           i, j, iblk       , & ! horizontal indices
+           fid                  ! file id for netCDF file
+
+        character (char_len) :: &
+           fieldname            ! field name in netcdf file
+
+        if (trim(bgc_data_type) == 'hycom') then
+           sss_file = trim(ocn_data_dir)//'ice.restart.surf.nc'
+
+           if (my_task == master_task) then
+             write (nu_diag,*)' '
+             write (nu_diag,*)'Initial SSS file: ',trim(sss_file)
+           endif
+
+           fieldname = 'sss'
+           call ice_open_nc (sss_file, fid)
+           call ice_read_nc (fid, 1 , fieldname, sss, dbug, &
+                             field_loc_center, field_type_scalar)
+           call ice_close_nc(fid)
+
+           call ocn_freezing_temperature
+        endif
+
+        if (trim(ocn_data_type) == 'hycom') then
+           sst_file = trim(ocn_data_dir)//'ice.restart.surf.nc'
+
+           if (my_task == master_task) then
+             write (nu_diag,*)' '
+             write (nu_diag,*)'Initial SST file: ',trim(sst_file)
+           endif
+
+           fieldname = 'sst'
+           call ice_open_nc (sst_file, fid)
+           call ice_read_nc (fid, 1 , fieldname, sst, dbug, &
+                                field_loc_center, field_type_scalar)
+           call ice_close_nc(fid)
+
+           ! Make sure sst is not less than freezing temperature Tf
+           !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+           do iblk = 1, nblocks
+              do j = 1, ny_block
+              do i = 1, nx_block
+                 sst(i,j,iblk) = max(sst(i,j,iblk),Tf(i,j,iblk))
+              enddo
+              enddo
+           enddo
+           !$OMP END PARALLEL DO
+        endif
+
+      end subroutine ocn_data_hycom_init
+
+!=======================================================================
+      subroutine hycom_atm_files
+
+      use ice_broadcast, only: broadcast_array, broadcast_scalar
+
+      integer (kind = int_kind) :: &
+            fid          ! File id
+      character (char_len) :: &
+            varname      ! variable name in netcdf file
+
+      fsw_file   = trim(atm_data_dir)//'/forcing.shwflx.nc'
+      flw_file   = trim(atm_data_dir)//'/forcing.radflx.nc'
+      rain_file  = trim(atm_data_dir)//'/forcing.precip.nc'
+      uwind_file = trim(atm_data_dir)//'/forcing.ewndsp.nc'  !actually Xward, not Eward
+      vwind_file = trim(atm_data_dir)//'/forcing.nwndsp.nc'  !actually Yward, not Nward
+      tair_file  = trim(atm_data_dir)//'/forcing.airtmp.nc'
+      humid_file = trim(atm_data_dir)//'/forcing.vapmix.nc'
+
+      ! Read time vector from "tair_file"
+      call ice_open_nc(tair_file, fid)
+      varname='MT'
+      call ice_get_ncvarsize(fid,varname,Njday_atm)
+      call broadcast_scalar(Njday_atm,master_task)
+      allocate(jday_atm(Njday_atm))
+      call ice_read_vec_nc(fid,Njday_atm, varname,jday_atm, .true.)
+      call ice_close_nc(fid)
+      call broadcast_array(jday_atm ,master_task)
+
+      ! Write diag info
+      if (my_task == master_task) then
+         write (nu_diag,*) ' '
+         write (nu_diag,*) 'CICE: Atm. (hycomdate) Start = ',jday_atm(1)
+         write (nu_diag,*) 'CICE: Atm. (hycomdate) End   = ',jday_atm(Njday_atm)
+         write (nu_diag,*) 'CICE: Total Atm timesteps    = ',Njday_atm
+         write (nu_diag,*) 'CICE: Atmospheric forcing files:'
+         write (nu_diag,*) trim(fsw_file)
+         write (nu_diag,*) trim(flw_file)
+         write (nu_diag,*) trim(rain_file)
+         write (nu_diag,*) trim(uwind_file)
+         write (nu_diag,*) trim(vwind_file)
+         write (nu_diag,*) trim(tair_file)
+         write (nu_diag,*) trim(humid_file)
+      endif                     ! master_task
+
+      end subroutine hycom_atm_files
+
+!=======================================================================
+
+      subroutine hycom_atm_data
+
+      use ice_flux, only: fsw, fsnow, Tair, uatm, vatm, Qa, flw
+      use ice_domain, only: nblocks
+      use ice_calendar, only: year_init
+
+      integer (kind=int_kind) :: &
+          recnum       ! record number
+
+      real (kind=dbl_kind) :: &
+          hcdate         ! current time in HYCOM jday units
+
+      logical (kind=log_kind) :: read6
+
+      character (char_len) :: &
+            fieldname    ! field name in netcdf file
+
+      integer (kind=int_kind) :: &
+         i, j, iblk      ! horizontal indices
+
+      real (kind=dbl_kind) :: Tffresh, secday
+
+      character(len=*), parameter :: subname = '(hycom_atm_data)'
+
+      call icepack_query_parameters(Tffresh_out=Tffresh)
+      call icepack_query_parameters(secday_out=secday)
+
+      ! current time in HYCOM jday units
+      hcdate = hc_jday(nyr+year_init-1,0,0)+ yday+sec/secday
+
+      ! Init recnum try
+      recnum=min(max(oldrecnum,1),Njday_atm-1)
+
+      ! Find correct time in ATM data ... assume cont. incr. time-axis
+      do while ( recnum<Njday_atm )
+        if ( hcdate>=jday_atm(recnum) .and. &
+             hcdate<=jday_atm(recnum+1) ) exit
+        if ( abs(hcdate-jday_atm(recnum))<p001 ) exit  ! Accept within tolerance = 0.001 days
+        if ( abs(hcdate-jday_atm(recnum+1))<p001 ) exit  ! Accept within tolerance = 0.001 days
+        recnum=recnum+1
+      enddo
+
+      ! Last Atm date might be the same as last CICE date.
+      recnum=min(recnum,Njday_atm-1)
+
+      ! Check if current time do not exceed last forcing time
+      if ( hcdate>jday_atm(recnum+1)+p001 ) then
+         write (nu_diag,*) &
+         'ERROR: CICE: Atm forcing not available at hcdate =',hcdate
+         write (nu_diag,*) &
+         'ERROR: CICE: nyr, year_init, yday = ',nyr, year_init, yday
+         call abort_ice ('ERROR: CICE stopped')
+      endif
+
+      ! Compute interpolation coefficients
+      call interp_coeff2 (hcdate, jday_atm(recnum), jday_atm(recnum+1) )
+
+
+      ! Read
+      read6 = .false.
+      if (istep==1 .or. oldrecnum /= recnum) read6 = .true.
+
+      if (trim(atm_data_format) == 'nc') then
+
+         if (read6 .and. my_task == master_task) write(nu_diag,*) &
+           'CICE: Atm. read: = ',jday_atm(recnum), jday_atm(recnum+1)
+
+         fieldname = 'airtmp'
+         call read_data_nc_hycom (read6, recnum, &
+                          tair_file, fieldname, Tair_data, &
+                          field_loc_center, field_type_scalar)
+         fieldname = 'ewndsp'
+         call read_data_nc_hycom (read6, recnum, &
+                          uwind_file, fieldname, uatm_data, &
+                          field_loc_center, field_type_vector)
+         fieldname = 'nwndsp'
+         call read_data_nc_hycom (read6, recnum, &
+                          vwind_file, fieldname, vatm_data, &
+                          field_loc_center, field_type_vector)
+         fieldname = 'vapmix'
+         call read_data_nc_hycom (read6, recnum, &
+                          humid_file, fieldname, Qa_data,  &
+                          field_loc_center, field_type_scalar)
+         fieldname = 'shwflx'
+         call read_data_nc_hycom (read6, recnum, &
+                          fsw_file, fieldname, fsw_data,   &
+                          field_loc_center, field_type_scalar)
+         fieldname = 'radflx'
+         call read_data_nc_hycom (read6, recnum, &
+                          flw_file, fieldname, flw_data,   &
+                          field_loc_center, field_type_scalar)
+         fieldname = 'precip'
+         call read_data_nc_hycom (read6, recnum, &
+                          rain_file, fieldname, fsnow_data,&
+                          field_loc_center, field_type_scalar)
+
+      else
+         call abort_ice(subname//'ERROR: atm_data_format unavailable for hycom')
+      endif
+
+      ! Interpolate
+      if (dbug) then
+        if (my_task == master_task) then
+           write(nu_diag,*)'CICE: Atm. interpolate: = ',&
+                                  hcdate,c1intp,c2intp
+        endif
+      endif
+      call interpolate_data (Tair_data, Tair)
+      call interpolate_data (uatm_data, uatm)
+      call interpolate_data (vatm_data, vatm)
+      call interpolate_data ( fsw_data, fsw)
+      call interpolate_data ( flw_data, flw)
+      call interpolate_data (  Qa_data, Qa)
+      call interpolate_data (fsnow_data, fsnow)
+
+      ! Adjust data forcing to CICE units
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ! Air temperature: Degrees --> Kelvin
+            Tair(i,j,iblk) = Tair(i,j,iblk) + Tffresh
+         enddo  ! i
+         enddo  ! j
+      enddo     ! nblocks
+      !$OMP END PARALLEL DO
+
+      ! Save record number for next time step
+      oldrecnum = recnum
+
+      end subroutine hycom_atm_data
 
 !=======================================================================
 !
