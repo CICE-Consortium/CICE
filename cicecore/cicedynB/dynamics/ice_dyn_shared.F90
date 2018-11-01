@@ -61,7 +61,8 @@
          denom1       ! constants for stress equation
 
       real (kind=dbl_kind), public :: & ! Bouillon et al relaxation constants
-         arlx1i   , & ! alpha1 for stressp
+         arlx     , & ! alpha for stressp
+         arlx1i   , & ! alpha1 (inverse of alpha) for stressp
          brlx         ! beta   for momentum
 
       real (kind=dbl_kind), allocatable, public :: & 
@@ -242,8 +243,11 @@
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
-         arlx1i = c2*xi/Se        ! 1/alpha1
-         brlx = c2*Se*xi*gamma/xmin**2 ! beta
+         denom1 = c1
+         arlx1i = c1/arlx
+         !TAR: According to mail of Martin Loesch: for a ~25km grid:
+         !      brlx=300 , arlx1i = c1/brlx
+         ! arlx and brlx set in namelist
 
 ! classic evp parameters (but modified equations)
 !         arlx1i = dte2T
@@ -253,6 +257,8 @@
          revp   = c0
          arlx1i = dte2T
          brlx   = dt*dtei
+         denom1 = c1/(c1+arlx1i)
+
 
 ! revised evp parameters
 !         arlx1i = c2*xi/Se        ! 1/alpha1
@@ -260,14 +266,13 @@
 
       endif
       if (my_task == master_task) then
-         write (nu_diag,*) 'arlx, brlx', c1/arlx1i, brlx
+         write (nu_diag,*) 'arlx, arlxi, brlx, denom1', &
+                  arlx, arlx1i, brlx, denom1
          write (nu_diag,*) 'Se, Sv, xi', &
                   sqrt(brlx/(arlx1i*gamma))*xmin, &
                   p5*brlx/gamma*xmin**2, &
                   p5*xmin*sqrt(brlx*arlx1i/gamma)
-      endif            
-
-      denom1 = c1/(c1+arlx1i)
+      endif
 
       end subroutine set_evp_parameters
 

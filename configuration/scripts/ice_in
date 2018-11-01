@@ -109,6 +109,8 @@
     kdyn            = 1
     ndte            = 120
     revised_evp     = .false.
+    brlx            = 300.0
+    arlx            = 300.0
     advection       = 'remap'
     kstrength       = 1
     krdg_partic     = 1
