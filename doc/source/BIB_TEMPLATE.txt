@@ -14,10 +14,15 @@ Format for a standard journal entry into master_list.bib
 
 
 NOTES: 
-- Format for "author" entry you must use just quote marks " " around list. 
-  The names are separated just by the word 'and'
-- Format for "title" is to use BOTH quotes and curly braces "{ }"
-- Format for "journal" MUST use an acronym defined at the top of master_list.bib.
-  Do not use anything around the acronym
-- Format for "year", "volume", "issue", "pages", and "url" are all just curly braces { }
-- All entries must have a comma at the end EXCEPT after final entry (url) 
+- Format for "author" entry you must use just 
+  quote marks " " around list. The names are 
+  separated just by the word 'and'
+- Format for "title" is to use BOTH quotes and 
+  curly braces "{ }"
+- Format for "journal" MUST use an acronym 
+  defined at the top of master_list.bib. Do not 
+  use anything around the acronym
+- Format for "year", "volume", "issue", "pages", 
+  and "url" are all just curly braces { }
+- All entries must have a comma at the end EXCEPT 
+  after final entry (url) 
