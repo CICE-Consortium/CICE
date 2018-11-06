@@ -249,7 +249,7 @@
          call ISPOL_files
       elseif (trim(atm_data_type) == 'box') then
          call box_data
-      elseif (trim(atm_data_type) == 'hycom_atm') then
+      elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_files
       endif
 
@@ -548,7 +548,7 @@
          call oned_data
       elseif (trim(atm_data_type) == 'box') then
          call box_data
-      elseif (trim(atm_data_type) == 'hycom_atm') then
+      elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_data
       else    ! default values set in init_flux
          return
