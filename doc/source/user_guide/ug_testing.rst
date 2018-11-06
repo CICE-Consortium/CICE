@@ -149,7 +149,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 3) **Single test, compare results to a prior baseline**
+ 4) **Single test, compare results to a prior baseline**
 
     Add ``--bcmp``.  For this to work,
     the prior baseline must exist and have the exact same base testname 
@@ -162,7 +162,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 4) **Simple test, generate a baseline dataset and compare to a prior baseline**
+ 5) **Simple test, generate a baseline dataset and compare to a prior baseline**
 
     Use ``--bgen`` and ``--bcmp``.  The prior baseline must exist already.
     ::
@@ -173,7 +173,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 5) **Simple test, comparison against another test**
+ 6) **Simple test, comparison against another test**
 
     ``--diff`` provides a way to compare tests with each other.  
     For this to work, the tests have to be run in a specific order and
