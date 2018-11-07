@@ -1,4 +1,9 @@
-[![Build Status](https://travis-ci.org/CICE-Consortium/CICE.svg?branch=master)](https://travis-ci.org/CICE-Consortium/CICE)
+RTD badge
+
+[![Documentation Status](https://readthedocs.org/projects/testing-rtd-bot/badge/?version=latest)](https://testing-rtd-bot.readthedocs.io/en/latest/?badge=latest)
+
+Original CICE badge
+
 [![Documentation Status](https://readthedocs.org/projects/cice-consortium-cice/badge/?version=master)](http://cice-consortium-cice.readthedocs.io/en/master/?badge=master)
 
 ## Overview
@@ -21,3 +26,6 @@ imperative you follow the guidance for Pull Requests and requisite testing.
 * **Resource Index**: https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index
 
    List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
+
+
+
