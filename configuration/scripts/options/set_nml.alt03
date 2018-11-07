@@ -14,3 +14,4 @@ revised_evp = .false.
 Ktens          = 0.
 e_ratio        = 2.
 basalstress    = .true.
+use_bathymetry = .true.

@@ -48,6 +48,8 @@
     grid_type    = 'displaced_pole'
     grid_file    = 'grid'
     kmt_file     = 'kmt'
+    bathymetry_file = 'unknown_bathymetry_file'
+    use_bathymetry = .false.
     gridcpl_file = 'unknown_gridcpl_file'
     kcatbound    = 0
     dxrect         = 30.e5
@@ -118,6 +120,7 @@
     Ktens           = 0.
     e_ratio         = 2.
     basalstress     = .false.
+    k1              = 8.
     coriolis        = 'latitude'
     kridge          = 1
     ktransport      = 1
