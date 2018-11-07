@@ -394,14 +394,6 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory4')
 
-      allocate(          &
-         R_C2N_DON(max_don), & ! carbon to nitrogen mole ratio of DON pool
-         R_C2N(max_algae),   & ! algal C to N (mole/mole)
-         R_chl2N(max_algae), & ! 3 algal chlorophyll to N (mg/mmol)
-	 R_Si2N(max_algae),  & ! silica to nitrogen mole ratio for algal groups
-         stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' Out of Memory5')
-
       end subroutine alloc_arrays_column
 
 !=======================================================================
