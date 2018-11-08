@@ -7,12 +7,9 @@
 CICE Documentation 
 ===========================================
 
-Table of Contents:
-------------------
-
 .. toctree::
-   :maxdepth: 2
    :numbered:
+   :maxdepth: 2
 
    intro/index.rst
    science_guide/index.rst
@@ -20,9 +17,6 @@ Table of Contents:
    developer_guide/index.rst
    cice_index.rst
    zreferences.rst
- 
-Useful tools
-==================
 
 * :ref:`search`
 
