@@ -44,10 +44,6 @@
         n_trzs    , & ! zsalinity
         n_trbri   , & ! brine height
         n_trzaero , & ! tracers active in shortwave calculation
-        n_trage   , & ! age
-        n_trfy    , & ! first-year area
-        n_trlvl   , & ! level/deformed ice
-        n_trpnd   , & ! ponds
         n_trbgcs      ! skeleltel layer bgc
 
       ! derived from namelist above

@@ -74,10 +74,6 @@
     n_trzs       = 0
     n_trbri      = 0
     n_trzaero    = 0
-    n_trage      = 1
-    n_trfy       = 1
-    n_trlvl      = 1
-    n_trpnd      = 1
     n_trbgcs     = 0
     tr_iage      = .true.
     restart_age  = .false.

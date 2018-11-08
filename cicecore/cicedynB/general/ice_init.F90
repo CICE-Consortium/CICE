@@ -59,8 +59,7 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
                                  n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
-                                 n_trbgcz, n_trzs, n_trbri, n_trzaero, &
-                                 n_trage, n_trfy, n_trlvl, n_trpnd, n_trbgcs, &
+                                 n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs, &
                                  n_bgc, nltrcr, max_nsw, max_ntrcr, max_nstrm
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
                               dumpfreq, dumpfreq_n, diagfreq, &
@@ -102,8 +101,12 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-        nml_error, & ! namelist i/o error flag
-        n            ! loop index
+         nml_error, & ! namelist i/o error flag
+         n        , & ! loop index
+         n_trage  , & ! age
+         n_trfy   , & ! first-year area
+         n_trlvl  , & ! level/deformed ice
+         n_trpnd      ! ponds
 
       character (len=6) :: chartmp
 
@@ -206,8 +209,7 @@
         tr_aero, restart_aero, &
         n_aero, n_zaero, n_algae, &
         n_doc, n_dic, n_don, n_fed, n_fep, &
-        n_trbgcz, n_trzs, n_trbri, n_trzaero, &
-        n_trage, n_trfy, n_trlvl, n_trpnd, n_trbgcs
+        n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs
 
       !-----------------------------------------------------------------
       ! default values
@@ -396,10 +398,6 @@
       n_trzs = 0
       n_trbri = 0
       n_trzaero = 0
-      n_trage = 0
-      n_trfy = 0
-      n_trlvl = 0
-      n_trpnd = 0
       n_trbgcs = 0
 
       ! mushy layer gravity drainage physics
@@ -660,10 +658,6 @@
       call broadcast_scalar(n_trzs,             master_task)
       call broadcast_scalar(n_trbri,            master_task)
       call broadcast_scalar(n_trzaero,          master_task)
-      call broadcast_scalar(n_trage,            master_task)
-      call broadcast_scalar(n_trfy,             master_task)
-      call broadcast_scalar(n_trlvl,            master_task)
-      call broadcast_scalar(n_trpnd,            master_task)
       call broadcast_scalar(n_trbgcs,           master_task)
       call broadcast_scalar(a_rapid_mode,       master_task)
       call broadcast_scalar(Rac_rapid_mode,     master_task)
@@ -1176,11 +1170,207 @@
          write(nu_diag,1020) ' n_trzs                    = ', n_trzs
          write(nu_diag,1020) ' n_trbri                   = ', n_trbri
          write(nu_diag,1020) ' n_trzaero                 = ', n_trzaero
-         write(nu_diag,1020) ' n_trage                   = ', n_trage
-         write(nu_diag,1020) ' n_trfy                    = ', n_trfy
-         write(nu_diag,1020) ' n_trlvl                   = ', n_trlvl
-         write(nu_diag,1020) ' n_trpnd                   = ', n_trpnd
          write(nu_diag,1020) ' n_trbgcs                  = ', n_trbgcs
+
+      endif                     ! my_task = master_task
+
+         write(nu_diag,*) ' '
+         if (grid_type  /=  'displaced_pole' .and. &
+             grid_type  /=  'tripole'        .and. &
+             grid_type  /=  'column'         .and. &
+             grid_type  /=  'rectangular'    .and. &
+             grid_type  /=  'cpom_grid'      .and. &
+             grid_type  /=  'regional'       .and. &
+             grid_type  /=  'latlon' ) then
+            if (my_task == master_task) write(nu_diag,*)'ERROR: unknown grid_type=',trim(grid_type)
+            abort_flag = 20
+         endif
+
+      if (formdrag) then
+         if (nt_apnd==0) then
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_apnd=',nt_apnd
+            abort_flag = 21
+         elseif (nt_hpnd==0) then
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_hpnd=',nt_hpnd
+            abort_flag = 22
+         elseif (nt_ipnd==0) then
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_ipnd=',nt_ipnd
+            abort_flag = 23
+         elseif (nt_alvl==0) then
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_alvl=',nt_alvl
+            abort_flag = 24
+         elseif (nt_vlvl==0) then
+            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_vlvl=',nt_vlvl
+            abort_flag = 25
+         endif
+      endif
+
+      call flush_fileunit(nu_diag)
+      call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
+         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, emissivity_in=emissivity, &
+         ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
+         R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
+         kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &
+         atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
+         kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
+         rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
+         ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
+         a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
+         aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
+         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
+         tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
+      call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
+         tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, tr_pond_in=tr_pond, &
+         tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
+
+!echmod - move from here
+
+ 1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
+ 1005    format (a30,2x,f9.6)  ! float
+ 1010    format (a30,2x,l6)    ! logical
+ 1020    format (a30,2x,i6)    ! integer
+ 1021    format (a30,2x,a8,i6) ! char, int
+ 1030    format (a30,   a8)    ! character
+ 1040    format (a30,2x,6i6)   ! integer
+ 1050    format (a30,2x,6a6)   ! character
+
+      end subroutine input_data
+
+!=======================================================================
+!=======================================================================
+
+! Namelist variables, set to default values; may be altered
+! at run time
+!
+! author Elizabeth C. Hunke, LANL
+
+      subroutine input_data2
+
+      use ice_broadcast, only: broadcast_scalar, broadcast_array
+      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
+      use ice_domain, only: close_boundaries
+      use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
+                                 n_aero, n_zaero, n_algae, &
+                                 n_doc, n_dic, n_don, n_fed, n_fep, &
+                                 n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs, &
+                                 n_bgc, nltrcr, max_nsw, max_ntrcr, max_nstrm
+      use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
+                              dumpfreq, dumpfreq_n, diagfreq, &
+                              npt, dt, ndtd, days_per_year, use_leap_years, &
+                              write_ic, dump_last
+      use ice_arrays_column, only: oceanmixed_ice
+      use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
+          restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero
+      use ice_restart_shared, only: &
+          restart, restart_ext, restart_dir, restart_file, pointer_file, &
+          runid, runtype, use_restart_time, restart_format, lcdf64
+      use ice_history_shared, only: hist_avg, history_dir, history_file, &
+                             incond_dir, incond_file, version_name
+      use ice_flux, only: update_ocn_f, l_mpond_fresh
+      use ice_flux, only: default_season
+      use ice_flux_bgc, only: cpl_bgc
+      use ice_forcing, only: &
+          ycycle,          fyear_init,    dbug, &
+          atm_data_type,   atm_data_dir,  precip_units, &
+          atm_data_format, ocn_data_format, &
+          bgc_data_type, &
+          ocn_data_type, ocn_data_dir,      &
+          oceanmixed_file, restore_ocn,   trestore
+      use ice_arrays_column, only: bgc_data_dir, &
+          sil_data_type, nit_data_type, fe_data_type
+      use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
+                          bathymetry_file, use_bathymetry, &
+                          grid_type, grid_format, &
+                          dxrect, dyrect
+      use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
+                                basalstress, k1, Ktens, e_ratio, coriolis, &
+                                kridge, ktransport
+      use ice_transport_driver, only: advection
+      use ice_restoring, only: restore_ice
+#ifdef CESMCOUPLED
+      use shr_file_mod, only: shr_file_setIO
+#endif
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         nml_error, & ! namelist i/o error flag
+         n        , & ! loop index
+         n_trage  , & ! age
+         n_trfy   , & ! first-year area
+         n_trlvl  , & ! level/deformed ice
+         n_trpnd      ! ponds
+
+      character (len=6) :: chartmp
+
+      logical :: exists
+
+      real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
+        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
+        mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
+        a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
+        phi_c_slow_mode, phi_i_mushy, kalg
+
+      integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
+        kitd, kcatbound
+
+      character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
+        tfrz_option, frzpnd, atmbndy
+
+      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair
+
+      integer (kind=int_kind) :: ntrcr
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
+      logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+      integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
+      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
+      integer (kind=int_kind) :: numin, numax  ! unit number limits
+
+      real (kind=real_kind) :: rpcesm, rplvl, rptopo 
+      real (kind=dbl_kind) :: Cf, puny
+      integer :: abort_flag
+
+      character(len=*), parameter :: subname='(input_data2)'
+
+      abort_flag = 0
+
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+         tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
+         tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+      if (my_task == master_task) then
+
+         write(nu_diag,1020) ' n_aero                    = ', n_aero
+         write(nu_diag,1020) ' n_zaero                   = ', n_zaero
+         write(nu_diag,1020) ' n_algae                   = ', n_algae
+         write(nu_diag,1020) ' n_doc                     = ', n_doc
+         write(nu_diag,1020) ' n_dic                     = ', n_dic
+         write(nu_diag,1020) ' n_don                     = ', n_don
+         write(nu_diag,1020) ' n_fed                     = ', n_fed
+         write(nu_diag,1020) ' n_fep                     = ', n_fep
+         write(nu_diag,1020) ' n_trbgcz                  = ', n_trbgcz
+         write(nu_diag,1020) ' n_trzs                    = ', n_trzs
+         write(nu_diag,1020) ' n_trbri                   = ', n_trbri
+         write(nu_diag,1020) ' n_trzaero                 = ', n_trzaero
+         write(nu_diag,1020) ' n_trbgcs                  = ', n_trbgcs
+
+      endif                     ! my_task = master_task
+
+         n_trage = 0                 ! age
+         if (tr_iage) n_trage = 1
+         n_trFY = 0                  ! first-year area
+         if (tr_FY)   n_trFY = 1
+         n_trlvl = 0                 ! level/deformed ice
+         if (tr_lvl)  n_trlvl = 2
+
+      rpcesm = c0
+      rplvl  = c0
+      rptopo = c0
+      if (tr_pond_cesm) rpcesm = c1
+      if (tr_pond_lvl ) rplvl  = c1
+      if (tr_pond_topo) rptopo = c1
+
+         n_trpnd = 0                 ! ponds
+         if (tr_pond) n_trpnd = 2*rpcesm + 3*rplvl + 3*rptopo
 
          n_bgc     = (n_algae*2 + n_doc + n_dic + n_don + n_fed + &
                       n_fep + n_zaero + 8)    ! nit, am, sil, dmspp, dmspd, dms, pon, humic
@@ -1194,9 +1384,9 @@
                    + nslyr       & ! snow enthalpy
                                !!!!! optional tracers:
                    + n_trage     & ! age
-                   + n_trfy      & ! first-year area
-                   + n_trlvl*2   & ! level/deformed ice
-                   + n_trpnd*3   & ! ponds
+                   + n_trFY      & ! first-year area
+                   + n_trlvl     & ! level/deformed ice
+                   + n_trpnd     & ! ponds
                    + n_aero*4    & ! number of aerosols * 4 aero layers
                    + n_trbri     & ! brine height
                    + n_trbgcs*n_bgc           & ! skeletal layer BGC
@@ -1271,6 +1461,7 @@
             abort_flag = 19
          endif                               
 
+      if (my_task == master_task) then
          write(nu_diag,*) ' '
          write(nu_diag,1020) ' n_bgc                     = ', n_bgc
          write(nu_diag,1020) ' nltrcr                    = ', nltrcr
@@ -1295,19 +1486,6 @@
  1030    format (a30,   a8)    ! character
  1040    format (a30,2x,6i6)   ! integer
  1050    format (a30,2x,6a6)   ! character
-
-         write(nu_diag,*) ' '
-         if (grid_type  /=  'displaced_pole' .and. &
-             grid_type  /=  'tripole'        .and. &
-             grid_type  /=  'column'         .and. &
-             grid_type  /=  'rectangular'    .and. &
-             grid_type  /=  'cpom_grid'      .and. &
-             grid_type  /=  'regional'       .and. &
-             grid_type  /=  'latlon' ) then 
-            if (my_task == master_task) write(nu_diag,*)'ERROR: unknown grid_type=',trim(grid_type)
-            abort_flag = 20
-         endif
-
       endif                     ! my_task = master_task
 
       call broadcast_scalar(ntrcr,    master_task)
@@ -1328,43 +1506,9 @@
       call broadcast_scalar(max_nsw,  master_task)
       call broadcast_scalar(max_ntrcr,master_task)
 
-      if (formdrag) then
-         if (nt_apnd==0) then
-            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_apnd=',nt_apnd
-            abort_flag = 21
-         elseif (nt_hpnd==0) then
-            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_hpnd=',nt_hpnd
-            abort_flag = 22
-         elseif (nt_ipnd==0) then
-            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_ipnd=',nt_ipnd
-            abort_flag = 23
-         elseif (nt_alvl==0) then
-            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_alvl=',nt_alvl
-            abort_flag = 24
-         elseif (nt_vlvl==0) then
-            if (my_task == master_task) write(nu_diag,*)'ERROR: formdrag=T, nt_vlvl=',nt_vlvl
-            abort_flag = 25
-         endif
-      endif
-
       call flush_fileunit(nu_diag)
-      call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
-         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, emissivity_in=emissivity, &
-         ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
-         R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
-         kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &
-         atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
-         kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
-         rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
-         ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
-         a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
-         aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
-         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
-         tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
+
       call icepack_init_tracer_numbers(ntrcr_in=ntrcr)
-      call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
-         tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, tr_pond_in=tr_pond, &
-         tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
       call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
@@ -1381,7 +1525,7 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      end subroutine input_data
+      end subroutine input_data2
 
 !=======================================================================
 
