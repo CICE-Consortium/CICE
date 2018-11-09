@@ -13,7 +13,7 @@
       use ice_domain_size, only: n_aero, n_zaero, n_algae
       use ice_domain_size, only: n_doc, n_dic, n_don
       use ice_domain_size, only: n_fed, n_fep, max_nsw, n_bgc
-      use ice_domain_size, only: n_trzs, n_trbri, n_trbgcs, n_algae, n_trbgcz
+      use ice_domain_size, only: n_trzs, n_trbri, n_trbgcs, n_trbgcz
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: nu_nml, nml_filename, get_fileunit, &
                                release_fileunit
@@ -2294,12 +2294,7 @@ goto 9998
          tau_rel             ! release timescale    (s), stationary to mobile phase
 
       logical (kind=log_kind) :: &
-          skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
-          modal_aero, solve_zsal
-
-      character (char_len) :: &
-          bgc_flux_type
-
+          skl_bgc, z_tracers, dEdd_algae, solve_zsal
 
       real (kind=dbl_kind), dimension(icepack_max_algae) :: &
          F_abs_chl          ! to scale absorption in Dedd
@@ -2342,10 +2337,8 @@ goto 9998
          k_bac                ! Bacterial degredation of DOC (1/d)
 
       integer (kind=int_kind) :: &
-         nml_error, & ! namelist i/o error flag
          k, mm    , & ! loop index
          nk       , & ! layer index
-         nk_bgc   , & ! layer index
          ierr
 
       integer (kind=int_kind) :: &
@@ -2372,14 +2365,12 @@ goto 9998
 
       call icepack_query_parameters( &
           solve_zsal_out=solve_zsal, &
-          skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, scale_bgc_out=scale_bgc, &
+          skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
           dEdd_algae_out=dEdd_algae, &
-          solve_zbgc_out=solve_zbgc, &
-          bgc_flux_type_out=bgc_flux_type, grid_o_out=grid_o, l_sk_out=l_sk, &
+          grid_o_out=grid_o, l_sk_out=l_sk, &
           initbio_frac_out=initbio_frac, &
           grid_oS_out=grid_oS, l_skS_out=l_skS, &
-          phi_snow_out=phi_snow, frazil_scav_out = frazil_scav, &
-          modal_aero_out=modal_aero)
+          phi_snow_out=phi_snow, frazil_scav_out = frazil_scav)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -2416,9 +2407,6 @@ goto 9998
           nlt_bgc_DIC_out=nlt_bgc_DIC, nlt_bgc_DOC_out=nlt_bgc_DOC,   nlt_bgc_PON_out=nlt_bgc_PON, &
           nlt_bgc_DON_out=nlt_bgc_DON, nlt_bgc_Fed_out=nlt_bgc_Fed,   nlt_bgc_Fep_out=nlt_bgc_Fep, &
           nt_bgc_hum_out=nt_bgc_hum,   nlt_bgc_hum_out=nlt_bgc_hum)
-!          n_algae_out=n_algae,         &
-!          n_DOC_out=n_DOC,             n_DON_out=n_DON,               n_DIC_out=n_DIC, &
-!          n_fed_out=n_fed,             n_fep_out=n_fep,               n_zaero_out=n_zaero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
