@@ -1542,29 +1542,27 @@
       call broadcast_scalar(F_abs_chl_phaeo    ,  master_task)
       call broadcast_scalar(ratio_C2N_proteins ,  master_task) 
 
-!echmod
-goto 9998
-      if (skl_bgc .and. n_bgc < 2) then
-         write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'comp_ice must have number of bgc tracers >= 2'
-         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
-         call abort_ice (subname//'ERROR: skl_bgc and n_bgc < 2')
-      endif
+!echmod - (re)move this?
+!      if (skl_bgc .and. n_bgc < 2) then
+!         write (nu_diag,*) subname,' '
+!         write (nu_diag,*) subname,'must have number of bgc tracers >= 2'
+!         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
+!         call abort_ice (subname//'ERROR: skl_bgc and n_bgc < 2')
+!      endif
 
-      if (solve_zbgc .and. n_bgc < 2) then
-         write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'comp_ice must have number of zbgc tracers >= 2'
-         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
-         call abort_ice (subname//'ERROR: solve_zbgc and n_bgc < 2')
-      endif
+!      if (solve_zbgc .and. n_bgc < 2) then
+!         write (nu_diag,*) subname,' '
+!         write (nu_diag,*) subname,'must have number of zbgc tracers >= 2'
+!         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
+!         call abort_ice (subname//'ERROR: solve_zbgc and n_bgc < 2')
+!      endif
 
-      if (tr_zaero .and. n_zaero <  1) then
-         write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'comp_ice must have number of n_zaero > 0'
-         write (nu_diag,*) subname,'in order to solve z aerosols:',n_zaero
-         call abort_ice (subname//'ERROR: tr_zaero and tr zaero < 1')
-      endif
-9998 continue
+!      if (tr_zaero .and. n_zaero <  1) then
+!         write (nu_diag,*) subname,' '
+!         write (nu_diag,*) subname,'comp_ice must have number of n_zaero > 0'
+!         write (nu_diag,*) subname,'in order to solve z aerosols:',n_zaero
+!         call abort_ice (subname//'ERROR: tr_zaero and tr zaero < 1')
+!      endif
 !echmod
       !-----------------------------------------------------------------
       ! set values in icepack
