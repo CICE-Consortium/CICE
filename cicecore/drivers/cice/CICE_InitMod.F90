@@ -79,7 +79,7 @@
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
       use ice_init, only: input_data, init_state, input_data2
-      use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, input_zbgc2
+      use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, input_zbgc2, input_zbgc0
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
@@ -103,8 +103,9 @@
           file=__FILE__,line= __LINE__)
 
       call input_data           ! namelist variables
-      call input_data2          ! namelist variables
       call input_zbgc           ! vertical biogeochemistry namelist
+      call input_data2          ! namelist variables
+      call input_zbgc0           ! vertical biogeochemistry namelist
       call input_zbgc2          ! vertical biogeochemistry namelist
 
       call init_domain_blocks   ! set up block decomposition
