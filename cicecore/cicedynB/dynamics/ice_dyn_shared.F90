@@ -209,10 +209,6 @@
       ! local variables
 
       real (kind=dbl_kind) :: &
-         Se          , & ! stability parameter for revised EVP
-         xi          , & ! stability parameter for revised EVP
-         gamma       , & ! stability parameter for revised EVP
-         xmin, ymin  , & ! minimum grid length for ocean points, m
          dte         , & ! subcycling timestep for EVP dynamics, s
          ecc         , & ! (ratio of major to minor ellipse axes)^2
          tdamp2          ! 2*(wave damping time scale T)
@@ -231,48 +227,20 @@
       tdamp2 = c2*eyc*dt                    ! s
       dte2T = dte/tdamp2                    ! ellipse (unitless)
 
-      ! grid min/max
-      xmin = global_minval(dxt, distrb_info, tmask)
-      ymin = global_minval(dyt, distrb_info, tmask)
-      xmin = min(xmin,ymin)  ! min(dxt, dyt)
-
-      ! revised evp parameters
-      Se = 0.86_dbl_kind                 ! Se > 0.5
-      xi = 5.5e-3_dbl_kind               ! Sv/Sc < 1
-      gamma = p25 * 1.e11_dbl_kind * dt  ! rough estimate (P/m~10^5/10^3)
-
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
          denom1 = c1
          arlx1i = c1/arlx
-         !TAR: According to mail of Martin Loesch: for a ~25km grid:
-         !      brlx=300 , arlx1i = c1/brlx
-         ! arlx and brlx set in namelist
-
-! classic evp parameters (but modified equations)
-!         arlx1i = dte2T
-!         brlx   = dt*dtei
-
       else                        ! Hunke, JCP 2013 with modified stress eq
          revp   = c0
          arlx1i = dte2T
          arlx   = c1/arlx1i
          brlx   = dt*dtei
          denom1 = c1/(c1+arlx1i)
-
-
-! revised evp parameters
-!         arlx1i = c2*xi/Se        ! 1/alpha1
-!         brlx = c2*Se*xi*gamma/xmin**2 ! beta
-
       endif
       if (my_task == master_task) then
          write (nu_diag,*) 'arlx, arlxi, brlx, denom1', &
                   arlx, arlx1i, brlx, denom1
-         write (nu_diag,*) 'Se, Sv, xi', &
-                  sqrt(brlx/(arlx1i*gamma))*xmin, &
-                  p5*brlx/gamma*xmin**2, &
-                  p5*xmin*sqrt(brlx*arlx1i/gamma)
       endif
 
       end subroutine set_evp_parameters
