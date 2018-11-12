@@ -86,10 +86,12 @@
           oceanmixed_file, restore_ocn,   trestore
       use ice_arrays_column, only: bgc_data_dir, &
           sil_data_type, nit_data_type, fe_data_type
-      use ice_grid, only: grid_file, gridcpl_file, kmt_file, grid_type, grid_format, &
+      use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
+                          bathymetry_file, use_bathymetry, &
+                          grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                basalstress, Ktens, e_ratio, coriolis, &
+                                basalstress, k1, Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
@@ -153,6 +155,7 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
+        bathymetry_file, use_bathymetry,                                &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
         close_boundaries
@@ -167,7 +170,8 @@
         brlx,           arlx,                                           &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_ratio,        Ktens,          Cf,             basalstress
+        e_ratio,        Ktens,          Cf,             basalstress,    &
+        k1
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
@@ -264,6 +268,8 @@
       grid_type    = 'rectangular'  ! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
       gridcpl_file = 'unknown_gridcpl_file'
+      bathymetry_file    = 'unknown_bathymetry_file'
+      use_bathymetry = .false.
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0
@@ -287,6 +293,7 @@
       Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
       close_boundaries = .false.   ! true = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
+      k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
@@ -539,6 +546,8 @@
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)
+      call broadcast_scalar(bathymetry_file,    master_task)
+      call broadcast_scalar(use_bathymetry,     master_task)
       call broadcast_scalar(kmt_file,           master_task)
       call broadcast_scalar(kitd,               master_task)
       call broadcast_scalar(kcatbound,          master_task)
@@ -555,6 +564,7 @@
       call broadcast_scalar(mu_rdg,             master_task)
       call broadcast_scalar(Cf,                 master_task)
       call broadcast_scalar(basalstress,        master_task)
+      call broadcast_scalar(k1,                 master_task)
       call broadcast_scalar(Ktens,              master_task)
       call broadcast_scalar(e_ratio,            master_task)
       call broadcast_scalar(advection,          master_task)
@@ -968,6 +978,10 @@
                                trim(grid_file)
             write(nu_diag,*) ' gridcpl_file              = ', &
                                trim(gridcpl_file)
+            write(nu_diag,*) ' bathymetry_file           = ', &
+                               trim(bathymetry_file)
+            write(nu_diag,*) ' use_bathymetry            = ', &
+                               use_bathymetry
             write(nu_diag,*) ' kmt_file                  = ', &
                                trim(kmt_file)
          endif
@@ -1005,6 +1019,7 @@
          if (kstrength == 1) &
          write(nu_diag,1000) ' Cf                        = ', Cf
          write(nu_diag,1010) ' basalstress               = ', basalstress
+         write(nu_diag,1005) ' k1                        = ', k1
          write(nu_diag,1005) ' Ktens                     = ', Ktens
          write(nu_diag,1005) ' e_ratio                   = ', e_ratio    
          write(nu_diag,1030) ' advection                 = ', &
@@ -1281,7 +1296,6 @@
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
  1005    format (a30,2x,f9.6)  ! float
- 1006    format (a30,2x,f11.6) ! float
  1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
  1021    format (a30,2x,a8,i6) ! char, int
