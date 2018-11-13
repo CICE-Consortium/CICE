@@ -33,12 +33,15 @@
       use icepack_intfc, only: icepack_query_parameters
 
       implicit none
+      private
 
-      character(len=char_len_long) :: &
+      character(len=char_len_long),public :: &
          ice_ic      ! method of ice cover initialization
                      ! 'default'  => latitude and sst dependent
                      ! 'none'     => no ice
                      ! note:  restart = .true. overwrites
+
+      public :: input_data, init_state, set_state_var
 
 !=======================================================================
 
@@ -102,11 +105,14 @@
 
       integer (kind=int_kind) :: &
          nml_error, & ! namelist i/o error flag
-         n        , & ! loop index
-         n_trage  , & ! age
-         n_trfy   , & ! first-year area
-         n_trlvl  , & ! level/deformed ice
-         n_trpnd      ! ponds
+         n            ! loop index
+#if (1 == 0)
+!         n        , & ! loop index
+!         n_trage  , & ! age
+!         n_trfy   , & ! first-year area
+!         n_trlvl  , & ! level/deformed ice
+!         n_trpnd      ! ponds
+#endif
 
       character (len=6) :: chartmp
 
@@ -1238,7 +1244,7 @@
 
 !=======================================================================
 !=======================================================================
-
+#if (1 == 0)
 ! Namelist variables, set to default values; may be altered
 ! at run time
 !
@@ -1331,6 +1337,8 @@
       integer :: abort_flag
 
       character(len=*), parameter :: subname='(input_data2)'
+
+      !-----------------------------------------------------------------
 
       abort_flag = 0
 
@@ -1526,6 +1534,7 @@
       endif
 
       end subroutine input_data2
+#endif
 
 !=======================================================================
 
@@ -1568,6 +1577,8 @@
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname='(init_state)'
+
+      !-----------------------------------------------------------------
 
       call icepack_query_parameters(heat_capacity_out=heat_capacity)
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
@@ -1890,6 +1901,8 @@
       integer (kind=int_kind) :: nt_fbri, nt_alvl, nt_vlvl
 
       character(len=*), parameter :: subname='(set_state_var)'
+
+      !-----------------------------------------------------------------
 
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_lvl_out=tr_lvl)
       call icepack_query_tracer_indices( nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &

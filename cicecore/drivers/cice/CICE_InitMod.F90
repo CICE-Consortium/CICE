@@ -78,8 +78,8 @@
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
-      use ice_init, only: input_data, init_state, input_data2
-      use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, input_zbgc0
+      use ice_init, only: input_data, init_state
+      use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
@@ -104,8 +104,7 @@
 
       call input_data           ! namelist variables
       call input_zbgc           ! vertical biogeochemistry namelist
-      call input_data2          ! count tracers
-      call input_zbgc0          ! count additional bgc tracers
+      call count_tracers        ! count tracers
 
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
