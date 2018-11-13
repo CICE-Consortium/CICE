@@ -18,6 +18,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
+      use icepack_intfc, only: icepack_query_tracer_numbers
 
       implicit none
       private
@@ -211,7 +212,7 @@
       use ice_calendar, only: time, calendar
       use icepack_intfc, only: icepack_aggregate
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, max_ntrcr, n_aero
+      use ice_domain_size, only: ncat, n_aero
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: sss
@@ -243,11 +244,18 @@
           tr_pond_topo, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer (kind=int_kind) :: &
+          ntrcr
+      integer (kind=int_kind) :: &
           nt_alvl, nt_vlvl, &
           nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero
 
       character(len=*), parameter :: subname = '(init_restart)'
+
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
@@ -400,7 +408,7 @@
                                 vice (i,j,  iblk),  &
                                 vsno (i,j,  iblk),  &
                                 aice0(i,j,  iblk),  &
-                                max_ntrcr,          &
+                                ntrcr,          &
                                 trcr_depend,        &
                                 trcr_base,          &
                                 n_trcr_strata,      &

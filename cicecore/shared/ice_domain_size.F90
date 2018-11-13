@@ -51,8 +51,7 @@
       integer (kind=int_kind), public :: &
         n_bgc     , & ! nit, am, sil, dmspp, dmspd, dms, pon, humic 
         nltrcr    , & ! number of zbgc (includes zaero) and zsalinity tracers 
-        max_nsw   , & !
-        max_ntrcr     !
+        max_nsw
 
       integer (kind=int_kind), public, parameter :: &
         max_nstrm =   5           ! max number of history output streams

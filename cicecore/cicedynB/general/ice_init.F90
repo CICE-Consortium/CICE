@@ -63,7 +63,7 @@
                                  n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
                                  n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs, &
-                                 n_bgc, nltrcr, max_nsw, max_ntrcr, max_nstrm
+                                 n_bgc, nltrcr, max_nsw, max_nstrm
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
                               dumpfreq, dumpfreq_n, diagfreq, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
@@ -106,13 +106,6 @@
       integer (kind=int_kind) :: &
          nml_error, & ! namelist i/o error flag
          n            ! loop index
-#if (1 == 0)
-!         n        , & ! loop index
-!         n_trage  , & ! age
-!         n_trfy   , & ! first-year area
-!         n_trlvl  , & ! level/deformed ice
-!         n_trpnd      ! ponds
-#endif
 
       character (len=6) :: chartmp
 
@@ -132,7 +125,6 @@
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair
 
-      integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
@@ -1243,300 +1235,6 @@
       end subroutine input_data
 
 !=======================================================================
-!=======================================================================
-#if (1 == 0)
-! Namelist variables, set to default values; may be altered
-! at run time
-!
-! author Elizabeth C. Hunke, LANL
-
-      subroutine input_data2
-
-      use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
-      use ice_domain, only: close_boundaries
-      use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
-                                 n_aero, n_zaero, n_algae, &
-                                 n_doc, n_dic, n_don, n_fed, n_fep, &
-                                 n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs, &
-                                 n_bgc, nltrcr, max_nsw, max_ntrcr, max_nstrm
-      use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
-                              dumpfreq, dumpfreq_n, diagfreq, &
-                              npt, dt, ndtd, days_per_year, use_leap_years, &
-                              write_ic, dump_last
-      use ice_arrays_column, only: oceanmixed_ice
-      use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
-          restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero
-      use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64
-      use ice_history_shared, only: hist_avg, history_dir, history_file, &
-                             incond_dir, incond_file, version_name
-      use ice_flux, only: update_ocn_f, l_mpond_fresh
-      use ice_flux, only: default_season
-      use ice_flux_bgc, only: cpl_bgc
-      use ice_forcing, only: &
-          ycycle,          fyear_init,    dbug, &
-          atm_data_type,   atm_data_dir,  precip_units, &
-          atm_data_format, ocn_data_format, &
-          bgc_data_type, &
-          ocn_data_type, ocn_data_dir,      &
-          oceanmixed_file, restore_ocn,   trestore
-      use ice_arrays_column, only: bgc_data_dir, &
-          sil_data_type, nit_data_type, fe_data_type
-      use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
-                          bathymetry_file, use_bathymetry, &
-                          grid_type, grid_format, &
-                          dxrect, dyrect
-      use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                basalstress, k1, Ktens, e_ratio, coriolis, &
-                                kridge, ktransport
-      use ice_transport_driver, only: advection
-      use ice_restoring, only: restore_ice
-#ifdef CESMCOUPLED
-      use shr_file_mod, only: shr_file_setIO
-#endif
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         nml_error, & ! namelist i/o error flag
-         n        , & ! loop index
-         n_trage  , & ! age
-         n_trfy   , & ! first-year area
-         n_trlvl  , & ! level/deformed ice
-         n_trpnd      ! ponds
-
-      character (len=6) :: chartmp
-
-      logical :: exists
-
-      real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
-        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
-        mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
-        a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg
-
-      integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
-        kitd, kcatbound
-
-      character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, frzpnd, atmbndy
-
-      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair
-
-      integer (kind=int_kind) :: ntrcr
-      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
-      logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
-      integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
-      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
-      integer (kind=int_kind) :: numin, numax  ! unit number limits
-
-      real (kind=real_kind) :: rpcesm, rplvl, rptopo 
-      real (kind=dbl_kind) :: Cf, puny
-      integer :: abort_flag
-
-      character(len=*), parameter :: subname='(input_data2)'
-
-      !-----------------------------------------------------------------
-
-      abort_flag = 0
-
-      call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
-         tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
-         tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
-      if (my_task == master_task) then
-
-         write(nu_diag,1020) ' n_aero                    = ', n_aero
-         write(nu_diag,1020) ' n_zaero                   = ', n_zaero
-         write(nu_diag,1020) ' n_algae                   = ', n_algae
-         write(nu_diag,1020) ' n_doc                     = ', n_doc
-         write(nu_diag,1020) ' n_dic                     = ', n_dic
-         write(nu_diag,1020) ' n_don                     = ', n_don
-         write(nu_diag,1020) ' n_fed                     = ', n_fed
-         write(nu_diag,1020) ' n_fep                     = ', n_fep
-         write(nu_diag,1020) ' n_trbgcz                  = ', n_trbgcz
-         write(nu_diag,1020) ' n_trzs                    = ', n_trzs
-         write(nu_diag,1020) ' n_trbri                   = ', n_trbri
-         write(nu_diag,1020) ' n_trzaero                 = ', n_trzaero
-         write(nu_diag,1020) ' n_trbgcs                  = ', n_trbgcs
-
-      endif                     ! my_task = master_task
-
-         n_trage = 0                 ! age
-         if (tr_iage) n_trage = 1
-         n_trFY = 0                  ! first-year area
-         if (tr_FY)   n_trFY = 1
-         n_trlvl = 0                 ! level/deformed ice
-         if (tr_lvl)  n_trlvl = 2
-
-      rpcesm = c0
-      rplvl  = c0
-      rptopo = c0
-      if (tr_pond_cesm) rpcesm = c1
-      if (tr_pond_lvl ) rplvl  = c1
-      if (tr_pond_topo) rptopo = c1
-
-         n_trpnd = 0                 ! ponds
-         if (tr_pond) n_trpnd = 2*rpcesm + 3*rplvl + 3*rptopo
-
-         n_bgc     = (n_algae*2 + n_doc + n_dic + n_don + n_fed + &
-                      n_fep + n_zaero + 8)    ! nit, am, sil, dmspp, dmspd, dms, pon, humic
-         nltrcr    = (n_bgc*n_trbgcz+n_trzs)*n_trbri    ! number of zbgc (includes zaero)
-                                                        ! and zsalinity tracers
-         max_nsw   = (nilyr+nslyr+2) & ! total chlorophyll plus aerosols
-                   * (1+n_trzaero)     ! number of tracers active in shortwave calculation
-         max_ntrcr =   1         & ! 1 = surface temperature
-                   + nilyr       & ! ice salinity
-                   + nilyr       & ! ice enthalpy
-                   + nslyr       & ! snow enthalpy
-                               !!!!! optional tracers:
-                   + n_trage     & ! age
-                   + n_trFY      & ! first-year area
-                   + n_trlvl     & ! level/deformed ice
-                   + n_trpnd     & ! ponds
-                   + n_aero*4    & ! number of aerosols * 4 aero layers
-                   + n_trbri     & ! brine height
-                   + n_trbgcs*n_bgc           & ! skeletal layer BGC
-                   + n_trzs  *n_trbri* nblyr  & ! zsalinity  (off if n_trbri=0)
-                   + n_bgc*n_trbgcz*n_trbri*(nblyr+3) & ! zbgc (off if n_trbri=0)
-                   + n_bgc*n_trbgcz           & ! mobile/stationary phase tracer
-                   + 1             ! for unused tracer flags
-
-         nt_Tsfc = 1           ! index tracers, starting with Tsfc = 1
-         ntrcr = 1             ! count tracers, starting with Tsfc = 1
-
-         nt_qice = ntrcr + 1
-         ntrcr = ntrcr + nilyr ! qice in nilyr layers
-
-         nt_qsno = ntrcr + 1
-         ntrcr = ntrcr + nslyr ! qsno in nslyr layers
-
-         nt_sice = ntrcr + 1
-         ntrcr = ntrcr + nilyr ! sice in nilyr layers
-
-         nt_iage = max_ntrcr
-         if (tr_iage) then
-             ntrcr = ntrcr + 1
-             nt_iage = ntrcr   ! chronological ice age
-         endif
-
-         nt_FY = max_ntrcr
-         if (tr_FY) then
-             ntrcr = ntrcr + 1
-             nt_FY = ntrcr     ! area of first year ice
-         endif
-
-         nt_alvl = max_ntrcr
-         nt_vlvl = max_ntrcr
-         if (tr_lvl) then
-             ntrcr = ntrcr + 1
-             nt_alvl = ntrcr
-             ntrcr = ntrcr + 1
-             nt_vlvl = ntrcr
-         endif
-
-         nt_apnd = max_ntrcr
-         nt_hpnd = max_ntrcr
-         nt_ipnd = max_ntrcr
-         if (tr_pond) then            ! all explicit melt pond schemes
-             ntrcr = ntrcr + 1
-             nt_apnd = ntrcr
-             ntrcr = ntrcr + 1
-             nt_hpnd = ntrcr
-             if (tr_pond_lvl) then
-                 ntrcr = ntrcr + 1    ! refrozen pond ice lid thickness
-                 nt_ipnd = ntrcr      ! on level-ice ponds (if frzpnd='hlid')
-             endif
-             if (tr_pond_topo) then
-                 ntrcr = ntrcr + 1    ! 
-                 nt_ipnd = ntrcr      ! refrozen pond ice lid thickness
-             endif
-         endif
-
-         ! tcraig, tcx, this is a BAD kludge, NTRAERO should be 0 if tr_aero is false
-         nt_aero = max_ntrcr - 4*n_aero
-         if (tr_aero) then
-             nt_aero = ntrcr + 1
-             ntrcr = ntrcr + 4*n_aero ! 4 dEdd layers, n_aero species
-         endif
-              
-         if (ntrcr > max_ntrcr-1) then
-            if (my_task == master_task) then
-               write(nu_diag,*) 'ERROR: max_ntrcr-1 < number of namelist tracers'
-               write(nu_diag,*) 'ERROR:   max_ntrcr-1 = ',max_ntrcr-1,' ntrcr = ',ntrcr
-            endif
-            abort_flag = 19
-         endif                               
-
-      if (my_task == master_task) then
-         write(nu_diag,*) ' '
-         write(nu_diag,1020) ' n_bgc                     = ', n_bgc
-         write(nu_diag,1020) ' nltrcr                    = ', nltrcr
-         write(nu_diag,1020) ' max_nsw                   = ', max_nsw
-         write(nu_diag,1020) ' max_ntrcr                 = ', max_ntrcr
-         write(nu_diag,*) ' '
-         write(nu_diag,1020) ' ntrcr                     = ', ntrcr
-         write(nu_diag,*) ' '
-         write(nu_diag,1020) ' nt_sice                   = ', nt_sice
-         write(nu_diag,1020) ' nt_qice                   = ', nt_qice
-         write(nu_diag,1020) ' nt_qsno                   = ', nt_qsno
-         write(nu_diag,*)' '
-         write(nu_diag,1020) ' nilyr                     = ', nilyr
-         write(nu_diag,1020) ' nslyr                     = ', nslyr
-         write(nu_diag,*)' '
-
- 1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
- 1005    format (a30,2x,f9.6)  ! float
- 1010    format (a30,2x,l6)    ! logical
- 1020    format (a30,2x,i6)    ! integer
- 1021    format (a30,2x,a8,i6) ! char, int
- 1030    format (a30,   a8)    ! character
- 1040    format (a30,2x,6i6)   ! integer
- 1050    format (a30,2x,6a6)   ! character
-      endif                     ! my_task = master_task
-
-      call broadcast_scalar(ntrcr,    master_task)
-      call broadcast_scalar(nt_Tsfc,  master_task)
-      call broadcast_scalar(nt_sice,  master_task)
-      call broadcast_scalar(nt_qice,  master_task)
-      call broadcast_scalar(nt_qsno,  master_task)
-      call broadcast_scalar(nt_iage,  master_task)
-      call broadcast_scalar(nt_FY,    master_task)
-      call broadcast_scalar(nt_alvl,  master_task)
-      call broadcast_scalar(nt_vlvl,  master_task)
-      call broadcast_scalar(nt_apnd,  master_task)
-      call broadcast_scalar(nt_hpnd,  master_task)
-      call broadcast_scalar(nt_ipnd,  master_task)
-      call broadcast_scalar(nt_aero,  master_task)
-      call broadcast_scalar(n_bgc,    master_task)
-      call broadcast_scalar(nltrcr,   master_task)
-      call broadcast_scalar(max_nsw,  master_task)
-      call broadcast_scalar(max_ntrcr,master_task)
-
-      call flush_fileunit(nu_diag)
-
-      call icepack_init_tracer_numbers(ntrcr_in=ntrcr)
-      call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
-         nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
-         nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
-         nt_ipnd_in=nt_ipnd, nt_aero_in=nt_aero)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//' Icepack Abort2', &
-         file=__FILE__, line=__LINE__)
-
-      call flush_fileunit(nu_diag)
-      call ice_barrier()
-      if (abort_flag /= 0) then
-         write(nu_diag,*) subname,' ERROR: abort_flag=',abort_flag
-         call abort_ice (subname//' ABORTING on input ERRORS', &
-            file=__FILE__, line=__LINE__)
-      endif
-
-      end subroutine input_data2
-#endif
-
-!=======================================================================
 
 ! Initialize state for the itd model
 !
@@ -1547,7 +1245,7 @@
 
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: nblocks, blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, max_ntrcr, n_aero
+      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_grid, only: tmask, ULON, TLAT
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
@@ -1767,7 +1465,7 @@
          aice(i,j,iblk) = c0
          vice(i,j,iblk) = c0
          vsno(i,j,iblk) = c0
-         do it = 1, max_ntrcr
+         do it = 1, ntrcr
             trcr(i,j,it,iblk) = c0
          enddo
 
@@ -1822,7 +1520,7 @@
                                 vicen,    vsnon)
 
       use ice_arrays_column, only: hin_max
-      use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, max_ntrcr, ncat
+      use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, ncat
       use ice_grid, only: grid_type
       use ice_forcing, only: atm_data_type
 
@@ -1861,7 +1559,7 @@
          vicen , & ! volume per unit area of ice          (m)
          vsnon     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_ntrcr,ncat), &
+      real (kind=dbl_kind), dimension (:,:,:,:), & ! (nx_block,ny_block,ntrcr,ncat)
          intent(out) :: &
          trcrn     ! ice tracers
                    ! 1: surface temperature of ice/snow (C)
@@ -1897,6 +1595,7 @@
          edge_init_sh = -60._dbl_kind    ! initial ice edge, S.Hem. (deg)
 
       logical (kind=log_kind) :: tr_brine, tr_lvl
+      integer (kind=int_kind) :: ntrcr
       integer (kind=int_kind) :: nt_Tsfc, nt_qice, nt_qsno, nt_sice
       integer (kind=int_kind) :: nt_fbri, nt_alvl, nt_vlvl
 
@@ -1904,6 +1603,7 @@
 
       !-----------------------------------------------------------------
 
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_lvl_out=tr_lvl)
       call icepack_query_tracer_indices( nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
         nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, &
@@ -1927,8 +1627,8 @@
             vicen(i,j,n) = c0
             vsnon(i,j,n) = c0
             trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
-            if (max_ntrcr >= 2) then
-               do it = 2, max_ntrcr
+            if (ntrcr >= 2) then
+               do it = 2, ntrcr
                   trcrn(i,j,it,n) = c0
                enddo
             endif
