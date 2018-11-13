@@ -62,8 +62,10 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
                                  n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
+#if (1 == 0)
                                  n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs, &
-                                 n_bgc, nltrcr, max_nsw, max_nstrm
+#endif
+                                 max_nstrm
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
                               dumpfreq, dumpfreq_n, diagfreq, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
@@ -206,8 +208,10 @@
         tr_pond_topo, restart_pond_topo, &
         tr_aero, restart_aero, &
         n_aero, n_zaero, n_algae, &
-        n_doc, n_dic, n_don, n_fed, n_fep, &
+        n_doc, n_dic, n_don, n_fed, n_fep
+#if (1 == 0)
         n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs
+#endif
 
       !-----------------------------------------------------------------
       ! default values
@@ -392,11 +396,13 @@
       n_don = 0
       n_fed = 0
       n_fep = 0
+#if (1 == 0)
       n_trbgcz = 0
       n_trzs = 0
       n_trbri = 0
       n_trzaero = 0
       n_trbgcs = 0
+#endif
 
       ! mushy layer gravity drainage physics
       a_rapid_mode      =  0.5e-3_dbl_kind ! channel radius for rapid drainage mode (m)
@@ -652,11 +658,13 @@
       call broadcast_scalar(n_don,              master_task)
       call broadcast_scalar(n_fed,              master_task)
       call broadcast_scalar(n_fep,              master_task)
+#if (1 == 0)
       call broadcast_scalar(n_trbgcz,           master_task)
       call broadcast_scalar(n_trzs,             master_task)
       call broadcast_scalar(n_trbri,            master_task)
       call broadcast_scalar(n_trzaero,          master_task)
       call broadcast_scalar(n_trbgcs,           master_task)
+#endif
       call broadcast_scalar(a_rapid_mode,       master_task)
       call broadcast_scalar(Rac_rapid_mode,     master_task)
       call broadcast_scalar(aspect_rapid_mode,  master_task)
@@ -1164,11 +1172,13 @@
          write(nu_diag,1020) ' n_don                     = ', n_don
          write(nu_diag,1020) ' n_fed                     = ', n_fed
          write(nu_diag,1020) ' n_fep                     = ', n_fep
+#if (1 == 0)
          write(nu_diag,1020) ' n_trbgcz                  = ', n_trbgcz
          write(nu_diag,1020) ' n_trzs                    = ', n_trzs
          write(nu_diag,1020) ' n_trbri                   = ', n_trbri
          write(nu_diag,1020) ' n_trzaero                 = ', n_trzaero
          write(nu_diag,1020) ' n_trbgcs                  = ', n_trbgcs
+#endif
 
       endif                     ! my_task = master_task
 

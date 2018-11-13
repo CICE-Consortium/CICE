@@ -13,8 +13,10 @@
       use ice_domain_size, only: nblyr, nilyr, nslyr
       use ice_domain_size, only: n_aero, n_zaero, n_algae
       use ice_domain_size, only: n_doc, n_dic, n_don
-      use ice_domain_size, only: n_fed, n_fep, max_nsw, n_bgc
+      use ice_domain_size, only: n_fed, n_fep
+#if (1 == 0)
       use ice_domain_size, only: n_trzs, n_trbri, n_trbgcs, n_trbgcz
+#endif
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: nu_nml, nml_filename, get_fileunit, &
                                release_fileunit, flush_fileunit
@@ -878,63 +880,6 @@
       character (len=char_len) :: &
          shortwave        ! from icepack
 
-#if (1 == 0)
-      integer (kind=int_kind) :: &
-          ntrcr,         nbtrcr,       nbtrcr_sw,    &
-          ntrcr_o,       nt_fbri,      &  
-          nt_bgc_Nit,    nt_bgc_Am,    nt_bgc_Sil,   &
-          nt_bgc_DMS,    nt_bgc_PON,   nt_bgc_S,     &
-          nt_bgc_DMSPp,  nt_bgc_DMSPd, &
-          nt_zbgc_frac,  nlt_chl_sw, &
-          nlt_bgc_Nit,   nlt_bgc_Am, nlt_bgc_Sil, &
-          nlt_bgc_DMS,   nlt_bgc_DMSPp, nlt_bgc_DMSPd, &
-          nlt_bgc_PON, &
-          nt_bgc_hum,  nlt_bgc_hum
-
-      integer (kind=int_kind), dimension(icepack_max_aero) :: &
-         nlt_zaero_sw       ! points to aerosol in trcrn_sw
-
-      integer (kind=int_kind), dimension(icepack_max_algae) :: &
-         nlt_bgc_N      , & ! algae
-         nlt_bgc_chl
-
-      integer (kind=int_kind), dimension(icepack_max_doc) :: &
-         nlt_bgc_DOC        ! disolved organic carbon
-
-      integer (kind=int_kind), dimension(icepack_max_don) :: &
-         nlt_bgc_DON        !
-
-      integer (kind=int_kind), dimension(icepack_max_dic) :: &
-         nlt_bgc_DIC        ! disolved inorganic carbon
-
-      integer (kind=int_kind), dimension(icepack_max_fe) :: &
-         nlt_bgc_Fed    , & !
-         nlt_bgc_Fep        !
-
-      integer (kind=int_kind), dimension(icepack_max_aero) :: &
-         nlt_zaero          ! non-reacting layer aerosols
-
-      integer (kind=int_kind), dimension(icepack_max_algae) :: &
-         nt_bgc_N , & ! diatoms, phaeocystis, pico/small
-         nt_bgc_chl   ! diatoms, phaeocystis, pico/small
-
-      integer (kind=int_kind), dimension(icepack_max_doc) :: &
-         nt_bgc_DOC      !  dissolved organic carbon
-
-      integer (kind=int_kind), dimension(icepack_max_don) :: &
-         nt_bgc_DON         !  dissolved organic nitrogen
-
-      integer (kind=int_kind), dimension(icepack_max_dic) :: &
-         nt_bgc_DIC         !  dissolved inorganic carbon
-
-      integer (kind=int_kind), dimension(icepack_max_fe) :: &
-         nt_bgc_Fed,     & !  dissolved iron
-         nt_bgc_Fep        !  particulate iron
-
-      integer (kind=int_kind), dimension(icepack_max_aero) :: &
-         nt_zaero       !  black carbon and other aerosols
-#endif
-
       logical (kind=log_kind) :: &
           tr_brine, &
           tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
@@ -996,10 +941,6 @@
       integer (kind=int_kind) :: &
          nml_error, & ! namelist i/o error flag
          k, mm    , & ! loop index
-#if (1 == 0)
-         nk       , & ! layer index
-         nk_bgc   , & ! layer index
-#endif
          ierr
 
       character(len=*), parameter :: subname='(input_zbgc)'
@@ -1055,9 +996,6 @@
         ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
         F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins 
 
-#if (1 == 0)
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
-#endif
       call icepack_query_tracer_flags(tr_aero_out=tr_aero)
       call icepack_query_parameters(ktherm_out=ktherm, shortwave_out=shortwave)
       call icepack_warnings_flush(nu_diag)
@@ -1255,11 +1193,13 @@
       !-----------------------------------------------------------------
       ! zsalinity and brine
       !-----------------------------------------------------------------
+#if (1 == 0)
       if (solve_zsal .and. n_trzs == 0) then
          write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
          write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
          solve_zsal = .false.      
-      elseif (solve_zsal .and. nblyr < 1)  then
+#endif
+      if (solve_zsal .and. nblyr < 1)  then
          write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
          write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
          solve_zsal = .false.     
@@ -1272,6 +1212,7 @@
          ktherm = 1
       endif
 
+#if (1 == 0)
       if (tr_brine .and. n_trbri == 0 ) then
          write(nu_diag,*) &
             subname,'WARNING: tr_brine=T but no brine height compiled'
@@ -1279,7 +1220,8 @@
             subname,'WARNING: setting solve_zsal and tr_brine = F'
          solve_zsal = .false.
          tr_brine  = .false.
-      elseif (tr_brine .and. nblyr < 1 ) then
+#endif
+      if (tr_brine .and. nblyr < 1 ) then
          write(nu_diag,*) &
             subname,'WARNING: tr_brine=T but no biology layers compiled'
          write(nu_diag,*) &
@@ -1370,7 +1312,7 @@
           & types exceeds icepack_max_fe ')
       if (n_fep  > icepack_max_fe ) call abort_ice(subname//'ERROR: number of particulate fe &
           & types exceeds icepack_max_fe ')
-      if ((n_trbgcs == 0 .and. skl_bgc) .or. (n_algae == 0 .and. skl_bgc)) then
+      if (n_algae == 0 .and. skl_bgc) then
          write(nu_diag,*) &
             subname,'WARNING: skl_bgc=T but 0 bgc or algal tracers compiled'
          write(nu_diag,*) &
@@ -1378,7 +1320,7 @@
          skl_bgc = .false.
       endif
 
-      if ((n_trbgcz == 0 .and. solve_zbgc) .or. (n_algae == 0 .and. solve_zbgc)) then
+      if (n_algae == 0 .and. solve_zbgc) then
          write(nu_diag,*) &
             subname,'WARNING: solve_zbgc=T but 0 zbgc or algal tracers compiled'
          write(nu_diag,*) &
@@ -1604,37 +1546,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-#if (1 == 0)
-      call icepack_init_tracer_numbers( &
-          ntrcr_in=ntrcr, ntrcr_o_in=ntrcr_o, nbtrcr_in=nbtrcr, nbtrcr_sw_in=nbtrcr_sw)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
-
-      call icepack_init_tracer_indices( &
-          nbtrcr_in=nbtrcr,        &
-          nt_fbri_in=nt_fbri,      &
-          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
-          nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &
-          nt_bgc_N_in=nt_bgc_N,       nt_bgc_chl_in=nt_bgc_chl,   &
-          nt_bgc_DOC_in=nt_bgc_DOC,   nt_bgc_DON_in=nt_bgc_DON,     nt_bgc_DIC_in=nt_bgc_DIC,   &
-          nt_zaero_in=nt_zaero,       nt_bgc_DMSPp_in=nt_bgc_DMSPp, nt_bgc_DMSPd_in=nt_bgc_DMSPd, &
-          nt_bgc_Fed_in=nt_bgc_Fed,   nt_bgc_Fep_in=nt_bgc_Fep,     nt_zbgc_frac_in=nt_zbgc_frac, &
-          nlt_zaero_sw_in=nlt_zaero_sw,  nlt_chl_sw_in=nlt_chl_sw,  nlt_bgc_Sil_in=nlt_bgc_Sil, &
-          nlt_bgc_N_in=nlt_bgc_N,     nlt_bgc_Nit_in=nlt_bgc_Nit,   nlt_bgc_Am_in=nlt_bgc_Am, &
-          nlt_bgc_DMS_in=nlt_bgc_DMS, nlt_bgc_DMSPp_in=nlt_bgc_DMSPp, nlt_bgc_DMSPd_in=nlt_bgc_DMSPd, &
-          nlt_zaero_in=nlt_zaero,     nlt_bgc_chl_in=nlt_bgc_chl, &
-          nlt_bgc_DIC_in=nlt_bgc_DIC, nlt_bgc_DOC_in=nlt_bgc_DOC,   nlt_bgc_PON_in=nlt_bgc_PON, &
-          nlt_bgc_DON_in=nlt_bgc_DON, nlt_bgc_Fed_in=nlt_bgc_Fed,   nlt_bgc_Fep_in=nlt_bgc_Fep, &
-          nt_bgc_hum_in=nt_bgc_hum,   nlt_bgc_hum_in=nlt_bgc_hum, &
-          n_algae_in=n_algae,         &
-          n_DOC_in=n_DOC,             n_DON_in=n_DON,               n_DIC_in=n_DIC, &
-          n_fed_in=n_fed,             n_fep_in=n_fep,               n_zaero_in=n_zaero)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
-#endif
-
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
  1005    format (a30,2x,f9.6)  ! float
  1010    format (a30,2x,l6)    ! logical
@@ -1658,8 +1569,10 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
           n_aero, n_zaero, n_algae, &
           n_doc, n_dic, n_don, n_fed, n_fep, &
+#if (1 == 0)
           n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs, &
-          n_bgc, nltrcr, max_nsw, max_nstrm
+#endif
+          max_nstrm
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
           dumpfreq, dumpfreq_n, diagfreq, &
           npt, dt, ndtd, days_per_year, use_leap_years, &
@@ -1871,9 +1784,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-#if (1 == 0)
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)!, nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
-#endif
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
          tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
@@ -1887,27 +1797,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-#if (1 == 0)
-      call icepack_query_tracer_indices( &
-          nt_fbri_out=nt_fbri,      &
-          nt_bgc_Nit_out=nt_bgc_Nit,   nt_bgc_Am_out=nt_bgc_Am,       nt_bgc_Sil_out=nt_bgc_Sil,   &
-          nt_bgc_DMS_out=nt_bgc_DMS,   nt_bgc_PON_out=nt_bgc_PON,     nt_bgc_S_out=nt_bgc_S,     &
-          nt_bgc_N_out=nt_bgc_N,       nt_bgc_chl_out=nt_bgc_chl,   &
-          nt_bgc_DOC_out=nt_bgc_DOC,   nt_bgc_DON_out=nt_bgc_DON,     nt_bgc_DIC_out=nt_bgc_DIC,   &
-          nt_zaero_out=nt_zaero,       nt_bgc_DMSPp_out=nt_bgc_DMSPp, nt_bgc_DMSPd_out=nt_bgc_DMSPd, &
-          nt_bgc_Fed_out=nt_bgc_Fed,   nt_bgc_Fep_out=nt_bgc_Fep,     nt_zbgc_frac_out=nt_zbgc_frac, &
-          nlt_zaero_sw_out=nlt_zaero_sw,  nlt_chl_sw_out=nlt_chl_sw,  nlt_bgc_Sil_out=nlt_bgc_Sil, &
-          nlt_bgc_N_out=nlt_bgc_N,     nlt_bgc_Nit_out=nlt_bgc_Nit,   nlt_bgc_Am_out=nlt_bgc_Am, &
-          nlt_bgc_DMS_out=nlt_bgc_DMS, nlt_bgc_DMSPp_out=nlt_bgc_DMSPp, nlt_bgc_DMSPd_out=nlt_bgc_DMSPd, &
-          nlt_zaero_out=nlt_zaero,     nlt_bgc_chl_out=nlt_bgc_chl, &
-          nlt_bgc_DIC_out=nlt_bgc_DIC, nlt_bgc_DOC_out=nlt_bgc_DOC,   nlt_bgc_PON_out=nlt_bgc_PON, &
-          nlt_bgc_DON_out=nlt_bgc_DON, nlt_bgc_Fed_out=nlt_bgc_Fed,   nlt_bgc_Fep_out=nlt_bgc_Fep, &
-          nt_bgc_hum_out=nt_bgc_hum,   nlt_bgc_hum_out=nlt_bgc_hum)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
-#endif
-
       if (my_task == master_task) then
          write(nu_diag,1020) ' n_aero                    = ', n_aero
          write(nu_diag,1020) ' n_zaero                   = ', n_zaero
@@ -1917,11 +1806,13 @@
          write(nu_diag,1020) ' n_don                     = ', n_don
          write(nu_diag,1020) ' n_fed                     = ', n_fed
          write(nu_diag,1020) ' n_fep                     = ', n_fep
+#if (1 == 0)
          write(nu_diag,1020) ' n_trbgcz                  = ', n_trbgcz
          write(nu_diag,1020) ' n_trzs                    = ', n_trzs
          write(nu_diag,1020) ' n_trbri                   = ', n_trbri
          write(nu_diag,1020) ' n_trzaero                 = ', n_trzaero
          write(nu_diag,1020) ' n_trbgcs                  = ', n_trbgcs
+#endif
       endif                     ! my_task = master_task
 
 ! tcraig, this should all be gone by the time we're finished
@@ -1943,12 +1834,12 @@
       n_trpnd = 0                 ! ponds
       if (tr_pond) n_trpnd = 2*rpcesm + 3*rplvl + 3*rptopo
 
-      n_bgc     = (n_algae*2 + n_doc + n_dic + n_don + n_fed + &
-                   n_fep + n_zaero + 8)    ! nit, am, sil, dmspp, dmspd, dms, pon, humic
-      nltrcr    = (n_bgc*n_trbgcz+n_trzs)*n_trbri    ! number of zbgc (includes zaero)
-                                                     ! and zsalinity tracers
-      max_nsw   = (nilyr+nslyr+2) & ! total chlorophyll plus aerosols
-                * (1+n_trzaero)     ! number of tracers active in shortwave calculation
+!      n_bgc     = (n_algae*2 + n_doc + n_dic + n_don + n_fed + &
+!                   n_fep + n_zaero + 8)    ! nit, am, sil, dmspp, dmspd, dms, pon, humic
+!      nltrcr    = (n_bgc*n_trbgcz+n_trzs)*n_trbri    ! number of zbgc (includes zaero)
+!                                                     ! and zsalinity tracers
+!      max_nsw   = (nilyr+nslyr+2) & ! total chlorophyll plus aerosols
+!                * (1+n_trzaero)     ! number of tracers active in shortwave calculation
 !      max_ntrcr =   1         & ! 1 = surface temperature
 !                + nilyr       & ! ice salinity
 !                + nilyr       & ! ice enthalpy
@@ -2290,10 +2181,6 @@
 !tcx, +1 here is the unused tracer, want to get rid of it
       ntrcr = ntrcr + 1
 
-#if (1 == 0)
-      max_ntrcr = ntrcr
-#endif
-
 !tcx, reset unusaed tracer index, eventually get rid of it.
       if (nt_iage  <= 0) nt_iage  = ntrcr
       if (nt_FY    <= 0) nt_FY    = ntrcr
@@ -2306,17 +2193,8 @@
       if (nt_fbri  <= 0) nt_fbri  = ntrcr
       if (nt_bgc_S <= 0) nt_bgc_S = ntrcr
 
-#if (1 == 0)
-      if (ntrcr > max_ntrcr-1) then
-         if (my_task == master_task) then
-            write(nu_diag,*) 'ERROR: max_ntrcr-1 < number of namelist tracers'
-            write(nu_diag,*) 'ERROR:   max_ntrcr-1 = ',max_ntrcr-1,' ntrcr = ',ntrcr
-         endif
-      endif                               
-#endif
-
       if (my_task == master_task) then
-#if (1 == 1)
+#if (1 == 0)
          write(nu_diag,*) ' '
          write(nu_diag,1020) ' n_bgc                     = ', n_bgc
          write(nu_diag,1020) ' nltrcr                    = ', nltrcr
@@ -2405,31 +2283,6 @@
  1040    format (a30,2x,6i6)   ! integer
  1050    format (a30,2x,6a6)   ! character
       endif                     ! my_task = master_task
-
-#if (1 == 0)
-      call broadcast_scalar(ntrcr,    master_task)
-      call broadcast_scalar(ntrcr_o,  master_task)
-      call broadcast_scalar(nbtrcr,   master_task)
-      call broadcast_scalar(nbtrcr_sw,master_task)
-      call broadcast_scalar(nt_Tsfc,  master_task)
-      call broadcast_scalar(nt_sice,  master_task)
-      call broadcast_scalar(nt_qice,  master_task)
-      call broadcast_scalar(nt_qsno,  master_task)
-      call broadcast_scalar(nt_iage,  master_task)
-      call broadcast_scalar(nt_FY,    master_task)
-      call broadcast_scalar(nt_alvl,  master_task)
-      call broadcast_scalar(nt_vlvl,  master_task)
-      call broadcast_scalar(nt_apnd,  master_task)
-      call broadcast_scalar(nt_hpnd,  master_task)
-      call broadcast_scalar(nt_ipnd,  master_task)
-      call broadcast_scalar(nt_aero,  master_task)
-      call broadcast_scalar(nt_fbri,  master_task)
-      call broadcast_scalar(nt_bgc_Nit,  master_task)
-      call broadcast_scalar(n_bgc,    master_task)
-      call broadcast_scalar(nltrcr,   master_task)
-      call broadcast_scalar(max_nsw,  master_task)
-      call broadcast_scalar(max_ntrcr,master_task)
-#endif
 
       call flush_fileunit(nu_diag)
 

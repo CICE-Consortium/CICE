@@ -70,11 +70,6 @@
     n_don        = 0
     n_fed        = 0
     n_fep        = 0
-    n_trbgcz     = 0
-    n_trzs       = 0
-    n_trbri      = 0
-    n_trzaero    = 0
-    n_trbgcs     = 0
     tr_iage      = .true.
     restart_age  = .false.
     tr_FY        = .true.
