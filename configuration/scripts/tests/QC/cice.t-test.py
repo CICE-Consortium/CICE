@@ -83,7 +83,7 @@ def read_data(path_a, path_b, files_a, files_b, ni, nj):
     def fill_data_array(path, files, nj, ni):
         '''Function to fill the data arrays'''
         # Initialize the data array
-        data = np.zeros((len(files), nj, ni))
+        data = np.zeros((len(files), nj, ni),dtype=np.float32)
         # Read in the data
         logger.debug('Reading in data for files in %s', path)
         cnt = 0
@@ -109,16 +109,13 @@ def read_data(path_a, path_b, files_a, files_b, ni, nj):
                            np.all(np.equal(data_d, 0.), axis=0), np.all(data_a < 0.01, axis=0))\
                       , np.all(data_b < 0.01, axis=0))
         mask_array_a = np.zeros_like(data_d)
-        mask_array_b = np.zeros_like(data_d)
-        mask_array_d = np.zeros_like(data_d)
         for x, value in np.ndenumerate(mask_d):
             i, j = x
-            mask_array_d[:, i, j] = value
             mask_array_a[:, i, j] = value
-            mask_array_b[:, i, j] = value
-        data_d = ma.masked_array(data_d, mask=mask_array_d)
         data_a = ma.masked_array(data_a, mask=mask_array_a)
-        data_b = ma.masked_array(data_b, mask=mask_array_b)
+        data_b = ma.masked_array(data_b, mask=mask_array_a)
+        data_d = ma.masked_array(data_d, mask=mask_array_a)
+        del mask_array_a
 
         return data_a, data_b, data_d
 
@@ -450,7 +447,7 @@ def plot_two_stage_failures(data, lat, lon):
 
         f.close()
 
-if __name__ == "__main__":
+def main():
     import argparse
     parser = argparse.ArgumentParser(description='This script performs the T-test for \
                            CICE simulations that should be bit-for-bit, but are not.')
@@ -471,6 +468,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up the logger
+    global logger
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
@@ -498,6 +496,9 @@ if __name__ == "__main__":
 
     # Run the two-stage test
     PASSED, H1_array = two_stage_test(data_base, nfiles, data_diff, files_base[0], dir_a)
+
+    # Delete arrays that are no longer necessary
+    del data_diff
 
     # If test failed, attempt to create a plot of the failure locations
     if not PASSED:
@@ -540,3 +541,6 @@ if __name__ == "__main__":
     else:
         logger.info('Quality Control Test PASSED')
         sys.exit(0)  # exit with successfull return code
+
+if __name__ == "__main__":
+    main()

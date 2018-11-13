@@ -5,6 +5,7 @@ grid_format = 'bin'
 grid_type   = 'displaced_pole'
 grid_file   = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx1/grid_gx1.bin'
 kmt_file    = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx1/kmt_gx1.bin'
+bathymetry_file = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx1/global_gx1.bathy.nc'
 maskhalo_dyn   = .true.
 maskhalo_remap = .true.
 maskhalo_bound = .true.
