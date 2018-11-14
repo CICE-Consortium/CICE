@@ -1439,8 +1439,8 @@ where :math:`m` is the combined mass of ice and snow per unit area and
 :math:`\vec{\tau}_a` and :math:`\vec{\tau}_w` are wind and ocean
 stresses, respectively. The term :math:`\vec{\tau}_b` is a 
 seabed stress (also referred to as basal stress) that represents the grounding of pressure
-ridges in shallow water :cite:`Lemieux16`. The strength of the ice is represented by the
-internal stress tensor :math:`\sigma_{ij}`, and the other two terms on
+ridges in shallow water :cite:`Lemieux16`. The mechanical properties of the ice are represented by the
+internal stress tensor :math:`\sigma_{ij}`. The other two terms on
 the right hand side are stresses due to Coriolis effects and the sea
 surface slope. The parameterization for the wind and ice–ocean stress
 terms must contain the ice concentration as a multiplicative factor to
@@ -1465,7 +1465,7 @@ EVP approach. First, for clarity, the two components of Equation :eq:`vpmom` are
 
 In the code,
 :math:`{\tt vrel}=a_i c_w \rho_w\left|{\bf U}_w - {\bf u}^k\right|` and 
-:math:`C_b=T_b \left( \sqrt{(u^k)^2+(v^k)^2}+u_0 \right)`, 
+:math:`C_b=T_b \left( \sqrt{(u^k)^2+(v^k)^2}+u_0 \right)^{-1}`, 
 where :math:`k` denotes the subcycling step. The following equations
 illustrate the time discretization and define some of the other
 variables used in the code.
@@ -1564,12 +1564,16 @@ the 'u' point based on local ice conditions (surrounding tracer points). They ar
 
 where the :math:`a_i` and :math:`v_i` are the total ice concentrations and ice volumes around the :math:`u` point :math:`i,j` and 
 :math:`k_1` is a parameter that defines the critical ice thickness :math:`h_{cu}` at which the parameterized 
-ridge(s) reaches the seafloor for a water depth :math:`h_{wu}=\min[h_w(i,j),h_w(i+1,j),h_w(i,j+1),h_w(i+1,j+1)]`. The value of :math:`k_1` can be changed at runtime using the namelist variable `k1`.
+ridge(s) reaches the seafloor for a water depth :math:`h_{wu}=\min[h_w(i,j),h_w(i+1,j),h_w(i,j+1),h_w(i+1,j+1)]`. Given the formulation of :math:`C_b` in equation :eq:`Cb`, the seabed stress components are non-zero only 
+when :math:`h_u > h_{cu}`. 
 
-Given the formulation of :math:`C_b` in equation :eq:`Cb`, the seabed stress components are non-zero only when :math:`h_u > h_{cu}`, which means
-that the parameterized ridge is thick enough to reach the seafloor. The maximum seabed stress depends on the weigth of the ridge 
-above hydrostatic balance and the value of :math:`k_2`. Note that the user must provide a bathymetry field for using this grounding 
-scheme. The grounding scheme can be turned on or off using the namelist parameter basalstress. 
+The maximum seabed stress depends on the weigth of the ridge 
+above hydrostatic balance and the value of :math:`k_2`. It is, however, the parameter :math:`k_1` that has the most notable impact on the simulated extent of landfast ice. 
+The value of :math:`k_1` can be changed at runtime using the namelist variable `k1`. The grounding scheme can be turned on or off using the namelist logical basalstress. 
+
+Note that the user must provide a bathymetry field for using this grounding 
+scheme. Grounding occurs up to water depth of ~25 m. It is suggested to have a bathymetry field with water depths larger than 5 m that represents well shallow water regions such as the Laptev Sea and the East Siberian Sea. 
+
    
 .. _internal-stress:
 
@@ -1647,19 +1651,31 @@ for elastic waves, :math:`\Delta t_e < T < \Delta t`, as
    E = {\zeta\over T},
 
 where :math:`T=E_\circ\Delta t` and :math:`E_\circ` (eyc) is a tunable
-parameter less than one. The stress equations :eq:`sig1`–:eq:`sig12`
-become
+parameter less than one. Including the modification proposed by :cite:`Bouillon13` for equations :eq:`sig2` and :eq:`sig12` in order to improve numerical convergence, the stress equations become
 
 .. math::
    \begin{aligned}
    {\partial\sigma_1\over\partial t} + {\sigma_1\over 2T} 
      + {P_R(1-k_t)\over 2T} &=& {P(1+k_t)\over 2T\Delta} D_D, \\
-   {\partial\sigma_2\over\partial t} + {e^2\sigma_2\over 2T} &=& {P(1+k_t)\over
-     2T\Delta} D_T,\\
-   {\partial\sigma_{12}\over\partial t} + {e^2\sigma_{12}\over  2T} &=&
-     {P(1+k_t)\over 4T\Delta}D_S.\end{aligned}
+   {\partial\sigma_2\over\partial t} + {\sigma_2\over 2T} &=& {P(1+k_t)\over
+     2Te^2\Delta} D_T,\\
+   {\partial\sigma_{12}\over\partial t} + {\sigma_{12}\over  2T} &=&
+     {P(1+k_t)\over 4Te^2\Delta}D_S.\end{aligned}
 
-All coefficients on the left-hand side are constant except for
+Once discretized in time, these last three equations are written as
+
+.. math::
+   \begin{aligned}
+   {(\sigma_1^{k+1}-\sigma_1^{k})\over\Delta t_e} + {\sigma_1^{k+1}\over 2T} 
+     + {P_R^k(1-k_t)\over 2T} &=& {P(1+k_t)\over 2T\Delta^k} D_D^k, \\
+   {(\sigma_2^{k+1}-\sigma_2^{k})\over\Delta t_e} + {\sigma_2^{k+1}\over 2T} &=& {P(1+k_t)\over
+     2Te^2\Delta^k} D_T^k,\\
+   {(\sigma_{12}^{k+1}-\sigma_{12}^{k})\over\Delta t_e} + {\sigma_{12}^{k+1}\over  2T} &=&
+     {P(1+k_t)\over 4Te^2\Delta^k}D_S^k,\end{aligned}
+   :label: sigdisc  
+     
+
+where :math:`k` denotes again the subcycling step. All coefficients on the left-hand side are constant except for
 :math:`P_R`. This modification compensates for the decreased efficiency of including
 the viscosity terms in the subcycling. (Note that the viscosities do not
 appear explicitly.) Choices of the parameters used to define :math:`E`,
@@ -1865,167 +1881,64 @@ of the dynamics.
 Revised approach
 ****************
 
-A modification of the standard elastic-viscous-plastic (EVP) approach
-for sea ice dynamics has been proposed by :cite:`Bouillon13`,
-that generalizes the EVP elastic modulus :math:`E` and the time
-stepping approach for both momentum and stress to use an
-under-relaxation technique. In general terms, the momentum and stress
-equations become
+The revised EVP approach is based on a pseudo-time iterative scheme :cite:`Lemieux12`, :cite:`Bouillon13`, :cite:`Kimmritz15`. By construction, the revised EVP approach should lead to the VP solution 
+(given the right numerical parameters and a sufficiently large number of iterations). To do so, the inertial term is formulated such that it matches the backward Euler approach of 
+implicit solvers and there is an additional term for the pseudo-time iteration. Hence, with the revised approach, the discretized momentum equations :eq:`umom` and :eq:`vmom` become  
+
+.. math::
+    {\beta^*(u^{k+1}-u^k)\over\Delta t_e} + {m(u^{k+1}-u^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)} u^{k+1} 
+    - {\left(mf+{\tt vrel}\sin\theta\right)} v^{k+1}
+    = {{\partial\sigma_{1j}^{k+1}\over\partial x_j}} 
+    + {\tau_{ax} - mg{\partial H_\circ\over\partial x} }
+    + {\tt vrel} {\left(U_w\cos\theta-V_w\sin\theta\right)},
+    :label: umomr
+
+.. math::
+    {\beta^*(v^{k+1}-v^k)\over\Delta t_e} + {m(v^{k+1}-v^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)}v^{k+1} 
+    + {\left(mf+{\tt vrel}\sin\theta\right)} u^{k+1} 
+    = {{\partial\sigma_{2j}^{k+1}\over\partial x_j}} 
+    + {\tau_{ay} - mg{\partial H_\circ\over\partial y} }
+    + {\tt vrel}{\left(U_w\sin\theta+V_w\cos\theta\right)},
+    :label: vmomr
+
+where :math:`\beta^*` is a numerical parameter and :math:`u^n, v^n` are the components of the previous time level solution. 
+With :math:`\beta=\beta^* \Delta t \left(  m \Delta t_e \right)^{-1}` :cite:`Bouillon13`, these equations can be written as
+ 
+.. math::
+   \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta\ + C_b \right)}_{\tt cca} u^{k+1} 
+   - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{k+1}
+    =  \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx} 
+    + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex}
+     + {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
+   :label: umomr2
+
+.. math::
+    \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{k+1} 
+   + \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca}v^{k+1}
+    =  \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty} 
+    + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey}
+     + {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t}(\beta v^k + v^n),
+   :label: vmomr2  
+
+At this point, the solutions :math:`u^{k+1}` and :math:`v^{k+1}` are obtained in the same manner as for the standard EVP approach (see equations :eq:`cevpuhat` to :eq:`cevpb`).
+
+Introducing another numerical parameter :math:`\alpha=2T \Delta t_e ^{-1}` :cite:`Bouillon13`, the stress equations in :eq:`sigdisc` become
 
 .. math::
    \begin{aligned}
-   {\bf u}^{k+1} &=& {\bf u}^k + \left(\breve{{\bf u}}^k - {\bf u}^{k+1}\right){1\over\beta} \\
-   \sigma^{k+1} &=& \sigma^k + \left(\breve{\sigma}^k - \sigma^{k+1}\right){1\over\alpha} \end{aligned}
+   {\alpha (\sigma_1^{k+1}-\sigma_1^{k})} + {\sigma_1^{k}} 
+     + {P_R^k(1-k_t)} &=& {P(1+k_t)\over \Delta^k} D_D^k, \\
+   {\alpha (\sigma_2^{k+1}-\sigma_2^{k})} + {\sigma_2^{k}} &=& {P(1+k_t)\over
+     e^2\Delta^k} D_T^k,\\
+   {\alpha (\sigma_{12}^{k+1}-\sigma_{12}^{k})} + {\sigma_{12}^{k}} &=&
+     {P(1+k_t)\over 2e^2\Delta^k}D_S^k,\end{aligned}
+   
+where as opposed to the classic EVP, the second term in each equation is at iteration :math:`k` :cite:`Bouillon13`. Also, as opposed to the classic EVP, :math:`N_{sub} ndte`
+does not need to be equal to the advective time step :math:`\Delta t`. A last difference between the classic EVP and the revised approach is that the latter one initializes the stresses to 0 at the beginning of each time step, 
+while the classic EVP approach uses the previous time level value. The revised EVP is activated by setting the namelist parameter `revised\_evp` = true. 
+In the code :math:`\alpha = arlx` and :math:`\beta = brlx`. The values of :math:`arlx` and :math:`brlx` can be set in the namelist. 
+It is recommended to use large values of these parameters and to set :math:`arlx=brlx` :cite:`Kimmritz15`.
 
-where :math:`\breve{{\bf u}}` and :math:`\breve{\sigma}` represent
-the converged VP solution and :math:`\alpha, \beta < 1`.
-
-*Momentum*
-
-The momentum equations become
-
-.. math::
-   \begin{aligned}
-   \beta{m\over\Delta t} \left(u^{k+1}-u^k\right) &=& \overline{u} + {\tt vrel}\left(-u^{k+1}\cos\theta + v^{k+1}\sin\theta\right) + mfv^{k+1} - {m\over \Delta t} u^{k+1} \\
-   \beta{m\over\Delta t} \left(v^{k+1}-v^k\right) &=& \overline{v} - {\tt vrel}\left(u^{k+1}\sin\theta + v^{k+1}\cos\theta\right) - mfu^{k+1}  - {m\over \Delta t} v^{k+1} \end{aligned}
-
-where
-
-.. math::
-   \overline{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t}u^\circ
-   :label: revpuhat
-
-.. math::
-   \overline{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} +  {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t}v^\circ,
-   :label: revpvhat
-
-:math:`{\bf u}^\circ` is the initial value of velocity at the
-beginning of the subcycling (:math:`k=0`), and we use
-:math:`{\bf u}^{k+1}` for the ice–ocean stress and Coriolis terms.
-Equations :eq:`revpuhat` and :eq:`revpvhat` differ from
-Equations :eq:`cevpuhat` and :eq:`cevpvhat` only in the last term.
-
-Solving simultaneously for :math:`{\bf u}^{k+1}` as before, we have
-
-.. math::
-   \begin{aligned}
-   u^{k+1} = {\tilde{a} \tilde{u} + b \tilde{v} \over \tilde{a}^2 + b^2} \\
-   v^{k+1} = {\tilde{a} \tilde{v} - b \tilde{u} \over \tilde{a}^2 + b^2}, \end{aligned}
-
-where
-
-.. math::
-   \tilde{a} = \left(1+\beta\right){m\over\Delta t} + {\tt vrel}\cos\theta \\
-
-.. math::
-   \tilde{\bf u} = \overline{\bf u} + \beta  {m\over\Delta t}{\bf u}^k,
-   :label: tildeu
-
-and :math:`b` is the same as in Equation :eq:`cevpb`.
-
-*Stress*
-
-In CICE’s classic approach, the update to :math:`\sigma_1` at subcycle
-step :math:`k+1` is
-
-.. math::
-   \sigma_1^{k+1} 
-   = \left(\sigma_1^{k} + {P\over\Delta}{\Delta t_e\over 2T} \left(\dot{\epsilon} - \Delta\right)\right) * \left(1 + {\Delta t_e\over 2T}\right)
-   :label: sig1time
-
-If we set
-
-.. math:: 
-   \alpha_1 = {2T\over \Delta t_e},
-
-then Equation :eq:`sig1time` becomes
-
-.. math:: 
-   \sigma_1^{k+1}\left(1+\alpha_1\right) = \alpha_1\sigma_1^k + {P\over\Delta} \left(\dot{\epsilon} - \Delta\right).
-
-This is equivalent to Eq. (23) in :cite:`Bouillon13`, but
-using :math:`\sigma` at the current subcycle :math:`k+1` in the last
-term on the right-hand side. Likewise, setting
-
-.. math:: 
-   \alpha_2 = {2T\over e^2\Delta t_e} = {\alpha_1\over e^2}
-
-produces equations equivalent to Eq. (23) in
-:cite:`Bouillon13` for :math:`\sigma_2` and
-:math:`\sigma_{12}`. Therefore the only change needed in the stress
-code is to use :math:`\alpha_1` and :math:`\alpha_2` instead of
-:math:`2T / \Delta t_e` and :math:`2T /e^2 \Delta t_e`.
-
-However, :cite:`Bouillon13` introduce another change to the EVP
-stress equations by altering the form of Young’s modulus in the elastic
-term: the coefficient of :math:`\partial\sigma_1/\partial t` is
-:math:`1/E`, but it is :math:`e^2/E` in the :math:`\sigma_2` and
-:math:`\sigma_{12}` equations. This change does not affect the VP
-equations to which the EVP equations should converge, but it does affect
-the transient path taken during the subcycling. Since EVP subcycling is
-finite, the numerical solutions obtained using this method differ from
-the original EVP code.
-
-To implement this second change, we need define only
-:math:`\alpha_1 = {2T/\Delta t_e}` as above and incorporate the factor
-of :math:`e^2` from :math:`\alpha_2` into the equations for
-:math:`\sigma_2` and :math:`\sigma_{12}`:
-
-.. math::
-   \begin{aligned}
-   \sigma_1^{k+1}\left(1+\alpha_1\right) &=&\sigma_1^k +  {\alpha_1}{P\over\Delta} D_D, \\
-   \sigma_2^{k+1}\left(1+\alpha_1\right) &=&\sigma_2^k + {\alpha_1\over e^2}{P\over\Delta}  D_T, \\
-   \sigma_{12}^{k+1}\left(1+\alpha_1\right) &=&\sigma_{12}^k + {\alpha_1\over 2e^2}{P\over\Delta}  D_S.\end{aligned}
-
-To minimize code changes and unify the two approaches, we define and
-apply :math:`1/\alpha_1` and :math:`\beta` in the classic EVP code, and
-modify the elastic stress term. These under-relaxation parameters
-control the rate at which the iteration converges. Thus for classic EVP
-we set
-
-.. math::
-   \begin{aligned}
-   {\tt arlx1i} &=& {1\over\alpha_1} = {\Delta t_e\over 2T} \\
-   {\tt brlx} &=& \beta = {\Delta t\over\Delta t_e}. \end{aligned}
-
-Then
-
-.. math::
-   \begin{aligned}
-   {\tt denom1} &=& {1\over{1+{\tt arlx1i}}} = {1\over{1+1/\alpha_1}} = {1\over{1+\Delta t_e/ 2T}} \\
-   {\tt c1} &=& {P\over\Delta}\,{\tt arlx1i} = {P\over\Delta}{\Delta t_e\over 2T}  \\
-   {\tt c0} &=& {{\tt c1}\over e^2} = {P\over\Delta}{\Delta t_e\over 2Te^2}  .\end{aligned}
-
-The stress equations for `stressp` (:math:`\sigma_1`) are unchanged; the
-modified equations for `stressm` (:math:`\sigma_2`) and `stress12`
-(:math:`\sigma_{12}`) take the form
-
-.. math::
-   \begin{aligned}
-   {\tt stressm} &=& {\tt stressm + c0}\,D_T \,{\tt denom1}\\
-   {\tt stress12} &=& {\tt stress12 + 0.5\,c0}\,D_S \,{\tt denom1}.\end{aligned}
-
-For classic EVP,
-
-.. math:: 
-   {\tt cca} = a = {\tt brlx}\,{m\over\Delta t} + {\tt vrel}\cos\theta ={m\over\Delta t_e} + {\tt vrel}\cos\theta.
-
-For revised EVP, arlx1i and brlx are defined separately from
-:math:`\Delta t`, :math:`\Delta t_e`, :math:`T` and :math:`e`, and
-
-.. math:: 
-   {\tt cca} = \tilde{a} = \left(1+ {\tt brlx}\right){m\over\Delta t} + {\tt vrel}\cos\theta= \left(1+\beta\right){m\over\Delta t} + {\tt vrel}\cos\theta.
-
-:math:`\tilde{\bf u}` must also be defined for revised EVP as in
-Equation :eq:`tildeu`. The extra terms in :math:`\tilde{a}` and
-:math:`\tilde{\bf u}` are multiplied by a flag (revp) that equals 1 for
-revised EVP and 0 for classic EVP. Revised EVP is activated by setting
-the namelist parameter `revised\_evp` = true. Note that in the current
-implementation, only the modified version of the elastic term is
-available for either the classic (`revised\_evp` = false) or the revised
-EVP method. A final difference is that the revised approach initializes
-the stresses to 0 at the beginning of each time step, while the classic
-EVP approach uses the previous time step value.
 
 
 ~~~~~~~~~~~~~~~~~~~~
