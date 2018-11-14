@@ -1447,7 +1447,7 @@ terms must contain the ice concentration as a multiplicative factor to
 be consistent with the formal theory of free drift in low ice
 concentration regions. A careful explanation of the issue and its
 continuum solution is provided in :cite:`Hunke03` and
-:cite:Connolley04`.
+:cite:`Connolley04`.
 
 The momentum equation is discretized in time as follows, for the classic
 EVP approach. First, for clarity, the two components of Equation :eq:`vpmom` are
@@ -1933,13 +1933,12 @@ Introducing another numerical parameter :math:`\alpha=2T \Delta t_e ^{-1}` :cite
    {\alpha (\sigma_{12}^{k+1}-\sigma_{12}^{k})} + {\sigma_{12}^{k}} &=&
      {P(1+k_t)\over 2e^2\Delta^k}D_S^k,\end{aligned}
    
-where as opposed to the classic EVP, the second term in each equation is at iteration :math:`k` :cite:`Bouillon13`. Also, as opposed to the classic EVP, :math:`N_{sub} ndte`
-does not need to be equal to the advective time step :math:`\Delta t`. A last difference between the classic EVP and the revised approach is that the latter one initializes the stresses to 0 at the beginning of each time step, 
+where as opposed to the classic EVP, the second term in each equation is at iteration :math:`k` :cite:`Bouillon13`. Also, as opposed to the classic EVP, 
+:math:`\Delta t_e` times the number of subcycles (or iterations) does not need to be equal to the advective time step :math:`\Delta t`. 
+A last difference between the classic EVP and the revised approach is that the latter one initializes the stresses to 0 at the beginning of each time step, 
 while the classic EVP approach uses the previous time level value. The revised EVP is activated by setting the namelist parameter `revised\_evp` = true. 
 In the code :math:`\alpha = arlx` and :math:`\beta = brlx`. The values of :math:`arlx` and :math:`brlx` can be set in the namelist. 
 It is recommended to use large values of these parameters and to set :math:`arlx=brlx` :cite:`Kimmritz15`.
-
-
 
 ~~~~~~~~~~~~~~~~~~~~
 Thickness changes

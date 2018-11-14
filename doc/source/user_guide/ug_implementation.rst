@@ -715,16 +715,6 @@ merely an estimate. In practice, the ratio
 stability and acceptable efficiency for time steps (:math:`\Delta t`) on
 the order of 1 hour.
 
-For the revised EVP approach (`kdyn` = 1, `revised\_evp` = true), the
-relaxation parameter `arlx1i` effectively sets the damping timescale in
-the problem, and `brlx` represents the effective subcycling
-:cite:`Bouillon13`. In practice the parameters :math:`S_e>0.5`
-and :math:`\xi<1` are set, along with an estimate of the ice strength
-per unit mass, and the damping and subcycling parameters are then
-calculated. With the addition of the revised EVP approach to CICE, the
-code now uses these parameters internally for both classic and revised
-EVP configurations (see Section :ref:`revp`).
-
 Note that only :math:`T` and :math:`\Delta t_e` figure into the
 stability of the dynamics component; :math:`\Delta t` does not. Although
 the time step may not be tightly limited by stability considerations,
@@ -736,6 +726,11 @@ component is stable for any time step, as long as the surface
 temperature :math:`T_{sfc}` is computed internally. The
 numerical constraint on the thermodynamics time step is associated with
 the transport scheme rather than the thermodynamic solver.
+
+For the revised EVP approach (`kdyn` = 1, `revised\_evp` = true), the
+relaxation parameter `arlx1i` effectively sets the damping timescale in
+the problem, and `brlx` represents the effective subcycling
+:cite:`Bouillon13` (see Section :ref:`revp`).
 
 ~~~~~~~~~~~~
 Model output
