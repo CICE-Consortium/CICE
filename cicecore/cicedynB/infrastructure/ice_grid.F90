@@ -1812,8 +1812,7 @@
       use ice_constants, only: field_loc_center, field_type_vector
       use ice_domain_size, only: max_blocks
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(inout) :: & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(inout) :: & 
            work
 
       ! local variables
@@ -1903,8 +1902,7 @@
       use ice_constants, only: field_loc_NEcorner, field_type_vector
       use ice_domain_size, only: max_blocks
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
          work
 
       ! local variables
@@ -2189,11 +2187,11 @@
           field_loc_NEcorner, field_type_scalar
       use ice_domain_size, only: max_blocks
 
-      real (kind=dbl_kind), dimension(:,:), intent(in) :: work_g
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: &
+          work_g
 
-      real (kind=dbl_kind), &
-          dimension(4,nx_block,ny_block,max_blocks), &
-          intent(out) :: vbounds
+      real (kind=dbl_kind), dimension(4,nx_block,ny_block,max_blocks), intent(out) :: &
+          vbounds
 
       integer (kind=int_kind) :: &
           i,j                 ! index counters

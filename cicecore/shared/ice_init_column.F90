@@ -14,9 +14,6 @@
       use ice_domain_size, only: n_aero, n_zaero, n_algae
       use ice_domain_size, only: n_doc, n_dic, n_don
       use ice_domain_size, only: n_fed, n_fep
-#if (1 == 0)
-      use ice_domain_size, only: n_trzs, n_trbri, n_trbgcs, n_trbgcz
-#endif
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: nu_nml, nml_filename, get_fileunit, &
                                release_fileunit, flush_fileunit
@@ -941,7 +938,7 @@
       integer (kind=int_kind) :: &
          nml_error, & ! namelist i/o error flag
          k, mm    , & ! loop index
-         ierr
+         ierr, abort_flag
 
       character(len=*), parameter :: subname='(input_zbgc)'
 
@@ -995,6 +992,10 @@
         ratio_C2N_sp       , ratio_C2N_phaeo    , ratio_chl2N_diatoms,  & 
         ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
         F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins 
+
+      !-----------------------------------------------------------------
+
+      abort_flag = 0
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero)
       call icepack_query_parameters(ktherm_out=ktherm, shortwave_out=shortwave)
@@ -1193,41 +1194,25 @@
       !-----------------------------------------------------------------
       ! zsalinity and brine
       !-----------------------------------------------------------------
-#if (1 == 0)
-      if (solve_zsal .and. n_trzs == 0) then
-         write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
-         write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
-         solve_zsal = .false.      
-#endif
       if (solve_zsal .and. nblyr < 1)  then
-         write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
-         write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
-         solve_zsal = .false.     
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: solve_zsal=T but 0 zsalinity tracers'
+         endif
+         abort_flag = 1
       endif 
 
       if (solve_zsal .and. ((.not. tr_brine) .or. (ktherm /= 1))) then
-         write(nu_diag,*) subname,'WARNING: solve_zsal needs tr_brine=T and ktherm=1'
-         write(nu_diag,*) subname,'WARNING: setting tr_brine=T and ktherm=1'
-         tr_brine = .true.
-         ktherm = 1
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: solve_zsal needs tr_brine=T and ktherm=1'
+         endif
+         abort_flag = 2
       endif
 
-#if (1 == 0)
-      if (tr_brine .and. n_trbri == 0 ) then
-         write(nu_diag,*) &
-            subname,'WARNING: tr_brine=T but no brine height compiled'
-         write(nu_diag,*) &
-            subname,'WARNING: setting solve_zsal and tr_brine = F'
-         solve_zsal = .false.
-         tr_brine  = .false.
-#endif
       if (tr_brine .and. nblyr < 1 ) then
-         write(nu_diag,*) &
-            subname,'WARNING: tr_brine=T but no biology layers compiled'
-         write(nu_diag,*) &
-            subname,'WARNING: setting solve_zsal and tr_brine = F'
-         solve_zsal = .false.
-         tr_brine  = .false.
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: tr_brine=T but no biology layers compiled'
+         endif
+         abort_flag = 3
       endif 
 
       call broadcast_scalar(solve_zsal,         master_task)  
@@ -1259,80 +1244,133 @@
 
       if (.not. tr_brine) then
          if (solve_zbgc) then
-            write(nu_diag,*) subname,'WARNING: tr_brine = F and solve_zbgc = T'
-            write(nu_diag,*) subname,'WARNING: setting solve_zbgc = F'
-            solve_zbgc = .false.
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' ERROR: tr_brine = F and solve_zbgc = T'
+            endif
+            abort_flag = 4
          endif
          if (tr_zaero) then
-            write(nu_diag,*) subname,'WARNING: tr_brine = F and tr_zaero = T'
-            write(nu_diag,*) subname,'WARNING: setting tr_zaero = F'
-            tr_zaero = .false.
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' ERROR: tr_brine = F and tr_zaero = T'
+            endif
+            abort_flag = 5
          endif
       endif
 
-      if ((skl_bgc .AND. solve_zbgc) .or. (skl_bgc .AND. z_tracers)) &
-         call abort_ice(subname//'ERROR: bgc and solve_zbgc or z_tracers are both true')
+      if ((skl_bgc .AND. solve_zbgc) .or. (skl_bgc .AND. z_tracers)) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: skl_bgc and solve_zbgc or z_tracers are both true'
+         endif
+         abort_flag = 6
+      endif
 
       if (skl_bgc .AND. tr_zaero) then
-         write(nu_diag,*) subname,'WARNING: skl bgc does not use vertical tracers'
-         write(nu_diag,*) subname,'WARNING: setting tr_zaero = F'
-         tr_zaero = .false.
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: skl_bgc does not use vertical tracers'
+         endif
+         abort_flag = 7
       endif
 
       if (dEdd_algae .AND. trim(shortwave) /= 'dEdd') then 
-         write(nu_diag,*) subname,'WARNING: dEdd_algae = T but shortwave /= dEdd'
-         write(nu_diag,*) subname,'WARNING: setting dEdd_algae = F'
-         dEdd_algae = .false.
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: dEdd_algae = T but shortwave /= dEdd'
+         endif
+         abort_flag = 8
       endif
 
       if (dEdd_algae .AND. (.NOT. tr_bgc_N) .AND. (.NOT. tr_zaero)) then 
-         write(nu_diag,*) subname,'WARNING: need tr_bgc_N or tr_zaero for dEdd_algae'
-         write(nu_diag,*) subname,'WARNING: setting dEdd_algae = F'
-         dEdd_algae = .false.
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: need tr_bgc_N or tr_zaero for dEdd_algae'
+         endif
+         abort_flag = 9
       endif
 
       if (modal_aero .AND. (.NOT. tr_zaero) .AND. (.NOT. tr_aero)) then
-         modal_aero = .false.
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: modal_aero T with tr_zaero and tr_aero'
+         endif
+         abort_flag = 10
       endif
          
       if (modal_aero .AND. trim(shortwave) /= 'dEdd') then 
-         write(nu_diag,*) subname,'WARNING: modal_aero = T but shortwave /= dEdd'
-         write(nu_diag,*) subname,'WARNING: setting modal_aero = F'
-         modal_aero = .false.
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: modal_aero = T but shortwave /= dEdd'
+         endif
+         abort_flag = 11
       endif
-      if (n_algae > icepack_max_algae) call abort_ice(subname//'ERROR: number of algal &
-          & types exceeds icepack_max_algae')
-      if (n_doc > icepack_max_doc) call abort_ice(subname//'ERROR: number of doc &
-          & types exceeds icepack_max_doc')
-      if (n_dic > icepack_max_doc) call abort_ice(subname//'ERROR: number of dic &
-          & types exceeds icepack_max_dic')
-      if (n_don > icepack_max_don) call abort_ice(subname//'ERROR: number of don &
-          & types exceeds icepack_max_don')
-      if (n_fed  > icepack_max_fe ) call abort_ice(subname//'ERROR: number of dissolved fe &
-          & types exceeds icepack_max_fe ')
-      if (n_fep  > icepack_max_fe ) call abort_ice(subname//'ERROR: number of particulate fe &
-          & types exceeds icepack_max_fe ')
+      if (n_algae > icepack_max_algae) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of algal types exceeds icepack_max_algae'
+         endif
+         abort_flag = 12
+      endif
+      if (n_doc > icepack_max_doc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of doc types exceeds icepack_max_doc'
+         endif
+         abort_flag = 13
+      endif
+      if (n_dic > icepack_max_doc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of dic types exceeds icepack_max_dic'
+         endif
+         abort_flag = 14
+      endif
+      if (n_don > icepack_max_don) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of don types exceeds icepack_max_don'
+         endif
+         abort_flag = 15
+      endif
+      if (n_fed  > icepack_max_fe ) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of dissolved fe types exceeds icepack_max_fe '
+         endif
+         abort_flag = 16
+      endif
+      if (n_fep  > icepack_max_fe ) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of particulate fe types exceeds icepack_max_fe '
+         endif
+         abort_flag = 17
+      endif
+
       if (n_algae == 0 .and. skl_bgc) then
-         write(nu_diag,*) &
-            subname,'WARNING: skl_bgc=T but 0 bgc or algal tracers compiled'
-         write(nu_diag,*) &
-            subname,'WARNING: setting skl_bgc = F'
-         skl_bgc = .false.
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: skl_bgc=T but 0 bgc or algal tracers compiled'
+         endif
+         abort_flag = 18
       endif
 
       if (n_algae == 0 .and. solve_zbgc) then
-         write(nu_diag,*) &
-            subname,'WARNING: solve_zbgc=T but 0 zbgc or algal tracers compiled'
-         write(nu_diag,*) &
-            subname,'WARNING: setting solve_zbgc = F'
-         solve_zbgc = .false.
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: solve_zbgc=T but 0 zbgc or algal tracers compiled'
+         endif
+         abort_flag = 19
       endif
 
-      if (solve_zbgc .and. .not. z_tracers) z_tracers = .true.
+      if (solve_zbgc .and. .not. z_tracers) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: solve_zbgc=T but not z_tracers'
+         endif
+         abort_flag = 20
+      endif
+
       if (skl_bgc .or. solve_zbgc) then
-         tr_bgc_N         = .true.   ! minimum NP biogeochemistry
-         tr_bgc_Nit       = .true.
+         if (.not. tr_bgc_N) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'ERROR: tr_bgc_N must be on for bgc'
+            endif
+            abort_flag = 21
+         endif
+         if (.not. tr_bgc_Nit) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'ERROR: tr_bgc_Nit must be on for bgc'
+            endif
+            abort_flag = 22
+         endif
       else
+         ! tcraig, allow bgc to be turned off in this case?
          tr_bgc_N         = .false.
          tr_bgc_C         = .false.
          tr_bgc_chl       = .false.
@@ -1366,10 +1404,19 @@
       !-----------------------------------------------------------------
       ! z layer aerosols
       !-----------------------------------------------------------------
-      if (tr_zaero .and. .not. z_tracers) z_tracers = .true.
+      if (tr_zaero .and. .not. z_tracers) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: tr_zaero and not z_tracers'
+         endif
+         abort_flag = 23
+      endif
 
-      if (n_zaero > icepack_max_aero) call abort_ice(subname//'ERROR: &
-          & number of z aerosols exceeds icepack_max_aero')
+      if (n_zaero > icepack_max_aero) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of z aerosols exceeds icepack_max_aero'
+         endif
+         abort_flag = 24
+      endif
          
       call broadcast_scalar(z_tracers,          master_task)
       call broadcast_scalar(tr_zaero,           master_task)
@@ -1496,28 +1543,18 @@
       call broadcast_scalar(F_abs_chl_phaeo    ,  master_task)
       call broadcast_scalar(ratio_C2N_proteins ,  master_task) 
 
-!echmod - (re)move this?
-!      if (skl_bgc .and. n_bgc < 2) then
-!         write (nu_diag,*) subname,' '
-!         write (nu_diag,*) subname,'must have number of bgc tracers >= 2'
-!         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
-!         call abort_ice (subname//'ERROR: skl_bgc and n_bgc < 2')
-!      endif
+      !-----------------------------------------------------------------
+      ! abort if abort flag is set
+      !-----------------------------------------------------------------
 
-!      if (solve_zbgc .and. n_bgc < 2) then
-!         write (nu_diag,*) subname,' '
-!         write (nu_diag,*) subname,'must have number of zbgc tracers >= 2'
-!         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
-!         call abort_ice (subname//'ERROR: solve_zbgc and n_bgc < 2')
-!      endif
+      call flush_fileunit(nu_diag)
+      call ice_barrier()
+      if (abort_flag /= 0) then
+         write(nu_diag,*) subname,' ERROR: abort_flag=',abort_flag
+         call abort_ice (subname//' ABORTING on input ERRORS', &
+            file=__FILE__, line=__LINE__)
+      endif
 
-!      if (tr_zaero .and. n_zaero <  1) then
-!         write (nu_diag,*) subname,' '
-!         write (nu_diag,*) subname,'comp_ice must have number of n_zaero > 0'
-!         write (nu_diag,*) subname,'in order to solve z aerosols:',n_zaero
-!         call abort_ice (subname//'ERROR: tr_zaero and tr zaero < 1')
-!      endif
-!echmod
       !-----------------------------------------------------------------
       ! set values in icepack
       !-----------------------------------------------------------------
@@ -1569,9 +1606,6 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
           n_aero, n_zaero, n_algae, &
           n_doc, n_dic, n_don, n_fed, n_fep, &
-#if (1 == 0)
-          n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trbgcs, &
-#endif
           max_nstrm
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
           dumpfreq, dumpfreq_n, diagfreq, &
@@ -1615,12 +1649,6 @@
       integer (kind=int_kind) :: &
          nml_error, & ! namelist i/o error flag
          n        , & ! loop index
-#if (1 == 1)
-         n_trage  , & ! age
-         n_trfy   , & ! first-year area
-         n_trlvl  , & ! level/deformed ice
-         n_trpnd  , & ! ponds
-#endif
          k, mm    , & ! loop index
          nk       , & ! layer index
          nk_bgc   , & ! layer index
@@ -1761,9 +1789,6 @@
          f_exude          , & ! fraction of exuded carbon to each DOC pool
          k_bac                ! Bacterial degredation of DOC (1/d)    
 
-#if (1 == 1)
-      integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
-#endif
       real (kind=dbl_kind) :: Cf, puny
 
       character(len=*), parameter :: subname='(count_tracers)'
@@ -1806,57 +1831,7 @@
          write(nu_diag,1020) ' n_don                     = ', n_don
          write(nu_diag,1020) ' n_fed                     = ', n_fed
          write(nu_diag,1020) ' n_fep                     = ', n_fep
-#if (1 == 0)
-         write(nu_diag,1020) ' n_trbgcz                  = ', n_trbgcz
-         write(nu_diag,1020) ' n_trzs                    = ', n_trzs
-         write(nu_diag,1020) ' n_trbri                   = ', n_trbri
-         write(nu_diag,1020) ' n_trzaero                 = ', n_trzaero
-         write(nu_diag,1020) ' n_trbgcs                  = ', n_trbgcs
-#endif
       endif                     ! my_task = master_task
-
-! tcraig, this should all be gone by the time we're finished
-#if (1 == 1)
-      n_trage = 0                 ! age
-      if (tr_iage) n_trage = 1
-      n_trFY = 0                  ! first-year area
-      if (tr_FY)   n_trFY = 1
-      n_trlvl = 0                 ! level/deformed ice
-      if (tr_lvl)  n_trlvl = 2
-
-      rpcesm = 0
-      rplvl  = 0
-      rptopo = 0
-      if (tr_pond_cesm) rpcesm = 1
-      if (tr_pond_lvl ) rplvl  = 1
-      if (tr_pond_topo) rptopo = 1
-
-      n_trpnd = 0                 ! ponds
-      if (tr_pond) n_trpnd = 2*rpcesm + 3*rplvl + 3*rptopo
-
-!      n_bgc     = (n_algae*2 + n_doc + n_dic + n_don + n_fed + &
-!                   n_fep + n_zaero + 8)    ! nit, am, sil, dmspp, dmspd, dms, pon, humic
-!      nltrcr    = (n_bgc*n_trbgcz+n_trzs)*n_trbri    ! number of zbgc (includes zaero)
-!                                                     ! and zsalinity tracers
-!      max_nsw   = (nilyr+nslyr+2) & ! total chlorophyll plus aerosols
-!                * (1+n_trzaero)     ! number of tracers active in shortwave calculation
-!      max_ntrcr =   1         & ! 1 = surface temperature
-!                + nilyr       & ! ice salinity
-!                + nilyr       & ! ice enthalpy
-!                + nslyr       & ! snow enthalpy
-!                            !!!!! optional tracers:
-!                + n_trage     & ! age
-!                + n_trFY      & ! first-year area
-!                + n_trlvl     & ! level/deformed ice
-!                + n_trpnd     & ! ponds
-!                + n_aero*4    & ! number of aerosols * 4 aero layers
-!                + n_trbri     & ! brine height
-!                + n_trbgcs*n_bgc           & ! skeletal layer BGC
-!                + n_trzs  *n_trbri* nblyr  & ! zsalinity  (off if n_trbri=0)
-!                + n_bgc*n_trbgcz*n_trbri*(nblyr+3) & ! zbgc (off if n_trbri=0)
-!                + n_bgc*n_trbgcz           & ! mobile/stationary phase tracer
-!                + 1             ! for unused tracer flags
-#endif
 
       nt_Tsfc = 1           ! index tracers, starting with Tsfc = 1
       ntrcr = 1             ! count tracers, starting with Tsfc = 1
@@ -2194,13 +2169,6 @@
       if (nt_bgc_S <= 0) nt_bgc_S = ntrcr
 
       if (my_task == master_task) then
-#if (1 == 0)
-         write(nu_diag,*) ' '
-         write(nu_diag,1020) ' n_bgc                     = ', n_bgc
-         write(nu_diag,1020) ' nltrcr                    = ', nltrcr
-         write(nu_diag,1020) ' max_nsw                   = ', max_nsw
-!         write(nu_diag,1020) ' max_ntrcr                 = ', max_ntrcr
-#endif
          write(nu_diag,*) ' '
          write(nu_diag,1020) ' ntrcr                     = ', ntrcr
          write(nu_diag,*) ' '
@@ -2995,15 +2963,6 @@
          call abort_ice (subname//'ERROR: nbtrcr > icepack_max_nbtrcr')
       endif
       if (.NOT. dEdd_algae) nbtrcr_sw = 1
-
-#if (1 == 0)
-      if (nbtrcr_sw > max_nsw) then
-         write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'nbtrcr_sw > max_nsw'
-         write (nu_diag,*) subname,'nbtrcr_sw, max_nsw:',nbtrcr_sw, max_nsw
-         call abort_ice (subname//'ERROR: nbtrcr_sw > max_nsw')
-      endif
-#endif
 
       !-----------------------------------------------------------------
       ! spew

@@ -658,8 +658,7 @@
                                  ! relative to recd
          maxrec                  ! maximum record value
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), intent(inout) :: &
          field_data              ! 2 values needed for interpolation
 
       integer (kind=int_kind), intent(in) :: &
@@ -817,8 +816,7 @@
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), intent(out) :: &
          field_data              ! 2 values needed for interpolation
 
       ! local variables
@@ -957,8 +955,7 @@
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-        intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), intent(inout) :: &
         field_data         ! 2 values needed for interpolation
 
       ! local variables
@@ -1043,8 +1040,7 @@
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-        intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), intent(out) :: &
         field_data         ! 2 values needed for interpolation
 
       ! local variables
@@ -1226,12 +1222,10 @@
 
       use ice_domain, only: nblocks
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), &
-        intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,2,max_blocks), intent(in) :: &
         field_data    ! 2 values used for interpolation
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-        intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
         field         ! interpolated field
 
       ! local variables
@@ -1312,8 +1306,7 @@
          aice    , & ! ice area fraction
          hm          ! land mask
      
-      real (kind=dbl_kind), dimension(nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
          fsw     , & ! incoming shortwave radiation (W/m^2)
          cldf    , & ! cloud fraction
          frain   , & ! rainfall rate (kg/m^2 s)
@@ -2146,8 +2139,7 @@
          cldf           , & ! cloud fraction
          hm                 ! land mask
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block),  &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
          fsw                ! shortwave
 
       real (kind=dbl_kind) :: &
@@ -2207,8 +2199,7 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in) :: &
          Tair               ! air temperature
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
          Qa                 ! specific humidity
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
@@ -3924,8 +3915,7 @@
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
 
-      real (kind=dbl_kind), dimension(2), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension(2), intent(inout) :: &
          field_data              ! 2 values needed for interpolation
 
       character(len=*), parameter :: subname = '(read_data_nc_point)'

@@ -555,8 +555,7 @@
          ksub              , & ! subcycling step
          icellt                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
          indxtj       ! compressed index in j-direction
 
@@ -575,21 +574,18 @@
          tarear   , & ! 1/tarea
          tinyarea     ! puny*tarea
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
          stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          rdg_conv , & ! convergence term for ridging (1/s)
          rdg_shear    ! shear term for ridging (1/s)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
-         intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          str          ! stress combinations
 
       ! local variables

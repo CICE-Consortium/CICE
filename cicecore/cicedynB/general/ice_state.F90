@@ -199,15 +199,12 @@
       integer (kind=int_kind), intent(in) :: &
          ntrcr     ! number of tracers in use
 
-      real (kind=dbl_kind), &
-         dimension(nx_block,ny_block,ncat,max_blocks), intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), intent(inout) :: &
          aicen , & ! fractional ice area
          vicen , & ! volume per unit area of ice          (m)
          vsnon     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), &
-         dimension(:,:,:,:,:), &  ! (nx_block,ny_block,ntrcr,ncat,max_blocks)
-         intent(inout) :: &
+      real (kind=dbl_kind), intent(inout), dimension(:,:,:,:,:) :: &  ! (nx_block,ny_block,ntrcr,ncat,max_blocks)
          trcrn     ! ice tracers
 
       ! local variables
