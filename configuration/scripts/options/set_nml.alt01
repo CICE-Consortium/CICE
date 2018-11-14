@@ -16,6 +16,7 @@ ktherm = 0
 conduct = 'bubbly'
 kdyn  =  0
 basalstress = .true.
+use_bathymetry = .true.
 shortwave = 'ccsm3'
 albedo_type = 'constant'
 formdrag = .true.
