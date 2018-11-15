@@ -1593,8 +1593,7 @@
 
 !=======================================================================
 
-! Namelist variables, set to default values; may be altered
-! at run time
+! Count and index tracers
 !
 ! author Elizabeth C. Hunke, LANL
 
@@ -1604,13 +1603,10 @@
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
-          n_aero, n_zaero, n_algae, &
-          n_doc, n_dic, n_don, n_fed, n_fep, &
-          max_nstrm
+          n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep, max_nstrm
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
-          dumpfreq, dumpfreq_n, diagfreq, &
-          npt, dt, ndtd, days_per_year, use_leap_years, &
-          write_ic, dump_last
+          dumpfreq, dumpfreq_n, diagfreq, npt, dt, ndtd, days_per_year, &
+          use_leap_years, write_ic, dump_last
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
       use ice_arrays_column, only: bgc_data_dir, sil_data_type, nit_data_type, fe_data_type
       use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
@@ -1628,16 +1624,14 @@
           ycycle,          fyear_init,    dbug, &
           atm_data_type,   atm_data_dir,  precip_units, &
           atm_data_format, ocn_data_format, &
-          bgc_data_type, &
-          ocn_data_type, ocn_data_dir,      &
+          bgc_data_type, ocn_data_type, ocn_data_dir, &
           oceanmixed_file, restore_ocn,   trestore
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
           bathymetry_file, use_bathymetry, &
           grid_type, grid_format, &
           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-          basalstress, k1, Ktens, e_ratio, coriolis, &
-          kridge, ktransport
+          basalstress, k1, Ktens, e_ratio, coriolis, kridge, ktransport
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -1687,8 +1681,7 @@
           nt_zbgc_frac,  nlt_chl_sw, &
           nlt_bgc_Nit,   nlt_bgc_Am, nlt_bgc_Sil, &
           nlt_bgc_DMS,   nlt_bgc_DMSPp, nlt_bgc_DMSPd, &
-          nlt_bgc_PON, &
-          nt_bgc_hum,  nlt_bgc_hum
+          nlt_bgc_PON,   nt_bgc_hum,  nlt_bgc_hum
 
       integer (kind=int_kind), dimension(icepack_max_aero) :: &
          nlt_zaero_sw       ! points to aerosol in trcrn_sw
@@ -1747,7 +1740,6 @@
 
       character (char_len) :: &
           bgc_flux_type
-
 
       real (kind=dbl_kind), dimension(icepack_max_algae) :: &
          F_abs_chl          ! to scale absorption in Dedd
@@ -2191,22 +2183,22 @@
          write(nu_diag,1020) ' number of bio tracers     = ', nbtrcr
          write(nu_diag,1020) ' number of Isw tracers     = ', nbtrcr_sw
          write(nu_diag,1020) ' number of autotrophs      = ', n_algae
-         write(nu_diag,1020) ' number of doc          = ', n_doc
-         write(nu_diag,1020) ' number of dic          = ', n_dic
-         write(nu_diag,1020) ' number of don          = ', n_don
-         write(nu_diag,1020) ' number of fed          = ', n_fed
-         write(nu_diag,1020) ' number of fep          = ', n_fep
-         write(nu_diag,1010) ' tr_bgc_N               = ', tr_bgc_N
-         write(nu_diag,1010) ' tr_bgc_C               = ', tr_bgc_C
-         write(nu_diag,1010) ' tr_bgc_chl             = ', tr_bgc_chl
-         write(nu_diag,1010) ' tr_bgc_Nit             = ', tr_bgc_Nit
-         write(nu_diag,1010) ' tr_bgc_Am              = ', tr_bgc_Am
-         write(nu_diag,1010) ' tr_bgc_Sil             = ', tr_bgc_Sil
-         write(nu_diag,1010) ' tr_bgc_hum             = ', tr_bgc_hum
-         write(nu_diag,1010) ' tr_bgc_DMS             = ', tr_bgc_DMS
-         write(nu_diag,1010) ' tr_bgc_PON             = ', tr_bgc_PON
-         write(nu_diag,1010) ' tr_bgc_DON             = ', tr_bgc_DON
-         write(nu_diag,1010) ' tr_bgc_Fe              = ', tr_bgc_Fe
+         write(nu_diag,1020) ' number of doc             = ', n_doc
+         write(nu_diag,1020) ' number of dic             = ', n_dic
+         write(nu_diag,1020) ' number of don             = ', n_don
+         write(nu_diag,1020) ' number of fed             = ', n_fed
+         write(nu_diag,1020) ' number of fep             = ', n_fep
+         write(nu_diag,1010) ' tr_bgc_N                  = ', tr_bgc_N
+         write(nu_diag,1010) ' tr_bgc_C                  = ', tr_bgc_C
+         write(nu_diag,1010) ' tr_bgc_chl                = ', tr_bgc_chl
+         write(nu_diag,1010) ' tr_bgc_Nit                = ', tr_bgc_Nit
+         write(nu_diag,1010) ' tr_bgc_Am                 = ', tr_bgc_Am
+         write(nu_diag,1010) ' tr_bgc_Sil                = ', tr_bgc_Sil
+         write(nu_diag,1010) ' tr_bgc_hum                = ', tr_bgc_hum
+         write(nu_diag,1010) ' tr_bgc_DMS                = ', tr_bgc_DMS
+         write(nu_diag,1010) ' tr_bgc_PON                = ', tr_bgc_PON
+         write(nu_diag,1010) ' tr_bgc_DON                = ', tr_bgc_DON
+         write(nu_diag,1010) ' tr_bgc_Fe                 = ', tr_bgc_Fe
 
         elseif (z_tracers) then
 
@@ -2250,8 +2242,6 @@
  1020    format (a30,2x,i6)    ! integer
  1021    format (a30,2x,a8,i6) ! char, int
  1030    format (a30,   a8)    ! character
- 1040    format (a30,2x,6i6)   ! integer
- 1050    format (a30,2x,6a6)   ! character
       endif                     ! my_task = master_task
 
       call flush_fileunit(nu_diag)
@@ -2300,14 +2290,14 @@
       use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N
 
       integer (kind=int_kind) :: &
-          nbtrcr,        nbtrcr_sw,     nt_fbri,       &
-          nt_bgc_Nit,    nt_bgc_Am,     nt_bgc_Sil,    &
-          nt_bgc_DMS,    nt_bgc_PON,    nt_bgc_S,      &
-          nt_bgc_DMSPp,  nt_bgc_DMSPd,                 &
-          nt_zbgc_frac,  nlt_chl_sw,                   &
-          nlt_bgc_Nit,   nlt_bgc_Am,    nlt_bgc_Sil,   &
-          nlt_bgc_DMS,   nlt_bgc_DMSPp, nlt_bgc_DMSPd, &
-          nlt_bgc_PON,   nt_bgc_hum,    nlt_bgc_hum
+         nbtrcr,        nbtrcr_sw,     nt_fbri,       &
+         nt_bgc_Nit,    nt_bgc_Am,     nt_bgc_Sil,    &
+         nt_bgc_DMS,    nt_bgc_PON,    nt_bgc_S,      &
+         nt_bgc_DMSPp,  nt_bgc_DMSPd,                 &
+         nt_zbgc_frac,  nlt_chl_sw,                   &
+         nlt_bgc_Nit,   nlt_bgc_Am,    nlt_bgc_Sil,   &
+         nlt_bgc_DMS,   nlt_bgc_DMSPp, nlt_bgc_DMSPd, &
+         nlt_bgc_PON,   nt_bgc_hum,    nlt_bgc_hum
 
       integer (kind=int_kind), dimension(icepack_max_aero) :: &
          nlt_zaero_sw       ! points to aerosol in trcrn_sw
@@ -2367,8 +2357,8 @@
          tr_bgc_hum,    tr_aero
 
       real (kind=dbl_kind) :: &
-          initbio_frac, &
-          frazil_scav
+         initbio_frac, &
+         frazil_scav
 
       real (kind=dbl_kind), dimension(icepack_max_nbtrcr) :: &
          zbgc_frac_init,&! initializes mobile fraction
@@ -2383,7 +2373,7 @@
          tau_rel             ! release timescale    (s), stationary to mobile phase
 
       logical (kind=log_kind) :: &
-          skl_bgc, z_tracers, dEdd_algae, solve_zsal
+         skl_bgc, z_tracers, dEdd_algae, solve_zsal
 
       real (kind=dbl_kind), dimension(icepack_max_algae) :: &
          F_abs_chl          ! to scale absorption in Dedd
@@ -2986,10 +2976,7 @@
       endif  ! master_task
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
- 1005    format (a30,2x,f9.6)  ! float
- 1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
- 1030    format (a30,   a8)    ! character
 
       end subroutine init_zbgc
 
