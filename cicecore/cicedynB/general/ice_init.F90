@@ -137,7 +137,7 @@
       character(len=*), parameter :: subname='(input_data)'
 
       !-----------------------------------------------------------------
-      ! Namelist variables.
+      ! Namelist variables
       !-----------------------------------------------------------------
 
       namelist /setup_nml/ &
@@ -696,10 +696,9 @@
          restart_pond_cesm =  .false. 
          restart_pond_lvl =  .false. 
          restart_pond_topo =  .false. 
-! tcraig, probably needs to be uncommented when we can test bgc
-!         restart_bgc =  .false. 
-!         restart_hbrine =  .false. 
-!         restart_zsal =  .false. 
+         restart_bgc =  .false.
+         restart_hbrine =  .false.
+         restart_zsal =  .false.
 ! tcraig, OK to leave as true, needed for boxrestore case
 !         restart_ext =  .false. 
       endif
@@ -839,6 +838,7 @@
       endif
 
 ! tcraig, is it really OK for users to run inconsistently?
+! ech: yes, for testing sensitivities.  It's not recommended for science runs
       if (ktherm == 1 .and. trim(tfrz_option) /= 'linear_salt') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: ktherm = 1 and tfrz_option = ',trim(tfrz_option)
@@ -1197,8 +1197,6 @@
          call abort_ice (subname//' ABORTING on input ERRORS', &
             file=__FILE__, line=__LINE__)
       endif
-
-!echmod - move from here
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
  1005    format (a30,2x,f9.6)  ! float
