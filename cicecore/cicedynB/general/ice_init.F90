@@ -130,7 +130,7 @@
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
-      real (kind=real_kind) :: rpcesm, rplvl, rptopo 
+      integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
       real (kind=dbl_kind) :: Cf, puny
       integer :: abort_flag
 
@@ -756,17 +756,17 @@
          revised_evp = .false.
       endif
 
-      rpcesm = c0
-      rplvl  = c0
-      rptopo = c0
-      if (tr_pond_cesm) rpcesm = c1
-      if (tr_pond_lvl ) rplvl  = c1
-      if (tr_pond_topo) rptopo = c1
+      rpcesm = 0
+      rplvl  = 0
+      rptopo = 0
+      if (tr_pond_cesm) rpcesm = 1
+      if (tr_pond_lvl ) rplvl  = 1
+      if (tr_pond_topo) rptopo = 1
 
       tr_pond = .false. ! explicit melt ponds
-      if (rpcesm + rplvl + rptopo > puny) tr_pond = .true.
+      if (rpcesm + rplvl + rptopo > 0) tr_pond = .true.
 
-      if (rpcesm + rplvl + rptopo > c1 + puny) then
+      if (rpcesm + rplvl + rptopo > 1) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: Must use only one melt pond scheme'
          endif
@@ -775,10 +775,9 @@
 
       if (tr_pond_lvl .and. .not. tr_lvl) then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' WARNING: tr_pond_lvl=T but tr_lvl=F'
-            write(nu_diag,*) subname//' WARNING: Setting tr_lvl=T'
+            write(nu_diag,*) subname//' ERROR: tr_pond_lvl=T but tr_lvl=F'
          endif
-         tr_lvl = .true.
+         abort_flag = 30
       endif
 
 ! tcraig - this was originally implemented by resetting hs0=0. EH says it might be OK
@@ -865,20 +864,25 @@
             abort_flag = 15
          endif
 
-         if (tr_pond_cesm) then
+         if (.not. tr_pond) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and frzpnd=cesm'
             abort_flag = 16
          endif
 
+         if (tr_pond_cesm) then
+            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and frzpnd=cesm'
+            abort_flag = 17
+         endif
+
          if (.not. tr_lvl) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and tr_lvl=F'
-            abort_flag = 17
+            abort_flag = 18
          endif
       endif
 
       if (trim(fbot_xfer_type) == 'Cdn_ocn' .and. .not. formdrag)  then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=F and fbot_xfer_type=Cdn_ocn'
-         abort_flag = 18
+         abort_flag = 19
       endif
 
       ice_IOUnitsMinUnit = numin
@@ -1167,25 +1171,6 @@
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
             abort_flag = 20
          endif
-
-      if (formdrag) then
-         if (nt_apnd==0) then
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T, nt_apnd=',nt_apnd
-            abort_flag = 21
-         elseif (nt_hpnd==0) then
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T, nt_hpnd=',nt_hpnd
-            abort_flag = 22
-         elseif (nt_ipnd==0) then
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T, nt_ipnd=',nt_ipnd
-            abort_flag = 23
-         elseif (nt_alvl==0) then
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T, nt_alvl=',nt_alvl
-            abort_flag = 24
-         elseif (nt_vlvl==0) then
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T, nt_vlvl=',nt_vlvl
-            abort_flag = 25
-         endif
-      endif
 
       call flush_fileunit(nu_diag)
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &

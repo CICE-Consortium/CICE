@@ -1198,21 +1198,21 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: solve_zsal=T but 0 zsalinity tracers'
          endif
-         abort_flag = 1
+         abort_flag = 101
       endif 
 
       if (solve_zsal .and. ((.not. tr_brine) .or. (ktherm /= 1))) then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: solve_zsal needs tr_brine=T and ktherm=1'
          endif
-         abort_flag = 2
+         abort_flag = 102
       endif
 
       if (tr_brine .and. nblyr < 1 ) then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: tr_brine=T but no biology layers compiled'
          endif
-         abort_flag = 3
+         abort_flag = 103
       endif 
 
       call broadcast_scalar(solve_zsal,         master_task)  
@@ -1247,13 +1247,13 @@
             if (my_task == master_task) then
                write(nu_diag,*) subname,' ERROR: tr_brine = F and solve_zbgc = T'
             endif
-            abort_flag = 4
+            abort_flag = 104
          endif
          if (tr_zaero) then
             if (my_task == master_task) then
                write(nu_diag,*) subname,' ERROR: tr_brine = F and tr_zaero = T'
             endif
-            abort_flag = 5
+            abort_flag = 105
          endif
       endif
 
@@ -1261,99 +1261,99 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: skl_bgc and solve_zbgc or z_tracers are both true'
          endif
-         abort_flag = 6
+         abort_flag = 106
       endif
 
       if (skl_bgc .AND. tr_zaero) then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: skl_bgc does not use vertical tracers'
          endif
-         abort_flag = 7
+         abort_flag = 107
       endif
 
       if (dEdd_algae .AND. trim(shortwave) /= 'dEdd') then 
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: dEdd_algae = T but shortwave /= dEdd'
          endif
-         abort_flag = 8
+         abort_flag = 108
       endif
 
       if (dEdd_algae .AND. (.NOT. tr_bgc_N) .AND. (.NOT. tr_zaero)) then 
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: need tr_bgc_N or tr_zaero for dEdd_algae'
          endif
-         abort_flag = 9
+         abort_flag = 109
       endif
 
       if (modal_aero .AND. (.NOT. tr_zaero) .AND. (.NOT. tr_aero)) then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: modal_aero T with tr_zaero and tr_aero'
          endif
-         abort_flag = 10
+         abort_flag = 110
       endif
          
       if (modal_aero .AND. trim(shortwave) /= 'dEdd') then 
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: modal_aero = T but shortwave /= dEdd'
          endif
-         abort_flag = 11
+         abort_flag = 111
       endif
       if (n_algae > icepack_max_algae) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: number of algal types exceeds icepack_max_algae'
          endif
-         abort_flag = 12
+         abort_flag = 112
       endif
       if (n_doc > icepack_max_doc) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: number of doc types exceeds icepack_max_doc'
          endif
-         abort_flag = 13
+         abort_flag = 113
       endif
       if (n_dic > icepack_max_doc) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: number of dic types exceeds icepack_max_dic'
          endif
-         abort_flag = 14
+         abort_flag = 114
       endif
       if (n_don > icepack_max_don) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: number of don types exceeds icepack_max_don'
          endif
-         abort_flag = 15
+         abort_flag = 115
       endif
       if (n_fed  > icepack_max_fe ) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: number of dissolved fe types exceeds icepack_max_fe '
          endif
-         abort_flag = 16
+         abort_flag = 116
       endif
       if (n_fep  > icepack_max_fe ) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: number of particulate fe types exceeds icepack_max_fe '
          endif
-         abort_flag = 17
+         abort_flag = 117
       endif
 
       if (n_algae == 0 .and. skl_bgc) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: skl_bgc=T but 0 bgc or algal tracers compiled'
          endif
-         abort_flag = 18
+         abort_flag = 118
       endif
 
       if (n_algae == 0 .and. solve_zbgc) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: solve_zbgc=T but 0 zbgc or algal tracers compiled'
          endif
-         abort_flag = 19
+         abort_flag = 119
       endif
 
       if (solve_zbgc .and. .not. z_tracers) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: solve_zbgc=T but not z_tracers'
          endif
-         abort_flag = 20
+         abort_flag = 120
       endif
 
       if (skl_bgc .or. solve_zbgc) then
@@ -1361,13 +1361,13 @@
             if (my_task == master_task) then
                write(nu_diag,*) subname//'ERROR: tr_bgc_N must be on for bgc'
             endif
-            abort_flag = 21
+            abort_flag = 121
          endif
          if (.not. tr_bgc_Nit) then
             if (my_task == master_task) then
                write(nu_diag,*) subname//'ERROR: tr_bgc_Nit must be on for bgc'
             endif
-            abort_flag = 22
+            abort_flag = 122
          endif
       else
          ! tcraig, allow bgc to be turned off in this case?
@@ -1408,14 +1408,14 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: tr_zaero and not z_tracers'
          endif
-         abort_flag = 23
+         abort_flag = 123
       endif
 
       if (n_zaero > icepack_max_aero) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'ERROR: number of z aerosols exceeds icepack_max_aero'
          endif
-         abort_flag = 24
+         abort_flag = 124
       endif
          
       call broadcast_scalar(z_tracers,          master_task)
