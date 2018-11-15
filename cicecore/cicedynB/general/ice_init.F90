@@ -865,7 +865,7 @@
          endif
 
          if (.not. tr_pond) then
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and frzpnd=cesm'
+            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and tr_pond=F'
             abort_flag = 16
          endif
 
@@ -1197,8 +1197,6 @@
          call abort_ice (subname//' ABORTING on input ERRORS', &
             file=__FILE__, line=__LINE__)
       endif
-
-!echmod - move from here
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
  1005    format (a30,2x,f9.6)  ! float

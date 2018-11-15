@@ -1833,8 +1833,10 @@
          write(nu_diag,1020) ' n_fep                     = ', n_fep
       endif                     ! my_task = master_task
 
-      nt_Tsfc = 1           ! index tracers, starting with Tsfc = 1
-      ntrcr = 1             ! count tracers, starting with Tsfc = 1
+      ntrcr = 0
+
+      ntrcr = ntrcr + 1             ! count tracers, starting with Tsfc = 1
+      nt_Tsfc = ntrcr               ! index tracers, starting with Tsfc = 1
 
       nt_qice = ntrcr + 1
       ntrcr = ntrcr + nilyr ! qice in nilyr layers
