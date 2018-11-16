@@ -25,7 +25,7 @@
       implicit none
       private
 
-      public :: init_calendar, calendar, time2sec, sec2time
+      public :: init_calendar, calendar, time2sec, sec2time, hc_jday
 
       integer (kind=int_kind), public :: &
          days_per_year        , & ! number of days in one year
@@ -64,7 +64,7 @@
          istep0   , & ! counter, number of steps taken in previous run
          istep1   , & ! counter, number of steps at current timestep
          mday     , & ! day of the month
-         hour     , & ! hour of the year
+         hour     , & ! hour of the day
          month    , & ! month number, 1 to 12
          monthp   , & ! last month
          year_init, & ! initial year
@@ -311,6 +311,9 @@
         case ("d", "D")
           if (new_day   .and. mod(elapsed_days, dumpfreq_n)==0) &
                 write_restart = 1
+        case ("h", "H")
+          if (new_hour  .and. mod(elapsed_hours, dumpfreq_n)==0) &
+                write_restart = 1
         end select
 
         if (force_restart_now) write_restart = 1
@@ -529,6 +532,47 @@
       endif
 
     end subroutine set_calendar
+
+!=======================================================================
+
+      real(kind=dbl_kind) function hc_jday(iyear,imm,idd,ihour)
+!--------------------------------------------------------------------
+! converts "calendar" date to HYCOM julian day:
+!   1) year,month,day,hour  (4 arguments)
+!   2) year,doy,hour        (3 arguments)
+!
+! HYCOM model day is calendar days since 31/12/1900
+!--------------------------------------------------------------------
+        real(kind=dbl_kind)     :: dtime
+        integer(kind=int_kind)  :: iyear,iyr,imm,idd,idoy,ihr
+        integer(kind=int_kind), optional :: ihour
+
+        if (present(ihour)) then
+          !-----------------
+          ! yyyy mm dd HH
+          !-----------------
+          iyr=iyear-1901
+          if (mod(iyr,4)==3) then
+            dtime = floor(365.25_dbl_kind*iyr)*c1 + daycal366(imm)*c1 + idd*c1 + ihour/24._dbl_kind
+          else
+            dtime = floor(365.25_dbl_kind*iyr)*c1 + daycal365(imm)*c1 + idd*c1 + ihour/24._dbl_kind
+          endif
+
+        else
+          !-----------------
+          ! yyyy DOY HH
+          !-----------------
+          ihr   = idd   ! redefine input
+          idoy  = imm   ! redefine input
+          iyr   = iyear - 1901
+          dtime = floor(365.25_dbl_kind*iyr)*c1 + idoy*c1 + ihr/24._dbl_kind
+
+        endif
+
+        hc_jday=dtime
+
+        return
+      end function hc_jday
 
 !=======================================================================
 

@@ -343,7 +343,7 @@
 
       type (block) :: &
          this_block           ! block information for current block
-      
+
       character(len=*), parameter :: subname = '(init_grid2)'
 
       !-----------------------------------------------------------------
@@ -723,13 +723,13 @@
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-	 fid_grid, &		! file id for netCDF grid file
-	 fid_kmt		! file id for netCDF kmt file
+         fid_grid, &            ! file id for netCDF grid file
+         fid_kmt                ! file id for netCDF kmt file
 
       logical (kind=log_kind) :: diag
 
       character (char_len) :: &
-         fieldname		! field name in netCDF file
+         fieldname              ! field name in netCDF file
 
       real (kind=dbl_kind) :: &
          pi
@@ -798,7 +798,7 @@
                                ew_boundary_type, ns_boundary_type)
 
       fieldname='ulon'
-      call ice_read_global_nc(fid_grid,2,fieldname,work_g1,diag) ! ULON
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULON
       call gridbox_verts(work_g1,lont_bounds)       
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
@@ -806,7 +806,7 @@
                                ew_boundary_type, ns_boundary_type)
 
       fieldname='angle'
-      call ice_read_global_nc(fid_grid,7,fieldname,work_g1,diag) ! ANGLE    
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_angle)
 
@@ -821,11 +821,11 @@
       !-----------------------------------------------------------------
 
       fieldname='htn'
-      call ice_read_global_nc(fid_grid,3,fieldname,work_g1,diag) ! HTN
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
       call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
 
       fieldname='hte'
-      call ice_read_global_nc(fid_grid,4,fieldname,work_g1,diag) ! HTE
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
 
       deallocate(work_g1)
