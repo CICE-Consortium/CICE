@@ -871,6 +871,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_restart_column, only: restart_bgc, restart_zsal, &
           restart_hbrine
+      use ice_restart_shared, only: restart
       use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
           nt_strata      
 
@@ -1192,8 +1193,172 @@
       call release_fileunit(nu_nml)
 
       !-----------------------------------------------------------------
+      ! broadcast
+      !-----------------------------------------------------------------
+
+      call broadcast_scalar(solve_zsal,         master_task)  
+      call broadcast_scalar(restart_zsal,       master_task)  
+      call broadcast_scalar(tr_brine,           master_task)
+      call broadcast_scalar(restart_hbrine,     master_task) 
+
+      call broadcast_scalar(phi_snow,           master_task)
+      call broadcast_scalar(grid_oS,            master_task)
+      call broadcast_scalar(l_skS,              master_task)
+
+      call broadcast_scalar(solve_zbgc,         master_task)
+      call broadcast_scalar(skl_bgc,            master_task)
+      call broadcast_scalar(restart_bgc,        master_task)
+      call broadcast_scalar(bgc_flux_type,      master_task)
+      call broadcast_scalar(restore_bgc,        master_task)
+      call broadcast_scalar(tr_bgc_N,           master_task)
+      call broadcast_scalar(tr_bgc_C,           master_task)
+      call broadcast_scalar(tr_bgc_chl,         master_task)
+      call broadcast_scalar(tr_bgc_Nit,         master_task)
+      call broadcast_scalar(tr_bgc_Am,          master_task)
+      call broadcast_scalar(tr_bgc_Sil,         master_task)
+      call broadcast_scalar(tr_bgc_hum,         master_task)
+      call broadcast_scalar(tr_bgc_DMS,         master_task) 
+      call broadcast_scalar(tr_bgc_PON,         master_task) 
+      call broadcast_scalar(tr_bgc_DON,         master_task) 
+      call broadcast_scalar(tr_bgc_Fe,          master_task) 
+
+      call broadcast_scalar(z_tracers,          master_task)
+      call broadcast_scalar(tr_zaero,           master_task)
+      call broadcast_scalar(dEdd_algae,         master_task) 
+      call broadcast_scalar(modal_aero,         master_task)
+      call broadcast_scalar(grid_o,             master_task)
+      call broadcast_scalar(grid_o_t,           master_task)
+      call broadcast_scalar(l_sk,               master_task)
+      call broadcast_scalar(scale_bgc,          master_task)
+      call broadcast_scalar(initbio_frac,       master_task)
+      call broadcast_scalar(frazil_scav,        master_task)
+      call broadcast_scalar(ratio_Si2N_diatoms, master_task)
+      call broadcast_scalar(ratio_Si2N_sp,      master_task)
+      call broadcast_scalar(ratio_Si2N_phaeo,   master_task)
+      call broadcast_scalar(ratio_S2N_diatoms,  master_task)
+      call broadcast_scalar(ratio_S2N_sp,       master_task)
+      call broadcast_scalar(ratio_S2N_phaeo,    master_task)
+      call broadcast_scalar(ratio_Fe2C_diatoms, master_task)
+      call broadcast_scalar(ratio_Fe2C_sp,      master_task)
+      call broadcast_scalar(ratio_Fe2C_phaeo,   master_task)
+      call broadcast_scalar(ratio_Fe2N_diatoms, master_task)
+      call broadcast_scalar(ratio_Fe2N_sp,      master_task)
+      call broadcast_scalar(ratio_Fe2N_phaeo,   master_task)
+      call broadcast_scalar(ratio_Fe2DON   ,    master_task)
+      call broadcast_scalar(ratio_Fe2DOC_s ,    master_task)
+      call broadcast_scalar(ratio_Fe2DOC_l ,    master_task)
+      call broadcast_scalar(fr_resp     ,       master_task)
+      call broadcast_scalar(tau_min  ,          master_task)
+      call broadcast_scalar(tau_max  ,          master_task)
+      call broadcast_scalar(algal_vel  ,        master_task)
+      call broadcast_scalar(R_dFe2dust ,        master_task)
+      call broadcast_scalar(dustFe_sol      ,   master_task)
+      call broadcast_scalar(chlabs_diatoms ,  master_task)
+      call broadcast_scalar(chlabs_sp      ,  master_task)
+      call broadcast_scalar(chlabs_phaeo     ,  master_task)
+      call broadcast_scalar(alpha2max_low_diatoms ,  master_task) 
+      call broadcast_scalar(alpha2max_low_sp      ,  master_task)
+      call broadcast_scalar(alpha2max_low_phaeo   ,  master_task)
+      call broadcast_scalar(beta2max_diatoms ,  master_task) 
+      call broadcast_scalar(beta2max_sp      ,  master_task) 
+      call broadcast_scalar(beta2max_phaeo   ,  master_task) 
+      call broadcast_scalar(mu_max_diatoms   ,  master_task) 
+      call broadcast_scalar(mu_max_sp        ,  master_task) 
+      call broadcast_scalar(mu_max_phaeo     ,  master_task) 
+      call broadcast_scalar(grow_Tdep_diatoms,  master_task) 
+      call broadcast_scalar(grow_Tdep_sp     ,  master_task) 
+      call broadcast_scalar(grow_Tdep_phaeo  ,  master_task) 
+      call broadcast_scalar(fr_graze_diatoms ,  master_task) 
+      call broadcast_scalar(fr_graze_sp      ,  master_task) 
+      call broadcast_scalar(fr_graze_phaeo   ,  master_task)  
+      call broadcast_scalar(mort_pre_diatoms ,  master_task) 
+      call broadcast_scalar(mort_pre_sp      ,  master_task)  
+      call broadcast_scalar(mort_pre_phaeo   ,  master_task)  
+      call broadcast_scalar(mort_Tdep_diatoms,  master_task) 
+      call broadcast_scalar(mort_Tdep_sp     ,  master_task)   
+      call broadcast_scalar(mort_Tdep_phaeo  ,  master_task)   
+      call broadcast_scalar(k_exude_diatoms  ,  master_task) 
+      call broadcast_scalar(k_exude_sp       ,  master_task)   
+      call broadcast_scalar(k_exude_phaeo    ,  master_task)   
+      call broadcast_scalar(K_Nit_diatoms    ,  master_task) 
+      call broadcast_scalar(K_Nit_sp         ,  master_task)
+      call broadcast_scalar(K_Nit_phaeo      ,  master_task)
+      call broadcast_scalar(K_Am_diatoms     ,  master_task)
+      call broadcast_scalar(K_Am_sp          ,  master_task)
+      call broadcast_scalar(K_Am_phaeo       ,  master_task)
+      call broadcast_scalar(K_Sil_diatoms    ,  master_task)
+      call broadcast_scalar(K_Sil_sp         ,  master_task)
+      call broadcast_scalar(K_Sil_phaeo      ,  master_task)
+      call broadcast_scalar(K_Fe_diatoms     ,  master_task)
+      call broadcast_scalar(K_Fe_sp          ,  master_task)
+      call broadcast_scalar(K_Fe_phaeo       ,  master_task)
+      call broadcast_scalar(f_don_protein    ,  master_task)
+      call broadcast_scalar(kn_bac_protein   ,  master_task)
+      call broadcast_scalar(f_don_Am_protein ,  master_task)
+      call broadcast_scalar(f_doc_s          ,  master_task)
+      call broadcast_scalar(f_doc_l          ,  master_task)  
+      call broadcast_scalar(f_exude_s        ,  master_task)
+      call broadcast_scalar(f_exude_l        ,  master_task)
+      call broadcast_scalar(k_bac_s          ,  master_task) 
+      call broadcast_scalar(k_bac_l          ,  master_task)
+      call broadcast_scalar(T_max            ,  master_task)
+      call broadcast_scalar(fsal             ,  master_task)
+      call broadcast_scalar(op_dep_min       ,  master_task)
+      call broadcast_scalar(fr_graze_s       ,  master_task) 
+      call broadcast_scalar(fr_graze_e       ,  master_task) 
+      call broadcast_scalar(fr_mort2min      ,  master_task) 
+      call broadcast_scalar(fr_dFe           ,  master_task)
+      call broadcast_scalar(k_nitrif         ,  master_task)
+      call broadcast_scalar(t_iron_conv      ,  master_task)
+      call broadcast_scalar(max_loss         ,  master_task)
+      call broadcast_scalar(max_dfe_doc1     ,  master_task)
+      call broadcast_scalar(fr_resp_s        ,  master_task)
+      call broadcast_scalar(y_sk_DMS         ,  master_task)
+      call broadcast_scalar(t_sk_conv        ,  master_task) 
+      call broadcast_scalar(t_sk_ox          ,  master_task)
+      call broadcast_scalar(algaltype_diatoms,  master_task)
+      call broadcast_scalar(algaltype_sp       ,  master_task) 
+      call broadcast_scalar(algaltype_phaeo    ,  master_task) 
+      call broadcast_scalar(nitratetype        ,  master_task)
+      call broadcast_scalar(ammoniumtype       ,  master_task)
+      call broadcast_scalar(silicatetype       ,  master_task)
+      call broadcast_scalar(dmspptype          ,  master_task)  
+      call broadcast_scalar(dmspdtype          ,  master_task) 
+      call broadcast_scalar(humtype            ,  master_task)
+      call broadcast_scalar(doctype_s          ,  master_task) 
+      call broadcast_scalar(doctype_l          ,  master_task)
+      call broadcast_scalar(dontype_protein    ,  master_task)
+      call broadcast_scalar(fedtype_1          ,  master_task)
+      call broadcast_scalar(feptype_1          ,  master_task)
+      call broadcast_scalar(zaerotype_bc1      ,  master_task)
+      call broadcast_scalar(zaerotype_bc2      ,  master_task)
+      call broadcast_scalar(zaerotype_dust1    ,  master_task)
+      call broadcast_scalar(zaerotype_dust2    ,  master_task)
+      call broadcast_scalar(zaerotype_dust3    ,  master_task)
+      call broadcast_scalar(zaerotype_dust4    ,  master_task)
+      call broadcast_scalar(ratio_C2N_diatoms  ,  master_task)
+      call broadcast_scalar(ratio_C2N_sp       ,  master_task)
+      call broadcast_scalar(ratio_C2N_phaeo    ,  master_task)
+      call broadcast_scalar(ratio_chl2N_diatoms,  master_task)
+      call broadcast_scalar(ratio_chl2N_sp     ,  master_task)
+      call broadcast_scalar(ratio_chl2N_phaeo  ,  master_task)
+      call broadcast_scalar(F_abs_chl_diatoms  ,  master_task)
+      call broadcast_scalar(F_abs_chl_sp       ,  master_task)
+      call broadcast_scalar(F_abs_chl_phaeo    ,  master_task)
+      call broadcast_scalar(ratio_C2N_proteins ,  master_task) 
+
+      !-----------------------------------------------------------------
       ! zsalinity and brine
       !-----------------------------------------------------------------
+
+      if (.not.restart) then
+         if (my_task == master_task) &
+            write(nu_diag,*) subname//' WARNING: restart = false, setting bgc restart flags to false'
+         restart_bgc =  .false.
+         restart_hbrine =  .false.
+         restart_zsal =  .false.
+      endif
+
       if (solve_zsal .and. nblyr < 1)  then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: solve_zsal=T but 0 zsalinity tracers'
@@ -1214,29 +1379,6 @@
          endif
          abort_flag = 103
       endif 
-
-      call broadcast_scalar(solve_zsal,         master_task)  
-      call broadcast_scalar(restart_zsal,       master_task)  
-      call broadcast_scalar(tr_brine,           master_task)
-      call broadcast_scalar(restart_hbrine,     master_task) 
-
-      call broadcast_scalar(phi_snow,           master_task)
-      call broadcast_scalar(grid_oS,            master_task)
-      call broadcast_scalar(l_skS,              master_task)
-
-      if (my_task == master_task) then
-         write(nu_diag,1010) ' tr_brine                  = ', tr_brine
-         if (tr_brine) then
-         write(nu_diag,1010) ' restart_hbrine            = ', restart_hbrine
-         write(nu_diag,1005) ' phi_snow                  = ', phi_snow
-         endif
-         write(nu_diag,1010) ' solve_zsal                = ', solve_zsal
-         if (solve_zsal) then
-         write(nu_diag,1010) ' restart_zsal              = ', restart_zsal
-         write(nu_diag,1000) ' grid_oS                   = ', grid_oS
-         write(nu_diag,1005) ' l_skS                     = ', l_skS
-         endif
-      endif
 
       !-----------------------------------------------------------------
       ! biogeochemistry
@@ -1384,23 +1526,6 @@
          tr_bgc_Fe        = .false.
       endif
 
-      call broadcast_scalar(solve_zbgc,         master_task)
-      call broadcast_scalar(skl_bgc,            master_task)
-      call broadcast_scalar(restart_bgc,        master_task)
-      call broadcast_scalar(bgc_flux_type,      master_task)
-      call broadcast_scalar(restore_bgc,        master_task)
-      call broadcast_scalar(tr_bgc_N,           master_task)
-      call broadcast_scalar(tr_bgc_C,           master_task)
-      call broadcast_scalar(tr_bgc_chl,         master_task)
-      call broadcast_scalar(tr_bgc_Nit,         master_task)
-      call broadcast_scalar(tr_bgc_Am,          master_task)
-      call broadcast_scalar(tr_bgc_Sil,         master_task)
-      call broadcast_scalar(tr_bgc_hum,         master_task)
-      call broadcast_scalar(tr_bgc_DMS,         master_task) 
-      call broadcast_scalar(tr_bgc_PON,         master_task) 
-      call broadcast_scalar(tr_bgc_DON,         master_task) 
-      call broadcast_scalar(tr_bgc_Fe,          master_task) 
-
       !-----------------------------------------------------------------
       ! z layer aerosols
       !-----------------------------------------------------------------
@@ -1417,131 +1542,24 @@
          endif
          abort_flag = 124
       endif
-         
-      call broadcast_scalar(z_tracers,          master_task)
-      call broadcast_scalar(tr_zaero,           master_task)
-      call broadcast_scalar(dEdd_algae,         master_task) 
-      call broadcast_scalar(modal_aero,         master_task)
-      call broadcast_scalar(grid_o,             master_task)
-      call broadcast_scalar(grid_o_t,           master_task)
-      call broadcast_scalar(l_sk,               master_task)
-      call broadcast_scalar(scale_bgc,          master_task)
-      call broadcast_scalar(initbio_frac,       master_task)
-      call broadcast_scalar(frazil_scav,        master_task)
-      call broadcast_scalar(ratio_Si2N_diatoms, master_task)
-      call broadcast_scalar(ratio_Si2N_sp,      master_task)
-      call broadcast_scalar(ratio_Si2N_phaeo,   master_task)
-      call broadcast_scalar(ratio_S2N_diatoms,  master_task)
-      call broadcast_scalar(ratio_S2N_sp,       master_task)
-      call broadcast_scalar(ratio_S2N_phaeo,    master_task)
-      call broadcast_scalar(ratio_Fe2C_diatoms, master_task)
-      call broadcast_scalar(ratio_Fe2C_sp,      master_task)
-      call broadcast_scalar(ratio_Fe2C_phaeo,   master_task)
-      call broadcast_scalar(ratio_Fe2N_diatoms, master_task)
-      call broadcast_scalar(ratio_Fe2N_sp,      master_task)
-      call broadcast_scalar(ratio_Fe2N_phaeo,   master_task)
-      call broadcast_scalar(ratio_Fe2DON   ,    master_task)
-      call broadcast_scalar(ratio_Fe2DOC_s ,    master_task)
-      call broadcast_scalar(ratio_Fe2DOC_l ,    master_task)
-      call broadcast_scalar(fr_resp     ,       master_task)
-      call broadcast_scalar(tau_min  ,          master_task)
-      call broadcast_scalar(tau_max  ,          master_task)
-      call broadcast_scalar(algal_vel  ,        master_task)
-      call broadcast_scalar(R_dFe2dust ,        master_task)
-      call broadcast_scalar(dustFe_sol      ,   master_task)
-      call broadcast_scalar(chlabs_diatoms ,  master_task)
-      call broadcast_scalar(chlabs_sp      ,  master_task)
-      call broadcast_scalar(chlabs_phaeo     ,  master_task)
-      call broadcast_scalar(alpha2max_low_diatoms ,  master_task) 
-      call broadcast_scalar(alpha2max_low_sp      ,  master_task)
-      call broadcast_scalar(alpha2max_low_phaeo   ,  master_task)
-      call broadcast_scalar(beta2max_diatoms ,  master_task) 
-      call broadcast_scalar(beta2max_sp      ,  master_task) 
-      call broadcast_scalar(beta2max_phaeo   ,  master_task) 
-      call broadcast_scalar(mu_max_diatoms   ,  master_task) 
-      call broadcast_scalar(mu_max_sp        ,  master_task) 
-      call broadcast_scalar(mu_max_phaeo     ,  master_task) 
-      call broadcast_scalar(grow_Tdep_diatoms,  master_task) 
-      call broadcast_scalar(grow_Tdep_sp     ,  master_task) 
-      call broadcast_scalar(grow_Tdep_phaeo  ,  master_task) 
-      call broadcast_scalar(fr_graze_diatoms ,  master_task) 
-      call broadcast_scalar(fr_graze_sp      ,  master_task) 
-      call broadcast_scalar(fr_graze_phaeo   ,  master_task)  
-      call broadcast_scalar(mort_pre_diatoms ,  master_task) 
-      call broadcast_scalar(mort_pre_sp      ,  master_task)  
-      call broadcast_scalar(mort_pre_phaeo   ,  master_task)  
-      call broadcast_scalar(mort_Tdep_diatoms,  master_task) 
-      call broadcast_scalar(mort_Tdep_sp     ,  master_task)   
-      call broadcast_scalar(mort_Tdep_phaeo  ,  master_task)   
-      call broadcast_scalar(k_exude_diatoms  ,  master_task) 
-      call broadcast_scalar(k_exude_sp       ,  master_task)   
-      call broadcast_scalar(k_exude_phaeo    ,  master_task)   
-      call broadcast_scalar(K_Nit_diatoms    ,  master_task) 
-      call broadcast_scalar(K_Nit_sp         ,  master_task)
-      call broadcast_scalar(K_Nit_phaeo      ,  master_task)
-      call broadcast_scalar(K_Am_diatoms     ,  master_task)
-      call broadcast_scalar(K_Am_sp          ,  master_task)
-      call broadcast_scalar(K_Am_phaeo       ,  master_task)
-      call broadcast_scalar(K_Sil_diatoms    ,  master_task)
-      call broadcast_scalar(K_Sil_sp         ,  master_task)
-      call broadcast_scalar(K_Sil_phaeo      ,  master_task)
-      call broadcast_scalar(K_Fe_diatoms     ,  master_task)
-      call broadcast_scalar(K_Fe_sp          ,  master_task)
-      call broadcast_scalar(K_Fe_phaeo       ,  master_task)
-      call broadcast_scalar(f_don_protein    ,  master_task)
-      call broadcast_scalar(kn_bac_protein   ,  master_task)
-      call broadcast_scalar(f_don_Am_protein ,  master_task)
-      call broadcast_scalar(f_doc_s          ,  master_task)
-      call broadcast_scalar(f_doc_l          ,  master_task)  
-      call broadcast_scalar(f_exude_s        ,  master_task)
-      call broadcast_scalar(f_exude_l        ,  master_task)
-      call broadcast_scalar(k_bac_s          ,  master_task) 
-      call broadcast_scalar(k_bac_l          ,  master_task)
-      call broadcast_scalar(T_max            ,  master_task)
-      call broadcast_scalar(fsal             ,  master_task)
-      call broadcast_scalar(op_dep_min       ,  master_task)
-      call broadcast_scalar(fr_graze_s       ,  master_task) 
-      call broadcast_scalar(fr_graze_e       ,  master_task) 
-      call broadcast_scalar(fr_mort2min      ,  master_task) 
-      call broadcast_scalar(fr_dFe           ,  master_task)
-      call broadcast_scalar(k_nitrif         ,  master_task)
-      call broadcast_scalar(t_iron_conv      ,  master_task)
-      call broadcast_scalar(max_loss         ,  master_task)
-      call broadcast_scalar(max_dfe_doc1     ,  master_task)
-      call broadcast_scalar(fr_resp_s        ,  master_task)
-      call broadcast_scalar(y_sk_DMS         ,  master_task)
-      call broadcast_scalar(t_sk_conv        ,  master_task) 
-      call broadcast_scalar(t_sk_ox          ,  master_task)
-      call broadcast_scalar(algaltype_diatoms,  master_task)
-      call broadcast_scalar(algaltype_sp       ,  master_task) 
-      call broadcast_scalar(algaltype_phaeo    ,  master_task) 
-      call broadcast_scalar(nitratetype        ,  master_task)
-      call broadcast_scalar(ammoniumtype       ,  master_task)
-      call broadcast_scalar(silicatetype       ,  master_task)
-      call broadcast_scalar(dmspptype          ,  master_task)  
-      call broadcast_scalar(dmspdtype          ,  master_task) 
-      call broadcast_scalar(humtype            ,  master_task)
-      call broadcast_scalar(doctype_s          ,  master_task) 
-      call broadcast_scalar(doctype_l          ,  master_task)
-      call broadcast_scalar(dontype_protein    ,  master_task)
-      call broadcast_scalar(fedtype_1          ,  master_task)
-      call broadcast_scalar(feptype_1          ,  master_task)
-      call broadcast_scalar(zaerotype_bc1      ,  master_task)
-      call broadcast_scalar(zaerotype_bc2      ,  master_task)
-      call broadcast_scalar(zaerotype_dust1    ,  master_task)
-      call broadcast_scalar(zaerotype_dust2    ,  master_task)
-      call broadcast_scalar(zaerotype_dust3    ,  master_task)
-      call broadcast_scalar(zaerotype_dust4    ,  master_task)
-      call broadcast_scalar(ratio_C2N_diatoms  ,  master_task)
-      call broadcast_scalar(ratio_C2N_sp       ,  master_task)
-      call broadcast_scalar(ratio_C2N_phaeo    ,  master_task)
-      call broadcast_scalar(ratio_chl2N_diatoms,  master_task)
-      call broadcast_scalar(ratio_chl2N_sp     ,  master_task)
-      call broadcast_scalar(ratio_chl2N_phaeo  ,  master_task)
-      call broadcast_scalar(F_abs_chl_diatoms  ,  master_task)
-      call broadcast_scalar(F_abs_chl_sp       ,  master_task)
-      call broadcast_scalar(F_abs_chl_phaeo    ,  master_task)
-      call broadcast_scalar(ratio_C2N_proteins ,  master_task) 
+
+      !-----------------------------------------------------------------
+      ! output
+      !-----------------------------------------------------------------
+
+      if (my_task == master_task) then
+         write(nu_diag,1010) ' tr_brine                  = ', tr_brine
+         if (tr_brine) then
+         write(nu_diag,1010) ' restart_hbrine            = ', restart_hbrine
+         write(nu_diag,1005) ' phi_snow                  = ', phi_snow
+         endif
+         write(nu_diag,1010) ' solve_zsal                = ', solve_zsal
+         if (solve_zsal) then
+         write(nu_diag,1010) ' restart_zsal              = ', restart_zsal
+         write(nu_diag,1000) ' grid_oS                   = ', grid_oS
+         write(nu_diag,1005) ' l_skS                     = ', l_skS
+         endif
+      endif
 
       !-----------------------------------------------------------------
       ! abort if abort flag is set
