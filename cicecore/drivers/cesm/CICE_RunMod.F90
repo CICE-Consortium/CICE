@@ -583,21 +583,17 @@
       integer (kind=int_kind), intent(in) :: &
           nx_block, ny_block  ! block dimensions
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), &
-          intent(in) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
           tmask       ! land/boundary mask, thickness (T-cell)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block), &
-          intent(in):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in):: &
           aice        ! initial ice concentration
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat), &
-          intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat), intent(in) :: &
           fsurfn_f, & ! net surface heat flux (provided as forcing)
           flatn_f     ! latent heat flux (provided as forcing)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block), &
-          intent(inout):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout):: &
           fresh        , & ! fresh water flux to ocean         (kg/m2/s)
           fhocn            ! actual ocn/ice heat flx           (W/m**2)
 

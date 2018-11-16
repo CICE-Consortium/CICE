@@ -696,6 +696,9 @@
          restart_pond_cesm =  .false. 
          restart_pond_lvl =  .false. 
          restart_pond_topo =  .false. 
+         restart_bgc =  .false.
+         restart_hbrine =  .false.
+         restart_zsal =  .false.
 ! tcraig, OK to leave as true, needed for boxrestore case
 !         restart_ext =  .false. 
       endif

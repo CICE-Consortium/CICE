@@ -395,7 +395,7 @@
       use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nltrcr
+      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, &
           meltl, frazil_diag
@@ -418,17 +418,28 @@
          i, j               ! horizontal indices
 
       integer (kind=int_kind) :: &
-         ntrcr, nbtrcr
+         ntrcr, nbtrcr, nltrcr
+
+      logical (kind=log_kind) :: &
+         z_tracers
 
       type (block) :: &
          this_block      ! block information for current block
 
       character(len=*), parameter :: subname = '(step_therm2)'
 
+      call icepack_query_parameters(z_tracers_out=z_tracers)
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      ! tcraig, nltrcr used to be the number of zbgc tracers, but it's used as a zbgc flag in icepack
+      if (z_tracers) then
+         nltrcr = 1
+      else
+         nltrcr = 0
+      endif
 
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo

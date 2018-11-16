@@ -1204,8 +1204,7 @@
          ndte              , & ! number of subcycles
          icellt                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
          indxtj       ! compressed index in j-direction
 
@@ -1227,19 +1226,16 @@
          cxm      , & ! 0.5*HTN - 1.5*HTN
          tarear       ! 1/tarea
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4, & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4, & ! sigma11-sigma22
          stress12_1,stress12_2,stress12_3,stress12_4   ! sigma12
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          a11_1, a11_2, a11_3, a11_4, & ! structure tensor
          a12_1, a12_2, a12_3, a12_4              ! structure tensor
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          e11      , & ! components of strain rate tensor (1/s)
@@ -1254,8 +1250,7 @@
          rdg_conv     ! convergence term for ridging (1/s)
 !        rdg_shear    ! shear term for ridging (1/s)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
-         intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          strtmp       ! stress combinations
 
       ! local variables
@@ -1809,20 +1804,17 @@
       real (kind=dbl_kind), intent(in) :: &
          dtei        ! 1/dte, where dte is subcycling timestep (1/s)
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
          indxtj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          ! ice stress tensor (kg/s^2) in each corner of T cell
          stressp_1, stressp_2, stressp_3, stressp_4, & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4, & ! sigma11-sigma22
          stress12_1, stress12_2, stress12_3, stress12_4    ! sigma12
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          ! structure tensor () in each corner of T cell
          a11, a12, a11_1, a11_2, a11_3, a11_4, & ! components of 
          a12_1, a12_2, a12_3, a12_4              ! structure tensor ()

@@ -972,24 +972,20 @@
           nbtrcr            , &    ! number of biology tracers
           max_aero                 ! maximum number of aerosols
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), &
-          intent(in) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
           tmask     ! land/boundary mask, thickness (T-cell)
 
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block), &
-          intent(in):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in) :: &
           aice    , & ! fractional ice area
           Tf      , & ! freezing temperature            (C)
           Tair    , & ! surface air temperature         (K)
           Qa          ! sfc air specific humidity       (kg/kg)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block), optional, &
-          intent(in):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), optional, intent(in) :: &
           wind        ! wind speed                      (m/s)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block), &
-          intent(inout):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
           strairxT, & ! air/ice zonal  stress           (N/m**2)
           strairyT, & ! air/ice merdnl stress           (N/m**2)
           fsens   , & ! sensible heat flx               (W/m**2)
@@ -1008,27 +1004,22 @@
           alvdf   , & ! visible, diffuse  (fraction)
           alidf       ! near-ir, diffuse  (fraction)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block), optional, &
-          intent(inout):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), optional, intent(inout) :: &
           Uref        ! air speed reference level       (m/s)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,nbtrcr), &
-          intent(inout):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nbtrcr), intent(inout) :: &
           flux_bio    ! tracer flux to ocean from biology (mmol/m2/s)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_aero), &
-          intent(inout):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_aero), intent(inout) :: &
           faero_ocn   ! aerosol flux to ocean            (kg/m2/s)
 
       ! For hadgem drivers. Assumes either both fields are passed or neither
-      real (kind=dbl_kind), dimension(nx_block,ny_block), &
-          intent(inout), optional :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout), optional :: &
           fsurf   , & ! surface heat flux               (W/m**2)
           fcondtop    ! top surface conductive flux     (W/m**2)
 
       ! zsalinity fluxes
-      real (kind=dbl_kind), dimension(nx_block,ny_block), &
-          intent(inout):: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
           fzsal   , & ! salt flux to ocean with prognositic salinity (kg/m2/s)  
           fzsal_g     ! Gravity drainage salt flux to ocean (kg/m2/s) 
 

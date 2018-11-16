@@ -162,8 +162,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -308,8 +307,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,nblyr+2,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nblyr+2,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -456,8 +454,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_global,ny_global), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_global,ny_global), intent(out) :: &
            work_g            ! output array (real, 8-byte)
 
       character (len=4) :: &
@@ -567,8 +564,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -698,8 +694,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(in) :: &
            work              ! input array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -1057,8 +1052,7 @@
       character (len=*), intent(in) :: & 
            varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       logical (kind=log_kind), optional, intent(in) :: &
@@ -1230,8 +1224,7 @@
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       logical (kind=log_kind), optional, intent(in) :: &
@@ -1410,8 +1403,7 @@
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
 
-      real (kind=dbl_kind), &
-           intent(out) :: &
+      real (kind=dbl_kind), intent(out) :: &
            work              ! output variable (real, 8-byte)
 
       ! local variables
@@ -1504,8 +1496,7 @@
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
 
-      real (kind=dbl_kind), dimension(nilyr), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nilyr), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       ! local variables
@@ -1597,8 +1588,7 @@
       logical (kind=log_kind), optional, intent(in) :: &
            restart_ext       ! if true, write extended grid
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(in) :: &
            work              ! output array (real, 8-byte)
 
       character (len=*), optional, intent(in) :: &
@@ -1717,8 +1707,7 @@
       logical (kind=log_kind), optional, intent(in) :: &
            restart_ext       ! if true, read extended grid
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), &
-           intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), intent(in) :: &
            work              ! output array (real, 8-byte)
 
       character (len=*), optional, intent(in) :: &
@@ -1844,8 +1833,7 @@
      character (char_len), intent(in) :: & 
            varname           ! field name in netcdf file        
 
-      real (kind=dbl_kind), dimension(nx_global,ny_global), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_global,ny_global), intent(out) :: &
            work_g            ! output array (real, 8-byte)
 
       logical (kind=log_kind) :: &
@@ -1992,8 +1980,7 @@
       character (len=*), intent(in) :: & 
            varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       logical (kind=log_kind), optional, intent(in) :: &

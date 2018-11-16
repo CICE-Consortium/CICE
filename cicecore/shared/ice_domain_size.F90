@@ -31,6 +31,7 @@
         ncat      , & ! number of categories
         nilyr     , & ! number of ice layers per category
         nslyr     , & ! number of snow layers per category
+        nblyr     , & ! number of bio/brine layers per category 
         n_aero    , & ! number of aerosols in use
         n_zaero   , & ! number of z aerosols in use 
         n_algae   , & ! number of algae in use 
@@ -38,25 +39,7 @@
         n_dic     , & ! number of DIC pools in use
         n_don     , & ! number of DON pools in use
         n_fed     , & ! number of Fe  pools in use dissolved Fe
-        n_fep     , & ! number of Fe  pools in use particulate Fe
-        nblyr     , & ! number of bio/brine layers per category 
-        n_trbgcz  , & ! zbgc
-        n_trzs    , & ! zsalinity
-        n_trbri   , & ! brine height
-        n_trzaero , & ! tracers active in shortwave calculation
-        n_trage   , & ! age
-        n_trfy    , & ! first-year area
-        n_trlvl   , & ! level/deformed ice
-        n_trpnd   , & ! ponds
-        n_trbgcs      ! skeleltel layer bgc
-
-      ! derived from namelist above
-
-      integer (kind=int_kind), public :: &
-        n_bgc     , & ! nit, am, sil, dmspp, dmspd, dms, pon, humic 
-        nltrcr    , & ! number of zbgc (includes zaero) and zsalinity tracers 
-        max_nsw   , & !
-        max_ntrcr     !
+        n_fep         ! number of Fe  pools in use particulate Fe
 
       integer (kind=int_kind), public, parameter :: &
         max_nstrm =   5           ! max number of history output streams

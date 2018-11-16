@@ -20,7 +20,7 @@
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
-          icepack_query_tracer_indices
+          icepack_query_tracer_indices, icepack_query_tracer_numbers
 
       implicit none
       private
@@ -79,7 +79,7 @@
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
       use ice_init, only: input_data, init_state
-      use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc
+      use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
@@ -103,8 +103,8 @@
           file=__FILE__,line= __LINE__)
 
       call input_data           ! namelist variables
-
-      if (trim(runid) == 'bering') call check_finished_file
+      call input_zbgc           ! vertical biogeochemistry namelist
+      call count_tracers        ! count tracers
 
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
@@ -117,7 +117,7 @@
       call init_ice_timers      ! initialize all timers
       call ice_timer_start(timer_total)   ! start timing entire run
       call init_grid2           ! grid variables
-      call init_zbgc            ! vertical biogeochemistry namelist
+      call init_zbgc            ! vertical biogeochemistry initialization
 
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
@@ -216,7 +216,7 @@
       use ice_calendar, only: time, calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, max_ntrcr, n_aero
+      use ice_domain_size, only: ncat, n_aero
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: tmask
@@ -244,10 +244,17 @@
           tr_pond_topo, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
+          ntrcr
+      integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero
 
       character(len=*), parameter :: subname = '(init_restart)'
+
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
@@ -398,7 +405,7 @@
                                    vice (i,j,  iblk),  &
                                    vsno (i,j,  iblk),  &
                                    aice0(i,j,  iblk),  &
-                                   max_ntrcr,          &
+                                   ntrcr,          &
                                    trcr_depend,        &
                                    trcr_base,          &
                                    n_trcr_strata,      &
@@ -417,35 +424,6 @@
          file=__FILE__, line=__LINE__)
 
       end subroutine init_restart
-
-!=======================================================================
-!
-! Check whether a file indicating that the previous run finished cleanly
-! If so, then do not continue the current restart.  This is needed only 
-! for runs on machine 'bering' (set using runid = 'bering').
-!
-!  author: Adrian Turner, LANL
-
-      subroutine check_finished_file()
-
-      use ice_communicate, only: my_task, master_task
-      use ice_restart_shared, only: restart_dir
-
-      character(len=char_len_long) :: filename
-      logical :: lexist = .false.
-      character(len=*), parameter :: subname='(check_finished_file)'
-
-      if (my_task == master_task) then
-           
-         filename = trim(restart_dir)//"finished"
-         inquire(file=filename, exist=lexist)
-         if (lexist) then
-            call abort_ice(subname//"ERROR: Found already finished file - quitting")
-         end if
-
-      endif
-
-      end subroutine check_finished_file
 
 !=======================================================================
 
