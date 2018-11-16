@@ -1564,12 +1564,12 @@ the 'u' point based on local ice conditions (surrounding tracer points). They ar
 
 where the :math:`a_i` and :math:`v_i` are the total ice concentrations and ice volumes around the :math:`u` point :math:`i,j` and 
 :math:`k_1` is a parameter that defines the critical ice thickness :math:`h_{cu}` at which the parameterized 
-ridge(s) reaches the seafloor for a water depth :math:`h_{wu}=\min[h_w(i,j),h_w(i+1,j),h_w(i,j+1),h_w(i+1,j+1)]`.
+ridge(s) reaches the seafloor for a water depth :math:`h_{wu}=\min[h_w(i,j),h_w(i+1,j),h_w(i,j+1),h_w(i+1,j+1)]`. The value of :math:`k_1` can be changed at runtime using the namelist variable `k1`.
 
 Given the formulation of :math:`C_b` in equation :eq:`Cb`, the seabed stress components are non-zero only when :math:`h_u > h_{cu}`, which means
 that the parameterized ridge is thick enough to reach the seafloor. The maximum seabed stress depends on the weigth of the ridge 
 above hydrostatic balance and the value of :math:`k_2`. Note that the user must provide a bathymetry field for using this grounding 
-scheme.
+scheme. The grounding scheme can be turned on or off using the namelist parameter basalstress. 
    
 .. _internal-stress:
 

@@ -149,7 +149,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 3) **Single test, compare results to a prior baseline**
+ 4) **Single test, compare results to a prior baseline**
 
     Add ``--bcmp``.  For this to work,
     the prior baseline must exist and have the exact same base testname 
@@ -162,7 +162,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 4) **Simple test, generate a baseline dataset and compare to a prior baseline**
+ 5) **Simple test, generate a baseline dataset and compare to a prior baseline**
 
     Use ``--bgen`` and ``--bcmp``.  The prior baseline must exist already.
     ::
@@ -173,7 +173,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 5) **Simple test, comparison against another test**
+ 6) **Simple test, comparison against another test**
 
     ``--diff`` provides a way to compare tests with each other.  
     For this to work, the tests have to be run in a specific order and
@@ -789,48 +789,66 @@ Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
 locations of failures can be identified.
 
+The cice.t-test.py requires memory to store multiple two-dimensional fields spanning 
+1825 unique timesteps, a total of several GB.  An appropriate resource is needed to 
+run the script.  If the script runs out of memory on an interactive resource, try
+logging into a batch resource or finding a large memory node.
+
 
 End-To-End Testing Procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Below is an example of a step-by-step procedure for testing a code change that results
-in non-bit-for-bit results:
+Below is an example of a step-by-step procedure for testing a code change that might result in non bit-for-bit results.   First, run a regression test,
 
 .. code-block:: bash
 
+  # Run a full regression test to verify bit-for-bit
+
   # Create a baseline dataset (only necessary if no baseline exists on the system)
-  ./cice.setup -m onyx -ts base_suite -testid base0 -bg cicev6.0.0 -a <account_number>
+  # git clone the baseline code
 
-  # Check out the updated code, or clone from a pull request
+  ./cice.setup -m onyx -e intel --suite base_suite --testid base0 -bgen cice.my.baseline
 
-  # Run the test with the new code
-  ./cice.setup -m onyx -ts base_suite -testid test0 -bc cicev6.0.0 -a <account_number>
+  # Run the test suite with the new code
+  # git clone the new code
+
+  ./cice.setup -m onyx -e intel --suite base_suite --testid test0 --bcmp cice.my.baseline
 
   # Check the results
-  cd base_suite.test0
+
+  cd testsuite.test0
   ./results.csh
 
-  #### If the BFB tests fail, perform the compliance testing ####
+..
+
+If the regression comparisons fail, then you may want to run the QC test,
+
+.. code-block:: bash
+
+  # Run the QC test
+
   # Create a QC baseline
-  ./cice.setup -m onyx -t smoke -g gx1 -p 44x1 -testid qc_base -s qc,medium -a <account_number>
-  cd onyx_smoke_gx1_44x1_medium_qc.qc_base
+  # From the baseline sandbox
+
+  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_base -s qc,medium
+  cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_base
   ./cice.build
   ./cice.submit
 
-  # Check out the updated code or clone from a pull request
-
   # Create the t-test testing data
-  ./cice.setup -m onyx -t smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium -a <account_number>
-  cd onyx_smoke_gx1_44x1_medium_qc.qc_test
+  # From the update sandbox
+
+  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
+  cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
   ./cice.build
   ./cice.submit
 
   # Wait for runs to finish
-  
   # Perform the QC test
+
   cp configuration/scripts/tests/QC/cice.t-test.py
-  ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_smoke_gx1_44x1_medium_qc.qc_base \
-                   /p/work/turner/CICE_RUNS/onyx_smoke_gx1_44x1_medium_qc.qc_test
+  ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_base \
+                   /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
 
   # Example output:
   INFO:__main__:Number of files: 1825
@@ -861,7 +879,7 @@ For example:
 
 Run the test suite. ::
 
-$ ./cice.setup -m conrad -e intel --suite base_suite -acct <account_number> --testid t00
+$ ./cice.setup -m conrad -e intel --suite base_suite --testid t00
 
 Wait for suite to finish then go to the directory. ::
 
