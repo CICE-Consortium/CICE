@@ -57,7 +57,7 @@
          e_ratio  , & ! e = EVP ellipse aspect ratio 
          ecci     , & ! 1/e^2
          dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
-         dte2T    , & ! dte/2T
+!         dte2T    , & ! dte/2T
          denom1       ! constants for stress equation
 
       real (kind=dbl_kind), public :: & ! Bouillon et al relaxation constants
@@ -78,6 +78,9 @@
 
       logical (kind=log_kind), public :: &
          basalstress   ! if true, basal stress for landfast on
+
+      real (kind=dbl_kind), public :: &
+         k1            ! 1st free parameter for landfast parameterization
 
 !=======================================================================
 
@@ -208,24 +211,26 @@
 
       ! local variables
 
-      real (kind=dbl_kind) :: &
-         dte         , & ! subcycling timestep for EVP dynamics, s
-         ecc         , & ! (ratio of major to minor ellipse axes)^2
-         tdamp2          ! 2*(wave damping time scale T)
+      !real (kind=dbl_kind) :: &
+         !dte         , & ! subcycling timestep for EVP dynamics, s
+         !ecc         , & ! (ratio of major to minor ellipse axes)^2
+         !tdamp2          ! 2*(wave damping time scale T)
 
       character(len=*), parameter :: subname = '(set_evp_parameters)'
 
       ! elastic time step
-      dte = dt/real(ndte,kind=dbl_kind)        ! s
-      dtei = c1/dte              ! 1/s
+      !dte = dt/real(ndte,kind=dbl_kind)        ! s
+      !dtei = c1/dte              ! 1/s
+      dtei = real(ndte,kind=dbl_kind)/dt 
 
       ! major/minor axis length ratio, squared
-      ecc  = e_ratio**2
-      ecci = c1/ecc               ! 1/ecc
+      !ecc  = e_ratio**2
+      !ecci = c1/ecc               ! 1/ecc
+      ecci = c1/e_ratio**2               ! 1/ecc
 
       ! constants for stress equation
-      tdamp2 = c2*eyc*dt                    ! s
-      dte2T = dte/tdamp2                    ! ellipse (unitless)
+      !tdamp2 = c2*eyc*dt                    ! s
+      !dte2T = c1/(c2*eyc*real(ndte,kind=dbl_kind))                    ! ellipse (unitless)
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
@@ -233,9 +238,12 @@
          arlx1i = c1/arlx
       else                        ! Hunke, JCP 2013 with modified stress eq
          revp   = c0
-         arlx1i = dte2T
-         arlx   = c1/arlx1i
-         brlx   = dt*dtei
+         !arlx1i = !dte2T
+         !arlx   = c1/arlx1i
+         !brlx   = dt*dtei
+         arlx   = c2*eyc*real(ndte,kind=dbl_kind)
+         arlx1i   = c1/arlx
+         brlx   = real(ndte,kind=dbl_kind)
          denom1 = c1/(c1+arlx1i)
       endif
       if (my_task == master_task) then
@@ -927,7 +935,6 @@
          hu,  & ! volume per unit area of ice at u location (mean thickness)
          hwu, & ! water depth at u location
          hcu, & ! critical thickness at u location
-         k1 = 8.0_dbl_kind , &  ! first free parameter for landfast parametrization 
          k2 = 15.0_dbl_kind , &  ! second free parameter (N/m^3) for landfast parametrization 
          alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
 

@@ -41,6 +41,7 @@
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
+         bathymetry_file, & !  input bathymetry for basalstress
          grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
@@ -113,6 +114,9 @@
          bm     , & ! task/block id
          uvm    , & ! land/boundary mask, velocity (U-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
+
+      logical (kind=log_kind), public :: &
+         use_bathymetry     ! flag for reading in bathymetry_file
 
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &

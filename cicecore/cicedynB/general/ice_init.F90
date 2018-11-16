@@ -1001,8 +1001,8 @@
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &
                                revised_evp
-         write(nu_diag,1006) ' brlx                      = ', brlx
-         write(nu_diag,1006) ' arlx                      = ', arlx
+         write(nu_diag,1005) ' brlx                      = ', brlx
+         write(nu_diag,1005) ' arlx                      = ', arlx
          if (kdyn == 1) &
          write(nu_diag,*)    ' yield_curve               = ', &
                                trim(yield_curve)
