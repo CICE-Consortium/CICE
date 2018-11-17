@@ -93,7 +93,7 @@
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 basalstress, k1, Ktens, e_ratio, coriolis, &
-                                kridge, ktransport
+                                kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -167,6 +167,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
+        brlx,           arlx,                                           &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
@@ -279,6 +280,8 @@
       kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
+      brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
+      arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
       yield_curve = 'ellipse'
       kstrength = 1          ! 1 = Rothrock 75 strength, 0 = Hibler 79
@@ -540,6 +543,8 @@
       call broadcast_scalar(kdyn,               master_task)
       call broadcast_scalar(ndtd,               master_task)
       call broadcast_scalar(ndte,               master_task)
+      call broadcast_scalar(brlx,               master_task)
+      call broadcast_scalar(arlx,               master_task)
       call broadcast_scalar(revised_evp,        master_task)
       call broadcast_scalar(yield_curve,        master_task)
       call broadcast_scalar(kstrength,          master_task)
@@ -978,6 +983,8 @@
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &
                                revised_evp
+         write(nu_diag,1005) ' brlx                      = ', brlx
+         write(nu_diag,1005) ' arlx                      = ', arlx
          if (kdyn == 1) &
          write(nu_diag,*)    ' yield_curve               = ', &
                                trim(yield_curve)
