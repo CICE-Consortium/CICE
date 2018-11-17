@@ -1203,7 +1203,7 @@
       endif
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
- 1005    format (a30,2x,f9.6)  ! float
+ 1005    format (a30,2x,f12.6)  ! float
  1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
  1021    format (a30,2x,a8,i6) ! char, int
