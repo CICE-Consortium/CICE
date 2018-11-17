@@ -862,6 +862,12 @@ echo "#fail = \$failures" >> results.log
 echo "#pend = \$pends" >> results.log
 
 echo ""
+echo "Descriptors:"
+echo " PASS - successful completion"
+echo " COPY - previously compiled code was copied for new test"
+echo " PEND - run has been submitted to queue and is waiting or failed submission"
+echo " FAIL - test is still executing, did not complete, or completed and failed"
+echo ""
 echo "\$success of \$total tests PASSED"
 echo "\$failures of \$total tests FAILED"
 echo "\$pends of \$total tests PENDING"

@@ -2201,6 +2201,7 @@
          cvar
       character(len=*), parameter :: subname = '(ice_get_ncvarsize)'
 
+#ifdef ncdf
       if (my_task ==  master_task) then
          status=nf90_inquire(fid, nDimensions = nDims)
          if (status /= nf90_noerr) then
@@ -2218,6 +2219,10 @@
             call abort_ice (subname//'ERROR: Did not find variable '//trim(varname) )
          endif
       endif
+#else
+      write(*,*) 'ERROR: ncdf not defined during compilation'
+      recsize = 0 ! to satisfy intent(out) attribute
+#endif
       end subroutine ice_get_ncvarsize
 
 !=======================================================================
