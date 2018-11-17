@@ -167,8 +167,9 @@
 
       use ice_constants, only: c0
       use ice_domain_size, only: n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep
-    
-      real(kind=dbl_kind), dimension(:,:,:), intent(in) :: flux_bio
+
+      real(kind=dbl_kind), dimension(:,:,:), intent(in) :: &
+          flux_bio
       real(kind=dbl_kind), dimension(:,:), intent(out):: &
           f_nit,  &  ! nitrate flux mmol/m^2/s  positive to ocean
           f_sil,  &  ! silicate flux mmol/m^2/s

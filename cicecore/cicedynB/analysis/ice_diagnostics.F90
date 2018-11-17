@@ -1131,8 +1131,7 @@
       use ice_grid, only: tmask
       use ice_state, only: vicen, vsnon, trcrn
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks),  &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
          work      ! total energy
 
       ! local variables
@@ -1219,8 +1218,7 @@
       use ice_grid, only: tmask
       use ice_state, only: vicen, trcrn
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks),  &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
          work      ! total salt
 
       ! local variables

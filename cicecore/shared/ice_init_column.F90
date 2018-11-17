@@ -4,21 +4,19 @@
 !
 ! author: Elizabeth C. Hunke, LANL
 !
-! 2014: Moved subroutines from column package modules
-
       module ice_init_column
 
       use ice_kinds_mod
       use ice_constants
+      use ice_communicate, only: my_task, master_task, ice_barrier
       use ice_domain_size, only: ncat, max_blocks 
-      use ice_domain_size, only: max_ntrcr, nblyr, nilyr, nslyr
+      use ice_domain_size, only: nblyr, nilyr, nslyr
       use ice_domain_size, only: n_aero, n_zaero, n_algae
       use ice_domain_size, only: n_doc, n_dic, n_don
-      use ice_domain_size, only: n_fed, n_fep, max_nsw, n_bgc
-      use ice_domain_size, only: n_trzs, n_trbri, n_trbgcs, n_algae, n_trbgcz
+      use ice_domain_size, only: n_fed, n_fep
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: nu_nml, nml_filename, get_fileunit, &
-                               release_fileunit
+                               release_fileunit, flush_fileunit
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_max_don, icepack_max_doc, icepack_max_dic
       use icepack_intfc, only: icepack_max_algae, icepack_max_aero, icepack_max_fe
@@ -43,7 +41,77 @@
       public :: init_thermo_vertical, init_shortwave, &
                 init_age, init_FY, init_lvl, &
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
-                init_aerosol, init_bgc, init_hbrine, init_zbgc
+                init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
+                count_tracers
+
+      ! namelist parameters needed locally
+
+      real (kind=dbl_kind) :: &
+         tau_min            , tau_max            , &
+         nitratetype        , ammoniumtype       , silicatetype,  &
+         dmspptype          , dmspdtype          , humtype
+
+      real (kind=dbl_kind), dimension(icepack_max_dic) :: &
+         dictype
+
+      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+         algaltype   ! tau_min for both retention and release
+
+      real (kind=dbl_kind), dimension(icepack_max_doc) :: &
+         doctype
+
+      real (kind=dbl_kind), dimension(icepack_max_don) :: &
+         dontype
+
+      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
+         fedtype
+
+      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
+         feptype
+
+      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
+         zaerotype
+
+      real (kind=dbl_kind) :: &
+          grid_o, l_sk, grid_o_t, initbio_frac, &
+          frazil_scav, grid_oS, l_skS, &
+          phi_snow, &
+          ratio_Si2N_diatoms , ratio_Si2N_sp      , ratio_Si2N_phaeo   ,  &
+          ratio_S2N_diatoms  , ratio_S2N_sp       , ratio_S2N_phaeo    ,  &
+          ratio_Fe2C_diatoms , ratio_Fe2C_sp      , ratio_Fe2C_phaeo   ,  &
+          ratio_Fe2N_diatoms , ratio_Fe2N_sp      , ratio_Fe2N_phaeo   ,  &
+          ratio_Fe2DON       , ratio_Fe2DOC_s     , ratio_Fe2DOC_l     ,  &
+          fr_resp            , &
+          algal_vel          , R_dFe2dust         , dustFe_sol         ,  &
+          chlabs_diatoms     , chlabs_sp          , chlabs_phaeo       ,  &
+          alpha2max_low_diatoms,alpha2max_low_sp  , alpha2max_low_phaeo,  &
+          beta2max_diatoms   , beta2max_sp        , beta2max_phaeo     ,  &
+          mu_max_diatoms     , mu_max_sp          , mu_max_phaeo       ,  &
+          grow_Tdep_diatoms  , grow_Tdep_sp       , grow_Tdep_phaeo    ,  &
+          fr_graze_diatoms   , fr_graze_sp        , fr_graze_phaeo     ,  &
+          mort_pre_diatoms   , mort_pre_sp        , mort_pre_phaeo     ,  &
+          mort_Tdep_diatoms  , mort_Tdep_sp       , mort_Tdep_phaeo    ,  &
+          k_exude_diatoms    , k_exude_sp         , k_exude_phaeo      ,  &
+          K_Nit_diatoms      , K_Nit_sp           , K_Nit_phaeo        ,  &
+          K_Am_diatoms       , K_Am_sp            , K_Am_phaeo         ,  &
+          K_Sil_diatoms      , K_Sil_sp           , K_Sil_phaeo        ,  &
+          K_Fe_diatoms       , K_Fe_sp            , K_Fe_phaeo         ,  &
+          f_don_protein      , kn_bac_protein     , f_don_Am_protein   ,  &
+          f_doc_s            , f_doc_l            , f_exude_s          ,  &
+          f_exude_l          , k_bac_s            , k_bac_l            ,  &
+          T_max              , fsal               , op_dep_min         ,  &
+          fr_graze_s         , fr_graze_e         , fr_mort2min        ,  &
+          fr_dFe             , k_nitrif           , t_iron_conv        ,  &
+          max_loss           , max_dfe_doc1       , fr_resp_s          ,  &
+          y_sk_DMS           , t_sk_conv          , t_sk_ox            ,  &
+          algaltype_diatoms  , algaltype_sp       , algaltype_phaeo    ,  &
+          doctype_s          , doctype_l          , dontype_protein    ,  &
+          fedtype_1          , feptype_1          , zaerotype_bc1      ,  &
+          zaerotype_bc2      , zaerotype_dust1    , zaerotype_dust2    ,  &
+          zaerotype_dust3    , zaerotype_dust4    , ratio_C2N_diatoms  ,  &
+          ratio_C2N_sp       , ratio_C2N_phaeo    , ratio_chl2N_diatoms,  &
+          ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
+          F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins
 
 !=======================================================================
 
@@ -117,7 +185,6 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: dt, calendar_type, &
           days_per_year, nextsw_cday, yday, sec
-      use ice_communicate, only: my_task
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, &
           diagnostic_abort
       use ice_domain, only: nblocks, blocks_ice
@@ -155,11 +222,9 @@
       real (kind=dbl_kind), dimension(ncat) :: &
          fbri                 ! brine height to ice thickness
 
-      real(kind= dbl_kind), dimension(max_ntrcr, ncat) :: &
-         ztrcr
-
-      real(kind= dbl_kind), dimension(max_ntrcr, ncat) :: &
-         ztrcr_sw
+      real(kind=dbl_kind), allocatable :: &
+         ztrcr(:,:),    & !
+         ztrcr_sw(:,:)    !
 
       logical (kind=log_kind) :: tr_brine, tr_zaero, tr_bgc_n
       integer (kind=int_kind) :: nt_alvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero, &
@@ -182,6 +247,9 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
+
+      allocate(ztrcr(ntrcr, ncat))
+      allocate(ztrcr_sw(ntrcr, ncat))
 
       !!$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block, &
       !!$OMP                     l_print_point,debug,ipoint)
@@ -387,6 +455,8 @@
          enddo ! j
       enddo ! iblk
 
+      deallocate(ztrcr, ztrcr_sw)
+
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -548,8 +618,8 @@
       type (block) :: &
          this_block      ! block information for current block
 
-      real(kind=dbl_kind), dimension(max_ntrcr,ncat) :: &
-         trcrn_bgc 
+      real(kind=dbl_kind), allocatable :: &
+         trcrn_bgc(:,:)
       
       real(kind=dbl_kind), dimension(nilyr,ncat) :: &
          sicen    
@@ -565,6 +635,18 @@
 
       ! Initialize
 
+      call icepack_query_parameters(solve_zsal_out=solve_zsal)
+      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr, ntrcr_out=ntrcr, ntrcr_o_out=ntrcr_o)
+      call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_bgc_S_out=nt_bgc_S)
+      call icepack_query_tracer_sizes(max_nbtrcr_out=max_nbtrcr,         &
+           max_algae_out=max_algae, max_don_out=max_don, max_doc_out=max_doc,   &
+           max_dic_out=max_dic, max_aero_out=max_aero, max_fe_out=max_fe)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__,line= __LINE__)
+
+      allocate(trcrn_bgc(ntrcr,ncat))
+
       bphi(:,:,:,:,:) = c0   ! initial porosity for no ice 
       iDi (:,:,:,:,:) = c0   ! interface diffusivity
       bTiz(:,:,:,:,:) = c0   ! initial bio grid ice temperature
@@ -578,16 +660,6 @@
       trcrn_bgc    (:,:)       = c0
       RayleighR                = c0
       RayleighC                = .false.
-
-      call icepack_query_parameters(solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr, ntrcr_out=ntrcr, ntrcr_o_out=ntrcr_o)
-      call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_bgc_S_out=nt_bgc_S)
-      call icepack_query_tracer_sizes(max_nbtrcr_out=max_nbtrcr,         &
-           max_algae_out=max_algae, max_don_out=max_don, max_doc_out=max_doc,   &
-           max_dic_out=max_dic, max_aero_out=max_aero, max_fe_out=max_fe)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__,line= __LINE__)
 
       !-----------------------------------------------------------------
       ! zsalinity initialization
@@ -708,7 +780,6 @@
          file=__FILE__, line=__LINE__)
 
       if (.not. restart_bgc) then       
-     
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
 
@@ -740,6 +811,8 @@
       !-----------------------------------------------------------------
 
       if (restart_zsal .or. restart_bgc) call read_restart_bgc  
+
+      deallocate(trcrn_bgc)
 
       end subroutine init_bgc
 
@@ -792,81 +865,18 @@
 ! author Elizabeth C. Hunke, LANL
 !        Nicole Jeffery, LANL
 
-      subroutine init_zbgc
+      subroutine input_zbgc
 
+      use ice_arrays_column, only: restore_bgc
       use ice_broadcast, only: broadcast_scalar
-      use ice_communicate, only: my_task, master_task
       use ice_restart_column, only: restart_bgc, restart_zsal, &
           restart_hbrine
+      use ice_restart_shared, only: restart
       use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
           nt_strata      
-      use ice_arrays_column, only: bgc_data_dir
-      use ice_arrays_column, only: sil_data_type, nit_data_type, fe_data_type
-      use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N
 
       character (len=char_len) :: &
          shortwave        ! from icepack
-
-      integer (kind=int_kind) :: &
-          ntrcr,         nbtrcr,       nbtrcr_sw,    &
-          ntrcr_o,       nt_fbri,      &  
-          nt_bgc_Nit,    nt_bgc_Am,    nt_bgc_Sil,   &
-          nt_bgc_DMS,    nt_bgc_PON,   nt_bgc_S,     &
-          nt_bgc_DMSPp,  nt_bgc_DMSPd, &
-          nt_zbgc_frac,  nlt_chl_sw, &
-          nlt_bgc_Nit,   nlt_bgc_Am, nlt_bgc_Sil, &
-          nlt_bgc_DMS,   nlt_bgc_DMSPp, nlt_bgc_DMSPd, &
-          nlt_bgc_PON, &
-          nt_bgc_hum,  nlt_bgc_hum
-
-      integer (kind=int_kind), dimension(icepack_max_aero) :: &
-         nlt_zaero_sw       ! points to aerosol in trcrn_sw
-
-      integer (kind=int_kind), dimension(icepack_max_algae) :: &
-         nlt_bgc_N      , & ! algae
-         nlt_bgc_chl
-
-      integer (kind=int_kind), dimension(icepack_max_doc) :: &
-         nlt_bgc_DOC        ! disolved organic carbon
-
-      integer (kind=int_kind), dimension(icepack_max_don) :: &
-         nlt_bgc_DON        !
-
-      integer (kind=int_kind), dimension(icepack_max_dic) :: &
-         nlt_bgc_DIC        ! disolved inorganic carbon
-
-      integer (kind=int_kind), dimension(icepack_max_fe) :: &
-         nlt_bgc_Fed    , & !
-         nlt_bgc_Fep        !
-
-      integer (kind=int_kind), dimension(icepack_max_aero) :: &
-         nlt_zaero          ! non-reacting layer aerosols
-
-      integer (kind=int_kind), dimension(icepack_max_algae) :: &
-         nt_bgc_N , & ! diatoms, phaeocystis, pico/small
-         nt_bgc_chl   ! diatoms, phaeocystis, pico/small
-
-      integer (kind=int_kind), dimension(icepack_max_doc) :: &
-         nt_bgc_DOC      !  dissolved organic carbon
-
-      integer (kind=int_kind), dimension(icepack_max_don) :: &
-         nt_bgc_DON         !  dissolved organic nitrogen
-
-      integer (kind=int_kind), dimension(icepack_max_dic) :: &
-         nt_bgc_DIC         !  dissolved inorganic carbon
-
-      integer (kind=int_kind), dimension(icepack_max_fe) :: &
-         nt_bgc_Fed,     & !  dissolved iron
-         nt_bgc_Fep        !  particulate iron
-
-      integer (kind=int_kind), dimension(icepack_max_aero) :: &
-         nt_zaero       !  black carbon and other aerosols
-
-      integer (kind=int_kind), dimension(icepack_max_nbtrcr) :: &
-         bio_index_o         ! relates nlt_bgc_NO to ocean concentration index
-
-      integer (kind=int_kind), dimension(icepack_max_nbtrcr) :: &
-         bio_index           ! relates bio indices, ie.  nlt_bgc_N to nt_bgc_N
 
       logical (kind=log_kind) :: &
           tr_brine, &
@@ -881,74 +891,10 @@
 
       logical (kind=log_kind) :: &
           solve_zsal, skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
-          modal_aero, restore_bgc
+          modal_aero
 
       character (char_len) :: &
           bgc_flux_type
-
-      real (kind=dbl_kind) :: &
-          grid_o, l_sk, grid_o_t, initbio_frac, &
-          frazil_scav, grid_oS, l_skS, &
-          phi_snow, &
-          ratio_Si2N_diatoms , ratio_Si2N_sp      , ratio_Si2N_phaeo   ,  &
-          ratio_S2N_diatoms  , ratio_S2N_sp       , ratio_S2N_phaeo    ,  &
-          ratio_Fe2C_diatoms , ratio_Fe2C_sp      , ratio_Fe2C_phaeo   ,  &
-          ratio_Fe2N_diatoms , ratio_Fe2N_sp      , ratio_Fe2N_phaeo   ,  &
-          ratio_Fe2DON       , ratio_Fe2DOC_s     , ratio_Fe2DOC_l     ,  &
-          fr_resp            , tau_min            , tau_max            ,  &
-          algal_vel          , R_dFe2dust         , dustFe_sol         ,  &
-          chlabs_diatoms     , chlabs_sp          , chlabs_phaeo       ,  &
-          alpha2max_low_diatoms,alpha2max_low_sp  , alpha2max_low_phaeo,  &
-          beta2max_diatoms   , beta2max_sp        , beta2max_phaeo     ,  &
-          mu_max_diatoms     , mu_max_sp          , mu_max_phaeo       ,  &
-          grow_Tdep_diatoms  , grow_Tdep_sp       , grow_Tdep_phaeo    ,  &
-          fr_graze_diatoms   , fr_graze_sp        , fr_graze_phaeo     ,  &
-          mort_pre_diatoms   , mort_pre_sp        , mort_pre_phaeo     ,  &
-          mort_Tdep_diatoms  , mort_Tdep_sp       , mort_Tdep_phaeo    ,  &
-          k_exude_diatoms    , k_exude_sp         , k_exude_phaeo      ,  &
-          K_Nit_diatoms      , K_Nit_sp           , K_Nit_phaeo        ,  &
-          K_Am_diatoms       , K_Am_sp            , K_Am_phaeo         ,  &
-          K_Sil_diatoms      , K_Sil_sp           , K_Sil_phaeo        ,  &
-          K_Fe_diatoms       , K_Fe_sp            , K_Fe_phaeo         ,  &
-          f_don_protein      , kn_bac_protein     , f_don_Am_protein   ,  &
-          f_doc_s            , f_doc_l            , f_exude_s          ,  &
-          f_exude_l          , k_bac_s            , k_bac_l            ,  &
-          T_max              , fsal               , op_dep_min         ,  &
-          fr_graze_s         , fr_graze_e         , fr_mort2min        ,  &
-          fr_dFe             , k_nitrif           , t_iron_conv        ,  &
-          max_loss           , max_dfe_doc1       , fr_resp_s          ,  &
-          y_sk_DMS           , t_sk_conv          , t_sk_ox            ,  &
-          algaltype_diatoms  , algaltype_sp       , algaltype_phaeo    ,  &
-          nitratetype        , ammoniumtype       , silicatetype       ,  &
-          dmspptype          , dmspdtype          , humtype            ,  &
-          doctype_s          , doctype_l          , dontype_protein    ,  &
-          fedtype_1          , feptype_1          , zaerotype_bc1      ,  &
-          zaerotype_bc2      , zaerotype_dust1    , zaerotype_dust2    ,  &
-          zaerotype_dust3    , zaerotype_dust4    , ratio_C2N_diatoms  ,  &
-          ratio_C2N_sp       , ratio_C2N_phaeo    , ratio_chl2N_diatoms,  & 
-          ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
-          F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins 
-
-      real (kind=dbl_kind), dimension(icepack_max_dic) :: &
-         dictype
-
-      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-         algaltype   ! tau_min for both retention and release
-
-      real (kind=dbl_kind), dimension(icepack_max_doc) :: &
-         doctype
-
-      real (kind=dbl_kind), dimension(icepack_max_don) :: &
-         dontype
-
-      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
-         fedtype
-
-      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
-         feptype
-
-      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
-         zaerotype
 
       real (kind=dbl_kind), dimension(icepack_max_algae) :: &
          F_abs_chl          ! to scale absorption in Dedd
@@ -990,38 +936,12 @@
          f_exude          , & ! fraction of exuded carbon to each DOC pool
          k_bac                ! Bacterial degredation of DOC (1/d)    
 
-      real (kind=dbl_kind), dimension(icepack_max_nbtrcr) :: &
-         zbgc_frac_init,&! initializes mobile fraction
-         bgc_tracer_type ! described tracer in mobile or stationary phases      
-                         ! < 0 is purely mobile (eg. nitrate)
-                         ! > 0 has timescales for transitions between 
-                         ! phases based on whether the ice is melting or growing
-
-     real (kind=dbl_kind), dimension(icepack_max_nbtrcr) :: &
-         zbgc_init_frac, &   ! fraction of ocean tracer  concentration in new ice
-         tau_ret,        &   ! retention timescale  (s), mobile to stationary phase
-         tau_rel             ! release timescale    (s), stationary to mobile phase
-
       integer (kind=int_kind) :: &
-        nml_error, & ! namelist i/o error flag
-        k, mm    , & ! loop index
-        ntd      , & ! for tracer dependency calculation
-        nk       , & !
-        nt_depend
+         nml_error, & ! namelist i/o error flag
+         k, mm    , & ! loop index
+         ierr, abort_flag
 
-      character(len=*), parameter :: subname='(init_zbgc)'
-
-      !------------------------------------------------------------
-      !        Tracers have mobile and  stationary phases. 
-      ! ice growth allows for retention, ice melt facilitates mobility
-      ! bgc_tracer_type defines the exchange timescales between these phases
-      ! -1 : entirely in the mobile phase, no exchange  (this is the default)
-      !  0 : retention time scale is tau_min, release time scale is tau_max
-      !  1 : retention time scale is tau_max, release time scale is tau_min
-      ! 0.5: retention time scale is tau_min, release time scale is tau_min
-      !  2 : retention time scale is tau_max, release time scale is tau_max
-      ! tau_min and tau_max are defined in icepack_intfc.f90
-      !------------------------------------------------------------
+      character(len=*), parameter :: subname='(input_zbgc)'
 
       !-----------------------------------------------------------------
       ! namelist variables
@@ -1074,7 +994,10 @@
         ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
         F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins 
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      !-----------------------------------------------------------------
+
+      abort_flag = 0
+
       call icepack_query_tracer_flags(tr_aero_out=tr_aero)
       call icepack_query_parameters(ktherm_out=ktherm, shortwave_out=shortwave)
       call icepack_warnings_flush(nu_diag)
@@ -1270,40 +1193,8 @@
       call release_fileunit(nu_nml)
 
       !-----------------------------------------------------------------
-      ! zsalinity and brine
+      ! broadcast
       !-----------------------------------------------------------------
-      if (solve_zsal .and. n_trzs == 0) then
-         write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
-         write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
-         solve_zsal = .false.      
-      elseif (solve_zsal .and. nblyr < 1)  then
-         write(nu_diag,*) subname,'WARNING: solve_zsal=T but 0 zsalinity tracers'
-         write(nu_diag,*) subname,'WARNING: setting solve_zsal = F'
-         solve_zsal = .false.     
-      endif 
-
-      if (solve_zsal .and. ((.not. tr_brine) .or. (ktherm /= 1))) then
-         write(nu_diag,*) subname,'WARNING: solve_zsal needs tr_brine=T and ktherm=1'
-         write(nu_diag,*) subname,'WARNING: setting tr_brine=T and ktherm=1'
-         tr_brine = .true.
-         ktherm = 1
-      endif
-
-      if (tr_brine .and. n_trbri == 0 ) then
-         write(nu_diag,*) &
-            subname,'WARNING: tr_brine=T but no brine height compiled'
-         write(nu_diag,*) &
-            subname,'WARNING: setting solve_zsal and tr_brine = F'
-         solve_zsal = .false.
-         tr_brine  = .false.
-      elseif (tr_brine .and. nblyr < 1 ) then
-         write(nu_diag,*) &
-            subname,'WARNING: tr_brine=T but no biology layers compiled'
-         write(nu_diag,*) &
-            subname,'WARNING: setting solve_zsal and tr_brine = F'
-         solve_zsal = .false.
-         tr_brine  = .false.
-      endif 
 
       call broadcast_scalar(solve_zsal,         master_task)  
       call broadcast_scalar(restart_zsal,       master_task)  
@@ -1313,113 +1204,6 @@
       call broadcast_scalar(phi_snow,           master_task)
       call broadcast_scalar(grid_oS,            master_task)
       call broadcast_scalar(l_skS,              master_task)
-
-      if (my_task == master_task) then
-         write(nu_diag,1010) ' tr_brine                  = ', tr_brine
-         if (tr_brine) then
-         write(nu_diag,1010) ' restart_hbrine            = ', restart_hbrine
-         write(nu_diag,1005) ' phi_snow                  = ', phi_snow
-         endif
-         if (solve_zsal) then
-         write(nu_diag,1010) ' solve_zsal                = ', solve_zsal
-         write(nu_diag,1010) ' restart_zsal              = ', restart_zsal
-         write(nu_diag,1000) ' grid_oS                   = ', grid_oS
-         write(nu_diag,1005) ' l_skS                     = ', l_skS
-         endif
-      endif
-
-      !-----------------------------------------------------------------
-      ! biogeochemistry
-      !-----------------------------------------------------------------
-
-      if (.not. tr_brine) then
-         if (solve_zbgc) then
-            write(nu_diag,*) subname,'WARNING: tr_brine = F and solve_zbgc = T'
-            write(nu_diag,*) subname,'WARNING: setting solve_zbgc = F'
-            solve_zbgc = .false.
-         endif
-         if (tr_zaero) then
-            write(nu_diag,*) subname,'WARNING: tr_brine = F and tr_zaero = T'
-            write(nu_diag,*) subname,'WARNING: setting tr_zaero = F'
-            tr_zaero = .false.
-         endif
-      endif
-
-      if ((skl_bgc .AND. solve_zbgc) .or. (skl_bgc .AND. z_tracers)) &
-         call abort_ice(subname//'ERROR: bgc and solve_zbgc or z_tracers are both true')
-
-      if (skl_bgc .AND. tr_zaero) then
-         write(nu_diag,*) subname,'WARNING: skl bgc does not use vertical tracers'
-         write(nu_diag,*) subname,'WARNING: setting tr_zaero = F'
-         tr_zaero = .false.
-      endif
-
-      if (dEdd_algae .AND. trim(shortwave) /= 'dEdd') then 
-         write(nu_diag,*) subname,'WARNING: dEdd_algae = T but shortwave /= dEdd'
-         write(nu_diag,*) subname,'WARNING: setting dEdd_algae = F'
-         dEdd_algae = .false.
-      endif
-
-      if (dEdd_algae .AND. (.NOT. tr_bgc_N) .AND. (.NOT. tr_zaero)) then 
-         write(nu_diag,*) subname,'WARNING: need tr_bgc_N or tr_zaero for dEdd_algae'
-         write(nu_diag,*) subname,'WARNING: setting dEdd_algae = F'
-         dEdd_algae = .false.
-      endif
-
-      if (modal_aero .AND. (.NOT. tr_zaero) .AND. (.NOT. tr_aero)) then
-         modal_aero = .false.
-      endif
-         
-      if (modal_aero .AND. trim(shortwave) /= 'dEdd') then 
-         write(nu_diag,*) subname,'WARNING: modal_aero = T but shortwave /= dEdd'
-         write(nu_diag,*) subname,'WARNING: setting modal_aero = F'
-         modal_aero = .false.
-      endif
-      if (n_algae > icepack_max_algae) call abort_ice(subname//'ERROR: number of algal &
-          & types exceeds icepack_max_algae')
-      if (n_doc > icepack_max_doc) call abort_ice(subname//'ERROR: number of doc &
-          & types exceeds icepack_max_doc')
-      if (n_dic > icepack_max_doc) call abort_ice(subname//'ERROR: number of dic &
-          & types exceeds icepack_max_dic')
-      if (n_don > icepack_max_don) call abort_ice(subname//'ERROR: number of don &
-          & types exceeds icepack_max_don')
-      if (n_fed  > icepack_max_fe ) call abort_ice(subname//'ERROR: number of dissolved fe &
-          & types exceeds icepack_max_fe ')
-      if (n_fep  > icepack_max_fe ) call abort_ice(subname//'ERROR: number of particulate fe &
-          & types exceeds icepack_max_fe ')
-      if ((n_trbgcs == 0 .and. skl_bgc) .or. (n_algae == 0 .and. skl_bgc)) then
-         write(nu_diag,*) &
-            subname,'WARNING: skl_bgc=T but 0 bgc or algal tracers compiled'
-         write(nu_diag,*) &
-            subname,'WARNING: setting skl_bgc = F'
-         skl_bgc = .false.
-      endif
-
-      if ((n_trbgcz == 0 .and. solve_zbgc) .or. (n_algae == 0 .and. solve_zbgc)) then
-         write(nu_diag,*) &
-            subname,'WARNING: solve_zbgc=T but 0 zbgc or algal tracers compiled'
-         write(nu_diag,*) &
-            subname,'WARNING: setting solve_zbgc = F'
-         solve_zbgc = .false.
-      endif
-
-      if (solve_zbgc .and. .not. z_tracers) z_tracers = .true.
-      if (skl_bgc .or. solve_zbgc) then
-         tr_bgc_N         = .true.   ! minimum NP biogeochemistry
-         tr_bgc_Nit       = .true.
-      else
-         tr_bgc_N         = .false.
-         tr_bgc_C         = .false.
-         tr_bgc_chl       = .false.
-         tr_bgc_Nit       = .false.
-         tr_bgc_Am        = .false.
-         tr_bgc_Sil       = .false.
-         tr_bgc_hum       = .false.
-         tr_bgc_DMS       = .false.
-         tr_bgc_PON       = .false.
-         tr_bgc_DON       = .false.
-         tr_bgc_Fe        = .false.
-      endif
 
       call broadcast_scalar(solve_zbgc,         master_task)
       call broadcast_scalar(skl_bgc,            master_task)
@@ -1438,14 +1222,6 @@
       call broadcast_scalar(tr_bgc_DON,         master_task) 
       call broadcast_scalar(tr_bgc_Fe,          master_task) 
 
-      !-----------------------------------------------------------------
-      ! z layer aerosols
-      !-----------------------------------------------------------------
-      if (tr_zaero .and. .not. z_tracers) z_tracers = .true.
-
-      if (n_zaero > icepack_max_aero) call abort_ice(subname//'ERROR: &
-          & number of z aerosols exceeds icepack_max_aero')
-         
       call broadcast_scalar(z_tracers,          master_task)
       call broadcast_scalar(tr_zaero,           master_task)
       call broadcast_scalar(dEdd_algae,         master_task) 
@@ -1571,33 +1347,235 @@
       call broadcast_scalar(F_abs_chl_phaeo    ,  master_task)
       call broadcast_scalar(ratio_C2N_proteins ,  master_task) 
 
-      if (skl_bgc .and. n_bgc < 2) then
-         write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'comp_ice must have number of bgc tracers >= 2'
-         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
-         call abort_ice (subname//'ERROR: skl_bgc and n_bgc < 2')
+      !-----------------------------------------------------------------
+      ! zsalinity and brine
+      !-----------------------------------------------------------------
+
+      if (.not.restart) then
+         if (my_task == master_task) &
+            write(nu_diag,*) subname//' WARNING: restart = false, setting bgc restart flags to false'
+         restart_bgc =  .false.
+         restart_hbrine =  .false.
+         restart_zsal =  .false.
       endif
 
-      if (solve_zbgc .and. n_bgc < 2) then
-         write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'comp_ice must have number of zbgc tracers >= 2'
-         write (nu_diag,*) subname,'number of bgc tracers compiled:',n_bgc
-         call abort_ice (subname//'ERROR: solve_zbgc and n_bgc < 2')
+      if (solve_zsal .and. nblyr < 1)  then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: solve_zsal=T but 0 zsalinity tracers'
+         endif
+         abort_flag = 101
+      endif 
+
+      if (solve_zsal .and. ((.not. tr_brine) .or. (ktherm /= 1))) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: solve_zsal needs tr_brine=T and ktherm=1'
+         endif
+         abort_flag = 102
       endif
 
-      if (tr_zaero .and. n_zaero <  1) then
-         write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'comp_ice must have number of n_zaero > 0'
-         write (nu_diag,*) subname,'in order to solve z aerosols:',n_zaero
-         call abort_ice (subname//'ERROR: tr_zaero and tr zaero < 1')
+      if (tr_brine .and. nblyr < 1 ) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: tr_brine=T but no biology layers compiled'
+         endif
+         abort_flag = 103
+      endif 
+
+      !-----------------------------------------------------------------
+      ! biogeochemistry
+      !-----------------------------------------------------------------
+
+      if (.not. tr_brine) then
+         if (solve_zbgc) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' ERROR: tr_brine = F and solve_zbgc = T'
+            endif
+            abort_flag = 104
+         endif
+         if (tr_zaero) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' ERROR: tr_brine = F and tr_zaero = T'
+            endif
+            abort_flag = 105
+         endif
       endif
 
-! tcx, tcraig, this is not set yet
-!      call icepack_init_tracer_indices( &
-!          nbtrcr_in=nbtrcr)
-!      call icepack_warnings_flush(nu_diag)
-!      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-!          file=__FILE__, line=__LINE__)
+      if ((skl_bgc .AND. solve_zbgc) .or. (skl_bgc .AND. z_tracers)) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: skl_bgc and solve_zbgc or z_tracers are both true'
+         endif
+         abort_flag = 106
+      endif
+
+      if (skl_bgc .AND. tr_zaero) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: skl_bgc does not use vertical tracers'
+         endif
+         abort_flag = 107
+      endif
+
+      if (dEdd_algae .AND. trim(shortwave) /= 'dEdd') then 
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: dEdd_algae = T but shortwave /= dEdd'
+         endif
+         abort_flag = 108
+      endif
+
+      if (dEdd_algae .AND. (.NOT. tr_bgc_N) .AND. (.NOT. tr_zaero)) then 
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: need tr_bgc_N or tr_zaero for dEdd_algae'
+         endif
+         abort_flag = 109
+      endif
+
+      if (modal_aero .AND. (.NOT. tr_zaero) .AND. (.NOT. tr_aero)) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: modal_aero T with tr_zaero and tr_aero'
+         endif
+         abort_flag = 110
+      endif
+         
+      if (modal_aero .AND. trim(shortwave) /= 'dEdd') then 
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: modal_aero = T but shortwave /= dEdd'
+         endif
+         abort_flag = 111
+      endif
+      if (n_algae > icepack_max_algae) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of algal types exceeds icepack_max_algae'
+         endif
+         abort_flag = 112
+      endif
+      if (n_doc > icepack_max_doc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of doc types exceeds icepack_max_doc'
+         endif
+         abort_flag = 113
+      endif
+      if (n_dic > icepack_max_doc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of dic types exceeds icepack_max_dic'
+         endif
+         abort_flag = 114
+      endif
+      if (n_don > icepack_max_don) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of don types exceeds icepack_max_don'
+         endif
+         abort_flag = 115
+      endif
+      if (n_fed  > icepack_max_fe ) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of dissolved fe types exceeds icepack_max_fe '
+         endif
+         abort_flag = 116
+      endif
+      if (n_fep  > icepack_max_fe ) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of particulate fe types exceeds icepack_max_fe '
+         endif
+         abort_flag = 117
+      endif
+
+      if (n_algae == 0 .and. skl_bgc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: skl_bgc=T but 0 bgc or algal tracers compiled'
+         endif
+         abort_flag = 118
+      endif
+
+      if (n_algae == 0 .and. solve_zbgc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: solve_zbgc=T but 0 zbgc or algal tracers compiled'
+         endif
+         abort_flag = 119
+      endif
+
+      if (solve_zbgc .and. .not. z_tracers) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: solve_zbgc=T but not z_tracers'
+         endif
+         abort_flag = 120
+      endif
+
+      if (skl_bgc .or. solve_zbgc) then
+         if (.not. tr_bgc_N) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'ERROR: tr_bgc_N must be on for bgc'
+            endif
+            abort_flag = 121
+         endif
+         if (.not. tr_bgc_Nit) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'ERROR: tr_bgc_Nit must be on for bgc'
+            endif
+            abort_flag = 122
+         endif
+      else
+         ! tcraig, allow bgc to be turned off in this case?
+         tr_bgc_N         = .false.
+         tr_bgc_C         = .false.
+         tr_bgc_chl       = .false.
+         tr_bgc_Nit       = .false.
+         tr_bgc_Am        = .false.
+         tr_bgc_Sil       = .false.
+         tr_bgc_hum       = .false.
+         tr_bgc_DMS       = .false.
+         tr_bgc_PON       = .false.
+         tr_bgc_DON       = .false.
+         tr_bgc_Fe        = .false.
+      endif
+
+      !-----------------------------------------------------------------
+      ! z layer aerosols
+      !-----------------------------------------------------------------
+      if (tr_zaero .and. .not. z_tracers) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: tr_zaero and not z_tracers'
+         endif
+         abort_flag = 123
+      endif
+
+      if (n_zaero > icepack_max_aero) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//'ERROR: number of z aerosols exceeds icepack_max_aero'
+         endif
+         abort_flag = 124
+      endif
+
+      !-----------------------------------------------------------------
+      ! output
+      !-----------------------------------------------------------------
+
+      if (my_task == master_task) then
+         write(nu_diag,1010) ' tr_brine                  = ', tr_brine
+         if (tr_brine) then
+         write(nu_diag,1010) ' restart_hbrine            = ', restart_hbrine
+         write(nu_diag,1005) ' phi_snow                  = ', phi_snow
+         endif
+         write(nu_diag,1010) ' solve_zsal                = ', solve_zsal
+         if (solve_zsal) then
+         write(nu_diag,1010) ' restart_zsal              = ', restart_zsal
+         write(nu_diag,1000) ' grid_oS                   = ', grid_oS
+         write(nu_diag,1005) ' l_skS                     = ', l_skS
+         endif
+      endif
+
+      !-----------------------------------------------------------------
+      ! abort if abort flag is set
+      !-----------------------------------------------------------------
+
+      call flush_fileunit(nu_diag)
+      call ice_barrier()
+      if (abort_flag /= 0) then
+         write(nu_diag,*) subname,' ERROR: abort_flag=',abort_flag
+         call abort_ice (subname//' ABORTING on input ERRORS', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      !-----------------------------------------------------------------
+      ! set values in icepack
+      !-----------------------------------------------------------------
 
       call icepack_init_parameters( &
           ktherm_in=ktherm, shortwave_in=shortwave, solve_zsal_in=solve_zsal, &
@@ -1607,49 +1585,328 @@
           bgc_flux_type_in=bgc_flux_type, grid_o_in=grid_o, l_sk_in=l_sk, &
           initbio_frac_in=initbio_frac, &
           grid_oS_in=grid_oS, l_skS_in=l_skS, &
-          phi_snow_in=phi_snow, &
+          phi_snow_in=phi_snow, frazil_scav_in = frazil_scav, &
           modal_aero_in=modal_aero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! initialize zbgc tracer indices
-      !----------------------------------------------------------------- 
+      call icepack_init_tracer_flags(tr_brine_in=tr_brine, &
+         tr_bgc_Nit_in=tr_bgc_Nit, tr_bgc_Am_in =tr_bgc_Am,  tr_bgc_Sil_in=tr_bgc_Sil,   &
+         tr_bgc_DMS_in=tr_bgc_DMS, tr_bgc_PON_in=tr_bgc_PON, &
+         tr_bgc_N_in  =tr_bgc_N,   tr_bgc_C_in  =tr_bgc_C,   tr_bgc_chl_in=tr_bgc_chl,   &
+         tr_bgc_DON_in=tr_bgc_DON, tr_bgc_Fe_in =tr_bgc_Fe,  tr_zaero_in  =tr_zaero,     &
+         tr_bgc_hum_in=tr_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
-      ntrcr_o = ntrcr
-      nt_fbri = 0
-      if (tr_brine) then
-          nt_fbri = ntrcr + 1   ! ice volume fraction with salt
+ 1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
+ 1005    format (a30,2x,f9.6)  ! float
+ 1010    format (a30,2x,l6)    ! logical
+ 1020    format (a30,2x,i6)    ! integer
+ 1030    format (a30,   a8)    ! character
+
+      end subroutine input_zbgc
+
+!=======================================================================
+
+! Count and index tracers
+!
+! author Elizabeth C. Hunke, LANL
+
+      subroutine count_tracers
+
+      use ice_broadcast, only: broadcast_scalar, broadcast_array
+      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
+      use ice_domain, only: close_boundaries
+      use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, &
+          n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep, max_nstrm
+      use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
+          dumpfreq, dumpfreq_n, diagfreq, npt, dt, ndtd, days_per_year, &
+          use_leap_years, write_ic, dump_last
+      use ice_arrays_column, only: oceanmixed_ice, restore_bgc
+      use ice_arrays_column, only: bgc_data_dir, sil_data_type, nit_data_type, fe_data_type
+      use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
+          restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
+          restart_bgc
+      use ice_restart_shared, only: &
+          restart, restart_ext, restart_dir, restart_file, pointer_file, &
+          runid, runtype, use_restart_time, restart_format, lcdf64
+      use ice_history_shared, only: hist_avg, history_dir, history_file, &
+          incond_dir, incond_file, version_name
+      use ice_flux, only: update_ocn_f, l_mpond_fresh
+      use ice_flux, only: default_season
+      use ice_flux_bgc, only: cpl_bgc
+      use ice_forcing, only: &
+          ycycle,          fyear_init,    dbug, &
+          atm_data_type,   atm_data_dir,  precip_units, &
+          atm_data_format, ocn_data_format, &
+          bgc_data_type, ocn_data_type, ocn_data_dir, &
+          oceanmixed_file, restore_ocn,   trestore
+      use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
+          bathymetry_file, use_bathymetry, &
+          grid_type, grid_format, &
+          dxrect, dyrect
+      use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
+          basalstress, k1, Ktens, e_ratio, coriolis, kridge, ktransport
+      use ice_transport_driver, only: advection
+      use ice_restoring, only: restore_ice
+#ifdef CESMCOUPLED
+      use shr_file_mod, only: shr_file_setIO
+#endif
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         nml_error, & ! namelist i/o error flag
+         n        , & ! loop index
+         k, mm    , & ! loop index
+         nk       , & ! layer index
+         nk_bgc   , & ! layer index
+         ierr
+
+      character (len=6) :: chartmp
+
+      logical :: exists
+
+      real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
+        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
+        mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
+        a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
+        phi_c_slow_mode, phi_i_mushy, kalg
+
+      integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
+        kitd, kcatbound
+
+      character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
+        tfrz_option, frzpnd, atmbndy
+
+      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair
+
+      integer (kind=int_kind) :: ntrcr
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
+      logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+      integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
+      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
+
+      integer (kind=int_kind) :: &
+          nbtrcr,        nbtrcr_sw,    &
+          ntrcr_o,       nt_fbri,      &  
+          nt_bgc_Nit,    nt_bgc_Am,    nt_bgc_Sil,   &
+          nt_bgc_DMS,    nt_bgc_PON,   nt_bgc_S,     &
+          nt_bgc_DMSPp,  nt_bgc_DMSPd, &
+          nt_zbgc_frac,  nlt_chl_sw, &
+          nlt_bgc_Nit,   nlt_bgc_Am, nlt_bgc_Sil, &
+          nlt_bgc_DMS,   nlt_bgc_DMSPp, nlt_bgc_DMSPd, &
+          nlt_bgc_PON,   nt_bgc_hum,  nlt_bgc_hum
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero_sw       ! points to aerosol in trcrn_sw
+
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nlt_bgc_N      , & ! algae
+         nlt_bgc_chl
+
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &
+         nlt_bgc_DOC        ! disolved organic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_don) :: &
+         nlt_bgc_DON        !
+
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &
+         nlt_bgc_DIC        ! disolved inorganic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_fe) :: &
+         nlt_bgc_Fed    , & !
+         nlt_bgc_Fep        !
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero          ! non-reacting layer aerosols
+
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nt_bgc_N , & ! diatoms, phaeocystis, pico/small
+         nt_bgc_chl   ! diatoms, phaeocystis, pico/small
+
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &
+         nt_bgc_DOC      !  dissolved organic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_don) :: &
+         nt_bgc_DON         !  dissolved organic nitrogen
+
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &
+         nt_bgc_DIC         !  dissolved inorganic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_fe) :: &
+         nt_bgc_Fed,     & !  dissolved iron
+         nt_bgc_Fep        !  particulate iron
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nt_zaero       !  black carbon and other aerosols
+
+      logical (kind=log_kind) :: &
+          tr_brine, &
+          tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
+          tr_bgc_DMS,    tr_bgc_PON,   &
+          tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
+          tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
+          tr_bgc_hum
+ 
+      logical (kind=log_kind) :: &
+          solve_zsal, skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
+          modal_aero
+
+      character (char_len) :: &
+          bgc_flux_type
+
+      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+         F_abs_chl          ! to scale absorption in Dedd
+
+       real (kind=dbl_kind),  dimension(icepack_max_algae) :: &
+         R_S2N      , & ! algal S to N (mole/mole)
+         ! Marchetti et al 2006, 3 umol Fe/mol C for iron limited Pseudo-nitzschia
+         R_Fe2C     , & ! algal Fe to carbon (umol/mmol)
+         R_Fe2N         ! algal Fe to N (umol/mmol)
+
+      real (kind=dbl_kind), dimension(icepack_max_don) :: & 
+         R_Fe2DON       ! Fe to N of DON (nmol/umol)
+
+      real (kind=dbl_kind), dimension(icepack_max_doc) :: &  
+         R_Fe2DOC       ! Fe to C of DOC (nmol/umol)
+
+      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+         chlabs           , & ! chla absorption 1/m/(mg/m^3)
+         alpha2max_low    , & ! light limitation (1/(W/m^2))
+         beta2max         , & ! light inhibition (1/(W/m^2))
+         mu_max           , & ! maximum growth rate (1/d)
+         grow_Tdep        , & ! T dependence of growth (1/C)
+         fr_graze         , & ! fraction of algae grazed
+         mort_pre         , & ! mortality (1/day)
+         mort_Tdep        , & ! T dependence of mortality (1/C)
+         k_exude          , & ! algal carbon  exudation rate (1/d)
+         K_Nit            , & ! nitrate half saturation (mmol/m^3) 
+         K_Am             , & ! ammonium half saturation (mmol/m^3) 
+         K_Sil            , & ! silicon half saturation (mmol/m^3)
+         K_Fe                 ! iron half saturation  or micromol/m^3
+            
+      real (kind=dbl_kind), dimension(icepack_max_DON) :: &
+         f_don            , & ! fraction of spilled grazing to DON
+         kn_bac           , & ! Bacterial degredation of DON (1/d)
+         f_don_Am             ! fraction of remineralized DON to Am
+
+      real (kind=dbl_kind), dimension(icepack_max_DOC) :: &
+         f_doc            , & ! fraction of mort_N that goes to each doc pool
+         f_exude          , & ! fraction of exuded carbon to each DOC pool
+         k_bac                ! Bacterial degredation of DOC (1/d)    
+
+      real (kind=dbl_kind) :: Cf, puny
+
+      character(len=*), parameter :: subname='(count_tracers)'
+
+      !-----------------------------------------------------------------
+
+      call icepack_query_parameters( &
+          ktherm_out=ktherm, shortwave_out=shortwave, solve_zsal_out=solve_zsal, &
+          skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, scale_bgc_out=scale_bgc, &
+          dEdd_algae_out=dEdd_algae, &
+          solve_zbgc_out=solve_zbgc, &
+          bgc_flux_type_out=bgc_flux_type, grid_o_out=grid_o, l_sk_out=l_sk, &
+          initbio_frac_out=initbio_frac, &
+          grid_oS_out=grid_oS, l_skS_out=l_skS, &
+          phi_snow_out=phi_snow, frazil_scav_out = frazil_scav, &
+          modal_aero_out=modal_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
+      call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+         tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
+         tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
+         tr_brine_out=tr_brine, &
+         tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
+         tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
+         tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C,   tr_bgc_chl_out=tr_bgc_chl,   &
+         tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out =tr_bgc_Fe,  tr_zaero_out  =tr_zaero,     &
+         tr_bgc_hum_out=tr_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
+      if (my_task == master_task) then
+         write(nu_diag,1020) ' n_aero                    = ', n_aero
+         write(nu_diag,1020) ' n_zaero                   = ', n_zaero
+         write(nu_diag,1020) ' n_algae                   = ', n_algae
+         write(nu_diag,1020) ' n_doc                     = ', n_doc
+         write(nu_diag,1020) ' n_dic                     = ', n_dic
+         write(nu_diag,1020) ' n_don                     = ', n_don
+         write(nu_diag,1020) ' n_fed                     = ', n_fed
+         write(nu_diag,1020) ' n_fep                     = ', n_fep
+      endif                     ! my_task = master_task
+
+      ntrcr = 0
+
+      ntrcr = ntrcr + 1             ! count tracers, starting with Tsfc = 1
+      nt_Tsfc = ntrcr               ! index tracers, starting with Tsfc = 1
+
+      nt_qice = ntrcr + 1
+      ntrcr = ntrcr + nilyr ! qice in nilyr layers
+
+      nt_qsno = ntrcr + 1
+      ntrcr = ntrcr + nslyr ! qsno in nslyr layers
+
+      nt_sice = ntrcr + 1
+      ntrcr = ntrcr + nilyr ! sice in nilyr layers
+
+      nt_iage = 0
+      if (tr_iage) then
           ntrcr = ntrcr + 1
-          trcr_depend(nt_fbri)   = 1   ! volume-weighted
-          trcr_base  (nt_fbri,1) = c0  ! volume-weighted
-          trcr_base  (nt_fbri,2) = c1  ! volume-weighted
-          trcr_base  (nt_fbri,3) = c0  ! volume-weighted
-          n_trcr_strata(nt_fbri) = 0
-          nt_strata  (nt_fbri,1) = 0
-          nt_strata  (nt_fbri,2) = 0
+          nt_iage = ntrcr   ! chronological ice age
       endif
 
-      ntd = 0                    ! if nt_fbri /= 0 then use fbri dependency
-      if (nt_fbri == 0) ntd = -1 ! otherwise make tracers depend on ice volume
+      nt_FY = 0
+      if (tr_FY) then
+          ntrcr = ntrcr + 1
+          nt_FY = ntrcr     ! area of first year ice
+      endif
 
-      if (solve_zsal) then       ! .true. only if tr_brine = .true.
-          nt_bgc_S = ntrcr + 1
-          ntrcr = ntrcr + nblyr
-          do k = 1,nblyr
-             trcr_depend(nt_bgc_S + k - 1) = 2 + nt_fbri + ntd
-             trcr_base  (nt_bgc_S,1) = c0  ! default: ice area
-             trcr_base  (nt_bgc_S,2) = c1 
-             trcr_base  (nt_bgc_S,3) = c0  
-             n_trcr_strata(nt_bgc_S) = 1
-             nt_strata(nt_bgc_S,1) = nt_fbri
-             nt_strata(nt_bgc_S,2) = 0
-          enddo
-      endif 
+      nt_alvl = 0
+      nt_vlvl = 0
+      if (tr_lvl) then
+          ntrcr = ntrcr + 1
+          nt_alvl = ntrcr
+          ntrcr = ntrcr + 1
+          nt_vlvl = ntrcr
+      endif
 
+      nt_apnd = 0
+      nt_hpnd = 0
+      nt_ipnd = 0
+      if (tr_pond) then            ! all explicit melt pond schemes
+          ntrcr = ntrcr + 1
+          nt_apnd = ntrcr
+          ntrcr = ntrcr + 1
+          nt_hpnd = ntrcr
+          if (tr_pond_lvl) then
+              ntrcr = ntrcr + 1    ! refrozen pond ice lid thickness
+              nt_ipnd = ntrcr      ! on level-ice ponds (if frzpnd='hlid')
+          endif
+          if (tr_pond_topo) then
+              ntrcr = ntrcr + 1    ! 
+              nt_ipnd = ntrcr      ! refrozen pond ice lid thickness
+          endif
+      endif
+
+      nt_aero = 0
+      if (tr_aero) then
+          nt_aero = ntrcr + 1
+          ntrcr = ntrcr + 4*n_aero ! 4 dEdd layers, n_aero species
+      else
+!tcx, modify code so we don't have to reset n_aero here
+          n_aero = 0
+      endif
+              
       !-----------------------------------------------------------------
-      ! biogeochemistry
+      ! initialize zbgc tracer indices
       !-----------------------------------------------------------------
 
       nbtrcr = 0
@@ -1673,7 +1930,7 @@
       nlt_bgc_DON(:) = 0
       nt_bgc_DON(:) = 0
 
-      ! vectors of size icepack_max_fe 
+      ! vectors of size icepack_max_fe
       nlt_bgc_Fed(:) = 0
       nlt_bgc_Fep(:) = 0
       nt_bgc_Fed(:) = 0
@@ -1692,9 +1949,8 @@
       nlt_bgc_DMS    = 0
       nlt_bgc_PON    = 0
       nlt_bgc_hum    = 0
+!      nlt_bgc_C      = 0
       nlt_chl_sw     = 0
-      bio_index(:)   = 0
-      bio_index_o(:) = 0
 
       nt_bgc_Nit    = 0
       nt_bgc_Am     = 0
@@ -1704,11 +1960,566 @@
       nt_bgc_DMS    = 0
       nt_bgc_PON    = 0
       nt_bgc_hum    = 0
+!      nt_bgc_C      = 0
 
-!echmod:  move this back into init_zbgc?
+      ntrcr_o = ntrcr
+      nt_fbri = 0
+      if (tr_brine) then
+          nt_fbri = ntrcr + 1   ! ice volume fraction with salt
+          ntrcr = ntrcr + 1
+      endif
+
+      nt_bgc_S = 0
+      if (solve_zsal) then       ! .true. only if tr_brine = .true.
+          nt_bgc_S = ntrcr + 1
+          ntrcr = ntrcr + nblyr
+      endif
+
+      if (skl_bgc .or. z_tracers) then
+
+         if (skl_bgc) then
+            nk = 1
+         elseif (z_tracers) then ! defined on nblyr+1 in ice
+                                 ! and 2 snow layers (snow surface + interior)
+            nk = nblyr + 1
+         endif ! skl_bgc or z_tracers
+         nk_bgc = nk                 ! number of bgc layers in ice
+         if (nk > 1) nk_bgc = nk + 2 ! number of bgc layers in ice and snow
+
+         !-----------------------------------------------------------------
+         ! count tracers and assign tracer indices
+         !-----------------------------------------------------------------
+
+         if (tr_bgc_N) then
+            do mm = 1, n_algae
+               nt_bgc_N(mm) = ntrcr + 1
+               do k = 1, nk_bgc
+                  ntrcr = ntrcr + 1
+               enddo
+               nbtrcr = nbtrcr + 1
+               nlt_bgc_N(mm) = nbtrcr
+            enddo   ! mm
+         endif ! tr_bgc_N
+
+         if (tr_bgc_Nit) then
+            nt_bgc_Nit = ntrcr + 1
+            do k = 1, nk_bgc
+               ntrcr = ntrcr + 1
+            enddo
+            nbtrcr = nbtrcr + 1
+            nlt_bgc_Nit = nbtrcr
+         endif ! tr_bgc_Nit
+
+         if (tr_bgc_C) then
+          !
+          ! Algal C is not yet distinct from algal N
+          ! * Reqires exudation and/or changing C:N ratios
+          ! for implementation
+          !
+          !  do mm = 1,n_algae
+          !     nt_bgc_C(mm) = ntrcr + 1
+          !     do k = 1, nk_bgc
+          !        ntrcr = ntrcr + 1
+          !     enddo
+          !     nbtrcr = nbtrcr + 1
+          !     nlt_bgc_C(mm) = nbtrcr
+          !  enddo   ! mm
+
+            do mm = 1, n_doc
+               nt_bgc_DOC(mm) = ntrcr + 1
+               do k = 1, nk_bgc
+                  ntrcr = ntrcr + 1
+               enddo
+               nbtrcr = nbtrcr + 1
+               nlt_bgc_DOC(mm) = nbtrcr
+            enddo   ! mm
+            do mm = 1, n_dic
+               nt_bgc_DIC(mm) = ntrcr + 1
+               do k = 1, nk_bgc
+                  ntrcr = ntrcr + 1
+               enddo
+               nbtrcr = nbtrcr + 1
+               nlt_bgc_DIC(mm) = nbtrcr
+            enddo   ! mm
+         endif      ! tr_bgc_C
+
+         if (tr_bgc_chl) then
+            do mm = 1, n_algae
+               nt_bgc_chl(mm) = ntrcr + 1
+               do k = 1, nk_bgc
+                  ntrcr = ntrcr + 1
+               enddo
+               nbtrcr = nbtrcr + 1
+               nlt_bgc_chl(mm) = nbtrcr
+            enddo   ! mm
+         endif      ! tr_bgc_chl
+
+         if (tr_bgc_Am) then
+            nt_bgc_Am = ntrcr + 1
+            do k = 1, nk_bgc
+               ntrcr = ntrcr + 1
+            enddo
+            nbtrcr = nbtrcr + 1
+            nlt_bgc_Am = nbtrcr
+         endif
+         if (tr_bgc_Sil) then
+            nt_bgc_Sil = ntrcr + 1
+            do k = 1, nk_bgc
+               ntrcr = ntrcr + 1
+            enddo
+            nbtrcr = nbtrcr + 1
+            nlt_bgc_Sil = nbtrcr
+         endif
+
+         if (tr_bgc_DMS) then   ! all together
+            nt_bgc_DMSPp = ntrcr + 1
+            do k = 1, nk_bgc
+               ntrcr = ntrcr + 1
+            enddo
+            nbtrcr = nbtrcr + 1
+            nlt_bgc_DMSPp = nbtrcr
+
+            nt_bgc_DMSPd = ntrcr + 1
+            do k = 1, nk_bgc
+               ntrcr = ntrcr + 1
+            enddo
+            nbtrcr = nbtrcr + 1
+            nlt_bgc_DMSPd = nbtrcr
+
+            nt_bgc_DMS = ntrcr + 1
+            do k = 1, nk_bgc
+               ntrcr = ntrcr + 1
+            enddo
+            nbtrcr = nbtrcr + 1
+            nlt_bgc_DMS = nbtrcr
+         endif
+
+         if (tr_bgc_PON) then
+            nt_bgc_PON = ntrcr + 1
+            do k = 1, nk_bgc
+               ntrcr = ntrcr + 1
+            enddo
+            nbtrcr = nbtrcr + 1
+            nlt_bgc_PON = nbtrcr
+         endif
+
+         if (tr_bgc_DON) then
+            do mm = 1, n_don
+               nt_bgc_DON(mm) = ntrcr + 1
+               do k = 1, nk_bgc
+                  ntrcr = ntrcr + 1
+               enddo
+               nbtrcr = nbtrcr + 1
+               nlt_bgc_DON(mm) = nbtrcr
+            enddo   ! mm
+         endif      ! tr_bgc_DON
+
+         if (tr_bgc_Fe) then
+            do mm = 1, n_fed
+               nt_bgc_Fed(mm) = ntrcr + 1
+               do k = 1, nk_bgc
+                  ntrcr = ntrcr + 1
+               enddo
+               nbtrcr = nbtrcr + 1
+               nlt_bgc_Fed(mm) = nbtrcr
+            enddo   ! mm
+            do mm = 1, n_fep
+               nt_bgc_Fep(mm) = ntrcr + 1
+               do k = 1, nk_bgc
+                  ntrcr = ntrcr + 1
+               enddo
+               nbtrcr = nbtrcr + 1
+               nlt_bgc_Fep(mm) = nbtrcr
+            enddo   ! mm
+         endif      ! tr_bgc_Fe
+
+         if (tr_bgc_hum) then
+            nt_bgc_hum = ntrcr + 1
+            do k = 1, nk_bgc
+               ntrcr = ntrcr + 1
+            enddo
+            nbtrcr = nbtrcr + 1
+            nlt_bgc_hum = nbtrcr
+         endif
+
+      endif ! skl_bgc .or. z_tracers
+
+      if (z_tracers) then ! defined on nblyr+1 in ice
+                          ! and 2 snow layers (snow surface + interior)
+         ! z layer aerosols
+         if (tr_zaero) then
+            do mm = 1, n_zaero
+               nt_zaero(mm) = ntrcr + 1
+               do k = 1, nk_bgc
+                  ntrcr = ntrcr + 1
+               enddo
+               nbtrcr = nbtrcr + 1
+               nlt_zaero(mm) = nbtrcr
+            enddo   ! mm
+         endif      ! tr_zaero
+
+         nt_zbgc_frac = 0
+         if (nbtrcr > 0) then
+            nt_zbgc_frac = ntrcr + 1
+            ntrcr = ntrcr + nbtrcr
+         endif
+      endif ! z_tracers
+
+!tcx, +1 here is the unused tracer, want to get rid of it
+      ntrcr = ntrcr + 1
+
+!tcx, reset unusaed tracer index, eventually get rid of it.
+      if (nt_iage  <= 0) nt_iage  = ntrcr
+      if (nt_FY    <= 0) nt_FY    = ntrcr
+      if (nt_alvl  <= 0) nt_alvl  = ntrcr
+      if (nt_vlvl  <= 0) nt_vlvl  = ntrcr
+      if (nt_apnd  <= 0) nt_apnd  = ntrcr
+      if (nt_hpnd  <= 0) nt_hpnd  = ntrcr
+      if (nt_ipnd  <= 0) nt_ipnd  = ntrcr
+      if (nt_aero  <= 0) nt_aero  = ntrcr
+      if (nt_fbri  <= 0) nt_fbri  = ntrcr
+      if (nt_bgc_S <= 0) nt_bgc_S = ntrcr
+
+      if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,1020) ' ntrcr                     = ', ntrcr
+         write(nu_diag,*) ' '
+         write(nu_diag,1020) ' nt_sice                   = ', nt_sice
+         write(nu_diag,1020) ' nt_qice                   = ', nt_qice
+         write(nu_diag,1020) ' nt_qsno                   = ', nt_qsno
+         write(nu_diag,*)' '
+         write(nu_diag,1020) ' nilyr                     = ', nilyr
+         write(nu_diag,1020) ' nslyr                     = ', nslyr
+         write(nu_diag,*)' '
+
+        if (skl_bgc) then
+
+         write(nu_diag,1010) ' skl_bgc                   = ', skl_bgc
+         write(nu_diag,1030) ' bgc_flux_type             = ', bgc_flux_type
+         write(nu_diag,1010) ' restart_bgc               = ', restart_bgc
+         write(nu_diag,1010) ' restore_bgc               = ', restore_bgc
+         write(nu_diag,1020) ' number of bio tracers     = ', nbtrcr
+         write(nu_diag,1020) ' number of Isw tracers     = ', nbtrcr_sw
+         write(nu_diag,1020) ' number of autotrophs      = ', n_algae
+         write(nu_diag,1020) ' number of doc             = ', n_doc
+         write(nu_diag,1020) ' number of dic             = ', n_dic
+         write(nu_diag,1020) ' number of don             = ', n_don
+         write(nu_diag,1020) ' number of fed             = ', n_fed
+         write(nu_diag,1020) ' number of fep             = ', n_fep
+         write(nu_diag,1010) ' tr_bgc_N                  = ', tr_bgc_N
+         write(nu_diag,1010) ' tr_bgc_C                  = ', tr_bgc_C
+         write(nu_diag,1010) ' tr_bgc_chl                = ', tr_bgc_chl
+         write(nu_diag,1010) ' tr_bgc_Nit                = ', tr_bgc_Nit
+         write(nu_diag,1010) ' tr_bgc_Am                 = ', tr_bgc_Am
+         write(nu_diag,1010) ' tr_bgc_Sil                = ', tr_bgc_Sil
+         write(nu_diag,1010) ' tr_bgc_hum                = ', tr_bgc_hum
+         write(nu_diag,1010) ' tr_bgc_DMS                = ', tr_bgc_DMS
+         write(nu_diag,1010) ' tr_bgc_PON                = ', tr_bgc_PON
+         write(nu_diag,1010) ' tr_bgc_DON                = ', tr_bgc_DON
+         write(nu_diag,1010) ' tr_bgc_Fe                 = ', tr_bgc_Fe
+
+        elseif (z_tracers) then
+
+         write(nu_diag,1010) ' restart_bgc               = ', restart_bgc
+         write(nu_diag,1010) ' dEdd_algae                = ', dEdd_algae
+         write(nu_diag,1010) ' modal_aero                = ', modal_aero
+         write(nu_diag,1010) ' scale_bgc                 = ', scale_bgc
+         write(nu_diag,1010) ' solve_zbgc                = ', solve_zbgc
+         write(nu_diag,1020) ' number of ztracers        = ', nbtrcr
+         write(nu_diag,1020) ' number of Isw tracers     = ', nbtrcr_sw
+         write(nu_diag,1020) ' number of autotrophs      = ', n_algae
+         write(nu_diag,1020) ' number of doc             = ', n_doc
+         write(nu_diag,1020) ' number of dic             = ', n_dic
+         write(nu_diag,1020) ' number of fed             = ', n_fed
+         write(nu_diag,1020) ' number of fep             = ', n_fep
+         write(nu_diag,1020) ' number of aerosols        = ', n_zaero
+         write(nu_diag,1010) ' tr_zaero                  = ', tr_zaero
+         write(nu_diag,1010) ' tr_bgc_Nit                = ', tr_bgc_Nit
+         write(nu_diag,1010) ' tr_bgc_N                  = ', tr_bgc_N
+         write(nu_diag,1010) ' tr_bgc_Am                 = ', tr_bgc_Am
+         write(nu_diag,1010) ' tr_bgc_C                  = ', tr_bgc_C
+         write(nu_diag,1010) ' tr_bgc_Sil                = ', tr_bgc_Sil
+         write(nu_diag,1010) ' tr_bgc_hum                = ', tr_bgc_hum
+         write(nu_diag,1010) ' tr_bgc_chl                = ', tr_bgc_chl
+         write(nu_diag,1010) ' tr_bgc_DMS                = ', tr_bgc_DMS
+         write(nu_diag,1010) ' tr_bgc_PON                = ', tr_bgc_PON
+         write(nu_diag,1010) ' tr_bgc_DON                = ', tr_bgc_DON
+         write(nu_diag,1010) ' tr_bgc_Fe                 = ', tr_bgc_Fe
+         ! bio parameters
+         write(nu_diag,1000) ' grid_o                    = ', grid_o
+         write(nu_diag,1000) ' grid_o_t                  = ', grid_o_t
+         write(nu_diag,1005) ' l_sk                      = ', l_sk
+         write(nu_diag,1000) ' initbio_frac              = ', initbio_frac
+         write(nu_diag,1000) ' frazil_scav               = ', frazil_scav
+
+        endif  ! skl_bgc or solve_bgc
+
+ 1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
+ 1005    format (a30,2x,f9.6)  ! float
+ 1010    format (a30,2x,l6)    ! logical
+ 1020    format (a30,2x,i6)    ! integer
+ 1021    format (a30,2x,a8,i6) ! char, int
+ 1030    format (a30,   a8)    ! character
+      endif                     ! my_task = master_task
+
+      call flush_fileunit(nu_diag)
+
+      call icepack_init_tracer_numbers(ntrcr_in=ntrcr, &
+         ntrcr_o_in=ntrcr_o, nbtrcr_in=nbtrcr, nbtrcr_sw_in=nbtrcr_sw)
+      call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
+         nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
+         nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
+         nt_ipnd_in=nt_ipnd, nt_aero_in=nt_aero, &
+         nt_fbri_in=nt_fbri,      &
+         nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
+         nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &
+         nt_bgc_N_in=nt_bgc_N,       nt_bgc_chl_in=nt_bgc_chl,   &
+         nt_bgc_DOC_in=nt_bgc_DOC,   nt_bgc_DON_in=nt_bgc_DON,     nt_bgc_DIC_in=nt_bgc_DIC,   &
+         nt_zaero_in=nt_zaero,       nt_bgc_DMSPp_in=nt_bgc_DMSPp, nt_bgc_DMSPd_in=nt_bgc_DMSPd, &
+         nt_bgc_Fed_in=nt_bgc_Fed,   nt_bgc_Fep_in=nt_bgc_Fep,     nt_zbgc_frac_in=nt_zbgc_frac, &
+         nlt_zaero_sw_in=nlt_zaero_sw,  nlt_chl_sw_in=nlt_chl_sw,  nlt_bgc_Sil_in=nlt_bgc_Sil, &
+         nlt_bgc_N_in=nlt_bgc_N,     nlt_bgc_Nit_in=nlt_bgc_Nit,   nlt_bgc_Am_in=nlt_bgc_Am, &
+         nlt_bgc_DMS_in=nlt_bgc_DMS, nlt_bgc_DMSPp_in=nlt_bgc_DMSPp, nlt_bgc_DMSPd_in=nlt_bgc_DMSPd, &
+         nlt_zaero_in=nlt_zaero,     nlt_bgc_chl_in=nlt_bgc_chl, &
+         nlt_bgc_DIC_in=nlt_bgc_DIC, nlt_bgc_DOC_in=nlt_bgc_DOC,   nlt_bgc_PON_in=nlt_bgc_PON, &
+         nlt_bgc_DON_in=nlt_bgc_DON, nlt_bgc_Fed_in=nlt_bgc_Fed,   nlt_bgc_Fep_in=nlt_bgc_Fep, &
+         nt_bgc_hum_in=nt_bgc_hum,   nlt_bgc_hum_in=nlt_bgc_hum, &
+         n_algae_in=n_algae,         &
+         n_DOC_in=n_DOC,             n_DON_in=n_DON,               n_DIC_in=n_DIC, &
+         n_fed_in=n_fed,             n_fep_in=n_fep,               n_zaero_in=n_zaero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//' Icepack Abort2', &
+         file=__FILE__, line=__LINE__)
+
+      end subroutine count_tracers
+
+!=======================================================================
+
+! Initialize vertical biogeochemistry
+!
+! author Elizabeth C. Hunke, LANL
+!        Nicole Jeffery, LANL
+
+      subroutine init_zbgc
+
+      use ice_broadcast, only: broadcast_scalar
+      use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
+          nt_strata
+      use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N
+
+      integer (kind=int_kind) :: &
+         nbtrcr,        nbtrcr_sw,     nt_fbri,       &
+         nt_bgc_Nit,    nt_bgc_Am,     nt_bgc_Sil,    &
+         nt_bgc_DMS,    nt_bgc_PON,    nt_bgc_S,      &
+         nt_bgc_DMSPp,  nt_bgc_DMSPd,                 &
+         nt_zbgc_frac,  nlt_chl_sw,                   &
+         nlt_bgc_Nit,   nlt_bgc_Am,    nlt_bgc_Sil,   &
+         nlt_bgc_DMS,   nlt_bgc_DMSPp, nlt_bgc_DMSPd, &
+         nlt_bgc_PON,   nt_bgc_hum,    nlt_bgc_hum
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero_sw       ! points to aerosol in trcrn_sw
+
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nlt_bgc_N      , & ! algae
+         nlt_bgc_chl
+
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &
+         nlt_bgc_DOC        ! disolved organic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_don) :: &
+         nlt_bgc_DON        !
+
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &
+         nlt_bgc_DIC        ! disolved inorganic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_fe) :: &
+         nlt_bgc_Fed    , & !
+         nlt_bgc_Fep        !
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nlt_zaero          ! non-reacting layer aerosols
+
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nt_bgc_N , & ! diatoms, phaeocystis, pico/small
+         nt_bgc_chl   ! diatoms, phaeocystis, pico/small
+
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &
+         nt_bgc_DOC      !  dissolved organic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_don) :: &
+         nt_bgc_DON         !  dissolved organic nitrogen
+
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &
+         nt_bgc_DIC         !  dissolved inorganic carbon
+
+      integer (kind=int_kind), dimension(icepack_max_fe) :: &
+         nt_bgc_Fed,     & !  dissolved iron
+         nt_bgc_Fep        !  particulate iron
+
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nt_zaero       !  black carbon and other aerosols
+
+      integer (kind=int_kind), dimension(icepack_max_nbtrcr) :: &
+         bio_index_o         ! relates nlt_bgc_NO to ocean concentration index
+
+      integer (kind=int_kind), dimension(icepack_max_nbtrcr) :: &
+         bio_index           ! relates bio indices, ie.  nlt_bgc_N to nt_bgc_N
+
+      logical (kind=log_kind) :: &
+         tr_brine, &
+         tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
+         tr_bgc_DMS,    tr_bgc_PON,   &
+         tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
+         tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
+         tr_bgc_hum,    tr_aero
+
+      real (kind=dbl_kind) :: &
+         initbio_frac, &
+         frazil_scav
+
+      real (kind=dbl_kind), dimension(icepack_max_nbtrcr) :: &
+         zbgc_frac_init,&! initializes mobile fraction
+         bgc_tracer_type ! described tracer in mobile or stationary phases
+                         ! < 0 is purely mobile (eg. nitrate)
+                         ! > 0 has timescales for transitions between
+                         ! phases based on whether the ice is melting or growing
+
+     real (kind=dbl_kind), dimension(icepack_max_nbtrcr) :: &
+         zbgc_init_frac, &   ! fraction of ocean tracer  concentration in new ice
+         tau_ret,        &   ! retention timescale  (s), mobile to stationary phase
+         tau_rel             ! release timescale    (s), stationary to mobile phase
+
+      logical (kind=log_kind) :: &
+         skl_bgc, z_tracers, dEdd_algae, solve_zsal
+
+      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+         F_abs_chl          ! to scale absorption in Dedd
+
+       real (kind=dbl_kind),  dimension(icepack_max_algae) :: &
+         R_S2N      , & ! algal S to N (mole/mole)
+         ! Marchetti et al 2006, 3 umol Fe/mol C for iron limited Pseudo-nitzschia
+         R_Fe2C     , & ! algal Fe to carbon (umol/mmol)
+         R_Fe2N         ! algal Fe to N (umol/mmol)
+
+      real (kind=dbl_kind), dimension(icepack_max_don) :: &
+         R_Fe2DON       ! Fe to N of DON (nmol/umol)
+
+      real (kind=dbl_kind), dimension(icepack_max_doc) :: &
+         R_Fe2DOC       ! Fe to C of DOC (nmol/umol)
+
+      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+         chlabs           , & ! chla absorption 1/m/(mg/m^3)
+         alpha2max_low    , & ! light limitation (1/(W/m^2))
+         beta2max         , & ! light inhibition (1/(W/m^2))
+         mu_max           , & ! maximum growth rate (1/d)
+         grow_Tdep        , & ! T dependence of growth (1/C)
+         fr_graze         , & ! fraction of algae grazed
+         mort_pre         , & ! mortality (1/day)
+         mort_Tdep        , & ! T dependence of mortality (1/C)
+         k_exude          , & ! algal carbon  exudation rate (1/d)
+         K_Nit            , & ! nitrate half saturation (mmol/m^3)
+         K_Am             , & ! ammonium half saturation (mmol/m^3)
+         K_Sil            , & ! silicon half saturation (mmol/m^3)
+         K_Fe                 ! iron half saturation  or micromol/m^3
+
+      real (kind=dbl_kind), dimension(icepack_max_DON) :: &
+         f_don            , & ! fraction of spilled grazing to DON
+         kn_bac           , & ! Bacterial degredation of DON (1/d)
+         f_don_Am             ! fraction of remineralized DON to Am
+
+      real (kind=dbl_kind), dimension(icepack_max_DOC) :: &
+         f_doc            , & ! fraction of mort_N that goes to each doc pool
+         f_exude          , & ! fraction of exuded carbon to each DOC pool
+         k_bac                ! Bacterial degredation of DOC (1/d)
+
+      integer (kind=int_kind) :: &
+         k, mm    , & ! loop index
+         nk       , & ! layer index
+         ierr
+
+      integer (kind=int_kind) :: &
+        ntd      , & ! for tracer dependency calculation
+        nt_depend
+
+      character(len=*), parameter :: subname='(init_zbgc)'
+
+      !------------------------------------------------------------
+      !        Tracers have mobile and stationary phases.
+      ! ice growth allows for retention, ice melt facilitates mobility
+      ! bgc_tracer_type defines the exchange timescales between these phases
+      ! -1 : entirely in the mobile phase, no exchange  (this is the default)
+      !  0 : retention time scale is tau_min, release time scale is tau_max
+      !  1 : retention time scale is tau_max, release time scale is tau_min
+      ! 0.5: retention time scale is tau_min, release time scale is tau_min
+      !  2 : retention time scale is tau_max, release time scale is tau_max
+      ! tau_min and tau_max are defined in icepack_intfc.f90
+      !------------------------------------------------------------
+
+      !-----------------------------------------------------------------
+      ! get values from icepack
+      !-----------------------------------------------------------------
+
+      call icepack_query_parameters( &
+          solve_zsal_out=solve_zsal, &
+          skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
+          dEdd_algae_out=dEdd_algae, &
+          grid_o_out=grid_o, l_sk_out=l_sk, &
+          initbio_frac_out=initbio_frac, &
+          grid_oS_out=grid_oS, l_skS_out=l_skS, &
+          phi_snow_out=phi_snow, frazil_scav_out = frazil_scav)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
+      call icepack_query_tracer_numbers( &
+          nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
+      call icepack_query_tracer_flags( &
+          tr_brine_out =tr_brine, &
+          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out=tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
+          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
+          tr_bgc_N_out =tr_bgc_N,   tr_bgc_C_out =tr_bgc_C,   tr_bgc_chl_out=tr_bgc_chl,   &
+          tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out=tr_bgc_Fe,  tr_zaero_out =tr_zaero,     &
+          tr_bgc_hum_out=tr_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
+      call icepack_query_tracer_indices( &
+          nt_fbri_out=nt_fbri,         &
+          nt_bgc_Nit_out=nt_bgc_Nit,   nt_bgc_Am_out=nt_bgc_Am,       nt_bgc_Sil_out=nt_bgc_Sil,   &
+          nt_bgc_DMS_out=nt_bgc_DMS,   nt_bgc_PON_out=nt_bgc_PON,     nt_bgc_S_out=nt_bgc_S,     &
+          nt_bgc_N_out=nt_bgc_N,       nt_bgc_chl_out=nt_bgc_chl,   &
+          nt_bgc_DOC_out=nt_bgc_DOC,   nt_bgc_DON_out=nt_bgc_DON,     nt_bgc_DIC_out=nt_bgc_DIC,   &
+          nt_zaero_out=nt_zaero,       nt_bgc_DMSPp_out=nt_bgc_DMSPp, nt_bgc_DMSPd_out=nt_bgc_DMSPd, &
+          nt_bgc_Fed_out=nt_bgc_Fed,   nt_bgc_Fep_out=nt_bgc_Fep,     nt_zbgc_frac_out=nt_zbgc_frac, &
+          nlt_zaero_sw_out=nlt_zaero_sw,  nlt_chl_sw_out=nlt_chl_sw,  nlt_bgc_Sil_out=nlt_bgc_Sil, &
+          nlt_bgc_N_out=nlt_bgc_N,     nlt_bgc_Nit_out=nlt_bgc_Nit,   nlt_bgc_Am_out=nlt_bgc_Am, &
+          nlt_bgc_DMS_out=nlt_bgc_DMS, nlt_bgc_DMSPp_out=nlt_bgc_DMSPp, nlt_bgc_DMSPd_out=nlt_bgc_DMSPd, &
+          nlt_zaero_out=nlt_zaero,     nlt_bgc_chl_out=nlt_bgc_chl, &
+          nlt_bgc_DIC_out=nlt_bgc_DIC, nlt_bgc_DOC_out=nlt_bgc_DOC,   nlt_bgc_PON_out=nlt_bgc_PON, &
+          nlt_bgc_DON_out=nlt_bgc_DON, nlt_bgc_Fed_out=nlt_bgc_Fed,   nlt_bgc_Fep_out=nlt_bgc_Fep, &
+          nt_bgc_hum_out=nt_bgc_hum,   nlt_bgc_hum_out=nlt_bgc_hum)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
       !-----------------------------------------------------------------
       ! Define array parameters
       !-----------------------------------------------------------------
+
+      allocate(          &
+         R_C2N_DON(icepack_max_don), & ! carbon to nitrogen mole ratio of DON pool
+         R_C2N(icepack_max_algae),   & ! algal C to N (mole/mole)
+         R_chl2N(icepack_max_algae), & ! 3 algal chlorophyll to N (mg/mmol)
+         R_Si2N(icepack_max_algae),  & ! silica to nitrogen mole ratio for algal groups
+         stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' Out of Memory')
+
       R_Si2N(1) = ratio_Si2N_diatoms
       R_Si2N(2) = ratio_Si2N_sp
       R_Si2N(3) = ratio_Si2N_phaeo
@@ -1739,7 +2550,7 @@
 
       R_Fe2DON(1) = ratio_Fe2DON
       R_C2N_DON(1) = ratio_C2N_proteins
-     
+
       R_Fe2DOC(1) = ratio_Fe2DOC_s
       R_Fe2DOC(2) = ratio_Fe2DOC_l
       R_Fe2DOC(3) = c0
@@ -1807,17 +2618,16 @@
       f_exude(2) = f_exude_l
       k_bac(1) = k_bac_s
       k_bac(2) = k_bac_l
-!echmod:  end move this back into init_zbgc
 
       dictype(:) = -c1
-      
+
       algaltype(1) = algaltype_diatoms
       algaltype(2) = algaltype_sp
       algaltype(3) = algaltype_phaeo
 
       doctype(1) = doctype_s
       doctype(2) = doctype_l
- 
+
       dontype(1) = dontype_protein
 
       fedtype(1) = fedtype_1
@@ -1830,7 +2640,6 @@
       zaerotype(5) = zaerotype_dust3
       zaerotype(6) = zaerotype_dust4
 
-!echmod types do not need to be in icepack for zbgc?
       call icepack_init_zbgc ( &
          R_S2N_in=R_S2N, R_Fe2C_in=R_Fe2C, R_Fe2N_in=R_Fe2N, R_C2N_in=R_C2N, &
          R_chl2N_in=R_chl2N, F_abs_chl_in=F_abs_chl, R_Fe2DON_in=R_Fe2DON, R_Fe2DOC_in=R_Fe2DOC, &
@@ -1849,45 +2658,55 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-      if (skl_bgc) then
+      !-----------------------------------------------------------------
+      ! assign tracer dependencies
+      ! bgc_tracer_type: < 0  purely mobile , >= 0 stationary
+      !------------------------------------------------------------------
 
+      if (tr_brine) then
+          trcr_depend(nt_fbri)   = 1   ! volume-weighted
+          trcr_base  (nt_fbri,1) = c0  ! volume-weighted
+          trcr_base  (nt_fbri,2) = c1  ! volume-weighted
+          trcr_base  (nt_fbri,3) = c0  ! volume-weighted
+          n_trcr_strata(nt_fbri) = 0
+          nt_strata  (nt_fbri,1) = 0
+          nt_strata  (nt_fbri,2) = 0
+      endif
+
+      ntd = 0                    ! if nt_fbri /= 0 then use fbri dependency
+      if (nt_fbri == 0) ntd = -1 ! otherwise make tracers depend on ice volume
+
+      if (solve_zsal) then       ! .true. only if tr_brine = .true.
+          do k = 1,nblyr
+             trcr_depend(nt_bgc_S + k - 1) = 2 + nt_fbri + ntd
+             trcr_base  (nt_bgc_S,1) = c0  ! default: ice area
+             trcr_base  (nt_bgc_S,2) = c1
+             trcr_base  (nt_bgc_S,3) = c0
+             n_trcr_strata(nt_bgc_S) = 1
+             nt_strata(nt_bgc_S,1) = nt_fbri
+             nt_strata(nt_bgc_S,2) = 0
+          enddo
+      endif
+
+      bio_index(:)   = 0
+      bio_index_o(:) = 0
+
+      if (skl_bgc) then
          nk = 1
          nt_depend = 0
-
-         if (dEdd_algae) then 
-           nlt_chl_sw = 1
-           nbtrcr_sw = nilyr+nslyr+2  ! only the bottom layer 
-                                                 ! will be nonzero    
-         endif  
-         
-      elseif (z_tracers) then ! defined on nblyr+1 in ice 
+      elseif (z_tracers) then ! defined on nblyr+1 in ice
                               ! and 2 snow layers (snow surface + interior)
-
          nk = nblyr + 1
-         nt_depend = 2 + nt_fbri + ntd 
-
-         if (tr_bgc_N) then
-            if (dEdd_algae) then
-               nlt_chl_sw = 1
-               nbtrcr_sw =  nilyr+nslyr+2
-            endif
-         endif ! tr_bgc_N
-
+         nt_depend = 2 + nt_fbri + ntd
       endif ! skl_bgc or z_tracers
 
       if (skl_bgc .or. z_tracers) then
-
-      !-----------------------------------------------------------------
-      ! assign tracer indices and dependencies
-      ! bgc_tracer_type: < 0  purely mobile , >= 0 stationary 
-      !------------------------------------------------------------------
 
       if (tr_bgc_N) then
          do mm = 1, n_algae      
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_N(mm),    nlt_bgc_N(mm), &
                                algaltype(mm),   nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -1899,7 +2718,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_Nit,      nlt_bgc_Nit,   &
                                nitratetype,     nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -1916,7 +2734,6 @@
        !     call init_bgc_trcr(nk,              nt_fbri,       &
        !                        nt_bgc_C(mm),    nlt_bgc_C(mm), &
        !                        algaltype(mm),   nt_depend,     &
-       !                        ntrcr,           nbtrcr,        &
        !                        bgc_tracer_type, trcr_depend,   &
        !                        trcr_base,       n_trcr_strata, &
        !                        nt_strata,       bio_index)
@@ -1927,7 +2744,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_DOC(mm),  nlt_bgc_DOC(mm), &
                                doctype(mm),     nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -1937,7 +2753,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_DIC(mm),  nlt_bgc_DIC(mm), &
                                dictype(mm),     nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -1950,7 +2765,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_chl(mm),  nlt_bgc_chl(mm), &
                                algaltype(mm),   nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -1962,7 +2776,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_Am,       nlt_bgc_Am,    &
                                ammoniumtype,    nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -1972,7 +2785,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_Sil,      nlt_bgc_Sil,   &
                                silicatetype,    nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -1982,7 +2794,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_DMSPp,    nlt_bgc_DMSPp, &
                                dmspptype,       nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -1991,7 +2802,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_DMSPd,    nlt_bgc_DMSPd, &
                                dmspdtype,       nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -2000,7 +2810,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_DMS,      nlt_bgc_DMS,   &
                                dmspdtype,       nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -2010,7 +2819,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_PON,      nlt_bgc_PON, &
                                nitratetype,     nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -2021,7 +2829,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_DON(mm),  nlt_bgc_DON(mm), &
                                dontype(mm),     nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -2033,7 +2840,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_Fed(mm),  nlt_bgc_Fed(mm), &
                                fedtype(mm),     nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -2044,7 +2850,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_Fep(mm),  nlt_bgc_Fep(mm), &
                                feptype(mm),     nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -2057,7 +2862,6 @@
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_hum,      nlt_bgc_hum,   &
                                humtype,         nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -2066,8 +2870,24 @@
       endif
       endif  ! skl_bgc or z_tracers
 
-      if (z_tracers) then ! defined on nblyr+1 in ice 
+      if (skl_bgc) then
+         if (dEdd_algae) then
+           nlt_chl_sw = 1
+           nbtrcr_sw = nilyr+nslyr+2  ! only the bottom layer will be nonzero
+         endif
+
+      elseif (z_tracers) then ! defined on nblyr+1 in ice
                               ! and 2 snow layers (snow surface + interior)
+         if (tr_bgc_N) then
+            if (dEdd_algae) then
+               nlt_chl_sw = 1
+               nbtrcr_sw =  nilyr+nslyr+2
+            endif
+         endif ! tr_bgc_N
+      endif ! skl_bgc or z_tracers
+
+      if (z_tracers) then ! defined on nblyr+1 in ice
+                          ! and 2 snow layers (snow surface + interior)
 
          nk = nblyr + 1
          nt_depend = 2 + nt_fbri + ntd 
@@ -2082,7 +2902,6 @@
                call init_bgc_trcr(nk,              nt_fbri,       &
                                   nt_zaero(mm),    nlt_zaero(mm), &
                                   zaerotype(mm),   nt_depend,     &
-                                  ntrcr,           nbtrcr,        &
                                   bgc_tracer_type, trcr_depend,   &
                                   trcr_base,       n_trcr_strata, &
                                   nt_strata,       bio_index)
@@ -2091,11 +2910,7 @@
             enddo   ! mm
          endif      ! tr_zaero
 
-!echmod keep trcr indices etc here but move zbgc_frac_init, zbgc_init_frac, tau_ret, tau_rel to icepack
-         nt_zbgc_frac = 0
          if (nbtrcr > 0) then
-            nt_zbgc_frac = ntrcr + 1
-            ntrcr = ntrcr + nbtrcr
             do k = 1,nbtrcr 
                zbgc_frac_init(k) = c1   
                trcr_depend(nt_zbgc_frac+k-1) =  2+nt_fbri 
@@ -2141,46 +2956,8 @@
       call icepack_init_zbgc( &
          zbgc_init_frac_in=zbgc_init_frac, tau_ret_in=tau_ret, tau_rel_in=tau_rel, &
          zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
-
-      call icepack_init_tracer_numbers( &
-          ntrcr_in=ntrcr, ntrcr_o_in=ntrcr_o, nbtrcr_in=nbtrcr, nbtrcr_sw_in=nbtrcr_sw)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
-
-      call icepack_init_tracer_flags( &
-          tr_brine_in  =tr_brine, &
-          tr_bgc_Nit_in=tr_bgc_Nit, tr_bgc_Am_in =tr_bgc_Am,  tr_bgc_Sil_in=tr_bgc_Sil,   &
-          tr_bgc_DMS_in=tr_bgc_DMS, tr_bgc_PON_in=tr_bgc_PON, &
-          tr_bgc_N_in  =tr_bgc_N,   tr_bgc_C_in  =tr_bgc_C,   tr_bgc_chl_in=tr_bgc_chl,   &
-          tr_bgc_DON_in=tr_bgc_DON, tr_bgc_Fe_in =tr_bgc_Fe,  tr_zaero_in  =tr_zaero,     &
-          tr_bgc_hum_in=tr_bgc_hum)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
-
       call icepack_init_tracer_indices( &
           nbtrcr_in=nbtrcr,        &
-          nt_fbri_in=nt_fbri,      &  
-          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
-          nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &
-          nt_bgc_N_in=nt_bgc_N,       nt_bgc_chl_in=nt_bgc_chl,   &
-          nt_bgc_DOC_in=nt_bgc_DOC,   nt_bgc_DON_in=nt_bgc_DON,     nt_bgc_DIC_in=nt_bgc_DIC,   &
-          nt_zaero_in=nt_zaero,       nt_bgc_DMSPp_in=nt_bgc_DMSPp, nt_bgc_DMSPd_in=nt_bgc_DMSPd, &
-          nt_bgc_Fed_in=nt_bgc_Fed,   nt_bgc_Fep_in=nt_bgc_Fep,     nt_zbgc_frac_in=nt_zbgc_frac, &
-          nlt_zaero_sw_in=nlt_zaero_sw,  nlt_chl_sw_in=nlt_chl_sw,  nlt_bgc_Sil_in=nlt_bgc_Sil, &
-          nlt_bgc_N_in=nlt_bgc_N,     nlt_bgc_Nit_in=nlt_bgc_Nit,   nlt_bgc_Am_in=nlt_bgc_Am, &
-          nlt_bgc_DMS_in=nlt_bgc_DMS, nlt_bgc_DMSPp_in=nlt_bgc_DMSPp, nlt_bgc_DMSPd_in=nlt_bgc_DMSPd, &
-          nlt_bgc_chl_in=nlt_bgc_chl,   nlt_zaero_in=nlt_zaero, &
-          nlt_bgc_DIC_in=nlt_bgc_DIC, nlt_bgc_DOC_in=nlt_bgc_DOC,   nlt_bgc_PON_in=nlt_bgc_PON, &
-          nlt_bgc_DON_in=nlt_bgc_DON, nlt_bgc_Fed_in=nlt_bgc_Fed,   nlt_bgc_Fep_in=nlt_bgc_Fep, &
-          nt_bgc_hum_in=nt_bgc_hum,   nlt_bgc_hum_in=nlt_bgc_hum, &
-          n_algae_in=n_algae,         &
-          n_DOC_in=n_DOC,             n_DON_in=n_DON,               n_DIC_in=n_DIC, &
-          n_fed_in=n_fed,             n_fep_in=n_fep,               n_zaero_in=n_zaero, &
           bio_index_o_in=bio_index_o, bio_index_in=bio_index)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -2197,80 +2974,19 @@
       endif
       if (.NOT. dEdd_algae) nbtrcr_sw = 1
 
-      if (nbtrcr_sw > max_nsw) then
-         write (nu_diag,*) subname,' '
-         write (nu_diag,*) subname,'nbtrcr_sw > max_nsw'
-         write (nu_diag,*) subname,'nbtrcr_sw, max_nsw:',nbtrcr_sw, max_nsw
-         call abort_ice (subname//'ERROR: nbtrcr_sw > max_nsw')
-      endif
-
-      if (ntrcr > max_ntrcr) then
-         write(nu_diag,*) subname,'max_ntrcr < number of namelist tracers'
-         write(nu_diag,*) subname,'max_ntrcr = ',max_ntrcr,' ntrcr = ',ntrcr
-         call abort_ice(subname//'ERROR: max_ntrcr < number of namelist tracers')
-      endif
-
       !-----------------------------------------------------------------
       ! spew
       !-----------------------------------------------------------------
       if (my_task == master_task) then
       if (skl_bgc) then
 
-         write(nu_diag,1010) ' skl_bgc                   = ', skl_bgc
-         write(nu_diag,1030) ' bgc_flux_type             = ', bgc_flux_type
-         write(nu_diag,1010) ' restart_bgc               = ', restart_bgc
-         write(nu_diag,1010) ' restore_bgc               = ', restore_bgc
          write(nu_diag,1020) ' number of bio tracers     = ', nbtrcr
          write(nu_diag,1020) ' number of Isw tracers     = ', nbtrcr_sw
-         write(nu_diag,1020) ' number of autotrophs      = ', n_algae
-         write(nu_diag,1020) ' number of doc          = ', n_doc
-         write(nu_diag,1020) ' number of dic          = ', n_dic
-         write(nu_diag,1020) ' number of don          = ', n_don
-         write(nu_diag,1020) ' number of fed          = ', n_fed
-         write(nu_diag,1020) ' number of fep          = ', n_fep
-         write(nu_diag,1010) ' tr_bgc_N               = ', tr_bgc_N
-         write(nu_diag,1010) ' tr_bgc_C               = ', tr_bgc_C
-         write(nu_diag,1010) ' tr_bgc_chl             = ', tr_bgc_chl
-         write(nu_diag,1010) ' tr_bgc_Nit             = ', tr_bgc_Nit
-         write(nu_diag,1010) ' tr_bgc_Am              = ', tr_bgc_Am
-         write(nu_diag,1010) ' tr_bgc_Sil             = ', tr_bgc_Sil
-         write(nu_diag,1010) ' tr_bgc_hum             = ', tr_bgc_hum
-         write(nu_diag,1010) ' tr_bgc_DMS             = ', tr_bgc_DMS
-         write(nu_diag,1010) ' tr_bgc_PON             = ', tr_bgc_PON
-         write(nu_diag,1010) ' tr_bgc_DON             = ', tr_bgc_DON
-         write(nu_diag,1010) ' tr_bgc_Fe              = ', tr_bgc_Fe 
         
       elseif (z_tracers) then
          
-         write(nu_diag,1010) ' restart_bgc               = ', restart_bgc
-         write(nu_diag,1010) ' dEdd_algae                = ', dEdd_algae  
-         write(nu_diag,1010) ' modal_aero                = ', modal_aero  
-         write(nu_diag,1010) ' scale_bgc                 = ', scale_bgc
-         write(nu_diag,1010) ' solve_zbgc                = ', solve_zbgc
          write(nu_diag,1020) ' number of ztracers        = ', nbtrcr
          write(nu_diag,1020) ' number of Isw tracers     = ', nbtrcr_sw
-         write(nu_diag,1020) ' number of autotrophs      = ', n_algae
-         write(nu_diag,1020) ' number of doc             = ', n_doc
-         write(nu_diag,1020) ' number of dic             = ', n_dic
-         write(nu_diag,1020) ' number of fed             = ', n_fed
-         write(nu_diag,1020) ' number of fep             = ', n_fep
-         write(nu_diag,1020) ' number of aerosols        = ', n_zaero
-         write(nu_diag,1010) ' tr_zaero                  = ', tr_zaero
-         write(nu_diag,1010) ' tr_bgc_Nit                = ', tr_bgc_Nit
-         write(nu_diag,1010) ' tr_bgc_N                  = ', tr_bgc_N
-         write(nu_diag,1010) ' tr_bgc_Am                 = ', tr_bgc_Am
-         write(nu_diag,1010) ' tr_bgc_C                  = ', tr_bgc_C
-         write(nu_diag,1010) ' tr_bgc_Sil                = ', tr_bgc_Sil
-         write(nu_diag,1010) ' tr_bgc_hum                = ', tr_bgc_hum
-         write(nu_diag,1010) ' tr_bgc_chl                = ', tr_bgc_chl
-         write(nu_diag,1010) ' tr_bgc_DMS                = ', tr_bgc_DMS
-         write(nu_diag,1010) ' tr_bgc_PON                = ', tr_bgc_PON
-         write(nu_diag,1010) ' tr_bgc_DON                = ', tr_bgc_DON
-         write(nu_diag,1010) ' tr_bgc_Fe                 = ', tr_bgc_Fe 
-         !bio parameters
-         write(nu_diag,1000) ' grid_o                    = ', grid_o
-         write(nu_diag,1000) ' grid_o_t                  = ', grid_o_t
-         write(nu_diag,1005) ' l_sk                      = ', l_sk
          write(nu_diag,1000) ' initbio_frac              = ', initbio_frac
          write(nu_diag,1000) ' frazil_scav               = ', frazil_scav  
 
@@ -2278,10 +2994,7 @@
       endif  ! master_task
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
- 1005    format (a30,2x,f9.6)  ! float
- 1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
- 1030    format (a30,   a8)    ! character
 
       end subroutine init_zbgc
 
@@ -2290,7 +3003,6 @@
       subroutine init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc,          nlt_bgc,       &
                                bgctype,         nt_depend,     &
-                               ntrcr,           nbtrcr,        &
                                bgc_tracer_type, trcr_depend,   &
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
@@ -2298,13 +3010,9 @@
       integer (kind=int_kind), intent(in) :: &
          nk           , & ! counter
          nt_depend    , & ! tracer dependency index
-         nt_fbri
-
-      integer (kind=int_kind), intent(inout) :: &
-         ntrcr        , & ! number of tracers
-         nbtrcr       , & ! number of bio tracers
          nt_bgc       , & ! tracer index
-         nlt_bgc          ! bio tracer index
+         nlt_bgc      , & ! bio tracer index
+         nt_fbri
 
       integer (kind=int_kind), dimension(:), intent(inout) :: &
          trcr_depend  , & ! tracer dependencies
@@ -2341,15 +3049,10 @@
 
       !--------
 
-      nt_bgc = ntrcr + 1 
-      nbtrcr = nbtrcr + 1
-      nlt_bgc = nbtrcr
-      bgc_tracer_type(nbtrcr) = bgctype
+      bgc_tracer_type(nlt_bgc) = bgctype
          
-      if (nk > 1) then 
-         ! include vertical bgc in snow
+      if (nk > 1) then ! include vertical bgc in snow
          do k = nk, nk+1
-            ntrcr = ntrcr + 1
             trcr_depend  (nt_bgc + k  ) = 2 ! snow volume
             trcr_base    (nt_bgc + k,1) = c0
             trcr_base    (nt_bgc + k,2) = c0
@@ -2374,8 +3077,7 @@
          nt_strata2 = 0
       endif ! nk
 
-      do k = 1, nk     !in ice
-         ntrcr = ntrcr + 1
+      do k = 1, nk     ! in ice
          trcr_depend  (nt_bgc + k - 1  ) = nt_depend
          trcr_base    (nt_bgc + k - 1,1) = trcr_base1
          trcr_base    (nt_bgc + k - 1,2) = trcr_base2
@@ -2394,4 +3096,3 @@
       end module ice_init_column
 
 !=======================================================================
-

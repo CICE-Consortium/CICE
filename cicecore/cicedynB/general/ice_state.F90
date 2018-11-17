@@ -37,9 +37,12 @@
 
       use ice_kinds_mod
       use ice_constants, only: field_loc_center, field_type_scalar, c0
-      use ice_domain_size, only: max_blocks, ncat, max_ntrcr
+      use ice_domain_size, only: max_blocks, ncat
       use ice_blocks, only: nx_block, ny_block
       use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag
+      use icepack_intfc, only: icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
@@ -133,7 +136,13 @@
 ! Allocate space for all state variables 
 !
       subroutine alloc_state
-      integer (int_kind) :: ierr
+      integer (int_kind) :: ntrcr, ierr
+      character(len=*),parameter :: subname='(alloc_state)'
+
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       allocate ( &
          aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice
@@ -152,16 +161,16 @@
          aicen_init(nx_block,ny_block,ncat,max_blocks) , & ! initial ice concentration, for linear ITD
          vicen_init(nx_block,ny_block,ncat,max_blocks) , & ! initial ice volume (m), for linear ITD
          vsnon_init(nx_block,ny_block,ncat,max_blocks) , & ! initial snow volume (m), for aerosol 
-         trcr      (nx_block,ny_block,max_ntrcr,max_blocks) , & ! ice tracers: 1: surface temperature of ice/snow (C)
-         trcrn     (nx_block,ny_block,max_ntrcr,ncat,max_blocks) , & ! tracers: 1: surface temperature of ice/snow (C)
+         trcr      (nx_block,ny_block,ntrcr,max_blocks) , & ! ice tracers: 1: surface temperature of ice/snow (C)
+         trcrn     (nx_block,ny_block,ntrcr,ncat,max_blocks) , & ! tracers: 1: surface temperature of ice/snow (C)
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_state): Out of memory1')
 
       allocate ( &
-         trcr_depend(max_ntrcr)   , & !
-         n_trcr_strata(max_ntrcr) , & ! number of underlying tracer layers
-         nt_strata(max_ntrcr,2)   , & ! indices of underlying tracer layers
-         trcr_base(max_ntrcr,3)   , & ! = 0 or 1 depending on tracer dependency, (1) aice, (2) vice, (3) vsno
+         trcr_depend(ntrcr)   , & !
+         n_trcr_strata(ntrcr) , & ! number of underlying tracer layers
+         nt_strata(ntrcr,2)   , & ! indices of underlying tracer layers
+         trcr_base(ntrcr,3)   , & ! = 0 or 1 depending on tracer dependency, (1) aice, (2) vice, (3) vsno
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_state): Out of memory2')
  
@@ -190,15 +199,12 @@
       integer (kind=int_kind), intent(in) :: &
          ntrcr     ! number of tracers in use
 
-      real (kind=dbl_kind), &
-         dimension(nx_block,ny_block,ncat,max_blocks), intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), intent(inout) :: &
          aicen , & ! fractional ice area
          vicen , & ! volume per unit area of ice          (m)
          vsnon     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), &
-         dimension(nx_block,ny_block,max_ntrcr,ncat,max_blocks), &
-         intent(inout) :: &
+      real (kind=dbl_kind), intent(inout), dimension(:,:,:,:,:) :: &  ! (nx_block,ny_block,ntrcr,ncat,max_blocks)
          trcrn     ! ice tracers
 
       ! local variables

@@ -276,26 +276,22 @@
          nx_block, ny_block, & ! block dimensions
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          aice    , & ! concentration of ice
          vice    , & ! volume per unit area of ice          (m)
          vsno    , & ! volume per unit area of snow         (m)
          strairxT, & ! stress on ice by air, x-direction
          strairyT    ! stress on ice by air, y-direction
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), & 
-         intent(in) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
          tmask       ! land/boundary mask, thickness (T-cell)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
          tmass       ! total mass of ice and snow (kg/m^2)
 
-      integer (kind=int_kind), dimension (nx_block,ny_block), & 
-         intent(out) :: &
+      integer (kind=int_kind), dimension (nx_block,ny_block), intent(out) :: &
          icetmask    ! ice extent mask (T-cell)
 
       ! local variables
@@ -418,23 +414,19 @@
          icellt   , & ! no. of cells where icetmask = 1
          icellu       ! no. of cells where iceumask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
-         intent(out) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(out) :: &
          indxti   , & ! compressed index in i-direction
          indxtj   , & ! compressed index in j-direction
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), & 
-         intent(in) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
          umask       ! land/boundary mask, thickness (U-cell)
 
-      integer (kind=int_kind), dimension (nx_block,ny_block), & 
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block,ny_block), intent(in) :: &
          icetmask    ! ice extent mask (T-cell)
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(inout) :: &
          iceumask    ! ice extent mask (U-cell)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
@@ -451,8 +443,7 @@
       real (kind=dbl_kind), intent(in) :: &
          dt          ! time step
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          Tbu,      & ! coefficient for basal stress (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
@@ -462,8 +453,7 @@
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          forcey      ! work array: combined atm stress and ocn tilt, y
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
@@ -662,8 +652,7 @@
          icellu,             & ! total count when iceumask is true
          ksub                  ! subcycling iteration
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -682,17 +671,14 @@
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(in) :: &
          str
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel        ! y-component of velocity (m/s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strocnx , & ! ice-ocean stress, x-direction
          strocny , & ! ice-ocean stress, y-direction
          strintx , & ! divergence of internal ice stress, x (N/m^2)
@@ -700,8 +686,7 @@
          taubx   , & ! basal stress, x-direction (N/m^2)
          tauby       ! basal stress, y-direction (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient
 
       ! local variables
@@ -809,8 +794,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -826,8 +810,7 @@
          strairx , & ! stress on ice by air, x-direction
          strairy     ! stress on ice by air, y-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strocnx , & ! ice-ocean stress, x-direction
          strocny , & ! ice-ocean stress, y-direction
          strocnxT, & ! ice-ocean stress, x-direction
@@ -839,8 +822,7 @@
          i, j, ij
 
       real (kind=dbl_kind) :: vrel, rhow
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient 
 
       character(len=*), parameter :: subname = '(dyn_finish)'
@@ -917,8 +899,7 @@
          nx_block, ny_block, &  ! block dimensions
          icellu                 ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 

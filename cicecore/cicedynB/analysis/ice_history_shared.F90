@@ -725,9 +725,8 @@
                                    ns, vhistfreq)
 
       use ice_calendar, only: histfreq, histfreq_n
-      use ice_domain_size, only: max_nstrm
 
-      integer (int_kind), dimension(max_nstrm), intent(out) :: &
+      integer (int_kind), dimension(:), intent(out) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
                            ! later routines
 
@@ -833,10 +832,9 @@
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: max_nstrm
       use ice_grid, only: tmask
 
-      integer (int_kind), dimension(max_nstrm), intent(in) :: &
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
                            ! later routines
         
@@ -894,10 +892,9 @@
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: max_nstrm
       use ice_grid, only: tmask
 
-      integer (int_kind), dimension(max_nstrm), intent(in) :: &
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
                            ! later routines
         
@@ -960,10 +957,9 @@
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: max_nstrm
       use ice_grid, only: tmask
 
-      integer (int_kind), dimension(max_nstrm), intent(in) :: &
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
                            ! later routines
         
