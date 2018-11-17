@@ -85,8 +85,7 @@
           bgc_data_type, &
           ocn_data_type, ocn_data_dir,      &
           oceanmixed_file, restore_ocn,   trestore
-      use ice_arrays_column, only: bgc_data_dir, &
-          sil_data_type, nit_data_type, fe_data_type
+      use ice_arrays_column, only: bgc_data_dir, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
                           grid_type, grid_format, &
@@ -189,8 +188,7 @@
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,                                 &
-        atm_data_type,  ocn_data_type,   bgc_data_type,                 &
-        sil_data_type,  nit_data_type,   fe_data_type,                  &
+        atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
         fyear_init,     ycycle,                                         &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format,                               &
@@ -344,8 +342,6 @@
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'
-      sil_data_type   = 'default'
-      nit_data_type   = 'default' 
       fe_data_type    = 'default'
       bgc_data_dir    = 'unknown_bgc_data_dir'
       ocn_data_type   = 'default'
@@ -599,8 +595,6 @@
       call broadcast_scalar(tfrz_option,        master_task)
       call broadcast_scalar(ocn_data_format,    master_task)
       call broadcast_scalar(bgc_data_type,      master_task)
-      call broadcast_scalar(sil_data_type,      master_task)
-      call broadcast_scalar(nit_data_type,      master_task)
       call broadcast_scalar(fe_data_type,       master_task)
       call broadcast_scalar(bgc_data_dir,       master_task)
       call broadcast_scalar(ocn_data_type,      master_task)
@@ -1087,10 +1081,6 @@
          endif
          write(nu_diag,*)    ' bgc_data_type             = ', &
                                trim(bgc_data_type)
-         write(nu_diag,*)    ' sil_data_type             = ', &
-                               trim(sil_data_type)
-         write(nu_diag,*)    ' nit_data_type             = ', &
-                               trim(nit_data_type)
          write(nu_diag,*)    ' fe_data_type              = ', &
                                trim(fe_data_type)
          write(nu_diag,*)    ' bgc_data_dir              = ', &

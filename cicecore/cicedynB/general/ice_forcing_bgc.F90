@@ -14,10 +14,11 @@
       use ice_calendar, only: dt, istep, sec, mday, month
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: restore_bgc, &
-         bgc_data_dir, sil_data_type, nit_data_type, fe_data_type
+         bgc_data_dir, fe_data_type
       use ice_constants, only: c0, p1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
+      use ice_forcing, only: bgc_data_type
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_nspint, icepack_max_aero, &
           icepack_max_algae, icepack_max_doc, icepack_max_dic
@@ -84,18 +85,18 @@
           read_data_nc_point, c1intp, c2intp
 
       integer (kind=int_kind) :: &
-          i, j, iblk,   & ! horizontal indices
-          ilo,ihi,jlo,jhi, &   ! beginning and end of physical domain
-          ixm,ixp, ixx, & ! record numbers for neighboring months
-          maxrec      , & ! maximum record number
-          recslot     , & ! spline slot for current record
-          midmonth    , & ! middle day of month
-          recnum      , & ! record number
-          dataloc     , & ! = 1 for data located in middle of time interval
-                          ! = 2 for date located at end of time interval
-          ks              ! bgc tracer index (bio_index_o)
+         i, j, iblk     , & ! horizontal indices
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         ixm,ixp, ixx   , & ! record numbers for neighboring months
+         maxrec         , & ! maximum record number
+         recslot        , & ! spline slot for current record
+         midmonth       , & ! middle day of month
+         recnum         , & ! record number
+         dataloc        , & ! = 1 for data located in middle of time interval
+                            ! = 2 for date located at end of time interval
+         ks                 ! bgc tracer index (bio_index_o)
 
-      character (char_len_long) :: & 
+      character (char_len_long) :: &
          met_file,   &    ! netcdf filename
          fieldname        ! field name in netcdf file
 
@@ -125,10 +126,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (.not. trim(nit_data_type)=='ISPOL' .AND. &
-          .not. trim(sil_data_type)=='ISPOL') then 
-      if (trim(nit_data_type) == 'clim'.or. &
-          trim(sil_data_type) == 'clim') then
+      if (trim(bgc_data_type) == 'clim') then
 
          nit_file = 'nitrate_climatologyWOA_gx1v6f_20150107.nc'
                              !'nitrate_WOA2005_surface_monthly'  ! gx1 only
@@ -139,12 +137,12 @@
          sil_file = trim(bgc_data_dir)//'/'//trim(sil_file)
 
          if (my_task == master_task .and. istep == 1) then
-         if (trim(sil_data_type)=='clim' .AND. tr_bgc_Sil) then
+         if (tr_bgc_Sil) then
             write (nu_diag,*) ' '
             write (nu_diag,*) 'silicate data interpolated to timestep:'
             write (nu_diag,*) trim(sil_file)
          endif
-         if (trim(nit_data_type)=='clim' .AND. tr_bgc_Nit) then
+         if (tr_bgc_Nit) then
             write (nu_diag,*) ' '
             write (nu_diag,*) 'nitrate data interpolated to timestep:'
             write (nu_diag,*) trim(nit_file)
@@ -184,14 +182,14 @@
          readm = .false.
          if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
 
-      endif   ! 'clim prep' sil/nit_data_type
+      endif   ! 'clim prep'
 
     !-------------------------------------------------------------------
     ! Read two monthly silicate values and interpolate.
     ! Restore toward interpolated value.
     !-------------------------------------------------------------------
     
-      if (trim(sil_data_type)=='clim'  .AND. tr_bgc_Sil) then
+      if (trim(bgc_data_type)=='clim'  .AND. tr_bgc_Sil) then
         ! call read_clim_data (readm, 0, ixm, month, ixp, &
         !                      sil_file,  sil_data, &
         !                      field_loc_center, field_type_scalar)
@@ -246,7 +244,7 @@
             enddo
             !$OMP END PARALLEL DO
          endif  !restore
-        elseif (tr_bgc_Sil) then
+        elseif (tr_bgc_Sil) then ! bgc_data_type /= 'clim'
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
       	    do iblk = 1, nblocks
 
@@ -273,7 +271,7 @@
     ! Restore toward interpolated value.
     !-------------------------------------------------------------------
 
-      if (trim(nit_data_type)=='clim' .AND. tr_bgc_Nit) then 
+      if (trim(bgc_data_type)=='clim' .AND. tr_bgc_Nit) then 
         ! call read_clim_data (readm, 0, ixm, month, ixp, &
         !                      nit_file, nit_data, &
         !                      field_loc_center, field_type_scalar)
@@ -330,30 +328,30 @@
             !$OMP END PARALLEL DO
         endif  !restore_bgc
 
-      elseif (trim(nit_data_type) == 'sss'  .AND.  tr_bgc_Nit) then 
-            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      	    do iblk = 1, nblocks
+!      elseif (trim(nit_data_type) == 'sss'  .AND.  tr_bgc_Nit) then 
+!           !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+!      	    do iblk = 1, nblocks
 
-               this_block = get_block(blocks_ice(iblk),iblk)
-               ilo = this_block%ilo
-               ihi = this_block%ihi
-               jlo = this_block%jlo
-               jhi = this_block%jhi
+!               this_block = get_block(blocks_ice(iblk),iblk)
+!               ilo = this_block%ilo
+!               ihi = this_block%ihi
+!               jlo = this_block%jlo
+!               jhi = this_block%jhi
 
-	       do j = jlo, jhi
-      	       do i = ilo, ihi
+!               do j = jlo, jhi
+!               do i = ilo, ihi
 
-                  nit(i,j,iblk) =  sss(i,j,iblk)      
-                  ks = icepack_max_algae + 1
-                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit 
-                  ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
-                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON      
-               enddo
-               enddo
-            enddo
-         !$OMP END PARALLEL DO
+!                  nit(i,j,iblk) =  sss(i,j,iblk)      
+!                  ks = icepack_max_algae + 1
+!                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit 
+!                  ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
+!                  ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !PON      
+!               enddo
+!               enddo
+!            enddo
+!            !$OMP END PARALLEL DO
 
-      elseif (tr_bgc_Nit) then 
+      elseif (tr_bgc_Nit) then ! bgc_data_type /= 'clim'
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
       	    do iblk = 1, nblocks
 
@@ -384,7 +382,7 @@
     ! daily data located at the end of the 24-hour period. 
     !-------------------------------------------------------------------
 
-      elseif (trim(nit_data_type) == 'ISPOL' .or. trim(sil_data_type) == 'ISPOL') then 
+      if (trim(bgc_data_type) == 'ISPOL') then
 
          nit_file = trim(bgc_data_dir)//'nutrients_daily_ISPOL_WOA_field3.nc'
          sil_file = trim(bgc_data_dir)//'nutrients_daily_ISPOL_WOA_field3.nc' 
@@ -426,24 +424,23 @@
         if (tr_bgc_Sil) then
           met_file = sil_file
           fieldname= 'silicate' 
-
           call read_data_nc_point(read1, 0, fyear, ixm, ixx, ixp, &
                     maxrec, met_file, fieldname, sil_data_p, &
                     field_loc_center, field_type_scalar)
       
-          sil(:,:,:) =  c1intp * sil_data_p(1) &
-                  + c2intp * sil_data_p(2)
+          sil(:,:,:) = c1intp * sil_data_p(1) &
+                     + c2intp * sil_data_p(2)
          endif
+
          if (tr_bgc_Nit) then
            met_file = nit_file
            fieldname= 'nitrate' 
-
            call read_data_nc_point(read1, 0, fyear, ixm, ixx, ixp, &
                     maxrec, met_file, fieldname, nit_data_p, &
                     field_loc_center, field_type_scalar)
       
-           nit(:,:,:) =  c1intp * nit_data_p(1) &
-                  + c2intp * nit_data_p(2)
+           nit(:,:,:) = c1intp * nit_data_p(1) &
+                      + c2intp * nit_data_p(2)
          endif
          
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)

@@ -257,8 +257,6 @@
          restore_bgc        ! 
 
       character(char_len), public :: &
-         sil_data_type  , & ! 'default', 'clim'
-         nit_data_type  , & ! 'default', 'clim'
          fe_data_type   , & ! 'default', 'clim'
          bgc_data_dir   ! directory for biogeochemistry data
 
