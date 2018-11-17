@@ -116,7 +116,7 @@
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 
                           ! 'LYq' or 'hadgem' or 'oned'
-         bgc_data_type, & ! 'default', 'clim', 'ncar', 'oned'
+         bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
@@ -324,7 +324,7 @@
     ! initialize to annual climatology created from monthly data
     !-------------------------------------------------------------------
 
-      if (trim(bgc_data_type) == 'clim') then
+      if (trim(ocn_data_type) == 'clim') then
 
          sss_file = trim(ocn_data_dir)//'/sss.mm.100x116.da' ! gx3 only
 
@@ -368,14 +368,10 @@
 
          if (my_task == master_task) close(nu_forcing)
 
-      endif                     ! bgc_data_type
-
     !-------------------------------------------------------------------
     ! Sea surface temperature (SST)
     ! initialize to data for current month
     !-------------------------------------------------------------------
-
-      if (trim(ocn_data_type) == 'clim') then
 
          if (nx_global == 320) then ! gx1
             sst_file = trim(ocn_data_dir)//'/sst_clim_hurrell.dat'
@@ -444,14 +440,12 @@
 
       endif                        ! ocn_data_type
 
-      if (trim(ocn_data_type) == 'ncar' .or.  &
-          trim(bgc_data_type) == 'ncar') then
+      if (trim(ocn_data_type) == 'ncar') then
 !         call ocn_data_ncar_init
          call ocn_data_ncar_init_3D
       endif
 
-      if (trim(ocn_data_type) == 'hycom' .or.  &
-          trim(bgc_data_type) == 'hycom') then
+      if (trim(ocn_data_type) == 'hycom') then
          call ocn_data_hycom_init
       endif
 
@@ -623,22 +617,17 @@
 
       character(len=*), parameter :: subname = '(get_forcing_ocn)'
 
-      if (trim(ocn_data_type) == 'clim' .or.  &
-          trim(bgc_data_type) == 'clim') then
+      if (trim(ocn_data_type) == 'clim') then
          call ocn_data_clim(dt)
       elseif (trim(ocn_data_type) == 'ncar' .or.  &
-              trim(bgc_data_type) == 'ncar'.or.  &
-              trim(ocn_data_type) == 'ISPOL' .or. & 
-              trim(bgc_data_type) == 'ISPOL') then
+              trim(ocn_data_type) == 'ISPOL') then
          call ocn_data_ncar(dt)      
       elseif (trim(ocn_data_type) == 'hadgem_sst' .or.  &
               trim(ocn_data_type) == 'hadgem_sst_uvocn') then
          call ocn_data_hadgem(dt) 
-      elseif (trim(ocn_data_type) == 'oned' .or.  &
-              trim(bgc_data_type) == 'oned') then
+      elseif (trim(ocn_data_type) == 'oned') then
          call ocn_data_oned
-      elseif (trim(ocn_data_type) == 'hycom' .or.  &
-              trim(bgc_data_type) == 'hycom') then
+      elseif (trim(ocn_data_type) == 'hycom') then
 !         call ocn_data_hycom(dt)
 !MHRI: NOT IMPLEMENTED YET
       endif
@@ -3190,12 +3179,10 @@
       character(len=*), parameter :: subname = '(ocn_data_clim)'
 
       if (my_task == master_task .and. istep == 1) then
-         if (trim(bgc_data_type)=='clim') then
+         if (trim(ocn_data_type)=='clim') then
             write (nu_diag,*) ' '
             write (nu_diag,*) 'SSS data interpolated to timestep:'
             write (nu_diag,*) trim(sss_file)
-         endif
-         if (trim(ocn_data_type)=='clim') then
             write (nu_diag,*) ' '
             write (nu_diag,*) 'SST data interpolated to timestep:'
             write (nu_diag,*) trim(sst_file)
@@ -3211,8 +3198,7 @@
     ! month.
     !-------------------------------------------------------------------
 
-      if (trim(bgc_data_type)=='clim' .or.  &
-          trim(ocn_data_type)=='clim') then
+      if (trim(ocn_data_type)=='clim') then
 
          midmonth = 15          ! data is given on 15th of every month
 !!!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
@@ -3238,14 +3224,11 @@
          readm = .false.
          if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
 
-      endif   ! bgc/ocn_data_type
-
     !-------------------------------------------------------------------
     ! Read two monthly SSS values and interpolate.
     ! Note: SSS is restored instantaneously to data.
     !-------------------------------------------------------------------
 
-      if (trim(bgc_data_type)=='clim') then
          call read_clim_data (readm, 0, ixm, month, ixp, &
                               sss_file, sss_data, &
                               field_loc_center, field_type_scalar)
@@ -4008,7 +3991,7 @@
         character (char_len) :: &
            fieldname            ! field name in netcdf file
 
-        if (trim(bgc_data_type) == 'hycom') then
+        if (trim(ocn_data_type) == 'hycom') then
            sss_file = trim(ocn_data_dir)//'ice.restart.surf.nc'
 
            if (my_task == master_task) then
@@ -4023,9 +4006,7 @@
            call ice_close_nc(fid)
 
            call ocn_freezing_temperature
-        endif
 
-        if (trim(ocn_data_type) == 'hycom') then
            sst_file = trim(ocn_data_dir)//'ice.restart.surf.nc'
 
            if (my_task == master_task) then
