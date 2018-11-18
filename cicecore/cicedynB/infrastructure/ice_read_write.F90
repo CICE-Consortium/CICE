@@ -20,7 +20,7 @@
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+      use icepack_intfc, only: icepack_warnings_flush
 
 #ifdef ncdf
       use netcdf      
@@ -2212,7 +2212,7 @@
             if (status /= nf90_noerr) then
               call abort_ice (subname//'ERROR: inquire len for variable '//trim(cvar) )
             endif
-            call flush(nu_diag)
+            call icepack_warnings_flush(nu_diag)
             if (trim(cvar) == trim(varname)) exit
          enddo
          if (trim(cvar) .ne. trim(varname)) then

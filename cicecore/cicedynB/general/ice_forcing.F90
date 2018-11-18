@@ -247,8 +247,8 @@
          call oned_files
       elseif (trim(atm_data_type) == 'ISPOL') then 
          call ISPOL_files
-      elseif (trim(atm_data_type) == 'box') then
-         call box_data
+      elseif (trim(atm_data_type) == 'box2001') then
+         call box2001_data
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_files
       endif
@@ -540,8 +540,8 @@
          call monthly_data
       elseif (trim(atm_data_type) == 'oned') then
          call oned_data
-      elseif (trim(atm_data_type) == 'box') then
-         call box_data
+      elseif (trim(atm_data_type) == 'box2001') then
+         call box2001_data
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_data
       else    ! default values set in init_flux
@@ -4743,7 +4743,7 @@
 
 !=======================================================================
 !
-      subroutine box_data
+      subroutine box2001_data
 
 ! wind and current fields as in Hunke, JCP 2001
 ! authors: Elizabeth Hunke, LANL
@@ -4826,7 +4826,7 @@
          enddo  
       enddo ! nblocks
 
-      end subroutine box_data
+      end subroutine box2001_data
 
 !=======================================================================
 

@@ -1611,7 +1611,7 @@
       !       extend to the prescribed edges.
       !-----------------------------------------------------------------
 
-         if (trim(atm_data_type) == 'box') then
+         if (trim(atm_data_type) == 'box2001') then
 
             hbar = c2  ! initial ice thickness
             do n = 1, ncat
@@ -1696,7 +1696,7 @@
 
                aicen(i,j,n) = ainit(n)
 
-               if (trim(atm_data_type) == 'box') then
+               if (trim(atm_data_type) == 'box2001') then
                   if (hinit(n) > c0) then
 !                  ! constant slope from 0 to 1 in x direction
                      aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
