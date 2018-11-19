@@ -266,7 +266,7 @@ igrid\ :math:`=n_b+1` points. For both bgrid and igrid, the first and
 last points reference :math:`h_b` and the ice–ocean interface,
 respectively, and so take the values :math:`0` and :math:`1`,
 respectively. For bgrid, the interior points :math:`[2, n_b+1]` are
-spaced at :math:`1/n_b` intervals beginning with `bgrid(2)` :math:` =
+spaced at :math:`1/n_b` intervals beginning with `bgrid(2)`\ :math:` =
 1/(2n_b)`. The `igrid` interior points :math:`[2, n_b]` are also
 equidistant with the same spacing, but physically coincide with points
 midway between those of `bgrid`.

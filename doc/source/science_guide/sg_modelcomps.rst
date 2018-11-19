@@ -105,7 +105,7 @@ tracers on snow and ice volume.
    layer enthalpy, :math:`q_{ink}`. Here :math:`N_i` is the total number
    of ice layers, with a default value :math:`N_i = 4`, and
    :math:`q_{ink}` is the negative of the energy needed to melt a unit
-   volume of ice and raise its temperature to; it is discussed in
+   volume of ice and raise its temperature to 0 °C; it is discussed in
    Section :ref:`thermo`. (NOTE: In the current code, :math:`e_i<0`
    and :math:`q_i<0` with :math:`e_i = v_iq_i`.)
 
@@ -119,7 +119,7 @@ tracers on snow and ice volume.
    to the product of the ice layer volume and the sea ice salinity
    tracer.
 
--  :math:`T_sfn`, the surface temperature.
+-  :math:`T_{sfn}`, the surface temperature.
 
 Since the fractional area is unitless, the volume variables have units
 of meters (i.e., m\ :math:`^3` of ice or snow per m\ :math:`^2` of grid
@@ -487,7 +487,7 @@ skeletal layer porosity. Both :math:`h_{sk}` and :math:`\phi_{sk}` are
 defined in **ice\_zbgc\_shared.F90**.
 
 Tracers :math:`T_b` are area conserved and follow the horizontal
-transport equation ([eq:transport\_aT]). The initial concentrations of
+transport equation :eq:`transport-aT`. The initial concentrations of
 tracers are specified in subroutine **init\_bgc** in **ice\_zbgc.F90**.
 Silicate and nitrate may be initialized and forced with climatology.
 Parameters `sil\_data\_type` and `nit\_data\_type` are set in **ice\_in**
@@ -706,7 +706,7 @@ computed as
 
 where the sea ice is composed of :math:`N` vertical layers with
 :math:`i`\ th layer thickness :math:`\Delta z_i` and permeability
-:math:`\Pi_i` ([eq:topo\_permea]). The average sea ice density is
+:math:`\Pi_i` :eq:`topo-permea`. The average sea ice density is
 :math:`\bar{\rho}` specified in **ice\_zbgc\_shared.F90**. The hydraulic
 head is :math:`h_p = h_b - h_{sl}` where :math:`h_{sl}` is the sea level
 given by
@@ -957,8 +957,8 @@ satisfy
 
 where :math:`\tilde{h}=h(\tilde{\bf r})` is the thickness at the center
 of ice area, and :math:`\hat{q}=q(\hat{\bf r})` is the enthalpy at the
-center of ice or snow volume. Equations ([eq:mean\_thickness]) and
-([eq:mean\_enthalpy]) are satisfied when :math:`h({\bf r})` and
+center of ice or snow volume. Equations :eq:`mean-thickness` and
+:eq:`mean-enthalpy` are satisfied when :math:`h({\bf r})` and
 :math:`q({\bf r})` are given by
 
 .. math::
@@ -1047,7 +1047,7 @@ cell and its eight neighbors. Let :math:`\bar{\phi}_{\max}` and
 values of the reconstructed :math:`\phi` within the cell. Since the
 reconstruction is linear, :math:`\phi_{\max}` and :math:`\phi_{\min}`
 are located at cell corners. If :math:`\phi_{\max} > \bar{\phi}_{\max}`
-or :math:` \phi_{\min} < \bar{\phi}_{\min}`, we multiply the unlimited
+or :math:`\phi_{\min} < \bar{\phi}_{\min}`, we multiply the unlimited
 gradient by :math:`\alpha = \min(\alpha_{\max}, \alpha_{\min})`, where
 
 .. math::
@@ -1213,7 +1213,7 @@ points are computed assuming Cartesian geometry with cell edges meeting
 at right angles. Let CL and CR denote the left and right vertices, which
 are joined by line CLR. Similarly, let DL and DR denote the departure
 points, which are joined by line DLR. Also, let IL and IR denote the
-intersection points (0, :math:`y_a`) and (0,:math:`y_b`) respectively,
+intersection points (0, :math:`y_a`) and (0, :math:`y_b`) respectively,
 and let IC = (:math:`x_c`, 0) denote the intersection of CLR and DLR. It
 can be shown that :math:`y_a`, :math:`y_b`, and :math:`x_c` are given by
 
@@ -2468,7 +2468,7 @@ index \ :math:`n`.) Each column is divided into :math:`N_i` ice layers
 of thickness :math:`\Delta h_i = h_i/N_i` and :math:`N_s` snow layers of
 thickness :math:`\Delta h_s = h_s/N_s`. The surface temperature (i.e.,
 the temperature of ice or snow at the interface with the atmosphere) is
-:math:`T_{sf}`, which cannot exceed . The temperature at the
+:math:`T_{sf}`, which cannot exceed 0 °C. The temperature at the
 midpoint of the snow layer is :math:`T_s`, and the midpoint ice layer
 temperatures are :math:`T_{ik}`, where :math:`k` ranges from 1 to
 :math:`N_i`. The temperature at the bottom of the ice is held at
@@ -2477,7 +2477,7 @@ temperatures are in degrees Celsius unless stated otherwise.
 
 Each ice layer has an enthalpy :math:`q_{ik}`, defined as the negative
 of the energy required to melt a unit volume of ice and raise its
-temperature to . Because of internal melting and freezing in brine
+temperature to 0 °C. Because of internal melting and freezing in brine
 pockets, the ice enthalpy depends on the brine pocket volume and is a
 function of temperature and salinity. We can also define a snow enthalpy
 :math:`q_s`, which depends on temperature alone.
@@ -3163,17 +3163,17 @@ Climate System Model (CCSM3), the albedo depends on the temperature and
 thickness of ice and snow and on the spectral distribution of the
 incoming solar radiation. Albedo parameters have been chosen to fit
 observations from the SHEBA field experiment. For
-:math:`T_{sf} < -1^{circ}C` and :math:`h_i > ` `ahmax`, the bare ice
-albedo is 0.78 for visible wavelengths (:math:`<700`\ nm) and 0.36 for
-near IR wavelengths (:math:`>700`\ nm). As :math:`h_i` decreases from
+:math:`T_{sf} < -1` °C and :math:`h_i > ` `ahmax`, the bare ice
+albedo is 0.78 for visible wavelengths (:math:`<700` nm) and 0.36 for
+near IR wavelengths (:math:`>700` nm). As :math:`h_i` decreases from
 ahmax to zero, the ice albedo decreases smoothly (using an arctangent
 function) to the ocean albedo, 0.06. The ice albedo in both spectral
 bands decreases by 0.075 as :math:`T_{sf}` rises from
-:math:`-1^{circ}C` to . The albedo of cold snow (:math:`T_{sf} <
--1^{circ}C`) is 0.98 for visible wavelengths and 0.70 for near IR
+:math:`-1` °C to 0 °C. The albedo of cold snow (:math:`T_{sf} <
+-1` °C) is 0.98 for visible wavelengths and 0.70 for near IR
 wavelengths. The visible snow albedo decreases by 0.10 and the near IR
-albedo by 0.15 as :math:`T_{sf}` increases from :math:`-1^{circ}C`
-to . The total albedo is an area-weighted average of the ice and snow
+albedo by 0.15 as :math:`T_{sf}` increases from :math:`-1` °C
+to 0 °C. The total albedo is an area-weighted average of the ice and snow
 albedos, where the fractional snow-covered area is
 
 .. math:: 
@@ -3272,7 +3272,7 @@ the ocean, :math:`F_{frzmlt}`. Additional heat,
 :cite:`Maykut87` and :cite:`Steele92`.
 :math:`F_{bot}` and the fraction of ice melting laterally are scaled so
 that :math:`F_{bot} + F_{side} \ge F_{frzmlt}` in the case that
-:math:` F_{frzmlt}<0` (melting; see
+:math:`F_{frzmlt}<0` (melting; see
 Section :ref:`thermo-growth`).
 
 .. _thermo-temp:
@@ -3833,9 +3833,9 @@ The conductivity of the mush is given by
 .. math:: 
    K = \phi K_{br} + (1-\phi) K_{i}
 
-where :math:`K_i = 2.3` Wm:math:`^{-1}`\ K\ :math:`^{-1}` is the
+where :math:`K_i = 2.3` Wm :math:`^{-1}`\ K\ :math:`^{-1}` is the
 conductivity of pure ice and
-:math:`K_{br}=0.5375` Wm:math:`^{-1}`\ K\ :math:`^{-1}` is the
+:math:`K_{br}=0.5375` Wm :math:`^{-1}`\ K\ :math:`^{-1}` is the
 conductivity of the brine. The thermal conductivity of brine is a
 function of temperature and salinity, but here we take it as a constant
 value for the middle of the temperature range experienced by sea ice,
@@ -3963,7 +3963,7 @@ where :math:`\Delta \rho` is the difference in density between the
 brine at :math:`z` and the ocean, :math:`\Pi` is the minimum
 permeability between :math:`z` and the ocean, :math:`h` is the ice
 thickness, :math:`\kappa` is the brine thermal diffusivity and
-:math:`\eta` is the brine dynamic viscosity. Equation ([eq:mushyvel])
+:math:`\eta` is the brine dynamic viscosity. Equation :eq:`mushyvel`
 reduces the flow rate for Rayleigh numbers below the critical Rayleigh
 number.
 
