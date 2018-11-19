@@ -143,7 +143,7 @@
 !   aicen_rest(:,:,:,:) = aicen(:,:,:,:)
 !   vicen_rest(:,:,:,:) = vicen(:,:,:,:)
 !   vsnon_rest(:,:,:,:) = vsnon(:,:,:,:)
-!   trcrn_rest(:,:,:,:,:) = trcrn(:,:,1:ntrcr,:,:)
+!   trcrn_rest(:,:,:,:,:) = trcrn(:,:,:,:,:)
 
 ! the more precise way
    !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &

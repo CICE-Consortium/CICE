@@ -1433,20 +1433,20 @@
 
          if (tmask(i,j,iblk)) &
          call icepack_aggregate (ncat,               &
-                                aicen(i,j,:,iblk),  &
-                                trcrn(i,j,1:ntrcr,:,iblk), &
+                                aicen(i,j,:,iblk),   &
+                                trcrn(i,j,:,:,iblk), &
                                 vicen(i,j,:,iblk),   &
                                 vsnon(i,j,:,iblk),   &
                                 aice (i,j,  iblk),   &
-                                trcr (i,j,1:ntrcr,iblk),   &
+                                trcr (i,j,:,iblk),   &
                                 vice (i,j,  iblk),   &
                                 vsno (i,j,  iblk),   &
                                 aice0(i,j,  iblk),   &
                                 ntrcr,               &
-                                trcr_depend  (1:ntrcr),&
-                                trcr_base    (1:ntrcr,:),&
-                                n_trcr_strata(1:ntrcr),&
-                                nt_strata    (1:ntrcr,:))
+                                trcr_depend  (:),    &
+                                trcr_base    (:,:),  &
+                                n_trcr_strata(:),    &
+                                nt_strata    (:,:))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
 

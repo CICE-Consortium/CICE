@@ -238,7 +238,7 @@
 
          call ice_HaloMask(halo_info_aicemask, halo_info, halomask)
 
-         call ice_HaloUpdate (trcrn(:,:,1:ntrcr,:,:), halo_info_aicemask, &
+         call ice_HaloUpdate (trcrn(:,:,:,:,:), halo_info_aicemask, &
                               field_loc_center, field_type_scalar)
          call ice_HaloUpdate (vicen,            halo_info_aicemask, &
                               field_loc_center, field_type_scalar)
@@ -247,7 +247,7 @@
          call ice_HaloDestroy(halo_info_aicemask)
 
       else
-         call ice_HaloUpdate (trcrn(:,:,1:ntrcr,:,:), halo_info, &
+         call ice_HaloUpdate (trcrn(:,:,:,:,:), halo_info, &
                               field_loc_center, field_type_scalar)
          call ice_HaloUpdate (vicen,            halo_info, &
                               field_loc_center, field_type_scalar)

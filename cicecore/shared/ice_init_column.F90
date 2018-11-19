@@ -871,8 +871,6 @@
       use ice_restart_column, only: restart_bgc, restart_zsal, &
           restart_hbrine
       use ice_restart_shared, only: restart
-      use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
-          nt_strata      
 
       character (len=char_len) :: &
          shortwave        ! from icepack

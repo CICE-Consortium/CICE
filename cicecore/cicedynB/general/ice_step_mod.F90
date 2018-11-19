@@ -452,16 +452,16 @@
 
          if (tmask(i,j,iblk)) then
 
-         call icepack_step_therm2(dt, ncat, n_aero, nltrcr,                 &
+         call icepack_step_therm2(dt, ncat, n_aero, nltrcr,                &
                            nilyr,                  nslyr,                  &
                            hin_max   (:),          nblyr,                  &   
                            aicen     (i,j,:,iblk),                         &
                            vicen     (i,j,:,iblk), vsnon     (i,j,:,iblk), &
                            aicen_init(i,j,:,iblk), vicen_init(i,j,:,iblk), &
-                           trcrn     (i,j,1:ntrcr,:,iblk),                 &
+                           trcrn     (i,j,:,:,iblk),                       &
                            aice0     (i,j,  iblk), aice      (i,j,  iblk), &
-                           trcr_depend(1:ntrcr),   trcr_base(1:ntrcr,:),   &
-                           n_trcr_strata(1:ntrcr), nt_strata(1:ntrcr,:),   &
+                           trcr_depend(:),         trcr_base(:,:),         &
+                           n_trcr_strata(:),       nt_strata(:,:),         &
                            Tf        (i,j,  iblk), sss       (i,j,  iblk), &
                            salinz    (i,j,:,iblk),                         &
                            rside     (i,j,  iblk), meltl     (i,j,  iblk), &
@@ -552,18 +552,18 @@
       !----------------------------------------------------------------- 
  
 !        if (tmask(i,j,iblk)) &
-         call icepack_aggregate (ncat,               aicen(i,j,:,iblk),   &
-                               trcrn(i,j,1:ntrcr,:,iblk),               &
+         call icepack_aggregate (ncat,            aicen(i,j,:,iblk),    &
+                               trcrn(i,j,:,:,iblk),                     &
                                vicen(i,j,:,iblk), vsnon(i,j,  :,iblk),  &
                                aice (i,j,  iblk),                       &
-                               trcr (i,j,1:ntrcr,  iblk),               &
+                               trcr (i,j,:,  iblk),                     &
                                vice (i,j,  iblk), vsno (i,j,    iblk),  &
                                aice0(i,j,  iblk),                       &
                                ntrcr,                                   &
-                               trcr_depend(1:ntrcr),                    &
-                               trcr_base    (1:ntrcr,:),                &
-                               n_trcr_strata(1:ntrcr),                  &
-                               nt_strata    (1:ntrcr,:))
+                               trcr_depend(:),                          &
+                               trcr_base    (:,:),                      &
+                               n_trcr_strata(:),                        &
+                               nt_strata    (:,:))
 
       !-----------------------------------------------------------------
       ! Compute thermodynamic area and volume tendencies.
@@ -706,7 +706,7 @@
       do i = ilo, ihi
 
 !echmod: this changes the answers, continue using tmask for now
-!      call aggregate_area (ncat, aicen(:), atmp, atmp0)
+!      call aggregate_area (ncat, aicen(i,j,:,iblk), atmp, atmp0)
 !      if (atmp > c0) then
 
          if (tmask(i,j,iblk)) then
@@ -717,11 +717,11 @@
                          ncat,                  hin_max  (:),          &
                          rdg_conv (i,j,  iblk), rdg_shear(i,j,  iblk), &
                          aicen    (i,j,:,iblk),                        &
-                         trcrn    (i,j,1:ntrcr,:,iblk),                &
+                         trcrn    (i,j,:,:,iblk),                      &
                          vicen    (i,j,:,iblk), vsnon    (i,j,:,iblk), &
-                         aice0    (i,j,  iblk), trcr_depend(1:ntrcr),  &
-                         trcr_base(1:ntrcr,:),  n_trcr_strata(1:ntrcr),&
-                         nt_strata(1:ntrcr,:),                         &
+                         aice0    (i,j,  iblk), trcr_depend(:),        &
+                         trcr_base(:,:),        n_trcr_strata(:),      &
+                         nt_strata(:,:),                               &
                          dardg1dt (i,j,  iblk), dardg2dt (i,j,  iblk), &
                          dvirdgdt (i,j,  iblk), opening  (i,j,  iblk), &
                          fpond    (i,j,  iblk),                        &
@@ -1227,7 +1227,7 @@
                               sice_rho    (i,j,:,        iblk),        &
                               fzsal       (i,j,          iblk),        &   
                               fzsal_g     (i,j,          iblk),        &
-                              bgrid, igrid, icgrid, cgrid,     &
+                              bgrid, igrid, icgrid, cgrid,             &
                               nblyr, nilyr, nslyr, n_algae, n_zaero,   &
                               ncat, n_doc, n_dic, n_don, n_fed, n_fep, &
                               meltbn      (i,j,:,        iblk),        &
@@ -1247,7 +1247,7 @@
                               vicen       (i,j,:,        iblk),        &
                               vsnon       (i,j,:,        iblk),        &
                               aice0       (i,j,          iblk),        &
-                              trcrn       (i,j,1:ntrcr,:,iblk),        &
+                              trcrn       (i,j,:,:,iblk),              &
                               vsnon_init  (i,j,:,        iblk),        &
                               skl_bgc)
 

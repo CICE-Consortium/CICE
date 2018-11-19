@@ -260,6 +260,9 @@
             ! momentum, stress, transport
             call step_dyn_horiz (dt_dyn)
 
+               plabeld = 'post step_dyn_horiz'
+               call debug_ice (iblk, plabeld)
+
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
