@@ -374,7 +374,7 @@
          call state_to_tracers(nx_block,          ny_block,             &
                                ntrcr,             ntrace,               &
                                aice0(:,:,  iblk), aicen(:,:,:,iblk),    &
-                               trcrn(:,:,1:ntrcr,:,iblk),               &
+                               trcrn(:,:,:,:,iblk),                     &
                                vicen(:,:,:,iblk), vsnon(:,:,  :,iblk),  &
                                aim  (:,:,:,iblk), trm  (:,:,:,:,iblk))
 
@@ -524,7 +524,7 @@
                                 ntrcr,             ntrace,              &
                                 aim  (:,:,:,iblk), trm  (:,:,:,:,iblk), &
                                 aice0(:,:,  iblk), aicen(:,:,:,iblk),   &
-                                trcrn(:,:,1:ntrcr,:,iblk),              &
+                                trcrn(:,:,:,:,iblk),                    &
                                 vicen(:,:,:,iblk), vsnon(:,:,  :,iblk))
 
       enddo                     ! iblk
@@ -765,7 +765,7 @@
          call state_to_work (nx_block,             ny_block,             &
                              ntrcr,                                      &
                              narr,                 trcr_depend,          &
-                             aicen (:,:,  :,iblk), trcrn (:,:,1:ntrcr,:,iblk), &
+                             aicen (:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen (:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0 (:,:,    iblk), works (:,:,  :,iblk))
 
@@ -787,9 +787,9 @@
 
          call work_to_state (nx_block,            ny_block,             &
                              ntrcr,               narr,                 &
-                             trcr_depend(1:ntrcr), trcr_base(1:ntrcr,3), &
-                             n_trcr_strata(1:ntrcr), nt_strata(1:ntrcr,2), &
-                             aicen(:,:,  :,iblk), trcrn (:,:,1:ntrcr,:,iblk), &
+                             trcr_depend(:),      trcr_base(:,:),       &
+                             n_trcr_strata(:),    nt_strata(:,:),       &
+                             aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0(:,:,    iblk), works (:,:,  :,iblk)) 
 

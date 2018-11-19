@@ -185,8 +185,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: dt, calendar_type, &
           days_per_year, nextsw_cday, yday, sec
-      use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, &
-          diagnostic_abort
+      use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc
       use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: alvdf, alidf, alvdr, alidr, &
                           alvdr_ai, alidr_ai, alvdf_ai, alidf_ai, &
@@ -872,69 +871,27 @@
       use ice_restart_column, only: restart_bgc, restart_zsal, &
           restart_hbrine
       use ice_restart_shared, only: restart
-      use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
-          nt_strata      
 
       character (len=char_len) :: &
          shortwave        ! from icepack
 
       logical (kind=log_kind) :: &
-          tr_brine, &
-          tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
-          tr_bgc_DMS,    tr_bgc_PON,   &
-          tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
-          tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
-          tr_bgc_hum,    tr_aero
+         tr_brine, &
+         tr_bgc_Nit,    tr_bgc_Am,    tr_bgc_Sil,   &
+         tr_bgc_DMS,    tr_bgc_PON,   &
+         tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
+         tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
+         tr_bgc_hum,    tr_aero
  
       integer (kind=int_kind) :: &
-          ktherm
+         ktherm
 
       logical (kind=log_kind) :: &
-          solve_zsal, skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
-          modal_aero
+         solve_zsal, skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
+         modal_aero
 
       character (char_len) :: &
-          bgc_flux_type
-
-      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-         F_abs_chl          ! to scale absorption in Dedd
-
-       real (kind=dbl_kind),  dimension(icepack_max_algae) :: &
-         R_S2N      , & ! algal S to N (mole/mole)
-         ! Marchetti et al 2006, 3 umol Fe/mol C for iron limited Pseudo-nitzschia
-         R_Fe2C     , & ! algal Fe to carbon (umol/mmol)
-         R_Fe2N         ! algal Fe to N (umol/mmol)
-
-      real (kind=dbl_kind), dimension(icepack_max_don) :: & 
-         R_Fe2DON       ! Fe to N of DON (nmol/umol)
-
-      real (kind=dbl_kind), dimension(icepack_max_doc) :: &  
-         R_Fe2DOC       ! Fe to C of DOC (nmol/umol)
-
-      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-         chlabs           , & ! chla absorption 1/m/(mg/m^3)
-         alpha2max_low    , & ! light limitation (1/(W/m^2))
-         beta2max         , & ! light inhibition (1/(W/m^2))
-         mu_max           , & ! maximum growth rate (1/d)
-         grow_Tdep        , & ! T dependence of growth (1/C)
-         fr_graze         , & ! fraction of algae grazed
-         mort_pre         , & ! mortality (1/day)
-         mort_Tdep        , & ! T dependence of mortality (1/C)
-         k_exude          , & ! algal carbon  exudation rate (1/d)
-         K_Nit            , & ! nitrate half saturation (mmol/m^3) 
-         K_Am             , & ! ammonium half saturation (mmol/m^3) 
-         K_Sil            , & ! silicon half saturation (mmol/m^3)
-         K_Fe                 ! iron half saturation  or micromol/m^3
-            
-      real (kind=dbl_kind), dimension(icepack_max_DON) :: &
-         f_don            , & ! fraction of spilled grazing to DON
-         kn_bac           , & ! Bacterial degredation of DON (1/d)
-         f_don_Am             ! fraction of remineralized DON to Am
-
-      real (kind=dbl_kind), dimension(icepack_max_DOC) :: &
-         f_doc            , & ! fraction of mort_N that goes to each doc pool
-         f_exude          , & ! fraction of exuded carbon to each DOC pool
-         k_bac                ! Bacterial degredation of DOC (1/d)    
+         bgc_flux_type
 
       integer (kind=int_kind) :: &
          nml_error, & ! namelist i/o error flag

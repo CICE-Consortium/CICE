@@ -366,6 +366,7 @@ Table of namelist options
    "", "``LYq``", "AOMIP/Large-Yeager forcing data", ""
    "", "``monthly``", "monthly forcing data", ""
    "", "``ncar``", "NCAR bulk forcing data", ""
+   "", "``box2001``", "forcing data for :cite:`Hunke01` box problem", ""
    "", "``oned``", "column forcing data", ""
    "", "``hycom``", "HYCOM atm forcing data in NetCDF format", ""
    "``ocn_data_type``", "``default``", "constant values defined in the code", ""
