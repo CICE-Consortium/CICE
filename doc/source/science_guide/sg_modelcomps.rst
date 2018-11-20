@@ -3509,7 +3509,7 @@ where :math:`\tau_k` is the fraction of the penetrating solar radiation
 absorbed.
 
 We now construct a system of equations for the new temperatures. For
-:math:`T_{sf}<0\ ^{\circ}`\ C we require
+:math:`T_{sf} < 0\ ^{\circ}`\ C we require
 
 .. math::
    F_0 = F_{ct},
@@ -3563,7 +3563,7 @@ where :math:`\eta_k = \Delta t/(\rho_k c_k \Delta h_k)`. In the
 equation for the bottom ice layer, the temperature at the ice–ocean
 interface is held fixed at :math:`T_f`, the freezing temperature of the
 mixed layer; thus the last term on the LHS is known and is moved to the
-RHS. If :math:`T_{sf} = 0^{\circ}C` , then there is no surface flux
+RHS. If :math:`T_{sf} = 0\ ^{\circ}`\ C , then there is no surface flux
 equation. In this case the first equation in Equation :eq:`tridiag` is similar
 to Equation :eq:`tridiag-form`, but with the first term on the LHS moved to the
 RHS.
@@ -3599,7 +3599,7 @@ This completes the specification of the matrix equations for the four
 cases. We compute the new temperatures using a tridiagonal solver. After
 each iteration we check to see whether the following conditions hold:
 
-#. :math:`T_{sf} \leq 0\ ^{\circ}C`.
+#. :math:`T_{sf} \leq 0\ ^{\circ}`\ C.
 
 #. The change in :math:`T_{sf}` since the previous iteration is
    less than a prescribed limit, :math:`\Delta T_{\max}`.
@@ -3615,7 +3615,7 @@ We also check the convergence rate of :math:`T_{sf}`. If :math:`T_{sf}`
 is oscillating and failing to converge, we average temperatures from
 successive iterations to improve convergence. When all these conditions
 are satisfied—usually within two to four iterations for
-:math:`\Delta T_{\max} \approx 0.01\ ^{\circ}C` and :math:`\Delta F_{max}
+:math:`\Delta T_{\max} \approx 0.01\ ^{\circ}`\ C and :math:`\Delta F_{max}
 \approx 0.01 \ \mathrm{W/m^2}`—the calculation is complete.
 
 To compute growth and melt rates (Section :ref:`thermo-growth`,
@@ -3707,7 +3707,7 @@ fixed at the values of cp\_ice and cp\_ocn, respectively. The enthalpy
 is the energy required to raise the temperature of the sea ice to ,
 including both sensible and latent heat changes. Since the sea ice
 contains salt, it usually will be fully melted at a temperature below
-:math:`0\ ^{\circ}C`.
+:math:`0\ ^{\circ}`\ C.
 Equations :eq:`ice-enthalpy` and :eq:`enth-def` are
 equivalent except for the density used in the term representing the
 energy required to bring the melt water temperature to (:math:`\rho_i`
