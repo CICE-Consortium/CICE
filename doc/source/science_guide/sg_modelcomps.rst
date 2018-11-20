@@ -105,7 +105,7 @@ tracers on snow and ice volume.
    layer enthalpy, :math:`q_{ink}`. Here :math:`N_i` is the total number
    of ice layers, with a default value :math:`N_i = 4`, and
    :math:`q_{ink}` is the negative of the energy needed to melt a unit
-   volume of ice and raise its temperature to 0 °C; it is discussed in
+   volume of ice and raise its temperature to :math:`0\ ^\circ`\ C; it is discussed in
    Section :ref:`thermo`. (NOTE: In the current code, :math:`e_i<0`
    and :math:`q_i<0` with :math:`e_i = v_iq_i`.)
 
@@ -2468,7 +2468,7 @@ index \ :math:`n`.) Each column is divided into :math:`N_i` ice layers
 of thickness :math:`\Delta h_i = h_i/N_i` and :math:`N_s` snow layers of
 thickness :math:`\Delta h_s = h_s/N_s`. The surface temperature (i.e.,
 the temperature of ice or snow at the interface with the atmosphere) is
-:math:`T_{sf}`, which cannot exceed 0 °C. The temperature at the
+:math:`T_{sf}`, which cannot exceed :math:`0\ ^\circ`\ C. The temperature at the
 midpoint of the snow layer is :math:`T_s`, and the midpoint ice layer
 temperatures are :math:`T_{ik}`, where :math:`k` ranges from 1 to
 :math:`N_i`. The temperature at the bottom of the ice is held at
@@ -2477,7 +2477,7 @@ temperatures are in degrees Celsius unless stated otherwise.
 
 Each ice layer has an enthalpy :math:`q_{ik}`, defined as the negative
 of the energy required to melt a unit volume of ice and raise its
-temperature to 0 °C. Because of internal melting and freezing in brine
+temperature to :math:`0\ ^\circ`\ C. Because of internal melting and freezing in brine
 pockets, the ice enthalpy depends on the brine pocket volume and is a
 function of temperature and salinity. We can also define a snow enthalpy
 :math:`q_s`, which depends on temperature alone.
@@ -3163,17 +3163,17 @@ Climate System Model (CCSM3), the albedo depends on the temperature and
 thickness of ice and snow and on the spectral distribution of the
 incoming solar radiation. Albedo parameters have been chosen to fit
 observations from the SHEBA field experiment. For
-:math:`T_{sf} < -1` °C and :math:`h_i >` `ahmax`, the bare ice
+:math:`T_{sf} < -1\ ^\circ`\ C and :math:`h_i >`\ `ahmax`, the bare ice
 albedo is 0.78 for visible wavelengths (:math:`<700` nm) and 0.36 for
 near IR wavelengths (:math:`>700` nm). As :math:`h_i` decreases from
 ahmax to zero, the ice albedo decreases smoothly (using an arctangent
 function) to the ocean albedo, 0.06. The ice albedo in both spectral
 bands decreases by 0.075 as :math:`T_{sf}` rises from
-:math:`-1` °C to 0 °C. The albedo of cold snow (:math:`T_{sf} <
--1` °C) is 0.98 for visible wavelengths and 0.70 for near IR
+:math:`-1\ ^\circ`\ C to :math:`0\ ^\circ`\ C. The albedo of cold snow (:math:`T_{sf} <
+-1\ ^\circ`\ C) is 0.98 for visible wavelengths and 0.70 for near IR
 wavelengths. The visible snow albedo decreases by 0.10 and the near IR
-albedo by 0.15 as :math:`T_{sf}` increases from :math:`-1` °C
-to 0 °C. The total albedo is an area-weighted average of the ice and snow
+albedo by 0.15 as :math:`T_{sf}` increases from :math:`-1\ ^\circ`\ C
+to :math:`0\ ^\circ`\ C. The total albedo is an area-weighted average of the ice and snow
 albedos, where the fractional snow-covered area is
 
 .. math:: 
@@ -3337,10 +3337,10 @@ column vector whose components are the unknown new temperatures, and
 :math:`{\bf b}`, we can compute :math:`{\bf x}` with a standard
 tridiagonal solver.
 
-There are four general cases: (1) :math:`T_{sf} < 0` °C, snow
-present; (2) :math:`T_{sf} = 0` °C, snow present;
-(3) :math:`T_{sf} < 0` °C, snow absent; and
-(4) :math:`T_{sf} = 0` °C, snow absent. For case 1 we have
+There are four general cases: (1) :math:`T_{sf} < 0\ ^\circ`\ C, snow
+present; (2) :math:`T_{sf} = 0^\circ`\ C, snow present;
+(3) :math:`T_{sf} < 0\ ^\circ`\ C, snow absent; and
+(4) :math:`T_{sf} = 0\ ^\circ`\ C, snow absent. For case 1 we have
 one equation (the top row of the matrix) for the new surface
 temperature, :math:`N_s` equations for the new snow temperatures, and
 :math:`N_i` equations for the new ice temperatures. For cases 2 and 4 we
@@ -3509,7 +3509,7 @@ where :math:`\tau_k` is the fraction of the penetrating solar radiation
 absorbed.
 
 We now construct a system of equations for the new temperatures. For
-:math:`T_{sf}<0` °C we require
+:math:`T_{sf}<0\ ^\circ`\ C we require
 
 .. math::
    F_0 = F_{ct},
@@ -3563,7 +3563,7 @@ where :math:`\eta_k = \Delta t/(\rho_k c_k \Delta h_k)`. In the
 equation for the bottom ice layer, the temperature at the ice–ocean
 interface is held fixed at :math:`T_f`, the freezing temperature of the
 mixed layer; thus the last term on the LHS is known and is moved to the
-RHS. If :math:`T_{sf} = 0^{circ}C` , then there is no surface flux
+RHS. If :math:`T_{sf} = 0^{\circ}C` , then there is no surface flux
 equation. In this case the first equation in Equation :eq:`tridiag` is similar
 to Equation :eq:`tridiag-form`, but with the first term on the LHS moved to the
 RHS.
@@ -3599,7 +3599,7 @@ This completes the specification of the matrix equations for the four
 cases. We compute the new temperatures using a tridiagonal solver. After
 each iteration we check to see whether the following conditions hold:
 
-#. :math:`T_{sf} \leq 0^{circ}C`.
+#. :math:`T_{sf} \leq 0\ ^{\circ}C`.
 
 #. The change in :math:`T_{sf}` since the previous iteration is
    less than a prescribed limit, :math:`\Delta T_{\max}`.
@@ -3615,7 +3615,7 @@ We also check the convergence rate of :math:`T_{sf}`. If :math:`T_{sf}`
 is oscillating and failing to converge, we average temperatures from
 successive iterations to improve convergence. When all these conditions
 are satisfied—usually within two to four iterations for
-:math:`\Delta T_{\max} \approx 0.01^{circ}C` and :math:`\Delta F_{max}
+:math:`\Delta T_{\max} \approx 0.01\ ^{\circ}C` and :math:`\Delta F_{max}
 \approx 0.01 \ \mathrm{W/m^2}`—the calculation is complete.
 
 To compute growth and melt rates (Section :ref:`thermo-growth`,
@@ -3707,7 +3707,7 @@ fixed at the values of cp\_ice and cp\_ocn, respectively. The enthalpy
 is the energy required to raise the temperature of the sea ice to ,
 including both sensible and latent heat changes. Since the sea ice
 contains salt, it usually will be fully melted at a temperature below
-:math:`0^{circ}C`.
+:math:`0\ ^{\circ}C`.
 Equations :eq:`ice-enthalpy` and :eq:`enth-def` are
 equivalent except for the density used in the term representing the
 energy required to bring the melt water temperature to (:math:`\rho_i`
@@ -3770,7 +3770,7 @@ where
    L_{1,2} =  \frac{(1 + b_{1,2}/1000)}{a_{1,2}}.
 
 :math:`T_0` is the temperature at which the two linear regions meet.
-Fitting to the data, :math:`T_0=-7.636^\circ`\ C,
+Fitting to the data, :math:`T_0=-7.636\ ^\circ`\ C,
 :math:`a_1=-18.48 \;\mathrm{g} \;\mathrm{kg}^{-1} \;\mathrm{K}^{-1}`,
 :math:`a_2=-10.3085\;\mathrm{g} \;\mathrm{kg}^{-1} \;\mathrm{K}^{-1}`,
 :math:`b_1=0` and :math:`b_2=62.4 \;\mathrm{g}\;\mathrm{kg}^{-1}`.
@@ -3839,8 +3839,8 @@ conductivity of pure ice and
 conductivity of the brine. The thermal conductivity of brine is a
 function of temperature and salinity, but here we take it as a constant
 value for the middle of the temperature range experienced by sea ice,
-:math:`-10^\circ`\ C :cite:`Siedler86`, assuming the brine
-liquidus salinity at :math:`-10^\circ`\ C.
+:math:`-10\ ^\circ`\ C :cite:`Siedler86`, assuming the brine
+liquidus salinity at :math:`-10\ ^\circ`\ C.
 
 We discretize the terms that include temperature in the heat
 conservation equation as
