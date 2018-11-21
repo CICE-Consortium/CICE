@@ -100,7 +100,7 @@
 
 &dynamics_nml
     kdyn            = 1
-    ndte            = 120
+    ndte            = 240
     revised_evp     = .false.
     advection       = 'remap'
     kstrength       = 1

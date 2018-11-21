@@ -197,6 +197,10 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_forcing): Out of Memory')
 
+! initialize this, not set in box2001 (and some other forcings?)
+
+      cldf = c0
+
       end subroutine alloc_forcing
 
 !=======================================================================

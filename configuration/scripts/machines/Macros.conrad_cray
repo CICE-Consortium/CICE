@@ -14,6 +14,7 @@ LDFLAGS    := -h byteswapio
 
 ifeq ($(ICE_BLDDEBUG), true)
   FFLAGS     += -O0 -g -Rbcdps
+#  FFLAGS     += -O0 -g -Rbcdps -ei
 else
   FFLAGS     += -O2
 endif

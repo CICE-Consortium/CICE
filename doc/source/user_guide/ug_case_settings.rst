@@ -259,7 +259,7 @@ Table of namelist options
    "", "``1``", "dynamics ON", ""
    "``revised_evp``", "true/false", "use revised EVP formulation", ""
    "``basalstress``", "true/false", "use bottom basal stress", ""
-   "``ndte``", "integer", "number of EVP subcycles", "120"
+   "``ndte``", "integer", "number of EVP subcycles", "240"
    "``advection``", "``remap``", "linear remapping advection", "‘remap’"
    "", "``upwind``", "donor cell advection", ""
    "``kstrength``", "``0``", "ice strength formulation :cite:`Hibler79`", "1"
