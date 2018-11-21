@@ -57,11 +57,12 @@
          e_ratio  , & ! e = EVP ellipse aspect ratio 
          ecci     , & ! 1/e^2
          dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
-         dte2T    , & ! dte/2T
+!         dte2T    , & ! dte/2T
          denom1       ! constants for stress equation
 
       real (kind=dbl_kind), public :: & ! Bouillon et al relaxation constants
-         arlx1i   , & ! alpha1 for stressp
+         arlx     , & ! alpha for stressp
+         arlx1i   , & ! (inverse of alpha) for stressp
          brlx         ! beta   for momentum
 
       real (kind=dbl_kind), allocatable, public :: & 
@@ -210,67 +211,45 @@
 
       ! local variables
 
-      real (kind=dbl_kind) :: &
-         Se          , & ! stability parameter for revised EVP
-         xi          , & ! stability parameter for revised EVP
-         gamma       , & ! stability parameter for revised EVP
-         xmin, ymin  , & ! minimum grid length for ocean points, m
-         dte         , & ! subcycling timestep for EVP dynamics, s
-         ecc         , & ! (ratio of major to minor ellipse axes)^2
-         tdamp2          ! 2*(wave damping time scale T)
+      !real (kind=dbl_kind) :: &
+         !dte         , & ! subcycling timestep for EVP dynamics, s
+         !ecc         , & ! (ratio of major to minor ellipse axes)^2
+         !tdamp2          ! 2*(wave damping time scale T)
 
       character(len=*), parameter :: subname = '(set_evp_parameters)'
 
       ! elastic time step
-      dte = dt/real(ndte,kind=dbl_kind)        ! s
-      dtei = c1/dte              ! 1/s
+      !dte = dt/real(ndte,kind=dbl_kind)        ! s
+      !dtei = c1/dte              ! 1/s
+      dtei = real(ndte,kind=dbl_kind)/dt 
 
       ! major/minor axis length ratio, squared
-      ecc  = e_ratio**2
-      ecci = c1/ecc               ! 1/ecc
+      !ecc  = e_ratio**2
+      !ecci = c1/ecc               ! 1/ecc
+      ecci = c1/e_ratio**2               ! 1/ecc
 
       ! constants for stress equation
-      tdamp2 = c2*eyc*dt                    ! s
-      dte2T = dte/tdamp2                    ! ellipse (unitless)
-
-      ! grid min/max
-      xmin = global_minval(dxt, distrb_info, tmask)
-      ymin = global_minval(dyt, distrb_info, tmask)
-      xmin = min(xmin,ymin)  ! min(dxt, dyt)
-
-      ! revised evp parameters
-      Se = 0.86_dbl_kind                 ! Se > 0.5
-      xi = 5.5e-3_dbl_kind               ! Sv/Sc < 1
-      gamma = p25 * 1.e11_dbl_kind * dt  ! rough estimate (P/m~10^5/10^3)
+      !tdamp2 = c2*eyc*dt                    ! s
+      !dte2T = dte/tdamp2    or c1/(c2*eyc*real(ndte,kind=dbl_kind))               ! ellipse (unitless)
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
-         arlx1i = c2*xi/Se        ! 1/alpha1
-         brlx = c2*Se*xi*gamma/xmin**2 ! beta
-
-! classic evp parameters (but modified equations)
-!         arlx1i = dte2T
-!         brlx   = dt*dtei
-
+         denom1 = c1
+         arlx1i = c1/arlx
       else                        ! Hunke, JCP 2013 with modified stress eq
          revp   = c0
-         arlx1i = dte2T
-         brlx   = dt*dtei
-
-! revised evp parameters
-!         arlx1i = c2*xi/Se        ! 1/alpha1
-!         brlx = c2*Se*xi*gamma/xmin**2 ! beta
-
+         !arlx1i = dte2T
+         !arlx   = c1/arlx1i
+         !brlx   = dt*dtei
+         arlx   = c2*eyc*real(ndte,kind=dbl_kind)
+         arlx1i   = c1/arlx
+         brlx   = real(ndte,kind=dbl_kind)
+         denom1 = c1/(c1+arlx1i)
       endif
       if (my_task == master_task) then
-         write (nu_diag,*) 'arlx, brlx', c1/arlx1i, brlx
-         write (nu_diag,*) 'Se, Sv, xi', &
-                  sqrt(brlx/(arlx1i*gamma))*xmin, &
-                  p5*brlx/gamma*xmin**2, &
-                  p5*xmin*sqrt(brlx*arlx1i/gamma)
-      endif            
-
-      denom1 = c1/(c1+arlx1i)
+         write (nu_diag,*) 'arlx, arlxi, brlx, denom1', &
+                  arlx, arlx1i, brlx, denom1
+      endif
 
       end subroutine set_evp_parameters
 
