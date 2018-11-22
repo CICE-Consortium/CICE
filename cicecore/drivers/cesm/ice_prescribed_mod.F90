@@ -88,7 +88,7 @@ module ice_prescribed_mod
 
    type(shr_strdata_type)       :: sdat         ! prescribed data stream
    character(len=char_len_long) :: fldList      ! list of fields in data stream
-   real(kind=dbl_kind)          :: ice_cov(nx_block,ny_block,max_blocks) ! ice cover 
+   real(kind=dbl_kind), allocatable :: ice_cov(:,:,:) ! ice cover 
 
 !    real (kind=dbl_kind), parameter :: &
 !       cp_sno = 0.0_dbl_kind & ! specific heat of snow                (J/kg/K)
@@ -317,7 +317,11 @@ subroutine ice_prescribed_run(mDateIn, secIn)
    !------------------------------------------------------------------------
 
    call shr_strdata_advance(sdat,mDateIn,SecIn,MPI_COMM_ICE,'cice_pice')
-   
+
+   if (first_time) then
+      allocate(ice_cov(nx_block,ny_block,max_blocks))
+   endif
+
    ice_cov(:,:,:) = c0  ! This initializes ghost cells as well 
 
    n=0
@@ -540,17 +544,17 @@ subroutine ice_prescribed_phys
       ! compute aggregate ice state and open water area
       !--------------------------------------------------------------------
       if (tmask(i,j,iblk)) &
-      call icepack_aggregate (ncat,                                        &
-                             aicen(i,j,:,iblk), trcrn(i,j,:,:,iblk),       &
+      call icepack_aggregate (ncat,                                         &
+                             aicen(i,j,:,iblk), trcrn(i,j,1:ntrcr,:,iblk), &
                              vicen(i,j,:,iblk), vsnon(i,j,  :,iblk),       &
-                             aice (i,j,  iblk), trcr (i,j,:,  iblk),       &
+                             aice (i,j,  iblk), trcr (i,j,1:ntrcr,  iblk), &
                              vice (i,j,  iblk), vsno (i,j,    iblk),       &
                              aice0(i,j,  iblk),                            &
                              ntrcr,                                        &
-                             trcr_depend(:),                               &
-                             trcr_base(:,:),                               &
-                             n_trcr_strata(:),                             &
-                             nt_strata(:,:))
+                             trcr_depend(1:ntrcr),                         &
+                             trcr_base(1:ntrcr,:),                         &
+                             n_trcr_strata(1:ntrcr),                       &
+                             nt_strata(1:ntrcr,:))
                               
    enddo                 ! i
    enddo                 ! j
