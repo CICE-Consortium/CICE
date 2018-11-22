@@ -119,6 +119,7 @@
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
+         ice_data_type, & ! 'default', 'box2001', 'boxslotcyl'
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
  
       character(char_len_long), public :: & 

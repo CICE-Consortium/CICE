@@ -34,7 +34,7 @@
          ndte         ! number of subcycles:  ndte=dt/dte
 
       character (len=char_len), public :: &
-         coriolis     ! 'constant', 'zero', or 'latitude'
+         coriolis       ! 'constant', 'zero', or 'latitude'
 
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure
@@ -118,6 +118,7 @@
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_state, only: uvel, vvel, divu, shear
       use ice_grid, only: ULAT
+      use ice_forcing, only: ice_data_type
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -146,8 +147,12 @@
       do i = 1, nx_block
 
          ! velocity
-         uvel(i,j,iblk) = c0    ! m/s
-         vvel(i,j,iblk) = c0    ! m/s
+         if (trim(ice_data_type) == 'default') then
+            uvel(i,j,iblk) = c0    ! m/s
+            vvel(i,j,iblk) = c0    ! m/s
+         elseif (trim(ice_data_type) == 'boxslotcyl') then
+            call boxslotcyl_data(i,j,iblk)
+         endif
 
          ! strain rates
          divu (i,j,iblk) = c0
@@ -1028,6 +1033,61 @@
       enddo
 
       end subroutine principal_stress
+
+!=======================================================================
+
+! Set ice velocity for slotted cylinder advection test
+!
+! author: Philippe Blain (ECCC)
+
+      subroutine boxslotcyl_data(i, j, iblk)
+      
+      use ice_blocks, only: block, nghost, get_block
+      use ice_constants, only: c2, c12, cm_to_m
+      use ice_state, only: uvel, vvel
+      use ice_domain_size, only: nx_global, ny_global
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: dxrect, dyrect
+
+      integer (kind=int_kind), intent(in) :: &
+         i, j, &
+         iblk               ! block index
+         
+      ! local variables
+      
+      type (block) :: &
+         this_block         ! block information for current block
+         
+      integer (kind=int_kind) :: &
+         iglob(nx_block), & ! global indices
+         jglob(ny_block)    ! global indices
+         
+      real (kind=dbl_kind) :: &
+         max_vel        , & ! max velocity
+         domain_length  , & ! physical domain length
+         period             ! rotational period
+         
+      real (kind=dbl_kind), parameter :: &
+         pi        = 3.14159265358979323846_dbl_kind, & ! pi
+         days_to_s = 86400_dbl_kind
+      
+      character(len=*), parameter :: subname = '(boxslotcyl_data)'
+      
+      this_block = get_block(blocks_ice(iblk),iblk)         
+      iglob = this_block%i_glob
+      jglob = this_block%j_glob
+      
+      domain_length = dxrect*cm_to_m*(nx_global-c1)
+      period        = c12*days_to_s           ! 12 days rotational period
+      max_vel       = pi*domain_length/period ! m/s
+
+      uvel(i,j,iblk) =  c2*max_vel*real(jglob(j)-nghost, kind=dbl_kind) &
+                         / real(ny_global,kind=dbl_kind) - max_vel
+      vvel(i,j,iblk) = -c2*max_vel*real(iglob(i)-nghost, kind=dbl_kind) &
+                         / real(nx_global,kind=dbl_kind) + max_vel
+
+
+      end subroutine boxslotcyl_data
 
 !=======================================================================
 

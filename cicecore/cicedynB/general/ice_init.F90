@@ -84,7 +84,8 @@
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
           ocn_data_type, ocn_data_dir,      &
-          oceanmixed_file, restore_ocn,   trestore
+          oceanmixed_file, restore_ocn,   trestore, & 
+          ice_data_type
       use ice_arrays_column, only: bgc_data_dir, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
@@ -189,6 +190,7 @@
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,                                 &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
+        ice_data_type,                                                  &
         fyear_init,     ycycle,                                         &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format,                               &
@@ -343,6 +345,7 @@
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'
       fe_data_type    = 'default'
+      ice_data_type   = 'default' ! used by some tests to initialize ice state (concentration, velocities)
       bgc_data_dir    = 'unknown_bgc_data_dir'
       ocn_data_type   = 'default'
       ocn_data_dir    = 'unknown_ocn_data_dir'
@@ -596,6 +599,7 @@
       call broadcast_scalar(ocn_data_format,    master_task)
       call broadcast_scalar(bgc_data_type,      master_task)
       call broadcast_scalar(fe_data_type,       master_task)
+      call broadcast_scalar(ice_data_type,      master_task)
       call broadcast_scalar(bgc_data_dir,       master_task)
       call broadcast_scalar(ocn_data_type,      master_task)
       call broadcast_scalar(ocn_data_dir,       master_task)
@@ -1083,6 +1087,8 @@
                                trim(bgc_data_type)
          write(nu_diag,*)    ' fe_data_type              = ', &
                                trim(fe_data_type)
+         write(nu_diag,*)    ' ice_data_type             = ', &
+                               trim(ice_data_type)
          write(nu_diag,*)    ' bgc_data_dir              = ', &
                                trim(bgc_data_dir)
          write(nu_diag,*)    ' ocn_data_type             = ', &
@@ -1484,7 +1490,7 @@
       use ice_arrays_column, only: hin_max
       use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, ncat
       use ice_grid, only: grid_type
-      use ice_forcing, only: atm_data_type
+      use ice_forcing, only: ice_data_type
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1611,7 +1617,7 @@
       !       extend to the prescribed edges.
       !-----------------------------------------------------------------
 
-         if (trim(atm_data_type) == 'box2001') then
+         if (trim(ice_data_type) == 'box2001') then
 
             hbar = c2  ! initial ice thickness
             do n = 1, ncat
@@ -1619,10 +1625,22 @@
                ainit(n) = c0
                if (hbar > hin_max(n-1) .and. hbar < hin_max(n)) then
                   hinit(n) = hbar
-                  ainit(n) = 0.50 !echmod symm
+                  ainit(n) = p5 !echmod symm
                endif
             enddo
 
+         elseif (trim(ice_data_type) == 'boxslotcyl') then
+         
+            hbar = c1  ! initial ice thickness (1 m)
+            do n = 1, ncat
+               hinit(n) = c0
+               ainit(n) = c0
+               if (hbar > hin_max(n-1) .and. hbar < hin_max(n)) then
+                  hinit(n) = hbar
+                  ainit(n) = c1 !echmod symm
+               endif
+            enddo
+         
          else
 
       ! initial category areas in cells with ice
@@ -1645,7 +1663,7 @@
             ainit(n) = ainit(n) / (sum + puny/ncat) ! normalize
          enddo
 
-         endif ! atm_data_type
+         endif ! ice_data_type
 
          if (trim(grid_type) == 'rectangular') then
 
@@ -1696,7 +1714,7 @@
 
                aicen(i,j,n) = ainit(n)
 
-               if (trim(atm_data_type) == 'box2001') then
+               if (trim(ice_data_type) == 'box2001') then
                   if (hinit(n) > c0) then
 !                  ! constant slope from 0 to 1 in x direction
                      aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
@@ -1715,6 +1733,15 @@
 !                                         * (real(ny_global, kind=dbl_kind) &
 !                                         -  real(jglob(j), kind=dbl_kind)-p5) &
 !                                         / (real(ny_global,kind=dbl_kind)) * p5)
+                  endif
+                  vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
+               elseif (trim(ice_data_type) == 'boxslotcyl') then
+                  if (hinit(n) > c0) then
+                   ! slotted cylinder
+                   call boxslotcyl_data(aicen, i, j,        &
+                                        nx_block, ny_block, &
+                                        n,        ainit,    &
+                                        iglob,    jglob)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
                else
@@ -1751,6 +1778,81 @@
          file=__FILE__, line=__LINE__)
 
       end subroutine set_state_var
+
+!=======================================================================
+
+! Set ice concentration for slotted cylinder advection test
+!
+! author: Philippe Blain (ECCC)
+
+      subroutine boxslotcyl_data(aicen, i, j,        &
+                                 nx_block, ny_block, &
+                                 n,        ainit,    &
+                                 iglob,    jglob)
+      
+      use ice_constants, only: c0, c2, c5, c6
+      use ice_domain_size, only: nx_global, ny_global, ncat
+
+      integer (kind=int_kind), intent(in) :: &
+         i, j              , & ! local indices
+         nx_block, ny_block, & ! block dimensions
+         iglob(nx_block)   , & ! global indices
+         jglob(ny_block)   , &
+         n                     ! thickness category index
+         
+      real (kind=dbl_kind), dimension(ncat) :: &
+         ainit ! initial area
+         
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(out) :: &
+         aicen ! concentration of ice
+         
+      ! local variables
+      
+      logical :: in_slot, in_cyl , in_slotted_cyl
+      
+      real (kind=dbl_kind), dimension (c2) :: &
+         slot_x, &  ! geometric limits of the slot
+         slot_y
+      
+      real (kind=dbl_kind) :: & 
+         diam    , & ! cylinder diameter
+         radius  , & ! cylinder radius
+         center_x, & ! cylinder center
+         center_y, &
+         width   , & ! slot width
+         length      ! slot height
+      
+      character(len=*), parameter :: subname = '(boxslotcyl_data)'
+      
+      ! Geometric configuration of the slotted cylinder
+      diam     = p5 * nx_global
+      center_x = nx_global/c2
+      center_y = ny_global/c2
+      radius   = diam/c2
+      width    = diam/c6
+      length   = c5*diam/c6
+      
+      slot_x(1) = center_x - width/c2
+      slot_x(2) = center_x + width/c2
+      slot_y(1) = center_y - radius
+      slot_y(2) = center_y + (length - radius)
+      
+      ! check if grid point is inside slotted cylinder
+      in_slot = (iglob(i) >= slot_x(1)) .and. (iglob(i) <= slot_x(2)) .and. & 
+                (jglob(j) >= slot_y(1)) .and. (jglob(j) <= slot_y(2))
+                
+      in_cyl  = sqrt((iglob(i) - center_x)**c2 + (jglob(j) - center_y)**c2) <= radius
+      
+      in_slotted_cyl = in_cyl .and. not(in_slot)
+      
+      if (in_slotted_cyl) then
+         aicen(i,j,n) = ainit(n)
+      else
+         aicen(i,j,n) = c0
+      endif
+
+
+      end subroutine boxslotcyl_data
 
 !=======================================================================
 

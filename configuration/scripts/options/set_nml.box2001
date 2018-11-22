@@ -23,6 +23,7 @@ ktransport     = -1
 coriolis       = 'constant'
 atmbndy        = 'constant'
 atm_data_type  = 'box2001'
+ice_data_type  = 'box2001'
 calc_strair    = .false.
 restore_ice    = .true.
 f_aice         = 'd'
