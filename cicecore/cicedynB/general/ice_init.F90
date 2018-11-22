@@ -92,6 +92,7 @@
                           grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
+                                evp_kernel_ver, &
                                 basalstress, k1, Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection
@@ -114,7 +115,7 @@
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg 
+        phi_c_slow_mode, phi_i_mushy, kalg
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -161,6 +162,17 @@
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
         close_boundaries
 
+      namelist /tracer_nml/                                             &
+        tr_iage, restart_age,                                           &
+        tr_FY, restart_FY,                                              &
+        tr_lvl, restart_lvl,                                            &
+        tr_pond_cesm, restart_pond_cesm,                                &
+        tr_pond_lvl, restart_pond_lvl,                                  &
+        tr_pond_topo, restart_pond_topo,                                &
+        tr_aero, restart_aero,                                          &
+        n_aero, n_zaero, n_algae,                                       &
+        n_doc, n_dic, n_don, n_fed, n_fep
+
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,                       &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
@@ -168,6 +180,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
+        evp_kernel_ver,                                                 &
         brlx,           arlx,                                           &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
@@ -197,17 +210,6 @@
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format,                               &
         oceanmixed_file
-
-      namelist /tracer_nml/   &
-        tr_iage, restart_age, &
-        tr_FY, restart_FY, &
-        tr_lvl, restart_lvl, &
-        tr_pond_cesm, restart_pond_cesm, &
-        tr_pond_lvl, restart_pond_lvl, &
-        tr_pond_topo, restart_pond_topo, &
-        tr_aero, restart_aero, &
-        n_aero, n_zaero, n_algae, &
-        n_doc, n_dic, n_don, n_fed, n_fep
 
       !-----------------------------------------------------------------
       ! default values
@@ -281,6 +283,7 @@
       kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
+      evp_kernel_ver = 0 ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -543,6 +546,7 @@
       call broadcast_scalar(kdyn,               master_task)
       call broadcast_scalar(ndtd,               master_task)
       call broadcast_scalar(ndte,               master_task)
+      call broadcast_scalar(evp_kernel_ver,     master_task)
       call broadcast_scalar(brlx,               master_task)
       call broadcast_scalar(arlx,               master_task)
       call broadcast_scalar(revised_evp,        master_task)
@@ -982,6 +986,8 @@
          write(nu_diag,1020) ' ndte                      = ', ndte
          write(nu_diag,1010) ' revised_evp               = ', &
                                revised_evp
+         write(nu_diag,1020) ' evp_kernel_ver            = ', &
+                               evp_kernel_ver
          write(nu_diag,1005) ' brlx                      = ', brlx
          write(nu_diag,1005) ' arlx                      = ', arlx
          if (kdyn == 1) &
@@ -1394,6 +1400,7 @@
       ! Set state variables
       !-----------------------------------------------------------------
 
+!MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     iglob,jglob)
       do iblk = 1, nblocks
