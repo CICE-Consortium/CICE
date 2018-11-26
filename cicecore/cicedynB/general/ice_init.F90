@@ -1847,7 +1847,7 @@
       in_cyl  = sqrt((dxrect*real(iglob(i)-1, kind=dbl_kind) - center_x)**c2 + &
                      (dxrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
       
-      in_slotted_cyl = in_cyl .and. not(in_slot)
+      in_slotted_cyl = in_cyl .and. .not. in_slot
       
       if (in_slotted_cyl) then
          aicen(i,j,n) = ainit(n)
