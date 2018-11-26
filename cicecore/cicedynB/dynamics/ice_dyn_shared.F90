@@ -1043,11 +1043,11 @@
       subroutine boxslotcyl_data(i, j, iblk)
       
       use ice_blocks, only: block, nghost, get_block
-      use ice_constants, only: c2, c12, cm_to_m
+      use ice_constants, only: c1, c4, c2, c12, p5, cm_to_m
       use ice_state, only: uvel, vvel
       use ice_domain_size, only: nx_global, ny_global
       use ice_domain, only: blocks_ice
-      use ice_grid, only: dxrect, dyrect
+      use ice_grid, only: dxrect
 
       integer (kind=int_kind), intent(in) :: &
          i, j, &
@@ -1068,24 +1068,23 @@
          period             ! rotational period
          
       real (kind=dbl_kind), parameter :: &
-         pi        = 3.14159265358979323846_dbl_kind, & ! pi
+         pi        = c4*atan(c1), & ! pi
          days_to_s = 86400_dbl_kind
       
       character(len=*), parameter :: subname = '(boxslotcyl_data)'
       
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
       iglob = this_block%i_glob
       jglob = this_block%j_glob
       
-      domain_length = dxrect*cm_to_m*(nx_global-c1)
-      period        = c12*days_to_s           ! 12 days rotational period
-      max_vel       = pi*domain_length/period ! m/s
+      domain_length = dxrect*cm_to_m*nx_global
+      period        = c12*days_to_s            ! 12 days rotational period
+      max_vel       = pi*domain_length/period
 
-      uvel(i,j,iblk) =  c2*max_vel*real(jglob(j)-nghost, kind=dbl_kind) &
-                         / real(ny_global,kind=dbl_kind) - max_vel
-      vvel(i,j,iblk) = -c2*max_vel*real(iglob(i)-nghost, kind=dbl_kind) &
-                         / real(nx_global,kind=dbl_kind) + max_vel
-
+      uvel(i,j,iblk) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
+                         / real(ny_global - 1, kind=dbl_kind) - max_vel
+      vvel(i,j,iblk) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
+                         / real(nx_global - 1, kind=dbl_kind) + max_vel
 
       end subroutine boxslotcyl_data
 

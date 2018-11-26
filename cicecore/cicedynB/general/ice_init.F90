@@ -1790,8 +1790,9 @@
                                  n,        ainit,    &
                                  iglob,    jglob)
       
-      use ice_constants, only: c0, c2, c5, c6
+      use ice_constants, only: c0, c2, c5, p3, p166, p75, p5
       use ice_domain_size, only: nx_global, ny_global, ncat
+      use ice_grid, only: dxrect, dyrect
 
       integer (kind=int_kind), intent(in) :: &
          i, j              , & ! local indices
@@ -1810,7 +1811,7 @@
       
       logical :: in_slot, in_cyl , in_slotted_cyl
       
-      real (kind=dbl_kind), dimension (c2) :: &
+      real (kind=dbl_kind), dimension (2) :: &
          slot_x, &  ! geometric limits of the slot
          slot_y
       
@@ -1825,12 +1826,12 @@
       character(len=*), parameter :: subname = '(boxslotcyl_data)'
       
       ! Geometric configuration of the slotted cylinder
-      diam     = p5 * nx_global
-      center_x = nx_global/c2
-      center_y = ny_global/c2
-      radius   = diam/c2
-      width    = diam/c6
-      length   = c5*diam/c6
+      diam     = p3 *dxrect*(nx_global-1)
+      center_x = p5 *dxrect*(nx_global-1)
+      center_y = p75*dxrect*(ny_global-1)
+      radius   = p5*diam
+      width    = p166*diam
+      length   = c5*p166*diam
       
       slot_x(1) = center_x - width/c2
       slot_x(2) = center_x + width/c2
@@ -1838,10 +1839,13 @@
       slot_y(2) = center_y + (length - radius)
       
       ! check if grid point is inside slotted cylinder
-      in_slot = (iglob(i) >= slot_x(1)) .and. (iglob(i) <= slot_x(2)) .and. & 
-                (jglob(j) >= slot_y(1)) .and. (jglob(j) <= slot_y(2))
+      in_slot = (dxrect*real(iglob(i)-1, kind=dbl_kind) >= slot_x(1)) .and. &
+                (dxrect*real(iglob(i)-1, kind=dbl_kind) <= slot_x(2)) .and. & 
+                (dxrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
+                (dxrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
                 
-      in_cyl  = sqrt((iglob(i) - center_x)**c2 + (jglob(j) - center_y)**c2) <= radius
+      in_cyl  = sqrt((dxrect*real(iglob(i)-1, kind=dbl_kind) - center_x)**c2 + &
+                     (dxrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
       
       in_slotted_cyl = in_cyl .and. not(in_slot)
       
