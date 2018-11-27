@@ -1601,7 +1601,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         kx ,ky, ka, kxw, kyw, kaw
+         kx ,ky, ka
 
       real (kind=dbl_kind) :: &
          stemp11r, stemp12r, stemp22r,   &
@@ -1619,6 +1619,7 @@
          gamma, alpha, x, y, dx, dy, da, &
          invdx, invdy, invda, invsin, &
          invleng, dtemp1, dtemp2, atempprime, &
+         kxw, kyw, kaw, &
          puny, pi, pi2, piq, pih
 
       real (kind=dbl_kind), parameter :: &
