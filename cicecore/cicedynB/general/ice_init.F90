@@ -132,6 +132,7 @@
       integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
       real (kind=dbl_kind) :: Cf, puny
       integer :: abort_flag
+      character (len=64) :: tmpstr
 
       character(len=*), parameter :: subname='(input_data)'
 
@@ -472,8 +473,8 @@
          ! each task gets unique ice log filename when if test is true, for debugging
          if (1 == 0) then
             call get_fileUnit(nu_diag)
-            write(str,'(a,i4.4)') "ice.log.task_",my_task
-            open(nu_diag,file=str)
+            write(tmpstr,'(a,i4.4)') "ice.log.task_",my_task
+            open(nu_diag,file=tmpstr)
          endif
       end if
       if (trim(ice_ic) /= 'default' .and. trim(ice_ic) /= 'none') then

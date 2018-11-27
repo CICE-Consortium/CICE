@@ -151,9 +151,13 @@
       call ice_HaloRestore_init ! restored boundary conditions
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
-      if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! allocate biogeochemistry arrays
-      call init_restart         ! initialize restart variables
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
+          file=__FILE__,line= __LINE__)
 
+      if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! allocate biogeochemistry arrays
+
+      call init_restart         ! initialize restart variables
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
@@ -405,7 +409,7 @@
                                    vice (i,j,  iblk),  &
                                    vsno (i,j,  iblk),  &
                                    aice0(i,j,  iblk),  &
-                                   ntrcr,          &
+                                   ntrcr,              &
                                    trcr_depend,        &
                                    trcr_base,          &
                                    n_trcr_strata,      &
