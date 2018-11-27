@@ -77,9 +77,11 @@
          cxm    , & ! 0.5*HTN - 1.5*HTN
          dxhy   , & ! 0.5*(HTE - HTE)
          dyhx       ! 0.5*(HTN - HTN)
+
+      ! grid dimensions for rectangular grid
       real (kind=dbl_kind), public ::  &
-         dxrect, & !  user_specified spacing (m) in x-direction
-         dyrect    !  user_specified spacing (m) in y-direction
+         dxrect, & !  user_specified spacing (cm) in x-direction (uniform HTN)
+         dyrect    !  user_specified spacing (cm) in y-direction (uniform HTE)
 
       ! Corners of grid boxes for history output
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
@@ -124,13 +126,6 @@
          umask  , & ! land/boundary mask, velocity (U-cell)
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
-
-      ! grid dimensions for rectangular grid
-!      real (kind=dbl_kind), public ::  &
-!         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
-!         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
-!         dxrect = 16.e5_dbl_kind   ,&! uniform HTN (cm)
-!         dyrect = 16.e5_dbl_kind     ! uniform HTE (cm)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)

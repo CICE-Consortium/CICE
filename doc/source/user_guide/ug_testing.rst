@@ -217,8 +217,8 @@ detailed in :cite:`Hunke01`.  It is configured to run a 72-hour simulation with
 thermodynamics disabled in a rectangular domain (80 x 80 grid cells) with a land
 boundary around the entire domain.  It includes the following namelist modifications:
 
-- ``dxrect``: ``16.e5`` meters
-- ``dyrect``: ``16.e5`` meters
+- ``dxrect``: ``16.e5`` cm
+- ``dyrect``: ``16.e5`` cm
 - ``thermo``: ``0`` (disables thermodynamics)
 - ``coriolis``: ``zero`` (zero coriolis force)
 
