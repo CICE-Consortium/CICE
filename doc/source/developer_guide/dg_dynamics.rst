@@ -3,8 +3,8 @@
 .. _dev_dynamics:
 
 
-Dynamics and Infrastructure Implementation
-================================================
+Dynamics and Infrastructure 
+============================
 
 The CICE **cicecore/** directory consists of the non icepack source code.  Within that 
 directory there are the following subdirectories

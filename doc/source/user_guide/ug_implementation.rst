@@ -521,9 +521,7 @@ timestepping procedure as the ice area changes, but this option
 usually improves timings even for relatively small processor counts.
 T. Craig has found that performance improved by more than 20% for
 combinations of updated decompositions and masked haloes, in CESM’s
-version of CICE. A practical guide for choosing a CICE grid
-decomposition, based on experience in CESM, is available:
-http://oceans11.lanl.gov/drupal/CICE/DecompositionGuide
+version of CICE.
 
 Throughout the code, (i, j) loops have been combined into a single loop,
 often over just ocean cells or those containing sea ice. This was done
@@ -612,7 +610,8 @@ regional grids, but can not be used with PIO.
 MPI is initialized in *init\_communicate* for both coupled and
 stand-alone MPI runs. The ice component communicates with a flux coupler
 or other climate components via external routiines that handle the
-variables listed in :ref:`tab-flux-cpl`. For stand-alone runs,
+variables listed in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_boundary_forcing.html>`_.
+For stand-alone runs,
 routines in **ice\_forcing.F90** read and interpolate data from files,
 and are intended merely to provide guidance for the user to write his or
 her own routines. Whether the code is to be run in stand-alone or

@@ -2,11 +2,8 @@
 
 .. _updates:
 
-
 Major CICE updates
 ============================================
-
-This model release is CICE version 6.0.0.alpha.
 
 Please cite any use of the CICE code. More information can be found at :ref:`citing`.
 

@@ -2,8 +2,8 @@
 
 .. _dev_scripts:
 
-Scripts Implementation
-========================
+Scripts 
+========
 
 The scripts are the third part of the cice package.  They support setting up
 cases, building, and running the cice stand-alone model.

@@ -60,7 +60,7 @@ Once a case/test is created, several files are placed in the case directory
 - **cice.run** is a batch run script
 - **cice.submit** is a simple script that submits the cice.run script
 
-All scripts and namelist are fully resolved in the case.  Users can edit any
+Once the case is created, all scripts and namelist are fully resolved. Users can edit any
 of the files in the case directory manually to change the model configuration,
 build options, or batch settings.  The file
 dependency is indicated in the above list.  For instance, if any of the files before

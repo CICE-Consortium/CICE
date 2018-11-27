@@ -156,6 +156,6 @@ a pattern.
    *icefields\_nml*
 
 -  If strict conservation is necessary, add diagnostics as noted for
-   topo ponds in Section :ref:`ponds`.
+   topo ponds in Section the `Icepack melt ponds documentation <https://cice-consortium-icepack.readthedocs.io/en/latest/science_guide/sg_thermo.html?highlight=three%20explicit#melt-ponds>`_.
 
 See also Icepack documentation.
