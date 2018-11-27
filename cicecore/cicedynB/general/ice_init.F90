@@ -1218,7 +1218,7 @@
       use ice_grid, only: tmask, ULON, TLAT
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
           aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
-          n_trcr_strata, nt_strata, trcr_base
+          n_trcr_strata, nt_strata, trcr_base, uvel, vvel
 
       integer (kind=int_kind) :: &
          ilo, ihi    , & ! physical domain indices
@@ -1408,7 +1408,8 @@
                              Tf   (:,:,    iblk),                      &
                              salinz(:,:,:, iblk), Tmltz(:,:,:,  iblk), &
                              aicen(:,:,  :,iblk), trcrn(:,:,:,:,iblk), &
-                             vicen(:,:,  :,iblk), vsnon(:,:,  :,iblk))
+                             vicen(:,:,  :,iblk), vsnon(:,:,  :,iblk), &
+                             uvel (:,:,    iblk), vvel (:,:,    iblk))
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
@@ -1485,7 +1486,8 @@
                                 Tf,       &
                                 salinz,   Tmltz, &
                                 aicen,    trcrn, &
-                                vicen,    vsnon)
+                                vicen,    vsnon, &
+                                uvel,     vvel)
 
       use ice_arrays_column, only: hin_max
       use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, ncat
@@ -1526,6 +1528,10 @@
       real (kind=dbl_kind), intent(out), dimension (:,:,:,:) :: & ! (nx_block,ny_block,ntrcr,ncat)
          trcrn     ! ice tracers
                    ! 1: surface temperature of ice/snow (C)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
+         uvel    , & ! ice velocity
+         vvel        ! 
 
       ! local variables
 
@@ -1738,10 +1744,10 @@
                elseif (trim(ice_data_type) == 'boxslotcyl') then
                   if (hinit(n) > c0) then
                    ! slotted cylinder
-                   call boxslotcyl_data(aicen, i, j,        &
-                                        nx_block, ny_block, &
-                                        n,        ainit,    &
-                                        iglob,    jglob)
+                   call boxslotcyl_data_aice(aicen, i, j,        &
+                                             nx_block, ny_block, &
+                                             n,        ainit,    &
+                                             iglob,    jglob)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
                else
@@ -1771,6 +1777,18 @@
 
             enddo               ! ij
          enddo                  ! ncat
+         
+         ! velocity initialization for special tests
+         if (trim(ice_data_type) == 'boxslotcyl') then
+            do j = 1, ny_block
+            do i = 1, nx_block
+               call boxslotcyl_data_vel(i,        j,       &
+                                        nx_block, ny_block, &
+                                        iglob,    jglob,   &
+                                        uvel,     vvel)
+            enddo               ! j
+            enddo               ! i
+         endif
       endif                     ! ice_ic
 
       call icepack_warnings_flush(nu_diag)
@@ -1785,10 +1803,10 @@
 !
 ! author: Philippe Blain (ECCC)
 
-      subroutine boxslotcyl_data(aicen, i, j,        &
-                                 nx_block, ny_block, &
-                                 n,        ainit,    &
-                                 iglob,    jglob)
+      subroutine boxslotcyl_data_aice(aicen, i, j,        &
+                                      nx_block, ny_block, &
+                                      n,        ainit,    &
+                                      iglob,    jglob)
       
       use ice_constants, only: c0, c2, c5, p3, p166, p75, p5
       use ice_domain_size, only: nx_global, ny_global, ncat
@@ -1809,7 +1827,7 @@
          
       ! local variables
       
-      logical :: in_slot, in_cyl , in_slotted_cyl
+      logical :: in_slot, in_cyl, in_slotted_cyl
       
       real (kind=dbl_kind), dimension (2) :: &
          slot_x, &  ! geometric limits of the slot
@@ -1823,7 +1841,7 @@
          width   , & ! slot width
          length      ! slot height
       
-      character(len=*), parameter :: subname = '(boxslotcyl_data)'
+      character(len=*), parameter :: subname = '(boxslotcyl_data_aice)'
       
       ! Geometric configuration of the slotted cylinder
       diam     = p3 *dxrect*(nx_global-1)
@@ -1856,7 +1874,55 @@
       endif
 
 
-      end subroutine boxslotcyl_data
+      end subroutine boxslotcyl_data_aice
+
+!=======================================================================
+
+! Set ice velocity for slotted cylinder advection test
+!
+! author: Philippe Blain (ECCC)
+
+      subroutine boxslotcyl_data_vel(i,        j,       &
+                                     nx_block, ny_block, &
+                                     iglob,    jglob,   &
+                                     uvel,     vvel)
+      
+      use ice_constants, only: c1, c4, c2, c12, p5, cm_to_m
+      use ice_domain_size, only: nx_global, ny_global
+      use ice_grid, only: dxrect
+
+      integer (kind=int_kind), intent(in) :: &
+         i, j,               & ! local indices
+         nx_block, ny_block, & ! block dimensions
+         iglob(nx_block),    & ! global indices
+         jglob(ny_block)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
+         uvel, vvel            ! ice velocity
+
+      ! local variables
+         
+      real (kind=dbl_kind) :: &
+         max_vel        , & ! max velocity
+         domain_length  , & ! physical domain length
+         period             ! rotational period
+         
+      real (kind=dbl_kind), parameter :: &
+         pi        = c4*atan(c1), & ! pi
+         days_to_s = 86400_dbl_kind
+      
+      character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
+      
+      domain_length = dxrect*cm_to_m*nx_global
+      period        = c12*days_to_s            ! 12 days rotational period
+      max_vel       = pi*domain_length/period
+
+      uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
+                    / real(ny_global - 1, kind=dbl_kind) - max_vel
+      vvel(i,j) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
+                    / real(nx_global - 1, kind=dbl_kind) + max_vel
+
+      end subroutine boxslotcyl_data_vel
 
 !=======================================================================
 

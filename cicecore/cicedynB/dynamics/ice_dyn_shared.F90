@@ -147,12 +147,8 @@
       do i = 1, nx_block
 
          ! velocity
-         if (trim(ice_data_type) == 'default') then
-            uvel(i,j,iblk) = c0    ! m/s
-            vvel(i,j,iblk) = c0    ! m/s
-         elseif (trim(ice_data_type) == 'boxslotcyl') then
-            call boxslotcyl_data(i,j,iblk)
-         endif
+         uvel(i,j,iblk) = c0    ! m/s
+         vvel(i,j,iblk) = c0    ! m/s
 
          ! strain rates
          divu (i,j,iblk) = c0
@@ -1033,60 +1029,6 @@
       enddo
 
       end subroutine principal_stress
-
-!=======================================================================
-
-! Set ice velocity for slotted cylinder advection test
-!
-! author: Philippe Blain (ECCC)
-
-      subroutine boxslotcyl_data(i, j, iblk)
-      
-      use ice_blocks, only: block, nghost, get_block
-      use ice_constants, only: c1, c4, c2, c12, p5, cm_to_m
-      use ice_state, only: uvel, vvel
-      use ice_domain_size, only: nx_global, ny_global
-      use ice_domain, only: blocks_ice
-      use ice_grid, only: dxrect
-
-      integer (kind=int_kind), intent(in) :: &
-         i, j, &
-         iblk               ! block index
-         
-      ! local variables
-      
-      type (block) :: &
-         this_block         ! block information for current block
-         
-      integer (kind=int_kind) :: &
-         iglob(nx_block), & ! global indices
-         jglob(ny_block)    ! global indices
-         
-      real (kind=dbl_kind) :: &
-         max_vel        , & ! max velocity
-         domain_length  , & ! physical domain length
-         period             ! rotational period
-         
-      real (kind=dbl_kind), parameter :: &
-         pi        = c4*atan(c1), & ! pi
-         days_to_s = 86400_dbl_kind
-      
-      character(len=*), parameter :: subname = '(boxslotcyl_data)'
-      
-      this_block = get_block(blocks_ice(iblk),iblk)
-      iglob = this_block%i_glob
-      jglob = this_block%j_glob
-      
-      domain_length = dxrect*cm_to_m*nx_global
-      period        = c12*days_to_s            ! 12 days rotational period
-      max_vel       = pi*domain_length/period
-
-      uvel(i,j,iblk) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
-                         / real(ny_global - 1, kind=dbl_kind) - max_vel
-      vvel(i,j,iblk) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
-                         / real(nx_global - 1, kind=dbl_kind) + max_vel
-
-      end subroutine boxslotcyl_data
 
 !=======================================================================
 
