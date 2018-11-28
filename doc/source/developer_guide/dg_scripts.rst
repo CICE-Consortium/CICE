@@ -182,7 +182,7 @@ bit-for-bit and also climate changing.
 In order to run the ``compare_qc_cases.csh`` script, the following requirements must be met:
 
 * Python v2.7 or later
-* netCDF Python package
+* netcdf Python package
 * numpy Python package
 
 To install the necessary Python packages, the ``pip`` Python utility can be used.

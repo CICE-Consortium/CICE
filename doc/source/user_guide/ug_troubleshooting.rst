@@ -115,7 +115,7 @@ bad as running with the underflows.
 In some configurations, multiple calls to scatter or gather global
 variables may overfill MPI’s buffers, causing the code to slow down
 (particularly when writing large output files such as restarts). To
-remedy this problem, set `BARRIERS yes` in **comp\_ice**. This
+remedy this problem, set `BARRIERS yes` in **cice.settings**. This
 synchronizes MPI messages, keeping the buffers in check.
 
 
@@ -201,25 +201,9 @@ Known bugs
 Interpretation of albedos
 ----------------------------------------
 
-The snow-and-ice albedo, `albsni`, and diagnostic albedos `albice`, `albsno`,
-and `albpnd` are merged over categories but not scaled (divided) by the
-total ice area. (This is a change from CICE v4.1 for `albsni`.) The latter
-three history variables represent completely bare or completely snow- or
-melt-pond-covered ice; that is, they do not take into account the snow
-or melt pond fraction (`albsni` does, as does the code itself during
-thermodyamic computations). This is to facilitate comparison with
-typical values in measurements or other albedo parameterizations. The
-melt pond albedo `albpnd` is only computed for the Delta-Eddington
-shortwave case.
-
-With the Delta-Eddington parameterization, the albedo depends on the
-cosine of the zenith angle (:math:`\cos\varphi`, `coszen`) and is zero if
-the sun is below the horizon (:math:`\cos\varphi < 0`). Therefore
-time-averaged albedo fields would be low if a diurnal solar cycle is
-used, because zero values would be included in the average for half of
-each 24-hour period. To rectify this, a separate counter is used for the
-averaging that is incremented only when :math:`\cos\varphi > 0`. The
-albedos will still be zero in the dark, polar winter hemisphere.
+More information about interpretation of albedos can 
+be found in the 
+`Icepack documentation  <https://cice-consortium-icepack.readthedocs.io/en/master/user_guide/index.html>`_.
 
 
 Proliferating subprocess parameterizations

@@ -24,7 +24,9 @@ CICE model prepare and execute data exchanges with an external â€œflux couplerâ€
 
 Icepack is implemented in CICE as a git submodule, and it is documented at 
 https://cice-consortium-icepack.readthedocs.io/en/master/intro/about.html. 
-This document describes the remainder of the CICE model. The code is 
+Development and testing of CICE and Icepack may be done together,
+but the repositories are independent.
+This document describes the remainder of the CICE model. The CICE code is 
 available from https://github.com/CICE-Consortium/CICE.
 
 The standard standalone CICE test configuration uses a 3 degree grid with 
@@ -38,10 +40,14 @@ The CICE model can run serially or in parallel, and the CICE software package
 includes tests for various configurations. MPI is used for message passing 
 between processors, and OpenMP threading is available.
 
+Major changes with each CICE release (https://github.com/CICE-Consortium/CICE/releases) 
+will be detailed with the included release notes. Enhancements and bug fixes made to 
+CICE since the last numbered release can be found on the CICE wiki
+(https://github.com/CICE-Consortium/CICE/wiki/CICE-Recent-changes).
+**Please cite any use of the CICE code.** More information can be found at :ref:`citing`. 
+
 This document uses the following text conventions: Variable names used in 
 the code are ``typewritten``. Subroutine names are given in *italic*. File 
 and directory names are in **boldface**. A comprehensive :ref:`index`, 
 including glossary of symbols with many of their values, appears at the 
 end of this guide.
-
-Please cite any use of the CICE code. More information can be found at :ref:`citing`.

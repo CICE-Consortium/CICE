@@ -15,6 +15,7 @@ There is a base suite of tests provided by default with CICE and this
 may be a good starting point for testing.
 
 The testing scripts support several features
+
  - Ability to test individual (via ``--test``) or multiple tests (via ``--suite``)
    using an input file to define the suite
  - Ability to use test suites defined in the package or test suites defined by the user
@@ -749,7 +750,7 @@ The CICE code compliance test is performed by running a python script
 In order to run the script, the following requirements must be met:
 
 * Python v2.7 or later
-* netCDF Python package
+* netcdf Python package
 * numpy Python package
 * matplotlib Python package (optional)
 * basemap Python package (optional)

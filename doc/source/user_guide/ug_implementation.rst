@@ -247,7 +247,7 @@ The sea ice physics described in a single column or grid cell is contained in th
 submodule, which can be run independently of the CICE model. Icepack includes a vertical
 grid for the physics and a "bio-grid" for biogeochemistry, described in the Icepack
 Documentation. History variables available for column output are ice and snow temperature, 
-Tinz and Tsnz, and the ice salinity profile, saline. These variables also include thickness 
+Tinz and Tsnz, and the ice salinity profile, Sinz. These variables also include thickness 
 category as a fourth dimension. 
 
 *******************
@@ -704,7 +704,7 @@ in **ice\_in**. These settings for history files are set in the
 **setup\_nml** section of **ice\_in** (see :ref:`tabnamelist`). 
 If `history\_file` = ‘iceh’ then the 
 filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
-depending on the output file format chosen in **comp\_ice** (set
+depending on the output file format chosen in **cice.settings** (set
 `IO\_TYPE`). The history files are CF-compliant; header information for
 data contained in the files is displayed with the command `ncdump -h
 filename.nc`. Parallel output is available using the PIO library; the
@@ -813,7 +813,7 @@ Like `histfreq`, the parameter `diagfreq` can be used to regulate how often
 output is written to a log file. The log file unit to which diagnostic
 output is written is set in **ice\_fileunits.F90**. If `diag\_type` =
 ‘stdout’, then it is written to standard out (or to **ice.log.[ID]** if
-you redirect standard out as in **run\_ice**); otherwise it is written
+you redirect standard out as in **cice.run**); otherwise it is written
 to the file given by `diag\_file`. In addition to the standard diagnostic
 output (maximum area-averaged thickness, velocity, average albedo, total
 ice area, and total ice and snow volumes), the namelist options
@@ -888,7 +888,7 @@ Restart files
 *************
 
 CICE now provides restart data in binary unformatted or  formats, via
-the `IO\_TYPE` flag in **comp\_ice** and namelist variable
+the `IO\_TYPE` flag in **cice.settings** and namelist variable
 `restart\_format`. Restart and history files must use the same format. As
 with the history output, there is also an option for writing parallel
 restart files using PIO.
@@ -924,7 +924,7 @@ ghost cells for tripole grids (do not use PIO for regional grids).
 Two restart files are available for the CICE v5 and v6 code distributions 
 for the gx3 and gx1 grids (see :ref:`force` for information about obtaining these files).
 They were created using the default model
-configuration (settings as in **comp\_ice** and **ice\_in**), but
+configuration (settings as in **cice.settings** and **ice\_in**), but
 initialized with no ice. The gx3 case was run for 1 year using the 1997
 forcing data provided with the code. The gx1 case was run for 20 years,
 so that the date of restart in the file is 1978-01-01. Note that the

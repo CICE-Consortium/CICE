@@ -10,7 +10,7 @@ Download the model from the CICE-Consortium repository,
     https://github.com/CICE-Consortium/CICE
 
 Instructions for working in github with CICE (and Icepack) can be
-found in the `CICE Git and Workflow Guide <https://docs.google.com/document/d/1rR6WAvZQT9iAMUp-m_HZ06AUCCI19mguFialsMCYs9o>`_.
+found in the `CICE Git and Workflow Guide <https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guidance>`_.
 
 You will probably have to download some inputdata, see the `CICE wiki <https://github.com/cice-consortium/CICE/wiki>`_ or :ref:`force`.
 
