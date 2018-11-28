@@ -34,7 +34,7 @@
          ndte         ! number of subcycles:  ndte=dt/dte
 
       character (len=char_len), public :: &
-         coriolis       ! 'constant', 'zero', or 'latitude'
+         coriolis     ! 'constant', 'zero', or 'latitude'
 
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure
@@ -119,7 +119,6 @@
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_state, only: uvel, vvel, divu, shear
       use ice_grid, only: ULAT
-      use ice_forcing, only: ice_data_type
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
