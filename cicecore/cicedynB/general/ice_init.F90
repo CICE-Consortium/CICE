@@ -1154,19 +1154,27 @@
 
       endif                     ! my_task = master_task
 
-         write(nu_diag,*) ' '
-         if (grid_type  /=  'displaced_pole' .and. &
-             grid_type  /=  'tripole'        .and. &
-             grid_type  /=  'column'         .and. &
-             grid_type  /=  'rectangular'    .and. &
-             grid_type  /=  'cpom_grid'      .and. &
-             grid_type  /=  'regional'       .and. &
-             grid_type  /=  'latlon' ) then
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
-            abort_flag = 20
-         endif
+      if (grid_type  /=  'displaced_pole' .and. &
+          grid_type  /=  'tripole'        .and. &
+          grid_type  /=  'column'         .and. &
+          grid_type  /=  'rectangular'    .and. &
+          grid_type  /=  'cpom_grid'      .and. &
+          grid_type  /=  'regional'       .and. &
+          grid_type  /=  'latlon' ) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
+         abort_flag = 20
+      endif
 
-      call flush_fileunit(nu_diag)
+      if (abort_flag /= 0) then
+        call flush_fileunit(nu_diag)
+      endif
+      call ice_barrier()
+      if (abort_flag /= 0) then
+         write(nu_diag,*) subname,' ERROR: abort_flag=',abort_flag
+         call abort_ice (subname//' ABORTING on input ERRORS', &
+            file=__FILE__, line=__LINE__)
+      endif
+
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
          albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, emissivity_in=emissivity, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
@@ -1183,14 +1191,6 @@
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, tr_pond_in=tr_pond, &
          tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
-
-      call flush_fileunit(nu_diag)
-      call ice_barrier()
-      if (abort_flag /= 0) then
-         write(nu_diag,*) subname,' ERROR: abort_flag=',abort_flag
-         call abort_ice (subname//' ABORTING on input ERRORS', &
-            file=__FILE__, line=__LINE__)
-      endif
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
  1005    format (a30,2x,f12.6)  ! float
