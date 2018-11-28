@@ -62,12 +62,12 @@ Constants
 **cicecore/shared/ice_constants.F90** defines several model constants.  Some are hardwired parameters
 while others have internal defaults and can be set thru namelist.
 
-Dyamic Array Allocation
+Dynamic Array Allocation
 **************************
 
-CICE version 5 and before was implemented using mainly static arrays and required several CPPs to be set to define grid size,
-blocks sizes, tracer numbers, and so forth.  With CICE versions 6 and later, arrays are dynamically allocated and those
-parameters are namelist settings.  The following CPPs are no longer used in CICE version 6 and above,
+CICE v5 and earlier was implemented using mainly static arrays and required several CPPs to be set to define grid size,
+blocks sizes, tracer numbers, and so forth.  With CICE v6 and later, arrays are dynamically allocated and those
+parameters are namelist settings.  The following CPPs are no longer used in CICE v6 and later versions,
 
  -DNXGLOB=100 -DNYGLOB=116 -DBLCKX=25 -DBLCKY=29 -DMXBLCKS=4 -DNICELYR=7 -DNSNWLYR=1 -DNICECAT=5 -DTRAGE=1 -DTRFY=1 -DTRLVL=1 -DTRPND=1 -DTRBRI=0 -DNTRAERO=1  -DTRZS=0 -DNBGCLYR=7 -DTRALG=0 -DTRBGCZ=0 -DTRDOC=0 -DTRDOC=0 -DTRDIC=0 -DTRDON=0 -DTRFED=0 -DTRFEP=0 -DTRZAERO=0 -DTRBGCS=0 -DNUMIN=11 -DNUMAX=99
 

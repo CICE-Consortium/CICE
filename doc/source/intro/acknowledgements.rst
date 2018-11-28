@@ -6,7 +6,7 @@ Acknowledgements
 =============================
 
 This work has been completed through the CICE Consortium and its members with funding 
-through the:
+through the
 
 - Department of Energy (Los Alamos National Laboratory)
 

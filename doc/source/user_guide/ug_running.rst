@@ -75,7 +75,7 @@ You can also submit the **cice.run** script on the command line.
 
 Some hints:
 
-- To change the tracer numbers or block sizes required at build time, edit the **cice.settings** file.
+- To change the block sizes required at build time, edit the **cice.settings** file.
 - To change namelist, manually edit the **ice_in** file
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true
@@ -183,7 +183,7 @@ For more information, see :ref:`dev_test_options`
 Examples
 ~~~~~~~~~
 
-The simplest case is just to setup a default configurations specifying the
+The simplest case is just to setup a default configuration specifying the
 case name, machine, and environment::
 
   cice.setup --case mycase1 --mach spirit --env intel

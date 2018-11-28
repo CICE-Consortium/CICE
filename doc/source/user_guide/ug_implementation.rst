@@ -13,8 +13,8 @@ for vector architectures.
 
 CICE consists of source code under the **cicecore/** directory that supports
 model dynamics and top-level control.  The column physics source code is
-under the Icepack directory and this is implemented as a submodule in
-github from a separate repository (`CICE <https://github.com/CICE-Consortium/CICE>`)
+under the icepack directory and this is implemented as a submodule in
+github from a separate repository (`CICE <https://github.com/CICE-Consortium/Icepack>`)
 There is also a **configuration/** directory that includes scripts
 for configuring CICE cases.
 
@@ -40,7 +40,7 @@ as follows
   basic information and pointers
 
 **icepack/**
-  subdirectory for the Icepack model.  The Icepack subdirectory includes Icepack specific scripts, drivers, and documentation.  CICE only uses the columnphysics source code under **icepack/columnphysics/**.
+  subdirectory for the Icepack model.  The icepack subdirectory includes Icepack specific scripts, drivers, and documentation.  CICE only uses the columnphysics source code under **icepack/columnphysics/**.
 
 **cicecore/**
   directory for CICE source code.
@@ -95,21 +95,14 @@ center of each. The velocity components are aligned along grid lines.
 
 The user has several choices of grid routines: *popgrid* reads grid
 lengths and other parameters for a nonuniform grid (including tripole
-and regional grids), and *rectgrid* creates a regular rectangular grid,
-including that used for the column configuration. The input files
-**global\_gx3.grid** and **global\_gx3.kmt** contain the
+and regional grids), and *rectgrid* creates a regular rectangular grid.
+The input files **global\_gx3.grid** and **global\_gx3.kmt** contain the
 :math:`\left<3^\circ\right>` POP grid and land mask;
 **global\_gx1.grid** and **global\_gx1.kmt** contain the
 :math:`\left<1^\circ\right>` grid and land mask, and **global\_tx1.grid** 
 and **global\_tx1.kmt** contain the :math:`\left<1^\circ\right>` POP 
-tripole grid and land mask. These are binary
-unformatted, direct access files produced on an SGI (Big Endian). If you
-are using an incompatible (Little Endian) architecture, choose
-`rectangular` instead of `displaced\_pole` in **ice\_in**, or follow
-procedures as for conejo
-(:math:`\langle`\ **OS**\ :math:`\rangle.\langle`\ **SITE**\ :math:`\rangle.\langle`\ **machine**\ :math:`\rangle`
-= Linux.LANL.conejo). There are versions of the gx3 grid files
-available.
+tripole grid and land mask. These are binary unformatted, direct access,
+Big Endian files.
 
 In CESM, the sea ice model may exchange coupling fluxes using a
 different grid than the computational grid. This functionality is
@@ -246,50 +239,16 @@ Special treatment is also required in the scattering routine, and when
 computing global sums one of each pair of coincident points has to be
 excluded.
 
-.. _bio-grid:
+**************
+Vertical Grids
+**************
 
-********
-Bio-grid
-********
-
-The bio-grid is a vertical grid used for solving the brine height
-variable :math:`h_b`. In the future, it will also be used for
-discretizing the vertical transport equations of biogeochemical tracers.
-The bio-grid is a non-dimensional vertical grid which takes the value
-zero at :math:`h_b` and one at the ice–ocean interface. The number of
-grid levels is specified during compilation in **comp\_ice** by setting
-the variable `NBGCLYR` equal to an integer (:math:`n_b`) .
-
-Ice tracers and microstructural properties defined on the bio-grid are
-referenced in two ways: as `bgrid` :math:`=n_b+2` points and as
-igrid\ :math:`=n_b+1` points. For both bgrid and igrid, the first and
-last points reference :math:`h_b` and the ice–ocean interface,
-respectively, and so take the values :math:`0` and :math:`1`,
-respectively. For bgrid, the interior points :math:`[2, n_b+1]` are
-spaced at :math:`1/n_b` intervals beginning with `bgrid(2)`  
-:math:`=1/(2n_b)`. The `igrid` interior points :math:`[2, n_b]` are also
-equidistant with the same spacing, but physically coincide with points
-midway between those of `bgrid`.
-
-********************
-Column configuration
-********************
-
-A column modeling capability is available. Because of the boundary
-conditions and other spatial assumptions in the model, this is not a
-single column, but a small array of columns (minimum grid size is 5x5).
-However, the code is set up so that only the single, central column is
-used (all other columns are designated as land). The column is located
-near Barrow (71.35N, 156.5W). Options for choosing the column
-configuration are given in **comp\_ice** (choose `RES col`) and in the
-namelist file, **input\_templates/col/ice\_in**. Here, `istep0` and the
-initial conditions are set such that the run begins September 1 with no
-ice. The grid type is rectangular, dynamics are turned off (`kdyn` = 0) and
-one processor is used.
-
-History variables available for column output are ice and snow
-temperature, `Tinz` and `Tsnz`. These variables also include thickness
-category as a fourth dimension.
+The sea ice physics described in a single column or grid cell is contained in the Icepack
+submodule, which can be run independently of the CICE model. Icepack includes a vertical
+grid for the physics and a "bio-grid" for biogeochemistry, described in the Icepack
+Documentation. History variables available for column output are ice and snow temperature, 
+Tinz and Tsnz, and the ice salinity profile, saline. These variables also include thickness 
+category as a fourth dimension. 
 
 *******************
 Boundary conditions
@@ -527,7 +486,7 @@ Throughout the code, (i, j) loops have been combined into a single loop,
 often over just ocean cells or those containing sea ice. This was done
 to reduce unnecessary operations and to improve vector performance.
 
-:ref:`fig-timings` illustrates the computational expense of various
+:ref:`fig-timings` illustrates the CICE v5 computational expense of various
 options, relative to the total time (excluding initialization) of a
 7-layer configuration using BL99 thermodynamics, EVP dynamics, and the
 ‘ccsm3’ shortwave parameterization on the gx1 grid, run for one year
@@ -609,8 +568,8 @@ regional grids, but can not be used with PIO.
 
 MPI is initialized in *init\_communicate* for both coupled and
 stand-alone MPI runs. The ice component communicates with a flux coupler
-or other climate components via external routiines that handle the
-variables listed in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_boundary_forcing.html>`_.
+or other climate components via external routines that handle the
+variables listed in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 For stand-alone runs,
 routines in **ice\_forcing.F90** read and interpolate data from files,
 and are intended merely to provide guidance for the user to write his or
@@ -669,12 +628,10 @@ Numerical estimates for this bound for several POP grids, assuming
    gx1,Greenland,:math:`320\times 384`,:math:`18\times 10^3` m,5.0hr
    p4,Canada,:math:`900\times 600`,:math:`6.5\times 10^3` m,1.8hr
 
-As discussed in section :ref:`mech-red` and
-:cite:`Lipscomb07`, the maximum time step in practice is
+As discussed in :cite:`Lipscomb07`, the maximum time step in practice is
 usually determined by the time scale for large changes in the ice
 strength (which depends in part on wind strength). Using the strength
-parameterization of :cite:`Rothrock75`, as in
-Equation :eq:`roth-strength0`, limits the time step to :math:`\sim`\ 30
+parameterization of :cite:`Rothrock75`, limits the time step to :math:`\sim`\ 30
 minutes for the old ridging scheme (`krdg\_partic` = 0), and to
 :math:`\sim`\ 2 hours for the new scheme (`krdg\_partic` = 1), assuming
 :math:`\Delta x` = 10 km. Practical limits may be somewhat less,
@@ -748,18 +705,18 @@ in **ice\_in**. These settings for history files are set in the
 If `history\_file` = ‘iceh’ then the 
 filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
 depending on the output file format chosen in **comp\_ice** (set
-`IO\_TYPE`). The  history files are CF-compliant; header information for
-data contained in the  files is displayed with the command `ncdump -h
-filename.nc`. Parallel  output is available using the PIO library; the
+`IO\_TYPE`). The history files are CF-compliant; header information for
+data contained in the files is displayed with the command `ncdump -h
+filename.nc`. Parallel output is available using the PIO library; the
 attribute `io\_flavor` distinguishes output files written with PIO from
-those written with standard netCDF. With binary files, a separate header
+those written with standard netcdf. With binary files, a separate header
 file is written with equivalent information. Standard fields are output
 according to settings in the **icefields\_nml** section of **ice\_in** 
 (see :ref:`tabnamelist`).
 The user may add (or subtract) variables not already available in the
 namelist by following the instructions in section :ref:`addhist`. 
 
-With this release, the history module has been divided into several
+The history module has been divided into several
 modules based on the desired formatting and on the variables
 themselves. Parameters, variables and routines needed by multiple
 modules is in **ice\_history\_shared.F90**, while the primary routines
@@ -835,7 +792,7 @@ another that is multiplied by :math:`a_i`, representing an average over
 the grid cell area. Our naming convention attaches the suffix “\_ai" to
 the grid-cell-mean variable names.
 
-In this version of CICE, history variables requested by the Sea Ice Model Intercomparison 
+Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison 
 Project (SIMIP) :cite:`Notz16` have been added as possible history output variables (e.g. 
 `f_sithick`, `f_sidmassgrowthbottom`, etc.). The lists of
 `monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
@@ -953,8 +910,7 @@ of a run when it is otherwise not scheduled to occur. The flag
 `use\_restart\_time` enables the user to choose to use the model date
 provided in the restart files. If `use\_restart\_time` = false then the
 initial model date stamp is determined from the namelist parameters.
-lcdf64 = true sets 64-bit  output, allowing larger file sizes with
-version 3.
+lcdf64 = true sets 64-bit  output, allowing larger file sizes.
 
 Routines for gathering, scattering and (unformatted) reading and writing
 of the “extended" global grid, including the physical domain and ghost
@@ -965,8 +921,9 @@ restarts on the various tripole grids. They are accessed by setting
 available when using PIO; in this case extra halo update calls fill
 ghost cells for tripole grids (do not use PIO for regional grids).
 
-Two restart files are included with the CICE v5 code distribution, for
-the gx3 and gx1 grids. The were created using the default model
+Two restart files are available for the CICE v5 and v6 code distributions 
+for the gx3 and gx1 grids (see :ref:`force` for information about obtaining these files).
+They were created using the default model
 configuration (settings as in **comp\_ice** and **ice\_in**), but
 initialized with no ice. The gx3 case was run for 1 year using the 1997
 forcing data provided with the code. The gx1 case was run for 20 years,
@@ -974,15 +931,3 @@ so that the date of restart in the file is 1978-01-01. Note that the
 restart dates provided in the restart files can be overridden using the
 namelist variables `use\_restart\_time`, `year\_init` and `istep0`. The
 forcing time can also be overridden using `fyear\_init`.
-
-Several changes in CICE v5 have made restarting from v4.1 restart files
-difficult. First, the ice and snow enthalpy state variables are now
-carried as tracers instead of separate arrays, and salinity has been
-added as a necessary restart field. Second, the default number of ice
-layers has been increased from 4 to 7. Third, netcdf format is now used
-for all I/O; it is no longer possible to have history output as  and
-restart output in binary format. However, some facilities are included
-with CICE v5 for converting v4.1 restart files to the new file structure
-and format, provided that the same number of ice layers and basic
-physics packages will be used for the new runs. See Section
-:ref:`restarttrouble` for details.

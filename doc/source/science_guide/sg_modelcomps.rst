@@ -28,7 +28,7 @@ fractional area covered by ice in the thickness range :math:`(h,h+dh)`
 at a given time and location.
 
 Additional information about the ITD for CICE can be found in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/latest/science_guide/sg_itd.html#ice-thickness-distribution>`_.
+`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 
 In addition to the fractional ice area, :math:`a_{in}`, we define the
 following state variables for each category :math:`n`. In a change from
@@ -47,8 +47,8 @@ tracers on snow and ice volume.
    layer enthalpy, :math:`q_{ink}`. Here :math:`N_i` is the total number
    of ice layers, with a default value :math:`N_i = 4`, and
    :math:`q_{ink}` is the negative of the energy needed to melt a unit
-   volume of ice and raise its temperature to :math:`0\ ^{\circ}`\ C; it is discussed in
-   the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_thermo.html#thermodynamics>`_. (NOTE: In the current code, :math:`e_i<0`
+   volume of ice and raise its temperature to :math:`0\ ^{\circ}`\ C. 
+   (NOTE: In the current code, :math:`e_i<0`
    and :math:`q_i<0` with :math:`e_i = v_iq_i`.)
 
 -  :math:`e_{snk}`, the internal snow energy in layer :math:`k`, equal
@@ -78,11 +78,11 @@ transport using the incremental remapping scheme of
 :cite:`Dukowicz00` as adapted for sea ice by
 :cite:`Lipscomb04`; this scheme is discussed in
 Section :ref:`horiz-trans`. Ice is transported in thickness space
-using the remapping scheme of :cite:`Lipscomb01`, as
-described in the `Icepack ITD documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_itd.html#ice-thickness-distribution>`). The mechanical
+using the remapping scheme of :cite:`Lipscomb01`. The mechanical
 redistribution scheme, based on :cite:`Thorndike75`, :cite:`Rothrock75`,
 :cite:`Hibler80`, :cite:`Flato95`, and :cite:`Lipscomb07` is outlined
-in Section :ref:`mech-red`. To solve the horizontal transport and
+in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_. 
+To solve the horizontal transport and
 ridging equations, we need the ice velocity :math:`{\bf u}`, and to
 compute transport in thickness space, we must know the the ice growth
 rate :math:`f` in each thickness category. We use the
@@ -92,8 +92,7 @@ elastic-viscous-plastic (EVP) ice dynamics scheme of
 :cite:`Hunke03`, or a new elastic-anisotropic-plastic model
 :cite:`Wilchinsky06,Weiss09,Tsamados13` to find the velocity, as
 described in Section :ref:`dynam`. Finally, we use a thermodynamic
-model to compute :math:`f` (See the 
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_thermo.html#thermodynamics>`_). The order in which
+model to compute :math:`f`. The order in which
 these computations are performed in the code itself was chosen so that
 quantities sent to the coupler are consistent with each other and as
 up-to-date as possible. The Delta-Eddington radiative scheme computes
@@ -170,31 +169,13 @@ Equation :eq:`transport-aT`, Equation :eq:`transport-viT`, or Equation :eq:`tran
 respectively. The total number of tracers is
 :math:`N_{tr}\ge 1`. In the default configuration there are two
 tracers: surface temperature and volume-weighted ice age. Tracers for
-melt ponds (See the Icepack documentation for
-`Tracers <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_tracers.html#tracers-that-depend-on-other-tracers>`_
-and
-'Melt Ponds <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_thermo.html#melt-ponds>`_),
-level ice
-area and level ice volume (used to diagnose ridged ice area and volume,
-Section :ref:`mech-red`) are also available. Users may add any number
-of additional tracers that are transported conservatively provided that
-`trcr_depend` is defined appropriately. See Section :ref:`addtrcr` for
-guidance on adding tracers.
+melt ponds, level ice area and level ice volume (used to diagnose ridged ice area and volume) 
+are also available. Users may add any number of additional tracers that are transported 
+conservatively provided that `trcr_depend` is defined appropriately. See Section :ref:`addtrcr` 
+for guidance on adding tracers.
 
-
-Additional information about tracers in CICE can be found in the Icepack documentation. 
-Links the the Icepack online documentation are provided below and the Icepack
-documentation can be accessed through the GitHub wiki
-
--  `Tracers that depend on other tracers <https://cice-consortium-icepack.readthedocs.io/en/latest/science_guide/sg_tracers.html#tracers-that-depend-on-other-tracers>`_
-
-- `Age of the ice <https://cice-consortium-icepack.readthedocs.io/en/latest/science_guide/sg_tracers.html#ice-age>`_
-
-- `Aerosols <https://cice-consortium-icepack.readthedocs.io/en/latest/science_guide/sg_bgc.html#aerosols>`_
-
-- `Brine height <https://cice-consortium-icepack.readthedocs.io/en/latest/science_guide/sg_bgc.html#brine-height>`_
-
-- `Sea ice ecosystem <https://cice-consortium-icepack.readthedocs.io/en/latest/science_guide/sg_bgc.html#sea-ice-ecosystem>`_
+Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, age of the ice, aerosols, 
+brine height, and the sea ice ecosystem.
 
 
 .. _horiz-trans:
@@ -209,8 +190,7 @@ thickness category :math:`n`. Equation :eq:`transport-ai` describes
 the conservation of ice area under horizontal transport. It is obtained
 from Equation :eq:`transport-g` by discretizing :math:`g` and neglecting the
 second and third terms on the right-hand side, which are treated
-separately (Sections :ref:`mech-red` and in the
-`Icepack ITD documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_itd.html#ice-thickness-distribution>`).
+separately (As described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_).
 
 There are similar conservation equations for ice volume
 (Equation :eq:`transport-vi`), snow volume (Equation :eq:`transport-vs`), ice
@@ -288,6 +268,12 @@ Since all scalar fields are transported by the same velocity field, step
 (2) is done only once per time step. The other three steps are repeated
 for each field in each thickness category. These steps are described
 below.
+
+After the transport calculation, the sum of ice and open water areas within a 
+grid cell may not add up to 1. The mechanical deformation parameterization in 
+`Icepack <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ 
+corrects this issue by ridging the ice and creating open water 
+such that the ice and open water areas again add up to 1.
 
 .. _reconstruct:
 
@@ -472,8 +458,8 @@ gradient by :math:`\alpha = \min(\alpha_{\max}, \alpha_{\min})`, where
 
 Otherwise the gradient need not be limited.
 
-Earlier versions of CICE (through 3.14) computed gradients in physical
-space. Starting in version 4.0, gradients are computed in a scaled space
+Earlier versions of CICE (through v3.14) computed gradients in physical
+space. Starting in v4.0, gradients are computed in a scaled space
 in which each grid cell has sides of unit length. The origin is at the
 cell center, and the four vertices are located at (0.5, 0.5),
 (-0.5,0.5),(-0.5, -0.5) and (0.5, -0.5). In this coordinate system,
@@ -661,7 +647,7 @@ triangle is then constructed for each departure region to ensure that
 the total area is equal to the prescribed value. This idea was suggested
 and first implemented by Mats Bentsen of the Nansen Environmental and
 Remote Sensing Center (Norway), who applied an earlier version of the
-CICE remapping scheme to an ocean model. The implementation in CICE 4.0
+CICE remapping scheme to an ocean model. The implementation in CICE v4.0
 is somewhat more general, allowing for departure regions lying on both
 sides of a cell edge. The extra triangle is constrained to lie in one
 but not both of the grid cells that share the edge. Since this option
@@ -792,300 +778,6 @@ the new-time thickness and enthalpy are weighted averages over old-time
 values, with non-negative weights :math:`a` and :math:`ah`. Thus the
 new-time values must lie between the maximum and minimum of the old-time
 values.
-
-.. _mech-red:
-
-*************************
-Mechanical redistribution
-*************************
-
-The last term on the right-hand side of Equation :eq:`transport-g`
-is :math:`\psi`, which describes the redistribution
-of ice in thickness space due to ridging and other mechanical processes.
-The mechanical redistribution scheme in CICE is based on
-:cite:`Thorndike75`, :cite:`Rothrock75`,
-:cite:`Hibler80`, :cite:`Flato95`, and
-:cite:`Lipscomb07`. This scheme converts thinner ice to thicker
-ice and is applied after horizontal transport. When the ice is
-converging, enough ice ridges to ensure that the ice area does not
-exceed the grid cell area.
-
-First we specify the participation function: the thickness distribution
-:math:`a_P(h) = b(h) \, g(h)` of the ice participating in ridging. (We
-use “ridging” as shorthand for all forms of mechanical redistribution,
-including rafting.) The weighting function :math:`b(h)` favors ridging
-of thin ice and closing of open water in preference to ridging of
-thicker ice. There are two options for the form of :math:`b(h)`. If
-`krdg\_partic` = 0 in the namelist, we follow :cite:`Thorndike75`
-and set
-
-.. math::
-   b(h) = \left\{\begin{array}{ll}  
-          \frac{2}{G^*}(1-\frac{G(h)}{G^*}) & \mbox{if $G(h)<G^*$} \\
-                    0                       & \mbox{otherwise}   
-                 \end{array}  \right.
-   :label: partic-old-contin
-
-where :math:`G(h)` is the fractional area covered by ice thinner than
-:math:`h`, and :math:`G^*` is an empirical constant. Integrating
-:math:`a_P(h)` between category boundaries :math:`H_{n-1}` and
-:math:`H_n`, we obtain the mean value of :math:`a_P` in category
-:math:`n`:
-
-.. math::
-   a_{Pn} = \frac{2}{G^*} (G_n - G_{n-1})
-            \left( 1 - \frac{G_{n-1}+G_n}{2 G^*} \right),
-   :label: partic-old-discrete
-
-where :math:`a_{Pn}` is the ratio of the ice area ridging (or open
-water area closing) in category :math:`n` to the total area ridging and
-closing, and :math:`G_n` is the total fractional ice area in categories
-0 to :math:`n`. Equation :eq:`partic-old-discrete` applies to
-categories with :math:`G_n < G^*`. If :math:`G_{n-1} < G^* < G_n`, then
-Equation :eq:`partic-old-discrete` is valid with :math:`G^*` replacing
-:math:`G_n`, and if :math:`G_{n-1} > G^*`, then :math:`a_{Pn} = 0`. If
-the open water fraction :math:`a_0 > G^*`, no ice can ridge, because
-“ridging” simply reduces the area of open water. As in
-:cite:`Thorndike75` we set :math:`G^* = 0.15`.
-
-If the spatial resolution is too fine for a given time step
-:math:`\Delta t`, the weighting function Equation :eq:`partic-old-contin` can
-promote numerical instability. For :math:`\Delta t = \mbox{1 hour}`,
-resolutions finer than :math:`\Delta x \sim \mbox{10 km}` are typically
-unstable. The instability results from feedback between the ridging
-scheme and the dynamics via the ice strength. If the strength changes
-significantly on time scales less than :math:`\Delta t`, the
-viscous-plastic solution of the momentum equation is inaccurate and
-sometimes oscillatory. As a result, the fields of ice area, thickness,
-velocity, strength, divergence, and shear can become noisy and
-unphysical.
-
-A more stable weighting function was suggested by
-:cite:`Lipscomb07`:
-
-.. math::
-   b(h) = \frac{\exp[-G(h)/a^*]}
-               {a^*[1-\exp(-1/a^*)]}
-   :label: partic-new-contin
-
-When integrated between category boundaries, Equation :eq:`partic-new-contin`
-implies
-
-.. math::
-   a_{Pn} = \frac {\exp(-G_{n-1}/a^*) - \exp(-G_{n}/a^*)}
-                  {1 - \exp(-1/a^*)}
-   :label: partic-new-discrete
-
-This weighting function is used if `krdg\_partic` = 1 in the namelist.
-From Equation :eq:`partic-new-contin`, the mean value of :math:`G` for ice
-participating in ridging is :math:`a^*`, as compared to :math:`G^*/3`
-for Equation :eq:`partic-old-contin`. For typical ice thickness distributions,
-setting :math:`a^* = 0.05` with `krdg\_partic` = 1 gives participation
-fractions similar to those given by :math:`G^* = 0.15` with `krdg\_partic`
-= 0. See :cite:`Lipscomb07` for a detailed comparison of these
-two participation functions.
-
-Thin ice is converted to thick, ridged ice in a way that reduces the
-total ice area while conserving ice volume and internal energy. There
-are two namelist options for redistributing ice among thickness
-categories. If `krdg\_redist` = 0, ridging ice of thickness :math:`h_n`
-forms ridges whose area is distributed uniformly between
-:math:`H_{\min} = 2 h_n` and :math:`H_{\max} = 2 \sqrt{H^* h_n}`, as in
-:cite:`Hibler80`. The default value of :math:`H^*` is 25 m, as
-in earlier versions of CICE. Observations suggest that
-:math:`H^* = 50` m gives a better fit to first-year ridges
-:cite:`Amundrud04`, although the lower value may be appropriate
-for multiyear ridges :cite:`Flato95`. The ratio of the mean
-ridge thickness to the thickness of ridging ice is
-:math:`k_n = (H_{\min} + H_{\max}) / (2 h_n)`. If the area of category
-:math:`n` is reduced by ridging at the rate :math:`r_n`, the area of
-thicker categories grows simultaneously at the rate :math:`r_n/k_n`.
-Thus the *net* rate of area loss due to ridging of ice in category
-:math:`n` is :math:`r_n(1-1/k_n)`.
-
-The ridged ice area and volume are apportioned among categories in the
-thickness range :math:`(H_{\min}, H_{\max})`. The fraction of the new
-ridge area in category :math:`m` is
-
-.. math::
-   f_m^{\mathrm{area}} = \frac{H_R - H_L} 
-                              {H_{\max} - H_{\min}},
-   :label: ridge-area-old
-
-where :math:`H_L = \max(H_{m-1},H_{\min})` and
-:math:`H_R= \min(H_m,H_{\max})`. The fraction of the ridge volume going
-to category :math:`m` is
-
-.. math::
-   f_m^{\mathrm{vol}} = \frac{(H_R)^2 - (H_L)^2}
-                             {(H_{\max})^2 - (H_{\min})^2}.
-   :label: ridge-volume-old
-
-This uniform redistribution function tends to produce too little ice in
-the 3–5 m range and too much ice thicker than 10 m
-:cite:`Amundrud04`. Observations show that the ITD of ridges is
-better approximated by a negative exponential. Setting `krdg\_redist` = 1
-gives ridges with an exponential ITD :cite:`Lipscomb07`:
-
-.. math::
-   g_R(h) \propto \exp[-(h - H_{\min})/\lambda]
-   :label: redist-new
-
-for :math:`h \ge H_{\min}`, with :math:`g_R(h) = 0` for
-:math:`h < H_{\min}`. Here, :math:`\lambda` is an empirical *e*-folding
-scale and :math:`H_{\min}=2h_n` (where :math:`h_n` is the thickness of
-ridging ice). We assume that :math:`\lambda = \mu h_n^{1/2}`, where
-:math:`\mu` (mu\_rdg) is a tunable parameter with units . Thus the mean
-ridge thickness increases in proportion to :math:`h_n^{1/2}`, as in
-:cite:`Hibler80`. The value :math:`\mu = 4.0`  gives
-:math:`\lambda` in the range 1–4 m for most ridged ice. Ice strengths
-with :math:`\mu = 4.0`  and `krdg\_redist` = 1 are roughly comparable to
-the strengths with :math:`H^* = 50` m and `krdg\_redist` = 0.
-
-From Equation :eq:`redist-new` it can be shown that the fractional area going
-to category :math:`m` as a result of ridging is
-
-.. math::
-   f_m^{\mathrm{area}} = \exp[-(H_{m-1} - H_{\min}) / \lambda] 
-                        - \exp[-(H_m - H_{\min}) / \lambda].
-   :label: ridge-area-new
-
-The fractional volume going to category :math:`m` is
-
-.. math::
-   f_m^{\mathrm{vol}} = \frac{(H_{m-1}+\lambda) \exp[-(H_{m-1}-H_{\min})/\lambda]
-                              - (H_m + \lambda) \exp[-(H_m - H_{\min}) / \lambda]}
-                                {H_{min} + \lambda}.
-   :label: ridge-volume-new
-
-Equations :eq:`ridge-area-new` and :eq:`ridge-volume-new` replace
-Equations :eq:`ridge-area-old` and :eq:`ridge-volume-old` when `krdg\_redist`
-= 1.
-
-Internal ice energy is transferred between categories in proportion to
-ice volume. Snow volume and internal energy are transferred in the same
-way, except that a fraction of the snow may be deposited in the ocean
-instead of added to the new ridge.
-
-The net area removed by ridging and closing is a function of the strain
-rates. Let :math:`R_{\mathrm{net}}` be the net rate of area loss for the
-ice pack (i.e., the rate of open water area closing, plus the net rate
-of ice area loss due to ridging). Following :cite:`Flato95`,
-:math:`R_{\mathrm{net}}` is given by
-
-.. math::
-   R_{\mathrm{net}} = \frac{C_s}{2}
-                    (\Delta - |D_D|) - \min(D_D,0),
-   :label: Rnet
-
-where :math:`C_s` is the fraction of shear dissipation energy that
-contributes to ridge-building, :math:`D_D` is the divergence, and
-:math:`\Delta` is a function of the divergence and shear. These strain
-rates are computed by the dynamics scheme. The default value of
-:math:`C_s` is 0.25.
-
-Next, define :math:`R_{\mathrm{tot}} = \sum_{n=0}^N r_n`. This rate is
-related to :math:`R_{\mathrm{net}}` by
-
-.. math::
-   R_{\mathrm{net}} =
-      \left[ a_{P0} + \sum_{n=1}^N a_{Pn}\left(1-{1\over k_n}\right)\right]
-       R_{\mathrm{tot}}.
-   :label: Rtot-Rnet
-
-Given :math:`R_{\mathrm{net}}` from Equation :eq:`Rnet`, we
-use Equation :eq:`Rtot-Rnet` to compute :math:`R_{\mathrm{tot}}`. Then the area
-ridged in category :math:`n` is given by :math:`a_{rn} = r_n \Delta t`,
-where :math:`r_n = a_{Pn} R_{\mathrm{tot}}`. The area of new ridges is
-:math:`a_{rn} / k_n`, and the volume of new ridges is :math:`a_{rn} h_n`
-(since volume is conserved during ridging). We remove the ridging ice
-from category :math:`n` and use Equations :eq:`ridge-area-old`
-and :eq:`ridge-volume-old`: (or :eq:`ridge-area-new` and
-:eq:`ridge-volume-new`) to redistribute the ice among thicker
-categories.
-
-Occasionally the ridging rate in thickness category :math:`n` may be
-large enough to ridge the entire area :math:`a_n` during a time interval
-less than :math:`\Delta t`. In this case :math:`R_{\mathrm{tot}}` is
-reduced to the value that exactly ridges an area :math:`a_n` during
-:math:`\Delta t`. After each ridging iteration, the total fractional ice
-area :math:`a_i` is computed. If :math:`a_i > 1`, the ridging is
-repeated with a value of :math:`R_{\mathrm{net}}` sufficient to yield
-:math:`a_i = 1`.
-
-Two tracers for tracking the ridged ice area and volume are available.
-The actual tracers are for level (undeformed) ice area (`alvl`) and volume
-(`vlvl`), which are easier to implement for a couple of reasons: (1) ice
-ridged in a given thickness category is spread out among the rest of the
-categories, making it more difficult (and expensive) to track than the
-level ice remaining behind in the original category; (2) previously
-ridged ice may ridge again, so that simply adding a volume of freshly
-ridged ice to the volume of previously ridged ice in a grid cell may be
-inappropriate. Although the code currently only tracks level ice
-internally, both level ice and ridged ice are offered as history output.
-They are simply related:
-
-.. math::
-   \begin{aligned}
-   a_{lvl} + a_{rdg} &=& a_i, \\
-   v_{lvl} + v_{rdg} &=& v_i.\end{aligned}
-
-Level ice area fraction and volume increase with new ice formation and
-decrease steadily via ridging processes. Without the formation of new
-ice, level ice asymptotes to zero because we assume that both level ice
-and ridged ice ridge, in proportion to their fractional areas in a grid
-cell (in the spirit of the ridging calculation itself which does not
-prefer level ice over previously ridged ice).
-
-The ice strength :math:`P` may be computed in either of two ways. If the
-namelist parameter kstrength = 0, we use the strength formula from
-:cite:`Hibler79`:
-
-.. math::
-   P = P^* h \exp[-C(1-a_i)],
-   :label: hib-strength
-
-where :math:`P^* = 27,500 \, \mathrm {N/m}` and :math:`C = 20` are
-empirical constants, and :math:`h` is the mean ice thickness.
-Alternatively, setting kstrength = 1 gives an ice strength closely
-related to the ridging scheme. Following
-:cite:`Rothrock75`, the strength is assumed proportional
-to the change in ice potential energy :math:`\Delta E_P` per unit area
-of compressive deformation. Given uniform ridge ITDs (krdg\_redist = 0),
-we have
-
-.. math::
-   P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
-     \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
-        \left( \frac{(H_n^{\max})^3 - (H_n^{\min})^3}
-                    {3(H_n^{\max}-H_n^{\min})} \right) \right],
-   :label: roth-strength0
-
-where :math:`C_P = (g/2)(\rho_i/\rho_w)(\rho_w-\rho_i)`,
-:math:`\beta =R_{\mathrm{tot}}/R_{\mathrm{net}} > 1`
-from Equation :eq:`Rtot-Rnet`, and :math:`C_f` is an empirical parameter that
-accounts for frictional energy dissipation. Following
-:cite:`Flato95`, we set :math:`C_f = 17`. The first term in
-the summation is the potential energy of ridging ice, and the second,
-larger term is the potential energy of the resulting ridges. The factor
-of :math:`\beta` is included because :math:`a_{Pn}` is normalized with
-respect to the total area of ice ridging, not the net area removed.
-Recall that more than one unit area of ice must be ridged to reduce the
-net ice area by one unit. For exponential ridge ITDs (`krdg\_redist` = 1),
-the ridge potential energy is modified:
-
-.. math::
-   P = C_f \, C_p \, \beta \sum_{n=1}^{N_C}
-     \left[ -a_{Pn} \, h_n^2  + \frac{a_{Pn}}{k_n}
-        \left( H_{\min}^2 + 2H_{\min}\lambda + 2 \lambda^2 \right) \right]
-   :label: roth-strength1
-
-The energy-based ice strength given by Equations :eq:`roth-strength0` or
-:eq:`roth-strength1` is more physically realistic than the strength
-given by Equation :eq:`hib-strength`. However, use of Equation :eq:`hib-strength` is
-less likely to allow numerical instability at a given resolution and
-time step. See :cite:`Lipscomb07` for more details.
-
 
 .. _dynam:
 
@@ -1346,7 +1038,7 @@ and :math:`P_R` is a “replacement pressure” (see :cite:`Geiger98`, for
 example), which serves to prevent residual ice motion due to spatial
 variations of :math:`P` when the rates of strain are exactly zero. The ice strength :math:`P` 
 is a function of the ice thickness and concentration
-as it is described in Section :ref:`mech-red`.
+as it is described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 
 Viscosities are updated during the subcycling, so that the entire
 dynamics component is subcycled within the time step, and the elastic

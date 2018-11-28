@@ -27,7 +27,7 @@ variables for each cell. These considerations are explained in more
 detail below.
 
 The fluxes and state variables passed between the sea ice model and the
-CESM flux coupler are listed in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_boundary_forcing.html>`_. 
+CESM flux coupler are listed in the `Icepack documentation  <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 By convention,
 directional fluxes are positive downward. In CESM, the sea ice model may
 exchange coupling fluxes using a different grid than the computational
@@ -38,9 +38,6 @@ System Model (RASM). In particular, the relative atmosphere-ice velocity
 (:math:`\vec{U}_a-\vec{u}`) is used instead of the full atmospheric
 velocity for computing turbulent fluxes in the atmospheric boundary
 layer.
-
-Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_boundary_forcing.html>`_ 
-for additional information about the data exchanged between the CESM flux coupler and the sea ice model.
 
 The ice fraction :math:`a_i` (aice) is the total fractional ice
 coverage of a grid cell. That is, in each cell,
@@ -63,9 +60,6 @@ be divided by the total ice area so that the ice and land models are
 treated identically (land also may occupy less than 100% of an
 atmospheric grid cell). These fluxes are “per unit ice area" rather than
 “per unit grid cell area."
-
-Additional information about atmospheric forcing for CICE can be found in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_boundary_forcing.html#atmosphere>`_.
 
 For CICE run in stand-alone mode (i.e., uncoupled), the AOMIP shortwave
 and longwave radiation formulas are available in **ice\_forcing.F90**.
@@ -113,10 +107,6 @@ vapor pressure:
 
 where :math:`\cos Z` is the cosine of the solar zenith angle.
 
-
-Additional information about oceanic forcing for CICE can be found in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/sg_boundary_forcing.html#ocean>`_.
-
 Many ice models compute the sea surface slope :math:`\nabla H_\circ`
 from geostrophic ocean currents provided by an ocean model or other data
 source. In our case, the sea surface height :math:`H_\circ` is a
@@ -144,3 +134,7 @@ Ekman spiral in the boundary layer. If the top layer is sufficiently
 thin compared to the typical depth of the Ekman spiral, then
 :math:`\theta=0` is a good approximation. Here we assume that the top
 layer is thin enough.
+
+Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about 
+atmospheric and oceanic forcing and other data exchanged between the 
+flux coupler and the sea ice model.

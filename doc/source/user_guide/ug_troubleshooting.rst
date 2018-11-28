@@ -66,7 +66,7 @@ Other configuration parameters, such as ``nilyr``, must also be consistent betwe
   is set in the Macros file.  This is due to very small exponential values in the delta-Eddington
       radiation scheme.
 
-CICE version 5 introduces a new model configuration that makes
+CICE v5 and later use a model configuration that makes
 restarting from older simulations difficult. In particular, the number
 of ice categories, the category boundaries, and the number of vertical
 layers within each category must be the same in the restart file and in
@@ -76,7 +76,7 @@ upon restart. Therefore, new model configurations may need to be started
 using `runtype` = ‘initial’. Binary restart files that were provided with
 CICE v4.1 were made using the BL99 thermodynamics with 4 layers and 5
 thickness categories (`kcatbound` = 0) and therefore can not be used for
-the default CICE v5 configuration (7 layers). In addition, CICE’s
+the default CICE v5 and later configuration (7 layers). In addition, CICE’s
 default restart file format is now  instead of binary.
 
 Restarting a run using `runtype` = ‘continue’ requires restart data for
@@ -95,30 +95,8 @@ new file structure and then to  format. If the same physical
 parameterizations are used, the code should be able to execute from
 these files. However if different physics is used (for instance, mushy
 thermo instead of BL99), the code may still fail. To convert a v4.1
-restart file:
-
--  Edit the code **input\_templates/convert\_restarts.f90** for your
-   model configuration and path names. Compile and run this code to
-   create a binary restart file that can be read using v5. Copy the
-   resulting file to the **restart/** subdirectory in your working
-   directory.
-
--  In your working directory, turn off all tracer restart flags in
-   **ice\_in** and set the following:
-
-   -  runtype = ‘initial’
-
-   -  ice\_ic = ‘./restart/[your binary file name]’
-
-   -  restart = .true.
-
-   -  use\_restart\_time = .true.
-
-- In **CICE\_InitMod.F90**, comment out the call to
-  restartfile(ice\_ic) and uncomment the call to
-  restartfile\_v4(ice\_ic) immediately below it. This will read the
-  v4.1 binary file and write a v5  file containing the same
-  information.
+restart file, consult section 5.2 in the `CICE v5 documentation 
+<https://github.com/CICE-Consortium/CICE-svn-trunk/blob/master/cicedoc/cicedoc.pdf>`_.
 
 If restart files are taking a long time to be written serially (i.e.,
 not using PIO), see the next section.
