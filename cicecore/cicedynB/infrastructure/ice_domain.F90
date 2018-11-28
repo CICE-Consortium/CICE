@@ -241,32 +241,24 @@
 
    if (my_task == master_task) then
      write(nu_diag,'(/,a18,/)')'Domain Information'
-     write(nu_diag,'(a26,i6)') '  Horizontal domain: nx = ',nx_global
-     write(nu_diag,'(a26,i6)') '                     ny = ',ny_global
-     write(nu_diag,'(a26,i6)') '  No. of categories: nc = ',ncat
-     write(nu_diag,'(a26,i6)') '  No. of ice layers: ni = ',nilyr
-     write(nu_diag,'(a26,i6)') '  No. of snow layers:ns = ',nslyr
-     write(nu_diag,'(a26,i6)') '  Processors:  total    = ',nprocs
-     write(nu_diag,'(a25,a16)') '  Processor shape:        ', &
-                                  trim(processor_shape)
-     write(nu_diag,'(a25,a16)') '  Distribution type:      ', &
-                                  trim(distribution_type)
-     write(nu_diag,'(a25,a16)') '  Distribution weight:    ', &
-                                  trim(distribution_wght)
-     write(nu_diag,'(a25,a  )') '  Distribution wght file: ', &
-                                  trim(distribution_wght_file)
-     write(nu_diag,'(a25,a16)') '  ew_boundary_type:       ', &
-                                  trim(ew_boundary_type)
-     write(nu_diag,'(a25,a16)') '  ns_boundary_type:       ', &
-                                  trim(ns_boundary_type)
-     write(nu_diag,'(a26,l6)') '  maskhalo_dyn          = ', &
-                                  maskhalo_dyn
-     write(nu_diag,'(a26,l6)') '  maskhalo_remap        = ', &
-                                  maskhalo_remap
-     write(nu_diag,'(a26,l6)') '  maskhalo_bound        = ', &
-                                  maskhalo_bound
-     write(nu_diag,'(a26,i6)') '  max_blocks =            ', max_blocks
-     write(nu_diag,'(a26,i6,/)')'  Number of ghost cells:  ', nghost
+     write(nu_diag,'(a,i6)')  '  Horizontal domain: nx = ', nx_global
+     write(nu_diag,'(a,i6)')  '                     ny = ', ny_global
+     write(nu_diag,'(a,i6)')  '  No. of categories: nc = ', ncat
+     write(nu_diag,'(a,i6)')  '  No. of ice layers: ni = ', nilyr
+     write(nu_diag,'(a,i6)')  '  No. of snow layers:ns = ', nslyr
+     write(nu_diag,'(a,i6)')  '  Processors:  total    = ', nprocs
+     write(nu_diag,'(a,a)')   '  Processor shape       = ', trim(processor_shape)
+     write(nu_diag,'(a,a)')   '  Distribution type     = ', trim(distribution_type)
+     write(nu_diag,'(a,a)')   '  Distribution weight   = ', trim(distribution_wght)
+     write(nu_diag,'(a,a)')   '  Distribution wght file= ', trim(distribution_wght_file)
+     write(nu_diag,'(a,a)')   '  ew_boundary_type      = ', trim(ew_boundary_type)
+     write(nu_diag,'(a,a)')   '  ns_boundary_type      = ', trim(ns_boundary_type)
+     write(nu_diag,'(a,l6)')  '  maskhalo_dyn          = ', maskhalo_dyn
+     write(nu_diag,'(a,l6)')  '  maskhalo_remap        = ', maskhalo_remap
+     write(nu_diag,'(a,l6)')  '  maskhalo_bound        = ', maskhalo_bound
+     write(nu_diag,'(a,2i6)') '  block_size_x,_y       = ', block_size_x, block_size_y
+     write(nu_diag,'(a,i6)')  '  max_blocks            = ', max_blocks
+     write(nu_diag,'(a,i6,/)')'  Number of ghost cells = ', nghost
    endif
 
 !----------------------------------------------------------------------
@@ -575,7 +567,7 @@
 
    if (nblocks_max > max_blocks) then
      write(outstring,*) &
-         'ERROR: ice no. blocks exceed max: increase max to', nblocks_max
+         'ERROR: num blocks exceed max: increase max to', nblocks_max
      call abort_ice(subname//trim(outstring), &
         file=__FILE__, line=__LINE__)
    else if (nblocks_max < max_blocks) then
