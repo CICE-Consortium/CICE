@@ -1566,7 +1566,9 @@
       ! abort if abort flag is set
       !-----------------------------------------------------------------
 
-      call flush_fileunit(nu_diag)
+      if (abort_flag /= 0) then
+        call flush_fileunit(nu_diag)
+      endif
       call ice_barrier()
       if (abort_flag /= 0) then
          write(nu_diag,*) subname,' ERROR: abort_flag=',abort_flag
@@ -2073,9 +2075,8 @@
          write(nu_diag,1020) ' nt_qsno                   = ', nt_qsno
          write(nu_diag,*)' '
  1020    format (a30,2x,i6)     ! integer
+         call flush_fileunit(nu_diag)
       endif                     ! my_task = master_task
-
-      call flush_fileunit(nu_diag)
 
       call icepack_init_tracer_numbers(ntrcr_in=ntrcr, &
          ntrcr_o_in=ntrcr_o, nbtrcr_in=nbtrcr, nbtrcr_sw_in=nbtrcr_sw)

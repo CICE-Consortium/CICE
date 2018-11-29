@@ -21,7 +21,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: max_blocks, ncat
-      use ice_constants, only: c0, c1, c2, c3, c12, p1, p2, p5, &
+      use ice_constants, only: c0, c1, c2, c3, c4, c12, p1, p2, p5, &
           p001, p027, p055, p111, p166, p222, p25, p333
       use ice_fileunits, only: nu_diag, nu_dump_eap, nu_restart_eap
       use ice_exit, only: abort_ice
@@ -1606,21 +1606,29 @@
       real (kind=dbl_kind) :: &
          stemp11r, stemp12r, stemp22r,   &
          stemp11s, stemp12s, stemp22s, &
-         a22, Q11, Q12, Qd11, Qd12, &
+         a22, Qd11Qd11, Qd11Qd12, Qd12Qd12, &
          Q11Q11, Q11Q12, Q12Q12, &
          dtemp11, dtemp12, dtemp22, &
          rotstemp11r, rotstemp12r, rotstemp22r,   &
          rotstemp11s, rotstemp12s, rotstemp22s, &
          sig11, sig12, sig22, &
          sgprm11, sgprm12, sgprm22, &
-	 invstressconviso, &
+         invstressconviso, &
+         Angle_denom_gamma,  Angle_denom_alpha, &
+         Tany_1, Tany_2, &
          gamma, alpha, x, y, dx, dy, da, &
          invdx, invdy, invda, invsin, &
          invleng, dtemp1, dtemp2, atempprime, &
+         kxw, kyw, kaw, &
          puny, pi, pi2, piq, pih
 
       real (kind=dbl_kind), parameter :: &
          kfriction = 0.45_dbl_kind
+
+      ! tcraig, temporary, should be moved to namelist
+      ! turns on interpolation in stress_rdg
+      logical(kind=log_kind), parameter :: &
+         interpolate_stress_rdg = .false.
 
       character(len=*), parameter :: subname = '(update_stress_rdg)'
 
@@ -1632,8 +1640,8 @@
 
 ! Factor to maintain the same stress as in EVP (see Section 3)
 ! Can be set to 1 otherwise
-         invstressconviso = c1/(c1+kfriction*kfriction)
 
+         invstressconviso = c1/(c1+kfriction*kfriction)
          invsin = c1/sin(pi2/c12) * invstressconviso
 
 ! compute eigenvalues, eigenvectors and angles for structure tensor, strain rates
@@ -1642,20 +1650,21 @@
 
          a22 = c1-a11
 
-! gamma: angle between general coordiantes and principal axis
-         if ((a11-a22) == c0) then
-           gamma = p5*(pih)
-         else
-           gamma = p5*atan2((c2*a12),(a11 - a22))
+! gamma: angle between general coordiantes and principal axis of A
+! here Tan2gamma = 2 a12 / (a11 - a22) 
+
+         Q11Q11 = c1
+         Q12Q12 = puny
+         Q11Q12 = puny
+
+         if((ABS(a11 - a22) > puny).or.(ABS(a12) > puny)) then
+           Angle_denom_gamma = sqrt( ( a11 - a22 )*( a11 - a22) + &
+                                     c4*a12*a12 )
+
+           Q11Q11 = p5 + ( a11 - a22 )*p5/Angle_denom_gamma   !Cos^2
+           Q12Q12 = p5 - ( a11 - a22 )*p5/Angle_denom_gamma   !Sin^2
+           Q11Q12 = a12/Angle_denom_gamma                             !CosSin
          endif
-
-! rotational tensor from general coordinates into principal axis
-         Q11 = cos(gamma)
-         Q12 = sin(gamma)
-
-         Q11Q11 = Q11*Q11
-         Q11Q12 = Q11*Q12
-         Q12Q12 = Q12*Q12
 
 ! rotation Q*atemp*Q^T
          atempprime = Q11Q11*a11 + c2*Q11Q12*a12 + Q12Q12*a22 
@@ -1669,48 +1678,67 @@
          dtemp12 = shear*p5
          dtemp22 = p5*(divu - tension)
 
-! alpha: angle between general coordiantes and principal axis
-         if ((dtemp11-dtemp22) == c0) then
-           alpha = p5*(pih)
-         else
-           alpha = p5*atan2((c2*dtemp12),(dtemp11 - dtemp22))
-         endif
+! here Tan2alpha = 2 dtemp12 / (dtemp11 - dtemp22) 
 
-! y: angle between major principal axis of strain rate and structure tensor
-! to make sure y between 0 and pi/2
-         if (alpha > gamma) alpha = alpha - pi
-         if (alpha < gamma-pi) alpha = alpha + pi
-         y = gamma - alpha
-!echmod require 0 <= y < (ny_yield-1)*dy = pi/2
-!         y = mod(y+pi2, pih)
-!echmod require 0 <= y < (ny_yield-1)*dy = pi
-!         y = mod(y+pi2, pi)
-!         alpha = gamma - y
+         Qd11Qd11 = c1
+         Qd12Qd12 = puny
+         Qd11Qd12 = puny
 
-! rotate tensor (anticlockwise) from general coordinates into principal axis
-         Qd11 = cos(alpha)
-         Qd12 = sin(alpha)
-         
-         dtemp1 = Qd11*(Qd11*dtemp11 + c2*Qd12*dtemp12) + Qd12*Qd12*dtemp22
-         dtemp2 = Qd12*(Qd12*dtemp11 - c2*Qd11*dtemp12) + Qd11*Qd11*dtemp22
-         x = c0
+         if((ABS( dtemp11 - dtemp22) > puny).or.(ABS(dtemp12) > puny)) then
+           Angle_denom_alpha = sqrt( ( dtemp11 - dtemp22 )* &
+                        ( dtemp11 - dtemp22 ) + c4*dtemp12*dtemp12)
+
+           Qd11Qd11 = p5 + ( dtemp11 - dtemp22 )*p5/Angle_denom_alpha   !Cos^2 
+           Qd12Qd12 = p5 - ( dtemp11 - dtemp22 )*p5/Angle_denom_alpha   !Sin^2
+           Qd11Qd12 = dtemp12/Angle_denom_alpha                          !CosSin
+         endif 
+
+         dtemp1 = Qd11Qd11*dtemp11 + c2*Qd11Qd12*dtemp12 + Qd12Qd12*dtemp22
+         dtemp2 = Qd12Qd12*dtemp11 - c2*Qd11Qd12*dtemp12 + Qd11Qd11*dtemp22
 
 ! In cos and sin values
+         x = c0
+
          if ((ABS(dtemp1) > puny).or.(ABS(dtemp2) > puny)) then
-           invleng = c1/sqrt(dtemp1*dtemp1 + dtemp2*dtemp2)
-           dtemp1 = dtemp1*invleng
-           dtemp2 = dtemp2*invleng
-           if ((dtemp1) == c0) then
-             x = (pih)
+!           invleng = c1/sqrt(dtemp1*dtemp1 + dtemp2*dtemp2) ! not sure if this is neccessary
+!           dtemp1 = dtemp1*invleng
+!           dtemp2 = dtemp2*invleng
+           if (dtemp1 == c0) then
+             x = pih
            else
              x = atan2(dtemp2,dtemp1)
            endif
          endif
 
-!echmod to ensure the angle lies between pi/4 and 9 pi/4 
+!echmod to ensure the angle lies between pi/4 and 9 pi/4
          if (x < piq) x = x + pi2
 !echmod require 0 <= x < (nx_yield-1)*dx = 2 pi
 !         x = mod(x+pi2, pi2)
+
+! y: angle between major principal axis of strain rate and structure tensor
+! y = gamma - alpha
+! Expressesed componently with
+! Tany = (Singamma*Cosgamma - Sinalpha*Cosgamma)/(Cos^2gamma - Sin^alpha)
+
+         Tany_1 = Q11Q12 - Qd11Qd12
+         Tany_2 = Q11Q11 - Qd12Qd12
+
+         y = c0
+
+         if ((ABS(Tany_1) > puny).or.(ABS(Tany_2) > puny)) then
+!           invleng = c1/sqrt(Tany_1*Tany_1 + Tany_2*Tany_2) ! not sure if this is neccessary
+!           Tany_1 = Tany_1*invleng
+!           Tany_2 = Tany_2*invleng
+           if (Tany_2 == c0) then
+             y = pih
+           else
+             y = atan2(Tany_1,Tany_2)
+           endif
+         endif
+
+! to make sure y is between 0 and pi
+         if (y > pi) y = y - pi
+         if (y < 0)  y = y + pi
 
 ! Now calculate updated stress tensor
          dx   = pi/real(nx_yield-1,kind=dbl_kind)
@@ -1720,18 +1748,96 @@
          invdy = c1/dy
          invda = c1/da
 
-         kx = int((x-piq-pi)*invdx) + 1
-         ky = int(y*invdy) + 1
-         ka = int((atempprime-p5)*invda) + 1
+         if (interpolate_stress_rdg) then
+
+! Interpolated lookup
+
+           ! if (x>=9*pi/4) x=9*pi/4-puny; end
+           ! if (y>=pi/2)   y=pi/2-puny; end
+           ! if (atempprime>=1.0), atempprime=1.0-puny; end
+
+           ! % need 8 coords and 8 weights
+           ! % range in kx
+
+           kx  = int((x-piq-pi)*invdx) + 1
+           kxw = c1 - ((x-piq-pi)*invdx - (kx-1))
+
+           ky  = int(y*invdy) + 1
+           kyw = c1 - (y*invdy - (ky-1))
+
+           ka  = int((atempprime-p5)*invda) + 1
+           kaw = c1 - ((atempprime-p5)*invda - (ka-1))
+
+! % Determine sigma_r(A1,Zeta,y) and sigma_s (see Section A1)
+
+           stemp11r =  kxw* kyw      * kaw      * s11r(kx  ,ky  ,ka  ) &
+               + (c1-kxw) * kyw      * kaw      * s11r(kx+1,ky  ,ka  ) &
+               + kxw      * (c1-kyw) * kaw      * s11r(kx  ,ky+1,ka  ) &
+               + kxw      * kyw      * (c1-kaw) * s11r(kx  ,ky  ,ka+1) &
+               + (c1-kxw) * (c1-kyw) * kaw      * s11r(kx+1,ky+1,ka  ) &
+               + (c1-kxw) * kyw      * (c1-kaw) * s11r(kx+1,ky  ,ka+1) &
+               + kxw      * (c1-kyw) * (c1-kaw) * s11r(kx  ,ky+1,ka+1) &
+               + (c1-kxw) * (c1-kyw) * (c1-kaw) * s11r(kx+1,ky+1,ka+1)
+
+           stemp12r =  kxw* kyw      * kaw      * s12r(kx  ,ky  ,ka  ) &
+               + (c1-kxw) * kyw      * kaw      * s12r(kx+1,ky  ,ka  ) &
+               + kxw      * (c1-kyw) * kaw      * s12r(kx  ,ky+1,ka  ) &
+               + kxw      * kyw      * (c1-kaw) * s12r(kx  ,ky  ,ka+1) &
+               + (c1-kxw) * (c1-kyw) * kaw      * s12r(kx+1,ky+1,ka  ) &
+               + (c1-kxw) * kyw      * (c1-kaw) * s12r(kx+1,ky  ,ka+1) &
+               + kxw      * (c1-kyw) * (c1-kaw) * s12r(kx  ,ky+1,ka+1) &
+               + (c1-kxw) * (c1-kyw) * (c1-kaw) * s12r(kx+1,ky+1,ka+1)
+
+           stemp22r = kxw * kyw      * kaw      * s22r(kx  ,ky  ,ka  ) &
+               + (c1-kxw) * kyw      * kaw      * s22r(kx+1,ky  ,ka  ) &
+               + kxw      * (c1-kyw) * kaw      * s22r(kx  ,ky+1,ka  ) &
+               + kxw      * kyw      * (c1-kaw) * s22r(kx  ,ky  ,ka+1) &
+               + (c1-kxw) * (c1-kyw) * kaw      * s22r(kx+1,ky+1,ka  ) &
+               + (c1-kxw) * kyw      * (c1-kaw) * s22r(kx+1,ky  ,ka+1) &
+               + kxw      * (c1-kyw) * (c1-kaw) * s22r(kx  ,ky+1,ka+1) &
+               + (c1-kxw) * (c1-kyw) * (c1-kaw) * s22r(kx+1,ky+1,ka+1)
+
+           stemp11s =  kxw* kyw      * kaw      * s11s(kx  ,ky  ,ka  ) &
+               + (c1-kxw) * kyw      * kaw      * s11s(kx+1,ky  ,ka  ) &
+               + kxw      * (c1-kyw) * kaw      * s11s(kx  ,ky+1,ka  ) &
+               + kxw      * kyw      * (c1-kaw) * s11s(kx  ,ky  ,ka+1) &
+               + (c1-kxw) * (c1-kyw) * kaw      * s11s(kx+1,ky+1,ka  ) &
+               + (c1-kxw) * kyw      * (c1-kaw) * s11s(kx+1,ky  ,ka+1) &
+               + kxw      * (c1-kyw) * (c1-kaw) * s11s(kx  ,ky+1,ka+1) &
+               + (c1-kxw) * (c1-kyw) * (c1-kaw) * s11s(kx+1,ky+1,ka+1)
+
+           stemp12s =  kxw* kyw      * kaw      * s12s(kx  ,ky  ,ka  ) &
+               + (c1-kxw) * kyw      * kaw      * s12s(kx+1,ky  ,ka  ) &
+               + kxw      * (c1-kyw) * kaw      * s12s(kx  ,ky+1,ka  ) &
+               + kxw      * kyw      * (c1-kaw) * s12s(kx  ,ky  ,ka+1) &
+               + (c1-kxw) * (c1-kyw) * kaw      * s12s(kx+1,ky+1,ka  ) &
+               + (c1-kxw) * kyw      * (c1-kaw) * s12s(kx+1,ky  ,ka+1) &
+               + kxw      * (c1-kyw) * (c1-kaw) * s12s(kx  ,ky+1,ka+1) &
+               + (c1-kxw) * (c1-kyw) * (c1-kaw) * s12s(kx+1,ky+1,ka+1)
+
+           stemp22s =  kxw* kyw      * kaw      * s22s(kx  ,ky  ,ka  ) &
+               + (c1-kxw) * kyw      * kaw      * s22s(kx+1,ky  ,ka  ) &
+               + kxw      * (c1-kyw) * kaw      * s22s(kx  ,ky+1,ka  ) &
+               + kxw      * kyw      * (c1-kaw) * s22s(kx  ,ky  ,ka+1) &
+               + (c1-kxw) * (c1-kyw) * kaw      * s22s(kx+1,ky+1,ka  ) &
+               + (c1-kxw) * kyw      * (c1-kaw) * s22s(kx+1,ky  ,ka+1) &
+               + kxw      * (c1-kyw) * (c1-kaw) * s22s(kx  ,ky+1,ka+1) &
+               + (c1-kxw) * (c1-kyw) * (c1-kaw) * s22s(kx+1,ky+1,ka+1)
+
+         else
+           kx = int((x-piq-pi)*invdx) + 1
+           ky = int(y*invdy) + 1
+           ka = int((atempprime-p5)*invda) + 1
 
 ! Determine sigma_r(A1,Zeta,y) and sigma_s (see Section A1) 
-         stemp11r = s11r(kx,ky,ka)     
-         stemp12r = s12r(kx,ky,ka)
-         stemp22r = s22r(kx,ky,ka)
+           stemp11r = s11r(kx,ky,ka)     
+           stemp12r = s12r(kx,ky,ka)
+           stemp22r = s22r(kx,ky,ka)
 
-         stemp11s = s11s(kx,ky,ka)
-         stemp12s = s12s(kx,ky,ka)
-         stemp22s = s22s(kx,ky,ka)
+           stemp11s = s11s(kx,ky,ka)
+           stemp12s = s12s(kx,ky,ka)
+           stemp22s = s22s(kx,ky,ka)
+         endif
 
 ! Calculate mean ice stress over a collection of floes (Equation 3)
 
