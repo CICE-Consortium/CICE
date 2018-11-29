@@ -60,7 +60,7 @@ Once a case/test is created, several files are placed in the case directory
 - **cice.run** is a batch run script
 - **cice.submit** is a simple script that submits the cice.run script
 
-All scripts and namelist are fully resolved in the case.  Users can edit any
+Once the case is created, all scripts and namelist are fully resolved. Users can edit any
 of the files in the case directory manually to change the model configuration,
 build options, or batch settings.  The file
 dependency is indicated in the above list.  For instance, if any of the files before
@@ -75,7 +75,7 @@ You can also submit the **cice.run** script on the command line.
 
 Some hints:
 
-- To change the tracer numbers or block sizes required at build time, edit the **cice.settings** file.
+- To change the block sizes required at build time, edit the **cice.settings** file.
 - To change namelist, manually edit the **ice_in** file
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true
@@ -107,7 +107,9 @@ Testing will be described in greater detail in the :ref:`testing` section.
   prints the CICE version to the terminal and exits.
 
 ``--setvers VERSION``
-  updates the CICE version in your sandbox.  The version should be some like n.m.p.string.
+  internally updates the CICE version in your sandbox. Those changes can then be commited (or not)
+  to the repository. --version will show the updated value. The argument VERSION is typically a
+  string like "5.1.2" but could be any alphanumeric string.
 
 ``--case``, ``-c`` CASE
   specifies the case name.  This can be either a relative path of an absolute path.  This cannot be used with --test or --suite.  Either ``--case``, ``--test``, or ``--suite`` is required.
@@ -183,7 +185,7 @@ For more information, see :ref:`dev_test_options`
 Examples
 ~~~~~~~~~
 
-The simplest case is just to setup a default configurations specifying the
+The simplest case is just to setup a default configuration specifying the
 case name, machine, and environment::
 
   cice.setup --case mycase1 --mach spirit --env intel

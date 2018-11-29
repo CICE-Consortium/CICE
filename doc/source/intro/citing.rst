@@ -14,5 +14,5 @@ This DOI can be used to cite all CICE versions and the URL will default to the m
 However, each released version of CICE will also receive its own, unique DOI that can be 
 used for citations as well.
 
-Please also make the CICE-Consortium aware of any publications and model use.
+Please also make the CICE Consortium aware of any publications and model use.
 

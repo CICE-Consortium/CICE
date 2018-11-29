@@ -15,7 +15,8 @@ There is a base suite of tests provided by default with CICE and this
 may be a good starting point for testing.
 
 The testing scripts support several features
- - Ability to test individual (via ``--test``)or multiple tests (via ``--suite``)
+
+ - Ability to test individual (via ``--test``) or multiple tests (via ``--suite``)
    using an input file to define the suite
  - Ability to use test suites defined in the package or test suites defined by the user
  - Ability to store test results for regresssion testing (``--bgen``)
@@ -545,9 +546,11 @@ The CICE testing scripts have the capability to post test results
 to the official CICE Consortium Test-Results 
 `wiki page <https://github.com/CICE-Consortium/Test-Results/wiki>`_.
 You may need write permission on the wiki. If you are interested in using the
-wiki, please contact the consortium. Note that in order for code to be 
-accepted to the CICE Consortium master through a Pull Request it is necessary
-for the developer to provide proof that their code passes relevant tests. 
+wiki, please contact the Consortium. Note that in order for code to be 
+accepted to the CICE master through a Pull Request it is necessary
+for the developer to provide proof that their code passes relevant tests.
+This can be accomplished by posting the full results to the wiki, or
+by copying the testing summary to the Pull Request comments. 
 
 To post results, once a test suite is complete, run ``results.csh`` and
 ``report_results.csh`` from the suite directory,
@@ -788,7 +791,7 @@ The CICE code compliance test is performed by running a python script
 In order to run the script, the following requirements must be met:
 
 * Python v2.7 or later
-* netCDF Python package
+* netcdf Python package
 * numpy Python package
 * matplotlib Python package (optional)
 * basemap Python package (optional)
