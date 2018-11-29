@@ -210,6 +210,8 @@ In addition to the test implemented in the general testing framework, specific
 tests have been developed to validate specific portions of the model.  These
 specific tests are detailed in this section.
 
+.. _box2001:
+
 ``box2001``
 ^^^^^^^^^^^^
 
@@ -218,10 +220,12 @@ detailed in :cite:`Hunke01`.  It is configured to run a 72-hour simulation with
 thermodynamics disabled in a rectangular domain (80 x 80 grid cells) with a land
 boundary around the entire domain.  It includes the following namelist modifications:
 
-- ``dxrect``: ``16.e5`` meters
-- ``dyrect``: ``16.e5`` meters
-- ``thermo``: ``0`` (disables thermodynamics)
+- ``dxrect``: ``16.e5`` cm
+- ``dyrect``: ``16.e5`` cm
+- ``ktherm``: ``-1`` (disables thermodynamics)
 - ``coriolis``: ``zero`` (zero coriolis force)
+- ``ice_data_type`` : ``box2001`` (special ice concentration initialization)
+- ``atm_data_type`` : ``box2001`` (special atmospheric and ocean forcing)
 
 Ocean stresses are computed as in :cite:`Hunke01` where they are circular and centered 
 in the square domain.  The ice distribution is fixed, with a constant 2 meter ice 
@@ -229,8 +233,45 @@ thickness and a concentration field that varies linearly in the x-direction from
 to ``1`` and is constant in the y-direction.  No islands are included in this
 configuration.  The test is configured to run on a single processor.
 
-To run the test: ``./cice.setup -m <machine> --test smoke -s box2001 --testid <test_id>
---grid gbox80 --acct <queue manager account> -p 1x1``
+To run the test::
+
+  ./cice.setup -m <machine> --test smoke -s box2001 --testid <test_id> --grid gbox80 --acct <queue manager account> -p 1x1
+
+.. _boxslotcyl:
+
+``boxslotcyl``
+^^^^^^^^^^^^
+
+The ``boxslotcyl`` test case is an advection test configured to perform the slotted cylinder test 
+detailed in :cite:`Zalesak79`.  It is configured to run a 12-day simulation with 
+thermodynamics, ridging and dynamics disabled, in a square domain (80 x 80 grid cells) with a land
+boundary around the entire domain.  It includes the following namelist modifications:
+
+- ``dxrect``: ``10.e5`` cm (10 km)
+- ``dyrect``: ``10.e5`` cm (10 km)
+- ``ktherm``: ``-1`` (disables thermodynamics)
+- ``kridge``: ``-1`` (disables ridging)
+- ``kdyn``: ``-1`` (disables dynamics)
+- ``ice_data_type`` : ``boxslotcyl`` (special ice concentration and velocity initialization)
+
+Dynamics is disabled because we directly impose a constant ice velocity. The ice velocity field is circular and centered 
+in the square domain, and such that the slotted cylinder makes a complete revolution with a period :math:`T=` 12 days : 
+
+.. math::
+   (u,v) = {u_0}\left( \frac{2y - L}{L}, \frac{-2x + L}{L}\right) 
+   :label: ice-vel-boxslotcyl
+   
+where :math:`L` is the physical domain length and  :math:`u_0 = \pi L / T`. 
+The initial ice distribution is a slotted cylinder of radius :math:`r = 3L/10` centered at :math:`(x,y) = (L/2, 3L/4)`. 
+The slot has a width of :math:`L/6` and a depth of :math:`5L/6` and is placed radially. 
+
+The time step is one hour, which with the above speed and mesh size yields a Courant number of 0.86.
+
+The test can run on multiple processors.
+
+To run the test::
+
+  ./cice.setup -m <machine> --test smoke -s boxslotcyl --testid <test_id> --grid gbox80 --acct <queue manager account> -p nxm
 
 .. _testsuites:
 

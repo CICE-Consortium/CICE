@@ -169,6 +169,7 @@
     ocn_data_type   = 'default'
     bgc_data_type   = 'default'
     fe_data_type    = 'default'
+    ice_data_type   = 'default'
     fyear_init      = 1997
     ycycle          = 1
     atm_data_format = 'bin'
