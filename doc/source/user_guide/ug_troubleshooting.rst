@@ -66,7 +66,7 @@ Other configuration parameters, such as ``nilyr``, must also be consistent betwe
   is set in the Macros file.  This is due to very small exponential values in the delta-Eddington
       radiation scheme.
 
-CICE version 5 introduces a new model configuration that makes
+CICE v5 and later use a model configuration that makes
 restarting from older simulations difficult. In particular, the number
 of ice categories, the category boundaries, and the number of vertical
 layers within each category must be the same in the restart file and in
@@ -76,7 +76,7 @@ upon restart. Therefore, new model configurations may need to be started
 using `runtype` = ‘initial’. Binary restart files that were provided with
 CICE v4.1 were made using the BL99 thermodynamics with 4 layers and 5
 thickness categories (`kcatbound` = 0) and therefore can not be used for
-the default CICE v5 configuration (7 layers). In addition, CICE’s
+the default CICE v5 and later configuration (7 layers). In addition, CICE’s
 default restart file format is now  instead of binary.
 
 Restarting a run using `runtype` = ‘continue’ requires restart data for
@@ -95,30 +95,8 @@ new file structure and then to  format. If the same physical
 parameterizations are used, the code should be able to execute from
 these files. However if different physics is used (for instance, mushy
 thermo instead of BL99), the code may still fail. To convert a v4.1
-restart file:
-
--  Edit the code **input\_templates/convert\_restarts.f90** for your
-   model configuration and path names. Compile and run this code to
-   create a binary restart file that can be read using v5. Copy the
-   resulting file to the **restart/** subdirectory in your working
-   directory.
-
--  In your working directory, turn off all tracer restart flags in
-   **ice\_in** and set the following:
-
-   -  runtype = ‘initial’
-
-   -  ice\_ic = ‘./restart/[your binary file name]’
-
-   -  restart = .true.
-
-   -  use\_restart\_time = .true.
-
-- In **CICE\_InitMod.F90**, comment out the call to
-  restartfile(ice\_ic) and uncomment the call to
-  restartfile\_v4(ice\_ic) immediately below it. This will read the
-  v4.1 binary file and write a v5  file containing the same
-  information.
+restart file, consult section 5.2 in the `CICE v5 documentation 
+<https://github.com/CICE-Consortium/CICE-svn-trunk/blob/master/cicedoc/cicedoc.pdf>`_.
 
 If restart files are taking a long time to be written serially (i.e.,
 not using PIO), see the next section.
@@ -133,13 +111,6 @@ to do this, but if not, try uncommenting the block of code at the end of
 subroutine *stress* in **ice\_dyn\_evp.F90** or **ice\_dyn\_eap.F90**.
 You will take a hit for the extra computations, but it will not be as
 bad as running with the underflows.
-
-In some configurations, multiple calls to scatter or gather global
-variables may overfill MPI’s buffers, causing the code to slow down
-(particularly when writing large output files such as restarts). To
-remedy this problem, set `BARRIERS yes` in **comp\_ice**. This
-synchronizes MPI messages, keeping the buffers in check.
-
 
 Debugging hints
 -----------------------
@@ -223,25 +194,9 @@ Known bugs
 Interpretation of albedos
 ----------------------------------------
 
-The snow-and-ice albedo, `albsni`, and diagnostic albedos `albice`, `albsno`,
-and `albpnd` are merged over categories but not scaled (divided) by the
-total ice area. (This is a change from CICE v4.1 for `albsni`.) The latter
-three history variables represent completely bare or completely snow- or
-melt-pond-covered ice; that is, they do not take into account the snow
-or melt pond fraction (`albsni` does, as does the code itself during
-thermodyamic computations). This is to facilitate comparison with
-typical values in measurements or other albedo parameterizations. The
-melt pond albedo `albpnd` is only computed for the Delta-Eddington
-shortwave case.
-
-With the Delta-Eddington parameterization, the albedo depends on the
-cosine of the zenith angle (:math:`\cos\varphi`, `coszen`) and is zero if
-the sun is below the horizon (:math:`\cos\varphi < 0`). Therefore
-time-averaged albedo fields would be low if a diurnal solar cycle is
-used, because zero values would be included in the average for half of
-each 24-hour period. To rectify this, a separate counter is used for the
-averaging that is incremented only when :math:`\cos\varphi > 0`. The
-albedos will still be zero in the dark, polar winter hemisphere.
+More information about interpretation of albedos can 
+be found in the 
+`Icepack documentation  <https://cice-consortium-icepack.readthedocs.io/en/master/user_guide/index.html>`_.
 
 
 Proliferating subprocess parameterizations

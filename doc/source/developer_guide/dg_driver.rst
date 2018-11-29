@@ -3,8 +3,8 @@
 .. _dev_driver:
 
 
-Driver and Coupling Implementation
-====================================
+Driver and Coupling 
+====================
 
 The driver and coupling layer is found in **cicecore/drivers/**.  The standalone driver is found
 under **cicecore/drivers/cice/** and other high level coupling layers are found in other directories.
