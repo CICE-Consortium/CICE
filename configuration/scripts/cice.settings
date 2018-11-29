@@ -38,8 +38,6 @@ setenv ICE_COMMDIR mpi
 if (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial
 
 ### Specialty code
-setenv CAM_ICE  no           # set to yes for CAM runs (single column) 
 setenv DITTO    no           # reproducible diagnostics
-setenv BARRIERS no           # prevent MPI buffer overflow during gather/scatter 
 setenv ICE_BLDDEBUG  false  # build debug flags
 
