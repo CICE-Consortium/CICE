@@ -124,8 +124,6 @@ html_theme = 'classic'
 html_theme_options = {
       "stickysidebar": "true",
       "externalrefs" : "true",
-      "bodyfont" : "tahoma",
-      "headfont" : "tahoma"
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
