@@ -22,12 +22,12 @@ if scripts in the case directory are run again later.
 
 If changes are needed in the **cice.run.setup.csh** script, it must be manually modified.
 
-Ensure that the block size ``block\_size\_x``, ``block\_size\_y``, and ``max\_blocks`` is
+Ensure that the block size ``block_size_x``, ``block_size_y``, and ``max_blocks`` is
 compatible with the processor\_shape and other domain options in **ice\_in**
 
 If using the rake or space-filling curve algorithms for block
 distribution (`distribution\_type` in **ice\_in**) the code will abort
-if ``max\_blocks`` is not large enough. The correct value is provided in the
+if ``max_blocks`` is not large enough. The correct value is provided in the
 diagnostic output.  Also, the spacecurve setting can only be used with certain
 block sizes that results in number of blocks in the x and y directions being
 only multiples of 2, 3, or 5.

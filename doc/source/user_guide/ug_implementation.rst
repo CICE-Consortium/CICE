@@ -744,13 +744,13 @@ For example, in the namelist:
 ::
 
   `histfreq` = ’1’, ’h’, ’d’, ’m’, ’y’
-  `histfreq\_n` = 1, 6, 0, 1, 1
-  `f\_hi` = ’1’
-  `f\_hs` = ’h’
-  `f\_Tsfc` = ’d’
-  `f\_aice` = ’m’
-  `f\_meltb` = ’mh’
-  `f\_iage` = ’x’
+  `histfreq_n` = 1, 6, 0, 1, 1
+  `f_hi` = ’1’
+  `f_hs` = ’h’
+  `f_Tsfc` = ’d’
+  `f_aice` = ’m’
+  `f_meltb` = ’mh’
+  `f_iage` = ’x’
 
 Here, `hi` will be written to a file on every timestep, `hs` will be
 written once every 6 hours, `aice` once a month, `meltb` once a month AND

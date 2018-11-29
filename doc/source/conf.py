@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'CICE'
-copyright = u'2018, Los Alamos National Security, LLC (code) and National Center for Atmospheric Research (documentation)'
+copyright = u'2018, Triad National Security, LLC (code) and National Center for Atmospheric Research (documentation)'
 author = u'CICE-Consortium'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -124,8 +124,6 @@ html_theme = 'classic'
 html_theme_options = {
       "stickysidebar": "true",
       "externalrefs" : "true",
-      "bodyfont" : "tahoma",
-      "headfont" : "tahoma"
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
