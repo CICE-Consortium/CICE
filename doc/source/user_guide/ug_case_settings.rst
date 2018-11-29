@@ -63,9 +63,7 @@ to support the CICE model.
    "ICE_ACCOUNT", "string", "batch account number", "set by cice.setup, .cice_proj or by default"
    "ICE_QUEUE", "string", "batch queue name", "set by cice.setup or by default"
    "ICE_THREADED", "true, false", "force threading in compile, will always compile threaded if ICE_NTHRDS :math:`> 1`", "false"
-   "CAM_ICE", "no, yes", "unused", "no"
    "DITTO", "no, yes", "turn on bit-for-bit global sums via real16", "no"
-   "BARRIERS", "no, yes", "turn on barriers between global scatters and gathers", "no"
    "ICE_BLDDEBUG", "true, false", "turn on compile debug flags", "false"
 
 
