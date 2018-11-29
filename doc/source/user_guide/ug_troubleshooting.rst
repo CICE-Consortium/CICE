@@ -112,13 +112,6 @@ subroutine *stress* in **ice\_dyn\_evp.F90** or **ice\_dyn\_eap.F90**.
 You will take a hit for the extra computations, but it will not be as
 bad as running with the underflows.
 
-In some configurations, multiple calls to scatter or gather global
-variables may overfill MPI’s buffers, causing the code to slow down
-(particularly when writing large output files such as restarts). To
-remedy this problem, set `BARRIERS yes` in **cice.settings**. This
-synchronizes MPI messages, keeping the buffers in check.
-
-
 Debugging hints
 -----------------------
 

@@ -107,7 +107,9 @@ Testing will be described in greater detail in the :ref:`testing` section.
   prints the CICE version to the terminal and exits.
 
 ``--setvers VERSION``
-  updates the CICE version in your sandbox.  The version should be some like n.m.p.string.
+  internally updates the CICE version in your sandbox. Those changes can then be commited (or not)
+  to the repository. --version will show the updated value. The argument VERSION is typically a
+  string like "5.1.2" but could be any alphanumeric string.
 
 ``--case``, ``-c`` CASE
   specifies the case name.  This can be either a relative path of an absolute path.  This cannot be used with --test or --suite.  Either ``--case``, ``--test``, or ``--suite`` is required.
