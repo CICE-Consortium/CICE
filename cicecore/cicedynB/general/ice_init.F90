@@ -1917,7 +1917,7 @@
          
       real (kind=dbl_kind), parameter :: &
          pi        = c4*atan(c1), & ! pi
-         days_to_s = 86400_dbl_kind
+         days_to_s = 86400._dbl_kind
       
       character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
       
