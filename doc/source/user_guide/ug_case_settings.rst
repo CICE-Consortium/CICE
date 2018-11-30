@@ -257,7 +257,6 @@ Table of namelist options
    "","", "``2``", "EAP dynamics", ""
    "","", "``1``", "dynamics ON", ""
    "","``revised_evp``", "true/false", "use revised EVP formulation", ""
-   "","``basalstress``", "true/false", "use bottom basal stress", ""
    "","``ndte``", "integer", "number of EVP subcycles", "240"
    "","``advection``", "``remap``", "linear remapping advection", "‘remap’"
    "","", "``upwind``", "donor cell advection", ""
