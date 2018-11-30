@@ -9,8 +9,8 @@
 ! sea ice as a collection of diamond-shaped floes. 
 ! Journal of Non-Newtonian Fluid Mechanics, 138(1), 22-32.
 !
-! Tsamados, M., D.L. Feltham, and A.V. Wilchinsky (2012). Impact on new
-! anisotropic rheology on simulations of Arctic sea ice. JGR, in press.
+! Tsamados, M., D.L. Feltham, and A.V. Wilchinsky (2013). Impact on new
+! anisotropic rheology on simulations of Arctic sea ice. JGR, 118, 91-107.
 !
 ! authors: Michel Tsamados, CPOM 
 !          David Schroeder, CPOM

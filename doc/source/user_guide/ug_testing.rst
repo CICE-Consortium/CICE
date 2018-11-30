@@ -908,16 +908,14 @@ If the regression comparisons fail, then you may want to run the QC test,
 Test Plotting
 ----------------
 
-The CICE scripts include a script (``timeseries.csh``) that will generate a timeseries 
-figure from the diagnostic output file.  
+The CICE scripts include a script (``timeseries.csh``) that will generate timeseries 
+figures from a diagnostic output file.  
 When running a test suite, the ``timeseries.csh`` script is automatically copied to the suite directory.  
-If the ``timeseries.csh`` script is to be used on a test / case that is not a part of a test suite, 
+If the ``timeseries.csh`` script is to be used on a test or case that is not a part of a test suite, 
 users will need to run the ``timeseries.csh`` script from the tests directory 
-(``./configuration/scripts/tests/timeseries.csh``), or copy it to a local directory and run it 
-locally (``cp configuration/scripts/tests/timeseries.csh .`` followed by 
-``./timeseries.csh /path/to/ice_diag.full_ITD``. The plotting script can be run
-on any of the output files - icefree, slab, full_ITD, land).  To generate the figure, 
-run the ``timeseries.csh`` script and pass the full path to the ice_diag file as an argument.  
+(``./configuration/scripts/tests/timeseries.csh ./path/``), or copy it to a local directory and run it 
+locally.  Because the script is designed for use in our test suites, it needs to be run in the directory 
+above the particular case being plotted.
 
 For example:
 
@@ -931,29 +929,24 @@ $ cd base_suite.t00
 
 Run the timeseries script on the desired case. ::
 
-$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/ice_diag.full_ITD
+$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
     
-The output figures are placed in the directory where the ice_diag file is located.
+The output figures are placed in the directory where the ``timeseries.csh`` script is run.
+
+To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
+
+     #!/bin/csh
+     foreach dir (`ls -1  | grep testid`)
+       echo $dir
+       timeseries.csh $dir
+     end
+
 
 This plotting script can be used to plot the following variables:
 
-  - area fraction
-  - average ice thickness (m)
-  - average snow depth (m)
-  - air temperature (C)
-  - shortwave radiation (:math:`W/m^2`)
-  - longwave radiation (:math:`W/m^2`)
-  - snowfall
-  - average salinity (ppt)
-  - surface temperature (C)
-  - outward longwave flux (:math:`W/m^2`)
-  - sensible heat flux (:math:`W/m^2`)
-  - latent heat flux (:math:`W/m^2`)
-  - top melt (m)
-  - bottom melt (m)
-  - lateral melt (m)
-  - new ice (m)
-  - congelation (m)
-  - snow-ice (m)
-  - initial energy change (:math:`W/m^2`)
+  - total ice area (:math:`km^2`)
+  - total ice extent (:math:`km^2`)
+  - total ice volume (:math:`m^3`)
+  - total snow volume (:math:`m^3`)
+  - RMS ice speed (:math:`m/s`)
 

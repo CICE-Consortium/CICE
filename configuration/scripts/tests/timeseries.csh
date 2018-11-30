@@ -34,7 +34,9 @@ endif
 
 set fieldlist=("total ice area  (km^2)" \
                "total ice extent(km^2)" \
-               "total ice volume (m^3)")
+               "total ice volume (m^3)" \
+               "total snw volume (m^3)" \
+               "rms ice speed    (m/s)" )
 
 # Get the filename for the latest log
 foreach file ($1/logs/cice.runlog.*)
@@ -82,7 +84,7 @@ set format x "%Y/%m/%d"
 # Axis tick marks
 set xtics rotate
 
-set title "Annual CICE Test $field (Diagnostic Print)" 
+set title "$field (Diagnostic Output)" 
 set ylabel "$field" 
 set xlabel "Simulation Day" 
 
@@ -104,8 +106,8 @@ else \
 EOF
 
 # Delete the data file
-rm data.txt
+rm -f data.txt
 if ( $baseline_exists ) then
-  rm data_baseline.txt
+  rm -f data_baseline.txt
 endif
 end
