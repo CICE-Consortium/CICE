@@ -933,6 +933,15 @@ $ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_ru
     
 The output figures are placed in the directory where the ``timeseries.csh`` script is run.
 
+To generate plots for all of the cases within a suite, create and run a script such as  ::
+
+     #!/bin/csh
+     foreach dir (`ls -1  | grep .c1`)
+       echo $dir
+       timeseries.csh $dir
+     end
+
+
 This plotting script can be used to plot the following variables:
 
   - total ice area (:math:`km^2`)
