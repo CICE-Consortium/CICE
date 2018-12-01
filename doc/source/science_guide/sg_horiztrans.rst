@@ -2,7 +2,7 @@
 
 .. _horiz-trans:
 
-Horizontal transport
+Horizontal Transport
 ====================
 
 We wish to solve the continuity or transport equation

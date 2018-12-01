@@ -240,7 +240,7 @@ To run the test::
 .. _boxslotcyl:
 
 ``boxslotcyl``
-^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 The ``boxslotcyl`` test case is an advection test configured to perform the slotted cylinder test 
 detailed in :cite:`Zalesak79`.  It is configured to run a 12-day simulation with 
