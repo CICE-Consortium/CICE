@@ -7,7 +7,7 @@ Documentation System
 
 With CICE development, corresponding updates or modification to the CICE
 documentation are required. Whenever you modify the model you should update
-documentation. CICE uses `readthedocs.org <readthedocs.org>`_ to create 
+documentation. CICE uses `readthedocs.org <https://readthedocs.org>`_ to create 
 online HTML and PDF documentation.
 
 FAQs
@@ -17,8 +17,8 @@ FAQs
 
    The CICE and Icepack documentation is written using reStructuredText (RST) markup language. 
    ReStructuredText is a markup language, like HTML, markdown, or LaTeX. 
-   `readthedocs.org <readthedocs.org>`_ is a tool for publishing RST documents in other formats 
-   such as HTML and PDF. Additional information about using RST and `readthedocs.org <readthedocs.org>`_ 
+   `readthedocs.org <https://readthedocs.org>`_ is a tool for publishing RST documents in other formats 
+   such as HTML and PDF. Additional information about using RST and `readthedocs.org <https://readthedocs.org>`_ 
    are found in the sections below.
 
 2) What is expected of *me* when changing the documentation?
@@ -59,15 +59,15 @@ Steps for Modifying Documentation
 Setting up readthedocs.org
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The CICE-Consortium recommends that developers use `readthedocs.org <readthedocs.org>`_ to generate and test
+The CICE-Consortium recommends that developers use `readthedocs.org <https://readthedocs.org>`_ to generate and test
 their contributions to the CICE documentation. This tool does not require external libraries to be built
 on each developer's personal computer and is free and easy to use. You can follow the steps below and also
-reference the `Getting Started <https://docs.readthedocs.io/en/latest/getting_started.html>`_ guide available from `readthedocs.org <readthedocs.org>`_. 
+reference the `Getting Started <https://docs.readthedocs.io/en/latest/getting_started.html>`_ guide available from `readthedocs.org <https://readthedocs.org>`_. 
 
-1. Sign up for a free account at `readthedocs.org <readthedocs.org>`_
+1. Sign up for a free account at `readthedocs.org <https://readthedocs.org>`_
 
    Select a username and password. These do not have to match your GitHub username and password, but having
-   the same username can be simpler if the user choses to do this. Below, 
+   the same username can be simpler if the user chooses to do this. Below, 
    USERNAME is a placeholder - you would need to replace this with your personal username. 
 
 2. Connect your GitHub account
@@ -195,7 +195,7 @@ converted with Pandoc.
 Using Sphinx
 ~~~~~~~~~~~~
 
-We recommend that you use `readthedocs.org <readthedocs.org>`_ to test documentation
+We recommend that you use `readthedocs.org <https://readthedocs.org>`_ to test documentation
 (see :ref:`moddocs`). However, it is also possible to use Sphinx to build and test documentation. 
 If you choose to follow this workflow, below are some tips for using Sphinx. 
 

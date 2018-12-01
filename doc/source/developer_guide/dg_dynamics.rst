@@ -73,7 +73,7 @@ parameters are namelist settings.  The following CPPs are no longer used in CICE
 
 as they have been migrated to :ref:`tabnamelist`
 
-  nx_global, ny_global, block_size_x, block_size_y, max_blocks, nilyr, nslyr, ncat, nblyr, n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep, n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trage, n_trfy, n_trlvl, n_trpnd, n_trbgcs, numin, numax
+  nx_global, ny_global, block_size_x, block_size_y, max_blocks, nilyr, nslyr, ncat, nblyr, n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep, numin, numax
 
 
 Time Manager
