@@ -30,7 +30,7 @@ kinds, and restart capabilities.
 Dynamics
 ~~~~~~~~~~~~~~
 
-Dyanamical Solvers
+Dynamical Solvers
 ************************
 
 The dynamics solvers are found in **cicecore/cicedynB/dynamics/**.  A couple of different solvers are

@@ -35,7 +35,7 @@ tracers, ice thickness :math:`h_{in}` and snow depth :math:`h_{sn}`:
 Although we maintain ice and snow volume instead of the thicknesses as
 state variables in CICE, the tracer form is used for volume transport
 (section :ref:`horiz-trans`). There are many other tracers
-available, whose values are contained in the `trcrn` array. Their
+available, whose values are contained in the ``trcrn`` array. Their
 transport equations typically have one of the following three forms
 
 .. math::
@@ -112,8 +112,7 @@ is not in use.
 
 Users may add any number of additional tracers that are transported conservatively,
 provided that the dependency ``trcr_depend`` is defined appropriately. 
-See Section :ref:`addtrcr` 
-for guidance on adding tracers.
+See Section :ref:`addtrcr` for guidance on adding tracers.
 
 Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, age of the ice, aerosols, 
 brine height, and the sea ice ecosystem.
