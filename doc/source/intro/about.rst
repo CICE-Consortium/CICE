@@ -1,4 +1,4 @@
-41;326;0c:tocdepth: 3
+:tocdepth: 3
 
 .. _about:
 
