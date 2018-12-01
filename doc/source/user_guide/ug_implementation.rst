@@ -705,7 +705,7 @@ in **ice\_in**. These settings for history files are set in the
 If `history\_file` = ‘iceh’ then the 
 filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
 depending on the output file format chosen in **cice.settings** (set
-`IO\_TYPE`). The netCDF history files are CF-compliant; header information for
+`ICE\_IOTYPE`). The netCDF history files are CF-compliant; header information for
 data contained in the netCDF files is displayed with the command `ncdump -h
 filename.nc`. Parallel netCDF output is available using the PIO library; the
 attribute `io\_flavor` distinguishes output files written with PIO from
@@ -888,7 +888,7 @@ Restart files
 *************
 
 CICE provides restart data in binary unformatted or netCDF formats, via
-the `IO\_TYPE` flag in **cice.settings** and namelist variable
+the `ICE\_IOTYPE` flag in **cice.settings** and namelist variable
 `restart\_format`. Restart and history files must use the same format. As
 with the history output, there is also an option for writing parallel netCDF
 restart files using PIO.
