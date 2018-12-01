@@ -35,7 +35,7 @@ tracers, ice thickness :math:`h_{in}` and snow depth :math:`h_{sn}`:
 Although we maintain ice and snow volume instead of the thicknesses as
 state variables in CICE, the tracer form is used for volume transport
 (section :ref:`horiz-trans`). There are many other tracers
-available, whose values are contained in the `trcrn` array. Their
+available, whose values are contained in the ``trcrn`` array. Their
 transport equations typically have one of the following three forms
 
 .. math::
@@ -54,15 +54,12 @@ Equation :eq:`transport-aT` describes the transport of surface
 temperature, whereas Equation :eq:`transport-viT` and Equation :eq:`transport-vsT`
 describe the transport of ice and snow enthalpy, salt, and passive
 tracers such as volume-weighted ice age and snow age. Each tracer field
-is given an integer index, `trcr_depend`, which has the value 0, 1, or 2
+is given an integer index, ``trcr_depend``, which has the value 0, 1, or 2
 depending on whether the appropriate conservation equation is
 Equation :eq:`transport-aT`, Equation :eq:`transport-viT`, or Equation :eq:`transport-vsT`,
 respectively. The total number of tracers is
-:math:`N_{tr}\ge 1`. In the default configuration there are two
-tracers: surface temperature and volume-weighted ice age. Tracers for
-melt ponds, level ice area and level ice volume (used to diagnose ridged ice area and volume) 
-are also available. Users may add any number of additional tracers that are transported 
-conservatively provided that `trcr_depend` is defined appropriately. See Section :ref:`addtrcr` 
+:math:`N_{tr}\ge 1`. Users may add any number of additional tracers that are transported 
+conservatively provided that ``trcr_depend`` is defined appropriately. See Section :ref:`addtrcr` 
 for guidance on adding tracers.
 
 Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, age of the ice, aerosols, 
