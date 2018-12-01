@@ -1,4 +1,4 @@
-:tocdepth: 3
+41;326;0c:tocdepth: 3
 
 .. _about:
 
@@ -30,8 +30,9 @@ This document describes the remainder of the CICE model. The CICE code is
 available from https://github.com/CICE-Consortium/CICE.
 
 The standard standalone CICE test configuration uses a 3 degree grid with 
-atmospheric data from 1997, available as detailed on the GitHub wiki. A 1 
-degree configuration and data are also available, along with some idealized 
+atmospheric data from 1997, available at
+https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data.
+A 1-degree configuration and data are also available, along with some idealized 
 configurations. The data files are designed only for testing the code, not 
 for use in production runs or as observational data. Please do not publish 
 results based on these data sets.
