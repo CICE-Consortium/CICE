@@ -13,8 +13,8 @@ for vector architectures.
 
 CICE consists of source code under the **cicecore/** directory that supports
 model dynamics and top-level control.  The column physics source code is
-under the icepack directory and this is implemented as a submodule in
-github from a separate repository (`CICE <https://github.com/CICE-Consortium/Icepack>`)
+under the **icepack/** directory and this is implemented as a submodule in
+github from a separate repository (`CICE <https://github.com/CICE-Consortium/Icepack>`_)
 There is also a **configuration/** directory that includes scripts
 for configuring CICE cases.
 
@@ -31,44 +31,44 @@ data is available from the ftp site.  The directory structure of CICE is
 as follows
 
 **LICENSE.pdf**
-  license and policy for using and sharing the code
+  license for using and sharing the code
 
 **DistributionPolicy.pdf**
-  license and policy for using and sharing the code
+  policy for using and sharing the code
 
 **README.md**
   basic information and pointers
 
 **icepack/**
-  subdirectory for the Icepack model.  The icepack subdirectory includes Icepack specific scripts, drivers, and documentation.  CICE only uses the columnphysics source code under **icepack/columnphysics/**.
+  the Icepack module.  The icepack subdirectory includes Icepack specific scripts, drivers, and documentation.  CICE only uses the columnphysics source code under **icepack/columnphysics/**.
 
 **cicecore/**
-  directory for CICE source code.
+  CICE source code
 
 **cicecore/cicedynB/**
-  directory for routines associated with the dynamics core.
+  routines associated with the dynamics core
 
 **cicecore/driver/**
-  directory for top level CICE drivers and coupling layers.
+  top-level CICE drivers and coupling layers
 
 **cicecore/shared/**
-  directory for CICE source code that is independent of the dynamical core.
+  CICE source code that is independent of the dynamical core
 
 **cicecore/version.txt**
   file that indicates the CICE model version.
 
 **configuration/scripts/**
-   directory of support scripts, see :ref:`dev_scripts`
+  support scripts, see :ref:`dev_scripts`
 
 **doc/**
-    documentation
+  documentation
 
 **cice.setup**
   main CICE script for creating cases
 
 A case (compile) directory is created upon initial execution of the script 
-**icepack.setup** at the user-specified location provided after the -c flag. 
-Executing the command ``./icepack.setup -h`` provides helpful information for 
+**cice.setup** at the user-specified location provided after the -c flag. 
+Executing the command ``./cice.setup -h`` provides helpful information for 
 this tool.
 
 
@@ -546,7 +546,7 @@ will be described in more detail in :ref:`tabnamelist`.
 The restart files supplied with the code release include the core
 variables on the default configuration, that is, with seven vertical
 layers and the ice thickness distribution defined by `kcatbound` = 0.
-Restart information for some tracers is also included in the  restart
+Restart information for some tracers is also included in the netCDF restart
 files.
 
 Three namelist variables control model initialization, `ice\_ic`, `runtype`,
@@ -699,17 +699,17 @@ History files
 *************
 
 Model output data is averaged over the period(s) given by `histfreq` and
-`histfreq\_n`, and written to binary or  files prepended by `history\_file`
+`histfreq\_n`, and written to binary or netCDF files prepended by `history\_file`
 in **ice\_in**. These settings for history files are set in the 
 **setup\_nml** section of **ice\_in** (see :ref:`tabnamelist`). 
 If `history\_file` = ‘iceh’ then the 
 filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
 depending on the output file format chosen in **cice.settings** (set
-`IO\_TYPE`). The history files are CF-compliant; header information for
-data contained in the files is displayed with the command `ncdump -h
-filename.nc`. Parallel output is available using the PIO library; the
+`IO\_TYPE`). The netCDF history files are CF-compliant; header information for
+data contained in the netCDF files is displayed with the command `ncdump -h
+filename.nc`. Parallel netCDF output is available using the PIO library; the
 attribute `io\_flavor` distinguishes output files written with PIO from
-those written with standard netcdf. With binary files, a separate header
+those written with standard netCDF. With binary files, a separate header
 file is written with equivalent information. Standard fields are output
 according to settings in the **icefields\_nml** section of **ice\_in** 
 (see :ref:`tabnamelist`).
@@ -762,7 +762,7 @@ as long as for a single frequency. If you only want monthly output, the
 most efficient setting is `histfreq` = ’m’,’x’,’x’,’x’,’x’. The code counts
 the number of desired streams (`nstreams`) based on `histfreq`.
 
-The history variable names must be unique for netcdf, so in cases where
+The history variable names must be unique for netCDF, so in cases where
 a variable is written at more than one frequency, the variable name is
 appended with the frequency in files after the first one. In the example
 above, `meltb` is called `meltb` in the monthly file (for backward
@@ -887,10 +887,10 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
 Restart files
 *************
 
-CICE now provides restart data in binary unformatted or  formats, via
+CICE provides restart data in binary unformatted or netCDF formats, via
 the `IO\_TYPE` flag in **cice.settings** and namelist variable
 `restart\_format`. Restart and history files must use the same format. As
-with the history output, there is also an option for writing parallel
+with the history output, there is also an option for writing parallel netCDF
 restart files using PIO.
 
 The restart files created by CICE contain all of the variables needed
@@ -901,7 +901,7 @@ which the restart data is to be read for a continuation run is set in
 `pointer\_file`. The code assumes that auxiliary binary tracer restart
 files will be identified using the same pointer and file name prefix,
 but with an additional character string in the file name that is
-associated with each tracer set. All variables are included in  restart
+associated with each tracer set. All variables are included in netCDF restart
 files.
 
 Additional namelist flags provide further control of restart behavior.
@@ -910,7 +910,7 @@ of a run when it is otherwise not scheduled to occur. The flag
 `use\_restart\_time` enables the user to choose to use the model date
 provided in the restart files. If `use\_restart\_time` = false then the
 initial model date stamp is determined from the namelist parameters.
-lcdf64 = true sets 64-bit  output, allowing larger file sizes.
+lcdf64 = true sets 64-bit netCDF output, allowing larger file sizes.
 
 Routines for gathering, scattering and (unformatted) reading and writing
 of the “extended" global grid, including the physical domain and ghost
@@ -921,10 +921,10 @@ restarts on the various tripole grids. They are accessed by setting
 available when using PIO; in this case extra halo update calls fill
 ghost cells for tripole grids (do not use PIO for regional grids).
 
-Two restart files are available for the CICE v5 and v6 code distributions 
+Two netCDF restart files are available for the CICE v5 and v6 code distributions 
 for the gx3 and gx1 grids (see :ref:`force` for information about obtaining these files).
-They were created using the default model
-configuration (settings as in **cice.settings** and **ice\_in**), but
+They were created using the default v5 model
+configuration, but
 initialized with no ice. The gx3 case was run for 1 year using the 1997
 forcing data provided with the code. The gx1 case was run for 20 years,
 so that the date of restart in the file is 1978-01-01. Note that the
