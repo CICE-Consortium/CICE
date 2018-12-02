@@ -66,8 +66,6 @@ fraction, or through the full depth of snow and ice, in which case they utilize 
 bio grid and can depend on the brine fraction or the ice volume, if the brine fraction 
 is not in use.
 
-.. _tracers
-
 .. csv-table:: *Tracer flags and indices*
    :header: "flag", "num tracers", "dependency", "index (CICE grid)", "index (bio grid)"
    :widths: 12, 12, 18, 18, 18
