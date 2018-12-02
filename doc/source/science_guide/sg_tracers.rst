@@ -66,9 +66,9 @@ fraction, or through the full depth of snow and ice, in which case they utilize 
 bio grid and can depend on the brine fraction or the ice volume, if the brine fraction 
 is not in use.
 
-.. csv-table:: *CICE settings xxx*
-   :header: "variable", "options/format", "description", "recommended value", "xxx"
-   :widths: 15, 15, 25, 20, 10
+.. csv-table:: *Tracer flags and indices*
+   :header: "flag", "num tracers", "dependency", "index (CICE grid)", "index (bio grid)"
+   :widths: 12, 12, 18, 18, 18
 
    "default", "1", "aice", "nt_Tsfc=1", " "
    "default", "1", "vice", "nt_qice", " "
@@ -76,7 +76,7 @@ is not in use.
    "default", "1", "vice", "nt_sice", " "
    "tr_iage", "1", "vice", "nt_iage", " "
    "tr_FY", "1", "aice", "nt_FY", " "
-   "tr_lvl", "2", "aice", "nt_alvl, " "
+   "tr_lvl", "2", "aice", "nt_alvl", " "
    " ", " ", "vice", "nt_vlvl", " "
    "tr_pond_cesm", "2", "aice", "nt_apnd", " " 
    " ", " ", "apnd", "nt_vpnd", " "
@@ -106,6 +106,7 @@ is not in use.
    "tr_bgc_hum", " ", "fbri or (a,v)ice", "nt_bgc_hum", "nlt_bgc_hum"
    "tr_zaero", "n_zaero", "fbri or (a,v)ice", "nt_zaero", "nlt_zaero"
    " ", "1", "fbri", "nt_zbgc_frac", " "
+
 
 
 Users may add any number of additional tracers that are transported conservatively,
