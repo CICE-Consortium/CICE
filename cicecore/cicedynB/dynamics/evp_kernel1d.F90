@@ -180,9 +180,9 @@ module bench_v2
     !- modules -------------------------------------------------------------------
     use ice_kinds_mod
     use dmi_omp, only : domp_get_domain
-    use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5
+    use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c1
     use icepack_parameters, only: puny
-    use ice_dyn_shared, only: ecci, denom1, arlx1i
+    use ice_dyn_shared, only: ecci, denom1, arlx1i, Ktens, revp
     !- directives ----------------------------------------------------------------
     implicit none
     ! arguments ------------------------------------------------------------------
@@ -312,21 +312,21 @@ module bench_v2
     ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
     !-----------------------------------------------------------------
   
-      stressp_1(iw) = (stressp_1(iw) + c1ne*(divune - Deltane)) * denom1
-      stressp_2(iw) = (stressp_2(iw) + c1nw*(divunw - Deltanw)) * denom1
-      stressp_3(iw) = (stressp_3(iw) + c1sw*(divusw - Deltasw)) * denom1
-      stressp_4(iw) = (stressp_4(iw) + c1se*(divuse - Deltase)) * denom1
+      stressp_1(iw) = (stressp_1(iw)*(c1-arlx1i*revp) + c1ne*(divune*(c1+Ktens) - Deltane*(c1-Ktens))) * denom1
+      stressp_2(iw) = (stressp_2(iw)*(c1-arlx1i*revp) + c1nw*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))) * denom1
+      stressp_3(iw) = (stressp_3(iw)*(c1-arlx1i*revp) + c1sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))) * denom1
+      stressp_4(iw) = (stressp_4(iw)*(c1-arlx1i*revp) + c1se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))) * denom1
   
-      stressm_1(iw) = (stressm_1(iw) + c0ne*tensionne) * denom1
-      stressm_2(iw) = (stressm_2(iw) + c0nw*tensionnw) * denom1
-      stressm_3(iw) = (stressm_3(iw) + c0sw*tensionsw) * denom1
-      stressm_4(iw) = (stressm_4(iw) + c0se*tensionse) * denom1
+      stressm_1(iw) = (stressm_1(iw)*(c1-arlx1i*revp) + c0ne*tensionne)*(c1+Ktens) * denom1
+      stressm_2(iw) = (stressm_2(iw)*(c1-arlx1i*revp) + c0nw*tensionnw)*(c1+Ktens) * denom1
+      stressm_3(iw) = (stressm_3(iw)*(c1-arlx1i*revp) + c0sw*tensionsw)*(c1+Ktens) * denom1
+      stressm_4(iw) = (stressm_4(iw)*(c1-arlx1i*revp) + c0se*tensionse)*(c1+Ktens) * denom1
       
-      stress12_1(iw) = (stress12_1(iw) + c0ne*shearne*p5) * denom1
-      stress12_2(iw) = (stress12_2(iw) + c0nw*shearnw*p5) * denom1
-      stress12_3(iw) = (stress12_3(iw) + c0sw*shearsw*p5) * denom1
-      stress12_4(iw) = (stress12_4(iw) + c0se*shearse*p5) * denom1
-  
+      stress12_1(iw) = (stress12_1(iw)*(c1-arlx1i*revp) + c0ne*shearne*p5*(c1+Ktens)) * denom1
+      stress12_2(iw) = (stress12_2(iw)*(c1-arlx1i*revp) + c0nw*shearnw*p5*(c1+Ktens)) * denom1
+      stress12_3(iw) = (stress12_3(iw)*(c1-arlx1i*revp) + c0sw*shearsw*p5*(c1+Ktens)) * denom1
+      stress12_4(iw) = (stress12_4(iw)*(c1-arlx1i*revp) + c0se*shearse*p5*(c1+Ktens)) * denom1
+
     !-----------------------------------------------------------------
     ! combinations of the stresses for the momentum equation ! kg/s^2
     !-----------------------------------------------------------------
@@ -436,9 +436,9 @@ module bench_v2
     !- modules -------------------------------------------------------------------
     use ice_kinds_mod
     use dmi_omp, only : domp_get_domain
-    use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c0
+    use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c0, c1
     use icepack_parameters, only: puny
-    use ice_dyn_shared, only: ecci, denom1, arlx1i
+    use ice_dyn_shared, only: ecci, denom1, arlx1i, Ktens, revp
     !- directives ----------------------------------------------------------------
     implicit none
     ! arguments ------------------------------------------------------------------
@@ -496,195 +496,195 @@ module bench_v2
     ! strain rates
     ! NOTE these are actually strain rates * area  (m^2/s)
     !-----------------------------------------------------------------
-       ! divergence  =  e_11 + e_22
-       tmp_uvel_ee = uvel(ee(iw))
-       tmp_vvel_se = vvel(se(iw))
-       tmp_vvel_ee = vvel(ee(iw))
-       tmp_vvel_ne = vvel(ne(iw))
-       tmp_uvel_ne = uvel(ne(iw))
-       tmp_uvel_se = uvel(se(iw))
+      ! divergence  =  e_11 + e_22
+      tmp_uvel_ee = uvel(ee(iw))
+      tmp_vvel_se = vvel(se(iw))
+      tmp_vvel_ee = vvel(ee(iw))
+      tmp_vvel_ne = vvel(ne(iw))
+      tmp_uvel_ne = uvel(ne(iw))
+      tmp_uvel_se = uvel(se(iw))
   
-       divune    = cyp*uvel(iw) - dyt(iw)*tmp_uvel_ee                       &
-                 + cxp*vvel(iw) - dxt(iw)*tmp_vvel_se
-       divunw    = cym*tmp_uvel_ee + dyt(iw)*uvel(iw)                       &
-                 + cxp*tmp_vvel_ee - dxt(iw)*tmp_vvel_ne
-       divusw    = cym*tmp_uvel_ne + dyt(iw)*tmp_uvel_se                   &
-                 + cxm*tmp_vvel_ne + dxt(iw)*tmp_vvel_ee
-       divuse    = cyp*tmp_uvel_se - dyt(iw)*tmp_uvel_ne                   &
-                 + cxm*tmp_vvel_se + dxt(iw)*vvel(iw)
+      divune    = cyp*uvel(iw) - dyt(iw)*tmp_uvel_ee                       &
+                + cxp*vvel(iw) - dxt(iw)*tmp_vvel_se
+      divunw    = cym*tmp_uvel_ee + dyt(iw)*uvel(iw)                       &
+                + cxp*tmp_vvel_ee - dxt(iw)*tmp_vvel_ne
+      divusw    = cym*tmp_uvel_ne + dyt(iw)*tmp_uvel_se                   &
+                + cxm*tmp_vvel_ne + dxt(iw)*tmp_vvel_ee
+      divuse    = cyp*tmp_uvel_se - dyt(iw)*tmp_uvel_ne                   &
+                + cxm*tmp_vvel_se + dxt(iw)*vvel(iw)
   
-       ! tension strain rate  =  e_11 - e_22
-       tensionne = -cym*uvel(iw) - dyt(iw)*tmp_uvel_ee                      &
-                 +  cxm*vvel(iw) + dxt(iw)*tmp_vvel_se
-       tensionnw = -cyp*tmp_uvel_ee + dyt(iw)*uvel(iw)                      &
-                 +  cxm*tmp_vvel_ee + dxt(iw)*tmp_vvel_ne
-       tensionsw = -cyp*tmp_uvel_ne + dyt(iw)*tmp_uvel_se                  &
-                 +  cxp*tmp_vvel_ne - dxt(iw)*tmp_vvel_ee
-       tensionse = -cym*tmp_uvel_se - dyt(iw)*tmp_uvel_ne                  &
-                 +  cxp*tmp_vvel_se - dxt(iw)*vvel(iw)
+      ! tension strain rate  =  e_11 - e_22
+      tensionne = -cym*uvel(iw) - dyt(iw)*tmp_uvel_ee                      &
+                +  cxm*vvel(iw) + dxt(iw)*tmp_vvel_se
+      tensionnw = -cyp*tmp_uvel_ee + dyt(iw)*uvel(iw)                      &
+                +  cxm*tmp_vvel_ee + dxt(iw)*tmp_vvel_ne
+      tensionsw = -cyp*tmp_uvel_ne + dyt(iw)*tmp_uvel_se                  &
+                +  cxp*tmp_vvel_ne - dxt(iw)*tmp_vvel_ee
+      tensionse = -cym*tmp_uvel_se - dyt(iw)*tmp_uvel_ne                  &
+                +  cxp*tmp_vvel_se - dxt(iw)*vvel(iw)
   
-       ! shearing strain rate  =  e_12
-       shearne = -cym*vvel(iw) - dyt(iw)*tmp_vvel_ee                        &
-               -  cxm*uvel(iw) - dxt(iw)*tmp_uvel_se
-       shearnw = -cyp*tmp_vvel_ee + dyt(iw)*vvel(iw)                        &
-               -  cxm*tmp_uvel_ee - dxt(iw)*tmp_uvel_ne
-       shearsw = -cyp*tmp_vvel_ne + dyt(iw)*tmp_vvel_se                    &
-               -  cxp*tmp_uvel_ne + dxt(iw)*tmp_uvel_ee
-       shearse = -cym*tmp_vvel_se - dyt(iw)*tmp_vvel_ne                    &
-               -  cxp*tmp_uvel_se + dxt(iw)*uvel(iw)
+      ! shearing strain rate  =  e_12
+      shearne = -cym*vvel(iw) - dyt(iw)*tmp_vvel_ee                        &
+              -  cxm*uvel(iw) - dxt(iw)*tmp_uvel_se
+      shearnw = -cyp*tmp_vvel_ee + dyt(iw)*vvel(iw)                        &
+              -  cxm*tmp_uvel_ee - dxt(iw)*tmp_uvel_ne
+      shearsw = -cyp*tmp_vvel_ne + dyt(iw)*tmp_vvel_se                    &
+              -  cxp*tmp_uvel_ne + dxt(iw)*tmp_uvel_ee
+      shearse = -cym*tmp_vvel_se - dyt(iw)*tmp_vvel_ne                    &
+              -  cxp*tmp_uvel_se + dxt(iw)*uvel(iw)
        
-       ! Delta (in the denominator of zeta, eta)
-       Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-       Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-       Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
-       Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
+      ! Delta (in the denominator of zeta, eta)
+      Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
+      Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
+      Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+      Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
   
-       !-----------------------------------------------------------------
-       ! on last subcycle, save quantities for mechanical redistribution
-       !-----------------------------------------------------------------
-       divu(iw) = p25*(divune + divunw + divuse + divusw) * tarear(iw)
-       rdg_conv(iw)  = -min(divu(iw),c0)    ! Could move outside the entire "kernel"
-       rdg_shear(iw) = p5*( p25*(Deltane + Deltanw + Deltase + Deltasw) * tarear(iw) -abs(divu(iw)) )
+      !-----------------------------------------------------------------
+      ! on last subcycle, save quantities for mechanical redistribution
+      !-----------------------------------------------------------------
+      divu(iw) = p25*(divune + divunw + divuse + divusw) * tarear(iw)
+      rdg_conv(iw)  = -min(divu(iw),c0)    ! Could move outside the entire "kernel"
+      rdg_shear(iw) = p5*( p25*(Deltane + Deltanw + Deltase + Deltasw) * tarear(iw) -abs(divu(iw)) )
 
-       ! diagnostic only
-       ! shear = sqrt(tension**2 + shearing**2)
-       shear(iw) = p25*tarear(iw)*sqrt( &
-                 (tensionne + tensionnw + tensionse + tensionsw)**2 &
-                +  (shearne +   shearnw +   shearse +   shearsw)**2)
+      ! diagnostic only
+      ! shear = sqrt(tension**2 + shearing**2)
+      shear(iw) = p25*tarear(iw)*sqrt( &
+                (tensionne + tensionnw + tensionse + tensionsw)**2 &
+               +  (shearne +   shearnw +   shearse +   shearsw)**2)
 
     !-----------------------------------------------------------------
     ! replacement pressure/Delta                   ! kg/s
     ! save replacement pressure for principal stress calculation
     !-----------------------------------------------------------------
-       c0ne = strength(iw)/max(Deltane,tinyarea)
-       c0nw = strength(iw)/max(Deltanw,tinyarea)
-       c0sw = strength(iw)/max(Deltasw,tinyarea)
-       c0se = strength(iw)/max(Deltase,tinyarea)
-  
-       c1ne = c0ne*arlx1i
-       c1nw = c0nw*arlx1i
-       c1sw = c0sw*arlx1i
-       c1se = c0se*arlx1i
-  
-       c0ne = c1ne*ecci
-       c0nw = c1nw*ecci
-       c0sw = c1sw*ecci
-       c0se = c1se*ecci
+      c0ne = strength(iw)/max(Deltane,tinyarea)
+      c0nw = strength(iw)/max(Deltanw,tinyarea)
+      c0sw = strength(iw)/max(Deltasw,tinyarea)
+      c0se = strength(iw)/max(Deltase,tinyarea)
+ 
+      c1ne = c0ne*arlx1i
+      c1nw = c0nw*arlx1i
+      c1sw = c0sw*arlx1i
+      c1se = c0se*arlx1i
+ 
+      c0ne = c1ne*ecci
+      c0nw = c1nw*ecci
+      c0sw = c1sw*ecci
+      c0se = c1se*ecci
   
     !-----------------------------------------------------------------
     ! the stresses                            ! kg/s^2
     ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
     !-----------------------------------------------------------------
-  
-       stressp_1(iw) = (stressp_1(iw) + c1ne*(divune - Deltane)) * denom1
-       stressp_2(iw) = (stressp_2(iw) + c1nw*(divunw - Deltanw)) * denom1
-       stressp_3(iw) = (stressp_3(iw) + c1sw*(divusw - Deltasw)) * denom1
-       stressp_4(iw) = (stressp_4(iw) + c1se*(divuse - Deltase)) * denom1
-  
-       stressm_1(iw) = (stressm_1(iw) + c0ne*tensionne) * denom1
-       stressm_2(iw) = (stressm_2(iw) + c0nw*tensionnw) * denom1
-       stressm_3(iw) = (stressm_3(iw) + c0sw*tensionsw) * denom1
-       stressm_4(iw) = (stressm_4(iw) + c0se*tensionse) * denom1
-      
-       stress12_1(iw) = (stress12_1(iw) + c0ne*shearne*p5) * denom1
-       stress12_2(iw) = (stress12_2(iw) + c0nw*shearnw*p5) * denom1
-       stress12_3(iw) = (stress12_3(iw) + c0sw*shearsw*p5) * denom1
-       stress12_4(iw) = (stress12_4(iw) + c0se*shearse*p5) * denom1
-  
+
+      stressp_1(iw) = (stressp_1(iw)*(c1-arlx1i*revp) + c1ne*(divune*(c1+Ktens) - Deltane*(c1-Ktens))) * denom1
+      stressp_2(iw) = (stressp_2(iw)*(c1-arlx1i*revp) + c1nw*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))) * denom1
+      stressp_3(iw) = (stressp_3(iw)*(c1-arlx1i*revp) + c1sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))) * denom1
+      stressp_4(iw) = (stressp_4(iw)*(c1-arlx1i*revp) + c1se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))) * denom1
+ 
+      stressm_1(iw) = (stressm_1(iw)*(c1-arlx1i*revp) + c0ne*tensionne)*(c1+Ktens) * denom1
+      stressm_2(iw) = (stressm_2(iw)*(c1-arlx1i*revp) + c0nw*tensionnw)*(c1+Ktens) * denom1
+      stressm_3(iw) = (stressm_3(iw)*(c1-arlx1i*revp) + c0sw*tensionsw)*(c1+Ktens) * denom1
+      stressm_4(iw) = (stressm_4(iw)*(c1-arlx1i*revp) + c0se*tensionse)*(c1+Ktens) * denom1
+
+      stress12_1(iw) = (stress12_1(iw)*(c1-arlx1i*revp) + c0ne*shearne*p5*(c1+Ktens)) * denom1
+      stress12_2(iw) = (stress12_2(iw)*(c1-arlx1i*revp) + c0nw*shearnw*p5*(c1+Ktens)) * denom1
+      stress12_3(iw) = (stress12_3(iw)*(c1-arlx1i*revp) + c0sw*shearsw*p5*(c1+Ktens)) * denom1
+      stress12_4(iw) = (stress12_4(iw)*(c1-arlx1i*revp) + c0se*shearse*p5*(c1+Ktens)) * denom1
+ 
     !-----------------------------------------------------------------
     ! combinations of the stresses for the momentum equation ! kg/s^2
     !-----------------------------------------------------------------
   
-       ssigpn  = stressp_1(iw) + stressp_2(iw)
-       ssigps  = stressp_3(iw) + stressp_4(iw)
-       ssigpe  = stressp_1(iw) + stressp_4(iw)
-       ssigpw  = stressp_2(iw) + stressp_3(iw)
-       ssigp1  =(stressp_1(iw) + stressp_3(iw))*p055
-       ssigp2  =(stressp_2(iw) + stressp_4(iw))*p055
-  
-       ssigmn  = stressm_1(iw) + stressm_2(iw)
-       ssigms  = stressm_3(iw) + stressm_4(iw)
-       ssigme  = stressm_1(iw) + stressm_4(iw)
-       ssigmw  = stressm_2(iw) + stressm_3(iw)
-       ssigm1  =(stressm_1(iw) + stressm_3(iw))*p055
-       ssigm2  =(stressm_2(iw) + stressm_4(iw))*p055
-  
-       ssig12n = stress12_1(iw) + stress12_2(iw)
-       ssig12s = stress12_3(iw) + stress12_4(iw)
-       ssig12e = stress12_1(iw) + stress12_4(iw)
-       ssig12w = stress12_2(iw) + stress12_3(iw)
-       ssig121 =(stress12_1(iw) + stress12_3(iw))*p111
-       ssig122 =(stress12_2(iw) + stress12_4(iw))*p111
-  
-       csigpne = p111*stressp_1(iw) + ssigp2 + p027*stressp_3(iw)
-       csigpnw = p111*stressp_2(iw) + ssigp1 + p027*stressp_4(iw)
-       csigpsw = p111*stressp_3(iw) + ssigp2 + p027*stressp_1(iw)
-       csigpse = p111*stressp_4(iw) + ssigp1 + p027*stressp_2(iw)
-       
-       csigmne = p111*stressm_1(iw) + ssigm2 + p027*stressm_3(iw)
-       csigmnw = p111*stressm_2(iw) + ssigm1 + p027*stressm_4(iw)
-       csigmsw = p111*stressm_3(iw) + ssigm2 + p027*stressm_1(iw)
-       csigmse = p111*stressm_4(iw) + ssigm1 + p027*stressm_2(iw)
-       
-       csig12ne = p222*stress12_1(iw) + ssig122 + p055*stress12_3(iw)
-       csig12nw = p222*stress12_2(iw) + ssig121 + p055*stress12_4(iw)
-       csig12sw = p222*stress12_3(iw) + ssig122 + p055*stress12_1(iw)
-       csig12se = p222*stress12_4(iw) + ssig121 + p055*stress12_2(iw)
-  
-       str12ew = p5*dxt(iw)*(p333*ssig12e + p166*ssig12w)
-       str12we = p5*dxt(iw)*(p333*ssig12w + p166*ssig12e)
-       str12ns = p5*dyt(iw)*(p333*ssig12n + p166*ssig12s)
-       str12sn = p5*dyt(iw)*(p333*ssig12s + p166*ssig12n)
-  
+      ssigpn  = stressp_1(iw) + stressp_2(iw)
+      ssigps  = stressp_3(iw) + stressp_4(iw)
+      ssigpe  = stressp_1(iw) + stressp_4(iw)
+      ssigpw  = stressp_2(iw) + stressp_3(iw)
+      ssigp1  =(stressp_1(iw) + stressp_3(iw))*p055
+      ssigp2  =(stressp_2(iw) + stressp_4(iw))*p055
+ 
+      ssigmn  = stressm_1(iw) + stressm_2(iw)
+      ssigms  = stressm_3(iw) + stressm_4(iw)
+      ssigme  = stressm_1(iw) + stressm_4(iw)
+      ssigmw  = stressm_2(iw) + stressm_3(iw)
+      ssigm1  =(stressm_1(iw) + stressm_3(iw))*p055
+      ssigm2  =(stressm_2(iw) + stressm_4(iw))*p055
+ 
+      ssig12n = stress12_1(iw) + stress12_2(iw)
+      ssig12s = stress12_3(iw) + stress12_4(iw)
+      ssig12e = stress12_1(iw) + stress12_4(iw)
+      ssig12w = stress12_2(iw) + stress12_3(iw)
+      ssig121 =(stress12_1(iw) + stress12_3(iw))*p111
+      ssig122 =(stress12_2(iw) + stress12_4(iw))*p111
+ 
+      csigpne = p111*stressp_1(iw) + ssigp2 + p027*stressp_3(iw)
+      csigpnw = p111*stressp_2(iw) + ssigp1 + p027*stressp_4(iw)
+      csigpsw = p111*stressp_3(iw) + ssigp2 + p027*stressp_1(iw)
+      csigpse = p111*stressp_4(iw) + ssigp1 + p027*stressp_2(iw)
+      
+      csigmne = p111*stressm_1(iw) + ssigm2 + p027*stressm_3(iw)
+      csigmnw = p111*stressm_2(iw) + ssigm1 + p027*stressm_4(iw)
+      csigmsw = p111*stressm_3(iw) + ssigm2 + p027*stressm_1(iw)
+      csigmse = p111*stressm_4(iw) + ssigm1 + p027*stressm_2(iw)
+      
+      csig12ne = p222*stress12_1(iw) + ssig122 + p055*stress12_3(iw)
+      csig12nw = p222*stress12_2(iw) + ssig121 + p055*stress12_4(iw)
+      csig12sw = p222*stress12_3(iw) + ssig122 + p055*stress12_1(iw)
+      csig12se = p222*stress12_4(iw) + ssig121 + p055*stress12_2(iw)
+ 
+      str12ew = p5*dxt(iw)*(p333*ssig12e + p166*ssig12w)
+      str12we = p5*dxt(iw)*(p333*ssig12w + p166*ssig12e)
+      str12ns = p5*dyt(iw)*(p333*ssig12n + p166*ssig12s)
+      str12sn = p5*dyt(iw)*(p333*ssig12s + p166*ssig12n)
+ 
     !-----------------------------------------------------------------
     ! for dF/dx (u momentum)
     !-----------------------------------------------------------------
-       strp_tmp  = p25*dyt(iw)*(p333*ssigpn  + p166*ssigps)
-       strm_tmp  = p25*dyt(iw)*(p333*ssigmn  + p166*ssigms)
-  
-       ! northeast (iw)
-       str1(iw) = -strp_tmp - strm_tmp - str12ew &
-                  + dxhy*(-csigpne + csigmne) + dyhx*csig12ne
-  
-       ! northwest (i+1,j)
-       str2(iw) = strp_tmp + strm_tmp - str12we &
-                  + dxhy*(-csigpnw + csigmnw) + dyhx*csig12nw
-  
-       strp_tmp  = p25*dyt(iw)*(p333*ssigps  + p166*ssigpn)
-       strm_tmp  = p25*dyt(iw)*(p333*ssigms  + p166*ssigmn)
-  
-       ! southeast (i,j+1)
-       str3(iw) = -strp_tmp - strm_tmp + str12ew &
-                  + dxhy*(-csigpse + csigmse) + dyhx*csig12se
-  
-       ! southwest (i+1,j+1)
-       str4(iw) = strp_tmp + strm_tmp + str12we &
-                  + dxhy*(-csigpsw + csigmsw) + dyhx*csig12sw
-  
+      strp_tmp  = p25*dyt(iw)*(p333*ssigpn  + p166*ssigps)
+      strm_tmp  = p25*dyt(iw)*(p333*ssigmn  + p166*ssigms)
+ 
+      ! northeast (iw)
+      str1(iw) = -strp_tmp - strm_tmp - str12ew &
+                 + dxhy*(-csigpne + csigmne) + dyhx*csig12ne
+ 
+      ! northwest (i+1,j)
+      str2(iw) = strp_tmp + strm_tmp - str12we &
+                 + dxhy*(-csigpnw + csigmnw) + dyhx*csig12nw
+ 
+      strp_tmp  = p25*dyt(iw)*(p333*ssigps  + p166*ssigpn)
+      strm_tmp  = p25*dyt(iw)*(p333*ssigms  + p166*ssigmn)
+ 
+      ! southeast (i,j+1)
+      str3(iw) = -strp_tmp - strm_tmp + str12ew &
+                 + dxhy*(-csigpse + csigmse) + dyhx*csig12se
+ 
+      ! southwest (i+1,j+1)
+      str4(iw) = strp_tmp + strm_tmp + str12we &
+                 + dxhy*(-csigpsw + csigmsw) + dyhx*csig12sw
+ 
     !-----------------------------------------------------------------
     ! for dF/dy (v momentum)
     !-----------------------------------------------------------------
-       strp_tmp  = p25*dxt(iw)*(p333*ssigpe  + p166*ssigpw)
-       strm_tmp  = p25*dxt(iw)*(p333*ssigme  + p166*ssigmw)
-  
-       ! northeast (i,j)
-       str5(iw) = -strp_tmp + strm_tmp - str12ns &
-                  - dyhx*(csigpne + csigmne) + dxhy*csig12ne
-  
-       ! southeast (i,j+1)
-       str6(iw) = strp_tmp - strm_tmp - str12sn &
-                  - dyhx*(csigpse + csigmse) + dxhy*csig12se
-  
-       strp_tmp  = p25*dxt(iw)*(p333*ssigpw  + p166*ssigpe)
-       strm_tmp  = p25*dxt(iw)*(p333*ssigmw  + p166*ssigme)
-  
-       ! northwest (i+1,j)
-       str7(iw) = -strp_tmp + strm_tmp + str12ns &
-                  - dyhx*(csigpnw + csigmnw) + dxhy*csig12nw
-  
-       ! southwest (i+1,j+1)
-       str8(iw) = strp_tmp - strm_tmp + str12sn &
-                  - dyhx*(csigpsw + csigmsw) + dxhy*csig12sw
+      strp_tmp  = p25*dxt(iw)*(p333*ssigpe  + p166*ssigpw)
+      strm_tmp  = p25*dxt(iw)*(p333*ssigme  + p166*ssigmw)
+ 
+      ! northeast (i,j)
+      str5(iw) = -strp_tmp + strm_tmp - str12ns &
+                 - dyhx*(csigpne + csigmne) + dxhy*csig12ne
+ 
+      ! southeast (i,j+1)
+      str6(iw) = strp_tmp - strm_tmp - str12sn &
+                 - dyhx*(csigpse + csigmse) + dxhy*csig12se
+ 
+      strp_tmp  = p25*dxt(iw)*(p333*ssigpw  + p166*ssigpe)
+      strm_tmp  = p25*dxt(iw)*(p333*ssigmw  + p166*ssigme)
+ 
+      ! northwest (i+1,j)
+      str7(iw) = -strp_tmp + strm_tmp + str12ns &
+                 - dyhx*(csigpnw + csigmnw) + dxhy*csig12nw
+ 
+      ! southwest (i+1,j+1)
+      str8(iw) = strp_tmp - strm_tmp + str12sn &
+                 - dyhx*(csigpsw + csigmsw) + dxhy*csig12sw
     enddo   
     !$acc end parallel
   end subroutine stress_l
