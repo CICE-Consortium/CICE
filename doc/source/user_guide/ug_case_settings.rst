@@ -271,6 +271,8 @@ Table of namelist options
    "","", "``-1``", "Transport Disabled", ""
    "","``basalstress``", "true/false", "use basal stress parameterization for landfast ice", ""
    "","``k1``", "real", "1st free parameter for landfast parameterization", "8."
+   "","``e_ratio``", "real", "EVP ellipse aspect ratio", "2.0"
+   "","``Ktens``", "real", "Tensile strength factor (see :cite:`Konig10`)", "0.0"
    "","", "", "", ""
    "","*shortwave_nml*", "", "", ""
    "","", "", "**Shortwave**", ""
