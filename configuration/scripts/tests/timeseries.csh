@@ -1,10 +1,13 @@
 #!/bin/csh
 
 # Check to see if test case directory was passed
-if ( $1 == "" ) then
-  echo "To generate timeseries plots, this script must be passed a directory."
-  echo "It will pull the diagnostic data from the most recently modified log file."
+if ( $1 == "-h" ) then
+  echo "To generate timeseries plots, this script can be passed a directory"
+  echo "containing a logs/ subdirectory, or it can be run in the directory with"
+  echo "the log files, without being passed a directory."
   echo "Example: ./timeseries.csh ./annual_gx3_conrad_4x1.t00"
+  echo "Example: ./timeseries.csh"
+  echo "It will pull the diagnostic data from the most recently modified log file."
   exit -1
 endif
 set basename = `echo $1 | sed -e 's#/$##' | sed -e 's/^\.\///'`
@@ -16,8 +19,13 @@ set basename = `echo $1 | sed -e 's#/$##' | sed -e 's/^\.\///'`
 set xrange = ''
 
 # Determine if BASELINE dataset exists
+if ( $1 == "" ) then
+set basefile_dir = "IGNORE"
+else
 source $1/cice.settings
 set basefile_dir = "$ICE_BASELINE/$ICE_BASECOM/$ICE_TESTNAME"
+endif
+
 if ( -d $basefile_dir ) then
   set num_basefile = `ls $basefile_dir | grep cice.runlog | wc -l`
   if ( $num_basefile > 0 ) then
@@ -39,9 +47,15 @@ set fieldlist=("total ice area  (km^2)" \
                "rms ice speed    (m/s)" )
 
 # Get the filename for the latest log
+if ( $1 == "" ) then
+foreach file (./cice.runlog.*)
+  set logfile = $file
+end
+else
 foreach file ($1/logs/cice.runlog.*)
   set logfile = $file
 end
+endif
 
 # Loop through each field and create the plot
 foreach field ($fieldlist:q)

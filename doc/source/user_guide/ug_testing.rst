@@ -913,9 +913,10 @@ figures from a diagnostic output file.
 When running a test suite, the ``timeseries.csh`` script is automatically copied to the suite directory.  
 If the ``timeseries.csh`` script is to be used on a test or case that is not a part of a test suite, 
 users will need to run the ``timeseries.csh`` script from the tests directory 
-(``./configuration/scripts/tests/timeseries.csh ./path/``), or copy it to a local directory and run it 
-locally.  Because the script is designed for use in our test suites, it needs to be run in the directory 
-above the particular case being plotted.
+(``./configuration/scripts/tests/timeseries.csh ./path/``), or copy it to a local directory.
+When used with the test suites or given a path, it needs to be run in the directory 
+above the particular case being plotted, but it can also be run on isolated log files in the same directory, 
+without a path.
 
 For example:
 
