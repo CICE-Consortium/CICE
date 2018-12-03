@@ -16,6 +16,5 @@ Developer Guide
    dg_driver.rst
    dg_icepack.rst
    dg_scripts.rst
-   dg_documentation.rst
    dg_other.rst
 

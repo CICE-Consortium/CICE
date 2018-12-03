@@ -23,15 +23,16 @@ coupled with other earth system model components, routines external to the
 CICE model prepare and execute data exchanges with an external “flux coupler”.
 
 Icepack is implemented in CICE as a git submodule, and it is documented at 
-https://cice-consortium-icepack.readthedocs.io/en/master/intro/about.html. 
+https://cice-consortium-icepack.readthedocs.io/en/master/index.html. 
 Development and testing of CICE and Icepack may be done together,
 but the repositories are independent.
 This document describes the remainder of the CICE model. The CICE code is 
 available from https://github.com/CICE-Consortium/CICE.
 
 The standard standalone CICE test configuration uses a 3 degree grid with 
-atmospheric data from 1997, available as detailed on the GitHub wiki. A 1 
-degree configuration and data are also available, along with some idealized 
+atmospheric data from 1997, available at
+https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data.
+A 1-degree configuration and data are also available, along with some idealized 
 configurations. The data files are designed only for testing the code, not 
 for use in production runs or as observational data. Please do not publish 
 results based on these data sets.

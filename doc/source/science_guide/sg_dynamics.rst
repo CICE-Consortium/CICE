@@ -187,7 +187,7 @@ when :math:`h_u > h_{cu}`.
 
 The maximum seabed stress depends on the weigth of the ridge 
 above hydrostatic balance and the value of :math:`k_2`. It is, however, the parameter :math:`k_1` that has the most notable impact on the simulated extent of landfast ice. 
-The value of :math:`k_1` can be changed at runtime using the namelist variable `k1`. The grounding scheme can be turned on or off using the namelist logical basalstress. 
+The value of :math:`k_1` can be changed at runtime using the namelist variable ``k1``. The grounding scheme can be turned on or off using the namelist logical basalstress. 
 
 Note that the user must provide a bathymetry field for using this grounding 
 scheme. Grounding occurs up to water depth of ~25 m. It is suggested to have a bathymetry field with water depths larger than 5 m that represents well shallow water regions such as the Laptev Sea and the East Siberian Sea. 
@@ -215,7 +215,7 @@ In the EVP model the internal stress tensor is determined from a
 regularized version of the VP constitutive law. Following the approach of :cite:`Konig10` (see also :cite:`Lemieux16`), the 
 elliptical yield curve can be modified such that the ice has isotropic tensile strength. 
 The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P` 
-where :math:`k_t` should be set to a value between 0 and 1. The constitutive law is therefore 
+where :math:`k_t` should be set to a value between 0 and 1 (this can be changed at runtime with the namelist parameter ``Ktens``). The constitutive law is therefore 
 
 .. math::
    {1\over E}{\partial\sigma_1\over\partial t} + {\sigma_1\over 2\zeta} 
@@ -258,7 +258,7 @@ and :math:`P_R` is a “replacement pressure” (see :cite:`Geiger98`, for
 example), which serves to prevent residual ice motion due to spatial
 variations of :math:`P` when the rates of strain are exactly zero. The ice strength :math:`P` 
 is a function of the ice thickness and concentration
-as it is described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+as it is described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_. The parameteter :math:`e` is the  ratio of the major and minor axes of the elliptical yield curve, also called the ellipse aspect ratio. It can be changed using the namelist parameter ``e_ratio``.
 
 Viscosities are updated during the subcycling, so that the entire
 dynamics component is subcycled within the time step, and the elastic
