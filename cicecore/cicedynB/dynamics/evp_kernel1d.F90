@@ -31,9 +31,6 @@ module dmi_omp
   private
   INTEGER, PARAMETER :: JPIM = SELECTED_INT_KIND(9)
 
-  real(kind=dbl_kind), parameter  :: zero = 0.0_dbl_kind,  &
-     one = 1.0_dbl_kind, half = 0.5_dbl_kind
-
   !- interfaces ----------------------------------------------------------------
   interface domp_get_domain
     module procedure domp_get_domain_rlu
@@ -111,6 +108,7 @@ contains
 #if defined (_OPENMP)
     use omp_lib,   only : omp_in_parallel
 #endif
+    use ice_constants, only: p5
 
     !- arguments ---------------------------------------------------------------
     integer(KIND=JPIM), intent(in)  :: lower,upper
@@ -136,8 +134,8 @@ contains
 #if defined (_OPENMP)
     if (omp_in_parallel()) then
       dlen    = real(upper-lower+1, 8)
-      d_lower = lower    + floor((rdomp_iam*dlen+half)/rdomp_nt, 4)
-      d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+half)/rdomp_nt, 4)
+      d_lower = lower    + floor((rdomp_iam*dlen+p5)/rdomp_nt, 4)
+      d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+p5)/rdomp_nt, 4)
     endif
 #endif
 
@@ -696,7 +694,7 @@ module bench_v2
     !- modules -------------------------------------------------------------------
     use ice_kinds_mod
     use dmi_omp, only : domp_get_domain
-    use ice_dyn_shared, only: ecci, denom1, arlx1i, brlx, revp
+    use ice_dyn_shared, only: brlx, revp
     use ice_constants, only: c0, c1
     !- directives ----------------------------------------------------------------
     implicit none
@@ -781,7 +779,7 @@ module bench_v2
     use dmi_omp, only : domp_get_domain
     use ice_constants, only: c0, c1
     use icepack_parameters, only: puny
-    use ice_dyn_shared, only: ecci, denom1, arlx1i, brlx, revp, basalstress
+    use ice_dyn_shared, only: brlx, revp, basalstress
     !- directives ----------------------------------------------------------------
     implicit none
     ! arguments ------------------------------------------------------------------
