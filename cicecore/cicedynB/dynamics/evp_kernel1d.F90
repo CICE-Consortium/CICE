@@ -315,10 +315,10 @@ module bench_v2
       stressp_3(iw) = (stressp_3(iw)*(c1-arlx1i*revp) + c1sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))) * denom1
       stressp_4(iw) = (stressp_4(iw)*(c1-arlx1i*revp) + c1se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))) * denom1
   
-      stressm_1(iw) = (stressm_1(iw)*(c1-arlx1i*revp) + c0ne*tensionne)*(c1+Ktens) * denom1
-      stressm_2(iw) = (stressm_2(iw)*(c1-arlx1i*revp) + c0nw*tensionnw)*(c1+Ktens) * denom1
-      stressm_3(iw) = (stressm_3(iw)*(c1-arlx1i*revp) + c0sw*tensionsw)*(c1+Ktens) * denom1
-      stressm_4(iw) = (stressm_4(iw)*(c1-arlx1i*revp) + c0se*tensionse)*(c1+Ktens) * denom1
+      stressm_1(iw) = (stressm_1(iw)*(c1-arlx1i*revp) + c0ne*tensionne*(c1+Ktens)) * denom1
+      stressm_2(iw) = (stressm_2(iw)*(c1-arlx1i*revp) + c0nw*tensionnw*(c1+Ktens)) * denom1
+      stressm_3(iw) = (stressm_3(iw)*(c1-arlx1i*revp) + c0sw*tensionsw*(c1+Ktens)) * denom1
+      stressm_4(iw) = (stressm_4(iw)*(c1-arlx1i*revp) + c0se*tensionse*(c1+Ktens)) * denom1
       
       stress12_1(iw) = (stress12_1(iw)*(c1-arlx1i*revp) + c0ne*shearne*p5*(c1+Ktens)) * denom1
       stress12_2(iw) = (stress12_2(iw)*(c1-arlx1i*revp) + c0nw*shearnw*p5*(c1+Ktens)) * denom1
@@ -420,7 +420,9 @@ module bench_v2
       str8(iw) = strp_tmp - strm_tmp + str12sn &
                  - dyhx*(csigpsw + csigmsw) + dxhy*csig12sw
     enddo   
+#ifdef _OPENACC
     !$acc end parallel
+#endif
   end subroutine stress_i
   
   subroutine stress_l(NA_len, tarear, &
@@ -579,10 +581,10 @@ module bench_v2
       stressp_3(iw) = (stressp_3(iw)*(c1-arlx1i*revp) + c1sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))) * denom1
       stressp_4(iw) = (stressp_4(iw)*(c1-arlx1i*revp) + c1se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))) * denom1
  
-      stressm_1(iw) = (stressm_1(iw)*(c1-arlx1i*revp) + c0ne*tensionne)*(c1+Ktens) * denom1
-      stressm_2(iw) = (stressm_2(iw)*(c1-arlx1i*revp) + c0nw*tensionnw)*(c1+Ktens) * denom1
-      stressm_3(iw) = (stressm_3(iw)*(c1-arlx1i*revp) + c0sw*tensionsw)*(c1+Ktens) * denom1
-      stressm_4(iw) = (stressm_4(iw)*(c1-arlx1i*revp) + c0se*tensionse)*(c1+Ktens) * denom1
+      stressm_1(iw) = (stressm_1(iw)*(c1-arlx1i*revp) + c0ne*tensionne*(c1+Ktens)) * denom1
+      stressm_2(iw) = (stressm_2(iw)*(c1-arlx1i*revp) + c0nw*tensionnw*(c1+Ktens)) * denom1
+      stressm_3(iw) = (stressm_3(iw)*(c1-arlx1i*revp) + c0sw*tensionsw*(c1+Ktens)) * denom1
+      stressm_4(iw) = (stressm_4(iw)*(c1-arlx1i*revp) + c0se*tensionse*(c1+Ktens)) * denom1
 
       stress12_1(iw) = (stress12_1(iw)*(c1-arlx1i*revp) + c0ne*shearne*p5*(c1+Ktens)) * denom1
       stress12_2(iw) = (stress12_2(iw)*(c1-arlx1i*revp) + c0nw*shearnw*p5*(c1+Ktens)) * denom1
@@ -684,7 +686,9 @@ module bench_v2
       str8(iw) = strp_tmp - strm_tmp + str12sn &
                  - dyhx*(csigpsw + csigmsw) + dxhy*csig12sw
     enddo   
+#ifdef _OPENACC
     !$acc end parallel
+#endif
   end subroutine stress_l
   
   subroutine stepu_iter(NA_len,rhow, &
@@ -764,7 +768,9 @@ module bench_v2
        uvel(iw) = (cca*cc1 + ccb*cc2) / ab2 
        vvel(iw) = (cca*cc2 - ccb*cc1) / ab2
     enddo
+#ifdef _OPENACC
     !$acc end parallel
+#endif
 
   end subroutine stepu_iter
   
@@ -857,7 +863,9 @@ module bench_v2
          tauby(iw) = -vvel(iw)*Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
        endif
     enddo
+#ifdef _OPENACC
     !$acc end parallel
+#endif
   end subroutine stepu_last
 
   subroutine halo_update(NAVEL_len,lb,ub,uvel,vvel, halo_parent)
@@ -887,7 +895,9 @@ module bench_v2
        uvel(iw) = uvel(halo_parent(iw))
        vvel(iw) = vvel(halo_parent(iw))
     enddo
+#ifdef _OPENACC
     !$acc end parallel
+#endif
   end subroutine halo_update
 
 end module bench_v2
