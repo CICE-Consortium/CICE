@@ -1,9 +1,18 @@
 # Test         Grid    PEs        Sets    BFB-compare
-restart        gx3     4x4        none
-restart        gx3     4x4        iobinary
-restart        gx3     8x2        debug
-restart        gx3     6x2        alt01
-restart        gx3     8x2        alt02
-restart        gx3     4x2        alt03
-restart        gx3     4x4        alt04
-restart        gx3     4x4        alt05
+#restart        gx1     4x4         droundrobin,short
+#restart        gx1     8x4         droundrobin,short
+#restart        gx1     12x4         droundrobin,short
+#restart        gx1     16x4         droundrobin,short
+#restart        gx1     20x4         droundrobin,short
+#restart        gx1     24x4         droundrobin,short
+#restart        gx1     28x4         droundrobin,short
+#restart        gx1     32x4         droundrobin,short
+restart        gx1     32x2         droundrobin,short
+restart        gx1     32x3         droundrobin,short
+restart        gx1     32x1         droundrobin,short
+
+restart        gx1     33x4         droundrobin,short
+restart        gx1     34x4         droundrobin,short
+restart        gx1     35x4         droundrobin,short
+restart        gx1     36x4         droundrobin,short
+#restart        gx1     40x4       droundrobin,short
