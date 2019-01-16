@@ -78,7 +78,7 @@ EVP approach. First, for clarity, the two components of Equation :eq:`vpmom` are
      -C_bu +mfv - mg{\partial H_\circ\over\partial x}, \\
    m{\partial v\over\partial t} &=& {\partial\sigma_{2j}\over\partial x_j} + \tau_{ay} + 
      a_i c_w \rho_w
-     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\sin\theta - \left(V_w-v\right)\cos\theta\right]
+     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\sin\theta + \left(V_w-v\right)\cos\theta\right]
      -C_bv-mfu - mg{\partial H_\circ\over\partial y}. \end{aligned}
 
 In the code,
