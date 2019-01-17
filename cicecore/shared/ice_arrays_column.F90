@@ -257,7 +257,9 @@
          restore_bgc        ! 
 
       character(char_len), public :: &
-         fe_data_type   , & ! 'default', 'clim'
+         fe_data_type   ! 'default', 'clim'
+
+      character(char_len_long), public :: &
          bgc_data_dir   ! directory for biogeochemistry data
 
       real (kind=dbl_kind), dimension(:), allocatable, public :: &  
