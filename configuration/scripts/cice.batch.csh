@@ -71,7 +71,7 @@ cat >> ${jobfile} << EOFB
 #PBS -l nodes=1:ppn=24
 EOFB
 
-else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
+else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q ${queue}
