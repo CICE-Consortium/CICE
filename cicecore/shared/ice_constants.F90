@@ -33,6 +33,9 @@
       real (kind=dbl_kind), public :: &
          shlat  =  30.0_dbl_kind   ,&! artificial masking edge (deg)
          nhlat  = -30.0_dbl_kind     ! artificial masking edge (deg)
+
+      real (kind=dbl_kind), public :: &
+         puny_dyn = 2e-09_dbl_kind      ! special puny value for computing tinyarea for implicit solver
    
       !-----------------------------------------------------------------
       ! numbers used outside the column package
@@ -132,7 +135,7 @@
 ! subroutine to set the cice constants
 
       subroutine ice_init_constants(   &
-         omega_in, radius_in, spval_dbl_in, spval_in, shlat_in, nhlat_in)
+         omega_in, radius_in, spval_dbl_in, spval_in, shlat_in, nhlat_in, puny_dyn_in)
 
       real (kind=dbl_kind), intent(in), optional :: &
          omega_in     , &   ! angular velocity of earth (rad/sec)
@@ -140,7 +143,8 @@
          spval_dbl_in , &   ! special value (double precision)
          spval_in     , &   ! special value for netCDF output
          shlat_in     , &   ! artificial masking edge (deg)
-         nhlat_in           ! artificial masking edge (deg)
+         nhlat_in     , &   ! artificial masking edge (deg)
+         puny_dyn_in        ! special puny value for computing tinyarea
 
       character(len=*),parameter :: subname='(ice_init_constants)'
 
@@ -150,6 +154,7 @@
       if (present(spval_in)) spval = spval_in
       if (present(shlat_in)) shlat = shlat_in
       if (present(nhlat_in)) nhlat = nhlat_in
+      if (present(puny_dyn_in)) puny_dyn = puny_dyn_in
 
       end subroutine ice_init_constants
 
@@ -158,7 +163,7 @@
 ! subroutine to set the cice constants
 
       subroutine ice_query_constants(   &
-         omega_out, radius_out, spval_dbl_out, spval_out, shlat_out, nhlat_out)
+         omega_out, radius_out, spval_dbl_out, spval_out, shlat_out, nhlat_out, puny_dyn_out)
 
       real (kind=dbl_kind), intent(out), optional :: &
          omega_out     , &   ! angular velocity of earth (rad/sec)
@@ -166,7 +171,8 @@
          spval_dbl_out , &   ! special value (double precision)
          spval_out     , &   ! special value for netCDF output
          shlat_out     , &   ! artificial masking edge (deg)
-         nhlat_out           ! artificial masking edge (deg)
+         nhlat_out     , &   ! artificial masking edge (deg)
+         puny_dyn_out        ! special puny value for computing tinyarea
 
       character(len=*),parameter :: subname='(ice_query_constants)'
 
@@ -176,6 +182,7 @@
       if (present(spval_out)) spval_out = spval
       if (present(shlat_out)) shlat_out = shlat
       if (present(nhlat_out)) nhlat_out = nhlat
+      if (present(puny_dyn_out)) puny_dyn_out = puny_dyn
 
       end subroutine ice_query_constants
 

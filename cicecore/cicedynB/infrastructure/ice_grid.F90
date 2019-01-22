@@ -330,7 +330,8 @@
       use ice_blocks, only: get_block, block, nx_block, ny_block
       use ice_constants, only: c0, c1, c2, p5, p25, c1p5, &
           field_loc_center, field_loc_NEcorner, &
-          field_type_scalar, field_type_vector, field_type_angle
+          field_type_scalar, field_type_vector, field_type_angle, &
+          puny_dyn
       use ice_domain_size, only: max_blocks
 
       integer (kind=int_kind) :: &
@@ -339,7 +340,7 @@
 
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, &
-         pi, pi2, puny, punyVP
+         pi, pi2
 
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
@@ -356,7 +357,7 @@
       ! lat, lon, cell widths, angle, land mask
       !-----------------------------------------------------------------
 
-      call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
+      call icepack_query_parameters(pi_out=pi, pi2_out=pi2)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -384,9 +385,6 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
-      print *, 'in init_grid2 to set tinyarea with punyVP value'
-      punyVP = 2d-09
-      
 !     tarea(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -411,8 +409,7 @@
             else
                uarear(i,j,iblk) = c0 ! possible on boundaries
             endif
-!            tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
-            tinyarea(i,j,iblk) = punyVP*tarea(i,j,iblk)
+            tinyarea(i,j,iblk) = puny_dyn*tarea(i,j,iblk)
 
             dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
             dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))

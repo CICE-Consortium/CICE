@@ -67,6 +67,7 @@
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
       use ice_communicate, only: init_communicate, my_task, master_task
+      use ice_constants, only: ice_init_constants
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
@@ -90,6 +91,9 @@
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_iso, tr_fsd, wave_spec
+
+      real (kind=dbl_kind) :: puny
+
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -117,6 +121,16 @@
       call alloc_flux           ! allocate flux arrays
       call init_ice_timers      ! initialize all timers
       call ice_timer_start(timer_total)   ! start timing entire run
+      ! By default, the puny value used for computing tinyarea in init_grid2 (puny_dyn)
+      ! is set to a special value for use with the implicit solver (kdyn = 3).
+      ! Thus we reset it back to puny if kdyn .ne. 3
+      if (kdyn /= 3) then
+         call icepack_query_parameters(puny_out=puny)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
+         call ice_init_constants(puny_dyn_in=puny)
+      endif
       call init_grid2           ! grid variables
       call init_zbgc            ! vertical biogeochemistry initialization
       call init_calendar        ! initialize some calendar stuff
