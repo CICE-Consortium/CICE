@@ -1,6 +1,8 @@
       subroutine fgmres (n,im,rhs,sol,i,vv,w,wk1, wk2, &
                   gamma,gammaNL,tolNL,maxits,iout,icode,iconv,its,kOL, krre) 
 
+      use ice_fileunits, only: nu_diag
+
 !-----------------------------------------------------------------------
 ! jfl Dec 1st 2006. We modified the routine so that it is double precison.
 ! Here are the modifications:
@@ -158,7 +160,7 @@
        goto 999
       endif 
       
-      if (iout .gt. 0) write(*, 199) kOL, krre, its, ro!&
+      if (iout .gt. 0) write(nu_diag, 199) kOL, krre, its, ro!&
 !     
 !     initialize 1-st term  of rhs of hessenberg system..
 !     
@@ -237,7 +239,7 @@
       hh(i,i) = c(i)*hh(i,i) + s(i)*hh(i1,i)
       ro = abs(rs(i1))
       if (iout .gt. 1) &
-           write(*, 199) kOL, krre, its, ro
+           write(nu_diag, 199) kOL, krre, its, ro
       if (i .lt. im .and. (ro .gt. eps1))  goto 4
 !     
 !     now compute solution. first solve upper triangular system.

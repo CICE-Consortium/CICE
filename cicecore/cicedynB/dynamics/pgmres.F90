@@ -27,6 +27,7 @@
 !        use prec
        use ice_kinds_mod
        use ice_dyn_vp, only: matvec, arrays_to_vec, vec_to_arrays, precond_diag
+       use ice_fileunits, only: nu_diag
 
        implicit none
 
@@ -127,7 +128,7 @@
        ro = dsqrt(ro)
 
        if (iout .gt. 0 .and. its .eq. 0)&
-           write(iout, 199) its, ro ,eps1
+           write(nu_diag, 199) its, ro ,eps1
 !      write(6,199) its, ro
         r0=ro
  
@@ -247,7 +248,7 @@
        hh(i,i) = c(i)*hh(i,i) + s(i)*hh(i1,i)
        ro = abs(rs(i1))
        if (iout .gt. 0) &
-           write(iout, 199) its, ro , eps1
+           write(nu_diag, 199) its, ro , eps1
        if (i .lt. im .and. (ro .gt. eps1))  goto 4
 !
 !     now compute solution. first solve upper triangular system.
