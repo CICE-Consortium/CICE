@@ -54,6 +54,23 @@
       private
       public :: imp_solver, matvec, arrays_to_vec, vec_to_arrays, precond_diag
 
+      ! namelist parameters
+
+      integer (kind=int_kind), public :: &
+         kmax           , & ! max nb of iteration for nonlinear solver
+         precond        , & ! preconditioner for fgmres: 1: identity, 2: diagonal 3: pgmres + diag
+         im_fgmres      , & ! size of fgmres Krylov subspace
+         im_pgmres      , & ! size of pgmres Krylov subspace
+         maxits_fgmres  , & ! max nb of iteration for fgmres
+         maxits_pgmres  , & ! max nb of iteration for pgmres
+         iout           , & ! for printing fgmres info
+         ioutpgmres         ! for printing pgmres info
+
+      real (kind=dbl_kind), public :: &
+         gammaNL        , & ! nonlinear stopping criterion: gammaNL*res(k=0)
+         gamma          , & ! fgmres stopping criterion: gamma*res(k)
+         epsprecond         ! pgmres stopping criterion: epsprecond*res(k)
+
 !=======================================================================
 
       contains
@@ -103,22 +120,14 @@
 
       integer (kind=int_kind) :: & 
          kOL            , & ! outer loop iteration
-         kmax           , & ! jfl put in namelist
          krre           , & ! RRE1 cycling iteration
          kmaxrre        , & ! nb of RRE1 iterations (hard coded 3)
          ntot           , & ! size of problem for fgmres (for given cpu)
          icode          , & ! for fgmres
          iconvNL        , & ! code for NL convergence criterion
-         iout           , & ! for printing fgmres info
-         ioutpgmres     , & ! for printing pgmres info
          its            , & ! iteration nb for fgmres
          ischmi         , & ! Quesse ca!?!?! jfl
-         maxits_fgmres  , & ! max nb of iteration for fgmres
-         maxits_pgmres  , & ! max nb of iteration for fgmres
          fgmres_its     , & ! final nb of fgmres_its
-         im_fgmres      , & ! for size of fgmres Krylov subspace
-         im_pgmres      , & ! for size of pgmres Krylov subspace
-         precond        , & ! 1: identity, 2: diagonal 3: pgmres
          ierr           , & ! for pgmres precond
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
@@ -166,7 +175,7 @@
       real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:), uRRE(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
-      real (kind=dbl_kind) :: conv, gamma, gammaNL, tolNL, epsprecond
+      real (kind=dbl_kind) :: conv, tolNL
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          stPrtmp,   & ! doit etre (nx_block,ny_block,max_blocks,8)???? PAs besoin des 2? reuse?
@@ -199,16 +208,7 @@
       ! Define a few things for FGMRES and Picard solver
       !-----------------------------------------------------------------
       
-      im_fgmres = 50 
-      im_pgmres = 5 
-      maxits_fgmres = 50 
-      maxits_pgmres = 5
-      kmax=1000
-      gamma=1e-2_dbl_kind   ! linear stopping criterion: gamma(res(k)
-      gammaNL=1e-8_dbl_kind ! nonlinear stopping criterion: gammaNL*res(k=0)
-      epsprecond=1e-6_dbl_kind ! for pgmres
       iconvNL=0 ! equals 1 when NL convergence is reached
-      precond=3 ! 1: identity, 2: diagonal 3: gmres + diag
       RRE1=.false.
 
        ! This call is needed only if dt changes during runtime.
@@ -517,8 +517,6 @@
 !-----------------------------------------------------------------------                             
          
       icode  = 0
-      iout   = 1 !0: nothing printed, 1: 1st ite only, 2: all iterations
-      ioutpgmres = 1
 !      its    = 0 
       ischmi = 0 
          

@@ -100,6 +100,8 @@
                                 basalstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, ktransport, brlx, arlx
+      use ice_dyn_vp, only: kmax, precond, im_fgmres, im_pgmres, maxits_fgmres, &
+                            maxits_pgmres, iout, ioutpgmres, gammaNL, gamma, epsprecond
       use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -194,7 +196,10 @@
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
-        k1,             k2,             alphab,         threshold_hw,   &
+        k1,             kmax,           precond,        im_fgmres,      &
+        im_pgmres,      maxits_fgmres,  maxits_pgmres,  iout,           &
+        ioutpgmres,     gammaNL,        gamma,          epsprecond,     &
+        k2,             alphab,         threshold_hw,                   &
         Pstar,          Cstar
 
       namelist /shortwave_nml/ &
@@ -322,7 +327,18 @@
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
-      e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
+      e_ratio = 2.0_dbl_kind ! VP ellipse aspect ratio
+      kmax = 1000            ! max nb of iteration for nonlinear solver
+      precond = 3            ! preconditioner for fgmres: 1: identity, 2: diagonal 3: pgmres + diag
+      im_fgmres = 50         ! size of fgmres Krylov subspace
+      im_pgmres = 5          ! size of pgmres Krylov subspace
+      maxits_fgmres = 50     ! max nb of iteration for fgmres
+      maxits_pgmres = 5      ! max nb of iteration for pgmres
+      iout = 1               ! print fgmres info (0: nothing printed, 1: 1st ite only, 2: all iterations)
+      ioutpgmres = 1         ! print pgmres info
+      gammaNL = 1e-8_dbl_kind    ! nonlinear stopping criterion: gammaNL*res(k=0)
+      gamma = 1e-2_dbl_kind      ! fgmres stopping criterion: gamma*res(k)
+      epsprecond = 1e-6_dbl_kind ! pgmres stopping criterion: epsprecond*res(k)
       advection  = 'remap'   ! incremental remapping transport scheme
       conserv_check = .false.! tracer conservation check
       shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
@@ -827,7 +843,7 @@
          revised_evp = .false.
       endif
 
-      if (kdyn > 2) then
+      if (kdyn > 3) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: kdyn out of range'
          endif
@@ -1135,28 +1151,35 @@
          write(nu_diag,*) '--------------------------------'
          if (kdyn == 1) then
             tmpstr2 = ' elastic-viscous-plastic dynamics'
-            write(nu_diag,*)    'yield_curve      = ', trim(yield_curve)
-            if (trim(yield_curve) == 'ellipse') &
-            write(nu_diag,1007) ' e_ratio          = ', e_ratio, ' aspect ratio of ellipse'
          elseif (kdyn == 2) then
             tmpstr2 = ' elastic-anisotropic-plastic dynamics'
+         elseif (kdyn == 3) then
+            tmpstr2 = ' viscous-plastic dynamics'
          elseif (kdyn < 1) then
             tmpstr2 = ' dynamics disabled'
          endif
          write(nu_diag,1022) ' kdyn             = ', kdyn,trim(tmpstr2)
          if (kdyn >= 1) then
-            if (revised_evp) then
-               tmpstr2 = ' revised EVP formulation used'
-            else
-               tmpstr2 = ' revised EVP formulation not used'
-            endif
-            write(nu_diag,1012) ' revised_evp      = ', revised_evp,trim(tmpstr2)
-            write(nu_diag,1022) ' kevp_kernel      = ', kevp_kernel,' EVP solver'
+            if (kdyn == 1 .or. kdyn == 2) then
+               if (revised_evp) then
+                  tmpstr2 = ' revised EVP formulation used'
+                  write(nu_diag,1007) ' arlx             = ', arlx, ' stress equation factor alpha'
+                  write(nu_diag,1007) ' brlx             = ', brlx, ' stress equation factor beta'
+               else
+                  tmpstr2 = ' revised EVP formulation not used'
+               endif
+               write(nu_diag,1012) ' revised_evp      = ', revised_evp,trim(tmpstr2)
+               write(nu_diag,1022) ' kevp_kernel      = ', kevp_kernel,' EVP solver'
 
-            write(nu_diag,1022) ' ndtd             = ', ndtd, ' number of dynamics/advection/ridging/steps per thermo timestep'
-            write(nu_diag,1022) ' ndte             = ', ndte, ' number of EVP or EAP subcycles'
-            write(nu_diag,1007) ' arlx             = ', arlx, ' stress equation factor alpha'
-            write(nu_diag,1007) ' brlx             = ', brlx, ' stress equation factor beta'
+               write(nu_diag,1022) ' ndtd             = ', ndtd, ' number of dynamics/advection/ridging/steps per thermo timestep'
+               write(nu_diag,1022) ' ndte             = ', ndte, ' number of EVP or EAP subcycles'
+           endif
+
+           if (kdyn == 1 .or. kdyn == 3) then
+              write(nu_diag,*)    'yield_curve      = ', trim(yield_curve)
+              if (trim(yield_curve) == 'ellipse') &
+              write(nu_diag,1007) ' e_ratio          = ', e_ratio, ' aspect ratio of ellipse'
+           endif
 
             if (trim(coriolis) == 'latitude') then
                tmpstr2 = ': latitude-dependent Coriolis parameter'
