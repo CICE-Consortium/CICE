@@ -90,7 +90,7 @@
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
-          ice_timer_start, ice_timer_stop
+          ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
       use evp_kernel1d
       use ice_dyn_shared, only: evp_kernel_ver
 
@@ -345,7 +345,7 @@
        enddo
        !$OMP END PARALLEL DO
       endif
-      
+      call ice_timer_start(timer_evp_2d)
       if (evp_kernel_ver > 0) then
         !write(*,*)'Entering evp_kernel version ',evp_kernel_ver
         if (trim(grid_type) == 'tripole') then
@@ -364,7 +364,9 @@
           stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
           stress12_1,stress12_2,stress12_3,stress12_4                   )
         if (evp_kernel_ver == 2) then
+          call ice_timer_start(timer_evp_1d)
           call evp_kernel_v2()
+          call ice_timer_stop(timer_evp_1d)
 !v1        else if (evp_kernel_ver == 1) then
 !v1          call evp_kernel_v1()
         else
@@ -460,6 +462,7 @@
          
       enddo                     ! subcycling
       endif  ! evp_kernel_ver
+      call ice_timer_stop(timer_evp_2d)
 
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
