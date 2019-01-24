@@ -91,7 +91,7 @@
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
-      use evp_kernel1d
+      use ice_dyn_evp_1d
       use ice_dyn_shared, only: evp_kernel_ver
 
       real (kind=dbl_kind), intent(in) :: &
@@ -349,7 +349,8 @@
       if (evp_kernel_ver > 0) then
         !write(*,*)'Entering evp_kernel version ',evp_kernel_ver
         if (trim(grid_type) == 'tripole') then
-          stop 'Kernel not tested on tripole grid. Set evp_kernel_ver=0'
+          call abort_ice('(ice_dyn_evp): &
+             & Kernel not tested on tripole grid. Set evp_kernel_ver=0')
         endif
         call evp_copyin(                                                &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
@@ -371,7 +372,7 @@
 !v1          call evp_kernel_v1()
         else
           write(*,*)'Kernel: evp_kernel_ver = ',evp_kernel_ver
-          stop 'Kernel not implemented.'
+          call abort_ice('(ice_dyn_evp): Kernel not implemented.')
         endif
         call evp_copyout(                                               &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
@@ -429,7 +430,6 @@
                         forcex   (:,:,iblk), forcey  (:,:,iblk), & 
                         umassdti (:,:,iblk), fm      (:,:,iblk), & 
                         uarear   (:,:,iblk),                     & 
-                        strocnx  (:,:,iblk), strocny (:,:,iblk), & 
                         strintx  (:,:,iblk), strinty (:,:,iblk), &
                         taubx    (:,:,iblk), tauby   (:,:,iblk), & 
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&

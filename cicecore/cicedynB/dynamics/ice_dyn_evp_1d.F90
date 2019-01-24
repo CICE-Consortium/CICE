@@ -16,10 +16,6 @@
 !            "HTE,HTN"->"HTE,HTN,HTEm1,HTNm1" and variables are calculated in-line
 !         b) "waterx,watery" is calculated using existing input "uocn,vocn"
 !
-! * !strocn : Open question: Is "strocnx,strocny" used at all? Is it needed here?
-!              It is also calculated in subroutine dyn_finish short after the EVP-loop
-!             Comment out here
-!
 ! Jacob Weismann Poulsen (JWP), Mads Hvid Ribergaard (MHRI), DMI
 !===============================================================================
 
@@ -776,7 +772,6 @@ module bench_v2
   
   subroutine stepu_last(NA_len, rhow, &
                     lb,ub,Cw,aiu,uocn,vocn,forcex,forcey,umassdti,fm,uarear,Tbu, &
-!strocn                    strocnx,strocny,                                             &
                     strintx,strinty,taubx,tauby,                                 &
                     uvel_init,vvel_init,uvel,vvel,                               &
                     str1,str2,str3,str4,str5,str6,str7,str8, nw,sw,se,skipme)
@@ -800,7 +795,6 @@ module bench_v2
     real(kind=DBL_KIND),dimension(:), intent(in), contiguous ::                  &
        str1,str2,str3,str4,str5,str6,str7,str8
     real(kind=dbl_kind),dimension(:), intent(inout), contiguous ::               &
-!strocn       strocnx,strocny,                                                          &
        uvel,vvel, strintx,strinty, taubx,tauby
     real (kind=dbl_kind), parameter :: &
            cosw = c1   , & ! cos(ocean turning angle)  ! turning angle = 0
@@ -819,7 +813,6 @@ module bench_v2
     !$acc         strintx,strinty,taubx,tauby,uvel_init,vvel_init,nw,sw,se,skipme, &
     !$acc         str1,str2,str3,str4,str5,str6,str7,str8,uvel,vvel                )
     !$acc loop 
-!strocn    !$acc         strocnx,strocny, &
     do iw = 1,NA_len
 #else
     call domp_get_domain(lb,ub,il,iu)
@@ -855,8 +848,6 @@ module bench_v2
            + umassdti(iw)*(brlx*vold + revp*vvel_init(iw))
        uvel(iw) = (cca*cc1 + ccb*cc2) / ab2 
        vvel(iw) = (cca*cc2 - ccb*cc1) / ab2
-!strocn       strocnx(iw) = taux
-!strocn       strocny(iw) = tauy
        ! calculate basal stress component for outputs
        if ( basalstress ) then
          taubx(iw) = -uvel(iw)*Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
@@ -905,8 +896,9 @@ end module bench_v2
 !===============================================================================
   
 !-- One dimension representation of EVP 2D arrays used for EVP kernels
-module evp_kernel1d
+module ice_dyn_evp_1d
   use ice_kinds_mod
+  use ice_exit, only: abort_ice
   !-- BEGIN: specific for the KERNEL
   use ice_dyn_shared, only: revp, ecci, denom1, arlx1i, brlx
   !-- END: specific for the KERNEL
@@ -944,8 +936,6 @@ module evp_kernel1d
   real (kind=dbl_kind), dimension(:), allocatable ::               &
     HTE,HTN,                                                       &
     HTEm1,HTNm1
-!strocn  real (kind=dbl_kind), dimension(:), allocatable ::               &
-!strocn    strocnx,strocny
   contains
   subroutine alloc1d(na)
     implicit none
@@ -974,12 +964,11 @@ module evp_kernel1d
       cdn_ocn(1:nb),aiu(1:nb),uocn(1:nb),vocn(1:nb),                      &
       forcex(1:nb),forcey(1:nb),Tbu(1:nb),                                &
       umassdti(1:nb),fm(1:nb),uarear(1:nb),                               &
-!strocn      strocnx(1:nb),strocny(1:nb),                                        &
       strintx(1:nb),strinty(1:nb),                                        &
       uvel_init(1:nb),vvel_init(1:nb),                                    &
       taubx(1:nb),tauby(1:nb),                                            &
       stat=ierr)
-    if (ierr/=0) stop 'Error allocating 1D'
+    if (ierr/=0) call abort_ice('(ice_dyn_evp_1d) : Error allocating 1D')
   end subroutine alloc1d
   subroutine alloc1d_navel(navel)
     implicit none
@@ -990,7 +979,7 @@ module evp_kernel1d
       str1(1:navel),str2(1:navel),str3(1:navel),str4(1:navel),           &
       str5(1:navel),str6(1:navel),str7(1:navel),str8(1:navel),           &
       stat=ierr)
-    if (ierr/=0) stop 'Error allocating 1D navel'
+    if (ierr/=0) call abort_ice('(ice_dyn_evp_1d) : Error allocating 1D navel')
   end subroutine alloc1d_navel
   subroutine dealloc1d
     implicit none
@@ -1014,27 +1003,26 @@ module evp_kernel1d
       cdn_ocn,aiu,uocn,vocn,                      &
       forcex,forcey,Tbu,                          &
       umassdti,fm,uarear,                         &
-!strocn      strocnx,strocny,                            &
       strintx,strinty,                            &
       uvel_init,vvel_init,                        &
       taubx,tauby,                                &
       ! NAVEL 
       uvel,vvel, indij, halo_parent,              &
       stat=ierr)
-    if (ierr/=0) stop 'Error de-allocating 1D'
+    if (ierr/=0) call abort_ice('(ice_dyn_evp_1d) : Error de-allocating 1D')
 !v1    if (allocated(tinyarea)) then
 !v1      deallocate(                                 &
 !v1        dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,       &
 !v1        waterx,watery,                            &
 !v1        stat=ierr)
-!v1      if (ierr/=0) stop 'Error de-allocating 1D, v1'
+!v1      if (ierr/=0) call abort_ice('(ice_dyn_evp_1d) : Error de-allocating 1D, v1')
 !v1    endif
     if (allocated(HTE)) then
       deallocate(                                 &
         ! Grid distances: HTE,HTN + "-1 neighbours" 
         HTE,HTN, HTEm1,HTNm1,                     &
         stat=ierr)
-      if (ierr/=0) stop 'Error de-allocating 1D, v2'
+      if (ierr/=0) call abort_ice('(ice_dyn_evp_1d) : Error de-allocating 1D, v2')
     endif
   end subroutine dealloc1d
 !===============================================================================
@@ -1172,7 +1160,6 @@ module evp_kernel1d
   !===============================================================================
   subroutine evp_copyout(nx,ny,nblk,nx_glob,ny_glob,                    &
                I_uvel,I_vvel, I_strintx,I_strinty,                      &
-!strocn               I_strocnx,I_strocny,                                     &
                I_stressp_1, I_stressp_2, I_stressp_3, I_stressp_4,      &
                I_stressm_1, I_stressm_2, I_stressm_3, I_stressm_4,      &
                I_stress12_1,I_stress12_2,I_stress12_3,I_stress12_4,     &
@@ -1186,7 +1173,6 @@ module evp_kernel1d
     integer(int_kind), intent(in) :: nx,ny,nblk, nx_glob,ny_glob
     real(dbl_kind), dimension(nx,ny,nblk), intent(out) ::       &
        I_uvel,I_vvel, I_strintx,I_strinty,                      &
-!strocn       I_strocnx,I_strocny,                                     &
        I_stressp_1, I_stressp_2, I_stressp_3, I_stressp_4,      &
        I_stressm_1, I_stressm_2, I_stressm_3, I_stressm_4,      &
        I_stress12_1,I_stress12_2,I_stress12_3,I_stress12_4,     &
@@ -1194,7 +1180,6 @@ module evp_kernel1d
     ! local variables
     real(dbl_kind), dimension(nx_glob,ny_glob) :: &
        G_uvel,G_vvel, G_strintx,G_strinty,                      &
-!strocn       G_strocnx,G_strocny,                                     &
        G_stressp_1, G_stressp_2, G_stressp_3, G_stressp_4,      &
        G_stressm_1, G_stressm_2, G_stressm_3, G_stressm_4,      &
        G_stress12_1,G_stress12_2,G_stress12_3,G_stress12_4,     &
@@ -1205,8 +1190,6 @@ module evp_kernel1d
     if (my_task == master_task) then
       G_uvel       = c0
       G_vvel       = c0
-!strocn      G_strocnx    = c0
-!strocn      G_strocny    = c0
       G_strintx    = c0
       G_strinty    = c0
       G_stressp_1  = c0
@@ -1241,8 +1224,6 @@ module evp_kernel1d
         j=indj(iw)
 !        G_uvel(i,j)       = uvel(iw)  ! done above
 !        G_vvel(i,j)       = vvel(iw)  ! done above
-!strocn        G_strocnx(i,j)    = strocnx(iw)
-!strocn        G_strocny(i,j)    = strocny(iw)
         G_strintx(i,j)    = strintx(iw)
         G_strinty(i,j)    = strinty(iw)
         G_stressp_1(i,j)  = stressp_1(iw)
@@ -1273,8 +1254,6 @@ module evp_kernel1d
     ! BEGIN: Scatter data
     call scatter_global_ext(I_uvel, G_uvel, master_task, distrb_info)
     call scatter_global_ext(I_vvel, G_vvel, master_task, distrb_info)
-!strocn    call scatter_global_ext(I_strocnx, G_strocnx, master_task, distrb_info)
-!strocn    call scatter_global_ext(I_strocny, G_strocny, master_task, distrb_info)
     call scatter_global_ext(I_strintx, G_strintx, master_task, distrb_info)
     call scatter_global_ext(I_strinty, G_strinty, master_task, distrb_info)
     call scatter_global_ext(I_stressp_1, G_stressp_1, master_task, distrb_info)
@@ -1360,7 +1339,6 @@ module evp_kernel1d
       !$OMP BARRIER
       call stepu     (NA_len, rhow, &
                      1,nb,cdn_ocn,aiu,uocn,vocn,forcex,forcey,umassdti,fm,uarear,Tbu,&
-!strocn                     strocnx,strocny,                                                &
                      strintx,strinty,taubx,tauby,                                    &
                      uvel_init,vvel_init,uvel,vvel,                                  &
                      str1,str2,str3,str4,str5,str6,str7,str8, nw,sw,sse,skipucell)
@@ -1415,7 +1393,7 @@ module evp_kernel1d
     enddo
     if (Nmaskt.ne.na) then
       write(*,*)'Nmaskt,na: ',Nmaskt,na
-      stop 'Problem Nmaskt != na'
+      call abort_ice('(ice_dyn_evp_1d) : Problem Nmaskt != na')
     endif
     if (Nmaskt==0) then
       write(*,*)'WARNING: NO ICE'
@@ -1453,7 +1431,7 @@ module evp_kernel1d
       if (util2(iw)>nx_block*ny_block .or. util2(iw)<1) then
         write(*,*)'nx_block,ny_block,nx_block*ny_block: ',nx_block,ny_block,nx_block*ny_block
         write(*,*)'na,navel,iw,util2(iw): ',na,navel,iw,util2(iw)
-        stop 'Problem with boundary. Check halo zone values'
+        call abort_ice('(ice_dyn_evp_1d) : Problem with boundary. Check halo zone values')
       endif
     enddo
   end subroutine calc_navel
@@ -1507,7 +1485,7 @@ module evp_kernel1d
     call union(util1,Isse,i,na,util2,nachk)
     if (nachk .ne. navel) then
       write(*,*)'ERROR: navel badly chosen: na,navel,nachk = ',na,navel,nachk
-      stop
+      call abort_ice('(ice_dyn_evp_1d) : ERROR: navel badly chosen')
     endif
 
     ! indij: vector with target points (sorted) ...
@@ -1769,7 +1747,7 @@ module evp_kernel1d
         write(*,*)'nx,ny: ',nx,ny
         write(*,*)'i,j1,j2: ',i,j1,j2
         write(*,*)'x(i),y(j1),y(j2): ',x(i),y(j1),y(j2)
-        stop 'ERROR in findXinY'
+        call abort_ice('(ice_dyn_evp_1d) : ERROR in findXinY')
       endif
     end do
   end subroutine findXinY
@@ -1816,7 +1794,7 @@ module evp_kernel1d
             write(*,*)'nx,ny: ',nx,ny
             write(*,*)'i,j1: ',i,j1
             write(*,*)'x(i),y(j1): ',x(i),y(j1)
-            stop 'ERROR in findXinY_halo: too many loops'
+            call abort_ice('(ice_dyn_evp_1d) : ERROR in findXinY_halo: too many loops')
           endif
         endif
       endif
@@ -1902,5 +1880,5 @@ module evp_kernel1d
   end subroutine numainit
   
   !=======================================================================
-end module evp_kernel1d
+end module ice_dyn_evp_1d
 
