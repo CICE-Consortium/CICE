@@ -724,18 +724,21 @@
        deallocate(uRRE)
       endif
       
-      call deformations (nx_block,             ny_block,             & 
-                         icellt(iblk),                               & 
-                         indxti      (:,iblk), indxtj      (:,iblk), & 
-                         uvel      (:,:,iblk), vvel      (:,:,iblk), &     
-                         dxt       (:,:,iblk), dyt       (:,:,iblk), & 
-                         dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
-                         cxp       (:,:,iblk), cyp       (:,:,iblk), & 
-                         cxm       (:,:,iblk), cym       (:,:,iblk), & 
-                         tarear    (:,:,iblk),                       & 
-                         shear     (:,:,iblk), divu      (:,:,iblk), & 
-                         rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk))  
-
+      !$OMP PARALLEL DO PRIVATE(iblk)
+      do iblk = 1, nblocks
+         call deformations (nx_block,             ny_block,             &
+                            icellt(iblk),                               &
+                            indxti      (:,iblk), indxtj      (:,iblk), &
+                            uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                            dxt       (:,:,iblk), dyt       (:,:,iblk), &
+                            dxhy      (:,:,iblk), dyhx      (:,:,iblk), &
+                            cxp       (:,:,iblk), cyp       (:,:,iblk), &
+                            cxm       (:,:,iblk), cym       (:,:,iblk), &
+                            tarear    (:,:,iblk),                       &
+                            shear     (:,:,iblk), divu      (:,:,iblk), &
+                            rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk))
+      enddo
+      !$OMP END PARALLEL DO
 
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 

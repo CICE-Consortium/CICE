@@ -127,9 +127,6 @@
        ro = ddot(n, vv,1,vv,1)
        ro = dsqrt(ro)
 
-       if (iout .gt. 0 .and. its .eq. 0)&
-           write(nu_diag, 199) its, ro ,eps1
-!      write(6,199) its, ro
         r0=ro
  
        if (ro .eq. 0.0d0) goto 999
@@ -138,6 +135,8 @@
           vv(j,1) = vv(j,1)*t
  210   continue
        if (its .eq. 0) eps1=eps*ro
+       if (iout .gt. 0 .and. its .eq. 0)&
+          write(nu_diag, 199) its, ro ,eps1
 !     ** initialize 1-st term  of rhs of hessenberg system..
        rs(1) = ro
        i = 0
