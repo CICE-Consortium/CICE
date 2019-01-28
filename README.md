@@ -17,6 +17,9 @@ imperative you follow the guidance for Pull Requests and requisite testing.
 * **CICE Version Index**: https://github.com/CICE-Consortium/CICE/wiki/CICE-Version-Index
 
    Numbered CICE releases since version 6 with associated documentation and DOIs. 
+   
+* **Consortium Community Bulletin Board**: https://bb.cgd.ucar.edu/forums/cice-consortium-model-development
+   First point of contact for discussing model development including bugs, diagnostics, and future directions.   
 
 * **Resource Index**: https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index
 
