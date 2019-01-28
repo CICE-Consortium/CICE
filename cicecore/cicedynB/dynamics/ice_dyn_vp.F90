@@ -63,8 +63,11 @@
          im_pgmres      , & ! size of pgmres Krylov subspace
          maxits_fgmres  , & ! max nb of iteration for fgmres
          maxits_pgmres  , & ! max nb of iteration for pgmres
-         iout           , & ! for printing fgmres info
-         ioutpgmres         ! for printing pgmres info
+         monitor_fgmres , & ! print fgmres residual norm
+         monitor_pgmres     ! print pgmres residual norm
+
+      logical (kind=log_kind), public :: &
+         monitor_nonlin     ! print nonlinear residual norm
 
       real (kind=dbl_kind), public :: &
          gammaNL        , & ! nonlinear stopping criterion: gammaNL*res(k=0)
@@ -550,7 +553,7 @@
       !                     sol_eps, maxits,its,conv,icode )
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
-                   gamma, gammaNL, tolNL, maxits_fgmres,iout,   &
+                   gamma, gammaNL, tolNL, maxits_fgmres,monitor_fgmres,   &
                    icode,iconvNL,fgmres_its,kOL, krre)                     
 
       if (iconvNL .eq. 1) exit             
@@ -586,8 +589,8 @@
                        wk22     (:)       , wk11(:)            , &
                        ntot               , im_pgmres          , &
                        epsprecond         , maxits_pgmres      , &
-                       ioutpgmres         , ierr )         
-         endif
+                       monitor_pgmres     , ierr )         
+         endif ! precond
          
          goto 1
 

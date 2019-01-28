@@ -145,8 +145,9 @@
     im_pgmres       = 5
     maxits_fgmres   = 50
     maxits_pgmres   = 5
-    iout            = 1
-    ioutpgmres      = 1
+    monitor_nonlin  = .false.
+    monitor_fgmres  = 1
+    monitor_pgmres  = 1
     gammaNL         = 1e-8
     gamma           = 1e-2
     epsprecond      = 1e-6

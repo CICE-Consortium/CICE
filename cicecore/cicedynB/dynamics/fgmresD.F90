@@ -160,7 +160,7 @@
        goto 999
       endif 
       
-      if (iout .gt. 0) write(nu_diag, 199) kOL, krre, its, ro!&
+      if (iout .gt. 0) write(nu_diag, 199) kOL, its, ro!&
 !     
 !     initialize 1-st term  of rhs of hessenberg system..
 !     
@@ -239,7 +239,7 @@
       hh(i,i) = c(i)*hh(i,i) + s(i)*hh(i1,i)
       ro = abs(rs(i1))
       if (iout .gt. 1) &
-           write(nu_diag, 199) kOL, krre, its, ro
+           write(nu_diag, 199) kOL, its, ro
       if (i .lt. im .and. (ro .gt. eps1))  goto 4
 !     
 !     now compute solution. first solve upper triangular system.
@@ -287,10 +287,9 @@
      goto 20
  999  icode = 0
 
- 199  format('Picard i=', i4, 'cycling i=', i4, ' fmgres i =', i4, ' L2norm =', d26.16)
+ 199  format('monitor_fgmres: iter_nonlin=', i4, ' iter_fmgres=', i4, ' L2norm=', d26.16)
 !     
       return 
 !-----end-of-fgmres----------------------------------------------------- 
 !-----------------------------------------------------------------------
       end
-
