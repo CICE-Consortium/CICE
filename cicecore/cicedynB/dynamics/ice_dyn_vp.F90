@@ -162,6 +162,8 @@
          Diagv    , & ! Diagonal (v component) of the matrix A
          Fx       , & ! x residual vector, Fx = Au - bx 
          Fy       , & ! y residual vector, Fy = Av - by 
+         fpresx   , & ! x fixed point residual vector, fx = uvel - uprev_k
+         fpresy   , & ! y fixed point residual vector, fy = vvel - vprev_k
          uprev_k  , & ! uvel at previous Picard iteration
          vprev_k  , & ! vvel at previous Picard iteration
          ulin     , & ! uvel to linearize vrel
@@ -515,6 +517,40 @@
          enddo
          !$OMP END PARALLEL DO                            
 
+         ! Compute nonlinear residual norm
+         if (monitor_nonlin) then
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
+               call matvec (nx_block             , ny_block,            &
+                            icellu   (iblk)      ,                      & 
+                            indxui   (:,iblk)    , indxuj   (:,iblk)  , &
+                            kOL                  , icellt   (iblk)    , & 
+                            indxti   (:,iblk)    , indxtj   (:,iblk)  , &
+                            dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
+                            dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
+                            cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
+                            cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
+                            tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                            uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
+                            vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
+                            zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                            umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
+                            uarear   (:,:,iblk)  ,                      & 
+                            Au       (:,:,iblk)  , Av       (:,:,iblk))
+               call residual_vec (nx_block           , ny_block,           &
+                                  icellu       (iblk),                     & 
+                                  indxui     (:,iblk), indxuj    (:,iblk), &
+                                  bx       (:,:,iblk), by      (:,:,iblk), &
+                                  Au       (:,:,iblk), Av      (:,:,iblk), &
+                                  Fx       (:,:,iblk), Fy      (:,:,iblk), &
+                                  L2norm(iblk))
+            enddo
+            !$OMP END PARALLEL DO
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
+                                              " nonlin_res_L2norm= ", L2norm
+         endif
+
+
 !-----------------------------------------------------------------------
 !     prep F G M R E S 
 !-----------------------------------------------------------------------                             
@@ -594,9 +630,7 @@
          
          goto 1
 
-      else
-
-         if (icode >= 2) then
+      elseif (icode >= 2) then
 
          call vec_to_arrays (nx_block, ny_block, nblocks,      &
                              max_blocks, icellu (:), ntot,     & 
@@ -654,25 +688,8 @@
 
             goto 1
 
-         endif
+      endif ! icode
 
-      endif
-
-!     deallocate (wk11,wk22,rhs1,sol1,vv_8,ww_8)         
-         
-!            call calc_L2norm (nx_block           , ny_block,          &
-!                             icellu       (iblk),                     & 
-!                             indxui     (:,iblk), indxuj    (:,iblk), &
-!                             uvel     (:,:,iblk), vvel    (:,:,iblk))                                                     
-           
-!            call residual_vec (nx_block           , ny_block,           &
-!                               icellu       (iblk),                     & 
-!                               indxui     (:,iblk), indxuj    (:,iblk), &
-!                               bx       (:,:,iblk), by      (:,:,iblk), &
-!                               Au       (:,:,iblk), Av      (:,:,iblk), &
-!                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
-!                               L2norm(iblk))
-  
 !-----------------------------------------------------------------------
 !     Put vector sol in uvel and vvel arrays
 !-----------------------------------------------------------------------
@@ -715,6 +732,23 @@
          do iblk = 1, nblocks
             uvel(:,:,iblk) = fld2(:,:,1,iblk)
             vvel(:,:,iblk) = fld2(:,:,2,iblk)
+         enddo
+         !$OMP END PARALLEL DO
+         
+         ! Compute fixed point residual norm
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
+            fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
+            call calc_L2norm (nx_block        , ny_block,         &
+                              icellu    (iblk),                   & 
+                              indxui  (:,iblk), indxuj  (:,iblk), &
+                              fpresx(:,:,iblk), fpresy(:,:,iblk), &
+                              L2norm    (iblk))
+            if (monitor_nonlin) then
+               write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
+                                                 " fixed_point_res_L2norm= ", L2norm
+            endif
          enddo
          !$OMP END PARALLEL DO
          
@@ -2313,7 +2347,7 @@
                                bx,         by,       &
                                Au,         Av,       &
                                Fx,         Fy,       &
-                               L2normtp)
+                               L2norm)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -2336,20 +2370,20 @@
          Fy          ! y residual vector, Fy = Av - by (N/m^2)
          
       real (kind=dbl_kind), intent(inout) :: &
-         L2normtp    ! (L2norm)^2
+         L2norm      ! L2norm of residual vector
       
       integer (kind=int_kind) :: &
          i, j, ij
 
       !-----------------------------------------------------------------
-      ! calc b vector
+      ! calc residual and its L2 norm
       !-----------------------------------------------------------------
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
          file=__FILE__, line=__LINE__)
 
-      L2normtp=c0
+      L2norm=c0
          
       do ij =1, icellu
          i = indxui(ij)
@@ -2357,20 +2391,9 @@
 
          Fx(i,j) = Au(i,j) - bx(i,j)
          Fy(i,j) = Av(i,j) - by(i,j)
-         L2normtp = L2normtp + Fx(i,j)**2 + Fy(i,j)**2
-!         Fres(2*ij-1) = Au(i,j) - bx(i,j)
-!         Fres(2*ij)   = Av(i,j) - by(i,j)
-         
+         L2norm = L2norm + Fx(i,j)**2 + Fy(i,j)**2
       enddo                     ! ij
-      
-!      do ij = 1, ntot
-      
-!	Ftp(ij) = Aw(ij) - bvec(ij)
-      
-!      enddo
-      
-!       L2norm = sqrt(DOT_PRODUCT(Fres,Fres))
-!       print *, 'ici L2norm', sqrt(L2normtp)
+      L2norm = sqrt(L2norm)
 
       end subroutine residual_vec
       
@@ -2871,7 +2894,8 @@
       subroutine calc_L2norm (nx_block,   ny_block, &
                               icellu,               &
                               indxui,     indxuj,   &
-                              tpu,        tpv )
+                              tpu,        tpv,      &
+                              L2norm)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -2886,15 +2910,16 @@
          tpu     , & ! x-component of vector
          tpv         ! y-component of vector         
 
+      real (kind=dbl_kind), intent(out) :: &
+         L2norm      ! l^2 norm of vector grid function (tpu,tpv)
+
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, ij
-         
-      real (kind=dbl_kind) :: L2norm
 
       !-----------------------------------------------------------------
-      ! form vector
+      ! compute l^2 norm of vector grid function (tpu,tpv)
       !-----------------------------------------------------------------
 
      L2norm = c0
