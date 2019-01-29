@@ -311,7 +311,7 @@
           if (j .eq. 1)  t = t-1.0d0
           call daxpy (n, t, vv(1,j), 1,  vv, 1)
  25    continue
- 199   format('   its =', i4, ' res. norm =', d20.6, ' eps1 =', d20.6)
+ 199   format('monitor_pgmres: iter_pmgres=', i4, ' L2norm=', d26.16, ' epsprecond*initial_L2norm=', d26.6)
 !     restart outer loop.
        goto 20
  990   ierr = 0
