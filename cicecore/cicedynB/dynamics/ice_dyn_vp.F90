@@ -123,8 +123,6 @@
 
       integer (kind=int_kind) :: & 
          kOL            , & ! outer loop iteration
-         krre           , & ! RRE1 cycling iteration
-         kmaxrre        , & ! nb of RRE1 iterations (hard coded 3)
          ntot           , & ! size of problem for fgmres (for given cpu)
          icode          , & ! for fgmres
          iconvNL        , & ! code for NL convergence criterion
@@ -177,7 +175,7 @@
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
       real (kind=dbl_kind), allocatable :: bvec(:), sol(:), diagvec(:), wk11(:), wk22(:)
-      real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:), uRRE(:,:)
+      real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
       
       real (kind=dbl_kind), dimension (max_blocks) :: L2norm
       real (kind=dbl_kind) :: conv, tolNL
@@ -198,8 +196,6 @@
 
       type (block) :: &
          this_block           ! block information for current block
-         
-      logical :: RRE1 ! acceleration method for Picard (see C. Roland PhD thesis)
       
       call ice_timer_start(timer_dynamics) ! dynamics
 
@@ -214,7 +210,6 @@
       !-----------------------------------------------------------------
       
       iconvNL=0 ! equals 1 when NL convergence is reached
-      RRE1=.false.
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -383,14 +378,6 @@
       
       allocate(bvec(ntot), sol(ntot), diagvec(ntot), wk11(ntot), wk22(ntot))
       allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
-      
-      if (RRE1) then
-       kmaxrre=3
-       allocate(uRRE(ntot,kmaxrre))
-      else
-       kmaxrre=1
-       krre=1 ! JFL TEMP
-      endif
       
       !-----------------------------------------------------------------
       
@@ -590,7 +577,7 @@
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
                    gamma, gammaNL, tolNL, maxits_fgmres,monitor_fgmres,   &
-                   icode,iconvNL,fgmres_its,kOL, krre)                     
+                   icode,iconvNL,fgmres_its,kOL)                     
 
       if (iconvNL .eq. 1) exit             
                    
@@ -756,10 +743,6 @@
       
       deallocate(bvec, sol, diagvec, wk11, wk22, vv, ww)
       deallocate(fld2)
-      
-      if (RRE1) then
-       deallocate(uRRE)
-      endif
       
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks

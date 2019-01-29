@@ -1,5 +1,5 @@
       subroutine fgmres (n,im,rhs,sol,i,vv,w,wk1, wk2, &
-                  gamma,gammaNL,tolNL,maxits,iout,icode,iconv,its,kOL, krre) 
+                  gamma,gammaNL,tolNL,maxits,iout,icode,iconv,its,kOL) 
 
       use ice_fileunits, only: nu_diag
 
