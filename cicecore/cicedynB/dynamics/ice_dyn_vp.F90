@@ -164,8 +164,6 @@
          fpresy   , & ! y fixed point residual vector, fy = vvel - vprev_k
          uprev_k  , & ! uvel at previous Picard iteration
          vprev_k  , & ! vvel at previous Picard iteration
-         ulin     , & ! uvel to linearize vrel
-         vlin     , & ! vvel to linearize vrel
          vrel     , & ! coeff for tauw 
          Cb       , & ! seabed stress coeff
          aiu      , & ! ice fraction on u-grid
@@ -433,14 +431,6 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-
-!	    if (kOL .eq. 1) then
-	      ulin(:,:,iblk) = uvel(:,:,iblk)
-	      vlin(:,:,iblk) = vvel(:,:,iblk)
-!	    else
-!	      ulin(:,:,iblk) = p5*uprev_k(:,:,iblk) + p5*uvel(:,:,iblk)
-!	      vlin(:,:,iblk) = p5*vprev_k(:,:,iblk) + p5*vvel(:,:,iblk)
-!	    endif
          
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
