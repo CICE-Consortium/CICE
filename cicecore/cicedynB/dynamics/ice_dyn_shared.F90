@@ -39,6 +39,11 @@
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure
 
+      integer (kind=int_kind), public :: &
+         evp_kernel_ver ! 0 = 2D org version
+                        ! 1 = 1D representation raw (not implemented)
+                        ! 2 = 1D + calculate distances inline (implemented)
+                        ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
       ! other EVP parameters
 
       character (len=char_len), public :: & 
@@ -640,7 +645,6 @@
                         forcex,     forcey,   &
                         umassdti,   fm,       &
                         uarear,               &
-                        strocnx,    strocny,  &
                         strintx,    strinty,  &
                         taubx,      tauby,    &
                         uvel_init,  vvel_init,&
@@ -679,8 +683,6 @@
          vvel        ! y-component of velocity (m/s)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         strocnx , & ! ice-ocean stress, x-direction
-         strocny , & ! ice-ocean stress, y-direction
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty , & ! divergence of internal ice stress, y (N/m^2)
          taubx   , & ! basal stress, x-direction (N/m^2)
@@ -753,13 +755,6 @@
          uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
 
-      !-----------------------------------------------------------------
-      ! ocean-ice stress for coupling
-      ! here, strocn includes the factor of aice
-      !-----------------------------------------------------------------
-         strocnx(i,j) = taux
-         strocny(i,j) = tauy
-         
       ! calculate basal stress component for outputs
          if (ksub == ndte) then ! on last subcycling iteration
           if ( basalstress ) then
@@ -812,7 +807,9 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strocnx , & ! ice-ocean stress, x-direction
-         strocny , & ! ice-ocean stress, y-direction
+         strocny     ! ice-ocean stress, y-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          strocnxT, & ! ice-ocean stress, x-direction
          strocnyT    ! ice-ocean stress, y-direction
 

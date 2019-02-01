@@ -37,6 +37,8 @@ The dynamics solvers are found in **cicecore/cicedynB/dynamics/**.  A couple of 
 available including EVP, revised EVP, and EAP.  The dynamics solver is specified in namelist with the
 ``kdyn`` variable.  ``kdyn=1`` is evp, ``kdyn=2`` is eap, and revised evp requires the ``revised_evp``
 namelist flag be set to true.
+A vectorized version of EVP is available through the namelist flag ``evp_kernel_ver``. Default is "normal"
+EVP as usual ``evp_kernel_ver=0``, whereas an vectorized version (ver.2) is available ``evp_kernel_ver=2``.
 
 
 Transport

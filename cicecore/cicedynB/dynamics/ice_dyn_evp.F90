@@ -73,9 +73,9 @@
       use ice_arrays_column, only: Cdn_ocn
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy, ice_HaloUpdate_stress
-      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_domain_size, only: max_blocks, ncat
+      use ice_domain_size, only: max_blocks, ncat, nx_global, ny_global
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
@@ -86,11 +86,13 @@
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
-          grid_type
+          grid_type, HTE, HTN
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
-          ice_timer_start, ice_timer_stop
+          ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
+      use ice_dyn_evp_1d
+      use ice_dyn_shared, only: evp_kernel_ver
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -343,7 +345,46 @@
        enddo
        !$OMP END PARALLEL DO
       endif
-      
+      call ice_timer_start(timer_evp_2d)
+      if (evp_kernel_ver > 0) then
+        !write(*,*)'Entering evp_kernel version ',evp_kernel_ver
+        if (trim(grid_type) == 'tripole') then
+          call abort_ice('(ice_dyn_evp): &
+             & Kernel not tested on tripole grid. Set evp_kernel_ver=0')
+        endif
+        call evp_copyin(                                                &
+          nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
+          HTE,HTN,                                                      &
+!v1          dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,                           &
+!v1          waterx,watery,                                                &
+          icetmask, iceumask,                                           &
+          cdn_ocn,aiu,uocn,vocn,forcex,forcey,Tbu,        &
+          umassdti,fm,uarear,tarear,strintx,strinty,uvel_init,vvel_init,&
+          strength,uvel,vvel,dxt,dyt,                                   &
+          stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
+          stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
+          stress12_1,stress12_2,stress12_3,stress12_4                   )
+        if (evp_kernel_ver == 2) then
+          call ice_timer_start(timer_evp_1d)
+          call evp_kernel_v2()
+          call ice_timer_stop(timer_evp_1d)
+!v1        else if (evp_kernel_ver == 1) then
+!v1          call evp_kernel_v1()
+        else
+          write(*,*)'Kernel: evp_kernel_ver = ',evp_kernel_ver
+          call abort_ice('(ice_dyn_evp): Kernel not implemented.')
+        endif
+        call evp_copyout(                                               &
+          nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
+!strocn          uvel,vvel, strocnx,strocny, strintx,strinty,                  &
+          uvel,vvel, strintx,strinty,                                   &
+          stressp_1, stressp_2, stressp_3, stressp_4,                   &
+          stressm_1, stressm_2, stressm_3, stressm_4,                   &
+          stress12_1,stress12_2,stress12_3,stress12_4,                  &
+          divu,rdg_conv,rdg_shear,shear,taubx,tauby                     )
+
+      else ! evp_kernel_ver == 0 (Standard CICE)
+
       do ksub = 1,ndte        ! subcycling
 
       !-----------------------------------------------------------------
@@ -389,7 +430,6 @@
                         forcex   (:,:,iblk), forcey  (:,:,iblk), & 
                         umassdti (:,:,iblk), fm      (:,:,iblk), & 
                         uarear   (:,:,iblk),                     & 
-                        strocnx  (:,:,iblk), strocny (:,:,iblk), & 
                         strintx  (:,:,iblk), strinty (:,:,iblk), &
                         taubx    (:,:,iblk), tauby   (:,:,iblk), & 
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
@@ -421,6 +461,8 @@
          !$OMP END PARALLEL DO
          
       enddo                     ! subcycling
+      endif  ! evp_kernel_ver
+      call ice_timer_stop(timer_evp_2d)
 
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)

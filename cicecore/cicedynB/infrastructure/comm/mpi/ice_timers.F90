@@ -58,7 +58,9 @@
       timer_sndrcv,           &! time between send to receive
 #endif
       timer_bound,            &! boundary updates
-      timer_bgc                ! biogeochemistry
+      timer_bgc,              &! biogeochemistry
+      timer_evp_1d,           &! timer only loop
+      timer_evp_2d             ! timer including conversion 1d/2d
 !      timer_tmp               ! for temporary timings
 
 !-----------------------------------------------------------------------
@@ -181,6 +183,8 @@
    call get_ice_timer(timer_cplsend,  'Cpl-Send', nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_sndrcv,   'Snd->Rcv', nblocks,distrb_info%nprocs)
 #endif
+   call get_ice_timer(timer_evp_1d,   '1d-evp', nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_evp_2d,   '2d-evp', nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_tmp,      '         ',nblocks,distrb_info%nprocs)
 
 !-----------------------------------------------------------------------

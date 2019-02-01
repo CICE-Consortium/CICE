@@ -466,7 +466,6 @@
                         forcex   (:,:,iblk), forcey  (:,:,iblk), & 
                         umassdti (:,:,iblk), fm      (:,:,iblk), & 
                         uarear   (:,:,iblk),                     & 
-                        strocnx  (:,:,iblk), strocny (:,:,iblk), & 
                         strintx  (:,:,iblk), strinty (:,:,iblk), &
                         taubx    (:,:,iblk), tauby   (:,:,iblk), & 
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
