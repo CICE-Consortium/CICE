@@ -100,7 +100,7 @@
                                 basalstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, ktransport, brlx, arlx
-      use ice_dyn_vp, only: kmax, precond, im_fgmres, im_pgmres, maxits_fgmres, &
+      use ice_dyn_vp, only: maxits_nonlin, precond, im_fgmres, im_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
                             monitor_pgmres, gammaNL, gamma, epsprecond
       use ice_transport_driver, only: advection, conserv_check
@@ -197,7 +197,7 @@
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
-        k1,             kmax,           precond,        im_fgmres,      &
+        k1,             maxits_nonlin,  precond,        im_fgmres,      &
         im_pgmres,      maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, gammaNL,        gamma,          &
         epsprecond,                                                     &
@@ -330,7 +330,7 @@
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! VP ellipse aspect ratio
-      kmax = 1000            ! max nb of iteration for nonlinear solver
+      maxits_nonlin = 1000   ! max nb of iteration for nonlinear solver
       precond = 3            ! preconditioner for fgmres: 1: identity, 2: diagonal 3: pgmres + diag
       im_fgmres = 50         ! size of fgmres Krylov subspace
       im_pgmres = 5          ! size of pgmres Krylov subspace
@@ -647,7 +647,7 @@
       call broadcast_scalar(ssh_stress,         master_task)
       call broadcast_scalar(kridge,             master_task)
       call broadcast_scalar(ktransport,         master_task)
-      call broadcast_scalar(kmax,               master_task)
+      call broadcast_scalar(maxits_nonlin,      master_task)
       call broadcast_scalar(precond,            master_task)
       call broadcast_scalar(im_fgmres,          master_task)
       call broadcast_scalar(im_pgmres,          master_task)
@@ -1557,7 +1557,7 @@
                                orca_halogrid
 
          if (kdyn == 3) then
-            write(nu_diag,1020) ' kmax                      = ', kmax
+            write(nu_diag,1020) ' maxits_nonlin             = ', maxits_nonlin
             write(nu_diag,1020) ' precond                   = ', precond
             write(nu_diag,1020) ' im_fgmres                 = ', im_fgmres
             write(nu_diag,1020) ' im_pgmres                 = ', im_pgmres
