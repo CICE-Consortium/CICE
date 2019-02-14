@@ -19,6 +19,7 @@ set test = ${spval}
 set grid = gx3
 set pesx = 4x1
 set sets = ""
+set tdir = ${spval}
 set bdir = ${spval}
 set testid = ${spval}
 set testsuite = ${spval}
@@ -95,9 +96,10 @@ DESCRIPTION
 
     --test     : test, test name (not with --case or --suite)
     --suite    : test suite, pre-defined set or sets of tests, comma separated (not with --case or --test)
-    --bdir     : top baseline directory, default ICE_MACHINE_BASELINE
-    --bgen     : baselines directory where output from current tests are copied
-    --bcmp     : baselines directory where output from current tests are compared
+    --tdir     : directory name where tests will be located
+    --bdir     : baseline directory for regression testing, default ICE_MACHINE_BASELINE
+    --bgen     : directory name where output from current tests are copied
+    --bcmp     : directory name where output from current tests are compared
     --testid   : test ID, user-defined id for testing (REQUIRED with --test or --suite)
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
@@ -234,6 +236,8 @@ while (1)
     else if ("$option" == "--test") then
       set test = $argv[1]
       set dotest = 1
+    else if ("$option" == "--tdir") then
+      set tdir = $argv[1]
     else if ("$option" == "--grid" || "$option" == "-g") then
       set grid = $argv[1]
     else if ("$option" == "--queue") then
@@ -314,6 +318,9 @@ if ( ${dosuite} == 1 ) then
   set tsdir  = "testsuite.${testid}"
   set tsfile = "testsuite.${testid}.${sdate}-${stime}.list"
 endif
+if ( ${tdir} != ${spval} ) then
+  set tsdir = ${tdir}
+endif
 if (-e $tsfile) then
   echo "${0}: ERROR in tsfile, this should never happen"
   exit -1
@@ -348,20 +355,24 @@ else
     endif
   end
 
-  if (-e ./${tsdir}) then
+  if (-e ${tsdir}) then
     echo "${0}: ERROR, ${tsdir} already exists"
     exit -1
   endif
 
-  mkdir ./${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/report_results.csh ./${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ./${tsdir}
+  mkdir -p ${tsdir}
+  if ($status != 0) then
+    echo "${0}: ERROR, mkdir ${tsdir} aborted"
+    exit -1
+  endif
+  cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ${tsdir}
 
   if ($report == 1) then
-    cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ./${tsdir}
+    cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
   endif
 
-cat >! ./${tsdir}/suite.run << EOF0
+cat >! ${tsdir}/suite.run << EOF0
 #!/bin/csh -f
 EOF0
 
@@ -375,7 +386,7 @@ EOF0
   set vers = ${ICE_VERSION}
   set shhash = `echo ${hash} | cut -c 1-10`
 
-cat >! ./${tsdir}/results.csh << EOF0
+cat >! ${tsdir}/results.csh << EOF0
 #!/bin/csh -f
 rm -f results.log
 echo "#------- " >> results.log
@@ -393,8 +404,8 @@ echo "#vers = ${vers}" >> results.log
 echo "#------- " >> results.log
 EOF0
 
-  chmod +x ./${tsdir}/suite.run
-  chmod +x ./${tsdir}/results.csh
+  chmod +x ${tsdir}/suite.run
+  chmod +x ${tsdir}/results.csh
 
 endif
 
@@ -469,9 +480,9 @@ foreach compiler ( $ncompilers )
       set testname_noid = "${machcomp}_${test}_${grid}_${pesx}${soptions}"
       set testname_base = "${machcomp}_${test}_${grid}_${pesx}${soptions}.${testid}"
       if (${dosuite} == 1) then
-        set testname = "${tsdir}/$testname_base"
+        set testname = "${tsdir}/${testname_base}"
       else
-        set testname = "$testname_base"
+        set testname = "${testname_base}"
       endif
       set case = ${testname}
     endif
@@ -809,11 +820,11 @@ EOF2
       cd ${ICE_SANDBOX}
       # Write build and run commands to suite.run
 
-cat >> ./${tsdir}/results.csh << EOF
-cat $testname_base/test_output >> results.log
+cat >> ${tsdir}/results.csh << EOF
+cat ${testname_base}/test_output >> results.log
 EOF
 
-cat >> ./${tsdir}/suite.run << EOF
+cat >> ${tsdir}/suite.run << EOF
 echo "-------test--------------"
 echo "${testname_base}"
 cd ${testname_base}
@@ -845,7 +856,7 @@ end
 if ( ${dosuite} == 1 ) then
 
   # Add code to results.csh to count the number of failures
-cat >> ./${tsdir}/results.csh << EOF
+cat >> ${tsdir}/results.csh << EOF
 cat ./results.log
 set pends = \`cat ./results.log | grep PEND | wc -l\`
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
