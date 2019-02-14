@@ -74,10 +74,11 @@ SYNOPSIS
     --test TEST -m MACH --testid ID 
         [-e ENV][-p MxN][-g GRID][-s SET1,SET2][--acct ACCT]
         [--diff TESTNAME][--bdir DIR][--bgen DIR][--bcmp DIR]
+        [--tdir PATH]
 
     --suite SUITE[,SUITE2] -m MACH --testid ID 
         [-e ENV1,ENV2][--acct ACCT][--bdir DIR][--bgen DIR]
-        [--bcmp DIR][--report]
+        [--bcmp DIR][--tdir PATH][--report]
 
 DESCRIPTION
     --help, -h : help
