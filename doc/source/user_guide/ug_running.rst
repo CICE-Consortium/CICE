@@ -92,6 +92,8 @@ Other model output will be in the run directory.  The run directory is set in **
 via the ``ICE_RUNDIR`` variable.  To modify the case setup, changes should be made in the
 case directory, NOT the run directory.
 
+The script **cice.build** accepts as an optional argument the path to an existing CICE executable (usually ``ICE_RUNDIR/cice``). This can be useful to create several cases using the same source code without having to compile the model for each new case.
+
 .. _case_options:
 
 Command Line Options
