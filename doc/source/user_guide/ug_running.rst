@@ -36,7 +36,7 @@ There are three usage modes,
 
 All modes will require use of ``--mach`` or ``-m`` to specify the machine and case and test modes 
 can use ``--set`` or ``-s`` to define specific options.  ``--test`` and ``--suite`` will require ``--testid`` to be set 
-and both of the test modes can use ``--bdir``, ``--bgen``, ``--bcmp``, and ``--diff`` to generate (save) results and compare results with prior results.
+and both of the test modes can use ``--bdir``, ``--bgen``, ``--bcmp``, and ``--diff`` to generate (save) results and compare results with prior results as well as ``--tdir`` to specify the location of the test directory.
 Testing will be described in greater detail in the :ref:`testing` section.
 
 Again, ``cice.setup --help`` will show the latest usage information including 
