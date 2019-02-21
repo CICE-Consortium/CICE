@@ -64,7 +64,11 @@
          maxits_fgmres  , & ! max nb of iteration for fgmres
          maxits_pgmres  , & ! max nb of iteration for pgmres
          monitor_fgmres , & ! print fgmres residual norm
-         monitor_pgmres     ! print pgmres residual norm
+         monitor_pgmres , & ! print pgmres residual norm
+         algo_nonlin    , & ! nonlinear algorithm: 1: Picard iteration, 2: Anderson acceleration (andacc)
+         fpfunc_andacc  , & ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
+         im_andacc      , & ! size of Anderson minimization matrix (number of saved previous residuals)
+         start_andacc       ! acceleration delay factor (acceleration starts at this iteration)
 
       logical (kind=log_kind), public :: &
          monitor_nonlin     ! print nonlinear residual norm
@@ -72,7 +76,9 @@
       real (kind=dbl_kind), public :: &
          gammaNL        , & ! nonlinear stopping criterion: gammaNL*res(k=0)
          gamma          , & ! fgmres stopping criterion: gamma*res(k)
-         epsprecond         ! pgmres stopping criterion: epsprecond*res(k)
+         epsprecond     , & ! pgmres stopping criterion: epsprecond*res(k)
+         damping_andacc , & ! damping factor for Anderson acceleration
+         reltol_andacc      ! relative tolerance for Anderson acceleration
 
 !=======================================================================
 
@@ -342,8 +348,7 @@
       enddo
       ntot = 2*ntot ! times 2 because of u and v
       
-      allocate(bvec(ntot), sol(ntot), diagvec(ntot), wk11(ntot), wk22(ntot))
-      allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
+      allocate(bvec(ntot), sol(ntot), diagvec(ntot))
       
       !-----------------------------------------------------------------
       
@@ -395,24 +400,36 @@
       !-----------------------------------------------------------------
       ! Start of nonlinear iteration
       !-----------------------------------------------------------------
-
-      call picard_solver (icellt,   icellu,  &
-                          indxti,   indxtj,  &
-                          indxui,   indxuj,  &
-                          fld2,              &
-                          aiu,      ntot,    &
-                          waterx,   watery,  & 
-                          bxfix,    byfix,   &
-                          umassdti, bvec,    & 
-                          sol,      diagvec, &
-                          fpresx,   fpresy,  &
-                          halo_info_mask)
-
+      if (algo_nonlin == 1) then
+         call picard_solver (icellt,   icellu,  &
+                             indxti,   indxtj,  &
+                             indxui,   indxuj,  &
+                             fld2,              &
+                             aiu,      ntot,    &
+                             waterx,   watery,  & 
+                             bxfix,    byfix,   &
+                             umassdti, bvec,    & 
+                             sol,      diagvec, &
+                             fpresx,   fpresy,  &
+                             halo_info_mask)
+      elseif (algo_nonlin == 2) then
+         call anderson_solver (icellt,   icellu,  &
+                               indxti,   indxtj,  &
+                               indxui,   indxuj,  &
+                               fld2,              &
+                               aiu,      ntot,    &
+                               waterx,   watery,  & 
+                               bxfix,    byfix,   &
+                               umassdti, bvec,    & 
+                               sol,      diagvec, &
+                               fpresx,   fpresy,  &
+                               halo_info_mask)
+      endif
       !-----------------------------------------------------------------
       ! End of nonlinear iteration
       !-----------------------------------------------------------------
 
-      deallocate(bvec, sol, diagvec, wk11, wk22, vv, ww)
+      deallocate(bvec, sol, diagvec)
       deallocate(fld2)
       
       !$OMP PARALLEL DO PRIVATE(iblk)
@@ -430,7 +447,8 @@
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk))
       enddo
       !$OMP END PARALLEL DO
-
+      ! phb: here we do halo updates for stresses (stressp_i, stressm_i, stress12_i, i=1..4),
+      !      but stresses have not been updated ! (should be done in deformations ?)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       ! Force symmetry across the tripole seam
@@ -548,26 +566,16 @@
                                 fpresx,   fpresy,  &
                                 halo_info_mask)
 
-
       use ice_arrays_column, only: Cdn_ocn
       use ice_blocks, only: nx_block, ny_block
-      use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
-          ice_HaloDestroy, ice_HaloUpdate_stress
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
       use ice_domain, only: nblocks, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
-          strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
-          strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
-          strocnxT, strocnyT, strax, stray, &
-          Tbu, hwater, &
-          stressp_1, stressp_2, stressp_3, stressp_4, &
-          stressm_1, stressm_2, stressm_3, stressm_4, &
-          stress12_1, stress12_2, stress12_3, stress12_4
+      use ice_flux, only: uocn, vocn, fm, Tbu
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea
       use ice_state, only: uvel, vvel, strength
-      use ice_timers, only: timer_dynamics, timer_bound, &
-          ice_timer_start, ice_timer_stop
+      use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
 
       integer (kind=int_kind), intent(in) :: & 
          ntot         ! size of problem for fgmres (for given cpu)
@@ -614,7 +622,6 @@
          ischmi         , & ! Quesse ca!?!?! jfl
          its            , & ! iteration nb for fgmres
          fgmres_its     , & ! final nb of fgmres iterations
-         iconvNL        , & ! code for NL convergence criterion (equals 1 when NL convergence is reached)
          ierr               ! code for pgmres preconditioner !phb: needed?
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
@@ -648,20 +655,15 @@
          wk11(:), wk22(:)  ! work vectors for FGMRES
 
       real (kind=dbl_kind) :: & 
-         conv,  & ! ratio of current residual and initial residual for FGMRES !phb: needed?
-         tolNL    ! gammaNL * (current residual) !phb: needed?
+         conv     , & ! ratio of current residual and initial residual for FGMRES !phb: needed for fgmres2
+         tol      , & ! tolerance for nonlinear convergence: gammaNL * initial residual norm
+         res_norm     ! residual norm for FGMRES
 
       character(len=*), parameter :: subname = '(picard_solver)'
 
       ! Allocate space for FGMRES work arrays
       allocate(wk11(ntot), wk22(ntot))
       allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
-
-      !-----------------------------------------------------------------
-      ! Define a few things for FGMRES and Picard solver
-      !-----------------------------------------------------------------
-      
-      iconvNL=0 ! equals 1 when NL convergence is reached
 
       ! Start iterations
       do kOL = 1,maxits_nonlin        ! outer loop 
@@ -677,7 +679,7 @@
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
             
             call calc_zeta_Pr (nx_block           , ny_block,           &
-                               kOL                , icellt(iblk),       & 
+                               icellt(iblk),                            & 
                                indxti   (:,iblk)  , indxtj(:,iblk),     & 
                                uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
                                dxt      (:,:,iblk), dyt   (:,:,iblk),   & 
@@ -691,7 +693,6 @@
             call calc_vrel_Cb (nx_block           , ny_block,           &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), & 
                                indxui     (:,iblk), indxuj    (:,iblk), &
-                               kOL                ,                     &
                                aiu      (:,:,iblk), Tbu     (:,:,iblk), &
                                uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                                uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
@@ -701,14 +702,13 @@
             call calc_bvec (nx_block           , ny_block,           &
                             icellu       (iblk),                     & 
                             indxui     (:,iblk), indxuj    (:,iblk), &
-                            kOL                , Cdn_ocn (:,:,iblk), &
+                            stPrtmp  (:,:,:)   , Cdn_ocn (:,:,iblk), &
                             aiu      (:,:,iblk), uarear  (:,:,iblk), & 
                             uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
                             uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
-                            bx       (:,:,iblk), by      (:,:,iblk), &
-                            stPrtmp  (:,:,:))
+                            bx       (:,:,iblk), by      (:,:,iblk))
 
       !     prepare precond matrix
            if (precond .gt. 1) then
@@ -740,9 +740,8 @@
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
                call matvec (nx_block             , ny_block,            &
-                            icellu   (iblk)      ,                      & 
+                            icellu   (iblk)      , icellt   (iblk)    , & 
                             indxui   (:,iblk)    , indxuj   (:,iblk)  , &
-                            kOL                  , icellt   (iblk)    , & 
                             indxti   (:,iblk)    , indxtj   (:,iblk)  , &
                             dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
                             dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
@@ -807,10 +806,8 @@
       !                     sol_eps, maxits,its,conv,icode )
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
-                   gamma, gammaNL, tolNL, maxits_fgmres,monitor_fgmres,   &
-                   icode,iconvNL,fgmres_its,kOL)                     
-
-      if (iconvNL .eq. 1) exit             
+                   gamma, maxits_fgmres, monitor_fgmres,   &
+                   icode,fgmres_its, res_norm)
                    
       if (icode == 1) then
 
@@ -829,7 +826,7 @@
           call pgmres (nx_block,    ny_block,    nblocks       , &
                        max_blocks         , icellu   (:)       , & 
                        indxui   (:,:)     , indxuj   (:,:)     , &
-                       kOL                , icellt   (:)       , & 
+                       icellt   (:)                            , & 
                        indxti   (:,:)     , indxtj   (:,:)     , &
                        dxt      (:,:,:)   , dyt      (:,:,:)   , & 
                        dxhy     (:,:,:)   , dyhx     (:,:,:)   , & 
@@ -878,9 +875,8 @@
          do iblk = 1, nblocks                                  
          
           call matvec (nx_block             , ny_block,            &
-                       icellu   (iblk)      ,                      & 
+                       icellu   (iblk)      , icellt   (iblk)    , & 
                        indxui   (:,iblk)    , indxuj   (:,iblk)  , &
-                       kOL                  , icellt   (iblk)    , & 
                        indxti   (:,iblk)    , indxtj   (:,iblk)  , &
                        dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
                        dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
@@ -907,6 +903,15 @@
             goto 1
 
       endif ! icode
+      
+      ! Compute relative tolerance at first iteration
+      if (kOL == 1) then
+         tol = gammaNL*res_norm
+      endif
+      ! Check for nonlinear convergence
+      if (res_norm < tol) then
+         exit
+      endif
 
       !-----------------------------------------------------------------------
       !     Put vector sol in uvel and vvel arrays
@@ -979,10 +984,638 @@
 
 !=======================================================================
 
+! Solve nonlinear equation using fixed point iteration, accelerated with 
+! Anderson acceleration
+!
+! author: P. Blain ECCC
+
+      subroutine anderson_solver (icellt,   icellu,  &
+                                  indxti,   indxtj,  &
+                                  indxui,   indxuj,  &
+                                  fld2,              &
+                                  aiu,      ntot,    &
+                                  waterx,   watery,  & 
+                                  bxfix,    byfix,   &
+                                  umassdti, bvec,    & 
+                                  sol,      diagvec, &
+                                  fpresx,   fpresy,  &
+                                  halo_info_mask)
+
+      use ice_arrays_column, only: Cdn_ocn
+      use ice_blocks, only: nx_block, ny_block
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_constants, only: c1
+      use ice_domain, only: nblocks, halo_info, maskhalo_dyn
+      use ice_domain_size, only: max_blocks
+      use ice_flux, only:   uocn, vocn, fm, Tbu
+      use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
+          tarear, uarear, tinyarea
+      use ice_state, only: uvel, vvel, strength
+      use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
+
+      integer (kind=int_kind), intent(in) :: & 
+         ntot         ! size of problem for fgmres (for given cpu)
+
+      integer (kind=int_kind), dimension(max_blocks), intent(in) :: & 
+         icellt   , & ! no. of cells where icetmask = 1
+         icellu       ! no. of cells where iceumask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), intent(in) :: &
+         indxti   , & ! compressed index in i-direction
+         indxtj   , & ! compressed index in j-direction
+         indxui   , & ! compressed index in i-direction
+         indxuj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(inout) :: &
+         fld2        ! work array for boundary updates
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         aiu      , & ! ice fraction on u-grid
+         waterx   , & ! for ocean stress calculation, x (m/s)
+         watery   , & ! for ocean stress calculation, y (m/s)
+         bxfix    , & ! part of bx that is constant during Picard
+         byfix    , & ! part of by that is constant during Picard
+         umassdti     ! mass of U-cell/dte (kg/m^2 s)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+         fpresx   , & ! x fixed point residual vector, fx = uvel - uprev_k
+         fpresy       ! y fixed point residual vector, fy = vvel - vprev_k
+
+      real (kind=dbl_kind), dimension (ntot), intent(inout) :: &
+         bvec     , & ! RHS vector for FGMRES
+         sol      , & ! current approximate solution
+         diagvec      ! diagonal of matrix A for preconditioners
+
+      type (ice_halo) :: &
+         halo_info_mask !  ghost cell update info for masked halo
+
+      ! local variables
+
+      integer (kind=int_kind) :: & 
+         it_nl      , & ! nonlinear loop iteration index
+         res_num    , & ! current number of stored residuals
+         j          , & ! iteration index for QR update
+         iblk       , & ! block index
+         icode      , & ! code for fgmres solver
+         ischmi     , & ! Quesse ca!?!?! jfl
+         its        , & ! iteration nb for fgmres
+         fgmres_its , & ! final nb of fgmres iterations
+         iconvNL    , & ! code for NL convergence criterion (equals 1 when NL convergence is reached)
+         ierr           ! code for pgmres preconditioner !phb: needed?
+
+      integer (kind=int_kind), parameter :: &
+         inc = 1        ! increment value for BLAS calls
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         uprev_k  , & ! uvel at previous Picard iteration
+         vprev_k  , & ! vvel at previous Picard iteration
+         vrel     , & ! coeff for tauw 
+         Cb       , & ! seabed stress coeff
+         bx       , & ! b vector
+         by       , & ! b vector
+         Diagu    , & ! Diagonal (u component) of the matrix A
+         Diagv    , & ! Diagonal (v component) of the matrix A
+         Au       , & ! matvec, Fx = Au - bx
+         Av       , & ! matvec, Fy = Av - by
+         Fx       , & ! x residual vector, Fx = Au - bx
+         Fy           ! y residual vector, Fy = Av - by
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
+         zetaD        ! zetaD = 2zeta (viscous coeff)
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
+         stPrtmp,   & ! doit etre (nx_block,ny_block,max_blocks,8)???? PAs besoin des 2? reuse?
+         Dstrtmp
+
+      real (kind=dbl_kind), dimension (max_blocks) :: &
+         L2norm       ! to compute l^2 norm of grid function
+
+      real (kind=dbl_kind), dimension (ntot) :: &
+         res        , & ! current residual
+         res_old    , & ! previous residual
+         res_diff   , & ! difference between current and previous residuals
+         fpfunc     , & ! current value of fixed point function
+         fpfunc_old , & ! previous value of fixed point function
+         Fvec       , & ! (Fx,Fy) (nonlinear residual) as vector
+         tmp            ! temporary vector for BLAS calls
+      
+      real (kind=dbl_kind), dimension(ntot,im_andacc) :: &
+         Q        , & ! Q factor for QR factorization of F (residuals) matrix
+         G_diff       ! Matrix containing the differences of g(x) (fixed point function) evaluations
+      
+      real (kind=dbl_kind), dimension(im_andacc,im_andacc) :: &
+         R            ! R factor for QR factorization of F (residuals) matrix
+      
+      real (kind=dbl_kind), dimension(im_andacc) :: &
+         rhs_tri  , & ! right hand side vector for matrix-vector product
+         coeffs       ! coeffs used to combine previous solutions
+
+      real (kind=dbl_kind) :: & 
+         conv        , & ! ratio of current residual and initial residual for FGMRES !phb: needed for fgmres2
+         tol         , & ! tolerance for fixed point convergence: reltol_andacc * (initial fixed point residual norm)
+         tol_nl      , & ! tolerance for nonlinear convergence: gammaNL * (initial nonlinear residual norm)
+         fpres_norm  , & ! norm of current fixed point residual
+         nlres_norm  , & ! norm of current nonlinear residual
+         ddot, dnrm2     ! BLAS functions
+
+      character(len=*), parameter :: subname = '(anderson_solver)'
+      
+      ! Initialization
+      res_num = 0
+      
+      ! Start iterations
+      do it_nl = 0, maxits_nonlin        ! nonlinear iteration loop 
+         ! Compute quantities needed for computing PDE residual and g(x) (fixed point map)
+         !-----------------------------------------------------------------
+         ! Calc zetaD, Pr, Cb and vrel = f(uprev_k, vprev_k)
+         !-----------------------------------------------------------------
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            
+            uprev_k(:,:,iblk) = uvel(:,:,iblk)
+            vprev_k(:,:,iblk) = vvel(:,:,iblk)
+            
+            call calc_zeta_Pr (nx_block           , ny_block,           &
+                               icellt(iblk),                            & 
+                               indxti   (:,iblk)  , indxtj(:,iblk),     & 
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                               dxt      (:,:,iblk), dyt   (:,:,iblk),   & 
+                               dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
+                               cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
+                               cxm      (:,:,iblk), cym   (:,:,iblk),   & 
+                               tarear   (:,:,iblk), tinyarea (:,:,iblk),& 
+                               strength (:,:,iblk), zetaD (:,:,iblk,:) ,&
+                               stPrtmp  (:,:,:) )                      
+            
+            call calc_vrel_Cb (nx_block           , ny_block,           &
+                               icellu       (iblk), Cdn_ocn (:,:,iblk), & 
+                               indxui     (:,iblk), indxuj    (:,iblk), &
+                               aiu      (:,:,iblk), Tbu     (:,:,iblk), &
+                               uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
+                               vrel     (:,:,iblk), Cb      (:,:,iblk))
+            
+            ! prepare b vector (RHS)
+            call calc_bvec (nx_block           , ny_block,           &
+                            icellu       (iblk),                     & 
+                            indxui     (:,iblk), indxuj    (:,iblk), &
+                            stPrtmp  (:,:,:)   , Cdn_ocn (:,:,iblk), &
+                            aiu      (:,:,iblk), uarear  (:,:,iblk), & 
+                            uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                            waterx   (:,:,iblk), watery  (:,:,iblk), & 
+                            uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
+                            bxfix    (:,:,iblk), byfix   (:,:,iblk), &
+                            bx       (:,:,iblk), by      (:,:,iblk))
+            
+            ! Compute nonlinear residual norm (PDE residual)
+            call matvec (nx_block             , ny_block,            &
+                         icellu   (iblk)      , icellt   (iblk)    , &
+                         indxui   (:,iblk)    , indxuj   (:,iblk)  , &
+                         indxti   (:,iblk)    , indxtj   (:,iblk)  , &
+                         dxt      (:,:,iblk)  , dyt      (:,:,iblk), &
+                         dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), &
+                         cxp      (:,:,iblk)  , cyp      (:,:,iblk), &
+                         cxm      (:,:,iblk)  , cym      (:,:,iblk), &
+                         tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                         uprev_k  (:,:,iblk)  , vprev_k  (:,:,iblk), &
+                         vrel     (:,:,iblk)  , Cb       (:,:,iblk), &
+                         zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                         umassdti (:,:,iblk)  , fm       (:,:,iblk), &
+                         uarear   (:,:,iblk)  ,                      &
+                         Au       (:,:,iblk)  , Av       (:,:,iblk))
+            call residual_vec (nx_block           , ny_block,           &
+                               icellu       (iblk),                     & 
+                               indxui     (:,iblk), indxuj    (:,iblk), &
+                               bx       (:,:,iblk), by      (:,:,iblk), &
+                               Au       (:,:,iblk), Av      (:,:,iblk), &
+                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
+                               L2norm(iblk))
+            nlres_norm = L2norm(iblk) ! phb: change after parallelization
+         enddo
+         !$OMP END PARALLEL DO
+         if (monitor_nonlin) then
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
+                                              " nonlin_res_L2norm= ", nlres_norm
+         endif
+         ! Compute relative tolerance at first iteration
+         if (it_nl == 0) then
+            tol_nl = gammaNL*nlres_norm
+         endif
+         
+         ! Check for nonlinear convergence
+         if (nlres_norm < tol_nl) then
+            exit
+         endif
+         
+         ! Form b vector from matrices (nblocks matrices)
+         call arrays_to_vec (nx_block, ny_block, nblocks,    &
+                             max_blocks, icellu (:), ntot,   &
+                             indxui      (:,:), indxuj(:,:), &
+                             bx        (:,:,:), by  (:,:,:), &
+                             bvec(:))
+         ! Form sol vector for fgmres (sol is iniguess at the beginning)
+         call arrays_to_vec (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     &
+                             indxui    (:,:), indxuj(:,:),     &
+                             uprev_k (:,:,:), vprev_k (:,:,:), &
+                             sol(:))
+         ! Compute fixed point map g(x)
+         if (fpfunc_andacc == 1) then
+            ! g_1(x) = FGMRES(A(x), b(x))
+            
+            ! Prepare precond matrix
+            if (precond .gt. 1) then
+               !$OMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
+                  call formDiag_step1 (nx_block           , ny_block,       & ! D term due to rheology
+                                       icellu       (iblk),                 &
+                                       indxui     (:,iblk), indxuj(:,iblk), &
+                                       dxt      (:,:,iblk), dyt (:,:,iblk), & 
+                                       dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
+                                       cxp      (:,:,iblk), cyp (:,:,iblk), & 
+                                       cxm      (:,:,iblk), cym (:,:,iblk), & 
+                                       zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
+                  call formDiag_step2 (nx_block           , ny_block,           &
+                                       icellu       (iblk),                     & 
+                                       indxui     (:,iblk), indxuj    (:,iblk), &
+                                       Dstrtmp  (:,:,:)   , vrel    (:,:,iblk), &
+                                       umassdti (:,:,iblk),                     & 
+                                       uarear   (:,:,iblk), Cb      (:,:,iblk), & 
+                                       Diagu    (:,:,iblk), Diagv   (:,:,iblk))
+               enddo
+               !$OMP END PARALLEL DO
+               ! Form matrix diagonal as a vector from Diagu and Diagv arrays      
+               call arrays_to_vec (nx_block, ny_block, nblocks,    &
+                                   max_blocks, icellu (:), ntot,   & 
+                                   indxui      (:,:), indxuj(:,:), &
+                                   Diagu     (:,:,:), Diagv(:,:,:),&
+                                   diagvec(:))
+            endif
+            
+            ! FGMRES linear solver (solution is in fpfunc)
+            fpfunc = sol
+            call fgmres_solver (ntot,   bvec,     &
+                                fpfunc, diagvec,  &
+                                icellt, icellu,   &
+                                indxti, indxtj,   &
+                                indxui, indxuj,   &
+                                zetaD,            &
+                                Cb,     vrel,     &
+                                aiu,    umassdti, & 
+                                fld2)
+         elseif (fpfunc_andacc == 2) then
+            ! g_2(x) = x - A(x)x + b(x) = x - F(x)
+         endif
+
+         ! Compute residual
+         res = fpfunc - sol
+         fpres_norm = dnrm2(size(res), res, inc)
+         ! if (monitor_nonlin) then
+         !    write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
+         !                                      " fixed_point_res_L2norm= ", fpres_norm
+         ! endif
+         
+         ! Store initial residual norm
+         if (it_nl == 0) then
+            tol = reltol_andacc*fpres_norm
+         endif
+
+         ! Check residual
+         if (fpres_norm < tol) then
+            exit
+         endif
+
+         if (im_andacc == 0 .or. it_nl < start_andacc) then 
+            ! Simple fixed point (Picard) iteration in this case
+            sol = fpfunc
+         else
+            ! Begin Anderson acceleration
+            if (it_nl > start_andacc) then
+               ! Update residual difference vector
+               res_diff = res - res_old
+               ! Update fixed point function difference matrix
+               if (res_num < im_andacc) then
+                  ! Add column
+                  G_diff(:,res_num+1) = fpfunc - fpfunc_old
+               else
+                  ! Delete first column and add column
+                  G_diff(:,1:res_num-1) = G_diff(:,2:res_num)
+                  G_diff(:,res_num) = fpfunc - fpfunc_old
+               endif
+               res_num = res_num + 1
+            endif
+            res_old = res
+            fpfunc_old = fpfunc
+            if (res_num == 0) then
+               sol = fpfunc
+            else
+               if (res_num == 1) then
+                  ! Initialize QR factorization
+                  R(1,1) = dnrm2(size(res_diff), res_diff, inc)
+                  Q(:,1) = res_diff/R(1,1)
+               else
+                  if (res_num > im_andacc) then
+                     ! Update factorization since 1st column was deleted
+                     call qr_delete(Q,R)
+                     res_num = res_num - 1
+                  endif
+                  ! Update QR factorization for new column
+                  do j = 1, res_num - 1
+                     R(j,res_num) = ddot(ntot, Q(:,j), inc, res_diff, inc)
+                     res_diff = res_diff - R(j,res_num) * Q(:,j)
+                  enddo
+                  R(res_num, res_num) = dnrm2(size(res_diff) ,res_diff, inc)
+                  Q(:,res_num) = res_diff / R(res_num, res_num)
+               endif
+               ! phb: here, drop more columns to improve conditioning
+               ! if (droptol) then
+               
+               ! endif
+               ! Solve least square problem for coefficients
+               ! 1. Compute rhs_tri = Q^T * res
+               call dgemv ('t', size(Q,1), res_num, c1, Q(:,1:res_num), size(Q,1), res, inc, c0, rhs_tri, inc)
+               ! 2. Solve R*coeffs = rhs_tri, puts result in rhs_tri
+               call dtrsv ('u', 'n', 'n', res_num, R(1:res_num,1:res_num), res_num, rhs_tri, inc)
+               coeffs = rhs_tri
+               ! Update approximate solution: x = fpfunc - G_diff*coeffs, puts result in fpfunc
+               call dgemv ('n', size(G_diff,1), res_num, -c1, G_diff(:,1:res_num), size(G_diff,1), coeffs, inc, c1, fpfunc, inc)
+               sol = fpfunc
+               ! Apply damping
+               if (damping_andacc > 0 .and. damping_andacc /= 1) then
+                  ! x = x - (1-beta) (res - Q*R*coeffs)
+                  
+                  ! tmp = R*coeffs
+                  call dgemv ('n', res_num, res_num, c1, R(1:res_num,1:res_num), res_num, coeffs, inc, c0, tmp, inc)
+                  ! res = res - Q*tmp
+                  call dgemv ('n', size(Q,1), res_num, -c1, Q(:,1:res_num), size(Q,1), tmp, inc, c1, res, inc)
+                  ! x = x - (1-beta)*res
+                  sol = sol - (1-damping_andacc)*res
+               endif
+            endif
+         endif
+         
+         !-----------------------------------------------------------------------
+         !     Put vector sol in uvel and vvel arrays
+         !-----------------------------------------------------------------------
+         call vec_to_arrays (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             sol (:),                          &
+                             uvel (:,:,:), vvel (:,:,:))
+         ! Load velocity into array for boundary updates
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            fld2(:,:,1,iblk) = uvel(:,:,iblk)
+            fld2(:,:,2,iblk) = vvel(:,:,iblk)
+         enddo
+         !$OMP END PARALLEL DO
+
+         call ice_timer_start(timer_bound)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                 field_loc_NEcorner, field_type_vector)
+         else
+            call ice_HaloUpdate (fld2,               halo_info, &
+                                 field_loc_NEcorner, field_type_vector)
+         endif
+         call ice_timer_stop(timer_bound)
+
+         ! Unload
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            uvel(:,:,iblk) = fld2(:,:,1,iblk)
+            vvel(:,:,iblk) = fld2(:,:,2,iblk)
+         enddo
+         !$OMP END PARALLEL DO
+         
+         ! Compute fixed point residual norm
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
+            fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
+            call calc_L2norm (nx_block        , ny_block,         &
+                              icellu    (iblk),                   & 
+                              indxui  (:,iblk), indxuj  (:,iblk), &
+                              fpresx(:,:,iblk), fpresy(:,:,iblk), &
+                              L2norm    (iblk))
+            if (monitor_nonlin) then
+               write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
+                                                 " fixed_point_res_L2norm= ", L2norm
+            endif
+         enddo
+         !$OMP END PARALLEL DO
+         
+      enddo ! nonlinear iteration loop
+      
+      end subroutine anderson_solver
+
+!=======================================================================
+
+! Driver for the FGMRES linear solver
+
+      subroutine fgmres_solver (ntot,   bvec,     &
+                                sol,    diagvec,  &
+                                icellt, icellu,   &
+                                indxti, indxtj,   &
+                                indxui, indxuj,   &
+                                zetaD,            &
+                                Cb,     vrel,     &
+                                aiu,    umassdti, & 
+                                fld2)
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_boundary, only: ice_HaloUpdate
+      use ice_domain, only: nblocks, halo_info, maskhalo_dyn
+      use ice_domain_size, only: max_blocks
+      use ice_flux, only:   uocn, vocn, fm, Tbu
+      use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
+          tarear, uarear, tinyarea
+      use ice_state, only: uvel, vvel, strength
+      
+      integer (kind=int_kind), intent(in) :: & 
+         ntot         ! size of problem for fgmres (for given cpu)
+      
+      real (kind=dbl_kind), dimension (ntot), intent(in) :: &
+         bvec     , & ! RHS vector for FGMRES
+         diagvec      ! diagonal of matrix A for preconditioners
+      
+      real (kind=dbl_kind), dimension (ntot), intent(inout) :: &
+         sol          ! solution vector for FGMRES
+      
+      integer (kind=int_kind), dimension(max_blocks), intent(in) :: & 
+         icellt   , & ! no. of cells where icetmask = 1
+         icellu       ! no. of cells where iceumask = 1
+      
+      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), intent(in) :: &
+         indxti   , & ! compressed index in i-direction
+         indxtj   , & ! compressed index in j-direction
+         indxui   , & ! compressed index in i-direction
+         indxuj       ! compressed index in j-direction
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         vrel     , & ! coeff for tauw 
+         Cb       , & ! seabed stress coeff
+         aiu      , & ! ice fraction on u-grid
+         umassdti     ! mass of U-cell/dte (kg/m^2 s)
+      
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
+         zetaD      ! zetaD = 2zeta (viscous coeff)
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(inout) :: &
+         fld2        ! work array for boundary updates
+      
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk           , & ! block index
+         icode          , & ! code for fgmres solver
+         its            , & ! iteration nb for fgmres
+         fgmres_its     , & ! final nb of fgmres iterations
+         ierr               ! code for pgmres preconditioner !phb: needed?
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         Au       , & ! matvec, Fx = Au - bx
+         Av           ! matvec, Fy = Av - by
+      
+      real (kind=dbl_kind), allocatable :: & 
+         vv(:,:), ww(:,:)  ! work arrays for FGMRES
+
+      real (kind=dbl_kind), allocatable :: &
+         wk11(:), wk22(:)  ! work vectors for FGMRES
+         
+      real (kind=dbl_kind) :: &
+         res_norm          ! residual norm for FGMRES
+      
+      character(len=*), parameter :: subname = '(fgmres_solver)'
+
+      ! Allocate space for FGMRES work arrays
+      allocate(wk11(ntot), wk22(ntot))
+      allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
+      
+      !-----------------------------------------------------------------------
+      !     prep F G M R E S 
+      !-----------------------------------------------------------------------
+         
+      icode  = 0
+      
+      !-----------------------------------------------------------------------
+      !     F G M R E S   L O O P
+      !-----------------------------------------------------------------------
+      1    continue
+      !-----------------------------------------------------------------------
+
+      !call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
+      !                     sol_eps, maxits,its,conv,icode )
+                           
+      call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
+                   gamma, maxits_fgmres,monitor_fgmres, &
+                   icode, fgmres_its, res_norm)
+
+      if (icode == 1) then
+
+         if (precond .eq. 1) then
+
+           wk22(:)=wk11(:) ! precond=identity
+           
+         elseif (precond .eq. 2) then ! use diagonal of A for precond step
+          
+           call precond_diag (ntot,            & 
+                              diagvec (:),     &
+                              wk11 (:), wk22 (:) )
+                              
+         elseif (precond .eq. 3) then
+         
+          call pgmres (nx_block,    ny_block,    nblocks       , &
+                       max_blocks         , icellu   (:)       , & 
+                       indxui   (:,:)     , indxuj   (:,:)     , &
+                       icellt   (:)       ,                      & 
+                       indxti   (:,:)     , indxtj   (:,:)     , &
+                       dxt      (:,:,:)   , dyt      (:,:,:)   , & 
+                       dxhy     (:,:,:)   , dyhx     (:,:,:)   , & 
+                       cxp      (:,:,:)   , cyp      (:,:,:)   , & 
+                       cxm      (:,:,:)   , cym      (:,:,:)   , & 
+                       tarear   (:,:,:)   , tinyarea (:,:,:)   , &
+                       vrel     (:,:,:)   , Cb       (:,:,:)   , &  
+                       zetaD    (:,:,:,:) , aiu      (:,:,:)   , &
+                       umassdti (:,:,:)   , fm       (:,:,:)   , & 
+                       uarear   (:,:,:)   , diagvec(:)         , &
+                       wk22     (:)       , wk11(:)            , &
+                       ntot               , im_pgmres          , &
+                       epsprecond         , maxits_pgmres      , &
+                       monitor_pgmres     , ierr )         
+         endif ! precond
+         
+         goto 1
+
+      elseif (icode >= 2) then
+
+         call vec_to_arrays (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             wk11 (:),                         &
+                             uvel (:,:,:), vvel (:,:,:))    
+                             
+         ! JFL halo update could be in subroutine...                    
+         !$OMP PARALLEL DO PRIVATE(iblk) 
+         do iblk = 1, nblocks                             
+            fld2(:,:,1,iblk) = uvel(:,:,iblk)
+            fld2(:,:,2,iblk) = vvel(:,:,iblk)            
+         enddo
+         !$OMP END PARALLEL DO                           
+
+         call ice_HaloUpdate (fld2,               halo_info, & 
+                              field_loc_NEcorner, field_type_vector)
+
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            uvel(:,:,iblk) = fld2(:,:,1,iblk)
+            vvel(:,:,iblk) = fld2(:,:,2,iblk)
+         enddo
+         !$OMP END PARALLEL DO                             
+
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks                                  
+         
+          call matvec (nx_block             , ny_block,            &
+                       icellu   (iblk)      , icellt   (iblk)    , &
+                       indxui   (:,iblk)    , indxuj   (:,iblk)  , &
+                       indxti   (:,iblk)    , indxtj   (:,iblk)  , &
+                       dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
+                       dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
+                       cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
+                       cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
+                       tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                       uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
+                       vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
+                       zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                       umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
+                       uarear   (:,:,iblk)  ,                      & 
+                       Au       (:,:,iblk)  , Av       (:,:,iblk))                         
+                         
+         enddo
+         !$OMP END PARALLEL DO 
+       
+         ! form wk2 from Au and Av arrays        
+         call arrays_to_vec (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             Au      (:,:,:), Av    (:,:,:),   &
+                             wk22(:))    
+
+            goto 1
+
+      endif ! icode
+      
+      deallocate(wk11, wk22, vv, ww)
+         
+      end subroutine fgmres_solver
+
+!=======================================================================
+
 ! Computes the viscous coefficients (in fact zetaD=2*zeta) and dPr/dx. 
 
       subroutine calc_zeta_Pr  (nx_block,   ny_block,   & 
-                                kOL,        icellt,     & 
+                                icellt,                 & 
                                 indxti,     indxtj,     & 
                                 uvel,       vvel,       & 
                                 dxt,        dyt,        & 
@@ -995,7 +1628,6 @@
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
-         kOL               , & ! subcycling step
          icellt                ! no. of cells where icetmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
@@ -1825,7 +2457,6 @@
       subroutine calc_vrel_Cb (nx_block,   ny_block, &
                                icellu,     Cw,       &
                                indxui,     indxuj,   &
-                               kOL,                  &
                                aiu,        Tbu,      &
                                uocn,       vocn,     &
                                uvel,       vvel,     &
@@ -1833,8 +2464,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         kOL                   ! outer loop iteration
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -1989,9 +2619,8 @@
 !=======================================================================
 
       subroutine matvec (nx_block,   ny_block, &
-                         icellu,               &
+                         icellu,     icellt ,  &
                          indxui,     indxuj,   &
-                         kOL,        icellt,   &
                          indxti,     indxtj,   &
                          dxt,        dyt,      & 
                          dxhy,       dyhx,     & 
@@ -2008,7 +2637,6 @@
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu,             & ! total count when iceumask is true
-         kOL,                & ! outer loop iteration
          icellt                ! no. of cells where icetmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
@@ -2349,19 +2977,17 @@
       subroutine calc_bvec (nx_block,   ny_block, &
                        icellu,               &
                        indxui,     indxuj,   &
-                       kOL,        Cw,       &
+                       stPr,       Cw,       &
                        aiu,        uarear,   &
                        uocn,       vocn,     &
                        waterx,     watery,   &
                        uvel,       vvel,     &
                        bxfix,      byfix,    &
-                       bx,         by,       &
-                       stPr)
+                       bx,         by)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         kOL                   ! outer loop iteration
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -2470,7 +3096,7 @@
          Fx      , & ! x residual vector, Fx = Au - bx (N/m^2)
          Fy          ! y residual vector, Fy = Av - by (N/m^2)
          
-      real (kind=dbl_kind), intent(inout) :: &
+      real (kind=dbl_kind), intent(out) :: &
          L2norm      ! L2norm of residual vector
       
       integer (kind=int_kind) :: &
@@ -3151,6 +3777,51 @@
       
 !      JFL ROUTINE POUR CALC STRESS OCN POUR COUPLAGE
       
+!=======================================================================
+
+! Update Q and R factor after deletion of the 1st column of G_diff
+!
+! author: P. Blain ECCC
+      subroutine qr_delete(Q, R)
+      
+      real (kind=dbl_kind), intent(inout) :: &
+         Q(:,:),  & ! Q factor
+         R(:,:)     ! R factor
+      
+      ! local variables
+      
+      integer (kind=int_kind) :: &
+         i, j, k, & ! loop indices
+         m, n       ! size of Q matrix
+         
+      real (kind=dbl_kind) :: &
+         temp, c, s
+               
+      n = size(Q,1)
+      m = size(Q,2)
+      do i = 1, m-1
+         temp = sqrt(R(i,i+1)**2 + R(i+1,i+1)**2)
+         c = R(i,i+1)/temp
+         s = R(i+1,i+1)/temp
+         R(i,i+1) = temp
+         R(i+1,i+1) = 0
+         if (i < m-1) then
+            do j = i+2, m
+               temp = c*R(i,j) + s*R(i+1,j)
+               R(i+1,j) = -s*R(i,j) + c*R(i+1,j)
+               R(i,j) = temp
+            enddo
+         endif
+         do k = 1, n
+            temp = c*Q(k,i) + s*Q(k,i+1);
+            Q(k,i+1) = -s*Q(k,i) + c*Q(k,i+1);
+            Q(k,i) = temp
+         enddo
+      enddo
+      R(:,1:m-1) = R(:,2:m)
+      
+      end subroutine qr_delete
+
 !=======================================================================
 
       end module ice_dyn_vp

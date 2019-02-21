@@ -5,7 +5,7 @@
        subroutine pgmres(nx_block, ny_block, nblocks, &
                          max_blocks, icellu,          &
                          indxui,     indxuj,          &
-                         kOL,        icellt,          &
+                         icellt,                      &
                          indxti,     indxtj,          &
                          dxt,        dyt,             & 
                          dxhy,       dyhx,            & 
@@ -36,8 +36,7 @@
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          nblocks,            & ! nb of blocks
-         max_blocks,         & ! max nb of blocks
-         kOL                   ! outer loop iteration
+         max_blocks            ! max nb of blocks
 
          
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
@@ -168,9 +167,8 @@
        !$OMP PARALLEL DO PRIVATE(iblk)
        do iblk = 1, nblocks                          
         call matvec (nx_block             , ny_block,            &
-                     icellu   (iblk)      ,                      & 
+                     icellu   (iblk)      , icellt   (iblk)    , & 
                      indxui   (:,iblk)    , indxuj   (:,iblk)  , &
-                     kOL                  , icellt   (iblk)    , & 
                      indxti   (:,iblk)    , indxtj   (:,iblk)  , &
                      dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
                      dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 

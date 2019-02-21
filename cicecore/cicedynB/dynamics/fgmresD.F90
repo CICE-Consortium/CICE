@@ -1,5 +1,5 @@
       subroutine fgmres (n,im,rhs,sol,i,vv,w,wk1, wk2, &
-                  gamma,gammaNL,tolNL,maxits,iout,icode,iconv,its,kOL) 
+                  gamma,maxits,iout,icode,its,ro) 
 
       use ice_fileunits, only: nu_diag
 
@@ -22,9 +22,9 @@
 !-----------------------------------------------------------------------
 
       implicit double precision (a-h,o-z) !jfl modification
-      integer n, im, maxits, iout, icode, iconv, kOL, krre
+      integer n, im, maxits, iout, icode
       double precision rhs(*), sol(*), vv(n,im+1),w(n,im)
-      double precision wk1(n), wk2(n), gamma, gammaNL
+      double precision wk1(n), wk2(n), gamma, ro
 !-----------------------------------------------------------------------
 ! flexible GMRES routine. This is a version of GMRES which allows a 
 ! a variable preconditioner. Implemented with a reverse communication 
@@ -114,7 +114,7 @@
 !         a value .ne. 0. 
 !-----------------------------------------------------------------------
 !     local variables -- !jfl modif
-      double precision hh(201,200),c(200),s(200),rs(201),t,ro,ddot,sqrt 
+      double precision hh(201,200),c(200),s(200),rs(201),t,ddot,sqrt 
 !
 !-------------------------------------------------------------
 !     arnoldi size should not exceed 50 in this version..
@@ -152,15 +152,9 @@
       if (its .eq. 0) then 
        r0 = ro
        eps1=gamma*ro
-       if (kOL .eq. 1 .and. krre .eq. 1) tolNL=gammaNL*ro
       endif 
       
-      if (ro .lt. tolNL .and. krre .eq. 1) then
-       iconv = 1
-       goto 999
-      endif 
-      
-      if (iout .gt. 0) write(nu_diag, 199) kOL, its, ro!&
+      if (iout .gt. 0) write(nu_diag, 199) its, ro!&
 !     
 !     initialize 1-st term  of rhs of hessenberg system..
 !     
@@ -239,7 +233,7 @@
       hh(i,i) = c(i)*hh(i,i) + s(i)*hh(i1,i)
       ro = abs(rs(i1))
       if (iout .gt. 1) &
-           write(nu_diag, 199) kOL, its, ro
+           write(nu_diag, 199) its, ro
       if (i .lt. im .and. (ro .gt. eps1))  goto 4
 !     
 !     now compute solution. first solve upper triangular system.
@@ -287,7 +281,7 @@
      goto 20
  999  icode = 0
 
- 199  format('monitor_fgmres: iter_nonlin=', i4, ' iter_fmgres=', i4, ' L2norm=', d26.16)
+ 199  format('monitor_fgmres: iter_fmgres=', i4, ' L2norm=', d26.16)
 !     
       return 
 !-----end-of-fgmres----------------------------------------------------- 

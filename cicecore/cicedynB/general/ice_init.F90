@@ -102,7 +102,9 @@
                                 kridge, ktransport, brlx, arlx
       use ice_dyn_vp, only: maxits_nonlin, precond, im_fgmres, im_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
-                            monitor_pgmres, gammaNL, gamma, epsprecond
+                            monitor_pgmres, gammaNL, gamma, epsprecond, &
+                            algo_nonlin, fpfunc_andacc, im_andacc, reltol_andacc, &
+                            damping_andacc, start_andacc, use_mean_vrel
       use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -200,7 +202,8 @@
         k1,             maxits_nonlin,  precond,        im_fgmres,      &
         im_pgmres,      maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, gammaNL,        gamma,          &
-        epsprecond,                                                     &
+        epsprecond,     algo_nonlin,    im_andacc,      reltol_andacc,  &
+        damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
         k2,             alphab,         threshold_hw,                   &
         Pstar,          Cstar
 
@@ -342,6 +345,13 @@
       gammaNL = 1e-8_dbl_kind    ! nonlinear stopping criterion: gammaNL*res(k=0)
       gamma = 1e-2_dbl_kind      ! fgmres stopping criterion: gamma*res(k)
       epsprecond = 1e-6_dbl_kind ! pgmres stopping criterion: epsprecond*res(k)
+      algo_nonlin = 1        ! nonlinear algorithm: 1: Picard iteration, 2: Anderson acceleration (andacc)
+      fpfunc_andacc = 1      ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
+      im_andacc = 5          ! size of Anderson minimization matrix (number of saved previous residuals)
+      reltol_andacc = 1e-6_dbl_kind  ! relative tolerance for Anderson acceleration
+      damping_andacc = 0     ! damping factor for Anderson acceleration
+      start_andacc = 0       ! acceleration delay factor (acceleration starts at this iteration)
+      use_mean_vrel = .false. ! use mean of previous 2 iterates to compute vrel
       advection  = 'remap'   ! incremental remapping transport scheme
       conserv_check = .false.! tracer conservation check
       shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
@@ -653,12 +663,19 @@
       call broadcast_scalar(im_pgmres,          master_task)
       call broadcast_scalar(maxits_fgmres,      master_task)
       call broadcast_scalar(maxits_pgmres,      master_task)
-      call broadcast_scalar(monitor_nonlin,     master_task)      
+      call broadcast_scalar(monitor_nonlin,     master_task)
       call broadcast_scalar(monitor_fgmres,     master_task)
       call broadcast_scalar(monitor_pgmres,     master_task)
-      call broadcast_scalar(gammaNL,            master_task)      
+      call broadcast_scalar(gammaNL,            master_task)
       call broadcast_scalar(gamma,              master_task)
       call broadcast_scalar(epsprecond,         master_task)
+      call broadcast_scalar(algo_nonlin,        master_task)
+      call broadcast_scalar(fpfunc_andacc,      master_task)
+      call broadcast_scalar(im_andacc,          master_task)
+      call broadcast_scalar(reltol_andacc,      master_task)
+      call broadcast_scalar(damping_andacc,     master_task)
+      call broadcast_scalar(start_andacc,       master_task)
+      call broadcast_scalar(use_mean_vrel,      master_task)
       call broadcast_scalar(conduct,            master_task)
       call broadcast_scalar(R_ice,              master_task)
       call broadcast_scalar(R_pnd,              master_task)
@@ -1569,6 +1586,15 @@
             write(nu_diag,1008) ' gammaNL                   = ', gammaNL
             write(nu_diag,1008) ' gamma                     = ', gamma
             write(nu_diag,1008) ' epsprecond                = ', epsprecond
+            write(nu_diag,1020) ' algo_nonlin               = ', algo_nonlin
+            write(nu_diag,1010) ' use_mean_vrel             = ', use_mean_vrel
+            if (algo_nonlin == 2) then
+               write(nu_diag,1020) ' fpfunc_andacc          = ', fpfunc_andacc
+               write(nu_diag,1020) ' im_andacc              = ', im_andacc
+               write(nu_diag,1008) ' reltol_andacc          = ', reltol_andacc
+               write(nu_diag,1005) ' damping_andacc         = ', damping_andacc
+               write(nu_diag,1020) ' start_andacc           = ', start_andacc
+            endif
          endif
 
          write(nu_diag,1010) ' conserv_check             = ', conserv_check
@@ -1722,7 +1748,7 @@
  1005    format (a30,2x,f12.6) ! float
  1006    format (a20,2x,f10.6,a)
  1007    format (a20,2x,f6.2,a)
- 1008    format (a30,2x,d12.6)  ! float, exponential notation
+ 1008    format (a30,2x,d13.6)  ! float, exponential notation
  1009    format (a20,2x,d13.6,a)  ! float, exponential notation
  1010    format (a30,2x,l6)    ! logical
  1012    format (a20,2x,l3,1x,a)  ! logical
