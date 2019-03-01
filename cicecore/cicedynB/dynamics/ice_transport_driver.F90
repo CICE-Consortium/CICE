@@ -364,6 +364,7 @@
 !      call ice_timer_stop(timer_bound)
 
 
+! MHRI: CHECK THIS OMP ... maybe ok: Were trcrn(:,:,1:ntrcr,:,iblk) in my testcode
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
@@ -374,7 +375,7 @@
          call state_to_tracers(nx_block,          ny_block,             &
                                ntrcr,             ntrace,               &
                                aice0(:,:,  iblk), aicen(:,:,:,iblk),    &
-                               trcrn(:,:,1:ntrcr,:,iblk),               &
+                               trcrn(:,:,:,:,iblk),                     &
                                vicen(:,:,:,iblk), vsnon(:,:,  :,iblk),  &
                                aim  (:,:,:,iblk), trm  (:,:,:,:,iblk))
 
@@ -517,6 +518,7 @@
     ! Given new fields, recompute state variables.
     !-------------------------------------------------------------------
 
+! MHRI: CHECK THIS OMP ... maybe ok: Were trcrn(:,:,1:ntrcr,:,iblk) in my testcode
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
@@ -524,7 +526,7 @@
                                 ntrcr,             ntrace,              &
                                 aim  (:,:,:,iblk), trm  (:,:,:,:,iblk), &
                                 aice0(:,:,  iblk), aicen(:,:,:,iblk),   &
-                                trcrn(:,:,1:ntrcr,:,iblk),              &
+                                trcrn(:,:,:,:,iblk),                    &
                                 vicen(:,:,:,iblk), vsnon(:,:,  :,iblk))
 
       enddo                     ! iblk
@@ -765,7 +767,7 @@
          call state_to_work (nx_block,             ny_block,             &
                              ntrcr,                                      &
                              narr,                 trcr_depend,          &
-                             aicen (:,:,  :,iblk), trcrn (:,:,1:ntrcr,:,iblk), &
+                             aicen (:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen (:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0 (:,:,    iblk), works (:,:,  :,iblk))
 
@@ -787,9 +789,9 @@
 
          call work_to_state (nx_block,            ny_block,             &
                              ntrcr,               narr,                 &
-                             trcr_depend(1:ntrcr), trcr_base(1:ntrcr,3), &
-                             n_trcr_strata(1:ntrcr), nt_strata(1:ntrcr,2), &
-                             aicen(:,:,  :,iblk), trcrn (:,:,1:ntrcr,:,iblk), &
+                             trcr_depend(:),      trcr_base(:,:),       &
+                             n_trcr_strata(:),    nt_strata(:,:),       &
+                             aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0(:,:,    iblk), works (:,:,  :,iblk)) 
 
@@ -843,26 +845,21 @@
            ntrcr             , & ! number of tracers in use
            ntrace                ! number of tracers in use incl. hi, hs
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block),     &
-           intent(in) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
            aice0     ! fractional open water area
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat),     &
-           intent(in) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(in) :: &
            aicen   ,&! fractional ice area
            vicen   ,&! volume per unit area of ice          (m)
            vsnon     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat),     &
-           intent(in) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat), intent(in) :: &
            trcrn     ! ice area tracers
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,0:ncat),     &
-            intent(out)::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,0:ncat), intent(out) :: &
            aim       ! mean ice area in each grid cell
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat),  &
-           intent(out) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat), intent(out) :: &
            trm       ! mean tracer values in each grid cell
 
       ! local variables
@@ -973,26 +970,21 @@
            ntrcr             , & ! number of tracers in use
            ntrace                ! number of tracers in use incl. hi, hs
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,0:ncat),     &
-           intent(in) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,0:ncat), intent(in) :: &
            aim       ! fractional ice area
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat),  &
-           intent(in) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat), intent(in) :: &
            trm       ! mean tracer values in each grid cell
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block),     &
-           intent(inout) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
            aice0     ! fractional ice area
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat),     &
-           intent(inout) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(inout) :: &
            aicen   ,&! fractional ice area
            vicen   ,&! volume per unit area of ice          (m)
            vsnon     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat),  &
-           intent(inout) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat), intent(inout) :: &
            trcrn     ! tracers
 
       ! local variables
@@ -1161,17 +1153,14 @@
            nx_block, ny_block,&! block dimensions
            ilo,ihi,jlo,jhi     ! beginning and end of physical domain
 
-      real (kind=dbl_kind), intent(in),        &
-           dimension(nx_block,ny_block) ::     &
+      real (kind=dbl_kind), intent(in), dimension(nx_block,ny_block) :: &
            aimask         ! ice area mask
 
-      real (kind=dbl_kind), intent(in),               &
-           dimension (nx_block,ny_block,ntrace) ::    &
+      real (kind=dbl_kind), intent(in), dimension (nx_block,ny_block,ntrace) :: &
            trm          ,&! tracer fields
            trmask         ! tracer mask
 
-      real (kind=dbl_kind), intent(out),              &
-           dimension (nx_block,ny_block,ntrace) ::    &
+      real (kind=dbl_kind), intent(out), dimension (nx_block,ny_block,ntrace) :: &
            tmin         ,&! local min tracer
            tmax           ! local max tracer
 
@@ -1271,8 +1260,7 @@
          nx_block, ny_block,&! block dimensions
          ilo,ihi,jlo,jhi     ! beginning and end of physical domain
 
-      real (kind=dbl_kind), intent(inout),     &
-           dimension (nx_block,ny_block,ntrace) ::     &
+      real (kind=dbl_kind), intent(inout), dimension (nx_block,ny_block,ntrace) :: &
            tmin         ,&! local min tracer
            tmax           ! local max tracer
 
@@ -1324,16 +1312,13 @@
            nx_block, ny_block,&! block dimensions
            ilo,ihi,jlo,jhi     ! beginning and end of physical domain
 
-      real (kind=dbl_kind), intent(in),         &
-           dimension (nx_block,ny_block) ::     &
+      real (kind=dbl_kind), intent(in), dimension (nx_block,ny_block) ::     &
            aim            ! new ice area
 
-      real (kind=dbl_kind), intent(in),                &
-           dimension (nx_block,ny_block,ntrace) ::     &
+      real (kind=dbl_kind), intent(in), dimension (nx_block,ny_block,ntrace) ::     &
            trm            ! new tracers
 
-      real (kind=dbl_kind), intent(in),                &
-           dimension (nx_block,ny_block,ntrace) ::     &
+      real (kind=dbl_kind), intent(in), dimension (nx_block,ny_block,ntrace) ::     &
            tmin         ,&! local min tracer
            tmax           ! local max tracer
 
@@ -1474,22 +1459,18 @@
       integer (kind=int_kind), dimension (ntrcr), intent(in) ::     &
          trcr_depend ! = 0 for aicen tracers, 1 for vicen, 2 for vsnon
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat),     &
-         intent(in) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(in) ::     &
          aicen   ,&! concentration of ice
          vicen   ,&! volume per unit area of ice          (m)
          vsnon     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat),     &
-         intent(in) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat), intent(in) ::     &
          trcrn     ! ice tracers
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block),         &
-         intent(in) ::        &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::        &
          aice0     ! concentration of open water
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,narr),     &
-         intent (out) ::      &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,narr), intent (out) ::      &
          works     ! work array
 
       ! local variables
@@ -1639,18 +1620,15 @@
       real (kind=dbl_kind), intent (in) ::                          &
          works (nx_block,ny_block,narr)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat),     &
-         intent(out) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(out) :: &
          aicen   ,&! concentration of ice
          vicen   ,&! volume per unit area of ice          (m)
          vsnon     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat), &
-         intent(out) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat),intent(out) :: &
          trcrn     ! ice tracers
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block),          &
-         intent(out) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          aice0     ! concentration of open water
 
       ! local variables
@@ -1739,12 +1717,10 @@
       real (kind=dbl_kind), intent(in) ::         &
          dt                   ! time step
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,narrays), &
-         intent(inout) ::                                         &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,narrays), intent(inout) :: &
          phi                  ! scalar field
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block),         &
-         intent(in)::     &
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in) :: &
          uee, vnn             ! cell edge velocities
 
       real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in) :: &

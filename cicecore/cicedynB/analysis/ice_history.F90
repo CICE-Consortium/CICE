@@ -1408,13 +1408,12 @@
       call init_hist_mechred_2D
 
       ! melt ponds
-      if (tr_pond) call init_hist_pond_2D
+      call init_hist_pond_2D
 
       ! biogeochemistry
-      if (tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) &
-         call init_hist_bgc_2D
+      call init_hist_bgc_2D
 
-      if (formdrag) call init_hist_drag_2D
+      call init_hist_drag_2D
 
       !-----------------------------------------------------------------
       ! 3D (category) variables looped separately for ordering
@@ -1486,10 +1485,10 @@
       call init_hist_mechred_3Dc
 
       ! melt ponds
-      if (tr_pond) call init_hist_pond_3Dc
+      call init_hist_pond_3Dc
 
       ! biogeochemistry
-      if (tr_brine) call init_hist_bgc_3Dc
+      call init_hist_bgc_3Dc
 
       !-----------------------------------------------------------------
       ! 3D (vertical) variables must be looped separately
@@ -1506,8 +1505,8 @@
 !      endif ! if (histfreq(ns1) /= 'x') then
 !      enddo ! ns1 
 
-      if (z_tracers .or. solve_zsal) call init_hist_bgc_3Db  
-      if (z_tracers) call init_hist_bgc_3Da
+      call init_hist_bgc_3Db  
+      call init_hist_bgc_3Da
 
       !-----------------------------------------------------------------
       ! 4D (categories, vertical) variables must be looped separately
@@ -1823,8 +1822,9 @@
       ! increment field
       !---------------------------------------------------------------
 
+! MHRI: CHECK THIS OMP ... Maybe ok after "dfresh,dfsalt" added
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob, &
+      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt, &
       !$OMP             worka,workb,worka3,Tinz4d,Sinz4d,Tsnz4d)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -2977,13 +2977,13 @@
          call accum_hist_mechred (iblk)
 
          ! melt ponds
-         if (tr_pond) call accum_hist_pond (iblk)
+         call accum_hist_pond (iblk)
 
          ! biogeochemistry
-         if (tr_aero .or. tr_brine .or. skl_bgc) call accum_hist_bgc (iblk)
+         call accum_hist_bgc (iblk)
 
          ! form drag
-         if (formdrag) call accum_hist_drag (iblk)
+         call accum_hist_drag (iblk)
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO

@@ -80,13 +80,30 @@ section :ref:`history`.
 Adding Tracers
 --------------------- 
 
+We require that any changes made to the code be implemented in such a way that they can
+be "turned off" through namelist flags.  In most cases, code run with such changes should 
+be bit-for-bit identical with the unmodified code.  Occasionally, non-bit-for-bit changes
+are necessary, e.g. associated with an unavoidable change in the order of operations. In
+these cases, changes should be made in stages to isolate the non-bit-for-bit changes, 
+so that those that should be bit-for-bit can be tested separately.
+
+Tracers added to CICE will also require extensive modifications to the Icepack
+driver, including initialization, namelist flags 
+and restart capabilities.  Modifications to the Icepack driver should reflect
+the modifications needed in CICE but are not expected to match completely.
+We recommend that the logical namelist variable
+``tr_[tracer]`` be used for all calls involving the new tracer outside of
+**ice\_[tracer].F90**, in case other users do not want to use that
+tracer.
+
 A number of optional tracers are available in the code, including ice
 age, first-year ice area, melt pond area and volume, brine height,
 aerosols, and level ice area and volume (from which ridged ice
 quantities are derived). Salinity, enthalpies, age, aerosols, level-ice
 volume, brine height and most melt pond quantities are volume-weighted
-tracers, while first-year area, pond area, level-ice area and all of the
-biogeochemistry tracers in this release are area-weighted tracers. In
+tracers, while first-year area, pond area, and level-ice area are area-weighted 
+tracers. Biogeochemistry tracers in the skeletal layer are area-weighted,
+and vertical biogeochemistry tracers are volume-weighted.  In
 the absence of sources and sinks, the total mass of a volume-weighted
 tracer such as aerosol (kg) is conserved under transport in horizontal
 and thickness space (the mass in a given grid cell will change), whereas
@@ -96,66 +113,70 @@ basal melting. The proper units for a volume-weighted mass tracer in the
 tracer array are kg/m.
 
 In several places in the code, tracer computations must be performed on
-the conserved “tracer volume" rather than the tracer itself; for
+the conserved "tracer volume" rather than the tracer itself; for
 example, the conserved quantity is :math:`h_{pnd}a_{pnd}a_{lvl}a_{i}`,
 not :math:`h_{pnd}`. Conserved quantities are thus computed according to
-the tracer dependencies, and code must be included to account for new
-dependencies (e.g., :math:`a_{lvl}` and :math:`a_{pnd}` in
-**ice\_itd.F90** and **ice\_mechred.F90**).
+the tracer dependencies (weights), which are tracked using the arrays
+``trcr_depend`` (indicates dependency on area, ice volume or snow volume),
+``trcr_base`` (a dependency mask), ``n_trcr_strata`` (the number of
+underlying tracer layers), and ``nt_strata`` (indices of underlying layers). 
+Additional information about tracers can be found in the
+`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/index.html>`_.
 
 To add a tracer, follow these steps using one of the existing tracers as
 a pattern.
 
--  **ice\_domain\_size.F90**: increase `max\_ntrcr` via cpps in the build.
+#. **icepack\_tracers.F90** and **icepack\_[tracer].F90**: declare tracers,
+add flags and indices, and create physics routines as described in the
+`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/dg_adding_tracers.html>`_
 
--  **ice\_state.F90**: declare `nt\_[tracer]` and `tr\_[tracer]`
+#. **ice_arrays_column.F90**: declare arrays
 
--  create initialization, physics, and restart routines.  The restart and history
-   routine will be in CICE.  The physics will be in Icepack.
+#. **ice_init_column.F90**: initialize arrays
 
--  **ice\_fileunits.F90**: add new dump and restart file units
+#. **ice\_init.F90**: (some of this may be done in **icepack\_[tracer].F90**
+   instead)
 
--  to control the new tracer
+   -  declare ``tr_[tracer]``  and ``nt_[tracer]`` as needed
 
-   -  add new module and `tr\_[tracer]` to list of used modules and
-      variables
+   -  add logical namelist variables ``tr_[tracer]``, ``restart_[tracer]``
 
-   -  add logical namelist variable `tr\_[tracer]`
+   -  initialize and broadcast namelist variables
 
-   -  initialize namelist variable
+   -  check for potential conflicts, aborting if any occur
 
-   -  broadcast namelist variable
+   -  print namelist variables to diagnostic output file
 
-   -  print namelist variable to diagnostic output file
+   -  initialize tracer flags etc in icepack (call *icepack_init_tracer_flags* etc)
 
-   -  increment number of tracers in use based on namelist input (`ntrcr`)
+   -  increment number of tracers in use based on namelist input (``ntrcr``)
 
-   -  define tracer types (`trcr\_depend` = 0 for ice area tracers, 1 for
-      ice volume, 2 for snow volume, 2+nt\_[tracer] for dependence on
-      other tracers)
+   -  define tracer dependencies
 
--  **ice\_itd.F90**, **ice\_mechred.F90**: Account for new dependencies
-   if needed.
+#.  **CICE\_InitMod.F90**: initialize tracer (includes reading restart file)
 
--  **CICE\_InitMod.F90**: initialize tracer (includes reading restart
-   file)
-
--  **CICE\_RunMod.F90**, **ice\_step\_mod.F90**:
+#.  **CICE\_RunMod.F90**, **ice\_step\_mod.F90** (and elsewhere as needed):
 
    -  call routine to write tracer restart data
 
-   -  call physics routines as needed (often called from
-      **ice\_step\_mod.F90**)
+   -  call Icepack or other routines to update tracer value 
+      (often called from **ice\_step\_mod.F90**)
 
--  **ice\_restart.F90**: define restart variables (for binary,  and PIO)
+#.  **ice\_restart.F90**: define restart variables (for binary, netCDF and PIO)
 
--  **ice\_history\_[tracer].F90**: add history variables
-   (Section :ref:`addhist`)
+#.  **ice\_restart\_column.F90**: create routines to read, write tracer restart data
 
--  **ice\_in**: add namelist variables to *tracer\_nml* and
-   *icefields\_nml*
+#.  **ice\_fileunits.F90**: add new dump and restart file units
 
--  If strict conservation is necessary, add diagnostics as noted for
-   topo ponds in Section :ref:`ponds`.
+#.  **ice\_history\_[tracer].F90**: add history variables
+   (Section :ref:`addhist`)
 
-See also Icepack documentation.
+#.  **ice\_in**: add namelist variables to *tracer\_nml* and
+   *icefields\_nml*. Best practice is to set the namelist values so that the 
+   new capability is turned off, and create an option file with your preferred
+   configuration in **configuration/scripts/options**.
+
+#.  If strict conservation is necessary, add diagnostics as noted for
+   topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+
+#. Update documentation, including **cice_index.rst** and **ug_case_settings.rst**

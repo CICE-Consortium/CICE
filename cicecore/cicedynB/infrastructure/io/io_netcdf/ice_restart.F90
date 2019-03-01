@@ -629,8 +629,7 @@
            ndim3         , & ! third dimension
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), &
-           intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), intent(inout) :: &
            work              ! input array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -714,8 +713,7 @@
            ndim3         , & ! third dimension
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), &
-           intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), intent(in) :: &
            work              ! input array (real, 8-byte)
 
       character (len=4), intent(in) :: &

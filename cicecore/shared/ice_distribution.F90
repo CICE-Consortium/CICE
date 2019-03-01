@@ -698,6 +698,14 @@
       end do
       end do
 
+   else
+      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
+                stat=istat)
+      if (istat > 0) then
+         call abort_ice( &
+            'create_distrb_cart: error allocating blockGlobalID')
+         return
+      endif
    endif
 
 !----------------------------------------------------------------------

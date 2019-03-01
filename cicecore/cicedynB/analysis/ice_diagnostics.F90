@@ -1131,8 +1131,7 @@
       use ice_grid, only: tmask
       use ice_state, only: vicen, vsnon, trcrn
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks),  &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
          work      ! total energy
 
       ! local variables
@@ -1155,6 +1154,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+! MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
 
@@ -1219,8 +1219,7 @@
       use ice_grid, only: tmask
       use ice_state, only: vicen, trcrn
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks),  &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
          work      ! total salt
 
       ! local variables
@@ -1243,6 +1242,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+! MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
 

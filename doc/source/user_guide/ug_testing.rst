@@ -15,7 +15,8 @@ There is a base suite of tests provided by default with CICE and this
 may be a good starting point for testing.
 
 The testing scripts support several features
- - Ability to test individual (via ``--test``)or multiple tests (via ``--suite``)
+
+ - Ability to test individual (via ``--test``) or multiple tests (via ``--suite``)
    using an input file to define the suite
  - Ability to use test suites defined in the package or test suites defined by the user
  - Ability to store test results for regresssion testing (``--bgen``)
@@ -45,6 +46,9 @@ For individual tests, the following command line options can be set
 
 ``--testid`` ID
      specifies the testid.  This is required for every use of ``--test`` and ``--suite``.  This is a user defined string that will allow each test to have a unique case and run directory name.  This is also required.
+
+``--tdir`` PATH
+     specifies the test directory.  Testcases will be created in this directory.  (default is .)
 
 ``--mach`` MACHINE (see :ref:`case_options`)
 
@@ -149,7 +153,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 3) **Single test, compare results to a prior baseline**
+ 4) **Single test, compare results to a prior baseline**
 
     Add ``--bcmp``.  For this to work,
     the prior baseline must exist and have the exact same base testname 
@@ -162,7 +166,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 4) **Simple test, generate a baseline dataset and compare to a prior baseline**
+ 5) **Simple test, generate a baseline dataset and compare to a prior baseline**
 
     Use ``--bgen`` and ``--bcmp``.  The prior baseline must exist already.
     ::
@@ -173,7 +177,7 @@ Individual Test Examples
       ./cice.submit
       ./cat test_output
 
- 5) **Simple test, comparison against another test**
+ 6) **Simple test, comparison against another test**
 
     ``--diff`` provides a way to compare tests with each other.  
     For this to work, the tests have to be run in a specific order and
@@ -202,6 +206,75 @@ Individual Test Examples
     argument and the same testid to the end of the diff argument.  Then the runs 
     will be compared for bit-for-bit and a result will be produced in test_output.  
 
+Specific Test Cases
+~~~~~~~~~~~~~~~~~~~
+
+In addition to the test implemented in the general testing framework, specific
+tests have been developed to validate specific portions of the model.  These
+specific tests are detailed in this section.
+
+.. _box2001:
+
+``box2001``
+^^^^^^^^^^^^
+
+The ``box2001`` test case is configured to perform the rectangular-grid box test 
+detailed in :cite:`Hunke01`.  It is configured to run a 72-hour simulation with 
+thermodynamics disabled in a rectangular domain (80 x 80 grid cells) with a land
+boundary around the entire domain.  It includes the following namelist modifications:
+
+- ``dxrect``: ``16.e5`` cm
+- ``dyrect``: ``16.e5`` cm
+- ``ktherm``: ``-1`` (disables thermodynamics)
+- ``coriolis``: ``zero`` (zero coriolis force)
+- ``ice_data_type`` : ``box2001`` (special ice concentration initialization)
+- ``atm_data_type`` : ``box2001`` (special atmospheric and ocean forcing)
+
+Ocean stresses are computed as in :cite:`Hunke01` where they are circular and centered 
+in the square domain.  The ice distribution is fixed, with a constant 2 meter ice 
+thickness and a concentration field that varies linearly in the x-direction from ``0``
+to ``1`` and is constant in the y-direction.  No islands are included in this
+configuration.  The test is configured to run on a single processor.
+
+To run the test::
+
+  ./cice.setup -m <machine> --test smoke -s box2001 --testid <test_id> --grid gbox80 --acct <queue manager account> -p 1x1
+
+.. _boxslotcyl:
+
+``boxslotcyl``
+^^^^^^^^^^^^^^
+
+The ``boxslotcyl`` test case is an advection test configured to perform the slotted cylinder test 
+detailed in :cite:`Zalesak79`.  It is configured to run a 12-day simulation with 
+thermodynamics, ridging and dynamics disabled, in a square domain (80 x 80 grid cells) with a land
+boundary around the entire domain.  It includes the following namelist modifications:
+
+- ``dxrect``: ``10.e5`` cm (10 km)
+- ``dyrect``: ``10.e5`` cm (10 km)
+- ``ktherm``: ``-1`` (disables thermodynamics)
+- ``kridge``: ``-1`` (disables ridging)
+- ``kdyn``: ``-1`` (disables dynamics)
+- ``ice_data_type`` : ``boxslotcyl`` (special ice concentration and velocity initialization)
+
+Dynamics is disabled because we directly impose a constant ice velocity. The ice velocity field is circular and centered 
+in the square domain, and such that the slotted cylinder makes a complete revolution with a period :math:`T=` 12 days : 
+
+.. math::
+   (u,v) = {u_0}\left( \frac{2y - L}{L}, \frac{-2x + L}{L}\right) 
+   :label: ice-vel-boxslotcyl
+   
+where :math:`L` is the physical domain length and  :math:`u_0 = \pi L / T`. 
+The initial ice distribution is a slotted cylinder of radius :math:`r = 3L/10` centered at :math:`(x,y) = (L/2, 3L/4)`. 
+The slot has a width of :math:`L/6` and a depth of :math:`5L/6` and is placed radially. 
+
+The time step is one hour, which with the above speed and mesh size yields a Courant number of 0.86.
+
+The test can run on multiple processors.
+
+To run the test::
+
+  ./cice.setup -m <machine> --test smoke -s boxslotcyl --testid <test_id> --grid gbox80 --acct <queue manager account> -p nxm
 
 .. _testsuites:
 
@@ -224,6 +297,12 @@ results.csh script in the [suite_name].[testid]::
 
 To report the test results, as is required for Pull Requests to be accepted into 
 the master the CICE Consortium code see :ref:`testreporting`.
+
+If using the ``--tdir`` option, that directory must not exist before the script is run.  The tdir directory will be
+created by the script and it will be populated by all tests as well as scripts that support the
+test suite::
+
+  ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid --tdir /scratch/$user/testsuite.myid
 
 Multiple suites are supported on the command line as comma separated arguments::
 
@@ -283,6 +362,9 @@ following options are valid for suites,
 ``--acct`` ACCOUNT
   optional
 
+``--tdir`` PATH
+  optional
+
 ``--testid`` ID
   required
 
@@ -310,93 +392,103 @@ Test Suite Examples
     ::
 
      ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a
-     cd base_suite.v01a
+     cd testsuite.v01a
      #wait for runs to complete
      ./results.csh
 
- 2) **Basic test suite on multiple environments**
+ 2) **Basic test suite with user defined test directory**
+     
+    Specify suite, mach, env, testid, tdir.
+    ::
+
+     ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --tdir /scratch/$user/ts.v01a
+     cd /scratch/$user/ts.v01a
+     #wait for runs to complete
+     ./results.csh
+
+ 3) **Basic test suite on multiple environments**
 
     Specify multiple envs.
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray,pgi,intel,gnu --testid v01a
-      cd base_suite.v01a
+      cd testsuite.v01a
       #wait for runs to complete
       ./results.csh
 
     Each env can be run as a separate invokation of `cice.setup` but if that
     approach is taken, it is recommended that different testids be used.
 
- 3) **Basic test suite with generate option defined**
+ 4) **Basic test suite with generate option defined**
 
     Add ``--set``
     ::
 
        ./cice.setup --suite base_suite --mach conrad --env gnu --testid v01b --set diag1
-       cd base_suite.v01b
+       cd testsuite.v01b
        #wait for runs to complete
       ./results.csh
 
     If there are conflicts between the ``--set`` options in the suite and on the command line,
     the suite will take precedent.
 
- 4) **Multiple test suites from a single command line**
+ 5) **Multiple test suites from a single command line**
 
     Add comma delimited list of suites
     ::
 
       ./cice.setup --suite base_suite,decomp_suite --mach conrad --env gnu --testid v01c
-      cd base_suite.v01c
+      cd testsuite.v01c
       #wait for runs to complete
       ./results.csh
 
      If there are redundant tests in multiple suites, the scripts will understand that and only
      create one test.
 
- 5) **Basic test suite, store baselines in user defined name**
+ 6) **Basic test suite, store baselines in user defined name**
 
     Add ``--bgen``
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a
-      cd base_suite.v01a
+      cd testsuite.v01a
       #wait for runs to complete
       ./results.csh
 
      This will store the results in the default [bdir] directory under the subdirectory cice.v01a.
 
- 6) **Basic test suite, store baselines in user defined top level directory**
+ 7) **Basic test suite, store baselines in user defined top level directory**
 
     Add ``--bgen`` and ``--bdir``
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a --bdir /tmp/user/CICE_BASELINES
-      cd base_suite.v01a
+      cd testsuite.v01a
       #wait for runs to complete
       ./results.csh
 
     This will store the results in /tmp/user/CICE_BASELINES/cice.v01a.
 
- 7) **Basic test suite, store baselines in auto-generated directory**
+ 8) **Basic test suite, store baselines in auto-generated directory**
 
     Add ``--bgen default``
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen default
-      cd base_suite.v01a
+      cd testsuite.v01a
       #wait for runs to complete
       ./results.csh
 
      This will store the results in the default [bdir] directory under a directory name generated by the script
      that includes the hash and date.
 
- 8) **Basic test suite, compare to prior baselines**
+ 9) **Basic test suite, compare to prior baselines**
 
     Add ``--bcmp``
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray --testid v02a --bcmp cice.v01a
-      cd base_suite.v02a
+      cd testsuite.v02a
       #wait for runs to complete
       ./results.csh
 
@@ -407,7 +499,7 @@ Test Suite Examples
     the CICE Consortium master code. You can use other regression options as well.
     (``--bdir`` and ``--bgen``)
 
- 9) **Basic test suite, use of default string in regression testing**
+ 10) **Basic test suite, use of default string in regression testing**
 
     default is a special argument to ``--bgen`` and ``--bcmp``.  When used, the
     scripts will automate generation of the directories.  In the case of ``--bgen``,
@@ -434,7 +526,7 @@ Test Suite Examples
     When this is invoked, a new set of baselines will be generated and compared to the prior
     results each time without having to change the arguments.
 
- 10) **Create and test a custom suite**
+ 11) **Create and test a custom suite**
 
     Create your own input text file consisting of 5 columns of data,
      - Test
@@ -456,7 +548,7 @@ Test Suite Examples
     ::
 
       ./cice.setup --suite mysuite --mach conrad --env cray --testid v01a --bgen default
-      cd mysuite.v01a
+      cd testsuite.v01a
       #wait for runs to complete
       ./results.csh
 
@@ -476,16 +568,18 @@ The CICE testing scripts have the capability to post test results
 to the official CICE Consortium Test-Results 
 `wiki page <https://github.com/CICE-Consortium/Test-Results/wiki>`_.
 You may need write permission on the wiki. If you are interested in using the
-wiki, please contact the consortium. Note that in order for code to be 
-accepted to the CICE Consortium master through a Pull Request it is necessary
-for the developer to provide proof that their code passes relevant tests. 
+wiki, please contact the Consortium. Note that in order for code to be 
+accepted to the CICE master through a Pull Request it is necessary
+for the developer to provide proof that their code passes relevant tests.
+This can be accomplished by posting the full results to the wiki, or
+by copying the testing summary to the Pull Request comments. 
 
 To post results, once a test suite is complete, run ``results.csh`` and
 ``report_results.csh`` from the suite directory,
 ::
 
   ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a
-  cd base_suite.v01a
+  cd testsuite.v01a
   #wait for runs to complete
   ./results.csh
   ./report_results.csh
@@ -523,7 +617,7 @@ and CICE have not significantly altered simulated ice volume using previous mode
 configurations.  Here we describe the CICE testing tools, which are applies to output 
 from five-year gx-1 simulations that use the standard CICE atmospheric forcing. 
 A scientific justification of the testing is provided in
-:cite:`Hunke18`.
+:cite:`Hunke18`. The following sections follow :cite:`Roberts18`.
 
 .. _paired:
 
@@ -719,7 +813,7 @@ The CICE code compliance test is performed by running a python script
 In order to run the script, the following requirements must be met:
 
 * Python v2.7 or later
-* netCDF Python package
+* netcdf Python package
 * numpy Python package
 * matplotlib Python package (optional)
 * basemap Python package (optional)
@@ -761,48 +855,66 @@ Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
 locations of failures can be identified.
 
+The cice.t-test.py requires memory to store multiple two-dimensional fields spanning 
+1825 unique timesteps, a total of several GB.  An appropriate resource is needed to 
+run the script.  If the script runs out of memory on an interactive resource, try
+logging into a batch resource or finding a large memory node.
+
 
 End-To-End Testing Procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Below is an example of a step-by-step procedure for testing a code change that results
-in non-bit-for-bit results:
+Below is an example of a step-by-step procedure for testing a code change that might result in non bit-for-bit results.   First, run a regression test,
 
 .. code-block:: bash
 
+  # Run a full regression test to verify bit-for-bit
+
   # Create a baseline dataset (only necessary if no baseline exists on the system)
-  ./cice.setup -m onyx -ts base_suite -testid base0 -bg cicev6.0.0 -a <account_number>
+  # git clone the baseline code
 
-  # Check out the updated code, or clone from a pull request
+  ./cice.setup -m onyx -e intel --suite base_suite --testid base0 -bgen cice.my.baseline
 
-  # Run the test with the new code
-  ./cice.setup -m onyx -ts base_suite -testid test0 -bc cicev6.0.0 -a <account_number>
+  # Run the test suite with the new code
+  # git clone the new code
+
+  ./cice.setup -m onyx -e intel --suite base_suite --testid test0 --bcmp cice.my.baseline
 
   # Check the results
-  cd base_suite.test0
+
+  cd testsuite.test0
   ./results.csh
 
-  #### If the BFB tests fail, perform the compliance testing ####
+..
+
+If the regression comparisons fail, then you may want to run the QC test,
+
+.. code-block:: bash
+
+  # Run the QC test
+
   # Create a QC baseline
-  ./cice.setup -m onyx -t smoke -g gx1 -p 44x1 -testid qc_base -s qc,medium -a <account_number>
-  cd onyx_smoke_gx1_44x1_medium_qc.qc_base
+  # From the baseline sandbox
+
+  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_base -s qc,medium
+  cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_base
   ./cice.build
   ./cice.submit
 
-  # Check out the updated code or clone from a pull request
-
   # Create the t-test testing data
-  ./cice.setup -m onyx -t smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium -a <account_number>
-  cd onyx_smoke_gx1_44x1_medium_qc.qc_test
+  # From the update sandbox
+
+  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
+  cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
   ./cice.build
   ./cice.submit
 
   # Wait for runs to finish
-  
   # Perform the QC test
+
   cp configuration/scripts/tests/QC/cice.t-test.py
-  ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_smoke_gx1_44x1_medium_qc.qc_base \
-                   /p/work/turner/CICE_RUNS/onyx_smoke_gx1_44x1_medium_qc.qc_test
+  ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_base \
+                   /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
 
   # Example output:
   INFO:__main__:Number of files: 1825
@@ -818,52 +930,46 @@ in non-bit-for-bit results:
 Test Plotting
 ----------------
 
-The CICE scripts include a script (``timeseries.csh``) that will generate a timeseries 
-figure from the diagnostic output file.  
+The CICE scripts include a script (``timeseries.csh``) that will generate timeseries 
+figures from a diagnostic output file.  
 When running a test suite, the ``timeseries.csh`` script is automatically copied to the suite directory.  
-If the ``timeseries.csh`` script is to be used on a test / case that is not a part of a test suite, 
+If the ``timeseries.csh`` script is to be used on a test or case that is not a part of a test suite, 
 users will need to run the ``timeseries.csh`` script from the tests directory 
-(``./configuration/scripts/tests/timeseries.csh``), or copy it to a local directory and run it 
-locally (``cp configuration/scripts/tests/timeseries.csh .`` followed by 
-``./timeseries.csh /path/to/ice_diag.full_ITD``. The plotting script can be run
-on any of the output files - icefree, slab, full_ITD, land).  To generate the figure, 
-run the ``timeseries.csh`` script and pass the full path to the ice_diag file as an argument.  
+(``./configuration/scripts/tests/timeseries.csh ./path/``), or copy it to a local directory.
+When used with the test suites or given a path, it needs to be run in the directory 
+above the particular case being plotted, but it can also be run on isolated log files in the same directory, 
+without a path.
 
 For example:
 
 Run the test suite. ::
 
-$ ./cice.setup -m conrad -e intel --suite base_suite -acct <account_number> --testid t00
+$ ./cice.setup -m conrad -e intel --suite base_suite --testid t00
 
 Wait for suite to finish then go to the directory. ::
 
-$ cd base_suite.t00
+$ cd testsuite.t00
 
 Run the timeseries script on the desired case. ::
 
-$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/ice_diag.full_ITD
+$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
     
-The output figures are placed in the directory where the ice_diag file is located.
+The output figures are placed in the directory where the ``timeseries.csh`` script is run.
+
+To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
+
+     #!/bin/csh
+     foreach dir (`ls -1  | grep testid`)
+       echo $dir
+       timeseries.csh $dir
+     end
+
 
 This plotting script can be used to plot the following variables:
 
-  - area fraction
-  - average ice thickness (m)
-  - average snow depth (m)
-  - air temperature (C)
-  - shortwave radiation (:math:`W/m^2`)
-  - longwave radiation (:math:`W/m^2`)
-  - snowfall
-  - average salinity (ppt)
-  - surface temperature (C)
-  - outward longwave flux (:math:`W/m^2`)
-  - sensible heat flux (:math:`W/m^2`)
-  - latent heat flux (:math:`W/m^2`)
-  - top melt (m)
-  - bottom melt (m)
-  - lateral melt (m)
-  - new ice (m)
-  - congelation (m)
-  - snow-ice (m)
-  - initial energy change (:math:`W/m^2`)
+  - total ice area (:math:`km^2`)
+  - total ice extent (:math:`km^2`)
+  - total ice volume (:math:`m^3`)
+  - total snow volume (:math:`m^3`)
+  - RMS ice speed (:math:`m/s`)
 

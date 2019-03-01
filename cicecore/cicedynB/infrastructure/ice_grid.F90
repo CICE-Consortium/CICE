@@ -41,6 +41,8 @@
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
+         bathymetry_file, & !  input bathymetry for basalstress
+         grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
@@ -76,6 +78,11 @@
          dxhy   , & ! 0.5*(HTE - HTE)
          dyhx       ! 0.5*(HTN - HTN)
 
+      ! grid dimensions for rectangular grid
+      real (kind=dbl_kind), public ::  &
+         dxrect, & !  user_specified spacing (cm) in x-direction (uniform HTN)
+         dyrect    !  user_specified spacing (cm) in y-direction (uniform HTE)
+
       ! Corners of grid boxes for history output
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          lont_bounds, & ! longitude of gridbox corners for T point
@@ -110,17 +117,15 @@
          uvm    , & ! land/boundary mask, velocity (U-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
+      logical (kind=log_kind), public :: &
+         use_bathymetry     ! flag for reading in bathymetry_file
+
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
          umask  , & ! land/boundary mask, velocity (U-cell)
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
-
-      ! grid dimensions for rectangular grid
-      real (kind=dbl_kind), parameter ::  &
-         dxrect = 30.e5_dbl_kind   ,&! uniform HTN (cm)
-         dyrect = 30.e5_dbl_kind     ! uniform HTE (cm)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
@@ -333,7 +338,7 @@
 
       type (block) :: &
          this_block           ! block information for current block
-      
+
       character(len=*), parameter :: subname = '(init_grid2)'
 
       !-----------------------------------------------------------------
@@ -713,13 +718,13 @@
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-	 fid_grid, &		! file id for netCDF grid file
-	 fid_kmt		! file id for netCDF kmt file
+         fid_grid, &            ! file id for netCDF grid file
+         fid_kmt                ! file id for netCDF kmt file
 
       logical (kind=log_kind) :: diag
 
       character (char_len) :: &
-         fieldname		! field name in netCDF file
+         fieldname              ! field name in netCDF file
 
       real (kind=dbl_kind) :: &
          pi
@@ -788,7 +793,7 @@
                                ew_boundary_type, ns_boundary_type)
 
       fieldname='ulon'
-      call ice_read_global_nc(fid_grid,2,fieldname,work_g1,diag) ! ULON
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULON
       call gridbox_verts(work_g1,lont_bounds)       
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
@@ -796,7 +801,7 @@
                                ew_boundary_type, ns_boundary_type)
 
       fieldname='angle'
-      call ice_read_global_nc(fid_grid,7,fieldname,work_g1,diag) ! ANGLE    
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_angle)
 
@@ -811,11 +816,11 @@
       !-----------------------------------------------------------------
 
       fieldname='htn'
-      call ice_read_global_nc(fid_grid,3,fieldname,work_g1,diag) ! HTN
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
       call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
 
       fieldname='hte'
-      call ice_read_global_nc(fid_grid,4,fieldname,work_g1,diag) ! HTE
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
 
       deallocate(work_g1)
@@ -1114,6 +1119,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
+      use ice_domain, only: close_boundaries
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1254,6 +1260,13 @@
             enddo
             enddo
 
+            endif
+
+            if (close_boundaries) then
+              work_g1(:, 1:2) = c0
+              work_g1(:, ny_global-1:ny_global) = c0
+              work_g1(1:2, :) = c0
+              work_g1(nx_global-1:nx_global, :) = c0
             endif
 
          elseif (trim(ew_boundary_type) == 'closed') then
@@ -1794,8 +1807,7 @@
       use ice_constants, only: field_loc_center, field_type_vector
       use ice_domain_size, only: max_blocks
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(inout) :: & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(inout) :: & 
            work
 
       ! local variables
@@ -1885,8 +1897,7 @@
       use ice_constants, only: field_loc_NEcorner, field_type_vector
       use ice_domain_size, only: max_blocks
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
          work
 
       ! local variables
@@ -2171,11 +2182,11 @@
           field_loc_NEcorner, field_type_scalar
       use ice_domain_size, only: max_blocks
 
-      real (kind=dbl_kind), dimension(:,:), intent(in) :: work_g
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: &
+          work_g
 
-      real (kind=dbl_kind), &
-          dimension(4,nx_block,ny_block,max_blocks), &
-          intent(out) :: vbounds
+      real (kind=dbl_kind), dimension(4,nx_block,ny_block,max_blocks), intent(out) :: &
+          vbounds
 
       integer (kind=int_kind) :: &
           i,j                 ! index counters
@@ -2321,20 +2332,28 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      ! convert to total depth
-      depth(1) = thick(1)
-      do k = 2, nlevel
-         depth(k) = depth(k-1) + thick(k)
-      enddo
+      if (use_bathymetry) then
 
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            k = kmt(i,j,iblk)
-            if (k > puny) bathymetry(i,j,iblk) = depth(k)
+         call read_basalstress_bathy
+
+      else
+
+         ! convert to total depth
+         depth(1) = thick(1)
+         do k = 2, nlevel
+            depth(k) = depth(k-1) + thick(k)
          enddo
+
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               k = kmt(i,j,iblk)
+               if (k > puny) bathymetry(i,j,iblk) = depth(k)
+            enddo
+            enddo
          enddo
-      enddo
+
+      endif ! bathymetry_file
 
       end subroutine get_bathymetry
 
@@ -2359,25 +2378,22 @@
          fid_init        ! file id for netCDF init file
       
       character (char_len_long) :: &        ! input data file names
-         init_file, &
          fieldname
 
       logical (kind=log_kind) :: diag=.true.
 
       character(len=*), parameter :: subname = '(read_basalstress_bathy)'
 
-      init_file='bathymetry.nc'
-
       if (my_task == master_task) then
 
           write (nu_diag,*) ' '
-          write (nu_diag,*) 'Initial ice file: ', trim(init_file)
-          write (*,*) 'Initial ice file: ', trim(init_file)
+          write (nu_diag,*) 'Bathymetry file: ', trim(bathymetry_file)
+          write (*,*) 'Bathymetry file: ', trim(bathymetry_file)
           call icepack_warnings_flush(nu_diag)
 
       endif
 
-      call ice_open_nc(init_file,fid_init)
+      call ice_open_nc(bathymetry_file,fid_init)
 
       fieldname='Bathymetry'
 
@@ -2393,7 +2409,7 @@
       call ice_close_nc(fid_init)
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'closing file ',TRIM(init_file)
+         write(nu_diag,*) 'closing file ',TRIM(bathymetry_file)
          call icepack_warnings_flush(nu_diag)
       endif
 

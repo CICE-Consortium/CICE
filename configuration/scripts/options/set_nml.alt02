@@ -18,6 +18,6 @@ krdg_partic = 0
 krdg_redist = 0
 shortwave       = 'ccsm3'
 albedo_type     = 'ccsm3'
-calc_tsfc = .true.
+calc_Tsfc = .true.
 
 

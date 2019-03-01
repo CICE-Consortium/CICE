@@ -3,8 +3,8 @@
 .. _dev_dynamics:
 
 
-Dynamics and Infrastructure Implementation
-================================================
+Dynamics and Infrastructure 
+============================
 
 The CICE **cicecore/** directory consists of the non icepack source code.  Within that 
 directory there are the following subdirectories
@@ -30,13 +30,15 @@ kinds, and restart capabilities.
 Dynamics
 ~~~~~~~~~~~~~~
 
-Dyanamical Solvers
+Dynamical Solvers
 ************************
 
 The dynamics solvers are found in **cicecore/cicedynB/dynamics/**.  A couple of different solvers are
 available including EVP, revised EVP, and EAP.  The dynamics solver is specified in namelist with the
 ``kdyn`` variable.  ``kdyn=1`` is evp, ``kdyn=2`` is eap, and revised evp requires the ``revised_evp``
 namelist flag be set to true.
+A vectorized version of EVP is available through the namelist flag ``evp_kernel_ver``. Default is "normal"
+EVP as usual ``evp_kernel_ver=0``, whereas an vectorized version (ver.2) is available ``evp_kernel_ver=2``.
 
 
 Transport
@@ -62,18 +64,18 @@ Constants
 **cicecore/shared/ice_constants.F90** defines several model constants.  Some are hardwired parameters
 while others have internal defaults and can be set thru namelist.
 
-Dyamic Array Allocation
+Dynamic Array Allocation
 **************************
 
-CICE version 5 and before was implemented using mainly static arrays and required several CPPs to be set to define grid size,
-blocks sizes, tracer numbers, and so forth.  With CICE versions 6 and later, arrays are dynamically allocated and those
-parameters are namelist settings.  The following CPPs are no longer used in CICE version 6 and above,
+CICE v5 and earlier was implemented using mainly static arrays and required several CPPs to be set to define grid size,
+blocks sizes, tracer numbers, and so forth.  With CICE v6 and later, arrays are dynamically allocated and those
+parameters are namelist settings.  The following CPPs are no longer used in CICE v6 and later versions,
 
  -DNXGLOB=100 -DNYGLOB=116 -DBLCKX=25 -DBLCKY=29 -DMXBLCKS=4 -DNICELYR=7 -DNSNWLYR=1 -DNICECAT=5 -DTRAGE=1 -DTRFY=1 -DTRLVL=1 -DTRPND=1 -DTRBRI=0 -DNTRAERO=1  -DTRZS=0 -DNBGCLYR=7 -DTRALG=0 -DTRBGCZ=0 -DTRDOC=0 -DTRDOC=0 -DTRDIC=0 -DTRDON=0 -DTRFED=0 -DTRFEP=0 -DTRZAERO=0 -DTRBGCS=0 -DNUMIN=11 -DNUMAX=99
 
 as they have been migrated to :ref:`tabnamelist`
 
-  nx_global, ny_global, block_size_x, block_size_y, max_blocks, nilyr, nslyr, ncat, nblyr, n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep, n_trbgcz, n_trzs, n_trbri, n_trzaero, n_trage, n_trfy, n_trlvl, n_trpnd, n_trbgcs, numin, numax
+  nx_global, ny_global, block_size_x, block_size_y, max_blocks, nilyr, nslyr, ncat, nblyr, n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep, numin, numax
 
 
 Time Manager

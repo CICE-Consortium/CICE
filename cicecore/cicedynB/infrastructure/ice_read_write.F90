@@ -20,7 +20,6 @@
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
 #ifdef ncdf
       use netcdf      
@@ -41,6 +40,8 @@
                 ice_write,          &
                 ice_write_nc,       &
                 ice_write_ext,      &
+                ice_read_vec_nc,    &
+                ice_get_ncvarsize,  &
                 ice_close_nc
 
       interface ice_write
@@ -76,11 +77,14 @@
 !
 ! author: Tony Craig, NCAR
 
-      subroutine ice_open(nu, filename, nbits)
+      subroutine ice_open(nu, filename, nbits, algn)
 
       integer (kind=int_kind), intent(in) :: &
            nu        , & ! unit number
            nbits         ! no. of bits per variable (0 for sequential access)
+
+      integer (kind=int_kind), intent(in), optional :: algn
+      integer (kind=int_kind) :: RecSize, Remnant
 
       character (*) :: filename
 
@@ -93,7 +97,18 @@
             open(nu,file=filename,form='unformatted')
 
          else                   ! direct access
-            open(nu,file=filename,recl=nx_global*ny_global*nbits/8, &
+            RecSize = nx_global*ny_global*nbits/8
+            if (present(algn)) then
+              ! If data is keept in blocks using given sizes (=algn)
+              !  Used in eg. HYCOM binary files, which are stored as "blocks" dividable by 16384 bit (=algn)
+              if (algn /= 0) then
+                Remnant = modulo(RecSize,algn)
+                if (Remnant /= 0) then
+                  RecSize = RecSize + (algn - Remnant)
+                endif
+              endif
+            endif
+            open(nu,file=filename,recl=RecSize, &
                   form='unformatted',access='direct')
          endif                   ! nbits = 0
 
@@ -162,8 +177,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -308,8 +322,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,nblyr+2,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nblyr+2,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -456,8 +469,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_global,ny_global), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_global,ny_global), intent(out) :: &
            work_g            ! output array (real, 8-byte)
 
       character (len=4) :: &
@@ -567,8 +579,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -698,8 +709,7 @@
            nu            , & ! unit number
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(in) :: &
            work              ! input array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -1057,8 +1067,7 @@
       character (len=*), intent(in) :: & 
            varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       logical (kind=log_kind), optional, intent(in) :: &
@@ -1230,8 +1239,7 @@
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       logical (kind=log_kind), optional, intent(in) :: &
@@ -1410,8 +1418,7 @@
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
 
-      real (kind=dbl_kind), &
-           intent(out) :: &
+      real (kind=dbl_kind), intent(out) :: &
            work              ! output variable (real, 8-byte)
 
       ! local variables
@@ -1504,8 +1511,7 @@
            field_loc, &      ! location of field on staggered grid
            field_type        ! type of field (scalar, vector, angle)
 
-      real (kind=dbl_kind), dimension(nilyr), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nilyr), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       ! local variables
@@ -1597,8 +1603,7 @@
       logical (kind=log_kind), optional, intent(in) :: &
            restart_ext       ! if true, write extended grid
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(in) :: &
            work              ! output array (real, 8-byte)
 
       character (len=*), optional, intent(in) :: &
@@ -1717,8 +1722,7 @@
       logical (kind=log_kind), optional, intent(in) :: &
            restart_ext       ! if true, read extended grid
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), &
-           intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), intent(in) :: &
            work              ! output array (real, 8-byte)
 
       character (len=*), optional, intent(in) :: &
@@ -1842,10 +1846,9 @@
            nrec              ! record number 
 
      character (char_len), intent(in) :: & 
-           varname           ! field name in netcdf file        
+           varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_global,ny_global), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_global,ny_global), intent(out) :: &
            work_g            ! output array (real, 8-byte)
 
       logical (kind=log_kind) :: &
@@ -1992,8 +1995,7 @@
       character (len=*), intent(in) :: & 
            varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), &
-           intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
            work              ! output array (real, 8-byte)
 
       logical (kind=log_kind), optional, intent(in) :: &
@@ -2101,6 +2103,125 @@
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_uv
+
+!=======================================================================
+! Read a vector in a netcdf file.
+! Just like ice_read_global_nc except that it returns a vector.
+! work_g is a real vector
+!
+! Adapted by William Lipscomb, LANL, from ice_read
+! Adapted by Ann Keen, Met Office, to read from a netcdf file
+
+      subroutine ice_read_vec_nc (fid,  nrec, varname, work_g, diag)
+
+      integer (kind=int_kind), intent(in) :: &
+           fid           , & ! file id
+           nrec              ! record number
+
+      character (char_len), intent(in) :: &
+           varname           ! field name in netcdf file
+
+      real (kind=dbl_kind), dimension(nrec), &
+           intent(out) :: &
+           work_g            ! output array (real, 8-byte)
+
+      logical (kind=log_kind) :: &
+           diag              ! if true, write diagnostic output
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(ice_read_vec_nc)'
+
+#ifdef ncdf
+! netCDF file diagnostics:
+      integer (kind=int_kind) :: &
+         varid,           & ! netcdf id for field
+         status,          & ! status output from netcdf routines
+         nvar               ! sizes of netcdf vector
+
+      real (kind=dbl_kind) :: &
+         amin, amax         ! min, max values of input vector
+
+      character (char_len) :: &
+         dimname            ! dimension name
+!
+      work_g(:) = c0
+
+      if (my_task == master_task) then
+
+        !-------------------------------------------------------------
+        ! Find out ID of required variable
+        !-------------------------------------------------------------
+
+         status = nf90_inq_varid(fid, trim(varname), varid)
+
+         if (status /= nf90_noerr) then
+           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
+         endif
+
+       !--------------------------------------------------------------
+       ! Read global array
+       !--------------------------------------------------------------
+
+         status = nf90_get_var( fid, varid, work_g, &
+               start=(/1/), &
+               count=(/nrec/) )
+      endif                     ! my_task = master_task
+
+      !-------------------------------------------------------------------
+      ! optional diagnostics
+      !-------------------------------------------------------------------
+
+      if (my_task == master_task .and. diag) then
+         amin = minval(work_g)
+         amax = maxval(work_g)
+         write(nu_diag,*) 'min, max, nrec = ', amin, amax, nrec
+      endif
+
+#else
+      write(*,*) 'ERROR: ncdf not defined during compilation'
+      work_g = c0 ! to satisfy intent(out) attribute
+#endif
+      end subroutine ice_read_vec_nc
+
+!=======================================================================
+! Get number of variables of a given variable
+      subroutine ice_get_ncvarsize(fid,varname,recsize)
+
+      integer (kind=int_kind), intent(in) :: &
+         fid                 ! file id
+      character (char_len), intent(in) :: &
+         varname             ! field name in netcdf file
+      integer (kind=int_kind), intent(out) :: &
+         recsize             ! Number of records in file
+      integer (kind=int_kind) :: &
+         ndims, i, status
+      character (char_len) :: &
+         cvar
+      character(len=*), parameter :: subname = '(ice_get_ncvarsize)'
+
+#ifdef ncdf
+      if (my_task ==  master_task) then
+         status=nf90_inquire(fid, nDimensions = nDims)
+         if (status /= nf90_noerr) then
+           call abort_ice (subname//'ERROR: inquire nDimensions' )
+         endif
+         do i=1,nDims
+            status = nf90_inquire_dimension(fid,i,name=cvar,len=recsize)
+            if (status /= nf90_noerr) then
+              call abort_ice (subname//'ERROR: inquire len for variable '//trim(cvar) )
+            endif
+            if (trim(cvar) == trim(varname)) exit
+         enddo
+         if (trim(cvar) .ne. trim(varname)) then
+            call abort_ice (subname//'ERROR: Did not find variable '//trim(varname) )
+         endif
+      endif
+#else
+      write(*,*) 'ERROR: ncdf not defined during compilation'
+      recsize = 0 ! to satisfy intent(out) attribute
+#endif
+      end subroutine ice_get_ncvarsize
 
 !=======================================================================
 

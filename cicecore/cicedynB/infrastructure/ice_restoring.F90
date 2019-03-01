@@ -143,7 +143,7 @@
 !   aicen_rest(:,:,:,:) = aicen(:,:,:,:)
 !   vicen_rest(:,:,:,:) = vicen(:,:,:,:)
 !   vsnon_rest(:,:,:,:) = vsnon(:,:,:,:)
-!   trcrn_rest(:,:,:,:,:) = trcrn(:,:,1:ntrcr,:,:)
+!   trcrn_rest(:,:,:,:,:) = trcrn(:,:,:,:,:)
 
 ! the more precise way
    !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
@@ -315,23 +315,19 @@
          Tair    , & ! air temperature  (K)
          Tf          ! freezing temperature (C) 
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,nilyr), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,nilyr), intent(in) :: &
          salinz  , & ! initial salinity profile
          Tmltz       ! initial melting temperature profile
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), &
-         intent(in) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
          tmask      ! true for ice/ocean cells
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(out) :: &
          aicen , & ! concentration of ice
          vicen , & ! volume per unit area of ice          (m)
          vsnon     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat), &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrcr,ncat), intent(out) :: &
          trcrn     ! ice tracers
                    ! 1: surface temperature of ice/snow (C)
 

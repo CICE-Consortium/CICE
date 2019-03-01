@@ -29,7 +29,7 @@
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc, only: icepack_query_tracer_indices
+      use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_numbers
 
       implicit none
       private
@@ -203,7 +203,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
-          max_ntrcr, max_blocks
+          max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           strocnxT, strocnyT, sst, frzmlt, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -223,6 +223,7 @@
 
       integer (kind=int_kind) :: &
          i, j, k, iblk, &     ! counting indices
+         ntrcr, &             ! number of tracers
          nt_Tsfc, nt_sice, nt_qice, nt_qsno
 
       logical (kind=log_kind) :: &
@@ -234,6 +235,11 @@
       character (len=3) :: nchar
 
       character(len=*), parameter :: subname = '(restartfile)'
+
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
            nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
@@ -481,7 +487,7 @@
       ! compute aggregate ice state and open water area
       !-----------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
 
       do j = 1, ny_block
@@ -497,7 +503,7 @@
                                 vice (i,j,  iblk),  &
                                 vsno (i,j,  iblk),  &
                                 aice0(i,j,  iblk),  &
-                                max_ntrcr,          &
+                                ntrcr,              &
                                 trcr_depend,        &
                                 trcr_base,          &
                                 n_trcr_strata,      &
@@ -534,7 +540,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
-          max_ntrcr, max_blocks
+          max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           strocnxT, strocnyT, sst, frzmlt, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -553,6 +559,7 @@
 
       integer (kind=int_kind) :: &
          i, j, k, n, iblk, &     ! counting indices
+         ntrcr, &                ! number of tracers
          nt_Tsfc, nt_sice, nt_qice, nt_qsno, &
          iignore                 ! dummy variable
 
@@ -572,6 +579,11 @@
          work_g1, work_g2
 
       character(len=*), parameter :: subname = '(restartfile_v4)'
+
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
            nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
@@ -854,7 +866,7 @@
                                 vice (i,j,  iblk),  &
                                 vsno (i,j,  iblk),  &
                                 aice0(i,j,  iblk),  &
-                                max_ntrcr,          &
+                                ntrcr,              &
                                 trcr_depend,        &
                                 trcr_base,          &
                                 n_trcr_strata,      &

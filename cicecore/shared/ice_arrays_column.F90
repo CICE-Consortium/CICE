@@ -9,14 +9,17 @@
       module ice_arrays_column
 
       use ice_kinds_mod
+      use ice_fileunits, only: nu_diag
       use ice_blocks, only: nx_block, ny_block
-      use icepack_intfc, only: icepack_nspint
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
-           nblyr, max_ntrcr
-      use icepack_intfc, only: icepack_max_nbtrcr, icepack_max_algae, icepack_max_aero, &
-           icepack_nmodal1, icepack_nmodal2
+          nblyr
+      use icepack_intfc, only: icepack_nspint
+      use icepack_intfc, only: icepack_query_tracer_sizes, icepack_query_parameters, &
+          icepack_warnings_flush, icepack_warnings_aborted, icepack_query_tracer_numbers
 
       implicit none
+      private
+
       public :: alloc_arrays_column
 
       ! icepack_atmo.F90
@@ -86,8 +89,7 @@
          albpndn, &   ! pond 
          apeffn       ! effective pond area used for radiation calculation
 
-      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, &
-         public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          snowfracn    ! Category snow fraction used in radiation
 
       ! shortwave components
@@ -112,17 +114,17 @@
       ! aerosol optical properties   -> band  |
       !                                       v aerosol
       ! for combined dust category, use category 4 properties
-      real (kind=dbl_kind), dimension(icepack_nspint,icepack_max_aero), public :: & 
+      real (kind=dbl_kind), dimension(:,:), allocatable, public :: & 
          kaer_tab, & ! aerosol mass extinction cross section (m2/kg)
          waer_tab, & ! aerosol single scatter albedo (fraction)
          gaer_tab    ! aerosol asymmetry parameter (cos(theta))
 
-      real (kind=dbl_kind), dimension(icepack_nspint,icepack_nmodal1), public :: & 
+      real (kind=dbl_kind), dimension(:,:), allocatable, public :: & 
          kaer_bc_tab, & ! BC mass extinction cross section (m2/kg)
          waer_bc_tab, & ! BC single scatter albedo (fraction)
          gaer_bc_tab    ! BC aerosol asymmetry parameter (cos(theta))
 
-      real (kind=dbl_kind), dimension (icepack_nspint,icepack_nmodal1,icepack_nmodal2), public :: &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
           bcenh           ! BC absorption enhancement factor
 
       ! biogeochemistry components
@@ -137,20 +139,17 @@
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          first_ice_real     ! .true. = c1, .false. = c0
 
-      logical (kind=log_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      logical (kind=log_kind), dimension (:,:,:,:), allocatable, public :: &
          first_ice      ! distinguishes ice that disappears (e.g. melts)
                         ! and reappears (e.g. transport) in a grid cell
                         ! during a single time step from ice that was
                         ! there the entire time step (true until ice forms)
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          ocean_bio      ! contains all the ocean bgc tracer concentrations
 
       ! diagnostic fluxes
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fbio_snoice, & ! fluxes from snow to ice
          fbio_atmice    ! fluxes from atm to ice
 
@@ -258,14 +257,18 @@
          restore_bgc        ! 
 
       character(char_len), public :: &
-         sil_data_type  , & ! 'default', 'clim'
-         nit_data_type  , & ! 'default', 'clim'
-         fe_data_type   , & ! 'default', 'clim'
+         fe_data_type   ! 'default', 'clim'
+
+      character(char_len_long), public :: &
          bgc_data_dir   ! directory for biogeochemistry data
 
-      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+      real (kind=dbl_kind), dimension(:), allocatable, public :: &  
+         R_C2N_DON      ! carbon to nitrogen mole ratio of DON pool
+
+      real (kind=dbl_kind), dimension(:), allocatable, public :: &
          R_C2N     ,      & ! algal C to N (mole/mole)
-         R_chl2N            ! 3 algal chlorophyll to N (mg/mmol)
+         R_chl2N   ,      & ! 3 algal chlorophyll to N (mg/mmol)
+	 R_Si2N             ! silica to nitrogen mole ratio for algal groups
 
 !=======================================================================
 
@@ -276,7 +279,20 @@
       subroutine alloc_arrays_column
         ! Allocate column arrays
         use ice_exit, only: abort_ice
-        integer (int_kind) :: ierr
+        integer (int_kind) :: nspint, max_nbtrcr, max_algae, max_aero, &
+           nmodal1, nmodal2, max_don
+        integer (int_kind) :: ierr, ntrcr
+
+        character(len=*),parameter :: subname='(alloc_arrays_column)'
+
+!      call icepack_query_parameters(nspint_out=nspint)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes( max_nbtrcr_out=max_nbtrcr, &
+         max_algae_out=max_algae, max_aero_out=max_aero, &
+         nmodal1_out=nmodal1, nmodal2_out=nmodal2, max_don_out=max_don)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__,line= __LINE__)
 
       allocate(                                       &
          Cdn_atm      (nx_block,ny_block,max_blocks), & ! atm drag coefficient
@@ -333,13 +349,6 @@
          sice_rho     (nx_block,ny_block,ncat,max_blocks), & ! avg sea ice density  (kg/m^3)  ! ech: diagnostic only?
          fzsaln       (nx_block,ny_block,ncat,max_blocks), & ! category fzsal(kg/m^2/s) 
          fzsaln_g     (nx_block,ny_block,ncat,max_blocks), & ! salt flux from gravity drainage only
-         ocean_bio    (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! contains all the ocean bgc tracer concentrations
-         fbio_snoice  (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! fluxes from snow to ice
-         fbio_atmice  (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! fluxes from atm to ice
-         ocean_bio_all(nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! fixed order, all values even for tracers false
-         ice_bio_net  (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! depth integrated tracer (mmol/m^2) 
-         snow_bio_net (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! depth integrated snow tracer (mmol/m^2)
-         trcrn_sw     (nx_block,ny_block,max_ntrcr,ncat,max_blocks), & ! bgc tracers active in the delta-Eddington shortwave 
          Iswabsn      (nx_block,ny_block,nilyr,ncat,max_blocks), & ! SW radiation absorbed in ice layers (W m-2)
          Sswabsn      (nx_block,ny_block,nslyr,ncat,max_blocks), & ! SW radiation absorbed in snow layers (W m-2)
          fswpenln     (nx_block,ny_block,nilyr+1,ncat,max_blocks), & ! visible SW entering ice layers (W m-2)
@@ -349,9 +358,20 @@
          iki          (nx_block,ny_block,nblyr+1,ncat,max_blocks), & ! Ice permeability (m^2)     
          bphi         (nx_block,ny_block,nblyr+2,ncat,max_blocks), & ! porosity of layers    
          bTiz         (nx_block,ny_block,nblyr+2,ncat,max_blocks), &    ! layer temperatures interpolated on bio grid (C)
-         algal_peak   (nx_block,ny_block,icepack_max_algae,max_blocks), & ! vertical location of algal maximum, 0 if no maximum 
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_arrays_column): Out of Memory1')
+      if (ierr/=0) call abort_ice(subname//': Out of Memory1')
+
+      allocate(                                       &
+         ocean_bio    (nx_block,ny_block,max_nbtrcr,max_blocks), & ! contains all the ocean bgc tracer concentrations
+         fbio_snoice  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! fluxes from snow to ice
+         fbio_atmice  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! fluxes from atm to ice
+         ocean_bio_all(nx_block,ny_block,max_nbtrcr,max_blocks), & ! fixed order, all values even for tracers false
+         ice_bio_net  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! depth integrated tracer (mmol/m^2) 
+         snow_bio_net (nx_block,ny_block,max_nbtrcr,max_blocks), & ! depth integrated snow tracer (mmol/m^2)
+         trcrn_sw     (nx_block,ny_block,ntrcr,ncat,max_blocks), & ! bgc tracers active in the delta-Eddington shortwave 
+         algal_peak   (nx_block,ny_block,max_algae,max_blocks), & ! vertical location of algal maximum, 0 if no maximum 
+         stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of Memory2')
 
       allocate(                                       &
          hin_max(0:ncat)            , & ! category limits (m)
@@ -362,7 +382,18 @@
          icgrid(nilyr+1)            , &  ! interface grid for CICE (shortwave variable)
          swgrid(nilyr+1)            , &  ! grid for ice tracers used in dEdd scheme
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_arrays_column): Out of Memory2')
+      if (ierr/=0) call abort_ice(subname//' Out of Memory3')
+
+      allocate(          &
+         kaer_tab(icepack_nspint,max_aero), & ! aerosol mass extinction cross section (m2/kg)
+         waer_tab(icepack_nspint,max_aero), & ! aerosol single scatter albedo (fraction)
+         gaer_tab(icepack_nspint,max_aero), & ! aerosol asymmetry parameter (cos(theta))
+         kaer_bc_tab(icepack_nspint,nmodal1), & ! BC mass extinction cross section (m2/kg)
+         waer_bc_tab(icepack_nspint,nmodal1), & ! BC single scatter albedo (fraction)
+         gaer_bc_tab(icepack_nspint,nmodal1), & ! BC aerosol asymmetry parameter (cos(theta))
+         bcenh(icepack_nspint,nmodal1,nmodal2), & ! BC absorption enhancement factor
+         stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' Out of Memory4')
 
       end subroutine alloc_arrays_column
 

@@ -9,8 +9,11 @@ Science Guide
 -----------------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    sg_coupling.rst
-   sg_modelcomps.rst
+   sg_fundvars.rst
+   sg_tracers.rst
+   sg_horiztrans.rst
+   sg_dynamics.rst
 

@@ -645,8 +645,7 @@
            ndim3         , & ! third dimension
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), &
-           intent(inout) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), intent(inout) :: &
            work              ! input array (real, 8-byte)
 
       character (len=4), intent(in) :: &
@@ -667,6 +666,7 @@
       integer (kind=int_kind) :: &
         j,     &      ! dimension counter
         n,     &      ! number of dimensions for variable
+        ndims, &      ! number of variable dimensions
         status        ! status variable from netCDF routine
 
       real (kind=dbl_kind) :: amin,amax,asum
@@ -682,12 +682,15 @@
          status = pio_inq_varid(File,trim(vname),vardesc)
 
          if (status /= 0) then
-            call abort_ice(subname//"ERROR: CICE4 restart? Missing variable: "//trim(vname))
+            call abort_ice(subname//"ERROR: CICE restart? Missing variable: "//trim(vname))
          endif
+
+         status = pio_inq_varndims(File, vardesc, ndims)
 
          call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
-         if (ndim3 == ncat .and. ncat>1) then
+!         if (ndim3 == ncat .and. ncat>1) then
+         if (ndim3 == ncat .and. ndims == 3) then
             call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
             if (present(field_loc)) then
                do n=1,ndim3
@@ -695,7 +698,8 @@
                                        field_loc, field_type)
                enddo
             endif
-         elseif (ndim3 == 1) then
+!         elseif (ndim3 == 1) then
+         elseif (ndim3 == 1 .and. ndims == 2) then
             call pio_read_darray(File, vardesc, iodesc2d, work, status)
             if (present(field_loc)) then
                call ice_HaloUpdate (work(:,:,1,:), halo_info, &
@@ -753,8 +757,7 @@
            ndim3         , & ! third dimension
            nrec              ! record number (0 for sequential access)
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), &
-           intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), intent(in) :: &
            work              ! input array (real, 8-byte)
 
       character (len=4), intent(in) :: &

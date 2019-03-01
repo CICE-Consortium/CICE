@@ -36,11 +36,32 @@
 
       public :: step_therm1, step_therm2, step_dyn_horiz, step_dyn_ridge, &
                 prep_radiation, step_radiation, ocean_mixed_layer, &
-                update_state, biogeochemistry
+                update_state, biogeochemistry, save_init
 
 !=======================================================================
 
       contains
+
+!=======================================================================
+
+      subroutine save_init
+! saves initial values for aice, aicen, vicen, vsnon
+
+      use ice_state, only: aice, aicen, aice_init, aicen_init, &
+          vicen, vicen_init, vsnon, vsnon_init
+
+      !-----------------------------------------------------------------
+      ! Save the ice area passed to the coupler (so that history fields
+      !  can be made consistent with coupler fields).
+      ! Save the initial ice area and volume in each category.
+      !-----------------------------------------------------------------
+
+          aice_init = aice
+         aicen_init = aicen
+         vicen_init = vicen
+         vsnon_init = vsnon
+
+      end subroutine save_init
 
 !=======================================================================
 !
@@ -217,24 +238,10 @@
       aerosno(:,:,:) = c0
       aeroice(:,:,:) = c0
 
+#ifdef CICE_IN_NEMO
       do j = 1, ny_block
       do i = 1, nx_block
 
-      !-----------------------------------------------------------------
-      ! Save the ice area passed to the coupler (so that history fields
-      !  can be made consistent with coupler fields).
-      ! Save the initial ice area and volume in each category.
-      !-----------------------------------------------------------------
-
-         aice_init (i,j,  iblk) = aice (i,j,  iblk)
-
-         do n = 1, ncat
-            aicen_init(i,j,n,iblk) = aicen(i,j,n,iblk)
-            vicen_init(i,j,n,iblk) = vicen(i,j,n,iblk)
-            vsnon_init(i,j,n,iblk) = vsnon(i,j,n,iblk)
-         enddo
-
-#ifdef CICE_IN_NEMO
       !---------------------------------------------------------------
       ! Scale frain and fsnow by ice concentration as these fields
       ! are supplied by NEMO multiplied by ice concentration
@@ -248,10 +255,10 @@
             frain(i,j,iblk) = c0
             fsnow(i,j,iblk) = c0
          endif
-#endif
 
       enddo ! i
       enddo ! j
+#endif
 
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
@@ -388,7 +395,7 @@
       use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nltrcr
+      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, &
           meltl, frazil_diag
@@ -411,17 +418,28 @@
          i, j               ! horizontal indices
 
       integer (kind=int_kind) :: &
-         ntrcr, nbtrcr
+         ntrcr, nbtrcr, nltrcr
+
+      logical (kind=log_kind) :: &
+         z_tracers
 
       type (block) :: &
          this_block      ! block information for current block
 
       character(len=*), parameter :: subname = '(step_therm2)'
 
+      call icepack_query_parameters(z_tracers_out=z_tracers)
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      ! tcraig, nltrcr used to be the number of zbgc tracers, but it's used as a zbgc flag in icepack
+      if (z_tracers) then
+         nltrcr = 1
+      else
+         nltrcr = 0
+      endif
 
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
@@ -434,16 +452,16 @@
 
          if (tmask(i,j,iblk)) then
 
-         call icepack_step_therm2(dt, ncat, n_aero, nltrcr,                 &
+         call icepack_step_therm2(dt, ncat, n_aero, nltrcr,                &
                            nilyr,                  nslyr,                  &
                            hin_max   (:),          nblyr,                  &   
                            aicen     (i,j,:,iblk),                         &
                            vicen     (i,j,:,iblk), vsnon     (i,j,:,iblk), &
                            aicen_init(i,j,:,iblk), vicen_init(i,j,:,iblk), &
-                           trcrn     (i,j,1:ntrcr,:,iblk),                 &
+                           trcrn     (i,j,:,:,iblk),                       &
                            aice0     (i,j,  iblk), aice      (i,j,  iblk), &
-                           trcr_depend(1:ntrcr),   trcr_base(1:ntrcr,:),   &
-                           n_trcr_strata(1:ntrcr), nt_strata(1:ntrcr,:),   &
+                           trcr_depend(:),         trcr_base(:,:),         &
+                           n_trcr_strata(:),       nt_strata(:,:),         &
                            Tf        (i,j,  iblk), sss       (i,j,  iblk), &
                            salinz    (i,j,:,iblk),                         &
                            rside     (i,j,  iblk), meltl     (i,j,  iblk), &
@@ -534,18 +552,18 @@
       !----------------------------------------------------------------- 
  
 !        if (tmask(i,j,iblk)) &
-         call icepack_aggregate (ncat,               aicen(i,j,:,iblk),   &
-                               trcrn(i,j,1:ntrcr,:,iblk),               &
+         call icepack_aggregate (ncat,            aicen(i,j,:,iblk),    &
+                               trcrn(i,j,:,:,iblk),                     &
                                vicen(i,j,:,iblk), vsnon(i,j,  :,iblk),  &
                                aice (i,j,  iblk),                       &
-                               trcr (i,j,1:ntrcr,  iblk),               &
+                               trcr (i,j,:,  iblk),                     &
                                vice (i,j,  iblk), vsno (i,j,    iblk),  &
                                aice0(i,j,  iblk),                       &
                                ntrcr,                                   &
-                               trcr_depend(1:ntrcr),                    &
-                               trcr_base    (1:ntrcr,:),                &
-                               n_trcr_strata(1:ntrcr),                  &
-                               nt_strata    (1:ntrcr,:))
+                               trcr_depend(:),                          &
+                               trcr_base    (:,:),                      &
+                               n_trcr_strata(:),                        &
+                               nt_strata    (:,:))
 
       !-----------------------------------------------------------------
       ! Compute thermodynamic area and volume tendencies.
@@ -588,7 +606,7 @@
 
       use ice_dyn_evp, only: evp
       use ice_dyn_eap, only: eap
-      use ice_dyn_shared, only: kdyn
+      use ice_dyn_shared, only: kdyn, ktransport
       use ice_flux, only: init_history_dyn
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
@@ -610,10 +628,12 @@
       ! Horizontal ice transport
       !-----------------------------------------------------------------
 
+      if (ktransport > 0) then
       if (advection == 'upwind') then
          call transport_upwind (dt)    ! upwind
       else
          call transport_remap (dt)     ! incremental remapping
+      endif
       endif
 
       end subroutine step_dyn_horiz
@@ -686,7 +706,7 @@
       do i = ilo, ihi
 
 !echmod: this changes the answers, continue using tmask for now
-!      call aggregate_area (ncat, aicen(:), atmp, atmp0)
+!      call aggregate_area (ncat, aicen(i,j,:,iblk), atmp, atmp0)
 !      if (atmp > c0) then
 
          if (tmask(i,j,iblk)) then
@@ -697,11 +717,11 @@
                          ncat,                  hin_max  (:),          &
                          rdg_conv (i,j,  iblk), rdg_shear(i,j,  iblk), &
                          aicen    (i,j,:,iblk),                        &
-                         trcrn    (i,j,1:ntrcr,:,iblk),                &
+                         trcrn    (i,j,:,:,iblk),                      &
                          vicen    (i,j,:,iblk), vsnon    (i,j,:,iblk), &
-                         aice0    (i,j,  iblk), trcr_depend(1:ntrcr),  &
-                         trcr_base(1:ntrcr,:),  n_trcr_strata(1:ntrcr),&
-                         nt_strata(1:ntrcr,:),                         &
+                         aice0    (i,j,  iblk), trcr_depend(:),        &
+                         trcr_base(:,:),        n_trcr_strata(:),      &
+                         nt_strata(:,:),                               &
                          dardg1dt (i,j,  iblk), dardg2dt (i,j,  iblk), &
                          dvirdgdt (i,j,  iblk), opening  (i,j,  iblk), &
                          fpond    (i,j,  iblk),                        &
@@ -1169,7 +1189,7 @@
                 fep(i,j,:,iblk), zaeros(i,j,:,iblk), &
                 ocean_bio_all(i,j,:,iblk), &
                 hum(i,j,  iblk))
-        
+
          do mm = 1,nbtrcr
             ocean_bio(i,j,mm,iblk) = ocean_bio_all(i,j,bio_index_o(mm),iblk)  
          enddo  ! mm    
@@ -1207,7 +1227,7 @@
                               sice_rho    (i,j,:,        iblk),        &
                               fzsal       (i,j,          iblk),        &   
                               fzsal_g     (i,j,          iblk),        &
-                              bgrid, igrid, icgrid, cgrid,     &
+                              bgrid, igrid, icgrid, cgrid,             &
                               nblyr, nilyr, nslyr, n_algae, n_zaero,   &
                               ncat, n_doc, n_dic, n_don, n_fed, n_fep, &
                               meltbn      (i,j,:,        iblk),        &
@@ -1227,7 +1247,7 @@
                               vicen       (i,j,:,        iblk),        &
                               vsnon       (i,j,:,        iblk),        &
                               aice0       (i,j,          iblk),        &
-                              trcrn       (i,j,1:ntrcr,:,iblk),        &
+                              trcrn       (i,j,:,:,iblk),              &
                               vsnon_init  (i,j,:,        iblk),        &
                               skl_bgc)
 

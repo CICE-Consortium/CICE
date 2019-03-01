@@ -44,6 +44,17 @@ else if (${grid} == 'gbox128') then
     set blckx = 8; set blcky = 8
   endif
 
+else if (${grid} == 'gbox80') then
+  set nxglob = 80
+  set nyglob = 80
+  if (${cicepes} <= 1) then
+    set blckx = 80; set blcky = 80
+  else if (${cicepes} <= 8) then
+    set blckx = 20; set blcky = 20
+  else
+    set blckx = 8; set blcky = 8
+  endif
+
 else if (${grid} == 'gx3') then
   set nxglob = 100
   set nyglob = 116
@@ -62,8 +73,16 @@ else if (${grid} == 'gx1') then
   set nyglob = 384
   if (${cicepes} <= 16) then
     set blckx = 40; set blcky = 48
-  else if (${cicepes} <= 64) then
+  else if (${cicepes} <= 20) then
+    set blckx = 32; set blcky = 48
+  else if (${cicepes} <= 32) then
     set blckx = 20; set blcky = 24
+  else if (${cicepes} <= 40) then
+    set blckx = 16; set blcky = 24
+  else if (${cicepes} < 80) then
+    set blckx = 10; set blcky = 16
+  else if (${cicepes} == 80) then
+    set blckx = 8;  set blcky = 16
   else
     set blckx = 10; set blcky = 12
   endif
@@ -110,6 +129,7 @@ if (${ICE_DECOMP_MXBLCKS} > 0) set mxblcks = ${ICE_DECOMP_MXBLCKS}
 set decomp = 'cartesian'
 set dshape = 'slenderX2'
 if (${nxglob} % ${cicepes} != 0) set decomp = 'roundrobin'
+if (${mxblcks} * ${blcky} * 2 < ${nyglob}) set decomp = 'roundrobin'
 
 #--- outputs ---
 

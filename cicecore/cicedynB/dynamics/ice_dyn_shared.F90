@@ -28,12 +28,22 @@
       ! namelist parameters
 
       integer (kind=int_kind), public :: &
-         kdyn     , & ! type of dynamics ( 1 = evp, 2 = eap )
+         kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap )
+         kridge     , & ! set to "-1" to turn off ridging
+         ktransport , & ! set to "-1" to turn off transport
          ndte         ! number of subcycles:  ndte=dt/dte
+
+      character (len=char_len), public :: &
+         coriolis     ! 'constant', 'zero', or 'latitude'
 
       logical (kind=log_kind), public :: &
          revised_evp  ! if true, use revised evp procedure
 
+      integer (kind=int_kind), public :: &
+         evp_kernel_ver ! 0 = 2D org version
+                        ! 1 = 1D representation raw (not implemented)
+                        ! 2 = 1D + calculate distances inline (implemented)
+                        ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
       ! other EVP parameters
 
       character (len=char_len), public :: & 
@@ -52,11 +62,12 @@
          e_ratio  , & ! e = EVP ellipse aspect ratio 
          ecci     , & ! 1/e^2
          dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
-         dte2T    , & ! dte/2T
+!         dte2T    , & ! dte/2T
          denom1       ! constants for stress equation
 
       real (kind=dbl_kind), public :: & ! Bouillon et al relaxation constants
-         arlx1i   , & ! alpha1 for stressp
+         arlx     , & ! alpha for stressp
+         arlx1i   , & ! (inverse of alpha) for stressp
          brlx         ! beta   for momentum
 
       real (kind=dbl_kind), allocatable, public :: & 
@@ -72,6 +83,9 @@
 
       logical (kind=log_kind), public :: &
          basalstress   ! if true, basal stress for landfast on
+
+      real (kind=dbl_kind), public :: &
+         k1            ! 1st free parameter for landfast parameterization
 
 !=======================================================================
 
@@ -148,8 +162,13 @@
          rdg_shear(i,j,iblk) = c0
 
          ! Coriolis parameter
-!!         fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
-         fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
+         if (trim(coriolis) == 'constant') then
+            fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+         else if (trim(coriolis) == 'zero') then
+            fcor_blk(i,j,iblk) = 0.0
+         else
+            fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
+         endif
 
          ! stress tensor,  kg/s^2
          stressp_1 (i,j,iblk) = c0
@@ -197,67 +216,45 @@
 
       ! local variables
 
-      real (kind=dbl_kind) :: &
-         Se          , & ! stability parameter for revised EVP
-         xi          , & ! stability parameter for revised EVP
-         gamma       , & ! stability parameter for revised EVP
-         xmin, ymin  , & ! minimum grid length for ocean points, m
-         dte         , & ! subcycling timestep for EVP dynamics, s
-         ecc         , & ! (ratio of major to minor ellipse axes)^2
-         tdamp2          ! 2*(wave damping time scale T)
+      !real (kind=dbl_kind) :: &
+         !dte         , & ! subcycling timestep for EVP dynamics, s
+         !ecc         , & ! (ratio of major to minor ellipse axes)^2
+         !tdamp2          ! 2*(wave damping time scale T)
 
       character(len=*), parameter :: subname = '(set_evp_parameters)'
 
       ! elastic time step
-      dte = dt/real(ndte,kind=dbl_kind)        ! s
-      dtei = c1/dte              ! 1/s
+      !dte = dt/real(ndte,kind=dbl_kind)        ! s
+      !dtei = c1/dte              ! 1/s
+      dtei = real(ndte,kind=dbl_kind)/dt 
 
       ! major/minor axis length ratio, squared
-      ecc  = e_ratio**2
-      ecci = c1/ecc               ! 1/ecc
+      !ecc  = e_ratio**2
+      !ecci = c1/ecc               ! 1/ecc
+      ecci = c1/e_ratio**2               ! 1/ecc
 
       ! constants for stress equation
-      tdamp2 = c2*eyc*dt                    ! s
-      dte2T = dte/tdamp2                    ! ellipse (unitless)
-
-      ! grid min/max
-      xmin = global_minval(dxt, distrb_info, tmask)
-      ymin = global_minval(dyt, distrb_info, tmask)
-      xmin = min(xmin,ymin)  ! min(dxt, dyt)
-
-      ! revised evp parameters
-      Se = 0.86_dbl_kind                 ! Se > 0.5
-      xi = 5.5e-3_dbl_kind               ! Sv/Sc < 1
-      gamma = p25 * 1.e11_dbl_kind * dt  ! rough estimate (P/m~10^5/10^3)
+      !tdamp2 = c2*eyc*dt                    ! s
+      !dte2T = dte/tdamp2    or c1/(c2*eyc*real(ndte,kind=dbl_kind))               ! ellipse (unitless)
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
-         arlx1i = c2*xi/Se        ! 1/alpha1
-         brlx = c2*Se*xi*gamma/xmin**2 ! beta
-
-! classic evp parameters (but modified equations)
-!         arlx1i = dte2T
-!         brlx   = dt*dtei
-
+         denom1 = c1
+         arlx1i = c1/arlx
       else                        ! Hunke, JCP 2013 with modified stress eq
          revp   = c0
-         arlx1i = dte2T
-         brlx   = dt*dtei
-
-! revised evp parameters
-!         arlx1i = c2*xi/Se        ! 1/alpha1
-!         brlx = c2*Se*xi*gamma/xmin**2 ! beta
-
+         !arlx1i = dte2T
+         !arlx   = c1/arlx1i
+         !brlx   = dt*dtei
+         arlx   = c2*eyc*real(ndte,kind=dbl_kind)
+         arlx1i   = c1/arlx
+         brlx   = real(ndte,kind=dbl_kind)
+         denom1 = c1/(c1+arlx1i)
       endif
       if (my_task == master_task) then
-         write (nu_diag,*) 'arlx, brlx', c1/arlx1i, brlx
-         write (nu_diag,*) 'Se, Sv, xi', &
-                  sqrt(brlx/(arlx1i*gamma))*xmin, &
-                  p5*brlx/gamma*xmin**2, &
-                  p5*xmin*sqrt(brlx*arlx1i/gamma)
-      endif            
-
-      denom1 = c1/(c1+arlx1i)
+         write (nu_diag,*) 'arlx, arlxi, brlx, denom1', &
+                  arlx, arlx1i, brlx, denom1
+      endif
 
       end subroutine set_evp_parameters
 
@@ -284,26 +281,22 @@
          nx_block, ny_block, & ! block dimensions
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          aice    , & ! concentration of ice
          vice    , & ! volume per unit area of ice          (m)
          vsno    , & ! volume per unit area of snow         (m)
          strairxT, & ! stress on ice by air, x-direction
          strairyT    ! stress on ice by air, y-direction
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), & 
-         intent(in) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
          tmask       ! land/boundary mask, thickness (T-cell)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
          tmass       ! total mass of ice and snow (kg/m^2)
 
-      integer (kind=int_kind), dimension (nx_block,ny_block), & 
-         intent(out) :: &
+      integer (kind=int_kind), dimension (nx_block,ny_block), intent(out) :: &
          icetmask    ! ice extent mask (T-cell)
 
       ! local variables
@@ -426,23 +419,19 @@
          icellt   , & ! no. of cells where icetmask = 1
          icellu       ! no. of cells where iceumask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
-         intent(out) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(out) :: &
          indxti   , & ! compressed index in i-direction
          indxtj   , & ! compressed index in j-direction
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), & 
-         intent(in) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
          umask       ! land/boundary mask, thickness (U-cell)
 
-      integer (kind=int_kind), dimension (nx_block,ny_block), & 
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block,ny_block), intent(in) :: &
          icetmask    ! ice extent mask (T-cell)
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
+      logical (kind=log_kind), dimension (nx_block,ny_block), intent(inout) :: &
          iceumask    ! ice extent mask (U-cell)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
@@ -459,8 +448,7 @@
       real (kind=dbl_kind), intent(in) :: &
          dt          ! time step
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          Tbu,      & ! coefficient for basal stress (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
@@ -470,8 +458,7 @@
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          forcey      ! work array: combined atm stress and ocn tilt, y
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
@@ -658,7 +645,6 @@
                         forcex,     forcey,   &
                         umassdti,   fm,       &
                         uarear,               &
-                        strocnx,    strocny,  &
                         strintx,    strinty,  &
                         taubx,      tauby,    &
                         uvel_init,  vvel_init,&
@@ -670,8 +656,7 @@
          icellu,             & ! total count when iceumask is true
          ksub                  ! subcycling iteration
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -690,26 +675,20 @@
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(in) :: &
          str
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel        ! y-component of velocity (m/s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
-         strocnx , & ! ice-ocean stress, x-direction
-         strocny , & ! ice-ocean stress, y-direction
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty , & ! divergence of internal ice stress, y (N/m^2)
          taubx   , & ! basal stress, x-direction (N/m^2)
          tauby       ! basal stress, y-direction (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient
 
       ! local variables
@@ -776,13 +755,6 @@
          uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
 
-      !-----------------------------------------------------------------
-      ! ocean-ice stress for coupling
-      ! here, strocn includes the factor of aice
-      !-----------------------------------------------------------------
-         strocnx(i,j) = taux
-         strocny(i,j) = tauy
-         
       ! calculate basal stress component for outputs
          if (ksub == ndte) then ! on last subcycling iteration
           if ( basalstress ) then
@@ -817,8 +789,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -834,10 +805,11 @@
          strairx , & ! stress on ice by air, x-direction
          strairy     ! stress on ice by air, y-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strocnx , & ! ice-ocean stress, x-direction
-         strocny , & ! ice-ocean stress, y-direction
+         strocny     ! ice-ocean stress, y-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          strocnxT, & ! ice-ocean stress, x-direction
          strocnyT    ! ice-ocean stress, y-direction
 
@@ -847,8 +819,7 @@
          i, j, ij
 
       real (kind=dbl_kind) :: vrel, rhow
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient 
 
       character(len=*), parameter :: subname = '(dyn_finish)'
@@ -925,8 +896,7 @@
          nx_block, ny_block, &  ! block dimensions
          icellu                 ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
@@ -943,7 +913,6 @@
          hu,  & ! volume per unit area of ice at u location (mean thickness)
          hwu, & ! water depth at u location
          hcu, & ! critical thickness at u location
-         k1 = 20.0_dbl_kind , &  ! first free parameter for landfast parametrization 
          k2 = 15.0_dbl_kind , &  ! second free parameter (N/m^3) for landfast parametrization 
          alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
 

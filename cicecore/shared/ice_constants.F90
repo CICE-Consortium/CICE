@@ -71,6 +71,7 @@
         p15  = 0.15_dbl_kind, &
         p2   = 0.2_dbl_kind, &
         p25  = 0.25_dbl_kind, &
+        p3   = 0.3_dbl_kind, &
         p4   = 0.4_dbl_kind, &
         p5   = 0.5_dbl_kind, &
         p6   = 0.6_dbl_kind, &

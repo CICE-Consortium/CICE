@@ -1,0 +1,30 @@
+nilyr           = 7
+nslyr           = 1
+ncat            = 5
+nblyr           = 7
+n_aero          = 0
+n_zaero         = 3
+n_algae         = 3
+n_doc           = 2
+n_dic           = 0
+n_don           = 1
+n_fed           = 1
+n_fep           = 1
+ice_ic          = 'none'
+tr_brine        = .true.
+tr_zaero        = .true.
+z_tracers       = .true.
+solve_zbgc      = .true.
+scale_bgc       = .true.
+bgc_data_type   = 'default'
+tr_bgc_Nit      = .true.
+tr_bgc_C        = .true.
+tr_bgc_Am       = .true.
+tr_bgc_Sil      = .true.
+tr_bgc_DMS      = .true.
+tr_bgc_PON      = .true.
+tr_bgc_hum      = .true.
+tr_bgc_DON      = .true.
+tr_bgc_Fe       = .true. 
+
+
