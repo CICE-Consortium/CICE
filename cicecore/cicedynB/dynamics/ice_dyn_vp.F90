@@ -764,7 +764,7 @@
             enddo
             !$OMP END PARALLEL DO
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
-                                              " nonlin_res_L2norm= ", L2norm
+                                              " nonlin_res_L2norm= ", sqrt(sum(L2norm**2))
          endif
 
 
@@ -968,12 +968,12 @@
                               indxui  (:,iblk), indxuj  (:,iblk), &
                               fpresx(:,:,iblk), fpresy(:,:,iblk), &
                               L2norm    (iblk))
-            if (monitor_nonlin) then
-               write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
-                                                 " fixed_point_res_L2norm= ", L2norm
-            endif
          enddo
          !$OMP END PARALLEL DO
+         if (monitor_nonlin) then
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
+                                              " fixed_point_res_L2norm= ", sqrt(sum(L2norm**2))
+         endif
          
       enddo                     ! outer loop
 
@@ -1190,9 +1190,9 @@
                                Au       (:,:,iblk), Av      (:,:,iblk), &
                                Fx       (:,:,iblk), Fy      (:,:,iblk), &
                                L2norm(iblk))
-            nlres_norm = L2norm(iblk) ! phb: change after parallelization
          enddo
          !$OMP END PARALLEL DO
+         nlres_norm = sqrt(sum(L2norm**2))  ! phb: change after parallelization
          if (monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " nonlin_res_L2norm= ", nlres_norm
