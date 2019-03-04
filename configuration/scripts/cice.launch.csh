@@ -74,6 +74,17 @@ cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 #=======
+else if (${ICE_MACHINE} =~ loft*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+#=======
 else if (${ICE_MACHINE} =~ fram*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
