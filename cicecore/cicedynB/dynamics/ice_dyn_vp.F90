@@ -1114,8 +1114,9 @@
          conv        , & ! ratio of current residual and initial residual for FGMRES !phb: needed for fgmres2
          tol         , & ! tolerance for fixed point convergence: reltol_andacc * (initial fixed point residual norm)
          tol_nl      , & ! tolerance for nonlinear convergence: gammaNL * (initial nonlinear residual norm)
-         fpres_norm  , & ! norm of current fixed point residual
-         nlres_norm  , & ! norm of current nonlinear residual
+         fpres_norm  , & ! norm of current fixed point residual : f(x) = g(x) - x
+         prog_norm   , & ! norm of difference between current and previous solution
+         nlres_norm  , & ! norm of current nonlinear residual : F(x) = A(x)x -b(x)
          ddot, dnrm2     ! BLAS functions
 
       character(len=*), parameter :: subname = '(anderson_solver)'
@@ -1270,10 +1271,28 @@
          ! Compute residual
          res = fpfunc - sol
          fpres_norm = dnrm2(size(res), res, inc)
-         ! if (monitor_nonlin) then
-         !    write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
-         !                                      " fixed_point_res_L2norm= ", fpres_norm
-         ! endif
+         if (monitor_nonlin) then
+            ! commented code is to compare fixed_point_res_L2norm BFB with progress_res_L2norm
+            ! (should be BFB if Picard iteration is used)
+            ! call vec_to_arrays (nx_block, ny_block, nblocks,      &
+            !                     max_blocks, icellu (:), ntot,     & 
+            !                     indxui    (:,:), indxuj(:,:),     &
+            !                     res (:),                          &
+            !                     fpresx (:,:,:), fpresy (:,:,:))
+            ! !$OMP PARALLEL DO PRIVATE(iblk)
+            ! do iblk = 1, nblocks
+            ! call calc_L2norm (nx_block        , ny_block,         &
+            !                   icellu    (iblk),                   & 
+            !                   indxui  (:,iblk), indxuj  (:,iblk), &
+            !                   fpresx(:,:,iblk), fpresy(:,:,iblk), &
+            !                   L2norm    (iblk))
+            ! enddo
+            ! !$OMP END PARALLEL DO
+            ! write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
+            !                                   " fixed_point_res_L2norm= ", sqrt(sum(L2norm**2))
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
+                                              " fixed_point_res_L2norm= ", fpres_norm
+         endif
          
          ! Store initial residual norm
          if (it_nl == 0) then
@@ -1398,12 +1417,12 @@
                               indxui  (:,iblk), indxuj  (:,iblk), &
                               fpresx(:,:,iblk), fpresy(:,:,iblk), &
                               L2norm    (iblk))
-            if (monitor_nonlin) then
-               write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
-                                                 " fixed_point_res_L2norm= ", L2norm
-            endif
          enddo
          !$OMP END PARALLEL DO
+         if (monitor_nonlin) then
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
+                                              " progress_res_L2norm= ", sqrt(sum(L2norm**2))
+         endif
          
       enddo ! nonlinear iteration loop
       
