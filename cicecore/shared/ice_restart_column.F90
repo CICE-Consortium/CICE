@@ -32,6 +32,7 @@
                  write_restart_pond_cesm, read_restart_pond_cesm, &
                  write_restart_pond_lvl,  read_restart_pond_lvl, &
                  write_restart_pond_topo, read_restart_pond_topo, &
+                 write_restart_fsd,       read_restart_fsd, &
                  write_restart_aero,      read_restart_aero, &
                  write_restart_bgc,       read_restart_bgc,  &
                  write_restart_hbrine,    read_restart_hbrine
@@ -43,6 +44,7 @@
          restart_pond_cesm, & ! if .true., read meltponds restart file
          restart_pond_lvl , & ! if .true., read meltponds restart file
          restart_pond_topo, & ! if .true., read meltponds restart file
+         restart_fsd      , & ! if .true., read floe size restart file
          restart_aero     , & ! if .true., read aerosol tracer restart file
          restart_zsal     , & ! if .true., read Salinity from restart file 
          restart_hbrine   , & ! if .true., read hbrine from restart file
@@ -476,6 +478,67 @@
                               'ipnd',ncat,diag,field_loc_center,field_type_scalar)
 
       end subroutine read_restart_pond_topo
+
+!=======================================================================
+
+! Dumps all values needed for restarting
+! author Elizabeth C. Hunke, LANL
+
+      subroutine write_restart_fsd()
+
+      use ice_fileunits, only: nu_dump_fsd
+      use ice_state, only: trcrn
+
+      ! local variables
+
+      logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_fsd
+      character(len=*),parameter :: subname='(write_restart_fsd)'
+
+      call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      diag = .true.
+
+      !-----------------------------------------------------------------
+
+      call write_restart_field(nu_dump_fsd,0,trcrn(:,:,nt_fsd,:,:),'ruf8', &
+                               'fsd',ncat,diag)
+
+      end subroutine write_restart_fsd
+
+!=======================================================================
+
+! Reads all values needed for an ice fsd restart
+! author Elizabeth C. Hunke, LANL
+
+      subroutine read_restart_fsd()
+
+      use ice_fileunits, only: nu_restart_fsd
+      use ice_state, only: trcrn
+
+      ! local variables
+
+      logical (kind=log_kind) :: &
+         diag
+      integer (kind=int_kind) :: nt_fsd
+      character(len=*),parameter :: subname='(read_restart_fsd)'
+
+      call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      diag = .true.
+
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max fsd (s)'
+
+      call read_restart_field(nu_restart_fsd,0,trcrn(:,:,nt_fsd,:,:),'ruf8', &
+                       'fsd',ncat,diag,field_loc_center,field_type_scalar)
+
+      end subroutine read_restart_fsd
 
 !=======================================================================
 

@@ -39,7 +39,7 @@
 
       private
       public :: init_thermo_vertical, init_shortwave, &
-                init_age, init_FY, init_lvl, &
+                init_age, init_FY, init_lvl, init_fsd, &
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
                 count_tracers
@@ -564,6 +564,19 @@
       ipnd(:,:,:) = c0
         
       end subroutine init_meltponds_topo
+
+!=======================================================================
+
+!  Initialize floe size distribution tracer (call prior to reading restart data)
+
+      subroutine init_fsd(floesize)
+
+      real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: floesize
+      character(len=*),parameter :: subname='(init_fsd)'
+
+      floesize(:,:,:,:) = c0
+
+      end subroutine init_fsd
 
 !=======================================================================
 
@@ -1620,7 +1633,7 @@
 
       subroutine count_tracers
 
-      use ice_domain_size, only: nilyr, nslyr, nblyr, &
+      use ice_domain_size, only: nilyr, nslyr, nblyr, nfsd, &
           n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep
 
       ! local variables
@@ -1632,10 +1645,11 @@
          nk_bgc       ! layer index
 
       integer (kind=int_kind) :: ntrcr
-      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
+      integer (kind=int_kind) :: nt_fsd
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     &
@@ -1717,7 +1731,7 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
          tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
-         tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, &
+         tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
          tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C,   tr_bgc_chl_out=tr_bgc_chl,   &
@@ -1778,6 +1792,12 @@
               ntrcr = ntrcr + 1    ! 
               nt_ipnd = ntrcr      ! refrozen pond ice lid thickness
           endif
+      endif
+
+      nt_fsd = 0
+      if (tr_fsd) then
+          nt_fsd = ntrcr + 1       ! floe size distribution
+          ntrcr = ntrcr + nfsd
       endif
 
       nt_aero = 0
@@ -2060,6 +2080,7 @@
       if (nt_apnd  <= 0) nt_apnd  = ntrcr
       if (nt_hpnd  <= 0) nt_hpnd  = ntrcr
       if (nt_ipnd  <= 0) nt_ipnd  = ntrcr
+      if (nt_fsd   <= 0) nt_fsd   = ntrcr
       if (nt_aero  <= 0) nt_aero  = ntrcr
       if (nt_fbri  <= 0) nt_fbri  = ntrcr
       if (nt_bgc_S <= 0) nt_bgc_S = ntrcr
@@ -2083,7 +2104,7 @@
       call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
-         nt_ipnd_in=nt_ipnd, nt_aero_in=nt_aero, &
+         nt_ipnd_in=nt_ipnd, nt_fsd_in=nt_fsd, nt_aero_in=nt_aero, &
          nt_fbri_in=nt_fbri,      &
          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
          nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &

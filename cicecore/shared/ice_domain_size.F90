@@ -28,7 +28,8 @@
         ny_global       ! j-axis size
 
       integer (kind=int_kind), public :: &
-        ncat      , & ! number of categories
+        ncat      , & ! number of thickness categories
+        nfsd      , & ! number of floe size categories
         nilyr     , & ! number of ice layers per category
         nslyr     , & ! number of snow layers per category
         nblyr     , & ! number of bio/brine layers per category 

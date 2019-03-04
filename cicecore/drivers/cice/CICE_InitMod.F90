@@ -220,19 +220,20 @@
       use ice_calendar, only: time, calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, n_aero
+      use ice_domain_size, only: ncat, n_aero, nfsd
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
-          init_aerosol, init_hbrine, init_bgc
+          init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
           restart_pond_cesm, read_restart_pond_cesm, &
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
+          restart_fsd, read_restart_fsd, &
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
@@ -245,13 +246,13 @@
          iblk            ! block index
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-          tr_pond_topo, tr_aero, tr_brine, &
+          tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
-          nt_iage, nt_FY, nt_aero
+          nt_iage, nt_FY, nt_aero, nt_fsd
 
       character(len=*), parameter :: subname = '(init_restart)'
 
@@ -264,10 +265,11 @@
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
-           tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine)
+           tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
+           tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
-           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
+           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -362,6 +364,18 @@
                                         trcrn(:,:,nt_ipnd,:,iblk))
             enddo ! iblk
          endif ! .not. restart_pond
+      endif
+      ! floe size distribution
+      if (tr_fsd) then
+         if (trim(runtype) == 'continue') &
+              restart_fsd = .true.
+         if (restart_fsd) then
+            call read_restart_fsd
+         else
+            do iblk = 1, nblocks
+               call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,iblk))
+            enddo ! iblk
+         endif
       endif
       if (tr_aero) then ! ice aerosol
          if (trim(runtype) == 'continue') restart_aero = .true.

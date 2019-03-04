@@ -56,6 +56,7 @@
     dyrect         = 30.e5
     close_boundaries = .false.
     ncat         = 5
+    nfsd         = 1
     nilyr        = 7
     nslyr        = 1
     nblyr        = 7
@@ -84,6 +85,8 @@
     restart_pond_lvl  = .false.
     tr_aero      = .false.
     restart_aero = .false.
+    tr_fsd       = .false.
+    restart_fsd  = .false.
 /
 
 &thermo_nml

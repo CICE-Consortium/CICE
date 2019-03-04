@@ -52,6 +52,8 @@
          nu_restart_lvl, &  ! restart input file for level ice tracers
          nu_dump_pond  , &  ! dump file for restarting melt pond tracer
          nu_restart_pond,&  ! restart input file for melt pond tracer
+         nu_dump_fsd   , &  ! dump file for restarting floe size distribution
+         nu_restart_fsd, &  ! restart input file for floe size distribution
          nu_dump_aero  , &  ! dump file for restarting aerosol tracer
          nu_restart_aero,&  ! restart input file for aerosol tracer
          nu_dump_bgc   , &  ! dump file for restarting bgc
@@ -120,6 +122,8 @@
          call get_fileunit(nu_restart_lvl)
          call get_fileunit(nu_dump_pond)
          call get_fileunit(nu_restart_pond)
+         call get_fileunit(nu_dump_fsd)
+         call get_fileunit(nu_restart_fsd)
          call get_fileunit(nu_dump_aero)
          call get_fileunit(nu_restart_aero)
          call get_fileunit(nu_dump_bgc)
@@ -205,6 +209,8 @@
          call release_fileunit(nu_restart_lvl)
          call release_fileunit(nu_dump_pond)
          call release_fileunit(nu_restart_pond)
+         call release_fileunit(nu_dump_fsd)
+         call release_fileunit(nu_restart_fsd)
          call release_fileunit(nu_dump_aero)
          call release_fileunit(nu_restart_aero)
          call release_fileunit(nu_dump_bgc)
