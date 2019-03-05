@@ -28,6 +28,7 @@
       use icepack_intfc, only: icepack_query_tracer_numbers, icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_init_fsd
       use icepack_intfc, only: icepack_init_zbgc
       use icepack_intfc, only: icepack_init_thermo
       use icepack_intfc, only: icepack_step_radiation, icepack_init_orbit
@@ -571,10 +572,57 @@
 
       subroutine init_fsd(floesize)
 
-      real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: floesize
-      character(len=*),parameter :: subname='(init_fsd)'
+      use ice_arrays_column, only: floe_rad_c, floe_area_c
+      use ice_blocks, only: nx_block, ny_block
+      use ice_domain_size, only: ncat, max_blocks, nfsd
+      use ice_init, only: ice_ic
 
-      floesize(:,:,:,:) = c0
+      real(kind=dbl_kind), dimension(:,:,:,:,:), intent(out) :: &
+         floesize            ! floe size distribution tracer
+
+      ! local variables
+
+      real (kind=dbl_kind), dimension(nfsd) :: &
+         afsd                ! floe size distribution "profile"
+
+      integer (kind=int_kind) :: &
+         i, j, iblk     , &  ! horizontal indices
+         n                   ! category index
+
+      logical (kind=log_kind) :: tr_fsd
+
+      character(len=*), parameter :: subname='(init_fsd)'
+
+      floesize(:,:,:,:,:) = c0
+
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__,line= __LINE__)
+
+      if (tr_fsd) then
+
+         ! initialize floe size distribution the same in every column and category
+         call icepack_init_fsd(nfsd, ice_ic, &
+            floe_rad_c,    &  ! fsd size bin centre in m (radius)
+            floe_area_c,   &  ! fsd area at bin centre (m^2)
+            afsd)             ! floe size distribution
+
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n)
+         do iblk = 1, max_blocks
+            do n = 1, ncat
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  floesize(i,j,:,n,iblk) = afsd(:)
+               enddo ! i
+               enddo ! j
+            enddo    ! n
+         enddo       ! iblk
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
+
+      endif ! tr_fsd
 
       end subroutine init_fsd
 

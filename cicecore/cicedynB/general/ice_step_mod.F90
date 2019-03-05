@@ -162,7 +162,7 @@
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero
       use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
-          meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, &
+          meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, fside, &
           wind, rhoa, potT, Qa, zlvl, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
           flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, &
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
@@ -324,8 +324,9 @@
                             sss         (i,j,  iblk), Tf          (i,j,  iblk), &
                             strocnxT    (i,j,  iblk), strocnyT    (i,j,  iblk), &
                             fbot        (i,j,  iblk),                           &
-                            Tbot        (i,j,  iblk), Tsnice       (i,j, iblk),  &
+                            Tbot        (i,j,  iblk), Tsnice      (i,j,  iblk), &
                             frzmlt      (i,j,  iblk), rside       (i,j,  iblk), &
+                            fside       (i,j,  iblk),                           &
                             fsnow       (i,j,  iblk), frain       (i,j,  iblk), &
                             fpond       (i,j,  iblk),                           &
                             fsurf       (i,j,  iblk), fsurfn      (i,j,:,iblk), &

@@ -12,9 +12,10 @@
       use ice_fileunits, only: nu_diag
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
-          nblyr
+          nblyr, nfsd
       use icepack_intfc, only: icepack_nspint
       use icepack_intfc, only: icepack_query_tracer_sizes, icepack_query_parameters, &
+          icepack_query_tracer_flags, &
           icepack_warnings_flush, icepack_warnings_aborted, icepack_query_tracer_numbers
 
       implicit none
@@ -270,6 +271,25 @@
          R_chl2N   ,      & ! 3 algal chlorophyll to N (mg/mmol)
 	 R_Si2N             ! silica to nitrogen mole ratio for algal groups
 
+      ! floe size distribution
+      real(kind=dbl_kind), dimension(:), allocatable, public ::  &
+         floe_rad_l,    &  ! fsd size lower bound in m (radius)
+         floe_rad_h,    &  ! fsd size higher bound in m (radius)
+         floe_rad_c,    &  ! fsd size bin centre in m (radius)
+         floe_binwidth, &  ! fsd size bin width in m (radius)
+         floe_area_c       ! fsd area at bin centre (m^2)
+
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+         d_afsd_latg, d_afsd_latm, d_afsd_addnew, d_afsd_merge, d_afsd_wave
+
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
+         d_amfstd_latg, d_amfstd_latm, d_amfstd_addnew, d_amfstd_merge, d_amfstd_wave
+
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+         d_an_latg, d_an_latm, d_an_addnew
+
+      character (len=35), public, allocatable :: c_fsd_range(:)
+
 !=======================================================================
 
       contains
@@ -277,19 +297,22 @@
 !=======================================================================
 
       subroutine alloc_arrays_column
-        ! Allocate column arrays
-        use ice_exit, only: abort_ice
-        integer (int_kind) :: nspint, max_nbtrcr, max_algae, max_aero, &
-           nmodal1, nmodal2, max_don
-        integer (int_kind) :: ierr, ntrcr
 
-        character(len=*),parameter :: subname='(alloc_arrays_column)'
+      ! Allocate column arrays
 
-!      call icepack_query_parameters(nspint_out=nspint)
+      use ice_exit, only: abort_ice
+      integer (int_kind) :: max_nbtrcr, max_algae, max_aero, &
+         nmodal1, nmodal2, max_don
+      integer (int_kind) :: ierr, ntrcr
+      logical (kind=log_kind) :: tr_fsd
+
+      character(len=*),parameter :: subname='(alloc_arrays_column)'
+
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_sizes( max_nbtrcr_out=max_nbtrcr, &
          max_algae_out=max_algae, max_aero_out=max_aero, &
          nmodal1_out=nmodal1, nmodal2_out=nmodal2, max_don_out=max_don)
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
@@ -394,6 +417,32 @@
          bcenh(icepack_nspint,nmodal1,nmodal2), & ! BC absorption enhancement factor
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory4')
+
+      ! floe size distribution
+      if (tr_fsd) then
+      allocate(                                                   &
+         floe_rad_l     (nfsd)      , & ! fsd size lower bound in m (radius)
+         floe_rad_h     (nfsd)      , & ! fsd size higher bound in m (radius)
+         floe_rad_c     (nfsd)      , & ! fsd size bin centre in m (radius)
+         floe_binwidth  (nfsd)      , & ! fsd size bin width in m (radius)
+         floe_area_c    (nfsd)      , & ! fsd area at bin centre (m^2)
+         c_fsd_range    (nfsd)      , & ! fsd floe_rad bounds (m)
+         d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_afsd_latm    (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_afsd_addnew  (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_afsd_merge   (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_afsd_wave    (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_amfstd_latg  (nx_block,ny_block,nfsd,ncat,max_blocks), & !
+         d_amfstd_latm  (nx_block,ny_block,nfsd,ncat,max_blocks), & !
+         d_amfstd_addnew(nx_block,ny_block,nfsd,ncat,max_blocks), & !
+         d_amfstd_merge (nx_block,ny_block,nfsd,ncat,max_blocks), & !
+         d_amfstd_wave  (nx_block,ny_block,nfsd,ncat,max_blocks), & !
+         d_an_latg      (nx_block,ny_block,     ncat,max_blocks), & !
+         d_an_latm      (nx_block,ny_block,     ncat,max_blocks), & !
+         d_an_addnew    (nx_block,ny_block,     ncat,max_blocks), & !
+         stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' Out of Memory5')
+      endif ! tr_fsd
 
       end subroutine alloc_arrays_column
 

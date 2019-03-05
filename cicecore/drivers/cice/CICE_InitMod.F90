@@ -17,6 +17,7 @@
       use ice_fileunits, only: init_fileunits, nu_diag
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
+      use icepack_intfc, only: icepack_init_fsd_bounds
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
@@ -59,6 +60,8 @@
       subroutine cice_init
 
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
+      use ice_arrays_column, only: floe_rad_l, floe_rad_h, floe_rad_c, &
+          floe_binwidth, floe_area_c, c_fsd_range
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
@@ -66,7 +69,7 @@
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
-      use ice_domain_size, only: ncat
+      use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
       use ice_dyn_shared, only: kdyn, init_evp, alloc_dyn_shared
       use ice_flux, only: init_coupler_flux, init_history_therm, &
@@ -88,7 +91,7 @@
       use drv_forcing, only: sst_sss
 #endif
 
-      logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
+      logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, tr_fsd
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -139,6 +142,20 @@
       if (my_task == master_task) then
          call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
       endif
+
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
+          file=__FILE__,line= __LINE__)
+
+      if (tr_fsd) call icepack_init_fsd_bounds (ncat, nfsd, &  ! floe size distribution
+         floe_rad_l,    &  ! fsd size lower bound in m (radius)
+         floe_rad_h,    &  ! fsd size higher bound in m (radius)
+         floe_rad_c,    &  ! fsd size bin centre in m (radius)
+         floe_binwidth, &  ! fsd size bin width in m (radius)
+         floe_area_c,   &  ! fsd area at bin centre (m^2)
+         c_fsd_range)      ! string for history output
+
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -372,9 +389,7 @@
          if (restart_fsd) then
             call read_restart_fsd
          else
-            do iblk = 1, nblocks
-               call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,iblk))
-            enddo ! iblk
+            call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,:))
          endif
       endif
       if (tr_aero) then ! ice aerosol
