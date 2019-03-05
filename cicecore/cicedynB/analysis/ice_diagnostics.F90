@@ -107,7 +107,7 @@
 
       subroutine runtime_diags (dt)
 
-      use ice_arrays_column, only: floe_binwidth
+      use ice_arrays_column, only: floe_rad_c
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_constants, only: c1, c1000, c2, p001, p5, &
@@ -135,7 +135,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, k, n, iblk, &
+         i, j, k, n, iblk, nc, &
          ktherm, &
          nt_tsfc, nt_aero, nt_fbri, nt_apnd, nt_hpnd, nt_fsd
 
@@ -503,7 +503,7 @@
                   work1(i,j,iblk) = &
                      (fswabs(i,j,iblk) - fswthru(i,j,iblk) &
                     + fsens (i,j,iblk) + flwout (i,j,iblk)) &
-                                                  * aice      (i,j,iblk) &
+                                       * aice      (i,j,iblk) &
                     + flw   (i,j,iblk) * aice_init (i,j,iblk)
                enddo
                enddo
@@ -758,8 +758,19 @@
                   hsavg(n) = vsno(i,j,iblk)/paice(n)
                   if (tr_brine) hbravg(n) = trcr(i,j,nt_fbri,iblk)* hiavg(n)
                   if (tr_fsd) then
+! not sure why this does not work
+!                     do k = 1, nfsd
+!                        fsdavg(n) = fsdavg(n) &
+!                                  + trcr(i,j,nt_fsd+k-1,iblk) * floe_rad_c(k) &
+!                                  / trcr(i,j,nt_fsd+k-1,iblk)
+!                     enddo
+! this works
+                     do nc = 1, ncat
                      do k = 1, nfsd
-                        fsdavg(n) = fsdavg(n) + trcr(i,j,nt_fsd+k-1,iblk)*floe_binwidth(k)
+                        fsdavg(n) = fsdavg(n) &
+                                  + trcrn(i,j,nt_fsd+k-1,nc,iblk) * floe_rad_c(k) &
+                                  * aicen(i,j,nc,iblk) / paice(n)
+                     enddo
                      enddo
                   endif
                endif
@@ -955,7 +966,7 @@
         write(nu_diag,900) 'avg salinity (ppt)     = ',psalt(1),psalt(2)
         write(nu_diag,900) 'avg brine thickness (m)= ',hbravg(1),hbravg(2)
         if (tr_fsd) &
-        write(nu_diag,900) 'avg fsd eff radius (m) = ',fsdavg(1),fsdavg(2)
+        write(nu_diag,900) 'avg fsd rep radius (m) = ',fsdavg(1),fsdavg(2)
 
         if (calc_Tsfc) then
            write(nu_diag,900) 'surface temperature(C) = ',pTsfc(1),pTsfc(2)

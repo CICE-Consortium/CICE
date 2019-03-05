@@ -274,10 +274,8 @@
       ! floe size distribution
       real(kind=dbl_kind), dimension(:), allocatable, public ::  &
          floe_rad_l,    &  ! fsd size lower bound in m (radius)
-         floe_rad_h,    &  ! fsd size higher bound in m (radius)
          floe_rad_c,    &  ! fsd size bin centre in m (radius)
-         floe_binwidth, &  ! fsd size bin width in m (radius)
-         floe_area_c       ! fsd area at bin centre (m^2)
+         floe_binwidth     ! fsd size bin width in m (radius)
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          d_afsd_latg, d_afsd_latm, d_afsd_addnew, d_afsd_merge, d_afsd_wave
@@ -422,10 +420,8 @@
       if (tr_fsd) then
       allocate(                                                   &
          floe_rad_l     (nfsd)      , & ! fsd size lower bound in m (radius)
-         floe_rad_h     (nfsd)      , & ! fsd size higher bound in m (radius)
          floe_rad_c     (nfsd)      , & ! fsd size bin centre in m (radius)
          floe_binwidth  (nfsd)      , & ! fsd size bin width in m (radius)
-         floe_area_c    (nfsd)      , & ! fsd area at bin centre (m^2)
          c_fsd_range    (nfsd)      , & ! fsd floe_rad bounds (m)
          d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latm    (nx_block,ny_block,nfsd,     max_blocks), & !

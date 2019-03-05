@@ -572,10 +572,11 @@
 
       subroutine init_fsd(floesize)
 
-      use ice_arrays_column, only: floe_rad_c, floe_area_c
+      use ice_arrays_column, only: floe_rad_c, floe_binwidth
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: ncat, max_blocks, nfsd
       use ice_init, only: ice_ic
+      use ice_state, only: aicen
 
       real(kind=dbl_kind), dimension(:,:,:,:,:), intent(out) :: &
          floesize            ! floe size distribution tracer
@@ -585,6 +586,8 @@
       real (kind=dbl_kind), dimension(nfsd) :: &
          afsd                ! floe size distribution "profile"
 
+      real (kind=dbl_kind) :: puny
+
       integer (kind=int_kind) :: &
          i, j, iblk     , &  ! horizontal indices
          n                   ! category index
@@ -592,6 +595,8 @@
       logical (kind=log_kind) :: tr_fsd
 
       character(len=*), parameter :: subname='(init_fsd)'
+
+      call icepack_query_parameters(puny_out=puny)
 
       floesize(:,:,:,:,:) = c0
 
@@ -605,7 +610,7 @@
          ! initialize floe size distribution the same in every column and category
          call icepack_init_fsd(nfsd, ice_ic, &
             floe_rad_c,    &  ! fsd size bin centre in m (radius)
-            floe_area_c,   &  ! fsd area at bin centre (m^2)
+            floe_binwidth, &  ! fsd size bin width in m (radius)
             afsd)             ! floe size distribution
 
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,n)
@@ -613,7 +618,7 @@
             do n = 1, ncat
                do j = 1, ny_block
                do i = 1, nx_block
-                  floesize(i,j,:,n,iblk) = afsd(:)
+                  if (aicen(i,j,n,iblk) > puny) floesize(i,j,:,n,iblk) = afsd(:)
                enddo ! i
                enddo ! j
             enddo    ! n

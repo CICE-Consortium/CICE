@@ -60,8 +60,8 @@
       subroutine cice_init
 
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
-      use ice_arrays_column, only: floe_rad_l, floe_rad_h, floe_rad_c, &
-          floe_binwidth, floe_area_c, c_fsd_range
+      use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
+          floe_binwidth, c_fsd_range
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
@@ -150,10 +150,8 @@
 
       if (tr_fsd) call icepack_init_fsd_bounds (ncat, nfsd, &  ! floe size distribution
          floe_rad_l,    &  ! fsd size lower bound in m (radius)
-         floe_rad_h,    &  ! fsd size higher bound in m (radius)
          floe_rad_c,    &  ! fsd size bin centre in m (radius)
          floe_binwidth, &  ! fsd size bin width in m (radius)
-         floe_area_c,   &  ! fsd area at bin centre (m^2)
          c_fsd_range)      ! string for history output
 
       call icepack_warnings_flush(nu_diag)
