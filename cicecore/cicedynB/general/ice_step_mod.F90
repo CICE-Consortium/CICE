@@ -392,13 +392,13 @@
       subroutine step_therm2 (dt, iblk)
 
       use ice_arrays_column, only: hin_max, fzsal, ocean_bio, &
-          first_ice, bgrid, cgrid, igrid
+          first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth
       use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
+      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nfsd
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
-          update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, &
+          update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
           meltl, frazil_diag
       use ice_flux_bgc, only: flux_bio, faero_ocn 
       use ice_grid, only: tmask
@@ -466,6 +466,7 @@
                            Tf        (i,j,  iblk), sss       (i,j,  iblk), &
                            salinz    (i,j,:,iblk),                         &
                            rside     (i,j,  iblk), meltl     (i,j,  iblk), &
+                           fside     (i,j,  iblk),                         &
                            frzmlt    (i,j,  iblk), frazil    (i,j,  iblk), &
                            frain     (i,j,  iblk), fpond     (i,j,  iblk), &
                            fresh     (i,j,  iblk), fsalt     (i,j,  iblk), &
@@ -476,7 +477,9 @@
                            flux_bio  (i,j,1:nbtrcr,iblk),                  &
                            ocean_bio (i,j,1:nbtrcr,iblk),                  &
                            frazil_diag(i,j, iblk),                         &
-                           frz_onset (i,j,  iblk), yday)
+                           frz_onset (i,j,  iblk), yday,                   &
+                           nfsd,                                           &
+                           floe_rad_c(:),          floe_binwidth(:))
 
          endif ! tmask
 
