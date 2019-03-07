@@ -657,6 +657,7 @@
       real (kind=dbl_kind) :: & 
          conv     , & ! ratio of current residual and initial residual for FGMRES !phb: needed for fgmres2
          tol      , & ! tolerance for nonlinear convergence: gammaNL * initial residual norm
+         nlres_norm  , & ! norm of current nonlinear residual : F(x) = A(x)x -b(x)
          res_norm     ! residual norm for FGMRES
 
       character(len=*), parameter :: subname = '(picard_solver)'
@@ -736,37 +737,45 @@
          !$OMP END PARALLEL DO                            
 
          ! Compute nonlinear residual norm
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            call matvec (nx_block             , ny_block,            &
+                         icellu   (iblk)      , icellt   (iblk)    , & 
+                         indxui   (:,iblk)    , indxuj   (:,iblk)  , &
+                         indxti   (:,iblk)    , indxtj   (:,iblk)  , &
+                         dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
+                         dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
+                         cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
+                         cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
+                         tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                         uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
+                         vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
+                         zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                         umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
+                         uarear   (:,:,iblk)  ,                      & 
+                         Au       (:,:,iblk)  , Av       (:,:,iblk))
+            call residual_vec (nx_block           , ny_block,           &
+                               icellu       (iblk),                     & 
+                               indxui     (:,iblk), indxuj    (:,iblk), &
+                               bx       (:,:,iblk), by      (:,:,iblk), &
+                               Au       (:,:,iblk), Av      (:,:,iblk), &
+                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
+                               L2norm(iblk))
+         enddo
+         !$OMP END PARALLEL DO
+         nlres_norm = sqrt(sum(L2norm**2))
          if (monitor_nonlin) then
-            !$OMP PARALLEL DO PRIVATE(iblk)
-            do iblk = 1, nblocks
-               call matvec (nx_block             , ny_block,            &
-                            icellu   (iblk)      , icellt   (iblk)    , & 
-                            indxui   (:,iblk)    , indxuj   (:,iblk)  , &
-                            indxti   (:,iblk)    , indxtj   (:,iblk)  , &
-                            dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
-                            dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
-                            cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
-                            cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
-                            tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
-                            uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
-                            vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
-                            zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
-                            umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
-                            uarear   (:,:,iblk)  ,                      & 
-                            Au       (:,:,iblk)  , Av       (:,:,iblk))
-               call residual_vec (nx_block           , ny_block,           &
-                                  icellu       (iblk),                     & 
-                                  indxui     (:,iblk), indxuj    (:,iblk), &
-                                  bx       (:,:,iblk), by      (:,:,iblk), &
-                                  Au       (:,:,iblk), Av      (:,:,iblk), &
-                                  Fx       (:,:,iblk), Fy      (:,:,iblk), &
-                                  L2norm(iblk))
-            enddo
-            !$OMP END PARALLEL DO
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
-                                              " nonlin_res_L2norm= ", sqrt(sum(L2norm**2))
+                                              " nonlin_res_L2norm= ", nlres_norm
          endif
-
+         ! Compute relative tolerance at first iteration
+         if (kOL == 1) then
+            tol = gammaNL*nlres_norm
+         endif
+         ! Check for nonlinear convergence
+         if (nlres_norm < tol) then
+            exit
+         endif
 
       !-----------------------------------------------------------------------
       !     prep F G M R E S 
@@ -903,15 +912,6 @@
             goto 1
 
       endif ! icode
-      
-      ! Compute relative tolerance at first iteration
-      if (kOL == 1) then
-         tol = gammaNL*res_norm
-      endif
-      ! Check for nonlinear convergence
-      if (res_norm < tol) then
-         exit
-      endif
 
       !-----------------------------------------------------------------------
       !     Put vector sol in uvel and vvel arrays
@@ -1294,15 +1294,16 @@
                                               " fixed_point_res_L2norm= ", fpres_norm
          endif
          
-         ! Store initial residual norm
-         if (it_nl == 0) then
-            tol = reltol_andacc*fpres_norm
-         endif
-
-         ! Check residual
-         if (fpres_norm < tol) then
-            exit
-         endif
+         ! Not used for now (only nonlinear residual is checked)
+         ! ! Store initial residual norm
+         ! if (it_nl == 0) then
+         !    tol = reltol_andacc*fpres_norm
+         ! endif
+         ! 
+         ! ! Check residual 
+         ! if (fpres_norm < tol) then
+         !    exit
+         ! endif
 
          if (im_andacc == 0 .or. it_nl < start_andacc) then 
             ! Simple fixed point (Picard) iteration in this case
