@@ -124,7 +124,7 @@
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
         tfrz_option, frzpnd, atmbndy
 
-      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair
+      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
@@ -205,7 +205,7 @@
         highfreq,       natmiter,        ustar_min,     emissivity,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
-        precip_units,   default_season,                                 &
+        precip_units,   default_season,  wave_spec,                     &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
         ice_data_type,                                                  &
         fyear_init,     ycycle,                                         &
@@ -352,6 +352,7 @@
                                   ! 'mm_per_sec' = 'mks' = kg/m^2 s
       tfrz_option     = 'mushy'   ! freezing temp formulation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
+      wave_spec       = .false.   ! if true, use wave forcing
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'
       fe_data_type    = 'default'
@@ -610,6 +611,7 @@
       call broadcast_scalar(fbot_xfer_type,     master_task)
       call broadcast_scalar(precip_units,       master_task)
       call broadcast_scalar(oceanmixed_ice,     master_task)
+      call broadcast_scalar(wave_spec,          master_task)
       call broadcast_scalar(tfrz_option,        master_task)
       call broadcast_scalar(ocn_data_format,    master_task)
       call broadcast_scalar(bgc_data_type,      master_task)
@@ -1099,6 +1101,7 @@
                                trim(fbot_xfer_type)
          write(nu_diag,1010) ' oceanmixed_ice            = ', &
                                oceanmixed_ice
+         write(nu_diag,1010) ' wave_spec                 = ', wave_spec
          write(nu_diag,*)    ' tfrz_option               = ', &
                                trim(tfrz_option)
          if (trim(bgc_data_type) == 'ncar' .or. &
@@ -1212,6 +1215,7 @@
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
+         wave_spec_in=wave_spec, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, tr_fsd_in=tr_fsd, tr_pond_in=tr_pond, &
