@@ -148,7 +148,7 @@
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
-      if (tr_fsd) call icepack_init_fsd_bounds (ncat, nfsd, &  ! floe size distribution
+      if (tr_fsd) call icepack_init_fsd_bounds (nfsd, &  ! floe size distribution
          floe_rad_l,    &  ! fsd size lower bound in m (radius)
          floe_rad_c,    &  ! fsd size bin centre in m (radius)
          floe_binwidth, &  ! fsd size bin width in m (radius)

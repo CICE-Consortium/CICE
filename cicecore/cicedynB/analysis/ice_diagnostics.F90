@@ -87,10 +87,10 @@
       ! iblkp, ip, jp, mtask identify the grid cell to print
 !     character (char_len) :: plabel
       integer (kind=int_kind), parameter, public :: &
-         check_step = 999999999, & ! begin printing at istep1=check_step
+         check_step = 1, & ! begin printing at istep1=check_step
          iblkp = 1, &      ! block number 
-         ip = 3, &         ! i index
-         jp = 5, &         ! j index
+         ip = 2, &         ! i index
+         jp = 3, &         ! j index
          mtask = 0         ! my_task
 
 !=======================================================================
@@ -1478,7 +1478,7 @@
            qi, qs, Tsnow, &
            rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
-      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno
+      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1486,7 +1486,7 @@
       character(len=*), parameter :: subname = '(print_state)'
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
-           nt_qsno_out=nt_qsno)
+           nt_qsno_out=nt_qsno, nt_fsd_out=nt_fsd)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
@@ -1515,6 +1515,7 @@
             write(nu_diag,*) 'hsn', vsnon(i,j,n,iblk)/aicen(i,j,n,iblk)
          endif
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
+         write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk)
          write(nu_diag,*) ' '
       enddo                     ! n
 
