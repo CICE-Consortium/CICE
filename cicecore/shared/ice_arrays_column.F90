@@ -414,7 +414,6 @@
       if (ierr/=0) call abort_ice(subname//' Out of Memory4')
 
       ! floe size distribution
-      if (tr_fsd) then
       allocate(                                                   &
          floe_rad_l     (nfsd)      , & ! fsd size lower bound in m (radius)
          floe_rad_c     (nfsd)      , & ! fsd size bin centre in m (radius)
@@ -428,7 +427,6 @@
          d_afsd_weld    (nx_block,ny_block,nfsd,     max_blocks), & !
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory5')
-      endif ! tr_fsd
 
       end subroutine alloc_arrays_column
 
