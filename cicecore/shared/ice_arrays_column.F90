@@ -277,14 +277,11 @@
          floe_rad_c,    &  ! fsd size bin centre in m (radius)
          floe_binwidth     ! fsd size bin width in m (radius)
 
-      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
-         d_afsd_latg, d_afsd_latm, d_afsd_addnew, d_afsd_merge, d_afsd_wave
-
-      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
-         d_amfstd_latg, d_amfstd_latm, d_amfstd_addnew, d_amfstd_merge, d_amfstd_wave
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         ice_wave_sig_ht   ! significant height of waves in ice (m)
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
-         d_an_latg, d_an_latm, d_an_addnew
+         d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
 
       character (len=35), public, allocatable :: c_fsd_range(:)
 
@@ -423,19 +420,12 @@
          floe_rad_c     (nfsd)      , & ! fsd size bin centre in m (radius)
          floe_binwidth  (nfsd)      , & ! fsd size bin width in m (radius)
          c_fsd_range    (nfsd)      , & ! fsd floe_rad bounds (m)
+         ice_wave_sig_ht(nx_block,ny_block,          max_blocks), & !
+         d_afsd_newi    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latm    (nx_block,ny_block,nfsd,     max_blocks), & !
-         d_afsd_addnew  (nx_block,ny_block,nfsd,     max_blocks), & !
-         d_afsd_merge   (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_wave    (nx_block,ny_block,nfsd,     max_blocks), & !
-         d_amfstd_latg  (nx_block,ny_block,nfsd,ncat,max_blocks), & !
-         d_amfstd_latm  (nx_block,ny_block,nfsd,ncat,max_blocks), & !
-         d_amfstd_addnew(nx_block,ny_block,nfsd,ncat,max_blocks), & !
-         d_amfstd_merge (nx_block,ny_block,nfsd,ncat,max_blocks), & !
-         d_amfstd_wave  (nx_block,ny_block,nfsd,ncat,max_blocks), & !
-         d_an_latg      (nx_block,ny_block,     ncat,max_blocks), & !
-         d_an_latm      (nx_block,ny_block,     ncat,max_blocks), & !
-         d_an_addnew    (nx_block,ny_block,     ncat,max_blocks), & !
+         d_afsd_weld    (nx_block,ny_block,nfsd,     max_blocks), & !
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory5')
       endif ! tr_fsd

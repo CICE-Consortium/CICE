@@ -12,7 +12,7 @@
       module ice_step_mod
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1000
+      use ice_constants, only: c0, c1, c1000
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -391,8 +391,9 @@
 
       subroutine step_therm2 (dt, iblk)
 
-      use ice_arrays_column, only: hin_max, fzsal, ocean_bio, &
-          first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth
+      use ice_arrays_column, only: hin_max, fzsal, ocean_bio, ice_wave_sig_ht, &
+          first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
+          d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_wave, d_afsd_weld
       use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
@@ -442,6 +443,10 @@
          nltrcr = 0
       endif
 
+!echmod FOR NOW
+      ice_wave_sig_ht = c1 !echmod FOR NOW
+!echmod FOR NOW
+
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
       ihi = this_block%ihi
@@ -478,7 +483,10 @@
                            ocean_bio (i,j,1:nbtrcr,iblk),                  &
                            frazil_diag(i,j, iblk),                         &
                            frz_onset (i,j,  iblk), yday,                   &
-                           nfsd,                                           &
+                           nfsd,                 ice_wave_sig_ht(i,j,iblk), &
+                           d_afsd_latg(i,j,:,iblk),d_afsd_newi(i,j,:,iblk), &
+                           d_afsd_latm(i,j,:,iblk),d_afsd_wave(i,j,:,iblk), &
+                           d_afsd_weld(i,j,:,iblk), &
                            floe_rad_c(:),          floe_binwidth(:))
 
          endif ! tmask
