@@ -1742,6 +1742,7 @@
       use ice_history_mechred, only: accum_hist_mechred
       use ice_history_pond, only: accum_hist_pond
       use ice_history_drag, only: accum_hist_drag
+      use ice_history_fsd, only: accum_hist_fsd
       use icepack_mushy_physics, only: density_brine, liquid_fraction, temperature_mush
       use ice_state ! almost everything
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
@@ -1808,8 +1809,8 @@
       n3Dzcum = n3Dccum + num_avail_hist_fields_3Dz
       n3Dbcum = n3Dzcum + num_avail_hist_fields_3Db
       n3Dacum = n3Dbcum + num_avail_hist_fields_3Da
-      n3Dfcum = n3Dbcum + num_avail_hist_fields_3Df
-      n4Dicum = n3Dacum + num_avail_hist_fields_4Di
+      n3Dfcum = n3Dacum + num_avail_hist_fields_3Df
+      n4Dicum = n3Dfcum + num_avail_hist_fields_4Di
       n4Dscum = n4Dicum + num_avail_hist_fields_4Ds
       n4Dfcum = n4Dscum + num_avail_hist_fields_4Df ! should equal num_avail_hist_fields_tot
 
@@ -3037,6 +3038,9 @@
          ! form drag
          call accum_hist_drag (iblk)
 
+         ! floe size distribution
+         call accum_hist_fsd (iblk)
+
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
@@ -4013,13 +4017,21 @@
            nn = n - n3Dbcum
            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Da(:,:,:,nn,:) = c0
         enddo
-        do n = n3Dacum + 1, n4Dicum
+        do n = n3Dacum + 1, n3Dfcum
+           nn = n - n3Dacum
+           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Df(:,:,:,nn,:) = c0
+        enddo
+        do n = n3Dfcum + 1, n4Dicum
            nn = n - n3Dacum
            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a4Di(:,:,:,:,nn,:) = c0
         enddo
         do n = n4Dicum + 1, n4Dscum
            nn = n - n4Dicum
            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a4Ds(:,:,:,:,nn,:) = c0
+        enddo
+        do n = n4Dscum + 1, n4Dfcum
+           nn = n - n4Dscum
+           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a4Df(:,:,:,:,nn,:) = c0
         enddo
 
       endif  ! write_history or write_ic

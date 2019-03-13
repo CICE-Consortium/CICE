@@ -287,7 +287,7 @@
 
       real (kind=dbl_kind) :: workb, workc
       real (kind=dbl_kind), dimension(nx_block,ny_block) :: worka
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat_hist) :: worke
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nfsd_hist) :: worke
       real (kind=dbl_kind), dimension(nx_block,ny_block,nfsd_hist,ncat_hist) :: workd
 
       character(len=*), parameter :: subname = '(accum_hist_fsd)'

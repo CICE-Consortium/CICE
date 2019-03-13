@@ -1238,8 +1238,35 @@
       work_gr(:,:) = c0
       work_g1(:,:) = c0
 
-      do n = n3Dacum+1, n4Dicum
+      do n = n3Dacum+1, n3Dfcum
         nn = n - n3Dacum
+        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+          if (my_task == master_task) then
+            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+            if (status /= nf90_noerr) call abort_ice(subname// &
+               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+          endif
+          do k = 1, nfsd_hist
+             call gather_global(work_g1, a3Df(:,:,k,nn,:), &
+                                master_task, distrb_info)
+             work_gr(:,:) = work_g1(:,:)
+
+             if (my_task == master_task) then
+             status  = nf90_put_var(ncid,varid,work_gr(:,:), &
+                                    start=(/        1,        1,k/), &
+                                    count=(/nx_global,ny_global,1/))
+             if (status /= nf90_noerr) call abort_ice(subname// &
+                'ERROR: writing variable '//avail_hist_fields(n)%vname)
+           endif
+           enddo ! k
+        endif
+      enddo ! num_avail_hist_fields_3Df
+
+      work_gr(:,:) = c0
+      work_g1(:,:) = c0
+
+      do n = n3Dfcum+1, n4Dicum
+        nn = n - n3Dfcum
         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
           if (my_task == master_task) then
             status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
@@ -1290,6 +1317,31 @@
           enddo ! ic
         endif
       enddo ! num_avail_hist_fields_4Ds
+
+      do n = n4Dscum+1, n4Dfcum
+        nn = n - n4Dscum
+        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+          if (my_task == master_task) then
+            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+            if (status /= nf90_noerr) call abort_ice(subname// &
+               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+          endif
+          do ic = 1, ncat_hist
+             do k = 1, nfsd_hist
+                call gather_global(work_g1, a4Df(:,:,k,ic,nn,:), &
+                                master_task, distrb_info)
+                work_gr(:,:) = work_g1(:,:)
+                if (my_task == master_task) then
+                  status  = nf90_put_var(ncid,varid,work_gr(:,:), &
+                                         start=(/        1,        1,k,ic/), &
+                                         count=(/nx_global,ny_global,1, 1/))
+                  if (status /= nf90_noerr) call abort_ice(subname// &
+                     'ERROR: writing variable '//avail_hist_fields(n)%vname)
+                endif
+             enddo ! k
+          enddo ! ic
+        endif
+      enddo ! num_avail_hist_fields_4Df
 
       deallocate(work_gr)
       deallocate(work_g1)
