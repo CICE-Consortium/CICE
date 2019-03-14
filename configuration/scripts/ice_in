@@ -152,6 +152,7 @@
     gamma           = 1e-2
     epsprecond      = 1e-6
     algo_nonlin     = 1
+    use_mean_vrel   = .false.
     fpfunc_andacc   = 1
     im_andacc       = 5
     reltol_andacc   = 1e-6

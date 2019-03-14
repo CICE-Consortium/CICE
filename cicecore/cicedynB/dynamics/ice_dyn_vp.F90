@@ -71,7 +71,8 @@
          start_andacc       ! acceleration delay factor (acceleration starts at this iteration)
 
       logical (kind=log_kind), public :: &
-         monitor_nonlin     ! print nonlinear residual norm
+         monitor_nonlin , & ! print nonlinear residual norm
+         use_mean_vrel      ! use mean of previous 2 iterates to compute vrel
 
       real (kind=dbl_kind), public :: &
          gammaNL        , & ! nonlinear stopping criterion: gammaNL*res(k=0)
@@ -675,7 +676,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-         
+            
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
             
@@ -696,7 +697,7 @@
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                aiu      (:,:,iblk), Tbu     (:,:,iblk), &
                                uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
                                vrel     (:,:,iblk), Cb      (:,:,iblk))
 
       !     prepare b vector (RHS)                                                
@@ -707,7 +708,7 @@
                             aiu      (:,:,iblk), uarear  (:,:,iblk), & 
                             uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
-                            uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
+                            uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk))
 
@@ -1069,6 +1070,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          uprev_k  , & ! uvel at previous Picard iteration
          vprev_k  , & ! vvel at previous Picard iteration
+         ulin     , & ! uvel to linearize vrel
+         vlin     , & ! vvel to linearize vrel
          vrel     , & ! coeff for tauw 
          Cb       , & ! seabed stress coeff
          bx       , & ! b vector
@@ -1124,6 +1127,13 @@
       ! Initialization
       res_num = 0
       
+      !$OMP PARALLEL DO PRIVATE(iblk)
+      do iblk = 1, nblocks
+         uprev_k(:,:,iblk) = uvel(:,:,iblk)
+         vprev_k(:,:,iblk) = vvel(:,:,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+      
       ! Start iterations
       do it_nl = 0, maxits_nonlin        ! nonlinear iteration loop 
          ! Compute quantities needed for computing PDE residual and g(x) (fixed point map)
@@ -1133,6 +1143,13 @@
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
             
+            if (use_mean_vrel) then
+               ulin(:,:,iblk) = p5*uprev_k(:,:,iblk) + p5*uvel(:,:,iblk)
+               vlin(:,:,iblk) = p5*vprev_k(:,:,iblk) + p5*vvel(:,:,iblk)
+            else
+               ulin(:,:,iblk) = uvel(:,:,iblk)
+               vlin(:,:,iblk) = vvel(:,:,iblk)
+            endif
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
             
@@ -1153,7 +1170,7 @@
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                aiu      (:,:,iblk), Tbu     (:,:,iblk), &
                                uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
+                               ulin     (:,:,iblk), vlin    (:,:,iblk), &
                                vrel     (:,:,iblk), Cb      (:,:,iblk))
             
             ! prepare b vector (RHS)
@@ -1164,7 +1181,7 @@
                             aiu      (:,:,iblk), uarear  (:,:,iblk), & 
                             uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
-                            uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
+                            ulin     (:,:,iblk), vlin    (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk))
             
