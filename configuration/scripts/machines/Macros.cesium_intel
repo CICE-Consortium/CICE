@@ -50,7 +50,7 @@ LIB_PNETCDF := $(PNETCDF_PATH)/lib
 LIB_MPI := $(IMPILIBDIR)
 
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf -lgptl
-SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf
+SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf  -llapack -lblas
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -openmp 
