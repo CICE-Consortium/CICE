@@ -4,7 +4,7 @@
 
 CPP        := /usr/bin/cpp
 CPPFLAGS   := $(CFLAGS)  -lifcore
-CPPDEFS    := $(CPPDEFS)  -DFORTRANUNDERSCORE -DCPRINTEL
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
 CFLAGS     := -qno-opt-dynamic-align -fp-model precise -std=gnu99
 
 FIXEDFLAGS := -fixed -132
@@ -41,23 +41,10 @@ SCC:= icc
 
 SFC:= ifort
 
-ifeq ($(DITTO), yes)
-   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
-endif
-
-ifeq ($(IO_TYPE), netcdf)
-   CPPDEFS :=  $(CPPDEFS) -Dncdf
-endif
-
 ## if using parallel I/O, load all 3 libraries.  PIO must be first!
 ifeq ($(IO_TYPE), pio)
    PIO_PATH:=
    INCLDIR += -I
    SLIBS   := $(SLIB) -L$(PIO_PATH) -lpiofS
-
-   CPPDEFS :=  $(CPPDEFS) -Dncdf
 endif
 
-ifeq ($(IO_TYPE), netcdf)
-   CPPDEFS :=  $(CPPDEFS) -Dncdf
-endif

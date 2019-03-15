@@ -504,7 +504,7 @@ foreach compiler ( $ncompilers )
     # Setup case directory, copy files to case directory
 
     mkdir -p ${case}
-    echo "`date`${0} $initargv[*]" >> ${case}/README.case
+    echo "`date` ${0} $initargv[*]" >> ${case}/README.case
 
     cd ${case}
     set casedir = `pwd`
@@ -702,7 +702,7 @@ EOF1
       foreach name ($setsxorig)
         if (-e ${ICE_SCRIPTS}/options/set_files.${name}) then
           echo "adding options files from set_files.${name}"
-          echo "`date`${0} adding options files from set_files.${name}" >> ${casedir}/README.case
+          echo "`date` ${0} adding options files from set_files.${name}" >> ${casedir}/README.case
           set setsnew = `cat ${ICE_SCRIPTS}/options/set_files.${name}`
           foreach nset ($setsnew)
             if ($nset !~ "#*") then
@@ -749,7 +749,7 @@ cat >> ${fimods} << EOF2
 
 EOF2
         echo "adding namelist mods set_nml.${name}"
-        echo "`date`${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
+        echo "`date` ${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
         set found = 1
       endif
       if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
@@ -767,7 +767,7 @@ cat >> ${fimods} << EOF2
 EOF2
 
         echo "adding env mods set_env.${name}"
-        echo "`date`${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
+        echo "`date` ${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
         set found = 1
       endif
       if (${found} == 0) then

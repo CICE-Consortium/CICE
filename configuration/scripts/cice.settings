@@ -38,6 +38,5 @@ setenv ICE_COMMDIR mpi
 if (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial
 
 ### Specialty code
-setenv DITTO    no           # reproducible diagnostics
 setenv ICE_BLDDEBUG  false  # build debug flags
 

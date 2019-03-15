@@ -3,7 +3,7 @@
 #==============================================================================
 
 CPP        := ftn -E
-CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
 CFLAGS     := -c -O2
 
 FIXEDFLAGS := -ffixed-line-length-132

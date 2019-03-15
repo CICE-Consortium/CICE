@@ -3,7 +3,7 @@
 #==============================================================================
 
 CPP        := pgcc -Mcpp
-CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 ${ICE_CPPDEFS}
 CFLAGS     := -c -O2 -Kieee
 
 FIXEDFLAGS := -Mextend
