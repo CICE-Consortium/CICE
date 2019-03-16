@@ -1,5 +1,6 @@
 
 !> Reproducible sum method from P. Worley
+#define SERIAL_REMOVE_MPI
 
 MODULE ice_reprosum
 

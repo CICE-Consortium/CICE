@@ -10,13 +10,15 @@
 ! Feb. 2008: Updated from POP version by Elizabeth C. Hunke, LANL
 ! Aug. 2014: Added bit-for-bit reproducible options for global_sum_dbl
 !            and global_sum_prod_dbl by T Craig NCAR
+! Mar. 2019: Refactored bit-for-bit option, T Craig
 
    use ice_kinds_mod
    use ice_blocks, only: block, get_block, nx_block, ny_block
-#ifdef REPRODUCIBLE
-   use ice_blocks, only: nblocks_tot
-#endif
+#ifdef SERIAL_REMOVE_MPI
+   use ice_communicate, only: my_task, master_task
+#else
    use ice_communicate, only: my_task, mpiR16, mpiR8, mpiR4, master_task
+#endif
    use ice_constants, only: field_loc_Nface, field_loc_NEcorner
    use ice_fileunits, only: bfbflag
    use ice_exit, only: abort_ice
@@ -30,7 +32,9 @@
    implicit none
    private
 
+#ifndef SERIAL_REMOVE_MPI
    include 'mpif.h'
+#endif
 
    public :: global_sum,      &
              global_sum_prod, &
@@ -479,10 +483,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalSum = localSum
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(localSum, globalSum, 1, &
                          MPI_INTEGER, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -680,10 +688,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalSum = scalar
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(scalar, globalSum, 1, &
                          MPI_INTEGER, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1094,10 +1106,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalSum = localSum
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(localSum, globalSum, 1, &
                          MPI_INTEGER, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1197,10 +1213,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = localMaxval
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(localMaxval, globalMaxval, 1, &
                          mpiR8, MPI_MAX, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1300,10 +1320,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = localMaxval
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(localMaxval, globalMaxval, 1, &
                          mpiR4, MPI_MAX, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1403,10 +1427,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = localMaxval
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(localMaxval, globalMaxval, 1, &
                          MPI_INTEGER, MPI_MAX, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1457,10 +1485,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = scalar
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(scalar, globalMaxval, 1, &
                          mpiR8, MPI_MAX, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1511,10 +1543,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = scalar
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(scalar, globalMaxval, 1, &
                          mpiR4, MPI_MAX, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1565,10 +1601,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = scalar
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(scalar, globalMaxval, 1, &
                          MPI_INTEGER, MPI_MAX, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1668,10 +1708,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = localMinval
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(localMinval, globalMinval, 1, &
                          mpiR8, MPI_MIN, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1771,10 +1815,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = localMinval
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(localMinval, globalMinval, 1, &
                          mpiR4, MPI_MIN, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1874,10 +1922,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = localMinval
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(localMinval, globalMinval, 1, &
                          MPI_INTEGER, MPI_MIN, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1928,10 +1980,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = scalar
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(scalar, globalMinval, 1, &
                          mpiR8, MPI_MIN, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1982,10 +2038,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = scalar
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(scalar, globalMinval, 1, &
                          mpiR4, MPI_MIN, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -2036,10 +2096,14 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = scalar
+#else
    if (my_task < numProcs) then
       call MPI_ALLREDUCE(scalar, globalMinval, 1, &
                          MPI_INTEGER, MPI_MIN, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -2118,9 +2182,13 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
       enddo
       enddo
 
+#ifdef SERIAL_REMOVE_MPI
+      sums8 = psums8
+#else
       if (my_task < numProcs) then
          call MPI_ALLREDUCE(psums8, sums8, nf, mpiR8, MPI_SUM, mpicomm, ierr)
       endif
+#endif
 
       deallocate(psums8)
 
@@ -2137,9 +2205,13 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
       enddo
       enddo
 
+#ifdef SERIAL_REMOVE_MPI
+      sums16 = psums16
+#else
       if (my_task < numProcs) then
          call MPI_ALLREDUCE(psums16, sums16, nf, mpiR16, MPI_SUM, mpicomm, ierr)
       endif
+#endif
       sums8 = real(sums16,dbl_kind)
 
       deallocate(psums16,sums16)
@@ -2157,9 +2229,13 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
       enddo
       enddo
 
+#ifdef SERIAL_REMOVE_MPI
+      sums4 = psums4
+#else
       if (my_task < numProcs) then
          call MPI_ALLREDUCE(psums4, sums4, nf, mpiR4, MPI_SUM, mpicomm, ierr)
       endif
+#endif
       sums8 = real(sums4,dbl_kind)
 
       deallocate(psums4,sums4)
