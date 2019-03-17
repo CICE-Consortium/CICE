@@ -435,11 +435,26 @@ set bfbcomp_base = "$bfbcomp"
 foreach compiler ( $ncompilers )
   set machcomp = ${machine}_${compiler}
   foreach line ( "`cat $tsfile`" )
+
     # Check if line is a comment line
     if ( $line:q =~ '#'* || $line:q =~ '$'* || $line:q =~ '!'* ) then
       echo "skipping line: $line"
       continue
+    # Check if line is a sleep line
+    else if ( $line:q =~ 'sleep'*) then
+cat >> ${tsdir}/suite.run << EOF
+echo "-------test--------------"
+echo "$line:q"
+$line:q
+
+EOF
+      echo "adding sleep line: $line"
+      echo "" 
+      echo "---" 
+      echo "" 
+      continue
     endif
+
     # Obtain the test name, sets, grid, and PE information from .ts file
     set test = `echo $line | cut -d' ' -f1`
     set grid = `echo $line | cut -d' ' -f2`
@@ -461,7 +476,7 @@ foreach compiler ( $ncompilers )
 
     set fbfbcomp = ${spval}
     if ($bfbcomp != ${spval}) then
-      set fbfbcomp = ${machcomp}_${bfbcomp}.${testid}
+      set fbfbcomp = ${machcomp}_${bfbcomp}
     endif
 
     set testname_noid = ${spval}
@@ -690,6 +705,7 @@ setenv ICE_SPVAL    ${spval}
 setenv ICE_QUIETMODE  ${quietmode}
 setenv ICE_TEST     ${test}
 setenv ICE_TESTNAME ${testname_noid}
+setenv ICE_TESTID   ${testid}
 setenv ICE_BFBCOMP  ${fbfbcomp}
 setenv ICE_ACCOUNT  ${acct}
 setenv ICE_QUEUE    ${queue}
@@ -720,9 +736,9 @@ EOF1
 
     if (${docase} == 0) then
       # from test options to casescr in case any test time changes are applied
+      cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
-        cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)
           if (-e ${ICE_SCRIPTS}/options/$file) then
             cp -f -p ${ICE_SCRIPTS}/options/$file ${casescr}

@@ -21,6 +21,7 @@ setenv ICE_NTASKS     undefined
 setenv ICE_NTHRDS     undefined
 setenv ICE_TEST       undefined
 setenv ICE_TESTNAME   undefined
+setenv ICE_TESTID     undefined
 setenv ICE_BASELINE   undefined
 setenv ICE_BASEGEN    undefined
 setenv ICE_BASECOM    undefined
