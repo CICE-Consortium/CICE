@@ -440,7 +440,7 @@ foreach compiler ( $ncompilers )
     if ( $line:q =~ '#'* || $line:q =~ '$'* || $line:q =~ '!'* ) then
       echo "skipping line: $line"
       continue
-    # Check if line is a sleep line
+    # Check if line is a sleep line, can only happen with suites
     else if ( $line:q =~ 'sleep'*) then
 cat >> ${tsdir}/suite.run << EOF
 echo "-------test--------------"
@@ -495,11 +495,7 @@ EOF
       # soptions starts with _
       set testname_noid = "${machcomp}_${test}_${grid}_${pesx}${soptions}"
       set testname_base = "${machcomp}_${test}_${grid}_${pesx}${soptions}.${testid}"
-      if (${dosuite} == 1) then
-        set testname = "${tsdir}/${testname_base}"
-      else
-        set testname = "${testname_base}"
-      endif
+      set testname = "${tsdir}/${testname_base}"
       set case = ${testname}
     endif
 
