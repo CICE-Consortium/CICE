@@ -586,7 +586,7 @@
       real (kind=dbl_kind), dimension(nfsd) :: &
          afsd                ! floe size distribution "profile"
 
-      real (kind=dbl_kind) :: puny
+      real (kind=dbl_kind) :: puny, tmp
 
       integer (kind=int_kind) :: &
          i, j, iblk     , &  ! horizontal indices
@@ -619,8 +619,9 @@
                do j = 1, ny_block
                do i = 1, nx_block
                   if (aicen(i,j,n,iblk) > puny) floesize(i,j,:,n,iblk) = afsd(:)
-                  floesize (i,j,:,n,iblk) = floesize(i,j,:,n,iblk) &
-                                      / sum(floesize(i,j,:,n,iblk)) ! normalize
+                  tmp = sum(floesize(i,j,:,n,iblk))
+                  if (tmp > puny) &
+                  floesize (i,j,:,n,iblk) = floesize(i,j,:,n,iblk)/tmp ! normalize
                enddo ! i
                enddo ! j
             enddo    ! n
