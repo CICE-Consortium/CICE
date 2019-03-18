@@ -737,6 +737,7 @@ EOF1
     if (${docase} == 0) then
       # from test options to casescr in case any test time changes are applied
       cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/comparelog.csh ${casescr}
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)

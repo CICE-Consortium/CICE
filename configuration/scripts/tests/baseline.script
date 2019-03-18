@@ -61,16 +61,30 @@ endif
 
 if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
 
-  set test_dir = ${ICE_RUNDIR}/restart
-  set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/restart
+  if (${ICE_TEST} == "logbfb") then
+    set test_file = `ls -1t ${ICE_RUNDIR}/cice.runlog* | head -1`
+    set base_file = `ls -1t ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/cice.runlog* | head -1`
 
-  echo ""
-  echo "bfb Compare Mode:"
-  echo "base_dir: ${base_dir}"
-  echo "test_dir: ${test_dir}"
+    echo ""
+    echo "bfb Log Compare Mode:"
+    echo "base_file: ${base_file}"
+    echo "test_file: ${test_file}"
 
-  ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
-  set bfbstatus = $?
+    ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
+    set bfbstatus = $?
+  else
+    set test_dir = ${ICE_RUNDIR}/restart
+    set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/restart
+
+    echo ""
+    echo "bfb Compare Mode:"
+    echo "base_dir: ${base_dir}"
+    echo "test_dir: ${test_dir}"
+
+    ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
+    set bfbstatus = $?
+  endif
+
   if (${bfbstatus} == 0) then
     echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
     echo "bfb baseline and test dataset are identical"

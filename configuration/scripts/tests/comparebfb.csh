@@ -3,11 +3,11 @@
 # Compare the binary files 
 #-----------------------------------------------------------
 
-# usage: comparebfb.script base_file test_file
+# usage: comparebfb.csh base_file test_file
 #     does binary diff of two files
-# usage: comparebfb.script base_dir test_dir
+# usage: comparebfb.csh base_dir test_dir
 #     looks for base_iced and iced binary files for comparison
-# usage: comparebfb.script base_dir
+# usage: comparebfb.csh base_dir
 #     looks for iced binary files in both directories for comparison
 #
 # Return Codes (depends on quality of error checking)
