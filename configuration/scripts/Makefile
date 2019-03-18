@@ -1,9 +1,5 @@
 #-------------------------------------------------------------------------------
-# CVS $Id: Makefile.std,v 1.1 2004/02/09 18:13:52 lipscomb Exp $
-# CVS $Source: /home/climate/CVS-COSIM/cice/bld/Makefile.std,v $
-# CVS $Name:  $
-#-------------------------------------------------------------------------------
-# Common Makefile: a framework for building all CCSM components and more
+# Common Makefile for CICE
 #
 # Command-line variables
 #   MACFILE=<file> ~ the macros definition file to use/include
@@ -20,10 +16,8 @@
 #                    MACFILE, used to trigger special compilation flags
 #
 # Usage examples:
-#   % gmake MACFILE=Macros.AIX VPFILE=Filepath MODEL=ccm3 EXEC=atm
-#   % gmake MACFILE=Macros.AIX VPFILE=Filepath SRCFILE=Srclist EXEC=pop
-#   % gmake MACFILE=Macros.C90 VPATH="dir1 dir2" SRCS="file1.c file2.F90"
-#   % gmake MACFILE=Macros.SUN SRCS="test.F"
+#   % gmake -j 8 VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
+#      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.conrad_intel
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
@@ -98,7 +92,7 @@ db_files:
 db_flags:
 	@echo " "
 	@echo "* cpp     := $(CPP) $(CPPFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
-	@echo "* cc      := cc -c $(CFLAGS) $(INCS) $(INCLDIR)"
+	@echo "* cc      := $(CC) -c $(CFLAGS) $(INCS) $(INCLDIR)"
 	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(INCS) $(INCLDIR)"
 	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(INCS) $(INCLDIR)"
 
@@ -110,7 +104,7 @@ $(EXEC): $(OBJS)
 	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJS) $(ULIBS) $(SLIBS)
 
 .c.o:
-	cc $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
+	$(CC) $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
 
 .F.o:
 	$(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<

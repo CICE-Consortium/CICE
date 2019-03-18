@@ -17,12 +17,21 @@ else
   FFLAGS     += -O2
 endif
 
-FC := mpif90
+SCC   := gcc
+SFC   := gfortran
+MPICC := mpicc
+MPIFC := mpif90
 
-MPICC:= 
-
-MPIFC:= mpif90
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
 LD:= $(FC)
+
+LIB_MPI := 
 
 NETCDF_PATH := $(NETCDF)
 
@@ -35,10 +44,6 @@ ifeq ($(ICE_IOTYPE), netcdf)
 else
     SLIBS   := 
 endif
-
-LIB_MPI := 
-SCC:= 
-SFC:= 
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -fopenmp

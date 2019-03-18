@@ -1,5 +1,5 @@
 #==============================================================================
-# Macros file for NAVYDSRC gordon, intel compiler
+# Macros file for NAVYDSRC gordon, cray compiler
 #==============================================================================
 
 CPP        := ftn -e P
@@ -10,24 +10,28 @@ FIXEDFLAGS := -132
 FREEFLAGS  := 
 FFLAGS     := -h fp0 -h byteswapio 
 FFLAGS_NOOPT:= -O0
-LDFLAGS = -h byteswapio
+LDFLAGS    := -h byteswapio
 
 ifeq ($(ICE_BLDDEBUG), true)
   FFLAGS     += -O0 -g -Rbcdps
+#  FFLAGS     += -O0 -g -Rbcdps -ei
 else
   FFLAGS     += -O2
 endif
 
+SCC   := cc 
+SFC   := ftn
+MPICC := cc
+MPIFC := ftn
+
 ifeq ($(ICE_COMMDIR), mpi)
-  FC         := ftn
+  FC := $(MPIFC)
+  CC := $(MPICC)
 else
-  FC         := ftn
+  FC := $(SFC)
+  CC := $(SCC)
 endif
-
-MPICC:= cc
-
-MPIFC:= ftn
-LD:= $(MPIFC)
+LD:= $(FC)
 
 # defined by module
 #NETCDF_PATH := $(NETCDF)
@@ -44,10 +48,6 @@ INCLDIR := $(INCLDIR)
 #LIB_PNETCDF := $(PNETCDF_PATH)/lib
 #LIB_MPI := $(IMPILIBDIR)
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
-
-SCC:= cc
-
-SFC:= ftn
 
 ifeq ($(ICE_THREADED), false) 
    LDFLAGS += -hnoomp

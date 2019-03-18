@@ -17,16 +17,19 @@ else
   FFLAGS     += -O2
 endif
 
+SCC   := cc 
+SFC   := ftn
+MPICC := cc
+MPIFC := ftn
+
 ifeq ($(ICE_COMMDIR), mpi)
-  FC         := ftn
+  FC := $(MPIFC)
+  CC := $(MPICC)
 else
-  FC         := ftn
+  FC := $(SFC)
+  CC := $(SCC)
 endif
-
-MPICC:= cc
-
-MPIFC:= ftn
-LD:= $(MPIFC)
+LD:= $(FC)
 
 # defined by module
 #NETCDF_PATH := $(NETCDF)
@@ -43,10 +46,6 @@ INCLDIR := $(INCLDIR)
 #LIB_PNETCDF := $(PNETCDF_PATH)/lib
 #LIB_MPI := $(IMPILIBDIR)
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
-
-SCC:= icc 
-
-SFC:= ifort 
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -qopenmp

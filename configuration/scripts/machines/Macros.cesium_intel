@@ -21,16 +21,19 @@ else
   FFLAGS     += -O2
 endif
 
-ifeq ($(CICE_COMMDIR), mpi)
-  FC         := s.f90 -mpi
+SCC   := s.cc
+SFC   := s.f90
+MPICC := s.cc -mpi
+MPIFC := s.f90 -mpi
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
 else
-  FC         := s.f90
+  FC := $(SFC)
+  CC := $(SCC)
 endif
-
-MPICC:= s.cc -mpi
-
-MPIFC:= s.f90 -mpi
-LD:= $(MPIFC)
+LD:= $(FC)
 
 NETCDF_PATH := $(NETCDF)
 
@@ -47,10 +50,6 @@ LIB_MPI := $(IMPILIBDIR)
 
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf -lgptl
 SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf
-
-SCC:= s.cc
-
-SFC:= s.f90
 
 ifeq ($(compile_threaded), true) 
    LDFLAGS += -openmp 

@@ -17,16 +17,19 @@ else
   FFLAGS     += -O2
 endif
 
+SCC   := icc 
+SFC   := ifort
+MPICC := mpicc
+MPIFC := mpif90
+
 ifeq ($(ICE_COMMDIR), mpi)
-  FC         := mpif90
+  FC := $(MPIFC)
+  CC := $(MPICC)
 else
-  FC         := ifort
+  FC := $(SFC)
+  CC := $(SCC)
 endif
-
-MPICC:= mpicc
-
-MPIFC:= mpif90
-LD:= $(MPIFC)
+LD:= $(FC)
 
 NETCDF_PATH := $(NETCDF)
 
@@ -42,10 +45,6 @@ LIB_PNETCDF := $(PNETCDF_PATH)/lib
 LIB_MPI := $(IMPILIBDIR)
 
 SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
-
-SCC:= icc 
-
-SFC:= ifort 
 
 ifeq ($(compile_threaded), true) 
    LDFLAGS += -qopenmp 
