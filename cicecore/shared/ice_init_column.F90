@@ -619,6 +619,8 @@
                do j = 1, ny_block
                do i = 1, nx_block
                   if (aicen(i,j,n,iblk) > puny) floesize(i,j,:,n,iblk) = afsd(:)
+                  floesize (i,j,:,n,iblk) = floesize(i,j,:,n,iblk) &
+                                      / sum(floesize(i,j,:,n,iblk)) ! normalize
                enddo ! i
                enddo ! j
             enddo    ! n

@@ -12,7 +12,7 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0
+      use ice_constants, only: c0, c1
       use ice_calendar, only: istep1
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: flush_fileunit
@@ -90,7 +90,7 @@
          check_step = 1, & ! begin printing at istep1=check_step
          iblkp = 1, &      ! block number 
          ip = 2, &         ! i index
-         jp = 3, &         ! j index
+         jp = 11, &         ! j index
          mtask = 0         ! my_task
 
 !=======================================================================
@@ -1459,7 +1459,7 @@
 
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr
+      use ice_domain_size, only: ncat, nilyr, nslyr, nfsd
       use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, trcrn
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
@@ -1517,7 +1517,14 @@
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
          write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk)
          write(nu_diag,*) ' '
+
+         if (abs(sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk))-c1) > puny) &
+            print*,'afsdn not normal', &
+                 sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)), &
+                     trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)
+
       enddo                     ! n
+
 
       eidebug = c0
       do n = 1,ncat
