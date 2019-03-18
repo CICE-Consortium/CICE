@@ -11,6 +11,12 @@ FREEFLAGS  := -FR
 FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
 FFLAGS_NOOPT:= -O0
 
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+else
+  FFLAGS     += -O2
+endif
+
 SCC   := cc 
 SFC   := ftn
 MPICC := cc
