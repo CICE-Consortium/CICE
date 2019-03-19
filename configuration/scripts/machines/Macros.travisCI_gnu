@@ -4,7 +4,7 @@
 
 CPP        := cpp
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-CFLAGS     := -c -O2  -xHost
+CFLAGS     := -c -O2
 
 FIXEDFLAGS := -ffixed-line-length-132
 FREEFLAGS  := -ffree-form
