@@ -590,7 +590,7 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk     , &  ! horizontal indices
-         n                   ! category index
+         n, k                ! category index
 
       logical (kind=log_kind) :: tr_fsd
 
@@ -613,18 +613,30 @@
             floe_binwidth, &  ! fsd size bin width in m (radius)
             afsd)             ! floe size distribution
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n)
          do iblk = 1, max_blocks
             do n = 1, ncat
+            do k = 1, nfsd
                do j = 1, ny_block
                do i = 1, nx_block
-                  if (aicen(i,j,n,iblk) > puny) floesize(i,j,:,n,iblk) = afsd(:)
-                  floesize (i,j,:,n,iblk) = floesize(i,j,:,n,iblk) &
-                                      / sum(floesize(i,j,:,n,iblk)) ! normalize
+                  floesize(i,j,k,n,iblk) = afsd(k) ! normalized
                enddo ! i
                enddo ! j
+            enddo    ! k
             enddo    ! n
          enddo       ! iblk
+
+         do iblk = 1, max_blocks
+            do n = 1, ncat
+            do k = 1, nfsd
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (aicen(i,j,n,iblk) < puny) floesize(i,j,:,n,iblk) = c1
+               enddo ! i
+               enddo ! j
+            enddo    ! k
+            enddo    ! n
+         enddo       ! iblk
+
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
