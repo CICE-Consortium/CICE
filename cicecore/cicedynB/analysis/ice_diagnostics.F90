@@ -1480,11 +1480,14 @@
 
       integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd
 
+      logical (kind=log_kind) :: tr_fsd
+
       type (block) :: &
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(print_state)'
 
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_fsd_out=nt_fsd)
       call icepack_query_parameters( &
@@ -1515,14 +1518,16 @@
             write(nu_diag,*) 'hsn', vsnon(i,j,n,iblk)/aicen(i,j,n,iblk)
          endif
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
-         write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk)
+         if (tr_fsd) write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk) ! fsd cat 1
          write(nu_diag,*) ' '
 
 ! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal
+!         if (tr_fsd) then
 !         if (abs(sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk))-c1) > puny) &
 !            print*,'afsdn not normal', &
 !                 sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)), &
 !                     trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)
+!         endif
 
       enddo                     ! n
 

@@ -299,7 +299,6 @@
       integer (int_kind) :: max_nbtrcr, max_algae, max_aero, &
          nmodal1, nmodal2, max_don
       integer (int_kind) :: ierr, ntrcr
-      logical (kind=log_kind) :: tr_fsd
 
       character(len=*),parameter :: subname='(alloc_arrays_column)'
 
@@ -307,7 +306,6 @@
       call icepack_query_tracer_sizes( max_nbtrcr_out=max_nbtrcr, &
          max_algae_out=max_algae, max_aero_out=max_aero, &
          nmodal1_out=nmodal1, nmodal2_out=nmodal2, max_don_out=max_don)
-      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
