@@ -42,7 +42,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
   echo "test_dir: ${test_dir}"
 
   ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
-  set bfbstatus = $?
+  set bfbstatus = $status
   if ( ${bfbstatus} == 0 ) then
     echo "PASS ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn}" >> ${ICE_CASEDIR}/test_output
     echo "Regression baseline and test dataset are identical"
@@ -71,7 +71,7 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     echo "test_file: ${test_file}"
 
     ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
-    set bfbstatus = $?
+    set bfbstatus = $status
   else
     set test_dir = ${ICE_RUNDIR}/restart
     set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/restart
@@ -82,7 +82,7 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     echo "test_dir: ${test_dir}"
 
     ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
-    set bfbstatus = $?
+    set bfbstatus = $status
   endif
 
   if (${bfbstatus} == 0) then

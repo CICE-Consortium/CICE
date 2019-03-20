@@ -327,6 +327,16 @@ if (-e $tsfile) then
   exit -1
 endif
 
+set remote = `git remote -v | grep -i origin | grep -i push | sed "s|.*\(https.*\)\s.*|\1|g"`
+set branch = `git status | grep -i "on branch" | sed 's|^.*ranch\s*\(\S*\)$|\1|g'`
+set hash     = `git log | grep -i commit | head -1 | cut -d " " -f 2-`
+set hashuser = `git log | grep -i author | head -1 | cut -d : -f 2-`
+set hashdate = `git log | grep -i date   | head -1 | cut -d : -f 2-`
+set cdate = `date -u "+%Y-%m-%d"`
+set ctime = `date -u "+%H:%M:%S"`
+set vers = ${ICE_VERSION}
+set shhash = `echo ${hash} | cut -c 1-10`
+
 if ( ${dosuite} == 0 ) then
   set teststring = "${test} ${grid} ${pesx} ${sets}"
   if ( $bfbcomp != ${spval} ) then
@@ -368,24 +378,11 @@ else
   endif
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ${tsdir}
-
-  if ($report == 1) then
-    cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
-  endif
+  cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
 cat >! ${tsdir}/suite.run << EOF0
 #!/bin/csh -f
 EOF0
-
-  set remote = `git remote -v | grep -i origin | grep -i push | sed "s|.*\(https.*\)\s.*|\1|g"`
-  set branch = `git status | grep -i "on branch" | sed 's|^.*ranch\s*\(\S*\)$|\1|g'`
-  set hash     = `git log | grep -i commit | head -1 | cut -d " " -f 2-`
-  set hashuser = `git log | grep -i author | head -1 | cut -d : -f 2-`
-  set hashdate = `git log | grep -i date   | head -1 | cut -d : -f 2-`
-  set cdate = `date -u "+%Y-%m-%d"`
-  set ctime = `date -u "+%H:%M:%S"`
-  set vers = ${ICE_VERSION}
-  set shhash = `echo ${hash} | cut -c 1-10`
 
 cat >! ${tsdir}/results.csh << EOF0
 #!/bin/csh -f
@@ -846,7 +843,7 @@ source ./cice.settings
 set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
 ./cice.build \${ciceexe}
 if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
-./cice.submit
+./cice.submit | tee -a ../suite.jobs
 cd ..
 
 EOF
@@ -899,6 +896,10 @@ echo "\$failures of \$total tests FAILED"
 echo "\$pends of \$total tests PENDING"
 exit \$failures
 EOF
+
+cat >! ${tsdir}/poll_queue.env << EOF0
+setenv ICE_MACHINE_QSTAT ${ICE_MACHINE_QSTAT}
+EOF0
 
   # build and submit tests
   cd ${tsdir}

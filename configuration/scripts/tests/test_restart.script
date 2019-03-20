@@ -16,7 +16,7 @@ echo "RUN  ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
 echo "PEND ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
 
 ./cice.run
-set res="$?"
+set res="$status"
 
 if ( $res != 0 ) then
   mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
@@ -55,7 +55,7 @@ ${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/t
 cp ice_in ice_in.2
 
 ./cice.run
-set res="$?"
+set res="$status"
 
 cp ice_in.0 ice_in
 
@@ -80,7 +80,7 @@ else
   echo "PASS ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
 
   ${ICE_CASEDIR}/casescripts/comparebfb.csh ${ICE_RUNDIR}/restart
-  set bfbstatus = $?
+  set bfbstatus = $status
   if (${bfbstatus} == 0) then
     echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
   else

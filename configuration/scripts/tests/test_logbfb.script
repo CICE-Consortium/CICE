@@ -10,7 +10,7 @@ rm -f ${ICE_CASEDIR}/test_output.prev
 echo "RUN  ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
 
 ./cice.run
-set res="$?"
+set res="$status"
 
 set log_file = `ls -t1 ${ICE_RUNDIR}/cice.runlog* | head -1`
 set ttimeloop = `grep TimeLoop ${log_file} | grep Timer | cut -c 22-32`
