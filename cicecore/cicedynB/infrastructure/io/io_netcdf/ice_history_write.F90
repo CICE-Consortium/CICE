@@ -77,7 +77,7 @@
       integer (kind=int_kind), dimension(4) :: dimidz
       integer (kind=int_kind), dimension(5) :: dimidcz
       integer (kind=int_kind), dimension(3) :: dimid_nverts
-      integer (kind=int_kind), dimension(5) :: dimidex
+      integer (kind=int_kind), dimension(6) :: dimidex
 !     real (kind=real_kind) :: ltime
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title
