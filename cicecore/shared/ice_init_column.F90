@@ -28,7 +28,7 @@
       use icepack_intfc, only: icepack_query_tracer_numbers, icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_parameters
-      use icepack_intfc, only: icepack_init_fsd
+      use icepack_intfc, only: icepack_init_fsd, icepack_cleanup_fsd
       use icepack_intfc, only: icepack_init_zbgc
       use icepack_intfc, only: icepack_init_thermo
       use icepack_intfc, only: icepack_step_radiation, icepack_init_orbit
@@ -586,6 +586,9 @@
       real (kind=dbl_kind), dimension(nfsd) :: &
          afsd                ! floe size distribution "profile"
 
+      real (kind=dbl_kind), dimension(nfsd,ncat) :: &
+         afsdn               ! floe size distribution "profile"
+
       real (kind=dbl_kind) :: puny
 
       integer (kind=int_kind) :: &
@@ -598,7 +601,11 @@
 
       call icepack_query_parameters(puny_out=puny)
 
+      ! default: floes occupy the smallest size category in all thickness categories
+      afsdn(:,:) = c0
+      afsdn(1,:) = c1
       floesize(:,:,:,:,:) = c0
+      floesize(:,:,1,:,:) = c1
 
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
@@ -614,28 +621,24 @@
             afsd)             ! floe size distribution
 
          do iblk = 1, max_blocks
-            do n = 1, ncat
-            do k = 1, nfsd
-               do j = 1, ny_block
-               do i = 1, nx_block
-                  floesize(i,j,k,n,iblk) = afsd(k) ! normalized
-               enddo ! i
-               enddo ! j
-            enddo    ! k
-            enddo    ! n
-         enddo       ! iblk
+            do j = 1, ny_block
+            do i = 1, nx_block
+               do n = 1, ncat
+               do k = 1, nfsd
+                  if (aicen(i,j,n,iblk) > puny) afsdn(k,n) = afsd(k)
+               enddo    ! k
+               enddo    ! n
 
-         do iblk = 1, max_blocks
-            do n = 1, ncat
-            do k = 1, nfsd
-               do j = 1, ny_block
-               do i = 1, nx_block
-                  if (aicen(i,j,n,iblk) < puny) floesize(i,j,:,n,iblk) = c1
-               enddo ! i
-               enddo ! j
-            enddo    ! k
-            enddo    ! n
-         enddo       ! iblk
+               call icepack_cleanup_fsd (ncat, nfsd, afsdn) ! renormalize
+
+               do n = 1, ncat
+               do k = 1, nfsd
+                  floesize(i,j,k,n,iblk) = afsdn(k,n)
+               enddo    ! k
+               enddo    ! n
+            enddo       ! i
+            enddo       ! j
+         enddo          ! iblk
 
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &

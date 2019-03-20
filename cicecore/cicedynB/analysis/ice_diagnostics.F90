@@ -87,7 +87,7 @@
       ! iblkp, ip, jp, mtask identify the grid cell to print
 !     character (char_len) :: plabel
       integer (kind=int_kind), parameter, public :: &
-         check_step = 1, & ! begin printing at istep1=check_step
+         check_step = 999999999, & ! begin printing at istep1=check_step
          iblkp = 1, &      ! block number 
          ip = 2, &         ! i index
          jp = 11, &         ! j index
@@ -1518,10 +1518,11 @@
          write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk)
          write(nu_diag,*) ' '
 
-         if (abs(sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk))-c1) > puny) &
-            print*,'afsdn not normal', &
-                 sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)), &
-                     trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)
+! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal
+!         if (abs(sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk))-c1) > puny) &
+!            print*,'afsdn not normal', &
+!                 sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)), &
+!                     trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)
 
       enddo                     ! n
 
