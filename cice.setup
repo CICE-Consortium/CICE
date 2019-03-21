@@ -897,9 +897,11 @@ echo "\$pends of \$total tests PENDING"
 exit \$failures
 EOF
 
+  if ($?ICE_MACHINE_QSTAT) then
 cat >! ${tsdir}/poll_queue.env << EOF0
 setenv ICE_MACHINE_QSTAT ${ICE_MACHINE_QSTAT}
 EOF0
+  endif
 
   # build and submit tests
   cd ${tsdir}
