@@ -237,7 +237,7 @@
       diagfreq = 24          ! how often diag output is written
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
-      bfbflag = .false.      ! if true, do bit-for-bit computations
+      bfbflag = 'off'        ! off = optimized
       diag_type = 'stdout'
       diag_file = 'ice_diag.d'
       histfreq(1) = '1'      ! output frequency option for different streams
@@ -921,7 +921,7 @@
          write(nu_diag,1020) ' diagfreq                  = ', diagfreq
          write(nu_diag,1010) ' print_global              = ', print_global
          write(nu_diag,1010) ' print_points              = ', print_points
-         write(nu_diag,1010) ' bfbflag                   = ', bfbflag
+         write(nu_diag,1030) ' bfbflag                   = ', bfbflag
          write(nu_diag,1020) ' numin                     = ', numin
          write(nu_diag,1020) ' numax                     = ', numax
          write(nu_diag,1050) ' histfreq                  = ', histfreq(:)

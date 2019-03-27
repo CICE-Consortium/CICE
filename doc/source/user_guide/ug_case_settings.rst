@@ -66,7 +66,6 @@ to support the CICE model.
    "ICE_ACCOUNT", "string", "batch account number", "set by cice.setup, .cice_proj or by default"
    "ICE_QUEUE", "string", "batch queue name", "set by cice.setup or by default"
    "ICE_THREADED", "true, false", "force threading in compile, will always compile threaded if ICE_NTHRDS :math:`> 1`", "false"
-   "DITTO", "no, yes", "turn on bit-for-bit global sums via real16", "no"
    "ICE_BLDDEBUG", "true, false", "turn on compile debug flags", "false"
 
 
@@ -115,7 +114,7 @@ Table of namelist options
    "","``dumpfreq_n``", "integer", "frequency restart data is written", "1"
    "\*","``dump_last``", "true/false", "if true, write restart on last time step of simulation", ""
    "","", "", "**Model Output**", ""
-   "","``bfbflag``", "true/false", "for bit-for-bit diagnostic output", ""
+   "","``bfbflag``", "off/lsum4/lsum8/lsum16/ddpdd/reprosum", "global sum methods", "off"
    "\*","``diagfreq``", "integer", "frequency of diagnostic output in ``dt``", "24"
    "","", "*e.g.*, 10", "once every 10 time steps", ""
    "\*","``diag_type``", "``stdout``", "write diagnostic output to stdout", ""

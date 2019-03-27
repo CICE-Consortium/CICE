@@ -34,8 +34,8 @@
       character (len=char_len), public :: &
          diag_type               ! 'stdout' or 'file'
 
-      logical (log_kind), public :: &
-         bfbflag                 ! logical for bit-for-bit computations
+      character (len=char_len), public :: &
+         bfbflag                 ! method for bit-for-bit computations
 
       integer (kind=int_kind), public :: &
          nu_grid       , &  ! grid file

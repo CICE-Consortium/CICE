@@ -9,21 +9,55 @@ Other things
 Reproducible Sums
 ----------------------
 
-The ‘reproducible’ option (`DITTO`) makes diagnostics bit-for-bit when
-varying the number of processors. (The simulation results are
-bit-for-bit regardless, because they do not require global sums or
-max/mins as do the diagnostics.) This was done mainly by increasing the
-precision for the global reduction calculations, except for regular
-double-precision (r8) calculations involving MPI; MPI can not handle
-MPI\_REAL16 on some architectures. Instead, these cases perform sums or
-max/min calculations across the global block structure, so that the
-results are bit-for-bit as long as the block distribution is the same
-(the number of processors can be different).
+Reproducible sums in the CICE diagnostics are set with the namelist `bfbflag`.
+CICE prognostics results do NOT depend on the global sum implementation.  The
+results are bit-for-bit identical with any `bfbflag`.  The `bfbflag` only impacts
+the results and performance of the global diagnostics written to the CICE
+log file.  For best performance, the off (or lsum8 which is equivalent) setting is recommended.
+This will probably not produce bit-for-bit results with different decompositions.
+For bit-for-bit results, the reprosum setting is recommended.  This should be
+only slightly slower than the lsum8 implementation.
 
-A more flexible option is available for double-precision MPI
-calculations, using the namelist variable `bfbflag`. When true, this flag
-produces bit-for-bit identical diagnostics with different tasks,
-threads, blocks and grid decompositions.
+Global sums of real types are not reproducible due to different order of operations of the
+sums of the individual data which introduced roundoff errors.  
+This is caused when the model data is laid out in different
+block decompositions or on different pe counts so the data is stored in memory
+in different orders.  Integer data should be bit-for-bit identical regardless of
+the order of operation of the sums.
+
+The `bfbflag` namelist is a character string with several valid settings.
+The tradeoff in these settings is the likelihood for bit-for-bit results versus
+their cost.  The `bfbflag` settings are implemented as follows,
+
+off is the default and equivalent to lsum8.
+
+lsum4 is a local sum computed with single precision (4 byte) data and a scalar mpi allreduce.
+This is extremely unlikely to be bit-for-bit for different decompositions.
+This should generally not be used as the accuracy is very poor for a model
+implemented with double precision (8 byte) variables.
+
+lsum8 is a local sum computed with double precision data and a scalar mpi allreduce.
+This is extremely unlikely to be bit-for-bit for different decompositions
+but is fast.  For CICE implemented in double precision, the differences in global sums
+for different decompositions should be at the roundoff level.
+
+lsum16 is a local sum computed with quadruple precision (16 byte) data and a scalar mpi allreduce.
+This is very likely to be bit-for-bit for different decompositions.  However,
+it should be noted that this implementation is not available or does not work
+properly with some compiler and some MPI implementation.  Support for quad precision 
+and consistency between underlying fortran and c datatypes can result in inability to
+compile or incorrect results.  The source code associated with this implementation
+can be turned off with the cpp, NO_R16.  Otherwise, it is recommended that this
+option NOT be used or that results be carefully validated on any platform before
+it is used.
+
+reprosum is a fixed point method based on ordered double integer sums
+that requires two scalar reductions per global sum.  This is extremely likely to be bfb,
+but will be slightly more expensive than the lsum algorithms.  See :cite:`Mirin12`
+
+ddpdd is a parallel double-double algorithm using single scalar reduction.
+This is very likely to be bfb, but is not as fast or accurate as the reprosum
+implementation.  See :cite:`He01`
 
 
 .. _addtimer:
