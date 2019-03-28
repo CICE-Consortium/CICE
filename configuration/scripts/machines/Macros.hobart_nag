@@ -4,8 +4,8 @@
 
 CPP        := /usr/bin/cpp
 CPPFLAGS   := -P -traditional
-CPPDEFS    := -DFORTRANUNDERSCORE -DNO_CRAY_POINTERS -DNO_SHR_VMATH -DCPRNAG $(ICE_CPPDEFS)
-CFLAGS     := -std=gnu99
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 $(ICE_CPPDEFS)
+CFLAGS     := -c -std=gnu99
 
 FIXEDFLAGS := -fixed
 FREEFLAGS  := -free
@@ -18,7 +18,7 @@ ifeq ($(ICE_BLDDEBUG), true)
   FFLAGS   := -Wp,-macro=no_com -convert=BIG_ENDIAN -wmismatch=mpi_bcast,mpi_isend,mpi_irecv,mpi_send,mpi_recv,mpi_allreduce -gline -C=all -g -time -f2003 -ieee=stop
 endif
 
-SCC   := nagcc
+SCC   := cc
 SFC   := nagfor
 MPICC := mpicc
 MPIFC := mpif90

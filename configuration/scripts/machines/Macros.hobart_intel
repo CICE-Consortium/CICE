@@ -5,7 +5,7 @@
 CPP        := /usr/bin/cpp
 CPPFLAGS   := $(CFLAGS)  -lifcore
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-CFLAGS     := -qno-opt-dynamic-align -fp-model precise -std=gnu99
+CFLAGS     := -c -qno-opt-dynamic-align -fp-model precise -std=gnu99
 
 FIXEDFLAGS := -fixed -132
 FREEFLAGS  := -free
