@@ -22,10 +22,10 @@ else
   FFLAGS     += -O2
 endif
 
-SCC   := s.cc
-SFC   := s.f90
-MPICC := s.cc -mpi
-MPIFC := s.f90 -mpi
+SCC   := icc
+SFC   := ifort
+MPICC := mpicc
+MPIFC := mpif90
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC := $(MPIFC)
@@ -36,7 +36,7 @@ else
 endif
 LD:= $(FC)
 
-NETCDF_PATH := $(NETCDF)
+NETCDF_PATH := /fs/ssm/hpco/tmp/eccc/201402/04/intel-2016.1.150/ubuntu-14.04-amd64-64/
 
 PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 
