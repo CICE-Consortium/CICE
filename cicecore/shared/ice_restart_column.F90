@@ -493,7 +493,7 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_fsd, k
-      character*2 ck
+      character*3 ck
       character(len=*),parameter :: subname='(write_restart_fsd)'
 
       call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
@@ -506,9 +506,9 @@
       !-----------------------------------------------------------------
 
       do k=1,nfsd
-        write(ck,'(i2.2)') k
+        write(ck,'(i3.3)') k
         call write_restart_field(nu_dump_fsd,0, trcrn(:,:,nt_fsd+k-1,:,:), &
-                            'ruf8','fsd'//'_'//ck,ncat,diag)
+                            'ruf8','fsd'//trim(ck),ncat,diag)
       enddo
 
       end subroutine write_restart_fsd
@@ -528,7 +528,7 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_fsd, k
-      character*2 ck
+      character*3 ck
       character(len=*),parameter :: subname='(read_restart_fsd)'
 
       call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
@@ -541,9 +541,9 @@
       if (my_task == master_task) write(nu_diag,*) subname,'min/max fsd (s)'
 
       do k=1,nfsd
-        write(ck,'(i2.2)') k
+        write(ck,'(i3.3)') k
         call read_restart_field(nu_restart_fsd,0,trcrn(:,:,nt_fsd+k-1,:,:), &
-                 'ruf8','fsd'//'_'//ck,ncat,diag, &
+                 'ruf8','fsd'//trim(ck),ncat,diag, &
                  field_type=field_type_scalar,field_loc=field_loc_center)
       enddo
 
