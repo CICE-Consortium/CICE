@@ -4,7 +4,7 @@
 
 CPP        := /usr/bin/cpp
 #CPP        := fpp
-CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
 CFLAGS     := -c -O2 -fp-model precise   -xHost
 
 FIXEDFLAGS := -132
@@ -29,11 +29,18 @@ else
   FFLAGS     += -O2
 endif
 
- 	FC         := gfortran
+SCC   := gcc 
+SFC   := gfortran
+MPICC := gcc
+MPIFC := gfortran
 
-MPICC:= 
-
-MPIFC:= 
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
 LD:= $(FC)
 
 ifeq ($(ICE_IOTYPE), netcdf)
@@ -47,8 +54,6 @@ else
 endif
 
 LIB_MPI := 
-SCC:= 
-SFC:= 
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -openmp

@@ -711,6 +711,11 @@
                            + vatm(:,:,:)**2)  ! wind speed, (m/s)
       Cdn_atm(:,:,:) = (vonkar/log(zref/iceruf)) &
                      * (vonkar/log(zref/iceruf)) ! atmo drag for RASM
+      alvdr_init(:,:,:) = c0
+      alidr_init(:,:,:) = c0
+      alvdf_init(:,:,:) = c0
+      alidf_init(:,:,:) = c0
+
 
       end subroutine init_coupler_flux
 

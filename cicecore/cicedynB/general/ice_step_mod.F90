@@ -98,10 +98,10 @@
 
       call ice_timer_start(timer_sw)      ! shortwave
 
-      alvdr_init(:,:,:) = c0
-      alvdf_init(:,:,:) = c0
-      alidr_init(:,:,:) = c0
-      alidf_init(:,:,:) = c0
+      alvdr_init(:,:,iblk) = c0
+      alvdf_init(:,:,iblk) = c0
+      alidr_init(:,:,iblk) = c0
+      alidf_init(:,:,iblk) = c0
 
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo

@@ -1,6 +1,6 @@
 ice_ic = 'default'
 restart = .false.
-bfbflag = .true.
+bfbflag = 'reprosum'
 distribution_type = 'rake'
 processor_shape   = 'slenderX2'
 distribution_wght = 'block'

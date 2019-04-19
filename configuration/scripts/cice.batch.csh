@@ -18,6 +18,7 @@ set acct   = ${ICE_ACCOUNT}
 
 @ ncores = ${ntasks} * ${nthrds}
 @ taskpernode = ${maxtpn} / $nthrds
+if (${taskpernode} == 0) set taskpernode = 1
 @ nnodes = ${ntasks} / ${taskpernode}
 if (${nnodes} * ${taskpernode} < ${ntasks}) @ nnodes = $nnodes + 1
 set taskpernodelimit = ${taskpernode}
