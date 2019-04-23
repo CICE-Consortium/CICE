@@ -21,6 +21,7 @@
       use icepack_intfc, only: icepack_step_therm2
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_step_ridge
+      use icepack_intfc, only: icepack_step_wavefracture
       use icepack_intfc, only: icepack_step_radiation
       use icepack_intfc, only: icepack_ocn_mixed_layer, icepack_atm_boundary
       use icepack_intfc, only: icepack_biogeochemistry, icepack_init_OceanConcArray
@@ -36,7 +37,7 @@
 
       public :: step_therm1, step_therm2, step_dyn_horiz, step_dyn_ridge, &
                 prep_radiation, step_radiation, ocean_mixed_layer, &
-                update_state, biogeochemistry, save_init
+                update_state, biogeochemistry, save_init, step_dyn_wave
 
 !=======================================================================
 
@@ -284,7 +285,7 @@
          endif ! tr_aero
 
          if (tmask(i,j,iblk)) &
-         call icepack_step_therm1(dt, ncat, nilyr, nslyr, n_aero,                &
+         call icepack_step_therm1(dt, ncat, nilyr, nslyr, n_aero,               &
                             aicen_init  (i,j,:,iblk),                           &
                             vicen_init  (i,j,:,iblk), vsnon_init  (i,j,:,iblk), &
                             aice        (i,j,  iblk), aicen       (i,j,:,iblk), &
@@ -392,8 +393,9 @@
       subroutine step_therm2 (dt, iblk)
 
       use ice_arrays_column, only: hin_max, fzsal, ocean_bio, ice_wave_sig_ht, &
+          wave_spectrum, wavefreq, dwavefreq, &
           first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
-          d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_wave, d_afsd_weld
+          d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
       use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
@@ -483,10 +485,11 @@
                            ocean_bio (i,j,1:nbtrcr,iblk),                  &
                            frazil_diag(i,j, iblk),                         &
                            frz_onset (i,j,  iblk), yday,                   &
-                           nfsd,                 ice_wave_sig_ht(i,j,iblk), &
-                           d_afsd_latg(i,j,:,iblk),d_afsd_newi(i,j,:,iblk), &
-                           d_afsd_latm(i,j,:,iblk),d_afsd_wave(i,j,:,iblk), &
-                           d_afsd_weld(i,j,:,iblk), &
+                           nfsd,                 ice_wave_sig_ht(i,j,iblk),&
+                           wave_spectrum(i,j,:,iblk),                      &
+                           wavefreq(:),            dwavefreq(:),           &
+                           d_afsd_latg(i,j,:,iblk),d_afsd_newi(i,j,:,iblk),&
+                           d_afsd_latm(i,j,:,iblk),d_afsd_weld(i,j,:,iblk),&
                            floe_rad_c(:),          floe_binwidth(:))
 
          endif ! tmask
@@ -604,6 +607,72 @@
          file=__FILE__, line=__LINE__)
 
       end subroutine update_state
+
+!=======================================================================
+!
+! Run one time step of wave-fracturing the floe size distribution
+!
+! authors: Lettie Roach, NIWA
+!          Elizabeth C. Hunke, LANL
+
+      subroutine step_dyn_wave (dt)
+
+      use ice_arrays_column, only: wave_spectrum, ice_wave_sig_ht, &
+          d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: blocks_ice, nblocks
+      use ice_domain_size, only: ncat, nfsd
+      use ice_state, only: trcrn, aicen, aice, vice
+
+      real (kind=dbl_kind), intent(in) :: &
+         dt      ! time step
+
+      ! local variables
+
+      type (block) :: &
+         this_block      ! block information for current block
+
+      integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         iblk,            & ! block index
+         i, j,            & ! horizontal indices
+         ntrcr,           & !
+         nbtrcr             !
+
+      character(len=*), parameter :: subname = '(step_dyn_wave)'
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+            d_afsd_wave(i,j,:,iblk) = c0
+            ! LR this condition is FOR TESTING ONLY when using dummy wave spectrum
+            ! do not use for actual runs!!
+            if (aice(i,j,iblk).lt.0.8_dbl_kind) &
+
+            call icepack_step_wavefracture (dt, ncat, nfsd,                &
+                                            aice           (i,j,    iblk), &
+                                            vice           (i,j,    iblk), &
+                                            aicen          (i,j,:,  iblk), &
+                                            floe_rad_l(:), floe_rad_c(:),  &
+                                            wave_spectrum  (i,j,:,  iblk), &
+                                            wavefreq(:),   dwavefreq(:),   &
+                                            trcrn          (i,j,:,:,iblk), &
+                                            ice_wave_sig_ht(i,j,    iblk), &
+                                            d_afsd_wave    (i,j,:,  iblk))
+         end do ! i
+         end do ! j
+      end do    ! iblk
+      !$OMP END PARALLEL DO
+
+      end subroutine step_dyn_wave
 
 !=======================================================================
 !

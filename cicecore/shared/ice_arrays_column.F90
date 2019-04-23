@@ -12,7 +12,7 @@
       use ice_fileunits, only: nu_diag
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
-          nblyr, nfsd
+          nblyr, nfsd, nfreq
       use icepack_intfc, only: icepack_nspint
       use icepack_intfc, only: icepack_query_tracer_sizes, icepack_query_parameters, &
           icepack_query_tracer_flags, &
@@ -280,7 +280,13 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          ice_wave_sig_ht   ! significant height of waves in ice (m)
 
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+         wavefreq,      &  ! wave frequencies
+         dwavefreq         ! wave frequency bin widths
+
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+         wave_spectrum, &  ! wave spectrum
+         ! change in floe size distribution due to processes
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
 
       character (len=35), public, allocatable :: c_fsd_range(:)
@@ -417,7 +423,10 @@
          floe_rad_c     (nfsd)      , & ! fsd size bin centre in m (radius)
          floe_binwidth  (nfsd)      , & ! fsd size bin width in m (radius)
          c_fsd_range    (nfsd)      , & ! fsd floe_rad bounds (m)
+         wavefreq       (nfreq)     , & ! wave frequency
+         dwavefreq      (nfreq)     , & ! wave frequency bin widths
          ice_wave_sig_ht(nx_block,ny_block,          max_blocks), & !
+         wave_spectrum  (nx_block,ny_block,nfreq,    max_blocks), & !
          d_afsd_newi    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latm    (nx_block,ny_block,nfsd,     max_blocks), & !

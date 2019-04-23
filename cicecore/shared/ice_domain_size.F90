@@ -40,7 +40,8 @@
         n_dic     , & ! number of DIC pools in use
         n_don     , & ! number of DON pools in use
         n_fed     , & ! number of Fe  pools in use dissolved Fe
-        n_fep         ! number of Fe  pools in use particulate Fe
+        n_fep     , & ! number of Fe  pools in use particulate Fe
+        nfreq         ! number of wave frequencies
 
       integer (kind=int_kind), public, parameter :: &
         max_nstrm =   5           ! max number of history output streams

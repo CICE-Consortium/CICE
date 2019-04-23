@@ -17,7 +17,7 @@
       use ice_fileunits, only: init_fileunits, nu_diag
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
-      use icepack_intfc, only: icepack_init_fsd_bounds
+      use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
@@ -75,7 +75,7 @@
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn, alloc_forcing
+          get_forcing_atmo, get_forcing_ocn, get_wave_spec, alloc_forcing
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default, faero_optics, alloc_forcing_bgc
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
@@ -91,7 +91,8 @@
       use drv_forcing, only: sst_sss
 #endif
 
-      logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, tr_fsd
+      logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
+         tr_fsd, wave_spec
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -148,7 +149,7 @@
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
-      if (tr_fsd) call icepack_init_fsd_bounds (nfsd, &  ! floe size distribution
+      if (tr_fsd) call icepack_init_fsd_bounds (nfsd, & ! floe size distribution
          floe_rad_l,    &  ! fsd size lower bound in m (radius)
          floe_rad_c,    &  ! fsd size bin centre in m (radius)
          floe_binwidth, &  ! fsd size bin width in m (radius)
@@ -165,7 +166,8 @@
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
+          wave_spec_out=wave_spec)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -204,6 +206,7 @@
 
 #ifndef coupled
 #ifndef CESMCOUPLED
+      if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
       call get_forcing_atmo     ! atmospheric forcing from data
       call get_forcing_ocn(dt)  ! ocean forcing from data
 
@@ -262,7 +265,7 @@
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
           tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
-          skl_bgc, z_tracers, solve_zsal
+          skl_bgc, z_tracers, solve_zsal, wave_spec
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
@@ -276,7 +279,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, &
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, wave_spec_out=wave_spec, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
@@ -382,8 +385,7 @@
       endif
       ! floe size distribution
       if (tr_fsd) then
-         if (trim(runtype) == 'continue') &
-              restart_fsd = .true.
+         if (trim(runtype) == 'continue') restart_fsd = .true.
          if (restart_fsd) then
             call read_restart_fsd
          else

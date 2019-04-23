@@ -38,12 +38,13 @@
                                field_type_vector, field_loc_NEcorner
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_sea_freezing_temperature
+      use icepack_intfc, only: icepack_init_wave
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_parameters
 
       implicit none
       private
       public :: init_forcing_atmo, init_forcing_ocn, alloc_forcing, &
-                get_forcing_atmo, get_forcing_ocn, &
+                get_forcing_atmo, get_forcing_ocn, get_wave_spec, &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
                 read_data_nc_point, interp_coeff
@@ -125,6 +126,8 @@
       character(char_len_long), public :: & 
          atm_data_dir , & ! top directory for atmospheric data
          ocn_data_dir , & ! top directory for ocean data
+         wave_spec_dir, & ! dir name for wave spectrum
+         wave_spec_file,& ! file name for wave spectrum
          oceanmixed_file  ! file name for ocean forcing data
 
       integer (kind=int_kind), parameter :: & 
@@ -4832,6 +4835,68 @@
       enddo ! nblocks
 
       end subroutine box2001_data
+
+!=======================================================================
+
+      subroutine get_wave_spec
+
+      use ice_arrays_column, only: wave_spectrum, dwavefreq, wavefreq
+      use ice_constants, only: c0
+      use ice_domain_size, only: nfreq
+#ifdef ncdf
+      use netcdf
+#endif
+
+      ! local variables
+      integer (kind=int_kind) :: &
+         fid                  ! file id for netCDF routines
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,25,1,max_blocks) :: &
+         tmp
+
+      real(kind=dbl_kind), dimension(nfreq) :: &
+         wave_spectrum_profile  ! wave spectrum
+
+      character(char_len_long) :: spec_file
+      logical (kind=log_kind) :: wave_spec
+      character(len=*), parameter :: subname = '(get_wave_spec)'
+
+      call icepack_query_parameters(wave_spec_out=wave_spec)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+! for now
+      wave_spec_dir  = ' '
+      wave_spec_file = ' '
+
+      ! wave spectrum and frequencies
+      if (wave_spec) &
+      call icepack_init_wave(nfreq,                 &
+                             wave_spectrum_profile, &
+                             wavefreq, dwavefreq)
+
+      if (trim(wave_spec_file) == '') then
+         wave_spectrum(:,:,:,:) = c0
+         ! for testing only
+!         do k = 1, nfreq
+!            wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
+!         enddo
+      else
+#ifdef ncdf
+         spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
+         call ice_open_nc(spec_file,fid)
+!ech:  this fails - need to add ice_read_nc_xyf to ice_read_write.F90
+!         call ice_read_nc (fid, 1, 'ef',tmp, dbug, &
+!                           field_loc_center, field_type_scalar)
+         call ice_close_nc(fid)
+
+         wave_spectrum(:,:,:,:) = tmp(:,:,:,1,:)
+         WHERE (wave_spectrum > 1.e30) wave_spectrum = c0
+#endif
+      end if
+
+      end subroutine get_wave_spec
 
 !=======================================================================
 
