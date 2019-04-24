@@ -97,6 +97,18 @@ db_flags:
 	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(INCS) $(INCLDIR)"
 
 #-------------------------------------------------------------------------------
+# build rule for makdep: MACFILE, cmd-line, or env vars must provide
+# the needed macros
+#-------------------------------------------------------------------------------
+
+ifndef $(CFLAGS_HOST)
+  CFLAGS_HOST :=
+endif
+
+makdep: $(ICE_CASEDIR)/makdep.c
+	$(SCC) -o $@ $(CFLAGS_HOST) $<
+
+#-------------------------------------------------------------------------------
 # build rules: MACFILE, cmd-line, or env vars must provide the needed macros
 #-------------------------------------------------------------------------------
 
