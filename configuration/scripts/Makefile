@@ -60,6 +60,7 @@ OBJS  := $(addsuffix .o, $(sort $(basename $(notdir $(SRCS)))))
 DEPS  := $(addsuffix .d, $(sort $(basename $(notdir $(SRCS)))))
 INCS  := $(patsubst %,-I%, $(VPATH) )
 OBJS_DEPGEN := $(addprefix $(ICE_CASEDIR)/,$(addsuffix .c, $(notdir $(DEPGEN))))
+MODDIR:= -I.
 RM    := rm
 
 .SUFFIXES:
@@ -98,10 +99,10 @@ db_flags:
 	@echo "* %.d : %.F   := $(DEPGEN) $(INCS)"
 	@echo "* %.d : %.F90 := $(DEPGEN) $(INCS)"
 	@echo "* %.d : %.H   := $(DEPGEN) $(INCS)"
-	@echo "* cpp     := $(CPP) $(CPPFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
-	@echo "* .c.o    := $(CC) $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
-	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
-	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
+	@echo "* cpp     := $(CPP) $(CPPFLAGS) $(CPPDEFS) $(INCLDIR)"
+	@echo "* .c.o    := $(CC) $(CFLAGS) $(CPPDEFS) $(INCLDIR)"
+	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCLDIR)"
+	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(MODDIR) $(INCLDIR)"
 	@echo "* $(notdir $(EXEC)) := $(LD) $(LDFLAGS) $(ULIBS) $(SLIBS)"
 
 #-------------------------------------------------------------------------------
@@ -125,13 +126,13 @@ $(EXEC): $(OBJS)
 	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJS) $(ULIBS) $(SLIBS)
 
 .c.o:
-	$(CC) $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
+	$(CC) $(CFLAGS) $(CPPDEFS) $(INCLDIR) $<
 
 .F.o:
-	$(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
+	$(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCLDIR) $<
 
 .F90.o:
-	$(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
+	$(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(MODDIR) $(INCLDIR) $<
 
 mostlyclean:
 	$(RM) -f *.f *.f90 
