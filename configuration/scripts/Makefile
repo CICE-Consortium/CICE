@@ -69,12 +69,9 @@ all: $(EXEC)
 
 #-------------------------------------------------------------------------------
 # include the file that provides macro definitions required by build rules
-# note: the MACFILE may not be needed for certain goals
 #-------------------------------------------------------------------------------
 
-ifneq ($(MAKECMDGOALS), db_files)
-  -include $(MACFILE)
-endif
+-include $(MACFILE)
 
 #-------------------------------------------------------------------------------
 # echo file names, paths, compile flags, etc. used during build
@@ -91,12 +88,21 @@ db_files:
 	@echo "* SRCS    := $(SRCS)"
 	@echo "* OBJS    := $(OBJS)"
 	@echo "* DEPS    := $(DEPS)"
+	@echo "* ULIBS   := $(ULIBS)"
+	@echo "* SLIBS   := $(SLIBS)"
+	@echo "* INCLDIR := $(INCLDIR)"
 db_flags:
 	@echo " "
+	@echo "* $(DEPGEN) := $(SCC) $(CFLAGS_HOST)"
+	@echo "* %.d : %.c   := $(DEPGEN) $(INCS)"
+	@echo "* %.d : %.F   := $(DEPGEN) $(INCS)"
+	@echo "* %.d : %.F90 := $(DEPGEN) $(INCS)"
+	@echo "* %.d : %.H   := $(DEPGEN) $(INCS)"
 	@echo "* cpp     := $(CPP) $(CPPFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
-	@echo "* cc      := $(CC) -c $(CFLAGS) $(INCS) $(INCLDIR)"
-	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(INCS) $(INCLDIR)"
-	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(INCS) $(INCLDIR)"
+	@echo "* .c.o    := $(CC) $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
+	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
+	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
+	@echo "* $(notdir $(EXEC)) := $(LD) $(LDFLAGS) $(ULIBS) $(SLIBS)"
 
 #-------------------------------------------------------------------------------
 # build rule for makdep: MACFILE, cmd-line, or env vars must provide
