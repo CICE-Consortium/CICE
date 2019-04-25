@@ -8,7 +8,6 @@
 #   SRCS=<files>   ~ list of src files, default is all .c .F .F90 files in VPATH
 #   VPFILE=<file>  ~ file with list of dirs, used to create VPATH
 #   SRCFILE=<file> ~ file with list of src files, used to create SRCS
-#   DEPGEN=<exec>  ~ dependency generator utility, default is makdep
 #
 #   <macro defns>  ~ any macro definitions found in this file or the included 
 #                    MACFILE will be over-riden by cmd-line macro definitions
@@ -31,7 +30,9 @@ VPFILE   := NONE
 VPATH    := .
 SRCFILE  := NONE
 SRCS     := NONE
-DEPGEN   := ./makdep  # an externally provided dependency generator
+
+# dependency generator
+DEPGEN   := ./makdep
 
 ifneq ($(VPATH),.)
   # this variable was specified on cmd line or in an env var
@@ -58,6 +59,7 @@ endif
 OBJS  := $(addsuffix .o, $(sort $(basename $(notdir $(SRCS)))))
 DEPS  := $(addsuffix .d, $(sort $(basename $(notdir $(SRCS)))))
 INCS  := $(patsubst %,-I%, $(VPATH) )
+OBJS_DEPGEN := $(addprefix $(ICE_CASEDIR)/,$(addsuffix .c, $(notdir $(DEPGEN))))
 RM    := rm
 
 .SUFFIXES:
@@ -105,7 +107,8 @@ ifndef $(CFLAGS_HOST)
   CFLAGS_HOST :=
 endif
 
-$(DEPGEN): $(ICE_CASEDIR)/makdep.c
+$(DEPGEN): $(OBJS_DEPGEN)
+	@ echo "Building makdep"
 	$(SCC) -o $@ $(CFLAGS_HOST) $<
 
 #-------------------------------------------------------------------------------
@@ -138,7 +141,7 @@ realclean:
 # Build & include dependency files
 #-------------------------------------------------------------------------------
 # ASSUMPTIONS:
-# o an externally provided dependency generator, $(DEPGEN), is available, 
+# o the dependency generator, $(DEPGEN), can be built, 
 #   its cmd line syntax is compatible with the build rules below.   Eg, for 
 #   each .o file, there is a corresponding .d (dependency) file, and both
 #   will be dependent on the same src file, eg.    foo.o foo.d : foo.F90
@@ -146,16 +149,16 @@ realclean:
 #   are understood & accepted.
 #-------------------------------------------------------------------------------
 
-%.d : %.c
+%.d : %.c $(DEPGEN)
 	@ echo "Building dependency for $@"
 	@ $(DEPGEN) -f $(INCS) $< | head -3  > $@
-%.d : %.F
+%.d : %.F $(DEPGEN)
 	@ echo "Building dependency for $@"
 	@ $(DEPGEN) -f $(INCS) $<  > $@
-%.d : %.F90
+%.d : %.F90 $(DEPGEN)
 	@ echo "Building dependency for $@"
 	@ $(DEPGEN) -f $(INCS) $<  > $@
-%.d : %.H
+%.d : %.H $(DEPGEN)
 	@ echo "Building dependency for $@"
 	@ $(DEPGEN) -f $(INCS) $<  > $@
 

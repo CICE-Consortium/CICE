@@ -88,10 +88,6 @@ echo "Filepath = "
 cat ${ICE_OBJDIR}/Filepath
 echo " "
 
-echo "building makdep"
-${ICE_MACHINE_MAKE} \
-        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} makdep || exit 2
-
 echo "building cice > ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
 
 if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
