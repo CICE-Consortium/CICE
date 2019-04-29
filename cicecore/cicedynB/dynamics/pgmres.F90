@@ -11,9 +11,8 @@
                          dxhy,       dyhx,            & 
                          cxp,        cyp,             & 
                          cxm,        cym,             & 
-                         tarear,     tinyarea,        & 
                          vrel,       Cb,              &
-                         zetaD,      aiu,             & 
+                         zetaD,                       & 
                          umassdti,   fm,              &
                          uarear,     diagvec,         &
                          sol,        rhs,             &
@@ -58,15 +57,12 @@
          cyp      , & ! 1.5*HTE - 0.5*HTE
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
-         tarear   , & ! 1/tarea
-         tinyarea     ! puny*tarea   
+         cxm          ! 0.5*HTN - 1.5*HTN
          
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), &
          intent(in) :: &
          vrel    , & ! coefficient for tauw
          Cb      , & ! coefficient for basal stress
-         aiu     , & ! ice fraction on u-grid
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
@@ -103,7 +99,7 @@
 ! arnoldi size should not exceed kmax=50 in this version..
 ! to reset modify paramter kmax accordingly.
 !-------------------------------------------------------------
-       real*8 epsmac ,ro,ddot,dnrm2
+       real*8 epsmac ,ro,ddot
        parameter (epsmac=1.d-16)
        integer l
 !       character(len= 9) communicate_S
@@ -173,11 +169,10 @@
                      dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
                      dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
                      cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
-                     cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
-                     tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                     cxm      (:,:,iblk)  , cym      (:,:,iblk), &
                      utp      (:,:,iblk)  , vtp      (:,:,iblk), &      
                      vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
-                     zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                     zetaD    (:,:,iblk,:),                      &
                      umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
                      uarear   (:,:,iblk)  ,                      & 
                      Au       (:,:,iblk)  , Av       (:,:,iblk)) 

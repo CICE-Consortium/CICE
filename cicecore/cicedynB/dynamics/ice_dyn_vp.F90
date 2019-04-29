@@ -37,10 +37,10 @@
       use ice_kinds_mod
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
-      use ice_constants, only: c0, c4, p027, p055, p111, p166, &
-          p2, p222, p25, p333, p5, c1
+      use ice_constants, only: c0, p027, p055, p111, p166, &
+          p222, p25, p333, p5, c1
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
-          yield_curve, ecci, cosw, sinw, fcor_blk, uvel_init,  &
+          ecci, cosw, sinw, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -116,7 +116,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, tinyarea, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
+          tarear, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
           grid_type
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
@@ -160,12 +160,8 @@
          
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
       
-      real (kind=dbl_kind), allocatable :: bvec(:), sol(:), diagvec(:), wk11(:), wk22(:)
-      real (kind=dbl_kind), allocatable :: vv(:,:), ww(:,:)
+      real (kind=dbl_kind), allocatable :: bvec(:), sol(:), diagvec(:)
       
-      real (kind=dbl_kind), dimension (max_blocks) :: L2norm
-      real (kind=dbl_kind) :: conv, tolNL
-
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
          icetmask, &  ! ice extent mask (T-cell)
          halomask     ! generic halo mask
@@ -442,7 +438,6 @@
                             indxti      (:,iblk), indxtj      (:,iblk), &
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
                             dxt       (:,:,iblk), dyt       (:,:,iblk), &
-                            dxhy      (:,:,iblk), dyhx      (:,:,iblk), &
                             cxp       (:,:,iblk), cyp       (:,:,iblk), &
                             cxm       (:,:,iblk), cym       (:,:,iblk), &
                             tarear    (:,:,iblk),                       &
@@ -690,7 +685,7 @@
                                dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
                                cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
                                cxm      (:,:,iblk), cym   (:,:,iblk),   & 
-                               tarear   (:,:,iblk), tinyarea (:,:,iblk),& 
+                               tinyarea (:,:,iblk),                     & 
                                strength (:,:,iblk), zetaD (:,:,iblk,:) ,&
                                stPrtmp  (:,:,:) )                      
             
@@ -750,10 +745,9 @@
                          dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
                          cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
                          cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
-                         tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
                          uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
                          vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
-                         zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                         zetaD    (:,:,iblk,:),                      &
                          umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
                          uarear   (:,:,iblk)  ,                      & 
                          Au       (:,:,iblk)  , Av       (:,:,iblk))
@@ -844,9 +838,8 @@
                        dxhy     (:,:,:)   , dyhx     (:,:,:)   , & 
                        cxp      (:,:,:)   , cyp      (:,:,:)   , & 
                        cxm      (:,:,:)   , cym      (:,:,:)   , & 
-                       tarear   (:,:,:)   , tinyarea (:,:,:)   , &
                        vrel     (:,:,:)   , Cb       (:,:,:)   , &  
-                       zetaD    (:,:,:,:) , aiu      (:,:,:)   , &
+                       zetaD    (:,:,:,:) ,                      &
                        umassdti (:,:,:)   , fm       (:,:,:)   , & 
                        uarear   (:,:,:)   , diagvec(:)         , &
                        wk22     (:)       , wk11(:)            , &
@@ -893,11 +886,10 @@
                        dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
                        dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
                        cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
-                       cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
-                       tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                       cxm      (:,:,iblk)  , cym      (:,:,iblk), &
                        uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
                        vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
-                       zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                       zetaD    (:,:,iblk,:),                      &
                        umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
                        uarear   (:,:,iblk)  ,                      & 
                        Au       (:,:,iblk)  , Av       (:,:,iblk))                         
@@ -1012,7 +1004,7 @@
       use ice_domain_size, only: max_blocks
       use ice_flux, only:   uocn, vocn, fm, Tbu
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, tinyarea
+          uarear, tinyarea
       use ice_state, only: uvel, vvel, strength
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
 
@@ -1058,13 +1050,7 @@
          it_nl      , & ! nonlinear loop iteration index
          res_num    , & ! current number of stored residuals
          j          , & ! iteration index for QR update
-         iblk       , & ! block index
-         icode      , & ! code for fgmres solver
-         ischmi     , & ! Quesse ca!?!?! jfl
-         its        , & ! iteration nb for fgmres
-         fgmres_its , & ! final nb of fgmres iterations
-         iconvNL    , & ! code for NL convergence criterion (equals 1 when NL convergence is reached)
-         ierr           ! code for pgmres preconditioner !phb: needed?
+         iblk           ! block index
 
       integer (kind=int_kind), parameter :: &
          inc = 1        ! increment value for BLAS calls
@@ -1163,7 +1149,7 @@
                                dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
                                cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
                                cxm      (:,:,iblk), cym   (:,:,iblk),   & 
-                               tarear   (:,:,iblk), tinyarea (:,:,iblk),& 
+                               tinyarea (:,:,iblk),                     & 
                                strength (:,:,iblk), zetaD (:,:,iblk,:) ,&
                                stPrtmp  (:,:,:) )                      
             
@@ -1196,10 +1182,9 @@
                          dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), &
                          cxp      (:,:,iblk)  , cyp      (:,:,iblk), &
                          cxm      (:,:,iblk)  , cym      (:,:,iblk), &
-                         tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
                          uprev_k  (:,:,iblk)  , vprev_k  (:,:,iblk), &
                          vrel     (:,:,iblk)  , Cb       (:,:,iblk), &
-                         zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                         zetaD    (:,:,iblk,:),                      &
                          umassdti (:,:,iblk)  , fm       (:,:,iblk), &
                          uarear   (:,:,iblk)  ,                      &
                          Au       (:,:,iblk)  , Av       (:,:,iblk))
@@ -1464,12 +1449,12 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_boundary, only: ice_HaloUpdate
-      use ice_domain, only: nblocks, halo_info, maskhalo_dyn
+      use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: max_blocks
-      use ice_flux, only:   uocn, vocn, fm, Tbu
+      use ice_flux, only:  fm
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea
-      use ice_state, only: uvel, vvel, strength
+      use ice_state, only: uvel, vvel
       
       integer (kind=int_kind), intent(in) :: & 
          ntot         ! size of problem for fgmres (for given cpu)
@@ -1572,10 +1557,9 @@
                        dxt      (:,:,:)   , dyt      (:,:,:)   , & 
                        dxhy     (:,:,:)   , dyhx     (:,:,:)   , & 
                        cxp      (:,:,:)   , cyp      (:,:,:)   , & 
-                       cxm      (:,:,:)   , cym      (:,:,:)   , & 
-                       tarear   (:,:,:)   , tinyarea (:,:,:)   , &
+                       cxm      (:,:,:)   , cym      (:,:,:)   , &
                        vrel     (:,:,:)   , Cb       (:,:,:)   , &  
-                       zetaD    (:,:,:,:) , aiu      (:,:,:)   , &
+                       zetaD    (:,:,:,:) ,                      &
                        umassdti (:,:,:)   , fm       (:,:,:)   , & 
                        uarear   (:,:,:)   , diagvec(:)         , &
                        wk22     (:)       , wk11(:)            , &
@@ -1622,11 +1606,10 @@
                        dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
                        dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
                        cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
-                       cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
-                       tarear   (:,:,iblk)  , tinyarea (:,:,iblk), &
+                       cxm      (:,:,iblk)  , cym      (:,:,iblk), &
                        uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
                        vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
-                       zetaD    (:,:,iblk,:), aiu      (:,:,iblk), &
+                       zetaD    (:,:,iblk,:),                      &
                        umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
                        uarear   (:,:,iblk)  ,                      & 
                        Au       (:,:,iblk)  , Av       (:,:,iblk))                         
@@ -1661,7 +1644,7 @@
                                 dxhy,       dyhx,       & 
                                 cxp,        cyp,        & 
                                 cxm,        cym,        & 
-                                tarear,     tinyarea,   & 
+                                tinyarea,               & 
                                 strength,   zetaD,      &
                                 stPr)
 
@@ -1686,7 +1669,6 @@
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm      , & ! 0.5*HTN - 1.5*HTN
-         tarear   , & ! 1/tarea
          tinyarea     ! puny*tarea
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
@@ -1863,20 +1845,18 @@
 ! Computes VP stress without the rep. pressure Pr (included in b vector)
 
       subroutine stress_prime_vpOLD (nx_block,   ny_block,   & 
-                                  kOL,        icellt,     & 
+                                  icellt,                 & 
                                   indxti,     indxtj,     & 
                                   uvel,       vvel,       & 
                                   dxt,        dyt,        & 
                                   dxhy,       dyhx,       & 
                                   cxp,        cyp,        & 
                                   cxm,        cym,        & 
-                                  tarear,     tinyarea,   & 
                                   zetaD,                  & 
                                   str )
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
-         kOL               , & ! subcycling step
          icellt                ! no. of cells where icetmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
@@ -1894,9 +1874,7 @@
          cyp      , & ! 1.5*HTE - 0.5*HTE
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
-         tarear   , & ! 1/tarea
-         tinyarea     ! puny*tarea
+         cxm          ! 0.5*HTN - 1.5*HTN
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
          intent(in) :: &
@@ -1916,7 +1894,6 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        puny                                      , & ! puny
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -1925,7 +1902,7 @@
         csigmne, csigmnw, csigmse, csigmsw        , &
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
-        strp_tmp, strm_tmp, tmp
+        strp_tmp, strm_tmp
         
       real (kind=dbl_kind) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22 (without Pr)
@@ -2118,14 +2095,13 @@
 ! Computes the VP stress (as diagnostic)
 
       subroutine stress_vp (nx_block,   ny_block,   & 
-                            kOL,        icellt,     & 
+                            icellt,                 & 
                             indxti,     indxtj,     & 
                             uvel,       vvel,       & 
                             dxt,        dyt,        & 
                             dxhy,       dyhx,       & 
                             cxp,        cyp,        & 
                             cxm,        cym,        & 
-                            tarear,     tinyarea,   & 
                             zetaD,                  & 
                             stressp_1,  stressp_2,  & 
                             stressp_3,  stressp_4,  & 
@@ -2137,7 +2113,6 @@
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
-         kOL               , & ! subcycling step
          icellt                ! no. of cells where icetmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
@@ -2155,9 +2130,7 @@
          cyp      , & ! 1.5*HTE - 0.5*HTE
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
-         tarear   , & ! 1/tarea
-         tinyarea     ! puny*tarea
+         cxm          ! 0.5*HTN - 1.5*HTN
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
          intent(in) :: &
@@ -2183,7 +2156,6 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        puny                                      , & ! puny
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -2192,7 +2164,7 @@
         csigmne, csigmnw, csigmse, csigmsw        , &
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
-        strp_tmp, strm_tmp, tmp
+        strp_tmp, strm_tmp
 
         character(len=*), parameter :: subname = '(stress_vp)'
 
@@ -2382,7 +2354,6 @@
                                indxti,     indxtj,     & 
                                uvel,       vvel,       & 
                                dxt,        dyt,        & 
-                               dxhy,       dyhx,       & 
                                cxp,        cyp,        & 
                                cxm,        cym,        & 
                                tarear,                 & 
@@ -2403,8 +2374,6 @@
          vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         dxhy     , & ! 0.5*(HTE - HTE)
-         dyhx     , & ! 0.5*(HTN - HTN)
          cyp      , & ! 1.5*HTE - 0.5*HTE
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
@@ -2583,8 +2552,7 @@
       subroutine matvecOLD (nx_block,   ny_block, &
                          icellu,               &
                          indxui,     indxuj,   &
-                         kOL,                  &
-                         aiu,        str,      &
+                         str,                  &
                          vrel,                 &
                          umassdti,   fm,       &
                          uarear,     Cb,       &
@@ -2593,8 +2561,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         kOL                   ! outer loop iteration
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
@@ -2604,7 +2571,6 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          vrel,     & ! coefficient for tauw
          Cb,       & ! coefficient for basal stress
-         aiu     , & ! ice fraction on u-grid
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
@@ -2673,10 +2639,9 @@
                          dxhy,       dyhx,     & 
                          cxp,        cyp,      & 
                          cxm,        cym,      & 
-                         tarear,     tinyarea, & 
                          uvel,       vvel,     &
                          vrel,       Cb,       &
-                         zetaD,      aiu,      & 
+                         zetaD,                & 
                          umassdti,   fm,       &
                          uarear,               &
                          Au,         Av)
@@ -2701,9 +2666,7 @@
          cyp      , & ! 1.5*HTE - 0.5*HTE
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
-         tarear   , & ! 1/tarea
-         tinyarea     ! puny*tarea   
+         cxm          ! 0.5*HTN - 1.5*HTN
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(in) :: &
@@ -2711,7 +2674,6 @@
          vvel    , & ! y-component of velocity (m/s)
          vrel    , & ! coefficient for tauw
          Cb      , & ! coefficient for basal stress
-         aiu     , & ! ice fraction on u-grid
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
@@ -2743,7 +2705,6 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        puny                                      , & ! puny
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -2752,7 +2713,7 @@
         csigmne, csigmnw, csigmse, csigmsw        , &
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
-        strp_tmp, strm_tmp, tmp
+        strp_tmp, strm_tmp
         
       real (kind=dbl_kind) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22 (without Pr)
@@ -3219,7 +3180,6 @@
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
         uij,ui1j,uij1,ui1j1,vij,vi1j,vij1,vi1j1   , & ! c0 or c1
         stressp_1, stressp_2, stressp_3, stressp_4, &
         stressm_1, stressm_2, stressm_3, stressm_4, &
@@ -3232,7 +3192,7 @@
         csigmne, csigmnw, csigmse, csigmsw        , &
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
-        strp_tmp, strm_tmp, tmp
+        strp_tmp, strm_tmp
 
       character(len=*), parameter :: subname = '(formDiag_step1)'
 
