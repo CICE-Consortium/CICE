@@ -176,6 +176,8 @@
       type (block) :: &
          this_block           ! block information for current block
       
+      character(len=*), parameter :: subname = '(imp_solver)'
+      
       call ice_timer_start(timer_dynamics) ! dynamics
 
       !-----------------------------------------------------------------
@@ -1712,6 +1714,8 @@
         
       logical :: capping ! of the viscous coeff  
 
+      character(len=*), parameter :: subname = '(calc_zeta_Pr)'
+
       capping = .false.
       
 !DIR$ CONCURRENT !Cray
@@ -1927,6 +1931,8 @@
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22 (without Pr)
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
          stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12        
+
+      character(len=*), parameter :: subname = '(stress_prime_vpOLD)'
 
       !-----------------------------------------------------------------
       ! Initialize
@@ -2188,6 +2194,8 @@
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp, tmp
 
+        character(len=*), parameter :: subname = '(stress_vp)'
+
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
@@ -2422,6 +2430,8 @@
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
         tmp
         
+      character(len=*), parameter :: subname = '(deformations)'
+      
 !DIR$ CONCURRENT !Cray
 !cdir nodep      !NEC
 !ocl novrec      !Fujitsu
@@ -2540,6 +2550,8 @@
       real (kind=dbl_kind) :: &
          u0 = 5e-5_dbl_kind    ! residual velocity for basal stress (m/s)
          
+      character(len=*), parameter :: subname = '(calc_vrel_Cb)'
+      
       !-----------------------------------------------------------------
       ! integrate the momentum equation
       !-----------------------------------------------------------------
@@ -2620,6 +2632,8 @@
          utp, vtp          , & ! utp = uvel, vtp = vvel
          ccaimp,ccb        , & ! intermediate variables
          strintx, strinty
+
+      character(len=*), parameter :: subname = '(matvecOLD)'
 
       !-----------------------------------------------------------------
       ! integrate the momentum equation
@@ -2748,6 +2762,8 @@
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22 (without Pr)
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
          stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12        
+
+      character(len=*), parameter :: subname = '(matvec)'
 
       !-----------------------------------------------------------------
       ! Initialize
@@ -2994,6 +3010,8 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
+      character(len=*), parameter :: subname = '(calc_bfix)'
+
       !-----------------------------------------------------------------
       ! Define variables for momentum equation
       !-----------------------------------------------------------------
@@ -3065,6 +3083,8 @@
          strintx, strinty  , & ! divergence of the internal stress tensor (only Pr part)
          rhow                  !
          
+      character(len=*), parameter :: subname = '(calc_bvec)'
+      
       !-----------------------------------------------------------------
       ! calc b vector
       !-----------------------------------------------------------------
@@ -3138,6 +3158,8 @@
       
       integer (kind=int_kind) :: &
          i, j, ij
+
+      character(len=*), parameter :: subname = '(residual_vec)'
 
       !-----------------------------------------------------------------
       ! calc residual and its L2 norm
@@ -3223,6 +3245,8 @@
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp, tmp
+
+      character(len=*), parameter :: subname = '(formDiag_step1)'
 
       !-----------------------------------------------------------------
       ! Initialize
@@ -3578,6 +3602,8 @@
          ccaimp             , & ! intermediate variables
          strintx, strinty
 
+      character(len=*), parameter :: subname = '(formDiag_step2)'
+
       !-----------------------------------------------------------------
       ! integrate the momentum equation
       !-----------------------------------------------------------------
@@ -3639,6 +3665,8 @@
       integer (kind=int_kind) :: &
          i         
 
+      character(len=*), parameter :: subname = '(precond_diag)'
+
       !-----------------------------------------------------------------
       ! form vector (converts from max_blocks arrays to single vector
       !-----------------------------------------------------------------
@@ -3681,6 +3709,8 @@
 
       integer (kind=int_kind) :: &
          i, j, ij
+
+      character(len=*), parameter :: subname = '(calc_L2norm)'
 
       !-----------------------------------------------------------------
       ! compute l^2 norm of vector grid function (tpu,tpv)
@@ -3735,6 +3765,8 @@
       integer (kind=int_kind) :: &
          i, j, iblk, tot, ij
          
+
+      character(len=*), parameter :: subname = '(arrays_to_vec)'
 
       !-----------------------------------------------------------------
       ! form vector (converts from max_blocks arrays to single vector
@@ -3791,6 +3823,8 @@
          i, j, iblk, tot, ij
          
 
+      character(len=*), parameter :: subname = '(vec_to_arrays)'
+
       !-----------------------------------------------------------------
       ! form arrays (converts from vector to the max_blocks arrays
       !-----------------------------------------------------------------
@@ -3834,6 +3868,8 @@
       real (kind=dbl_kind) :: &
          temp, c, s
                
+      character(len=*), parameter :: subname = '(qr_delete)'
+      
       n = size(Q,1)
       m = size(Q,2)
       do i = 1, m-1
