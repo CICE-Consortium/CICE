@@ -18,6 +18,7 @@ set acct   = ${ICE_ACCOUNT}
 
 @ ncores = ${ntasks} * ${nthrds}
 @ taskpernode = ${maxtpn} / $nthrds
+if (${taskpernode} == 0) set taskpernode = 1
 @ nnodes = ${ntasks} / ${taskpernode}
 if (${nnodes} * ${taskpernode} < ${ntasks}) @ nnodes = $nnodes + 1
 set taskpernodelimit = ${taskpernode}
@@ -149,6 +150,11 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
+else if (${ICE_MACHINE} =~ phase2*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
 else if (${ICE_MACHINE} =~ testmachine*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
@@ -158,17 +164,6 @@ else if (${ICE_MACHINE} =~ travisCI*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
 EOFB
-
-else if (${ICE_MACHINE} =~ high_Sierra*) then
-cat >> ${jobfile} << EOFB
-# nothing to do
-EOFB
-
-else if (${ICE_MACHINE} =~ theia*) then
-cat >> ${jobfile} << EOFB
-# nothing to do
-EOFB
-
 
 else
   echo "${0} ERROR: ${ICE_MACHINE} unknown"
