@@ -16,6 +16,8 @@ The CICE scripts are written to allow quick setup of cases and tests.  Once a ca
 generated, users can manually modify the namelist and other files to custom configure
 the case.  Several settings are available via scripts as well.
 
+.. _overview:
+
 Overview
 ~~~~~~~~
 
@@ -201,7 +203,7 @@ Once the cases are created, users are free to modify the cice.settings and ice_i
 Porting
 -------
 
-To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment}** file have to be added to the
+To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment]** file have to be added to the
 **configuration/scripts/machines/** directory and the 
 **configuration/scripts/cice.batch.csh** file needs to be modified.
 In general, the machine is specified in ``cice.setup`` with ``--mach``
@@ -228,6 +230,16 @@ file until the case can build and run.  Then copy the files from the case
 directory back to **configuration/scripts/machines/** and update 
 the **configuration/scripts/cice.batch.csh** file, retest, 
 and then add and commit the updated machine files to the repository.
+
+.. _cross_compiling:
+
+Cross-compiling
+~~~~~~~~~~~~~~~
+It can happen that the model must be built on a platform and run on another, for example when the run environment is only available in a batch queue. The program **makdep** (see :ref:`overview`), however, is both compiled and run as part of the build process.
+
+In order to support this, the Makefile uses a variable ``CFLAGS_HOST`` that can hold compiler flags specfic to the build machine for the compilation of makdep. If this feature is needed, add the variable ``CFLAGS_HOST`` to the **Macros.[machine]_[environment]** file. For example : ::
+
+  CFLAGS_HOST = -xHost
 
 .. _account:
 
