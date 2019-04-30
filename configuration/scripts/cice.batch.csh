@@ -155,6 +155,11 @@ cat >> ${jobfile} << EOFB
 # nothing to do
 EOFB
 
+else if (${ICE_MACHINE} =~ phase3*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
 else if (${ICE_MACHINE} =~ testmachine*) then
 cat >> ${jobfile} << EOFB
 # nothing to do

@@ -148,6 +148,12 @@ cat >> ${jobfile} << EOFR
 EOFR
 
 #=======
+else if (${ICE_MACHINE} =~ phase3*) then
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
+#=======
 else if (${ICE_MACHINE} =~ phase2*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
