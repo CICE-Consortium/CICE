@@ -16,7 +16,7 @@ FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceb
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -check -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init snans -init arrays
+  FFLAGS     += -O0 -g -check -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays
 # -heap-arrays 1024 
 else
   FFLAGS     += -O2
