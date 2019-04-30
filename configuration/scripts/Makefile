@@ -105,7 +105,7 @@ ifndef $(CFLAGS_HOST)
   CFLAGS_HOST :=
 endif
 
-makdep: $(ICE_CASEDIR)/makdep.c
+$(DEPGEN): $(ICE_CASEDIR)/makdep.c
 	$(SCC) -o $@ $(CFLAGS_HOST) $<
 
 #-------------------------------------------------------------------------------
