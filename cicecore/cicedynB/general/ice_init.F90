@@ -890,12 +890,15 @@
          abort_flag = 19
       endif
       
-      if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'm' .or. &
-                trim(dumpfreq) == 'd' .or. trim(dumpfreq) == 'h'      )) then
+      if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &
+                trim(dumpfreq) == 'm' .or. trim(dumpfreq) == 'M' .or. &
+                trim(dumpfreq) == 'd' .or. trim(dumpfreq) == 'D' .or. &
+                trim(dumpfreq) == 'h' .or. trim(dumpfreq) == 'H' .or. &
+                trim(dumpfreq) == '1' )) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: unrecognized dumpfreq=', trim(dumpfreq)
             write(nu_diag,*) subname//' WARNING:   No restarts files will be written'
-            write(nu_diag,*) subname//' WARNING:   Allowed values : ''y'', ''m'', ''d'', ''h'''
+            write(nu_diag,*) subname//' WARNING:   Allowed values : ''y'', ''m'', ''d'', ''h'', ''1'''
          endif
       endif
 
