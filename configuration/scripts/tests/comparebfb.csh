@@ -65,6 +65,8 @@ if ($filearg == 1) then
 
 else
   set end_date = `ls -t1 $test_dir | head -1 | sed 's|^.*\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]\).*|\1|'`
+  # set nonomatch so that if foreach does not find anything it does not end the script
+  set nonomatch
   foreach test_data (${test_dir}/iced*${end_date}*)
     set test_file = "${test_data:t}"
     if ($restart == 1) then
@@ -86,6 +88,7 @@ else
       echo "  missing data"
     endif
   end
+  unset nonomatch
 endif
 
 exit ${failure}
