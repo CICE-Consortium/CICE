@@ -889,6 +889,15 @@
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=F and fbot_xfer_type=Cdn_ocn'
          abort_flag = 19
       endif
+      
+      if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'm' .or. &
+                trim(dumpfreq) == 'd' .or. trim(dumpfreq) == 'h'      )) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: unrecognized dumpfreq=', trim(dumpfreq)
+            write(nu_diag,*) subname//' WARNING:   No restarts files will be written'
+            write(nu_diag,*) subname//' WARNING:   Allowed values : ''y'', ''m'', ''d'', ''h'''
+         endif
+      endif
 
       ice_IOUnitsMinUnit = numin
       ice_IOUnitsMaxUnit = numax
