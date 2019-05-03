@@ -4869,6 +4869,7 @@
 ! for now
       wave_spec_dir  = ' '
       wave_spec_file = ' '
+      tmp(:,:,:,:,:) = c0
 
       ! wave spectrum and frequencies
       if (wave_spec) &
