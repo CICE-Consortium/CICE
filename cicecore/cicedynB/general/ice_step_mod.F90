@@ -446,7 +446,7 @@
       endif
 
 !echmod FOR NOW
-      ice_wave_sig_ht = c0 !echmod FOR NOW
+      ice_wave_sig_ht = c1 !echmod FOR NOW
 !echmod FOR NOW
 
       this_block = get_block(blocks_ice(iblk),iblk)         

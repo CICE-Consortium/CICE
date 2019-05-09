@@ -4849,7 +4849,8 @@
 
       ! local variables
       integer (kind=int_kind) :: &
-         fid                  ! file id for netCDF routines
+         fid, &                  ! file id for netCDF routines
+         k
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,25,1,max_blocks) :: &
          tmp
@@ -4880,9 +4881,9 @@
       if (trim(wave_spec_file) == '') then
          wave_spectrum(:,:,:,:) = c0
          ! for testing only
-!         do k = 1, nfreq
-!            wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
-!         enddo
+         do k = 1, nfreq
+            wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
+         enddo
       else
 #ifdef ncdf
          spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
@@ -4892,7 +4893,7 @@
 !                           field_loc_center, field_type_scalar)
          call ice_close_nc(fid)
 
-         wave_spectrum(:,:,:,:) = tmp(:,:,:,1,:)
+         !wave_spectrum(:,:,:,:) = tmp(:,:,:,1,:)
          WHERE (wave_spectrum > 1.e30) wave_spectrum = c0
 #endif
       end if
