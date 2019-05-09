@@ -272,6 +272,11 @@
          endif
       enddo
 
+      if (dumpfreq == '1') then
+         if (mod(istep1, dumpfreq_n)==0) &
+            write_restart = 1
+      endif
+
       if (istep > 1) then
 
         do ns = 1, nstreams

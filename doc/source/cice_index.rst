@@ -162,7 +162,7 @@ either Celsius or Kelvin units).
    "dte2T", "dte / 2(damping time scale)", ""
    "dtei", "1/dte, where dte is the EVP subcycling time step", "1/s"
    "dump_file", ":math:`\bullet` output file for restart dump", ""
-   "dumpfreq", ":math:`\bullet` dump frequency for restarts, y, m or d", ""
+   "dumpfreq", ":math:`\bullet` dump frequency for restarts, y, m, d, h or 1", ""
    "dumpfreq_n", ":math:`\bullet` restart output frequency", ""
    "dump_last", ":math:`\bullet` if true, write restart on last time step of simulation", ""
    "dxhy", "combination of HTE values", ""
