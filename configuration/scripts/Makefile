@@ -98,7 +98,7 @@ db_files:
 db_flags:
 	@echo " "
 	@echo "* cpp     := $(CPP) $(CPPFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
-	@echo "* cc      := cc -c $(CFLAGS) $(INCS) $(INCLDIR)"
+	@echo "* cc      := $(CC) -c $(CFLAGS) $(INCS) $(INCLDIR)"
 	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(INCS) $(INCLDIR)"
 	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(INCS) $(INCLDIR)"
 
@@ -110,7 +110,7 @@ $(EXEC): $(OBJS)
 	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJS) $(ULIBS) $(SLIBS)
 
 .c.o:
-	cc $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
+	$(CC) $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
 
 .F.o:
 	$(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
