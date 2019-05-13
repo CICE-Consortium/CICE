@@ -527,10 +527,10 @@ Test Suite Examples
 
  11) **Reusing a test suite**
 
-    Add the incremental option (``-s incremental``). This permits the suite to be re-run without recompiling the whole code.
+    Add the buildincremental option (``-s buildincremental``). This permits the suite to be rerun without recompiling the whole code.
     ::
 
-      ./cice.setup --suite base_suite --mach conrad --env intel --testid v01b --set incremental
+      ./cice.setup --suite base_suite --mach conrad --env intel --testid v01b --set buildincremental
       cd testsuite.v01b
       # wait for runs to complete
       ./results.csh
@@ -539,7 +539,7 @@ Test Suite Examples
       # wait for runs to complete
       ./results.csh
 
-    Only modified files will be recompiled, and the suite will be re-run.
+    Only modified files will be recompiled, and the suite will be rerun.
 
  12) **Create and test a custom suite**
 

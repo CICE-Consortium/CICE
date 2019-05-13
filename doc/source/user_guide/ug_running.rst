@@ -82,7 +82,7 @@ Some hints:
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
 - To change compiler options, manually edit the Macros file
-- To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false. It is also possible to use the ``incremental`` option  (``-s incremental``) when creating the case with **cice.setup** to set this option automatically.
+- To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.
 
 To build and run::
 
@@ -164,7 +164,9 @@ Some of the options are
 
 ``debug`` which turns on the compiler debug flags
 
-``incremental`` which turns off the option to clean the build before each compile
+``buildclean`` which turns on the option to clean the build before each compile
+
+``buildincremental`` which turns off the option to clean the build before each compile
 
 ``short``, ``medium``, ``long`` which change the batch time limit
 
