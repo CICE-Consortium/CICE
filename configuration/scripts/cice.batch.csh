@@ -150,6 +150,19 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
+else if (${ICE_MACHINE} =~ millikan*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -t ${batchtime}
+#SBATCH -A ${acct}
+#SBATCH -N ${nnodes}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+###SBATCH --mail-type END,FAIL
+###SBATCH --mail-user=amelie.bouchat@canada.ca
+#SBATCH --qos=standby
+EOFB
+
 else if (${ICE_MACHINE} =~ testmachine*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
