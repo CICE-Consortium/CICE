@@ -380,9 +380,14 @@ else
   cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
-cat >! ${tsdir}/suite.run << EOF0
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+  cat >! $file << EOF0
 #!/bin/csh -f
+
+set nonomatch && rm -f ciceexe.* && unset nonomatch
+
 EOF0
+  end
 
 cat >! ${tsdir}/results.csh << EOF0
 #!/bin/csh -f
@@ -403,6 +408,7 @@ echo "#------- " >> results.log
 EOF0
 
   chmod +x ${tsdir}/suite.run
+  chmod +x ${tsdir}/suite.submit
   chmod +x ${tsdir}/results.csh
 
 endif
@@ -439,7 +445,7 @@ foreach compiler ( $ncompilers )
       continue
     # Check if line is a sleep line, can only happen with suites
     else if ( $line:q =~ 'sleep'*) then
-cat >> ${tsdir}/suite.run << EOF
+cat >> ${tsdir}/suite.submit << EOF
 echo "-------test--------------"
 echo "$line:q"
 $line:q
@@ -829,13 +835,13 @@ EOF2
 
     if ( ${dosuite} == 1 ) then
       cd ${ICE_SANDBOX}
-      # Write build and run commands to suite.run
+      # Write build and run commands to suite.run and suite.submit
 
 cat >> ${tsdir}/results.csh << EOF
 cat ${testname_base}/test_output >> results.log
 EOF
-
-cat >> ${tsdir}/suite.run << EOF
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+    cat >> $file  << EOF
 echo "-------test--------------"
 echo "${testname_base}"
 cd ${testname_base}
@@ -843,10 +849,20 @@ source ./cice.settings
 set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
 ./cice.build \${ciceexe}
 if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
+EOF
+  end
+  cat >> ${tsdir}/suite.submit << EOF
 ./cice.submit | tee -a ../suite.jobs
+EOF
+  cat >> ${tsdir}/suite.run << EOF
+./cice.test
+EOF
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+    cat >> $file << EOF
 cd ..
 
 EOF
+  end
     
       # Reset case for the next test in suite
       set case = ${spval}
@@ -905,7 +921,7 @@ EOF0
 
   # build and submit tests
   cd ${tsdir}
-  ./suite.run | tee suite.log
+  ./suite.submit | tee suite.log
   if ($report == 1) then
     echo "Reporting results"
     ./poll_queue.csh
