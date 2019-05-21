@@ -101,7 +101,7 @@ cat >> ${jobfile} << EOFR
 EOFR
 else
 cat >> ${jobfile} << EOFR
-srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+srun --cpu-bind=cores ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 
