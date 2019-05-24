@@ -149,7 +149,6 @@
         dimid_ncat, & !
         iflag,      & ! netCDF creation flag
         status        ! status variable from netCDF routine
-      integer (kind=int_kind) :: oldMode
 
       character (len=3) :: nchar, ncharb
 
@@ -602,9 +601,6 @@
          endif   !z_tracers
 
          deallocate(dims)
-! From Denise Worthen for theia 11 Oct 2018:
-         !Prevent prefilling of arrays with _FillValue
-         status = nf90_set_fill(ncid, nf90_nofill, oldMode)
          status = nf90_enddef(ncid)
 
          write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
