@@ -97,14 +97,16 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ cori*) then
+@ nthrds2 = ${nthrds} * 2
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -p ${queue}
 ###SBATCH -A ${acct}
-#SBATCH -n ${ncores}
-#SBATCH -t ${batchtime}
-#SBATCH -L SCRATCH
-#SBATCH -C haswell
+#SBATCH --qos ${queue}
+#SBATCH --time ${batchtime}
+#SBATCH --nodes ${nnodes}
+#SBATCH --ntasks ${ntasks}
+#SBATCH --cpus-per-task ${nthrds2}
+#SBATCH --constraint haswell
 ###SBATCH -e filename
 ###SBATCH -o filename
 ###SBATCH --mail-type FAIL
