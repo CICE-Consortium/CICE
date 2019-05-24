@@ -11,6 +11,7 @@ addons:
       - pkg-config
       - netcdf-bin libnetcdf-dev #libnetcdff-dev (only required on Debian)
       - gfortran
+      - gcc
       - openmpi-bin libopenmpi-dev
       - wget
       #- lftp

@@ -118,12 +118,12 @@ if ( $fbuild != "" || $frun != "" || $ftest != "" ) then
   set frun   = `grep " ${case} " results.log | grep " run"     | cut -c 1-4`
   set ftest  = `grep " ${case} " results.log | grep " test"    | cut -c 1-4`
   set fregr  = `grep " ${case} " results.log | grep " compare" | cut -c 1-4`
-  set fcomp  = `grep " ${case} " results.log | grep " bfbcomp" | cut -c 1-4`
+  set fcomp  = `grep " ${case} bfbcomp " results.log | cut -c 1-4`
 #  if (${ftest}  == "PASS") set frun   = "PASS"
 #  if (${frun}   == "PASS") set fbuild = "PASS"
 
   set vregr  = `grep " ${case} " results.log | grep " compare" | cut -d " " -f 4 | sed 's/\./ /g' `
-  set vcomp  = `grep " ${case} " results.log | grep " bfbcomp" | cut -d " " -f 4`
+  set vcomp  = `grep " ${case} bfbcomp " results.log | cut -d " " -f 4`
 
   set vtime1 = `grep " ${case} " results.log | grep " run" | cut -d " " -f 4`
   set vtime2 = `grep " ${case} " results.log | grep " run" | cut -d " " -f 5`

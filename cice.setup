@@ -327,6 +327,16 @@ if (-e $tsfile) then
   exit -1
 endif
 
+set remote = `git remote -v | grep -i origin | grep -i push | sed "s|.*\(https.*\)\s.*|\1|g"`
+set branch = `git status | grep -i "on branch" | sed 's|^.*ranch\s*\(\S*\)$|\1|g'`
+set hash     = `git log | grep -i commit | head -1 | cut -d " " -f 2-`
+set hashuser = `git log | grep -i author | head -1 | cut -d : -f 2-`
+set hashdate = `git log | grep -i date   | head -1 | cut -d : -f 2-`
+set cdate = `date -u "+%Y-%m-%d"`
+set ctime = `date -u "+%H:%M:%S"`
+set vers = ${ICE_VERSION}
+set shhash = `echo ${hash} | cut -c 1-10`
+
 if ( ${dosuite} == 0 ) then
   set teststring = "${test} ${grid} ${pesx} ${sets}"
   if ( $bfbcomp != ${spval} ) then
@@ -368,24 +378,16 @@ else
   endif
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
-  if ($report == 1) then
-    cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
-  endif
-
-cat >! ${tsdir}/suite.run << EOF0
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+  cat >! $file << EOF0
 #!/bin/csh -f
-EOF0
 
-  set remote = `git remote -v | grep -i origin | grep -i push | sed "s|.*\(https.*\)\s.*|\1|g"`
-  set branch = `git status | grep -i "on branch" | sed 's|^.*ranch\s*\(\S*\)$|\1|g'`
-  set hash     = `git log | grep -i commit | head -1 | cut -d " " -f 2-`
-  set hashuser = `git log | grep -i author | head -1 | cut -d : -f 2-`
-  set hashdate = `git log | grep -i date   | head -1 | cut -d : -f 2-`
-  set cdate = `date -u "+%Y-%m-%d"`
-  set ctime = `date -u "+%H:%M:%S"`
-  set vers = ${ICE_VERSION}
-  set shhash = `echo ${hash} | cut -c 1-10`
+set nonomatch && rm -f ciceexe.* && unset nonomatch
+
+EOF0
+  end
 
 cat >! ${tsdir}/results.csh << EOF0
 #!/bin/csh -f
@@ -406,6 +408,7 @@ echo "#------- " >> results.log
 EOF0
 
   chmod +x ${tsdir}/suite.run
+  chmod +x ${tsdir}/suite.submit
   chmod +x ${tsdir}/results.csh
 
 endif
@@ -435,11 +438,26 @@ set bfbcomp_base = "$bfbcomp"
 foreach compiler ( $ncompilers )
   set machcomp = ${machine}_${compiler}
   foreach line ( "`cat $tsfile`" )
+
     # Check if line is a comment line
     if ( $line:q =~ '#'* || $line:q =~ '$'* || $line:q =~ '!'* ) then
       echo "skipping line: $line"
       continue
+    # Check if line is a sleep line, can only happen with suites
+    else if ( $line:q =~ 'sleep'*) then
+cat >> ${tsdir}/suite.submit << EOF
+echo "-------test--------------"
+echo "$line:q"
+$line:q
+
+EOF
+      echo "adding sleep line: $line"
+      echo "" 
+      echo "---" 
+      echo "" 
+      continue
     endif
+
     # Obtain the test name, sets, grid, and PE information from .ts file
     set test = `echo $line | cut -d' ' -f1`
     set grid = `echo $line | cut -d' ' -f2`
@@ -461,7 +479,7 @@ foreach compiler ( $ncompilers )
 
     set fbfbcomp = ${spval}
     if ($bfbcomp != ${spval}) then
-      set fbfbcomp = ${machcomp}_${bfbcomp}.${testid}
+      set fbfbcomp = ${machcomp}_${bfbcomp}
     endif
 
     set testname_noid = ${spval}
@@ -480,11 +498,7 @@ foreach compiler ( $ncompilers )
       # soptions starts with _
       set testname_noid = "${machcomp}_${test}_${grid}_${pesx}${soptions}"
       set testname_base = "${machcomp}_${test}_${grid}_${pesx}${soptions}.${testid}"
-      if (${dosuite} == 1) then
-        set testname = "${tsdir}/${testname_base}"
-      else
-        set testname = "${testname_base}"
-      endif
+      set testname = "${tsdir}/${testname_base}"
       set case = ${testname}
     endif
 
@@ -504,7 +518,7 @@ foreach compiler ( $ncompilers )
     # Setup case directory, copy files to case directory
 
     mkdir -p ${case}
-    echo "`date`${0} $initargv[*]" >> ${case}/README.case
+    echo "`date` ${0} $initargv[*]" >> ${case}/README.case
 
     cd ${case}
     set casedir = `pwd`
@@ -690,6 +704,7 @@ setenv ICE_SPVAL    ${spval}
 setenv ICE_QUIETMODE  ${quietmode}
 setenv ICE_TEST     ${test}
 setenv ICE_TESTNAME ${testname_noid}
+setenv ICE_TESTID   ${testid}
 setenv ICE_BFBCOMP  ${fbfbcomp}
 setenv ICE_ACCOUNT  ${acct}
 setenv ICE_QUEUE    ${queue}
@@ -702,7 +717,7 @@ EOF1
       foreach name ($setsxorig)
         if (-e ${ICE_SCRIPTS}/options/set_files.${name}) then
           echo "adding options files from set_files.${name}"
-          echo "`date`${0} adding options files from set_files.${name}" >> ${casedir}/README.case
+          echo "`date` ${0} adding options files from set_files.${name}" >> ${casedir}/README.case
           set setsnew = `cat ${ICE_SCRIPTS}/options/set_files.${name}`
           foreach nset ($setsnew)
             if ($nset !~ "#*") then
@@ -720,9 +735,10 @@ EOF1
 
     if (${docase} == 0) then
       # from test options to casescr in case any test time changes are applied
+      cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/comparelog.csh ${casescr}
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
-        cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)
           if (-e ${ICE_SCRIPTS}/options/$file) then
             cp -f -p ${ICE_SCRIPTS}/options/$file ${casescr}
@@ -749,7 +765,7 @@ cat >> ${fimods} << EOF2
 
 EOF2
         echo "adding namelist mods set_nml.${name}"
-        echo "`date`${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
+        echo "`date` ${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
         set found = 1
       endif
       if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
@@ -767,7 +783,7 @@ cat >> ${fimods} << EOF2
 EOF2
 
         echo "adding env mods set_env.${name}"
-        echo "`date`${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
+        echo "`date` ${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
         set found = 1
       endif
       if (${found} == 0) then
@@ -819,13 +835,13 @@ EOF2
 
     if ( ${dosuite} == 1 ) then
       cd ${ICE_SANDBOX}
-      # Write build and run commands to suite.run
+      # Write build and run commands to suite.run and suite.submit
 
 cat >> ${tsdir}/results.csh << EOF
 cat ${testname_base}/test_output >> results.log
 EOF
-
-cat >> ${tsdir}/suite.run << EOF
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+    cat >> $file  << EOF
 echo "-------test--------------"
 echo "${testname_base}"
 cd ${testname_base}
@@ -833,10 +849,20 @@ source ./cice.settings
 set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
 ./cice.build \${ciceexe}
 if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
-./cice.submit
+EOF
+  end
+  cat >> ${tsdir}/suite.submit << EOF
+./cice.submit | tee -a ../suite.jobs
+EOF
+  cat >> ${tsdir}/suite.run << EOF
+./cice.test
+EOF
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+    cat >> $file << EOF
 cd ..
 
 EOF
+  end
     
       # Reset case for the next test in suite
       set case = ${spval}
@@ -887,9 +913,15 @@ echo "\$pends of \$total tests PENDING"
 exit \$failures
 EOF
 
+  if ($?ICE_MACHINE_QSTAT) then
+cat >! ${tsdir}/poll_queue.env << EOF0
+setenv ICE_MACHINE_QSTAT ${ICE_MACHINE_QSTAT}
+EOF0
+  endif
+
   # build and submit tests
   cd ${tsdir}
-  ./suite.run | tee suite.log
+  ./suite.submit | tee suite.log
   if ($report == 1) then
     echo "Reporting results"
     ./poll_queue.csh

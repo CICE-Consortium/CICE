@@ -54,14 +54,7 @@ endif
 if !(-d ${ICE_OBJDIR}) mkdir -p ${ICE_OBJDIR}
 cd ${ICE_OBJDIR}
 
-#setenv ICE_CPPDEFS "-DNXGLOB=${ICE_NXGLOB} -DNYGLOB=${ICE_NYGLOB} -DBLCKX=${ICE_BLCKX} -DBLCKY=${ICE_BLCKY} -DMXBLCKS=${ICE_MXBLCKS} -DNICELYR=${NICELYR} -DNSNWLYR=${NSNWLYR} -DNICECAT=${NICECAT} -DTRAGE=${TRAGE} -DTRFY=${TRFY} -DTRLVL=${TRLVL} -DTRPND=${TRPND} -DTRBRI=${TRBRI} -DNTRAERO=${NTRAERO}  -DTRZS=${TRZS} -DNBGCLYR=${NBGCLYR} -DTRALG=${TRALG} -DTRBGCZ=${TRBGCZ} -DTRDOC=${TRDOC} -DTRDOC=${TRDOC} -DTRDIC=${TRDIC} -DTRDON=${TRDON} -DTRFED=${TRFED} -DTRFEP=${TRFEP} -DTRZAERO=${TRZAERO} -DTRBGCS=${TRBGCS} -DNUMIN=${NUMIN} -DNUMAX=${NUMAX}"
-#setenv ICE_CPPDEFS "-DNICELYR=${NICELYR} -DNSNWLYR=${NSNWLYR} -DNICECAT=${NICECAT} -DTRAGE=${TRAGE} -DTRFY=${TRFY} -DTRLVL=${TRLVL} -DTRPND=${TRPND} -DTRBRI=${TRBRI} -DNTRAERO=${NTRAERO}  -DTRZS=${TRZS} -DNBGCLYR=${NBGCLYR} -DTRALG=${TRALG} -DTRBGCZ=${TRBGCZ} -DTRDOC=${TRDOC} -DTRDOC=${TRDOC} -DTRDIC=${TRDIC} -DTRDON=${TRDON} -DTRFED=${TRFED} -DTRFEP=${TRFEP} -DTRZAERO=${TRZAERO} -DTRBGCS=${TRBGCS} -DNUMIN=${NUMIN} -DNUMAX=${NUMAX}"
-#setenv ICE_CPPDEFS "-DNUMIN=${NUMIN} -DNUMAX=${NUMAX}"
 setenv ICE_CPPDEFS " "
-
-if ($DITTO == 'yes') then
-  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -DREPRODUCIBLE"
-endif
 
 if (${ICE_IOTYPE} == 'netcdf') then
   set IODIR = io_netcdf
@@ -96,7 +89,8 @@ cat ${ICE_OBJDIR}/Filepath
 echo " "
 
 echo "building makdep"
-cc -o makdep ${ICE_CASEDIR}/makdep.c     || exit 2
+${ICE_MACHINE_MAKE} \
+        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} makdep || exit 2
 
 echo "building cice > ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
 
@@ -110,11 +104,9 @@ if (${ICE_CLEANBUILD} == 'true') then
   echo "gmake clean"
   if (${quiet} == "true") then
     ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-        CPPDEFS="${ICE_CPPDEFS}" \
         -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean >& ${ICE_BLDLOG_FILE}
   else
     ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-        CPPDEFS="${ICE_CPPDEFS}" \
         -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean | tee ${ICE_BLDLOG_FILE}
   endif
 endif
@@ -123,12 +115,10 @@ echo "gmake cice"
 if (${quiet} == "true") then
   echo "  quiet mode on... patience"
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-      CPPDEFS="${ICE_CPPDEFS}" \
       -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} >& ${ICE_BLDLOG_FILE} 
   set bldstat = ${status}
 else
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-      CPPDEFS="${ICE_CPPDEFS}" \
       -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} | tee ${ICE_BLDLOG_FILE} 
   set bldstat = ${status}
 endif
