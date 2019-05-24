@@ -154,7 +154,12 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ testmachine*) then
+else if (${ICE_MACHINE} =~ theia*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+#=======
+else if (${ICE_MACHINE} =~ phase2*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
@@ -162,16 +167,13 @@ EOFR
 #=======
 else if (${ICE_MACHINE} =~ phase3*) then
 cat >> ${jobfile} << EOFR
-mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+./cice >&! \$ICE_RUNLOG_FILE
 EOFR
-
 #=======
-else if (${ICE_MACHINE} =~ phase2*) then
+else if (${ICE_MACHINE} =~ testmachine*) then
 cat >> ${jobfile} << EOFR
-mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+./cice >&! \$ICE_RUNLOG_FILE
 EOFR
-
-=======
 
 #=======
 else if (${ICE_MACHINE} =~ travisCI*) then

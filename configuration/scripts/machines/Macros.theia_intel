@@ -22,9 +22,6 @@ endif
 
 #Note that on theia mpif90 refers to gfortran even though it is in the intel bin
 FC := mpiifort
-
-MPICC:= 
-
 MPIFC:= mpiifort
 LD:= $(MPIFC)
 
@@ -41,8 +38,20 @@ else
 endif
 
 LIB_MPI := 
-SCC:= 
-SFC:= 
+
+
+SCC   := icc 
+SFC   := ifort
+MPICC := mpiicc
+MPIFC := mpiifort
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -fopenmp
