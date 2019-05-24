@@ -21,7 +21,7 @@
     dumpfreq       = 'd'
     dumpfreq_n     = 1
     dump_last      = .false.
-    bfbflag        = .false.
+    bfbflag        = 'off'
     diagfreq       = 24
     diag_type      = 'stdout'
     diag_file      = 'ice_diag.d'
