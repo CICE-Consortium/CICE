@@ -856,6 +856,25 @@
          str(i,j,1) = -strp_tmp - strm_tmp - str12ew &
               + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
 
+!if (i==10 .and. j==15) then
+!if (i==10 .and. j==14) then
+!if (i==9 .and. j==15) then
+if (i==9 .and. j==4) then
+print*,ksub,'i uvel',uvel(i,j)
+print*,ksub,'i sig',ssigpn,ssigps, ssigmn,ssigms
+print*,ksub,'i str',-strp_tmp, -strm_tmp, -str12ew
+print*,ksub,'i csig',-csigpne, csigmne, csig12ne
+print*,ksub,'i sigpn',stressp_1(i,j), stressp_2(i,j)
+print*,ksub,'i sigps',stressp_3(i,j), stressp_4(i,j)
+print*,ksub,'i sigmn',stressm_1(i,j), stressm_2(i,j)
+print*,ksub,'i sigms',stressm_3(i,j), stressm_4(i,j)
+print*,ksub,'i p_1',c1ne,divune,shearne,Deltane
+print*,ksub,'i u',tensionne,uvel(i-1,j),uvel(i,j-1)
+print*,ksub,'i v',strength(i,j),vvel(i-1,j),vvel(i,j-1)
+print*,ksub,'i dx,dy',dxt(i,j),dyt(i,j),cxp(i,j),cyp(i,j)
+print*,' '
+endif
+
          ! northwest (i+1,j)
          str(i,j,2) = strp_tmp + strm_tmp - str12we &
               + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
@@ -880,6 +899,25 @@
          ! northeast (i,j)
          str(i,j,5) = -strp_tmp + strm_tmp - str12ns &
               - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
+
+!if (i==15 .and. j==10) then
+!if (i==14 .and. j==10) then
+!if (i==15 .and. j==9) then
+if (i==4 .and. j==9) then
+print*,ksub,'j vvel',vvel(i,j)
+print*,ksub,'j sig',ssigpe,ssigpw, ssigme,ssigmw
+print*,ksub,'j str',-strp_tmp, strm_tmp, -str12ns
+print*,ksub,'j csig',csigpsw, csigmsw, csig12sw
+print*,ksub,'j sigpe',stressp_1(i,j), stressp_4(i,j)
+print*,ksub,'j sigpw',stressp_3(i,j), stressp_2(i,j)
+print*,ksub,'j sigme',-stressm_1(i,j), -stressm_4(i,j)
+print*,ksub,'j sigmw',-stressm_3(i,j), -stressm_2(i,j)
+print*,ksub,'j p_1',c1ne,divune,shearne,Deltane
+print*,ksub,'j v',tensionne,vvel(i,j-1),vvel(i-1,j)
+print*,ksub,'j u',strength(i,j),uvel(i,j-1),uvel(i-1,j)
+print*,ksub,'j dx,dy',dxt(i,j),dyt(i,j),cxp(i,j),cyp(i,j)
+print*,' '
+endif
 
          ! southeast (i,j+1)
          str(i,j,6) = strp_tmp - strm_tmp - str12sn &

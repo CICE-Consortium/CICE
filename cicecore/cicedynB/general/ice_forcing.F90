@@ -114,12 +114,12 @@
       character(char_len), public :: & 
          atm_data_format, & ! 'bin'=binary or 'nc'=netcdf
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
-         atm_data_type, & ! 'default', 'monthly', 'ncar', 
-                          ! 'LYq' or 'hadgem' or 'oned'
+         atm_data_type, & ! 'default', 'monthly', 'ncar', 'hycom',
+                          ! 'LYq' or 'hadgem' or 'oned', 'box2001'
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
-         ice_data_type, & ! 'default', 'box2001', 'boxslotcyl'
+         ice_data_type, & ! 'default', 'box2001', 'boxslotcyl', 'boxsymm'
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
  
       character(char_len_long), public :: & 
@@ -254,6 +254,9 @@
          call ISPOL_files
       elseif (trim(atm_data_type) == 'box2001') then
          call box2001_data
+      elseif (trim(atm_data_type) == 'boxsymmi' .or. &
+              trim(atm_data_type) == 'boxsymmj') then
+         call boxsymm_data
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_files
       endif
@@ -547,6 +550,9 @@
          call oned_data
       elseif (trim(atm_data_type) == 'box2001') then
          call box2001_data
+      elseif (trim(atm_data_type) == 'boxsymmi' .or. &
+              trim(atm_data_type) == 'boxsymmj') then
+         ! constant in time
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_data
       else    ! default values set in init_flux
@@ -4757,7 +4763,6 @@
       use ice_constants, only: c0, c1, c2, c3, c4, c5, p2
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
-      use ice_fileunits, only: nu_diag, nu_forcing
       use ice_grid, only: uvm
 
       ! local parameters
@@ -4773,8 +4778,8 @@
       period = c4*secday
 
       do iblk = 1, nblocks
-         do j = 1, ny_block   
-         do i = 1, nx_block   
+         do j = 1, ny_block
+         do i = 1, nx_block
 
          ! ocean current
          ! constant in time, could be initialized in ice_flux.F90
@@ -4827,11 +4832,59 @@
         !                    / real(ny_global,kind=dbl_kind)
 ! initialization test
 
-         enddo  
-         enddo  
+         enddo
+         enddo
       enddo ! nblocks
 
       end subroutine box2001_data
+
+!=======================================================================
+!
+      subroutine boxsymm_data
+
+! for testing i/j symmetry
+! authors: Elizabeth Hunke, LANL
+
+      use ice_domain, only: nblocks
+      use ice_constants, only: c0, c1
+      use ice_blocks, only: nx_block, ny_block
+      use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
+
+      ! local parameters
+
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
+
+      real (kind=dbl_kind) :: tau
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+
+         ! ocean current
+         uocn(i,j,iblk) = p001
+         vocn(i,j,iblk) = p001
+
+         ! wind components
+         if (trim(atm_data_type) == 'boxsymmi') then
+            uatm(i,j,iblk) = c1
+            vatm(i,j,iblk) = c0
+         elseif (trim(atm_data_type) == 'boxsymmj') then
+            uatm(i,j,iblk) = c0
+            vatm(i,j,iblk) = c1
+         endif
+
+         ! wind stress
+         wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
+         tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
+         strax(i,j,iblk) = tau * uatm(i,j,iblk)
+         stray(i,j,iblk) = tau * vatm(i,j,iblk)
+
+         enddo
+         enddo
+      enddo ! nblocks
+
+      end subroutine boxsymm_data
 
 !=======================================================================
 

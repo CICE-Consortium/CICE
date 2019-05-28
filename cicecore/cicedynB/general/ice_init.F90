@@ -1650,7 +1650,8 @@
       !       extend to the prescribed edges.
       !-----------------------------------------------------------------
 
-         if (trim(ice_data_type) == 'box2001') then
+         if (trim(ice_data_type) == 'box2001'  .or. &
+             trim(ice_data_type(1:7)) == 'boxsymm') then
 
             hbar = c2  ! initial ice thickness
             do n = 1, ncat
@@ -1658,7 +1659,7 @@
                ainit(n) = c0
                if (hbar > hin_max(n-1) .and. hbar < hin_max(n)) then
                   hinit(n) = hbar
-                  ainit(n) = p5 !echmod symm
+                  ainit(n) = p5
                endif
             enddo
 
@@ -1670,7 +1671,7 @@
                ainit(n) = c0
                if (hbar > hin_max(n-1) .and. hbar < hin_max(n)) then
                   hinit(n) = hbar
-                  ainit(n) = c1 !echmod symm
+                  ainit(n) = c1
                endif
             enddo
          
