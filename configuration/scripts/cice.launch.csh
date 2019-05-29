@@ -156,7 +156,8 @@ endif
 #=======
 else if (${ICE_MACHINE} =~ theia*) then
 cat >> ${jobfile} << EOFR
-mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+#mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 #./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 #=======
