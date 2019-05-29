@@ -150,15 +150,6 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
-else if (${ICE_MACHINE} =~ phase2*) then
-cat >> ${jobfile} << EOFB
-# nothing to do
-EOFB
-
-else if (${ICE_MACHINE} =~ phase3*) then
-cat >> ${jobfile} << EOFB
-# nothing to do
-=======
 else if (${ICE_MACHINE} =~ millikan*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
@@ -170,7 +161,29 @@ cat >> ${jobfile} << EOFB
 ###SBATCH --mail-type END,FAIL
 ###SBATCH --mail-user=amelie.bouchat@canada.ca
 #SBATCH --qos=standby
+EOFB
 
+else if (${ICE_MACHINE} =~ theia*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -t ${batchtime}
+#SBATCH -q batch
+#SBATCH -A marine-cpu
+#SBATCH -N ${nnodes}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+#SBATCH --mail-type END,FAIL
+#SBATCH --mail-user=robert.grumbine@noaa.gov
+EOFB
+
+else if (${ICE_MACHINE} =~ phase2*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
+else if (${ICE_MACHINE} =~ phase3*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
 EOFB
 
 else if (${ICE_MACHINE} =~ testmachine*) then
