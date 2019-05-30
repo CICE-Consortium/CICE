@@ -40,8 +40,8 @@ LIB_MPI :=
 SCC:=gcc 
 SFC:= 
 
-ifeq ($(ICE_THREADED), true) 
-   LDFLAGS += -fopenmp
-   CFLAGS += -fopenmp
-   FFLAGS += -fopenmp
-endif
+#ifeq ($(ICE_THREADED), true) 
+#   LDFLAGS += -fopenmp
+#   CFLAGS += -fopenmp
+#   FFLAGS += -fopenmp
+#endif
