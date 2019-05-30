@@ -4,7 +4,7 @@
 
 CPP        := cpp
 CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 -fp-model precise   -xHost
+CFLAGS     := -c -O2 
 
 FIXEDFLAGS := -132
 FFLAGS     :=  -O2 -ffree-line-length-none -fconvert=big-endian -finit-real=nan
@@ -37,7 +37,7 @@ else
 endif
 
 LIB_MPI := 
-SCC:= 
+SCC:=gcc 
 SFC:= 
 
 ifeq ($(ICE_THREADED), true) 
