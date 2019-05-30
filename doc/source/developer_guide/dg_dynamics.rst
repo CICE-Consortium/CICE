@@ -37,8 +37,18 @@ The dynamics solvers are found in **cicecore/cicedynB/dynamics/**.  A couple of 
 available including EVP, revised EVP, and EAP.  The dynamics solver is specified in namelist with the
 ``kdyn`` variable.  ``kdyn=1`` is evp, ``kdyn=2`` is eap, and revised evp requires the ``revised_evp``
 namelist flag be set to true.
-A vectorized version of EVP is available through the namelist flag ``evp_kernel_ver``. Default is "normal"
-EVP as usual ``evp_kernel_ver=0``, whereas an vectorized version (ver.2) is available ``evp_kernel_ver=2``.
+
+Multiple evp solvers are supported thru the namelist flag ``kevp_kernel``.  The standard implementation
+and current default is ``kevp_kernel=0``.  In this case, the stress is solved on the regular decomposition
+via subcycling and calls to subroutine stress and subroutine stepu with MPI global sums required in each
+subcycling call.  With ``kevp_kernel=2``, the data required to compute the stress is gathered to the root
+MPI process and the stress calculation is performed on the root task without any MPI global sums.  OpenMP
+parallelism is supported in ``kevp_kernel=2``.  The solutions with ``kevp_kernel`` set to 0 or 2 will 
+not be bit-for-bit
+identical but should be the same to roundoff and produce the same climate.  ``kevp_kernel=2`` may perform
+better for some configurations, some machines, and some pe counts.  ``kevp_kernel=2`` is not supported
+with the tripole grid and is still being validated.  Until ``kevp_kernel=2`` is fully validated, it will
+abort if set.  To override the abort, use value 102 for testing.
 
 
 Transport

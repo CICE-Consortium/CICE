@@ -40,10 +40,10 @@
          revised_evp  ! if true, use revised evp procedure
 
       integer (kind=int_kind), public :: &
-         evp_kernel_ver ! 0 = 2D org version
-                        ! 1 = 1D representation raw (not implemented)
-                        ! 2 = 1D + calculate distances inline (implemented)
-                        ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
+         kevp_kernel ! 0 = 2D org version
+                     ! 1 = 1D representation raw (not implemented)
+                     ! 2 = 1D + calculate distances inline (implemented)
+                     ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
       ! other EVP parameters
 
       character (len=char_len), public :: & 
