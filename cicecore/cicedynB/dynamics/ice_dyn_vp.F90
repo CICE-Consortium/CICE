@@ -764,7 +764,8 @@
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
                             uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
-                            bx       (:,:,iblk), by      (:,:,iblk))
+                            bx       (:,:,iblk), by      (:,:,iblk), &
+                            vrel     (:,:,iblk))
 
       !     prepare precond matrix
            if (precond .gt. 1) then
@@ -1228,7 +1229,8 @@
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
                             ulin     (:,:,iblk), vlin    (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
-                            bx       (:,:,iblk), by      (:,:,iblk))
+                            bx       (:,:,iblk), by      (:,:,iblk), &
+                            vrel     (:,:,iblk))
             
             ! Compute nonlinear residual norm (PDE residual)
             call matvec (nx_block             , ny_block,            &
@@ -3048,7 +3050,8 @@
                        waterx,     watery,   &
                        uvel,       vvel,     &
                        bxfix,      byfix,    &
-                       bx,         by)
+                       bx,         by,       &
+                       vrel)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -3070,7 +3073,8 @@
          bxfix   , & ! bx = taux + bxfix !jfl
          byfix   , & ! by = tauy + byfix !jfl
          uocn    , & ! ocean current, x-direction (m/s)
-         vocn        ! ocean current, y-direction (m/s)
+         vocn    , & ! ocean current, y-direction (m/s)
+         vrel        ! relative ice-ocean velocity
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
          intent(in) :: &
@@ -3087,7 +3091,6 @@
          i, j, ij
 
       real (kind=dbl_kind) :: &
-         vrel              , & ! relative ice-ocean velocity
          utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
          taux, tauy        , & ! part of ocean stress term
          strintx, strinty  , & ! divergence of the internal stress tensor (only Pr part)
@@ -3098,8 +3101,6 @@
       !-----------------------------------------------------------------
       ! calc b vector
       !-----------------------------------------------------------------
-
-      !JFL vrel could be sent here (already calc before...
       
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
@@ -3113,12 +3114,9 @@
          utp = uvel(i,j)
          vtp = vvel(i,j)
 
-         ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - utp)**2 + &
-                                           (vocn(i,j) - vtp)**2)  ! m/s
          ! ice/ocean stress
-         taux = vrel*waterx(i,j) ! NOTE this is not the entire
-         tauy = vrel*watery(i,j) ! ocn stress term
+         taux = vrel(i,j)*waterx(i,j) ! NOTE this is not the entire
+         tauy = vrel(i,j)*watery(i,j) ! ocn stress term
          
          ! divergence of the internal stress tensor (only Pr part, i.e. dPr/dx)
          strintx = uarear(i,j)* &
