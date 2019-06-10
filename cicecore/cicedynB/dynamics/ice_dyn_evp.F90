@@ -673,34 +673,34 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
          ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
-         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
-         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
-         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
+         divune    = (cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  )) &
+                   + (cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1))
+         divunw    = (cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  )) &
+                   + (cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1))
+         divusw    = (cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1)) &
+                   + (cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  ))
+         divuse    = (cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1)) &
+                   + (cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  ))
 
          ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
-         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
-         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
-         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
+         tensionne = (-cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  )) &
+                   + ( cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1))
+         tensionnw = (-cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  )) &
+                   + ( cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1))
+         tensionsw = (-cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1)) &
+                   + ( cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  ))
+         tensionse = (-cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1)) &
+                   + ( cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  ))
 
          ! shearing strain rate  =  e_12
-         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
-                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
-         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
-                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
-         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
-                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
-         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
-                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
+         shearne = (-cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  )) &
+                 + (-cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1))
+         shearnw = (-cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  )) &
+                 + (-cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1))
+         shearsw = (-cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1)) &
+                 + (-cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  ))
+         shearse = (-cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1)) &
+                 + (-cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  ))
          
          ! Delta (in the denominator of zeta, eta)
          Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
