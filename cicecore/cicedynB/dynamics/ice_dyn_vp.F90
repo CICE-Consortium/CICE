@@ -52,7 +52,8 @@
 
       implicit none
       private
-      public :: imp_solver, matvec, arrays_to_vec, vec_to_arrays, precond_diag
+      public :: imp_solver, matvec, arrays_to_vec, vec_to_arrays, precond_diag, &
+                init_vp
 
       ! namelist parameters
 
@@ -85,6 +86,62 @@
 
       contains
 
+!=======================================================================
+
+! Initialize parameters and variables needed for the vp dynamics
+! author: Philippe Blain, ECCC
+
+      subroutine init_vp (dt)
+      
+      use ice_blocks, only: get_block, block
+      use ice_boundary, only: ice_HaloUpdate
+      use ice_constants, only: c1, &
+          field_loc_center, field_type_scalar
+      use ice_domain, only: nblocks, blocks_ice, halo_info
+      use ice_dyn_shared, only: init_evp
+      use ice_grid, only: tarea, tinyarea
+      
+      real (kind=dbl_kind), intent(in) :: &
+         dt      ! time step
+      
+      ! local variables
+      
+      integer (kind=int_kind) :: &
+         i, j, iblk, &
+         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+
+      type (block) :: &
+         this_block           ! block information for current block
+         
+      real (kind=dbl_kind) :: &
+         puny_vp = 2e-09_dbl_kind      ! special puny value for computing tinyarea
+      
+      ! Initialize variables shared with evp
+      call init_evp(dt)
+      
+      ! Redefine tinyarea using a different puny value
+      
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+            tinyarea(i,j,iblk) = puny_vp*tarea(i,j,iblk)
+         enddo
+         enddo
+      enddo                     ! iblk
+      !$OMP END PARALLEL DO
+      
+      call ice_HaloUpdate (tinyarea,           halo_info, &
+                           field_loc_center,   field_type_scalar, &
+                           fillValue=c1)
+      
+      end subroutine init_vp
 !=======================================================================
 
 ! Viscous-plastic dynamics driver

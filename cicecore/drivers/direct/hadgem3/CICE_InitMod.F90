@@ -72,6 +72,7 @@
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
       use ice_dyn_shared, only: kdyn, init_evp, basalstress, alloc_dyn_shared
+      use ice_dyn_vp, only: init_vp
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -123,6 +124,8 @@
       if (kdyn == 2) then
          call alloc_dyn_eap     ! allocate dyn_eap arrays
          call init_eap (dt_dyn) ! define eap dynamics parameters, variables
+      else if (kdyn == 3) then
+         call init_vp (dt_dyn)  ! define vp dynamics parameters, variables
       else                      ! for both kdyn = 0 or 1
          call init_evp (dt_dyn) ! define evp dynamics parameters, variables
       endif

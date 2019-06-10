@@ -67,12 +67,12 @@
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
       use ice_communicate, only: init_communicate, my_task, master_task
-      use ice_constants, only: ice_init_constants
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
       use ice_dyn_shared, only: kdyn, init_evp, alloc_dyn_shared
+      use ice_dyn_vp, only: init_vp
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -91,9 +91,6 @@
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_iso, tr_fsd, wave_spec
-
-      real (kind=dbl_kind) :: puny
-
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -121,16 +118,6 @@
       call alloc_flux           ! allocate flux arrays
       call init_ice_timers      ! initialize all timers
       call ice_timer_start(timer_total)   ! start timing entire run
-      ! By default, the puny value used for computing tinyarea in init_grid2 (puny_dyn)
-      ! is set to a special value for use with the implicit solver (kdyn = 3).
-      ! Thus we reset it back to puny if kdyn .ne. 3
-      if (kdyn /= 3) then
-         call icepack_query_parameters(puny_out=puny)
-         call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-            file=__FILE__, line=__LINE__)
-         call ice_init_constants(puny_dyn_in=puny)
-      endif
       call init_grid2           ! grid variables
       call init_zbgc            ! vertical biogeochemistry initialization
       call init_calendar        ! initialize some calendar stuff
@@ -139,6 +126,8 @@
       if (kdyn == 2) then
          call alloc_dyn_eap     ! allocate dyn_eap arrays
          call init_eap (dt_dyn) ! define eap dynamics parameters, variables
+      else if (kdyn == 3) then
+         call init_vp (dt_dyn)  ! define vp dynamics parameters, variables
       else                      ! for both kdyn = 0 or 1
          call init_evp (dt_dyn) ! define evp dynamics parameters, variables
       endif
