@@ -674,7 +674,6 @@
          kOL            , & ! outer loop iteration
          iblk           , & ! block index
          icode          , & ! code for fgmres solver
-         ischmi         , & ! Quesse ca!?!?! jfl
          its            , & ! iteration nb for fgmres
          fgmres_its     , & ! final nb of fgmres iterations
          ierr               ! code for pgmres preconditioner !phb: needed?
@@ -838,7 +837,6 @@
          
       icode  = 0
       !      its    = 0 
-      ischmi = 0 
          
          ! form b vector from matrices (nblocks matrices)      
          call arrays_to_vec (nx_block, ny_block, nblocks,    &
@@ -865,9 +863,6 @@
       !-----------------------------------------------------------------------
       1    continue
       !-----------------------------------------------------------------------
-
-      !call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
-      !                     sol_eps, maxits,its,conv,icode )
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
                    gamma, maxits_fgmres, monitor_fgmres,   &
@@ -1160,7 +1155,6 @@
          coeffs       ! coeffs used to combine previous solutions
 
       real (kind=dbl_kind) :: & 
-         conv        , & ! ratio of current residual and initial residual for FGMRES !phb: needed for fgmres2
          tol         , & ! tolerance for fixed point convergence: reltol_andacc * (initial fixed point residual norm)
          tol_nl      , & ! tolerance for nonlinear convergence: gammaNL * (initial nonlinear residual norm)
          fpres_norm  , & ! norm of current fixed point residual : f(x) = g(x) - x
@@ -1587,8 +1581,6 @@
       1    continue
       !-----------------------------------------------------------------------
 
-      !call fgmres2( ntot,im_fgmres,bvec,sol,ischmi,vv,ww,wk11,wk22, &
-      !                     sol_eps, maxits,its,conv,icode )
                            
       call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
                    gamma, maxits_fgmres,monitor_fgmres, &
