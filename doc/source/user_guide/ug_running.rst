@@ -57,6 +57,7 @@ Once a case/test is created, several files are placed in the case directory
 - **Macros.[machine]** defines the Makefile macros
 - **Makefile** is the makefile used to build the model
 - **cice.build** is a script that builds and compiles the model
+- **cice.make** is a script that wraps Make. It can be used to call Make with the different goals in the Makefile.
 - **ice\_in** is the namelist input file
 - **setup\_run\_dirs.csh** is a script that will create the run directories.  This will be called automatically from the **cice.run** script if the user does not invoke it.
 - **cice.run** is a batch run script
