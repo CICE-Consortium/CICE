@@ -190,7 +190,7 @@ above hydrostatic balance and the value of :math:`k_2`. It is, however, the para
 The value of :math:`k_1` can be changed at runtime using the namelist variable ``k1``. The grounding scheme can be turned on or off using the namelist logical basalstress. 
 
 Note that the user must provide a bathymetry field for using this grounding 
-scheme. Grounding occurs up to water depth of ~25 m. It is suggested to have a bathymetry field with water depths larger than 5 m that represents well shallow water regions such as the Laptev Sea and the East Siberian Sea. 
+scheme. Grounding occurs up to water depth of ~25 m (:math:`T_b` is set to zero when :math:`h_{wu}` is larger than 30 m). It is suggested to have a bathymetry field with water depths larger than 5 m that represents well shallow water regions such as the Laptev Sea and the East Siberian Sea. 
 
    
 .. _internal-stress:
