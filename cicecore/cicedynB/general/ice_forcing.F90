@@ -2275,8 +2275,10 @@
       do j=jlo,jhi
        do i=ilo,ihi
         deg2rad = pi/c180
+!       solar_time = mod(real(sec,kind=dbl_kind),secday)/c3600 &
+!                  + c12*sin(p5*TLON(i,j))
         solar_time = mod(real(sec,kind=dbl_kind),secday)/c3600 &
-                   + c12*sin(p5*TLON(i,j))
+                   + TLON(i,j)/(15._dbl_kind*deg2rad)
         hour_angle = (c12 - solar_time)*pi/c12
         declin = 23.44_dbl_kind*cos((172._dbl_kind-yday) &
                  * c2*pi/c365)*deg2rad     ! use dayyr instead of c365???
