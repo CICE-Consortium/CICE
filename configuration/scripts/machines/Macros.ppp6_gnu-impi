@@ -1,0 +1,44 @@
+#==============================================================================
+# Makefile macros for ECCC ppp6
+#==============================================================================
+# For use with GNU compiler
+#==============================================================================
+
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 
+#-xHost
+
+FREEFLAGS  := -ffree-form
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
+#-xHost
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow 
+else
+  FFLAGS     += -O2
+endif
+
+SCC   := gcc
+SFC   := gfortran
+MPICC := mpicc
+MPIFC := mpif90
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+ifeq ($(ICE_IOTYPE), netcdf)
+   INCLDIR += $(shell nf-config --fflags)
+   SLIBS   := $(shell nf-config --flibs)
+endif
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp 
+   CFLAGS += -fopenmp 
+   FFLAGS += -fopenmp 
+endif
