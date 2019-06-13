@@ -2279,6 +2279,7 @@
 !                  + c12*sin(p5*TLON(i,j))
         solar_time = mod(real(sec,kind=dbl_kind),secday)/c3600 &
                    + TLON(i,j)/(15._dbl_kind*deg2rad)
+        if (solar_time .ge. 24._dbl_kind) solar_time = solar_time - 24._dbl_kind
         hour_angle = (c12 - solar_time)*pi/c12
         declin = 23.44_dbl_kind*cos((172._dbl_kind-yday) &
                  * c2*pi/c365)*deg2rad     ! use dayyr instead of c365???
