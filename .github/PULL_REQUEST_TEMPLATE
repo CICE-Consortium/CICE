@@ -1,19 +1,38 @@
 [Remove this and add a short summary line]:
 
-- Developer(s):
+Please refer to our Information for Developers documentation for questions on submitting a 
+Pull Request (hereafter PR): <https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index>
 
-- Please suggest code Pull Request reviewers in the column at right.
+## PR checklist
 
-- Are the code changes bit for bit, different at roundoff level, or more substantial?
+Please check the following boxes to be sure your PR fullfills our requirements:
+- [ ] Developer(s): 
+- [ ] Suggest PR reviewers from list in the column to the right
 
-- Please include the link to test results or paste the summary block from the bottom of the testing output below.
 
-- Does this PR create or have dependencies on Icepack or any other models? 
+## Details about PR code
+- [ ] Are the PR code changes 
+    - [ ] bit for bit
+    - [ ] different at roundoff level
+    - [ ] more substantial 
+- [ ] Does this PR create or have dependencies on Icepack or any other models?
+    - [ ] Yes
+    - [ ] No
+- [ ] Does this PR add a code test option?
+    - [ ] Yes
+    - [ ] No
+- [ ] Include the link to test results or paste a summary block from the bottom of the testing output:
+   ENTER TEST INFORMATION HERE
 
-- Is the documentation being updated with this PR? (Y/N)
-If not, does the documentation need to be updated separately at a later time? (Y/N)
+## Details about PR documentation
+- [ ] Is the documentation being updated?
+    - [ ] Yes
+    - [ ] No
+- [ ] If not, does the documentation need to be updated separately at a later time?
+    - [ ] Yes
+    - [ ] No
 
 Note: "Documentation" includes information on the wiki and .rst files in doc/source/, 
 which are used to create the online technical docs at https://readthedocs.org/projects/cice-consortium-cice/.
 
-- Other Relevant Details:
+## Enter any other relevant details below:
