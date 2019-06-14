@@ -1,39 +1,29 @@
+
+For details information about submitting Pull Requests (PRs) to the CICE-Consortium,
+please refer to: <https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index#information-for-developers>
+
+
 ## PR checklist
-Please refer to our documentation for questions about submitting a Pull Request 
-(hereafter PR): <https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index#information-for-developers>
-
-Then, please check the following boxes as you verify that your PR fulfills our requirements.
-
-## Basic PR Information
-- [ ] Developer(s): 
-    JANE DOE
 - [ ] Short (1 sentence) summary of your PR: 
     ENTER INFORMATION HERE
+- [ ] Developer(s): 
+    ENTER INFORMATION HERE
 - [ ] Suggest PR reviewers from list in the column to the right
-
-## Details about PR code
 - [ ] Are the PR code changes 
     - [ ] bit for bit
     - [ ] different at roundoff level
     - [ ] more substantial 
+- [ ] Include a link to test results or provide a summary of testing completed
+    ENTER INFORMATION HERE 
 - [ ] Does this PR create or have dependencies on Icepack or any other models?
     - [ ] Yes
     - [ ] No
-- [ ] Does this PR add a code test option?
+- [ ] Does this PR add any new test cases?
     - [ ] Yes
     - [ ] No
-- [ ] Include the link to test results or paste a summary block from the bottom of the testing output:
-    ENTER TEST INFORMATION HERE
-
-## Details about PR documentation
-- [ ] Is the documentation being updated?
+- [ ] Is the documentation being updated? ("Documentation" includes information on the wiki or in the .rst files from doc/source/, which are used to create the online technical docs at https://readthedocs.org/projects/cice-consortium-cice/.)
     - [ ] Yes
-    - [ ] No
-- [ ] If not, does the documentation need to be updated separately at a later time?
-    - [ ] Yes
-    - [ ] No
-
-Note: "Documentation" includes information on the wiki and .rst files in doc/source/, 
-which are used to create the online technical docs at https://readthedocs.org/projects/cice-consortium-cice/.
-
-## Enter any other relevant details below:
+    - [ ] No, does the documentation need to be updated at a later time?
+        - [ ] Yes
+        - [ ] No 
+- [ ] Please provide any additional information or relevant details below:
