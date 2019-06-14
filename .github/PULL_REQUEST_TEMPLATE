@@ -3,12 +3,15 @@
 Please refer to our Information for Developers documentation for questions on submitting a 
 Pull Request (hereafter PR): <https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index>
 
-## PR checklist
-
+# PR checklist
 Please check the following boxes to be sure your PR fullfills our requirements:
-- [ ] Developer(s): 
-- [ ] Suggest PR reviewers from list in the column to the right
 
+## Basic PR Information
+- [ ] Developer(s): 
+    JANE DOE
+- [ ] Short (1 sentence) summary of your PR: 
+    ENTER INFORMATION HERE
+- [ ] Suggest PR reviewers from list in the column to the right
 
 ## Details about PR code
 - [ ] Are the PR code changes 
@@ -22,7 +25,7 @@ Please check the following boxes to be sure your PR fullfills our requirements:
     - [ ] Yes
     - [ ] No
 - [ ] Include the link to test results or paste a summary block from the bottom of the testing output:
-   ENTER TEST INFORMATION HERE
+    ENTER TEST INFORMATION HERE
 
 ## Details about PR documentation
 - [ ] Is the documentation being updated?
