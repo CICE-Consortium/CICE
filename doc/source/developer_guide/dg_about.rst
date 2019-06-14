@@ -21,7 +21,7 @@ Git workflow and Pull Requests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There is extensive Information for Developers documentation available.
-See https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index
+See https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index#information-for-developers
 for information on:
   - Contributing to model development
   - Software development practices guide
