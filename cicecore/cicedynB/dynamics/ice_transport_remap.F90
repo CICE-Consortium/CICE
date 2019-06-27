@@ -3310,8 +3310,8 @@
 
                ! mass transports
 
-               m0 = mc(i2,j2) + xp(i,j,0,ng)*mx(i2,j2)   &
-                              + yp(i,j,0,ng)*my(i2,j2)
+               m0 = mc(i2,j2) + (xp(i,j,0,ng)*mx(i2,j2)   &
+                              +  yp(i,j,0,ng)*my(i2,j2))
                msum(i,j) = m0
 
                mflx(i,j) = mflx(i,j) + triarea(i,j,ng)*msum(i,j)
@@ -3339,12 +3339,12 @@
                ! mass transports
                ! Weighting factor of 1/3 is incorporated into the ice
                ! area terms m1, m2, and m3.
-               m1 = p333 * (mc(i2,j2) + xp(i,j,1,ng)*mx(i2,j2)   &
-                                      + yp(i,j,1,ng)*my(i2,j2))
-               m2 = p333 * (mc(i2,j2) + xp(i,j,2,ng)*mx(i2,j2)   &
-                                      + yp(i,j,2,ng)*my(i2,j2))
-               m3 = p333 * (mc(i2,j2) + xp(i,j,3,ng)*mx(i2,j2)   &
-                                      + yp(i,j,3,ng)*my(i2,j2))
+               m1 = p333 * (mc(i2,j2) + (xp(i,j,1,ng)*mx(i2,j2)   &
+                                      +  yp(i,j,1,ng)*my(i2,j2)))
+               m2 = p333 * (mc(i2,j2) + (xp(i,j,2,ng)*mx(i2,j2)   &
+                                      +  yp(i,j,2,ng)*my(i2,j2)))
+               m3 = p333 * (mc(i2,j2) + (xp(i,j,3,ng)*mx(i2,j2)   &
+                                      +  yp(i,j,3,ng)*my(i2,j2)))
                msum(i,j) = m1 + m2 + m3
                mflx(i,j) = mflx(i,j) + triarea(i,j,ng)*msum(i,j)
 
@@ -3387,14 +3387,14 @@
 
                ! Weighting factors are incorporated into the
                ! terms m0, m1, m2, and m3.
-               m0 = p5625m * (mc(i2,j2) + xp(i,j,0,ng)*mx(i2,j2)   &
-                                        + yp(i,j,0,ng)*my(i2,j2))
-               m1 = p52083 * (mc(i2,j2) + xp(i,j,1,ng)*mx(i2,j2)   &
-                                        + yp(i,j,1,ng)*my(i2,j2))
-               m2 = p52083 * (mc(i2,j2) + xp(i,j,2,ng)*mx(i2,j2)   &
-                                        + yp(i,j,2,ng)*my(i2,j2))
-               m3 = p52083 * (mc(i2,j2) + xp(i,j,3,ng)*mx(i2,j2)   &
-                                        + yp(i,j,3,ng)*my(i2,j2))
+               m0 = p5625m * (mc(i2,j2) + (xp(i,j,0,ng)*mx(i2,j2)   &
+                                        +  yp(i,j,0,ng)*my(i2,j2)))
+               m1 = p52083 * (mc(i2,j2) + (xp(i,j,1,ng)*mx(i2,j2)   &
+                                        +  yp(i,j,1,ng)*my(i2,j2)))
+               m2 = p52083 * (mc(i2,j2) + (xp(i,j,2,ng)*mx(i2,j2)   &
+                                        +  yp(i,j,2,ng)*my(i2,j2)))
+               m3 = p52083 * (mc(i2,j2) + (xp(i,j,3,ng)*mx(i2,j2)   &
+                                        +  yp(i,j,3,ng)*my(i2,j2)))
                msum(i,j) = m0 + m1 + m2 + m3
                mflx(i,j) = mflx(i,j) + triarea(i,j,ng)*msum(i,j)
 
@@ -3622,8 +3622,8 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-         w1 = mflxe(i,j) - mflxe(i-1,j)   &
-            + mflxn(i,j) - mflxn(i,j-1)
+         w1 = (mflxe(i,j) - mflxe(i-1,j))   &
+            + (mflxn(i,j) - mflxn(i,j-1))
          mm(i,j) = mm(i,j) - w1*tarear(i,j)
 
          if (mm(i,j) < -puny) then    ! abort with negative value
