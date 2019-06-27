@@ -872,7 +872,9 @@ print*,ksub,'i sigms',stressm_3(i,j), stressm_4(i,j)
 print*,ksub,'i p_1',c1ne,divune,shearne,Deltane
 print*,ksub,'i u',tensionne,uvel(i-1,j),uvel(i,j-1)
 print*,ksub,'i v',strength(i,j),vvel(i-1,j),vvel(i,j-1)
-print*,ksub,'i dx,dy',dxt(i,j),dyt(i,j),cxp(i,j),cyp(i,j)
+!print*,ksub,'i dx,dy',dxt(i,j),dyt(i,j),cxp(i,j),cyp(i,j)
+!print*,ksub,'const',p111, p027, p222
+!print*,ksub,'const',p055, p333, p166
 print*,' '
 endif
 
@@ -916,7 +918,7 @@ print*,ksub,'j sigmw',-stressm_3(i,j), -stressm_2(i,j)
 print*,ksub,'j p_1',c1ne,divune,shearne,Deltane
 print*,ksub,'j v',tensionne,vvel(i,j-1),vvel(i-1,j)
 print*,ksub,'j u',strength(i,j),uvel(i,j-1),uvel(i-1,j)
-print*,ksub,'j dx,dy',dxt(i,j),dyt(i,j),cxp(i,j),cyp(i,j)
+!print*,ksub,'j dx,dy',dxt(i,j),dyt(i,j),cxp(i,j),cyp(i,j)
 print*,' '
 endif
 

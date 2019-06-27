@@ -4867,13 +4867,18 @@
          vocn(i,j,iblk) = p001
 
          ! wind components
-         if (trim(atm_data_type) == 'boxsymmi') then
-            uatm(i,j,iblk) = c1
-            vatm(i,j,iblk) = c0
-         elseif (trim(atm_data_type) == 'boxsymmj') then
-            uatm(i,j,iblk) = c0
-            vatm(i,j,iblk) = c1
-         endif
+!         if (trim(atm_data_type(1:7)) == 'boxsymm') then
+            uatm(i,j,iblk) = p1
+            vatm(i,j,iblk) = p1
+!         endif
+! for comparing 2 tests (boxsymmi and boxsymmj)
+!         if (trim(atm_data_type) == 'boxsymmi') then
+!            uatm(i,j,iblk) = c1
+!            vatm(i,j,iblk) = c0
+!         elseif (trim(atm_data_type) == 'boxsymmj') then
+!            uatm(i,j,iblk) = c0
+!            vatm(i,j,iblk) = c1
+!         endif
 
          ! wind stress
          wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)

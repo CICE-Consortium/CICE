@@ -1782,6 +1782,23 @@
 !                                         / (real(ny_global,kind=dbl_kind)) * p5)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
+
+               elseif (trim(ice_data_type) == 'boxsymm') then
+                  if (hinit(n) > c0) then
+                  ! quadratic
+                     aicen(i,j,n) = max(c0,(real(iglob(i), kind=dbl_kind)-p5) &
+                                         / (real(nx_global,kind=dbl_kind)) &
+                                         * (real(jglob(j), kind=dbl_kind)-p5) &
+                                         / (real(ny_global,kind=dbl_kind)) * p5)
+!                     aicen(i,j,n) = max(c0,(real(nx_global, kind=dbl_kind) &
+!                                         -  real(iglob(i), kind=dbl_kind)-p5) &
+!                                         / (real(nx_global,kind=dbl_kind)) &
+!                                         * (real(ny_global, kind=dbl_kind) &
+!                                         -  real(jglob(j), kind=dbl_kind)-p5) &
+!                                         / (real(ny_global,kind=dbl_kind)) * p5)
+                  endif
+                  vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
+
                elseif (trim(ice_data_type) == 'boxslotcyl') then
                   if (hinit(n) > c0) then
                    ! slotted cylinder
