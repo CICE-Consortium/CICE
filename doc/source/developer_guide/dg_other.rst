@@ -160,57 +160,57 @@ Additional information about tracers can be found in the
 To add a tracer, follow these steps using one of the existing tracers as
 a pattern.
 
-#. **icepack\_tracers.F90** and **icepack\_[tracer].F90**: declare tracers,
-add flags and indices, and create physics routines as described in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/dg_adding_tracers.html>`_
+  1)  **icepack\_tracers.F90** and **icepack\_[tracer].F90**: declare tracers,
+      add flags and indices, and create physics routines as described in the
+      `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/dg_adding_tracers.html>`_
 
-#. **ice_arrays_column.F90**: declare arrays
+  2)  **ice_arrays_column.F90**: declare arrays
 
-#. **ice_init_column.F90**: initialize arrays
+  3)  **ice_init_column.F90**: initialize arrays
 
-#. **ice\_init.F90**: (some of this may be done in **icepack\_[tracer].F90**
-   instead)
+  4)  **ice\_init.F90**: (some of this may be done in **icepack\_[tracer].F90**
+      instead)
 
-   -  declare ``tr_[tracer]``  and ``nt_[tracer]`` as needed
+     -  declare ``tr_[tracer]``  and ``nt_[tracer]`` as needed
 
-   -  add logical namelist variables ``tr_[tracer]``, ``restart_[tracer]``
+     -  add logical namelist variables ``tr_[tracer]``, ``restart_[tracer]``
 
-   -  initialize and broadcast namelist variables
+     -  initialize and broadcast namelist variables
 
-   -  check for potential conflicts, aborting if any occur
+     -  check for potential conflicts, aborting if any occur
 
-   -  print namelist variables to diagnostic output file
+     -  print namelist variables to diagnostic output file
 
-   -  initialize tracer flags etc in icepack (call *icepack_init_tracer_flags* etc)
+     -  initialize tracer flags etc in icepack (call *icepack_init_tracer_flags* etc)
 
-   -  increment number of tracers in use based on namelist input (``ntrcr``)
+     -  increment number of tracers in use based on namelist input (``ntrcr``)
 
-   -  define tracer dependencies
+     -  define tracer dependencies
 
-#.  **CICE\_InitMod.F90**: initialize tracer (includes reading restart file)
+  5)  **CICE\_InitMod.F90**: initialize tracer (includes reading restart file)
 
-#.  **CICE\_RunMod.F90**, **ice\_step\_mod.F90** (and elsewhere as needed):
+  6)  **CICE\_RunMod.F90**, **ice\_step\_mod.F90** (and elsewhere as needed):
 
-   -  call routine to write tracer restart data
+     -  call routine to write tracer restart data
 
-   -  call Icepack or other routines to update tracer value 
-      (often called from **ice\_step\_mod.F90**)
+     -  call Icepack or other routines to update tracer value 
+        (often called from **ice\_step\_mod.F90**)
 
-#.  **ice\_restart.F90**: define restart variables (for binary, netCDF and PIO)
+  7)  **ice\_restart.F90**: define restart variables (for binary, netCDF and PIO)
 
-#.  **ice\_restart\_column.F90**: create routines to read, write tracer restart data
+  8)  **ice\_restart\_column.F90**: create routines to read, write tracer restart data
 
-#.  **ice\_fileunits.F90**: add new dump and restart file units
+  9)  **ice\_fileunits.F90**: add new dump and restart file units
 
-#.  **ice\_history\_[tracer].F90**: add history variables
-   (Section :ref:`addhist`)
+  10)  **ice\_history\_[tracer].F90**: add history variables
+       (Section :ref:`addhist`)
 
-#.  **ice\_in**: add namelist variables to *tracer\_nml* and
-   *icefields\_nml*. Best practice is to set the namelist values so that the 
-   new capability is turned off, and create an option file with your preferred
-   configuration in **configuration/scripts/options**.
+  11)  **ice\_in**: add namelist variables to *tracer\_nml* and
+       *icefields\_nml*. Best practice is to set the namelist values so that the 
+       new capability is turned off, and create an option file with your preferred
+       configuration in **configuration/scripts/options**.
 
-#.  If strict conservation is necessary, add diagnostics as noted for
-   topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+  12)  If strict conservation is necessary, add diagnostics as noted for
+       topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 
-#. Update documentation, including **cice_index.rst** and **ug_case_settings.rst**
+  13)  Update documentation, including **cice_index.rst** and **ug_case_settings.rst**

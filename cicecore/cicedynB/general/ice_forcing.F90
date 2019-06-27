@@ -4139,7 +4139,8 @@
       recnum=min(recnum,Njday_atm-1)
 
       ! Check if current time do not exceed last forcing time
-      if ( hcdate>jday_atm(recnum+1)+p001 ) then
+      ! + check forcing is available before (or at) current forcing time
+      if ( hcdate>jday_atm(recnum+1)+p001 .or. hcdate<jday_atm(recnum)-p001) then
          write (nu_diag,*) &
          'ERROR: CICE: Atm forcing not available at hcdate =',hcdate
          write (nu_diag,*) &
