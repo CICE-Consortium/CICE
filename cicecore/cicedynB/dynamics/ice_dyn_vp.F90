@@ -46,9 +46,6 @@
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
-#ifdef CICE_IN_NEMO
-      use icepack_intfc, only: calc_strair
-#endif
 
       implicit none
       private
@@ -216,9 +213,9 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
          
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
-      
-      real (kind=dbl_kind), allocatable :: bvec(:), sol(:), diagvec(:)
-      
+
+      logical (kind=log_kind) :: calc_strair
+
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
          icetmask, &  ! ice extent mask (T-cell)
          halomask     ! generic halo mask
@@ -228,6 +225,8 @@
 
       type (block) :: &
          this_block           ! block information for current block
+      
+      real (kind=dbl_kind), allocatable :: bvec(:), sol(:), diagvec(:)
       
       character(len=*), parameter :: subname = '(imp_solver)'
       
@@ -302,21 +301,22 @@
       call to_ugrid(tmass,umass)
       call to_ugrid(aice_init, aiu)
 
-#ifdef CICE_IN_NEMO
       !----------------------------------------------------------------
-      ! Set wind stress to values supplied via NEMO
+      ! Set wind stress to values supplied via NEMO or other forcing
       ! This wind stress is rotated on u grid and multiplied by aice
       !----------------------------------------------------------------
+      call icepack_query_parameters(calc_strair_out=calc_strair)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
       if (.not. calc_strair) then       
          strairx(:,:,:) = strax(:,:,:)
          strairy(:,:,:) = stray(:,:,:)
       else
-#endif
-      call t2ugrid_vector(strairx)
-      call t2ugrid_vector(strairy)
-#ifdef CICE_IN_NEMO
+         call t2ugrid_vector(strairx)
+         call t2ugrid_vector(strairy)
       endif      
-#endif
 
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
 ! need to do more debugging
@@ -395,23 +395,9 @@
       !$TCXOMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! calc size of problem (ntot) and allocate arrays and vectors
-      !-----------------------------------------------------------------
-      
-      ntot=0
-      do iblk = 1, nblocks
-        ntot = ntot + icellu(iblk)      
-      enddo
-      ntot = 2*ntot ! times 2 because of u and v
-      
-      allocate(bvec(ntot), sol(ntot), diagvec(ntot))
-      
-      !-----------------------------------------------------------------
-      
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
@@ -443,16 +429,29 @@
       !-----------------------------------------------------------------
       
       if (basalstress) then
-       do iblk = 1, nblocks
-         call basal_stress_coeff (nx_block,         ny_block,       &
-                                  icellu  (iblk),                   &
-                                  indxui(:,iblk),   indxuj(:,iblk), &
-                                  vice(:,:,iblk),   aice(:,:,iblk), &
-                                  hwater(:,:,iblk), Tbu(:,:,iblk))
-       enddo                           
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            call basal_stress_coeff (nx_block,         ny_block,       &
+                                     icellu  (iblk),                   &
+                                     indxui(:,iblk),   indxuj(:,iblk), &
+                                     vice(:,:,iblk),   aice(:,:,iblk), &
+                                     hwater(:,:,iblk), Tbu(:,:,iblk))
+         enddo
+         !$OMP END PARALLEL DO
       endif
       
-
+      !-----------------------------------------------------------------
+      ! calc size of problem (ntot) and allocate arrays and vectors
+      !-----------------------------------------------------------------
+      
+      ntot=0
+      do iblk = 1, nblocks
+        ntot = ntot + icellu(iblk)      
+      enddo
+      ntot = 2*ntot ! times 2 because of u and v
+      
+      allocate(bvec(ntot), sol(ntot), diagvec(ntot))
+      
       !-----------------------------------------------------------------
       ! Start of nonlinear iteration
       !-----------------------------------------------------------------
@@ -486,8 +485,13 @@
       !-----------------------------------------------------------------
 
       deallocate(bvec, sol, diagvec)
-      deallocate(fld2)
       
+      deallocate(fld2)
+      if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
+      
+      !-----------------------------------------------------------------
+      ! Compute deformations
+      !-----------------------------------------------------------------
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
          call deformations (nx_block,             ny_block,             &
@@ -502,10 +506,9 @@
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk))
       enddo
       !$OMP END PARALLEL DO
+      
       ! phb: here we do halo updates for stresses (stressp_i, stressm_i, stress12_i, i=1..4),
       !      but stresses have not been updated ! (should be done in deformations ?)
-      if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
-
       ! Force symmetry across the tripole seam
       if (trim(grid_type) == 'tripole') then
       if (maskhalo_dyn) then
