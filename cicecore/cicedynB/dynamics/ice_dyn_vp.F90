@@ -226,7 +226,10 @@
       type (block) :: &
          this_block           ! block information for current block
       
-      real (kind=dbl_kind), allocatable :: bvec(:), sol(:), diagvec(:)
+      real (kind=dbl_kind), allocatable :: &
+         bvec(:)     , & ! right-hand-side vector
+         sol(:)      , & ! solution vector
+         diagvec(:)      ! diagonal vector
       
       character(len=*), parameter :: subname = '(imp_solver)'
       
@@ -1702,6 +1705,8 @@
                                 strength,   zetaD,      &
                                 stPr)
 
+      use ice_dyn_shared, only: strain_rates
+
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
@@ -1765,41 +1770,20 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
-         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
-         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
-         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
-         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
-         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
-         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
-
-         ! shearing strain rate  =  e_12
-         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
-                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
-         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
-                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
-         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
-                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
-         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
-                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
-         
-         ! Delta (in the denominator of zeta, eta)
-         Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-         Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+         call strain_rates (nx_block,   ny_block,   &
+                            i,          j,          &
+                            uvel,       vvel,       &
+                            dxt,        dyt,        &
+                            cxp,        cyp,        &
+                            cxm,        cym,        &
+                            divune,     divunw,     &
+                            divuse,     divusw,     &
+                            tensionne,  tensionnw,  &
+                            tensionse,  tensionsw,  &
+                            shearne,    shearnw,    &
+                            shearse,    shearsw,    &
+                            Deltane,    Deltanw,    &
+                            Deltase,    Deltasw     )
 
          if (capping) then
          
@@ -1909,6 +1893,8 @@
                                   zetaD,                  & 
                                   str )
 
+      use ice_dyn_shared, only: strain_rates
+
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
@@ -1983,41 +1969,20 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
-         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
-         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
-         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
-         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
-         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
-         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
-
-         ! shearing strain rate  =  e_12
-         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
-                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
-         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
-                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
-         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
-                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
-         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
-                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
-         
-         ! Delta (in the denominator of zeta, eta)
-         Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-         Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+         call strain_rates (nx_block,   ny_block,   &
+                            i,          j,          &
+                            uvel,       vvel,       &
+                            dxt,        dyt,        &
+                            cxp,        cyp,        &
+                            cxm,        cym,        &
+                            divune,     divunw,     &
+                            divuse,     divusw,     &
+                            tensionne,  tensionnw,  &
+                            tensionse,  tensionsw,  &
+                            shearne,    shearnw,    &
+                            shearse,    shearsw,    &
+                            Deltane,    Deltanw,    &
+                            Deltase,    Deltasw     )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -2165,6 +2130,8 @@
                             stress12_3, stress12_4, & 
                             str )
 
+      use ice_dyn_shared, only: strain_rates
+
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
@@ -2240,41 +2207,20 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
-         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
-         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
-         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
-         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
-         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
-         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
-
-         ! shearing strain rate  =  e_12
-         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
-                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
-         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
-                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
-         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
-                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
-         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
-                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
-         
-         ! Delta (in the denominator of zeta, eta)
-         Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-         Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+         call strain_rates (nx_block,   ny_block,   &
+                            i,          j,          &
+                            uvel,       vvel,       &
+                            dxt,        dyt,        &
+                            cxp,        cyp,        &
+                            cxm,        cym,        &
+                            divune,     divunw,     &
+                            divuse,     divusw,     &
+                            tensionne,  tensionnw,  &
+                            tensionse,  tensionsw,  &
+                            shearne,    shearnw,    &
+                            shearse,    shearsw,    &
+                            Deltane,    Deltanw,    &
+                            Deltase,    Deltasw     )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -2700,6 +2646,8 @@
                          uarear,               &
                          Au,         Av)
 
+      use ice_dyn_shared, only: strain_rates
+
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu,             & ! total count when iceumask is true
@@ -2794,41 +2742,20 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
-         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
-         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
-         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
-         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
-         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
-         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
-
-         ! shearing strain rate  =  e_12
-         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
-                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
-         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
-                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
-         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
-                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
-         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
-                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
-         
-         ! Delta (in the denominator of zeta, eta)
-         Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-         Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+         call strain_rates (nx_block,   ny_block,   &
+                            i,          j,          &
+                            uvel,       vvel,       &
+                            dxt,        dyt,        &
+                            cxp,        cyp,        &
+                            cxm,        cym,        &
+                            divune,     divunw,     &
+                            divuse,     divusw,     &
+                            tensionne,  tensionnw,  &
+                            tensionse,  tensionsw,  &
+                            shearne,    shearnw,    &
+                            shearse,    shearsw,    &
+                            Deltane,    Deltanw,    &
+                            Deltase,    Deltasw     )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
