@@ -107,7 +107,7 @@ if (${ICE_CLEANBUILD} == 'true') then
         -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean >& ${ICE_BLDLOG_FILE}
   else
     ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean | tee ${ICE_BLDLOG_FILE}
+        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean |& tee ${ICE_BLDLOG_FILE}
   endif
 endif
 
@@ -119,14 +119,25 @@ if (${quiet} == "true") then
   set bldstat = ${status}
 else
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} | tee ${ICE_BLDLOG_FILE} 
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} |& tee ${ICE_BLDLOG_FILE} 
   set bldstat = ${status}
 endif
 
 if !(-d ${ICE_LOGDIR}) mkdir -p ${ICE_LOGDIR}
 cp -p ${ICE_BLDLOG_FILE} ${ICE_LOGDIR}/
 
+grep -q "make: Circular" ${ICE_BLDLOG_FILE}
+set circularstat = ${status}
+
 if (${bldstat} != 0) then
+  if (${circularstat} == 0) then
+    echo ""
+    echo "ERROR: Circular dependencies :"
+    grep "make: Circular" ${ICE_BLDLOG_FILE}
+    echo ""
+    echo "${0}: ERROR : Make detected circular module dependencies !"
+    echo ""
+  endif
   echo "${0}: COMPILE FAILED, see"
   echo "  cat ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
   if (${quiet} == "true") then
@@ -147,5 +158,16 @@ if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
   echo "#---" >! ${ICE_CASEDIR}/test_output
   echo "PASS ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
   echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
+endif
+
+if (${circularstat} == 0) then
+  echo ""
+  echo "WARNING: Circular dependencies :"
+  grep "make: Circular" ${ICE_BLDLOG_FILE}
+  echo ""
+  echo "${0}: WARNING : Make detected circular module dependencies !"
+  echo "${0}: WARNING : The build is most probably broken !"
+  echo "${0}: WARNING : A clean build will fail !"
+  echo ""
 endif
 
