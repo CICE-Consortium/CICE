@@ -148,40 +148,40 @@
          arnoldi_basis_y     ! arnoldi basis (y components)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner) :: &
-         wwx                 ! !phb FIND BETTER NAME (x components)
+         wwx             , & ! !phb FIND BETTER NAME (x components)
          wwy                 ! !phb FIND BETTER NAME (y components)
 
       real (kind=dbl_kind) :: &
          norm_residual   , & ! current L^2 norm of residual vector
-         inverse_norm    , & ! inverse of the residual norm
-         t                   ! 
+         inverse_norm    , & ! inverse of the norm of a vector
+         nu, t               ! local temporary values
 
       integer (kind=int_kind) :: &
          initer          , & ! inner (Arnoldi) loop counter
          outiter         , & ! outer (restarts) loop counter
          nextit          , & ! nextit == initer+1
-         it                  ! reusable loop counter
+         it, k               ! reusable loop counters
 
       real (kind=dbl_kind), dimension(maxinner+1) :: &
-         rot_cos         , & ! 
-         rot_sin         , & ! 
-         rhs_hess            ! right hand side vector of the Hessenberg (least square) system
+         rot_cos         , & ! cosine elements of Givens rotations 
+         rot_sin         , & ! sine elements of Givens rotations
+         rhs_hess            ! right hand side vector of the Hessenberg (least squares) system
+
+      real (kind=dbl_kind), dimension(maxinner+1, maxinner) :: &
+         hessenberg        ! system matrix of the Hessenberg (least squares) system
 
       integer (kind=int_kind) :: &
          precond_type ! type of preconditioner
 
+
+
       real (kind=dbl_kind) :: relative_tolerance, r0
-
-      real (kind=dbl_kind), dimension(maxinner+1, maxinner) :: hessenberg
-
-
-
 
       real (kind=dbl_kind) :: local_dot, dotprod
       real (kind=dbl_kind), dimension(maxinner) :: dotprod_local
 
       
-      logical (kind=log_kind) almost_zero
+      ! logical (kind=log_kind) almost_zero
 
       ! integer (kind=int_kind) i0, in, j0, jn
       ! integer (kind=int_kind) niloc,njloc
@@ -228,7 +228,7 @@
                       umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
                       uarear     (:,:,iblk)  ,                        &
                       workspace_x(:,:,iblk)  , workspace_y(:,:,iblk))
-         call residual_vec (nx_block             , ny_block             . &
+         call residual_vec (nx_block             , ny_block             , &
                             icellu         (iblk),                        & 
                             indxui       (:,iblk), indxuj    (:,iblk)   , &
                             bx         (:,:,iblk), by      (:,:,iblk)   , &
@@ -319,7 +319,7 @@
          ! precondition the current Arnoldi vector
          call precondition(arnoldi_basis_x(:,:,:,initer), &
                            arnoldi_basis_y(:,:,:,initer), &
-                           Au, Av, &
+                           workspace_x , workspace_y    , &
                            precond_type, diagx, diagy)
 !             if (sol2D_precond_S == 'JACOBI')   then
 !                call pre_jacobi2D ( work_space(i0:in,j0:jn), &
@@ -330,8 +330,8 @@
 !                work_space(i0:in,j0:jn) = vv(i0:in,j0:jn, initer)
 !             endif
       ! !phb DESCRIBE ww
-      wwx(:,:,initer) = workspace_x
-      wwy(:,:,initer) = workspace_y
+      wwx(:,:,:,initer) = workspace_x
+      wwy(:,:,:,initer) = workspace_y
 !             ww(i0:in,j0:jn, initer) = work_space(i0:in,j0:jn)
       ! 
       !$OMP PARALLEL DO PRIVATE(iblk)
@@ -356,7 +356,9 @@
       
 !             call matvec ( work_space, vv(:,:,nextit), level )
 ! 
-!             ! Classical Gram-Schmidt orthogonalisation process
+      ! Classical Gram-Schmidt orthogonalisation process
+      ! TODO
+      ! First loop of Gram-Schmidt (compute coefficients)
 !             dotprod_local = 0.d0
 !             do it=1,initer
 !                 local_dot = 0.0d0
@@ -370,7 +372,23 @@
 !             end do
 ! 
 !             call RPN_COMM_allreduce(dotprod_local(:), hessenberg(1,initer), initer, "MPI_double_precision", "MPI_sum", communicate_S, ierr)
-! 
+
+      ! Second loop of Gram-Schmidt (orthonormalize)
+      do it = 1, initer
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            do ij =1, icellu(iblk)
+               i = indxui(ij, iblk)
+               j = indxuj(ij, iblk)
+
+               arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit) &
+                                                     - hessenberg(it,initer) * arnoldi_basis_x(i, j, iblk, it)
+               arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit) &
+                                                     - hessenberg(it,initer) * arnoldi_basis_y(i, j, iblk, it)
+            enddo ! ij
+         enddo
+         !$OMP END PARALLEL DO 
+      end do
 !             do it=1,initer
 !                do j=j0,jn
 !                   do i=i0,in
@@ -378,7 +396,20 @@
 !                   end do
 !                end do
 !             end do
-! 
+
+      ! Compute norm of new arnoldi vector and update Hessenberg matrix
+      !$OMP PARALLEL DO PRIVATE(iblk)
+      do iblk = 1, nblocks
+         call calc_L2norm_squared(nx_block      ,  ny_block        , &
+                                  icellu   (iblk),                   &
+                                  indxui (:,iblk), indxuj(:, iblk) , &
+                                  arnoldi_basis_x(:,:,iblk, nextit), &
+                                  arnoldi_basis_y(:,:,iblk, nextit), &
+                                  norm_squared(iblk))
+
+      enddo
+      !$OMP END PARALLEL DO 
+      hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
 !             local_dot = 0.d0
 !             do j=j0,jn
 ! !DIR$ SIMD
@@ -390,7 +421,23 @@
 !             call RPN_COMM_allreduce(local_dot,dotprod,1,"MPI_double_precision","MPI_sum",communicate_S,ierr)
 ! 
 !             hessenberg(nextit,initer) = sqrt(dotprod)
-! 
+
+      ! Watch out for happy breakdown
+      if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
+         ! Normalize next Arnoldi vector
+         inverse_norm = c1 / hessenberg(nextit,initer)
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            do ij =1, icellu(iblk)
+               i = indxui(ij, iblk)
+               j = indxuj(ij, iblk)
+
+               arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit)*inverse_norm
+               arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit)*inverse_norm
+            enddo ! ij
+         enddo
+         !$OMP END PARALLEL DO 
+      end if
 !             ! Watch out for happy breakdown
 !             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
 !                nu = 1.d0 / hessenberg(nextit,initer)
@@ -400,7 +447,15 @@
 !                   end do
 !                end do
 !             end if
-! 
+
+      ! Apply previous Givens rotation to the last column of the Hessenberg matrix
+      if (initer > 1) then
+         do k = 2, initer
+            t = hessenberg(k-1, initer)
+            hessenberg(k-1, initer) =  rot_cos(k-1)*t + rot_sin(k-1)*hessenberg(k, initer)
+            hessenberg(k,   initer) = -rot_sin(k-1)*t + rot_cos(k-1)*hessenberg(k, initer)
+         end do
+      end if
 !             ! Form and store the information for the new Givens rotation
 !             if (initer > 1) then
 !                do k=2,initer
@@ -411,7 +466,18 @@
 !                end do
 ! 
 !             end if
-! 
+
+      ! Compute new Givens rotation
+      nu = sqrt(hessenberg(initer,initer)**2 + hessenberg(nextit,initer)**2)
+      if (.not. almost_zero(nu)) then
+         rot_cos(initer) = hessenberg(initer,initer) / inverse_norm
+         rot_sin(initer) = hessenberg(nextit,initer) / inverse_norm
+
+         rhs_hess(nextit) = -rot_sin(initer) * rhs_hess(initer)
+         rhs_hess(initer) =  rot_cos(initer) * rhs_hess(initer)
+
+         hessenberg(initer,initer) = rot_cos(initer) * hessenberg(initer,initer) + rot_sin(initer) * hessenberg(nextit,initer)
+      end if
 !             nu = sqrt(hessenberg(initer,initer)**2 + hessenberg(nextit,initer)**2)
 !             if (.not. almost_zero(nu)) then
 !                rot_cos(initer) = hessenberg(initer,initer) / nu
@@ -422,7 +488,12 @@
 ! 
 !                hessenberg(initer,initer) = rot_cos(initer) * hessenberg(initer,initer) + rot_sin(initer) * hessenberg(nextit,initer)
 !             end if
-! 
+      ! Check for convergence
+      norm_residual = abs(rhs_hess(nextit))
+      conv = norm_residual / r0
+       if ((initer >= maxinner) .or. (norm_residual <= relative_tolerance)) then
+         exit
+      endif
 !             norm_residual = abs(gg(nextit))
 ! 
 !             conv = norm_residual / r0
@@ -559,6 +630,31 @@
          
       endif
       end subroutine precondition
+
+!=======================================================================
+
+logical function almost_zero(A) result(retval)
+   ! Check if value A is close to zero, up to machine precision
+   !
+   !author
+   !     Stéphane Gaudreault, ECCC -- June 2014
+   !
+   !revision
+   !     v4-80 - Gaudreault S.         - gfortran compatibility
+   !     2019  - Philippe Blain, ECCC  - converted to CICE standards
+   implicit none
+
+   real (kind=dbl_kind), intent(in) :: A
+   integer (kind=int_kind) :: aBit
+   integer (kind=int_kind), parameter :: two_complement = int(Z'80000000', kind=int_kind)
+   aBit = 0
+   aBit = transfer(A, aBit)
+   if (aBit < 0) then
+      aBit = two_complement - aBit
+   end if
+   ! lexicographic order test with a tolerance of 1 adjacent float
+   retval = (abs(aBit) <= 1)
+end function almost_zero
 
 !=======================================================================
 
