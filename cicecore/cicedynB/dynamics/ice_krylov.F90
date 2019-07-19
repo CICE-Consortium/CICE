@@ -160,7 +160,7 @@
          initer          , & ! inner (Arnoldi) loop counter
          outiter         , & ! outer (restarts) loop counter
          nextit          , & ! nextit == initer+1
-         it, k, ii           ! reusable loop counters
+         it, k, ii, jj       ! reusable loop counters
 
       real (kind=dbl_kind), dimension(maxinner+1) :: &
          rot_cos         , & ! cosine elements of Givens rotations 
@@ -555,13 +555,51 @@
 ! 
 !          end do
 ! 
-!          outiter = outiter + 1
-! 
-!          if (norm_residual <= relative_tolerance .or. outiter > maxouter) then
-!             return
-!          end if
-! 
-!          ! Solution is not convergent : compute residual vector and continue.
+      ! Increment outer loop counter and check for convergence
+      outiter = outiter + 1
+      if (norm_residual <= relative_tolerance .or. outiter > maxouter) then
+         return
+      end if
+
+      ! Solution is not convergent : compute residual vector and continue.
+      ! The residual vector is computed here using (see Saad p. 177) :
+      ! \begin{equation}
+      !    r =  V_{m+1} * Q_m^T * (\gamma_{m+1} * e_{m+1})
+      ! \end{equation}
+      ! where : 
+      ! $r$ is the residual
+      ! $V_{m+1}$ is a matrix whose columns are the the Arnoldi vectors from 1 to nextit (m+1)
+      ! $Q_m$ is the product of the Givens rotation : Q_m = G_m G_{m-1} ... G_1
+      ! $gamma_{m+1}$ is the last element of rhs_hess
+      ! $e_{m+1})$ is the unit vector (0, 0, ..., 1)^T \in \reals^{m+1}
+      
+      ! Apply the Givens rotation in reverse order to g := \gamma_{m+1} * e_{m+1}, 
+      ! store the result in rhs_hess
+      do it = 1, initer
+         jj = nextit - it + 1
+         rhs_hess(jj-1) = -rot_sin(jj-1) * rhs_hess(jj) ! + rot_cos(jj-1) * g(jj-1) (== 0)
+         rhs_hess(jj)   =  rot_cos(jj-1) * rhs_hess(jj) ! + rot_sin(jj-1) * g(jj-1) (== 0)
+      end do
+      
+      ! Compute the residual by multiplying V_{m+1} and rhs_hess
+      workspace_x = c0
+      workspace_y = c0
+      do it = 1, nextit
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            do ij =1, icellu(iblk)
+               i = indxui(ij, iblk)
+               j = indxuj(ij, iblk)
+
+               workspace_x(i, j, iblk) = rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
+               workspace_y(i, j, iblk) = rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
+            enddo ! ij
+         enddo
+         !$OMP END PARALLEL DO
+         arnoldi_basis_x(:,:,:,1) = workspace_x
+         arnoldi_basis_y(:,:,:,1) = workspace_y
+      end do
+      
 !          do it=1,initer
 !             jj = nextit - it + 1
 !             gg(jj-1) = -rot_sin(jj-1) * gg(jj)
@@ -585,7 +623,7 @@
 ! 
       end do ! end of outer (restarts) loop
 ! 
-!       return
+      return
       end subroutine fgmres
 
 !=======================================================================
