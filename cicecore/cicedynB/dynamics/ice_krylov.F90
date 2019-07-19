@@ -133,10 +133,10 @@
          i, j        ! grid indices
          
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         Au       , & ! matvec result, Au = Ax * u (N/m^2)
-         Av       , & ! matvec result, Av = Ay * v (N/m^2)
-         Fx       , & ! residual vector (x components), Fx = Au - bx (N/m^2)
-         Fy           ! residual vector (y components), Fy = Av - by (N/m^2)
+         workspace_x , & ! work vector (x components)
+         workspace_y , & ! work vector (y components)
+         Fx          , & ! residual vector (x components), Fx = Au - bx (N/m^2)
+         Fy              ! residual vector (y components), Fy = Av - by (N/m^2)
 ! real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks) :: work_space
       ! integer (kind=int_kind) :: i, j, k, k1, ii, jj, ierr
 
@@ -148,7 +148,8 @@
          arnoldi_basis_y     ! arnoldi basis (y components)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner) :: &
-         ww                  ! !phb FIND BETTER NAME
+         wwx                 ! !phb FIND BETTER NAME (x components)
+         wwy                 ! !phb FIND BETTER NAME (y components)
 
       real (kind=dbl_kind) :: &
          norm_residual   , & ! current L^2 norm of residual vector
@@ -213,26 +214,26 @@
       
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
-         call matvec (nx_block             , ny_block,            &
-                      icellu   (iblk)      , icellt   (iblk)    , &
-                      indxui   (:,iblk)    , indxuj   (:,iblk)  , &
-                      indxti   (:,iblk)    , indxtj   (:,iblk)  , &
-                      dxt      (:,:,iblk)  , dyt      (:,:,iblk), &
-                      dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), &
-                      cxp      (:,:,iblk)  , cyp      (:,:,iblk), &
-                      cxm      (:,:,iblk)  , cym      (:,:,iblk), &
-                      solx     (:,:,iblk)  , soly     (:,:,iblk), &
-                      vrel     (:,:,iblk)  , Cb       (:,:,iblk), &
-                      zetaD    (:,:,iblk,:),                      &
-                      umassdti (:,:,iblk)  , fm       (:,:,iblk), &
-                      uarear   (:,:,iblk)  ,                      &
-                      Au       (:,:,iblk)  , Av       (:,:,iblk))
-         call residual_vec (nx_block           , ny_block,           &
-                            icellu       (iblk),                     & 
-                            indxui     (:,iblk), indxuj    (:,iblk), &
-                            bx       (:,:,iblk), by      (:,:,iblk), &
-                            Au       (:,:,iblk), Av      (:,:,iblk), &
-                            arnoldi_basis_x (:,:,iblk, 1),           &
+         call matvec (nx_block               , ny_block,              &
+                      icellu         (iblk)  , icellt         (iblk), &
+                      indxui       (:,iblk)  , indxuj       (:,iblk), &
+                      indxti       (:,iblk)  , indxtj       (:,iblk), &
+                      dxt        (:,:,iblk)  , dyt        (:,:,iblk), &
+                      dxhy       (:,:,iblk)  , dyhx       (:,:,iblk), &
+                      cxp        (:,:,iblk)  , cyp        (:,:,iblk), &
+                      cxm        (:,:,iblk)  , cym        (:,:,iblk), &
+                      solx       (:,:,iblk)  , soly       (:,:,iblk), &
+                      vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
+                      zetaD      (:,:,iblk,:),                        &
+                      umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
+                      uarear     (:,:,iblk)  ,                        &
+                      workspace_x(:,:,iblk)  , workspace_y(:,:,iblk))
+         call residual_vec (nx_block             , ny_block             . &
+                            icellu         (iblk),                        & 
+                            indxui       (:,iblk), indxuj    (:,iblk)   , &
+                            bx         (:,:,iblk), by      (:,:,iblk)   , &
+                            workspace_x(:,:,iblk), workspace_y(:,:,iblk), &
+                            arnoldi_basis_x (:,:,iblk, 1),                &
                             arnoldi_basis_y (:,:,iblk, 1))
       enddo
       !$OMP END PARALLEL DO
@@ -328,9 +329,31 @@
 !             else
 !                work_space(i0:in,j0:jn) = vv(i0:in,j0:jn, initer)
 !             endif
-      
+      ! !phb DESCRIBE ww
+      wwx(:,:,initer) = workspace_x
+      wwy(:,:,initer) = workspace_y
 !             ww(i0:in,j0:jn, initer) = work_space(i0:in,j0:jn)
-! 
+      ! 
+      !$OMP PARALLEL DO PRIVATE(iblk)
+      do iblk = 1, nblocks
+         call matvec (nx_block               , ny_block,              &
+                      icellu         (iblk)  , icellt         (iblk), &
+                      indxui       (:,iblk)  , indxuj       (:,iblk), &
+                      indxti       (:,iblk)  , indxtj       (:,iblk), &
+                      dxt        (:,:,iblk)  , dyt        (:,:,iblk), &
+                      dxhy       (:,:,iblk)  , dyhx       (:,:,iblk), &
+                      cxp        (:,:,iblk)  , cyp        (:,:,iblk), &
+                      cxm        (:,:,iblk)  , cym        (:,:,iblk), &
+                      workspace_x(:,:,iblk)  , workspace_y(:,:,iblk), &
+                      vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
+                      zetaD      (:,:,iblk,:),                        &
+                      umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
+                      uarear     (:,:,iblk)  ,                        &
+                      arnoldi_basis_x(:,:,iblk,nextit),               &
+                      arnoldi_basis_y(:,:,iblk,nextit))
+      enddo
+      !$OMP END PARALLEL DO
+      
 !             call matvec ( work_space, vv(:,:,nextit), level )
 ! 
 !             ! Classical Gram-Schmidt orthogonalisation process
