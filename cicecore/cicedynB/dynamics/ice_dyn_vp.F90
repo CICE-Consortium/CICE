@@ -50,7 +50,7 @@
       implicit none
       private
       public :: imp_solver, matvec, arrays_to_vec, vec_to_arrays, precond_diag, &
-                init_vp
+                init_vp, residual_vec, calc_L2norm_squared
 
       ! namelist parameters
 
@@ -823,7 +823,7 @@
                                L2norm(iblk))
          enddo
          !$OMP END PARALLEL DO
-         nlres_norm = sqrt(sum(L2norm**2))
+         nlres_norm = sqrt(sum(L2norm))
          if (monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
                                               " nonlin_res_L2norm= ", nlres_norm
@@ -1017,16 +1017,16 @@
          do iblk = 1, nblocks
             fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
             fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
-            call calc_L2norm (nx_block        , ny_block,         &
-                              icellu    (iblk),                   & 
-                              indxui  (:,iblk), indxuj  (:,iblk), &
-                              fpresx(:,:,iblk), fpresy(:,:,iblk), &
-                              L2norm    (iblk))
+            call calc_L2norm_squared (nx_block        , ny_block,         &
+                                      icellu    (iblk),                   & 
+                                      indxui  (:,iblk), indxuj  (:,iblk), &
+                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
+                                      L2norm    (iblk))
          enddo
          !$OMP END PARALLEL DO
          if (monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
-                                              " fixed_point_res_L2norm= ", sqrt(sum(L2norm**2))
+                                              " fixed_point_res_L2norm= ", sqrt(sum(L2norm))
          endif
          
       enddo                     ! outer loop
@@ -1256,7 +1256,7 @@
                                L2norm(iblk))
          enddo
          !$OMP END PARALLEL DO
-         nlres_norm = sqrt(sum(L2norm**2))  ! phb: change after parallelization
+         nlres_norm = sqrt(sum(L2norm))  ! phb: change after parallelization
          if (monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " nonlin_res_L2norm= ", nlres_norm
@@ -1344,15 +1344,15 @@
             !                     fpresx (:,:,:), fpresy (:,:,:))
             ! !$OMP PARALLEL DO PRIVATE(iblk)
             ! do iblk = 1, nblocks
-            ! call calc_L2norm (nx_block        , ny_block,         &
-            !                   icellu    (iblk),                   & 
-            !                   indxui  (:,iblk), indxuj  (:,iblk), &
-            !                   fpresx(:,:,iblk), fpresy(:,:,iblk), &
-            !                   L2norm    (iblk))
+            ! call calc_L2norm_squared (nx_block        , ny_block,         &
+            !                           icellu    (iblk),                   & 
+            !                           indxui  (:,iblk), indxuj  (:,iblk), &
+            !                           fpresx(:,:,iblk), fpresy(:,:,iblk), &
+            !                           L2norm    (iblk))
             ! enddo
             ! !$OMP END PARALLEL DO
             ! write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
-            !                                   " fixed_point_res_L2norm= ", sqrt(sum(L2norm**2))
+            !                                   " fixed_point_res_L2norm= ", sqrt(sum(L2norm))
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " fixed_point_res_L2norm= ", fpres_norm
          endif
@@ -1476,16 +1476,16 @@
          do iblk = 1, nblocks
             fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
             fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
-            call calc_L2norm (nx_block        , ny_block,         &
-                              icellu    (iblk),                   & 
-                              indxui  (:,iblk), indxuj  (:,iblk), &
-                              fpresx(:,:,iblk), fpresy(:,:,iblk), &
-                              L2norm    (iblk))
+            call calc_L2norm_squared (nx_block        , ny_block,         &
+                                      icellu    (iblk),                   & 
+                                      indxui  (:,iblk), indxuj  (:,iblk), &
+                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
+                                      L2norm    (iblk))
          enddo
          !$OMP END PARALLEL DO
          if (monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
-                                              " progress_res_L2norm= ", sqrt(sum(L2norm**2))
+                                              " progress_res_L2norm= ", sqrt(sum(L2norm))
          endif
          
       enddo ! nonlinear iteration loop
@@ -3061,7 +3061,7 @@
                                bx,         by,       &
                                Au,         Av,       &
                                Fx,         Fy,       &
-                               L2norm)
+                               sum_squared)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -3083,8 +3083,8 @@
          Fx      , & ! x residual vector, Fx = Au - bx (N/m^2)
          Fy          ! y residual vector, Fy = Av - by (N/m^2)
          
-      real (kind=dbl_kind), intent(out) :: &
-         L2norm      ! L2norm of residual vector
+      real (kind=dbl_kind), intent(out), optional :: &
+         sum_squared ! sum of squared residual vector components
       
       integer (kind=int_kind) :: &
          i, j, ij
@@ -3092,10 +3092,12 @@
       character(len=*), parameter :: subname = '(residual_vec)'
 
       !-----------------------------------------------------------------
-      ! calc residual and its L2 norm
+      ! compute residual and sum its squared components
       !-----------------------------------------------------------------
 
-      L2norm=c0
+      if (present(sum_squared)) then
+         sum_squared = c0
+      endif
          
       do ij =1, icellu
          i = indxui(ij)
@@ -3103,9 +3105,10 @@
 
          Fx(i,j) = Au(i,j) - bx(i,j)
          Fy(i,j) = Av(i,j) - by(i,j)
-         L2norm = L2norm + Fx(i,j)**2 + Fy(i,j)**2
+         if (present(sum_squared)) then
+            sum_squared = sum_squared + Fx(i,j)**2 + Fy(i,j)**2
+         endif
       enddo                     ! ij
-      L2norm = sqrt(L2norm)
 
       end subroutine residual_vec
       
@@ -3604,11 +3607,11 @@
       
 !=======================================================================      
 
-      subroutine calc_L2norm (nx_block,   ny_block, &
-                              icellu,               &
-                              indxui,     indxuj,   &
-                              tpu,        tpv,      &
-                              L2norm)
+      subroutine calc_L2norm_squared (nx_block,   ny_block, &
+                                      icellu,               &
+                                      indxui,     indxuj,   &
+                                      tpu,        tpv,      &
+                                      L2norm)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -3620,21 +3623,21 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         tpu     , & ! x-component of vector
-         tpv         ! y-component of vector         
+         tpu     , & ! x-component of vector grid function
+         tpv         ! y-component of vector grid function
 
       real (kind=dbl_kind), intent(out) :: &
-         L2norm      ! l^2 norm of vector grid function (tpu,tpv)
+         L2norm      ! squared l^2 norm of vector grid function (tpu,tpv)
 
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, ij
 
-      character(len=*), parameter :: subname = '(calc_L2norm)'
+      character(len=*), parameter :: subname = '(calc_L2norm_squared)'
 
       !-----------------------------------------------------------------
-      ! compute l^2 norm of vector grid function (tpu,tpv)
+      ! compute squared l^2 norm of vector grid function (tpu,tpv)
       !-----------------------------------------------------------------
 
      L2norm = c0
@@ -3643,14 +3646,11 @@
          i = indxui(ij)
          j = indxuj(ij)
          
-         L2norm = L2norm + tpu(i,j)**2
-         L2norm = L2norm + tpv(i,j)**2
+         L2norm = L2norm + tpu(i,j)**2 + tpv(i,j)**2
          
-      enddo                     ! ij
-
-      L2norm = sqrt(L2norm)
+      enddo ! ij
       
-      end subroutine calc_L2norm
+      end subroutine calc_L2norm_squared
       
             !=======================================================================
 
