@@ -160,7 +160,7 @@
          initer          , & ! inner (Arnoldi) loop counter
          outiter         , & ! outer (restarts) loop counter
          nextit          , & ! nextit == initer+1
-         it, k               ! reusable loop counters
+         it, k, ii           ! reusable loop counters
 
       real (kind=dbl_kind), dimension(maxinner+1) :: &
          rot_cos         , & ! cosine elements of Givens rotations 
@@ -503,11 +503,21 @@
 !             endif
 ! 
       end do ! end of inner (Arnoldi) loop
-! 
-!          ! At this point either the maximum number of inner iterations
-!          ! was reached or the absolute residual is below the scaled tolerance.
-! 
-!          ! Solve upper triangular system
+      
+      ! At this point either the maximum number of inner iterations
+      ! was reached or the absolute residual is below the scaled tolerance.
+
+      ! Solve the (now upper triangular) system "hessenberg * sol_hess = rhs_hess"
+      ! (sol_hess is stored in rhs_hess)
+      rhs_hess(initer) = rhs_hess(initer) / hessenberg(initer,initer)
+      do ii = 2, initer
+         k  = initer - ii + 1
+         t  = rhs_hess(k)
+         do j = k + 1, initer
+            t = t - hessenberg(k,j) * rhs_hess(j)
+         end do
+         rhs_hess(k) = t / hessenberg(k,k)
+      end do
 !          gg(initer) = gg(initer) / hessenberg(initer,initer)
 !          do ii=2,initer
 !             k  = initer - ii + 1
@@ -519,7 +529,21 @@
 !             gg(k) = t / hessenberg(k,k)
 !          end do
 ! 
-!          ! Form linear combination to get solution.
+      ! Form linear combination to get solution
+      do it = 1, initer
+         t = rhs_hess(it)
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            do ij =1, icellu(iblk)
+               i = indxui(ij, iblk)
+               j = indxuj(ij, iblk)
+
+               solx(i, j, iblk) = solx(i, j, iblk) + t * wwx(i, j, iblk, it)
+               soly(i, j, iblk) = soly(i, j, iblk) + t * wwy(i, j, iblk, it)
+            enddo ! ij
+         enddo
+         !$OMP END PARALLEL DO
+      end do
 !          do it=1,initer
 !             t = gg(it)
 ! 
