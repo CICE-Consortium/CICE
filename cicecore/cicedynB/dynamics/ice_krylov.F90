@@ -32,7 +32,7 @@
       use ice_constants, only: field_loc_NEcorner, c0, c1
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: max_blocks
-      use ice_dyn_vp, only: matvec, residual_vec, calc_L2norm_squared
+      use ice_dyn_vp, only: matvec, residual_vec, calc_L2norm_squared, precond
       use ice_flux, only:  fm, iceumask
       use ice_global_reductions, only: global_sum
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
@@ -41,7 +41,17 @@
 
       implicit none
       private
-      public :: fgmres, pgmres
+      public :: fgmres
+      
+      integer (kind=int_kind), allocatable :: & 
+         icellt(:)    , & ! no. of cells where icetmask = 1
+         icellu(:)        ! no. of cells where iceumask = 1
+
+      integer (kind=int_kind), allocatable :: &
+         indxti(:,:)  , & ! compressed index in i-direction
+         indxtj(:,:)  , & ! compressed index in j-direction
+         indxui(:,:)  , & ! compressed index in i-direction
+         indxuj(:,:)      ! compressed index in j-direction
 
 !=======================================================================
 
@@ -54,25 +64,28 @@
 !
 ! authors: Stéphane Gaudreault, Abdessamad Qaddouri, Philippe Blain, ECCC
 
-      subroutine fgmres (icellt,   icellu,  &
-                         indxti,   indxtj,  &
-                         indxui,   indxuj,  &
+      subroutine fgmres (icellt_in,   icellu_in,  &
+                         indxti_in,   indxtj_in,  &
+                         indxui_in,   indxuj_in,  &
                          zetaD,             &
-                         Cb,       vrel,    &
+                         Cb,         vrel,    &
                          umassdti,          &
-                         solx,     soly,    &
-                         bx,       by,      &
+                         solx,       soly,    &
+                         bx,         by,      &
+                         diagx,      diagy,   &
                          tolerance, maxinner, maxouter, nbiter, conv)
 
+      use ice_dyn_vp, only: precond
+
       integer (kind=int_kind), dimension(max_blocks), intent(in) :: & 
-         icellt   , & ! no. of cells where icetmask = 1
-         icellu       ! no. of cells where iceumask = 1
+         icellt_in, & ! no. of cells where icetmask = 1
+         icellu_in    ! no. of cells where iceumask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj   , & ! compressed index in j-direction
-         indxui   , & ! compressed index in i-direction
-         indxuj       ! compressed index in j-direction
+         indxti_in, & ! compressed index in i-direction
+         indxtj_in, & ! compressed index in j-direction
+         indxui_in, & ! compressed index in i-direction
+         indxuj_in    ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetaD      ! zetaD = 2*zeta (viscous coefficient)
@@ -89,6 +102,10 @@
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          bx       , & ! Right hand side of the linear system (x components)
          by           ! Right hand side of the linear system (y components)
+
+      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
+         diagx    , & ! Diagonal of the system matrix (x components)
+         diagy        ! Diagonal of the system matrix (y components)
 
       real (kind=dbl_kind), intent(in) :: &
          tolerance   ! Tolerance to achieve. The algorithm terminates when the relative
@@ -112,7 +129,7 @@
 
       integer (kind=int_kind) :: &
          iblk    , & ! block index
-         ij      , & ! compressed index
+         ij      , & ! index for indx[t|u][i|j]
          i, j        ! grid indices
          
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
@@ -130,6 +147,9 @@
          arnoldi_basis_x , & ! arnoldi basis (x components) !phb == vv
          arnoldi_basis_y     ! arnoldi basis (y components)
 
+      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner) :: &
+         ww                  ! !phb FIND BETTER NAME
+
       real (kind=dbl_kind) :: &
          norm_residual   , & ! current L^2 norm of residual vector
          inverse_norm    , & ! inverse of the residual norm
@@ -146,11 +166,14 @@
          rot_sin         , & ! 
          rhs_hess            ! right hand side vector of the Hessenberg (least square) system
 
+      integer (kind=int_kind) :: &
+         precond_type ! type of preconditioner
+
       real (kind=dbl_kind) :: relative_tolerance, r0
 
       real (kind=dbl_kind), dimension(maxinner+1, maxinner) :: hessenberg
 
-      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner) :: ww
+
 
 
       real (kind=dbl_kind) :: local_dot, dotprod
@@ -162,13 +185,30 @@
       ! integer (kind=int_kind) i0, in, j0, jn
       ! integer (kind=int_kind) niloc,njloc
 
+      character(len=*), parameter :: subname = '(fgmres)'
+
+      ! Initialize module variables
+      allocate(icellt(max_blocks), icellu(max_blocks))
+      allocate(indxti(nx_block*ny_block, max_blocks), & 
+               indxtj(nx_block*ny_block, max_blocks), &
+               indxui(nx_block*ny_block, max_blocks), & 
+               indxuj(nx_block*ny_block, max_blocks))
+      icellt = icellt_in
+      icellu = icellu_in
+      indxti = indxti_in
+      indxtj = indxtj_in
+      indxui = indxui_in 
+      indxuj = indxuj_in
+      
       ! Here we go !
 
       outiter = 0
       nbiter = 0
-
+      
       conv = c1
-
+      
+      precond_type = precond
+      
       ! Residual of the initial iterate
       
       !$OMP PARALLEL DO PRIVATE(iblk)
@@ -263,27 +303,32 @@
       conv = norm_residual / r0
       
       ! Initialize 1-st term of RHS of hessenberg system
-      gg(1) = norm_residual
-      gg(2:) = 0.d0
+      rhs_hess(1) = norm_residual
+      rhs_hess(2:) = c0
+      
+      initer = 0
+      
+      ! Start of inner (Arnoldi) loop
+      do
+         
+         nbiter = nbiter + 1
+         initer = initer + 1
+         nextit = initer + 1
 ! 
-!          initer = 0
-! 
-!          do
-! 
-!             nbiter = nbiter + 1
-!             initer = initer + 1
-!             nextit = initer + 1
-! 
-!             ! here call precond_diag OR PGMRES
-!             ! if (sol2D_precond_S == 'JACOBI')   then
-!             !    call pre_jacobi2D ( work_space(i0:in,j0:jn), &
-!             !                        vv(i0:in,j0:jn, initer), &
-!             !                        Prec_xevec_8, niloc, njloc,&
-!             !                        Prec_ai_8, Prec_bi_8, Prec_ci_8 )
-!             ! else
-!             !    work_space(i0:in,j0:jn) = vv(i0:in,j0:jn, initer)
-!             ! endif
-! 
+         ! precondition the current Arnoldi vector
+         call precondition(arnoldi_basis_x(:,:,:,initer), &
+                           arnoldi_basis_y(:,:,:,initer), &
+                           Au, Av, &
+                           precond_type, diagx, diagy)
+!             if (sol2D_precond_S == 'JACOBI')   then
+!                call pre_jacobi2D ( work_space(i0:in,j0:jn), &
+!                                    vv(i0:in,j0:jn, initer), &
+!                                    Prec_xevec_8, niloc, njloc,&
+!                                    Prec_ai_8, Prec_bi_8, Prec_ci_8 )
+!             else
+!                work_space(i0:in,j0:jn) = vv(i0:in,j0:jn, initer)
+!             endif
+      
 !             ww(i0:in,j0:jn, initer) = work_space(i0:in,j0:jn)
 ! 
 !             call matvec ( work_space, vv(:,:,nextit), level )
@@ -363,7 +408,7 @@
 !                exit
 !             endif
 ! 
-!          end do
+      end do ! end of inner (Arnoldi) loop
 ! 
 !          ! At this point either the maximum number of inner iterations
 !          ! was reached or the absolute residual is below the scaled tolerance.
@@ -433,8 +478,64 @@
 ! authors: Stéphane Gaudreault, Abdessamad Qaddouri, Philippe Blain, ECCC
 
       subroutine pgmres()
-         
+      
+      character(len=*), parameter :: subname = '(pgmres)'
+      
       end subroutine pgmres
+
+!=======================================================================
+
+! Generic routine to precondition a vector
+!
+! authors: Philippe Blain, ECCC
+
+      subroutine precondition(vx, vy, wx, wy, precond_type, diagx, diagy)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         vx       , & ! input vector (x components)
+         vy           ! input vector (y components)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
+         wx       , & ! preconditionned vector (x components)
+         wy           ! preconditionned vector (y components)
+
+      integer (kind=int_kind), intent(in) :: &
+         precond_type ! type of preconditioner
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         diagx    , & ! diagonal of the system matrix (x components)
+         diagy        ! diagonal of the system matrix (y components)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk    , & ! block index
+         ij      , & ! compressed index
+         i, j        ! grid indices
+
+      character(len=*), parameter :: subname = '(precondition)'
+
+      if     (precond_type == 1) then ! identity (no preconditioner)
+         wx = vx
+         wy = vy
+      elseif (precond_type == 2) then ! Jacobi preconditioner
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            do ij =1, icellu(iblk)
+               i = indxui(ij, iblk)
+               j = indxuj(ij, iblk)
+
+               wx(i,j,iblk) = vx(i,j,iblk) / diagx(i,j,iblk)
+               wy(i,j,iblk) = vy(i,j,iblk) / diagy(i,j,iblk)
+            enddo ! ij
+         enddo
+         !$OMP END PARALLEL DO 
+      elseif (precond_type == 3) then ! PGMRES (Jacobi-preconditioned GMRES)
+         ! !phb TODO!!!
+      else
+         
+      endif
+      end subroutine precondition
 
 !=======================================================================
 
