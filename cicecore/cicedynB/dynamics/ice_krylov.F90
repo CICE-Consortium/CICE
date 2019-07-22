@@ -707,8 +707,8 @@ logical function almost_zero(A) result(retval)
    implicit none
 
    real (kind=dbl_kind), intent(in) :: A
-   integer (kind=int_kind) :: aBit
-   integer (kind=int_kind), parameter :: two_complement = int(Z'80000000', kind=int_kind)
+   integer (kind=int8_kind) :: aBit
+   integer (kind=int8_kind), parameter :: two_complement = int(Z'80000000', kind=int8_kind)
    aBit = 0
    aBit = transfer(A, aBit)
    if (aBit < 0) then
