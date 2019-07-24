@@ -95,6 +95,9 @@
          indxtj(:,:)  , & ! compressed index in j-direction
          indxui(:,:)  , & ! compressed index in i-direction
          indxuj(:,:)      ! compressed index in j-direction
+         
+      real (kind=dbl_kind), allocatable :: & 
+         fld2(:,:,:,:)    ! work array for boundary updates
 
 !=======================================================================
 
@@ -139,6 +142,7 @@
                indxtj(nx_block*ny_block, max_blocks), &
                indxui(nx_block*ny_block, max_blocks), &
                indxuj(nx_block*ny_block, max_blocks))
+      allocate(fld2(nx_block,ny_block,2,max_blocks))
       
       ! Redefine tinyarea using a different puny value
       
@@ -225,8 +229,6 @@
          aiu      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
-         
-      real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
 
       logical (kind=log_kind) :: calc_strair
 
@@ -252,8 +254,6 @@
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
-
-      allocate(fld2(nx_block,ny_block,2,max_blocks))
       
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -476,7 +476,6 @@
          call picard_solver (icellt,   icellu,  &
                              indxti,   indxtj,  &
                              indxui,   indxuj,  &
-                             fld2,              &
                              aiu,      ntot,    &
                              waterx,   watery,  & 
                              bxfix,    byfix,   &
@@ -488,7 +487,6 @@
          call anderson_solver (icellt,   icellu,  &
                                indxti,   indxtj,  &
                                indxui,   indxuj,  &
-                               fld2,              &
                                aiu,      ntot,    &
                                waterx,   watery,  & 
                                bxfix,    byfix,   &
@@ -503,7 +501,6 @@
 
       deallocate(bvec, sol, diagvec)
       
-      deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
       
       !-----------------------------------------------------------------
@@ -632,7 +629,6 @@
       subroutine picard_solver (icellt,   icellu,  &
                                 indxti,   indxtj,  &
                                 indxui,   indxuj,  &
-                                fld2,              &
                                 aiu,      ntot,    &
                                 waterx,   watery,  & 
                                 bxfix,    byfix,   &
@@ -664,9 +660,6 @@
          indxtj   , & ! compressed index in j-direction
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(inout) :: &
-         fld2        ! work array for boundary updates
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
          aiu      , & ! ice fraction on u-grid
@@ -1062,7 +1055,6 @@
       subroutine anderson_solver (icellt,   icellu,  &
                                   indxti,   indxtj,  &
                                   indxui,   indxuj,  &
-                                  fld2,              &
                                   aiu,      ntot,    &
                                   waterx,   watery,  & 
                                   bxfix,    byfix,   &
@@ -1095,9 +1087,6 @@
          indxtj   , & ! compressed index in j-direction
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(inout) :: &
-         fld2        ! work array for boundary updates
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
          aiu      , & ! ice fraction on u-grid
@@ -1346,8 +1335,7 @@
             !                     indxui, indxuj,   &
             !                     zetaD,            &
             !                     Cb,     vrel,     &
-            !                     aiu,    umassdti, &
-            !                     fld2)
+            !                     aiu,    umassdti)
 
          elseif (fpfunc_andacc == 2) then
             ! g_2(x) = x - A(x)x + b(x) = x - F(x)
@@ -1527,8 +1515,7 @@
                                 indxui, indxuj,   &
                                 zetaD,            &
                                 Cb,     vrel,     &
-                                aiu,    umassdti, & 
-                                fld2)
+                                aiu,    umassdti  )
 
       use ice_blocks, only: nx_block, ny_block
       use ice_boundary, only: ice_HaloUpdate
@@ -1567,10 +1554,7 @@
       
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetaD      ! zetaD = 2zeta (viscous coeff)
-      
-      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(inout) :: &
-         fld2        ! work array for boundary updates
-      
+
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -4807,7 +4791,7 @@
 ! Perform a halo update for the velocity field
 ! author: Philippe Blain, ECCC
 
-      subroutine ice_HaloUpdate_vel(uvel, vvel, fld2, halo_info_mask)
+      subroutine ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
 
       use ice_boundary, only: ice_halo, ice_HaloUpdate
       use ice_constants, only: field_loc_NEcorner, field_type_vector
@@ -4817,9 +4801,6 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
          uvel    , & ! u components of velocity vector
          vvel        ! v components of velocity vector
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(inout) :: &
-         fld2        ! work array to perform halo update
 
       type (ice_halo), intent(in) :: &
          halo_info_mask !  ghost cell update info for masked halo
