@@ -4769,28 +4769,34 @@
 
 !=======================================================================
 
-logical function almost_zero(A) result(retval)
-   ! Check if value A is close to zero, up to machine precision
-   !
-   !author
-   !     Stéphane Gaudreault, ECCC -- June 2014
-   !
-   !revision
-   !     v4-80 - Gaudreault S.         - gfortran compatibility
-   !     2019  - Philippe Blain, ECCC  - converted to CICE standards
-   implicit none
+! Check if value A is close to zero, up to machine precision
+!
+!author
+!     Stéphane Gaudreault, ECCC -- June 2014
+!
+!revision
+!     v4-80 - Gaudreault S.         - gfortran compatibility
+!     2019  - Philippe Blain, ECCC  - converted to CICE standards
 
-   real (kind=dbl_kind), intent(in) :: A
-   integer (kind=int8_kind) :: aBit
-   integer (kind=int8_kind), parameter :: two_complement = int(Z'80000000', kind=int8_kind)
-   aBit = 0
-   aBit = transfer(A, aBit)
-   if (aBit < 0) then
-      aBit = two_complement - aBit
-   end if
-   ! lexicographic order test with a tolerance of 1 adjacent float
-   retval = (abs(aBit) <= 1)
-end function almost_zero
+      logical function almost_zero(A) result(retval)
+
+      real (kind=dbl_kind), intent(in) :: A
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(almost_zero)'
+
+      integer (kind=int8_kind) :: aBit
+      integer (kind=int8_kind), parameter :: two_complement = int(Z'80000000', kind=int8_kind)
+      aBit = 0
+      aBit = transfer(A, aBit)
+      if (aBit < 0) then
+         aBit = two_complement - aBit
+      end if
+      ! lexicographic order test with a tolerance of 1 adjacent float
+      retval = (abs(aBit) <= 1)
+      
+      end function almost_zero
 
 !=======================================================================
 
