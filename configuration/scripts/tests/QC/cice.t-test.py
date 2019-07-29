@@ -109,12 +109,16 @@ def read_data(path_a, path_b, files_a, files_b, ni, nj):
                            np.all(np.equal(data_d, 0.), axis=0), np.all(data_a < 0.01, axis=0))\
                       , np.all(data_b < 0.01, axis=0))
         mask_array_a = np.zeros_like(data_d)
+
         for x, value in np.ndenumerate(mask_d):
             i, j = x
             mask_array_a[:, i, j] = value
+        del mask_d
+
         data_a = ma.masked_array(data_a, mask=mask_array_a)
         data_b = ma.masked_array(data_b, mask=mask_array_a)
         data_d = ma.masked_array(data_d, mask=mask_array_a)
+
         del mask_array_a
 
         return data_a, data_b, data_d
@@ -145,10 +149,10 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
         r1_den2 = np.zeros_like(mean_d)
         for i in np.arange(np.size(data_a, axis=0)-1):
             r1_num = r1_num + (data_d[i, :, :]-mean_nm1_d[:, :])*(data_d[i+1, :, :]-mean_2n_d[:, :])
-            r1_den1 = r1_den1 + np.power(data_d[i, :, :]-mean_nm1_d[:, :], 2)
+            r1_den1 = r1_den1 + np.square(data_d[i, :, :]-mean_nm1_d[:, :])
 
         for i in np.arange(1, np.size(data_a, axis=0)):
-            r1_den2 = r1_den2 + np.power(data_d[i, :, :] - mean_2n_d[:, :], 2)
+            r1_den2 = r1_den2 + np.square(data_d[i, :, :] - mean_2n_d[:, :])
 
         r1 = r1_num / np.sqrt(r1_den1*r1_den2)
 
@@ -190,7 +194,14 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
 
     # Calculate the mean of the difference
     mean_d = np.mean(data_d, axis=0)
-    variance_d = np.sum(np.power(data_d - mean_d, 2)) / (num_files - 1)
+
+    # Loop through each timestep and calculate the square of the difference.
+    # This is required (instead of just np.square(data_d - mean_d) to reduce
+    # the memory footprint of the script.
+    tmp1 = np.zeros_like(data_d)
+    for i in np.arange(np.shape(data_d)[0]):
+        tmp1[i,:,:] = np.square(data_d[i,:,:] - mean_d[:,:])
+    variance_d = np.sum(tmp1) / float(num_files - 1)
 
     n_eff, H1, r1, t_crit = stage_one(data_d, num_files, mean_d, variance_d)
 
@@ -307,8 +318,8 @@ def skill_test(path_a, fname, data_a, data_b, num_files, hemisphere):
     area_var_a = 0
     area_var_b = 0
     for t in np.arange(num_files):
-        area_var_a = area_var_a + np.sum(area_weight*np.power(data_a[t, :, :]-weighted_mean_a, 2))
-        area_var_b = area_var_b + np.sum(area_weight*np.power(data_b[t, :, :]-weighted_mean_b, 2))
+        area_var_a = area_var_a + np.sum(area_weight*np.square(data_a[t, :, :]-weighted_mean_a))
+        area_var_b = area_var_b + np.sum(area_weight*np.square(data_b[t, :, :]-weighted_mean_b))
 
     area_var_a = nonzero_weights / (num_files * nonzero_weights - 1.) * area_var_a
     area_var_b = nonzero_weights / (num_files * nonzero_weights - 1.) * area_var_b
@@ -324,8 +335,8 @@ def skill_test(path_a, fname, data_a, data_b, num_files, hemisphere):
 
     weighted_r = combined_cov / (std_a*std_b)
 
-    s = np.power((1+weighted_r)*(std_a*std_b)/\
-                 (area_var_a + area_var_b), 2)
+    s = np.square((1+weighted_r)*(std_a*std_b)/\
+                 (area_var_a + area_var_b))
 
     logger.debug('%s Hemisphere skill score = %f', hemisphere, s)
 
