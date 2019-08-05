@@ -1,5 +1,7 @@
 language: cpp
 
+dist: xenial
+
 sudo: false
 
 addons:
@@ -9,7 +11,7 @@ addons:
     packages:
       - tcsh
       - pkg-config
-      - netcdf-bin libnetcdf-dev #libnetcdff-dev (only required on Debian)
+      - netcdf-bin libnetcdf-dev libnetcdff-dev
       - gfortran
       - gcc
       - openmpi-bin libopenmpi-dev
