@@ -16,6 +16,8 @@ The CICE scripts are written to allow quick setup of cases and tests.  Once a ca
 generated, users can manually modify the namelist and other files to custom configure
 the case.  Several settings are available via scripts as well.
 
+.. _overview:
+
 Overview
 ~~~~~~~~
 
@@ -78,9 +80,9 @@ Some hints:
 - To change the block sizes required at build time, edit the **cice.settings** file.
 - To change namelist, manually edit the **ice_in** file
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
-- To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true
+- To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
 - To change compiler options, manually edit the Macros file
-- To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false
+- To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.
 
 To build and run::
 
@@ -162,6 +164,10 @@ Some of the options are
 
 ``debug`` which turns on the compiler debug flags
 
+``buildclean`` which turns on the option to clean the build before each compile
+
+``buildincremental`` which turns off the option to clean the build before each compile
+
 ``short``, ``medium``, ``long`` which change the batch time limit
 
 ``gx3``, ``gx1``, ``tx1`` are associate with grid specific settings
@@ -201,7 +207,7 @@ Once the cases are created, users are free to modify the cice.settings and ice_i
 Porting
 -------
 
-To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment}** file have to be added to the
+To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment]** file have to be added to the
 **configuration/scripts/machines/** directory and the 
 **configuration/scripts/cice.batch.csh** file needs to be modified.
 In general, the machine is specified in ``cice.setup`` with ``--mach``
@@ -228,6 +234,16 @@ file until the case can build and run.  Then copy the files from the case
 directory back to **configuration/scripts/machines/** and update 
 the **configuration/scripts/cice.batch.csh** file, retest, 
 and then add and commit the updated machine files to the repository.
+
+.. _cross_compiling:
+
+Cross-compiling
+~~~~~~~~~~~~~~~
+It can happen that the model must be built on a platform and run on another, for example when the run environment is only available in a batch queue. The program **makdep** (see :ref:`overview`), however, is both compiled and run as part of the build process.
+
+In order to support this, the Makefile uses a variable ``CFLAGS_HOST`` that can hold compiler flags specfic to the build machine for the compilation of makdep. If this feature is needed, add the variable ``CFLAGS_HOST`` to the **Macros.[machine]_[environment]** file. For example : ::
+
+  CFLAGS_HOST = -xHost
 
 .. _account:
 
