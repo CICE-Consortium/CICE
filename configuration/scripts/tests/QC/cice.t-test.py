@@ -238,6 +238,13 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
     for x in maenumerate(data_d):
         min_val = np.min(np.abs(r1[x]-r1_table))
         idx = np.where(np.abs(r1[x]-r1_table) == min_val)
+        # Handle the cases where the data point falls exactly half way between
+        # 2 critical T-values (i.e., idx has more than 1 value in it)
+        while True:
+            try:
+                idx = idx[0]
+            except:
+                break
         t_crit[x] = t_crit_table[idx]
 
     # Create an array showing locations of Pass / Fail grid cells
