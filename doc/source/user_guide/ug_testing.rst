@@ -980,7 +980,9 @@ $ cd testsuite.t00
 Run the timeseries script on the desired case. ::
 
 $ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
-$ or
+
+or :: 
+
 $ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
     
 The output figures are placed in the directory where the ``timeseries.csh`` or ``timeseries.py`` 
