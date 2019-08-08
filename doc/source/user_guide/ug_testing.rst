@@ -1006,7 +1006,7 @@ This plotting script can be used to plot the following variables:
 The Python version of the timeseries script has some additional capability that the C-Shell
 version does not have.  Running ``python timeseries.py -h`` prints the following help information
 
-.. code-block:: bash
+::
 
   usage: timeseries.py [-h] [--bdir BASE_DIR] [-v] [--area] [--extent]
                        [--volume] [--snw_vol] [--speed] [--grid]
