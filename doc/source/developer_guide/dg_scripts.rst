@@ -123,8 +123,9 @@ and the files that describe with options files are needed for each test (ie. **t
 A baseline test script (**baseline.script**) is also there to setup the general regression
 and comparison testing.  That directory also contains the preset test suites 
 (ie. **base_suite.ts**) and a file that supports post-processing on the model
-output (**timeseries.csh**).  There is also a script **report_results.csh** that pushes results 
-from test suites back to the CICE-Consortium test results wiki page.
+output (**timeseries.csh** and **timeseries.py**).  There is also a script 
+**report_results.csh** that pushes results from test suites back to the CICE-Consortium
+test results wiki page.
 
 To add a new test (for example newtest), several files may be needed,
 

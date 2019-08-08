@@ -819,6 +819,7 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke18`.
 
+.. _CodeCompliance
 
 Code Compliance Testing Procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -945,12 +946,23 @@ If the regression comparisons fail, then you may want to run the QC test,
 Test Plotting
 ----------------
 
-The CICE scripts include a script (``timeseries.csh``) that will generate timeseries 
-figures from a diagnostic output file.  
-When running a test suite, the ``timeseries.csh`` script is automatically copied to the suite directory.  
-If the ``timeseries.csh`` script is to be used on a test or case that is not a part of a test suite, 
-users will need to run the ``timeseries.csh`` script from the tests directory 
-(``./configuration/scripts/tests/timeseries.csh ./path/``), or copy it to a local directory.
+The CICE scripts include two scripts (``timeseries.csh`` and ``timeseries.py``) that will 
+generate timeseries figures from a diagnostic output file.  
+
+To use the ``timeseries.py`` script, the following requirements must be met:
+
+* Python v2.7 or later
+* numpy Python package
+* matplotlib Python package
+* datetime Python package
+
+For informatino regarding configuring the Python environment, see CodeCompliance_.
+
+When running a test suite, the ``timeseries.csh`` and ``timeseries.py`` scripts are automatically 
+copied to the suite directory.  
+If the timeseries scripts are to be used on a test or case that is not a part of a test suite, 
+users will need to run the scripts from the tests directory 
+(e.g., ``./configuration/scripts/tests/timeseries.csh ./path/``), or copy it to a local directory.
 When used with the test suites or given a path, it needs to be run in the directory 
 above the particular case being plotted, but it can also be run on isolated log files in the same directory, 
 without a path.
@@ -968,15 +980,18 @@ $ cd testsuite.t00
 Run the timeseries script on the desired case. ::
 
 $ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+$ or
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
     
-The output figures are placed in the directory where the ``timeseries.csh`` script is run.
+The output figures are placed in the directory where the ``timeseries.csh`` or ``timeseries.py`` 
+script is run.
 
 To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
 
      #!/bin/csh
      foreach dir (`ls -1  | grep testid`)
        echo $dir
-       timeseries.csh $dir
+       python timeseries.py $dir
      end
 
 
@@ -988,3 +1003,38 @@ This plotting script can be used to plot the following variables:
   - total snow volume (:math:`m^3`)
   - RMS ice speed (:math:`m/s`)
 
+The Python version of the timeseries script has some additional capability that the C-Shell
+version does not have.  Running ``python timeseries.py -h`` prints the following help information
+
+.. code-block:: bash
+
+  usage: timeseries.py [-h] [--bdir BASE_DIR] [-v] [--area] [--extent]
+                       [--volume] [--snw_vol] [--speed] [--grid]
+                       [log_dir]
+  
+  To generate timeseries plots, this script can be passed a directory containing
+  a logs/ subdirectory, or it can be run in the directory with the log files,
+  without being passed a directory. It will pull the diagnostic data from the
+  most recently modified log file. If no flags are passed selecting the
+  variables to plot, then plots will be created for all available variables.
+  
+  positional arguments:
+    log_dir          Path to diagnostic output log file directory.
+  
+  optional arguments:
+    -h, --help       show this help message and exit
+    --bdir BASE_DIR  Path to the directory that contains the log file for a
+                     baseline dataset, if desired.
+    -v, --verbose    Print debug output?
+    --area           Create a plot for total ice area?
+    --extent         Create a plot for total ice extent?
+    --volume         Create a plot for total ice volume?
+    --snw_vol        Create a plot for total snow volume?
+    --speed          Create a plot for rms ice speed?
+    --grid           Add grid lines to the figures?
+
+If ``--bdir`` is specified, the script with plot both a baseline dataset and a test case dataset.
+If the ``--grid`` option is specified, then grid lines will be placed on the figures.
+The ``--area``, ``--extent``, ``--volume``, ``--snw_vol``, and ``speed`` options allow the
+user to specify which fields are to be plotted.  If no fields are specified, then all fields
+will be plotted.

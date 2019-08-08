@@ -378,6 +378,7 @@ else
   endif
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/timeseries.py ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
   foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
