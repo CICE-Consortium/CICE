@@ -819,7 +819,7 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke18`.
 
-.. _CodeCompliance
+.. _CodeCompliance:
 
 Code Compliance Testing Procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -956,7 +956,7 @@ To use the ``timeseries.py`` script, the following requirements must be met:
 * matplotlib Python package
 * datetime Python package
 
-For informatino regarding configuring the Python environment, see CodeCompliance_.
+For information regarding configuring the Python environment, see :ref:`CodeCompliance`.
 
 When running a test suite, the ``timeseries.csh`` and ``timeseries.py`` scripts are automatically 
 copied to the suite directory.  
