@@ -19,10 +19,13 @@ To run stand-alone, CICE requires
 - netcdf
 - MPI (this is actually	optional but without it	you can	only run on 1 processor)
 
-Below are a list of software that the consortium has tested at some point.  There is no
+Below are lists of software versions that the consortium has tested at some point.  There is no
 guarantee that all compiler versions work with all CICE model versions.  At any given
-point, we are regularly testing on several different compilers, but not necessarily all
-possible compiler versions.
+point, the consortium is regularly testing on several different compilers, but not 
+necessarily on all possible versions or combinations.  A CICE goal is to be relatively portable
+across different hardware, compilers, and other software.  As a result, the coding
+implementation tends to be on the conservative side at times.  If there are problems 
+porting to a particular system, please let the consortium know.
 
 The consortium has tested the following compilers at some point,
 
@@ -67,7 +70,7 @@ The netcdf implementation is relatively general and should work with any version
 - netcdf 4.5.0
 - netcdf 4.6.1.3
 
-Feel free to email the consortium to let us add your successes to the above lists.
+Please email the consortium if this list can be extended.
 
 .. _scripts:
 
