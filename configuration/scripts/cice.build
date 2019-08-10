@@ -126,18 +126,21 @@ endif
 if !(-d ${ICE_LOGDIR}) mkdir -p ${ICE_LOGDIR}
 cp -p ${ICE_BLDLOG_FILE} ${ICE_LOGDIR}/
 
-grep -q "make: Circular" ${ICE_BLDLOG_FILE}
-set circularstat = ${status}
+echo " "
+
+# special effort to trap and highlight circular dependency errors
+set circularstat = `grep "make: Circular" ${ICE_BLDLOG_FILE} | wc -l`
+if (${circularstat} > 0) then
+  echo "${0}: ERROR: Circular Dependence found"
+  grep "make: Circular" ${ICE_BLDLOG_FILE}
+  if (-e ${ICE_RUNDIR}/cice) then
+    echo "${0}: Deleting cice executable"
+    rm ${ICE_RUNDIR}/cice
+  endif
+  set bldstat = 55
+endif
 
 if (${bldstat} != 0) then
-  if (${circularstat} == 0) then
-    echo ""
-    echo "ERROR: Circular dependencies :"
-    grep "make: Circular" ${ICE_BLDLOG_FILE}
-    echo ""
-    echo "${0}: ERROR : Make detected circular module dependencies !"
-    echo ""
-  endif
   echo "${0}: COMPILE FAILED, see"
   echo "  cat ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
   if (${quiet} == "true") then
@@ -158,16 +161,5 @@ if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
   echo "#---" >! ${ICE_CASEDIR}/test_output
   echo "PASS ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
   echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
-endif
-
-if (${circularstat} == 0) then
-  echo ""
-  echo "WARNING: Circular dependencies :"
-  grep "make: Circular" ${ICE_BLDLOG_FILE}
-  echo ""
-  echo "${0}: WARNING : Make detected circular module dependencies !"
-  echo "${0}: WARNING : The build is most probably broken !"
-  echo "${0}: WARNING : A clean build will fail !"
-  echo ""
 endif
 

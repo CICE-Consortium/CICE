@@ -7,6 +7,64 @@ Running CICE
 
 Quick-start instructions are provided in the :ref:`quickstart` section.
 
+.. _software:
+
+Software Requirements
+-------
+
+To run stand-alone, CICE requires
+- gmake
+- Fortran and C	compilers (intel, pgi, gnu, cray, and nag have been tested)
+- netcdf
+- MPI (this is actually	optional but without it	you can	only run on 1 processor)
+
+Below are a list of software that the consortium has tested at some point.  There is no
+guarantee that all compiler versions work with all CICE model versions.  At any given
+point, we are regularly testing on several different compilers, but not necessarily all
+possible compiler versions.
+
+The consortium has tested the following compilers at some point,
+- intel 15.0.3.187
+- intel 16.0.1.150
+- intel 17.0.1.132
+- intel 17.0.2.174
+- intel 17.0.5.239
+- intel 18.0.1.163
+- intel 19.0.2
+- intel 19.0.3.199
+- pgi 16.10.0
+- gnu 6.3.0
+- gnu 7.2.0
+- gnu 7.3.0
+- cray 8.5.8
+- cray 8.6.4
+- nag 6.2
+
+The consortium has tested the following mpi versions,
+- mpich 7.3.2
+- mpich 7.5.3
+- mpich 7.6.2
+- mpich 7.6.3
+- mpich 7.7.6
+- intel mpi 18.0.1
+- mpt 2.14
+- mpt 2.17
+- mpt 2.18
+- mpt 2.19
+- openmpi 1.6.5
+
+The netcdf implementation is relatively general and should work with any version of netcdf 3 or 4.  The consortium has tested
+- netcdf 4.3.0
+- netcdf 4.3.2
+- netcdf 4.4.0
+- netcdf 4.4.1.1.32
+- netcdf 4.4.1.1
+- netcdf 4.4.2
+- netcdf 4.5.0
+- netcdf 4.6.1.3
+
+Feel free to email the consortium to let us add your successes to the above lists.
+
 .. _scripts:
 
 Scripts
@@ -82,7 +140,7 @@ Some hints:
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
 - To change compiler options, manually edit the Macros file
-- To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.
+- To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.  It is recommended that the ``ICE_CLEANBUILD`` be set to true if there are any questions about whether the build is proceeding properly.
 
 To build and run::
 
@@ -153,8 +211,8 @@ by doing ``cice.setup --help``.
 
 The default CICE namelist and CICE settings are specified in the 
 files **configuration/scripts/ice_in** and 
-**configuration/scripts/cice.settings** respectively.  When picking a 
-preset setting (option), the set_env.setting and set_nml.setting will be used to 
+**configuration/scripts/cice.settings** respectively.  When picking
+settings (options), the set_env.setting and set_nml.setting will be used to 
 change the defaults.  This is done as part of the ``cice.setup`` and the
 modifications are resolved in the **cice.settings** and **ice_in** file placed in 
 the case directory.  If multiple options are chosen and then conflict, then the last
