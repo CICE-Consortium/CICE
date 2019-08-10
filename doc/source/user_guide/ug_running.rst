@@ -13,6 +13,7 @@ Software Requirements
 -------
 
 To run stand-alone, CICE requires
+
 - gmake
 - Fortran and C	compilers (intel, pgi, gnu, cray, and nag have been tested)
 - netcdf
@@ -24,6 +25,7 @@ point, we are regularly testing on several different compilers, but not necessar
 possible compiler versions.
 
 The consortium has tested the following compilers at some point,
+
 - intel 15.0.3.187
 - intel 16.0.1.150
 - intel 17.0.1.132
@@ -41,6 +43,7 @@ The consortium has tested the following compilers at some point,
 - nag 6.2
 
 The consortium has tested the following mpi versions,
+
 - mpich 7.3.2
 - mpich 7.5.3
 - mpich 7.6.2
@@ -54,6 +57,7 @@ The consortium has tested the following mpi versions,
 - openmpi 1.6.5
 
 The netcdf implementation is relatively general and should work with any version of netcdf 3 or 4.  The consortium has tested
+
 - netcdf 4.3.0
 - netcdf 4.3.2
 - netcdf 4.4.0
