@@ -253,7 +253,7 @@ def main():
     logger.info('Log file = {}'.format(log))
     if args.base_dir:
         base_log = find_logfile(args.base_dir)
-        logger.info('Base Log file = {}'.format(log))
+        logger.info('Base Log file = {}'.format(base_log))
 
     # Loop through each field and create the plot
     for field in fieldlist:
