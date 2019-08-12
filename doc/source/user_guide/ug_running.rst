@@ -14,63 +14,63 @@ Software Requirements
 
 To run stand-alone, CICE requires
 
-- gmake
-- Fortran and C	compilers (intel, pgi, gnu, cray, and nag have been tested)
-- netcdf
+- gmake (GNU Make)
+- Fortran and C	compilers (Intel, PGI, GNU, Cray, and NAG have been tested)
+- NetCDF
 - MPI (this is actually	optional but without it	you can	only run on 1 processor)
 
-Below are lists of software versions that the consortium has tested at some point.  There is no
+Below are lists of software versions that the Consortium has tested at some point.  There is no
 guarantee that all compiler versions work with all CICE model versions.  At any given
-point, the consortium is regularly testing on several different compilers, but not 
+point, the Consortium is regularly testing on several different compilers, but not 
 necessarily on all possible versions or combinations.  A CICE goal is to be relatively portable
 across different hardware, compilers, and other software.  As a result, the coding
 implementation tends to be on the conservative side at times.  If there are problems 
-porting to a particular system, please let the consortium know.
+porting to a particular system, please let the Consortium know.
 
-The consortium has tested the following compilers at some point,
+The Consortium has tested the following compilers at some point,
 
-- intel 15.0.3.187
-- intel 16.0.1.150
-- intel 17.0.1.132
-- intel 17.0.2.174
-- intel 17.0.5.239
-- intel 18.0.1.163
-- intel 19.0.2
-- intel 19.0.3.199
-- pgi 16.10.0
-- gnu 6.3.0
-- gnu 7.2.0
-- gnu 7.3.0
-- cray 8.5.8
-- cray 8.6.4
-- nag 6.2
+- Intel 15.0.3.187
+- Intel 16.0.1.150
+- Intel 17.0.1.132
+- Intel 17.0.2.174
+- Intel 17.0.5.239
+- Intel 18.0.1.163
+- Intel 19.0.2
+- Intel 19.0.3.199
+- PGI 16.10.0
+- GNU 6.3.0
+- GNU 7.2.0
+- GNU 7.3.0
+- Cray 8.5.8
+- Cray 8.6.4
+- NAG 6.2
 
-The consortium has tested the following mpi versions,
+The Consortium has tested the following mpi versions,
 
-- mpich 7.3.2
-- mpich 7.5.3
-- mpich 7.6.2
-- mpich 7.6.3
-- mpich 7.7.6
-- intel mpi 18.0.1
-- mpt 2.14
-- mpt 2.17
-- mpt 2.18
-- mpt 2.19
-- openmpi 1.6.5
+- MPICH 7.3.2
+- MPICH 7.5.3
+- MPICH 7.6.2
+- MPICH 7.6.3
+- MPICH 7.7.6
+- Intel MPI 18.0.1
+- MPT 2.14
+- MPT 2.17
+- MPT 2.18
+- MPT 2.19
+- OpenMPI 1.6.5
 
-The netcdf implementation is relatively general and should work with any version of netcdf 3 or 4.  The consortium has tested
+The NetCDF implementation is relatively general and should work with any version of NetCDF 3 or 4.  The Consortium has tested
 
-- netcdf 4.3.0
-- netcdf 4.3.2
-- netcdf 4.4.0
-- netcdf 4.4.1.1.32
-- netcdf 4.4.1.1
-- netcdf 4.4.2
-- netcdf 4.5.0
-- netcdf 4.6.1.3
+- NetCDF 4.3.0
+- NetCDF 4.3.2
+- NetCDF 4.4.0
+- NetCDF 4.4.1.1.32
+- NetCDF 4.4.1.1
+- NetCDF 4.4.2
+- NetCDF 4.5.0
+- NetCDF 4.6.1.3
 
-Please email the consortium if this list can be extended.
+Please email the Consortium if this list can be extended.
 
 .. _scripts:
 

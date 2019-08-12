@@ -83,10 +83,10 @@ examples of the syntax.
 Build Scripts
 -----------
 
-CICE uses gmake to build the model.  There is a common **Makefile** for all machines.  
+CICE uses GNU Make to build the model.  There is a common **Makefile** for all machines.  
 Each machine provides a Macros file to define some Makefile variables
 and and an env file to specify the modules/software stack for each compiler.
-The machine is built by the cice.build script which invokes gmake.
+The machine is built by the cice.build script which invokes Make.
 There is a special trap for circular dependencies in the cice.build script to
 highlight this error when it occurs.
 

@@ -128,10 +128,10 @@ cp -p ${ICE_BLDLOG_FILE} ${ICE_LOGDIR}/
 
 echo " "
 
-# special effort to trap and highlight circular dependency errors
+# special effort to trap and highlight circular dependencies errors
 set circularstat = `grep "make: Circular" ${ICE_BLDLOG_FILE} | wc -l`
 if (${circularstat} > 0) then
-  echo "${0}: ERROR: Circular Dependence found"
+  echo "${0}: ERROR: Circular dependencies found"
   grep "make: Circular" ${ICE_BLDLOG_FILE}
   if (-e ${ICE_RUNDIR}/cice) then
     echo "${0}: Deleting cice executable"
