@@ -433,6 +433,7 @@ if (${doabort} == true) then
   exit -1
 endif
 
+# Create a new sets_base variable to store sets passed to cice.setup
 set sets_base = "${sets}"
 set bfbcomp_base = "$bfbcomp"
 foreach compiler ( $ncompilers )
@@ -458,13 +459,14 @@ EOF
       continue
     endif
 
+    source ${ICE_SCRIPTS}/machines/env.${machcomp} -nomodules || exit 2
+
     # Obtain the test name, sets, grid, and PE information from .ts file
     set test = `echo $line | cut -d' ' -f1`
     set grid = `echo $line | cut -d' ' -f2`
     set pesx = `echo $line | cut -d' ' -f3`
     set sets_tmp = `echo $line | cut -d' ' -f4`
     set bfbcomp_tmp = `echo $line | cut -d' ' -f5`
-    # Create a new sets_base variable to store sets passed to cice.setup
 
     # Append sets from .ts file to the $sets variable
     set sets = "$sets_base,$sets_tmp"
@@ -480,6 +482,61 @@ EOF
     set fbfbcomp = ${spval}
     if ($bfbcomp != ${spval}) then
       set fbfbcomp = ${machcomp}_${bfbcomp}
+    endif
+
+    #------------------------------------------------------------
+    # Parse pesx with strict checking, limit pes for machine
+
+    set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+    if (${chck} == OK) then
+      set task  = `echo ${pesx} | cut -d x -f 1`
+      set thrd  = `echo ${pesx} | cut -d x -f 2`
+      set blckx = `echo ${pesx} | cut -d x -f 3`
+      set blcky = `echo ${pesx} | cut -d x -f 4`
+      set mblck = `echo ${pesx} | cut -d x -f 5`
+      if ($?ICE_MACHINE_MAXPES) then
+        @ pesreq = ${task} * ${thrd}
+        if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+          @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+          @ mblck = ${mblck} * ((${pesreq} / ${ICE_MACHINE_MAXPES}) + 1)
+        endif
+      endif
+      set pesx = ${task}x${thrd}x${blckx}x${blcky}x${mblck}
+    else
+      set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+      if (${chck} == OK) then
+        set task  = `echo ${pesx} | cut -d x -f 1`
+        set thrd  = `echo ${pesx} | cut -d x -f 2`
+        set blckx = `echo ${pesx} | cut -d x -f 3`
+        set blcky = `echo ${pesx} | cut -d x -f 4`
+        set mblck = 0
+        if ($?ICE_MACHINE_MAXPES) then
+          @ pesreq = ${task} * ${thrd}
+          if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+            @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+          endif
+        endif
+        set pesx = ${task}x${thrd}x${blckx}x${blcky}
+      else
+        set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+        if (${chck} == OK) then
+          set task = `echo ${pesx} | cut -d x -f 1`
+          set thrd = `echo ${pesx} | cut -d x -f 2`
+          set blckx = 0
+          set blcky = 0
+          set mblck = 0
+          if ($?ICE_MACHINE_MAXPES) then
+            @ pesreq = ${task} * ${thrd}
+            if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+              @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+            endif
+          endif
+          set pesx = ${task}x${thrd}
+        else
+          echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
+          exit -1
+        endif
+      endif
     endif
 
     set testname_noid = ${spval}
@@ -560,7 +617,6 @@ EOF
     end
 
     cd ${casedir}
-    source ./env.${machcomp} -nomodules || exit 2
 
     set quietmode = false
     if ($?ICE_MACHINE_QUIETMODE) then
@@ -580,58 +636,6 @@ EOF
         set queue = `head -1 ~/.cice_queue`
       else
         set queue = ${ICE_MACHINE_QUEUE}
-      endif
-    endif
-
-    #------------------------------------------------------------
-    # Parse pesx with strict checking, limit pes for machine
-
-    set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-    if (${chck} == OK) then
-      set task  = `echo ${pesx} | cut -d x -f 1`
-      set thrd  = `echo ${pesx} | cut -d x -f 2`
-      set blckx = `echo ${pesx} | cut -d x -f 3`
-      set blcky = `echo ${pesx} | cut -d x -f 4`
-      set mblck = `echo ${pesx} | cut -d x -f 5`
-      if ($?ICE_MACHINE_MAXPES) then
-        @ pesreq = ${task} * ${thrd}
-        if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
-          @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
-          @ mblck = ${mblck} * ((${pesreq} / ${ICE_MACHINE_MAXPES}) + 1)
-        endif
-      endif
-    else
-      set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-      if (${chck} == OK) then
-        set task  = `echo ${pesx} | cut -d x -f 1`
-        set thrd  = `echo ${pesx} | cut -d x -f 2`
-        set blckx = `echo ${pesx} | cut -d x -f 3`
-        set blcky = `echo ${pesx} | cut -d x -f 4`
-        set mblck = 0
-        if ($?ICE_MACHINE_MAXPES) then
-          @ pesreq = ${task} * ${thrd}
-          if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
-            @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
-          endif
-        endif
-      else
-        set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-        if (${chck} == OK) then
-          set task = `echo ${pesx} | cut -d x -f 1`
-          set thrd = `echo ${pesx} | cut -d x -f 2`
-          set blckx = 0
-          set blcky = 0
-          set mblck = 0
-          if ($?ICE_MACHINE_MAXPES) then
-            @ pesreq = ${task} * ${thrd}
-            if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
-              @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
-            endif
-          endif
-        else
-          echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
-          exit -1
-        endif
       endif
     endif
 
