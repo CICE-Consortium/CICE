@@ -165,6 +165,7 @@
     tfrz_option     = 'mushy'
     oceanmixed_ice  = .true.
     wave_spec       = .false.
+    wave_spec_file  = 'unknown_wave_spec_file'
     nfreq           = 25
     restore_ice     = .false.
     restore_ocn     = .false.

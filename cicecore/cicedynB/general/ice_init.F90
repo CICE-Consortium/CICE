@@ -84,7 +84,7 @@
           atm_data_type,   atm_data_dir,  precip_units, &
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
-          ocn_data_type, ocn_data_dir,      &
+          ocn_data_type, ocn_data_dir,    wave_spec_file,  &
           oceanmixed_file, restore_ocn,   trestore, & 
           ice_data_type
       use ice_arrays_column, only: bgc_data_dir, fe_data_type
@@ -207,7 +207,7 @@
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec,     nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
-        ice_data_type,                                                  &
+        ice_data_type,  wave_spec_file,                                 &
         fyear_init,     ycycle,                                         &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format,                               &
@@ -354,6 +354,7 @@
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       wave_spec       = .false.   ! if true, use wave forcing
       nfreq           = 0         ! number of wave frequencies
+      wave_spec_file  = ' '       ! wave forcing file name
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'
       fe_data_type    = 'default'
@@ -613,6 +614,7 @@
       call broadcast_scalar(precip_units,       master_task)
       call broadcast_scalar(oceanmixed_ice,     master_task)
       call broadcast_scalar(wave_spec,          master_task)
+      call broadcast_scalar(wave_spec_file,     master_task)
       call broadcast_scalar(nfreq,              master_task)
       call broadcast_scalar(tfrz_option,        master_task)
       call broadcast_scalar(ocn_data_format,    master_task)
@@ -1114,6 +1116,7 @@
          write(nu_diag,1010) ' oceanmixed_ice            = ', &
                                oceanmixed_ice
          write(nu_diag,1010) ' wave_spec                 = ', wave_spec
+         write(nu_diag,*)    ' wave_spec_file            = ', wave_spec_file
          write(nu_diag,1020) ' nfreq                     = ', nfreq
          write(nu_diag,*)    ' tfrz_option               = ', &
                                trim(tfrz_option)

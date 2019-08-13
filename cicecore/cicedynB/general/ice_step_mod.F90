@@ -445,10 +445,6 @@
          nltrcr = 0
       endif
 
-!echmod FOR NOW
-      ice_wave_sig_ht = c1 !echmod FOR NOW
-!echmod FOR NOW
-
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
       ihi = this_block%ihi
@@ -459,6 +455,10 @@
       do i = ilo, ihi
 
          if (tmask(i,j,iblk)) then
+
+!echmod FOR NOW
+!      ice_wave_sig_ht = c1 !echmod FOR NOW
+!echmod FOR NOW
 
          call icepack_step_therm2(dt, ncat, n_aero, nltrcr,                &
                            nilyr,                  nslyr,                  &
@@ -491,7 +491,6 @@
                            d_afsd_latg(i,j,:,iblk),d_afsd_newi(i,j,:,iblk),&
                            d_afsd_latm(i,j,:,iblk),d_afsd_weld(i,j,:,iblk),&
                            floe_rad_c(:),          floe_binwidth(:))
-
          endif ! tmask
 
       enddo                     ! i

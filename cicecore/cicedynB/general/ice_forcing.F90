@@ -4853,9 +4853,6 @@
          fid, &                  ! file id for netCDF routines
          k
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,25,1,max_blocks) :: &
-         tmp
-
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! wave spectrum
 
@@ -4868,10 +4865,10 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+      wave_spec_dir  = ocn_data_dir
 ! for now
-      wave_spec_dir  = ' '
-      wave_spec_file = ' '
-      tmp(:,:,:,:,:) = c0
+!      wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3.nc'  ! can not read
+!      wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3_v2.nc'  ! can not read
 
       ! wave spectrum and frequencies
       if (wave_spec) &
@@ -4879,25 +4876,25 @@
                              wave_spectrum_profile, &
                              wavefreq, dwavefreq)
 
-      if (trim(wave_spec_file) == '') then
+      if (trim(wave_spec_file(1:3)) == 'ww3') then
+#ifdef ncdf
+         spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
+         call ice_open_nc(spec_file,fid)
+         call ice_read_nc (fid, 1, 'efreq',wave_spectrum, dbug, &
+                           field_loc_center, field_type_scalar)
+         call ice_close_nc(fid)
+         WHERE (wave_spectrum > 1.e30) wave_spectrum = c0
+#endif
+
+      else
          wave_spectrum(:,:,:,:) = c0
          ! for testing only
          do k = 1, nfreq
             wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
          enddo
-      else
-#ifdef ncdf
-         spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
-         call ice_open_nc(spec_file,fid)
-!ech:  this fails - need to add ice_read_nc_xyf to ice_read_write.F90
-!         call ice_read_nc (fid, 1, 'ef',tmp, dbug, &
-!                           field_loc_center, field_type_scalar)
-         call ice_close_nc(fid)
-
-         !wave_spectrum(:,:,:,:) = tmp(:,:,:,1,:)
-         WHERE (wave_spectrum > 1.e30) wave_spectrum = c0
-#endif
       end if
+
+!print*,'wave spec', minval(wave_spectrum),maxval(wave_spectrum)
 
       end subroutine get_wave_spec
 
