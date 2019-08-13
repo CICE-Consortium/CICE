@@ -584,7 +584,7 @@ EOF
     endif
 
     #------------------------------------------------------------
-    # Compute a default blocksize
+    # Parse pesx with strict checking, limit pes for machine
 
     set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
     if (${chck} == OK) then
@@ -593,6 +593,13 @@ EOF
       set blckx = `echo ${pesx} | cut -d x -f 3`
       set blcky = `echo ${pesx} | cut -d x -f 4`
       set mblck = `echo ${pesx} | cut -d x -f 5`
+      if ($?ICE_MACHINE_MAXPES) then
+        @ pesreq = ${task} * ${thrd}
+        if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+          @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+          @ mblck = ${mblck} * ((${pesreq} / ${ICE_MACHINE_MAXPES}) + 1)
+        endif
+      endif
     else
       set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
       if (${chck} == OK) then
@@ -601,6 +608,12 @@ EOF
         set blckx = `echo ${pesx} | cut -d x -f 3`
         set blcky = `echo ${pesx} | cut -d x -f 4`
         set mblck = 0
+        if ($?ICE_MACHINE_MAXPES) then
+          @ pesreq = ${task} * ${thrd}
+          if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+            @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+          endif
+        endif
       else
         set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
         if (${chck} == OK) then
@@ -609,12 +622,21 @@ EOF
           set blckx = 0
           set blcky = 0
           set mblck = 0
+          if ($?ICE_MACHINE_MAXPES) then
+            @ pesreq = ${task} * ${thrd}
+            if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+              @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+            endif
+          endif
         else
           echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
           exit -1
         endif
       endif
     endif
+
+    #------------------------------------------------------------
+    # Compute a default blocksize
 
     setenv ICE_DECOMP_GRID  ${grid}
     setenv ICE_DECOMP_NTASK ${task}
