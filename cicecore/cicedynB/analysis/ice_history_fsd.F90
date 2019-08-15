@@ -271,7 +271,7 @@
       use ice_history_shared, only: a2D, a3Df, a4Df, nfsd_hist, &
          ncat_hist, accum_hist_field, n3Dacum, n4Dscum
       use ice_state, only: trcrn, aicen_init, vicen
-      use ice_arrays_column, only: ice_wave_sig_ht, floe_rad_c, floe_binwidth, &
+      use ice_arrays_column, only: wave_sig_ht, floe_rad_c, floe_binwidth, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
 
       integer (kind=int_kind), intent(in) :: &
@@ -309,7 +309,7 @@
 
       if (f_wave_sig_ht(1:1)/= 'x') &
          call accum_hist_field(n_wave_sig_ht,   iblk, &
-                               ice_wave_sig_ht(:,:,iblk), a2D)
+                               wave_sig_ht(:,:,iblk), a2D)
 
       if (f_aice_ww(1:1)/= 'x') then
          do j = 1, ny_block

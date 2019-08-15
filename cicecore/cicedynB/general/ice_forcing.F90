@@ -4841,7 +4841,8 @@
 
       subroutine get_wave_spec
 
-      use ice_arrays_column, only: wave_spectrum, dwavefreq, wavefreq
+      use ice_arrays_column, only: wave_spectrum, dwavefreq, wavefreq, &
+                                   wave_sig_ht
       use ice_constants, only: c0
       use ice_domain_size, only: nfreq
 #ifdef ncdf
@@ -4856,6 +4857,9 @@
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! wave spectrum
 
+      real(kind=dbl_kind), dimension(nx_block,ny_block,nfreq,max_blocks) :: &
+          wave_spec_df
+
       character(char_len_long) :: spec_file
       logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(get_wave_spec)'
@@ -4865,25 +4869,30 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      wave_spec_dir  = ocn_data_dir
+      !wave_spec_dir  = ocn_data_dir
 ! for now
-!      wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3.nc'  ! can not read
+       !wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3.nc'  ! can not read
 !      wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3_v2.nc'  ! can not read
 
       ! wave spectrum and frequencies
       if (wave_spec) &
+      ! get hardwired frequency bin info and a dummy wave spectrum profile
       call icepack_init_wave(nfreq,                 &
                              wave_spectrum_profile, &
                              wavefreq, dwavefreq)
 
-      if (trim(wave_spec_file(1:3)) == 'ww3') then
+      if (trim(wave_spec_file) .ne. ' ') then
 #ifdef ncdf
-         spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
+
+         spec_file = trim(wave_spec_file) !//'/'//trim(wave_spec_file)
          call ice_open_nc(spec_file,fid)
          call ice_read_nc (fid, 1, 'efreq',wave_spectrum, dbug, &
                            field_loc_center, field_type_scalar)
          call ice_close_nc(fid)
-         WHERE (wave_spectrum > 1.e30) wave_spectrum = c0
+         !WHERE (wave_spectrum > 1.e30) wave_spectrum = c0
+         print*,'read in wave spec', minval(wave_spectrum),maxval(wave_spectrum)
+
+
 #endif
 
       else
@@ -4894,7 +4903,13 @@
          enddo
       end if
 
-!print*,'wave spec', minval(wave_spectrum),maxval(wave_spectrum)
+      ! calculate wave_sig_ht here
+      ! to use in add_new_ice and for diagnostics
+      do k = 1, nfreq
+          wave_spec_df(:,:,k,:) = dwavefreq(k)*wave_spectrum(:,:,k,:)
+      end do
+      wave_sig_ht = c4*SQRT(SUM(wave_spec_df,DIM=3))
+
 
       end subroutine get_wave_spec
 

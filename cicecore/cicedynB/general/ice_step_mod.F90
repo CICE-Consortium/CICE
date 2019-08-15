@@ -392,7 +392,7 @@
 
       subroutine step_therm2 (dt, iblk)
 
-      use ice_arrays_column, only: hin_max, fzsal, ocean_bio, ice_wave_sig_ht, &
+      use ice_arrays_column, only: hin_max, fzsal, ocean_bio, wave_sig_ht, &
           wave_spectrum, wavefreq, dwavefreq, &
           first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
@@ -456,10 +456,6 @@
 
          if (tmask(i,j,iblk)) then
 
-!echmod FOR NOW
-!      ice_wave_sig_ht = c1 !echmod FOR NOW
-!echmod FOR NOW
-
          call icepack_step_therm2(dt, ncat, n_aero, nltrcr,                &
                            nilyr,                  nslyr,                  &
                            hin_max   (:),          nblyr,                  &   
@@ -485,7 +481,7 @@
                            ocean_bio (i,j,1:nbtrcr,iblk),                  &
                            frazil_diag(i,j, iblk),                         &
                            frz_onset (i,j,  iblk), yday,                   &
-                           nfsd,                 ice_wave_sig_ht(i,j,iblk),&
+                           nfsd                  , wave_sig_ht(i,j,iblk),  &
                            wave_spectrum(i,j,:,iblk),                      &
                            wavefreq(:),            dwavefreq(:),           &
                            d_afsd_latg(i,j,:,iblk),d_afsd_newi(i,j,:,iblk),&
@@ -616,7 +612,7 @@
 
       subroutine step_dyn_wave (dt)
 
-      use ice_arrays_column, only: wave_spectrum, ice_wave_sig_ht, &
+      use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
           d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice, nblocks
@@ -664,7 +660,6 @@
                                             wave_spectrum  (i,j,:,  iblk), &
                                             wavefreq(:),   dwavefreq(:),   &
                                             trcrn          (i,j,:,:,iblk), &
-                                            ice_wave_sig_ht(i,j,    iblk), &
                                             d_afsd_wave    (i,j,:,  iblk))
          end do ! i
          end do ! j
