@@ -847,7 +847,7 @@ echo "${testname_base}"
 cd ${testname_base}
 source ./cice.settings
 set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
-./cice.build \${ciceexe}
+./cice.build --exe \${ciceexe}
 if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
 EOF
   end

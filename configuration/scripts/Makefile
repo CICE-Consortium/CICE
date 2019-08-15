@@ -8,7 +8,6 @@
 #   SRCS=<files>   ~ list of src files, default is all .c .F .F90 files in VPATH
 #   VPFILE=<file>  ~ file with list of dirs, used to create VPATH
 #   SRCFILE=<file> ~ file with list of src files, used to create SRCS
-#   DEPGEN=<exec>  ~ dependency generator utility, default is makdep
 #
 #   <macro defns>  ~ any macro definitions found in this file or the included 
 #                    MACFILE will be over-riden by cmd-line macro definitions
@@ -31,7 +30,9 @@ VPFILE   := NONE
 VPATH    := .
 SRCFILE  := NONE
 SRCS     := NONE
-DEPGEN   := ./makdep  # an externally provided dependency generator
+
+# dependency generator
+DEPGEN   := ./makdep
 
 ifneq ($(VPATH),.)
   # this variable was specified on cmd line or in an env var
@@ -58,26 +59,35 @@ endif
 OBJS  := $(addsuffix .o, $(sort $(basename $(notdir $(SRCS)))))
 DEPS  := $(addsuffix .d, $(sort $(basename $(notdir $(SRCS)))))
 INCS  := $(patsubst %,-I%, $(VPATH) )
+OBJS_DEPGEN := $(addprefix $(ICE_CASEDIR)/,$(addsuffix .c, $(notdir $(DEPGEN))))
+MODDIR:= -I.
 RM    := rm
 
 .SUFFIXES:
 .SUFFIXES: .F90 .F .c .o
 
+.PHONY: all
 all: $(EXEC)
+
+.PHONY: cice
+cice: $(EXEC)
 
 #-------------------------------------------------------------------------------
 # include the file that provides macro definitions required by build rules
-# note: the MACFILE may not be needed for certain goals
 #-------------------------------------------------------------------------------
 
-ifneq ($(MAKECMDGOALS), db_files)
-  -include $(MACFILE)
-endif
+-include $(MACFILE)
 
 #-------------------------------------------------------------------------------
-# echo file names, paths, compile flags, etc. used during build
+# echo supported targets, file names, paths, compile flags, etc. used during build
 #-------------------------------------------------------------------------------
 
+.PHONY: targets
+targets:
+	@echo " "
+	@echo "Supported Makefile Targets are: cice, makdep, depends, mostlyclean, clean, realclean, targets, db_files, db_flags"
+
+.PHONY: db_files
 db_files:
 	@echo " "
 	@echo "* EXEC    := $(EXEC)"
@@ -89,12 +99,23 @@ db_files:
 	@echo "* SRCS    := $(SRCS)"
 	@echo "* OBJS    := $(OBJS)"
 	@echo "* DEPS    := $(DEPS)"
+	@echo "* ULIBS   := $(ULIBS)"
+	@echo "* SLIBS   := $(SLIBS)"
+	@echo "* INCLDIR := $(INCLDIR)"
+	@echo "* OBJS_DEPGEN := $(OBJS_DEPGEN)"
+.PHONY: db_flags
 db_flags:
 	@echo " "
-	@echo "* cpp     := $(CPP) $(CPPFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR)"
-	@echo "* cc      := $(CC) -c $(CFLAGS) $(INCS) $(INCLDIR)"
-	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(INCS) $(INCLDIR)"
-	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(INCS) $(INCLDIR)"
+	@echo "* $(DEPGEN) := $(SCC) $(CFLAGS_HOST)"
+	@echo "* %.d : %.c   := $(DEPGEN) $(INCS)"
+	@echo "* %.d : %.F   := $(DEPGEN) $(INCS)"
+	@echo "* %.d : %.F90 := $(DEPGEN) $(INCS)"
+	@echo "* %.d : %.H   := $(DEPGEN) $(INCS)"
+	@echo "* cpp     := $(CPP) $(CPPFLAGS) $(CPPDEFS) $(INCLDIR)"
+	@echo "* .c.o    := $(CC) $(CFLAGS) $(CPPDEFS) $(INCLDIR)"
+	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCLDIR)"
+	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(MODDIR) $(INCLDIR)"
+	@echo "* $(notdir $(EXEC)) := $(LD) $(LDFLAGS) $(ULIBS) $(SLIBS)"
 
 #-------------------------------------------------------------------------------
 # build rule for makdep: MACFILE, cmd-line, or env vars must provide
@@ -105,7 +126,8 @@ ifndef $(CFLAGS_HOST)
   CFLAGS_HOST :=
 endif
 
-$(DEPGEN): $(ICE_CASEDIR)/makdep.c
+$(DEPGEN): $(OBJS_DEPGEN)
+	@ echo "Building makdep"
 	$(SCC) -o $@ $(CFLAGS_HOST) $<
 
 #-------------------------------------------------------------------------------
@@ -116,29 +138,31 @@ $(EXEC): $(OBJS)
 	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJS) $(ULIBS) $(SLIBS)
 
 .c.o:
-	$(CC) $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
+	$(CC) $(CFLAGS) $(CPPDEFS) $(INCLDIR) $<
 
 .F.o:
-	$(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
+	$(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCLDIR) $<
 
 .F90.o:
-	$(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
+	$(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(MODDIR) $(INCLDIR) $<
 
+.PHONY: mostlyclean
 mostlyclean:
-	$(RM) -f *.f *.f90 
+	$(RM) -f $(DEPS) $(OBJS) $(EXEC)
 
+.PHONY: clean
 clean:
-	$(RM) -f *.f *.f90 *.d *.mod *.o $(EXEC)
-#	$(RM) -f *.f *.f90 *.d *.$(MOD_SUFFIX) $(OBJS)
+	$(RM) -f *.f *.f90 $(DEPS) $(OBJS) $(DEPGEN) $(EXEC)
 
+.PHONY: realclean
 realclean:
-	$(RM) -f *.f *.f90 *.d *.$(MOD_SUFFIX) $(OBJS) $(EXEC)
+	$(RM) -f *.f *.f90 *.d *.mod *.o $(DEPS) $(OBJS) $(DEPGEN) $(EXEC)
 
 #-------------------------------------------------------------------------------
 # Build & include dependency files
 #-------------------------------------------------------------------------------
 # ASSUMPTIONS:
-# o an externally provided dependency generator, $(DEPGEN), is available, 
+# o the dependency generator, $(DEPGEN), can be built, 
 #   its cmd line syntax is compatible with the build rules below.   Eg, for 
 #   each .o file, there is a corresponding .d (dependency) file, and both
 #   will be dependent on the same src file, eg.    foo.o foo.d : foo.F90
@@ -146,16 +170,18 @@ realclean:
 #   are understood & accepted.
 #-------------------------------------------------------------------------------
 
-%.d : %.c
+depends: $(DEPS)
+
+%.d : %.c $(DEPGEN)
 	@ echo "Building dependency for $@"
 	@ $(DEPGEN) -f $(INCS) $< | head -3  > $@
-%.d : %.F
+%.d : %.F $(DEPGEN)
 	@ echo "Building dependency for $@"
 	@ $(DEPGEN) -f $(INCS) $<  > $@
-%.d : %.F90
+%.d : %.F90 $(DEPGEN)
 	@ echo "Building dependency for $@"
 	@ $(DEPGEN) -f $(INCS) $<  > $@
-%.d : %.H
+%.d : %.H $(DEPGEN)
 	@ echo "Building dependency for $@"
 	@ $(DEPGEN) -f $(INCS) $<  > $@
 
@@ -165,7 +191,13 @@ ifneq ($(MAKECMDGOALS), db_flags)
 ifneq ($(MAKECMDGOALS), mostlyclean)
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), realclean)
+ifneq ($(MAKECMDGOALS), targets)
+ifneq ($(MAKECMDGOALS), makdep)
+ifneq ($(MAKECMDGOALS), depends)
     -include $(DEPS)
+endif
+endif
+endif
 endif
 endif
 endif
