@@ -338,6 +338,7 @@ Table of namelist options
    "","``restore_ice``", "true/false", "restore ice state along lateral boundaries", ""
    "\*","``atm_data_type``", "``default``", "constant values defined in the code", ""
    "","", "``LYq``", "AOMIP/Large-Yeager forcing data", ""
+   "","", "``JRA55``", "JRA55 forcing data", ""
    "","", "``monthly``", "monthly forcing data", ""
    "","", "``ncar``", "NCAR bulk forcing data", ""
    "","", "``box2001``", "forcing data for :cite:`Hunke01` box problem", ""
