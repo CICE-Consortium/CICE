@@ -4,9 +4,31 @@
 # If the cice binary is passed as an argument and the file exists,
 # copy it into the run directory and don't build the model.
 
+set dohelp = 0
+set directmake = 0
+set target  = "UnDEFineD"
 set ciceexe = "UnDEFineD"
-if ($#argv == 1) then
-  set ciceexe = $1
+if ($#argv == 0) then
+  # continue, standard way to build
+else if ($#argv == 1) then
+  # -h, --help, or target
+  if ("$1" == "-h" || "$1" == "--help") then
+    set dohelp = 1
+  else
+    set directmake = 1
+    set target = $1
+    if ("$target" =~ "-*") then
+      echo "${0}: ERROR: invalid target ${target} starts with dash"
+      exit -99
+    endif
+  endif
+else if ($#argv == 2) then
+  # --exe ciceexe (undocumented feature, used only in test suites)
+  if ("$1" != "--exe") then
+    echo "${0}: ERROR: 2 arguments assume --exe ciceexe"
+    exit -99
+  endif
+  set ciceexe = $2
   echo "${0}: ciceexe = ${ciceexe}"
   if (-e ${ciceexe}) then
 
@@ -25,6 +47,45 @@ if ($#argv == 1) then
     exit 0
 
   endif
+else
+  echo "${0}: ERROR in arguments"
+  set dohelp = 1
+endif
+
+if (${dohelp} == 1) then
+  cat << EOF1
+
+NAME
+  cice.build [-h,--help] [target]
+
+SYNOPSIS
+  -h || --help
+  target
+
+DESCRIPTION
+  --help, -h : help
+  target     : specify make target, defined in Makefile
+
+EXAMPLES
+  cice.build
+    will build the model using the recommended approach with all the bells and whistles
+  cice.build clean
+    is an example of a targeted build
+  cice.build --help
+    will show cice.build help
+  cice.build targets 
+    will show valid Makefile targets
+
+ADDITIONAL INFORMATION
+  The argument implementation is fairly primitive.  It accepts only no arguments
+  (where it builds the default target), a target argument, or a -h||--help
+  argument.  These cannot be mixed.
+
+SEE ALSO
+    User Documentation at https://github.com/cice-consortium/cice/
+
+EOF1
+exit -99
 endif
 
 #====================================
@@ -47,10 +108,12 @@ set  stamp   = `date '+%y%m%d-%H%M%S'`
 set ICE_BLDLOG_FILE = "cice.bldlog.${stamp}"
 set quiet = ${ICE_QUIETMODE}
 
-if (${ICE_CLEANBUILD} == 'true') then
-  echo "cleaning objdir"
-  rm -r -f ${ICE_OBJDIR}
-endif
+# tcraig, this is handled below, is it needed here?
+#if (${ICE_CLEANBUILD} == 'true') then
+#  echo "cleaning objdir"
+#  rm -r -f ${ICE_OBJDIR}
+#endif
+if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
 if !(-d ${ICE_OBJDIR}) mkdir -p ${ICE_OBJDIR}
 cd ${ICE_OBJDIR}
 
@@ -79,6 +142,18 @@ ${ICE_SANDBOX}/cicecore/shared
 ${ICE_SANDBOX}/icepack/columnphysics
 EOF
 
+if (${directmake} == 1) then
+  echo "make ${target}"
+  ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
+    -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} ${target}
+  set bldstat = ${status}
+  if (${bldstat} != 0) then
+    echo "${0}: targeted make FAILED"
+    exit -99
+  endif
+  exit 0
+endif
+
 echo " "
 echo ICE_GRID     = ${ICE_GRID}
 echo ICE_NTASK    = ${ICE_NTASKS}
@@ -90,7 +165,6 @@ echo " "
 
 echo "building cice > ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
 
-if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
 if !($?ICE_MACHINE_BLDTHRDS) then
   set ICE_MACHINE_BLDTHRDS = 1
 endif

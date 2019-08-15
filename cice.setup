@@ -533,7 +533,7 @@ EOF
     endif
 
     # from basic script dir to case
-    foreach file (cice.build cice.make cice.settings Makefile ice_in makdep.c setup_run_dirs.csh)
+    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh)
       if !(-e ${ICE_SCRIPTS}/$file) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
         exit -1
@@ -847,7 +847,7 @@ echo "${testname_base}"
 cd ${testname_base}
 source ./cice.settings
 set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
-./cice.build \${ciceexe}
+./cice.build --exe \${ciceexe}
 if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
 EOF
   end

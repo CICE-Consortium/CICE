@@ -17,7 +17,6 @@ The directory structure under configure/scripts is as follows.
 |        **Makefile**              primary makefile
 |        **cice.batch.csh**        creates batch scripts for particular machines
 |        **cice.build**            compiles the code
-|        **cice.make**             wraps Make
 |        **cice.decomp.csh**       computes a decomposition given a grid and task/thread count
 |        **cice.launch.csh**       creates script logic that runs the executable
 |        **cice.run.setup.csh**    sets up the run scripts

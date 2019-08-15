@@ -66,7 +66,11 @@ RM    := rm
 .SUFFIXES:
 .SUFFIXES: .F90 .F .c .o
 
+.PHONY: all
 all: $(EXEC)
+
+.PHONY: cice
+cice: $(EXEC)
 
 #-------------------------------------------------------------------------------
 # include the file that provides macro definitions required by build rules
@@ -75,9 +79,15 @@ all: $(EXEC)
 -include $(MACFILE)
 
 #-------------------------------------------------------------------------------
-# echo file names, paths, compile flags, etc. used during build
+# echo supported targets, file names, paths, compile flags, etc. used during build
 #-------------------------------------------------------------------------------
 
+.PHONY: targets
+targets:
+	@echo " "
+	@echo "Supported Makefile Targets are: cice, makdep, depends, mostlyclean, clean, realclean, targets, db_files, db_flags"
+
+.PHONY: db_files
 db_files:
 	@echo " "
 	@echo "* EXEC    := $(EXEC)"
@@ -92,6 +102,8 @@ db_files:
 	@echo "* ULIBS   := $(ULIBS)"
 	@echo "* SLIBS   := $(SLIBS)"
 	@echo "* INCLDIR := $(INCLDIR)"
+	@echo "* OBJS_DEPGEN := $(OBJS_DEPGEN)"
+.PHONY: db_flags
 db_flags:
 	@echo " "
 	@echo "* $(DEPGEN) := $(SCC) $(CFLAGS_HOST)"
@@ -134,15 +146,17 @@ $(EXEC): $(OBJS)
 .F90.o:
 	$(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(MODDIR) $(INCLDIR) $<
 
+.PHONY: mostlyclean
 mostlyclean:
-	$(RM) -f *.f *.f90 
+	$(RM) -f $(DEPS) $(OBJS) $(EXEC)
 
+.PHONY: clean
 clean:
-	$(RM) -f *.f *.f90 *.d *.mod *.o $(EXEC)
-#	$(RM) -f *.f *.f90 *.d *.$(MOD_SUFFIX) $(OBJS)
+	$(RM) -f *.f *.f90 $(DEPS) $(OBJS) $(DEPGEN) $(EXEC)
 
+.PHONY: realclean
 realclean:
-	$(RM) -f *.f *.f90 *.d *.$(MOD_SUFFIX) $(OBJS) $(EXEC)
+	$(RM) -f *.f *.f90 *.d *.mod *.o $(DEPS) $(OBJS) $(DEPGEN) $(EXEC)
 
 #-------------------------------------------------------------------------------
 # Build & include dependency files
@@ -155,6 +169,8 @@ realclean:
 #   Also, the dependancy genorator's capabilities, limitations, and assumptions
 #   are understood & accepted.
 #-------------------------------------------------------------------------------
+
+depends: $(DEPS)
 
 %.d : %.c $(DEPGEN)
 	@ echo "Building dependency for $@"
@@ -175,7 +191,13 @@ ifneq ($(MAKECMDGOALS), db_flags)
 ifneq ($(MAKECMDGOALS), mostlyclean)
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), realclean)
+ifneq ($(MAKECMDGOALS), targets)
+ifneq ($(MAKECMDGOALS), makdep)
+ifneq ($(MAKECMDGOALS), depends)
     -include $(DEPS)
+endif
+endif
+endif
 endif
 endif
 endif

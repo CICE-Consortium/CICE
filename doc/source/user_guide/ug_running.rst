@@ -56,8 +56,7 @@ Once a case/test is created, several files are placed in the case directory
 - **makdep.c** is a tool that will automatically generate the make dependencies
 - **Macros.[machine]** defines the Makefile macros
 - **Makefile** is the makefile used to build the model
-- **cice.build** is a script that builds and compiles the model
-- **cice.make** is a script that wraps Make. It can be used to call Make with the different goals in the Makefile.
+- **cice.build** is a script that calls the Makefile and compiles the model
 - **ice\_in** is the namelist input file
 - **setup\_run\_dirs.csh** is a script that will create the run directories.  This will be called automatically from the **cice.run** script if the user does not invoke it.
 - **cice.run** is a batch run script
@@ -97,7 +96,7 @@ case directory, NOT the run directory.
 
 .. _case_options:
 
-Command Line Options
+**cice.setup** Command Line Options
 ~~~~~~~~~~~~~~~~~~~~
 
 ``cice.setup -h`` provides a summary of the command line options.  There are three different modes, ``--case``, ``--test``, and ``--suite``.  This section provides details about the relevant options for setting up cases with examples.
@@ -202,6 +201,51 @@ To add some optional settings, one might do::
   cice.setup --case mycase2 --mach spirit --env intel --set debug,diag1,run1year
 
 Once the cases are created, users are free to modify the cice.settings and ice_in namelist to further modify their setup.
+
+.. _cicebuild:
+
+More about **cice.build**
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**cice.build** is copied into the case directory and should be run interactively from the
+case directory to build the model.  The standard and recommendeded way to run is with 
+no arguments,
+
+  cice.build
+
+However, **cice.build** does support a couple of argument options.
+
+  cice.build [-h|--help] 
+
+provides a summary of the usage.
+Basically, **cice.build** can be run with a single target argument.  When run in this
+mode, some of the features of the CICE scripts are turned off.  You can see all the
+possible targets by executing 
+
+  cice.build targets
+
+To build the model, try
+
+  cice.build cice
+
+or 
+
+  cice.build all
+
+These commands are largely equivalent to running **cice.build** without an argument,
+although as noted earlier, some of the cice script functions are turned off.  Clean
+options include
+
+  cice.build [mostlyclean|clean|reallyclean]
+
+to write out information about the Makefile setup,
+
+  cice.build [db_files|db_flags]
+
+and to build the makdep tool or the dependencies,
+
+  cice.build [makdep|depends]
+
 
 .. _porting:
 
