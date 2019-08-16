@@ -274,40 +274,40 @@ More about **cice.build**
 
 **cice.build** is copied into the case directory and should be run interactively from the
 case directory to build the model.  The standard and recommendeded way to run is with 
-no arguments,
+no arguments::
 
   cice.build
 
-However, **cice.build** does support a couple of argument options.
+However, **cice.build** does support a couple of argument options::
 
   cice.build [-h|--help] 
 
 provides a summary of the usage.
 Basically, **cice.build** can be run with a single target argument.  When run in this
 mode, some of the features of the CICE scripts are turned off.  You can see all the
-possible targets by executing 
+possible targets by executing::
 
   cice.build targets
 
-To build the model, try
+To build the model, try::
 
   cice.build cice
 
-or 
+or::
 
   cice.build all
 
 These commands are largely equivalent to running **cice.build** without an argument,
 although as noted earlier, some of the cice script functions are turned off.  Clean
-options include
+options include::
 
   cice.build [mostlyclean|clean|reallyclean]
 
-to write out information about the Makefile setup,
+to write out information about the Makefile setup,::
 
   cice.build [db_files|db_flags]
 
-and to build the makdep tool or the dependencies,
+and to build the makdep tool or the dependencies,::
 
   cice.build [makdep|depends]
 
