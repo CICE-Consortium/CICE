@@ -301,7 +301,7 @@ These commands are largely equivalent to running **cice.build** without an argum
 although as noted earlier, some of the cice script functions are turned off.  Clean
 options include::
 
-  cice.build [mostlyclean|clean|reallyclean]
+  cice.build [mostlyclean|clean|realclean]
 
 to write out information about the Makefile setup,::
 
