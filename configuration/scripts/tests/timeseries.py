@@ -85,15 +85,19 @@ def get_data(logfile,field):
 
     return dtg, arctic, antarctic, expon
 
+def latexit(string):
+    s = string[::-1].replace('(','($',1)
+    return (s.replace(')','$)',1))[::-1]
+
 def plot_timeseries(log, field, dtg, arctic, antarctic, expon, dtg_base=None, arctic_base=None, \
                     antarctic_base=None, base_dir=None, grid=False):
     '''
     Plot the timeseries data from the CICE log file
     '''
 
-    casename = log.rstrip('/').rstrip('/logs').split('/')[-1]
+    casename = os.path.abspath(log).rstrip('/').rstrip('/logs').split('/')[-1]
     if base_dir:
-        base_casename = base_dir.rstrip('/').rstrip('/logs').split('/')[-1]
+        base_casename = os.path.abspath(base_dir).rstrip('/').rstrip('/logs').split('/')[-1]
 
     # Load the plotting libraries, but set the logging level for matplotlib
     # to WARNING so that matplotlib debugging info is not printed when running
@@ -119,8 +123,8 @@ def plot_timeseries(log, field, dtg, arctic, antarctic, expon, dtg_base=None, ar
         ax.plot(dtg_base,antarctic_base,label='Baseline Antarctic')
 
     ax.set_xlabel('')
-    ax.set_title('{} Diagnostic Output'.format(field))
-    ax.set_ylabel(field)
+    ax.set_title('{} Diagnostic Output'.format(latexit(field)))
+    ax.set_ylabel(latexit(field))
 
     # Format the x-axis labels
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d'))
