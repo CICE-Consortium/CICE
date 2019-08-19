@@ -12,7 +12,7 @@
       module ice_step_mod
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, c1000
+      use ice_constants, only: c0, c1, c1000, c4
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -455,6 +455,9 @@
       do i = ilo, ihi
 
          if (tmask(i,j,iblk)) then
+
+         ! wave_sig_ht - here or elsewhere?
+         wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
 
          call icepack_step_therm2(dt, ncat, n_aero, nltrcr,                &
                            nilyr,                  nslyr,                  &

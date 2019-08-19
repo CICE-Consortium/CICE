@@ -4841,8 +4841,7 @@
 
       subroutine get_wave_spec
 
-      use ice_arrays_column, only: wave_spectrum, dwavefreq, wavefreq, &
-                                   wave_sig_ht
+      use ice_arrays_column, only: wave_spectrum, dwavefreq, wavefreq
       use ice_constants, only: c0
       use ice_domain_size, only: nfreq
 #ifdef ncdf
@@ -4889,8 +4888,6 @@
          call ice_read_nc (fid, 1, 'efreq',wave_spectrum, dbug, &
                            field_loc_center, field_type_scalar)
          call ice_close_nc(fid)
-         !WHERE (wave_spectrum > 1.e30) wave_spectrum = c0
-         print*,'read in wave spec', minval(wave_spectrum),maxval(wave_spectrum)
 
 
 #endif
@@ -4902,14 +4899,6 @@
             wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
          enddo
       end if
-
-      ! calculate wave_sig_ht here
-      ! to use in add_new_ice and for diagnostics
-      do k = 1, nfreq
-          wave_spec_df(:,:,k,:) = dwavefreq(k)*wave_spectrum(:,:,k,:)
-      end do
-      wave_sig_ht = c4*SQRT(SUM(wave_spec_df,DIM=3))
-
 
       end subroutine get_wave_spec
 
