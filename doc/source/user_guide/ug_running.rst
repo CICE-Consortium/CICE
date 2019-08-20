@@ -305,3 +305,95 @@ should be rebuilt before being resubmitted.  It is always recommended that users
 modify the scripts and input settings in the case directory, NOT the run directory.
 In general, files in the run directory are overwritten by versions in the case
 directory when the model is built, submitted, and run.
+
+.. _timeseries:
+
+Timeseries Plotting
+-------------------
+
+The CICE scripts include two scripts (``timeseries.csh`` and ``timeseries.py``) that will 
+generate timeseries figures from a diagnostic output file.  
+
+To use the ``timeseries.py`` script, the following requirements must be met:
+
+* Python v2.7 or later
+* numpy Python package
+* matplotlib Python package
+* datetime Python package
+
+For information regarding configuring the Python environment, see :ref:`CodeCompliance`.
+
+When creating a case or test via ``cice.setup``, the ``timeseries.csh`` and 
+``timeseries.py`` scripts are automatically copied to the case directory.  
+Alternatively, the plotting scripts can be found in ``./configuration/scripts``, and can be
+run from any directory.
+
+For example:
+
+Run the timeseries script on the desired case. ::
+
+$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+
+or :: 
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+    
+The output figures are placed in the directory where the ``timeseries.csh`` or ``timeseries.py`` 
+script is run.
+
+To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
+
+     #!/bin/csh
+     foreach dir (`ls -1  | grep testid`)
+       echo $dir
+       python timeseries.py $dir
+     end
+
+
+This plotting script can be used to plot the following variables:
+
+  - total ice area (:math:`km^2`)
+  - total ice extent (:math:`km^2`)
+  - total ice volume (:math:`m^3`)
+  - total snow volume (:math:`m^3`)
+  - RMS ice speed (:math:`m/s`)
+
+The Python version of the timeseries script has some additional capability that the C-Shell
+version does not have.  Running ``python timeseries.py -h`` prints the following help information
+
+::
+
+  usage: timeseries.py [-h] [--bdir BASE_DIR] [-v] [--area] [--extent]
+                       [--volume] [--snw_vol] [--speed] [--grid]
+                       [log_dir]
+  
+  To generate timeseries plots, this script can be passed a directory containing
+  a logs/ subdirectory, or it can be run in the directory with the log files,
+  without being passed a directory. It will pull the diagnostic data from the
+  most recently modified log file. If no flags are passed selecting the
+  variables to plot, then plots will be created for all available variables.
+  
+  positional arguments:
+    log_dir          Path to diagnostic output log file. A specific log file can
+                     be passed, or a case directory. If a directory is passed,
+                     the most recent log file will be used.
+  
+  optional arguments:
+    -h, --help       show this help message and exit
+    --bdir BASE_DIR  Path to the the log file for a baseline dataset, if
+                     desired. A specific log file or case directory can be
+                     passed. If a directory is passed, the most recent log file
+                     will be used.
+    -v, --verbose    Print debug output?
+    --area           Create a plot for total ice area?
+    --extent         Create a plot for total ice extent?
+    --volume         Create a plot for total ice volume?
+    --snw_vol        Create a plot for total snow volume?
+    --speed          Create a plot for rms ice speed?
+    --grid           Add grid lines to the figures?
+
+If ``--bdir`` is specified, the script with plot both a baseline dataset and a test case dataset.
+If the ``--grid`` option is specified, then grid lines will be placed on the figures.
+The ``--area``, ``--extent``, ``--volume``, ``--snw_vol``, and ``speed`` options allow the
+user to specify which fields are to be plotted.  If no fields are specified, then all fields
+will be plotted.
