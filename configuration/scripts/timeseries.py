@@ -194,9 +194,13 @@ def main():
                                      If no flags are passed selecting the variables to plot, \
                                      then plots will be created for all available variables.")
     parser.add_argument('log_dir', nargs='?', default=os.getcwd(), \
-                        help="Path to diagnostic output log file directory.")
-    parser.add_argument('--bdir',dest='base_dir', help='Path to the directory that contains \
-                         the log file for a baseline dataset, if desired.')
+                        help="Path to diagnostic output log file.  A specific log file can \
+                              be passed, or a case directory.  If a directory is passed, \
+                              the most recent log file will be used.")
+    parser.add_argument('--bdir',dest='base_dir', help='Path to the the log file for a baseline \
+                              dataset, if desired.  A specific log file or case directory can \
+                              be passed.  If a directory is passed, the most recent log file \
+                              will be used.')
     parser.add_argument('-v', '--verbose', dest='verbose', help='Print debug output?', \
                         action='store_true')
     parser.add_argument('--area', dest='area', help='Create a plot for total ice area?', \
@@ -253,10 +257,22 @@ def main():
     logger = logging.getLogger(__name__)
 
     # Find the test and baseline log files, based on the input directories.
-    log = find_logfile(args.log_dir)
+    if os.path.isdir(args.log_dir):
+        logger.debug('{} is a directory'.format(args.log_dir))
+        log = find_logfile(args.log_dir)
+        log_dir = args.log_dir
+    else:
+        logger.debug('{} is a file'.format(args.log_dir))
+        log = args.log_dir
+        log_dir = args.log_dir.rsplit('/',1)[0]
     logger.info('Log file = {}'.format(log))
     if args.base_dir:
-        base_log = find_logfile(args.base_dir)
+        if os.path.isdir(args.base_dir):
+            base_log = find_logfile(args.base_dir)
+            base_dir = args.base_dir
+        else:
+            base_log = args.base_dir
+            base_dir = args.base_dir.rsplit('/',1)[0]
         logger.info('Base Log file = {}'.format(base_log))
 
     # Loop through each field and create the plot
@@ -270,10 +286,10 @@ def main():
 
         # Plot the data
         if args.base_dir:
-            plot_timeseries(args.log_dir, field, dtg, arctic, antarctic, expon, dtg_base, \
-                            arctic_base, antarctic_base, args.base_dir, grid=args.grid)
+            plot_timeseries(log_dir, field, dtg, arctic, antarctic, expon, dtg_base, \
+                            arctic_base, antarctic_base, base_dir, grid=args.grid)
         else:
-            plot_timeseries(args.log_dir, field, dtg, arctic, antarctic, expon, grid=args.grid)
+            plot_timeseries(log_dir, field, dtg, arctic, antarctic, expon, grid=args.grid)
 
 if __name__ == "__main__":
     main()
