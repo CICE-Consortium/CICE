@@ -377,8 +377,6 @@ else
     exit -1
   endif
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/timeseries.py ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
   foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
@@ -534,7 +532,7 @@ EOF
     endif
 
     # from basic script dir to case
-    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh)
+    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh timeseries.csh timeseries.py)
       if !(-e ${ICE_SCRIPTS}/$file) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
         exit -1
