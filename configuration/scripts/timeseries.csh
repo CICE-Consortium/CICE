@@ -76,7 +76,7 @@ foreach field ($fieldlist:q)
   set format = "%Y%m%d-%H"
 
   set output = `echo $fieldname | sed 's/ /_/g'`
-  set output = "${output}_${basename}.png"
+  set output = "${output}_${ICE_CASENAME}.png"
 
   echo "Plotting data for '$fieldname' and saving to $output"
 
