@@ -400,3 +400,93 @@ modify the scripts and input settings in the case directory, NOT the run directo
 In general, files in the run directory are overwritten by versions in the case
 directory when the model is built, submitted, and run.
 
+.. _timeseries:
+
+Timeseries Plotting
+-------------------
+
+The CICE scripts include two scripts that will generate timeseries figures from a 
+diagnostic output file, a Python version (``timeseries.py``) and a csh version 
+(``timeseries.csh``).  Both scripts create the same set of plots, but the Python 
+script has more capabilities, and it's likely that the csh
+script will be removed in the future.  
+
+To use the ``timeseries.py`` script, the following requirements must be met:
+
+* Python v2.7 or later
+* numpy Python package
+* matplotlib Python package
+* datetime Python package
+
+See :ref:`CodeCompliance` for additional information about how to setup the Python 
+environment, but we recommend using ``pip`` as follows: ::
+
+  pip install --user numpy
+  pip install --user matplotlib
+  pip install --user datetime
+
+When creating a case or test via ``cice.setup``, the ``timeseries.csh`` and 
+``timeseries.py`` scripts are automatically copied to the case directory.  
+Alternatively, the plotting scripts can be found in ``./configuration/scripts``, and can be
+run from any directory.
+
+The Python script can be passed a directory, a specific log file, or no directory at all:
+
+  - If a directory is passed, the script will look either in that directory or in 
+    directory/logs for a filename like cice.run*.  As such, users can point the script
+    to either a case directory or the ``logs`` directory directly.  The script will use 
+    the file with the most recent creation time.
+  - If a specific file is passed the script parses that file, assuming that the file
+    matches the same form of cice.run* files.
+  - If nothing is passed, the script will look for log files or a ``logs`` directory in the 
+    directory from where the script was run.
+
+For example:
+
+Run the timeseries script on the desired case. ::
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+
+or ::
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/logs
+    
+The output figures are placed in the directory where the ``timeseries.py`` script is run.
+
+The plotting script will plot the following variables by default, but you can also select 
+specific plots to create via the optional command line arguments.
+
+  - total ice area (:math:`km^2`)
+  - total ice extent (:math:`km^2`)
+  - total ice volume (:math:`m^3`)
+  - total snow volume (:math:`m^3`)
+  - RMS ice speed (:math:`m/s`)
+
+For example, to plot only total ice volume and total snow volume ::
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/ --volume --snw_vol
+
+To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
+
+     #!/bin/csh
+     foreach dir (`ls -1  | grep testid`)
+       echo $dir
+       python timeseries.py $dir
+     end
+
+Plots are only made for a single output file at a time.  The ability to plot output from 
+a series of cice.run* files is not currently possible, but may be added in the future.
+However, using the ``--bdir`` option will plot two datasets (from log files) on the
+same figure.
+
+For the latest help information for the script, run ::
+
+$ python timeseries.py -h
+
+The ``timeseries.csh`` script works basically the same way as the Python version, however it
+does not include all of the capabilities present in the Python version.  
+
+To use the C-Shell version of the script, ::
+
+$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+
