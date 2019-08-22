@@ -78,6 +78,18 @@ with appropriate names and syntax.  The set_nml file syntax is the same as namel
 syntax and the set_env files are consistent with csh setenv syntax.  See other files for
 examples of the syntax.
 
+.. _build:
+
+Build Scripts
+-----------
+
+CICE uses GNU Make to build the model.  There is a common **Makefile** for all machines.  
+Each machine provides a Macros file to define some Makefile variables
+and and an env file to specify the modules/software stack for each compiler.
+The machine is built by the cice.build script which invokes Make.
+There is a special trap for circular dependencies in the cice.build script to
+highlight this error when it occurs.
+
 .. _dev_machines:
 
 Machines

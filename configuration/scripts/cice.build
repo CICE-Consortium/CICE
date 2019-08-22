@@ -107,7 +107,7 @@ if (${ICE_CLEANBUILD} == 'true') then
         -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean >& ${ICE_BLDLOG_FILE}
   else
     ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean | tee ${ICE_BLDLOG_FILE}
+        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean |& tee ${ICE_BLDLOG_FILE}
   endif
 endif
 
@@ -119,17 +119,31 @@ if (${quiet} == "true") then
   set bldstat = ${status}
 else
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} | tee ${ICE_BLDLOG_FILE} 
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} |& tee ${ICE_BLDLOG_FILE} 
   set bldstat = ${status}
 endif
 
 if !(-d ${ICE_LOGDIR}) mkdir -p ${ICE_LOGDIR}
 cp -p ${ICE_BLDLOG_FILE} ${ICE_LOGDIR}/
 
+echo " "
+
+# special effort to trap and highlight circular dependencies errors
+set circularstat = `grep "make: Circular" ${ICE_BLDLOG_FILE} | wc -l`
+if (${circularstat} > 0) then
+  echo "${0}: ERROR: Circular dependencies found"
+  grep "make: Circular" ${ICE_BLDLOG_FILE}
+  if (-e ${ICE_RUNDIR}/cice) then
+    echo "${0}: Deleting cice executable"
+    rm ${ICE_RUNDIR}/cice
+  endif
+  set bldstat = 55
+endif
+
 if (${bldstat} != 0) then
   echo "${0}: COMPILE FAILED, see"
   echo "  cat ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
-  if (${quiet} == "true") then
+  if (${quiet} == "true" && ${circularstat} == 0) then
     tail -10 ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}
   endif
   if ( ${ICE_TEST} != ${ICE_SPVAL} ) then

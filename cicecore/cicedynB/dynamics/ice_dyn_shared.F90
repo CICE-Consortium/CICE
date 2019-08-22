@@ -503,7 +503,7 @@
          taubx    (i,j) = c0
          tauby    (i,j) = c0
 
-         if (revp==1) then               ! revised evp
+         if (icetmask(i,j)==0) then 
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
             stressp_3 (i,j) = c0
@@ -516,20 +516,7 @@
             stress12_2(i,j) = c0
             stress12_3(i,j) = c0
             stress12_4(i,j) = c0
-         else if (icetmask(i,j)==0) then ! classic evp
-            stressp_1 (i,j) = c0
-            stressp_2 (i,j) = c0
-            stressp_3 (i,j) = c0
-            stressp_4 (i,j) = c0
-            stressm_1 (i,j) = c0
-            stressm_2 (i,j) = c0
-            stressm_3 (i,j) = c0
-            stressm_4 (i,j) = c0
-            stress12_1(i,j) = c0
-            stress12_2(i,j) = c0
-            stress12_3(i,j) = c0
-            stress12_4(i,j) = c0
-         endif                  ! revp
+         endif                  
       enddo                     ! i
       enddo                     ! j
 
@@ -913,8 +900,10 @@
          hu,  & ! volume per unit area of ice at u location (mean thickness)
          hwu, & ! water depth at u location
          hcu, & ! critical thickness at u location
-         k2 = 15.0_dbl_kind , &  ! second free parameter (N/m^3) for landfast parametrization 
-         alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
+         k2 = 15.0_dbl_kind , &     ! second free parameter (N/m^3) for landfast parametrization 
+         alphab = 20.0_dbl_kind, &  ! alphab=Cb factor in Lemieux et al 2015
+         threshold_hw = 30.0_dbl_kind ! max water depth for grounding 
+                                      ! see keel data from Amundrud et al. 2004 (JGR)
 
       integer (kind=int_kind) :: &
          i, j, ij
@@ -926,15 +915,21 @@
          j = indxuj(ij)
 
          ! convert quantities to u-location
-         au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
+         
          hwu = min(hwater(i,j),hwater(i+1,j),hwater(i,j+1),hwater(i+1,j+1))
-         hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
 
-         ! 1- calculate critical thickness
-         hcu = au * hwu / k1
+         if (hwu < threshold_hw) then
+         
+            au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
+            hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
 
-         ! 2- calculate basal stress factor                    
-         Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+            ! 1- calculate critical thickness
+            hcu = au * hwu / k1
+
+            ! 2- calculate basal stress factor                    
+            Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+            
+         endif
 
       enddo                     ! ij
 
