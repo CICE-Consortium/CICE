@@ -311,8 +311,11 @@ directory when the model is built, submitted, and run.
 Timeseries Plotting
 -------------------
 
-The CICE scripts include two scripts (``timeseries.csh`` and ``timeseries.py``) that will 
-generate timeseries figures from a diagnostic output file.  
+The CICE scripts include two scripts that will generate timeseries figures from a 
+diagnostic output file, a Python version (``timeseries.py``) and a csh version 
+(``timeseries.csh``).  Both scripts create the same set of plots, but the Python 
+script has more capabilities, and it's likely that the csh
+script will be removed in the future.  
 
 To use the ``timeseries.py`` script, the following requirements must be met:
 
@@ -321,25 +324,53 @@ To use the ``timeseries.py`` script, the following requirements must be met:
 * matplotlib Python package
 * datetime Python package
 
-For information regarding configuring the Python environment, see :ref:`CodeCompliance`.
+See :ref:`CodeCompliance` for additional information about how to setup the Python 
+environment, but we recommend using ``pip`` as follows: ::
+
+  pip install --user numpy
+  pip install --user matplotlib
+  pip install --user datetime
 
 When creating a case or test via ``cice.setup``, the ``timeseries.csh`` and 
 ``timeseries.py`` scripts are automatically copied to the case directory.  
 Alternatively, the plotting scripts can be found in ``./configuration/scripts``, and can be
 run from any directory.
 
+The Python script can be passed a directory, a specific log file, or no directory at all:
+
+  - If a directory is passed, the script will look either in that directory or in 
+    directory/logs for a filename like cice.run*.  As such, users can point the script
+    to either a case directory or the ``logs`` directory directly.  The script will use 
+    the file with the most recent creation time.
+  - If a specific file is passed the script parses that file, assuming that the file
+    matches the same form of cice.run* files.
+  - If nothing is passed, the script will look for log files or a ``logs`` directory in the 
+    directory from where the script was run.
+
 For example:
 
 Run the timeseries script on the desired case. ::
 
-$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
-
-or :: 
-
 $ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+
+or ::
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/logs
     
-The output figures are placed in the directory where the ``timeseries.csh`` or ``timeseries.py`` 
-script is run.
+The output figures are placed in the directory where the ``timeseries.py`` script is run.
+
+The plotting script will plot the following variables by default, but you can also select 
+specific plots to create via the optional command line arguments.
+
+  - total ice area (:math:`km^2`)
+  - total ice extent (:math:`km^2`)
+  - total ice volume (:math:`m^3`)
+  - total snow volume (:math:`m^3`)
+  - RMS ice speed (:math:`m/s`)
+
+For example, to plot only total ice volume and total snow volume ::
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/ --volume --snw_vol
 
 To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
 
@@ -349,51 +380,18 @@ To generate plots for all of the cases within a suite with a testid, create and 
        python timeseries.py $dir
      end
 
+Plots are only made for a single output file at a time.  The ability to plot output from 
+a series of cice.run* files is not currently possible, but may be added in the future.
+However, using the ``--bdir`` option will plot two datasets (from log files) on the
+same figure.
 
-This plotting script can be used to plot the following variables:
+For the latest help information for the script, run ::
 
-  - total ice area (:math:`km^2`)
-  - total ice extent (:math:`km^2`)
-  - total ice volume (:math:`m^3`)
-  - total snow volume (:math:`m^3`)
-  - RMS ice speed (:math:`m/s`)
+$ python timeseries.py -h
 
-The Python version of the timeseries script has some additional capability that the C-Shell
-version does not have.  Running ``python timeseries.py -h`` prints the following help information
+The ``timeseries.csh`` script works basically the same way as the Python version, however it
+does not include all of the capabilities present in the Python version.  
 
-::
+To use the C-Shell version of the script, ::
 
-  usage: timeseries.py [-h] [--bdir BASE_DIR] [-v] [--area] [--extent]
-                       [--volume] [--snw_vol] [--speed] [--grid]
-                       [log_dir]
-  
-  To generate timeseries plots, this script can be passed a directory containing
-  a logs/ subdirectory, or it can be run in the directory with the log files,
-  without being passed a directory. It will pull the diagnostic data from the
-  most recently modified log file. If no flags are passed selecting the
-  variables to plot, then plots will be created for all available variables.
-  
-  positional arguments:
-    log_dir          Path to diagnostic output log file. A specific log file can
-                     be passed, or a case directory. If a directory is passed,
-                     the most recent log file will be used.
-  
-  optional arguments:
-    -h, --help       show this help message and exit
-    --bdir BASE_DIR  Path to the the log file for a baseline dataset, if
-                     desired. A specific log file or case directory can be
-                     passed. If a directory is passed, the most recent log file
-                     will be used.
-    -v, --verbose    Print debug output?
-    --area           Create a plot for total ice area?
-    --extent         Create a plot for total ice extent?
-    --volume         Create a plot for total ice volume?
-    --snw_vol        Create a plot for total snow volume?
-    --speed          Create a plot for rms ice speed?
-    --grid           Add grid lines to the figures?
-
-If ``--bdir`` is specified, the script with plot both a baseline dataset and a test case dataset.
-If the ``--grid`` option is specified, then grid lines will be placed on the figures.
-The ``--area``, ``--extent``, ``--volume``, ``--snw_vol``, and ``speed`` options allow the
-user to specify which fields are to be plotted.  If no fields are specified, then all fields
-will be plotted.
+$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/

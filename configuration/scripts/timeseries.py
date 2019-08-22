@@ -196,7 +196,9 @@ def main():
     parser.add_argument('log_dir', nargs='?', default=os.getcwd(), \
                         help="Path to diagnostic output log file.  A specific log file can \
                               be passed, or a case directory.  If a directory is passed, \
-                              the most recent log file will be used.")
+                              the most recent log file will be used.  If no directory or \
+                              file is passed, the script will look for a log file in the \
+                              current directory.")
     parser.add_argument('--bdir',dest='base_dir', help='Path to the the log file for a baseline \
                               dataset, if desired.  A specific log file or case directory can \
                               be passed.  If a directory is passed, the most recent log file \
