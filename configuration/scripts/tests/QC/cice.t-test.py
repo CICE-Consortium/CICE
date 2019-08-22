@@ -375,32 +375,46 @@ def plot_data(data, lat, lon, units, case):
     warnings.filterwarnings("ignore", category=UserWarning)
 
     # Create the figure and axis
-    fig = plt.figure(figsize=(12, 8))
-    ax = fig.add_axes([0.05, 0.08, 0.9, 0.9])
+    fig, axes = plt.subplots(nrows=1, ncols=2,figsize=(14, 8))
 
+    # Plot the northern hemisphere data as a scatter plot
     # Create the basemap, and draw boundaries
-    m = Basemap(projection='moll', lon_0=0., resolution='l')
-    m.drawmapboundary(fill_color='white')
+    plt.sca(axes[0])
+    m = Basemap(projection='npstere', boundinglat=35,lon_0=270, resolution='l')
     m.drawcoastlines()
+    m.fillcontinents()
     m.drawcountries()
 
-    # Plot the data as a scatter plot
     x, y = m(lon, lat)
     sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
 
-    m.drawmeridians(np.arange(0, 360, 60), labels=[0, 0, 0, 1], fontsize=10)
-    m.drawparallels(np.arange(-90, 90, 30), labels=[1, 0, 0, 0], fontsize=10)
+    m.drawparallels(np.arange(-90.,120.,15.),labels=[1,0,0,0]) # draw parallels
+    m.drawmeridians(np.arange(0.,420.,30.),labels=[1,1,1,1]) # draw meridians
 
-    plt.title('CICE Mean Ice Thickness - {}'.format(case))
+    # Plot the southern hemisphere data as a scatter plot
+    plt.sca(axes[1])
+    m = Basemap(projection='spstere', boundinglat=-45,lon_0=270, resolution='l')
+    m.drawcoastlines()
+    m.fillcontinents()
+    m.drawcountries()
 
-    # Create the colorbar and add Pass / Fail labels
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("bottom", size="5%", pad=0.5)
-    cb = plt.colorbar(sc, cax=cax, orientation="horizontal", format="%.2f")
+    x, y = m(lon, lat)
+    sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
+
+    m.drawparallels(np.arange(-90.,120.,15.),labels=[1,0,0,0]) # draw parallels
+    m.drawmeridians(np.arange(0.,420.,30.),labels=[1,1,1,1]) # draw meridians
+
+    plt.suptitle('CICE Mean Ice Thickness\n{}'.format(case), y=0.95)
+
+    # Make some room at the bottom of the figure, and create a colorbar
+    fig.subplots_adjust(bottom=0.2)
+    cbar_ax = fig.add_axes([0.11,0.1,0.8,0.05])
+    cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2f")
     cb.set_label(units, x=1.0)
 
-    logger.info('Creating map of the data ({}.png)'.format(case))
-    plt.savefig('ice_thickness_{}.png'.format(case), dpi=300)
+    outfile = 'ice_thickness_{}.png'.format(case.replace('\n- ','_minus_'))
+    logger.info('Creating map of the data ({})'.format(outfile))
+    plt.savefig(outfile, dpi=300, bbox_inches='tight')
 
 def plot_two_stage_failures(data, lat, lon):
     '''This function plots each grid cell and whether or not it Passed or Failed
@@ -539,6 +553,8 @@ def main():
                                                             'history').split('/')[-1]
             plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir)
             plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir)
+            plot_data(np.mean(data_base-data_test,axis=0), t_lat, t_lon, 'm', '{}\n- {}'.\
+                      format(baseDir,testDir))
         logger.error('Quality Control Test FAILED')
         sys.exit(-1)
 
@@ -578,6 +594,8 @@ def main():
                                                         'history').split('/')[-1]
         plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir)
         plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir)
+        plot_data(np.mean(data_base-data_test,axis=0), t_lat, t_lon, 'm', '{}\n- {}'.\
+                  format(baseDir,testDir))
 
     logger.info('')
     if not PASSED_SKILL:
