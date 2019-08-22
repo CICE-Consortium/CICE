@@ -358,17 +358,17 @@ def skill_test(path_a, fname, data_a, data_b, num_files, hemisphere):
         logger.info('Quadratic Skill Test Failed for %s Hemisphere', hemisphere)
         return False
 
-def plot_data(data, lat, lon, units):
+def plot_data(data, lat, lon, units, case):
     '''This function plots CICE data and creates a .png file (ice_thickness_map.png).'''
 
     try:
-        logger.info('Creating map of the data (ice_thickness_map.png)')
         # Load the necessary plotting libraries
         import matplotlib.pyplot as plt
         from mpl_toolkits.basemap import Basemap
         from mpl_toolkits.axes_grid1 import make_axes_locatable
     except ImportError:
         logger.warning('Error loading necessary Python modules in plot_data function')
+        return
 
     # Suppress Matplotlib deprecation warnings
     import warnings
@@ -379,19 +379,19 @@ def plot_data(data, lat, lon, units):
     ax = fig.add_axes([0.05, 0.08, 0.9, 0.9])
 
     # Create the basemap, and draw boundaries
-    m = Basemap(projection='kav7', lon_0=180., resolution='l')
+    m = Basemap(projection='moll', lon_0=0., resolution='l')
     m.drawmapboundary(fill_color='white')
     m.drawcoastlines()
     m.drawcountries()
 
     # Plot the data as a scatter plot
     x, y = m(lon, lat)
-    sc = m.scatter(x, y, c=data, cmap='jet', lw=0)
+    sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
 
     m.drawmeridians(np.arange(0, 360, 60), labels=[0, 0, 0, 1], fontsize=10)
     m.drawparallels(np.arange(-90, 90, 30), labels=[1, 0, 0, 0], fontsize=10)
 
-    plt.title('CICE Ice Thickness')
+    plt.title('CICE Mean Ice Thickness - {}'.format(case))
 
     # Create the colorbar and add Pass / Fail labels
     divider = make_axes_locatable(ax)
@@ -399,7 +399,8 @@ def plot_data(data, lat, lon, units):
     cb = plt.colorbar(sc, cax=cax, orientation="horizontal", format="%.2f")
     cb.set_label(units, x=1.0)
 
-    plt.savefig('ice_thickness_map.png', dpi=300)
+    logger.info('Creating map of the data ({}.png)'.format(case))
+    plt.savefig('ice_thickness_{}.png'.format(case), dpi=300)
 
 def plot_two_stage_failures(data, lat, lon):
     '''This function plots each grid cell and whether or not it Passed or Failed
@@ -428,7 +429,7 @@ def plot_two_stage_failures(data, lat, lon):
         ax = fig.add_axes([0.05, 0.08, 0.9, 0.9])
 
         # Create the basemap, and draw boundaries
-        m = Basemap(projection='kav7', lon_0=180., resolution='l')
+        m = Basemap(projection='moll', lon_0=0., resolution='l')
         m.drawmapboundary(fill_color='white')
         m.drawcoastlines()
         m.drawcountries()
@@ -440,7 +441,7 @@ def plot_two_stage_failures(data, lat, lon):
 
         # Plot the data as a scatter plot
         x, y = m(lon, lat)
-        sc = m.scatter(x, y, c=int_data, cmap=cm, lw=0, vmin=0, vmax=1)
+        sc = m.scatter(x, y, c=int_data, cmap=cm, lw=0, vmin=0, vmax=1, s=4)
 
         m.drawmeridians(np.arange(0, 360, 60), labels=[0, 0, 0, 1], fontsize=10)
         m.drawparallels(np.arange(-90, 90, 30), labels=[1, 0, 0, 0], fontsize=10)
@@ -482,8 +483,11 @@ def main():
                 help='Path to the test history (iceh_inst*) files.  REQUIRED')
     parser.add_argument('-v', '--verbose', dest='verbose', help='Print debug output?', \
                         action='store_true')
+    parser.add_argument('--plot', dest='plot', help='Create maps of ice thickness?', \
+                        action='store_true')
 
     parser.set_defaults(verbose=False)
+    parser.set_defaults(plot=False)
 
     # If no arguments are provided, print the help message
     if len(sys.argv) == 1:
@@ -528,6 +532,13 @@ def main():
     # If test failed, attempt to create a plot of the failure locations
     if not PASSED:
         plot_two_stage_failures(H1_array, t_lat, t_lon)
+        if args.plot:
+            baseDir = os.path.abspath(args.base_dir).rstrip('history/').rstrip(\
+                                                            'history').split('/')[-1]
+            testDir = os.path.abspath(args.test_dir).rstrip('history/').rstrip( \
+                                                            'history').split('/')[-1]
+            plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir)
+            plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir)
         logger.error('Quality Control Test FAILED')
         sys.exit(-1)
 
@@ -558,6 +569,15 @@ def main():
         PASSED_SH = skill_test(dir_a, files_base[0], data_sh_a, data_sh_b, nfiles, 'Southern')
 
     PASSED_SKILL = PASSED_NH and PASSED_SH
+
+    # Plot the ice thickness data for the base and test cases
+    if args.plot:
+        baseDir = os.path.abspath(args.base_dir).rstrip('history/').rstrip( \
+                                                        'history').split('/')[-1]
+        testDir = os.path.abspath(args.test_dir).rstrip('history/').rstrip( \
+                                                        'history').split('/')[-1]
+        plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir)
+        plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir)
 
     logger.info('')
     if not PASSED_SKILL:
