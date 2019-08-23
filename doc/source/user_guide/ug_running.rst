@@ -300,6 +300,35 @@ directory back to **configuration/scripts/machines/** and update
 the **configuration/scripts/cice.batch.csh** file, retest, 
 and then add and commit the updated machine files to the repository.
 
+.. _machvars: 
+
+Machine variables
+~~~~~~~~~~~~~~~~~~~~~~
+
+There are several machine specific variables defined in the **env.$[machine]**.  These
+variables are used to generate working cases for a given machine, compiler, and batch
+system.  Some variables are optional.
+
+.. csv-table:: *Machine Settings*
+   :header: "variable", "format", "description"
+   :widths: 15, 15, 25
+
+   "ICE_MACHINE_ENVNAME", "string", "machine name"
+   "ICE_MACHINE_COMPILER", "string", "compiler"
+   "ICE_MACHINE_MAKE", "string", "make command"
+   "ICE_MACHINE_WKDIR", "string", "root work directory"
+   "ICE_MACHINE_INPUTDATA", "string", "root input data directory"
+   "ICE_MACHINE_BASELINE", "string", "root regression baseline directory"
+   "ICE_MACHINE_SUBMIT", "string", "batch job submission command"
+   "ICE_MACHINE_TPNODE", "integer", "machine maximum MPI tasks per node"
+   "ICE_MACHINE_MAXPES", "integer", "machine maximum total processors per job (optional)"
+   "ICE_MACHINE_MAXRUNLENGTH", "integer", "batch wall time limit in hours (optional)"
+   "ICE_MACHINE_ACCT", "string", "batch default account"
+   "ICE_MACHINE_QUEUE", "string", "batch default queue"
+   "ICE_MACHINE_BLDTHRDS", "integer", "number of threads used during build"
+   "ICE_MACHINE_QSTAT", "string", "batch job status command (optional)"
+   "ICE_MACHINE_QUIETMODE", "true/false", "flag to reduce build output (optional)"
+
 .. _cross_compiling:
 
 Cross-compiling
@@ -460,3 +489,4 @@ does not include all of the capabilities present in the Python version.
 To use the C-Shell version of the script, ::
 
 $ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+
