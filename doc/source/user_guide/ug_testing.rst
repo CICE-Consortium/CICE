@@ -876,10 +876,10 @@ run the script.  If the script runs out of memory on an interactive resource, tr
 logging into a batch resource or finding a large memory node.
 
 The ``cice.t-test.py`` script will also attempt to generate plots of the mean ice thickness
-over the enture duration of the simulation for both the baseline and test cases.
-Additionally, if the 2-stage test fails then the script will attempt to plot a map showing
-the grid cells that failed the test.  For a full list of options, run 
-``python cice.t-test.py -h``.
+for both the baseline and test cases. Additionally, if the 2-stage test fails then the 
+script will attempt to plot a map showing the grid cells that failed the test.  For a 
+full list of options, run ``python cice.t-test.py -h``.
+
 
 
 End-To-End Testing Procedure
