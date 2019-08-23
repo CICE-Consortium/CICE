@@ -108,11 +108,6 @@ set  stamp   = `date '+%y%m%d-%H%M%S'`
 set ICE_BLDLOG_FILE = "cice.bldlog.${stamp}"
 set quiet = ${ICE_QUIETMODE}
 
-# tcraig, this is handled below, is it needed here?
-#if (${ICE_CLEANBUILD} == 'true') then
-#  echo "cleaning objdir"
-#  rm -r -f ${ICE_OBJDIR}
-#endif
 if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
 if !(-d ${ICE_OBJDIR}) mkdir -p ${ICE_OBJDIR}
 cd ${ICE_OBJDIR}

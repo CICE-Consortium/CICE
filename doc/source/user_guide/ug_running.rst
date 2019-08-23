@@ -273,7 +273,7 @@ More about **cice.build**
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **cice.build** is copied into the case directory and should be run interactively from the
-case directory to build the model.  The standard and recommendeded way to run is with 
+case directory to build the model.  The standard and recommended way to run is with 
 no arguments::
 
   cice.build

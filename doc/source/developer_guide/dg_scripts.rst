@@ -92,7 +92,7 @@ highlight this error when it occurs.
 
 The **cice.build** script has some additional features including the ability to 
 pass a Makefile target.  This is documented in :ref:`cicebuild`.  In addition, there
-is a hidden feature in the **cice.build** script that allows for resuse of 
+is a hidden feature in the **cice.build** script that allows for reuse of 
 executables.  This is used by the test suites to significantly reduce cost of
 building the model.  It is invoked with the ``--exe`` argument to **cice.build**
 and should not be invoked by users interactively.
