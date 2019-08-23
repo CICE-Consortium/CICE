@@ -358,8 +358,8 @@ def skill_test(path_a, fname, data_a, data_b, num_files, hemisphere):
         logger.info('Quadratic Skill Test Failed for %s Hemisphere', hemisphere)
         return False
 
-def plot_data(data, lat, lon, units, case):
-    '''This function plots CICE data and creates a .png file (ice_thickness_map.png).'''
+def plot_data(data, lat, lon, units, case, plot_type):
+    '''This function plots CICE data and creates a .png file.'''
 
     try:
         # Load the necessary plotting libraries
@@ -385,8 +385,35 @@ def plot_data(data, lat, lon, units, case):
     m.fillcontinents()
     m.drawcountries()
 
-    x, y = m(lon, lat)
-    sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
+    if plot_type == 'scatter':
+        x, y = m(lon,lat)
+        sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
+    else:
+        # Create new arrays to add 1 additional longitude value to prevent a 
+        # small amount of whitespace around longitude of 0/360 degrees.
+        lon_cyc = np.zeros((lon.shape[0],lon.shape[1]+1))
+        mask = np.zeros((data.shape[0],data.shape[1]+1))
+        lat_cyc = np.zeros((lat.shape[0],lat.shape[1]+1))
+
+        mask[:,0:-1] = data.mask[:,:]
+        mask[:,-1] = data.mask[:,0]
+        lon_cyc[:,0:-1] = lon[:,:]; lon_cyc[:,-1] = lon[:,0]
+        lat_cyc[:,0:-1] = lat[:,:]; lat_cyc[:,-1] = lat[:,0]
+
+        lon1 = np.ma.masked_array(lon_cyc, mask=mask)
+        lat1 = np.ma.masked_array(lat_cyc, mask=mask)
+
+        d = np.zeros((data.shape[0],data.shape[1]+1))
+        d[:,0:-1] = data[:,:]
+        d[:,-1] = data[:,0]
+        d1 = np.ma.masked_array(d,mask=mask)
+
+        x, y = m(lon1.data, lat1.data)
+
+        if plot_type == 'contour':
+            sc = m.contourf(x, y, d1, cmap='jet')
+        else:  # pcolor
+            sc = m.pcolor(x, y, d1, cmap='jet')
 
     m.drawparallels(np.arange(-90.,120.,15.),labels=[1,0,0,0]) # draw parallels
     m.drawmeridians(np.arange(0.,420.,30.),labels=[1,1,1,1]) # draw meridians
@@ -398,8 +425,20 @@ def plot_data(data, lat, lon, units, case):
     m.fillcontinents()
     m.drawcountries()
 
-    x, y = m(lon, lat)
-    sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
+    if plot_type == 'scatter':
+        x, y = m(lon,lat)
+        sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
+    else:
+        x, y = m(lon1.data, lat1.data)
+
+        # Bandaid for a bug in the version of Basemap used during development
+        outside = (x <= m.xmin) | (x >= m.xmax) | (y <= m.ymin) | (y >= m.ymax)
+        tmp = np.ma.masked_where(outside,d1)
+
+        if plot_type == 'contour':
+            sc = m.contourf(x, y, tmp, cmap='jet')
+        else:  # pcolor
+            sc = m.pcolor(x, y, tmp, cmap='jet')
 
     m.drawparallels(np.arange(-90.,120.,15.),labels=[1,0,0,0]) # draw parallels
     m.drawmeridians(np.arange(0.,420.,30.),labels=[1,1,1,1]) # draw meridians
@@ -497,11 +536,11 @@ def main():
                 help='Path to the test history (iceh_inst*) files.  REQUIRED')
     parser.add_argument('-v', '--verbose', dest='verbose', help='Print debug output?', \
                         action='store_true')
-    parser.add_argument('--plot', dest='plot', help='Create maps of ice thickness?', \
-                        action='store_true')
+    parser.add_argument('-pt','--plot_type', dest='plot_type', help='Specify type of plot \
+                        to create', choices=['scatter','contour','pcolor'])
 
     parser.set_defaults(verbose=False)
-    parser.set_defaults(plot=False)
+    parser.set_defaults(plot_type='pcolor')
 
     # If no arguments are provided, print the help message
     if len(sys.argv) == 1:
@@ -546,15 +585,17 @@ def main():
     # If test failed, attempt to create a plot of the failure locations
     if not PASSED:
         plot_two_stage_failures(H1_array, t_lat, t_lon)
-        if args.plot:
-            baseDir = os.path.abspath(args.base_dir).rstrip('history/').rstrip(\
-                                                            'history').split('/')[-1]
-            testDir = os.path.abspath(args.test_dir).rstrip('history/').rstrip( \
-                                                            'history').split('/')[-1]
-            plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir)
-            plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir)
-            plot_data(np.mean(data_base-data_test,axis=0), t_lat, t_lon, 'm', '{}\n- {}'.\
-                      format(baseDir,testDir))
+        
+        # Create plots of mean ice thickness
+        baseDir = os.path.abspath(args.base_dir).rstrip('history/').rstrip(\
+                                                        'history').split('/')[-1]
+        testDir = os.path.abspath(args.test_dir).rstrip('history/').rstrip( \
+                                                        'history').split('/')[-1]
+        plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir, args.plot_type)
+        plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir, args.plot_type)
+        plot_data(np.mean(data_base-data_test,axis=0), t_lat, t_lon, 'm', '{}\n- {}'.\
+                  format(baseDir,testDir), args.plot_type)
+
         logger.error('Quality Control Test FAILED')
         sys.exit(-1)
 
@@ -587,15 +628,14 @@ def main():
     PASSED_SKILL = PASSED_NH and PASSED_SH
 
     # Plot the ice thickness data for the base and test cases
-    if args.plot:
-        baseDir = os.path.abspath(args.base_dir).rstrip('history/').rstrip( \
-                                                        'history').split('/')[-1]
-        testDir = os.path.abspath(args.test_dir).rstrip('history/').rstrip( \
-                                                        'history').split('/')[-1]
-        plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir)
-        plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir)
-        plot_data(np.mean(data_base-data_test,axis=0), t_lat, t_lon, 'm', '{}\n- {}'.\
-                  format(baseDir,testDir))
+    baseDir = os.path.abspath(args.base_dir).rstrip('history/').rstrip( \
+                                                    'history').split('/')[-1]
+    testDir = os.path.abspath(args.test_dir).rstrip('history/').rstrip( \
+                                                    'history').split('/')[-1]
+    plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir, args.plot_type)
+    plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir, args.plot_type)
+    plot_data(np.mean(data_base-data_test,axis=0), t_lat, t_lon, 'm', '{}\n- {}'.\
+              format(baseDir,testDir), args.plot_type)
 
     logger.info('')
     if not PASSED_SKILL:
