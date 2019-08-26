@@ -47,7 +47,7 @@ module dmi_omp
 #if defined (_OPENMP)
   ! Please note, this constant will create a compiler info for a constant
   ! expression in IF statements:
-  real(kind=dbl_kind), private :: rdomp_iam, rdomp_nt
+  real(kind=dbl_kind) :: rdomp_iam, rdomp_nt
   !$OMP THREADPRIVATE(domp_iam,domp_nt,rdomp_iam,rdomp_nt) 
 #endif
 
@@ -70,9 +70,9 @@ contains
     !$OMP PARALLEL DEFAULT(none)
 #if defined (_OPENMP)
     domp_iam  = omp_get_thread_num()
-    rdomp_iam = real(domp_iam,8)
+    rdomp_iam = real(domp_iam,dbl_kind)
     domp_nt   = omp_get_num_threads()
-    rdomp_nt  = real(domp_nt,8)
+    rdomp_nt  = real(domp_nt,dbl_kind)
 #else
     domp_iam  = 0
     domp_nt   = 1
@@ -139,7 +139,7 @@ contains
 
 #if defined (_OPENMP)
     if (omp_in_parallel()) then
-      dlen    = real(upper-lower+1, 8)
+      dlen    = real(upper-lower+1, dbl_kind)
       d_lower = lower    + floor((rdomp_iam*dlen+p5)/rdomp_nt, 4)
       d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+p5)/rdomp_nt, 4)
     endif
@@ -843,7 +843,7 @@ module bench_v2
     real(kind=dbl_kind),dimension(:), intent(in), contiguous    ::               &
        uvel_init, vvel_init, aiu, forcex, forcey, umassdti, Tbu,                 &
        uocn, vocn, fm, uarear,Cw
-    real(kind=DBL_KIND),dimension(:), intent(in), contiguous ::                  &
+    real(kind=dbl_kind),dimension(:), intent(in), contiguous ::                  &
        str1,str2,str3,str4,str5,str6,str7,str8
     real(kind=dbl_kind),dimension(:), intent(inout), contiguous ::               &
        uvel,vvel, strintx,strinty, taubx,tauby
@@ -1003,7 +1003,7 @@ module ice_dyn_evp_1d
     stressm_1, stressm_2, stressm_3, stressm_4,                    &
     stress12_1,stress12_2,stress12_3,stress12_4,                   &
     divu,rdg_conv,rdg_shear,shear,taubx,tauby
-  real (kind=DBL_KIND), dimension(:), allocatable ::               &
+  real (kind=dbl_kind), dimension(:), allocatable ::               &
     str1, str2, str3, str4, str5, str6, str7, str8
   real (kind=dbl_kind), dimension(:), allocatable ::               &
     HTE,HTN,                                                       &

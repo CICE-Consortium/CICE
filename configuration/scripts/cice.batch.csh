@@ -79,6 +79,17 @@ cat >> ${jobfile} << EOFB
 #PBS -l nodes=1:ppn=24
 EOFB
 
+else if (${ICE_MACHINE} =~ izumi*) then
+cat >> ${jobfile} << EOFB
+#PBS -j oe 
+###PBS -m ae 
+#PBS -V
+#PBS -q ${queue}
+#PBS -N ${ICE_CASENAME}
+#PBS -l nodes=${nnodes}:ppn=${taskpernode}
+#PBS -l walltime=${batchtime}
+EOFB
+
 else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
