@@ -21,7 +21,7 @@
     dumpfreq       = 'd'
     dumpfreq_n     = 1
     dump_last      = .false.
-    bfbflag        = .false.
+    bfbflag        = 'off'
     diagfreq       = 24
     diag_type      = 'stdout'
     diag_file      = 'ice_diag.d'
@@ -102,7 +102,7 @@
     kdyn            = 1
     ndte            = 240
     revised_evp     = .false.
-    evp_kernel_ver  = 0
+    kevp_kernel     = 0
     brlx            = 300.0
     arlx            = 300.0
     advection       = 'remap'

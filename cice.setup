@@ -19,6 +19,7 @@ set test = ${spval}
 set grid = gx3
 set pesx = 4x1
 set sets = ""
+set tdir = ${spval}
 set bdir = ${spval}
 set testid = ${spval}
 set testsuite = ${spval}
@@ -73,10 +74,11 @@ SYNOPSIS
     --test TEST -m MACH --testid ID 
         [-e ENV][-p MxN][-g GRID][-s SET1,SET2][--acct ACCT]
         [--diff TESTNAME][--bdir DIR][--bgen DIR][--bcmp DIR]
+        [--tdir PATH]
 
     --suite SUITE[,SUITE2] -m MACH --testid ID 
         [-e ENV1,ENV2][--acct ACCT][--bdir DIR][--bgen DIR]
-        [--bcmp DIR][--report]
+        [--bcmp DIR][--tdir PATH][--report]
 
 DESCRIPTION
     --help, -h : help
@@ -95,9 +97,10 @@ DESCRIPTION
 
     --test     : test, test name (not with --case or --suite)
     --suite    : test suite, pre-defined set or sets of tests, comma separated (not with --case or --test)
-    --bdir     : top baseline directory, default ICE_MACHINE_BASELINE
-    --bgen     : baselines directory where output from current tests are copied
-    --bcmp     : baselines directory where output from current tests are compared
+    --tdir     : directory name where tests will be located
+    --bdir     : baseline directory for regression testing, default ICE_MACHINE_BASELINE
+    --bgen     : directory name where output from current tests are copied
+    --bcmp     : directory name where output from current tests are compared
     --testid   : test ID, user-defined id for testing (REQUIRED with --test or --suite)
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
@@ -234,6 +237,8 @@ while (1)
     else if ("$option" == "--test") then
       set test = $argv[1]
       set dotest = 1
+    else if ("$option" == "--tdir") then
+      set tdir = $argv[1]
     else if ("$option" == "--grid" || "$option" == "-g") then
       set grid = $argv[1]
     else if ("$option" == "--queue") then
@@ -314,10 +319,23 @@ if ( ${dosuite} == 1 ) then
   set tsdir  = "testsuite.${testid}"
   set tsfile = "testsuite.${testid}.${sdate}-${stime}.list"
 endif
+if ( ${tdir} != ${spval} ) then
+  set tsdir = ${tdir}
+endif
 if (-e $tsfile) then
   echo "${0}: ERROR in tsfile, this should never happen"
   exit -1
 endif
+
+set remote = `git remote -v | grep -i origin | grep -i push | sed "s|.*\(https.*\)\s.*|\1|g"`
+set branch = `git status | grep -i "on branch" | sed 's|^.*ranch\s*\(\S*\)$|\1|g'`
+set hash     = `git log | grep -i commit | head -1 | cut -d " " -f 2-`
+set hashuser = `git log | grep -i author | head -1 | cut -d : -f 2-`
+set hashdate = `git log | grep -i date   | head -1 | cut -d : -f 2-`
+set cdate = `date -u "+%Y-%m-%d"`
+set ctime = `date -u "+%H:%M:%S"`
+set vers = ${ICE_VERSION}
+set shhash = `echo ${hash} | cut -c 1-10`
 
 if ( ${dosuite} == 0 ) then
   set teststring = "${test} ${grid} ${pesx} ${sets}"
@@ -348,34 +366,29 @@ else
     endif
   end
 
-  if (-e ./${tsdir}) then
+  if (-e ${tsdir}) then
     echo "${0}: ERROR, ${tsdir} already exists"
     exit -1
   endif
 
-  mkdir ./${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/report_results.csh ./${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ./${tsdir}
-
-  if ($report == 1) then
-    cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ./${tsdir}
+  mkdir -p ${tsdir}
+  if ($status != 0) then
+    echo "${0}: ERROR, mkdir ${tsdir} aborted"
+    exit -1
   endif
+  cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
-cat >! ./${tsdir}/suite.run << EOF0
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+  cat >! $file << EOF0
 #!/bin/csh -f
+
+set nonomatch && rm -f ciceexe.* && unset nonomatch
+
 EOF0
+  end
 
-  set remote = `git remote -v | grep -i origin | grep -i push | sed "s|.*\(https.*\)\s.*|\1|g"`
-  set branch = `git status | grep -i "on branch" | sed 's|^.*ranch\s*\(\S*\)$|\1|g'`
-  set hash     = `git log | grep -i commit | head -1 | cut -d " " -f 2-`
-  set hashuser = `git log | grep -i author | head -1 | cut -d : -f 2-`
-  set hashdate = `git log | grep -i date   | head -1 | cut -d : -f 2-`
-  set cdate = `date -u "+%Y-%m-%d"`
-  set ctime = `date -u "+%H:%M:%S"`
-  set vers = ${ICE_VERSION}
-  set shhash = `echo ${hash} | cut -c 1-10`
-
-cat >! ./${tsdir}/results.csh << EOF0
+cat >! ${tsdir}/results.csh << EOF0
 #!/bin/csh -f
 rm -f results.log
 echo "#------- " >> results.log
@@ -393,8 +406,9 @@ echo "#vers = ${vers}" >> results.log
 echo "#------- " >> results.log
 EOF0
 
-  chmod +x ./${tsdir}/suite.run
-  chmod +x ./${tsdir}/results.csh
+  chmod +x ${tsdir}/suite.run
+  chmod +x ${tsdir}/suite.submit
+  chmod +x ${tsdir}/results.csh
 
 endif
 
@@ -418,23 +432,40 @@ if (${doabort} == true) then
   exit -1
 endif
 
+# Create a new sets_base variable to store sets passed to cice.setup
 set sets_base = "${sets}"
 set bfbcomp_base = "$bfbcomp"
 foreach compiler ( $ncompilers )
   set machcomp = ${machine}_${compiler}
   foreach line ( "`cat $tsfile`" )
+
     # Check if line is a comment line
     if ( $line:q =~ '#'* || $line:q =~ '$'* || $line:q =~ '!'* ) then
       echo "skipping line: $line"
       continue
+    # Check if line is a sleep line, can only happen with suites
+    else if ( $line:q =~ 'sleep'*) then
+cat >> ${tsdir}/suite.submit << EOF
+echo "-------test--------------"
+echo "$line:q"
+$line:q
+
+EOF
+      echo "adding sleep line: $line"
+      echo "" 
+      echo "---" 
+      echo "" 
+      continue
     endif
+
+    source ${ICE_SCRIPTS}/machines/env.${machcomp} -nomodules || exit 2
+
     # Obtain the test name, sets, grid, and PE information from .ts file
     set test = `echo $line | cut -d' ' -f1`
     set grid = `echo $line | cut -d' ' -f2`
     set pesx = `echo $line | cut -d' ' -f3`
     set sets_tmp = `echo $line | cut -d' ' -f4`
     set bfbcomp_tmp = `echo $line | cut -d' ' -f5`
-    # Create a new sets_base variable to store sets passed to cice.setup
 
     # Append sets from .ts file to the $sets variable
     set sets = "$sets_base,$sets_tmp"
@@ -449,7 +480,62 @@ foreach compiler ( $ncompilers )
 
     set fbfbcomp = ${spval}
     if ($bfbcomp != ${spval}) then
-      set fbfbcomp = ${machcomp}_${bfbcomp}.${testid}
+      set fbfbcomp = ${machcomp}_${bfbcomp}
+    endif
+
+    #------------------------------------------------------------
+    # Parse pesx with strict checking, limit pes for machine
+
+    set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+    if (${chck} == OK) then
+      set task  = `echo ${pesx} | cut -d x -f 1`
+      set thrd  = `echo ${pesx} | cut -d x -f 2`
+      set blckx = `echo ${pesx} | cut -d x -f 3`
+      set blcky = `echo ${pesx} | cut -d x -f 4`
+      set mblck = `echo ${pesx} | cut -d x -f 5`
+      if ($?ICE_MACHINE_MAXPES) then
+        @ pesreq = ${task} * ${thrd}
+        if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+          @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+          @ mblck = ${mblck} * ((${pesreq} / ${ICE_MACHINE_MAXPES}) + 1)
+        endif
+      endif
+      set pesx = ${task}x${thrd}x${blckx}x${blcky}x${mblck}
+    else
+      set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+      if (${chck} == OK) then
+        set task  = `echo ${pesx} | cut -d x -f 1`
+        set thrd  = `echo ${pesx} | cut -d x -f 2`
+        set blckx = `echo ${pesx} | cut -d x -f 3`
+        set blcky = `echo ${pesx} | cut -d x -f 4`
+        set mblck = 0
+        if ($?ICE_MACHINE_MAXPES) then
+          @ pesreq = ${task} * ${thrd}
+          if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+            @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+          endif
+        endif
+        set pesx = ${task}x${thrd}x${blckx}x${blcky}
+      else
+        set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+        if (${chck} == OK) then
+          set task = `echo ${pesx} | cut -d x -f 1`
+          set thrd = `echo ${pesx} | cut -d x -f 2`
+          set blckx = 0
+          set blcky = 0
+          set mblck = 0
+          if ($?ICE_MACHINE_MAXPES) then
+            @ pesreq = ${task} * ${thrd}
+            if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+              @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+            endif
+          endif
+          set pesx = ${task}x${thrd}
+        else
+          echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
+          exit -1
+        endif
+      endif
     endif
 
     set testname_noid = ${spval}
@@ -468,11 +554,7 @@ foreach compiler ( $ncompilers )
       # soptions starts with _
       set testname_noid = "${machcomp}_${test}_${grid}_${pesx}${soptions}"
       set testname_base = "${machcomp}_${test}_${grid}_${pesx}${soptions}.${testid}"
-      if (${dosuite} == 1) then
-        set testname = "${tsdir}/$testname_base"
-      else
-        set testname = "$testname_base"
-      endif
+      set testname = "${tsdir}/${testname_base}"
       set case = ${testname}
     endif
 
@@ -492,7 +574,7 @@ foreach compiler ( $ncompilers )
     # Setup case directory, copy files to case directory
 
     mkdir -p ${case}
-    echo "`date`${0} $initargv[*]" >> ${case}/README.case
+    echo "`date` ${0} $initargv[*]" >> ${case}/README.case
 
     cd ${case}
     set casedir = `pwd`
@@ -507,7 +589,7 @@ foreach compiler ( $ncompilers )
     endif
 
     # from basic script dir to case
-    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh)
+    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh timeseries.csh timeseries.py)
       if !(-e ${ICE_SCRIPTS}/$file) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
         exit -1
@@ -534,7 +616,6 @@ foreach compiler ( $ncompilers )
     end
 
     cd ${casedir}
-    source ./env.${machcomp} -nomodules || exit 2
 
     set quietmode = false
     if ($?ICE_MACHINE_QUIETMODE) then
@@ -559,36 +640,6 @@ foreach compiler ( $ncompilers )
 
     #------------------------------------------------------------
     # Compute a default blocksize
-
-    set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-    if (${chck} == OK) then
-      set task  = `echo ${pesx} | cut -d x -f 1`
-      set thrd  = `echo ${pesx} | cut -d x -f 2`
-      set blckx = `echo ${pesx} | cut -d x -f 3`
-      set blcky = `echo ${pesx} | cut -d x -f 4`
-      set mblck = `echo ${pesx} | cut -d x -f 5`
-    else
-      set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-      if (${chck} == OK) then
-        set task  = `echo ${pesx} | cut -d x -f 1`
-        set thrd  = `echo ${pesx} | cut -d x -f 2`
-        set blckx = `echo ${pesx} | cut -d x -f 3`
-        set blcky = `echo ${pesx} | cut -d x -f 4`
-        set mblck = 0
-      else
-        set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-        if (${chck} == OK) then
-          set task = `echo ${pesx} | cut -d x -f 1`
-          set thrd = `echo ${pesx} | cut -d x -f 2`
-          set blckx = 0
-          set blcky = 0
-          set mblck = 0
-        else
-          echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
-          exit -1
-        endif
-      endif
-    endif
 
     setenv ICE_DECOMP_GRID  ${grid}
     setenv ICE_DECOMP_NTASK ${task}
@@ -678,6 +729,7 @@ setenv ICE_SPVAL    ${spval}
 setenv ICE_QUIETMODE  ${quietmode}
 setenv ICE_TEST     ${test}
 setenv ICE_TESTNAME ${testname_noid}
+setenv ICE_TESTID   ${testid}
 setenv ICE_BFBCOMP  ${fbfbcomp}
 setenv ICE_ACCOUNT  ${acct}
 setenv ICE_QUEUE    ${queue}
@@ -690,7 +742,7 @@ EOF1
       foreach name ($setsxorig)
         if (-e ${ICE_SCRIPTS}/options/set_files.${name}) then
           echo "adding options files from set_files.${name}"
-          echo "`date`${0} adding options files from set_files.${name}" >> ${casedir}/README.case
+          echo "`date` ${0} adding options files from set_files.${name}" >> ${casedir}/README.case
           set setsnew = `cat ${ICE_SCRIPTS}/options/set_files.${name}`
           foreach nset ($setsnew)
             if ($nset !~ "#*") then
@@ -708,9 +760,10 @@ EOF1
 
     if (${docase} == 0) then
       # from test options to casescr in case any test time changes are applied
+      cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/comparelog.csh ${casescr}
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
-        cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)
           if (-e ${ICE_SCRIPTS}/options/$file) then
             cp -f -p ${ICE_SCRIPTS}/options/$file ${casescr}
@@ -737,7 +790,7 @@ cat >> ${fimods} << EOF2
 
 EOF2
         echo "adding namelist mods set_nml.${name}"
-        echo "`date`${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
+        echo "`date` ${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
         set found = 1
       endif
       if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
@@ -755,7 +808,7 @@ cat >> ${fimods} << EOF2
 EOF2
 
         echo "adding env mods set_env.${name}"
-        echo "`date`${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
+        echo "`date` ${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
         set found = 1
       endif
       if (${found} == 0) then
@@ -807,13 +860,13 @@ EOF2
 
     if ( ${dosuite} == 1 ) then
       cd ${ICE_SANDBOX}
-      # Write build and run commands to suite.run
+      # Write build and run commands to suite.run and suite.submit
 
-cat >> ./${tsdir}/results.csh << EOF
-cat $testname_base/test_output >> results.log
+cat >> ${tsdir}/results.csh << EOF
+cat ${testname_base}/test_output >> results.log
 EOF
-
-cat >> ./${tsdir}/suite.run << EOF
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+    cat >> $file  << EOF
 echo "-------test--------------"
 echo "${testname_base}"
 cd ${testname_base}
@@ -821,10 +874,20 @@ source ./cice.settings
 set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
 ./cice.build \${ciceexe}
 if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
-./cice.submit
+EOF
+  end
+  cat >> ${tsdir}/suite.submit << EOF
+./cice.submit | tee -a ../suite.jobs
+EOF
+  cat >> ${tsdir}/suite.run << EOF
+./cice.test
+EOF
+  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+    cat >> $file << EOF
 cd ..
 
 EOF
+  end
     
       # Reset case for the next test in suite
       set case = ${spval}
@@ -845,7 +908,7 @@ end
 if ( ${dosuite} == 1 ) then
 
   # Add code to results.csh to count the number of failures
-cat >> ./${tsdir}/results.csh << EOF
+cat >> ${tsdir}/results.csh << EOF
 cat ./results.log
 set pends = \`cat ./results.log | grep PEND | wc -l\`
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
@@ -875,9 +938,15 @@ echo "\$pends of \$total tests PENDING"
 exit \$failures
 EOF
 
+  if ($?ICE_MACHINE_QSTAT) then
+cat >! ${tsdir}/poll_queue.env << EOF0
+setenv ICE_MACHINE_QSTAT ${ICE_MACHINE_QSTAT}
+EOF0
+  endif
+
   # build and submit tests
   cd ${tsdir}
-  ./suite.run | tee suite.log
+  ./suite.submit | tee suite.log
   if ($report == 1) then
     echo "Reporting results"
     ./poll_queue.csh

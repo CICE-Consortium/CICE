@@ -31,6 +31,8 @@ The directory structure under configure/scripts is as follows.
 |        **parse_settings.sh**     replaces settings with command-line configuration
 |        **setup_run_dirs.csh**    creates the case run directories
 |        **set_version_number.csh** updates the model version number from the **cice.setup** command line
+|        **timeseries.csh**        generates PNG timeseries plots from output files, using GNUPLOT
+|        **timeseries.py**         generates PNG timeseries plots from output files, using Python
 |        **tests/**                scripts for configuring and running basic tests
 
 .. _dev_strategy:
@@ -78,6 +80,18 @@ with appropriate names and syntax.  The set_nml file syntax is the same as namel
 syntax and the set_env files are consistent with csh setenv syntax.  See other files for
 examples of the syntax.
 
+.. _build:
+
+Build Scripts
+-----------
+
+CICE uses GNU Make to build the model.  There is a common **Makefile** for all machines.  
+Each machine provides a Macros file to define some Makefile variables
+and and an env file to specify the modules/software stack for each compiler.
+The machine is built by the cice.build script which invokes Make.
+There is a special trap for circular dependencies in the cice.build script to
+highlight this error when it occurs.
+
 .. _dev_machines:
 
 Machines
@@ -122,9 +136,8 @@ setup the various tests, such as smoke and restart tests (**test_smoke.script**,
 and the files that describe with options files are needed for each test (ie. **test_smoke.files**, **test_restart.files**).
 A baseline test script (**baseline.script**) is also there to setup the general regression
 and comparison testing.  That directory also contains the preset test suites 
-(ie. **base_suite.ts**) and a file that supports post-processing on the model
-output (**timeseries.csh**).  There is also a script **report_results.csh** that pushes results 
-from test suites back to the CICE-Consortium test results wiki page.
+(ie. **base_suite.ts**) and a script (**report_results.csh**) that pushes results from 
+test suites back to the CICE-Consortium test results wiki page.
 
 To add a new test (for example newtest), several files may be needed,
 

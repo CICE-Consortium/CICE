@@ -47,6 +47,9 @@ For individual tests, the following command line options can be set
 ``--testid`` ID
      specifies the testid.  This is required for every use of ``--test`` and ``--suite``.  This is a user defined string that will allow each test to have a unique case and run directory name.  This is also required.
 
+``--tdir`` PATH
+     specifies the test directory.  Testcases will be created in this directory.  (default is .)
+
 ``--mach`` MACHINE (see :ref:`case_options`)
 
 ``--env`` ENVIRONMENT1 (see :ref:`case_options`)
@@ -295,6 +298,12 @@ results.csh script in the [suite_name].[testid]::
 To report the test results, as is required for Pull Requests to be accepted into 
 the master the CICE Consortium code see :ref:`testreporting`.
 
+If using the ``--tdir`` option, that directory must not exist before the script is run.  The tdir directory will be
+created by the script and it will be populated by all tests as well as scripts that support the
+test suite::
+
+  ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid --tdir /scratch/$user/testsuite.myid
+
 Multiple suites are supported on the command line as comma separated arguments::
 
   ./cice.setup --suite base_suite,decomp_suite --mach wolf --env gnu --testid myid
@@ -353,6 +362,9 @@ following options are valid for suites,
 ``--acct`` ACCOUNT
   optional
 
+``--tdir`` PATH
+  optional
+
 ``--testid`` ID
   required
 
@@ -380,94 +392,103 @@ Test Suite Examples
     ::
 
      ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a
-     cd base_suite.v01a
-     #wait for runs to complete
+     cd testsuite.v01a
+     # wait for runs to complete
      ./results.csh
 
- 2) **Basic test suite on multiple environments**
+ 2) **Basic test suite with user defined test directory**
+     
+    Specify suite, mach, env, testid, tdir.
+    ::
+
+     ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --tdir /scratch/$user/ts.v01a
+     cd /scratch/$user/ts.v01a
+     # wait for runs to complete
+     ./results.csh
+
+ 3) **Basic test suite on multiple environments**
 
     Specify multiple envs.
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray,pgi,intel,gnu --testid v01a
-      cd base_suite.v01a
-      #wait for runs to complete
+      cd testsuite.v01a
+      # wait for runs to complete
       ./results.csh
 
     Each env can be run as a separate invokation of `cice.setup` but if that
     approach is taken, it is recommended that different testids be used.
 
- 3) **Basic test suite with generate option defined**
+ 4) **Basic test suite with generate option defined**
 
     Add ``--set``
     ::
 
        ./cice.setup --suite base_suite --mach conrad --env gnu --testid v01b --set diag1
-       cd base_suite.v01b
-       #wait for runs to complete
+       cd testsuite.v01b
+       # wait for runs to complete
       ./results.csh
 
     If there are conflicts between the ``--set`` options in the suite and on the command line,
     the suite will take precedent.
 
- 4) **Multiple test suites from a single command line**
+ 5) **Multiple test suites from a single command line**
 
     Add comma delimited list of suites
     ::
 
       ./cice.setup --suite base_suite,decomp_suite --mach conrad --env gnu --testid v01c
-      cd base_suite.v01c
-      #wait for runs to complete
+      cd testsuite.v01c
+      # wait for runs to complete
       ./results.csh
 
-     If there are redundant tests in multiple suites, the scripts will understand that and only
-     create one test.
+    If there are redundant tests in multiple suites, the scripts will understand that and only
+    create one test.
 
- 5) **Basic test suite, store baselines in user defined name**
+ 6) **Basic test suite, store baselines in user defined name**
 
     Add ``--bgen``
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a
-      cd base_suite.v01a
-      #wait for runs to complete
+      cd testsuite.v01a
+      # wait for runs to complete
       ./results.csh
 
-     This will store the results in the default [bdir] directory under the subdirectory cice.v01a.
+    This will store the results in the default [bdir] directory under the subdirectory cice.v01a.
 
- 6) **Basic test suite, store baselines in user defined top level directory**
+ 7) **Basic test suite, store baselines in user defined top level directory**
 
     Add ``--bgen`` and ``--bdir``
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen cice.v01a --bdir /tmp/user/CICE_BASELINES
-      cd base_suite.v01a
-      #wait for runs to complete
+      cd testsuite.v01a
+      # wait for runs to complete
       ./results.csh
 
     This will store the results in /tmp/user/CICE_BASELINES/cice.v01a.
 
- 7) **Basic test suite, store baselines in auto-generated directory**
+ 8) **Basic test suite, store baselines in auto-generated directory**
 
     Add ``--bgen default``
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --bgen default
-      cd base_suite.v01a
-      #wait for runs to complete
+      cd testsuite.v01a
+      # wait for runs to complete
       ./results.csh
 
-     This will store the results in the default [bdir] directory under a directory name generated by the script
-     that includes the hash and date.
+    This will store the results in the default [bdir] directory under a directory name generated by the script that includes the hash and date.
 
- 8) **Basic test suite, compare to prior baselines**
+ 9) **Basic test suite, compare to prior baselines**
 
     Add ``--bcmp``
     ::
 
       ./cice.setup --suite base_suite --mach conrad --env cray --testid v02a --bcmp cice.v01a
-      cd base_suite.v02a
-      #wait for runs to complete
+      cd testsuite.v02a
+      # wait for runs to complete
       ./results.csh
 
     This will compare to results saved in the baseline [bdir] directory under
@@ -477,7 +498,7 @@ Test Suite Examples
     the CICE Consortium master code. You can use other regression options as well.
     (``--bdir`` and ``--bgen``)
 
- 9) **Basic test suite, use of default string in regression testing**
+ 10) **Basic test suite, use of default string in regression testing**
 
     default is a special argument to ``--bgen`` and ``--bcmp``.  When used, the
     scripts will automate generation of the directories.  In the case of ``--bgen``,
@@ -504,7 +525,23 @@ Test Suite Examples
     When this is invoked, a new set of baselines will be generated and compared to the prior
     results each time without having to change the arguments.
 
- 10) **Create and test a custom suite**
+ 11) **Reusing a test suite**
+
+    Add the buildincremental option (``-s buildincremental``). This permits the suite to be rerun without recompiling the whole code.
+    ::
+
+      ./cice.setup --suite base_suite --mach conrad --env intel --testid v01b --set buildincremental
+      cd testsuite.v01b
+      # wait for runs to complete
+      ./results.csh
+      # modify code
+      ./suite.submit # or ./suite.run to run the suite interactively
+      # wait for runs to complete
+      ./results.csh
+
+    Only modified files will be recompiled, and the suite will be rerun.
+
+ 12) **Create and test a custom suite**
 
     Create your own input text file consisting of 5 columns of data,
      - Test
@@ -526,8 +563,8 @@ Test Suite Examples
     ::
 
       ./cice.setup --suite mysuite --mach conrad --env cray --testid v01a --bgen default
-      cd mysuite.v01a
-      #wait for runs to complete
+      cd testsuite.v01a
+      # wait for runs to complete
       ./results.csh
 
     You can use all the standard regression testing options (``--bgen``, ``--bcmp``, 
@@ -557,7 +594,7 @@ To post results, once a test suite is complete, run ``results.csh`` and
 ::
 
   ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a
-  cd base_suite.v01a
+  cd testsuite.v01a
   #wait for runs to complete
   ./results.csh
   ./report_results.csh
@@ -782,6 +819,7 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke18`.
 
+.. _CodeCompliance:
 
 Code Compliance Testing Procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -809,7 +847,7 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user matplotlib
 
 To run the compliance test, setup a baseline run with the original baseline model and then 
-a perturbation run based on recent model changes.  Use ``--sets qc`` in both runs in addition
+a perturbation run based on recent model changes.  Use ``--set qc`` in both runs in addition
 to other settings needed.  Then use the QC script to compare history output,
 
 .. code-block:: bash
@@ -833,10 +871,16 @@ Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
 locations of failures can be identified.
 
-The cice.t-test.py requires memory to store multiple two-dimensional fields spanning 
+The ``cice.t-test.py`` requires memory to store multiple two-dimensional fields spanning 
 1825 unique timesteps, a total of several GB.  An appropriate resource is needed to 
 run the script.  If the script runs out of memory on an interactive resource, try
 logging into a batch resource or finding a large memory node.
+
+The ``cice.t-test.py`` script will also attempt to generate plots of the mean ice thickness
+for both the baseline and test cases. Additionally, if the 2-stage test fails then the 
+script will attempt to plot a map showing the grid cells that failed the test.  For a 
+full list of options, run ``python cice.t-test.py -h``.
+
 
 
 End-To-End Testing Procedure
@@ -902,52 +946,4 @@ If the regression comparisons fail, then you may want to run the QC test,
   INFO:__main__:
   INFO:__main__:Quality Control Test PASSED
 
-
-.. _testplotting:
-
-Test Plotting
-----------------
-
-The CICE scripts include a script (``timeseries.csh``) that will generate timeseries 
-figures from a diagnostic output file.  
-When running a test suite, the ``timeseries.csh`` script is automatically copied to the suite directory.  
-If the ``timeseries.csh`` script is to be used on a test or case that is not a part of a test suite, 
-users will need to run the ``timeseries.csh`` script from the tests directory 
-(``./configuration/scripts/tests/timeseries.csh ./path/``), or copy it to a local directory.
-When used with the test suites or given a path, it needs to be run in the directory 
-above the particular case being plotted, but it can also be run on isolated log files in the same directory, 
-without a path.
-
-For example:
-
-Run the test suite. ::
-
-$ ./cice.setup -m conrad -e intel --suite base_suite --testid t00
-
-Wait for suite to finish then go to the directory. ::
-
-$ cd base_suite.t00
-
-Run the timeseries script on the desired case. ::
-
-$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
-    
-The output figures are placed in the directory where the ``timeseries.csh`` script is run.
-
-To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
-
-     #!/bin/csh
-     foreach dir (`ls -1  | grep testid`)
-       echo $dir
-       timeseries.csh $dir
-     end
-
-
-This plotting script can be used to plot the following variables:
-
-  - total ice area (:math:`km^2`)
-  - total ice extent (:math:`km^2`)
-  - total ice volume (:math:`m^3`)
-  - total snow volume (:math:`m^3`)
-  - RMS ice speed (:math:`m/s`)
 

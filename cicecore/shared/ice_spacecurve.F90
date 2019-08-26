@@ -31,7 +31,7 @@ module ice_spacecurve
 ! !PUBLIC MEMBER FUNCTIONS: 
 
    public :: GenSpaceCurve,     &
-	     IsLoadBalanced
+             IsLoadBalanced
 
    public :: Factor,            &
              IsFactorable,      &
@@ -41,24 +41,24 @@ module ice_spacecurve
 
 ! !PRIVATE MEMBER FUNCTIONS:
 
-   private :: map,    		&
-	      PeanoM, 		&
-	      Hilbert, 		&
-	      Cinco,  		&
+   private :: map,              &
+              PeanoM,           &
+              Hilbert,          &
+              Cinco,            &
               GenCurve
 
    private :: FirstFactor,      &
               FindandMark
 
    integer(int_kind), dimension(:,:), allocatable ::  &
-	dir,      &! direction to move along each level
+        dir,      &! direction to move along each level
         ordered    ! the ordering 
    integer(int_kind), dimension(:), allocatable ::  &
-	pos        ! position along each of the axes
+        pos        ! position along each of the axes
    
    integer(int_kind) ::  &
-	maxdim,	  &! dimensionality of entire space
-	vcnt       ! visitation count
+        maxdim,   &! dimensionality of entire space
+        vcnt       ! visitation count
 
    logical           :: verbose=.FALSE. 
    
@@ -80,7 +80,7 @@ contains
 ! !DESCRIPTION:
 !  This subroutine implements a Cinco space-filling curve.
 !  Cinco curves connect a Nb x Nb block of points where 
-!  		
+!
 !        Nb = 5^p 
 !
 ! !REVISION HISTORY:
@@ -91,12 +91,12 @@ contains
 ! !INPUT PARAMETERS 
 
    integer(int_kind), intent(in) ::  &
-	l, 	& ! level of the space-filling curve 
+        l,      & ! level of the space-filling curve 
         type,   & ! type of SFC curve
-	ma,     & ! Major axis [0,1]
-	md,  	& ! direction of major axis [-1,1]
-	ja,	& ! joiner axis [0,1]
-	jd	  ! direction of joiner axis [-1,1]
+        ma,     & ! Major axis [0,1]
+        md,     & ! direction of major axis [-1,1]
+        ja,     & ! joiner axis [0,1]
+        jd        ! direction of joiner axis [-1,1]
 
 ! !OUTPUT PARAMETERS
 
@@ -111,12 +111,12 @@ contains
 !-----------------------------------------------------------------------
 
    integer(int_kind) :: &
-	lma,		&! local major axis (next level)
-	lmd,		&! local major direction (next level)
-	lja,		&! local joiner axis (next level)
-	ljd,		&! local joiner direction (next level)
-	ltype,          &! type of SFC on next level 
-        ll		 ! next level down 
+        lma,            &! local major axis (next level)
+        lmd,            &! local major direction (next level)
+        lja,            &! local joiner axis (next level)
+        ljd,            &! local joiner direction (next level)
+        ltype,          &! type of SFC on next level 
+        ll               ! next level down 
 
    logical     :: debug = .FALSE.
 
@@ -963,8 +963,8 @@ contains
 
 ! !INPUT PARAMETERS:
      integer(int_kind)  :: &
-	ja, 	&! axis to increment
-	jd	 ! direction along axis
+        ja,     &! axis to increment
+        jd       ! direction along axis
 
 ! !OUTPUT PARAMETERS:
      integer(int_kind) :: ierr ! error return code
@@ -975,7 +975,7 @@ contains
      ! mark the newly visited point
      !-----------------------------
      ordered(pos(0)+1,pos(1)+1) = vcnt
-	
+
      !------------------------------------
      ! increment curve and update position
      !------------------------------------
@@ -1064,12 +1064,12 @@ contains
 ! !INTPUT PARAMETERS:
 
    integer(int_kind), intent(in) ::  &
-	nelem,		&  ! number of blocks/elements to partition
-	npart              ! size of partition
+        nelem,      &  ! number of blocks/elements to partition
+        npart          ! size of partition
 
 ! !OUTPUT PARAMETERS:
    logical        :: IsLoadBalanced   ! .TRUE. if a perfectly load balanced 
-				      ! partition is possible
+                                      ! partition is possible
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -1077,7 +1077,7 @@ contains
 !  local variables
 !
 !-----------------------------------------------------------------------
-	
+
    integer(int_kind)   :: tmp1 ! temporary int
 
    character(len=*),parameter :: subname='(IsLoadBalanced)'
@@ -1085,10 +1085,10 @@ contains
 !-----------------------------------------------------------------------
    tmp1 = nelem/npart
 
-   if(npart*tmp1 == nelem ) then 
-	IsLoadBalanced=.TRUE.
+   if (npart*tmp1 == nelem ) then 
+      IsLoadBalanced=.TRUE.
    else
-        IsLoadBalanced=.FALSE.
+      IsLoadBalanced=.FALSE.
    endif
 
 !EOP
@@ -1285,7 +1285,7 @@ contains
 !-----------------------------------------------------------------------
 
    integer(int_kind)   ::  &
-	tmp,tmp2,tmp3,tmp5   ! tempories for the factorization algorithm
+        tmp,tmp2,tmp3,tmp5   ! tempories for the factorization algorithm
    integer(int_kind)   :: i,n    ! loop tempories
    logical             :: found  ! logical temporary
    character(len=*),parameter :: subname='(Factor)'
@@ -1437,9 +1437,9 @@ contains
 !-----------------------------------------------------------------------
 
    integer(int_kind)  :: &
-	d, 		 & ! dimension of curve only 2D is supported
-	type,		 & ! type of space-filling curve to start off
-        ierr   		   ! error return code
+        d,               & ! dimension of curve only 2D is supported
+        type,            & ! type of space-filling curve to start off
+        ierr               ! error return code
    character(len=*),parameter :: subname='(map)'
 
    d = SIZE(pos)
@@ -1484,8 +1484,8 @@ contains
 !
 !-----------------------------------------------------------------------
      integer(int_kind) ::  &
-        gridsize,	   &! order of space-filling curve
-        i		    ! loop temporary
+        gridsize,          &! order of space-filling curve
+        i                   ! loop temporary
      character(len=*),parameter :: subname='(PrintCurve)'
 
 !-----------------------------------------------------------------------
@@ -1523,7 +1523,7 @@ contains
         write (*,*) "------------------------------------------"
         do i=1,gridsize
            write(*,6) Mesh(1,i),Mesh(2,i),Mesh(3,i), &
-	    	      Mesh(4,i),Mesh(5,i),Mesh(6,i)
+                      Mesh(4,i),Mesh(5,i),Mesh(6,i)
         enddo
      else if(gridsize == 8) then
         write (*,*) "A Level 3 Hilbert Curve:"
@@ -1615,7 +1615,7 @@ contains
                        Mesh(13,i),Mesh(14,i),Mesh(15,i),Mesh(16,i), &
                        Mesh(17,i),Mesh(18,i),Mesh(19,i),Mesh(20,i), &
                        Mesh(21,i),Mesh(22,i),Mesh(23,i),Mesh(24,i), &
-		       Mesh(25,i)
+                       Mesh(25,i)
         enddo
      else if(gridsize == 27) then
         write (*,*) "A Level 3 Peano Meandering Curve:"
@@ -1683,7 +1683,7 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
    integer(int_kind), target,intent(inout) :: &
-	Mesh(:,:)		! The SFC ordering in 2D array
+        Mesh(:,:)      ! The SFC ordering in 2D array
 
 !EOP
 !BOC
@@ -1694,8 +1694,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer(int_kind) ::  &
-	level,   &! Level of space-filling curve		
-	dim       ! dimension of SFC... currently limited to 2D
+        level,   &! Level of space-filling curve
+        dim       ! dimension of SFC... currently limited to 2D
 
    integer(int_kind) :: gridsize   ! number of points on a side
    

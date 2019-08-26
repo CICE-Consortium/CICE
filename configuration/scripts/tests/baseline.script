@@ -20,11 +20,8 @@ endif
 # Baseline comparing run
 
 if (${ICE_BASECOM} != ${ICE_SPVAL}) then
-  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
-  set test_data = ${ICE_RUNDIR}/restart/${test_file}
-
-  set baseline_dir  = ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/restart
-  set baseline_data = ${baseline_dir}/${test_file}
+  set test_dir = ${ICE_RUNDIR}/restart
+  set base_dir  = ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/restart
 
   set baseline_log = `ls -1t ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/cice.runlog* | head -1`
   set btimeloop = -1
@@ -41,20 +38,20 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
 
   echo ""
   echo "Regression Compare Mode:"
-  echo "Performing binary comparison between files"
-  echo "baseline: ${baseline_data}"
-  echo "test:     ${test_data}"
-  if (-e ${baseline_data} ) then
-    if ( { cmp -s ${test_data} ${baseline_data} } ) then
-      echo "PASS ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn}" >> ${ICE_CASEDIR}/test_output
-      echo "Regression baseline and test dataset are identical"
-    else
-      echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn} different-data" >> ${ICE_CASEDIR}/test_output
-      echo "Regression baseline and test dataset are different"
-    endif
-  else
+  echo "base_dir: ${base_dir}"
+  echo "test_dir: ${test_dir}"
+
+  ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
+  set bfbstatus = $status
+  if ( ${bfbstatus} == 0 ) then
+    echo "PASS ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn}" >> ${ICE_CASEDIR}/test_output
+    echo "Regression baseline and test dataset are identical"
+  else if ( ${bfbstatus} == 2 ) then
     echo "MISS ${ICE_TESTNAME} compare ${ICE_BASECOM}  ${btimeloop} ${bdynamics} ${bcolumn} missing-data" >> ${ICE_CASEDIR}/test_output
-    echo "Baseline file does not exist"
+    echo "Missing data"
+  else
+    echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn} different-data" >> ${ICE_CASEDIR}/test_output
+    echo "Regression baseline and test dataset are different"
   endif
 endif
 
@@ -64,24 +61,39 @@ endif
 
 if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
 
-  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
-  if (${test_file} != "") then
-    set test_data = ${ICE_RUNDIR}/restart/${test_file}
+  if (${ICE_TEST} == "logbfb") then
+    set test_file = `ls -1t ${ICE_RUNDIR}/cice.runlog* | head -1`
+    set base_file = `ls -1t ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/cice.runlog* | head -1`
+
+    echo ""
+    echo "bfb Log Compare Mode:"
+    echo "base_file: ${base_file}"
+    echo "test_file: ${test_file}"
+
+    ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
+    set bfbstatus = $status
   else
-    set test_data = "NoThInG__Here"
-  endif
-  set comp_file = `ls -t1 ${ICE_RUNDIR}/../${ICE_BFBCOMP}/restart | head -1`
-  if (${comp_file} != "") then
-    set comp_data = ${ICE_RUNDIR}/../${ICE_BFBCOMP}/restart/${comp_file}
-  else
-    set comp_data = "NoThInG__Here"
+    set test_dir = ${ICE_RUNDIR}/restart
+    set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/restart
+
+    echo ""
+    echo "bfb Compare Mode:"
+    echo "base_dir: ${base_dir}"
+    echo "test_dir: ${test_dir}"
+
+    ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
+    set bfbstatus = $status
   endif
 
-  if (-e ${comp_data} && -e ${test_data}) then
-    ${ICE_CASEDIR}/casescripts/comparebfb.csh $test_data $comp_data
-  else
-    echo "MISS ${ICE_TESTNAME} bfbcomp missing-data" >> ${ICE_CASEDIR}/test_output
+  if (${bfbstatus} == 0) then
+    echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
+    echo "bfb baseline and test dataset are identical"
+  else if (${bfbstatus} == 2) then
+    echo "MISS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} missing-data" >> ${ICE_CASEDIR}/test_output
     echo "Missing data"
+  else
+    echo "FAIL ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} different-data" >> ${ICE_CASEDIR}/test_output
+    echo "bfbcomp and test dataset are different"
   endif
 endif
 

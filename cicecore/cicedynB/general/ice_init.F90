@@ -92,7 +92,7 @@
                           grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                evp_kernel_ver, &
+                                kevp_kernel, &
                                 basalstress, k1, Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection
@@ -180,7 +180,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        evp_kernel_ver,                                                 &
+        kevp_kernel,                                                    &
         brlx,           arlx,                                           &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
@@ -237,7 +237,7 @@
       diagfreq = 24          ! how often diag output is written
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
-      bfbflag = .false.      ! if true, do bit-for-bit computations
+      bfbflag = 'off'        ! off = optimized
       diag_type = 'stdout'
       diag_file = 'ice_diag.d'
       histfreq(1) = '1'      ! output frequency option for different streams
@@ -283,7 +283,7 @@
       kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
-      evp_kernel_ver = 0 ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
+      kevp_kernel = 0    ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -546,7 +546,7 @@
       call broadcast_scalar(kdyn,               master_task)
       call broadcast_scalar(ndtd,               master_task)
       call broadcast_scalar(ndte,               master_task)
-      call broadcast_scalar(evp_kernel_ver,     master_task)
+      call broadcast_scalar(kevp_kernel,        master_task)
       call broadcast_scalar(brlx,               master_task)
       call broadcast_scalar(arlx,               master_task)
       call broadcast_scalar(revised_evp,        master_task)
@@ -889,6 +889,18 @@
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=F and fbot_xfer_type=Cdn_ocn'
          abort_flag = 19
       endif
+      
+      if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &
+                trim(dumpfreq) == 'm' .or. trim(dumpfreq) == 'M' .or. &
+                trim(dumpfreq) == 'd' .or. trim(dumpfreq) == 'D' .or. &
+                trim(dumpfreq) == 'h' .or. trim(dumpfreq) == 'H' .or. &
+                trim(dumpfreq) == '1' )) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: unrecognized dumpfreq=', trim(dumpfreq)
+            write(nu_diag,*) subname//' WARNING:   No restarts files will be written'
+            write(nu_diag,*) subname//' WARNING:   Allowed values : ''y'', ''m'', ''d'', ''h'', ''1'''
+         endif
+      endif
 
       ice_IOUnitsMinUnit = numin
       ice_IOUnitsMaxUnit = numax
@@ -921,7 +933,7 @@
          write(nu_diag,1020) ' diagfreq                  = ', diagfreq
          write(nu_diag,1010) ' print_global              = ', print_global
          write(nu_diag,1010) ' print_points              = ', print_points
-         write(nu_diag,1010) ' bfbflag                   = ', bfbflag
+         write(nu_diag,1030) ' bfbflag                   = ', bfbflag
          write(nu_diag,1020) ' numin                     = ', numin
          write(nu_diag,1020) ' numax                     = ', numax
          write(nu_diag,1050) ' histfreq                  = ', histfreq(:)
@@ -984,10 +996,8 @@
          endif
          write(nu_diag,1020) ' ndtd                      = ', ndtd
          write(nu_diag,1020) ' ndte                      = ', ndte
-         write(nu_diag,1010) ' revised_evp               = ', &
-                               revised_evp
-         write(nu_diag,1020) ' evp_kernel_ver            = ', &
-                               evp_kernel_ver
+         write(nu_diag,1010) ' revised_evp               = ', revised_evp
+         write(nu_diag,1020) ' kevp_kernel               = ', kevp_kernel
          write(nu_diag,1005) ' brlx                      = ', brlx
          write(nu_diag,1005) ' arlx                      = ', arlx
          if (kdyn == 1) &
@@ -1178,8 +1188,23 @@
          abort_flag = 20
       endif
 
+      ! check for valid kevp_kernel
+      ! tcraig, kevp_kernel=2 is not validated, do not allow use
+      !         use "102" to test "2" for now
+      if (kevp_kernel /= 0) then
+         if (kevp_kernel == 102) then
+            kevp_kernel = 2
+         else
+            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: kevp_kernel = ',kevp_kernel
+            if (kevp_kernel == 2) then
+                if (my_task == master_task) write(nu_diag,*) subname//' kevp_kernel=2 not validated, use kevp_kernel=102 for testing until it is validated'
+            endif
+            abort_flag = 21
+        endif
+      endif
+
       if (abort_flag /= 0) then
-        call flush_fileunit(nu_diag)
+         call flush_fileunit(nu_diag)
       endif
       call ice_barrier()
       if (abort_flag /= 0) then

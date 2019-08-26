@@ -1,4 +1,5 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+#define SERIAL_REMOVE_MPI
 
  module ice_global_reductions
 
@@ -8,18 +9,33 @@
 ! author: Phil Jones, LANL
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 ! Feb. 2008: Updated from POP version by Elizabeth C. Hunke, LANL
+! Aug. 2014: Added bit-for-bit reproducible options for global_sum_dbl
+!            and global_sum_prod_dbl by T Craig NCAR
+! Mar. 2019: Refactored bit-for-bit option, T Craig
 
    use ice_kinds_mod
+   use ice_blocks, only: block, get_block, nx_block, ny_block
+#ifdef SERIAL_REMOVE_MPI
+   use ice_communicate, only: my_task, master_task
+#else
+   use ice_communicate, only: my_task, mpiR16, mpiR8, mpiR4, master_task
+#endif
    use ice_constants, only: field_loc_Nface, field_loc_NEcorner
-   use ice_blocks, only: block, get_block
+   use ice_fileunits, only: bfbflag
+   use ice_exit, only: abort_ice
    use ice_distribution, only: distrb, ice_distributionGet, &
        ice_distributionGetBlockID
-   use ice_domain_size, only: nx_global
-   use ice_exit, only: abort_ice
+   use ice_domain_size, only: nx_global, ny_global, max_blocks
+   use ice_gather_scatter, only: gather_global
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+   use ice_reprosum, only: ice_reprosum_calc
 
    implicit none
    private
+
+#ifndef SERIAL_REMOVE_MPI
+   include 'mpif.h'
+#endif
 
    public :: global_sum,      &
              global_sum_prod, &
@@ -85,7 +101,7 @@
       array                ! array to be summed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution for array 
+      dist                 ! block distribution for array X
 
    integer (int_kind), intent(in) :: &
       field_loc            ! location of field on staggered grid
@@ -105,24 +121,23 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef REPRODUCIBLE
-   real (r16_kind) :: &
-      localSum,     &! sum of local block domain
-      globalSumTmp   ! higher precision global sum
-#else
-   real (dbl_kind) :: &
-      localSum       ! sum of local block domain
-#endif
-
    integer (int_kind) :: &
-      i,j,iblock,   &! local counters
+      i,j,iblock,n, &! local counters
       ib,ie,jb,je,  &! beg,end of physical domain
       blockID,      &! block location
+      numProcs,     &! number of processor participating
       numBlocks,    &! number of local blocks
+      communicator, &! communicator for this distribution
       maxiglob       ! maximum non-redundant value of i_global
 
    logical (log_kind) :: &
       Nrow           ! this field is on a N row (a velocity row)
+
+   real (dbl_kind), dimension(:,:), allocatable :: &
+      work           ! temporary local array
+
+   real (dbl_kind), dimension(:), allocatable :: &
+      sums           ! array of sums
 
    type (block) :: &
       this_block     ! holds local block information
@@ -131,14 +146,20 @@
 
 !-----------------------------------------------------------------------
 
-#ifdef REPRODUCIBLE
-   globalSumTmp  = 0.0_r16_kind
-#else
-   globalSum = 0.0_dbl_kind
-#endif
 
    call ice_distributionGet(dist,          &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,       &
+                            communicator = communicator)
+
+   if (numBlocks == 0) then
+      allocate(work(1,1))
+   else
+      allocate(work(nx_block*ny_block*numBlocks,1))
+   endif
+   allocate(sums(1))
+   work = 0.0_dbl_kind
+   sums = 0.0_dbl_kind
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -150,42 +171,13 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-#ifdef REPRODUCIBLE
-      localSum = 0.0_r16_kind
-#else
-      localSum = 0.0_dbl_kind
-#endif
-
-      if (present(mMask)) then
-         do j=jb,je
-         do i=ib,ie
-            localSum = &
-            localSum + array(i,j,iblock)*mMask(i,j,iblock)
-         end do
-         end do
-      else if (present(lMask)) then
-         do j=jb,je
-         do i=ib,ie
-            if (lMask(i,j,iblock)) then
-               localSum = &
-               localSum + array(i,j,iblock)
-            endif
-         end do
-         end do
-      else
-         do j=jb,je
-         do i=ib,ie
-            localSum = localSum + array(i,j,iblock)
-         end do
-         end do
-      endif
-
       !*** if this row along or beyond tripole boundary
       !*** must eliminate redundant points from global sum
 
+      maxiglob = -1
       if (this_block%tripole) then
          Nrow=(field_loc == field_loc_Nface .or. &
-            field_loc == field_loc_NEcorner)
+               field_loc == field_loc_NEcorner)
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
@@ -193,49 +185,37 @@
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
-
-         if (maxiglob > 0) then
-
-            j = je
-
-            if (present(mMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = &
-                     localSum - array(i,j,iblock)*mMask(i,j,iblock)
-                  endif
-               end do
-            else if (present(lMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     if (lMask(i,j,iblock)) &
-                     localSum = localSum - array(i,j,iblock)
-                  endif
-               end do
-            else
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = localSum - array(i,j,iblock)
-                  endif
-               end do
-            endif
-
-         endif
       endif
 
-      !*** now add block sum to global sum
+      n = (iblock-1)*nx_block*ny_block
 
-#ifdef REPRODUCIBLE
-      globalSumTmp = globalSumTmp + localSum
-#else
-      globalSum = globalSum + localSum
-#endif
-
+      do j=jb,je
+      do i=ib,ie
+         n = n + 1
+         ! eliminate redundant points
+         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
+            work(n,1) = 0._dbl_kind
+         else
+            if (present(mMask)) then
+               work(n,1) = array(i,j,iblock)*mMask(i,j,iblock)
+            else if (present(lMask)) then
+               if (lMask(i,j,iblock)) then
+                  work(n,1) = array(i,j,iblock)
+               endif
+            else
+               work(n,1) = array(i,j,iblock)
+            endif
+         endif
+      end do
+      end do
    end do
 
-#ifdef REPRODUCIBLE
-   globalSum = globalSumTmp
-#endif
+   call compute_sums_dbl(work,sums,communicator,numProcs)
+
+   globalSum = sums(1)
+
+   deallocate(work)
+   deallocate(sums)
 
 !-----------------------------------------------------------------------
 
@@ -249,8 +229,8 @@
 !  Computes the global sum of the physical domain of a 2-d array.
 !
 !  This is actually the specific interface for the generic global_sum
-!  function corresponding to real arrays.  The generic
-!  interface is identical but will handle real and integer 2-d slabs
+!  function corresponding to single precision arrays.  The generic
+!  interface is identical but will handle double, real and integer 2-d slabs
 !  and real, integer, and double precision scalars.
 
    real (real_kind), dimension(:,:,:), intent(in) :: &
@@ -277,24 +257,23 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef REPRODUCIBLE
-   real (dbl_kind) :: &
-      localSum,     &! sum of local block domain
-      globalSumTmp   ! higher precision global sum
-#else
-   real (real_kind) :: &
-      localSum       ! sum of local block domain
-#endif
-
    integer (int_kind) :: &
-      i,j,iblock,   &! local counters
+      i,j,iblock,n, &! local counters
       ib,ie,jb,je,  &! beg,end of physical domain
       blockID,      &! block location
+      numProcs,     &! number of processor participating
       numBlocks,    &! number of local blocks
+      communicator, &! communicator for this distribution
       maxiglob       ! maximum non-redundant value of i_global
 
    logical (log_kind) :: &
       Nrow           ! this field is on a N row (a velocity row)
+
+   real (dbl_kind), dimension(:,:), allocatable :: &
+      work           ! temporary local array
+
+   real (dbl_kind), dimension(:), allocatable :: &
+      sums           ! array of sums
 
    type (block) :: &
       this_block     ! holds local block information
@@ -303,14 +282,20 @@
 
 !-----------------------------------------------------------------------
 
-#ifdef REPRODUCIBLE
-   globalSumTmp  = 0.0_dbl_kind
-#else
-   globalSum  = 0.0_real_kind
-#endif
 
    call ice_distributionGet(dist,          &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,       &
+                            communicator = communicator)
+
+   if (numBlocks == 0) then
+      allocate(work(1,1))
+   else
+      allocate(work(nx_block*ny_block*numBlocks,1))
+   endif
+   allocate(sums(1))
+   work = 0.0_dbl_kind
+   sums = 0.0_dbl_kind
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -322,42 +307,13 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-#ifdef REPRODUCIBLE
-      localSum = 0.0_dbl_kind
-#else
-      localSum = 0.0_real_kind
-#endif
-
-      if (present(mMask)) then
-         do j=jb,je
-         do i=ib,ie
-            localSum = &
-            localSum + array(i,j,iblock)*mMask(i,j,iblock)
-         end do
-         end do
-      else if (present(lMask)) then
-         do j=jb,je
-         do i=ib,ie
-            if (lMask(i,j,iblock)) then
-               localSum = &
-               localSum + array(i,j,iblock)
-            endif
-         end do
-         end do
-      else
-         do j=jb,je
-         do i=ib,ie
-            localSum = localSum + array(i,j,iblock)
-         end do
-         end do
-      endif
-
       !*** if this row along or beyond tripole boundary
       !*** must eliminate redundant points from global sum
 
+      maxiglob = -1
       if (this_block%tripole) then
          Nrow=(field_loc == field_loc_Nface .or. &
-            field_loc == field_loc_NEcorner)
+               field_loc == field_loc_NEcorner)
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
@@ -365,49 +321,37 @@
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
-
-         if (maxiglob > 0) then
-
-            j = je
-
-            if (present(mMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = &
-                     localSum - array(i,j,iblock)*mMask(i,j,iblock)
-                  endif
-               end do
-            else if (present(lMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     if (lMask(i,j,iblock)) &
-                     localSum = localSum - array(i,j,iblock)
-                  endif
-               end do
-            else
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = localSum - array(i,j,iblock)
-                  endif
-               end do
-            endif
-
-         endif
       endif
 
-      !*** now add block sum to global sum
+      n = (iblock-1)*nx_block*ny_block
 
-#ifdef REPRODUCIBLE
-      globalSumTmp = globalSumTmp + localSum
-#else
-      globalSum = globalSum + localSum
-#endif
-
+      do j=jb,je
+      do i=ib,ie
+         n = n + 1
+         ! eliminate redundant points
+         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
+            work(n,1) = 0._dbl_kind
+         else
+            if (present(mMask)) then
+               work(n,1) = real(array(i,j,iblock)*mMask(i,j,iblock),dbl_kind)
+            else if (present(lMask)) then
+               if (lMask(i,j,iblock)) then
+                  work(n,1) = real(array(i,j,iblock),dbl_kind)
+               endif
+            else
+               work(n,1) = real(array(i,j,iblock),dbl_kind)
+            endif
+         endif
+      end do
+      end do
    end do
 
-#ifdef REPRODUCIBLE
-   globalSum = globalSumTmp
-#endif
+   call compute_sums_dbl(work,sums,communicator,numProcs)
+
+   globalSum = real(sums(1),real_kind)
+
+   deallocate(work)
+   deallocate(sums)
 
 !-----------------------------------------------------------------------
 
@@ -450,13 +394,17 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      blockSum,     &! sum of local block domain
       localSum       ! sum of all local block domains
 
    integer (int_kind) :: &
       i,j,iblock,   &! local counters
       ib,ie,jb,je,  &! beg,end of physical domain
+      ierr,         &! mpi error flag
       blockID,      &! block location
+      numProcs,     &! number of processor participating
       numBlocks,    &! number of local blocks
+      communicator, &! communicator for this distribution
       maxiglob       ! maximum non-redundant value of i_global
 
    logical (log_kind) :: &
@@ -469,10 +417,13 @@
 
 !-----------------------------------------------------------------------
 
+   localSum  = 0_int_kind
    globalSum = 0_int_kind
 
    call ice_distributionGet(dist,          &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,       &
+                            communicator = communicator)
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -484,38 +435,13 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      localSum = 0
-
-      if (present(mMask)) then
-         do j=jb,je
-         do i=ib,ie
-            localSum = &
-            localSum + array(i,j,iblock)*mMask(i,j,iblock)
-         end do
-         end do
-      else if (present(lMask)) then
-         do j=jb,je
-         do i=ib,ie
-            if (lMask(i,j,iblock)) then
-               localSum = &
-               localSum + array(i,j,iblock)
-            endif
-         end do
-         end do
-      else
-         do j=jb,je
-         do i=ib,ie
-            localSum = localSum + array(i,j,iblock)
-         end do
-         end do
-      endif
-
       !*** if this row along or beyond tripole boundary
       !*** must eliminate redundant points from global sum
 
+      maxiglob = -1
       if (this_block%tripole) then
          Nrow=(field_loc == field_loc_Nface .or. &
-            field_loc == field_loc_NEcorner)
+               field_loc == field_loc_NEcorner)
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
@@ -523,41 +449,49 @@
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
-
-         if (maxiglob > 0) then
-
-            j = je
-
-            if (present(mMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = &
-                     localSum - array(i,j,iblock)*mMask(i,j,iblock)
-                  endif
-               end do
-            else if (present(lMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     if (lMask(i,j,iblock)) &
-                     localSum = localSum - array(i,j,iblock)
-                  endif
-               end do
-            else
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = localSum - array(i,j,iblock)
-                  endif
-               end do
-            endif
-
-         endif
       endif
+
+      blockSum = 0_int_kind
+
+      do j=jb,je
+      do i=ib,ie
+         ! eliminate redundant points
+         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
+!            blockSum = blockSum + 0_int_kind
+         else
+            if (present(mMask)) then
+               blockSum = blockSum + array(i,j,iblock)*mMask(i,j,iblock)
+            else if (present(lMask)) then
+               if (lMask(i,j,iblock)) then
+                  blockSum = blockSum + array(i,j,iblock)
+              endif
+            else
+               blockSum = blockSum + array(i,j,iblock)
+            endif
+         endif
+      end do
+      end do
 
       !*** now add block sum to global sum
 
-      globalSum = globalSum + localSum
+      localSum = localSum + blockSum
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local sum to global sum
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalSum = localSum
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(localSum, globalSum, 1, &
+                         MPI_INTEGER, MPI_SUM, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -580,20 +514,54 @@
       scalar               ! scalar to be summed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution for array X
 
    real (dbl_kind) :: &
       globalSum            ! resulting global sum
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,         &! mpi error flag
+      numProcs,     &! number of processor participating
+      numBlocks,    &! number of local blocks
+      communicator   ! communicator for this distribution
+
+   real (dbl_kind), dimension(:,:), allocatable :: &
+      work           ! temporary local array
+
+   real (dbl_kind), dimension(:), allocatable :: &
+      sums           ! array of sums
 
    character(len=*), parameter :: subname = '(global_sum_scalar_dbl)'
 
 !-----------------------------------------------------------------------
 !
-!  no operation needed for serial execution
+!  get communicator for MPI calls
 !
 !-----------------------------------------------------------------------
 
-   globalSum = scalar
+   call ice_distributionGet(dist, &
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+
+   allocate(work(1,1))
+   allocate(sums(1))
+   work(1,1) = scalar
+   sums = 0.0_dbl_kind
+
+   call compute_sums_dbl(work,sums,communicator,numProcs)
+
+   globalSum = sums(1)
+
+   deallocate(work)
+   deallocate(sums)
 
 !-----------------------------------------------------------------------
 
@@ -616,20 +584,53 @@
       scalar               ! scalar to be summed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution for array X
 
    real (real_kind) :: &
       globalSum            ! resulting global sum
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,         &! mpi error flag
+      numProcs,     &! number of processor participating
+      numBlocks,    &! number of local blocks
+      communicator   ! communicator for this distribution
+
+   real (dbl_kind), dimension(:,:), allocatable :: &
+      work           ! temporary local array
+
+   real (dbl_kind), dimension(:), allocatable :: &
+      sums           ! array of sums
 
    character(len=*), parameter :: subname = '(global_sum_scalar_real)'
 
 !-----------------------------------------------------------------------
 !
-!  no operation needed for serial execution
+!  get communicator for MPI calls
 !
 !-----------------------------------------------------------------------
 
-   globalSum = scalar
+   call ice_distributionGet(dist, &
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+   allocate(work(1,1))
+   allocate(sums(1))
+   work(1,1) = real(scalar,dbl_kind)
+   sums = 0.0_dbl_kind
+
+   call compute_sums_dbl(work,sums,communicator,numProcs)
+
+   globalSum = real(sums(1),real_kind)
+
+   deallocate(work)
+   deallocate(sums)
 
 !-----------------------------------------------------------------------
 
@@ -652,20 +653,50 @@
       scalar               ! scalar to be summed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution for array X
 
    integer (int_kind) :: &
       globalSum            ! resulting global sum
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,         &! mpi error flag
+      numProcs,     &! number of processor participating
+      numBlocks,    &! number of local blocks
+      communicator   ! communicator for this distribution
 
    character(len=*), parameter :: subname = '(global_sum_scalar_int)'
 
 !-----------------------------------------------------------------------
 !
-!  no operation needed for serial execution
+!  get communicator for MPI calls
 !
 !-----------------------------------------------------------------------
 
+   call ice_distributionGet(dist, &
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local sum to global sum
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
    globalSum = scalar
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(scalar, globalSum, 1, &
+                         MPI_INTEGER, MPI_SUM, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -709,40 +740,45 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef REPRODUCIBLE
-   real (r16_kind) :: &
-      localSum,      &! sum of local block domain
-      globalSumTmp    ! higher precision for reproducibility
-#else
-   real (dbl_kind) :: &
-      localSum        ! sum of local block domain
-#endif
-
    integer (int_kind) :: &
-      i,j,iblock,      &! local counters
-      ib,ie,jb,je,     &! beg,end of physical domain
-      blockID,         &! block location
-      numBlocks,       &! number of local blocks
-      maxiglob          ! maximum non-redundant value of i_global
+      i,j,iblock,n, &! local counters
+      ib,ie,jb,je,  &! beg,end of physical domain
+      blockID,      &! block location
+      numProcs,     &! number of processor participating
+      numBlocks,    &! number of local blocks
+      communicator, &! communicator for this distribution
+      maxiglob       ! maximum non-redundant value of i_global
 
    logical (log_kind) :: &
       Nrow           ! this field is on a N row (a velocity row)
 
+   real (dbl_kind), dimension(:,:), allocatable :: &
+      work           ! temporary local array
+
+   real (dbl_kind), dimension(:), allocatable :: &
+      sums           ! array of sums
+
    type (block) :: &
-      this_block          ! holds local block information
+      this_block     ! holds local block information
 
    character(len=*), parameter :: subname = '(global_sum_prod_dbl)'
 
 !-----------------------------------------------------------------------
 
-#ifdef REPRODUCIBLE
-   globalSum  = 0.0_r16_kind
-#else
-   globalSum  = 0.0_dbl_kind
-#endif
 
-   call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+   call ice_distributionGet(dist,          &
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,       &
+                            communicator = communicator)
+
+   if (numBlocks == 0) then
+      allocate(work(1,1))
+   else
+      allocate(work(nx_block*ny_block*numBlocks,1))
+   endif
+   allocate(sums(1))
+   work = 0.0_dbl_kind
+   sums = 0.0_dbl_kind
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -754,43 +790,13 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-#ifdef REPRODUCIBLE
-      localSum = 0.0_r16_kind
-#else
-      localSum = 0.0_dbl_kind
-#endif
-
-      if (present(mMask)) then
-         do j=jb,je
-         do i=ib,ie
-            localSum = &
-            localSum + array1(i,j,iblock)*array2(i,j,iblock)* &
-                       mMask(i,j,iblock)
-         end do
-         end do
-      else if (present(lMask)) then
-         do j=jb,je
-         do i=ib,ie
-            if (lMask(i,j,iblock)) then
-               localSum = &
-               localSum + array1(i,j,iblock)*array2(i,j,iblock)
-            endif
-         end do
-         end do
-      else
-         do j=jb,je
-         do i=ib,ie
-            localSum = localSum + array1(i,j,iblock)*array2(i,j,iblock)
-         end do
-         end do
-      endif
-
       !*** if this row along or beyond tripole boundary
       !*** must eliminate redundant points from global sum
 
+      maxiglob = -1
       if (this_block%tripole) then
          Nrow=(field_loc == field_loc_Nface .or. &
-            field_loc == field_loc_NEcorner)
+               field_loc == field_loc_NEcorner)
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
@@ -798,52 +804,37 @@
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
-
-         if (maxiglob > 0) then
-
-            j = je
-
-            if (present(mMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = &
-                     localSum - array1(i,j,iblock)*array2(i,j,iblock)* &
-                                mMask(i,j,iblock)
-                  endif
-               end do
-            else if (present(lMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     if (lMask(i,j,iblock)) &
-                        localSum = localSum - &
-                                   array1(i,j,iblock)*array2(i,j,iblock)
-                  endif
-               end do
-            else
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = localSum - &
-                                array1(i,j,iblock)*array2(i,j,iblock)
-                  endif
-               end do
-            endif
-
-         endif
       endif
 
-      !*** now add block sum to global sum
+      n = (iblock-1)*nx_block*ny_block
 
-#ifdef REPRODUCIBLE
-      globalSumTmp = globalSumTmp + localSum
-#else
-      globalSum = globalSum + localSum
-#endif
-
+      do j=jb,je
+      do i=ib,ie
+         n = n + 1
+         ! eliminate redundant points
+         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
+            work(n,1) = 0._dbl_kind
+         else
+            if (present(mMask)) then
+               work(n,1) = array1(i,j,iblock)*array2(i,j,iblock)*mMask(i,j,iblock)
+            else if (present(lMask)) then
+               if (lMask(i,j,iblock)) then
+                  work(n,1) = array1(i,j,iblock)*array2(i,j,iblock)
+               endif
+            else
+               work(n,1) = array1(i,j,iblock)*array2(i,j,iblock)
+            endif
+         endif
+      end do
+      end do
    end do
 
-#ifdef REPRODUCIBLE
-   globalSum = globalSumTmp
-#endif
+   call compute_sums_dbl(work,sums,communicator,numProcs)
+
+   globalSum = sums(1)
+
+   deallocate(work)
+   deallocate(sums)
 
 !-----------------------------------------------------------------------
 
@@ -887,40 +878,45 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef REPRODUCIBLE
-   real (dbl_kind) :: &
-      localSum,      &! sum of local block domain
-      globalSumTmp    ! higher precision for reproducibility
-#else
-   real (real_kind) :: &
-      localSum        ! sum of local block domain
-#endif
-
    integer (int_kind) :: &
-      i,j,iblock,      &! local counters
-      ib,ie,jb,je,     &! beg,end of physical domain
-      blockID,         &! block location
-      numBlocks,       &! number of local blocks
-      maxiglob          ! maximum non-redundant value of i_global
+      i,j,iblock,n, &! local counters
+      ib,ie,jb,je,  &! beg,end of physical domain
+      blockID,      &! block location
+      numProcs,     &! number of processor participating
+      numBlocks,    &! number of local blocks
+      communicator, &! communicator for this distribution
+      maxiglob       ! maximum non-redundant value of i_global
 
    logical (log_kind) :: &
       Nrow           ! this field is on a N row (a velocity row)
 
-   type (block) :: &
-      this_block          ! holds local block information
+   real (dbl_kind), dimension(:,:), allocatable :: &
+      work           ! temporary local array
 
-   character(len=*), parameter :: subname = '(global_sum_prod_real)'
+   real (dbl_kind), dimension(:), allocatable :: &
+      sums           ! array of sums
+
+   type (block) :: &
+      this_block     ! holds local block information
+
+   character(len=*), parameter :: subname = '(global_sum_prod_dbl)'
 
 !-----------------------------------------------------------------------
 
-#ifdef REPRODUCIBLE
-   globalSumTmp = 0.0_dbl_kind
-#else
-   globalSum = 0.0_real_kind
-#endif
 
-   call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+   call ice_distributionGet(dist,          &
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,       &
+                            communicator = communicator)
+
+   if (numBlocks == 0) then
+      allocate(work(1,1))
+   else
+      allocate(work(nx_block*ny_block*numBlocks,1))
+   endif
+   allocate(sums(1))
+   work = 0.0_dbl_kind
+   sums = 0.0_dbl_kind
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -932,43 +928,13 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-#ifdef REPRODUCIBLE
-      localSum = 0.0_dbl_kind
-#else
-      localSum = 0.0_real_kind
-#endif
-
-      if (present(mMask)) then
-         do j=jb,je
-         do i=ib,ie
-            localSum = &
-            localSum + array1(i,j,iblock)*array2(i,j,iblock)* &
-                       mMask(i,j,iblock)
-         end do
-         end do
-      else if (present(lMask)) then
-         do j=jb,je
-         do i=ib,ie
-            if (lMask(i,j,iblock)) then
-               localSum = &
-               localSum + array1(i,j,iblock)*array2(i,j,iblock)
-            endif
-         end do
-         end do
-      else
-         do j=jb,je
-         do i=ib,ie
-            localSum = localSum + array1(i,j,iblock)*array2(i,j,iblock)
-         end do
-         end do
-      endif
-
       !*** if this row along or beyond tripole boundary
       !*** must eliminate redundant points from global sum
 
+      maxiglob = -1
       if (this_block%tripole) then
          Nrow=(field_loc == field_loc_Nface .or. &
-            field_loc == field_loc_NEcorner)
+               field_loc == field_loc_NEcorner)
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
@@ -976,52 +942,37 @@
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
-
-         if (maxiglob > 0) then
-
-            j = je
-
-            if (present(mMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = &
-                     localSum - array1(i,j,iblock)*array2(i,j,iblock)* &
-                                mMask(i,j,iblock)
-                  endif
-               end do
-            else if (present(lMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     if (lMask(i,j,iblock)) &
-                        localSum = localSum - &
-                                   array1(i,j,iblock)*array2(i,j,iblock)
-                  endif
-               end do
-            else
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = localSum - &
-                                array1(i,j,iblock)*array2(i,j,iblock)
-                  endif
-               end do
-            endif
-
-         endif
       endif
 
-      !*** now add block sum to global sum
+      n = (iblock-1)*nx_block*ny_block
 
-#ifdef REPRODUCIBLE
-      globalSumTmp = globalSumTmp + localSum
-#else
-      globalSum = globalSum + localSum
-#endif
-
+      do j=jb,je
+      do i=ib,ie
+         n = n + 1
+         ! eliminate redundant points
+         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
+            work(n,1) = 0._dbl_kind
+         else
+            if (present(mMask)) then
+               work(n,1) = real(array1(i,j,iblock)*array2(i,j,iblock)*mMask(i,j,iblock),dbl_kind)
+            else if (present(lMask)) then
+               if (lMask(i,j,iblock)) then
+                  work(n,1) = real(array1(i,j,iblock)*array2(i,j,iblock),dbl_kind)
+               endif
+            else
+               work(n,1) = real(array1(i,j,iblock)*array2(i,j,iblock),dbl_kind)
+            endif
+         endif
+      end do
+      end do
    end do
 
-#ifdef REPRODUCIBLE
-   globalSum = globalSumTmp
-#endif
+   call compute_sums_dbl(work,sums,communicator,numProcs)
+
+   globalSum = real(sums(1),real_kind)
+
+   deallocate(work)
+   deallocate(sums)
 
 !-----------------------------------------------------------------------
 
@@ -1066,13 +1017,17 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      localSum          ! sum of local block domain
+      blockSum,     &! sum of local block domain
+      localSum       ! sum of all local block domains
 
    integer (int_kind) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      ierr,            &! mpi error flag
       blockID,         &! block location
       numBlocks,       &! number of local blocks
+      numProcs,        &! number of processor participating
+      communicator,    &! communicator for this distribution
       maxiglob          ! maximum non-redundant value of i_global
 
    logical (log_kind) :: &
@@ -1085,10 +1040,13 @@
 
 !-----------------------------------------------------------------------
 
+   localSum  = 0_int_kind
    globalSum = 0_int_kind
 
    call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -1100,39 +1058,13 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      localSum = 0
-
-      if (present(mMask)) then
-         do j=jb,je
-         do i=ib,ie
-            localSum = &
-            localSum + array1(i,j,iblock)*array2(i,j,iblock)* &
-                       mMask(i,j,iblock)
-         end do
-         end do
-      else if (present(lMask)) then
-         do j=jb,je
-         do i=ib,ie
-            if (lMask(i,j,iblock)) then
-               localSum = &
-               localSum + array1(i,j,iblock)*array2(i,j,iblock)
-            endif
-         end do
-         end do
-      else
-         do j=jb,je
-         do i=ib,ie
-            localSum = localSum + array1(i,j,iblock)*array2(i,j,iblock)
-         end do
-         end do
-      endif
-
       !*** if this row along or beyond tripole boundary
       !*** must eliminate redundant points from global sum
 
+      maxiglob = -1
       if (this_block%tripole) then
          Nrow=(field_loc == field_loc_Nface .or. &
-            field_loc == field_loc_NEcorner)
+               field_loc == field_loc_NEcorner)
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
@@ -1140,44 +1072,49 @@
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
-
-         if (maxiglob > 0) then
-
-            j = je
-
-            if (present(mMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = &
-                     localSum - array1(i,j,iblock)*array2(i,j,iblock)* &
-                                mMask(i,j,iblock)
-                  endif
-               end do
-            else if (present(lMask)) then
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     if (lMask(i,j,iblock)) &
-                        localSum = localSum - &
-                                   array1(i,j,iblock)*array2(i,j,iblock)
-                  endif
-               end do
-            else
-               do i=ib,ie
-                  if (this_block%i_glob(i) > maxiglob) then
-                     localSum = localSum - &
-                                array1(i,j,iblock)*array2(i,j,iblock)
-                  endif
-               end do
-            endif
-
-         endif
       endif
+
+      blockSum = 0_int_kind
+
+      do j=jb,je
+      do i=ib,ie
+         ! eliminate redundant points
+         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
+!            blockSum = blockSum + 0_int_kind
+         else
+            if (present(mMask)) then
+               blockSum = blockSum + array1(i,j,iblock)*array2(i,j,iblock)*mMask(i,j,iblock)
+            else if (present(lMask)) then
+               if (lMask(i,j,iblock)) then
+                  blockSum = blockSum + array1(i,j,iblock)*array2(i,j,iblock)
+               endif
+            else
+               blockSum = blockSum + array1(i,j,iblock)*array2(i,j,iblock)
+            endif
+         endif
+      end do
+      end do
 
       !*** now add block sum to global sum
 
-      globalSum = globalSum + localSum
+      localSum = localSum + blockSum
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local sum to global sum
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalSum = localSum
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(localSum, globalSum, 1, &
+                         MPI_INTEGER, MPI_SUM, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1212,12 +1149,16 @@
 !-----------------------------------------------------------------------
 
    real (dbl_kind) ::    &
-      localMaxval       ! sum of local block domain
+      blockMaxval,     &! sum of local block domain
+      localMaxval       ! sum of all local block domains
 
    integer (int_kind) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      ierr,            &! mpi error flag
       numBlocks,       &! number of local blocks
+      numProcs,        &! number of processor participating
+      communicator,    &! communicator for this distribution
       blockID           ! block location
 
    type (block) :: &
@@ -1227,10 +1168,13 @@
 
 !-----------------------------------------------------------------------
 
+   localMaxval  = -HUGE(0.0_dbl_kind)
    globalMaxval = -HUGE(0.0_dbl_kind)
 
    call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -1242,27 +1186,42 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      localMaxval = -HUGE(0.0_dbl_kind)
+      blockMaxval = -HUGE(0.0_dbl_kind)
 
       if (present(lMask)) then
          do j=jb,je
          do i=ib,ie
             if (lMask(i,j,iblock)) then
-               localMaxval = max(localMaxval,array(i,j,iblock))
+               blockMaxval = max(blockMaxval,array(i,j,iblock))
             endif
          end do
          end do
       else
          do j=jb,je
          do i=ib,ie
-            localMaxval = max(localMaxval,array(i,j,iblock))
+            blockMaxval = max(blockMaxval,array(i,j,iblock))
          end do
          end do
       endif
 
-      globalMaxval = max(globalMaxval,localMaxval)
+      localMaxval = max(localMaxval,blockMaxval)
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local maxval to global maxval
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = localMaxval
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(localMaxval, globalMaxval, 1, &
+                         mpiR8, MPI_MAX, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1297,12 +1256,16 @@
 !-----------------------------------------------------------------------
 
    real (real_kind) ::    &
-      localMaxval       ! sum of local block domain
+      blockMaxval,     &! sum of local block domain
+      localMaxval       ! sum of all local block domains
 
    integer (int_kind) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      ierr,            &! mpi error flag
       numBlocks,       &! number of local blocks
+      numProcs,        &! number of processor participating
+      communicator,    &! communicator for this distribution
       blockID           ! block location
 
    type (block) :: &
@@ -1312,10 +1275,13 @@
 
 !-----------------------------------------------------------------------
 
+   localMaxval  = -HUGE(0.0_real_kind)
    globalMaxval = -HUGE(0.0_real_kind)
 
    call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -1327,27 +1293,42 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      localMaxval = -HUGE(0.0_real_kind)
+      blockMaxval = -HUGE(0.0_real_kind)
 
       if (present(lMask)) then
          do j=jb,je
          do i=ib,ie
             if (lMask(i,j,iblock)) then
-               localMaxval = max(localMaxval,array(i,j,iblock))
+               blockMaxval = max(blockMaxval,array(i,j,iblock))
             endif
          end do
          end do
       else
          do j=jb,je
          do i=ib,ie
-            localMaxval = max(localMaxval,array(i,j,iblock))
+            blockMaxval = max(blockMaxval,array(i,j,iblock))
          end do
          end do
       endif
 
-      globalMaxval = max(globalMaxval,localMaxval)
+      localMaxval = max(localMaxval,blockMaxval)
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local maxval to global maxval
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = localMaxval
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(localMaxval, globalMaxval, 1, &
+                         mpiR4, MPI_MAX, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1382,12 +1363,16 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::    &
-      localMaxval       ! sum of local block domain
+      blockMaxval,     &! sum of local block domain
+      localMaxval       ! sum of all local block domains
 
    integer (int_kind) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      ierr,            &! mpi error flag
       numBlocks,       &! number of local blocks
+      numProcs,        &! number of processor participating
+      communicator,    &! communicator for this distribution
       blockID           ! block location
 
    type (block) :: &
@@ -1397,10 +1382,13 @@
 
 !-----------------------------------------------------------------------
 
+   localMaxval  = -HUGE(0_int_kind)
    globalMaxval = -HUGE(0_int_kind)
 
    call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -1412,27 +1400,42 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      localMaxval = -HUGE(0_int_kind)
+      blockMaxval = -HUGE(0_int_kind)
 
       if (present(lMask)) then
          do j=jb,je
          do i=ib,ie
             if (lMask(i,j,iblock)) then
-               localMaxval = max(localMaxval,array(i,j,iblock))
+               blockMaxval = max(blockMaxval,array(i,j,iblock))
             endif
          end do
          end do
       else
          do j=jb,je
          do i=ib,ie
-            localMaxval = max(localMaxval,array(i,j,iblock))
+            blockMaxval = max(blockMaxval,array(i,j,iblock))
          end do
          end do
       endif
 
-      globalMaxval = max(globalMaxval,localMaxval)
+      localMaxval = max(localMaxval,blockMaxval)
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local maxval to global maxval
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = localMaxval
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(localMaxval, globalMaxval, 1, &
+                         MPI_INTEGER, MPI_MAX, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1453,20 +1456,44 @@
       scalar               ! scalar for which max value needed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution
 
    real (dbl_kind) :: &
       globalMaxval         ! resulting maximum value
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,            &! mpi error flag
+      numProcs,        &! number of processor participating
+      communicator      ! communicator for this distribution
+
    character(len=*), parameter :: subname = '(global_maxval_scalar_dbl)'
 
 !-----------------------------------------------------------------------
+
+   call ice_distributionGet(dist, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+!-----------------------------------------------------------------------
 !
-!  no operations required for serial execution
+!  now use MPI global reduction to reduce local maxval to global maxval
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
    globalMaxval = scalar
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(scalar, globalMaxval, 1, &
+                         mpiR8, MPI_MAX, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1487,20 +1514,44 @@
       scalar               ! scalar for which max value needed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution
 
    real (real_kind) :: &
       globalMaxval         ! resulting maximum value
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,            &! mpi error flag
+      numProcs,        &! number of processor participating
+      communicator      ! communicator for this distribution
+
    character(len=*), parameter :: subname = '(global_maxval_scalar_real)'
 
 !-----------------------------------------------------------------------
+
+   call ice_distributionGet(dist, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+!-----------------------------------------------------------------------
 !
-!  no operations required for serial execution
+!  now use MPI global reduction to reduce local maxval to global maxval
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
    globalMaxval = scalar
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(scalar, globalMaxval, 1, &
+                         mpiR4, MPI_MAX, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1521,20 +1572,44 @@
       scalar               ! scalar for which max value needed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution
 
    integer (int_kind) :: &
       globalMaxval         ! resulting maximum value
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,            &! mpi error flag
+      numProcs,        &! number of processor participating
+      communicator      ! communicator for this distribution
+
    character(len=*), parameter :: subname = '(global_maxval_scalar_int)'
 
 !-----------------------------------------------------------------------
+
+   call ice_distributionGet(dist, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+!-----------------------------------------------------------------------
 !
-!  no operations required for serial execution
+!  now use MPI global reduction to reduce local maxval to global maxval
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
    globalMaxval = scalar
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(scalar, globalMaxval, 1, &
+                         MPI_INTEGER, MPI_MAX, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1569,12 +1644,16 @@
 !-----------------------------------------------------------------------
 
    real (dbl_kind) ::    &
-      localMinval       ! sum of local block domain
+      blockMinval,     &! sum of local block domain
+      localMinval       ! sum of all local block domains
 
    integer (int_kind) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      ierr,            &! mpi error flag
       numBlocks,       &! number of local blocks
+      numProcs,        &! number of processor participating
+      communicator,    &! communicator for this distribution
       blockID           ! block location
 
    type (block) :: &
@@ -1584,10 +1663,13 @@
 
 !-----------------------------------------------------------------------
 
+   localMinval  = HUGE(0.0_dbl_kind)
    globalMinval = HUGE(0.0_dbl_kind)
 
    call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -1599,27 +1681,42 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      localMinval = HUGE(0.0_dbl_kind)
+      blockMinval = HUGE(0.0_dbl_kind)
 
       if (present(lMask)) then
          do j=jb,je
          do i=ib,ie
             if (lMask(i,j,iblock)) then
-               localMinval = min(localMinval,array(i,j,iblock))
+               blockMinval = min(blockMinval,array(i,j,iblock))
             endif
          end do
          end do
       else
          do j=jb,je
          do i=ib,ie
-            localMinval = min(localMinval,array(i,j,iblock))
+            blockMinval = min(blockMinval,array(i,j,iblock))
          end do
          end do
       endif
 
-      globalMinval = min(globalMinval,localMinval)
+      localMinval = min(localMinval,blockMinval)
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local minval to global minval
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = localMinval
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(localMinval, globalMinval, 1, &
+                         mpiR8, MPI_MIN, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1654,12 +1751,16 @@
 !-----------------------------------------------------------------------
 
    real (real_kind) ::    &
-      localMinval       ! sum of local block domain
+      blockMinval,     &! sum of local block domain
+      localMinval       ! sum of all local block domains
 
    integer (int_kind) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      ierr,            &! mpi error flag
       numBlocks,       &! number of local blocks
+      numProcs,        &! number of processor participating
+      communicator,    &! communicator for this distribution
       blockID           ! block location
 
    type (block) :: &
@@ -1669,10 +1770,13 @@
 
 !-----------------------------------------------------------------------
 
+   localMinval  = HUGE(0.0_real_kind)
    globalMinval = HUGE(0.0_real_kind)
 
    call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -1684,27 +1788,42 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      localMinval = HUGE(0.0_real_kind)
+      blockMinval = HUGE(0.0_real_kind)
 
       if (present(lMask)) then
          do j=jb,je
          do i=ib,ie
             if (lMask(i,j,iblock)) then
-               localMinval = min(localMinval,array(i,j,iblock))
+               blockMinval = min(blockMinval,array(i,j,iblock))
             endif
          end do
          end do
       else
          do j=jb,je
          do i=ib,ie
-            localMinval = min(localMinval,array(i,j,iblock))
+            blockMinval = min(blockMinval,array(i,j,iblock))
          end do
          end do
       endif
 
-      globalMinval = min(globalMinval,localMinval)
+      localMinval = min(localMinval,blockMinval)
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local minval to global minval
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = localMinval
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(localMinval, globalMinval, 1, &
+                         mpiR4, MPI_MIN, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1739,12 +1858,16 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::    &
-      localMinval       ! sum of local block domain
+      blockMinval,     &! sum of local block domain
+      localMinval       ! sum of all local block domains
 
    integer (int_kind) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      ierr,            &! mpi error flag
       numBlocks,       &! number of local blocks
+      numProcs,        &! number of processor participating
+      communicator,    &! communicator for this distribution
       blockID           ! block location
 
    type (block) :: &
@@ -1754,10 +1877,13 @@
 
 !-----------------------------------------------------------------------
 
+   localMinval  = HUGE(0_int_kind)
    globalMinval = HUGE(0_int_kind)
 
    call ice_distributionGet(dist, &
-                            numLocalBlocks = numBlocks)
+                            numLocalBlocks = numBlocks, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
 
    do iblock=1,numBlocks
       call ice_distributionGetBlockID(dist, iblock, blockID)
@@ -1769,27 +1895,42 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      localMinval = HUGE(0_int_kind)
+      blockMinval = HUGE(0_int_kind)
 
       if (present(lMask)) then
          do j=jb,je
          do i=ib,ie
             if (lMask(i,j,iblock)) then
-               localMinval = min(localMinval,array(i,j,iblock))
+               blockMinval = min(blockMinval,array(i,j,iblock))
             endif
          end do
          end do
       else
          do j=jb,je
          do i=ib,ie
-            localMinval = min(localMinval,array(i,j,iblock))
+            blockMinval = min(blockMinval,array(i,j,iblock))
          end do
          end do
       endif
 
-      globalMinval = min(globalMinval,localMinval)
+      localMinval = min(localMinval,blockMinval)
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local minval to global minval
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = localMinval
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(localMinval, globalMinval, 1, &
+                         MPI_INTEGER, MPI_MIN, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1810,20 +1951,44 @@
       scalar               ! scalar for which min value needed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution
 
    real (dbl_kind) :: &
       globalMinval         ! resulting minimum value
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,            &! mpi error flag
+      numProcs,        &! number of processor participating
+      communicator      ! communicator for this distribution
+
    character(len=*), parameter :: subname = '(global_minval_scalar_dbl)'
 
 !-----------------------------------------------------------------------
+
+   call ice_distributionGet(dist, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+!-----------------------------------------------------------------------
 !
-!  no operations required for serial execution
+!  now use MPI global reduction to reduce local minval to global minval
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
    globalMinval = scalar
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(scalar, globalMinval, 1, &
+                         mpiR8, MPI_MIN, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1844,20 +2009,44 @@
       scalar               ! scalar for which min value needed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution
 
    real (real_kind) :: &
       globalMinval         ! resulting minimum value
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,            &! mpi error flag
+      numProcs,        &! number of processor participating
+      communicator      ! communicator for this distribution
+
    character(len=*), parameter :: subname = '(global_minval_scalar_real)'
 
 !-----------------------------------------------------------------------
+
+   call ice_distributionGet(dist, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+!-----------------------------------------------------------------------
 !
-!  no operations required for serial execution
+!  now use MPI global reduction to reduce local minval to global minval
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
    globalMinval = scalar
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(scalar, globalMinval, 1, &
+                         mpiR4, MPI_MIN, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -1878,27 +2067,198 @@
       scalar               ! scalar for which min value needed
 
    type (distrb), intent(in) :: &
-      dist                 ! block distribution 
+      dist                 ! block distribution
 
    integer (int_kind) :: &
       globalMinval         ! resulting minimum value
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr,            &! mpi error flag
+      numProcs,        &! number of processor participating
+      communicator      ! communicator for this distribution
+
    character(len=*), parameter :: subname = '(global_minval_scalar_int)'
 
 !-----------------------------------------------------------------------
+
+   call ice_distributionGet(dist, &
+                            nprocs = numProcs,        &
+                            communicator = communicator)
+
+!-----------------------------------------------------------------------
 !
-!  no operations required for serial execution
+!  now use MPI global reduction to reduce local minval to global minval
 !
 !-----------------------------------------------------------------------
 
+#ifdef SERIAL_REMOVE_MPI
    globalMinval = scalar
+#else
+   if (my_task < numProcs) then
+      call MPI_ALLREDUCE(scalar, globalMinval, 1, &
+                         MPI_INTEGER, MPI_MIN, communicator, ierr)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 
  end function global_minval_scalar_int
 
 !***********************************************************************
+!***********************************************************************
 
- end module ice_global_reductions
+subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
+
+! Computes the global sum of a 2-d array over fields
+! with first dimension values and second dimension fields
+!
+! Several different options are supported.
+! lsum4 = local sum with real*4 and scalar mpi allreduce, unlikely to be bfb
+! lsum8 = local sum with real*8 and scalar mpi allreduce, unlikely to be bfb
+! lsum16 = local sum with real*16 and scalar mpi allreduce, likely to be bfb
+!    WARNING: this does not work in several compilers and mpi
+!    implementations due to support for quad precision and consistency
+!    between underlying datatype in fortran and c.  The source code
+!    can be turned off with a cpp NO_R16.  Otherwise, it is recommended
+!    that the results be validated on any platform where it might be used.
+! reprosum = fixed point method based on ordered double integer sums.
+!    that requires two scalar reductions per global sum.
+!    This is extremely likely to be bfb.
+!    (See Mirin and Worley, 2012, IJHPCA, 26, 1730, 
+!    https://journals.sagepub.com/doi/10.1177/1094342011412630)
+! ddpdd = parallel double-double algorithm using single scalar reduction.
+!    This is very likely to be bfb.
+!    (See He and Ding, 2001, Journal of Supercomputing, 18, 259,
+!    https://link.springer.com/article/10.1023%2FA%3A1008153532043)
+
+   real (dbl_kind), dimension(:,:), intent(in) :: &
+      array2               ! array to be summed
+
+   real (dbl_kind), dimension(:), intent(inout) :: &
+      sums8                 ! resulting global sum
+
+   integer(int_kind), intent(in) :: &
+      mpicomm
+
+   integer(int_kind), intent(in) :: &
+      numprocs
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (real_kind), allocatable :: psums4(:)
+   real (real_kind), allocatable :: sums4(:)
+   real (dbl_kind) , allocatable :: psums8(:)
+#ifndef NO_R16
+   real (r16_kind) , allocatable :: psums16(:)
+   real (r16_kind) , allocatable :: sums16(:)
+#endif
+
+   integer (int_kind) :: ns,nf,i,j, ierr
+
+   character(len=*), parameter :: subname = '(compute_sums_dbl)'
+
+!-----------------------------------------------------------------------
+
+   sums8 = 0._dbl_kind
+   ns = size(array2,dim=1)
+   nf = size(array2,dim=2)
+
+   if (bfbflag == 'off' .or. bfbflag == 'lsum8') then
+      allocate(psums8(nf))
+      psums8(:) = 0._dbl_kind
+
+      do j = 1, nf
+      do i = 1, ns
+         psums8(j) = psums8(j) + array2(i,j)
+      enddo
+      enddo
+
+#ifdef SERIAL_REMOVE_MPI
+      sums8 = psums8
+#else
+      if (my_task < numProcs) then
+         call MPI_ALLREDUCE(psums8, sums8, nf, mpiR8, MPI_SUM, mpicomm, ierr)
+      endif
+#endif
+
+      deallocate(psums8)
+
+#ifndef NO_R16
+   elseif (bfbflag == 'lsum16') then
+      allocate(psums16(nf))
+      psums16(:) = 0._r16_kind
+      allocate(sums16(nf))
+      sums16(:) = 0._r16_kind
+
+      do j = 1, nf
+      do i = 1, ns
+         psums16(j) = psums16(j) + real(array2(i,j),r16_kind)
+      enddo
+      enddo
+
+#ifdef SERIAL_REMOVE_MPI
+      sums16 = psums16
+#else
+      if (my_task < numProcs) then
+         call MPI_ALLREDUCE(psums16, sums16, nf, mpiR16, MPI_SUM, mpicomm, ierr)
+      endif
+#endif
+      sums8 = real(sums16,dbl_kind)
+
+      deallocate(psums16,sums16)
+#endif
+
+   elseif (bfbflag == 'lsum4') then
+      allocate(psums4(nf))
+      psums4(:) = 0._real_kind
+      allocate(sums4(nf))
+      sums4(:) = 0._real_kind
+
+      do j = 1, nf
+      do i = 1, ns
+         psums4(j) = psums4(j) + real(array2(i,j),real_kind)
+      enddo
+      enddo
+
+#ifdef SERIAL_REMOVE_MPI
+      sums4 = psums4
+#else
+      if (my_task < numProcs) then
+         call MPI_ALLREDUCE(psums4, sums4, nf, mpiR4, MPI_SUM, mpicomm, ierr)
+      endif
+#endif
+      sums8 = real(sums4,dbl_kind)
+
+      deallocate(psums4,sums4)
+
+   elseif (bfbflag == 'ddpdd') then
+      if (my_task < numProcs) then
+         call ice_reprosum_calc(array2,sums8,ns,ns,nf,ddpdd_sum=.true.,commid=mpicomm)
+      endif
+
+   elseif (bfbflag == 'reprosum') then
+      if (my_task < numProcs) then
+         call ice_reprosum_calc(array2,sums8,ns,ns,nf,ddpdd_sum=.false.,commid=mpicomm)
+      endif
+
+   else
+      call abort_ice(subname//'ERROR: bfbflag unknown '//trim(bfbflag))
+   endif
+
+end subroutine compute_sums_dbl
+
+!***********************************************************************
+
+end module ice_global_reductions
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

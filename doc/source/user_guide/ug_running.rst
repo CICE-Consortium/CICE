@@ -7,6 +7,71 @@ Running CICE
 
 Quick-start instructions are provided in the :ref:`quickstart` section.
 
+.. _software:
+
+Software Requirements
+-------
+
+To run stand-alone, CICE requires
+
+- gmake (GNU Make)
+- Fortran and C	compilers (Intel, PGI, GNU, Cray, and NAG have been tested)
+- NetCDF
+- MPI (this is actually	optional but without it	you can	only run on 1 processor)
+
+Below are lists of software versions that the Consortium has tested at some point.  There is no
+guarantee that all compiler versions work with all CICE model versions.  At any given
+point, the Consortium is regularly testing on several different compilers, but not 
+necessarily on all possible versions or combinations.  A CICE goal is to be relatively portable
+across different hardware, compilers, and other software.  As a result, the coding
+implementation tends to be on the conservative side at times.  If there are problems 
+porting to a particular system, please let the Consortium know.
+
+The Consortium has tested the following compilers at some point,
+
+- Intel 15.0.3.187
+- Intel 16.0.1.150
+- Intel 17.0.1.132
+- Intel 17.0.2.174
+- Intel 17.0.5.239
+- Intel 18.0.1.163
+- Intel 19.0.2
+- Intel 19.0.3.199
+- PGI 16.10.0
+- GNU 6.3.0
+- GNU 7.2.0
+- GNU 7.3.0
+- Cray 8.5.8
+- Cray 8.6.4
+- NAG 6.2
+
+The Consortium has tested the following mpi versions,
+
+- MPICH 7.3.2
+- MPICH 7.5.3
+- MPICH 7.6.2
+- MPICH 7.6.3
+- MPICH 7.7.6
+- Intel MPI 18.0.1
+- MPT 2.14
+- MPT 2.17
+- MPT 2.18
+- MPT 2.19
+- OpenMPI 1.6.5
+
+The NetCDF implementation is relatively general and should work with any version of NetCDF 3 or 4.  The Consortium has tested
+
+- NetCDF 4.3.0
+- NetCDF 4.3.2
+- NetCDF 4.4.0
+- NetCDF 4.4.1.1.32
+- NetCDF 4.4.1.1
+- NetCDF 4.4.2
+- NetCDF 4.5.0
+- NetCDF 4.6.1.3
+
+Please email the Consortium if this list can be extended.
+
 .. _scripts:
 
 Scripts
@@ -15,6 +80,8 @@ Scripts
 The CICE scripts are written to allow quick setup of cases and tests.  Once a case is 
 generated, users can manually modify the namelist and other files to custom configure
 the case.  Several settings are available via scripts as well.
+
+.. _overview:
 
 Overview
 ~~~~~~~~
@@ -36,7 +103,7 @@ There are three usage modes,
 
 All modes will require use of ``--mach`` or ``-m`` to specify the machine and case and test modes 
 can use ``--set`` or ``-s`` to define specific options.  ``--test`` and ``--suite`` will require ``--testid`` to be set 
-and both of the test modes can use ``--bdir``, ``--bgen``, ``--bcmp``, and ``--diff`` to generate (save) results and compare results with prior results.
+and both of the test modes can use ``--bdir``, ``--bgen``, ``--bcmp``, and ``--diff`` to generate (save) results and compare results with prior results as well as ``--tdir`` to specify the location of the test directory.
 Testing will be described in greater detail in the :ref:`testing` section.
 
 Again, ``cice.setup --help`` will show the latest usage information including 
@@ -78,9 +145,9 @@ Some hints:
 - To change the block sizes required at build time, edit the **cice.settings** file.
 - To change namelist, manually edit the **ice_in** file
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
-- To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true
+- To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
 - To change compiler options, manually edit the Macros file
-- To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false
+- To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.  It is recommended that the ``ICE_CLEANBUILD`` be set to true if there are any questions about whether the build is proceeding properly.
 
 To build and run::
 
@@ -151,8 +218,8 @@ by doing ``cice.setup --help``.
 
 The default CICE namelist and CICE settings are specified in the 
 files **configuration/scripts/ice_in** and 
-**configuration/scripts/cice.settings** respectively.  When picking a 
-preset setting (option), the set_env.setting and set_nml.setting will be used to 
+**configuration/scripts/cice.settings** respectively.  When picking
+settings (options), the set_env.setting and set_nml.setting will be used to 
 change the defaults.  This is done as part of the ``cice.setup`` and the
 modifications are resolved in the **cice.settings** and **ice_in** file placed in 
 the case directory.  If multiple options are chosen and then conflict, then the last
@@ -161,6 +228,10 @@ option chosen takes precedent.  Not all options are compatible with each other.
 Some of the options are
 
 ``debug`` which turns on the compiler debug flags
+
+``buildclean`` which turns on the option to clean the build before each compile
+
+``buildincremental`` which turns off the option to clean the build before each compile
 
 ``short``, ``medium``, ``long`` which change the batch time limit
 
@@ -201,7 +272,7 @@ Once the cases are created, users are free to modify the cice.settings and ice_i
 Porting
 -------
 
-To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment}** file have to be added to the
+To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment]** file have to be added to the
 **configuration/scripts/machines/** directory and the 
 **configuration/scripts/cice.batch.csh** file needs to be modified.
 In general, the machine is specified in ``cice.setup`` with ``--mach``
@@ -228,6 +299,45 @@ file until the case can build and run.  Then copy the files from the case
 directory back to **configuration/scripts/machines/** and update 
 the **configuration/scripts/cice.batch.csh** file, retest, 
 and then add and commit the updated machine files to the repository.
+
+.. _machvars: 
+
+Machine variables
+~~~~~~~~~~~~~~~~~~~~~~
+
+There are several machine specific variables defined in the **env.$[machine]**.  These
+variables are used to generate working cases for a given machine, compiler, and batch
+system.  Some variables are optional.
+
+.. csv-table:: *Machine Settings*
+   :header: "variable", "format", "description"
+   :widths: 15, 15, 25
+
+   "ICE_MACHINE_ENVNAME", "string", "machine name"
+   "ICE_MACHINE_COMPILER", "string", "compiler"
+   "ICE_MACHINE_MAKE", "string", "make command"
+   "ICE_MACHINE_WKDIR", "string", "root work directory"
+   "ICE_MACHINE_INPUTDATA", "string", "root input data directory"
+   "ICE_MACHINE_BASELINE", "string", "root regression baseline directory"
+   "ICE_MACHINE_SUBMIT", "string", "batch job submission command"
+   "ICE_MACHINE_TPNODE", "integer", "machine maximum MPI tasks per node"
+   "ICE_MACHINE_MAXPES", "integer", "machine maximum total processors per job (optional)"
+   "ICE_MACHINE_MAXRUNLENGTH", "integer", "batch wall time limit in hours (optional)"
+   "ICE_MACHINE_ACCT", "string", "batch default account"
+   "ICE_MACHINE_QUEUE", "string", "batch default queue"
+   "ICE_MACHINE_BLDTHRDS", "integer", "number of threads used during build"
+   "ICE_MACHINE_QSTAT", "string", "batch job status command (optional)"
+   "ICE_MACHINE_QUIETMODE", "true/false", "flag to reduce build output (optional)"
+
+.. _cross_compiling:
+
+Cross-compiling
+~~~~~~~~~~~~~~~
+It can happen that the model must be built on a platform and run on another, for example when the run environment is only available in a batch queue. The program **makdep** (see :ref:`overview`), however, is both compiled and run as part of the build process.
+
+In order to support this, the Makefile uses a variable ``CFLAGS_HOST`` that can hold compiler flags specfic to the build machine for the compilation of makdep. If this feature is needed, add the variable ``CFLAGS_HOST`` to the **Macros.[machine]_[environment]** file. For example : ::
+
+  CFLAGS_HOST = -xHost
 
 .. _account:
 
@@ -289,3 +399,94 @@ should be rebuilt before being resubmitted.  It is always recommended that users
 modify the scripts and input settings in the case directory, NOT the run directory.
 In general, files in the run directory are overwritten by versions in the case
 directory when the model is built, submitted, and run.
+
+.. _timeseries:
+
+Timeseries Plotting
+-------------------
+
+The CICE scripts include two scripts that will generate timeseries figures from a 
+diagnostic output file, a Python version (``timeseries.py``) and a csh version 
+(``timeseries.csh``).  Both scripts create the same set of plots, but the Python 
+script has more capabilities, and it's likely that the csh
+script will be removed in the future.  
+
+To use the ``timeseries.py`` script, the following requirements must be met:
+
+* Python v2.7 or later
+* numpy Python package
+* matplotlib Python package
+* datetime Python package
+
+See :ref:`CodeCompliance` for additional information about how to setup the Python 
+environment, but we recommend using ``pip`` as follows: ::
+
+  pip install --user numpy
+  pip install --user matplotlib
+  pip install --user datetime
+
+When creating a case or test via ``cice.setup``, the ``timeseries.csh`` and 
+``timeseries.py`` scripts are automatically copied to the case directory.  
+Alternatively, the plotting scripts can be found in ``./configuration/scripts``, and can be
+run from any directory.
+
+The Python script can be passed a directory, a specific log file, or no directory at all:
+
+  - If a directory is passed, the script will look either in that directory or in 
+    directory/logs for a filename like cice.run*.  As such, users can point the script
+    to either a case directory or the ``logs`` directory directly.  The script will use 
+    the file with the most recent creation time.
+  - If a specific file is passed the script parses that file, assuming that the file
+    matches the same form of cice.run* files.
+  - If nothing is passed, the script will look for log files or a ``logs`` directory in the 
+    directory from where the script was run.
+
+For example:
+
+Run the timeseries script on the desired case. ::
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+
+or ::
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/logs
+    
+The output figures are placed in the directory where the ``timeseries.py`` script is run.
+
+The plotting script will plot the following variables by default, but you can also select 
+specific plots to create via the optional command line arguments.
+
+  - total ice area (:math:`km^2`)
+  - total ice extent (:math:`km^2`)
+  - total ice volume (:math:`m^3`)
+  - total snow volume (:math:`m^3`)
+  - RMS ice speed (:math:`m/s`)
+
+For example, to plot only total ice volume and total snow volume ::
+
+$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/ --volume --snw_vol
+
+To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
+
+     #!/bin/csh
+     foreach dir (`ls -1  | grep testid`)
+       echo $dir
+       python timeseries.py $dir
+     end
+
+Plots are only made for a single output file at a time.  The ability to plot output from 
+a series of cice.run* files is not currently possible, but may be added in the future.
+However, using the ``--bdir`` option will plot two datasets (from log files) on the
+same figure.
+
+For the latest help information for the script, run ::
+
+$ python timeseries.py -h
+
+The ``timeseries.csh`` script works basically the same way as the Python version, however it
+does not include all of the capabilities present in the Python version.  
+
+To use the C-Shell version of the script, ::
+
+$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+

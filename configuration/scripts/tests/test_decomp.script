@@ -17,14 +17,14 @@ foreach decomp (${decomps})
 end
 
 cp ice_in ice_in.0
-set base_data = ""
+set base_dir = ""
 
 foreach decomp (${decomps})
   ${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/set_nml.d${decomp}
   cp ice_in ice_in.${decomp}
 
   ./cice.run
-  set res="$?"
+  set res="$status"
 
   set grade = FAIL
   if ( $res == 0 ) then
@@ -51,24 +51,34 @@ foreach decomp (${decomps})
     if (${tdynamics} == "") set tdynamics = -1
     if (${tcolumn}   == "") set tcolumn = -1
 
-    set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
-    set test_data = ${ICE_RUNDIR}/restart/${test_file}
-    mv -f ${test_data} ${test_data}.${decomp}
-    set test_file = ${test_file}.${decomp}
-    set test_data = ${test_data}.${decomp}
+    set rest_dir = ${ICE_RUNDIR}/restart
+    mv -f ${rest_dir} ${rest_dir}.${decomp}
+    mkdir -p ${rest_dir}
+    set rest_dir = ${rest_dir}.${decomp}
 
     echo "$grade ${ICE_TESTNAME}_${decomp} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
     echo "$grade ${ICE_TESTNAME}_${decomp} test" >> ${ICE_CASEDIR}/test_output
 
+    set test_dir = ${rest_dir}
     # bfb compare section
-    if (${base_data} == "") then
+    if (${base_dir} == "") then
       # First run is the base data
       set base_case = ${ICE_TESTNAME}_${decomp}
-      set base_data = ${test_data}
+      set base_dir  = ${test_dir}
     else
-      set grade = FAIL
-      if ( { cmp -s $test_data $base_data } ) then
+      echo ""
+      echo "bfb Compare Mode:"
+      echo "base_dir: ${base_dir}"
+      echo "test_dir: ${test_dir}"
+
+      ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
+      set bfbstatus = $status
+      if ($bfbstatus == 0) then
         set grade = PASS
+        echo "bfb baseline and test dataset are identical"
+      else
+        set grade = FAIL
+        echo "bfbcomp and test dataset are different"
       endif
       echo "$grade ${ICE_TESTNAME}_${decomp} bfbcomp ${base_case}" >> ${ICE_CASEDIR}/test_output
     endif
@@ -76,8 +86,7 @@ foreach decomp (${decomps})
     # compare section
     if (${ICE_BASECOM} != ${ICE_SPVAL}) then
 
-      set baseline_dir  = ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/restart
-      set baseline_data = ${baseline_dir}/${test_file}
+      set baseline_dir  = ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/restart.${decomp}
 
       set baseline_log = `ls -1t ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/cice.runlog*.${decomp} | head -1`
       set btimeloop = -1
@@ -94,19 +103,19 @@ foreach decomp (${decomps})
 
       echo ""
       echo "Regression Compare Mode:"
-      echo "Performing binary comparison between files"
-      echo "baseline: ${baseline_data}"
-      echo "test:     ${test_data}"
-      if (-e ${baseline_data} ) then
-        if ( { cmp -s ${test_data} ${baseline_data} } ) then
-          echo "PASS ${ICE_TESTNAME}_$decomp compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn}" >> ${ICE_CASEDIR}/test_output
-        else
-          echo "FAIL ${ICE_TESTNAME}_$decomp compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn} different-data" >> ${ICE_CASEDIR}/test_output
-          echo "Regression baseline and test dataset are different"
-        endif
-      else
-        echo "MISS ${ICE_TESTNAME}_$decomp compare ${ICE_BASECOM}  ${btimeloop} ${bdynamics} ${bcolumn} missing-data" >> ${ICE_CASEDIR}/test_output
+      echo "base_dir: ${baseline_dir}"
+      echo "test_dir: ${test_dir}"
+      ${ICE_CASEDIR}/casescripts/comparebfb.csh ${baseline_dir} ${test_dir}
+      set bfbstatus = $status
+      if ( ${bfbstatus} == 0 ) then
+        echo "PASS ${ICE_TESTNAME}_${decomp} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn}" >> ${ICE_CASEDIR}/test_output
+        echo "Regression baseline and test dataset are identical"
+      else if ( ${bfbstatus} == 2 ) then
+        echo "MISS ${ICE_TESTNAME}_${decomp} compare ${ICE_BASECOM}  ${btimeloop} ${bdynamics} ${bcolumn} missing-data" >> ${ICE_CASEDIR}/test_output
         echo "Missing data"
+      else
+        echo "FAIL ${ICE_TESTNAME}_${decomp} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn} different-data" >> ${ICE_CASEDIR}/test_output
+        echo "Regression baseline and test dataset are different"
       endif
     endif
   endif
