@@ -51,30 +51,38 @@ if (${dohelp} == 1) then
   cat << EOF1
 
 NAME
-  cice.build [-h,--help] [target]
+  cice.build [-h,--help] [make arguments] [target]
 
 SYNOPSIS
   -h || --help
-  target
+  [make arguments] [target]
 
 DESCRIPTION
-  --help, -h : help
-  target     : specify make target, defined in Makefile
+  --help, -h                  : help
+  [make arguments] [target]   : specify make arguments and target
 
 EXAMPLES
   cice.build
-    will build the model using the recommended approach with all the bells and whistles
-  cice.build clean
-    is an example of a targeted build
+    will build the model using the standard approach with all the bells and whistles.  
+    This is recommended.
   cice.build --help
     will show cice.build help
+  cice.build [target]
+    will call gmake directly and make the target
+  cice.build clean
+    is an example of a targeted build
   cice.build targets 
-    will show valid Makefile targets
+    is an example of a targeted build that shows the valid Makefile targets
+  cice.build --version
+    will call make directly and pass --version as an argument to make
+  cice.build [make arguments] [target]
+    will call make directly and pass arguments and/or a target to make
 
 ADDITIONAL INFORMATION
-  The argument implementation is fairly primitive.  It accepts only no arguments
-  (where it builds the default target), a target argument, or a -h||--help
-  argument.  These cannot be mixed.
+  The argument implementation supports -h or --help as a first argument.  Otherwise, 
+  it passes all other arguments directly to make and calls it directly.  In this
+  mode, most of the cice.build script features are by-passed.  The recommended
+  way to run the script is without arguments.
 
 SEE ALSO
     User Documentation at https://github.com/cice-consortium/cice/

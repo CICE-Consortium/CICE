@@ -273,23 +273,42 @@ More about **cice.build**
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **cice.build** is copied into the case directory and should be run interactively from the
-case directory to build the model.  The standard and recommended way to run is with 
+case directory to build the model.  CICE is built with make and there is a generic
+Makefile and a machine specific Macros file in the case directory.  **cice.build**
+is a wrapper for a call to make that includes several other features.  
+
+CICE is built as follows.  First, the makdep binary is created by compiling a small
+c program.  The makdep binary is then run and a dependency file is created.  That dependency
+file is included into the Makefile automatically.  As a result, make dependencies do not 
+need to be explicitly defined by the user.  In the next step, make compiles the CICE
+code and generates the cice binary.
+
+The standard and recommended way to run is with 
 no arguments::
 
   cice.build
 
-However, **cice.build** does support a couple of argument options::
+However, **cice.build** does support a couple other use modes::
 
   cice.build [-h|--help] 
 
 provides a summary of the usage.
-Basically, **cice.build** can be run with a single target argument.  When run in this
-mode, some of the features of the CICE scripts are turned off.  You can see all the
-possible targets by executing::
+
+  cice.build [make arguments] [target]
+
+turns off most of the features of the cice.build script and turns it into a wrapper
+for the make call.  The arguments and/or target are passed to make and invoked more
+or less like  make [make arguments] [target].  This will be the case if either or 
+both the arguments or target are passed to cice.build.  Some examples of that are::
+
+  cice.build --version
+
+which will pass --version to make.::
 
   cice.build targets
 
-To build the model, try::
+is a valid target of the CICE Makefile and simply echos all the valid
+targets of the Makefile.::
 
   cice.build cice
 
@@ -297,19 +316,26 @@ or::
 
   cice.build all
 
-These commands are largely equivalent to running **cice.build** without an argument,
-although as noted earlier, some of the cice script functions are turned off.  Clean
-options include::
+are largely equivalent to running **cice.build** without an argument,
+although as noted earlier, many of the extra features of the cice.build script
+are turned off when calling cice.build with a target or an argument.  Any of the
+full builds will compile makdep, generate the source code dependencies, and
+compile the source code::
 
-  cice.build [mostlyclean|clean|realclean]
-
-to write out information about the Makefile setup::
-
+  cice.build [clean|realclean]
   cice.build [db_files|db_flags]
-
-and to build the makdep tool or the dependencies,::
-
   cice.build [makdep|depends]
+
+are other valid options for cleaning the build, writing out information about
+the Makefile setup, and building just the makdep tool or the dependency file.
+It is also possible to target a particular CICE object file.
+
+Finally, there is one important parameter in **cice.settings**.  The ``ICE_CLEANBUILD``
+variable defines whether the model is cleaned before a build is carried out.  By
+default, this variable is true which means each invokation of **cice.build** will
+automatically clean the prior build.  If incremental builds are desired to save
+time during development, the ``ICE_CLEANBUILD`` setting in **cice.settings** should
+be modified.
 
 
 .. _porting:
