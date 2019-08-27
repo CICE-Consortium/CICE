@@ -318,8 +318,7 @@ targets of the Makefile.
 
   cice.build cice
 
-or
-::
+or ::
 
   cice.build all
 
