@@ -288,31 +288,31 @@ no arguments::
 
   cice.build
 
-However, **cice.build** does support a couple other use modes::
+However, **cice.build** does support a couple other use modes.:
 
   cice.build [-h|--help] 
 
-provides a summary of the usage.
+provides a summary of the usage.:
 
   cice.build [make arguments] [target]
 
 turns off most of the features of the cice.build script and turns it into a wrapper
 for the make call.  The arguments and/or target are passed to make and invoked more
 or less like  make [make arguments] [target].  This will be the case if either or 
-both the arguments or target are passed to cice.build.  Some examples of that are::
+both the arguments or target are passed to cice.build.  Some examples of that are:
 
   cice.build --version
 
-which will pass --version to make.::
+which will pass --version to make.:
 
   cice.build targets
 
 is a valid target of the CICE Makefile and simply echos all the valid
-targets of the Makefile.::
+targets of the Makefile.:
 
   cice.build cice
 
-or::
+or:
 
   cice.build all
 
@@ -320,7 +320,7 @@ are largely equivalent to running **cice.build** without an argument,
 although as noted earlier, many of the extra features of the cice.build script
 are turned off when calling cice.build with a target or an argument.  Any of the
 full builds will compile makdep, generate the source code dependencies, and
-compile the source code::
+compile the source code.:
 
   cice.build [clean|realclean]
   cice.build [db_files|db_flags]
