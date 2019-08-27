@@ -80,6 +80,7 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ izumi*) then
+if (${runlength} > 2) set queue = "medium"
 cat >> ${jobfile} << EOFB
 #PBS -j oe 
 ###PBS -m ae 
