@@ -66,10 +66,9 @@ RM    := rm
 .SUFFIXES:
 .SUFFIXES: .F90 .F .c .o
 
-.PHONY: all
+.PHONY: all cice targets db_files db_flags clean realclean
 all: $(EXEC)
 
-.PHONY: cice
 cice: $(EXEC)
 
 #-------------------------------------------------------------------------------
@@ -82,12 +81,11 @@ cice: $(EXEC)
 # echo supported targets, file names, paths, compile flags, etc. used during build
 #-------------------------------------------------------------------------------
 
-.PHONY: targets
 targets:
 	@echo " "
-	@echo "Supported Makefile Targets are: cice, makdep, depends, mostlyclean, clean, realclean, targets, db_files, db_flags"
+	@echo "Supported Makefile Targets are: cice, makdep, depends, clean, realclean, targets, db_files, db_flags"
+target: targets
 
-.PHONY: db_files
 db_files:
 	@echo " "
 	@echo "* EXEC    := $(EXEC)"
@@ -103,7 +101,6 @@ db_files:
 	@echo "* SLIBS   := $(SLIBS)"
 	@echo "* INCLDIR := $(INCLDIR)"
 	@echo "* OBJS_DEPGEN := $(OBJS_DEPGEN)"
-.PHONY: db_flags
 db_flags:
 	@echo " "
 	@echo "* $(DEPGEN) := $(SCC) $(CFLAGS_HOST)"
@@ -146,17 +143,11 @@ $(EXEC): $(OBJS)
 .F90.o:
 	$(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(MODDIR) $(INCLDIR) $<
 
-.PHONY: mostlyclean
-mostlyclean:
-	$(RM) -f $(DEPS) $(OBJS) $(EXEC)
-
-.PHONY: clean
 clean:
-	$(RM) -f *.f *.f90 $(DEPS) $(OBJS) $(DEPGEN) $(EXEC)
+	$(RM) -f *.o *.d *.mod $(EXEC)
 
-.PHONY: realclean
-realclean:
-	$(RM) -f *.f *.f90 *.d *.mod *.o $(DEPS) $(OBJS) $(DEPGEN) $(EXEC)
+realclean: clean
+	$(RM) -f $(DEPGEN)
 
 #-------------------------------------------------------------------------------
 # Build & include dependency files
@@ -188,14 +179,12 @@ depends: $(DEPS)
 # the if-tests prevent DEPS files from being created when they're not needed
 ifneq ($(MAKECMDGOALS), db_files)
 ifneq ($(MAKECMDGOALS), db_flags)
-ifneq ($(MAKECMDGOALS), mostlyclean)
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), realclean)
 ifneq ($(MAKECMDGOALS), targets)
 ifneq ($(MAKECMDGOALS), makdep)
 ifneq ($(MAKECMDGOALS), depends)
     -include $(DEPS)
-endif
 endif
 endif
 endif

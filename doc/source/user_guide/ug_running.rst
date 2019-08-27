@@ -303,7 +303,7 @@ options include::
 
   cice.build [mostlyclean|clean|realclean]
 
-to write out information about the Makefile setup,::
+to write out information about the Makefile setup::
 
   cice.build [db_files|db_flags]
 
