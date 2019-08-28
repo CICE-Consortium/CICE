@@ -140,8 +140,8 @@ contains
 #if defined (_OPENMP)
     if (omp_in_parallel()) then
       dlen    = real(upper-lower+1, dbl_kind)
-      d_lower = lower    + floor((rdomp_iam*dlen+p5)/rdomp_nt, 4)
-      d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+p5)/rdomp_nt, 4)
+      d_lower = lower    + floor((rdomp_iam*dlen+p5)/rdomp_nt, JPIM)
+      d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+p5)/rdomp_nt, JPIM)
     endif
 #endif
 
@@ -843,7 +843,7 @@ module bench_v2
     real(kind=dbl_kind),dimension(:), intent(in), contiguous    ::               &
        uvel_init, vvel_init, aiu, forcex, forcey, umassdti, Tbu,                 &
        uocn, vocn, fm, uarear,Cw
-    real(kind=dbl_kind),dimension(:), intent(in), contiguous ::                  &
+    real(kind=DBL_KIND),dimension(:), intent(in), contiguous ::                  &
        str1,str2,str3,str4,str5,str6,str7,str8
     real(kind=dbl_kind),dimension(:), intent(inout), contiguous ::               &
        uvel,vvel, strintx,strinty, taubx,tauby
@@ -1003,7 +1003,7 @@ module ice_dyn_evp_1d
     stressm_1, stressm_2, stressm_3, stressm_4,                    &
     stress12_1,stress12_2,stress12_3,stress12_4,                   &
     divu,rdg_conv,rdg_shear,shear,taubx,tauby
-  real (kind=dbl_kind), dimension(:), allocatable ::               &
+  real (kind=DBL_KIND), dimension(:), allocatable ::               &
     str1, str2, str3, str4, str5, str6, str7, str8
   real (kind=dbl_kind), dimension(:), allocatable ::               &
     HTE,HTN,                                                       &
