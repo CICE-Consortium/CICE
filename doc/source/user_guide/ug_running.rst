@@ -278,8 +278,8 @@ Makefile and a machine specific Macros file in the case directory.  **cice.build
 is a wrapper for a call to make that includes several other features.  
 
 CICE is built as follows.  First, the makdep binary is created by compiling a small
-c program.  The makdep binary is then run and a dependency file is created.  That dependency
-file is included into the Makefile automatically.  As a result, make dependencies do not 
+C program.  The makdep binary is then run and dependency files are created.  The dependency
+files are included into the Makefile automatically.  As a result, make dependencies do not 
 need to be explicitly defined by the user.  In the next step, make compiles the CICE
 code and generates the cice binary.
 

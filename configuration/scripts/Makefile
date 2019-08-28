@@ -66,7 +66,7 @@ RM    := rm
 .SUFFIXES:
 .SUFFIXES: .F90 .F .c .o
 
-.PHONY: all cice targets db_files db_flags clean realclean
+.PHONY: all cice targets target db_files db_flags clean realclean
 all: $(EXEC)
 
 cice: $(EXEC)
@@ -182,9 +182,11 @@ ifneq ($(MAKECMDGOALS), db_flags)
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), realclean)
 ifneq ($(MAKECMDGOALS), targets)
+ifneq ($(MAKECMDGOALS), target)
 ifneq ($(MAKECMDGOALS), makdep)
 ifneq ($(MAKECMDGOALS), depends)
     -include $(DEPS)
+endif
 endif
 endif
 endif
