@@ -34,6 +34,7 @@ set stime = `date -u "+%H%M%S"`
 set docase = 0
 set dotest = 0
 set dosuite = 0
+set submit = 1
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -104,6 +105,7 @@ DESCRIPTION
     --testid   : test ID, user-defined id for testing (REQUIRED with --test or --suite)
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
+    --no-submit: for test suites, create the tests and compile the executables but do not submit the jobs
 
 EXAMPLES
     cice.setup --version
@@ -213,6 +215,9 @@ while (1)
 # arguments without settings
   if ("$option" == "--report") then
     set report = 1
+    shift argv
+  else if ("$option" == "--no-submit") then
+    set submit = 0
     shift argv
 
 # arguments with settings
@@ -379,7 +384,7 @@ else
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
-  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+  foreach file (${tsdir}/suite.build ${tsdir}/suite.run ${tsdir}/suite.submit)
   cat >! $file << EOF0
 #!/bin/csh -f
 
@@ -406,6 +411,7 @@ echo "#vers = ${vers}" >> results.log
 echo "#------- " >> results.log
 EOF0
 
+  chmod +x ${tsdir}/suite.build
   chmod +x ${tsdir}/suite.run
   chmod +x ${tsdir}/suite.submit
   chmod +x ${tsdir}/results.csh
@@ -860,12 +866,13 @@ EOF2
 
     if ( ${dosuite} == 1 ) then
       cd ${ICE_SANDBOX}
-      # Write build and run commands to suite.run and suite.submit
+      # Write build commands to suite.build, suite.run, suite.submit
+      # and run commands to suite.run and suite.submit
 
 cat >> ${tsdir}/results.csh << EOF
 cat ${testname_base}/test_output >> results.log
 EOF
-  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+  foreach file (${tsdir}/suite.build ${tsdir}/suite.run ${tsdir}/suite.submit)
     cat >> $file  << EOF
 echo "-------test--------------"
 echo "${testname_base}"
@@ -882,7 +889,7 @@ EOF
   cat >> ${tsdir}/suite.run << EOF
 ./cice.test
 EOF
-  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+  foreach file (${tsdir}/suite.build ${tsdir}/suite.run ${tsdir}/suite.submit)
     cat >> $file << EOF
 cd ..
 
@@ -944,14 +951,19 @@ setenv ICE_MACHINE_QSTAT ${ICE_MACHINE_QSTAT}
 EOF0
   endif
 
-  # build and submit tests
   cd ${tsdir}
-  ./suite.submit | tee suite.log
-  if ($report == 1) then
-    echo "Reporting results"
-    ./poll_queue.csh
-    ./results.csh
-    ./report_results.csh
+  # build and submit tests
+  if ($submit == 1) then
+    ./suite.submit | tee suite.log
+    if ($report == 1) then
+      echo "Reporting results"
+      ./poll_queue.csh
+      ./results.csh
+      ./report_results.csh
+    endif
+    else
+    # only build tests
+    ./suite.build | tee suite.log
   endif
   cd ${ICE_SANDBOX}
 
