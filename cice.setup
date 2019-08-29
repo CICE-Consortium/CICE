@@ -34,7 +34,8 @@ set stime = `date -u "+%H%M%S"`
 set docase = 0
 set dotest = 0
 set dosuite = 0
-set submit = 1
+set suitesubmit = 1
+set suitebuild  = 1
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -106,6 +107,7 @@ DESCRIPTION
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
     --no-submit: for test suites, create the tests and compile the executables but do not submit the jobs
+    --no-build : for test suites, only create the test folders, do not compile the executables nor submit the jobs
 
 EXAMPLES
     cice.setup --version
@@ -217,7 +219,11 @@ while (1)
     set report = 1
     shift argv
   else if ("$option" == "--no-submit") then
-    set submit = 0
+    set suitesubmit = 0
+    shift argv
+  else if ("$option" == "--no-build") then
+    set suitesubmit = 0
+    set suitebuild = 0
     shift argv
 
 # arguments with settings
@@ -952,8 +958,8 @@ EOF0
   endif
 
   cd ${tsdir}
+  if ($suitesubmit == 1) then
   # build and submit tests
-  if ($submit == 1) then
     ./suite.submit | tee suite.log
     if ($report == 1) then
       echo "Reporting results"
@@ -961,9 +967,10 @@ EOF0
       ./results.csh
       ./report_results.csh
     endif
-    else
-    # only build tests
-    ./suite.build | tee suite.log
+  else if ($suitebuild == 1) then
+  # only build tests
+      ./suite.build | tee suite.log
+  else
   endif
   cd ${ICE_SANDBOX}
 
