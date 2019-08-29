@@ -1927,9 +1927,10 @@
                                      iglob,    jglob,   &
                                      uvel,     vvel)
       
-      use ice_constants, only: c1, c4, c2, c12, p5, cm_to_m
+      use ice_constants, only: c2, c12, p5, cm_to_m
       use ice_domain_size, only: nx_global, ny_global
       use ice_grid, only: dxrect
+      use icepack_parameters, only: secday => days_to_s, pi
 
       integer (kind=int_kind), intent(in) :: &
          i, j,               & ! local indices
@@ -1946,10 +1947,6 @@
          max_vel        , & ! max velocity
          domain_length  , & ! physical domain length
          period             ! rotational period
-         
-      real (kind=dbl_kind), parameter :: &
-         pi        = c4*atan(c1), & ! pi
-         days_to_s = 86400._dbl_kind
       
       character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
       
