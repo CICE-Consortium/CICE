@@ -11,7 +11,7 @@ cases, building, and running the cice stand-alone model.
 File List
 --------------
 
-The directory structure under configure/scripts is as follows.
+The directory structure under configuration/scripts is as follows.
 
 | **configuration/scripts/**
 |        **Makefile**              primary makefile

@@ -284,12 +284,12 @@ Test suites
 Test suites support running multiple tests specified via
 an input file.  When invoking the test suite option (``--suite``) with **cice.setup**,
 all tests will be created, built, and submitted automatically under
-a local directory called testsuite.[testid] as part of involing the suite.::
+a local directory called testsuite.[testid] ::
 
   ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid
 
 Like an individual test, the ``--testid`` option must be specified and can be any 
-string.  Once the tests are complete, results can be checked by running the
+string (except strings involving the colon character ":" which creates cryptic Makefile errors).  Once the tests are complete, results can be checked by running the
 results.csh script in the [suite_name].[testid]::
 
   cd testsuite.[testid]
@@ -312,8 +312,27 @@ If a user adds ``--set`` to the suite, all tests in that suite will add that opt
 
   ./cice.setup --suite base_suite,decomp_suite --mach wolf --env gnu --testid myid -s debug
 
-The option settings defined in the suite have precendent over the command line
+The option settings defined in the suite have precedent over the command line
 values if there are conflicts.
+
+It is also possible to separately setup, build and submit the test cases. To setup and build the tests, use the ``--no-submit`` option with the ``buildincremental`` preset :
+::
+
+  ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid --no-submit -s buildincremental
+  # wait for builds to complete
+  cd testsuite.[testid]
+  ./suite.submit  # submit the jobs
+
+To only setup the tests, use the ``--no-build`` option with the ``buildincremental`` preset :
+::
+
+  ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid --no-build -s buildincremental
+  # wait for setup to complete
+  cd testsuite.[testid]
+  ./suite.submit  # build and submit
+  # or separately
+  ./suite.build
+  ./suite.submit
 
 The predefined test suites are defined under **configuration/scripts/tests** and 
 the files defining the suites
@@ -379,6 +398,12 @@ following options are valid for suites,
 
 ``--report``
   This is only used by ``--suite`` and when set, invokes a script that sends the test results to the results page when all tests are complete.  Please see :ref:`testreporting` for more information.
+
+  ``--no-submit``
+  Create the tests and compile the executables but do not submit the jobs
+
+``--no-build``
+  Only create the test folders, do not compile the executables nor submit the jobs
 
 Please see :ref:`case_options` and :ref:`indtests` for more details about how these options are used.
 
