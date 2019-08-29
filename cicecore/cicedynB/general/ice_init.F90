@@ -1930,7 +1930,7 @@
       use ice_constants, only: c2, c12, p5, cm_to_m
       use ice_domain_size, only: nx_global, ny_global
       use ice_grid, only: dxrect
-      use icepack_parameters, only: secday => days_to_s, pi
+      use icepack_parameters, only: days_to_s => secday, pi
 
       integer (kind=int_kind), intent(in) :: &
          i, j,               & ! local indices
