@@ -1930,7 +1930,7 @@
       use ice_constants, only: c2, c12, p5, cm_to_m
       use ice_domain_size, only: nx_global, ny_global
       use ice_grid, only: dxrect
-      use icepack_parameters, only: days_to_s => secday, pi
+      use icepack_parameters, only: secday, pi
 
       integer (kind=int_kind), intent(in) :: &
          i, j,               & ! local indices
@@ -1951,7 +1951,7 @@
       character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
       
       domain_length = dxrect*cm_to_m*nx_global
-      period        = c12*days_to_s            ! 12 days rotational period
+      period        = c12*secday               ! 12 days rotational period
       max_vel       = pi*domain_length/period
 
       uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
