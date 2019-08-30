@@ -819,6 +819,7 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke18`.
 
+.. _CodeCompliance:
 
 Code Compliance Testing Procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -846,7 +847,7 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user matplotlib
 
 To run the compliance test, setup a baseline run with the original baseline model and then 
-a perturbation run based on recent model changes.  Use ``--sets qc`` in both runs in addition
+a perturbation run based on recent model changes.  Use ``--set qc`` in both runs in addition
 to other settings needed.  Then use the QC script to compare history output,
 
 .. code-block:: bash
@@ -870,10 +871,16 @@ Implementation notes: 1) Provide a pass/fail on each of the confidence
 intervals, 2) Facilitate output of a bitmap for each test so that
 locations of failures can be identified.
 
-The cice.t-test.py requires memory to store multiple two-dimensional fields spanning 
+The ``cice.t-test.py`` requires memory to store multiple two-dimensional fields spanning 
 1825 unique timesteps, a total of several GB.  An appropriate resource is needed to 
 run the script.  If the script runs out of memory on an interactive resource, try
 logging into a batch resource or finding a large memory node.
+
+The ``cice.t-test.py`` script will also attempt to generate plots of the mean ice thickness
+for both the baseline and test cases. Additionally, if the 2-stage test fails then the 
+script will attempt to plot a map showing the grid cells that failed the test.  For a 
+full list of options, run ``python cice.t-test.py -h``.
+
 
 
 End-To-End Testing Procedure
@@ -939,52 +946,4 @@ If the regression comparisons fail, then you may want to run the QC test,
   INFO:__main__:
   INFO:__main__:Quality Control Test PASSED
 
-
-.. _testplotting:
-
-Test Plotting
-----------------
-
-The CICE scripts include a script (``timeseries.csh``) that will generate timeseries 
-figures from a diagnostic output file.  
-When running a test suite, the ``timeseries.csh`` script is automatically copied to the suite directory.  
-If the ``timeseries.csh`` script is to be used on a test or case that is not a part of a test suite, 
-users will need to run the ``timeseries.csh`` script from the tests directory 
-(``./configuration/scripts/tests/timeseries.csh ./path/``), or copy it to a local directory.
-When used with the test suites or given a path, it needs to be run in the directory 
-above the particular case being plotted, but it can also be run on isolated log files in the same directory, 
-without a path.
-
-For example:
-
-Run the test suite. ::
-
-$ ./cice.setup -m conrad -e intel --suite base_suite --testid t00
-
-Wait for suite to finish then go to the directory. ::
-
-$ cd testsuite.t00
-
-Run the timeseries script on the desired case. ::
-
-$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
-    
-The output figures are placed in the directory where the ``timeseries.csh`` script is run.
-
-To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
-
-     #!/bin/csh
-     foreach dir (`ls -1  | grep testid`)
-       echo $dir
-       timeseries.csh $dir
-     end
-
-
-This plotting script can be used to plot the following variables:
-
-  - total ice area (:math:`km^2`)
-  - total ice extent (:math:`km^2`)
-  - total ice volume (:math:`m^3`)
-  - total snow volume (:math:`m^3`)
-  - RMS ice speed (:math:`m/s`)
 

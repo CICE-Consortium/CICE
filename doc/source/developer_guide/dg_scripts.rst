@@ -31,6 +31,8 @@ The directory structure under configure/scripts is as follows.
 |        **parse_settings.sh**     replaces settings with command-line configuration
 |        **setup_run_dirs.csh**    creates the case run directories
 |        **set_version_number.csh** updates the model version number from the **cice.setup** command line
+|        **timeseries.csh**        generates PNG timeseries plots from output files, using GNUPLOT
+|        **timeseries.py**         generates PNG timeseries plots from output files, using Python
 |        **tests/**                scripts for configuring and running basic tests
 
 .. _dev_strategy:
@@ -90,6 +92,13 @@ The machine is built by the cice.build script which invokes Make.
 There is a special trap for circular dependencies in the cice.build script to
 highlight this error when it occurs.
 
+The **cice.build** script has some additional features including the ability to 
+pass a Makefile target.  This is documented in :ref:`cicebuild`.  In addition, there
+is a hidden feature in the **cice.build** script that allows for reuse of 
+executables.  This is used by the test suites to significantly reduce cost of
+building the model.  It is invoked with the ``--exe`` argument to **cice.build**
+and should not be invoked by users interactively.
+
 .. _dev_machines:
 
 Machines
@@ -134,9 +143,8 @@ setup the various tests, such as smoke and restart tests (**test_smoke.script**,
 and the files that describe with options files are needed for each test (ie. **test_smoke.files**, **test_restart.files**).
 A baseline test script (**baseline.script**) is also there to setup the general regression
 and comparison testing.  That directory also contains the preset test suites 
-(ie. **base_suite.ts**) and a file that supports post-processing on the model
-output (**timeseries.csh**).  There is also a script **report_results.csh** that pushes results 
-from test suites back to the CICE-Consortium test results wiki page.
+(ie. **base_suite.ts**) and a script (**report_results.csh**) that pushes results from 
+test suites back to the CICE-Consortium test results wiki page.
 
 To add a new test (for example newtest), several files may be needed,
 
