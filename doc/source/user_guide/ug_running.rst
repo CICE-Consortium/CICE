@@ -400,6 +400,7 @@ system.  Some variables are optional.
    "ICE_MACHINE_SUBMIT", "string", "batch job submission command"
    "ICE_MACHINE_TPNODE", "integer", "machine maximum MPI tasks per node"
    "ICE_MACHINE_MAXPES", "integer", "machine maximum total processors per job (optional)"
+   "ICE_MACHINE_MAXTHREADS", "integer", "machine maximum threads per mpi task (optional)"
    "ICE_MACHINE_MAXRUNLENGTH", "integer", "batch wall time limit in hours (optional)"
    "ICE_MACHINE_ACCT", "string", "batch default account"
    "ICE_MACHINE_QUEUE", "string", "batch default queue"

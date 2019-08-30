@@ -493,14 +493,10 @@ EOF
       set blckx = `echo ${pesx} | cut -d x -f 3`
       set blcky = `echo ${pesx} | cut -d x -f 4`
       set mblck = `echo ${pesx} | cut -d x -f 5`
-      if ($?ICE_MACHINE_MAXPES) then
-        @ pesreq = ${task} * ${thrd}
-        if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
-          @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
-          @ mblck = ${mblck} * ((${pesreq} / ${ICE_MACHINE_MAXPES}) + 1)
-        endif
+      if (${task} == 0 || ${thrd} == 0 || ${blckx} == 0 || ${blcky} == 0 || ${mblck} == 0) then
+        echo "${0}: ERROR in -p argument, cannot have zeros"
+        exit -1
       endif
-      set pesx = ${task}x${thrd}x${blckx}x${blcky}x${mblck}
     else
       set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
       if (${chck} == OK) then
@@ -509,13 +505,10 @@ EOF
         set blckx = `echo ${pesx} | cut -d x -f 3`
         set blcky = `echo ${pesx} | cut -d x -f 4`
         set mblck = 0
-        if ($?ICE_MACHINE_MAXPES) then
-          @ pesreq = ${task} * ${thrd}
-          if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
-            @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
-          endif
+        if (${task} == 0 || ${thrd} == 0 || ${blckx} == 0 || ${blcky} == 0) then
+          echo "${0}: ERROR in -p argument, cannot have zeros"
+          exit -1
         endif
-        set pesx = ${task}x${thrd}x${blckx}x${blcky}
       else
         set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
         if (${chck} == OK) then
@@ -524,18 +517,71 @@ EOF
           set blckx = 0
           set blcky = 0
           set mblck = 0
-          if ($?ICE_MACHINE_MAXPES) then
-            @ pesreq = ${task} * ${thrd}
-            if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
-              @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
-            endif
+          if (${task} == 0 || ${thrd} == 0) then
+            echo "${0}: ERROR in -p argument, cannot have zeros"
+            exit -1
           endif
-          set pesx = ${task}x${thrd}
         else
-          echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
-          exit -1
+          set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*$/OK/'`
+          if (${chck} == OK) then
+            set task = `echo ${pesx} | cut -d x -f 1`
+            set thrd = 1
+            set blckx = 0
+            set blcky = 0
+            set mblck = 0
+            if (${task} == 0) then
+              echo "${0}: ERROR in -p argument, cannot have zeros"
+              exit -1
+            endif
+          else
+            echo "${0}: ERROR in -p argument, ${pesx}, must be [m], [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
+            exit -1
+          endif
         endif
       endif
+    endif
+
+    @ blkreq = ${task} * ${mblck}
+    # check max threads, reduce threads, increase tasks
+    if ($?ICE_MACHINE_MAXTHREADS) then
+      if (${thrd} > ${ICE_MACHINE_MAXTHREADS}) then
+        @ pesreq = ${task} * ${thrd}
+        @ task = ${pesreq} / ${ICE_MACHINE_MAXTHREADS}
+        @ thrd = ${ICE_MACHINE_MAXTHREADS}
+        @ peschk = ${task} * ${thrd}
+        if (${pesreq} > ${peschk}) then
+          @ task = ${task} + 1
+        endif
+#        echo "tcx1 reset to $task $thrd $mblck"
+      endif
+    endif
+
+    # check max pes, reduce tasks
+    if ($?ICE_MACHINE_MAXPES) then
+      @ pesreq = ${task} * ${thrd}
+      if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
+        @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
+#        echo "tcx2 reset to $task $thrd $mblck"
+      endif
+    endif
+
+    # check max blocks and adjust as needed
+    if ($mblck > 0) then
+      @ mblck = ${blkreq} / ${task}
+      @ blkchk = ${task} * ${mblck}
+      if (${blkreq} > ${blkchk}) then
+        @ mblck = $mblck + 1
+      endif
+#      echo "tcx3 reset to $task $thrd $mblck"
+    endif
+
+    # update pesx based on use defined settings and machine limits to reflect actual value
+    set pesx = ${task}x${thrd}x${blckx}x${blcky}x${mblck}
+    if (${mblck} == 0) then
+      set pesx = ${task}x${thrd}x${blckx}x${blcky}
+    endif
+    if (${blckx} == 0 || ${blcky} == 0) then
+      set pesx = ${task}x${thrd}
     endif
 
     set testname_noid = ${spval}

@@ -47,7 +47,7 @@ module dmi_omp
 #if defined (_OPENMP)
   ! Please note, this constant will create a compiler info for a constant
   ! expression in IF statements:
-  real(kind=dbl_kind), private :: rdomp_iam, rdomp_nt
+  real(kind=dbl_kind) :: rdomp_iam, rdomp_nt
   !$OMP THREADPRIVATE(domp_iam,domp_nt,rdomp_iam,rdomp_nt) 
 #endif
 
@@ -70,9 +70,9 @@ contains
     !$OMP PARALLEL DEFAULT(none)
 #if defined (_OPENMP)
     domp_iam  = omp_get_thread_num()
-    rdomp_iam = real(domp_iam,8)
+    rdomp_iam = real(domp_iam,dbl_kind)
     domp_nt   = omp_get_num_threads()
-    rdomp_nt  = real(domp_nt,8)
+    rdomp_nt  = real(domp_nt,dbl_kind)
 #else
     domp_iam  = 0
     domp_nt   = 1
@@ -139,9 +139,9 @@ contains
 
 #if defined (_OPENMP)
     if (omp_in_parallel()) then
-      dlen    = real(upper-lower+1, 8)
-      d_lower = lower    + floor((rdomp_iam*dlen+p5)/rdomp_nt, 4)
-      d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+p5)/rdomp_nt, 4)
+      dlen    = real(upper-lower+1, dbl_kind)
+      d_lower = lower    + floor((rdomp_iam*dlen+p5)/rdomp_nt, JPIM)
+      d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+p5)/rdomp_nt, JPIM)
     endif
 #endif
 
