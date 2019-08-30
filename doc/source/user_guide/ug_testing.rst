@@ -895,7 +895,7 @@ Below is an example of a step-by-step procedure for testing a code change that m
   # Create a baseline dataset (only necessary if no baseline exists on the system)
   # git clone the baseline code
 
-  ./cice.setup -m onyx -e intel --suite base_suite --testid base0 -bgen cice.my.baseline
+  ./cice.setup -m onyx -e intel --suite base_suite --testid base0 --bgen cice.my.baseline
 
   # Run the test suite with the new code
   # git clone the new code
