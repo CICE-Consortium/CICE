@@ -867,10 +867,6 @@ The script will produce output similar to:
 Additionally, the exit code from the test (``echo $?``) will be 0 if the test passed,
 and 1 if the test failed.
 
-Implementation notes: 1) Provide a pass/fail on each of the confidence
-intervals, 2) Facilitate output of a bitmap for each test so that
-locations of failures can be identified.
-
 The ``cice.t-test.py`` requires memory to store multiple two-dimensional fields spanning 
 1825 unique timesteps, a total of several GB.  An appropriate resource is needed to 
 run the script.  If the script runs out of memory on an interactive resource, try
