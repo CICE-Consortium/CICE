@@ -83,7 +83,7 @@ examples of the syntax.
 .. _build:
 
 Build Scripts
------------
+--------------
 
 CICE uses GNU Make to build the model.  There is a common **Makefile** for all machines.  
 Each machine provides a Macros file to define some Makefile variables

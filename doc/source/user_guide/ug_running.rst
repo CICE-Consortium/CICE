@@ -10,7 +10,7 @@ Quick-start instructions are provided in the :ref:`quickstart` section.
 .. _software:
 
 Software Requirements
--------
+----------------------
 
 To run stand-alone, CICE requires
 
@@ -162,7 +162,7 @@ case directory, NOT the run directory.
 .. _case_options:
 
 **cice.setup** Command Line Options
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``cice.setup -h`` provides a summary of the command line options.  There are three different modes, ``--case``, ``--test``, and ``--suite``.  This section provides details about the relevant options for setting up cases with examples.
 Testing will be described in greater detail in the :ref:`testing` section.

@@ -907,6 +907,8 @@ Below is an example of a step-by-step procedure for testing a code change that m
   cd testsuite.test0
   ./results.csh
 
+  # Note which tests failed and determine which namelist options are responsible for the failures
+
 ..
 
 If the regression comparisons fail, then you may want to run the QC test,
@@ -920,6 +922,7 @@ If the regression comparisons fail, then you may want to run the QC test,
 
   ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_base -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_base
+  # modify ice_in to activate the namelist options that were determined above
   ./cice.build
   ./cice.submit
 
@@ -928,6 +931,7 @@ If the regression comparisons fail, then you may want to run the QC test,
 
   ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
+  # modify ice_in to activate the namelist options that were determined above
   ./cice.build
   ./cice.submit
 
