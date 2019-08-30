@@ -30,8 +30,8 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
-      use ice_constants, only: c0, c1, c2, c3, c4, c5, c10, c12, c20, &
-                               c180, c365, c1000, c3600
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, c10, c12, c15, c20, &
+                               c180, c360, c365, c1000, c3600
       use ice_constants, only: p001, p01, p1, p25, p5, p6
       use ice_constants, only: cm_to_m
       use ice_constants, only: field_loc_center, field_type_scalar, &
@@ -2260,6 +2260,7 @@
          sw0       , &
          secday    , &
          pi        , &
+         lontmp    , &
          deg2rad   
 
       integer (kind=int_kind) :: &
@@ -2275,8 +2276,18 @@
       do j=jlo,jhi
        do i=ilo,ihi
         deg2rad = pi/c180
+!       solar_time = mod(real(sec,kind=dbl_kind),secday)/c3600 &
+!                  + c12*sin(p5*TLON(i,j))
+
+!       Convert longitude to range of -180 to 180 for LST calculation
+
+        lontmp = mod(TLON(i,j)/deg2rad,c360)
+        if (lontmp .gt. c180) lontmp = lontmp - c360
+        if (lontmp .lt. -c180) lontmp = lontmp + c360
+
         solar_time = mod(real(sec,kind=dbl_kind),secday)/c3600 &
-                   + c12*sin(p5*TLON(i,j))
+                   + lontmp/c15
+        if (solar_time .ge. 24._dbl_kind) solar_time = solar_time - 24._dbl_kind
         hour_angle = (c12 - solar_time)*pi/c12
         declin = 23.44_dbl_kind*cos((172._dbl_kind-yday) &
                  * c2*pi/c365)*deg2rad     ! use dayyr instead of c365???
