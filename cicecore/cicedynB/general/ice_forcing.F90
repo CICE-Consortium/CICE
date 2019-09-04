@@ -4840,8 +4840,10 @@
 !=======================================================================
 
       subroutine get_wave_spec
-
-      use ice_arrays_column, only: wave_spectrum, dwavefreq, wavefreq
+  
+      use ice_read_write, only: ice_read_nc_xyf
+      use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
+                                   dwavefreq, wavefreq
       use ice_constants, only: c0
       use ice_domain_size, only: nfreq
 #ifdef ncdf
@@ -4885,8 +4887,9 @@
 
          spec_file = trim(wave_spec_file) !//'/'//trim(wave_spec_file)
          call ice_open_nc(spec_file,fid)
-         call ice_read_nc (fid, 1, 'efreq',wave_spectrum, dbug, &
+         call ice_read_nc_xyf (fid, 1, 'efreq',wave_spectrum(:,:,:,:), dbug, &
                            field_loc_center, field_type_scalar)
+	 where(wave_spectrum.gt.1.0e+30_dbl_kind) wave_spectrum=c0
          call ice_close_nc(fid)
 
 
