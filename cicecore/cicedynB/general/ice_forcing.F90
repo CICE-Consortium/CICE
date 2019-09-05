@@ -1381,7 +1381,7 @@
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_format) == 'nc') then ! netcdf
+      elseif (trim(atm_data_type) == 'JRA55') then ! netcdf
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
@@ -2302,7 +2302,7 @@
     ! 
     ! Assume that the 3-hourly value is located at the end of the
     !  3-hour period.  This is the convention for NCEP reanalysis data.
-    !  E.g. record 1 gives conditions at 6 am GMT on 1 January.
+    !  E.g. record 1 gives conditions at 3 am GMT on 1 January.
     !-------------------------------------------------------------------
 
       dataloc = 2               ! data located at end of interval
