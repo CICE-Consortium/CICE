@@ -19,14 +19,14 @@
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
           ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
+#ifdef CESMCOUPLED
       use ice_fileunits, only: inst_suffix
+#endif
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_trcr
       use icepack_intfc, only: icepack_init_parameters
       use icepack_intfc, only: icepack_init_tracer_flags
-      use icepack_intfc, only: icepack_init_tracer_numbers
-      use icepack_intfc, only: icepack_init_tracer_indices
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_numbers
       use icepack_intfc, only: icepack_query_tracer_indices
@@ -107,8 +107,6 @@
          nml_error, & ! namelist i/o error flag
          n            ! loop index
 
-      character (len=6) :: chartmp
-
       logical :: exists
 
       real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
@@ -127,8 +125,6 @@
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
-      integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
-      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
       integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
@@ -1850,7 +1846,7 @@
       
       use ice_constants, only: c0, c2, c5, p3, p166, p75, p5
       use ice_domain_size, only: nx_global, ny_global, ncat
-      use ice_grid, only: dxrect, dyrect
+      use ice_grid, only: dxrect
 
       integer (kind=int_kind), intent(in) :: &
          i, j              , & ! local indices
