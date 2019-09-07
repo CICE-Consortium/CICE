@@ -619,7 +619,7 @@
           d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice, nblocks
-      use ice_domain_size, only: ncat, nfsd
+      use ice_domain_size, only: ncat, nfsd, nfreq
       use ice_state, only: trcrn, aicen, aice, vice
 
       real (kind=dbl_kind), intent(in) :: &
@@ -655,7 +655,7 @@
             ! do not use for actual runs!!
             if (aice(i,j,iblk).lt.0.8_dbl_kind) &
 
-            call icepack_step_wavefracture (dt, ncat, nfsd,                &
+            call icepack_step_wavefracture (dt, ncat, nfsd, nfreq,         &
                                             aice           (i,j,    iblk), &
                                             vice           (i,j,    iblk), &
                                             aicen          (i,j,:,  iblk), &

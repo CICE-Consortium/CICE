@@ -353,7 +353,7 @@
       tfrz_option     = 'mushy'   ! freezing temp formulation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       wave_spec       = .false.   ! if true, use wave forcing
-      nfreq           = 0         ! number of wave frequencies
+      nfreq           = 25         ! number of wave frequencies
       wave_spec_file  = ' '       ! wave forcing file name
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'

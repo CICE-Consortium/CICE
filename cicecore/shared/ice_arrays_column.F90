@@ -427,7 +427,6 @@
          wavefreq       (nfreq)     , & ! wave frequency
          dwavefreq      (nfreq)     , & ! wave frequency bin widths
          wave_sig_ht    (nx_block,ny_block,          max_blocks), & !
-         !ice_wave_sig_ht(nx_block,ny_block,          max_blocks), & !
          wave_spectrum  (nx_block,ny_block,nfreq,    max_blocks), & !
          d_afsd_newi    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !
