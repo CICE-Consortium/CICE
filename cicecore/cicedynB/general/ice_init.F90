@@ -1846,7 +1846,7 @@
       
       use ice_constants, only: c0, c2, c5, p3, p166, p75, p5
       use ice_domain_size, only: nx_global, ny_global, ncat
-      use ice_grid, only: dxrect
+      use ice_grid, only: dxrect, dyrect
 
       integer (kind=int_kind), intent(in) :: &
          i, j              , & ! local indices
@@ -1882,7 +1882,7 @@
       ! Geometric configuration of the slotted cylinder
       diam     = p3 *dxrect*(nx_global-1)
       center_x = p5 *dxrect*(nx_global-1)
-      center_y = p75*dxrect*(ny_global-1)
+      center_y = p75*dyrect*(ny_global-1)
       radius   = p5*diam
       width    = p166*diam
       length   = c5*p166*diam
@@ -1895,11 +1895,11 @@
       ! check if grid point is inside slotted cylinder
       in_slot = (dxrect*real(iglob(i)-1, kind=dbl_kind) >= slot_x(1)) .and. &
                 (dxrect*real(iglob(i)-1, kind=dbl_kind) <= slot_x(2)) .and. & 
-                (dxrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
-                (dxrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
+                (dyrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
+                (dyrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
                 
       in_cyl  = sqrt((dxrect*real(iglob(i)-1, kind=dbl_kind) - center_x)**c2 + &
-                     (dxrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
+                     (dyrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
       
       in_slotted_cyl = in_cyl .and. .not. in_slot
       
