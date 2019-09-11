@@ -636,12 +636,10 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-        n,     &      ! number of dimensions for variable
-        varid, &      ! variable id
-        status        ! status variable from netCDF routine
+           n                 ! number of dimensions for variable
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-           work2              ! input array (real, 8-byte)
+           work2             ! input array (real, 8-byte)
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
@@ -699,12 +697,10 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-        n,     &      ! dimension counter
-        varid, &      ! variable id
-        status        ! status variable from netCDF routine
+           n                 ! dimension counter
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-           work2              ! input array (real, 8-byte)
+           work2             ! input array (real, 8-byte)
 
       character(len=*), parameter :: subname = '(write_restart_field)'
 
@@ -735,8 +731,7 @@
          tr_pond_topo, tr_pond_lvl, tr_brine
 
       integer (kind=int_kind) :: &
-         nbtrcr, &               ! number of bgc tracers
-         status
+         nbtrcr               ! number of bgc tracers
 
       character(len=*), parameter :: subname = '(final_restart)'
 

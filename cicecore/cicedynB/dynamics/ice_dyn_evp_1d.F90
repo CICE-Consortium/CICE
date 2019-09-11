@@ -111,8 +111,8 @@ contains
 
 #if defined (_OPENMP)
     use omp_lib,   only : omp_in_parallel
-#endif
     use ice_constants, only: p5
+#endif
 
     integer(KIND=JPIM), intent(in)  :: lower,upper
     integer(KIND=JPIM), intent(out) :: d_lower,d_upper
@@ -120,7 +120,6 @@ contains
 #if defined (_OPENMP)
     !-- local variables
     real(kind=dbl_kind)    :: dlen
-    integer(int_kind) :: lr, ur
 #endif
 
     character(len=*), parameter :: subname = '(domp_get_domain_rlu)'
@@ -969,9 +968,6 @@ module ice_dyn_evp_1d
   use ice_kinds_mod
   use ice_fileunits, only: nu_diag
   use ice_exit, only: abort_ice
-  !-- BEGIN: specific for the KERNEL
-  use ice_dyn_shared, only: revp, ecci, denom1, arlx1i, brlx
-  !-- END: specific for the KERNEL
 
   implicit none
   private
@@ -1150,7 +1146,6 @@ module ice_dyn_evp_1d
     use ice_gather_scatter, only: gather_global_ext
     use ice_domain, only: distrb_info
     use ice_communicate, only: my_task, master_task
-    use ice_constants, only: c0,c1,p5
 
     implicit none
 
@@ -1286,9 +1281,8 @@ module ice_dyn_evp_1d
                I_stress12_1,I_stress12_2,I_stress12_3,I_stress12_4,     &
                I_divu,I_rdg_conv,I_rdg_shear,I_shear,I_taubx,I_tauby    )
 
-    use ice_constants, only : c0, field_loc_center, field_loc_NEcorner, &
-                                  field_type_scalar, field_type_vector
-    use ice_gather_scatter, only: scatter_global_ext, scatter_global
+    use ice_constants, only : c0
+    use ice_gather_scatter, only: scatter_global_ext
     use ice_domain, only: distrb_info
     use ice_communicate, only: my_task, master_task
 
@@ -1420,7 +1414,7 @@ module ice_dyn_evp_1d
     implicit none
 
     real(kind=dbl_kind) :: rhow
-    integer (kind=int_kind) :: ierr, lun, i, nthreads
+    integer (kind=int_kind) :: i, nthreads
     integer (kind=int_kind) :: na,nb,navel
 
     character(len=*), parameter :: subname = '(evp_kernel_v2)'

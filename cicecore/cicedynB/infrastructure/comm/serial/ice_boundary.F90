@@ -3434,8 +3434,7 @@ contains
 !  local variables
 
    integer (int_kind) ::           &
-      i,j,n,nmsg,                &! dummy loop indices
-      ierr,                      &! error or status flag for MPI,alloc
+      nmsg,                      &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message

@@ -32,7 +32,7 @@
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
       use ice_constants, only: c0, c1, c2, c3, c4, c5, c10, c12, c15, c20, &
                                c180, c360, c365, c1000, c3600
-      use ice_constants, only: p001, p01, p1, p25, p5, p6
+      use ice_constants, only: p001, p01, p1, p2, p25, p5, p6
       use ice_constants, only: cm_to_m
       use ice_constants, only: field_loc_center, field_type_scalar, &
                                field_type_vector, field_loc_NEcorner
@@ -414,11 +414,11 @@
       if (trim(ocn_data_type) == 'hadgem_sst' .or.  &
           trim(ocn_data_type) == 'hadgem_sst_uvocn') then
 
-       	 diag = .true.   ! write diagnostic information 
+         diag = .true.   ! write diagnostic information 
 
          sst_file = trim (ocn_data_dir)//'/MONTHLY/sst.1997.nc'
 
-       	 if (my_task == master_task) then
+         if (my_task == master_task) then
 
              write (nu_diag,*) ' '
              write (nu_diag,*) 'Initial SST file:', trim(sst_file)
@@ -3336,6 +3336,7 @@
            'T',      'S',      'hblt',  'U',     'V', &
            'dhdx',   'dhdy',   'qdp' /
 
+#ifdef ncdf
       integer (kind=int_kind) :: &
         fid        , & ! file id 
         dimid          ! dimension id 
@@ -3344,6 +3345,7 @@
         status  , & ! status flag
         nlat    , & ! number of longitudes of data
         nlon        ! number of latitudes  of data
+#endif
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
@@ -3477,6 +3479,7 @@
       use netcdf
 #endif
 
+#ifdef ncdf
       integer (kind=int_kind) :: & 
         n   , & ! field index
         m   , & ! month index
@@ -3499,6 +3502,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2
+#endif
 
       character(len=*), parameter :: subname = '(ocn_data_ncar_init_3D)'
 
@@ -3815,8 +3819,8 @@
 
 !  Reads in HadGEM ocean forcing data as required from netCDF files
 !  Current options (selected by ocn_data_type)
-!  hadgem_sst: 		read in sst only 
-!  hadgem_sst_uvocn:	read in sst plus uocn and vocn	
+!  hadgem_sst: read in sst only 
+!  hadgem_sst_uvocn: read in sst plus uocn and vocn
 
 ! authors: Ann Keen, Met Office
 
@@ -3842,10 +3846,10 @@
       logical (kind=log_kind) :: readm
 
       character (char_len) :: & 
-            fieldname    	! field name in netcdf file
+            fieldname     ! field name in netcdf file
 
       character (char_len_long) :: & 
-            filename    	! name of netCDF file
+            filename      ! name of netCDF file
 
       character(len=*), parameter :: subname = '(ocn_data_hadgem)'
 
@@ -3898,7 +3902,7 @@
       ! -----------------------------------------------------------
       ! SST
       ! -----------------------------------------------------------
-      sst_file = trim(ocn_data_dir)//'/MONTHLY/sst.1997.nc'	
+      sst_file = trim(ocn_data_dir)//'/MONTHLY/sst.1997.nc'
       fieldname='sst'
       call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
                       maxrec, sst_file, fieldname, sst_data, &
@@ -3932,23 +3936,23 @@
 
       if (trim(ocn_data_type)=='hadgem_sst_uvocn') then
 
-      	filename = trim(ocn_data_dir)//'/MONTHLY/uocn.1997.nc'	
-      	fieldname='uocn'
-      	call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+        filename = trim(ocn_data_dir)//'/MONTHLY/uocn.1997.nc'
+        fieldname='uocn'
+        call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
                       maxrec, filename, fieldname, uocn_data, &
                       field_loc_center, field_type_vector)
       
-      	! Interpolate to current time step
-      	call interpolate_data (uocn_data, uocn)
+        ! Interpolate to current time step
+        call interpolate_data (uocn_data, uocn)
 
-      	filename = trim(ocn_data_dir)//'/MONTHLY/vocn.1997.nc'	
-      	fieldname='vocn'
-      	call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+        filename = trim(ocn_data_dir)//'/MONTHLY/vocn.1997.nc'
+        fieldname='vocn'
+        call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
                       maxrec, filename, fieldname, vocn_data, &
                       field_loc_center, field_type_vector)
       
-      	! Interpolate to current time step
-      	call interpolate_data (vocn_data, vocn)
+        ! Interpolate to current time step
+        call interpolate_data (vocn_data, vocn)
 
      !----------------------------------------------------------------- 
      ! Rotate zonal/meridional vectors to local coordinates, 
@@ -3970,9 +3974,9 @@
                uocn(i,j,iblk) = uocn(i,j,iblk) * cm_to_m
                vocn(i,j,iblk) = vocn(i,j,iblk) * cm_to_m
 
-            enddo		! i
-            enddo		! j
-         enddo		! nblocks
+            enddo   ! i
+            enddo   ! j
+         enddo      ! nblocks
          !$OMP END PARALLEL DO
 
      !----------------------------------------------------------------- 
@@ -3994,7 +3998,6 @@
         !   + rename/link file
         use ice_blocks, only: nx_block, ny_block
         use ice_domain, only: nblocks
-        use ice_domain_size, only: max_blocks
         use ice_flux, only: sss, sst, Tf
 #ifdef ncdf
         use netcdf
@@ -4453,12 +4456,10 @@
 
 !local parameters
 
+#ifdef ncdf
       character (char_len_long) :: & 
          met_file,   &    ! netcdf filename
          fieldname        ! field name in netcdf file
-
-      integer (kind=int_kind) :: &
-         status           ! status flag
 
       real (kind=dbl_kind), dimension(2), save :: &
          Tair_data_p      , &      ! air temperature (K) for interpolation
@@ -4479,30 +4480,33 @@
     
       ! for interpolation of hourly data                
       integer (kind=int_kind) :: &
-          ixm,ixx,ixp , & ! record numbers for neighboring months
-          recnum      , & ! record number
-          recnum4X    , & ! record number
-          maxrec      , & ! maximum record number
-          recslot     , & ! spline slot for current record
-          dataloc         ! = 1 for data located in middle of time interval
+         ixm,ixx,ixp , &  ! record numbers for neighboring months
+         maxrec      , &  ! maximum record number
+         recslot     , &  ! spline slot for current record
+         dataloc          ! = 1 for data located in middle of time interval
                           ! = 2 for date located at end of time interval
-       real (kind=dbl_kind) :: &
+      real (kind=dbl_kind) :: &
          secday    , &
          Qa_pnt                
 
       real (kind=dbl_kind) :: &
-          sec1hr              ! number of seconds in 1 hour
+         sec1hr           ! number of seconds in 1 hour
 
       logical (kind=log_kind) :: read1
+#endif
+
+      integer (kind=int_kind) :: &
+          recnum      , & ! record number
+          recnum4X        ! record number
 
       character(len=*), parameter :: subname = '(ISPOL_data)'
 
+#ifdef ncdf 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
    
-#ifdef ncdf 
       if (trim(atm_data_format) == 'nc') then     ! read nc file
       
      !-------------------------------------------------------------------
@@ -4647,9 +4651,9 @@
       ! fixed data
       ! May not be needed
       !-----------------------------
-        rhoa (:,:,:) = 1.3_dbl_kind ! air density (kg/m^3)
-        cldf(:,:,:) =  c1  !0.25_dbl_kind ! cloud fraction
-        frain(:,:,:) = c0            ! this is available in hourlymet_rh file
+      rhoa (:,:,:) = 1.3_dbl_kind ! air density (kg/m^3)
+      cldf(:,:,:) =  c1  !0.25_dbl_kind ! cloud fraction
+      frain(:,:,:) = c0            ! this is available in hourlymet_rh file
   
       ! Save record number for next time step
       oldrecnum = recnum
@@ -4686,6 +4690,7 @@
       use netcdf
 #endif
 
+#ifdef ncdf
       integer (kind=int_kind) :: & 
         n   , & ! field index
         m       ! month index
@@ -4697,13 +4702,14 @@
            'dhdx',   'dhdy',   'qdp' /
 
       real (kind=dbl_kind) :: &
-           work              
+        work              
 
       integer (kind=int_kind) :: &
         fid         ! file id 
 
       integer (kind=int_kind) :: &
         status      ! status flag
+#endif
 
       character(len=*), parameter :: subname = '(ocn_data_ispol_init)'
 
@@ -4766,10 +4772,8 @@
 ! authors: Elizabeth Hunke, LANL
 
       use ice_domain, only: nblocks
-      use ice_constants, only: c0, c1, c2, c3, c4, c5, p2
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
-      use ice_fileunits, only: nu_diag, nu_forcing
       use ice_grid, only: uvm
 
       ! local parameters
@@ -4778,7 +4782,7 @@
          iblk, i,j           ! loop indices
 
       real (kind=dbl_kind) :: &
-          secday, pi , c10, c12, c20, puny, period, pi2, tau
+          secday, pi , puny, period, pi2, tau
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
 

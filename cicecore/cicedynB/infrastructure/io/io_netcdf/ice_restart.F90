@@ -134,9 +134,9 @@
          tr_bgc_hum
 
       integer (kind=int_kind) :: &
-         k,  n,                & ! index
+         k, n,                 & ! index
          nx, ny,               & ! global array size
-         iyear, imonth, iday,  & ! year, month, day
+         iyear,                & ! year
          nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
@@ -642,11 +642,6 @@
            field_type        ! type of field (scalar, vector, angle)
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-        n,     &      ! number of dimensions for variable
-        varid, &      ! variable id
-        status        ! status variable from netCDF routine
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
            work2              ! input array (real, 8-byte)

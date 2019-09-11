@@ -2820,7 +2820,6 @@
      iblk, jblk,         &! block indices
      iglb, jglb,         &! global indices
      nrecvs,             &! actual number of messages received
-     isrc, jsrc,         &! source addresses
      dst_block,          &! location of block in dst array
      ierr                 ! MPI error flag
 
