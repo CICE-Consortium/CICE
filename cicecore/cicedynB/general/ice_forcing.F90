@@ -212,6 +212,8 @@
 ! Determine the current and final year of the forcing cycle based on
 ! namelist input; initialize the atmospheric forcing data filenames.
 
+      use ice_calendar, only: use_leap_years
+
       character(len=*), parameter :: subname = '(init_forcing_atmo)'
 
       ! Allocate forcing arrays 
@@ -234,6 +236,14 @@
          endif
          call abort_ice(error_message=subname//' HadGEM precip_units error', &
             file=__FILE__, line=__LINE__)
+      endif
+
+      if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55' .and. &
+                                trim(atm_data_type) /= 'default' .or. &
+                                trim(atm_data_type) /= 'box2001')) then
+         write(nu_diag,*) 'use_leap_years option is currently only supported for'
+         write(nu_diag,*) 'JRA55 and default atmospheric data'
+         call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
       endif
 
     !-------------------------------------------------------------------
