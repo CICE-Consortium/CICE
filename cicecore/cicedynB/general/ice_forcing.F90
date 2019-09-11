@@ -242,7 +242,7 @@
                                 trim(atm_data_type) /= 'default' .or. &
                                 trim(atm_data_type) /= 'box2001')) then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
-         write(nu_diag,*) 'JRA55 and default atmospheric data'
+         write(nu_diag,*) 'JRA55, default , and box2001 atmospheric data'
          call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
       endif
 
