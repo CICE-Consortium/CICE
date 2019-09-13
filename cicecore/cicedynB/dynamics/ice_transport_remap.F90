@@ -260,7 +260,7 @@
 !                          xxxav, xxyav, xyyav, yyyav
 
       integer (kind=int_kind) ::     &
- 	 i, j, iblk     ! standard indices
+        i, j, iblk     ! standard indices
 
       character(len=*), parameter :: subname = '(init_remap)'
 

@@ -190,6 +190,9 @@ Known bugs
 -  Latitude and longitude fields in the history output may be wrong when
    using padding.
 
+-  History and restart files will not be written on the first timestep in
+   some cases.
+
 
 Interpretation of albedos
 ----------------------------------------
