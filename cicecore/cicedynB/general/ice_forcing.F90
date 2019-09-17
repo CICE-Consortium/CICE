@@ -239,7 +239,7 @@
       endif
 
       if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55' .and. &
-                                trim(atm_data_type) /= 'default' .or. &
+                                trim(atm_data_type) /= 'default' .and. &
                                 trim(atm_data_type) /= 'box2001')) then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
          write(nu_diag,*) 'JRA55, default , and box2001 atmospheric data'
