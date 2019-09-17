@@ -14,6 +14,8 @@ found in the `CICE Git and Workflow Guide <https://github.com/CICE-Consortium/Ab
 
 You will probably have to download some inputdata, see the `CICE wiki <https://github.com/cice-consortium/CICE/wiki>`_ or :ref:`force`.
 
+Software requirements are noted in this :ref:`software` section.
+
 From your main CICE directory, execute::
 
   ./cice.setup -c ~/mycase1 -g gx3 -m testmachine -s diag1,thread -p 8x1
