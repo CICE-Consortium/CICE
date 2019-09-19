@@ -174,7 +174,20 @@ cat >> ${jobfile} << EOFB
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
 #SBATCH -o slurm%j.out
-#SBATCH --mail-type END,FAIL
+#SBATCH --mail-type FAIL
+#SBATCH --mail-user=robert.grumbine@noaa.gov
+EOFB
+
+else if (${ICE_MACHINE} =~ hera*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -t ${batchtime}
+#SBATCH -q batch
+#SBATCH -A marine-cpu
+#SBATCH -N ${nnodes}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+#SBATCH --mail-type FAIL
 #SBATCH --mail-user=robert.grumbine@noaa.gov
 EOFB
 
