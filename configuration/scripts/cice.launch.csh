@@ -101,7 +101,7 @@ cat >> ${jobfile} << EOFR
 EOFR
 else
 cat >> ${jobfile} << EOFR
-srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+srun --cpu-bind=cores ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 
@@ -156,18 +156,38 @@ endif
 #=======
 else if (${ICE_MACHINE} =~ theia*) then
 cat >> ${jobfile} << EOFR
+<<<<<<< HEAD
 ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 #=======
 else if (${ICE_MACHINE} =~ phase2*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
+=======
+#mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+#./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+#=======
+else if (${ICE_MACHINE} =~ high_Sierra*) then
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+#./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
+#=======
+else if (${ICE_MACHINE} =~ phase2*) then
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+#./cice >&! \$ICE_RUNLOG_FILE
+>>>>>>> 40d1cf0c63894fd11a75bec21f6a32a7ebfb177f
 EOFR
 
 #=======
 else if (${ICE_MACHINE} =~ phase3*) then
 cat >> ${jobfile} << EOFR
-./cice >&! \$ICE_RUNLOG_FILE
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+#./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 #=======
 else if (${ICE_MACHINE} =~ testmachine*) then
