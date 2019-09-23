@@ -279,7 +279,6 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
         wave_sig_ht        ! significant height of waves (m)
-        !ice_wave_sig_ht   ! significant height of waves in ice (m)
 
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          wavefreq,      &  ! wave frequencies
