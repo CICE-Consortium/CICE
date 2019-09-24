@@ -115,33 +115,7 @@ module ice_dyn_evp_1d
   contains
 
 !===============================================================================
-!module dmi_omp
-
-!  use ice_kinds_mod
-!  use ice_fileunits, only: nu_diag
-!  use ice_exit, only: abort_ice
-
-!  implicit none
-!  private
-!  public  :: domp_init, domp_get_domain, domp_get_thread_no
-
-!  interface domp_get_domain
-!    module procedure domp_get_domain_rlu
-!  end interface 
-
-!  INTEGER, PARAMETER :: JPIM = SELECTED_INT_KIND(9)
-!  integer(int_kind), private :: domp_iam, domp_nt
-
-!#if defined (_OPENMP)
-!  ! Please note, this constant will create a compiler info for a constant
-!  ! expression in IF statements:
-!  real(kind=dbl_kind) :: rdomp_iam, rdomp_nt
-!  !$OMP THREADPRIVATE(domp_iam,domp_nt,rdomp_iam,rdomp_nt) 
-!#endif
-
-!contains
-
-!----------------------------------------------------------------------------
+!former module dmi_omp
 
   subroutine domp_init(nt_out)
 
@@ -252,29 +226,11 @@ module ice_dyn_evp_1d
 
 !----------------------------------------------------------------------------
 
-!end module dmi_omp
+!former end module dmi_omp
 
 !===============================================================================
 
-!module bench_v2
-
-!  use ice_fileunits, only: nu_diag
-!  use ice_exit, only: abort_ice
-
-!  implicit none
-!  private
-!  public :: evp1d_stress, evp1d_stepu, evp1d_halo_update
-
-!  interface evp1d_stress
-!    module procedure stress_i
-!    module procedure stress_l
-!  end interface 
-!  interface evp1d_stepu
-!    module procedure stepu_iter
-!    module procedure stepu_last
-!  end interface 
-
-!  contains
+!former module bench_v2
 
 !----------------------------------------------------------------------------
 
@@ -1043,7 +999,7 @@ module ice_dyn_evp_1d
 
 !----------------------------------------------------------------------------
 
-!end module bench_v2
+!former end module bench_v2
   
 !===============================================================================
 !----------------------------------------------------------------------------
