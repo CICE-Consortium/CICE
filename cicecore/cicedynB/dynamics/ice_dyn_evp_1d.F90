@@ -243,7 +243,6 @@ module ice_dyn_evp_1d
                      str6,str7,str8)
 
     use ice_kinds_mod
-!    use dmi_omp, only : domp_get_domain
     use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c1
     use icepack_parameters, only: puny
     use ice_dyn_shared, only: ecci, denom1, arlx1i, Ktens, revp
@@ -509,7 +508,6 @@ module ice_dyn_evp_1d
                      str1,str2,str3,str4,str5,str6,str7,str8                     )
 
     use ice_kinds_mod
-!    use dmi_omp, only : domp_get_domain
     use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c0, c1
     use icepack_parameters, only: puny
     use ice_dyn_shared, only: ecci, denom1, arlx1i, Ktens, revp
@@ -778,7 +776,6 @@ module ice_dyn_evp_1d
                     str1,str2,str3,str4,str5,str6,str7,str8, nw,sw,se,skipme)
 
     use ice_kinds_mod
-!    use dmi_omp, only : domp_get_domain
     use ice_dyn_shared, only: brlx, revp
     use ice_constants, only: c0, c1
 
@@ -869,7 +866,6 @@ module ice_dyn_evp_1d
                     str1,str2,str3,str4,str5,str6,str7,str8, nw,sw,se,skipme)
 
     use ice_kinds_mod
-!    use dmi_omp, only : domp_get_domain
     use ice_constants, only: c0, c1
     use icepack_parameters, only: puny
     use ice_dyn_shared, only: brlx, revp, basalstress
@@ -962,7 +958,6 @@ module ice_dyn_evp_1d
   subroutine evp1d_halo_update(NAVEL_len,lb,ub,uvel,vvel, halo_parent)
 
     use ice_kinds_mod
-!    use dmi_omp, only : domp_get_domain
 
     implicit none
 
@@ -1402,8 +1397,6 @@ module ice_dyn_evp_1d
 
     use ice_constants, only : c0
     use ice_dyn_shared, only: ndte
-!    use bench_v2, only : evp1d_stress, evp1d_stepu, evp1d_halo_update
-!    use dmi_omp, only : domp_init
     use icepack_intfc, only: icepack_query_parameters
     use ice_communicate, only: my_task, master_task
     implicit none
@@ -2038,7 +2031,6 @@ module ice_dyn_evp_1d
 
   subroutine numainit(l,u,uu)
 
-!    use dmi_omp, only  : domp_get_domain
     use ice_constants, only: c0
 
     implicit none
