@@ -181,7 +181,7 @@ EOFB
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -t ${batchtime}
+#SBATCH -t `echo ${batchtime} | cut -f1-2 -d:`
 #SBATCH -q batch
 #SBATCH -A marine-cpu
 #SBATCH -N ${nnodes}
@@ -198,7 +198,16 @@ EOFB
 
 else if (${ICE_MACHINE} =~ phase3*) then
 cat >> ${jobfile} << EOFB
-# nothing to do
+#BSUB -J ${ICE_CASENAME}
+#BSUB -q "dev"
+#BSUB -P RTO-T2O
+#BSUB -W 00:29
+#BSUB -n ${nnodes}
+#BSUB -R "affinity[core]"
+#BSUB -R "span[ptile=${nnodes}]"
+#BSUB -R "rusage[mem=16384]"
+#BSUB -o /u/Robert.Grumbine/${ICE_CASENAME}.out.%J
+#BSUB -e /u/Robert.Grumbine/${ICE_CASENAME}.err.%J
 EOFB
 
 else if (${ICE_MACHINE} =~ high_Sierra*) then
