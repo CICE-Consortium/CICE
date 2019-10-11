@@ -44,7 +44,7 @@
 !-----------------------------------------------------------------------
 
 #ifdef coupled
-   include 'mpif.h'   ! MPI Fortran include file
+   use mpi   ! MPI Fortran module
 
    integer (int_kind) :: ierr  ! MPI error flag
 #endif
@@ -137,9 +137,8 @@
 !  domain configuration (e.g. nprocs_btrop) has been determined
 
 #ifdef coupled
-! !INCLUDES:
 
-   include 'mpif.h'
+   use mpi   ! MPI Fortran module
 
 #endif
 ! !INPUT PARAMETERS:
