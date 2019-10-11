@@ -478,12 +478,12 @@
             if (this_block%j_glob(j) > 0) then
                do i=this_block%ilo,this_block%ihi
                   if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
+	             ig = this_block%i_glob(i)
                      jg = this_block%j_glob(j)
                      if (KMTG(ig,jg) > puny .and.                      &
                         (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
                          ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
-                          nocn(n) = nocn(n) + flat(ig,jg)
+ 	                 nocn(n) = nocn(n) + flat(ig,jg)
                   endif
                end do
             endif

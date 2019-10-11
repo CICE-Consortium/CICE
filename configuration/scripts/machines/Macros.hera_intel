@@ -1,28 +1,29 @@
 #==============================================================================
-# Makefile macros for Travis-CI - GCC and openmpi compilers
+# Makefile macros for theia - intel and openmpi compilers
 #==============================================================================
 
 CPP        := cpp
 CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 
+CFLAGS     := -c -O2  -xHost
 
 FIXEDFLAGS := -132
-FFLAGS     :=  -O2 -ffree-line-length-none -fconvert=big-endian -finit-real=nan
+FREEFLAGS  := -FR
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-    #FFLAGS     += -O0 -g -Wextra -fbacktrace -fbounds-check -ffpe-trap=zero,overflow
-    FFLAGS     += -O0 -g -std=f2008 -fbacktrace -fbounds-check -ffpe-trap=zero,overflow
+#RG: this looks more like gfortran options:  
+##  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+  FFLAGS     += -O0 -g -check-bounds -implicit-none -fpe3
 else
-    FFLAGS     += -O2
+  FFLAGS     += -O2
 endif
 
-FC := mpif90
-
-MPICC:= 
-
-MPIFC:= mpif90
-LD:= $(FC)
+#Note that on theia mpif90 refers to gfortran even though it is in the intel bin
+FC := mpiifort
+MPIFC:= mpiifort
+LD:= $(MPIFC)
 
 NETCDF_PATH := $(NETCDF)
 
@@ -38,8 +39,19 @@ endif
 
 LIB_MPI := 
 
-SCC:= 
-SFC:= 
+
+SCC   := icc 
+SFC   := ifort
+MPICC := mpiicc
+MPIFC := mpiifort
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -fopenmp

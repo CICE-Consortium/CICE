@@ -268,7 +268,7 @@
       real (kind=dbl_kind), dimension(:), allocatable, public :: &
          R_C2N     ,      & ! algal C to N (mole/mole)
          R_chl2N   ,      & ! 3 algal chlorophyll to N (mg/mmol)
-         R_Si2N             ! silica to nitrogen mole ratio for algal groups
+	 R_Si2N             ! silica to nitrogen mole ratio for algal groups
 
 !=======================================================================
 
