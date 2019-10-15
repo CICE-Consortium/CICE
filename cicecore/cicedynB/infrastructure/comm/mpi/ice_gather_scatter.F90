@@ -1826,7 +1826,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR8, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
@@ -2215,7 +2215,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR4, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
@@ -2604,7 +2604,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpi_integer, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
@@ -2948,7 +2948,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR8, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
@@ -3262,7 +3262,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR8, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
