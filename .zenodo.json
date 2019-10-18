@@ -1,7 +1,7 @@
 {
     "license": "other-open", 
     "description": "No description provided", 
-    "language": "English", 
+    "language": "eng", 
     "title": "CICE-Consortium/CICE: CICE Version m.n.p", 
     "keywords": [
         "sea ice model, CICE, Icepack"
@@ -98,7 +98,7 @@
         {
             "scheme": "doi", 
             "identifier": "10.5281/zenodo.1205674", 
-            "relation": "isVersionOf"
+            "relation": "isNewVersionOf"
         }
     ]
 }
