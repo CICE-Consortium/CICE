@@ -197,15 +197,22 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ phase3*) then
+if ( ${nnodes} > 15) then
+  setenv ptile 16
+else if ( ${nnodes} > 3) then 
+  setenv ptile 4
+else
+  setenv ptile 1
+endif
 cat >> ${jobfile} << EOFB
 #BSUB -J ${ICE_CASENAME}
-#BSUB -q "dev"
+#BSUB -q "dev_shared"
 #BSUB -P RTO-T2O
-#BSUB -W 00:29
+#BSUB -W `echo ${batchtime} | cut -f1-2 -d:`
 #BSUB -n ${nnodes}
 #BSUB -R "affinity[core]"
-#BSUB -R "span[ptile=${nnodes}]"
-#BSUB -R "rusage[mem=16384]"
+#BSUB -R "span[ptile=$ptile]"
+#BSUB -R "rusage[mem=2048]"
 #BSUB -o /u/Robert.Grumbine/${ICE_CASENAME}.out.%J
 #BSUB -e /u/Robert.Grumbine/${ICE_CASENAME}.err.%J
 EOFB
