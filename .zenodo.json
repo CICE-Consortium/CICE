@@ -37,7 +37,7 @@
         }, 
         {
             "affiliation": "National Oceanographic and Atmospheric Administration (CTR)", 
-            "name": "Tony Craig"
+            "name": "Anthony Craig"
         }, 
         {
             "affiliation": "Environment and Climate Change Canada", 
@@ -80,7 +80,7 @@
             "name": "Andrew Roberts"
         }, 
         {
-            "affiliation": "Naval Research Laboratory Stennis Space Center (CTR)", 
+            "affiliation": "Los Alamos National Laboratory", 
             "name": "Matthew Turner"
         }, 
         {
@@ -91,12 +91,10 @@
     "access_right": "open", 
     "related_identifiers": [
         {
-            "scheme": "url", 
             "identifier": "https://github.com/CICE-Consortium/CICE/tree/CICE6.0.1", 
             "relation": "isSupplementTo"
         }, 
         {
-            "scheme": "doi", 
             "identifier": "10.5281/zenodo.1205674", 
             "relation": "isNewVersionOf"
         }
