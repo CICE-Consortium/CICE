@@ -112,10 +112,10 @@
            f_peakval      = 'x', f_bgc_Fed_ml   = 'x', &
            f_bgc_Fep_ml   = 'x', f_bgc_hum_ml   = 'x', &
            f_bgc_N_cat1   = 'x', f_bgc_DOC_cat1 = 'x', &
-	   f_bgc_DIC_cat1 = 'x', f_bgc_Nit_cat1 = 'x', &
+           f_bgc_DIC_cat1 = 'x', f_bgc_Nit_cat1 = 'x', &
            f_bgc_Am_cat1  = 'x', f_bgc_Sil_cat1 = 'x', &
            f_bgc_DMSPd_cat1= 'x', f_bgc_DMS_cat1 = 'x', &
-	   f_bgc_DON_cat1 = 'x', f_bgc_Fed_cat1 = 'x', &
+           f_bgc_DON_cat1 = 'x', f_bgc_Fed_cat1 = 'x', &
            f_bgc_hum_cat1 = 'x', f_bgc_Fep_cat1 = 'x', &
            f_bgc_PON_cat1 = 'x'
 
@@ -226,11 +226,11 @@
            n_upNO        , n_upNH        , & 
            n_bTin        , n_bphi        , &
            n_iDi         , n_iki         , &
-           n_bgc_PON     , n_bgc_PON_ml  , &
+           n_bgc_PON     ,                 &
            n_fbri        , n_hbri        , &
            n_zfswin      , n_Nitnet      , & 
            n_Amnet       , n_Silnet      , &  
-           n_humnet      , &
+           n_humnet      ,                 &
            n_DMSPpnet    , n_DMSPdnet    , &  
            n_DMSnet      , n_PONnet      , &  
            n_Nitsnow     , n_Amsnow      , &
@@ -238,8 +238,8 @@
            n_DMSPpsnow   , n_DMSPdsnow   , &  
            n_DMSsnow     , n_PONsnow     , &   
            n_Nitfrac     , n_Amfrac      , &
-           n_Silfrac     , n_zbgc_frac   , &
-           n_humfrac     , &
+           n_Silfrac     ,                 &
+           n_humfrac     ,                 &
            n_DMSPpfrac   , n_DMSPdfrac   , &  
            n_DMSfrac     , n_PONfrac     , &  
            n_grownet     , n_PPnet       , &
