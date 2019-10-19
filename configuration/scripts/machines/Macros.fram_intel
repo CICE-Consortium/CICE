@@ -15,10 +15,17 @@ FFLAGS     := -O2 -fp-model precise -convert big_endian -assume byterecl -ftz -t
 #-xHost
 FFLAGS_NOOPT:= -O0
 
-SCC   := s.cc
-SFC   := s.f90
-MPICC := s.cc -mpi
-MPIFC := s.f90 -mpi
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays
+# -heap-arrays 1024 
+else
+  FFLAGS     += -O2
+endif
+
+SCC   := icc
+SFC   := ifort
+MPICC := mpicc
+MPIFC := mpif90
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC := $(MPIFC)
@@ -29,7 +36,7 @@ else
 endif
 LD:= $(FC)
 
-NETCDF_PATH := $(NETCDF)
+NETCDF_PATH := /fs/ssm/hpco/tmp/eccc/201402/04/intel-2016.1.150/ubuntu-14.04-amd64-64/
 
 PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 
