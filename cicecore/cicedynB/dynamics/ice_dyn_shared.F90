@@ -11,7 +11,8 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1, p01, p001
+      use ice_constants, only: c0, c1, c2, p01, p001
+      use ice_constants, only: omega, spval_dbl, p5, c4
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: nu_diag
@@ -40,10 +41,10 @@
          revised_evp  ! if true, use revised evp procedure
 
       integer (kind=int_kind), public :: &
-         evp_kernel_ver ! 0 = 2D org version
-                        ! 1 = 1D representation raw (not implemented)
-                        ! 2 = 1D + calculate distances inline (implemented)
-                        ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
+         kevp_kernel ! 0 = 2D org version
+                     ! 1 = 1D representation raw (not implemented)
+                     ! 2 = 1D + calculate distances inline (implemented)
+                     ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
       ! other EVP parameters
 
       character (len=char_len), public :: & 
@@ -115,7 +116,6 @@
       subroutine init_evp (dt)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c2, omega
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
       use ice_flux, only: rdg_conv, rdg_shear, iceumask, &
@@ -205,12 +205,6 @@
 
       subroutine set_evp_parameters (dt)
 
-      use ice_communicate, only: my_task, master_task
-      use ice_constants, only: p25, c1, c2, p5
-      use ice_domain, only: distrb_info
-      use ice_global_reductions, only: global_minval
-      use ice_grid, only: dxt, dyt, tmask
-
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -274,8 +268,6 @@
                             strairxT,  strairyT, & 
                             strairx,   strairy,  & 
                             tmass,     icetmask)
-
-      use ice_constants, only: c0
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -409,8 +401,6 @@
                             uvel,       vvel,       &
                             Tbu)
 
-      use ice_constants, only: c0, c1
-
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
@@ -503,7 +493,7 @@
          taubx    (i,j) = c0
          tauby    (i,j) = c0
 
-         if (revp==1) then               ! revised evp
+         if (icetmask(i,j)==0) then 
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
             stressp_3 (i,j) = c0
@@ -516,20 +506,7 @@
             stress12_2(i,j) = c0
             stress12_3(i,j) = c0
             stress12_4(i,j) = c0
-         else if (icetmask(i,j)==0) then ! classic evp
-            stressp_1 (i,j) = c0
-            stressp_2 (i,j) = c0
-            stressp_3 (i,j) = c0
-            stressp_4 (i,j) = c0
-            stressm_1 (i,j) = c0
-            stressm_2 (i,j) = c0
-            stressm_3 (i,j) = c0
-            stressm_4 (i,j) = c0
-            stress12_1(i,j) = c0
-            stress12_2(i,j) = c0
-            stress12_3(i,j) = c0
-            stress12_4(i,j) = c0
-         endif                  ! revp
+         endif                  
       enddo                     ! i
       enddo                     ! j
 
@@ -890,8 +867,6 @@
                                      vice,     aice,             &
                                      hwater,   Tbu)
 
-      use ice_constants, only: c0, c1                                     
-                                     
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
          icellu                 ! no. of cells where icetmask = 1
@@ -913,8 +888,10 @@
          hu,  & ! volume per unit area of ice at u location (mean thickness)
          hwu, & ! water depth at u location
          hcu, & ! critical thickness at u location
-         k2 = 15.0_dbl_kind , &  ! second free parameter (N/m^3) for landfast parametrization 
-         alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
+         k2 = 15.0_dbl_kind , &     ! second free parameter (N/m^3) for landfast parametrization 
+         alphab = 20.0_dbl_kind, &  ! alphab=Cb factor in Lemieux et al 2015
+         threshold_hw = 30.0_dbl_kind ! max water depth for grounding 
+                                      ! see keel data from Amundrud et al. 2004 (JGR)
 
       integer (kind=int_kind) :: &
          i, j, ij
@@ -926,15 +903,21 @@
          j = indxuj(ij)
 
          ! convert quantities to u-location
-         au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
+         
          hwu = min(hwater(i,j),hwater(i+1,j),hwater(i,j+1),hwater(i+1,j+1))
-         hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
 
-         ! 1- calculate critical thickness
-         hcu = au * hwu / k1
+         if (hwu < threshold_hw) then
+         
+            au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
+            hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
 
-         ! 2- calculate basal stress factor                    
-         Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+            ! 1- calculate critical thickness
+            hcu = au * hwu / k1
+
+            ! 2- calculate basal stress factor                    
+            Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+            
+         endif
 
       enddo                     ! ij
 
@@ -952,8 +935,6 @@
                                   stress12_1, strength,  &
                                   sig1,       sig2,      &
                                   sigP)
-
-      use ice_constants, only: spval_dbl, p5, c4
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block  ! block dimensions

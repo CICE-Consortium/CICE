@@ -279,13 +279,12 @@
       subroutine alloc_arrays_column
         ! Allocate column arrays
         use ice_exit, only: abort_ice
-        integer (int_kind) :: nspint, max_nbtrcr, max_algae, max_aero, &
+        integer (int_kind) :: max_nbtrcr, max_algae, max_aero, &
            nmodal1, nmodal2, max_don
         integer (int_kind) :: ierr, ntrcr
 
         character(len=*),parameter :: subname='(alloc_arrays_column)'
 
-!      call icepack_query_parameters(nspint_out=nspint)
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_sizes( max_nbtrcr_out=max_nbtrcr, &
          max_algae_out=max_algae, max_aero_out=max_aero, &

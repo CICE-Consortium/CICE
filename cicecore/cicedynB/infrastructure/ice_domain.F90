@@ -300,9 +300,11 @@
       i,j,n              ,&! dummy loop indices
       ig,jg              ,&! global indices
       work_unit          ,&! size of quantized work unit
+#ifdef ncdf
       fid                ,&! file id
       varid              ,&! var id
       status             ,&! netcdf return code
+#endif
       tblocks_tmp        ,&! total number of blocks
       nblocks_tmp        ,&! temporary value of nblocks
       nblocks_max          ! max blocks on proc
