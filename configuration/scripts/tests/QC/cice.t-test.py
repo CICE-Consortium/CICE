@@ -109,12 +109,16 @@ def read_data(path_a, path_b, files_a, files_b, ni, nj):
                            np.all(np.equal(data_d, 0.), axis=0), np.all(data_a < 0.01, axis=0))\
                       , np.all(data_b < 0.01, axis=0))
         mask_array_a = np.zeros_like(data_d)
+
         for x, value in np.ndenumerate(mask_d):
             i, j = x
             mask_array_a[:, i, j] = value
+        del mask_d
+
         data_a = ma.masked_array(data_a, mask=mask_array_a)
         data_b = ma.masked_array(data_b, mask=mask_array_a)
         data_d = ma.masked_array(data_d, mask=mask_array_a)
+
         del mask_array_a
 
         return data_a, data_b, data_d
@@ -145,10 +149,10 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
         r1_den2 = np.zeros_like(mean_d)
         for i in np.arange(np.size(data_a, axis=0)-1):
             r1_num = r1_num + (data_d[i, :, :]-mean_nm1_d[:, :])*(data_d[i+1, :, :]-mean_2n_d[:, :])
-            r1_den1 = r1_den1 + np.power(data_d[i, :, :]-mean_nm1_d[:, :], 2)
+            r1_den1 = r1_den1 + np.square(data_d[i, :, :]-mean_nm1_d[:, :])
 
         for i in np.arange(1, np.size(data_a, axis=0)):
-            r1_den2 = r1_den2 + np.power(data_d[i, :, :] - mean_2n_d[:, :], 2)
+            r1_den2 = r1_den2 + np.square(data_d[i, :, :] - mean_2n_d[:, :])
 
         r1 = r1_num / np.sqrt(r1_den1*r1_den2)
 
@@ -174,6 +178,13 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
         for x in maenumerate(data_d):
             min_val = np.min(np.abs(df[x]-df_table))
             idx = np.where(np.abs(df[x]-df_table) == min_val)
+            # Handle the cases where the data point falls exactly half way between
+            # 2 critical T-values (i.e., idx has more than 1 value in it)
+            while True:
+                try:
+                    idx = idx[0]
+                except:
+                    break
             t_crit[x] = t_crit_table[idx]
 
         # Create an array of Pass / Fail values for each grid cell
@@ -183,7 +194,14 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
 
     # Calculate the mean of the difference
     mean_d = np.mean(data_d, axis=0)
-    variance_d = np.sum(np.power(data_d - mean_d, 2)) / (num_files - 1)
+
+    # Loop through each timestep and calculate the square of the difference.
+    # This is required (instead of just np.square(data_d - mean_d) to reduce
+    # the memory footprint of the script.
+    tmp1 = np.zeros_like(data_d)
+    for i in np.arange(np.shape(data_d)[0]):
+        tmp1[i,:,:] = np.square(data_d[i,:,:] - mean_d[:,:])
+    variance_d = np.sum(tmp1) / float(num_files - 1)
 
     n_eff, H1, r1, t_crit = stage_one(data_d, num_files, mean_d, variance_d)
 
@@ -220,6 +238,13 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
     for x in maenumerate(data_d):
         min_val = np.min(np.abs(r1[x]-r1_table))
         idx = np.where(np.abs(r1[x]-r1_table) == min_val)
+        # Handle the cases where the data point falls exactly half way between
+        # 2 critical T-values (i.e., idx has more than 1 value in it)
+        while True:
+            try:
+                idx = idx[0]
+            except:
+                break
         t_crit[x] = t_crit_table[idx]
 
     # Create an array showing locations of Pass / Fail grid cells
@@ -300,8 +325,8 @@ def skill_test(path_a, fname, data_a, data_b, num_files, hemisphere):
     area_var_a = 0
     area_var_b = 0
     for t in np.arange(num_files):
-        area_var_a = area_var_a + np.sum(area_weight*np.power(data_a[t, :, :]-weighted_mean_a, 2))
-        area_var_b = area_var_b + np.sum(area_weight*np.power(data_b[t, :, :]-weighted_mean_b, 2))
+        area_var_a = area_var_a + np.sum(area_weight*np.square(data_a[t, :, :]-weighted_mean_a))
+        area_var_b = area_var_b + np.sum(area_weight*np.square(data_b[t, :, :]-weighted_mean_b))
 
     area_var_a = nonzero_weights / (num_files * nonzero_weights - 1.) * area_var_a
     area_var_b = nonzero_weights / (num_files * nonzero_weights - 1.) * area_var_b
@@ -317,8 +342,8 @@ def skill_test(path_a, fname, data_a, data_b, num_files, hemisphere):
 
     weighted_r = combined_cov / (std_a*std_b)
 
-    s = np.power((1+weighted_r)*(std_a*std_b)/\
-                 (area_var_a + area_var_b), 2)
+    s = np.square((1+weighted_r)*(std_a*std_b)/\
+                 (area_var_a + area_var_b))
 
     logger.debug('%s Hemisphere skill score = %f', hemisphere, s)
 
@@ -333,48 +358,102 @@ def skill_test(path_a, fname, data_a, data_b, num_files, hemisphere):
         logger.info('Quadratic Skill Test Failed for %s Hemisphere', hemisphere)
         return False
 
-def plot_data(data, lat, lon, units):
-    '''This function plots CICE data and creates a .png file (ice_thickness_map.png).'''
+def plot_data(data, lat, lon, units, case, plot_type):
+    '''This function plots CICE data and creates a .png file.'''
 
     try:
-        logger.info('Creating map of the data (ice_thickness_map.png)')
         # Load the necessary plotting libraries
         import matplotlib.pyplot as plt
         from mpl_toolkits.basemap import Basemap
         from mpl_toolkits.axes_grid1 import make_axes_locatable
     except ImportError:
         logger.warning('Error loading necessary Python modules in plot_data function')
+        return
 
     # Suppress Matplotlib deprecation warnings
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)
 
     # Create the figure and axis
-    fig = plt.figure(figsize=(12, 8))
-    ax = fig.add_axes([0.05, 0.08, 0.9, 0.9])
+    fig, axes = plt.subplots(nrows=1, ncols=2,figsize=(14, 8))
 
+    # Plot the northern hemisphere data as a scatter plot
     # Create the basemap, and draw boundaries
-    m = Basemap(projection='kav7', lon_0=180., resolution='l')
-    m.drawmapboundary(fill_color='white')
+    plt.sca(axes[0])
+    m = Basemap(projection='npstere', boundinglat=35,lon_0=270, resolution='l')
     m.drawcoastlines()
+    m.fillcontinents()
     m.drawcountries()
 
-    # Plot the data as a scatter plot
-    x, y = m(lon, lat)
-    sc = m.scatter(x, y, c=data, cmap='jet', lw=0)
+    if plot_type == 'scatter':
+        x, y = m(lon,lat)
+        sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
+    else:
+        # Create new arrays to add 1 additional longitude value to prevent a 
+        # small amount of whitespace around longitude of 0/360 degrees.
+        lon_cyc = np.zeros((lon.shape[0],lon.shape[1]+1))
+        mask = np.zeros((data.shape[0],data.shape[1]+1))
+        lat_cyc = np.zeros((lat.shape[0],lat.shape[1]+1))
 
-    m.drawmeridians(np.arange(0, 360, 60), labels=[0, 0, 0, 1], fontsize=10)
-    m.drawparallels(np.arange(-90, 90, 30), labels=[1, 0, 0, 0], fontsize=10)
+        mask[:,0:-1] = data.mask[:,:]
+        mask[:,-1] = data.mask[:,0]
+        lon_cyc[:,0:-1] = lon[:,:]; lon_cyc[:,-1] = lon[:,0]
+        lat_cyc[:,0:-1] = lat[:,:]; lat_cyc[:,-1] = lat[:,0]
 
-    plt.title('CICE Ice Thickness')
+        lon1 = np.ma.masked_array(lon_cyc, mask=mask)
+        lat1 = np.ma.masked_array(lat_cyc, mask=mask)
 
-    # Create the colorbar and add Pass / Fail labels
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("bottom", size="5%", pad=0.5)
-    cb = plt.colorbar(sc, cax=cax, orientation="horizontal", format="%.2f")
+        d = np.zeros((data.shape[0],data.shape[1]+1))
+        d[:,0:-1] = data[:,:]
+        d[:,-1] = data[:,0]
+        d1 = np.ma.masked_array(d,mask=mask)
+
+        x, y = m(lon1.data, lat1.data)
+
+        if plot_type == 'contour':
+            sc = m.contourf(x, y, d1, cmap='jet')
+        else:  # pcolor
+            sc = m.pcolor(x, y, d1, cmap='jet')
+
+    m.drawparallels(np.arange(-90.,120.,15.),labels=[1,0,0,0]) # draw parallels
+    m.drawmeridians(np.arange(0.,420.,30.),labels=[1,1,1,1]) # draw meridians
+
+    # Plot the southern hemisphere data as a scatter plot
+    plt.sca(axes[1])
+    m = Basemap(projection='spstere', boundinglat=-45,lon_0=270, resolution='l')
+    m.drawcoastlines()
+    m.fillcontinents()
+    m.drawcountries()
+
+    if plot_type == 'scatter':
+        x, y = m(lon,lat)
+        sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
+    else:
+        x, y = m(lon1.data, lat1.data)
+
+        # Bandaid for a bug in the version of Basemap used during development
+        outside = (x <= m.xmin) | (x >= m.xmax) | (y <= m.ymin) | (y >= m.ymax)
+        tmp = np.ma.masked_where(outside,d1)
+
+        if plot_type == 'contour':
+            sc = m.contourf(x, y, tmp, cmap='jet')
+        else:  # pcolor
+            sc = m.pcolor(x, y, tmp, cmap='jet')
+
+    m.drawparallels(np.arange(-90.,120.,15.),labels=[1,0,0,0]) # draw parallels
+    m.drawmeridians(np.arange(0.,420.,30.),labels=[1,1,1,1]) # draw meridians
+
+    plt.suptitle('CICE Mean Ice Thickness\n{}'.format(case), y=0.95)
+
+    # Make some room at the bottom of the figure, and create a colorbar
+    fig.subplots_adjust(bottom=0.2)
+    cbar_ax = fig.add_axes([0.11,0.1,0.8,0.05])
+    cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2f")
     cb.set_label(units, x=1.0)
 
-    plt.savefig('ice_thickness_map.png', dpi=300)
+    outfile = 'ice_thickness_{}.png'.format(case.replace('\n- ','_minus_'))
+    logger.info('Creating map of the data ({})'.format(outfile))
+    plt.savefig(outfile, dpi=300, bbox_inches='tight')
 
 def plot_two_stage_failures(data, lat, lon):
     '''This function plots each grid cell and whether or not it Passed or Failed
@@ -403,7 +482,7 @@ def plot_two_stage_failures(data, lat, lon):
         ax = fig.add_axes([0.05, 0.08, 0.9, 0.9])
 
         # Create the basemap, and draw boundaries
-        m = Basemap(projection='kav7', lon_0=180., resolution='l')
+        m = Basemap(projection='moll', lon_0=0., resolution='l')
         m.drawmapboundary(fill_color='white')
         m.drawcoastlines()
         m.drawcountries()
@@ -415,7 +494,7 @@ def plot_two_stage_failures(data, lat, lon):
 
         # Plot the data as a scatter plot
         x, y = m(lon, lat)
-        sc = m.scatter(x, y, c=int_data, cmap=cm, lw=0, vmin=0, vmax=1)
+        sc = m.scatter(x, y, c=int_data, cmap=cm, lw=0, vmin=0, vmax=1, s=4)
 
         m.drawmeridians(np.arange(0, 360, 60), labels=[0, 0, 0, 1], fontsize=10)
         m.drawparallels(np.arange(-90, 90, 30), labels=[1, 0, 0, 0], fontsize=10)
@@ -457,8 +536,11 @@ def main():
                 help='Path to the test history (iceh_inst*) files.  REQUIRED')
     parser.add_argument('-v', '--verbose', dest='verbose', help='Print debug output?', \
                         action='store_true')
+    parser.add_argument('-pt','--plot_type', dest='plot_type', help='Specify type of plot \
+                        to create', choices=['scatter','contour','pcolor'])
 
     parser.set_defaults(verbose=False)
+    parser.set_defaults(plot_type='pcolor')
 
     # If no arguments are provided, print the help message
     if len(sys.argv) == 1:
@@ -503,6 +585,17 @@ def main():
     # If test failed, attempt to create a plot of the failure locations
     if not PASSED:
         plot_two_stage_failures(H1_array, t_lat, t_lon)
+        
+        # Create plots of mean ice thickness
+        baseDir = os.path.abspath(args.base_dir).rstrip('history/').rstrip(\
+                                                        'history').split('/')[-1]
+        testDir = os.path.abspath(args.test_dir).rstrip('history/').rstrip( \
+                                                        'history').split('/')[-1]
+        plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir, args.plot_type)
+        plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir, args.plot_type)
+        plot_data(np.mean(data_base-data_test,axis=0), t_lat, t_lon, 'm', '{}\n- {}'.\
+                  format(baseDir,testDir), args.plot_type)
+
         logger.error('Quality Control Test FAILED')
         sys.exit(-1)
 
@@ -533,6 +626,16 @@ def main():
         PASSED_SH = skill_test(dir_a, files_base[0], data_sh_a, data_sh_b, nfiles, 'Southern')
 
     PASSED_SKILL = PASSED_NH and PASSED_SH
+
+    # Plot the ice thickness data for the base and test cases
+    baseDir = os.path.abspath(args.base_dir).rstrip('history/').rstrip( \
+                                                    'history').split('/')[-1]
+    testDir = os.path.abspath(args.test_dir).rstrip('history/').rstrip( \
+                                                    'history').split('/')[-1]
+    plot_data(np.mean(data_base,axis=0), t_lat, t_lon, 'm', baseDir, args.plot_type)
+    plot_data(np.mean(data_test,axis=0), t_lat, t_lon, 'm', testDir, args.plot_type)
+    plot_data(np.mean(data_base-data_test,axis=0), t_lat, t_lon, 'm', '{}\n- {}'.\
+              format(baseDir,testDir), args.plot_type)
 
     logger.info('')
     if not PASSED_SKILL:
