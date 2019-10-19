@@ -16,7 +16,7 @@ module ice_comp_esmf
   use shr_sys_mod,  only : shr_sys_abort, shr_sys_flush
 ! use shr_mem_mod,  only : shr_get_memusage, shr_init_memusage
   use shr_file_mod, only : shr_file_getlogunit, shr_file_getloglevel,  &
-		           shr_file_setloglevel, shr_file_setlogunit
+                           shr_file_setloglevel, shr_file_setlogunit
   use mct_mod
 #ifdef USE_ESMF_LIB
   use esmf
@@ -26,10 +26,10 @@ module ice_comp_esmf
 
   use seq_flds_mod
   use seq_infodata_mod,only : seq_infodata_start_type_cont, &
-		              seq_infodata_start_type_brnch, seq_infodata_start_type_start
+                              seq_infodata_start_type_brnch, seq_infodata_start_type_start
   use seq_timemgr_mod, only : seq_timemgr_eclockgetdata, &
                               seq_timemgr_restartalarmison, &
-		              seq_timemgr_eclockdateinsync, &
+                              seq_timemgr_eclockdateinsync, &
                               seq_timemgr_stopalarmison
   use seq_comm_mct,    only : seq_comm_suffix, seq_comm_inst, seq_comm_name
   use perf_mod,        only : t_startf, t_stopf, t_barrierf
@@ -44,12 +44,12 @@ module ice_comp_esmf
   use ice_domain,      only : nblocks, blocks_ice, halo_info, distrb_info
   use ice_blocks,      only : block, get_block, nx_block, ny_block
   use ice_grid,        only : tlon, tlat, tarea, tmask, anglet, hm, &
- 		              grid_type, t2ugrid_vector, gridcpl_file, ocn_gridcell_frac
+                              grid_type, t2ugrid_vector, gridcpl_file, ocn_gridcell_frac
   use ice_constants,   only : c0, c1, spval_dbl, rad_to_deg, radius, secday
   use ice_communicate, only : my_task, master_task, MPI_COMM_ICE
   use ice_calendar,    only : istep, istep1, force_restart_now, write_ic,&
                               idate, idate0, mday, time, month, daycal,  &
-		              sec, dt, dt_dyn, calendar,                 &
+                              sec, dt, dt_dyn, calendar,                 &
                               calendar_type, nextsw_cday, days_per_year, &
                               nyr, new_year, time2sec, year_init
   use icepack_orbital,     only : eccen, obliqr, lambm0, mvelpp
@@ -694,7 +694,7 @@ end subroutine
 
     force_restart_now = seq_timemgr_RestartAlarmIsOn(EClock)
 
-    if (calendar_type .eq. "GREGORIAN") then 	
+    if (calendar_type .eq. "GREGORIAN") then
        nyrp = nyr
        nyr = (curr_ymd/10000)+1           ! integer year of basedate
        if (nyr /= nyrp) then

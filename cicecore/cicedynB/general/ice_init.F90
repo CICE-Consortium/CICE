@@ -19,14 +19,14 @@
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
           ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
+#ifdef CESMCOUPLED
       use ice_fileunits, only: inst_suffix
+#endif
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_trcr
       use icepack_intfc, only: icepack_init_parameters
       use icepack_intfc, only: icepack_init_tracer_flags
-      use icepack_intfc, only: icepack_init_tracer_numbers
-      use icepack_intfc, only: icepack_init_tracer_indices
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_numbers
       use icepack_intfc, only: icepack_query_tracer_indices
@@ -92,7 +92,7 @@
                           grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                evp_kernel_ver, &
+                                kevp_kernel, &
                                 basalstress, k1, Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection
@@ -106,8 +106,6 @@
       integer (kind=int_kind) :: &
          nml_error, & ! namelist i/o error flag
          n            ! loop index
-
-      character (len=6) :: chartmp
 
       logical :: exists
 
@@ -127,8 +125,6 @@
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
-      integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
-      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
       integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
@@ -180,7 +176,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        evp_kernel_ver,                                                 &
+        kevp_kernel,                                                    &
         brlx,           arlx,                                           &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
@@ -283,7 +279,7 @@
       kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
-      evp_kernel_ver = 0 ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
+      kevp_kernel = 0    ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -546,7 +542,7 @@
       call broadcast_scalar(kdyn,               master_task)
       call broadcast_scalar(ndtd,               master_task)
       call broadcast_scalar(ndte,               master_task)
-      call broadcast_scalar(evp_kernel_ver,     master_task)
+      call broadcast_scalar(kevp_kernel,        master_task)
       call broadcast_scalar(brlx,               master_task)
       call broadcast_scalar(arlx,               master_task)
       call broadcast_scalar(revised_evp,        master_task)
@@ -996,10 +992,8 @@
          endif
          write(nu_diag,1020) ' ndtd                      = ', ndtd
          write(nu_diag,1020) ' ndte                      = ', ndte
-         write(nu_diag,1010) ' revised_evp               = ', &
-                               revised_evp
-         write(nu_diag,1020) ' evp_kernel_ver            = ', &
-                               evp_kernel_ver
+         write(nu_diag,1010) ' revised_evp               = ', revised_evp
+         write(nu_diag,1020) ' kevp_kernel               = ', kevp_kernel
          write(nu_diag,1005) ' brlx                      = ', brlx
          write(nu_diag,1005) ' arlx                      = ', arlx
          if (kdyn == 1) &
@@ -1190,8 +1184,23 @@
          abort_flag = 20
       endif
 
+      ! check for valid kevp_kernel
+      ! tcraig, kevp_kernel=2 is not validated, do not allow use
+      !         use "102" to test "2" for now
+      if (kevp_kernel /= 0) then
+         if (kevp_kernel == 102) then
+            kevp_kernel = 2
+         else
+            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: kevp_kernel = ',kevp_kernel
+            if (kevp_kernel == 2) then
+                if (my_task == master_task) write(nu_diag,*) subname//' kevp_kernel=2 not validated, use kevp_kernel=102 for testing until it is validated'
+            endif
+            abort_flag = 21
+        endif
+      endif
+
       if (abort_flag /= 0) then
-        call flush_fileunit(nu_diag)
+         call flush_fileunit(nu_diag)
       endif
       call ice_barrier()
       if (abort_flag /= 0) then
@@ -1873,7 +1882,7 @@
       ! Geometric configuration of the slotted cylinder
       diam     = p3 *dxrect*(nx_global-1)
       center_x = p5 *dxrect*(nx_global-1)
-      center_y = p75*dxrect*(ny_global-1)
+      center_y = p75*dyrect*(ny_global-1)
       radius   = p5*diam
       width    = p166*diam
       length   = c5*p166*diam
@@ -1886,11 +1895,11 @@
       ! check if grid point is inside slotted cylinder
       in_slot = (dxrect*real(iglob(i)-1, kind=dbl_kind) >= slot_x(1)) .and. &
                 (dxrect*real(iglob(i)-1, kind=dbl_kind) <= slot_x(2)) .and. & 
-                (dxrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
-                (dxrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
+                (dyrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
+                (dyrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
                 
       in_cyl  = sqrt((dxrect*real(iglob(i)-1, kind=dbl_kind) - center_x)**c2 + &
-                     (dxrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
+                     (dyrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
       
       in_slotted_cyl = in_cyl .and. .not. in_slot
       
@@ -1914,9 +1923,10 @@
                                      iglob,    jglob,   &
                                      uvel,     vvel)
       
-      use ice_constants, only: c1, c4, c2, c12, p5, cm_to_m
+      use ice_constants, only: c2, c12, p5, cm_to_m
       use ice_domain_size, only: nx_global, ny_global
       use ice_grid, only: dxrect
+      use icepack_parameters, only: secday, pi
 
       integer (kind=int_kind), intent(in) :: &
          i, j,               & ! local indices
@@ -1933,15 +1943,11 @@
          max_vel        , & ! max velocity
          domain_length  , & ! physical domain length
          period             ! rotational period
-         
-      real (kind=dbl_kind), parameter :: &
-         pi        = c4*atan(c1), & ! pi
-         days_to_s = 86400._dbl_kind
       
       character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
       
       domain_length = dxrect*cm_to_m*nx_global
-      period        = c12*days_to_s            ! 12 days rotational period
+      period        = c12*secday               ! 12 days rotational period
       max_vel       = pi*domain_length/period
 
       uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &

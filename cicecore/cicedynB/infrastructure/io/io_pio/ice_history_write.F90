@@ -57,7 +57,7 @@
       use ice_restart_shared, only: runid, lcdf64
       use netcdf
 #endif
-      use ice_pio	
+      use ice_pio
       use pio
 
       integer (kind=int_kind), intent(in) :: ns
@@ -161,7 +161,7 @@
 
       File%fh=-1
       call ice_pio_init(mode='write', filename=trim(filename), File=File, &
-	clobber=.true., cdf64=lcdf64)
+        clobber=.true., cdf64=lcdf64)
 
       call ice_pio_initdecomp(iodesc=iodesc2d)
       call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc)
@@ -349,7 +349,7 @@
           dimidex(4)=kmtidb
           dimidex(5)=kmtida
 
-	do i = 1, nvarz
+        do i = 1, nvarz
            if (igrdz(i)) then
               status = pio_def_var(File, trim(var_nz(i)%short_name), pio_real, &
                                    (/dimidex(i)/), varid)
@@ -782,7 +782,7 @@
 
         ! Extra dimensions (NCAT, VGRD*)
 
-	do i = 1, nvarz
+        do i = 1, nvarz
           if (igrdz(i)) then
             status = pio_inq_varid(File, var_nz(i)%short_name, varid)
             SELECT CASE (var_nz(i)%short_name)

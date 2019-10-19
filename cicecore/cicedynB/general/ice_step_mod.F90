@@ -947,8 +947,6 @@
 
       use ice_arrays_column, only: Cdn_atm, Cdn_atm_ratio
       use ice_blocks, only: nx_block, ny_block
-      use ice_blocks, only: block, get_block
-      use ice_domain, only: blocks_ice
       use ice_flux, only: sst, Tf, Qa, uatm, vatm, wind, potT, rhoa, zlvl, &
            frzmlt, fhocn, fswthru, flw, flwout_ocn, fsens_ocn, flat_ocn, evap_ocn, &
            alvdr_ocn, alidr_ocn, alvdf_ocn, alidf_ocn, swidf, swvdf, swidr, swvdr, &
@@ -970,7 +968,6 @@
          frzmlt_max = c1000   ! max magnitude of frzmlt (W/m^2)
 
       integer (kind=int_kind) :: &
-         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j           , & ! horizontal indices
          ij                 ! combined ij index
 
@@ -985,9 +982,6 @@
 
       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
          indxi, indxj    ! compressed indices for ocean cells
-
-      type (block) :: &
-         this_block         ! block information for current block
 
       character(len=*), parameter :: subname = '(ocn_mixed_layer)'
 
