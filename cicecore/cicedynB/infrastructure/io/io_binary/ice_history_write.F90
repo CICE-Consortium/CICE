@@ -56,7 +56,7 @@
 
       ! local variables
 
-      integer (kind=int_kind) :: k,n,nn,nrec,nbits
+      integer (kind=int_kind) :: i,k,n,nn,nrec,nbits
       character (char_len) :: title
       character (char_len_long) :: ncfile(max_nstrm), hdrfile
 

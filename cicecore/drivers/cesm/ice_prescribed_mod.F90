@@ -138,7 +138,7 @@ contains
    namelist /ice_prescribed_nml/  &
         prescribed_ice,      &
         model_year_align,    &
-        stream_year_first ,  &
+	stream_year_first ,  &
         stream_year_last  ,  &
         stream_fldVarName ,  &
         stream_fldFileName,  &

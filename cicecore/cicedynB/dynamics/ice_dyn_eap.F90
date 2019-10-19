@@ -119,8 +119,8 @@
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
-          denom1, uvel_init, vvel_init, arlx1i, &
+      use ice_dyn_shared, only: fcor_blk, ndte, dtei, a_min, m_min, &
+          cosw, sinw, denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           basal_stress_coeff, basalstress
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
@@ -1615,9 +1615,9 @@
          invstressconviso, &
          Angle_denom_gamma,  Angle_denom_alpha, &
          Tany_1, Tany_2, &
-         x, y, dx, dy, da, &
+         gamma, alpha, x, y, dx, dy, da, &
          invdx, invdy, invda, invsin, &
-         dtemp1, dtemp2, atempprime, &
+         invleng, dtemp1, dtemp2, atempprime, &
          kxw, kyw, kaw, &
          puny, pi, pi2, piq, pih
 

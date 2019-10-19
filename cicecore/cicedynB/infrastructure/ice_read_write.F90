@@ -1516,10 +1516,12 @@
 
       ! local variables
 
-#ifdef ncdf
       real (kind=dbl_kind), dimension(:), allocatable :: &
-           work_z
+         work_z
 
+      character(len=*), parameter :: subname = '(ice_read_nc_z)'
+
+#ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid,           & ! netcdf id for field
@@ -1530,11 +1532,6 @@
 
       character (char_len) :: &
          dimname            ! dimension name            
-#endif
-
-      character(len=*), parameter :: subname = '(ice_read_nc_z)'
-
-#ifdef ncdf
 
       allocate(work_z(nilyr))
 
@@ -1628,8 +1625,8 @@
          amin, amax, asum   ! min, max values and sum of input array
 
       character (char_len) :: &
-         lvarname           ! variable name
-!        dimname            ! dimension name            
+         lvarname,        & ! variable name
+         dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1748,8 +1745,8 @@
          amin, amax, asum   ! min, max values and sum of input array
 
       character (char_len) :: &
-         lvarname           ! variable name
-!        dimname            ! dimension name            
+         lvarname,        & ! variable name
+         dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -2139,11 +2136,15 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
-         status             ! status output from netcdf routines
+         status,          & ! status output from netcdf routines
+         nvar               ! sizes of netcdf vector
 
       real (kind=dbl_kind) :: &
          amin, amax         ! min, max values of input vector
 
+      character (char_len) :: &
+         dimname            ! dimension name
+!
       work_g(:) = c0
 
       if (my_task == master_task) then
@@ -2193,15 +2194,10 @@
          varname             ! field name in netcdf file
       integer (kind=int_kind), intent(out) :: &
          recsize             ! Number of records in file
-
-      ! local variables
-
-#ifdef ncdf
       integer (kind=int_kind) :: &
          ndims, i, status
       character (char_len) :: &
          cvar
-#endif
       character(len=*), parameter :: subname = '(ice_get_ncvarsize)'
 
 #ifdef ncdf

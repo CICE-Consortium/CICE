@@ -37,8 +37,8 @@
       use ice_communicate, only: my_task
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
-      use ice_constants, only: c0, p027, p055, p111, p166, &
-          p222, p25, p333, p5, c1
+      use ice_constants, only: c0, c4, p027, p055, p111, p166, &
+          p2, p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens, revp
@@ -92,8 +92,7 @@
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
-      use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
-          ice_dyn_evp_1d_copyout
+      use ice_dyn_evp_1d
       use ice_dyn_shared, only: kevp_kernel
 
       real (kind=dbl_kind), intent(in) :: &
@@ -354,7 +353,7 @@
           call abort_ice(trim(subname)//' &
              & Kernel not tested on tripole grid. Set kevp_kernel=0')
         endif
-        call ice_dyn_evp_1d_copyin(                                                &
+        call evp_copyin(                                                &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
           HTE,HTN,                                                      &
 !v1          dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,                           &
@@ -368,7 +367,7 @@
           stress12_1,stress12_2,stress12_3,stress12_4                   )
         if (kevp_kernel == 2) then
           call ice_timer_start(timer_evp_1d)
-          call ice_dyn_evp_1d_kernel()
+          call evp_kernel_v2()
           call ice_timer_stop(timer_evp_1d)
 !v1        else if (kevp_kernel == 1) then
 !v1          call evp_kernel_v1()
@@ -376,7 +375,7 @@
           if (my_task == 0) write(nu_diag,*) subname,' ERROR: kevp_kernel = ',kevp_kernel
           call abort_ice(subname//' kevp_kernel not supported.')
         endif
-        call ice_dyn_evp_1d_copyout(                                               &
+        call evp_copyout(                                               &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
 !strocn          uvel,vvel, strocnx,strocny, strintx,strinty,                  &
           uvel,vvel, strintx,strinty,                                   &
@@ -642,7 +641,7 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-!       puny                                      , & ! puny
+        puny                                      , & ! puny
         c0ne, c0nw, c0se, c0sw                    , & ! useful combinations
         c1ne, c1nw, c1se, c1sw                    , &
         ssigpn, ssigps, ssigpe, ssigpw            , &

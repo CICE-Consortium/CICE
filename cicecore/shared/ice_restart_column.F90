@@ -786,6 +786,9 @@
       type (block) :: &
          this_block      ! block information for current block
 
+      integer (kind=int_kind) :: &
+         ipoint
+
       character(len=*),parameter :: subname='(write_restart_bgc)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)

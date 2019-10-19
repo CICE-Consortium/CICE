@@ -377,6 +377,7 @@ else
     exit -1
   endif
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/timeseries.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
   foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
@@ -432,7 +433,6 @@ if (${doabort} == true) then
   exit -1
 endif
 
-# Create a new sets_base variable to store sets passed to cice.setup
 set sets_base = "${sets}"
 set bfbcomp_base = "$bfbcomp"
 foreach compiler ( $ncompilers )
@@ -458,14 +458,13 @@ EOF
       continue
     endif
 
-    source ${ICE_SCRIPTS}/machines/env.${machcomp} -nomodules || exit 2
-
     # Obtain the test name, sets, grid, and PE information from .ts file
     set test = `echo $line | cut -d' ' -f1`
     set grid = `echo $line | cut -d' ' -f2`
     set pesx = `echo $line | cut -d' ' -f3`
     set sets_tmp = `echo $line | cut -d' ' -f4`
     set bfbcomp_tmp = `echo $line | cut -d' ' -f5`
+    # Create a new sets_base variable to store sets passed to cice.setup
 
     # Append sets from .ts file to the $sets variable
     set sets = "$sets_base,$sets_tmp"
@@ -481,107 +480,6 @@ EOF
     set fbfbcomp = ${spval}
     if ($bfbcomp != ${spval}) then
       set fbfbcomp = ${machcomp}_${bfbcomp}
-    endif
-
-    #------------------------------------------------------------
-    # Parse pesx with strict checking, limit pes for machine
-
-    set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-    if (${chck} == OK) then
-      set task  = `echo ${pesx} | cut -d x -f 1`
-      set thrd  = `echo ${pesx} | cut -d x -f 2`
-      set blckx = `echo ${pesx} | cut -d x -f 3`
-      set blcky = `echo ${pesx} | cut -d x -f 4`
-      set mblck = `echo ${pesx} | cut -d x -f 5`
-      if (${task} == 0 || ${thrd} == 0 || ${blckx} == 0 || ${blcky} == 0 || ${mblck} == 0) then
-        echo "${0}: ERROR in -p argument, cannot have zeros"
-        exit -1
-      endif
-    else
-      set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-      if (${chck} == OK) then
-        set task  = `echo ${pesx} | cut -d x -f 1`
-        set thrd  = `echo ${pesx} | cut -d x -f 2`
-        set blckx = `echo ${pesx} | cut -d x -f 3`
-        set blcky = `echo ${pesx} | cut -d x -f 4`
-        set mblck = 0
-        if (${task} == 0 || ${thrd} == 0 || ${blckx} == 0 || ${blcky} == 0) then
-          echo "${0}: ERROR in -p argument, cannot have zeros"
-          exit -1
-        endif
-      else
-        set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
-        if (${chck} == OK) then
-          set task = `echo ${pesx} | cut -d x -f 1`
-          set thrd = `echo ${pesx} | cut -d x -f 2`
-          set blckx = 0
-          set blcky = 0
-          set mblck = 0
-          if (${task} == 0 || ${thrd} == 0) then
-            echo "${0}: ERROR in -p argument, cannot have zeros"
-            exit -1
-          endif
-        else
-          set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*$/OK/'`
-          if (${chck} == OK) then
-            set task = `echo ${pesx} | cut -d x -f 1`
-            set thrd = 1
-            set blckx = 0
-            set blcky = 0
-            set mblck = 0
-            if (${task} == 0) then
-              echo "${0}: ERROR in -p argument, cannot have zeros"
-              exit -1
-            endif
-          else
-            echo "${0}: ERROR in -p argument, ${pesx}, must be [m], [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
-            exit -1
-          endif
-        endif
-      endif
-    endif
-
-    @ blkreq = ${task} * ${mblck}
-    # check max threads, reduce threads, increase tasks
-    if ($?ICE_MACHINE_MAXTHREADS) then
-      if (${thrd} > ${ICE_MACHINE_MAXTHREADS}) then
-        @ pesreq = ${task} * ${thrd}
-        @ task = ${pesreq} / ${ICE_MACHINE_MAXTHREADS}
-        @ thrd = ${ICE_MACHINE_MAXTHREADS}
-        @ peschk = ${task} * ${thrd}
-        if (${pesreq} > ${peschk}) then
-          @ task = ${task} + 1
-        endif
-#        echo "tcx1 reset to $task $thrd $mblck"
-      endif
-    endif
-
-    # check max pes, reduce tasks
-    if ($?ICE_MACHINE_MAXPES) then
-      @ pesreq = ${task} * ${thrd}
-      if (${pesreq} > ${ICE_MACHINE_MAXPES}) then
-        @ task = ${ICE_MACHINE_MAXPES} / ${thrd}
-#        echo "tcx2 reset to $task $thrd $mblck"
-      endif
-    endif
-
-    # check max blocks and adjust as needed
-    if ($mblck > 0) then
-      @ mblck = ${blkreq} / ${task}
-      @ blkchk = ${task} * ${mblck}
-      if (${blkreq} > ${blkchk}) then
-        @ mblck = $mblck + 1
-      endif
-#      echo "tcx3 reset to $task $thrd $mblck"
-    endif
-
-    # update pesx based on use defined settings and machine limits to reflect actual value
-    set pesx = ${task}x${thrd}x${blckx}x${blcky}x${mblck}
-    if (${mblck} == 0) then
-      set pesx = ${task}x${thrd}x${blckx}x${blcky}
-    endif
-    if (${blckx} == 0 || ${blcky} == 0) then
-      set pesx = ${task}x${thrd}
     endif
 
     set testname_noid = ${spval}
@@ -635,7 +533,7 @@ EOF
     endif
 
     # from basic script dir to case
-    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh timeseries.csh timeseries.py)
+    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh)
       if !(-e ${ICE_SCRIPTS}/$file) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
         exit -1
@@ -662,6 +560,7 @@ EOF
     end
 
     cd ${casedir}
+    source ./env.${machcomp} -nomodules || exit 2
 
     set quietmode = false
     if ($?ICE_MACHINE_QUIETMODE) then
@@ -686,6 +585,36 @@ EOF
 
     #------------------------------------------------------------
     # Compute a default blocksize
+
+    set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+    if (${chck} == OK) then
+      set task  = `echo ${pesx} | cut -d x -f 1`
+      set thrd  = `echo ${pesx} | cut -d x -f 2`
+      set blckx = `echo ${pesx} | cut -d x -f 3`
+      set blcky = `echo ${pesx} | cut -d x -f 4`
+      set mblck = `echo ${pesx} | cut -d x -f 5`
+    else
+      set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+      if (${chck} == OK) then
+        set task  = `echo ${pesx} | cut -d x -f 1`
+        set thrd  = `echo ${pesx} | cut -d x -f 2`
+        set blckx = `echo ${pesx} | cut -d x -f 3`
+        set blcky = `echo ${pesx} | cut -d x -f 4`
+        set mblck = 0
+      else
+        set chck = `echo ${pesx} | sed  's/^[0-9][0-9]*x[0-9][0-9]*$/OK/'`
+        if (${chck} == OK) then
+          set task = `echo ${pesx} | cut -d x -f 1`
+          set thrd = `echo ${pesx} | cut -d x -f 2`
+          set blckx = 0
+          set blcky = 0
+          set mblck = 0
+        else
+          echo "${0}: ERROR in -p argument, ${pesx}, must be [m]x[n], [m]x[n]x[bx]x[by], or [m]x[n]x[bx]x[by]x[mb] "
+          exit -1
+        endif
+      endif
+    endif
 
     setenv ICE_DECOMP_GRID  ${grid}
     setenv ICE_DECOMP_NTASK ${task}
@@ -918,7 +847,7 @@ echo "${testname_base}"
 cd ${testname_base}
 source ./cice.settings
 set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
-./cice.build --exe \${ciceexe}
+./cice.build \${ciceexe}
 if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
 EOF
   end

@@ -1,11 +1,9 @@
 ! ice_dyn_evp_1d
 !
-! Contained 3 Fortran modules,
+! Contains 3 Fortran modules,
 !   * dmi_omp
 !   * bench_v2
 !   * ice_dyn_evp_1d
-! These were merged into one module, ice_dyn_evp_1d to support some
-!   coupled build systems.
 !
 ! Modules used for:
 !   * convert 2D arrays into 1D vectors
@@ -13,9 +11,9 @@
 !   * convert 1D vectors into 2D matrices
 !
 !   Call from ice_dyn_evp.F90:
-!     call ice_dyn_evp_1d_copyin(...)
-!     call ice_dyn_evp_1d_kernel()
-!     call ice_dyn_evp_1d_copyout(...)
+!     call evp_copyin(...)
+!     call evp_kernel()
+!     call evp_copyout(...)
 !
 ! * REAL4 internal version:
 !     mv evp_kernel1d.F90 evp_kernel1d_r8.F90
@@ -29,9 +27,7 @@
 !===============================================================================
 
 !===============================================================================
-  
-!-- One dimension representation of EVP 2D arrays used for EVP kernels
-module ice_dyn_evp_1d
+module dmi_omp
 
   use ice_kinds_mod
   use ice_fileunits, only: nu_diag
@@ -39,89 +35,32 @@ module ice_dyn_evp_1d
 
   implicit none
   private
-  public :: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_copyout, ice_dyn_evp_1d_kernel
+  public  :: domp_init, domp_get_domain, domp_get_thread_no
 
-  interface ice_dyn_evp_1d_copyin
-!    module procedure evp_copyin_v1
-    module procedure evp_copyin_v2
-  end interface 
-
-  interface ice_dyn_evp_1d_kernel
-!    module procedure evp_kernel_v1
-    module procedure evp_kernel_v2
-  end interface 
-
-  interface ice_dyn_evp_1d_copyout
-    module procedure evp_copyout
-  end interface 
-
-  interface convert_2d_1d
-!    module procedure convert_2d_1d_v1
-    module procedure convert_2d_1d_v2
-  end interface 
-
-  integer(kind=int_kind) ::                                        &
-    NA_len, NAVEL_len
-  logical(kind=log_kind), dimension(:), allocatable ::             &
-    skipucell
-  integer(kind=int_kind), dimension(:), allocatable ::             &
-    ee,ne,se,nw,sw,sse,indi,indj,indij , halo_parent
-  real (kind=dbl_kind), dimension(:), allocatable ::               &
-    cdn_ocn,aiu,uocn,vocn,forcex,forcey,Tbu,tarear,                &
-    umassdti,fm,uarear,strintx,strinty,uvel_init,vvel_init
-  real (kind=dbl_kind), dimension(:), allocatable ::               &
-    strength,uvel,vvel,dxt,dyt,                                    &
-!v1    dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,                            &
-!v1    waterx,watery,                                                 &
-    stressp_1, stressp_2, stressp_3, stressp_4,                    &
-    stressm_1, stressm_2, stressm_3, stressm_4,                    &
-    stress12_1,stress12_2,stress12_3,stress12_4,                   &
-    divu,rdg_conv,rdg_shear,shear,taubx,tauby
-  real (kind=DBL_KIND), dimension(:), allocatable ::               &
-    str1, str2, str3, str4, str5, str6, str7, str8
-  real (kind=dbl_kind), dimension(:), allocatable ::               &
-    HTE,HTN,                                                       &
-    HTEm1,HTNm1
-  logical(kind=log_kind),parameter :: dbug = .false.
-
-
-!--- dmi_omp ---------------------------
   interface domp_get_domain
     module procedure domp_get_domain_rlu
   end interface 
 
   INTEGER, PARAMETER :: JPIM = SELECTED_INT_KIND(9)
-  integer(int_kind) :: domp_iam, domp_nt
+  integer(int_kind), private :: domp_iam, domp_nt
 
 #if defined (_OPENMP)
   ! Please note, this constant will create a compiler info for a constant
   ! expression in IF statements:
-  real(kind=dbl_kind) :: rdomp_iam, rdomp_nt
+  real(kind=dbl_kind), private :: rdomp_iam, rdomp_nt
   !$OMP THREADPRIVATE(domp_iam,domp_nt,rdomp_iam,rdomp_nt) 
 #endif
-!--- dmi_omp ---------------------------
 
-!--- bench_v2 --------------------------
-  interface evp1d_stress
-    module procedure stress_i
-    module procedure stress_l
-  end interface 
-  interface evp1d_stepu
-    module procedure stepu_iter
-    module procedure stepu_last
-  end interface 
-!--- bench_v2 --------------------------
+contains
 
-  contains
-
-!===============================================================================
-!former module dmi_omp
+!----------------------------------------------------------------------------
 
   subroutine domp_init(nt_out)
 
 #if defined (_OPENMP)
     use omp_lib, only : omp_get_thread_num, omp_get_num_threads
 #endif
+    use ice_forcing, only : dbug
 
     integer(int_kind), intent(out) :: nt_out
 
@@ -131,9 +70,9 @@ module ice_dyn_evp_1d
     !$OMP PARALLEL DEFAULT(none)
 #if defined (_OPENMP)
     domp_iam  = omp_get_thread_num()
-    rdomp_iam = real(domp_iam,dbl_kind)
+    rdomp_iam = real(domp_iam,8)
     domp_nt   = omp_get_num_threads()
-    rdomp_nt  = real(domp_nt,dbl_kind)
+    rdomp_nt  = real(domp_nt,8)
 #else
     domp_iam  = 0
     domp_nt   = 1
@@ -172,8 +111,8 @@ module ice_dyn_evp_1d
 
 #if defined (_OPENMP)
     use omp_lib,   only : omp_in_parallel
-    use ice_constants, only: p5
 #endif
+    use ice_constants, only: p5
 
     integer(KIND=JPIM), intent(in)  :: lower,upper
     integer(KIND=JPIM), intent(out) :: d_lower,d_upper
@@ -181,6 +120,7 @@ module ice_dyn_evp_1d
 #if defined (_OPENMP)
     !-- local variables
     real(kind=dbl_kind)    :: dlen
+    integer(int_kind) :: lr, ur
 #endif
 
     character(len=*), parameter :: subname = '(domp_get_domain_rlu)'
@@ -199,9 +139,9 @@ module ice_dyn_evp_1d
 
 #if defined (_OPENMP)
     if (omp_in_parallel()) then
-      dlen    = real(upper-lower+1, dbl_kind)
-      d_lower = lower    + floor((rdomp_iam*dlen+p5)/rdomp_nt, JPIM)
-      d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+p5)/rdomp_nt, JPIM)
+      dlen    = real(upper-lower+1, 8)
+      d_lower = lower    + floor((rdomp_iam*dlen+p5)/rdomp_nt, 4)
+      d_upper = lower -1 + floor((rdomp_iam*dlen+dlen+p5)/rdomp_nt, 4)
     endif
 #endif
 
@@ -226,11 +166,30 @@ module ice_dyn_evp_1d
 
 !----------------------------------------------------------------------------
 
-!former end module dmi_omp
+end module dmi_omp
 
 !===============================================================================
+!===============================================================================
 
-!former module bench_v2
+module bench_v2
+
+  use ice_fileunits, only: nu_diag
+  use ice_exit, only: abort_ice
+
+  implicit none
+  private
+  public :: evp1d_stress, evp1d_stepu, evp1d_halo_update
+
+  interface evp1d_stress
+    module procedure stress_i
+    module procedure stress_l
+  end interface 
+  interface evp1d_stepu
+    module procedure stepu_iter
+    module procedure stepu_last
+  end interface 
+
+  contains
 
 !----------------------------------------------------------------------------
 
@@ -243,6 +202,7 @@ module ice_dyn_evp_1d
                      str6,str7,str8)
 
     use ice_kinds_mod
+    use dmi_omp, only : domp_get_domain
     use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c1
     use icepack_parameters, only: puny
     use ice_dyn_shared, only: ecci, denom1, arlx1i, Ktens, revp
@@ -508,6 +468,7 @@ module ice_dyn_evp_1d
                      str1,str2,str3,str4,str5,str6,str7,str8                     )
 
     use ice_kinds_mod
+    use dmi_omp, only : domp_get_domain
     use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c0, c1
     use icepack_parameters, only: puny
     use ice_dyn_shared, only: ecci, denom1, arlx1i, Ktens, revp
@@ -776,6 +737,7 @@ module ice_dyn_evp_1d
                     str1,str2,str3,str4,str5,str6,str7,str8, nw,sw,se,skipme)
 
     use ice_kinds_mod
+    use dmi_omp, only : domp_get_domain
     use ice_dyn_shared, only: brlx, revp
     use ice_constants, only: c0, c1
 
@@ -866,6 +828,7 @@ module ice_dyn_evp_1d
                     str1,str2,str3,str4,str5,str6,str7,str8, nw,sw,se,skipme)
 
     use ice_kinds_mod
+    use dmi_omp, only : domp_get_domain
     use ice_constants, only: c0, c1
     use icepack_parameters, only: puny
     use ice_dyn_shared, only: brlx, revp, basalstress
@@ -958,6 +921,7 @@ module ice_dyn_evp_1d
   subroutine evp1d_halo_update(NAVEL_len,lb,ub,uvel,vvel, halo_parent)
 
     use ice_kinds_mod
+    use dmi_omp, only : domp_get_domain
 
     implicit none
 
@@ -994,9 +958,59 @@ module ice_dyn_evp_1d
 
 !----------------------------------------------------------------------------
 
-!former end module bench_v2
+end module bench_v2
   
 !===============================================================================
+!===============================================================================
+  
+!-- One dimension representation of EVP 2D arrays used for EVP kernels
+module ice_dyn_evp_1d
+
+  use ice_kinds_mod
+  use ice_fileunits, only: nu_diag
+  use ice_exit, only: abort_ice
+  !-- BEGIN: specific for the KERNEL
+  use ice_dyn_shared, only: revp, ecci, denom1, arlx1i, brlx
+  !-- END: specific for the KERNEL
+
+  implicit none
+  private
+  public :: evp_copyin, evp_copyout, evp_kernel_v2
+
+  interface evp_copyin
+!    module procedure evp_copyin_v1
+    module procedure evp_copyin_v2
+  end interface 
+  interface convert_2d_1d
+!    module procedure convert_2d_1d_v1
+    module procedure convert_2d_1d_v2
+  end interface 
+
+  integer(kind=int_kind) ::                                        &
+    NA_len, NAVEL_len
+  logical(kind=log_kind), dimension(:), allocatable ::             &
+    skipucell
+  integer(kind=int_kind), dimension(:), allocatable ::             &
+    ee,ne,se,nw,sw,sse,indi,indj,indij , halo_parent
+  real (kind=dbl_kind), dimension(:), allocatable ::               &
+    cdn_ocn,aiu,uocn,vocn,forcex,forcey,Tbu,tarear,                &
+    umassdti,fm,uarear,strintx,strinty,uvel_init,vvel_init
+  real (kind=dbl_kind), dimension(:), allocatable ::               &
+    strength,uvel,vvel,dxt,dyt,                                    &
+!v1    dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,                            &
+!v1    waterx,watery,                                                 &
+    stressp_1, stressp_2, stressp_3, stressp_4,                    &
+    stressm_1, stressm_2, stressm_3, stressm_4,                    &
+    stress12_1,stress12_2,stress12_3,stress12_4,                   &
+    divu,rdg_conv,rdg_shear,shear,taubx,tauby
+  real (kind=DBL_KIND), dimension(:), allocatable ::               &
+    str1, str2, str3, str4, str5, str6, str7, str8
+  real (kind=dbl_kind), dimension(:), allocatable ::               &
+    HTE,HTN,                                                       &
+    HTEm1,HTNm1
+
+  contains
+
 !----------------------------------------------------------------------------
 
   subroutine alloc1d(na)
@@ -1136,6 +1150,7 @@ module ice_dyn_evp_1d
     use ice_gather_scatter, only: gather_global_ext
     use ice_domain, only: distrb_info
     use ice_communicate, only: my_task, master_task
+    use ice_constants, only: c0,c1,p5
 
     implicit none
 
@@ -1271,8 +1286,9 @@ module ice_dyn_evp_1d
                I_stress12_1,I_stress12_2,I_stress12_3,I_stress12_4,     &
                I_divu,I_rdg_conv,I_rdg_shear,I_shear,I_taubx,I_tauby    )
 
-    use ice_constants, only : c0
-    use ice_gather_scatter, only: scatter_global_ext
+    use ice_constants, only : c0, field_loc_center, field_loc_NEcorner, &
+                                  field_type_scalar, field_type_vector
+    use ice_gather_scatter, only: scatter_global_ext, scatter_global
     use ice_domain, only: distrb_info
     use ice_communicate, only: my_task, master_task
 
@@ -1397,12 +1413,14 @@ module ice_dyn_evp_1d
 
     use ice_constants, only : c0
     use ice_dyn_shared, only: ndte
+    use bench_v2, only : evp1d_stress, evp1d_stepu, evp1d_halo_update
+    use dmi_omp, only : domp_init
     use icepack_intfc, only: icepack_query_parameters
     use ice_communicate, only: my_task, master_task
     implicit none
 
     real(kind=dbl_kind) :: rhow
-    integer (kind=int_kind) :: i, nthreads
+    integer (kind=int_kind) :: ierr, lun, i, nthreads
     integer (kind=int_kind) :: na,nb,navel
 
     character(len=*), parameter :: subname = '(evp_kernel_v2)'
@@ -2031,6 +2049,7 @@ module ice_dyn_evp_1d
 
   subroutine numainit(l,u,uu)
 
+    use dmi_omp, only  : domp_get_domain
     use ice_constants, only: c0
 
     implicit none
@@ -2114,7 +2133,6 @@ module ice_dyn_evp_1d
   end subroutine numainit
   
 !----------------------------------------------------------------------------
-!===============================================================================
 
 end module ice_dyn_evp_1d
 

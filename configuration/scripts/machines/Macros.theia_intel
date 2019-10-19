@@ -38,8 +38,6 @@ else
 endif
 
 LIB_MPI := 
-
-
 SCC   := icc 
 SFC   := ifort
 MPICC := mpiicc

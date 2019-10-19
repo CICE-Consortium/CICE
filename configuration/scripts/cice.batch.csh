@@ -179,8 +179,7 @@ EOFB
 else if (${ICE_MACHINE} =~ phase3*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
-EOFB
-
+=======
 else if (${ICE_MACHINE} =~ millikan*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
@@ -192,6 +191,7 @@ cat >> ${jobfile} << EOFB
 ###SBATCH --mail-type END,FAIL
 ###SBATCH --mail-user=amelie.bouchat@canada.ca
 #SBATCH --qos=standby
+
 EOFB
 
 else if (${ICE_MACHINE} =~ brooks*) then
@@ -211,20 +211,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
 #SBATCH -o slurm%j.out
-#SBATCH --mail-type FAIL
-#SBATCH --mail-user=robert.grumbine@noaa.gov
-EOFB
-
-else if (${ICE_MACHINE} =~ hera*) then
-cat >> ${jobfile} << EOFB
-#SBATCH -J ${ICE_CASENAME}
-#SBATCH -t `echo ${batchtime} | cut -f1-2 -d:`
-#SBATCH -q batch
-#SBATCH -A marine-cpu
-#SBATCH -N ${nnodes}
-#SBATCH -e slurm%j.err
-#SBATCH -o slurm%j.out
-#SBATCH --mail-type FAIL
+#SBATCH --mail-type END,FAIL
 #SBATCH --mail-user=robert.grumbine@noaa.gov
 EOFB
 
@@ -234,25 +221,8 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ phase3*) then
-if ( ${nnodes} > 15) then
-  setenv p3tile 16
-  setenv mem `expr 100 \* 1024 / $nnodes`
-else
-  setenv p3tile ${nnodes}
-  setenv mem 8192
-endif
-echo mem = ${mem} nnodes and p3tiles ${nnodes} ${p3tile} p3tile must be le nnodes
 cat >> ${jobfile} << EOFB
-#BSUB -J ${ICE_CASENAME}
-#BSUB -q "dev_shared"
-#BSUB -P RTO-T2O
-#BSUB -W `echo ${batchtime} | cut -f1-2 -d:`
-#BSUB -n ${nnodes}
-#BSUB -R "affinity[core]"
-#BSUB -R "span[ptile=${p3tile}]"
-#BSUB -R "rusage[mem=${mem}]"
-#BSUB -o /u/Robert.Grumbine/${ICE_CASENAME}.out.%J
-#BSUB -e /u/Robert.Grumbine/${ICE_CASENAME}.err.%J
+# nothing to do
 EOFB
 
 else if (${ICE_MACHINE} =~ high_Sierra*) then

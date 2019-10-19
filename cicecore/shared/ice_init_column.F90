@@ -444,11 +444,11 @@
       !----------------------------------------------------------------
             if (runtype == 'initial' .and. .not. restart) then
                scale_factor(i,j,iblk) = &
-                      swvdr(i,j,iblk)*(c1 - alvdr_ai(i,j,iblk)) &
-                    + swvdf(i,j,iblk)*(c1 - alvdf_ai(i,j,iblk)) &
-                    + swidr(i,j,iblk)*(c1 - alidr_ai(i,j,iblk)) &
-                    + swidf(i,j,iblk)*(c1 - alidf_ai(i,j,iblk))
-            endif
+	 	      swvdr(i,j,iblk)*(c1 - alvdr_ai(i,j,iblk)) &
+	 	    + swvdf(i,j,iblk)*(c1 - alvdf_ai(i,j,iblk)) &
+ 	            + swidr(i,j,iblk)*(c1 - alidr_ai(i,j,iblk)) &
+	 	    + swidf(i,j,iblk)*(c1 - alidf_ai(i,j,iblk))
+	    endif
 
          enddo ! i
          enddo ! j
@@ -895,7 +895,8 @@
 
       integer (kind=int_kind) :: &
          nml_error, & ! namelist i/o error flag
-         abort_flag
+         k, mm    , & ! loop index
+         ierr, abort_flag
 
       character(len=*), parameter :: subname='(input_zbgc)'
 
@@ -1625,6 +1626,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
+         n        , & ! loop index
          k, mm    , & ! loop index
          nk       , & ! layer index
          nk_bgc       ! layer index
@@ -2114,6 +2116,7 @@
 
       subroutine init_zbgc
 
+      use ice_broadcast, only: broadcast_scalar
       use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
           nt_strata
       use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N
@@ -2183,7 +2186,7 @@
          tr_bgc_DMS,    tr_bgc_PON,   &
          tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
          tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
-         tr_bgc_hum
+         tr_bgc_hum,    tr_aero
 
       real (kind=dbl_kind) :: &
          initbio_frac, &

@@ -15,21 +15,18 @@
       module ice_grid
 
       use ice_kinds_mod
-      use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate
       use ice_communicate, only: my_task, master_task
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_domain, only: blocks_ice, nblocks, halo_info, distrb_info, &
           ew_boundary_type, ns_boundary_type, init_domain_distribution
-      use ice_fileunits, only: nu_diag, nu_grid, nu_kmt, &
-          get_fileunit, release_fileunit
+      use ice_fileunits, only: nu_diag, nu_grid, nu_kmt
       use ice_gather_scatter, only: gather_global, scatter_global
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
       use ice_exit, only: abort_ice
-      use ice_global_reductions, only: global_minval, global_maxval
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
 
@@ -543,11 +540,7 @@
       ! bathymetry
       !-----------------------------------------------------------------
 
-#ifdef RASM_MODS
-      call get_bathymetry_popfile
-#else
       call get_bathymetry
-#endif
 
       !----------------------------------------------------------------
       ! Corner coordinates for CF compliant history files
@@ -1669,6 +1662,7 @@
 
       use ice_constants, only: c0, c1, c2, c4, &
           field_loc_center, field_type_scalar
+      use ice_global_reductions, only: global_minval, global_maxval
 
       integer (kind=int_kind) :: &
            i, j, iblk       , & ! horizontal indices
@@ -2362,98 +2356,6 @@
       endif ! bathymetry_file
 
       end subroutine get_bathymetry
-
-!=======================================================================
-! with use_bathymetry = false, vertical depth profile generated for max KMT
-! with use_bathymetry = true, expects to read in pop vert_grid file
-
-      subroutine get_bathymetry_popfile
-
-      integer (kind=int_kind) :: &
-         i, j, k, iblk      ! loop indices
-
-      integer (kind=int_kind) :: &
-         ntmp, nlevel   , & ! number of levels (max KMT)
-         k1             , & ! levels
-         ierr           , & ! error tag
-         fid                ! fid unit number
-
-      real (kind=dbl_kind), dimension(:),allocatable :: &
-         depth          , & ! total depth, m
-         thick              ! layer thickness, cm -> m
-
-      character(len=*), parameter :: subname = '(get_bathymetry_popfile)'
-
-      ntmp = maxval(KMT)
-      nlevel = global_maxval(ntmp,distrb_info)
-
-      if (my_task==master_task) then
-         write(nu_diag,*) subname,' KMT max = ',nlevel
-      endif
-
-      allocate(depth(nlevel),thick(nlevel))
-      thick = -999999.
-      depth = -999999.
-
-      if (use_bathymetry) then
-
-         write (nu_diag,*) subname,' Bathymetry file = ', trim(bathymetry_file)
-         if (my_task == master_task) then
-            call get_fileunit(fid)
-            open(fid,file=bathymetry_file,form='formatted',iostat=ierr)
-            if (ierr/=0) call abort_ice(subname//' open error')
-            do k = 1,nlevel
-               read(fid,*,iostat=ierr) thick(k)
-               if (ierr/=0) call abort_ice(subname//' read error')
-            enddo
-            call release_fileunit(fid)
-         endif
-
-         call broadcast_array(thick,master_task)
-
-      else
-
-         ! create thickness profile
-         k1 = min(5,nlevel)
-         do k = 1,k1
-            thick(k) = max(10000._dbl_kind/float(nlevel),500.)
-         enddo
-         do k = k1+1,nlevel
-            thick(k) = min(thick(k-1)*1.2_dbl_kind,20000._dbl_kind)
-         enddo
-
-      endif
-
-      ! convert thick from cm to m
-      thick = thick / 100._dbl_kind
-
-      ! convert to total depth
-      depth(1) = thick(1)
-      do k = 2, nlevel
-         depth(k) = depth(k-1) + thick(k)
-         if (depth(k) < 0.) call abort_ice(subname//' negative depth error')
-      enddo
-
-      if (my_task==master_task) then
-         do k = 1,nlevel
-           write(nu_diag,'(2a,i6,2f13.7)') subname,'   k, thick(m), depth(m) = ',k,thick(k),depth(k)
-         enddo
-      endif
-
-      bathymetry = 0._dbl_kind
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            k = kmt(i,j,iblk)
-            if (k > nlevel) call abort_ice(subname//' kmt/nlevel error')
-            if (k > 0) bathymetry(i,j,iblk) = depth(k)
-         enddo
-         enddo
-      enddo
-
-      deallocate(depth,thick)
-
-      end subroutine get_bathymetry_popfile
 
 !=======================================================================
 
