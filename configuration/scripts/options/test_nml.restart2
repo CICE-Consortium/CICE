@@ -3,4 +3,4 @@ dumpfreq       = 'd'
 dumpfreq_n     = 5
 runtype        = 'continue'
 restart        = .true.
-
+use_restart_time = .true.
