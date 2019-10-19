@@ -27,7 +27,7 @@ setenv ICE_BASEGEN    undefined
 setenv ICE_BASECOM    undefined
 setenv ICE_BFBCOMP    BFB
 setenv ICE_SPVAL      undefined
-setenv ICE_RUNLENGTH  0
+setenv ICE_RUNLENGTH  -1
 setenv ICE_ACCOUNT    undefined
 setenv ICE_QUEUE      undefined
 
