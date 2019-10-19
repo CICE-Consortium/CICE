@@ -300,11 +300,9 @@
       i,j,n              ,&! dummy loop indices
       ig,jg              ,&! global indices
       work_unit          ,&! size of quantized work unit
-#ifdef ncdf
       fid                ,&! file id
       varid              ,&! var id
       status             ,&! netcdf return code
-#endif
       tblocks_tmp        ,&! total number of blocks
       nblocks_tmp        ,&! temporary value of nblocks
       nblocks_max          ! max blocks on proc
@@ -480,12 +478,12 @@
             if (this_block%j_glob(j) > 0) then
                do i=this_block%ilo,this_block%ihi
                   if (this_block%i_glob(i) > 0) then
-	             ig = this_block%i_glob(i)
+                     ig = this_block%i_glob(i)
                      jg = this_block%j_glob(j)
                      if (KMTG(ig,jg) > puny .and.                      &
                         (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
                          ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
- 	                 nocn(n) = nocn(n) + flat(ig,jg)
+                          nocn(n) = nocn(n) + flat(ig,jg)
                   endif
                end do
             endif
