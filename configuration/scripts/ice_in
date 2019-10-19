@@ -102,7 +102,7 @@
     kdyn            = 1
     ndte            = 240
     revised_evp     = .false.
-    evp_kernel_ver  = 0
+    kevp_kernel     = 0
     brlx            = 300.0
     arlx            = 300.0
     advection       = 'remap'

@@ -4,27 +4,91 @@
 # If the cice binary is passed as an argument and the file exists,
 # copy it into the run directory and don't build the model.
 
+set dohelp = 0
+set directmake = 0
+set target  = "UnDEFineD"
 set ciceexe = "UnDEFineD"
-if ($#argv == 1) then
-  set ciceexe = $1
-  echo "${0}: ciceexe = ${ciceexe}"
-  if (-e ${ciceexe}) then
+if ($#argv == 0) then
+  # continue, standard way to build
+else
+  # -h, --help
+  if ("$1" == "-h" || "$1" == "--help") then
+    set dohelp = 1
 
-    source ./cice.settings
-    source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} -nomodules || exit 2
-    if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
-    cp -p ${ciceexe} ${ICE_RUNDIR}/cice
+  # --exe
+  else if ("$1" == "--exe") then
+    if ($#argv > 2) then
+      echo "${0}: ERROR: --exe ciceexe without other arguments is required"
+      exit -99
+    endif
+    set ciceexe = $2
+    echo "${0}: ciceexe = ${ciceexe}"
+    if (-e ${ciceexe}) then
 
-    echo "`date` ${0}:${ICE_CASENAME} build copied ${ciceexe}"  >> ${ICE_CASEDIR}/README.case
-    if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
-      echo "#---" >! ${ICE_CASEDIR}/test_output
-      echo "COPY ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
-      echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
+      source ./cice.settings
+      source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} -nomodules || exit 2
+      if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
+      cp -p ${ciceexe} ${ICE_RUNDIR}/cice
+
+      echo "`date` ${0}:${ICE_CASENAME} build copied ${ciceexe}"  >> ${ICE_CASEDIR}/README.case
+      if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
+        echo "#---" >! ${ICE_CASEDIR}/test_output
+        echo "COPY ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
+        echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
+      endif
+
+      exit 0
     endif
 
-    exit 0
-
+  # direct make with target
+  else
+    set directmake = 1
+    set target = "$*"
   endif
+endif
+
+if (${dohelp} == 1) then
+  cat << EOF1
+
+NAME
+  cice.build [-h,--help] [make arguments] [target]
+
+SYNOPSIS
+  -h || --help
+  [make arguments] [target]
+
+DESCRIPTION
+  --help, -h                  : help
+  [make arguments] [target]   : specify make arguments and target
+
+EXAMPLES
+  cice.build
+    will build the model using the standard approach with all the bells and whistles.  
+    This is recommended.
+  cice.build --help
+    will show cice.build help
+  cice.build [target]
+    will call gmake directly and make the target
+  cice.build clean
+    is an example of a targeted build
+  cice.build targets 
+    is an example of a targeted build that shows the valid Makefile targets
+  cice.build --version
+    will call make directly and pass --version as an argument to make
+  cice.build [make arguments] [target]
+    will call make directly and pass arguments and/or a target to make
+
+ADDITIONAL INFORMATION
+  The argument implementation supports -h or --help as a first argument.  Otherwise, 
+  it passes all other arguments directly to make and calls it directly.  In this
+  mode, most of the cice.build script features are by-passed.  The recommended
+  way to run the script is without arguments.
+
+SEE ALSO
+    User Documentation at https://github.com/cice-consortium/cice/
+
+EOF1
+exit -99
 endif
 
 #====================================
@@ -47,10 +111,7 @@ set  stamp   = `date '+%y%m%d-%H%M%S'`
 set ICE_BLDLOG_FILE = "cice.bldlog.${stamp}"
 set quiet = ${ICE_QUIETMODE}
 
-if (${ICE_CLEANBUILD} == 'true') then
-  echo "cleaning objdir"
-  rm -r -f ${ICE_OBJDIR}
-endif
+if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
 if !(-d ${ICE_OBJDIR}) mkdir -p ${ICE_OBJDIR}
 cd ${ICE_OBJDIR}
 
@@ -79,6 +140,22 @@ ${ICE_SANDBOX}/cicecore/shared
 ${ICE_SANDBOX}/icepack/columnphysics
 EOF
 
+if !($?ICE_MACHINE_BLDTHRDS) then
+  set ICE_MACHINE_BLDTHRDS = 1
+endif
+
+if (${directmake} == 1) then
+  echo "make ${target}"
+  ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
+    -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} ${target}
+  set bldstat = ${status}
+  if (${bldstat} != 0) then
+    echo "${0}: targeted make FAILED"
+    exit -99
+  endif
+  exit 0
+endif
+
 echo " "
 echo ICE_GRID     = ${ICE_GRID}
 echo ICE_NTASK    = ${ICE_NTASKS}
@@ -88,16 +165,7 @@ echo "Filepath = "
 cat ${ICE_OBJDIR}/Filepath
 echo " "
 
-echo "building makdep"
-${ICE_MACHINE_MAKE} \
-        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} makdep || exit 2
-
 echo "building cice > ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
-
-if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
-if !($?ICE_MACHINE_BLDTHRDS) then
-  set ICE_MACHINE_BLDTHRDS = 1
-endif
 if (-e ${ICE_BLDLOG_FILE}) rm ${ICE_BLDLOG_FILE}
 
 if (${ICE_CLEANBUILD} == 'true') then
@@ -107,7 +175,7 @@ if (${ICE_CLEANBUILD} == 'true') then
         -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean >& ${ICE_BLDLOG_FILE}
   else
     ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean | tee ${ICE_BLDLOG_FILE}
+        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean |& tee ${ICE_BLDLOG_FILE}
   endif
 endif
 
@@ -119,17 +187,31 @@ if (${quiet} == "true") then
   set bldstat = ${status}
 else
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} | tee ${ICE_BLDLOG_FILE} 
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} |& tee ${ICE_BLDLOG_FILE} 
   set bldstat = ${status}
 endif
 
 if !(-d ${ICE_LOGDIR}) mkdir -p ${ICE_LOGDIR}
 cp -p ${ICE_BLDLOG_FILE} ${ICE_LOGDIR}/
 
+echo " "
+
+# special effort to trap and highlight circular dependencies errors
+set circularstat = `grep "make: Circular" ${ICE_BLDLOG_FILE} | wc -l`
+if (${circularstat} > 0) then
+  echo "${0}: ERROR: Circular dependencies found"
+  grep "make: Circular" ${ICE_BLDLOG_FILE}
+  if (-e ${ICE_RUNDIR}/cice) then
+    echo "${0}: Deleting cice executable"
+    rm ${ICE_RUNDIR}/cice
+  endif
+  set bldstat = 55
+endif
+
 if (${bldstat} != 0) then
   echo "${0}: COMPILE FAILED, see"
   echo "  cat ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}"
-  if (${quiet} == "true") then
+  if (${quiet} == "true" && ${circularstat} == 0) then
     tail -10 ${ICE_OBJDIR}/${ICE_BLDLOG_FILE}
   endif
   if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
