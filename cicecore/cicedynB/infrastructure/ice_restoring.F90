@@ -57,7 +57,7 @@
       use ice_domain, only: ew_boundary_type, ns_boundary_type, &
           nblocks, blocks_ice
       use ice_grid, only: tmask, hm
-      use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
+      use ice_flux, only: Tf, Tair, salinz, Tmltz
       use ice_restart_shared, only: restart_ext
 
    integer (int_kind) :: &
