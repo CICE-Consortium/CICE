@@ -10,3 +10,4 @@ doc/build
 
 # Ignore testsuite file/directories
 testsuite*
+caselist*
