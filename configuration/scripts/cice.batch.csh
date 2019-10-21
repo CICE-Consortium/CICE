@@ -184,6 +184,14 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
+else if (${ICE_MACHINE} =~ brooks*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -j oe
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
+#PBS -l walltime=${batchtime}
+EOFB
+
 else if (${ICE_MACHINE} =~ theia*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
