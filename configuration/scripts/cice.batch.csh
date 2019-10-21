@@ -28,17 +28,24 @@ if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
 set ptile = $taskpernode
 if ($ptile > ${maxtpn} / 2) @ ptile = ${maxtpn} / 2
 
+set runlength = ${ICE_RUNLENGTH}
+if ($?ICE_MACHINE_MAXRUNLENGTH) then
+  if (${runlength} > ${ICE_MACHINE_MAXRUNLENGTH}) then
+    set runlength = ${ICE_MACHINE_MAXRUNLENGTH}
+  endif
+endif
+
 set queue = "${ICE_QUEUE}"
 set batchtime = "00:15:00"
-if (${ICE_RUNLENGTH} >  0) set batchtime = "00:29:00"
-if (${ICE_RUNLENGTH} == 1) set batchtime = "00:59:00"
-if (${ICE_RUNLENGTH} == 2) set batchtime = "2:00:00"
-if (${ICE_RUNLENGTH} == 3) set batchtime = "3:00:00"
-if (${ICE_RUNLENGTH} == 4) set batchtime = "4:00:00"
-if (${ICE_RUNLENGTH} == 5) set batchtime = "5:00:00"
-if (${ICE_RUNLENGTH} == 6) set batchtime = "6:00:00"
-if (${ICE_RUNLENGTH} == 7) set batchtime = "7:00:00"
-if (${ICE_RUNLENGTH} >= 8) set batchtime = "8:00:00"
+if (${runlength} == 0) set batchtime = "00:29:00"
+if (${runlength} == 1) set batchtime = "00:59:00"
+if (${runlength} == 2) set batchtime = "2:00:00"
+if (${runlength} == 3) set batchtime = "3:00:00"
+if (${runlength} == 4) set batchtime = "4:00:00"
+if (${runlength} == 5) set batchtime = "5:00:00"
+if (${runlength} == 6) set batchtime = "6:00:00"
+if (${runlength} == 7) set batchtime = "7:00:00"
+if (${runlength} >= 8) set batchtime = "8:00:00"
 
 set shortcase = `echo ${ICE_CASENAME} | cut -c1-15`
 
@@ -70,6 +77,18 @@ cat >> ${jobfile} << EOFB
 #PBS -q short
 #PBS -N ${ICE_CASENAME}
 #PBS -l nodes=1:ppn=24
+EOFB
+
+else if (${ICE_MACHINE} =~ izumi*) then
+if (${runlength} > 2) set queue = "medium"
+cat >> ${jobfile} << EOFB
+#PBS -j oe 
+###PBS -m ae 
+#PBS -V
+#PBS -q ${queue}
+#PBS -N ${ICE_CASENAME}
+#PBS -l nodes=${nnodes}:ppn=${taskpernode}
+#PBS -l walltime=${batchtime}
 EOFB
 
 else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
