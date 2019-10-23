@@ -21,18 +21,22 @@ module ice_prescribed_mod
   use pio
 
   use ice_broadcast
-  use ice_communicate , only : my_task, master_task, MPI_COMM_ICE
+  use ice_communicate  , only : my_task, master_task, MPI_COMM_ICE
   use ice_kinds_mod
   use ice_fileunits
-  use ice_exit        , only : abort_ice
-  use ice_domain_size , only : nx_global, ny_global, ncat, nilyr, nslyr, max_blocks
+  use ice_exit         , only : abort_ice
+  use ice_domain_size  , only : nx_global, ny_global, ncat, nilyr, nslyr, max_blocks
   use ice_constants
-  use ice_blocks      , only : nx_block, ny_block, block, get_block
-  use ice_domain      , only : nblocks, distrb_info, blocks_ice
-  use ice_grid        , only : TLAT, TLON, hm, tmask, tarea, grid_type, ocn_gridcell_frac
-  use ice_calendar    , only : idate, sec, calendar_type
-  use ice_itd         , only : hin_max
+  use ice_blocks       , only : nx_block, ny_block, block, get_block
+  use ice_domain       , only : nblocks, distrb_info, blocks_ice
+  use ice_grid         , only : TLAT, TLON, hm, tmask, tarea, grid_type, ocn_gridcell_frac
+  use ice_calendar     , only : idate, sec, calendar_type
+  use ice_arrays_column, only : hin_max
   use ice_read_write
+  use ice_exit, only: abort_ice
+  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+  use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_numbers
+  use icepack_intfc, only: icepack_query_parameters
 
   implicit none
   private ! except
@@ -41,7 +45,6 @@ module ice_prescribed_mod
   public  :: ice_prescribed_init      ! initialize input data stream
   public  :: ice_prescribed_run       ! get time slices and time interp
   public  :: ice_prescribed_phys      ! set prescribed ice state and fluxes
-  private :: ice_set_domain
 
   ! !PUBLIC DATA MEMBERS:
   logical(kind=log_kind), public :: prescribed_ice      ! true if prescribed ice
@@ -65,19 +68,19 @@ module ice_prescribed_mod
 
   type(shr_strdata_type)       :: sdat         ! prescribed data stream
   character(len=char_len_long) :: fldList      ! list of fields in data stream
-  real(kind=dbl_kind)          :: ice_cov(nx_block,ny_block,max_blocks) ! ice cover
+  real(kind=dbl_kind),allocatable :: ice_cov(:,:,:) ! ice cover
 
-  real (kind=dbl_kind), parameter :: &
-       cp_sno = 0.0_dbl_kind & ! specific heat of snow                   (J/kg/K)
-       ,  rLfi = Lfresh*rhoi & ! latent heat of fusion ice               (J/m^3)
-       ,  rLfs = Lfresh*rhos & ! latent heat of fusion snow              (J/m^3)
-       ,  rLvi = Lvap*rhoi   & ! latent heat of vapor*rhoice             (J/m^3)
-       ,  rLvs = Lvap*rhos   & ! latent heat of vapor*rhosno             (J/m^3)
-       ,  rcpi = cp_ice*rhoi & ! heat capacity of fresh ice              (J/m^3)
-       ,  rcps = cp_sno*rhos & ! heat capacity of snow                   (J/m^3)
-       ,  rcpidepressT = rcpi*depressT & ! param for finding T(z) from q (J/m^3)
-       ,  rLfidepressT = rLfi*depressT   ! param for heat capacity       (J deg/m^3)
-  ! heat capacity of sea ice, rhoi*C=rcpi+rLfidepressT*salinity/T^2
+!  real (kind=dbl_kind), parameter :: &
+!       cp_sno = 0.0_dbl_kind & ! specific heat of snow                   (J/kg/K)
+!       ,  rLfi = Lfresh*rhoi & ! latent heat of fusion ice               (J/m^3)
+!       ,  rLfs = Lfresh*rhos & ! latent heat of fusion snow              (J/m^3)
+!       ,  rLvi = Lvap*rhoi   & ! latent heat of vapor*rhoice             (J/m^3)
+!       ,  rLvs = Lvap*rhos   & ! latent heat of vapor*rhosno             (J/m^3)
+!       ,  rcpi = cp_ice*rhoi & ! heat capacity of fresh ice              (J/m^3)
+!       ,  rcps = cp_sno*rhos & ! heat capacity of snow                   (J/m^3)
+!       ,  rcpidepressT = rcpi*depressT & ! param for finding T(z) from q (J/m^3)
+!       ,  rLfidepressT = rLfi*depressT   ! param for heat capacity       (J deg/m^3)
+!  ! heat capacity of sea ice, rhoi*C=rcpi+rLfidepressT*salinity/T^2
 
 !=======================================================================
 contains
@@ -106,8 +109,7 @@ contains
     integer(kind=int_kind) :: nml_error ! namelist i/o error flag
     integer(kind=int_kind) :: n, nFile, ierr
     character(len=8)       :: fillalgo
-    character(*),parameter :: subName = "('ice_prescribed_init2')"
-    character(*),parameter :: F00 = "('(ice_prescribed_init2) ',4a)"
+    character(*),parameter :: subName = '(ice_prescribed_init)'
 
     namelist /ice_prescribed_nml/  &
          prescribed_ice,      &
@@ -208,7 +210,7 @@ contains
     gsize = nx_global*ny_global
     lsize = size(gindex)
     call mct_gsMap_init( gsmap_ice, gindex, MPI_COMM_ICE, compid, lsize, gsize)
-    call ice_set_domain( lsize, MPI_COMM_ICE, gsmap_ice, dom_ice )
+    call ice_prescribed_set_domain( lsize, MPI_COMM_ICE, gsmap_ice, dom_ice )
 
     call shr_strdata_create(sdat,name="prescribed_ice", &
          mpicom=MPI_COMM_ICE, compid=compid,   &
@@ -264,14 +266,18 @@ contains
     type (block)           :: this_block
     real(kind=dbl_kind)    :: aice_max         ! maximun ice concentration
     logical, save          :: first_time = .true.
-    character(*),parameter :: subName = "('ice_prescribed_run')"
-    character(*),parameter :: F00 = "('(ice_prescribed_run) ',a,2g20.13)"
+    character(*),parameter :: subName = '(ice_prescribed_run)'
+    character(*),parameter :: F00 = "(a,2g20.13)"
 
     !------------------------------------------------------------------------
     ! Interpolate to new ice coverage
     !------------------------------------------------------------------------
 
     call shr_strdata_advance(sdat,mDateIn,SecIn,MPI_COMM_ICE,'cice_pice')
+
+    if (first_time) then
+       allocate(ice_cov(nx_block,ny_block,max_blocks))
+    endif
 
     ice_cov(:,:,:) = c0  ! This initializes ghost cells as well
 
@@ -298,7 +304,7 @@ contains
        aice_max = maxval(ice_cov)
 
        if (aice_max > c10) then
-          write(nu_diag,F00) "ERROR: Ice conc data must be in fraction, aice_max= ",&
+          write(nu_diag,F00) subname//" ERROR: Ice conc data must be in fraction, aice_max= ",&
                aice_max
           call abort_ice(subName)
        end if
@@ -336,7 +342,7 @@ contains
     ! !USES:
     use ice_flux
     use ice_state
-    use ice_itd, only  : aggregate
+    use icepack_intfc, only : icepack_aggregate
     use ice_dyn_evp
     implicit none
 
@@ -345,6 +351,7 @@ contains
     integer(kind=int_kind) :: nc       ! ice category index
     integer(kind=int_kind) :: i,j,k    ! longitude, latitude and level indices
     integer(kind=int_kind) :: iblk
+    integer(kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, ntrcr
 
     real(kind=dbl_kind) :: slope     ! diff in underlying ocean tmp and ice surface tmp
     real(kind=dbl_kind) :: Ti        ! ice level temperature
@@ -355,10 +362,23 @@ contains
     real(kind=dbl_kind) :: hs        ! snow thickness
     real(kind=dbl_kind) :: zn        ! normalized ice thickness
     real(kind=dbl_kind) :: salin(nilyr)  ! salinity (ppt)
+    real(kind=dbl_kind) :: rad_to_deg, pi, puny
+    real(kind=dbl_kind) :: rhoi, rhos, cp_ice, cp_ocn, lfresh, depressT
 
     real(kind=dbl_kind), parameter :: nsal    = 0.407_dbl_kind
     real(kind=dbl_kind), parameter :: msal    = 0.573_dbl_kind
     real(kind=dbl_kind), parameter :: saltmax = 3.2_dbl_kind   ! max salinity at ice base (ppm)
+    character(*),parameter :: subName = '(ice_prescribed_phys)'
+
+    call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
+       nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
+    call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+    call icepack_query_parameters(rad_to_deg_out=rad_to_deg, pi_out=pi, &
+       puny_out=puny, rhoi_out=rhoi, rhos_out=rhos, cp_ice_out=cp_ice, cp_ocn_out=cp_ocn, &
+       lfresh_out=lfresh, depressT_out=depressT)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+       file=__FILE__, line=__LINE__)
 
     !-----------------------------------------------------------------
     ! Initialize ice state
@@ -468,23 +488,27 @@ contains
                    trcrn(i,j,nt_qice:nt_qice+nilyr-1,:,iblk) = c0
                    trcrn(i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk) = c0
                 end if          ! ice_cov >= eps04
+
+                !--------------------------------------------------------------------
+                ! compute aggregate ice state and open water area
+                !--------------------------------------------------------------------
+                call icepack_aggregate (ncat, &
+                     aicen(i,j,:,iblk),                       &
+                     trcrn(i,j,1:ntrcr,:,iblk),               &
+                     vicen(i,j,:,iblk), vsnon(i,j,  :,iblk),  &
+                     aice (i,j,  iblk),                       &
+                     trcr (i,j,1:ntrcr,  iblk),               &
+                     vice (i,j,  iblk), vsno (i,j,    iblk),  &
+                     aice0(i,j,  iblk),                       &
+                     ntrcr,                                   &
+                     trcr_depend(1:ntrcr),                    &
+                     trcr_base(1:ntrcr,:),                    &
+                     n_trcr_strata(1:ntrcr),                  &
+                     nt_strata(1:ntrcr,:))
+
              end if             ! tmask
           enddo                 ! i
        enddo                 ! j
-
-       !--------------------------------------------------------------------
-       ! compute aggregate ice state and open water area
-       !--------------------------------------------------------------------
-       call aggregate (nx_block,          ny_block,             &
-            aicen(:,:,:,iblk),                       &
-            trcrn(:,:,1:ntrcr,:,iblk),               &
-            vicen(:,:,:,iblk), vsnon(:,:,  :,iblk),  &
-            aice (:,:,  iblk),                       &
-            trcr (:,:,1:ntrcr,  iblk),               &
-            vice (:,:,  iblk), vsno (:,:,    iblk),  &
-            aice0(:,:,  iblk), tmask(:,:,    iblk),  &
-            ntrcr, trcr_depend(1:ntrcr))
-
     enddo                 ! iblk
 
     do iblk = 1, nblocks
@@ -515,7 +539,7 @@ contains
 
   !===============================================================================
 
-  subroutine ice_set_domain( lsize, mpicom, gsmap_i, dom_i )
+  subroutine ice_prescribed_set_domain( lsize, mpicom, gsmap_i, dom_i )
 
     ! Arguments
     integer        , intent(in)    :: lsize
@@ -533,8 +557,15 @@ contains
     real(dbl_kind), pointer :: data5(:)           ! temporary
     real(dbl_kind), pointer :: data6(:)           ! temporary
     integer       , pointer :: idata(:)           ! temporary
+    real(kind=dbl_kind)     :: rad_to_deg
     type(block)             :: this_block         ! block information for current block
+    character(*),parameter :: subName = '(ice_prescribed_set_domain)'
     !--------------------------------
+
+    call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+       file=__FILE__, line=__LINE__)
 
     ! Initialize mct domain type
     call mct_gGrid_init(GGrid=dom_i, &
@@ -604,7 +635,7 @@ contains
 
     deallocate(data1, data2, data3, data4, data5, data6)
 
-  end subroutine ice_set_domain
+  end subroutine ice_prescribed_set_domain
 
 #endif
 

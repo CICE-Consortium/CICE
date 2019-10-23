@@ -466,11 +466,15 @@
          history_file  = trim(runid) // ".cice" // trim(inst_suffix) //".h"
          restart_file  = trim(runid) // ".cice" // trim(inst_suffix) //".r"
          incond_file   = trim(runid) // ".cice" // trim(inst_suffix) //".i"
-         inquire(file='ice_modelio.nml'//trim(inst_suffix),exist=exists)
-         if (exists) then
-            call get_fileUnit(nu_diag)
-            call shr_file_setIO('ice_modelio.nml'//trim(inst_suffix),nu_diag)
-         end if
+         ! Note the nuopc cap will set nu_diag before this point - so just
+         ! need to check that it is non-zero first
+         if (nu_diag == ice_stdout) then
+            inquire(file='ice_modelio.nml'//trim(inst_suffix),exist=exists)
+            if (exists) then
+               call get_fileUnit(nu_diag)
+               call shr_file_setIO('ice_modelio.nml'//trim(inst_suffix),nu_diag)
+            end if
+         endif
       else
          ! each task gets unique ice log filename when if test is true, for debugging
          if (1 == 0) then

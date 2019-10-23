@@ -7,23 +7,28 @@ module ice_import_export
   use shr_frz_mod        , only : shr_frz_freezetemp
   use shr_kind_mod       , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs 
   use ice_kinds_mod      , only : int_kind, dbl_kind, char_len_long, log_kind
-  use ice_constants      , only : c0, c1, tffresh, spval_dbl
+  use ice_constants      , only : c0, c1, spval_dbl
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
   use ice_blocks         , only : block, get_block, nx_block, ny_block
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size    , only : nx_global, ny_global, block_size_x, block_size_y, max_blocks, ncat
+  use ice_exit           , only : abort_ice
   use ice_flux           , only : strairxt, strairyt, strocnxt, strocnyt
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
+#if (defined NEWCODE)
   use ice_flux           , only : fswthruvdr, fswthruvdf, fswthruidr, fswthruidf
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
+#endif
   use ice_flux           , only : fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
   use ice_flux           , only : rhoa, swvdr, swvdf, swidr, swidf, flw, frain
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
   use ice_flux           , only : sss, tf, wind, fsw
+#if (defined NEWCODE)
   use ice_flux           , only : faero_atm, faero_ocn
   use ice_flux           , only : fiso_atm, fiso_ocn, fiso_rain, fiso_evap
   use ice_flux           , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
+#endif
   use ice_state          , only : vice, vsno, aice, aicen_init, trcr
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm, ocn_gridcell_frac
   use ice_grid           , only : grid_type, t2ugrid_vector
@@ -32,6 +37,8 @@ module ice_import_export
   use ice_communicate    , only : my_task, master_task, MPI_COMM_ICE
   use ice_prescribed_mod , only : prescribed_ice
   use ice_shr_methods    , only : chkerr, state_reset
+  use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
+  use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
   use perf_mod           , only : t_startf, t_stopf, t_barrierf
 
   implicit none
@@ -115,10 +122,12 @@ contains
     read(cvalue,*) flds_wiso
     call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
 
+#if (defined NEWCODE)
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) send_i2x_per_cat
     call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+#endif
 
     !-----------------
     ! advertise import fields
@@ -189,10 +198,12 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'  )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo' )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'  )
+#if (defined NEWCODE)
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
+#endif
 
     ! ice/atm fluxes computed by ice
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'stress_on_air_ice_zonal'          )
@@ -210,10 +221,12 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_vis_dif_flx' )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dir_flx'  )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dif_flx'  )
+#if (defined NEWCODE)
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ifrac_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
+#endif
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_fresh_water_to_ocean_rate' )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_salt_rate'                 )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_zonal'        )
@@ -332,8 +345,20 @@ contains
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
     real (kind=dbl_kind)             :: workx, worky
     real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
+    real (kind=dbl_kind)             :: tffresh
     character(len=*),   parameter    :: subname = 'ice_import'
     !-----------------------------------------------------
+
+    call icepack_query_parameters(Tffresh_out=Tffresh)
+!    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
+!       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
+!       Tffresh_out=Tffresh)
+!    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
+!       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
+!       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=u_FILE_u, line=__LINE__)
 
     ! Note that the precipitation fluxes received from the mediator
     ! are in units of kg/s/m^2 which is what CICE requires.
@@ -486,6 +511,7 @@ contains
     ! Get aerosols from mediator
     !-------------------------------------------------------
 
+#if (defined NEWCODE)
     if (State_FldChk(importState, 'Faxa_bcph')) then
        ! the following indices are based on what the atmosphere is sending
        ! bcphidry  ungridded_index=1
@@ -521,6 +547,7 @@ contains
        call state_getimport(importState, 'Faxa_dstdry', output=faero_atm,  index=3, do_sum=.true., ungridded_index=4, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
+#endif
 
     !-------------------------------------------------------
     ! Water isotopes from the mediator
@@ -530,6 +557,7 @@ contains
     ! 18O => ungridded_index=2
     ! HDO => ungridded_index=3
 
+#if (defined NEWCODE)
     if (State_FldChk(importState, 'shum_wiso')) then
        call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=1, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -559,6 +587,7 @@ contains
        call state_getimport(importState, 'So_roce_wiso', output=H2_18O_ocn, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
+#endif
 
     !-----------------------------------------------------------------
     ! rotate zonal/meridional vectors to local coordinates
@@ -671,11 +700,23 @@ contains
     real    (kind=dbl_kind) :: tauyo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
+    real    (kind=dbl_kind) :: tffresh
     character(len=*),parameter :: subname = 'ice_export'
     !-----------------------------------------------------
 
     rc = ESMF_SUCCESS
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
+    call icepack_query_parameters(Tffresh_out=Tffresh)
+!    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
+!       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
+!       Tffresh_out=Tffresh)
+!    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
+!       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
+!       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=u_FILE_u, line=__LINE__)
 
     !calculate ice thickness from aice and vice. Also
     !create Tsrf from the first tracer (trcr) in ice_state.F
@@ -890,6 +931,7 @@ contains
     call state_setexport(exportState, 'mean_sw_pen_to_ocn' , input=fswthru, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+#if (defined NEWCODE)
     ! flux of vis dir shortwave through ice to ocean
     call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dir_flx' , input=fswthruvdr, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -905,6 +947,7 @@ contains
     ! flux of ir dif shortwave through ice to ocean
     call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dif_flx' , input=fswthruidf, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#endif
 
     ! heat exchange with ocean
     call state_setexport(exportState, 'net_heat_flx_to_ocn' , input=fhocn, lmask=tmask, ifrac=ailohi, rc=rc)
@@ -926,6 +969,7 @@ contains
     call state_setexport(exportState, 'stress_on_ocn_ice_merid' , input=tauyo, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+#if (defined NEWCODE)
     ! ------
     ! optional aerosol fluxes to ocean
     ! ------
@@ -995,6 +1039,7 @@ contains
             lmask=tmask, ifrac=ailohi, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
+#endif
 
     ! ------
     ! optional short wave penetration to ocean ice category

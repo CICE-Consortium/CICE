@@ -20,8 +20,9 @@ module ice_comp_nuopc
   use shr_file_mod       , only : shr_file_getlogunit, shr_file_setlogunit
   use shr_string_mod     , only : shr_string_listGetNum
   use shr_orb_mod        , only : shr_orb_decl
-  use shr_const_mod      , only : shr_const_pi
+  use shr_const_mod
   use shr_cal_mod        , only : shr_cal_noleap, shr_cal_gregorian, shr_cal_ymd2date
+  use ice_constants      , only : ice_init_constants
   use ice_shr_methods    , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
   use ice_shr_methods    , only : set_component_logging, get_component_instance
   use ice_shr_methods    , only : state_flddebug
@@ -33,25 +34,29 @@ module ice_comp_nuopc
   use ice_blocks         , only : nblocks_tot, get_block_parameter
   use ice_distribution   , only : ice_distributiongetblockloc
   use ice_grid           , only : tlon, tlat, hm, tarea, ULON, ULAT
-  use ice_constants      , only : rad_to_deg
   use ice_communicate    , only : my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
   use ice_calendar       , only : idate, mday, time, month, daycal, time2sec, year_init
   use ice_calendar       , only : sec, dt, calendar, calendar_type, nextsw_cday, istep
-  use ice_orbital        , only : eccen, obliqr, lambm0, mvelpp
-  use ice_kinds_mod      , only : dbl_kind, int_kind
+  use ice_kinds_mod      , only : dbl_kind, int_kind, char_len
   use ice_scam           , only : scmlat, scmlon, single_column
   use ice_fileunits      , only : nu_diag, inst_index, inst_name, inst_suffix, release_all_fileunits
-  use ice_ocean          , only : tfrz_option
-  use ice_therm_shared   , only : ktherm
   use ice_restart_shared , only : runid, runtype, restart_dir, restart_file
   use ice_history        , only : accum_hist
+#if (defined NEWCODE)
   use ice_history_shared , only : model_doi_url  ! TODO: add this functionality
+#endif
   use ice_prescribed_mod , only : ice_prescribed_init
+#if (defined NEWCODE)
   use ice_atmo           , only : flux_convergence_tolerance, flux_convergence_max_iteration
   use ice_atmo           , only : use_coldair_outbreak_mod
+#endif
   use CICE_InitMod       , only : CICE_Init
   use CICE_RunMod        , only : CICE_Run
+  use ice_exit           , only : abort_ice
+  use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
+  use icepack_intfc      , only : icepack_init_orbit, icepack_init_parameters
+  use icepack_intfc      , only : icepack_query_tracer_flags, icepack_query_parameters
   use perf_mod           , only : t_startf, t_stopf, t_barrierf
   use ice_timers
 
@@ -253,7 +258,9 @@ contains
     integer , allocatable   :: gindex_elim(:)
     integer , allocatable   :: gindex(:)
     integer                 :: globalID
-    character(CL)           :: cvalue
+    character(ESMF_MAXSTR)  :: cvalue
+    real(r8)                :: eccen, obliqr, lambm0, mvelpp
+    character(len=char_len) :: tfrz_option
     character(ESMF_MAXSTR)  :: convCIM, purpComp
     type(ESMF_VM)           :: vm
     type(ESMF_Time)         :: currTime           ! Current time
@@ -299,6 +306,8 @@ contains
     integer                 :: num_elim_blocks    ! local number of eliminated blocks
     integer                 :: num_total_blocks
     integer                 :: my_elim_start, my_elim_end
+    real(dbl_kind)          :: rad_to_deg
+    integer(int_kind)       :: ktherm
     character(*), parameter     :: F00   = "('(ice_comp_nuopc) ',2a,1x,d21.14)"
     character(len=*), parameter :: subname=trim(modName)//':(InitializeRealize) '
     !--------------------------------
@@ -332,6 +341,41 @@ contains
     call t_startf ('cice_init_total')
 
     !----------------------------------------------------------------------------
+    ! Initialize constants
+    !----------------------------------------------------------------------------
+
+    call ice_init_constants(omega_in=SHR_CONST_OMEGA, radius_in=SHR_CONST_REARTH, &
+       spval_dbl_in=SHR_CONST_SPVAL)
+    call icepack_init_parameters( &
+       secday_in = SHR_CONST_CDAY, &
+       rhoi_in   = SHR_CONST_RHOICE, &
+       rhow_in   = SHR_CONST_RHOSW, &
+       cp_air_in = SHR_CONST_CPDAIR, &
+       cp_ice_in = SHR_CONST_CPICE, &
+       cp_ocn_in = SHR_CONST_CPSW, &
+       gravit_in = SHR_CONST_G, &
+       rhofresh_in = SHR_CONST_RHOFW, &
+       zvir_in   = SHR_CONST_ZVIR, &
+       vonkar_in = SHR_CONST_KARMAN, &
+       cp_wv_in  = SHR_CONST_CPWV, &
+       stefan_boltzmann_in = SHR_CONST_STEBOL, &
+       Tffresh_in= SHR_CONST_TKFRZ, &
+       Lsub_in   = SHR_CONST_LATSUB, &
+       Lvap_in   = SHR_CONST_LATVAP, &
+!       Lfresh_in = SHR_CONST_LATICE, & ! computed in init_parameters as Lsub-Lvap              
+       Timelt_in = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
+       Tsmelt_in = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
+       ice_ref_salinity_in = SHR_CONST_ICE_REF_SAL, &
+       depressT_in = 0.054_dbl_kind, &
+       Tocnfrz_in= -34.0_dbl_kind*0.054_dbl_kind, &
+       pi_in     = SHR_CONST_PI, &
+       snowpatch_in = 0.005_dbl_kind, &
+       dragio_in = 0.00962_dbl_kind)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
+
+    !----------------------------------------------------------------------------
     ! Determine attributes - also needed in realize phase to get grid information
     !----------------------------------------------------------------------------
 
@@ -358,6 +402,12 @@ contains
     if (isPresent) then
        read(cvalue,*) mvelpp
     end if
+
+    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, &
+         lambm0_in=lambm0, obliqr_in=obliqr)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
     ! Determine runtype and possibly nextsw_cday
     call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, isPresent=isPresent, rc=rc)
@@ -430,7 +480,12 @@ contains
     if (.not. isPresent) then
        tfrz_option = 'linear_salt'  ! TODO: is this right? This must be the same as mom is using for the calculation.
     end if
+    call icepack_init_parameters(tfrz_option_in=tfrz_option)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
+#if (defined NEWCODE)
     call NUOPC_CompAttributeGet(gcomp, name="flux_convergence", value=cvalue, isPresent=isPresent, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
@@ -454,6 +509,7 @@ contains
     else
        use_coldair_outbreak_mod = .false.
     end if
+#endif
 
     ! Get clock information before call to cice_init
 
@@ -520,6 +576,11 @@ contains
     ! reset shr logging to my log file
     !----------------------------------------------------------------------------
 
+    call icepack_query_parameters(ktherm_out=ktherm)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
+
     ! Now write output to nu_diag - this must happen AFTER call to cice_init
     if (localPet == 0) then
        write(nu_diag,F00) trim(subname),' cice init nextsw_cday = ',nextsw_cday
@@ -530,8 +591,10 @@ contains
        write(nu_diag,*) trim(subname),' inst_name   = ',trim(inst_name)
        write(nu_diag,*) trim(subname),' inst_index  = ',inst_index
        write(nu_diag,*) trim(subname),' inst_suffix = ',trim(inst_suffix)
+#if (defined NEWCODE)
        write(nu_diag,*) trim(subname),' flux_convergence = ', flux_convergence_tolerance
        write(nu_diag,*) trim(subname),' flux_convergence_max_iteration = ', flux_convergence_max_iteration
+#endif
     endif
 
     !---------------------------------------------------------------------------
@@ -760,6 +823,11 @@ contains
        latMesh(n) = ownedElemCoords(2*n)
     end do
 
+    call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
+
     ! obtain internally generated cice lats and lons for error checks
     allocate(lon(lsize))
     allocate(lat(lsize))
@@ -895,6 +963,7 @@ contains
     type(ESMF_Time)            :: nextTime
     type(ESMF_State)           :: importState, exportState
     character(ESMF_MAXSTR)     :: cvalue
+    real(r8)                   :: eccen, obliqr, lambm0, mvelpp
     integer                    :: shrlogunit ! original log unit
     integer                    :: k,n        ! index
     logical                    :: stop_now   ! .true. ==> stop at the end of this run phase
@@ -912,7 +981,7 @@ contains
     character(CL)              :: restart_filename
     logical                    :: isPresent
     character(*)   , parameter :: F00   = "('(ice_comp_nuopc) ',2a,i8,d21.14)"
-    character(len=*),parameter  :: subname=trim(modName)//':(ModelAdvance) '
+    character(len=*),parameter :: subname=trim(modName)//':(ModelAdvance) '
     !--------------------------------
 
     rc = ESMF_SUCCESS
@@ -975,6 +1044,12 @@ contains
     if (isPresent) then
        read(cvalue,*) mvelpp
     end if
+
+    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, &
+         lambm0_in=lambm0, obliqr_in=obliqr)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
     !--------------------------------
     ! check that cice internal time is in sync with master clock before timestep update
@@ -1054,11 +1129,11 @@ contains
     ! Advance cice and timestep update
     !--------------------------------
 
-    if (force_restart_now) then
-       call CICE_Run(restart_filename=restart_filename)
-    else
+!tcraig    if (force_restart_now) then
+!       call CICE_Run(restart_filename=restart_filename)
+!    else
        call CICE_Run()
-    end if
+!    end if
 
     !--------------------------------
     ! Create export state

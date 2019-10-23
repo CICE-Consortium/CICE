@@ -86,6 +86,7 @@ contains
     ! local variables
     integer :: ierr
     integer, external :: GPTLprint_memusage
+    character(len=*), parameter :: subname='(memcheck)'
     !-----------------------------------------------------------------------
 
     if ((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
@@ -107,6 +108,7 @@ contains
     ! local variables
     logical          :: isPresent
     character(len=4) :: cvalue
+    character(len=*), parameter :: subname='(get_component_instance)'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -140,6 +142,7 @@ contains
     ! local variables
     character(len=CL) :: diro
     character(len=CL) :: logfile
+    character(len=*), parameter :: subname='(set_component_logging)'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -173,6 +176,7 @@ contains
 
     ! local variables
     character(len=CL) :: cvalue, prestring
+    character(len=*), parameter :: subname='(log_clock_advance)'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -371,6 +375,7 @@ contains
     type(ESMF_Field)           , allocatable :: lfields(:)
     integer                    , allocatable :: dimCounts(:)
     character(len=ESMF_MAXSTR) , allocatable :: fieldNameList(:)
+    character(len=*), parameter :: subname='(state_flddebug)'
     !-----------------------------------------------------
 
     ! Determine the list of fields and the dimension count for each field
@@ -658,7 +663,7 @@ contains
     type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
     integer                 :: sec
-    character(len=*), parameter :: subname = '(set_alarmInit): '
+    character(len=*), parameter :: subname = '(alarmInit): '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -982,6 +987,7 @@ contains
     character(len=*), intent(in) :: file
 
     integer :: lrc
+    character(len=*), parameter :: subname='(chkerr)'
 
     chkerr = .false.
     lrc = rc
