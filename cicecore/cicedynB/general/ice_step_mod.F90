@@ -651,9 +651,6 @@
          do j = jlo, jhi
          do i = ilo, ihi
             d_afsd_wave(i,j,:,iblk) = c0
-            ! LR this condition is FOR TESTING ONLY when using dummy wave spectrum
-            ! do not use for actual runs!!
-            if (aice(i,j,iblk).lt.0.8_dbl_kind) &
 
             call icepack_step_wavefracture (dt, ncat, nfsd, nfreq,         &
                                             aice           (i,j,    iblk), &
