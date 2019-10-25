@@ -468,6 +468,12 @@
          incond_file   = trim(runid) // ".cice" // trim(inst_suffix) //".i"
          ! Note the nuopc cap will set nu_diag before this point - so just
          ! need to check that it is non-zero first
+         ! Note by tcraig - this is a terrible kludge and exists because with the nuopc
+         ! implementation this information is now defined in the cap, but the cice
+         ! model here doesn't care/know about the cap.  In addition, the implementation
+         ! doesn't have the needed namelist and so shr_file_setIO aborts rather
+         ! than exit gracefully and return.  An issue has been created in cime to 
+         ! bring up this issue.  In the long term, this if check should change.
          if (nu_diag == ice_stdout) then
             inquire(file='ice_modelio.nml'//trim(inst_suffix),exist=exists)
             if (exists) then

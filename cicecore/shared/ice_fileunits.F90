@@ -62,8 +62,7 @@
          nu_restart_eap, &  ! restart input file for eap dynamics
          nu_rst_pointer, &  ! pointer to latest restart file
          nu_history    , &  ! binary history output file
-         nu_hdr        , &  ! header file for binary history output
-         nu_diag            ! diagnostics output file
+         nu_hdr             ! header file for binary history output
 
       character (32), public :: &
          nml_filename = 'ice_in' ! namelist input file name
@@ -72,6 +71,9 @@
          ice_stdin  =  5, & ! reserved unit for standard input
          ice_stdout =  6, & ! reserved unit for standard output
          ice_stderr =  6    ! reserved unit for standard error
+
+      integer (kind=int_kind), public :: &
+         nu_diag = ice_stdout  ! diagnostics output file, unit number may be overwritten
 
       integer (kind=int_kind), public :: &
          ice_IOUnitsMinUnit = 11, & ! do not use unit numbers below 
@@ -99,17 +101,14 @@
 
          character(len=*),parameter :: subname='(init_fileunits)'
 
-         ! Note - the nuopc cap sets nu_diag there - and so the following
-         ! should not be set for the nuopc cap
-          if (nu_diag == 0) then
-            nu_diag = ice_stdout  ! default
-         end if
-
          allocate(ice_IOUnitsInUse(ice_IOUnitsMaxUnit))
          ice_IOUnitsInUse = .false.
+
          ice_IOUnitsInUse(ice_stdin)  = .true. ! reserve unit 5
          ice_IOUnitsInUse(ice_stdout) = .true. ! reserve unit 6
          ice_IOUnitsInUse(ice_stderr) = .true.
+         if (nu_diag >= 1 .and. nu_diag <= ice_IOUnitsMaxUnit) &
+            ice_IOUnitsInUse(nu_diag) = .true. ! reserve unit nu_diag
 
          call get_fileunit(nu_grid)
          call get_fileunit(nu_kmt)
