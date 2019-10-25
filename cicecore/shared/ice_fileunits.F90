@@ -75,6 +75,9 @@
       integer (kind=int_kind), public :: &
          nu_diag = ice_stdout  ! diagnostics output file, unit number may be overwritten
 
+      logical (kind=log_kind), public :: &
+         nu_diag_set = .false. ! flag to indicate whether nu_diag is already set
+
       integer (kind=int_kind), public :: &
          ice_IOUnitsMinUnit = 11, & ! do not use unit numbers below 
          ice_IOUnitsMaxUnit = 99    ! or above, set by setup_nml

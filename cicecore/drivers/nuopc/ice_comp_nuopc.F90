@@ -40,7 +40,7 @@ module ice_comp_nuopc
   use ice_calendar       , only : sec, dt, calendar, calendar_type, nextsw_cday, istep
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len
   use ice_scam           , only : scmlat, scmlon, single_column
-  use ice_fileunits      , only : nu_diag, inst_index, inst_name, inst_suffix, release_all_fileunits
+  use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name, inst_suffix, release_all_fileunits
   use ice_restart_shared , only : runid, runtype, restart_dir, restart_file
   use ice_history        , only : accum_hist
 #if (defined NEWCODE)
@@ -553,11 +553,11 @@ contains
     ! Set cice logging
     !----------------------------------------------------------------------------
     ! Note that sets the nu_diag module variable in ice_fileunits
-    ! nu_diag in this module is initialized to 0 in the module, and if this reset does not
-    ! happen here - then ice_init.F90 will obtain it from the input file ice_modelio.nml
+    ! Set the nu_diag_set flag so it's not reset later
 
     call set_component_logging(gcomp, my_task==master_task, nu_diag, shrlogunit, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    nu_diag_set = .true.
 
     call shr_file_setLogUnit (shrlogunit)
 
