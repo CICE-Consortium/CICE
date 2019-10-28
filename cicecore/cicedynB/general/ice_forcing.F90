@@ -4870,10 +4870,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      !wave_spec_dir  = ocn_data_dir
-! for now
-       !wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3.nc'  ! can not read
-!      wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3_v2.nc'  ! can not read
 
       ! wave spectrum and frequencies
       if (wave_spec) &
