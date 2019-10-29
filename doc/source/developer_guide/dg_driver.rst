@@ -20,7 +20,7 @@ The files provide the top level sequencing for calling the standalone CICE model
 Adding a New Driver
 ------------------------
 
-The drivers directory contains two-levels of subdirectories.  The first layer indicates the coupling infrastructure or strategy and the second later indicates the application or coupler the driver is written for.  At the present time, the directory structures looks like::
+The drivers directory contains two levels of subdirectories.  The first layer indicates the coupling infrastructure or strategy and the second later indicates the application or coupler the driver is written for.  At the present time, the directory structures looks like::
 
   drivers/mct/cesm1
   drivers/nuopc/cmeps
