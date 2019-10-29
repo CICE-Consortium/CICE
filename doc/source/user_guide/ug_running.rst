@@ -350,15 +350,15 @@ be modified.
 Porting
 -------
 
-There are four basis issues that need to be addressed when porting and these are addressed in four separate files in the script system,
+There are four basic issues that need to be addressed when porting, and these are addressed in four separate files in the script system,
 
 - setup of the environment such as compilers, environment variables, and other support software (in **env.[machine]_[environment]**)
 
 - setup of the Macros file to support the model build (in **Macros.[machine]_[environment]**)
 
-- setup of the batch scripts (in **cice.batch.csh**)
+- setup of the batch submission scripts (in **cice.batch.csh**)
 
-- setup of the model launch (in **cice.launch.csh**)
+- setup of the model launch command (in **cice.launch.csh**)
 
 To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment]** file have to be added to the
 **configuration/scripts/machines/** directory and the 
