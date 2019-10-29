@@ -37,7 +37,7 @@ As features are added to the CICE model over time that require changes in the ca
 
 
 Calling Sequence
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 The initialize calling sequence looks something like::
 
