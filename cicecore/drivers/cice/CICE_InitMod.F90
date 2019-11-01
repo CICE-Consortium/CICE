@@ -265,7 +265,7 @@
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
           tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
-          skl_bgc, z_tracers, solve_zsal, wave_spec
+          skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
@@ -279,7 +279,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, wave_spec_out=wave_spec, &
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
@@ -417,7 +417,15 @@
          if (tr_brine .and. restart_hbrine) call read_restart_hbrine
       endif
 
-      if (solve_zsal .or. skl_bgc .or. z_tracers) call init_bgc ! biogeochemistry
+      if (solve_zsal .or. skl_bgc .or. z_tracers) then ! biogeochemistry
+         if (tr_fsd) then
+            write (nu_diag,*) 'FSD implementation incomplete for use with BGC'
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+               file=__FILE__, line=__LINE__)
+         endif
+         call init_bgc
+      endif
 
       !-----------------------------------------------------------------
       ! aggregate tracers

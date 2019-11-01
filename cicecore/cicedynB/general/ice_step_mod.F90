@@ -637,7 +637,14 @@
          ntrcr,           & !
          nbtrcr             !
 
+      character (len=char_len) :: wave_spec_type
+
       character(len=*), parameter :: subname = '(step_dyn_wave)'
+
+      call icepack_query_parameters(wave_spec_type_out=wave_spec_type)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -651,11 +658,8 @@
          do j = jlo, jhi
          do i = ilo, ihi
             d_afsd_wave(i,j,:,iblk) = c0
-            ! LR this condition is FOR TESTING ONLY when using dummy wave spectrum
-            ! do not use for actual runs!!
-            if (aice(i,j,iblk).lt.0.8_dbl_kind) &
-
-            call icepack_step_wavefracture (dt, ncat, nfsd, nfreq,         &
+            call icepack_step_wavefracture (wave_spec_type, &
+                                            dt, ncat, nfsd, nfreq,         &
                                             aice           (i,j,    iblk), &
                                             vice           (i,j,    iblk), &
                                             aicen          (i,j,:,  iblk), &

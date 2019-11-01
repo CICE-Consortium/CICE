@@ -122,7 +122,7 @@
         kitd, kcatbound
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, frzpnd, atmbndy
+        tfrz_option, frzpnd, atmbndy, wave_spec_type
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec
 
@@ -205,7 +205,7 @@
         highfreq,       natmiter,        ustar_min,     emissivity,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
-        precip_units,   default_season,  wave_spec,     nfreq,          &
+        precip_units,   default_season,  wave_spec_type,nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
         ice_data_type,  wave_spec_file,                                 &
         fyear_init,     ycycle,                                         &
@@ -352,8 +352,8 @@
                                   ! 'mm_per_sec' = 'mks' = kg/m^2 s
       tfrz_option     = 'mushy'   ! freezing temp formulation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
-      wave_spec       = .false.   ! if true, use wave forcing
-      nfreq           = 25         ! number of wave frequencies
+      wave_spec_type  = 'none'    ! type of wave spectrum forcing
+      nfreq           = 25        ! number of wave frequencies
       wave_spec_file  = ' '       ! wave forcing file name
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'
@@ -925,6 +925,12 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort1', &
          file=__FILE__, line=__LINE__)
 
+      if (tr_fsd) then
+         if (trim(wave_spec_type) /= 'none') wave_spec = .true.
+      else
+         wave_spec = .false.
+      endif
+
       !-----------------------------------------------------------------
       ! spew
       !-----------------------------------------------------------------
@@ -1104,7 +1110,7 @@
             write(nu_diag,*) ' precip_units              = ', &
                                trim(precip_units)
          elseif (trim(atm_data_type)=='default') then
-             write(nu_diag,*)    ' default_season            = ', trim(default_season)
+            write(nu_diag,*)    ' default_season            = ', trim(default_season)
          endif
 
          write(nu_diag,1010) ' update_ocn_f              = ', update_ocn_f
@@ -1116,7 +1122,10 @@
          write(nu_diag,1010) ' oceanmixed_ice            = ', &
                                oceanmixed_ice
          write(nu_diag,1010) ' wave_spec                 = ', wave_spec
-         write(nu_diag,*)    ' wave_spec_file            = ', wave_spec_file
+         if (wave_spec) then
+            write(nu_diag,*)    ' wave_spec_type            = ', wave_spec_type
+            write(nu_diag,*)    ' wave_spec_file            = ', wave_spec_file
+         endif
          write(nu_diag,1020) ' nfreq                     = ', nfreq
          write(nu_diag,*)    ' tfrz_option               = ', &
                                trim(tfrz_option)
@@ -1246,6 +1255,7 @@
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
+         wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &

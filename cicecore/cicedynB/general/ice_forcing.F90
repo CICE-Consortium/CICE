@@ -4870,7 +4870,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      !wave_spec_dir  = ocn_data_dir
+      wave_spec_dir  = ocn_data_dir
 ! for now
        !wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3.nc'  ! can not read
 !      wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3_v2.nc'  ! can not read
@@ -4884,15 +4884,13 @@
 
       if (trim(wave_spec_file) .ne. ' ') then
 #ifdef ncdf
-
-         spec_file = trim(wave_spec_file) !//'/'//trim(wave_spec_file)
+!         spec_file = trim(wave_spec_file) !//'/'//trim(wave_spec_file)
+         spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
          call ice_open_nc(spec_file,fid)
          call ice_read_nc_xyf (fid, 1, 'efreq',wave_spectrum(:,:,:,:), dbug, &
                            field_loc_center, field_type_scalar)
 	 where(wave_spectrum.gt.1.0e+30_dbl_kind) wave_spectrum=c0
          call ice_close_nc(fid)
-
-
 #endif
 
       else
