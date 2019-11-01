@@ -1,0 +1,52 @@
+#==============================================================================
+# Makefile macros for NCAR izumi, pgi compiler
+#==============================================================================
+
+CPP        := pgcc -E
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -Kieee
+
+FIXEDFLAGS := -Mextend
+FREEFLAGS  := -Mfree
+FFLAGS     := -Kieee -Mbyteswapio -traceback
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS   += -O0 -g -Mbounds -Mchkptr
+else
+  FFLAGS   += -O2
+endif
+
+SCC   := pgcc 
+SFC   := pgf90
+MPICC := mpicc
+MPIFC := mpif90
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+INCLDIR := -I$(NETCDF_PATH)/include
+
+LIB_NETCDF := $(NETCDF_PATH)/lib
+
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -mp
+   CFLAGS += -mp
+   FFLAGS += -mp
+endif
+
+## if using parallel I/O, load all 3 libraries.  PIO must be first!
+ifeq ($(IO_TYPE), pio)
+   PIO_PATH:=
+   INCLDIR += -I
+   SLIBS   := $(SLIB) -L$(PIO_PATH) -lpiofS
+endif
+

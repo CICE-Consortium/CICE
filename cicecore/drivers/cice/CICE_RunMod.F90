@@ -45,7 +45,7 @@
 
       use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
-          get_wave_spec, atm_data_type
+          get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn

@@ -125,6 +125,7 @@
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
       use ice_grid, only: lmask_n, lmask_s, tarean, tareas
       use ice_state   ! everything
+! tcraig, this is likely to cause circular dependency because ice_prescribed_mod is high level routine
 #ifdef CESMCOUPLED
       use ice_prescribed_mod, only: prescribed_ice
 #endif
@@ -859,6 +860,7 @@
 
         if (print_global) then  ! global diags for conservations checks
 
+! tcraig, this is likely to cause circular dependency because ice_prescribed_mod is high level routine
 #ifdef CESMCOUPLED
          if (prescribed_ice) then
           write (nu_diag,*) '----------------------------'

@@ -11,7 +11,8 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1, p01, p001
+      use ice_constants, only: c0, c1, c2, p01, p001
+      use ice_constants, only: omega, spval_dbl, p5, c4
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: nu_diag
@@ -115,7 +116,6 @@
       subroutine init_evp (dt)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c2, omega
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
       use ice_flux, only: rdg_conv, rdg_shear, iceumask, &
@@ -205,12 +205,6 @@
 
       subroutine set_evp_parameters (dt)
 
-      use ice_communicate, only: my_task, master_task
-      use ice_constants, only: p25, c1, c2, p5
-      use ice_domain, only: distrb_info
-      use ice_global_reductions, only: global_minval
-      use ice_grid, only: dxt, dyt, tmask
-
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -274,8 +268,6 @@
                             strairxT,  strairyT, & 
                             strairx,   strairy,  & 
                             tmass,     icetmask)
-
-      use ice_constants, only: c0
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -409,8 +401,6 @@
                             uvel,       vvel,       &
                             Tbu)
 
-      use ice_constants, only: c0, c1
-
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
@@ -503,7 +493,7 @@
          taubx    (i,j) = c0
          tauby    (i,j) = c0
 
-         if (revp==1) then               ! revised evp
+         if (icetmask(i,j)==0) then 
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
             stressp_3 (i,j) = c0
@@ -516,20 +506,7 @@
             stress12_2(i,j) = c0
             stress12_3(i,j) = c0
             stress12_4(i,j) = c0
-         else if (icetmask(i,j)==0) then ! classic evp
-            stressp_1 (i,j) = c0
-            stressp_2 (i,j) = c0
-            stressp_3 (i,j) = c0
-            stressp_4 (i,j) = c0
-            stressm_1 (i,j) = c0
-            stressm_2 (i,j) = c0
-            stressm_3 (i,j) = c0
-            stressm_4 (i,j) = c0
-            stress12_1(i,j) = c0
-            stress12_2(i,j) = c0
-            stress12_3(i,j) = c0
-            stress12_4(i,j) = c0
-         endif                  ! revp
+         endif                  
       enddo                     ! i
       enddo                     ! j
 
@@ -890,8 +867,6 @@
                                      vice,     aice,             &
                                      hwater,   Tbu)
 
-      use ice_constants, only: c0, c1                                     
-                                     
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
          icellu                 ! no. of cells where icetmask = 1
@@ -960,8 +935,6 @@
                                   stress12_1, strength,  &
                                   sig1,       sig2,      &
                                   sigP)
-
-      use ice_constants, only: spval_dbl, p5, c4
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block  ! block dimensions
