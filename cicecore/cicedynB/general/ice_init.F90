@@ -16,7 +16,7 @@
       use ice_communicate, only: my_task, master_task, ice_barrier
       use ice_constants, only: c0, c1, c2, c3, p2, p5
       use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
+      use ice_fileunits, only: nu_nml, nu_diag, nu_diag_set, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
           ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
 #ifdef CESMCOUPLED
@@ -466,11 +466,17 @@
          history_file  = trim(runid) // ".cice" // trim(inst_suffix) //".h"
          restart_file  = trim(runid) // ".cice" // trim(inst_suffix) //".r"
          incond_file   = trim(runid) // ".cice" // trim(inst_suffix) //".i"
-         inquire(file='ice_modelio.nml'//trim(inst_suffix),exist=exists)
-         if (exists) then
-            call get_fileUnit(nu_diag)
-            call shr_file_setIO('ice_modelio.nml'//trim(inst_suffix),nu_diag)
-         end if
+         ! Note by tcraig - this if test is needed because the nuopc cap sets
+         ! nu_diag before this routine is called.  This creates a conflict.
+         ! In addition, in the nuopc cap, shr_file_setIO will fail if the
+         ! needed namelist is missing (which it is in the CIME nuopc implementation)
+         if (.not. nu_diag_set) then
+            inquire(file='ice_modelio.nml'//trim(inst_suffix),exist=exists)
+            if (exists) then
+               call get_fileUnit(nu_diag)
+               call shr_file_setIO('ice_modelio.nml'//trim(inst_suffix),nu_diag)
+            end if
+         endif
       else
          ! each task gets unique ice log filename when if test is true, for debugging
          if (1 == 0) then
