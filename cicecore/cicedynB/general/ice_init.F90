@@ -610,6 +610,7 @@
       call broadcast_scalar(precip_units,       master_task)
       call broadcast_scalar(oceanmixed_ice,     master_task)
       call broadcast_scalar(wave_spec,          master_task)
+      call broadcast_scalar(wave_spec_type,          master_task)
       call broadcast_scalar(wave_spec_file,     master_task)
       call broadcast_scalar(nfreq,              master_task)
       call broadcast_scalar(tfrz_option,        master_task)
