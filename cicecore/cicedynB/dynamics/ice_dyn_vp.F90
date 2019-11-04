@@ -85,6 +85,9 @@
          damping_andacc , & ! damping factor for Anderson acceleration
          reltol_andacc      ! relative tolerance for Anderson acceleration
 
+      character (len=char_len), public :: &
+         ortho_type         ! type of orthogonalization for FGMRES ('cgs' or 'mgs')
+
       ! mmodule variables
 
       integer (kind=int_kind), allocatable :: &
@@ -4077,45 +4080,10 @@
             enddo
             !$OMP END PARALLEL DO
             
-            ! Classical Gram-Schmidt orthogonalisation process
-            ! First loop of Gram-Schmidt (compute coefficients)
-            dotprod_local = c0
-            do it=1,initer
-               local_dot = c0
-               
-               !$OMP PARALLEL DO PRIVATE(iblk)
-               do iblk = 1, nblocks
-                  do ij =1, icellu(iblk)
-                     i = indxui(ij, iblk)
-                     j = indxuj(ij, iblk)
-                     
-                     local_dot = local_dot + (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
-                                             (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
-                  enddo ! ij
-               enddo
-               !$OMP END PARALLEL DO
-               
-                dotprod_local(it) = local_dot
-            end do
+            ! Orthogonalize the new vector
+            call orthogonalize(arnoldi_basis_x, arnoldi_basis_y, &
+                               hessenberg, initer, nextit, maxinner, ortho_type)
             
-            hessenberg(1:initer,initer) = global_sums(dotprod_local(1:initer), distrb_info)
-            
-            ! Second loop of Gram-Schmidt (orthonormalize)
-            do it = 1, initer
-               !$OMP PARALLEL DO PRIVATE(iblk)
-               do iblk = 1, nblocks
-                  do ij =1, icellu(iblk)
-                     i = indxui(ij, iblk)
-                     j = indxuj(ij, iblk)
-                     
-                     arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit) &
-                                                           - hessenberg(it,initer) * arnoldi_basis_x(i, j, iblk, it)
-                     arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit) &
-                                                           - hessenberg(it,initer) * arnoldi_basis_y(i, j, iblk, it)
-                  enddo ! ij
-               enddo
-               !$OMP END PARALLEL DO 
-            end do
             
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
             !$OMP PARALLEL DO PRIVATE(iblk)
@@ -4778,6 +4746,131 @@
          
       endif
       end subroutine precondition
+
+!=======================================================================
+
+! Generic routine to orthogonalize a vector (arnoldi_basis_y(:, :, :, nextit))
+! against a set of vectors (arnoldi_basis_y(:, :, :, 1:initer))
+!
+! authors: Philippe Blain, ECCC
+
+      subroutine orthogonalize(arnoldi_basis_x, arnoldi_basis_y, & 
+                               hessenberg, initer, nextit, maxinner, ortho_type)
+
+      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner+1), intent(inout) :: &
+         arnoldi_basis_x , & ! arnoldi basis (x components) !phb == vv
+         arnoldi_basis_y     ! arnoldi basis (y components)
+
+      integer (kind=int_kind), intent(in) :: &
+         initer          , & ! inner (Arnoldi) loop counter
+         nextit              ! nextit == initer+1
+
+      real (kind=dbl_kind), dimension(maxinner+1, maxinner), intent(inout) :: &
+         hessenberg        ! system matrix of the Hessenberg (least squares) system
+         !phb: removing this parameter and argument makes ifort error in the .i90 file
+      integer (kind=int_kind), intent(in) :: &
+         maxinner    ! Restart the method every maxinner inner iterations
+
+      character(len=*), intent(in) :: &
+         ortho_type ! type of orthogonalization
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         it      , & ! reusable loop counter
+         iblk    , & ! block index
+         ij      , & ! compressed index
+         i, j        ! grid indices
+
+      real (kind=dbl_kind), dimension (max_blocks) :: &
+         local_dot      ! local array value to accumulate dot product of grid function over blocks
+
+      real (kind=dbl_kind), dimension(maxinner) :: &
+         dotprod_local     ! local array to accumulate several dot product computations
+
+      character(len=*), parameter :: subname = '(orthogonalize)'
+
+      if (trim(ortho_type) == 'cgs') then ! Classical Gram-Schmidt
+         ! Classical Gram-Schmidt orthogonalisation process
+         ! First loop of Gram-Schmidt (compute coefficients)
+         dotprod_local = c0
+         do it=1,initer
+            local_dot = c0
+            
+            !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
+            do iblk = 1, nblocks
+               do ij =1, icellu(iblk)
+                  i = indxui(ij, iblk)
+                  j = indxuj(ij, iblk)
+                  
+                  local_dot(iblk) = local_dot(iblk) + & 
+                                    (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
+                                    (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
+               enddo ! ij
+            enddo
+            !$OMP END PARALLEL DO
+            
+            dotprod_local(it) = sum(local_dot)
+         end do
+
+         hessenberg(1:initer,initer) = global_sums(dotprod_local(1:initer), distrb_info)
+
+         ! Second loop of Gram-Schmidt (orthonormalize)
+         do it = 1, initer
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
+               do ij =1, icellu(iblk)
+                  i = indxui(ij, iblk)
+                  j = indxuj(ij, iblk)
+                  
+                  arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit) &
+                                                        - hessenberg(it,initer) * arnoldi_basis_x(i, j, iblk, it)
+                  arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit) &
+                                                        - hessenberg(it,initer) * arnoldi_basis_y(i, j, iblk, it)
+               enddo ! ij
+            enddo
+            !$OMP END PARALLEL DO 
+         end do
+      elseif (trim(ortho_type) == 'mgs') then ! Modified Gram-Schmidt
+         ! Modified Gram-Schmidt orthogonalisation process
+         do it=1,initer
+            local_dot = c0
+            
+            !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
+            do iblk = 1, nblocks
+               do ij =1, icellu(iblk)
+                  i = indxui(ij, iblk)
+                  j = indxuj(ij, iblk)
+                  
+                  local_dot(iblk) = local_dot(iblk) + &
+                                    (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
+                                    (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
+               enddo ! ij
+            enddo
+            !$OMP END PARALLEL DO
+            
+            hessenberg(it,initer) = global_sum(sum(local_dot), distrb_info)
+            
+            !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
+            do iblk = 1, nblocks
+               do ij =1, icellu(iblk)
+                  i = indxui(ij, iblk)
+                  j = indxuj(ij, iblk)
+                  
+                  arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit) &
+                                                        - hessenberg(it,initer) * arnoldi_basis_x(i, j, iblk, it)
+                  arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit) &
+                                                        - hessenberg(it,initer) * arnoldi_basis_y(i, j, iblk, it)
+               enddo ! ij
+            enddo
+            !$OMP END PARALLEL DO 
+         end do
+      else
+         call abort_ice(error_message='wrong orthonalization in ' // subname, &
+         file=__FILE__, line=__LINE__)
+      endif
+      
+   end subroutine orthogonalize
 
 !=======================================================================
 

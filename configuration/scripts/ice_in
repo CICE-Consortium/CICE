@@ -148,6 +148,7 @@
     monitor_nonlin  = .false.
     monitor_fgmres  = 1
     monitor_pgmres  = 1
+    ortho_type      = 'mgs'
     gammaNL         = 1e-8
     gamma           = 1e-2
     epsprecond      = 1e-6
