@@ -4044,15 +4044,15 @@
             nbiter = nbiter + 1
             initer = initer + 1
             nextit = initer + 1
-            
             ! precondition the current Arnoldi vector
-            call precondition(zetaD,                &
-                              Cb,         vrel,     &
-                              umassdti,             &
+            call precondition(zetaD,                         &
+                              Cb,           vrel,            &
+                              umassdti,                      &
                               arnoldi_basis_x(:,:,:,initer), &
                               arnoldi_basis_y(:,:,:,initer), &
-                              workspace_x , workspace_y    , &
-                              precond_type, diagx, diagy)
+                              diagx,        diagy,           &
+                              precond_type,                  &
+                              workspace_x , workspace_y)
             ! !phb DESCRIBE ww
             wwx(:,:,:,initer) = workspace_x
             wwy(:,:,:,initer) = workspace_y
@@ -4429,13 +4429,14 @@
             nextit = initer + 1
             
             ! precondition the current Arnoldi vector
-            call precondition(zetaD,                &
-                              Cb,         vrel,     &
-                              umassdti,             &
+            call precondition(zetaD,                         &
+                              Cb,           vrel,            &
+                              umassdti,                      &
                               arnoldi_basis_x(:,:,:,initer), &
                               arnoldi_basis_y(:,:,:,initer), &
-                              workspace_x , workspace_y    , &
-                              precond_type, diagx, diagy)
+                              diagx,        diagy,           &
+                              precond_type,                  &
+                              workspace_x , workspace_y)
             
             ! !phb haloUpdate would go here (for workspace_x, _y)
             !$OMP PARALLEL DO PRIVATE(iblk)
@@ -4592,12 +4593,13 @@
          end do
          
          ! Call preconditioner
-         call precondition(zetaD,                &
-                           Cb,         vrel,     &
-                           umassdti,             &
+         call precondition(zetaD,                     &
+                           Cb,           vrel,        &
+                           umassdti,                  &
                            workspace_x , workspace_y, &
-                           workspace_x , workspace_y, &
-                           precond_type, diagx, diagy)
+                           diagx,        diagy,       &
+                           precond_type,              &
+                           workspace_x , workspace_y)
          
          solx = solx + workspace_x
          soly = soly + workspace_y
@@ -4661,9 +4663,9 @@
                               Cb,         vrel,     &
                               umassdti,             &
                               vx,         vy,       &
-                              wx,         wy,       &
+                              diagx,      diagy,    &
                               precond_type,         &
-                              diagx,      diagy)
+                              wx,         wy)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
@@ -4677,16 +4679,16 @@
          vx       , & ! input vector (x components)
          vy           ! input vector (y components)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
-         wx       , & ! preconditionned vector (x components)
-         wy           ! preconditionned vector (y components)
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         diagx    , & ! diagonal of the system matrix (x components)
+         diagy        ! diagonal of the system matrix (y components)
 
       integer (kind=int_kind), intent(in) :: &
          precond_type ! type of preconditioner
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
-         diagx    , & ! diagonal of the system matrix (x components)
-         diagy        ! diagonal of the system matrix (y components)
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+         wx       , & ! preconditionned vector (x components)
+         wy           ! preconditionned vector (y components)
 
       ! local variables
 
