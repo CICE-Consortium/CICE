@@ -201,8 +201,8 @@ cat >> ${jobfile} << EOFB
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
 #SBATCH -o slurm%j.out
-#SBATCH --mail-type FAIL
-#SBATCH --mail-user=robert.grumbine@noaa.gov
+###SBATCH --mail-type FAIL
+###SBATCH --mail-user username@domain.com
 EOFB
 
 else if (${ICE_MACHINE} =~ hera*) then
@@ -214,8 +214,8 @@ cat >> ${jobfile} << EOFB
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
 #SBATCH -o slurm%j.out
-#SBATCH --mail-type FAIL
-#SBATCH --mail-user=robert.grumbine@noaa.gov
+###SBATCH --mail-type FAIL
+###SBATCH --mail-user username@domain.com
 EOFB
 
 else if (${ICE_MACHINE} =~ phase2*) then
@@ -241,8 +241,8 @@ cat >> ${jobfile} << EOFB
 #BSUB -R "affinity[core]"
 #BSUB -R "span[ptile=${p3tile}]"
 #BSUB -R "rusage[mem=${mem}]"
-#BSUB -o /u/Robert.Grumbine/${ICE_CASENAME}.out.%J
-#BSUB -e /u/Robert.Grumbine/${ICE_CASENAME}.err.%J
+#BSUB -o $HOME/${ICE_CASENAME}.out.%J
+#BSUB -e $HOME/${ICE_CASENAME}.err.%J
 EOFB
 
 else if (${ICE_MACHINE} =~ high_Sierra*) then
