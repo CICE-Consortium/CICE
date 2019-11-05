@@ -2704,7 +2704,7 @@
          zetaD          ! 2*zeta   
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(out) :: &
+         intent(inout) :: &
          Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
          Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
 
