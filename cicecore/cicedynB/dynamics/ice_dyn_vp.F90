@@ -3880,15 +3880,15 @@
                      ! residual is below tolerance
 
       integer (kind=int_kind), intent(in) :: &
-         maxinner    ! Restart the method every maxinner inner iterations
+         maxinner    ! Restart the method every maxinner inner (Arnoldi) iterations
 
       integer (kind=int_kind), intent(in) :: &
-         maxouter    ! Maximum number of outer iterations
-                     ! Iteration will stop after maxinner*maxouter steps
+         maxouter    ! Maximum number of outer (restarts) iterations
+                     ! Iteration will stop after maxinner*maxouter Arnoldi steps
                      ! even if the specified tolerance has not been achieved
 
       integer (kind=int_kind), intent(out) :: &
-         nbiter      ! Total number of iteration performed
+         nbiter      ! Total number of Arnoldi iterations performed
 
       real (kind=dbl_kind), intent(out) :: &
          conv        ! !phb DESCRIBE IF WE KEEP
