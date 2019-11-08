@@ -704,10 +704,10 @@
          by       , & ! b vector
          Diagu    , & ! Diagonal (u component) of the matrix A
          Diagv    , & ! Diagonal (v component) of the matrix A
-         Au       , & ! matvec, Fx = Au - bx
-         Av       , & ! matvec, Fy = Av - by
-         Fx       , & ! x residual vector, Fx = Au - bx
-         Fy           ! y residual vector, Fy = Av - by
+         Au       , & ! matvec, Fx = bx - Au
+         Av       , & ! matvec, Fy = by - Av
+         Fx       , & ! x residual vector, Fx = bx - Au
+         Fy           ! y residual vector, Fy = by - Av
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
          zetaD      ! zetaD = 2zeta (viscous coeff)
@@ -1136,10 +1136,10 @@
          by       , & ! b vector
          Diagu    , & ! Diagonal (u component) of the matrix A
          Diagv    , & ! Diagonal (v component) of the matrix A
-         Au       , & ! matvec, Fx = Au - bx
-         Av       , & ! matvec, Fy = Av - by
-         Fx       , & ! x residual vector, Fx = Au - bx
-         Fy       , & ! y residual vector, Fy = Av - by
+         Au       , & ! matvec, Fx = bx - Au
+         Av       , & ! matvec, Fy = by - Av
+         Fx       , & ! x residual vector, Fx = bx - Au
+         Fy       , & ! y residual vector, Fy = by - Av
          solx     , & ! solution of FGMRES (x components)
          soly         ! solution of FGMRES (y components)
 
@@ -1577,8 +1577,8 @@
          ierr               ! code for pgmres preconditioner !phb: needed?
       
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         Au       , & ! matvec, Fx = Au - bx
-         Av           ! matvec, Fy = Av - by
+         Au       , & ! matvec, Fx = bx - Au
+         Av           ! matvec, Fy = by - Av
       
       real (kind=dbl_kind), allocatable :: & 
          vv(:,:), ww(:,:)  ! work arrays for FGMRES
@@ -2612,8 +2612,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
-         Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
+         Au      , & ! matvec, Fx = bx - Au (N/m^2)! jfl
+         Av          ! matvec, Fy = by - Av (N/m^2)! jfl    
 
       ! local variables
 
@@ -2716,8 +2716,8 @@
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         Au      , & ! matvec, Fx = Au - bx (N/m^2)! jfl
-         Av          ! matvec, Fy = Av - by (N/m^2)! jfl    
+         Au      , & ! matvec, Fx = bx - Au (N/m^2)! jfl
+         Av          ! matvec, Fy = by - Av (N/m^2)! jfl    
 
       ! local variables
 
@@ -3092,7 +3092,7 @@
       
 !=======================================================================
 
-! Compute the non linear residual F(u,v) = A(u,v) * (u,v) - b(u,v),
+! Compute the non linear residual F(u,v) = b(u,v) - A(u,v) * (u,v),
 ! with Au, Av precomputed as
 ! Au = A(u,v)_[x] * uvel (x components of  A(u,v) * (u,v))
 ! Av = A(u,v)_[y] * vvel (y components of  A(u,v) * (u,v))
@@ -3117,13 +3117,13 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          bx       , & ! b vector, bx = taux + bxfix (N/m^2) !jfl
          by       , & ! b vector, by = tauy + byfix (N/m^2) !jfl
-         Au       , & ! matvec, Fx = Au - bx (N/m^2) ! jfl
-         Av           ! matvec, Fy = Av - by (N/m^2) ! jfl
+         Au       , & ! matvec, Fx = bx - Au (N/m^2) ! jfl
+         Av           ! matvec, Fy = by - Av (N/m^2) ! jfl
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         Fx      , & ! x residual vector, Fx = Au - bx (N/m^2)
-         Fy          ! y residual vector, Fy = Av - by (N/m^2)
+         Fx      , & ! x residual vector, Fx = bx - Au (N/m^2)
+         Fy          ! y residual vector, Fy = by - Av (N/m^2)
          
       real (kind=dbl_kind), intent(out), optional :: &
          sum_squared ! sum of squared residual vector components
@@ -3145,8 +3145,8 @@
          i = indxui(ij)
          j = indxuj(ij)
 
-         Fx(i,j) = Au(i,j) - bx(i,j)
-         Fy(i,j) = Av(i,j) - by(i,j)
+         Fx(i,j) = bx(i,j) - Au(i,j)
+         Fy(i,j) = by(i,j) - Av(i,j)
          if (present(sum_squared)) then
             sum_squared = sum_squared + Fx(i,j)**2 + Fy(i,j)**2
          endif
@@ -3566,8 +3566,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         Diagu   , & ! matvec, Fx = Au - bx (N/m^2)
-         Diagv       ! matvec, Fy = Av - by (N/m^2)
+         Diagu   , & ! matvec, Fx = bx - Au (N/m^2)
+         Diagv       ! matvec, Fy = by - Av (N/m^2)
 
       ! local variables
 
@@ -3943,8 +3943,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          workspace_x , & ! work vector (x components)
          workspace_y , & ! work vector (y components)
-         Fx          , & ! residual vector (x components), Fx = Au - bx (N/m^2)
-         Fy              ! residual vector (y components), Fy = Av - by (N/m^2)
+         Fx          , & ! residual vector (x components), Fx = bx - Au (N/m^2)
+         Fy              ! residual vector (y components), Fy = by - Av (N/m^2)
 
       real (kind=dbl_kind), dimension (max_blocks) :: &
          norm_squared   ! array to accumulate squared norm of grid function over blocks
@@ -4333,8 +4333,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          workspace_x , & ! work vector (x components)
          workspace_y , & ! work vector (y components)
-         Fx          , & ! residual vector (x components), Fx = Au - bx (N/m^2)
-         Fy              ! residual vector (y components), Fy = Av - by (N/m^2)
+         Fx          , & ! residual vector (x components), Fx = bx - Au (N/m^2)
+         Fy              ! residual vector (y components), Fy = by - Av (N/m^2)
 
       real (kind=dbl_kind), dimension (max_blocks) :: &
          norm_squared   ! array to accumulate squared norm of grid function over blocks
