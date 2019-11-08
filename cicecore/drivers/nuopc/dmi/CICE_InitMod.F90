@@ -41,14 +41,18 @@
 !        replaced by a different driver that calls subroutine cice_init,
 !        where most of the work is done.
 
-      subroutine CICE_Initialize
+      subroutine CICE_Initialize(mpi_comm)
 
+      integer (kind=int_kind), optional, intent(in) :: mpi_comm ! communicator from nuopc
       character(len=*), parameter :: subname='(CICE_Initialize)'
 !--------------------------------------------------------------------
 ! model initialization
 !--------------------------------------------------------------------
-
-      call cice_init
+      if (present(mpi_comm)) then
+          call cice_init(mpi_comm)
+      else
+          call cice_init()
+      endif
 
       end subroutine CICE_Initialize
 
@@ -56,7 +60,7 @@
 !
 !  Initialize CICE model.
 
-      subroutine cice_init
+      subroutine cice_init(mpi_comm)
 
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
       use ice_state, only: alloc_state
@@ -87,11 +91,15 @@
 #ifdef popcice
       use drv_forcing, only: sst_sss
 #endif
-
+      integer (kind=int_kind), optional, intent(in) :: &
+          mpi_comm ! communicator for sequential ccsm
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
       character(len=*), parameter :: subname = '(cice_init)'
-
-      call init_communicate     ! initial setup for message passing
+      if (present(mpi_comm)) then
+          call init_communicate(mpi_comm)     ! initial setup for message passing
+      else
+          call init_communicate     ! initial setup for message passing
+      endif
       call init_fileunits       ! unit numbers
 
       call icepack_configure()  ! initialize icepack
