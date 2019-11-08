@@ -1051,8 +1051,9 @@
 
 !=======================================================================
 
-! Solve nonlinear equation using fixed point iteration, accelerated with 
-! Anderson acceleration
+! Solve the nonlinear equation F(u,v) = 0, where
+! F(u,v) := A(u,v) * (u,v) - b(u,v)
+! using Anderson acceleration (accelerated fixed point iteration)
 !
 ! author: P. Blain ECCC
 
@@ -2366,7 +2367,7 @@
       
 !=======================================================================
 
-! calc deformations for mechanical redistribution
+! Compute deformations for mechanical redistribution
 
       subroutine deformations (nx_block,   ny_block,   & 
                                icellt,                 & 
@@ -2489,6 +2490,8 @@
       
 !=======================================================================
 
+! Compute vrel and basal stress coefficients
+
       subroutine calc_vrel_Cb (nx_block,   ny_block, &
                                icellu,     Cw,       &
                                indxui,     indxuj,   &
@@ -2567,6 +2570,10 @@
       end subroutine calc_vrel_Cb      
       
 !=======================================================================
+
+! OLD matrix vector product A(u,v) * (u,v)
+! Au = A(u,v)_[x] * uvel (x components of  A(u,v) * (u,v))
+! Av = A(u,v)_[y] * vvel (y components of  A(u,v) * (u,v))
 
       subroutine matvecOLD (nx_block,   ny_block, &
                          icellu,               &
@@ -2649,6 +2656,10 @@
       end subroutine matvecOLD
       
 !=======================================================================
+
+! Computes the matrix vector product A(u,v) * (u,v)
+! Au = A(u,v)_[x] * uvel (x components of  A(u,v) * (u,v))
+! Av = A(u,v)_[y] * vvel (y components of  A(u,v) * (u,v))
 
       subroutine matvec (nx_block,   ny_block, &
                          icellu,     icellt ,  &
@@ -2927,7 +2938,10 @@
       end subroutine matvec
 
 !=======================================================================      
-      
+
+! Compute the constant component of b(u,v) i.e. the part of b(u,v) that
+! does not depend on (u,v) and thus do not change during the nonlinear iteration
+
      subroutine calc_bfix  (nx_block,   ny_block,   & 
                             icellu,                 & 
                             indxui,     indxuj,     & 
@@ -2981,6 +2995,10 @@
       end subroutine calc_bfix            
       
 !=======================================================================
+
+! Compute the vector b(u,v), i.e. the part of the nonlinear function F(u,v)
+! that cannot be written as A(u,v)*(u,v), where A(u,v) is a matrix with entries
+! depending on (u,v)
 
       subroutine calc_bvec (nx_block,   ny_block, &
                        icellu,               &
@@ -3072,7 +3090,12 @@
 
       end subroutine calc_bvec
       
-      !=======================================================================
+!=======================================================================
+
+! Compute the non linear residual F(u,v) = A(u,v) * (u,v) - b(u,v),
+! with Au, Av precomputed as
+! Au = A(u,v)_[x] * uvel (x components of  A(u,v) * (u,v))
+! Av = A(u,v)_[y] * vvel (y components of  A(u,v) * (u,v))
 
       subroutine residual_vec (nx_block,   ny_block, &
                                icellu,               &
@@ -3132,6 +3155,9 @@
       end subroutine residual_vec
       
 !=======================================================================
+
+! Form the diagonal of the matrix A(u,v) (first part of the computation)
+! Part 1: compute the contributions of the diagonal to the rheology term
 
       subroutine formDiag_step1  (nx_block,   ny_block,   & 
                                   icellu,                 & 
@@ -3508,6 +3534,9 @@
       
 !=======================================================================
 
+! Form the diagonal of the matrix A(u,v) (second part of the computation)
+! Part 2: compute diagonal
+
       subroutine formDiag_step2 (nx_block,   ny_block, &
                                  icellu,               &
                                  indxui,     indxuj,   &
@@ -3589,7 +3618,9 @@
       end subroutine formDiag_step2     
       
 !=======================================================================
-      
+
+! Diagonal (Jacobi) preconditioner for the legacy FGMRES driver
+
      subroutine precond_diag   (ntot,    &
                                 diagvec, &
                                 wk1, wk2)
@@ -3625,6 +3656,8 @@
       end subroutine precond_diag
       
 !=======================================================================      
+
+! Compute squared l^2 norm of a grid function (tpu,tpv)
 
       subroutine calc_L2norm_squared (nx_block,   ny_block, &
                                       icellu,               &
@@ -3671,7 +3704,10 @@
       
       end subroutine calc_L2norm_squared
       
-            !=======================================================================
+!=======================================================================
+
+! Convert a grid function (tpu,tpv) to a one dimensional vector
+! to be passed to the legacy FGMRES driver
 
       subroutine arrays_to_vec (nx_block, ny_block, nblocks, &
                                 max_blocks, icellu,   ntot,  &
@@ -3728,7 +3764,10 @@
 
       end subroutine arrays_to_vec
       
-            !=======================================================================
+!=======================================================================
+
+! Convert one dimensional vector received from the legacy FGMRES driver
+! to a grid function (tpu,tpv)
 
       subroutine vec_to_arrays (nx_block, ny_block, nblocks, &
                                 max_blocks, icellu,   ntot,  &
@@ -3793,6 +3832,7 @@
 ! Update Q and R factor after deletion of the 1st column of G_diff
 !
 ! author: P. Blain ECCC
+
       subroutine qr_delete(Q, R)
       
       real (kind=dbl_kind), intent(inout) :: &
@@ -3838,7 +3878,7 @@
 !=======================================================================
 
 ! FGMRES: Flexible generalized minimum residual method (with restarts). 
-! Solves A x = b using GMRES with a varying (right) preconditioner
+! Solves the linear system A x = b using GMRES with a varying (right) preconditioner
 !
 ! authors: Stéphane Gaudreault, Abdessamad Qaddouri, Philippe Blain, ECCC
 
@@ -4232,7 +4272,7 @@
 !=======================================================================
 
 ! PGMRES: Right-preconditioned generalized minimum residual method (with restarts). 
-! Solves A x = b using GMRES with a right preconditioner
+! Solves the linear A x = b using GMRES with a right preconditioner
 !
 ! authors: Stéphane Gaudreault, Abdessamad Qaddouri, Philippe Blain, ECCC
 
@@ -4757,8 +4797,8 @@
 
 !=======================================================================
 
-! Generic routine to orthogonalize a vector (arnoldi_basis_y(:, :, :, nextit))
-! against a set of vectors (arnoldi_basis_y(:, :, :, 1:initer))
+! Generic routine to orthogonalize a vector (arnoldi_basis_[xy](:, :, :, nextit))
+! against a set of vectors (arnoldi_basis_[xy](:, :, :, 1:initer))
 !
 ! authors: Philippe Blain, ECCC
 
