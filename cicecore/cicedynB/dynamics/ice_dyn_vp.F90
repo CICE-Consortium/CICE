@@ -4167,7 +4167,7 @@
                end do
             end if
             
-            ! Compute new Givens rotation
+            ! Compute and apply new Givens rotation
             nu = sqrt(hessenberg(initer,initer)**2 + hessenberg(nextit,initer)**2)
             if (.not. almost_zero(nu)) then
                rot_cos(initer) = hessenberg(initer,initer) / nu
