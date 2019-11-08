@@ -4256,8 +4256,8 @@
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
 
-                  workspace_x(i, j, iblk) = rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
-                  workspace_y(i, j, iblk) = rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
+                  workspace_x(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
+                  workspace_y(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO
