@@ -34,7 +34,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ hobart*) then
+else if (${ICE_MACHINE} =~ hobart* || ${ICE_MACHINE} =~ izumi*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -71,27 +71,15 @@ endif
 
 #=======
 else if (${ICE_MACHINE} =~ onyx*) then
-if (${ICE_COMMDIR} =~ serial*) then
-cat >> ${jobfile} << EOFR
-./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-else
 cat >> ${jobfile} << EOFR
 aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
-endif
 
 #=======
 else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
-if (${ICE_COMMDIR} =~ serial*) then
-cat >> ${jobfile} << EOFR
-./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-else
 cat >> ${jobfile} << EOFR
 aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
-endif
 
 #=======
 else if (${ICE_MACHINE} =~ cori*) then

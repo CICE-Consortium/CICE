@@ -867,10 +867,6 @@ The script will produce output similar to:
 Additionally, the exit code from the test (``echo $?``) will be 0 if the test passed,
 and 1 if the test failed.
 
-Implementation notes: 1) Provide a pass/fail on each of the confidence
-intervals, 2) Facilitate output of a bitmap for each test so that
-locations of failures can be identified.
-
 The ``cice.t-test.py`` requires memory to store multiple two-dimensional fields spanning 
 1825 unique timesteps, a total of several GB.  An appropriate resource is needed to 
 run the script.  If the script runs out of memory on an interactive resource, try
@@ -895,7 +891,7 @@ Below is an example of a step-by-step procedure for testing a code change that m
   # Create a baseline dataset (only necessary if no baseline exists on the system)
   # git clone the baseline code
 
-  ./cice.setup -m onyx -e intel --suite base_suite --testid base0 -bgen cice.my.baseline
+  ./cice.setup -m onyx -e intel --suite base_suite --testid base0 --bgen cice.my.baseline
 
   # Run the test suite with the new code
   # git clone the new code
@@ -906,6 +902,8 @@ Below is an example of a step-by-step procedure for testing a code change that m
 
   cd testsuite.test0
   ./results.csh
+
+  # Note which tests failed and determine which namelist options are responsible for the failures
 
 ..
 
@@ -920,6 +918,7 @@ If the regression comparisons fail, then you may want to run the QC test,
 
   ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_base -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_base
+  # modify ice_in to activate the namelist options that were determined above
   ./cice.build
   ./cice.submit
 
@@ -928,6 +927,7 @@ If the regression comparisons fail, then you may want to run the QC test,
 
   ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
+  # modify ice_in to activate the namelist options that were determined above
   ./cice.build
   ./cice.submit
 

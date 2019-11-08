@@ -44,6 +44,7 @@
       subroutine CICE_Initialize
 
       character(len=*), parameter :: subname='(CICE_Initialize)'
+
    !--------------------------------------------------------------------
    ! model initialization
    !--------------------------------------------------------------------
@@ -56,7 +57,7 @@
 !
 !  Initialize CICE model.
 
-      subroutine cice_init
+      subroutine cice_init(mpicom_ice)
 
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
       use ice_state, only: alloc_state
@@ -88,14 +89,14 @@
       use drv_forcing, only: sst_sss
 #endif
 
+      integer (kind=int_kind), optional, intent(in) :: &
+         mpicom_ice ! communicator for sequential ccsm
+
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
       character(len=*), parameter :: subname = '(cice_init)'
 
-      call init_communicate     ! initial setup for message passing
+      call init_communicate(mpicom_ice)     ! initial setup for message passing
       call init_fileunits       ! unit numbers
-
-      ! tcx debug, this will create a different logfile for each pe
-      ! if (my_task /= master_task) nu_diag = 100+my_task
 
       call icepack_configure()  ! initialize icepack
       call icepack_warnings_flush(nu_diag)
@@ -143,7 +144,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-!     call calendar(time)       ! determine the initial date
+      call calendar(time)       ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
@@ -176,11 +177,6 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
-      istep  = istep  + 1    ! update time step counters
-      istep1 = istep1 + 1
-      time = time + dt       ! determine the time and date
-      call calendar(time)    ! at the end of the first timestep
-
    !--------------------------------------------------------------------
    ! coupler communication or forcing data initialization
    !--------------------------------------------------------------------
@@ -207,7 +203,7 @@
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
-      if (write_ic) call accum_hist(dt) ! write initial conditions 
+!      if (write_ic) call accum_hist(dt) ! write initial conditions 
 
       end subroutine cice_init
 

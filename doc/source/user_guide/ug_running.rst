@@ -10,7 +10,7 @@ Quick-start instructions are provided in the :ref:`quickstart` section.
 .. _software:
 
 Software Requirements
--------
+----------------------
 
 To run stand-alone, CICE requires
 
@@ -121,7 +121,7 @@ Once a case/test is created, several files are placed in the case directory
 - **makdep.c** is a tool that will automatically generate the make dependencies
 - **Macros.[machine]** defines the Makefile macros
 - **Makefile** is the makefile used to build the model
-- **cice.build** is a script that builds and compiles the model
+- **cice.build** is a script that calls the Makefile and compiles the model
 - **ice\_in** is the namelist input file
 - **setup\_run\_dirs.csh** is a script that will create the run directories.  This will be called automatically from the **cice.run** script if the user does not invoke it.
 - **cice.run** is a batch run script
@@ -161,8 +161,8 @@ case directory, NOT the run directory.
 
 .. _case_options:
 
-Command Line Options
-~~~~~~~~~~~~~~~~~~~~
+**cice.setup** Command Line Options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``cice.setup -h`` provides a summary of the command line options.  There are three different modes, ``--case``, ``--test``, and ``--suite``.  This section provides details about the relevant options for setting up cases with examples.
 Testing will be described in greater detail in the :ref:`testing` section.
@@ -267,14 +267,102 @@ To add some optional settings, one might do::
 
 Once the cases are created, users are free to modify the cice.settings and ice_in namelist to further modify their setup.
 
+.. _cicebuild:
+
+More about **cice.build**
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**cice.build** is copied into the case directory and should be run interactively from the
+case directory to build the model.  CICE is built with make and there is a generic
+Makefile and a machine specific Macros file in the case directory.  **cice.build**
+is a wrapper for a call to make that includes several other features.  
+
+CICE is built as follows.  First, the makdep binary is created by compiling a small
+C program.  The makdep binary is then run and dependency files are created.  The dependency
+files are included into the Makefile automatically.  As a result, make dependencies do not 
+need to be explicitly defined by the user.  In the next step, make compiles the CICE
+code and generates the cice binary.
+
+The standard and recommended way to run is with 
+no arguments
+::
+
+  cice.build
+
+However, **cice.build** does support a couple other use modes.
+::
+
+  cice.build [-h|--help] 
+
+provides a summary of the usage.
+::
+
+  cice.build [make arguments] [target]
+
+turns off most of the features of the cice.build script and turns it into a wrapper
+for the make call.  The arguments and/or target are passed to make and invoked more
+or less like  make [make arguments] [target].  This will be the case if either or 
+both the arguments or target are passed to cice.build.  Some examples of that are
+::
+
+  cice.build --version
+
+which will pass --version to make.
+::
+
+  cice.build targets
+
+is a valid target of the CICE Makefile and simply echos all the valid
+targets of the Makefile.
+::
+
+  cice.build cice
+
+or ::
+
+  cice.build all
+
+are largely equivalent to running **cice.build** without an argument,
+although as noted earlier, many of the extra features of the cice.build script
+are turned off when calling cice.build with a target or an argument.  Any of the
+full builds will compile makdep, generate the source code dependencies, and
+compile the source code.
+::
+
+  cice.build [clean|realclean]
+  cice.build [db_files|db_flags]
+  cice.build [makdep|depends]
+
+are other valid options for cleaning the build, writing out information about
+the Makefile setup, and building just the makdep tool or the dependency file.
+It is also possible to target a particular CICE object file.
+
+Finally, there is one important parameter in **cice.settings**.  The ``ICE_CLEANBUILD``
+variable defines whether the model is cleaned before a build is carried out.  By
+default, this variable is true which means each invokation of **cice.build** will
+automatically clean the prior build.  If incremental builds are desired to save
+time during development, the ``ICE_CLEANBUILD`` setting in **cice.settings** should
+be modified.
+
+
 .. _porting:
 
 Porting
 -------
 
+There are four basic issues that need to be addressed when porting, and these are addressed in four separate files in the script system,
+
+- setup of the environment such as compilers, environment variables, and other support software (in **env.[machine]_[environment]**)
+
+- setup of the Macros file to support the model build (in **Macros.[machine]_[environment]**)
+
+- setup of the batch submission scripts (in **cice.batch.csh**)
+
+- setup of the model launch command (in **cice.launch.csh**)
+
 To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment]** file have to be added to the
 **configuration/scripts/machines/** directory and the 
-**configuration/scripts/cice.batch.csh** file needs to be modified.
+**configuration/scripts/cice.batch.csh** and **configuration/scripts/cice.launch.csh** files need to be modified.
 In general, the machine is specified in ``cice.setup`` with ``--mach``
 and the environment (compiler) is specified with ``--env``.
  
@@ -287,7 +375,10 @@ and the environment (compiler) is specified with ``--env``.
 - cd .. to **configuration/scripts/**
 
 - Edit the **cice.batch.csh** script to add a section for your machine 
-  with batch settings and job launch settings
+  with batch settings
+
+- Edit the **cice.batch.csh** script to add a section for your machine 
+  with job launch settings
 
 - Download and untar a forcing dataset to the location defined by 
   ``ICE_MACHINE_INPUTDATA`` in the env file
@@ -297,7 +388,7 @@ to carry this out is to create an initial set of changes as described above, the
 create a case and manually modify the **env.[machine]** file and **Macros.[machine]** 
 file until the case can build and run.  Then copy the files from the case 
 directory back to **configuration/scripts/machines/** and update 
-the **configuration/scripts/cice.batch.csh** file, retest, 
+the **configuration/scripts/cice.batch.csh** and **configuratin/scripts/cice.launch.csh** files, retest, 
 and then add and commit the updated machine files to the repository.
 
 .. _machvars: 
@@ -322,6 +413,7 @@ system.  Some variables are optional.
    "ICE_MACHINE_SUBMIT", "string", "batch job submission command"
    "ICE_MACHINE_TPNODE", "integer", "machine maximum MPI tasks per node"
    "ICE_MACHINE_MAXPES", "integer", "machine maximum total processors per job (optional)"
+   "ICE_MACHINE_MAXTHREADS", "integer", "machine maximum threads per mpi task (optional)"
    "ICE_MACHINE_MAXRUNLENGTH", "integer", "batch wall time limit in hours (optional)"
    "ICE_MACHINE_ACCT", "string", "batch default account"
    "ICE_MACHINE_QUEUE", "string", "batch default queue"

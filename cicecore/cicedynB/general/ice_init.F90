@@ -16,17 +16,17 @@
       use ice_communicate, only: my_task, master_task, ice_barrier
       use ice_constants, only: c0, c1, c2, c3, p2, p5
       use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
+      use ice_fileunits, only: nu_nml, nu_diag, nu_diag_set, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
           ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
+#ifdef CESMCOUPLED
       use ice_fileunits, only: inst_suffix
+#endif
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_trcr
       use icepack_intfc, only: icepack_init_parameters
       use icepack_intfc, only: icepack_init_tracer_flags
-      use icepack_intfc, only: icepack_init_tracer_numbers
-      use icepack_intfc, only: icepack_init_tracer_indices
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_numbers
       use icepack_intfc, only: icepack_query_tracer_indices
@@ -107,8 +107,6 @@
          nml_error, & ! namelist i/o error flag
          n            ! loop index
 
-      character (len=6) :: chartmp
-
       logical :: exists
 
       real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
@@ -127,8 +125,6 @@
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
-      integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
-      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
       integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
@@ -470,11 +466,17 @@
          history_file  = trim(runid) // ".cice" // trim(inst_suffix) //".h"
          restart_file  = trim(runid) // ".cice" // trim(inst_suffix) //".r"
          incond_file   = trim(runid) // ".cice" // trim(inst_suffix) //".i"
-         inquire(file='ice_modelio.nml'//trim(inst_suffix),exist=exists)
-         if (exists) then
-            call get_fileUnit(nu_diag)
-            call shr_file_setIO('ice_modelio.nml'//trim(inst_suffix),nu_diag)
-         end if
+         ! Note by tcraig - this if test is needed because the nuopc cap sets
+         ! nu_diag before this routine is called.  This creates a conflict.
+         ! In addition, in the nuopc cap, shr_file_setIO will fail if the
+         ! needed namelist is missing (which it is in the CIME nuopc implementation)
+         if (.not. nu_diag_set) then
+            inquire(file='ice_modelio.nml'//trim(inst_suffix),exist=exists)
+            if (exists) then
+               call get_fileUnit(nu_diag)
+               call shr_file_setIO('ice_modelio.nml'//trim(inst_suffix),nu_diag)
+            end if
+         endif
       else
          ! each task gets unique ice log filename when if test is true, for debugging
          if (1 == 0) then
@@ -1886,7 +1888,7 @@
       ! Geometric configuration of the slotted cylinder
       diam     = p3 *dxrect*(nx_global-1)
       center_x = p5 *dxrect*(nx_global-1)
-      center_y = p75*dxrect*(ny_global-1)
+      center_y = p75*dyrect*(ny_global-1)
       radius   = p5*diam
       width    = p166*diam
       length   = c5*p166*diam
@@ -1899,11 +1901,11 @@
       ! check if grid point is inside slotted cylinder
       in_slot = (dxrect*real(iglob(i)-1, kind=dbl_kind) >= slot_x(1)) .and. &
                 (dxrect*real(iglob(i)-1, kind=dbl_kind) <= slot_x(2)) .and. & 
-                (dxrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
-                (dxrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
+                (dyrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
+                (dyrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
                 
       in_cyl  = sqrt((dxrect*real(iglob(i)-1, kind=dbl_kind) - center_x)**c2 + &
-                     (dxrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
+                     (dyrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
       
       in_slotted_cyl = in_cyl .and. .not. in_slot
       
@@ -1927,9 +1929,10 @@
                                      iglob,    jglob,   &
                                      uvel,     vvel)
       
-      use ice_constants, only: c1, c4, c2, c12, p5, cm_to_m
+      use ice_constants, only: c2, c12, p5, cm_to_m
       use ice_domain_size, only: nx_global, ny_global
       use ice_grid, only: dxrect
+      use icepack_parameters, only: secday, pi
 
       integer (kind=int_kind), intent(in) :: &
          i, j,               & ! local indices
@@ -1946,15 +1949,11 @@
          max_vel        , & ! max velocity
          domain_length  , & ! physical domain length
          period             ! rotational period
-         
-      real (kind=dbl_kind), parameter :: &
-         pi        = c4*atan(c1), & ! pi
-         days_to_s = 86400._dbl_kind
       
       character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
       
       domain_length = dxrect*cm_to_m*nx_global
-      period        = c12*days_to_s            ! 12 days rotational period
+      period        = c12*secday               ! 12 days rotational period
       max_vel       = pi*domain_length/period
 
       uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &

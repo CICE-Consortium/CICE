@@ -21,7 +21,7 @@ please refer to: <https://github.com/CICE-Consortium/About-Us/wiki/Resource-Inde
 - Does this PR add any new test cases?
     - [ ] Yes
     - [ ] No
-- Is the documentation being updated? ("Documentation" includes information on the wiki or in the .rst files from doc/source/, which are used to create the online technical docs at https://readthedocs.org/projects/cice-consortium-cice/.)
+- Is the documentation being updated? ("Documentation" includes information on the wiki or in the .rst files from doc/source/, which are used to create the online technical docs at https://readthedocs.org/projects/cice-consortium-cice/. A test build of the technical docs will be performed as part of the PR testing.)
     - [ ] Yes
     - [ ] No, does the documentation need to be updated at a later time?
         - [ ] Yes
