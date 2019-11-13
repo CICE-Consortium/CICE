@@ -1481,21 +1481,21 @@
          enddo
 
          if (tmask(i,j,iblk)) &
-         call icepack_aggregate (ncat,               &
-                                aicen(i,j,:,iblk),   &
-                                trcrn(i,j,:,:,iblk), &
-                                vicen(i,j,:,iblk),   &
-                                vsnon(i,j,:,iblk),   &
-                                aice (i,j,  iblk),   &
-                                trcr (i,j,:,iblk),   &
-                                vice (i,j,  iblk),   &
-                                vsno (i,j,  iblk),   &
-                                aice0(i,j,  iblk),   &
-                                ntrcr,               &
-                                trcr_depend  (:),    &
-                                trcr_base    (:,:),  &
-                                n_trcr_strata(:),    &
-                                nt_strata    (:,:))
+            call icepack_aggregate(ncat  = ncat,                  &
+                                   aicen = aicen(i,j,:,iblk),     &
+                                   trcrn = trcrn(i,j,:,:,iblk),   &
+                                   vicen = vicen(i,j,:,iblk),     &
+                                   vsnon = vsnon(i,j,:,iblk),     &
+                                   aice  = aice (i,j,  iblk),     &
+                                   trcr  = trcr (i,j,:,iblk),     &
+                                   vice  = vice (i,j,  iblk),     &
+                                   vsno  = vsno (i,j,  iblk),     &
+                                   aice0 = aice0(i,j,  iblk),     &
+                                   ntrcr = ntrcr,                 &
+                                   trcr_depend   = trcr_depend(:),   &
+                                   trcr_base     = trcr_base(:,:),   &
+                                   n_trcr_strata = n_trcr_strata(:), &
+                                   nt_strata     = nt_strata(:,:))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
 
@@ -1797,11 +1797,12 @@
                endif
                vsnon(i,j,n) = min(aicen(i,j,n)*hsno_init,p2*vicen(i,j,n))
 
-               call icepack_init_trcr(Tair(i,j),     Tf(i,j),      &
-                                     salinz(i,j,:), Tmltz(i,j,:), &
-                                     Tsfc,                        &
-                                     nilyr,         nslyr,        &
-                                     qin(:),        qsn(:))
+               call icepack_init_trcr(Tair  = Tair(i,j), Tf = Tf(i,j),  &
+                                      Sprofile = salinz(i,j,:),         &
+                                      Tprofile = Tmltz(i,j,:),          &
+                                      Tsfc  = Tsfc,                     &
+                                      nilyr = nilyr,     nslyr = nslyr, &
+                                      qin   = qin(:),    qsn = qsn(:))
 
                ! surface temperature
                trcrn(i,j,nt_Tsfc,n) = Tsfc ! deg C
