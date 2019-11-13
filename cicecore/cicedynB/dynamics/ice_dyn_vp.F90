@@ -4050,9 +4050,9 @@
          norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
          
          ! Current guess is a good enough solution
-         if (norm_residual < tolerance) then
-            return
-         end if
+         ! if (norm_residual < tolerance) then
+         !    return
+         ! end if
          
          ! Normalize the first Arnoldi vector
          inverse_norm = c1 / norm_residual
