@@ -4266,7 +4266,6 @@
          end do
       end do ! end of outer (restarts) loop
       
-      return
       end subroutine fgmres
 
 !=======================================================================
@@ -4310,15 +4309,15 @@
                      ! residual is below tolerance
 
       integer (kind=int_kind), intent(in) :: &
-         maxinner    ! Restart the method every maxinner inner iterations
+         maxinner    ! Restart the method every maxinner inner (Arnoldi) iterations
 
       integer (kind=int_kind), intent(in) :: &
-         maxouter    ! Maximum number of outer iterations
-                     ! Iteration will stop after maxinner*maxouter steps
+         maxouter    ! Maximum number of outer (restarts) iterations
+                     ! Iteration will stop after maxinner*maxouter Arnoldi steps
                      ! even if the specified tolerance has not been achieved
 
       integer (kind=int_kind), intent(out) :: &
-         nbiter      ! Total number of iteration performed
+         nbiter      ! Total number of Arnoldi iterations performed
 
       real (kind=dbl_kind), intent(out) :: &
          conv        ! !phb DESCRIBE IF WE KEEP
@@ -4436,9 +4435,9 @@
          norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
          
          ! Current guess is a good enough solution
-         if (norm_residual < tolerance) then
-            return
-         end if
+         ! if (norm_residual < tolerance) then
+         !    return
+         ! end if
          
          ! Normalize the first Arnoldi vector
          inverse_norm = c1 / norm_residual
@@ -4505,45 +4504,9 @@
             enddo
             !$OMP END PARALLEL DO
             
-            ! Classical Gram-Schmidt orthogonalisation process
-            ! First loop of Gram-Schmidt (compute coefficients)
-            dotprod_local = c0
-            do it=1,initer
-               local_dot = c0
-               
-               !$OMP PARALLEL DO PRIVATE(iblk)
-               do iblk = 1, nblocks
-                  do ij =1, icellu(iblk)
-                     i = indxui(ij, iblk)
-                     j = indxuj(ij, iblk)
-                     
-                     local_dot = local_dot + (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
-                                             (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
-                  enddo ! ij
-               enddo
-               !$OMP END PARALLEL DO
-               
-                dotprod_local(it) = local_dot
-            end do
-            
-            hessenberg(1:initer,initer) = global_sums(dotprod_local(1:initer), distrb_info)
-            
-            ! Second loop of Gram-Schmidt (orthonormalize)
-            do it = 1, initer
-               !$OMP PARALLEL DO PRIVATE(iblk)
-               do iblk = 1, nblocks
-                  do ij =1, icellu(iblk)
-                     i = indxui(ij, iblk)
-                     j = indxuj(ij, iblk)
-                     
-                     arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit) &
-                                                           - hessenberg(it,initer) * arnoldi_basis_x(i, j, iblk, it)
-                     arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit) &
-                                                           - hessenberg(it,initer) * arnoldi_basis_y(i, j, iblk, it)
-                  enddo ! ij
-               enddo
-               !$OMP END PARALLEL DO 
-            end do
+            ! Orthogonalize the new vector
+            call orthogonalize(arnoldi_basis_x, arnoldi_basis_y, &
+                               hessenberg, initer, nextit, maxinner, ortho_type)
             
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
             !$OMP PARALLEL DO PRIVATE(iblk)
@@ -4584,7 +4547,7 @@
                end do
             end if
             
-            ! Compute new Givens rotation
+            ! Compute and apply new Givens rotation
             nu = sqrt(hessenberg(initer,initer)**2 + hessenberg(nextit,initer)**2)
             if (.not. almost_zero(nu)) then
                rot_cos(initer) = hessenberg(initer,initer) / nu
@@ -4652,7 +4615,7 @@
          
          ! Increment outer loop counter and check for convergence
          outiter = outiter + 1
-         if (norm_residual <= relative_tolerance .or. outiter > maxouter) then
+         if (norm_residual <= relative_tolerance .or. outiter >= maxouter) then
             return
          end if
 
@@ -4687,8 +4650,8 @@
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
 
-                  workspace_x(i, j, iblk) = rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
-                  workspace_y(i, j, iblk) = rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
+                  workspace_x(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
+                  workspace_y(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO
