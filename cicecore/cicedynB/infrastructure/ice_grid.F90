@@ -332,7 +332,7 @@
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, &
          pi, pi2, puny
-
+!      real (kind=dbl_kind) :: ANGLET_dum
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
 
@@ -491,24 +491,32 @@
             angle_w  = ANGLE(i-1,j  ,iblk) !   |    |
             angle_s  = ANGLE(i,  j-1,iblk) !   |    |
             angle_sw = ANGLE(i-1,j-1,iblk) !   sw---s
+            ANGLET(i,j,iblk) = atan2(p25*(sin(angle_0)+ &
+                                          sin(angle_w)+ &
+                                          sin(angle_s)+ &
+                                          sin(angle_sw)),&
+                                     p25*(cos(angle_0)+ &
+                                          cos(angle_w)+ &
+                                          cos(angle_s)+ &
+                                          cos(angle_sw)))
+!           if ( angle_0 < c0 ) then
+!               if ( abs(angle_w - angle_0) > pi) &
+!                        angle_w = angle_w  - pi2
+!               if ( abs(angle_s - angle_0) > pi) &
+!                        angle_s = angle_s  - pi2
+!               if ( abs(angle_sw - angle_0) > pi) &
+!                        angle_sw = angle_sw - pi2
+!            endif
 
-            if ( angle_0 < c0 ) then
-               if ( abs(angle_w - angle_0) > pi) &
-                        angle_w = angle_w  - pi2
-               if ( abs(angle_s - angle_0) > pi) &
-                        angle_s = angle_s  - pi2
-               if ( abs(angle_sw - angle_0) > pi) &
-                        angle_sw = angle_sw - pi2
-            endif
-
-            ANGLET(i,j,iblk) = angle_0 * p25 + angle_w * p25 &
-                             + angle_s * p25 + angle_sw* p25
+!            ANGLET_dum = angle_0 * p25 + angle_w * p25 &
+!                             + angle_s * p25 + angle_sw* p25
+!            write(my_task+700,*) ANGLET_dum, ANGLET(i,j,iblk)
          enddo
          enddo
+!      call flush(my_task+700)
       enddo
       !$OMP END PARALLEL DO
       endif ! cpom_grid
-
       if (trim(grid_type) == 'regional') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
