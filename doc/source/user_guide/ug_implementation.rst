@@ -48,7 +48,7 @@ as follows
 **cicecore/cicedynB/**
   routines associated with the dynamics core
 
-**cicecore/driver/**
+**cicecore/drivers/**
   top-level CICE drivers and coupling layers
 
 **cicecore/shared/**
@@ -65,6 +65,9 @@ as follows
 
 **cice.setup**
   main CICE script for creating cases
+
+**dot files**
+  various files that begin with . and store information about the git repository or other tools.
 
 A case (compile) directory is created upon initial execution of the script 
 **cice.setup** at the user-specified location provided after the -c flag. 

@@ -849,7 +849,7 @@ EOF2
 
         cat ${ICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
 
-cat >> ${fimods} << EOF2
+cat >> ${fsmods} << EOF2
 
 EOF2
 
