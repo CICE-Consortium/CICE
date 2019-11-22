@@ -511,11 +511,12 @@
                vicen(i,j,n) = hinit(n) * ainit(n) ! m
                vsnon(i,j,n) = min(aicen(i,j,n)*hsno_init,p2*vicen(i,j,n))
 
-               call icepack_init_trcr(Tair(i,j),     Tf(i,j),      &
-                                     salinz(i,j,:), Tmltz(i,j,:), &
-                                     Tsfc,                        &
-                                     nilyr,         nslyr,        &
-                                     qin(:),        qsn(:))
+               call icepack_init_trcr(Tair=Tair(i,j),    Tf=Tf(i,j),  &
+                                      Sprofile=salinz(i,j,:),         &
+                                      Tprofile=Tmltz(i,j,:),          &
+                                      Tsfc=Tsfc,                      &
+                                      nilyr=nilyr,       nslyr=nslyr, &
+                                      qin=qin(:),        qsn=qsn(:))
 
                ! surface temperature
                trcrn(i,j,nt_Tsfc,n) = Tsfc ! deg C

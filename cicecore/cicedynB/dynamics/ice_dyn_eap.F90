@@ -346,13 +346,13 @@
          do ij = 1, icellt(iblk)
             i = indxti(ij, iblk)
             j = indxtj(ij, iblk)
-            call icepack_ice_strength (ncat,                 &
-                                      aice    (i,j,  iblk), & 
-                                      vice    (i,j,  iblk), & 
-                                      aice0   (i,j,  iblk), & 
-                                      aicen   (i,j,:,iblk), &  
-                                      vicen   (i,j,:,iblk), & 
-                                      strength(i,j,  iblk) )
+            call icepack_ice_strength(ncat=ncat,                 &
+                                      aice     = aice    (i,j,  iblk), & 
+                                      vice     = vice    (i,j,  iblk), & 
+                                      aice0    = aice0   (i,j,  iblk), & 
+                                      aicen    = aicen   (i,j,:,iblk), &  
+                                      vicen    = vicen   (i,j,:,iblk), & 
+                                      strength = strength(i,j,  iblk) )
          enddo  ! ij
 
          ! load velocity into array for boundary updates

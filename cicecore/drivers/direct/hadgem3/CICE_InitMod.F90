@@ -132,9 +132,9 @@
 #endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
 
-      call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
+      call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
       if (my_task == master_task) then
-         call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
+         call icepack_init_itd_hist(ncat=ncat, hin_max=hin_max, c_hi_range=c_hi_range) ! output
       endif
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
@@ -395,21 +395,21 @@
       do j = 1, ny_block
       do i = 1, nx_block
          if (tmask(i,j,iblk)) then
-            call icepack_aggregate (ncat,               &
-                                   aicen(i,j,:,iblk),  &
-                                   trcrn(i,j,:,:,iblk),&
-                                   vicen(i,j,:,iblk),  &
-                                   vsnon(i,j,:,iblk),  &
-                                   aice (i,j,  iblk),  &
-                                   trcr (i,j,:,iblk),  &
-                                   vice (i,j,  iblk),  &
-                                   vsno (i,j,  iblk),  &
-                                   aice0(i,j,  iblk),  &
-                                   ntrcr,          &
-                                   trcr_depend,        &
-                                   trcr_base,          &
-                                   n_trcr_strata,      &
-                                   nt_strata)
+            call icepack_aggregate(ncat  = ncat,                  &
+                                   aicen = aicen(i,j,:,iblk),     &
+                                   trcrn = trcrn(i,j,:,:,iblk),   &
+                                   vicen = vicen(i,j,:,iblk),     &
+                                   vsnon = vsnon(i,j,:,iblk),     &
+                                   aice  = aice (i,j,  iblk),     &
+                                   trcr  = trcr (i,j,:,iblk),     &
+                                   vice  = vice (i,j,  iblk),     &
+                                   vsno  = vsno (i,j,  iblk),     &
+                                   aice0 = aice0(i,j,  iblk),     &
+                                   ntrcr = ntrcr,                 &
+                                   trcr_depend   = trcr_depend,   &
+                                   trcr_base     = trcr_base,     &
+                                   n_trcr_strata = n_trcr_strata, &
+                                   nt_strata     = nt_strata)
          else
             ! tcraig, reset all tracer values on land to zero
             trcrn(i,j,:,:,iblk) = c0
