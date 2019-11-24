@@ -23,7 +23,7 @@
       use icepack_intfc, only: icepack_step_ridge
       use icepack_intfc, only: icepack_step_radiation
       use icepack_intfc, only: icepack_ocn_mixed_layer, icepack_atm_boundary
-      use icepack_intfc, only: icepack_biogeochemistry, icepack_init_OceanConcArray
+      use icepack_intfc, only: icepack_biogeochemistry, icepack_load_ocean_bio_array
       use icepack_intfc, only: icepack_max_algae, icepack_max_nbtrcr, icepack_max_don
       use icepack_intfc, only: icepack_max_doc, icepack_max_dic, icepack_max_aero
       use icepack_intfc, only: icepack_max_fe
@@ -877,6 +877,9 @@
          nt_apnd, nt_hpnd, nt_ipnd, nt_aero, nlt_chl_sw, &
          ntrcr, nbtrcr, nbtrcr_sw, nt_fbri
 
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nt_bgc_N
+
       integer (kind=int_kind), dimension(icepack_max_aero) :: &
          nlt_zaero_sw, nt_zaero
 
@@ -887,7 +890,6 @@
          fbri                 ! brine height to ice thickness
 
       real(kind= dbl_kind), dimension(:,:), allocatable :: &
-         ztrcr    , &
          ztrcr_sw
 
       logical (kind=log_kind) :: &
@@ -906,14 +908,13 @@
          nt_Tsfc_out=nt_Tsfc, nt_alvl_out=nt_alvl, &
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, &
          nlt_chl_sw_out=nlt_chl_sw, nlt_zaero_sw_out=nlt_zaero_sw, &
-         nt_fbri_out=nt_fbri, nt_zaero_out=nt_zaero)
+         nt_fbri_out=nt_fbri, nt_zaero_out=nt_zaero, nt_bgc_N_out=nt_bgc_N)
       call icepack_query_parameters(dEdd_algae_out=dEdd_algae, modal_aero_out=modal_aero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      allocate(ztrcr(ntrcr,ncat))
-      allocate(ztrcr_sw(ntrcr,ncat))
+      allocate(ztrcr_sw(nbtrcr_sw,ncat))
 
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
@@ -938,20 +939,13 @@
          fbri(:) = c0
          ztrcr_sw(:,:) = c0
          do n = 1, ncat
-           do k = 1, ntrcr
-             ztrcr(k,n) = trcrn(i,j,k,n,iblk)
-           enddo
            if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
          enddo
 
          if (tmask(i,j,iblk)) then
 
             call icepack_step_radiation (dt=dt,   ncat=ncat,                  &
-                         n_algae=n_algae, tr_zaero=tr_zaero, nblyr=nblyr,     &
-                         ntrcr=ntrcr, nbtrcr_sw=nbtrcr_sw,                    &
-                         nilyr=nilyr, nslyr=nslyr, n_aero=n_aero,             &
-                         n_zaero=n_zaero, nlt_chl_sw=nlt_chl_sw,              &
-                         nlt_zaero_sw=nlt_zaero_sw(:),                        &
+                         nblyr=nblyr, nilyr=nilyr, nslyr=nslyr,               &
                          dEdd_algae=dEdd_algae,                               &
                          swgrid=swgrid(:),        igrid=igrid(:),             &
                          fbri=fbri(:),                                        &
@@ -964,8 +958,9 @@
                          hpndn=trcrn(i,j,nt_hpnd,:,iblk),                     &
                          ipndn=trcrn(i,j,nt_ipnd,:,iblk),                     &
                          aeron=trcrn(i,j,nt_aero:nt_aero+4*n_aero-1,:,iblk),  &
-                         zbion=ztrcr_sw,                                      &
-                         trcrn=ztrcr,                                         &
+                         bgcNn=trcrn(i,j,nt_bgc_N(1):nt_bgc_N(1)+n_algae*(nblyr+3)-1,:,iblk), &
+                         zaeron=trcrn(i,j,nt_zaero(1):nt_zaero(1)+n_zaero*(nblyr+3)-1,:,iblk), &
+                         trcrn_bgcsw=ztrcr_sw,                                &
                          TLAT=TLAT(i,j,iblk),     TLON=TLON(i,j,iblk),        &
                          calendar_type=calendar_type,                         &
                          days_per_year=days_per_year,                         &
@@ -1007,7 +1002,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      deallocate(ztrcr)
       deallocate(ztrcr_sw)
 
       call ice_timer_stop(timer_sw)     ! shortwave
@@ -1253,7 +1247,7 @@
       do j = jlo, jhi
       do i = ilo, ihi    
 
-         call icepack_init_OceanConcArray(max_nbtrcr = icepack_max_nbtrcr, &
+         call icepack_load_ocean_bio_array(max_nbtrcr = icepack_max_nbtrcr, &
                 max_algae = icepack_max_algae, max_don = icepack_max_don, &
                 max_doc   = icepack_max_doc,   max_dic = icepack_max_dic, &
                 max_aero  = icepack_max_aero,  max_fe  = icepack_max_fe,  &
