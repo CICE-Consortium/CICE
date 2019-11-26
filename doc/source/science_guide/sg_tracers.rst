@@ -76,7 +76,6 @@ is not in use.
    "default", "1", "vice", "nt_sice", " "
    "tr_iage", "1", "vice", "nt_iage", " "
    "tr_FY", "1", "aice", "nt_FY", " "
-   "tr_fsd',  "1", "aice", "nt_fsd", " "
    "tr_lvl", "2", "aice", "nt_alvl", " "
    " ", " ", "vice", "nt_vlvl", " "
    "tr_pond_cesm", "2", "aice", "nt_apnd", " " 

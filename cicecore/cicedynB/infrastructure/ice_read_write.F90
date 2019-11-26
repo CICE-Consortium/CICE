@@ -58,9 +58,7 @@
       interface ice_read_nc
         module procedure ice_read_nc_xy,  &
                          ice_read_nc_xyz, &
-! LR
                          !ice_read_nc_xyf, &
-! LR
                          ice_read_nc_point, &
                          ice_read_nc_z
       end interface
@@ -1445,7 +1443,7 @@
 #ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
-         varid         , & ! variable id
+         varid,           & ! variable id
          status,          & ! status output from netcdf routines
          ndim, nvar,      & ! sizes of netcdf file
          id,              & ! dimension index
@@ -1453,6 +1451,7 @@
          dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
+         missingvalue,    & ! missing value
          amin, amax, asum   ! min, max values and sum of input array
 
       character (char_len) :: &
@@ -1528,6 +1527,7 @@
          print *, 'fid',fid ,' varid',varid
 #endif
 
+         status = nf90_get_att(fid, varid, "missing_value", missingvalue)
       endif                     ! my_task = master_task
 
     !-------------------------------------------------------------------
@@ -1535,22 +1535,26 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-!          write(nu_diag,*) & 
-!            'ice_read_nc_xyf, fid= ',fid, ', nrec = ',nrec, & 
-!            ', varname = ',trim(varname)
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
-!            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
-!         enddo
-         do n=1,25
+         write(nu_diag,*) &
+           'ice_read_nc_xyf, fid= ',fid, ', nrec = ',nrec, &
+           ', varname = ',trim(varname)
+         status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+         write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+         do id=1,ndim
+            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+         enddo
+         write(nu_diag,*) 'missingvalue= ',missingvalue
+         do n = 1, 25
             amin = minval(work_g1(:,:,n))
-            amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= spval_dbl)
-            asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= spval_dbl)
+            amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
+            asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
             write(nu_diag,*) ' min, max, sum =', amin, amax, asum
          enddo
       endif
+
+! echmod:  this should not be necessary if fill/missing are only on land
+!      where (wave_spectrum > 1.0e+30_dbl_kind) wave_spectrum = c0
 
     !-------------------------------------------------------------------
     ! Scatter data to individual processors.
@@ -1559,25 +1563,24 @@
 
       if (present(restart_ext)) then
          if (restart_ext) then
-            do n=1,25
+            do n = 1, 25
                call scatter_global_ext(work(:,:,n,1,:), work_g1(:,:,n), &
                                        master_task, distrb_info)
             enddo
          endif
       else
          if (present(field_loc)) then
-            do n=1,25
+            do n = 1, 25
                call scatter_global(work(:,:,n,1,:), work_g1(:,:,n), master_task, &
                     distrb_info, field_loc, field_type)
             enddo
          else
-            do n=1,25
+            do n = 1, 25
                call scatter_global(work(:,:,n,1,:), work_g1(:,:,n), master_task, &
                     distrb_info, field_loc_noupdate, field_type_noupdate)
             enddo
          endif
       endif
-
  
       deallocate(work_g1)
 #ifdef ORCA_GRID
@@ -1591,8 +1594,6 @@
      end subroutine ice_read_nc_xyf
 
 !=======================================================================
-
-
 
 ! Read a netCDF file
 ! Adapted by Alison McLaren, Met Office from ice_read

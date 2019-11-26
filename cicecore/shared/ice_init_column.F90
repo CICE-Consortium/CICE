@@ -147,7 +147,7 @@
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(depressT_out=depressT)
-      call icepack_init_thermo(nilyr, sprofile)
+      call icepack_init_thermo(nilyr=nilyr, sprofile=sprofile)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -332,46 +332,49 @@
             enddo
 
             if (tmask(i,j,iblk)) then
-               call icepack_step_radiation (dt,         ncat,             &
-                          n_algae,   tr_zaero, nblyr,                     &
-                          ntrcr,     nbtrcr_sw,                           &
-                          nilyr,    nslyr,       n_aero,                  &
-                          n_zaero,  dEdd_algae,  nlt_chl_sw,              &
-                          nlt_zaero_sw(:),                                &
-                          swgrid(:),           igrid(:),                  &
-                          fbri(:),                                        &
-                          aicen(i,j,:,iblk),     vicen(i,j,:,iblk),       &
-                          vsnon(i,j,:,iblk),                              &
-                          trcrn(i,j,nt_Tsfc,:,iblk),                      &
-                          trcrn(i,j,nt_alvl,:,iblk),                      &
-                          trcrn(i,j,nt_apnd,:,iblk),                      &
-                          trcrn(i,j,nt_hpnd,:,iblk),                      &
-                          trcrn(i,j,nt_ipnd,:,iblk),                      &
-                          trcrn(i,j,nt_aero:nt_aero+4*n_aero-1,:,iblk),   &
-                          ztrcr_sw,                                       &
-                          ztrcr,                                          &
-                          TLAT(i,j,iblk),        TLON(i,j,iblk),          &
-                          calendar_type,         days_per_year,           &
-                          nextsw_cday,           yday,                    &
-                          sec,                                            &
-                          kaer_tab, waer_tab,                             &
-                          gaer_tab,                                       &
-                          kaer_bc_tab(:,:),      waer_bc_tab(:,:),        &
-                          gaer_bc_tab(:,:),      bcenh(:,:,:),            &
-                          modal_aero,                                     &
-                          swvdr(i,j,iblk),       swvdf(i,j,iblk),         &
-                          swidr(i,j,iblk),       swidf(i,j,iblk),         &
-                          coszen(i,j,iblk),      fsnow(i,j,iblk),         &
-                          alvdrn(i,j,:,iblk),    alvdfn(i,j,:,iblk),      &
-                          alidrn(i,j,:,iblk),    alidfn(i,j,:,iblk),      &
-                          fswsfcn(i,j,:,iblk),   fswintn(i,j,:,iblk),     &
-                          fswthrun(i,j,:,iblk),  fswpenln(i,j,:,:,iblk),  &
-                          Sswabsn(i,j,:,:,iblk), Iswabsn(i,j,:,:,iblk),   &
-                          albicen(i,j,:,iblk),   albsnon(i,j,:,iblk),     &
-                          albpndn(i,j,:,iblk),   apeffn(i,j,:,iblk),      &
-                          snowfracn(i,j,:,iblk),                          &
-                          dhsn(i,j,:,iblk),      ffracn(i,j,:,iblk),      &
-                          l_print_point,                                  &
+               call icepack_step_radiation (dt=dt, ncat=ncat,                  &
+                          n_algae=n_algae, tr_zaero=tr_zaero, nblyr=nblyr,     &
+                          ntrcr=ntrcr, nbtrcr_sw=nbtrcr_sw,                    &
+                          nilyr=nilyr, nslyr=nslyr, n_aero=n_aero,             &
+                          n_zaero=n_zaero,  nlt_chl_sw=nlt_chl_sw,             &
+                          nlt_zaero_sw=nlt_zaero_sw(:),                        &
+                          dEdd_algae=dEdd_algae,                               &
+                          swgrid=swgrid(:), igrid=igrid(:),                    &
+                          fbri=fbri(:),                                        &
+                          aicen=aicen(i,j,:,iblk),                             &
+                          vicen=vicen(i,j,:,iblk),                             &
+                          vsnon=vsnon(i,j,:,iblk),                             &
+                          Tsfcn=trcrn(i,j,nt_Tsfc,:,iblk),                     &
+                          alvln=trcrn(i,j,nt_alvl,:,iblk),                     &
+                          apndn=trcrn(i,j,nt_apnd,:,iblk),                     &
+                          hpndn=trcrn(i,j,nt_hpnd,:,iblk),                     &
+                          ipndn=trcrn(i,j,nt_ipnd,:,iblk),                     &
+                          aeron=trcrn(i,j,nt_aero:nt_aero+4*n_aero-1,:,iblk),  &
+                          zbion=ztrcr_sw,                                      &
+                          trcrn=ztrcr,                                         &
+                          TLAT=TLAT(i,j,iblk), TLON=TLON(i,j,iblk),            &
+                          calendar_type=calendar_type,                         &
+                          days_per_year=days_per_year,                         &
+                          nextsw_cday=nextsw_cday, yday=yday,                  &
+                          sec=sec,                                             &
+                          kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
+                          waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
+                          gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &
+                          bcenh=bcenh(:,:,:),                                  &
+                          modal_aero=modal_aero,                               &
+                          swvdr=swvdr(i,j,iblk),         swvdf=swvdf(i,j,iblk),&
+                          swidr=swidr(i,j,iblk),         swidf=swidf(i,j,iblk),&
+                          coszen=coszen(i,j,iblk),       fsnow=fsnow(i,j,iblk),&
+                          alvdrn=alvdrn(i,j,:,iblk),     alvdfn=alvdfn(i,j,:,iblk), &
+                          alidrn=alidrn(i,j,:,iblk),     alidfn=alidfn(i,j,:,iblk), &
+                          fswsfcn=fswsfcn(i,j,:,iblk),   fswintn=fswintn(i,j,:,iblk), &
+                          fswthrun=fswthrun(i,j,:,iblk), fswpenln=fswpenln(i,j,:,:,iblk), &
+                          Sswabsn=Sswabsn(i,j,:,:,iblk), Iswabsn=Iswabsn(i,j,:,:,iblk), &
+                          albicen=albicen(i,j,:,iblk),   albsnon=albsnon(i,j,:,iblk), &
+                          albpndn=albpndn(i,j,:,iblk),   apeffn=apeffn(i,j,:,iblk), &
+                          snowfracn=snowfracn(i,j,:,iblk),                     &
+                          dhsn=dhsn(i,j,:,iblk),         ffracn=ffracn(i,j,:,iblk), &
+                          l_print_point=l_print_point,                         &
                           initonly = .true.)
             endif
          
@@ -760,8 +763,13 @@
 
             do j = jlo, jhi
             do i = ilo, ihi  
-               call icepack_init_zsalinity(nblyr, ntrcr_o, RayleighC, &
-                      RayleighR, trcrn_bgc, nt_bgc_S, ncat, sss(i,j,iblk))
+               call icepack_init_zsalinity(nblyr=nblyr, ntrcr_o=ntrcr_o, &
+                            Rayleigh_criteria = RayleighC, &
+                            Rayleigh_real     = RayleighR, &
+                            trcrn             = trcrn_bgc, &
+                            nt_bgc_S          = nt_bgc_S,  &
+                            ncat              = ncat,      &
+                            sss               = sss(i,j,iblk))
                if (.not. restart_zsal) then
                   Rayleigh_real    (i,j,iblk) = RayleighR
                   Rayleigh_criteria(i,j,iblk) = RayleighC
@@ -803,11 +811,13 @@
             do j = jlo, jhi
             do i = ilo, ihi
                call icepack_init_ocean_conc ( &
-                    amm   (i,j,  iblk), dmsp(i,j,  iblk), dms(i,j,  iblk), &
-                    algalN(i,j,:,iblk), doc (i,j,:,iblk), dic(i,j,:,iblk), &
-                    don   (i,j,:,iblk), fed (i,j,:,iblk), fep(i,j,:,iblk), &
-                    hum   (i,j,  iblk), nit (i,j,  iblk), sil(i,j,  iblk), &
-                    zaeros(i,j,:,iblk), icepack_max_dic, icepack_max_don, icepack_max_fe, icepack_max_aero)
+                    amm=amm      (i,j,  iblk), dmsp=dmsp(i,j,  iblk), dms=dms(i,j,  iblk), &
+                    algalN=algalN(i,j,:,iblk), doc=doc  (i,j,:,iblk), dic=dic(i,j,:,iblk), &
+                    don=don      (i,j,:,iblk), fed=fed  (i,j,:,iblk), fep=fep(i,j,:,iblk), &
+                    hum=hum      (i,j,  iblk), nit=nit  (i,j,  iblk), sil=sil(i,j,  iblk), &
+                    zaeros=zaeros(i,j,:,iblk), &
+                    max_dic = icepack_max_dic, max_don  = icepack_max_don, &
+                    max_fe  = icepack_max_fe,  max_aero = icepack_max_aero)
             enddo  ! i
             enddo  ! j
 
@@ -843,14 +853,15 @@
             enddo
             enddo
 
-            call icepack_init_OceanConcArray(icepack_max_nbtrcr,         &
-                                 icepack_max_algae, icepack_max_don,  icepack_max_doc,   &
-                                 icepack_max_dic,   icepack_max_aero, icepack_max_fe,    &
-                                 nit (i,j,  iblk), amm(i,j,  iblk), sil   (i,j,  iblk), &
-                                 dmsp(i,j,  iblk), dms(i,j,  iblk), algalN(i,j,:,iblk), &
-                                 doc (i,j,:,iblk), don(i,j,:,iblk), dic   (i,j,:,iblk), &  
-                                 fed (i,j,:,iblk), fep(i,j,:,iblk), zaeros(i,j,:,iblk), &
-                                 ocean_bio_all(i,j,:,iblk),         hum   (i,j,  iblk))
+            call icepack_init_OceanConcArray(max_nbtrcr=icepack_max_nbtrcr,      &
+                         max_algae=icepack_max_algae, max_don=icepack_max_don,   &
+                         max_doc=icepack_max_doc,     max_fe=icepack_max_fe,     &
+                         max_dic=icepack_max_dic,     max_aero=icepack_max_aero, &
+                         nit =nit (i,j,  iblk), amm=amm(i,j,  iblk), sil   =sil   (i,j,  iblk), &
+                         dmsp=dmsp(i,j,  iblk), dms=dms(i,j,  iblk), algalN=algalN(i,j,:,iblk), &
+                         doc =doc (i,j,:,iblk), don=don(i,j,:,iblk), dic   =dic   (i,j,:,iblk), &  
+                         fed =fed (i,j,:,iblk), fep=fep(i,j,:,iblk), zaeros=zaeros(i,j,:,iblk), &
+                         hum=hum  (i,j,  iblk), ocean_bio_all=ocean_bio_all(i,j,:,iblk))
 
          enddo  ! i
          enddo  ! j
@@ -874,10 +885,10 @@
             do j = jlo, jhi
             do i = ilo, ihi  
 
-            call icepack_init_bgc(ncat, nblyr, nilyr, ntrcr_o, &
-               cgrid, igrid, ntrcr, nbtrcr, &
-               sicen(:,:), trcrn_bgc(:,:), sss(i,j, iblk), &
-               ocean_bio_all(i,j,:,iblk))
+            call icepack_init_bgc(ncat=ncat, nblyr=nblyr, nilyr=nilyr, ntrcr_o=ntrcr_o,  &
+                         cgrid=cgrid, igrid=igrid, ntrcr=ntrcr, nbtrcr=nbtrcr,           &
+                         sicen=sicen(:,:), trcrn=trcrn_bgc(:,:), sss=sss(i,j, iblk), &
+                         ocean_bio_all=ocean_bio_all(i,j,:,iblk))
             enddo  ! i
             enddo  ! j
          enddo     ! iblk
@@ -918,8 +929,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
-      call icepack_init_hbrine(bgrid, igrid, cgrid, icgrid, &
-            swgrid, nblyr, nilyr, phi_snow)
+      call icepack_init_hbrine(bgrid=bgrid, igrid=igrid, cgrid=cgrid, icgrid=icgrid, &
+            swgrid=swgrid, nblyr=nblyr, nilyr=nilyr, phi_snow=phi_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)

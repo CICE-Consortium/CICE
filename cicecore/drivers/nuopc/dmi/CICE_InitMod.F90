@@ -41,15 +41,18 @@
 !        replaced by a different driver that calls subroutine cice_init,
 !        where most of the work is done.
 
-      subroutine CICE_Initialize
+      subroutine CICE_Initialize(mpi_comm)
 
+      integer (kind=int_kind), optional, intent(in) :: mpi_comm ! communicator from nuopc
       character(len=*), parameter :: subname='(CICE_Initialize)'
-
-   !--------------------------------------------------------------------
-   ! model initialization
-   !--------------------------------------------------------------------
-
-      call cice_init
+!--------------------------------------------------------------------
+! model initialization
+!--------------------------------------------------------------------
+      if (present(mpi_comm)) then
+          call cice_init(mpi_comm)
+      else
+          call cice_init()
+      endif
 
       end subroutine CICE_Initialize
 
@@ -57,7 +60,7 @@
 !
 !  Initialize CICE model.
 
-      subroutine cice_init(mpicom_ice)
+      subroutine cice_init(mpi_comm)
 
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
       use ice_state, only: alloc_state
@@ -88,14 +91,15 @@
 #ifdef popcice
       use drv_forcing, only: sst_sss
 #endif
-
       integer (kind=int_kind), optional, intent(in) :: &
-         mpicom_ice ! communicator for sequential ccsm
-
+          mpi_comm ! communicator for sequential ccsm
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
       character(len=*), parameter :: subname = '(cice_init)'
-
-      call init_communicate(mpicom_ice)     ! initial setup for message passing
+      if (present(mpi_comm)) then
+          call init_communicate(mpi_comm)     ! initial setup for message passing
+      else
+          call init_communicate     ! initial setup for message passing
+      endif
       call init_fileunits       ! unit numbers
 
       call icepack_configure()  ! initialize icepack
@@ -136,15 +140,15 @@
 #endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
 
-      call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
+      call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
       if (my_task == master_task) then
-         call icepack_init_itd_hist(ncat=ncat, hin_max=hin_max, c_hi_range=c_hi_range) ! output
+         call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
       endif
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call calendar(time)       ! determine the initial date
+!     call calendar(time)       ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
@@ -177,17 +181,23 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
-   !--------------------------------------------------------------------
-   ! coupler communication or forcing data initialization
-   !--------------------------------------------------------------------
+      istep  = istep  + 1    ! update time step counters
+      istep1 = istep1 + 1
+      time = time + dt       ! determine the time and date
+      call calendar(time)    ! at the end of the first timestep
+
+!--------------------------------------------------------------------
+! coupler communication or forcing data initialization
+!--------------------------------------------------------------------
 
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
 
 #ifndef coupled
 #ifndef CESMCOUPLED
       call get_forcing_atmo     ! atmospheric forcing from data
+#ifndef CICE_DMI
       call get_forcing_ocn(dt)  ! ocean forcing from data
-
+#endif
       ! aerosols
       ! if (tr_aero)  call faero_data                   ! data file
       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
@@ -203,7 +213,7 @@
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
-!      if (write_ic) call accum_hist(dt) ! write initial conditions 
+      if (write_ic) call accum_hist(dt) ! write initial conditions 
 
       end subroutine cice_init
 
@@ -395,21 +405,21 @@
       do j = 1, ny_block
       do i = 1, nx_block
          if (tmask(i,j,iblk)) then
-            call icepack_aggregate(ncat  = ncat,                  &
-                                   aicen = aicen(i,j,:,iblk),     &
-                                   trcrn = trcrn(i,j,:,:,iblk),   &
-                                   vicen = vicen(i,j,:,iblk),     &
-                                   vsnon = vsnon(i,j,:,iblk),     &
-                                   aice  = aice (i,j,  iblk),     &
-                                   trcr  = trcr (i,j,:,iblk),     &
-                                   vice  = vice (i,j,  iblk),     &
-                                   vsno  = vsno (i,j,  iblk),     &
-                                   aice0 = aice0(i,j,  iblk),     &
-                                   ntrcr = ntrcr,                 &
-                                   trcr_depend   = trcr_depend,   &
-                                   trcr_base     = trcr_base,     &
-                                   n_trcr_strata = n_trcr_strata, &
-                                   nt_strata     = nt_strata)
+            call icepack_aggregate (ncat,               &
+                                   aicen(i,j,:,iblk),  &
+                                   trcrn(i,j,:,:,iblk),&
+                                   vicen(i,j,:,iblk),  &
+                                   vsnon(i,j,:,iblk),  &
+                                   aice (i,j,  iblk),  &
+                                   trcr (i,j,:,iblk),  &
+                                   vice (i,j,  iblk),  &
+                                   vsno (i,j,  iblk),  &
+                                   aice0(i,j,  iblk),  &
+                                   ntrcr,              &
+                                   trcr_depend,        &
+                                   trcr_base,          &
+                                   n_trcr_strata,      &
+                                   nt_strata)
          else
             ! tcraig, reset all tracer values on land to zero
             trcrn(i,j,:,:,iblk) = c0

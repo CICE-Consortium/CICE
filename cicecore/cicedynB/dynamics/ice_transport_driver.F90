@@ -1682,13 +1682,15 @@
             i = indxi(ij)
             j = indxj(ij)
 
-            call icepack_compute_tracers (ntrcr,        trcr_depend(:),     &
-                                         work (ij,narrays+1:narrays+ntrcr), &
-                                         aicen(i,j,n),                     &
-                                         vicen(i,j,n), vsnon(i,j,n),       &
-                                         trcr_base(:,:), n_trcr_strata(:), &
-                                         nt_strata(:,:), &
-                                         trcrn(i,j,:,n))
+            call icepack_compute_tracers(ntrcr=ntrcr, trcr_depend=trcr_depend(:),    &
+                                         atrcrn = work (ij,narrays+1:narrays+ntrcr), &
+                                         aicen  = aicen(i,j,n),            &
+                                         vicen  = vicen(i,j,n),            &
+                                         vsnon  = vsnon(i,j,n),            &
+                                         trcr_base     = trcr_base(:,:),   &
+                                         n_trcr_strata = n_trcr_strata(:), &
+                                         nt_strata     = nt_strata(:,:),   &
+                                         trcrn  = trcrn(i,j,:,n))
          enddo
          narrays = narrays + ntrcr
 

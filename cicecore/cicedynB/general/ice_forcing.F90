@@ -2263,6 +2263,8 @@
 
       end subroutine LY_data
 
+!=======================================================================
+
       subroutine JRA55_data (yr)
 
       use ice_blocks, only: block, get_block
@@ -2272,7 +2274,6 @@
       use ice_grid, only: hm, tlon, tlat, tmask, umask
       use ice_state, only: aice
       use ice_calendar, only: days_per_year, use_leap_years
-
 
       integer (kind=int_kind) :: & 
           ncid        , & ! netcdf file id
@@ -2494,7 +2495,6 @@
         endif                   ! dbug
 
       end subroutine JRA55_data
-
 
 !=======================================================================
 !
@@ -4325,6 +4325,7 @@
       end subroutine ocn_data_hycom_init
 
 !=======================================================================
+
       subroutine hycom_atm_files
 
       use ice_broadcast, only: broadcast_array, broadcast_scalar
@@ -5129,6 +5130,7 @@
                                    dwavefreq, wavefreq
       use ice_constants, only: c0
       use ice_domain_size, only: nfreq
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_fsd
 #ifdef ncdf
       use netcdf
 #endif
@@ -5141,48 +5143,55 @@
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! wave spectrum
 
-      real(kind=dbl_kind), dimension(nx_block,ny_block,nfreq,max_blocks) :: &
-          wave_spec_df
-
       character(char_len_long) :: spec_file
+      character(char_len) :: wave_spec_type
       logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(get_wave_spec)'
 
-      call icepack_query_parameters(wave_spec_out=wave_spec)
+      call ice_timer_start(timer_fsd)
+
+      call icepack_query_parameters(wave_spec_out=wave_spec, &
+                                    wave_spec_type_out=wave_spec_type)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      wave_spec_dir  = ocn_data_dir
-! for now
-       !wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3.nc'  ! can not read
-!      wave_spec_file = 'ww3_wave_spectrum_runk_withcoords_remapgx3_v2.nc'  ! can not read
+      wave_spectrum(:,:,:,:) = c0
+      wave_spec_dir = ocn_data_dir
+      dbug = .false.
 
       ! wave spectrum and frequencies
-      if (wave_spec) &
+      if (wave_spec) then
       ! get hardwired frequency bin info and a dummy wave spectrum profile
-      call icepack_init_wave(nfreq,                 &
-                             wave_spectrum_profile, &
-                             wavefreq, dwavefreq)
+         call icepack_init_wave(nfreq,                 &
+                                wave_spectrum_profile, &
+                                wavefreq, dwavefreq)
 
-      if (trim(wave_spec_file) .ne. ' ') then
-#ifdef ncdf
-!         spec_file = trim(wave_spec_file) !//'/'//trim(wave_spec_file)
-         spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
-         call ice_open_nc(spec_file,fid)
-         call ice_read_nc_xyf (fid, 1, 'efreq',wave_spectrum(:,:,:,:), dbug, &
-                           field_loc_center, field_type_scalar)
-	 where(wave_spectrum.gt.1.0e+30_dbl_kind) wave_spectrum=c0
-         call ice_close_nc(fid)
-#endif
-
-      else
-         wave_spectrum(:,:,:,:) = c0
-         ! for testing only
+         ! default, for testing only
          do k = 1, nfreq
             wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
          enddo
-      end if
+
+         ! read more realistic data from a file
+         if (trim(wave_spec_type) == 'file') then
+         if (trim(wave_spec_file(1:4)) == 'unkn') then
+            call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
+         else
+#ifdef ncdf
+            spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
+            call ice_open_nc(spec_file,fid)
+            call ice_read_nc_xyf (fid, 1, 'efreq',wave_spectrum(:,:,:,:), dbug, &
+                                  field_loc_center, field_type_scalar)
+            call ice_close_nc(fid)
+#else
+            write (nu_diag,*) "wave spectrum file not available, requires ncdf"
+            write (nu_diag,*) "wave spectrum file not available, using default profile"
+#endif
+         endif
+         endif
+      endif
+
+      call ice_timer_stop(timer_fsd)
 
       end subroutine get_wave_spec
 
