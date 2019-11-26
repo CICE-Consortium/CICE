@@ -95,7 +95,8 @@
 
 #ifndef coupled
 #ifndef CESMCOUPLED
-         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+! for now, wave_spectrum is constant in time
+!         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
 
