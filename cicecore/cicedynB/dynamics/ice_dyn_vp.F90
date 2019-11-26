@@ -733,319 +733,319 @@
 
       character(len=*), parameter :: subname = '(picard_solver)'
 
-      ! ! Allocate space for FGMRES work arrays
-      ! allocate(wk11(ntot), wk22(ntot))
-      ! allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
-      ! 
-      ! ! Start iterations
-      ! do kOL = 1,maxits_nonlin        ! outer loop 
-      ! 
-      ! !-----------------------------------------------------------------
-      ! ! Calc zetaD, Pr, Cb and vrel = f(uprev_k, vprev_k)
-      ! !-----------------------------------------------------------------
-      ! 
-      ! !$OMP PARALLEL DO PRIVATE(iblk)
-      !    do iblk = 1, nblocks
-      ! 
-      !       uprev_k(:,:,iblk) = uvel(:,:,iblk)
-      !       vprev_k(:,:,iblk) = vvel(:,:,iblk)
-      ! 
-      !       call calc_zeta_Pr (nx_block           , ny_block,           &
-      !                          icellt(iblk),                            & 
-      !                          indxti   (:,iblk)  , indxtj(:,iblk),     & 
-      !                          uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
-      !                          dxt      (:,:,iblk), dyt   (:,:,iblk),   & 
-      !                          dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
-      !                          cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
-      !                          cxm      (:,:,iblk), cym   (:,:,iblk),   & 
-      !                          tinyarea (:,:,iblk),                     & 
-      !                          strength (:,:,iblk), zetaD (:,:,iblk,:) ,&
-      !                          stPrtmp  (:,:,:) )                      
-      ! 
-      !       call calc_vrel_Cb (nx_block           , ny_block,           &
-      !                          icellu       (iblk), Cdn_ocn (:,:,iblk), & 
-      !                          indxui     (:,iblk), indxuj    (:,iblk), &
-      !                          aiu      (:,:,iblk), Tbu     (:,:,iblk), &
-      !                          uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-      !                          uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
-      !                          vrel     (:,:,iblk), Cb      (:,:,iblk))
-      ! 
-      ! !     prepare b vector (RHS)                                                
-      !       call calc_bvec (nx_block           , ny_block,           &
-      !                       icellu       (iblk),                     & 
-      !                       indxui     (:,iblk), indxuj    (:,iblk), &
-      !                       stPrtmp  (:,:,:)   , Cdn_ocn (:,:,iblk), &
-      !                       aiu      (:,:,iblk), uarear  (:,:,iblk), & 
-      !                       uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-      !                       waterx   (:,:,iblk), watery  (:,:,iblk), & 
-      !                       uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
-      !                       bxfix    (:,:,iblk), byfix   (:,:,iblk), &
-      !                       bx       (:,:,iblk), by      (:,:,iblk), &
-      !                       vrel     (:,:,iblk))
-      ! 
-      ! !     prepare precond matrix
-      !      if (precond .gt. 1) then
-      ! 
-      !      call formDiag_step1  (nx_block           , ny_block,       & ! D term due to rheology
-      !                            icellu       (iblk),                 &
-      !                            indxui     (:,iblk), indxuj(:,iblk), &
-      !                            dxt      (:,:,iblk), dyt (:,:,iblk), & 
-      !                            dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
-      !                            cxp      (:,:,iblk), cyp (:,:,iblk), & 
-      !                            cxm      (:,:,iblk), cym (:,:,iblk), & 
-      !                            zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
-      ! 
-      !      call formDiag_step2 (nx_block           , ny_block,           &
-      !                           icellu       (iblk),                     & 
-      !                           indxui     (:,iblk), indxuj    (:,iblk), &
-      !                           Dstrtmp  (:,:,:)   , vrel    (:,:,iblk), &
-      !                           umassdti (:,:,iblk),                     & 
-      !                           uarear   (:,:,iblk), Cb      (:,:,iblk), & 
-      !                           Diagu    (:,:,iblk), Diagv   (:,:,iblk))         
-      ! 
-      !     endif                     
-      ! 
-      !    enddo
-      !    !$OMP END PARALLEL DO                            
-      ! 
-      !    ! Compute nonlinear residual norm
-      !    !$OMP PARALLEL DO PRIVATE(iblk)
-      !    do iblk = 1, nblocks
-      !       call matvec (nx_block             , ny_block,            &
-      !                    icellu   (iblk)      , icellt   (iblk)    , & 
-      !                    indxui   (:,iblk)    , indxuj   (:,iblk)  , &
-      !                    indxti   (:,iblk)    , indxtj   (:,iblk)  , &
-      !                    dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
-      !                    dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
-      !                    cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
-      !                    cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
-      !                    uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
-      !                    vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
-      !                    zetaD    (:,:,iblk,:),                      &
-      !                    umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
-      !                    uarear   (:,:,iblk)  ,                      & 
-      !                    Au       (:,:,iblk)  , Av       (:,:,iblk))
-      !       call residual_vec (nx_block           , ny_block,           &
-      !                          icellu       (iblk),                     & 
-      !                          indxui     (:,iblk), indxuj    (:,iblk), &
-      !                          bx       (:,:,iblk), by      (:,:,iblk), &
-      !                          Au       (:,:,iblk), Av      (:,:,iblk), &
-      !                          Fx       (:,:,iblk), Fy      (:,:,iblk), &
-      !                          L2norm(iblk))
-      !    enddo
-      !    !$OMP END PARALLEL DO
-      !    nlres_norm = sqrt(sum(L2norm))
-      !    if (monitor_nonlin) then
-      !       write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
-      !                                         " nonlin_res_L2norm= ", nlres_norm
-      !    endif
-      !    ! Compute relative tolerance at first iteration
-      !    if (kOL == 1) then
-      !       tol = gammaNL*nlres_norm
-      !    endif
-      !    ! Check for nonlinear convergence
-      !    if (nlres_norm < tol) then
-      !       exit
-      !    endif
-      ! 
-      ! !-----------------------------------------------------------------------
-      ! !     prep F G M R E S 
-      ! !-----------------------------------------------------------------------                             
-      ! 
-      ! icode  = 0
-      ! !      its    = 0 
-      ! 
-      !    ! form b vector from matrices (nblocks matrices)      
-      !    call arrays_to_vec (nx_block, ny_block, nblocks,    &
-      !                        max_blocks, icellu (:), ntot,   & 
-      !                        indxui      (:,:), indxuj(:,:), &
-      !                        bx        (:,:,:), by  (:,:,:), &
-      !                        bvec(:))
-      !    ! form sol vector for fgmres (sol is iniguess at the beginning)        
-      !    call arrays_to_vec (nx_block, ny_block, nblocks,      &
-      !                        max_blocks, icellu (:), ntot,   &  
-      !                        indxui    (:,:), indxuj(:,:),     &
-      !                        uprev_k (:,:,:), vprev_k (:,:,:), &
-      !                        sol(:))
-      ! 
-      !    ! form matrix diagonal as a vector from Diagu and Diagv arrays      
-      !    call arrays_to_vec (nx_block, ny_block, nblocks,    &
-      !                        max_blocks, icellu (:), ntot,   & 
-      !                        indxui      (:,:), indxuj(:,:), &
-      !                        Diagu     (:,:,:), Diagv(:,:,:),&
-      !                        diagvec(:))                             
-      ! 
-      ! !-----------------------------------------------------------------------
-      ! !     F G M R E S   L O O P
-      ! !-----------------------------------------------------------------------
-      ! 1    continue
-      ! !-----------------------------------------------------------------------
-      ! 
-      ! call fgmres (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
-      !              gamma, maxits_fgmres, monitor_fgmres,   &
-      !              icode,fgmres_its, res_norm)
-      ! 
-      ! if (icode == 1) then
-      ! 
-      !    if (precond .eq. 1) then
-      ! 
-      !      wk22(:)=wk11(:) ! precond=identity
-      ! 
-      !    elseif (precond .eq. 2) then ! use diagonal of A for precond step
-      ! 
-      !      call precond_diag (ntot,            & 
-      !                         diagvec (:),     &
-      !                         wk11 (:), wk22 (:) )
-      ! 
-      !    elseif (precond .eq. 3) then
-      ! 
-      !     call pgmres (nx_block,    ny_block,    nblocks       , &
-      !                  max_blocks         , icellu   (:)       , & 
-      !                  indxui   (:,:)     , indxuj   (:,:)     , &
-      !                  icellt   (:)                            , & 
-      !                  indxti   (:,:)     , indxtj   (:,:)     , &
-      !                  dxt      (:,:,:)   , dyt      (:,:,:)   , & 
-      !                  dxhy     (:,:,:)   , dyhx     (:,:,:)   , & 
-      !                  cxp      (:,:,:)   , cyp      (:,:,:)   , & 
-      !                  cxm      (:,:,:)   , cym      (:,:,:)   , & 
-      !                  vrel     (:,:,:)   , Cb       (:,:,:)   , &  
-      !                  zetaD    (:,:,:,:) ,                      &
-      !                  umassdti (:,:,:)   , fm       (:,:,:)   , & 
-      !                  uarear   (:,:,:)   , diagvec(:)         , &
-      !                  wk22     (:)       , wk11(:)            , &
-      !                  ntot               , im_pgmres          , &
-      !                  epsprecond         , maxits_pgmres      , &
-      !                  monitor_pgmres     , ierr )         
-      !    endif ! precond
-      ! 
-      !    goto 1
-      ! 
-      ! elseif (icode >= 2) then
-      ! 
-      !    call vec_to_arrays (nx_block, ny_block, nblocks,      &
-      !                        max_blocks, icellu (:), ntot,     & 
-      !                        indxui    (:,:), indxuj(:,:),     &
-      !                        wk11 (:),                         &
-      !                        uvel (:,:,:), vvel (:,:,:))    
-      ! 
-      !    ! JFL halo update could be in subroutine...                    
-      !    !$OMP PARALLEL DO PRIVATE(iblk) 
-      !    do iblk = 1, nblocks                             
-      !       fld2(:,:,1,iblk) = uvel(:,:,iblk)
-      !       fld2(:,:,2,iblk) = vvel(:,:,iblk)            
-      !    enddo
-      !    !$OMP END PARALLEL DO                           
-      ! 
-      !    call ice_HaloUpdate (fld2,               halo_info, & 
-      !                         field_loc_NEcorner, field_type_vector)
-      ! 
-      !    !$OMP PARALLEL DO PRIVATE(iblk)
-      !    do iblk = 1, nblocks
-      !       uvel(:,:,iblk) = fld2(:,:,1,iblk)
-      !       vvel(:,:,iblk) = fld2(:,:,2,iblk)
-      !    enddo
-      !    !$OMP END PARALLEL DO                             
-      ! 
-      !    !$OMP PARALLEL DO PRIVATE(iblk)
-      !    do iblk = 1, nblocks                                  
-      ! 
-      !     call matvec (nx_block             , ny_block,            &
-      !                  icellu   (iblk)      , icellt   (iblk)    , & 
-      !                  indxui   (:,iblk)    , indxuj   (:,iblk)  , &
-      !                  indxti   (:,iblk)    , indxtj   (:,iblk)  , &
-      !                  dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
-      !                  dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
-      !                  cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
-      !                  cxm      (:,:,iblk)  , cym      (:,:,iblk), &
-      !                  uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
-      !                  vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
-      !                  zetaD    (:,:,iblk,:),                      &
-      !                  umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
-      !                  uarear   (:,:,iblk)  ,                      & 
-      !                  Au       (:,:,iblk)  , Av       (:,:,iblk))                         
-      ! 
-      !    enddo
-      !    !$OMP END PARALLEL DO 
-      ! 
-      !    ! form wk2 from Au and Av arrays        
-      !    call arrays_to_vec (nx_block, ny_block, nblocks,      &
-      !                        max_blocks, icellu (:), ntot,     & 
-      !                        indxui    (:,:), indxuj(:,:),     &
-      !                        Au      (:,:,:), Av    (:,:,:),   &
-      !                        wk22(:))    
-      ! 
-      !       goto 1
-      ! 
-      ! endif ! icode
-      ! 
-      ! !-----------------------------------------------------------------------
-      ! !     Put vector sol in uvel and vvel arrays
-      ! !-----------------------------------------------------------------------
-      ! 
-      !    call vec_to_arrays (nx_block, ny_block, nblocks,      &
-      !                        max_blocks, icellu (:), ntot,     & 
-      !                        indxui    (:,:), indxuj(:,:),     &
-      !                        sol (:),                          &
-      !                        uvel (:,:,:), vvel (:,:,:))    
-      ! 
-      !    !$OMP PARALLEL DO PRIVATE(iblk)
-      ! !         do iblk = 1, nblocks
-      ! !              uvel(:,:,iblk) = (c1-krelax)*uprev_k(:,:,iblk) + krelax*uvel(:,:,iblk)
-      ! !              vvel(:,:,iblk) = (c1-krelax)*vprev_k(:,:,iblk) + krelax*vvel(:,:,iblk)
-      ! !         enddo
-      !    !$OMP END PARALLEL DO  
-      ! 
+      ! Allocate space for FGMRES work arrays
+      allocate(wk11(ntot), wk22(ntot))
+      allocate(vv(ntot,im_fgmres+1), ww(ntot,im_fgmres))
       
-      !    ! phb NOT SURE IF THIS HALO UPDATE IS NEEDED
-      !    !$OMP PARALLEL DO PRIVATE(iblk)
-      !    do iblk = 1, nblocks                             
-      ! 
-      !       ! load velocity into array for boundary updates
-      !       fld2(:,:,1,iblk) = uvel(:,:,iblk)
-      !       fld2(:,:,2,iblk) = vvel(:,:,iblk)            
-      ! 
-      !    enddo
-      !    !$OMP END PARALLEL DO                           
-      ! 
-      !    call ice_timer_start(timer_bound)
-      !    if (maskhalo_dyn) then
-      !       call ice_HaloUpdate (fld2,               halo_info_mask, &
-      !                            field_loc_NEcorner, field_type_vector)
-      !    else
-      !       call ice_HaloUpdate (fld2,               halo_info, &
-      !                            field_loc_NEcorner, field_type_vector)
-      !    endif
-      !    call ice_timer_stop(timer_bound)
-      ! 
-      !    ! unload
-      !    !$OMP PARALLEL DO PRIVATE(iblk)
-      !    do iblk = 1, nblocks
-      !       uvel(:,:,iblk) = fld2(:,:,1,iblk)
-      !       vvel(:,:,iblk) = fld2(:,:,2,iblk)
-      !    enddo
-      !    !$OMP END PARALLEL DO
-      ! 
-      !    ! Compute fixed point residual norm
-      !    !$OMP PARALLEL DO PRIVATE(iblk)
-      !    do iblk = 1, nblocks
-      !       fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
-      !       fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
-      !       call calc_L2norm_squared (nx_block        , ny_block,         &
-      !                                 icellu    (iblk),                   & 
-      !                                 indxui  (:,iblk), indxuj  (:,iblk), &
-      !                                 fpresx(:,:,iblk), fpresy(:,:,iblk), &
-      !                                 L2norm    (iblk))
-      !    enddo
-      !    !$OMP END PARALLEL DO
-      !    if (monitor_nonlin) then
-      !       write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
-      !                                         " fixed_point_res_L2norm= ", sqrt(sum(L2norm))
-      !    endif
-      ! 
-      ! enddo                     ! outer loop
-      ! 
-      ! ! deallocate FGMRES work arrays
-      ! deallocate(wk11, wk22, vv, ww)
+      ! Start iterations
+      do kOL = 1,maxits_nonlin        ! outer loop 
+      
+      !-----------------------------------------------------------------
+      ! Calc zetaD, Pr, Cb and vrel = f(uprev_k, vprev_k)
+      !-----------------------------------------------------------------
+      
+      !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+      
+            uprev_k(:,:,iblk) = uvel(:,:,iblk)
+            vprev_k(:,:,iblk) = vvel(:,:,iblk)
+      
+            call calc_zeta_Pr (nx_block           , ny_block,           &
+                               icellt(iblk),                            & 
+                               indxti   (:,iblk)  , indxtj(:,iblk),     & 
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                               dxt      (:,:,iblk), dyt   (:,:,iblk),   & 
+                               dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
+                               cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
+                               cxm      (:,:,iblk), cym   (:,:,iblk),   & 
+                               tinyarea (:,:,iblk),                     & 
+                               strength (:,:,iblk), zetaD (:,:,iblk,:) ,&
+                               stPrtmp  (:,:,:) )                      
+      
+            call calc_vrel_Cb (nx_block           , ny_block,           &
+                               icellu       (iblk), Cdn_ocn (:,:,iblk), & 
+                               indxui     (:,iblk), indxuj    (:,iblk), &
+                               aiu      (:,:,iblk), Tbu     (:,:,iblk), &
+                               uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                               vrel     (:,:,iblk), Cb      (:,:,iblk))
+      
+      !     prepare b vector (RHS)                                                
+            call calc_bvec (nx_block           , ny_block,           &
+                            icellu       (iblk),                     & 
+                            indxui     (:,iblk), indxuj    (:,iblk), &
+                            stPrtmp  (:,:,:)   , Cdn_ocn (:,:,iblk), &
+                            aiu      (:,:,iblk), uarear  (:,:,iblk), & 
+                            uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                            waterx   (:,:,iblk), watery  (:,:,iblk), & 
+                            uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
+                            bxfix    (:,:,iblk), byfix   (:,:,iblk), &
+                            bx       (:,:,iblk), by      (:,:,iblk), &
+                            vrel     (:,:,iblk))
+      
+      !     prepare precond matrix
+           if (precond .gt. 1) then
+      
+           call formDiag_step1  (nx_block           , ny_block,       & ! D term due to rheology
+                                 icellu       (iblk),                 &
+                                 indxui     (:,iblk), indxuj(:,iblk), &
+                                 dxt      (:,:,iblk), dyt (:,:,iblk), & 
+                                 dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
+                                 cxp      (:,:,iblk), cyp (:,:,iblk), & 
+                                 cxm      (:,:,iblk), cym (:,:,iblk), & 
+                                 zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
+      
+           call formDiag_step2 (nx_block           , ny_block,           &
+                                icellu       (iblk),                     & 
+                                indxui     (:,iblk), indxuj    (:,iblk), &
+                                Dstrtmp  (:,:,:)   , vrel    (:,:,iblk), &
+                                umassdti (:,:,iblk),                     & 
+                                uarear   (:,:,iblk), Cb      (:,:,iblk), & 
+                                Diagu    (:,:,iblk), Diagv   (:,:,iblk))         
+      
+          endif                     
+      
+         enddo
+         !$OMP END PARALLEL DO                            
+      
+         ! Compute nonlinear residual norm
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            call matvec (nx_block             , ny_block,            &
+                         icellu   (iblk)      , icellt   (iblk)    , & 
+                         indxui   (:,iblk)    , indxuj   (:,iblk)  , &
+                         indxti   (:,iblk)    , indxtj   (:,iblk)  , &
+                         dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
+                         dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
+                         cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
+                         cxm      (:,:,iblk)  , cym      (:,:,iblk), & 
+                         uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
+                         vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
+                         zetaD    (:,:,iblk,:),                      &
+                         umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
+                         uarear   (:,:,iblk)  ,                      & 
+                         Au       (:,:,iblk)  , Av       (:,:,iblk))
+            call residual_vec (nx_block           , ny_block,           &
+                               icellu       (iblk),                     & 
+                               indxui     (:,iblk), indxuj    (:,iblk), &
+                               bx       (:,:,iblk), by      (:,:,iblk), &
+                               Au       (:,:,iblk), Av      (:,:,iblk), &
+                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
+                               L2norm(iblk))
+         enddo
+         !$OMP END PARALLEL DO
+         nlres_norm = sqrt(sum(L2norm))
+         if (monitor_nonlin) then
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
+                                              " nonlin_res_L2norm= ", nlres_norm
+         endif
+         ! Compute relative tolerance at first iteration
+         if (kOL == 1) then
+            tol = gammaNL*nlres_norm
+         endif
+         ! Check for nonlinear convergence
+         if (nlres_norm < tol) then
+            exit
+         endif
+      
+      !-----------------------------------------------------------------------
+      !     prep F G M R E S 
+      !-----------------------------------------------------------------------                             
+      
+      icode  = 0
+      !      its    = 0 
+      
+         ! form b vector from matrices (nblocks matrices)      
+         call arrays_to_vec (nx_block, ny_block, nblocks,    &
+                             max_blocks, icellu (:), ntot,   & 
+                             indxui      (:,:), indxuj(:,:), &
+                             bx        (:,:,:), by  (:,:,:), &
+                             bvec(:))
+         ! form sol vector for fgmres (sol is iniguess at the beginning)        
+         call arrays_to_vec (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,   &  
+                             indxui    (:,:), indxuj(:,:),     &
+                             uprev_k (:,:,:), vprev_k (:,:,:), &
+                             sol(:))
+      
+         ! form matrix diagonal as a vector from Diagu and Diagv arrays      
+         call arrays_to_vec (nx_block, ny_block, nblocks,    &
+                             max_blocks, icellu (:), ntot,   & 
+                             indxui      (:,:), indxuj(:,:), &
+                             Diagu     (:,:,:), Diagv(:,:,:),&
+                             diagvec(:))                             
+      
+      !-----------------------------------------------------------------------
+      !     F G M R E S   L O O P
+      !-----------------------------------------------------------------------
+      1    continue
+      !-----------------------------------------------------------------------
+      
+      call fgmres_legacy (ntot,im_fgmres,bvec,sol,its,vv,ww,wk11,wk22, &
+                   gamma, maxits_fgmres, monitor_fgmres,   &
+                   icode,fgmres_its, res_norm)
+      
+      if (icode == 1) then
+      
+         if (precond .eq. 1) then
+      
+           wk22(:)=wk11(:) ! precond=identity
+      
+         elseif (precond .eq. 2) then ! use diagonal of A for precond step
+      
+           call precond_diag (ntot,            & 
+                              diagvec (:),     &
+                              wk11 (:), wk22 (:) )
+      
+         elseif (precond .eq. 3) then
+      
+          call pgmres_legacy (nx_block,    ny_block,    nblocks       , &
+                       max_blocks         , icellu   (:)       , & 
+                       indxui   (:,:)     , indxuj   (:,:)     , &
+                       icellt   (:)                            , & 
+                       indxti   (:,:)     , indxtj   (:,:)     , &
+                       dxt      (:,:,:)   , dyt      (:,:,:)   , & 
+                       dxhy     (:,:,:)   , dyhx     (:,:,:)   , & 
+                       cxp      (:,:,:)   , cyp      (:,:,:)   , & 
+                       cxm      (:,:,:)   , cym      (:,:,:)   , & 
+                       vrel     (:,:,:)   , Cb       (:,:,:)   , &  
+                       zetaD    (:,:,:,:) ,                      &
+                       umassdti (:,:,:)   , fm       (:,:,:)   , & 
+                       uarear   (:,:,:)   , diagvec(:)         , &
+                       wk22     (:)       , wk11(:)            , &
+                       ntot               , im_pgmres          , &
+                       epsprecond         , maxits_pgmres      , &
+                       monitor_pgmres     , ierr )         
+         endif ! precond
+      
+         goto 1
+      
+      elseif (icode >= 2) then
+      
+         call vec_to_arrays (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             wk11 (:),                         &
+                             uvel (:,:,:), vvel (:,:,:))    
+      
+         ! JFL halo update could be in subroutine...                    
+         !$OMP PARALLEL DO PRIVATE(iblk) 
+         do iblk = 1, nblocks                             
+            fld2(:,:,1,iblk) = uvel(:,:,iblk)
+            fld2(:,:,2,iblk) = vvel(:,:,iblk)            
+         enddo
+         !$OMP END PARALLEL DO                           
+      
+         call ice_HaloUpdate (fld2,               halo_info, & 
+                              field_loc_NEcorner, field_type_vector)
+      
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            uvel(:,:,iblk) = fld2(:,:,1,iblk)
+            vvel(:,:,iblk) = fld2(:,:,2,iblk)
+         enddo
+         !$OMP END PARALLEL DO                             
+      
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks                                  
+      
+          call matvec (nx_block             , ny_block,            &
+                       icellu   (iblk)      , icellt   (iblk)    , & 
+                       indxui   (:,iblk)    , indxuj   (:,iblk)  , &
+                       indxti   (:,iblk)    , indxtj   (:,iblk)  , &
+                       dxt      (:,:,iblk)  , dyt      (:,:,iblk), & 
+                       dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), & 
+                       cxp      (:,:,iblk)  , cyp      (:,:,iblk), & 
+                       cxm      (:,:,iblk)  , cym      (:,:,iblk), &
+                       uvel     (:,:,iblk)  , vvel     (:,:,iblk), &      
+                       vrel     (:,:,iblk)  , Cb       (:,:,iblk), &  
+                       zetaD    (:,:,iblk,:),                      &
+                       umassdti (:,:,iblk)  , fm       (:,:,iblk), & 
+                       uarear   (:,:,iblk)  ,                      & 
+                       Au       (:,:,iblk)  , Av       (:,:,iblk))                         
+      
+         enddo
+         !$OMP END PARALLEL DO 
+      
+         ! form wk2 from Au and Av arrays        
+         call arrays_to_vec (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             Au      (:,:,:), Av    (:,:,:),   &
+                             wk22(:))    
+      
+            goto 1
+      
+      endif ! icode
+      
+      !-----------------------------------------------------------------------
+      !     Put vector sol in uvel and vvel arrays
+      !-----------------------------------------------------------------------
+      
+         call vec_to_arrays (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     & 
+                             indxui    (:,:), indxuj(:,:),     &
+                             sol (:),                          &
+                             uvel (:,:,:), vvel (:,:,:))    
+      
+         !$OMP PARALLEL DO PRIVATE(iblk)
+      !         do iblk = 1, nblocks
+      !              uvel(:,:,iblk) = (c1-krelax)*uprev_k(:,:,iblk) + krelax*uvel(:,:,iblk)
+      !              vvel(:,:,iblk) = (c1-krelax)*vprev_k(:,:,iblk) + krelax*vvel(:,:,iblk)
+      !         enddo
+         !$OMP END PARALLEL DO  
+      
+      
+         ! phb NOT SURE IF THIS HALO UPDATE IS NEEDED
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks                             
+      
+            ! load velocity into array for boundary updates
+            fld2(:,:,1,iblk) = uvel(:,:,iblk)
+            fld2(:,:,2,iblk) = vvel(:,:,iblk)            
+      
+         enddo
+         !$OMP END PARALLEL DO                           
+      
+         call ice_timer_start(timer_bound)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                 field_loc_NEcorner, field_type_vector)
+         else
+            call ice_HaloUpdate (fld2,               halo_info, &
+                                 field_loc_NEcorner, field_type_vector)
+         endif
+         call ice_timer_stop(timer_bound)
+      
+         ! unload
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            uvel(:,:,iblk) = fld2(:,:,1,iblk)
+            vvel(:,:,iblk) = fld2(:,:,2,iblk)
+         enddo
+         !$OMP END PARALLEL DO
+      
+         ! Compute fixed point residual norm
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
+            fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
+            call calc_L2norm_squared (nx_block        , ny_block,         &
+                                      icellu    (iblk),                   & 
+                                      indxui  (:,iblk), indxuj  (:,iblk), &
+                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
+                                      L2norm    (iblk))
+         enddo
+         !$OMP END PARALLEL DO
+         if (monitor_nonlin) then
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", kOL, &
+                                              " fixed_point_res_L2norm= ", sqrt(sum(L2norm))
+         endif
+      
+      enddo                     ! outer loop
+      
+      ! deallocate FGMRES work arrays
+      deallocate(wk11, wk22, vv, ww)
 
       end subroutine picard_solver
 

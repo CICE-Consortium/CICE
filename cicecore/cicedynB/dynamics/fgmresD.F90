@@ -1,4 +1,4 @@
-      subroutine fgmres (n,im,rhs,sol,i,vv,w,wk1, wk2, &
+      subroutine fgmres_legacy (n,im,rhs,sol,i,vv,w,wk1, wk2, &
                   gamma,maxits,iout,icode,its,ro) 
 
       use ice_fileunits, only: nu_diag

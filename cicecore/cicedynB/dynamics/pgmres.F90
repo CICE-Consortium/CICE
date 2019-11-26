@@ -2,7 +2,7 @@
 !**s/r pgmres -  preconditionner for GEM_H : PGmres
 !
 
-       subroutine pgmres(nx_block, ny_block, nblocks, &
+       subroutine pgmres_legacy(nx_block, ny_block, nblocks, &
                          max_blocks, icellu,          &
                          indxui,     indxuj,          &
                          icellt,                      &
