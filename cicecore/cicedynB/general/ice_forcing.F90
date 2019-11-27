@@ -5180,7 +5180,7 @@
 #ifdef ncdf
             spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
             call ice_open_nc(spec_file,fid)
-            call ice_read_nc_xyf (fid, 1, 'efreq',wave_spectrum(:,:,:,:), dbug, &
+            call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
                                   field_loc_center, field_type_scalar)
             call ice_close_nc(fid)
 #else

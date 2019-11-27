@@ -1407,14 +1407,14 @@
 ! (subroutine ice_HaloUpdate need not be called).
 !
 ! Adapted by David Bailey, NCAR from ice_read_nc_xy
-! Adapted by Lettie Roach, NIWA to read 25 freq
-! by changing all occurrences of ncat to 25
+! Adapted by Lettie Roach, NIWA to read nfreq
+! by changing all occurrences of ncat to nfreq
 
       subroutine ice_read_nc_xyf(fid,  nrec,  varname, work,  diag, &
                                  field_loc, field_type, restart_ext)
 
       use ice_fileunits, only: nu_diag
-      use ice_domain_size, only: nfsd
+      use ice_domain_size, only: nfsd, nfreq
       use ice_gather_scatter, only: scatter_global, scatter_global_ext
 
       integer (kind=int_kind), intent(in) :: &
@@ -1427,7 +1427,7 @@
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,25,1,max_blocks), &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nfreq,1,max_blocks), &
            intent(out) :: &
            work              ! output array (real, 8-byte)
 
@@ -1468,9 +1468,9 @@
 
       if (.not. present(restart_ext)) then
          if (my_task == master_task) then
-            allocate(work_g2(nx_global+2,ny_global+1,25))
+            allocate(work_g2(nx_global+2,ny_global+1,nfreq))
          else
-            allocate(work_g2(1,1,25))   ! to save memory
+            allocate(work_g2(1,1,nfreq))   ! to save memory
          endif
       endif
 #endif
@@ -1486,9 +1486,9 @@
       endif
 
       if (my_task == master_task) then
-         allocate(work_g1(nx,ny,25))
+         allocate(work_g1(nx,ny,nfreq))
       else
-         allocate(work_g1(1,1,25))   ! to save memory
+         allocate(work_g1(1,1,nfreq))   ! to save memory
       endif
 
       if (my_task == master_task) then
@@ -1511,18 +1511,18 @@
 #ifndef ORCA_GRID
          status = nf90_get_var( fid, varid, work_g1, &
                start=(/1,1,1,nrec/), & 
-               count=(/nx,ny,25,1/) )
+               count=(/nx,ny,nfreq,1/) )
 #else
           print *, 'restart_ext',restart_ext
          if (.not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
                start=(/1,1,1,nrec/), & 
-               count=(/nx_global+2,ny_global+1,25,1/) )
+               count=(/nx_global+2,ny_global+1,nfreq,1/) )
             work_g1 = work_g2(2:nx_global+1,1:ny_global,:)
          else
             status = nf90_get_var( fid, varid, work_g1, &
                start=(/1,1,1,nrec/), & 
-               count=(/nx,ny,25,1/) )
+               count=(/nx,ny,nfreq,1/) )
          endif
          print *, 'fid',fid ,' varid',varid
 #endif
@@ -1545,7 +1545,7 @@
             write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
          enddo
          write(nu_diag,*) 'missingvalue= ',missingvalue
-         do n = 1, 25
+         do n = 1, nfreq
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
             asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
@@ -1563,19 +1563,19 @@
 
       if (present(restart_ext)) then
          if (restart_ext) then
-            do n = 1, 25
+            do n = 1, nfreq
                call scatter_global_ext(work(:,:,n,1,:), work_g1(:,:,n), &
                                        master_task, distrb_info)
             enddo
          endif
       else
          if (present(field_loc)) then
-            do n = 1, 25
+            do n = 1, nfreq
                call scatter_global(work(:,:,n,1,:), work_g1(:,:,n), master_task, &
                     distrb_info, field_loc, field_type)
             enddo
          else
-            do n = 1, 25
+            do n = 1, nfreq
                call scatter_global(work(:,:,n,1,:), work_g1(:,:,n), master_task, &
                     distrb_info, field_loc_noupdate, field_type_noupdate)
             enddo
