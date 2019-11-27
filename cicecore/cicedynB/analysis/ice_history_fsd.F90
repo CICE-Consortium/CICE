@@ -77,10 +77,11 @@
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       real    (kind=dbl_kind) :: secday
-      logical (kind=log_kind) :: tr_fsd
+      logical (kind=log_kind) :: tr_fsd, wave_spec
       character(len=*), parameter :: subname = '(init_hist_fsd_2D)'
 
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+      call icepack_query_parameters(wave_spec_out=wave_spec)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -113,20 +114,19 @@
       endif
 
       if (.not. tr_fsd) then
-         f_afsd        = 'm'
-         f_afsdn       = 'm'
-         f_dafsd_newi  = 'm'
-         f_dafsd_latg  = 'm'
-         f_dafsd_latm  = 'm'
-         f_dafsd_wave  = 'm'
-         f_dafsd_weld  = 'm'
-         f_wave_sig_ht = 'm'
-!echmod:  should wrap the following with 
-!         if (.not. wave_spec) then
-            f_aice_ww  = 'x'
-            f_diam_ww  = 'x'
-            f_hice_ww  = 'x'
-!         endif
+         f_afsd        = 'x'
+         f_afsdn       = 'x'
+         f_dafsd_newi  = 'x'
+         f_dafsd_latg  = 'x'
+         f_dafsd_latm  = 'x'
+         f_dafsd_wave  = 'x'
+         f_dafsd_weld  = 'x'
+         f_wave_sig_ht = 'x'
+      endif
+      if ((.not. tr_fsd) .or. (.not. wave_spec)) then
+         f_aice_ww  = 'x'
+         f_diam_ww  = 'x'
+         f_hice_ww  = 'x'
       endif
 
       call broadcast_scalar (f_afsd, master_task)
@@ -197,21 +197,27 @@
       do ns = 1, nstreams
          if (histfreq(ns) /= 'x') then
 
+         if (f_afsd(1:1) /= 'x') &
             call define_hist_field(n_afsd,"afsd", "1", tstr3Df, tcstr, & 
                "areal floe size distribution",                 &
                "per unit bin width ", c1, c0, ns, f_afsd)
+         if (f_dafsd_newi(1:1) /= 'x') &
             call define_hist_field(n_dafsd_newi,"dafsd_newi","1",tstr3Df, tcstr, & 
                "Change in fsd: new ice",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_newi)
+         if (f_dafsd_latg(1:1) /= 'x') &
             call define_hist_field(n_dafsd_latg,"dafsd_latg","1",tstr3Df, tcstr, & 
                "Change in fsd: lateral growth",                &
                "Avg over freq period", c1, c0, ns, f_dafsd_latg)
+         if (f_dafsd_latm(1:1) /= 'x') &
             call define_hist_field(n_dafsd_latm,"dafsd_latm","1",tstr3Df, tcstr, & 
                "Change in fsd: lateral melt",                  &
                "Avg over freq period", c1, c0, ns, f_dafsd_latm)
+         if (f_dafsd_wave(1:1) /= 'x') &
             call define_hist_field(n_dafsd_wave,"dafsd_wave","1",tstr3Df, tcstr, & 
                "Change in fsd: waves",                         &
                "Avg over freq period", c1, c0, ns, f_dafsd_wave)
+         if (f_dafsd_weld(1:1) /= 'x') &
             call define_hist_field(n_dafsd_weld,"dafsd_weld","1",tstr3Df, tcstr, & 
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
@@ -248,6 +254,7 @@
       do ns = 1, nstreams
          if (histfreq(ns) /= 'x') then
 
+         if (f_afsdn(1:1) /= 'x') &
             call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, & 
                "areal floe size and thickness distribution",    &
                "per unit bin width", c1, c0, ns, f_afsdn)
@@ -306,6 +313,7 @@
       !---------------------------------------------------------------
 
       ! 2D fields
+      if (allocated(a2D)) then
 
       if (f_wave_sig_ht(1:1)/= 'x') &
          call accum_hist_field(n_wave_sig_ht,   iblk, &
@@ -368,8 +376,10 @@
          end do
          call accum_hist_field(n_hice_ww, iblk, worka(:,:), a2D)
       endif
+      endif ! a2D allocated
 
       ! 3D category fields
+      if (allocated(a3Df)) then
 
       if (f_afsd(1:1) /= 'x') then
          do j = 1, ny_block
@@ -401,8 +411,10 @@
       if (f_dafsd_weld(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
+      endif ! a3Df allocated
 
       ! 4D floe size, thickness category fields
+      if (allocated(a4Df)) then
 
       if (f_afsdn(1:1) /= 'x') then
          do j = 1, ny_block
@@ -419,6 +431,7 @@
          call accum_hist_field(n_afsdn-n4Dscum, iblk, &
                                nfsd_hist, ncat_hist, workd, a4Df)
       endif
+      endif ! a4Df allocated
 
       endif ! tr_fsd
 

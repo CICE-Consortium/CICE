@@ -3,4 +3,4 @@ nfsd = 12
 wave_spec_type = 'constant'
 nfreq = 25
 ocn_data_format = 'nc'
-wave_spec_file  = 'ww3_wave_spectrum_20190806.nc'
+wave_spec_file  = 'unknown_wave_spec_file'

@@ -3987,8 +3987,10 @@
            if (allocated(a3Dz)) a3Dz(:,:,:,:,:)   = c0
            if (allocated(a3Db)) a3Db(:,:,:,:,:)   = c0
            if (allocated(a3Da)) a3Da(:,:,:,:,:)   = c0
+           if (allocated(a3Df)) a3Df(:,:,:,:,:)   = c0
            if (allocated(a4Di)) a4Di(:,:,:,:,:,:) = c0
            if (allocated(a4Ds)) a4Ds(:,:,:,:,:,:) = c0
+           if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
            avgct(:) = c0
            albcnt(:,:,:,:) = c0
            write_ic = .false.        ! write initial condition once at most
