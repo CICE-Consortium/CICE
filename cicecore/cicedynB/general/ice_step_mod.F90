@@ -285,7 +285,7 @@
 
          if (tmask(i,j,iblk)) &
          call icepack_step_therm1(dt=dt, ncat=ncat,            &
-                      nilyr=nilyr, nslyr=nslyr, n_aero=n_aero, &
+                      nilyr=nilyr, nslyr=nslyr,                &
                       aicen_init   = aicen_init  (i,j,:,iblk), &
                       vicen_init   = vicen_init  (i,j,:,iblk), &
                       vsnon_init   = vsnon_init  (i,j,:,iblk), &
@@ -501,7 +501,7 @@
 
          if (tmask(i,j,iblk)) then
 
-         call icepack_step_therm2(dt=dt, ncat=ncat, n_aero=n_aero, &
+         call icepack_step_therm2(dt=dt, ncat=ncat,        &
                       nltrcr=nltrcr, nilyr=nilyr, nslyr=nslyr, nblyr=nblyr, &
                       hin_max    = hin_max   (:),          &   
                       aicen      = aicen     (i,j,:,iblk), &

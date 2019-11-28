@@ -2103,7 +2103,7 @@
          nlt_bgc_DIC_in=nlt_bgc_DIC, nlt_bgc_DOC_in=nlt_bgc_DOC,   nlt_bgc_PON_in=nlt_bgc_PON, &
          nlt_bgc_DON_in=nlt_bgc_DON, nlt_bgc_Fed_in=nlt_bgc_Fed,   nlt_bgc_Fep_in=nlt_bgc_Fep, &
          nt_bgc_hum_in=nt_bgc_hum,   nlt_bgc_hum_in=nlt_bgc_hum, &
-         n_algae_in=n_algae,         &
+         n_algae_in=n_algae,         n_aero_in=n_aero, &
          n_DOC_in=n_DOC,             n_DON_in=n_DON,               n_DIC_in=n_DIC, &
          n_fed_in=n_fed,             n_fep_in=n_fep,               n_zaero_in=n_zaero)
       call icepack_warnings_flush(nu_diag)
@@ -2784,11 +2784,10 @@
          zbgc_init_frac_in=zbgc_init_frac, tau_ret_in=tau_ret, tau_rel_in=tau_rel, &
          zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type)
       call icepack_init_tracer_indices( &
-          nbtrcr_in=nbtrcr,        &
-          bio_index_o_in=bio_index_o, bio_index_in=bio_index)
+         bio_index_o_in=bio_index_o, bio_index_in=bio_index)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! final consistency checks

@@ -1702,7 +1702,8 @@
       use ice_history_mechred, only: accum_hist_mechred
       use ice_history_pond, only: accum_hist_pond
       use ice_history_drag, only: accum_hist_drag
-      use icepack_mushy_physics, only: density_brine, liquid_fraction, temperature_mush
+      use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
+      use icepack_intfc, only: icepack_mushy_temperature_mush
       use ice_state ! almost everything
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
@@ -2644,13 +2645,13 @@
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
                  if (ktherm == 2) then
-                    rho_ocn = density_brine(sss(i,j,iblk))
+                    rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
                     rho_ice = c0
                     do k = 1, nzilyr
-                       Tice = temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                       Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
                        Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                       phi = liquid_fraction(Tice,Sbr)
-                       rhob = density_brine(Sbr)
+                       phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                       rhob = icepack_mushy_density_brine(Sbr)
                        rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
                     enddo
                     rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)

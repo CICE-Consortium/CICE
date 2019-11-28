@@ -27,6 +27,7 @@
       use icepack_intfc, only: icepack_init_trcr
       use icepack_intfc, only: icepack_init_parameters
       use icepack_intfc, only: icepack_init_tracer_flags
+      use icepack_intfc, only: icepack_init_tracer_indices
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_numbers
       use icepack_intfc, only: icepack_query_tracer_indices
@@ -1231,6 +1232,10 @@
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, tr_pond_in=tr_pond, &
          tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
+      call icepack_init_tracer_indices(ncat_in=ncat, nilyr_in=nilyr, nslyr_in=nslyr, nblyr_in=nblyr)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
  1005    format (a30,2x,f12.6)  ! float
@@ -1933,7 +1938,6 @@
       use ice_constants, only: c2, c12, p5, cm_to_m
       use ice_domain_size, only: nx_global, ny_global
       use ice_grid, only: dxrect
-      use icepack_parameters, only: secday, pi
 
       integer (kind=int_kind), intent(in) :: &
          i, j,               & ! local indices
@@ -1945,14 +1949,21 @@
          uvel, vvel            ! ice velocity
 
       ! local variables
-         
+
       real (kind=dbl_kind) :: &
+         pi             , & ! pi
+         secday         , & ! seconds per day
          max_vel        , & ! max velocity
          domain_length  , & ! physical domain length
          period             ! rotational period
       
       character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
       
+      call icepack_query_parameters(secday_out=secday, pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
       domain_length = dxrect*cm_to_m*nx_global
       period        = c12*secday               ! 12 days rotational period
       max_vel       = pi*domain_length/period
