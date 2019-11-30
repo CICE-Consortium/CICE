@@ -240,6 +240,7 @@
 
       if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55' .and. &
                                 trim(atm_data_type) /= 'default' .and. &
+                                trim(atm_data_type) /= 'hycom' .and. &
                                 trim(atm_data_type) /= 'box2001')) then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
          write(nu_diag,*) 'JRA55, default , and box2001 atmospheric data'
@@ -2319,7 +2320,7 @@
       sec3hr = secday/c8        ! seconds in 3 hours
       !maxrec = 2920            ! 365*8; for leap years = 366*8
 
-      if(use_leap_years) days_per_year = 366 !overrides setting of 365 in ice_calendar
+      if (use_leap_years) days_per_year = 366 !overrides setting of 365 in ice_calendar
       maxrec = days_per_year*8
 
       if(days_per_year == 365 .and. (mod(yr,  4) == 0)) then

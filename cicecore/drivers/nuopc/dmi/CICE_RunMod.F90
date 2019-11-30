@@ -39,12 +39,12 @@
 !
 !  author Elizabeth C. Hunke, LANL
 !         Philip W. Jones, LANL
-!         William H. Lipscomb, LANL
+         William H. Lipscomb, LANL
 
       subroutine CICE_Run
 
       use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
-      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, atm_data_type
+      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
@@ -54,9 +54,9 @@
           tr_aero, tr_zaero, skl_bgc, z_tracers
       character(len=*), parameter :: subname = '(CICE_Run)'
 
-!--------------------------------------------------------------------
-!  initialize error code and step timer
-!--------------------------------------------------------------------
+   !--------------------------------------------------------------------
+   !  initialize error code and step timer
+   !--------------------------------------------------------------------
 
       call ice_timer_start(timer_step)   ! start timing entire run
 
@@ -67,11 +67,11 @@
          file=__FILE__, line=__LINE__)
 
 #ifndef CICE_IN_NEMO
-!--------------------------------------------------------------------
-! timestep loop
-!--------------------------------------------------------------------
+   !--------------------------------------------------------------------
+   ! timestep loop
+   !--------------------------------------------------------------------
 #ifndef CICE_DMI
-      timeLoop: do
+    timeLoop: do
 #endif
 #endif
          call ice_step
@@ -116,9 +116,9 @@
       enddo timeLoop
 #endif
 #endif
-!--------------------------------------------------------------------
-! end of timestep loop
-!--------------------------------------------------------------------
+   !--------------------------------------------------------------------
+   ! end of timestep loop
+   !--------------------------------------------------------------------
 
       call ice_timer_stop(timer_step)   ! end timestepping loop timer     
 
