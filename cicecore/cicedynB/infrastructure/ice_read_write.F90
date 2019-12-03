@@ -1553,9 +1553,6 @@
          enddo
       endif
 
-! echmod:  this should not be necessary if fill/missing are only on land
-!      where (wave_spectrum > 1.0e+30_dbl_kind) wave_spectrum = c0
-
     !-------------------------------------------------------------------
     ! Scatter data to individual processors.
     ! NOTE: Ghost cells are not updated unless field_loc is present.
@@ -1581,7 +1578,10 @@
             enddo
          endif
       endif
- 
+
+! echmod:  this should not be necessary if fill/missing are only on land
+      where (work > 1.0e+30_dbl_kind) work = c0
+
       deallocate(work_g1)
 #ifdef ORCA_GRID
       if (.not. present(restart_ext)) deallocate(work_g2)
