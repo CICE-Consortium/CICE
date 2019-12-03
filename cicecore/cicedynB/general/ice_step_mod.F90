@@ -474,15 +474,17 @@
          ntrcr, nbtrcr, nltrcr
 
       logical (kind=log_kind) :: &
+         tr_fsd,          & ! floe size distribution tracers
          z_tracers
 
       type (block) :: &
-         this_block      ! block information for current block
+         this_block         ! block information for current block
 
       character(len=*), parameter :: subname = '(step_therm2)'
 
       call icepack_query_parameters(z_tracers_out=z_tracers)
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -506,6 +508,7 @@
          if (tmask(i,j,iblk)) then
 
          ! significant wave height for FSD
+         if (tr_fsd) &
          wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
 
          call icepack_step_therm2(dt=dt, ncat=ncat, n_aero=n_aero, &

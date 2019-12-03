@@ -575,7 +575,9 @@
 
       subroutine init_fsd(floesize)
 
-      use ice_arrays_column, only: floe_rad_c, floe_binwidth
+      use ice_arrays_column, only: floe_rad_c, floe_binwidth, &
+         wavefreq, dwavefreq, wave_sig_ht, wave_spectrum, &
+         d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: ncat, max_blocks, nfsd
       use ice_init, only: ice_ic
@@ -603,6 +605,16 @@
       character(len=*), parameter :: subname='(init_fsd)'
 
       call icepack_query_parameters(puny_out=puny)
+
+      wavefreq       (:)       = c0
+      dwavefreq      (:)       = c0
+      wave_sig_ht    (:,:,:)   = c0
+      wave_spectrum  (:,:,:,:) = c0
+      d_afsd_newi    (:,:,:,:) = c0
+      d_afsd_latg    (:,:,:,:) = c0
+      d_afsd_latm    (:,:,:,:) = c0
+      d_afsd_wave    (:,:,:,:) = c0
+      d_afsd_weld    (:,:,:,:) = c0
 
       ! default: floes occupy the smallest size category in all thickness categories
       afsdn(:,:) = c0
