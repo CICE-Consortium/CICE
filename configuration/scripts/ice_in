@@ -573,6 +573,7 @@
 /
 
 &icefields_fsd_nml
+    f_fsdrad       = 'm'
     f_afsd         = 'm'
     f_afsdn        = 'm'
     f_dafsd_newi   = 'm'
