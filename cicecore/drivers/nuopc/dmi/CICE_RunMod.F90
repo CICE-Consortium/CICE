@@ -39,7 +39,7 @@
 !
 !  author Elizabeth C. Hunke, LANL
 !         Philip W. Jones, LANL
-         William H. Lipscomb, LANL
+!         William H. Lipscomb, LANL
 
       subroutine CICE_Run
 
