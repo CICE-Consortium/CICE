@@ -451,8 +451,8 @@
                worke(i,j,k) = c0
                do n = 1, ncat_hist
                   worke(i,j,k) = worke(i,j,k) &
-                               + (c2*trcrn(i,j,nt_fsd+k-1,n,iblk)/floe_rad_c(k) &
-                                    *aicen_init(i,j,n,iblk)/aice_init(i,j,iblk))
+                               + (c8*floeshape*trcrn(i,j,nt_fsd+k-1,n,iblk)*floe_rad_c(k) &
+                                    *aicen_init(i,j,n,iblk)/(c4*floeshape*floe_rad_c(k)**2 *aice_init(i,j,iblk)))
                end do
             end do
             endif
