@@ -336,7 +336,7 @@ Table of namelist options
    "\*","``l_mpond_fresh``", "true", "retain (topo) pond water until ponds drain", ""
    "","", "false", "release (topo) pond water immediately to ocean", ""
    "\*","``oceanmixed_ice``", "true/false", "active ocean mixed layer calculation", "``.true.`` (if uncoupled)"
-   "``wave_spec_type``", "``none``", "no wave breaking of floes","random"
+   "``wave_spec_type``", "``none``", "no wave data provided, no wave-ice interactions","random"
    "", "``constant``", "constant wave spectrum, for testing", ""
    "", "``random``", "wave spectrum generated using random number", ""
    "\*","``restore_ocn``", "true/false", "restore sst to data", ""
