@@ -172,6 +172,15 @@
              "Thickness of floes > Dmin",                   &
              "for waves", c1, c0,                           &
              ns, f_hice_ww)
+      if (f_fsdrad(1:1) /= 'x') &
+         call define_hist_field(n_fsdrad,"fsdrad","m",tstr2D, tcstr, &
+            "floe size distribution, representative radius",                  &
+            " ", c1, c0, ns, f_fsdrad)
+      if (f_fsdperim(1:1) /= 'x') &
+         call define_hist_field(n_fsdperim,"fsdperim","1/m",tstr2D, tcstr, &
+            "floe size distribution, perimeter",                  &
+            "per unit ice area", c1, c0, ns, f_fsdperim)
+
 
       enddo ! nstreams
 
@@ -228,15 +237,6 @@
             call define_hist_field(n_dafsd_weld,"dafsd_weld","1",tstr3Df, tcstr, &
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
-         if (f_fsdrad(1:1) /= 'x') &
-            call define_hist_field(n_fsdrad,"fsdrad","m",tstr3Df, tcstr, &
-               "floe size distribution, representative radius",                  &
-               " ", c1, c0, ns, f_fsdrad)
-         if (f_fsdperim(1:1) /= 'x') &
-            call define_hist_field(n_fsdperim,"fsdperim","m",tstr3Df, tcstr, &
-               "floe size distribution, perimeter",                  &
-               "per unit ice area", c1, c0, ns, f_fsdperim)
-
          endif ! if (histfreq(ns) /= 'x')
       enddo ! ns
 
@@ -391,6 +391,48 @@
          end do
          call accum_hist_field(n_hice_ww, iblk, worka(:,:), a2D)
       endif
+
+      if (f_fsdrad(1:1) /= 'x') then
+         do j = 1, ny_block
+         do i = 1, nx_block
+            worka(i,j) = c0            
+            if (aice_init(i,j,iblk) > puny) then
+             do k = 1, nfsd_hist
+                do n = 1, ncat_hist
+                  worka(i,j) = worka(i,j) &
+                               + (trcrn(i,j,nt_fsd+k-1,n,iblk) * floe_rad_c(k) &
+                               * aicen_init(i,j,n,iblk)/aice_init(i,j,iblk))
+                 end do
+              end do
+            endif
+         end do
+         end do
+         call accum_hist_field(n_fsdrad, iblk, worka(:,:), a2D)
+      endif
+
+      if (f_fsdperim(1:1) /= 'x') then
+         do j = 1, ny_block
+         do i = 1, nx_block
+            worka(i,j) = c0
+            if (aice_init(i,j,iblk) > puny) then
+             do k = 1, nfsd_hist
+               do n = 1, ncat_hist
+                  worka(i,j) = worka(i,j) &
+                               + (c8*floeshape*trcrn(i,j,nt_fsd+k-1,n,iblk)*floe_rad_c(k) &
+                                    *aicen_init(i,j,n,iblk)/(c4*floeshape*floe_rad_c(k)**2 *aice_init(i,j,iblk)))
+               end do
+              end do
+            endif
+         end do
+         end do
+         call accum_hist_field(n_fsdperim, iblk, worka, a2D)
+      endif
+
+
+
+
+
+
       endif ! a2D allocated
 
       ! 3D category fields
@@ -426,41 +468,6 @@
       if (f_dafsd_weld(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
-      if (f_fsdrad(1:1) /= 'x') then
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (aice_init(i,j,iblk) > puny) then
-            do k = 1, nfsd_hist
-               worke(i,j,k) = c0
-               do n = 1, ncat_hist
-                  worke(i,j,k) = worke(i,j,k) &
-                               + (trcrn(i,j,nt_fsd+k-1,n,iblk) * floe_rad_c(k) &
-                               * aicen_init(i,j,n,iblk)/aice_init(i,j,iblk))
-               end do
-            end do
-            endif
-         end do
-         end do
-         call accum_hist_field(n_fsdrad-n3Dacum, iblk, nfsd_hist, worke, a3Df)
-      endif
-      if (f_fsdperim(1:1) /= 'x') then
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (aice_init(i,j,iblk) > puny) then
-            do k = 1, nfsd_hist
-               worke(i,j,k) = c0
-               do n = 1, ncat_hist
-                  worke(i,j,k) = worke(i,j,k) &
-                               + (c8*floeshape*trcrn(i,j,nt_fsd+k-1,n,iblk)*floe_rad_c(k) &
-                                    *aicen_init(i,j,n,iblk)/(c4*floeshape*floe_rad_c(k)**2 *aice_init(i,j,iblk)))
-               end do
-            end do
-            endif
-         end do
-         end do
-         call accum_hist_field(n_fsdperim-n3Dacum, iblk, nfsd_hist, worke, a3Df)
-      endif
-
       endif ! a3Df allocated
 
       ! 4D floe size, thickness category fields
