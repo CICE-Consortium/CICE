@@ -8,7 +8,7 @@
 
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm, nfsd
-      use ice_constants, only: c0, c1, c100, mps_to_cmpdy
+      use ice_constants, only: c0, c1, c8, c100, mps_to_cmpdy
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
       use ice_fileunits, only: nu_diag
@@ -32,7 +32,8 @@
            f_dafsd_latm = 'm', f_dafsd_wave  = 'm', &
            f_dafsd_weld = 'm', f_wave_sig_ht = 'm', &
            f_aice_ww    = 'x', f_diam_ww     = 'x', &
-           f_hice_ww    = 'x', f_fsdrad      = 'x'
+           f_hice_ww    = 'x', f_fsdrad      = 'x', &
+           f_fsdperim   = 'x'
 
       !---------------------------------------------------------------
       ! namelist variables
@@ -44,7 +45,8 @@
            f_dafsd_latm, f_dafsd_wave , &
            f_dafsd_weld, f_wave_sig_ht, &
            f_aice_ww   , f_diam_ww    , &
-           f_hice_ww   , f_fsdrad
+           f_hice_ww   , f_fsdrad     , &
+           f_fsdperim
 
       !---------------------------------------------------------------
       ! field indices
@@ -56,7 +58,8 @@
            n_dafsd_latm, n_dafsd_wave , &
            n_dafsd_weld, n_wave_sig_ht, &
            n_aice_ww   , n_diam_ww    , &
-           n_hice_ww   , n_fsdrad
+           n_hice_ww   , n_fsdrad     , &
+           n_fsdperim
 
 !=======================================================================
 
@@ -123,6 +126,7 @@
          f_dafsd_weld  = 'x'
          f_wave_sig_ht = 'x'
          f_fsdrad      = 'x'
+         f_fsdperim    = 'x'
       endif
       if ((.not. tr_fsd) .or. (.not. wave_spec)) then
          f_aice_ww  = 'x'
@@ -142,6 +146,7 @@
       call broadcast_scalar (f_diam_ww, master_task)
       call broadcast_scalar (f_hice_ww, master_task)
       call broadcast_scalar (f_fsdrad, master_task)
+      call broadcast_scalar (f_fsdperim, master_task)
 
       ! 2D variables
 
@@ -225,8 +230,12 @@
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
          if (f_fsdrad(1:1) /= 'x') &
             call define_hist_field(n_fsdrad,"fsdrad","m",tstr3Df, tcstr, &
-               "Floe size distribution, representative radius",                  &
+               "floe size distribution, representative radius",                  &
                " ", c1, c0, ns, f_fsdrad)
+         if (f_fsdperim(1:1) /= 'x') &
+            call define_hist_field(n_fsdperim,"fsdperim","m",tstr3Df, tcstr, &
+               "floe size distribution, perimeter",                  &
+               "per unit ice area", c1, c0, ns, f_fsdperim)
 
          endif ! if (histfreq(ns) /= 'x')
       enddo ! ns
@@ -347,7 +356,7 @@
             do n = 1, ncat_hist
             do k = 1, nfsd_hist
                workc = aicen_init(i,j,n,iblk)*trcrn(i,j,nt_fsd+k-1,n,iblk) &
-                     / (c4*floeshape*floe_rad_c(k)**c2)
+                     / (c4*floeshape*floe_rad_c(k)**2)
                ! number-mean radius
                worka(i,j) = worka(i,j) + workc * floe_rad_c(k)
                ! normalization factor
@@ -433,6 +442,23 @@
          end do
          end do
          call accum_hist_field(n_fsdrad-n3Dacum, iblk, nfsd_hist, worke, a3Df)
+      endif
+      if (f_fsdperim(1:1) /= 'x') then
+         do j = 1, ny_block
+         do i = 1, nx_block
+            if (aice_init(i,j,iblk) > puny) then
+            do k = 1, nfsd_hist
+               worke(i,j,k) = c0
+               do n = 1, ncat_hist
+                  worke(i,j,k) = worke(i,j,k) &
+                               + (c2*trcrn(i,j,nt_fsd+k-1,n,iblk)/floe_rad_c(k) &
+                                    *aicen_init(i,j,n,iblk)/aice_init(i,j,iblk))
+               end do
+            end do
+            endif
+         end do
+         end do
+         call accum_hist_field(n_fsdperim-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
 
       endif ! a3Df allocated
