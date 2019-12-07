@@ -511,7 +511,7 @@
          if (tr_fsd) &
          wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
 
-         call icepack_step_therm2(dt=dt, ncat=ncat, n_aero=n_aero, &
+         call icepack_step_therm2(dt=dt, ncat=ncat, &
                       nltrcr=nltrcr, nilyr=nilyr, nslyr=nslyr, nblyr=nblyr, &
                       hin_max    = hin_max   (:),          &   
                       aicen      = aicen     (i,j,:,iblk), &
