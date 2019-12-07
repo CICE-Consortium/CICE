@@ -12,9 +12,10 @@
       use ice_fileunits, only: nu_diag
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
-          nblyr
+          nblyr, nfsd, nfreq
       use icepack_intfc, only: icepack_nspint
       use icepack_intfc, only: icepack_query_tracer_sizes, icepack_query_parameters, &
+          icepack_query_tracer_flags, &
           icepack_warnings_flush, icepack_warnings_aborted, icepack_query_tracer_numbers
 
       implicit none
@@ -270,6 +271,26 @@
          R_chl2N   ,      & ! 3 algal chlorophyll to N (mg/mmol)
          R_Si2N             ! silica to nitrogen mole ratio for algal groups
 
+      ! floe size distribution
+      real(kind=dbl_kind), dimension(:), allocatable, public ::  &
+         floe_rad_l,    &  ! fsd size lower bound in m (radius)
+         floe_rad_c,    &  ! fsd size bin centre in m (radius)
+         floe_binwidth     ! fsd size bin width in m (radius)
+
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+        wave_sig_ht        ! significant height of waves (m)
+
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+         wavefreq,      &  ! wave frequencies
+         dwavefreq         ! wave frequency bin widths
+
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+         wave_spectrum, &  ! wave spectrum
+         ! change in floe size distribution due to processes
+         d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
+
+      character (len=35), public, allocatable :: c_fsd_range(:)
+
 !=======================================================================
 
       contains
@@ -277,13 +298,15 @@
 !=======================================================================
 
       subroutine alloc_arrays_column
-        ! Allocate column arrays
-        use ice_exit, only: abort_ice
-        integer (int_kind) :: max_nbtrcr, max_algae, max_aero, &
-           nmodal1, nmodal2, max_don
-        integer (int_kind) :: ierr, ntrcr
 
-        character(len=*),parameter :: subname='(alloc_arrays_column)'
+      ! Allocate column arrays
+
+      use ice_exit, only: abort_ice
+      integer (int_kind) :: max_nbtrcr, max_algae, max_aero, &
+         nmodal1, nmodal2, max_don
+      integer (int_kind) :: ierr, ntrcr
+
+      character(len=*),parameter :: subname='(alloc_arrays_column)'
 
       call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_sizes( max_nbtrcr_out=max_nbtrcr, &
@@ -393,6 +416,24 @@
          bcenh(icepack_nspint,nmodal1,nmodal2), & ! BC absorption enhancement factor
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory4')
+
+      ! floe size distribution
+      allocate(                                                   &
+         floe_rad_l     (nfsd)      , & ! fsd size lower bound in m (radius)
+         floe_rad_c     (nfsd)      , & ! fsd size bin centre in m (radius)
+         floe_binwidth  (nfsd)      , & ! fsd size bin width in m (radius)
+         c_fsd_range    (nfsd)      , & ! fsd floe_rad bounds (m)
+         wavefreq       (nfreq)     , & ! wave frequency
+         dwavefreq      (nfreq)     , & ! wave frequency bin widths
+         wave_sig_ht    (nx_block,ny_block,          max_blocks), & !
+         wave_spectrum  (nx_block,ny_block,nfreq,    max_blocks), & !
+         d_afsd_newi    (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_afsd_latm    (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_afsd_wave    (nx_block,ny_block,nfsd,     max_blocks), & !
+         d_afsd_weld    (nx_block,ny_block,nfsd,     max_blocks), & !
+         stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' Out of Memory5')
 
       end subroutine alloc_arrays_column
 

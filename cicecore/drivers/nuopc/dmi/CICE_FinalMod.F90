@@ -35,9 +35,9 @@
 
       character(len=*), parameter :: subname = '(CICE_Finalize)'
 
-!-------------------------------------------------------------------
-! stop timers and print timer info
-!-------------------------------------------------------------------
+   !-------------------------------------------------------------------
+   ! stop timers and print timer info
+   !-------------------------------------------------------------------
 
       call ice_timer_stop(timer_total)        ! stop timing entire run
       call ice_timer_print_all(stats=.false.) ! print timing information

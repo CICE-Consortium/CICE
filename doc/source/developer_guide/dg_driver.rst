@@ -46,11 +46,13 @@ The initialize calling sequence looks something like::
       call icepack_configure()  ! initialize icepack
       call input_data           ! namelist variables
       call init_zbgc            ! vertical biogeochemistry namelist
+      call count_tracers        ! count tracers
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
       call alloc_*              ! allocate arrays
       call init_ice_timers      ! initialize all timers
       call init_grid2           ! grid variables
+      call init_zbgc            ! vertical biogeochemistry initialization
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
       if (kdyn == 2) then
@@ -61,6 +63,7 @@ The initialize calling sequence looks something like::
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
       call init_thermo_vertical ! initialize vertical thermodynamics
       call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
+      if (tr_fsd) call icepack_init_fsd_bounds  ! floe size distribution
       call calendar(time)       ! determine the initial date
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
@@ -70,8 +73,10 @@ The initialize calling sequence looks something like::
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
-      call init_shortwave    ! initialize radiative transfer
+      call init_shortwave       ! initialize radiative transfer
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
+      if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+      call get_forcing*         ! read forcing data (standalone)
 
 See a **CICE_InitMod.F90** file for the latest.
 
@@ -90,6 +95,7 @@ The run sequence within a time loop looks something like::
 
          call update_state (dt, daidtt, dvidtt, dagedtt, offset)
 
+         if (tr_fsd .and. wave_spec) call step_dyn_wave(dt)
          do k = 1, ndtd
             call step_dyn_horiz (dt_dyn)
             do iblk = 1, nblocks
@@ -102,5 +108,8 @@ The run sequence within a time loop looks something like::
             call step_radiation (dt, iblk)
             call coupling_prep (iblk)
          enddo ! iblk
+
+         ! write data
+         ! update forcing
 
 See a **CICE_RunMod.F90** file for the latest.

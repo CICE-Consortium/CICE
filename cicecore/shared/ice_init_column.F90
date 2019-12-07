@@ -28,6 +28,7 @@
       use icepack_intfc, only: icepack_query_tracer_numbers, icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_init_fsd, icepack_cleanup_fsd
       use icepack_intfc, only: icepack_init_zbgc
       use icepack_intfc, only: icepack_init_thermo
       use icepack_intfc, only: icepack_step_radiation, icepack_init_orbit
@@ -39,7 +40,7 @@
 
       private
       public :: init_thermo_vertical, init_shortwave, &
-                init_age, init_FY, init_lvl, &
+                init_age, init_FY, init_lvl, init_fsd, &
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
                 count_tracers
@@ -567,6 +568,100 @@
       ipnd(:,:,:) = c0
         
       end subroutine init_meltponds_topo
+
+!=======================================================================
+
+!  Initialize floe size distribution tracer (call prior to reading restart data)
+
+      subroutine init_fsd(floesize)
+
+      use ice_arrays_column, only: floe_rad_c, floe_binwidth, &
+         wavefreq, dwavefreq, wave_sig_ht, wave_spectrum, &
+         d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
+      use ice_blocks, only: nx_block, ny_block
+      use ice_domain_size, only: ncat, max_blocks, nfsd
+      use ice_init, only: ice_ic
+      use ice_state, only: aicen
+
+      real(kind=dbl_kind), dimension(:,:,:,:,:), intent(out) :: &
+         floesize            ! floe size distribution tracer
+
+      ! local variables
+
+      real (kind=dbl_kind), dimension(nfsd) :: &
+         afsd                ! floe size distribution "profile"
+
+      real (kind=dbl_kind), dimension(nfsd,ncat) :: &
+         afsdn               ! floe size distribution "profile"
+
+      real (kind=dbl_kind) :: puny
+
+      integer (kind=int_kind) :: &
+         i, j, iblk     , &  ! horizontal indices
+         n, k                ! category index
+
+      logical (kind=log_kind) :: tr_fsd
+
+      character(len=*), parameter :: subname='(init_fsd)'
+
+      call icepack_query_parameters(puny_out=puny)
+
+      wavefreq       (:)       = c0
+      dwavefreq      (:)       = c0
+      wave_sig_ht    (:,:,:)   = c0
+      wave_spectrum  (:,:,:,:) = c0
+      d_afsd_newi    (:,:,:,:) = c0
+      d_afsd_latg    (:,:,:,:) = c0
+      d_afsd_latm    (:,:,:,:) = c0
+      d_afsd_wave    (:,:,:,:) = c0
+      d_afsd_weld    (:,:,:,:) = c0
+
+      ! default: floes occupy the smallest size category in all thickness categories
+      afsdn(:,:) = c0
+      afsdn(1,:) = c1
+      floesize(:,:,:,:,:) = c0
+      floesize(:,:,1,:,:) = c1
+
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__,line= __LINE__)
+
+      if (tr_fsd) then
+
+         ! initialize floe size distribution the same in every column and category
+         call icepack_init_fsd(nfsd, ice_ic, &
+            floe_rad_c,    &  ! fsd size bin centre in m (radius)
+            floe_binwidth, &  ! fsd size bin width in m (radius)
+            afsd)             ! floe size distribution
+
+         do iblk = 1, max_blocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               do n = 1, ncat
+               do k = 1, nfsd
+                  if (aicen(i,j,n,iblk) > puny) afsdn(k,n) = afsd(k)
+               enddo    ! k
+               enddo    ! n
+
+               call icepack_cleanup_fsd (ncat, nfsd, afsdn) ! renormalize
+
+               do n = 1, ncat
+               do k = 1, nfsd
+                  floesize(i,j,k,n,iblk) = afsdn(k,n)
+               enddo    ! k
+               enddo    ! n
+            enddo       ! i
+            enddo       ! j
+         enddo          ! iblk
+
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
+
+      endif ! tr_fsd
+
+      end subroutine init_fsd
 
 !=======================================================================
 
@@ -1630,7 +1725,7 @@
 
       subroutine count_tracers
 
-      use ice_domain_size, only: nilyr, nslyr, nblyr, &
+      use ice_domain_size, only: nilyr, nslyr, nblyr, nfsd, &
           n_aero, n_zaero, n_algae, n_doc, n_dic, n_don, n_fed, n_fep
 
       ! local variables
@@ -1641,10 +1736,11 @@
          nk_bgc       ! layer index
 
       integer (kind=int_kind) :: ntrcr
-      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
+      integer (kind=int_kind) :: nt_fsd
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     &
@@ -1726,7 +1822,7 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
          tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
-         tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, &
+         tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
          tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C,   tr_bgc_chl_out=tr_bgc_chl,   &
@@ -1787,6 +1883,12 @@
               ntrcr = ntrcr + 1    ! 
               nt_ipnd = ntrcr      ! refrozen pond ice lid thickness
           endif
+      endif
+
+      nt_fsd = 0
+      if (tr_fsd) then
+          nt_fsd = ntrcr + 1       ! floe size distribution
+          ntrcr = ntrcr + nfsd
       endif
 
       nt_aero = 0
@@ -2069,6 +2171,7 @@
       if (nt_apnd  <= 0) nt_apnd  = ntrcr
       if (nt_hpnd  <= 0) nt_hpnd  = ntrcr
       if (nt_ipnd  <= 0) nt_ipnd  = ntrcr
+      if (nt_fsd   <= 0) nt_fsd   = ntrcr
       if (nt_aero  <= 0) nt_aero  = ntrcr
       if (nt_fbri  <= 0) nt_fbri  = ntrcr
       if (nt_bgc_S <= 0) nt_bgc_S = ntrcr
@@ -2092,7 +2195,7 @@
       call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
-         nt_ipnd_in=nt_ipnd, nt_aero_in=nt_aero, &
+         nt_ipnd_in=nt_ipnd, nt_fsd_in=nt_fsd, nt_aero_in=nt_aero, &
          nt_fbri_in=nt_fbri,      &
          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
          nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &
