@@ -339,6 +339,7 @@ Table of namelist options
    "\*", "``wave_spec_type``", "``none``", "no wave data provided, no wave-ice interactions", ""
    "", "", "``constant``", "constant wave spectrum, for testing", ""
    "", "", "``random``", "wave spectrum generated using random number", ""
+   "", "", "``file``", "wave spectrum read from ``wave_spec_file``", ""
    "\*","``restore_ocn``", "true/false", "restore sst to data", ""
    "\*","``trestore``", "integer", "sst restoring time scale (days)", ""
    "","``restore_ice``", "true/false", "restore ice state along lateral boundaries", ""
