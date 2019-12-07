@@ -313,6 +313,7 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rside   , & ! fraction of ice that melts laterally
+         fside   , & ! lateral heat flux (W/m^2)
          fsw     , & ! incoming shortwave radiation (W/m^2)
          coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon 
          rdg_conv, & ! convergence term for ridging (1/s)
@@ -477,6 +478,7 @@
          fresh_da   (nx_block,ny_block,max_blocks), & ! fresh water flux to ocean due to data assim (kg/m^2/s)
          fsalt_da   (nx_block,ny_block,max_blocks), & ! salt flux to ocean due to data assimilation(kg/m^2/s)
          rside      (nx_block,ny_block,max_blocks), & ! fraction of ice that melts laterally
+         fside      (nx_block,ny_block,max_blocks), & ! lateral melt rate (W/m^2)
          fsw        (nx_block,ny_block,max_blocks), & ! incoming shortwave radiation (W/m^2)
          coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon 
          rdg_conv   (nx_block,ny_block,max_blocks), & ! convergence term for ridging (1/s)

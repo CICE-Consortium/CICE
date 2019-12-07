@@ -499,21 +499,8 @@
                                           cos(angle_w)+ &
                                           cos(angle_s)+ &
                                           cos(angle_sw)))
-!           if ( angle_0 < c0 ) then
-!               if ( abs(angle_w - angle_0) > pi) &
-!                        angle_w = angle_w  - pi2
-!               if ( abs(angle_s - angle_0) > pi) &
-!                        angle_s = angle_s  - pi2
-!               if ( abs(angle_sw - angle_0) > pi) &
-!                        angle_sw = angle_sw - pi2
-!            endif
-
-!            ANGLET_dum = angle_0 * p25 + angle_w * p25 &
-!                             + angle_s * p25 + angle_sw* p25
-!            write(my_task+700,*) ANGLET_dum, ANGLET(i,j,iblk)
          enddo
          enddo
-!      call flush(my_task+700)
       enddo
       !$OMP END PARALLEL DO
       endif ! cpom_grid
@@ -2494,7 +2481,6 @@
 
           write (nu_diag,*) ' '
           write (nu_diag,*) 'Bathymetry file: ', trim(bathymetry_file)
-          write (*,*) 'Bathymetry file: ', trim(bathymetry_file)
           call icepack_warnings_flush(nu_diag)
 
       endif
