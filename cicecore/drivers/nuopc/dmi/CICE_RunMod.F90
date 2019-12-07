@@ -76,7 +76,7 @@
    ! timestep loop
    !--------------------------------------------------------------------
 #ifndef CICE_DMI
-      timeLoop: do
+    timeLoop: do
 #endif
 #endif
          call ice_step

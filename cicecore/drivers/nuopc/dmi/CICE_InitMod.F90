@@ -46,9 +46,9 @@
 
       integer (kind=int_kind), optional, intent(in) :: mpi_comm ! communicator from nuopc
       character(len=*), parameter :: subname='(CICE_Initialize)'
-!--------------------------------------------------------------------
-! model initialization
-!--------------------------------------------------------------------
+   !--------------------------------------------------------------------
+   ! model initialization
+   !--------------------------------------------------------------------
       if (present(mpi_comm)) then
           call cice_init(mpi_comm)
       else
@@ -84,7 +84,7 @@
           faero_default, faero_optics, alloc_forcing_bgc
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
-      use ice_restart_shared, only: restart, runid, runtype
+      use ice_restart_shared, only: restart, runtype
       use ice_init, only: input_data, init_state
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
       use ice_kinds_mod
@@ -105,6 +105,9 @@
           call init_communicate     ! initial setup for message passing
       endif
       call init_fileunits       ! unit numbers
+
+      ! tcx debug, this will create a different logfile for each pe
+      ! if (my_task /= master_task) nu_diag = 100+my_task
 
       call icepack_configure()  ! initialize icepack
       call icepack_warnings_flush(nu_diag)
@@ -144,9 +147,9 @@
 #endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
 
-      call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
+      call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
       if (my_task == master_task) then
-         call icepack_init_itd_hist(ncat, hin_max, c_hi_range) ! output
+         call icepack_init_itd_hist(ncat=ncat, hin_max=hin_max, c_hi_range=c_hi_range) ! output
       endif
 
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
@@ -203,9 +206,9 @@
       time = time + dt       ! determine the time and date
       call calendar(time)    ! at the end of the first timestep
 
-!--------------------------------------------------------------------
-! coupler communication or forcing data initialization
-!--------------------------------------------------------------------
+   !--------------------------------------------------------------------
+   ! coupler communication or forcing data initialization
+   !--------------------------------------------------------------------
 
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
 
@@ -442,21 +445,21 @@
       do j = 1, ny_block
       do i = 1, nx_block
          if (tmask(i,j,iblk)) then
-            call icepack_aggregate (ncat,               &
-                                   aicen(i,j,:,iblk),  &
-                                   trcrn(i,j,:,:,iblk),&
-                                   vicen(i,j,:,iblk),  &
-                                   vsnon(i,j,:,iblk),  &
-                                   aice (i,j,  iblk),  &
-                                   trcr (i,j,:,iblk),  &
-                                   vice (i,j,  iblk),  &
-                                   vsno (i,j,  iblk),  &
-                                   aice0(i,j,  iblk),  &
-                                   ntrcr,              &
-                                   trcr_depend,        &
-                                   trcr_base,          &
-                                   n_trcr_strata,      &
-                                   nt_strata)
+            call icepack_aggregate(ncat  = ncat,                  &
+                                   aicen = aicen(i,j,:,iblk),     &
+                                   trcrn = trcrn(i,j,:,:,iblk),   &
+                                   vicen = vicen(i,j,:,iblk),     &
+                                   vsnon = vsnon(i,j,:,iblk),     &
+                                   aice  = aice (i,j,  iblk),     &
+                                   trcr  = trcr (i,j,:,iblk),     &
+                                   vice  = vice (i,j,  iblk),     &
+                                   vsno  = vsno (i,j,  iblk),     &
+                                   aice0 = aice0(i,j,  iblk),     &
+                                   ntrcr = ntrcr,                 &
+                                   trcr_depend   = trcr_depend,   &
+                                   trcr_base     = trcr_base,     &
+                                   n_trcr_strata = n_trcr_strata, &
+                                   nt_strata     = nt_strata)
          else
             ! tcraig, reset all tracer values on land to zero
             trcrn(i,j,:,:,iblk) = c0
