@@ -17,6 +17,7 @@
       use ice_fileunits, only: init_fileunits, nu_diag
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
+      use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
@@ -59,6 +60,8 @@
       subroutine cice_init
 
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
+      use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
+          floe_binwidth, c_fsd_range
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
@@ -66,13 +69,13 @@
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
-      use ice_domain_size, only: ncat
+      use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
       use ice_dyn_shared, only: kdyn, init_evp, alloc_dyn_shared
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn
+          get_forcing_atmo, get_forcing_ocn, get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default, faero_optics, alloc_forcing_bgc
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
@@ -88,7 +91,8 @@
       use drv_forcing, only: sst_sss
 #endif
 
-      logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
+      logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
+         tr_fsd, wave_spec
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -139,6 +143,18 @@
       if (my_task == master_task) then
          call icepack_init_itd_hist(ncat=ncat, hin_max=hin_max, c_hi_range=c_hi_range) ! output
       endif
+
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
+          file=__FILE__,line= __LINE__)
+
+      if (tr_fsd) call icepack_init_fsd_bounds (nfsd, & ! floe size distribution
+         floe_rad_l,    &  ! fsd size lower bound in m (radius)
+         floe_rad_c,    &  ! fsd size bin centre in m (radius)
+         floe_binwidth, &  ! fsd size bin width in m (radius)
+         c_fsd_range)      ! string for history output
+
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -150,7 +166,8 @@
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
+          wave_spec_out=wave_spec)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -189,6 +206,7 @@
 
 #ifndef coupled
 #ifndef CESMCOUPLED
+      if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
       call get_forcing_atmo     ! atmospheric forcing from data
       call get_forcing_ocn(dt)  ! ocean forcing from data
 
@@ -220,19 +238,20 @@
       use ice_calendar, only: time, calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, n_aero
+      use ice_domain_size, only: ncat, n_aero, nfsd
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
-          init_aerosol, init_hbrine, init_bgc
+          init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
           restart_pond_cesm, read_restart_pond_cesm, &
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
+          restart_fsd, read_restart_fsd, &
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
@@ -245,13 +264,13 @@
          iblk            ! block index
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-          tr_pond_topo, tr_aero, tr_brine, &
+          tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
-          nt_iage, nt_FY, nt_aero
+          nt_iage, nt_FY, nt_aero, nt_fsd
 
       character(len=*), parameter :: subname = '(init_restart)'
 
@@ -264,10 +283,11 @@
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
-           tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine)
+           tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
+           tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
-           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero)
+           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -363,6 +383,15 @@
             enddo ! iblk
          endif ! .not. restart_pond
       endif
+      ! floe size distribution
+      if (tr_fsd) then
+         if (trim(runtype) == 'continue') restart_fsd = .true.
+         if (restart_fsd) then
+            call read_restart_fsd
+         else
+            call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,:))
+         endif
+      endif
       if (tr_aero) then ! ice aerosol
          if (trim(runtype) == 'continue') restart_aero = .true.
          if (restart_aero) then
@@ -388,7 +417,15 @@
          if (tr_brine .and. restart_hbrine) call read_restart_hbrine
       endif
 
-      if (solve_zsal .or. skl_bgc .or. z_tracers) call init_bgc ! biogeochemistry
+      if (solve_zsal .or. skl_bgc .or. z_tracers) then ! biogeochemistry
+         if (tr_fsd) then
+            write (nu_diag,*) 'FSD implementation incomplete for use with BGC'
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+               file=__FILE__, line=__LINE__)
+         endif
+         call init_bgc
+      endif
 
       !-----------------------------------------------------------------
       ! aggregate tracers

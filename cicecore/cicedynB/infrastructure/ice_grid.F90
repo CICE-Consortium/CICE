@@ -2494,7 +2494,6 @@
 
           write (nu_diag,*) ' '
           write (nu_diag,*) 'Bathymetry file: ', trim(bathymetry_file)
-          write (*,*) 'Bathymetry file: ', trim(bathymetry_file)
           call icepack_warnings_flush(nu_diag)
 
       endif

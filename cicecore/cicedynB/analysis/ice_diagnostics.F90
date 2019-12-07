@@ -12,7 +12,7 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0
+      use ice_constants, only: c0, c1
       use ice_calendar, only: istep1
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: flush_fileunit
@@ -89,8 +89,8 @@
       integer (kind=int_kind), parameter, public :: &
          check_step = 999999999, & ! begin printing at istep1=check_step
          iblkp = 1, &      ! block number 
-         ip = 3, &         ! i index
-         jp = 5, &         ! j index
+         ip = 2, &         ! i index
+         jp = 11, &         ! j index
          mtask = 0         ! my_task
 
 !=======================================================================
@@ -107,12 +107,13 @@
 
       subroutine runtime_diags (dt)
 
+      use ice_arrays_column, only: floe_rad_c
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_constants, only: c1, c1000, c2, p001, p5, &
           field_loc_center, m2_to_km2
       use ice_domain, only: distrb_info, nblocks
-      use ice_domain_size, only: ncat, n_aero, max_blocks
+      use ice_domain_size, only: ncat, n_aero, max_blocks, nfsd
       use ice_flux, only: alvdr, alidr, alvdf, alidf, evap, fsnow, frazil, &
           fswabs, fswthru, flw, flwout, fsens, fsurf, flat, frzmlt_init, frain, fpond, &
           fhocn_ai, fsalt_ai, fresh_ai, frazil_diag, &
@@ -135,12 +136,12 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, n, iblk, &
+         i, j, k, n, iblk, nc, &
          ktherm, &
-         nt_tsfc, nt_aero, nt_fbri, nt_apnd, nt_hpnd
+         nt_tsfc, nt_aero, nt_fbri, nt_apnd, nt_hpnd, nt_fsd
 
       logical (kind=log_kind) :: &
-         tr_pond_topo, tr_brine, tr_aero, calc_Tsfc
+         tr_pond_topo, tr_brine, tr_aero, calc_Tsfc, tr_fsd
 
       real (kind=dbl_kind) :: &
          rhow, rhos, rhoi, puny, awtvdr, awtidr, awtvdf, awtidf, &
@@ -177,7 +178,7 @@
          paice, pTair, pQa, pfsnow, pfrain, pfsw, pflw, & 
          pTsfc, pevap, pfswabs, pflwout, pflat, pfsens, &
          pfsurf, pfcondtop, psst, psss, pTf, hiavg, hsavg, hbravg, &
-         pfhocn, psalt, &
+         pfhocn, psalt, fsdavg, &
          pmeltt, pmeltb, pmeltl, psnoice, pdsnow, pfrazil, pcongel
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
@@ -187,9 +188,10 @@
 
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
-           tr_pond_topo_out=tr_pond_topo)
+           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_Tsfc_out=nt_Tsfc, &
-           nt_aero_out=nt_aero, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
+           nt_aero_out=nt_aero, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
+           nt_fsd_out=nt_fsd)
       call icepack_query_parameters(Tffresh_out=Tffresh, rhos_out=rhos, &
            rhow_out=rhow, rhoi_out=rhoi, puny_out=puny, &
            awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf, &
@@ -502,7 +504,7 @@
                   work1(i,j,iblk) = &
                      (fswabs(i,j,iblk) - fswthru(i,j,iblk) &
                     + fsens (i,j,iblk) + flwout (i,j,iblk)) &
-                                                  * aice      (i,j,iblk) &
+                                       * aice      (i,j,iblk) &
                     + flw   (i,j,iblk) * aice_init (i,j,iblk)
                enddo
                enddo
@@ -748,6 +750,7 @@
                pflw(n) = flw(i,j,iblk)             ! longwave radiation
                paice(n) = aice(i,j,iblk)           ! ice area
                
+               fsdavg(n) = c0                      ! avg floe effective radius
                hiavg(n) = c0                       ! avg snow/ice thickness
                hsavg(n) = c0
                hbravg(n) = c0                      ! avg brine thickness
@@ -755,6 +758,22 @@
                   hiavg(n) = vice(i,j,iblk)/paice(n)
                   hsavg(n) = vsno(i,j,iblk)/paice(n)
                   if (tr_brine) hbravg(n) = trcr(i,j,nt_fbri,iblk)* hiavg(n)
+                  if (tr_fsd) then
+! not sure why this does not work
+!                     do k = 1, nfsd
+!                        fsdavg(n) = fsdavg(n) &
+!                                  + trcr(i,j,nt_fsd+k-1,iblk) * floe_rad_c(k) &
+!                                  / trcr(i,j,nt_fsd+k-1,iblk)
+!                     enddo
+! this works
+                     do nc = 1, ncat
+                     do k = 1, nfsd
+                        fsdavg(n) = fsdavg(n) &
+                                  + trcrn(i,j,nt_fsd+k-1,nc,iblk) * floe_rad_c(k) &
+                                  * aicen(i,j,nc,iblk) / paice(n)
+                     enddo
+                     enddo
+                  endif
                endif
                if (vice(i,j,iblk) /= c0) psalt(n) = work2(i,j,iblk)/vice(i,j,iblk)
                pTsfc(n) = trcr(i,j,nt_Tsfc,iblk)   ! ice/snow sfc temperature
@@ -782,38 +801,39 @@
 
             endif  ! my_task = pmloc
 
-            call broadcast_scalar(pTair    (n), pmloc(n))             
-            call broadcast_scalar(pQa      (n), pmloc(n))             
-            call broadcast_scalar(pfsnow   (n), pmloc(n))             
-            call broadcast_scalar(pfrain   (n), pmloc(n))             
-            call broadcast_scalar(pfsw     (n), pmloc(n))             
-            call broadcast_scalar(pflw     (n), pmloc(n))             
-            call broadcast_scalar(paice    (n), pmloc(n))             
-            call broadcast_scalar(hsavg    (n), pmloc(n))             
-            call broadcast_scalar(hiavg    (n), pmloc(n))              
+            call broadcast_scalar(pTair    (n), pmloc(n))
+            call broadcast_scalar(pQa      (n), pmloc(n))
+            call broadcast_scalar(pfsnow   (n), pmloc(n))
+            call broadcast_scalar(pfrain   (n), pmloc(n))
+            call broadcast_scalar(pfsw     (n), pmloc(n))
+            call broadcast_scalar(pflw     (n), pmloc(n))
+            call broadcast_scalar(paice    (n), pmloc(n))
+            call broadcast_scalar(hsavg    (n), pmloc(n))
+            call broadcast_scalar(hiavg    (n), pmloc(n))
+            call broadcast_scalar(fsdavg   (n), pmloc(n))
             call broadcast_scalar(psalt    (n), pmloc(n))
             call broadcast_scalar(hbravg   (n), pmloc(n))
-            call broadcast_scalar(pTsfc    (n), pmloc(n))             
-            call broadcast_scalar(pevap    (n), pmloc(n))             
-            call broadcast_scalar(pfswabs  (n), pmloc(n)) 
-            call broadcast_scalar(pflwout  (n), pmloc(n)) 
-            call broadcast_scalar(pflat    (n), pmloc(n)) 
-            call broadcast_scalar(pfsens   (n), pmloc(n)) 
-            call broadcast_scalar(pfsurf   (n), pmloc(n)) 
-            call broadcast_scalar(pfcondtop(n), pmloc(n)) 
-            call broadcast_scalar(pmeltt   (n), pmloc(n)) 
-            call broadcast_scalar(pmeltb   (n), pmloc(n)) 
-            call broadcast_scalar(pmeltl   (n), pmloc(n)) 
-            call broadcast_scalar(psnoice  (n), pmloc(n)) 
-            call broadcast_scalar(pdsnow   (n), pmloc(n)) 
-            call broadcast_scalar(pfrazil  (n), pmloc(n)) 
-            call broadcast_scalar(pcongel  (n), pmloc(n)) 
-            call broadcast_scalar(pdhi     (n), pmloc(n)) 
-            call broadcast_scalar(pdhs     (n), pmloc(n)) 
-            call broadcast_scalar(pde      (n), pmloc(n)) 
-            call broadcast_scalar(psst     (n), pmloc(n)) 
-            call broadcast_scalar(psss     (n), pmloc(n)) 
-            call broadcast_scalar(pTf      (n), pmloc(n)) 
+            call broadcast_scalar(pTsfc    (n), pmloc(n))
+            call broadcast_scalar(pevap    (n), pmloc(n))
+            call broadcast_scalar(pfswabs  (n), pmloc(n))
+            call broadcast_scalar(pflwout  (n), pmloc(n))
+            call broadcast_scalar(pflat    (n), pmloc(n))
+            call broadcast_scalar(pfsens   (n), pmloc(n))
+            call broadcast_scalar(pfsurf   (n), pmloc(n))
+            call broadcast_scalar(pfcondtop(n), pmloc(n))
+            call broadcast_scalar(pmeltt   (n), pmloc(n))
+            call broadcast_scalar(pmeltb   (n), pmloc(n))
+            call broadcast_scalar(pmeltl   (n), pmloc(n))
+            call broadcast_scalar(psnoice  (n), pmloc(n))
+            call broadcast_scalar(pdsnow   (n), pmloc(n))
+            call broadcast_scalar(pfrazil  (n), pmloc(n))
+            call broadcast_scalar(pcongel  (n), pmloc(n))
+            call broadcast_scalar(pdhi     (n), pmloc(n))
+            call broadcast_scalar(pdhs     (n), pmloc(n))
+            call broadcast_scalar(pde      (n), pmloc(n))
+            call broadcast_scalar(psst     (n), pmloc(n))
+            call broadcast_scalar(psss     (n), pmloc(n))
+            call broadcast_scalar(pTf      (n), pmloc(n))
             call broadcast_scalar(pfhocn   (n), pmloc(n))
             
          enddo                  ! npnt
@@ -947,6 +967,8 @@
         write(nu_diag,900) 'avg snow depth (m)     = ',hsavg(1),hsavg(2)
         write(nu_diag,900) 'avg salinity (ppt)     = ',psalt(1),psalt(2)
         write(nu_diag,900) 'avg brine thickness (m)= ',hbravg(1),hbravg(2)
+        if (tr_fsd) &
+        write(nu_diag,900) 'avg fsd rep radius (m) = ',fsdavg(1),fsdavg(2)
 
         if (calc_Tsfc) then
            write(nu_diag,900) 'surface temperature(C) = ',pTsfc(1),pTsfc(2)
@@ -1439,7 +1461,7 @@
 
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr
+      use ice_domain_size, only: ncat, nilyr, nslyr, nfsd
       use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, trcrn
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
@@ -1458,15 +1480,18 @@
            qi, qs, Tsnow, &
            rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
-      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno
+      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd
+
+      logical (kind=log_kind) :: tr_fsd
 
       type (block) :: &
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(print_state)'
 
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
-           nt_qsno_out=nt_qsno)
+           nt_qsno_out=nt_qsno, nt_fsd_out=nt_fsd)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
@@ -1495,8 +1520,19 @@
             write(nu_diag,*) 'hsn', vsnon(i,j,n,iblk)/aicen(i,j,n,iblk)
          endif
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
+         if (tr_fsd) write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk) ! fsd cat 1
          write(nu_diag,*) ' '
+
+! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal
+!         if (tr_fsd) then
+!         if (abs(sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk))-c1) > puny) &
+!            print*,'afsdn not normal', &
+!                 sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)), &
+!                     trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)
+!         endif
+
       enddo                     ! n
+
 
       eidebug = c0
       do n = 1,ncat
