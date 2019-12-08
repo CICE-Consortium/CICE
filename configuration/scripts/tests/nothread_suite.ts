@@ -10,7 +10,10 @@ restart        gx3     16x1       thread
 smoke          gx3     16x1       diag24,run1year,medium
 
 restart        gx1     160x1      droundrobin,medium
-restart        tx1     160x1      dsectrobin,medium
+
+#tcraig, hangs nodes intermittently on izumi with pgi
+#restart        tx1     160x1      dsectrobin,medium
+
 restart        gx3     16x1       none
 restart        gx3     16x1       iobinary
 
