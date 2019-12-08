@@ -23,7 +23,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters
-      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
 
       implicit none
       private
@@ -397,7 +397,7 @@
       character(len=*), parameter :: subname = '(coupling_prep)'
 
          call icepack_query_parameters(puny_out=puny, rhofresh_out=rhofresh)
-         call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+         call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
          call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &

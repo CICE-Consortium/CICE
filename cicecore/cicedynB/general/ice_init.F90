@@ -27,9 +27,9 @@
       use icepack_intfc, only: icepack_init_trcr
       use icepack_intfc, only: icepack_init_parameters
       use icepack_intfc, only: icepack_init_tracer_flags
-      use icepack_intfc, only: icepack_init_tracer_indices
+      use icepack_intfc, only: icepack_init_tracer_sizes
       use icepack_intfc, only: icepack_query_tracer_flags
-      use icepack_intfc, only: icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_tracer_indices
       use icepack_intfc, only: icepack_query_parameters
 
@@ -1261,7 +1261,9 @@
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, tr_fsd_in=tr_fsd, tr_pond_in=tr_pond, &
          tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
-      call icepack_init_tracer_indices(ncat_in=ncat, nilyr_in=nilyr, nslyr_in=nslyr, nblyr_in=nblyr)
+      call icepack_init_tracer_sizes(ncat_in=ncat, nilyr_in=nilyr, nslyr_in=nslyr, nblyr_in=nblyr, &
+         nfsd_in=nfsd, n_algae_in=n_algae, n_aero_in=n_aero, n_DOC_in=n_DOC, n_DON_in=n_DON, &
+         n_DIC_in=n_DIC, n_fed_in=n_fed, n_fep_in=n_fep, n_zaero_in=n_zaero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1323,7 +1325,7 @@
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(heat_capacity_out=heat_capacity)
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
         tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_fsd_out=tr_fsd, &
         tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
@@ -1654,7 +1656,7 @@
 
       !-----------------------------------------------------------------
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_lvl_out=tr_lvl)
       call icepack_query_tracer_indices( nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
         nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, &

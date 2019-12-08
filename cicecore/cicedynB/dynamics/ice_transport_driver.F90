@@ -23,7 +23,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_compute_tracers
       use icepack_intfc, only: icepack_query_tracer_flags, &
-          icepack_query_tracer_numbers, icepack_query_tracer_indices, &
+          icepack_query_tracer_sizes, icepack_query_tracer_indices, &
           icepack_query_parameters
 
       implicit none
@@ -88,7 +88,7 @@
 
       call ice_timer_start(timer_advect)  ! advection 
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
           nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fbri_out=nt_fbri, &
           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_alvl_out=nt_alvl, nt_fsd_out=nt_fsd, &
@@ -304,7 +304,7 @@
       character(len=*), parameter :: subname = '(transport_remap)'
 
       call ice_timer_start(timer_advect)  ! advection 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -709,7 +709,7 @@
 
       call ice_timer_start(timer_advect)  ! advection 
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
