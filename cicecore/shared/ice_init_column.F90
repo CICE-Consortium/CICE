@@ -28,12 +28,14 @@
       use icepack_intfc, only: icepack_query_tracer_numbers, icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_write_tracer_numbers, icepack_write_tracer_flags
+      use icepack_intfc, only: icepack_write_tracer_indices, icepack_write_tracer_sizes
       use icepack_intfc, only: icepack_init_fsd, icepack_cleanup_fsd
       use icepack_intfc, only: icepack_init_zbgc
       use icepack_intfc, only: icepack_init_thermo
       use icepack_intfc, only: icepack_step_radiation, icepack_init_orbit
       use icepack_intfc, only: icepack_init_bgc, icepack_init_zsalinity
-      use icepack_intfc, only: icepack_init_ocean_conc, icepack_init_OceanConcArray
+      use icepack_intfc, only: icepack_init_ocean_bio, icepack_load_ocean_bio_array
       use icepack_intfc, only: icepack_init_hbrine
 
       implicit none
@@ -223,13 +225,15 @@
          fbri                 ! brine height to ice thickness
 
       real(kind=dbl_kind), allocatable :: &
-         ztrcr(:,:),    & !
          ztrcr_sw(:,:)    !
 
       logical (kind=log_kind) :: tr_brine, tr_zaero, tr_bgc_n
       integer (kind=int_kind) :: nt_alvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero, &
-         nt_fbri, nt_tsfc, ntrcr, nbtrcr, nbtrcr_sw, nlt_chl_sw
-      integer (kind=int_kind), dimension(icepack_max_aero) :: nlt_zaero_sw
+         nt_fbri, nt_tsfc, ntrcr, nbtrcr, nbtrcr_sw
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nt_bgc_N
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
+         nt_zaero
       real (kind=dbl_kind) :: puny
 
       character(len=*), parameter :: subname='(init_shortwave)'
@@ -243,13 +247,12 @@
          tr_bgc_n_out=tr_bgc_n)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
          nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, nt_fbri_out=nt_fbri, nt_tsfc_out=nt_tsfc, &
-         nlt_chl_sw_out=nlt_chl_sw, nlt_zaero_sw_out=nlt_zaero_sw)
+         nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
-      allocate(ztrcr(ntrcr, ncat))
-      allocate(ztrcr_sw(ntrcr, ncat))
+      allocate(ztrcr_sw(nbtrcr_sw, ncat))
 
       !!$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block, &
       !!$OMP                     l_print_point,debug,ipoint)
@@ -325,19 +328,12 @@
             fbri(:) = c0
             ztrcr_sw(:,:) = c0
             do n = 1, ncat
-              do k = 1, ntrcr
-                ztrcr(k,n) = trcrn(i,j,k,n,iblk)
-              enddo
               if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
             enddo
 
             if (tmask(i,j,iblk)) then
                call icepack_step_radiation (dt=dt, ncat=ncat,                  &
-                          n_algae=n_algae, tr_zaero=tr_zaero, nblyr=nblyr,     &
-                          ntrcr=ntrcr, nbtrcr_sw=nbtrcr_sw,                    &
-                          nilyr=nilyr, nslyr=nslyr, n_aero=n_aero,             &
-                          n_zaero=n_zaero,  nlt_chl_sw=nlt_chl_sw,             &
-                          nlt_zaero_sw=nlt_zaero_sw(:),                        &
+                          nblyr=nblyr, nilyr=nilyr, nslyr=nslyr,               &
                           dEdd_algae=dEdd_algae,                               &
                           swgrid=swgrid(:), igrid=igrid(:),                    &
                           fbri=fbri(:),                                        &
@@ -350,8 +346,9 @@
                           hpndn=trcrn(i,j,nt_hpnd,:,iblk),                     &
                           ipndn=trcrn(i,j,nt_ipnd,:,iblk),                     &
                           aeron=trcrn(i,j,nt_aero:nt_aero+4*n_aero-1,:,iblk),  &
-                          zbion=ztrcr_sw,                                      &
-                          trcrn=ztrcr,                                         &
+                          bgcNn=trcrn(i,j,nt_bgc_N(1):nt_bgc_N(1)+n_algae*(nblyr+3)-1,:,iblk), &
+                          zaeron=trcrn(i,j,nt_zaero(1):nt_zaero(1)+n_zaero*(nblyr+3)-1,:,iblk), &
+                          trcrn_bgcsw=ztrcr_sw,                                &
                           TLAT=TLAT(i,j,iblk), TLON=TLON(i,j,iblk),            &
                           calendar_type=calendar_type,                         &
                           days_per_year=days_per_year,                         &
@@ -458,7 +455,7 @@
          enddo ! j
       enddo ! iblk
 
-      deallocate(ztrcr, ztrcr_sw)
+      deallocate(ztrcr_sw)
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -778,7 +775,7 @@
                call icepack_init_zsalinity(nblyr=nblyr, ntrcr_o=ntrcr_o, &
                             Rayleigh_criteria = RayleighC, &
                             Rayleigh_real     = RayleighR, &
-                            trcrn             = trcrn_bgc, &
+                            trcrn_bgc         = trcrn_bgc, &
                             nt_bgc_S          = nt_bgc_S,  &
                             ncat              = ncat,      &
                             sss               = sss(i,j,iblk))
@@ -822,7 +819,7 @@
 
             do j = jlo, jhi
             do i = ilo, ihi
-               call icepack_init_ocean_conc ( &
+               call icepack_init_ocean_bio ( &
                     amm=amm      (i,j,  iblk), dmsp=dmsp(i,j,  iblk), dms=dms(i,j,  iblk), &
                     algalN=algalN(i,j,:,iblk), doc=doc  (i,j,:,iblk), dic=dic(i,j,:,iblk), &
                     don=don      (i,j,:,iblk), fed=fed  (i,j,:,iblk), fep=fep(i,j,:,iblk), &
@@ -865,7 +862,7 @@
             enddo
             enddo
 
-            call icepack_init_OceanConcArray(max_nbtrcr=icepack_max_nbtrcr,      &
+            call icepack_load_ocean_bio_array(max_nbtrcr=icepack_max_nbtrcr,     &
                          max_algae=icepack_max_algae, max_don=icepack_max_don,   &
                          max_doc=icepack_max_doc,     max_fe=icepack_max_fe,     &
                          max_dic=icepack_max_dic,     max_aero=icepack_max_aero, &
@@ -2189,7 +2186,6 @@
  1020    format (a30,2x,i6)     ! integer
          call flush_fileunit(nu_diag)
       endif                     ! my_task = master_task
-
       call icepack_init_tracer_numbers(ntrcr_in=ntrcr, &
          ntrcr_o_in=ntrcr_o, nbtrcr_in=nbtrcr, nbtrcr_sw_in=nbtrcr_sw)
       call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
@@ -2210,11 +2206,20 @@
          nlt_bgc_DIC_in=nlt_bgc_DIC, nlt_bgc_DOC_in=nlt_bgc_DOC,   nlt_bgc_PON_in=nlt_bgc_PON, &
          nlt_bgc_DON_in=nlt_bgc_DON, nlt_bgc_Fed_in=nlt_bgc_Fed,   nlt_bgc_Fep_in=nlt_bgc_Fep, &
          nt_bgc_hum_in=nt_bgc_hum,   nlt_bgc_hum_in=nlt_bgc_hum, &
-         n_algae_in=n_algae,         &
+         n_algae_in=n_algae,         n_aero_in=n_aero, &
          n_DOC_in=n_DOC,             n_DON_in=n_DON,               n_DIC_in=n_DIC, &
          n_fed_in=n_fed,             n_fep_in=n_fep,               n_zaero_in=n_zaero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//' Icepack Abort2', &
+         file=__FILE__, line=__LINE__)
+
+      if (my_task == master_task) then
+         call icepack_write_tracer_flags(nu_diag)
+         call icepack_write_tracer_numbers(nu_diag)
+         call icepack_write_tracer_indices(nu_diag)
+      endif
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//' Icepack Abort3', &
          file=__FILE__, line=__LINE__)
 
       end subroutine count_tracers
@@ -2882,11 +2887,10 @@
          zbgc_init_frac_in=zbgc_init_frac, tau_ret_in=tau_ret, tau_rel_in=tau_rel, &
          zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type)
       call icepack_init_tracer_indices( &
-          nbtrcr_in=nbtrcr,        &
-          bio_index_o_in=bio_index_o, bio_index_in=bio_index)
+         bio_index_o_in=bio_index_o, bio_index_in=bio_index)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
+         file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! final consistency checks

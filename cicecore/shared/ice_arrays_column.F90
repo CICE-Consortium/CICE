@@ -298,17 +298,15 @@
 !=======================================================================
 
       subroutine alloc_arrays_column
-
-      ! Allocate column arrays
-
-      use ice_exit, only: abort_ice
-      integer (int_kind) :: max_nbtrcr, max_algae, max_aero, &
-         nmodal1, nmodal2, max_don
-      integer (int_kind) :: ierr, ntrcr
+        ! Allocate column arrays
+        use ice_exit, only: abort_ice
+        integer (int_kind) :: max_nbtrcr, max_algae, max_aero, &
+           nmodal1, nmodal2, max_don, nbtrcr_sw
+        integer (int_kind) :: ierr, ntrcr
 
       character(len=*),parameter :: subname='(alloc_arrays_column)'
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_sw_out=nbtrcr_sw)
       call icepack_query_tracer_sizes( max_nbtrcr_out=max_nbtrcr, &
          max_algae_out=max_algae, max_aero_out=max_aero, &
          nmodal1_out=nmodal1, nmodal2_out=nmodal2, max_don_out=max_don)
@@ -390,7 +388,7 @@
          ocean_bio_all(nx_block,ny_block,max_nbtrcr,max_blocks), & ! fixed order, all values even for tracers false
          ice_bio_net  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! depth integrated tracer (mmol/m^2) 
          snow_bio_net (nx_block,ny_block,max_nbtrcr,max_blocks), & ! depth integrated snow tracer (mmol/m^2)
-         trcrn_sw     (nx_block,ny_block,ntrcr,ncat,max_blocks), & ! bgc tracers active in the delta-Eddington shortwave 
+         trcrn_sw     (nx_block,ny_block,nbtrcr_sw,ncat,max_blocks), & ! bgc tracers active in the delta-Eddington shortwave 
          algal_peak   (nx_block,ny_block,max_algae,max_blocks), & ! vertical location of algal maximum, 0 if no maximum 
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of Memory2')
