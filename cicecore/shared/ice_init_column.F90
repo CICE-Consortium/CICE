@@ -22,13 +22,13 @@
       use icepack_intfc, only: icepack_max_algae, icepack_max_aero, icepack_max_fe
       use icepack_intfc, only: icepack_max_nbtrcr
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_init_tracer_sizes, icepack_init_tracer_flags
+      use icepack_intfc, only: icepack_init_tracer_numbers, icepack_init_tracer_flags
       use icepack_intfc, only: icepack_init_tracer_indices
       use icepack_intfc, only: icepack_init_parameters
-      use icepack_intfc, only: icepack_query_tracer_sizes, icepack_query_tracer_flags
+      use icepack_intfc, only: icepack_query_tracer_numbers, icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_parameters
-      use icepack_intfc, only: icepack_write_tracer_sizes, icepack_write_tracer_flags
+      use icepack_intfc, only: icepack_write_tracer_numbers, icepack_write_tracer_flags
       use icepack_intfc, only: icepack_write_tracer_indices, icepack_write_tracer_sizes
       use icepack_intfc, only: icepack_init_fsd, icepack_cleanup_fsd
       use icepack_intfc, only: icepack_init_zbgc
@@ -242,7 +242,7 @@
       call icepack_query_parameters(shortwave_out=shortwave)
       call icepack_query_parameters(dEdd_algae_out=dEdd_algae)
       call icepack_query_parameters(modal_aero_out=modal_aero)
-      call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_zaero_out=tr_zaero, &
          tr_bgc_n_out=tr_bgc_n)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
@@ -730,7 +730,7 @@
       ! Initialize
 
       call icepack_query_parameters(solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr, ntrcr_out=ntrcr, ntrcr_o_out=ntrcr_o)
+      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr, ntrcr_out=ntrcr, ntrcr_o_out=ntrcr_o)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_bgc_S_out=nt_bgc_S)
       call icepack_query_tracer_sizes(max_nbtrcr_out=max_nbtrcr,         &
            max_algae_out=max_algae, max_don_out=max_don, max_doc_out=max_doc,   &
@@ -2186,7 +2186,7 @@
  1020    format (a30,2x,i6)     ! integer
          call flush_fileunit(nu_diag)
       endif                     ! my_task = master_task
-      call icepack_init_tracer_sizes(ntrcr_in=ntrcr, &
+      call icepack_init_tracer_numbers(ntrcr_in=ntrcr, &
          ntrcr_o_in=ntrcr_o, nbtrcr_in=nbtrcr, nbtrcr_sw_in=nbtrcr_sw)
       call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
@@ -2205,14 +2205,17 @@
          nlt_zaero_in=nlt_zaero,     nlt_bgc_chl_in=nlt_bgc_chl, &
          nlt_bgc_DIC_in=nlt_bgc_DIC, nlt_bgc_DOC_in=nlt_bgc_DOC,   nlt_bgc_PON_in=nlt_bgc_PON, &
          nlt_bgc_DON_in=nlt_bgc_DON, nlt_bgc_Fed_in=nlt_bgc_Fed,   nlt_bgc_Fep_in=nlt_bgc_Fep, &
-         nt_bgc_hum_in=nt_bgc_hum,   nlt_bgc_hum_in=nlt_bgc_hum)
+         nt_bgc_hum_in=nt_bgc_hum,   nlt_bgc_hum_in=nlt_bgc_hum, &
+         n_algae_in=n_algae,         n_aero_in=n_aero, &
+         n_DOC_in=n_DOC,             n_DON_in=n_DON,               n_DIC_in=n_DIC, &
+         n_fed_in=n_fed,             n_fep_in=n_fep,               n_zaero_in=n_zaero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//' Icepack Abort2', &
          file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
          call icepack_write_tracer_flags(nu_diag)
-         call icepack_write_tracer_sizes(nu_diag)
+         call icepack_write_tracer_numbers(nu_diag)
          call icepack_write_tracer_indices(nu_diag)
       endif
       call icepack_warnings_flush(nu_diag)
@@ -2399,7 +2402,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-      call icepack_query_tracer_sizes( &
+      call icepack_query_tracer_numbers( &
           nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &

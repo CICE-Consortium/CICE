@@ -29,7 +29,7 @@
       use icepack_intfc, only: icepack_max_doc, icepack_max_dic, icepack_max_aero
       use icepack_intfc, only: icepack_max_fe
       use icepack_intfc, only: icepack_query_parameters
-      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
+      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_numbers
       use icepack_intfc, only: icepack_query_tracer_indices
 
       implicit none
@@ -217,7 +217,7 @@
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
-      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_aero_out=tr_aero, tr_pond_out=tr_pond, tr_pond_cesm_out=tr_pond_cesm, &
@@ -483,7 +483,7 @@
       character(len=*), parameter :: subname = '(step_therm2)'
 
       call icepack_query_parameters(z_tracers_out=z_tracers)
-      call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -610,7 +610,7 @@
       character(len=*), parameter :: subname='(update_state)'
 
       call icepack_query_tracer_flags(tr_iage_out=tr_iage)
-      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -855,7 +855,7 @@
       call ice_timer_start(timer_column)
       call ice_timer_start(timer_ridge)
 
-      call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -997,7 +997,7 @@
 
       call ice_timer_start(timer_sw)      ! shortwave
 
-      call icepack_query_tracer_sizes(ntrcr_out=ntrcr, &
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, &
          nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
       call icepack_query_tracer_flags( &
          tr_brine_out=tr_brine, tr_bgc_N_out=tr_bgc_N, tr_zaero_out=tr_zaero)
@@ -1322,7 +1322,7 @@
 
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_query_parameters(skl_bgc_out=skl_bgc)
-      call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_zaero_out=tr_zaero)
       call icepack_query_tracer_indices(nlt_zaero_out=nlt_zaero)
       call icepack_query_tracer_indices(bio_index_o_out=bio_index_o)

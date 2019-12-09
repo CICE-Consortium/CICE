@@ -21,7 +21,7 @@
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
-          icepack_query_tracer_indices, icepack_query_tracer_sizes
+          icepack_query_tracer_indices, icepack_query_tracer_numbers
 
       implicit none
       private
@@ -270,7 +270,7 @@
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero, nt_fsd
 
-      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
+      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)

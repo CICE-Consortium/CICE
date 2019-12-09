@@ -20,7 +20,7 @@
       use icepack_intfc, only: icepack_max_algae, icepack_max_doc, &
           icepack_max_don, icepack_max_dic, icepack_max_fe, icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters, &
-          icepack_query_tracer_sizes, icepack_query_tracer_flags, &
+          icepack_query_tracer_numbers, icepack_query_tracer_flags, &
           icepack_query_tracer_indices
 
       implicit none
@@ -861,7 +861,7 @@
       character(len=*),parameter :: subname='(write_restart_bgc)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
           tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
@@ -1271,7 +1271,7 @@
       character(len=*),parameter :: subname='(read_restart_bgc)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
           tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
