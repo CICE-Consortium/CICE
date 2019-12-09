@@ -193,10 +193,10 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
-      istep  = istep  + 1    ! update time step counters
-      istep1 = istep1 + 1
-      time = time + dt       ! determine the time and date
-      call calendar(time)    ! at the end of the first timestep
+!      istep  = istep  + 1    ! update time step counters
+!      istep1 = istep1 + 1
+!      time = time + dt       ! determine the time and date
+!      call calendar(time)    ! at the end of the first timestep
 
    !--------------------------------------------------------------------
    ! coupler communication or forcing data initialization
