@@ -54,10 +54,10 @@
       data daycal366/ 0,31, 60, 91,121,152,182,213,244,274,305,335,366/
 
       real (kind=dbl_kind), parameter :: &
-	days_per_4c = 146097.0_dbl_kind, &
-	days_per_c  = 36524.0_dbl_kind,  &
-	days_per_4y = 1461.0_dbl_kind,   &
-	days_per_y  = 365.0_dbl_kind
+        days_per_4c = 146097.0_dbl_kind, &
+        days_per_c  = 36524.0_dbl_kind,  &
+        days_per_4y = 1461.0_dbl_kind,   &
+        days_per_y  = 365.0_dbl_kind
 
       integer (kind=int_kind), public :: &
          istep    , & ! local step counter for time loop
@@ -271,6 +271,11 @@
                 write_history(ns)=.true.
          endif
       enddo
+
+      if (dumpfreq == '1') then
+         if (mod(istep1, dumpfreq_n)==0) &
+            write_restart = 1
+      endif
 
       if (istep > 1) then
 

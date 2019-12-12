@@ -18,7 +18,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_init_trcr
       use icepack_intfc, only: icepack_query_parameters, &
-          icepack_query_tracer_numbers, icepack_query_tracer_flags, &
+          icepack_query_tracer_sizes, icepack_query_tracer_flags, &
           icepack_query_tracer_indices
 
       implicit none
@@ -57,7 +57,7 @@
       use ice_domain, only: ew_boundary_type, ns_boundary_type, &
           nblocks, blocks_ice
       use ice_grid, only: tmask, hm
-      use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
+      use ice_flux, only: Tf, Tair, salinz, Tmltz
       use ice_restart_shared, only: restart_ext
 
    integer (int_kind) :: &
@@ -81,7 +81,7 @@
 
    if (.not. restore_ice) return
 
-   call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+   call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
@@ -511,11 +511,12 @@
                vicen(i,j,n) = hinit(n) * ainit(n) ! m
                vsnon(i,j,n) = min(aicen(i,j,n)*hsno_init,p2*vicen(i,j,n))
 
-               call icepack_init_trcr(Tair(i,j),     Tf(i,j),      &
-                                     salinz(i,j,:), Tmltz(i,j,:), &
-                                     Tsfc,                        &
-                                     nilyr,         nslyr,        &
-                                     qin(:),        qsn(:))
+               call icepack_init_trcr(Tair=Tair(i,j),    Tf=Tf(i,j),  &
+                                      Sprofile=salinz(i,j,:),         &
+                                      Tprofile=Tmltz(i,j,:),          &
+                                      Tsfc=Tsfc,                      &
+                                      nilyr=nilyr,       nslyr=nslyr, &
+                                      qin=qin(:),        qsn=qsn(:))
 
                ! surface temperature
                trcrn(i,j,nt_Tsfc,n) = Tsfc ! deg C
@@ -576,7 +577,7 @@
 
    call ice_timer_start(timer_bound)
    call icepack_query_parameters(secday_out=secday)
-   call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+   call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
    call icepack_warnings_flush(nu_diag)
    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)

@@ -184,8 +184,10 @@
    call broadcast_scalar(maskhalo_bound,    master_task)
    if (my_task == master_task) then
      if (max_blocks < 1) then
-       max_blocks=( ((nx_global-1)/block_size_x + 1) *         &
-                    ((ny_global-1)/block_size_y + 1) ) / nprocs
+       max_blocks=int(                                        &
+               ( (dble(nx_global-1)/dble(block_size_x + 1)) * &
+                 (dble(ny_global-1)/dble(block_size_y + 1)) ) & 
+                 / dble(nprocs))
        write(nu_diag,'(/,a52,i6,/)') &
          '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
      endif
@@ -300,9 +302,11 @@
       i,j,n              ,&! dummy loop indices
       ig,jg              ,&! global indices
       work_unit          ,&! size of quantized work unit
+#ifdef ncdf
       fid                ,&! file id
       varid              ,&! var id
       status             ,&! netcdf return code
+#endif
       tblocks_tmp        ,&! total number of blocks
       nblocks_tmp        ,&! temporary value of nblocks
       nblocks_max          ! max blocks on proc
@@ -478,12 +482,12 @@
             if (this_block%j_glob(j) > 0) then
                do i=this_block%ilo,this_block%ihi
                   if (this_block%i_glob(i) > 0) then
-	             ig = this_block%i_glob(i)
+                     ig = this_block%i_glob(i)
                      jg = this_block%j_glob(j)
                      if (KMTG(ig,jg) > puny .and.                      &
                         (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
                          ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
- 	                 nocn(n) = nocn(n) + flat(ig,jg)
+                          nocn(n) = nocn(n) + flat(ig,jg)
                   endif
                end do
             endif

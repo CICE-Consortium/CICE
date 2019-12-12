@@ -45,6 +45,7 @@
       timer_ponds,            &! melt ponds
       timer_ridge,            &! ridging
       timer_catconv,          &! category conversions
+      timer_fsd,              &! floe size distribution
       timer_couple,           &! coupling
       timer_readwrite,        &! read/write
       timer_diags,            &! diagnostics/history
@@ -185,6 +186,7 @@
 !   call get_ice_timer(timer_ponds,    'Meltponds',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_ridge,    'Ridging',  nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_catconv,  'Cat Conv', nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_fsd,      'Floe size',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_couple,   'Coupling', nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_readwrite,'ReadWrite',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_diags,    'Diags    ',nblocks,distrb_info%nprocs)

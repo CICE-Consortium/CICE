@@ -34,10 +34,11 @@
       module ice_dyn_evp
 
       use ice_kinds_mod
+      use ice_communicate, only: my_task
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
-      use ice_constants, only: c0, c4, p027, p055, p111, p166, &
-          p2, p222, p25, p333, p5, c1
+      use ice_constants, only: c0, p027, p055, p111, p166, &
+          p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
           vvel_init, basal_stress_coeff, basalstress, Ktens, revp
@@ -91,8 +92,9 @@
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
-      use ice_dyn_evp_1d
-      use ice_dyn_shared, only: evp_kernel_ver
+      use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
+          ice_dyn_evp_1d_copyout
+      use ice_dyn_shared, only: kevp_kernel
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -284,13 +286,13 @@
          do ij = 1, icellt(iblk)
             i = indxti(ij, iblk)
             j = indxtj(ij, iblk)
-            call icepack_ice_strength (ncat,                 &
-                                      aice    (i,j,  iblk), & 
-                                      vice    (i,j,  iblk), & 
-                                      aice0   (i,j,  iblk), & 
-                                      aicen   (i,j,:,iblk), &  
-                                      vicen   (i,j,:,iblk), & 
-                                      strength(i,j,  iblk) )
+            call icepack_ice_strength(ncat     = ncat,                 &
+                                      aice     = aice    (i,j,  iblk), & 
+                                      vice     = vice    (i,j,  iblk), & 
+                                      aice0    = aice0   (i,j,  iblk), & 
+                                      aicen    = aicen   (i,j,:,iblk), &  
+                                      vicen    = vicen   (i,j,:,iblk), & 
+                                      strength = strength(i,j,  iblk) )
          enddo  ! ij
 
          ! load velocity into array for boundary updates
@@ -346,14 +348,14 @@
        !$OMP END PARALLEL DO
       endif
       call ice_timer_start(timer_evp_2d)
-      if (evp_kernel_ver > 0) then
-        !write(*,*)'Entering evp_kernel version ',evp_kernel_ver
+      if (kevp_kernel > 0) then
+!        if (my_task == 0) write(nu_diag,*) subname,' Entering kevp_kernel version ',kevp_kernel
         if (trim(grid_type) == 'tripole') then
-          call abort_ice('(ice_dyn_evp): &
-             & Kernel not tested on tripole grid. Set evp_kernel_ver=0')
+          call abort_ice(trim(subname)//' &
+             & Kernel not tested on tripole grid. Set kevp_kernel=0')
         endif
-        call evp_copyin(                                                &
-          nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
+        call ice_dyn_evp_1d_copyin(                                                &
+          nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
           HTE,HTN,                                                      &
 !v1          dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,                           &
 !v1          waterx,watery,                                                &
@@ -364,17 +366,17 @@
           stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
           stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
           stress12_1,stress12_2,stress12_3,stress12_4                   )
-        if (evp_kernel_ver == 2) then
+        if (kevp_kernel == 2) then
           call ice_timer_start(timer_evp_1d)
-          call evp_kernel_v2()
+          call ice_dyn_evp_1d_kernel()
           call ice_timer_stop(timer_evp_1d)
-!v1        else if (evp_kernel_ver == 1) then
+!v1        else if (kevp_kernel == 1) then
 !v1          call evp_kernel_v1()
         else
-          write(*,*)'Kernel: evp_kernel_ver = ',evp_kernel_ver
-          call abort_ice('(ice_dyn_evp): Kernel not implemented.')
+          if (my_task == 0) write(nu_diag,*) subname,' ERROR: kevp_kernel = ',kevp_kernel
+          call abort_ice(subname//' kevp_kernel not supported.')
         endif
-        call evp_copyout(                                               &
+        call ice_dyn_evp_1d_copyout(                                               &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
 !strocn          uvel,vvel, strocnx,strocny, strintx,strinty,                  &
           uvel,vvel, strintx,strinty,                                   &
@@ -383,7 +385,7 @@
           stress12_1,stress12_2,stress12_3,stress12_4,                  &
           divu,rdg_conv,rdg_shear,shear,taubx,tauby                     )
 
-      else ! evp_kernel_ver == 0 (Standard CICE)
+      else ! kevp_kernel == 0 (Standard CICE)
 
       do ksub = 1,ndte        ! subcycling
 
@@ -461,7 +463,7 @@
          !$OMP END PARALLEL DO
          
       enddo                     ! subcycling
-      endif  ! evp_kernel_ver
+      endif  ! kevp_kernel
       call ice_timer_stop(timer_evp_2d)
 
       deallocate(fld2)
@@ -640,7 +642,7 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        puny                                      , & ! puny
+!       puny                                      , & ! puny
         c0ne, c0nw, c0se, c0sw                    , & ! useful combinations
         c1ne, c1nw, c1se, c1sw                    , &
         ssigpn, ssigps, ssigpe, ssigpw            , &

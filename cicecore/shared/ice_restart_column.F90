@@ -12,7 +12,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p5
       use ice_constants, only: field_loc_center, field_type_scalar
-      use ice_domain_size, only: ncat, nblyr
+      use ice_domain_size, only: ncat, nfsd, nblyr
       use ice_restart,only: read_restart_field, write_restart_field
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
@@ -20,7 +20,7 @@
       use icepack_intfc, only: icepack_max_algae, icepack_max_doc, &
           icepack_max_don, icepack_max_dic, icepack_max_fe, icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters, &
-          icepack_query_tracer_numbers, icepack_query_tracer_flags, &
+          icepack_query_tracer_sizes, icepack_query_tracer_flags, &
           icepack_query_tracer_indices
 
       implicit none
@@ -32,6 +32,7 @@
                  write_restart_pond_cesm, read_restart_pond_cesm, &
                  write_restart_pond_lvl,  read_restart_pond_lvl, &
                  write_restart_pond_topo, read_restart_pond_topo, &
+                 write_restart_fsd,       read_restart_fsd, &
                  write_restart_aero,      read_restart_aero, &
                  write_restart_bgc,       read_restart_bgc,  &
                  write_restart_hbrine,    read_restart_hbrine
@@ -43,6 +44,7 @@
          restart_pond_cesm, & ! if .true., read meltponds restart file
          restart_pond_lvl , & ! if .true., read meltponds restart file
          restart_pond_topo, & ! if .true., read meltponds restart file
+         restart_fsd      , & ! if .true., read floe size restart file
          restart_aero     , & ! if .true., read aerosol tracer restart file
          restart_zsal     , & ! if .true., read Salinity from restart file 
          restart_hbrine   , & ! if .true., read hbrine from restart file
@@ -480,6 +482,76 @@
 !=======================================================================
 
 ! Dumps all values needed for restarting
+! author Elizabeth C. Hunke, LANL
+
+      subroutine write_restart_fsd()
+
+      use ice_fileunits, only: nu_dump_fsd
+      use ice_state, only: trcrn
+
+      ! local variables
+
+      logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_fsd, k
+      character*3 ck
+      character(len=*),parameter :: subname='(write_restart_fsd)'
+
+      call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      diag = .true.
+
+      !-----------------------------------------------------------------
+
+      do k=1,nfsd
+        write(ck,'(i3.3)') k
+        call write_restart_field(nu_dump_fsd,0, trcrn(:,:,nt_fsd+k-1,:,:), &
+                            'ruf8','fsd'//trim(ck),ncat,diag)
+      enddo
+
+      end subroutine write_restart_fsd
+
+!=======================================================================
+
+! Reads all values needed for an ice fsd restart
+! author Elizabeth C. Hunke, LANL
+
+      subroutine read_restart_fsd()
+
+      use ice_fileunits, only: nu_restart_fsd
+      use ice_state, only: trcrn
+
+      ! local variables
+
+      logical (kind=log_kind) :: &
+         diag
+      integer (kind=int_kind) :: nt_fsd, k
+      character*3 ck
+      character(len=*),parameter :: subname='(read_restart_fsd)'
+
+      call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      diag = .true.
+
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max fsd (s)'
+
+      do k=1,nfsd
+        write(ck,'(i3.3)') k
+        call read_restart_field(nu_restart_fsd,0,trcrn(:,:,nt_fsd+k-1,:,:), &
+                 'ruf8','fsd'//trim(ck),ncat,diag, &
+                 field_type=field_type_scalar,field_loc=field_loc_center)
+      enddo
+
+      end subroutine read_restart_fsd
+
+!=======================================================================
+
+! Dumps all values needed for restarting
 !
 ! authors Elizabeth Hunke, LANL (original version)
 !         David Bailey, NCAR
@@ -786,13 +858,10 @@
       type (block) :: &
          this_block      ! block information for current block
 
-      integer (kind=int_kind) :: &
-         ipoint
-
       character(len=*),parameter :: subname='(write_restart_bgc)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
           tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
@@ -1202,7 +1271,7 @@
       character(len=*),parameter :: subname='(read_restart_bgc)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
           tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &

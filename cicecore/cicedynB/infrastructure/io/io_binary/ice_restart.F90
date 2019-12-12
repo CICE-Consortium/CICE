@@ -15,13 +15,13 @@
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_fileunits, only: nu_dump, nu_dump_eap, nu_dump_FY, nu_dump_age
       use ice_fileunits, only: nu_dump_lvl, nu_dump_pond, nu_dump_hbrine
-      use ice_fileunits, only: nu_dump_bgc, nu_dump_aero, nu_dump_age
+      use ice_fileunits, only: nu_dump_bgc, nu_dump_aero, nu_dump_fsd
       use ice_fileunits, only: nu_restart, nu_restart_eap, nu_restart_FY, nu_restart_age 
       use ice_fileunits, only: nu_restart_lvl, nu_restart_pond, nu_restart_hbrine
-      use ice_fileunits, only: nu_restart_bgc, nu_restart_aero, nu_restart_age
+      use ice_fileunits, only: nu_restart_bgc, nu_restart_aero, nu_restart_fsd
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
-      use icepack_intfc, only: icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -51,7 +51,7 @@
       ! local variables
 
       logical (kind=log_kind) :: &
-         solve_zsal, &
+         solve_zsal, tr_fsd, &
          tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
          tr_pond_topo, tr_pond_lvl, tr_brine
 
@@ -73,10 +73,10 @@
 
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_numbers( &
+      call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
-         tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
+         tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
@@ -136,6 +136,26 @@
                call ice_open(nu_restart_eap,filename,0)
             endif
             read (nu_restart_eap) iignore,rignore,rignore
+            write(nu_diag,*) 'Reading ',filename(1:lenstr(filename))
+         endif
+      endif
+
+      if (tr_fsd) then
+         if (my_task == master_task) then
+            n = index(filename0,trim(restart_file))
+            if (n == 0) call abort_ice(subname//'ERROR: fsd restart: filename discrepancy')
+            string1 = trim(filename0(1:n-1))
+            string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
+            write(filename,'(a,a,a,a)') &
+               string1(1:lenstr(string1)), &
+               restart_file(1:lenstr(restart_file)),'.fsd', &
+               string2(1:lenstr(string2))
+            if (restart_ext) then
+               call ice_open_ext(nu_restart_fsd,filename,0)
+            else
+               call ice_open(nu_restart_fsd,filename,0)
+            endif
+            read (nu_restart_fsd) iignore,rignore,rignore
             write(nu_diag,*) 'Reading ',filename(1:lenstr(filename))
          endif
       endif
@@ -345,7 +365,7 @@
       ! local variables
 
       logical (kind=log_kind) :: &
-         solve_zsal, &
+         solve_zsal, tr_fsd, &
          tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
          tr_pond_topo, tr_pond_lvl, tr_brine
 
@@ -359,10 +379,10 @@
 
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_numbers( &
+      call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
-         tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
+         tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
@@ -414,6 +434,26 @@
 
          if (my_task == master_task) then
            write(nu_dump_eap) istep1,time,time_forc
+           write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
+         endif
+
+      endif
+
+      if (tr_fsd) then
+
+         write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+              restart_dir(1:lenstr(restart_dir)), &
+              restart_file(1:lenstr(restart_file)),'.fsd.', &
+              iyear,'-',month,'-',mday,'-',sec
+
+         if (restart_ext) then
+            call ice_open_ext(nu_dump_fsd,filename,0)
+         else
+            call ice_open(nu_dump_fsd,filename,0)
+         endif
+
+         if (my_task == master_task) then
+           write(nu_dump_fsd) istep1,time,time_forc
            write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
          endif
 
@@ -636,12 +676,10 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-        n,     &      ! number of dimensions for variable
-        varid, &      ! variable id
-        status        ! status variable from netCDF routine
+           n                 ! number of dimensions for variable
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-           work2              ! input array (real, 8-byte)
+           work2             ! input array (real, 8-byte)
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
@@ -699,12 +737,10 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-        n,     &      ! dimension counter
-        varid, &      ! variable id
-        status        ! status variable from netCDF routine
+           n                 ! dimension counter
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-           work2              ! input array (real, 8-byte)
+           work2             ! input array (real, 8-byte)
 
       character(len=*), parameter :: subname = '(write_restart_field)'
 
@@ -735,14 +771,13 @@
          tr_pond_topo, tr_pond_lvl, tr_brine
 
       integer (kind=int_kind) :: &
-         nbtrcr, &               ! number of bgc tracers
-         status
+         nbtrcr               ! number of bgc tracers
 
       character(len=*), parameter :: subname = '(final_restart)'
 
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal)
-      call icepack_query_tracer_numbers( &
+      call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &

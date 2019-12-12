@@ -22,13 +22,13 @@ restart        gx3     8x2        alt02,debug,short
 restart        gx3     4x2        alt03,debug,short
 smoke          gx3     4x4        alt04,debug,short
 smoke          gx3     4x4        alt05,debug,short
-restart        gbox128  4x2       none
-restart        gbox128  4x2       boxdyn
-restart        gbox128  4x2       boxdyn,debug
+restart        gbox128  4x2       short
+restart        gbox128  4x2       boxdyn,short
+restart        gbox128  4x2       boxdyn,short,debug
 restart        gbox128  2x2       boxadv,short
 smoke          gbox128  2x2       boxadv,short,debug
-restart        gbox128  4x4       boxrestore
-smoke          gbox128  4x4       boxrestore,debug
+restart        gbox128  4x4       boxrestore,short
+smoke          gbox128  4x4       boxrestore,short,debug
 restart        gbox80   1x1       box2001
 smoke          gbox80   1x1       boxslotcyl
 smoke          gx3     8x2        bgcz
@@ -37,3 +37,9 @@ smoke          gx3     8x1        bgcskl,debug
 #smoke          gx3     4x1        bgcz,thread        smoke_gx3_8x2_bgcz
 restart        gx1     4x2        bgcsklclim,medium
 restart        gx1     8x1        bgczclim,medium
+smoke          gx1     24x1       jra55_2008,medium,run90day
+restart        gx1     24x1       jra55,short
+smoke          gx3     4x2        fsd1,diag24,run5day,debug
+smoke          gx3     8x2        fsd12,diag24,run5day,short
+restart        gx3     4x2        fsd12,debug,short
+smoke          gx3     8x2        fsd12ww3,diag24,run1day,medium

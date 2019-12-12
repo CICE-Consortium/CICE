@@ -83,11 +83,13 @@
          num_avail_hist_fields_tot  = 0, & ! Current, total number of defined fields
          num_avail_hist_fields_2D   = 0, & ! Number of 2D fields
          num_avail_hist_fields_3Dz  = 0, & ! Number of 3D fields (vertical)
-         num_avail_hist_fields_3Dc  = 0, & ! Number of 3D fields (categories)
+         num_avail_hist_fields_3Dc  = 0, & ! Number of 3D fields (thickness categories)
          num_avail_hist_fields_3Db  = 0, & ! Number of 3D fields (vertical biology)
          num_avail_hist_fields_3Da  = 0, & ! Number of 3D fields (vertical), snow-biology
+         num_avail_hist_fields_3Df  = 0, & ! Number of 3D fields (floe size categories)
          num_avail_hist_fields_4Di  = 0, & ! Number of 4D fields (categories,vertical), ice
-         num_avail_hist_fields_4Ds  = 0    ! Number of 4D fields (categories,vertical), snow
+         num_avail_hist_fields_4Ds  = 0, & ! Number of 4D fields (categories,vertical), snow
+         num_avail_hist_fields_4Df  = 0    ! Number of 4D fields (floe size, thickness categories)
 
       integer (kind=int_kind), public :: &        ! cumulative counts
          n2D     , & ! num_avail_hist_fields_2D
@@ -95,8 +97,10 @@
          n3Dzcum , & ! n3Dccum + num_avail_hist_fields_3Dz
          n3Dbcum , & ! n3Dzcum + num_avail_hist_fields_3Db
          n3Dacum , & ! n3Dbcum + num_avail_hist_fields_3Da
-         n4Dicum , & ! n3Dbcum + num_avail_hist_fields_4Di
-         n4Dscum     ! n4Dicum + num_avail_hist_fields_4Ds
+         n3Dfcum , & ! n3Dacum + num_avail_hist_fields_3Df
+         n4Dicum , & ! n3Dfcum + num_avail_hist_fields_4Di
+         n4Dscum , & ! n4Dicum + num_avail_hist_fields_4Ds
+         n4Dfcum     ! n4Dscum + num_avail_hist_fields_4Df
 
       ! could set nzilyr = nilyr + nslyr and write Tin+Tsn together into Tinz
       integer (kind=int_kind), public :: &
@@ -111,10 +115,11 @@
       integer (kind=int_kind), parameter, public :: &
          nvar = 12              , & ! number of grid fields that can be written
                                     !   excluding grid vertices
-         nvarz = 5                  ! number of category/vertical grid fields written
+         nvarz = 6                  ! number of category/vertical grid fields written
 
       integer (kind=int_kind), public :: &
-         ncat_hist                  ! number of ice categories written <= ncat
+         ncat_hist              , & ! number of thickness categories written <= ncat
+         nfsd_hist                  ! number of floe size categories written <= nfsd
 
       real (kind=real_kind), public :: time_beg(max_nstrm), & ! bounds for averaging
                                        time_end(max_nstrm), &
@@ -124,10 +129,12 @@
          a2D (:,:,:,:)    , & ! field accumulations/averages, 2D
          a3Dz(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical
          a3Db(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical biology
-         a3Dc(:,:,:,:,:)  , & ! field accumulations/averages, 3D categories
+         a3Dc(:,:,:,:,:)  , & ! field accumulations/averages, 3D thickness categories
          a3Da(:,:,:,:,:)  , & ! field accumulations/averages, 3D snow+bio
+         a3Df(:,:,:,:,:)  , & ! field accumulations/averages, 3D floe size categories
          a4Di(:,:,:,:,:,:), & ! field accumulations/averages, 4D categories,vertical, ice
-         a4Ds(:,:,:,:,:,:)    ! field accumulations/averages, 4D categories,vertical, snow
+         a4Ds(:,:,:,:,:,:), & ! field accumulations/averages, 4D categories,vertical, snow
+         a4Df(:,:,:,:,:,:)    ! field accumulations/averages, 4D floe size, thickness categories
          
       real (kind=dbl_kind), allocatable, public :: &
          Tinz4d (:,:,:,:)    , & ! array for Tin
@@ -154,19 +161,25 @@
          ustr3Db = 'ULON ULAT VGRDb time',& ! vcoord for U cell quantities, 3D
          tstr3Da = 'TLON TLAT VGRDa time',& ! vcoord for T cell quantities, 3D
          ustr3Da = 'ULON ULAT VGRDa time',& ! vcoord for U cell quantities, 3D
+         tstr3Df = 'TLON TLAT NFSD  time',& ! vcoord for T cell quantities, 3D
+         ustr3Df = 'ULON ULAT NFSD  time',& ! vcoord for U cell quantities, 3D
 
 !ferret
          tstr4Di = 'TLON TLAT VGRDi NCAT', & ! vcoord for T cell, 4D, ice
          ustr4Di = 'ULON ULAT VGRDi NCAT', & ! vcoord for U cell, 4D, ice
          tstr4Ds = 'TLON TLAT VGRDs NCAT', & ! vcoord for T cell, 4D, snow
-         ustr4Ds = 'ULON ULAT VGRDs NCAT'    ! vcoord for U cell, 4D, snow
+         ustr4Ds = 'ULON ULAT VGRDs NCAT', & ! vcoord for U cell, 4D, snow
+         tstr4Df = 'TLON TLAT NFSD  NCAT', & ! vcoord for T cell, 4D, fsd
+         ustr4Df = 'ULON ULAT NFSD  NCAT'    ! vcoord for U cell, 4D, fsd
 !ferret
 !         tstr4Di  = 'TLON TLAT VGRDi NCAT time', & ! ferret can not handle time 
 !         ustr4Di  = 'ULON ULAT VGRDi NCAT time', & ! index on 4D variables.
 !         tstr4Ds  = 'TLON TLAT VGRDs NCAT time', & ! Use 'ferret' lines instead
 !         ustr4Ds  = 'ULON ULAT VGRDs NCAT time', & ! (below also)
-!         tstr4Db  = 'TLON TLAT VGRDb NCAT time', & 
-!         ustr4Db  = 'ULON ULAT VGRDb NCAT time'    
+!         tstr4Db  = 'TLON TLAT VGRDb NCAT time', &
+!         ustr4Db  = 'ULON ULAT VGRDb NCAT time', &
+!         tstr4Df  = 'TLON TLAT NFSD  NCAT time', &
+!         ustr4Df  = 'ULON ULAT NFSD  NCAT time', &
 
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
@@ -181,7 +194,8 @@
            f_ANGLE     = .true., f_ANGLET     = .true., &
            f_bounds    = .true., f_NCAT       = .true., &
            f_VGRDi     = .true., f_VGRDs      = .true., &
-           f_VGRDb     = .true., f_VGRDa      = .true.
+           f_VGRDb     = .true., f_VGRDa      = .true., &
+           f_NFSD      = .false.
 
       character (len=max_nstrm), public :: &
 !          f_example   = 'md', &
@@ -327,6 +341,7 @@
            f_bounds   , f_NCAT     , &
            f_VGRDi    , f_VGRDs    , &
            f_VGRDb    , f_VGRDa    , &
+           f_NFSD     , &
 !          f_example  , &
            f_hi,        f_hs       , &
            f_snowfrac,  f_snowfracn, &
@@ -452,7 +467,7 @@
            f_e22,       &
            f_s11,       f_s12,       &
            f_s22,       &
-           f_yieldstress11, &	
+           f_yieldstress11, &
            f_yieldstress12, &
            f_yieldstress22
 
@@ -479,6 +494,7 @@
            n_VGRDs      = 3, &
            n_VGRDb      = 4, &
            n_VGRDa      = 5, &
+           n_NFSD       = 6, &
 
            n_lont_bnds  = 1, &
            n_latt_bnds  = 2, &
@@ -608,13 +624,13 @@
            n_keffn_top   , &
            n_Tinz        , n_Sinz      , &
            n_Tsnz        , &
-	   n_a11         , n_a12       , &
-	   n_e11         , n_e12       , &
-	   n_e22         , &
-	   n_s11         , n_s12       , &
-	   n_s22         , &
-	   n_yieldstress11, n_yieldstress12, &
-	   n_yieldstress22
+           n_a11         , n_a12       , &
+           n_e11         , n_e12       , &
+           n_e22         , &
+           n_s11         , n_s12       , &
+           n_s22         , &
+           n_yieldstress11, n_yieldstress12, &
+           n_yieldstress22
 
       interface accum_hist_field ! generic interface
            module procedure accum_hist_field_2D, &
@@ -772,6 +788,8 @@
                num_avail_hist_fields_2D  = num_avail_hist_fields_2D + 1
             elseif (vcoord(11:14) == 'NCAT' .and. vcoord(17:20) == 'time') then
                num_avail_hist_fields_3Dc = num_avail_hist_fields_3Dc + 1
+            elseif (vcoord(11:14) == 'NFSD' .and. vcoord(17:20) == 'time') then
+               num_avail_hist_fields_3Df = num_avail_hist_fields_3Df + 1
             elseif (vcoord(11:15) == 'VGRDi' .and. vcoord(17:20) == 'time') then
                num_avail_hist_fields_3Dz = num_avail_hist_fields_3Dz + 1
             elseif (vcoord(11:15) == 'VGRDb' .and. vcoord(17:20) == 'time') then
@@ -782,6 +800,8 @@
                num_avail_hist_fields_4Di = num_avail_hist_fields_4Di + 1
             elseif (vcoord(11:15) == 'VGRDs' .and. vcoord(17:20) == 'NCAT') then
                num_avail_hist_fields_4Ds = num_avail_hist_fields_4Ds + 1
+            elseif (vcoord(11:14) == 'NFSD' .and. vcoord(17:20) == 'NCAT') then
+               num_avail_hist_fields_4Df = num_avail_hist_fields_4Df + 1
             endif
 
             if (num_avail_hist_fields_tot > max_avail_hist_fields) &
@@ -793,8 +813,10 @@
                 num_avail_hist_fields_3Dz + &
                 num_avail_hist_fields_3Db + &
                 num_avail_hist_fields_3Da + &
+                num_avail_hist_fields_3Df + &
                 num_avail_hist_fields_4Di + &
-                num_avail_hist_fields_4Ds) then 
+                num_avail_hist_fields_4Ds + &
+                num_avail_hist_fields_4Df) then
                 call abort_ice(subname//'ERROR: num_avail_hist_fields error')
              endif
 

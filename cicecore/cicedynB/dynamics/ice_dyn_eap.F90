@@ -119,8 +119,8 @@
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_dyn_shared, only: fcor_blk, ndte, dtei, a_min, m_min, &
-          cosw, sinw, denom1, uvel_init, vvel_init, arlx1i, &
+      use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
+          denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           basal_stress_coeff, basalstress
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
@@ -346,13 +346,13 @@
          do ij = 1, icellt(iblk)
             i = indxti(ij, iblk)
             j = indxtj(ij, iblk)
-            call icepack_ice_strength (ncat,                 &
-                                      aice    (i,j,  iblk), & 
-                                      vice    (i,j,  iblk), & 
-                                      aice0   (i,j,  iblk), & 
-                                      aicen   (i,j,:,iblk), &  
-                                      vicen   (i,j,:,iblk), & 
-                                      strength(i,j,  iblk) )
+            call icepack_ice_strength(ncat=ncat,                 &
+                                      aice     = aice    (i,j,  iblk), & 
+                                      vice     = vice    (i,j,  iblk), & 
+                                      aice0    = aice0   (i,j,  iblk), & 
+                                      aicen    = aicen   (i,j,:,iblk), &  
+                                      vicen    = vicen   (i,j,:,iblk), & 
+                                      strength = strength(i,j,  iblk) )
          enddo  ! ij
 
          ! load velocity into array for boundary updates
@@ -1615,9 +1615,9 @@
          invstressconviso, &
          Angle_denom_gamma,  Angle_denom_alpha, &
          Tany_1, Tany_2, &
-         gamma, alpha, x, y, dx, dy, da, &
+         x, y, dx, dy, da, &
          invdx, invdy, invda, invsin, &
-         invleng, dtemp1, dtemp2, atempprime, &
+         dtemp1, dtemp2, atempprime, &
          kxw, kyw, kaw, &
          puny, pi, pi2, piq, pih
 

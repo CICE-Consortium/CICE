@@ -1,0 +1,102 @@
+{
+    "license": "other-open", 
+    "description": "No description provided", 
+    "language": "eng", 
+    "title": "CICE-Consortium/CICE: CICE Version m.n.p", 
+    "keywords": [
+        "sea ice model, CICE, Icepack"
+    ], 
+    "version": "m.n.p", 
+    "upload_type": "software", 
+    "communities": [
+        {
+            "identifier": "cice-consortium"
+        }
+    ], 
+    "publication_date": "2019-07-25", 
+    "creators": [
+        {
+            "affiliation": "Los Alamos National Laboratory", 
+            "name": "Elizabeth Hunke"
+        }, 
+        {
+            "affiliation": "Naval Research Laboratory Stennis Space Center", 
+            "name": "Richard Allard"
+        }, 
+        {
+            "affiliation": "National Center for Atmospheric Research", 
+            "name": "David A. Bailey"
+        }, 
+        {
+            "affiliation": "Environment and Climate Change Canada", 
+            "name": "Philippe Blain"
+        }, 
+        {
+            "affiliation": "Environment and Climate Change Canada", 
+            "name": "Amelie Bouchat"
+        }, 
+        {
+            "affiliation": "National Oceanographic and Atmospheric Administration (CTR)", 
+            "name": "Anthony Craig"
+        }, 
+        {
+            "affiliation": "Environment and Climate Change Canada", 
+            "name": "Frederic Dupont"
+        }, 
+        {
+            "affiliation": "National Center for Atmospheric Research", 
+            "name": "Alice DuVivier"
+        }, 
+        {
+            "affiliation": "National Oceanographic and Atmospheric Administration", 
+            "name": "Robert Grumbine"
+        }, 
+        {
+            "affiliation": "Naval Research Laboratory Stennis Space Center", 
+            "name": "David Hebert"
+        }, 
+        {
+            "affiliation": "National Center for Atmospheric Research", 
+            "name": "Marika Holland"
+        }, 
+        {
+            "affiliation": "Los Alamos National Laboratory", 
+            "name": "Nicole Jeffery"
+        }, 
+        {
+            "affiliation": "Environment and Climate Change Canada", 
+            "name": "Jean-Francois Lemieux"
+        }, 
+        {
+            "affiliation": "Danish Meteorological Institute", 
+            "name": "Till Rasmussen"
+        }, 
+        {
+            "affiliation": "Danish Meteorological Institute", 
+            "name": "Mads Ribergaard"
+        }, 
+        {
+            "affiliation": "Los Alamos National Laboratory", 
+            "name": "Andrew Roberts"
+        }, 
+        {
+            "affiliation": "Los Alamos National Laboratory", 
+            "name": "Matthew Turner"
+        }, 
+        {
+            "affiliation": "Geophysical Fluid Dynamics Laboratory", 
+            "name": "Michael Winton"
+        }
+    ], 
+    "access_right": "open", 
+    "related_identifiers": [
+        {
+            "identifier": "https://github.com/CICE-Consortium/CICE/tree/CICE6.0.1", 
+            "relation": "isSupplementTo"
+        }, 
+        {
+            "identifier": "10.5281/zenodo.1205674", 
+            "relation": "isNewVersionOf"
+        }
+    ]
+}

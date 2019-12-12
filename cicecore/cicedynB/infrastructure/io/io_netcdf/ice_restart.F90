@@ -15,7 +15,7 @@
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
-      use icepack_intfc, only: icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -114,7 +114,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_aero, nblyr, n_zaero, n_algae, n_doc,   &
-                                 n_dic, n_don, n_fed, n_fep
+                                 n_dic, n_don, n_fed, n_fep, nfsd
       use ice_arrays_column, only: oceanmixed_ice
       use ice_dyn_shared, only: kdyn
 
@@ -123,7 +123,7 @@
       ! local variables
 
       logical (kind=log_kind) :: &
-         solve_zsal, skl_bgc, z_tracers, &
+         solve_zsal, skl_bgc, z_tracers, tr_fsd, &
          tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
          tr_pond_topo, tr_pond_lvl, tr_brine, &
          tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
@@ -134,9 +134,9 @@
          tr_bgc_hum
 
       integer (kind=int_kind) :: &
-         k,  n,                & ! index
+         k, n,                 & ! index
          nx, ny,               & ! global array size
-         iyear, imonth, iday,  & ! year, month, day
+         iyear,                & ! year
          nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
@@ -156,10 +156,10 @@
 
       call icepack_query_parameters( &
          solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
-      call icepack_query_tracer_numbers( &
+      call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
-         tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
+         tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine, &
          tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
@@ -463,6 +463,13 @@
             call define_rest_field(ncid,'qsno'//trim(nchar),dims)
          enddo
 
+         if (tr_fsd) then
+            do k=1,nfsd
+               write(nchar,'(i3.3)') k
+               call define_rest_field(ncid,'fsd'//trim(nchar),dims)
+            enddo
+         endif
+
          if (tr_aero) then
             do k=1,n_aero
                write(nchar,'(i3.3)') k
@@ -642,11 +649,6 @@
            field_type        ! type of field (scalar, vector, angle)
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-        n,     &      ! number of dimensions for variable
-        varid, &      ! variable id
-        status        ! status variable from netCDF routine
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
            work2              ! input array (real, 8-byte)

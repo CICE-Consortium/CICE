@@ -12,7 +12,7 @@ setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
 setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
 setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
 setenv ICE_LOGDIR     ${ICE_CASEDIR}/logs
-setenv ICE_DRVOPT     cice
+setenv ICE_DRVOPT     standalone/cice
 setenv ICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
 setenv ICE_CLEANBUILD true
 setenv ICE_QUIETMODE  false
@@ -21,12 +21,13 @@ setenv ICE_NTASKS     undefined
 setenv ICE_NTHRDS     undefined
 setenv ICE_TEST       undefined
 setenv ICE_TESTNAME   undefined
+setenv ICE_TESTID     undefined
 setenv ICE_BASELINE   undefined
 setenv ICE_BASEGEN    undefined
 setenv ICE_BASECOM    undefined
 setenv ICE_BFBCOMP    undefined
 setenv ICE_SPVAL      undefined
-setenv ICE_RUNLENGTH  0
+setenv ICE_RUNLENGTH  -1
 setenv ICE_ACCOUNT    undefined
 setenv ICE_QUEUE      undefined
 
@@ -38,6 +39,5 @@ setenv ICE_COMMDIR mpi
 if (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial
 
 ### Specialty code
-setenv DITTO    no           # reproducible diagnostics
 setenv ICE_BLDDEBUG  false  # build debug flags
 

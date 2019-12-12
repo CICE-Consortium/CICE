@@ -77,7 +77,7 @@
       use ice_domain, only: nblocks, blocks_ice
       use ice_arrays_column, only: ocean_bio_all
       use ice_calendar, only:  yday
-      use ice_flux, only: sss
+!     use ice_flux, only: sss
       use ice_flux_bgc, only: sil, nit
       use ice_forcing, only: trestore, trest, fyear, &
           read_clim_data_nc, interpolate_data, &
@@ -202,7 +202,7 @@
          if (istep == 1 .or. .NOT. restore_bgc) then
 
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      	    do iblk = 1, nblocks
+            do iblk = 1, nblocks
 
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -210,8 +210,8 @@
                jlo = this_block%jlo
                jhi = this_block%jhi
 
-	       do j = jlo, jhi
-      	       do i = ilo, ihi
+               do j = jlo, jhi
+               do i = ilo, ihi
 
                   sil(i,j,iblk) = sildat(i,j,iblk)
                   ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
@@ -224,7 +224,7 @@
          elseif (restore_bgc) then
 
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      	    do iblk = 1, nblocks
+            do iblk = 1, nblocks
 
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -232,8 +232,8 @@
                jlo = this_block%jlo
                jhi = this_block%jhi
 
-	       do j = jlo, jhi
-      	       do i = ilo, ihi
+               do j = jlo, jhi
+               do i = ilo, ihi
 
                   sil(i,j,iblk) = sil(i,j,iblk)  &
                          + (sildat(i,j,iblk)-sil(i,j,iblk))*dt/trest
@@ -246,7 +246,7 @@
          endif  !restore
         elseif (tr_bgc_Sil) then ! bgc_data_type /= 'clim'
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      	    do iblk = 1, nblocks
+            do iblk = 1, nblocks
 
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -254,10 +254,10 @@
                jlo = this_block%jlo
                jhi = this_block%jhi
 
-	       do j = jlo, jhi
-      	       do i = ilo, ihi
+               do j = jlo, jhi
+               do i = ilo, ihi
 
-	          sil(i,j,iblk) = 25.0_dbl_kind
+                  sil(i,j,iblk) = 25.0_dbl_kind
                   ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
                   ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
                enddo
@@ -283,7 +283,7 @@
 
          if (istep == 1 .or. .NOT. restore_bgc) then
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      	    do iblk = 1, nblocks
+            do iblk = 1, nblocks
 
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -291,10 +291,10 @@
                jlo = this_block%jlo
                jhi = this_block%jhi
 
-	       do j = jlo, jhi
-      	       do i = ilo, ihi
+               do j = jlo, jhi
+               do i = ilo, ihi
 
-	          nit(i,j,iblk) = nitdat(i,j,iblk)
+                  nit(i,j,iblk) = nitdat(i,j,iblk)
                   ks = icepack_max_algae + 1
                   ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
                   ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic
@@ -305,7 +305,7 @@
             !$OMP END PARALLEL DO
          elseif (restore_bgc ) then
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      	    do iblk = 1, nblocks
+            do iblk = 1, nblocks
 
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -313,8 +313,8 @@
                jlo = this_block%jlo
                jhi = this_block%jhi
 
-	       do j = jlo, jhi
-      	       do i = ilo, ihi
+               do j = jlo, jhi
+               do i = ilo, ihi
 
                   nit(i,j,iblk) = nit(i,j,iblk)  &
                          + (nitdat(i,j,iblk)-nit(i,j,iblk))*dt/trest     
@@ -330,7 +330,7 @@
 
 !      elseif (trim(nit_data_type) == 'sss'  .AND.  tr_bgc_Nit) then 
 !           !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-!      	    do iblk = 1, nblocks
+!           do iblk = 1, nblocks
 
 !               this_block = get_block(blocks_ice(iblk),iblk)
 !               ilo = this_block%ilo
@@ -353,7 +353,7 @@
 
       elseif (tr_bgc_Nit) then ! bgc_data_type /= 'clim'
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      	    do iblk = 1, nblocks
+            do iblk = 1, nblocks
 
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -361,8 +361,8 @@
                jlo = this_block%jlo
                jhi = this_block%jhi
 
-	       do j = jlo, jhi
-      	       do i = ilo, ihi
+               do j = jlo, jhi
+               do i = ilo, ihi
        
                   nit(i,j,iblk) = 12.0_dbl_kind
                   ks = icepack_max_algae + 1
@@ -444,7 +444,7 @@
          endif
          
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      	    do iblk = 1, nblocks
+            do iblk = 1, nblocks
 
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -452,8 +452,8 @@
                jlo = this_block%jlo
                jhi = this_block%jhi
 
-	       do j = jlo, jhi
-      	       do i = ilo, ihi
+               do j = jlo, jhi
+               do i = ilo, ihi
        
                   ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
                   ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil  
@@ -791,7 +791,7 @@
     !-------------------------------------------------------------------
 
       if (trim(fe_data_type) == 'clim') then
-       	diag = .true.   ! write diagnostic information 
+        diag = .true.   ! write diagnostic information 
         iron_file = trim(bgc_data_dir)//'dFe_50m_annual_Tagliabue_gx1.nc'
 
         if (my_task == master_task) then
@@ -808,7 +808,7 @@
 
         if (my_task == master_task) call ice_close_nc(fid)  
 
-       	diag = .true.   ! write diagnostic information 
+        diag = .true.   ! write diagnostic information 
         iron_file = trim(bgc_data_dir)//'pFe_bathy_gx1.nc'
 
         if (my_task == master_task) then
@@ -858,6 +858,9 @@
 
       ! local parameters
 
+      logical (kind=log_kind) :: modal_aero
+
+#ifdef ncdf
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
          status         , & ! status output from netcdf routines
@@ -869,11 +872,10 @@
       integer (kind=int_kind) :: &
          fid                ! file id for netCDF file 
 
-      logical (kind=log_kind) :: modal_aero
-
       character (char_len_long) :: & 
          optics_file,   &   ! netcdf filename
          fieldname          ! field name in netcdf file
+#endif
 
       character(len=*), parameter :: subname = '(faero_optics)'
 

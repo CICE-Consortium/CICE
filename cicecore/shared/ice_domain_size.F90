@@ -28,7 +28,8 @@
         ny_global       ! j-axis size
 
       integer (kind=int_kind), public :: &
-        ncat      , & ! number of categories
+        ncat      , & ! number of thickness categories
+        nfsd      , & ! number of floe size categories
         nilyr     , & ! number of ice layers per category
         nslyr     , & ! number of snow layers per category
         nblyr     , & ! number of bio/brine layers per category 
@@ -39,7 +40,8 @@
         n_dic     , & ! number of DIC pools in use
         n_don     , & ! number of DON pools in use
         n_fed     , & ! number of Fe  pools in use dissolved Fe
-        n_fep         ! number of Fe  pools in use particulate Fe
+        n_fep     , & ! number of Fe  pools in use particulate Fe
+        nfreq         ! number of wave frequencies
 
       integer (kind=int_kind), public, parameter :: &
         max_nstrm =   5           ! max number of history output streams
