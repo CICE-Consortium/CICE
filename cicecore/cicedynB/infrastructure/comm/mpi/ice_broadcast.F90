@@ -8,6 +8,7 @@
 ! author: Phil Jones, LANL
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
+   use mpi   ! MPI Fortran module
    use ice_kinds_mod
    use ice_communicate, only: mpiR8, mpir4, MPI_COMM_ICE
    use ice_exit, only: abort_ice
@@ -60,8 +61,6 @@
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_scalar interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
       root_pe              ! processor number to broadcast from
 
@@ -93,8 +92,6 @@ subroutine broadcast_scalar_real(scalar, root_pe)
 !  Broadcasts a scalar real variable from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_scalar interface.
-
-   include 'mpif.h'  ! MPI Fortran include file
 
    integer (int_kind), intent(in) :: &
       root_pe              ! processor number to broadcast from
@@ -128,8 +125,6 @@ subroutine broadcast_scalar_int(scalar, root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_scalar interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
       root_pe              ! processor number to broadcast from
 
@@ -161,8 +156,6 @@ subroutine broadcast_scalar_log(scalar, root_pe)
 !  Broadcasts a scalar logical variable from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_scalar interface.
-
-   include 'mpif.h'  ! MPI Fortran include file
 
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
@@ -210,8 +203,6 @@ subroutine broadcast_scalar_char(scalar, root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_scalar interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
 
@@ -247,8 +238,6 @@ subroutine broadcast_array_dbl_1d(array, root_pe)
 !  Broadcasts a vector dbl variable from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
-
-   include 'mpif.h'  ! MPI Fortran include file
 
    integer (int_kind), intent(in) :: &
      root_pe           ! processor number to broadcast from
@@ -286,8 +275,6 @@ subroutine broadcast_array_real_1d(array, root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
 
@@ -324,8 +311,6 @@ subroutine broadcast_array_int_1d(array, root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
 
@@ -361,8 +346,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  Broadcasts a logical vector from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
-
-   include 'mpif.h'  ! MPI Fortran include file
 
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
@@ -420,8 +403,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
      root_pe           ! processor number to broadcast from
 
@@ -457,8 +438,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  Broadcasts a real 2d array from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
-
-   include 'mpif.h'  ! MPI Fortran include file
 
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
@@ -496,8 +475,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
 
@@ -533,8 +510,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  Broadcasts a logical 2d array from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
-
-   include 'mpif.h'  ! MPI Fortran include file
 
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
@@ -592,8 +567,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
      root_pe           ! processor number to broadcast from
 
@@ -629,8 +602,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  Broadcasts a real 3d array from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
-
-   include 'mpif.h'  ! MPI Fortran include file
 
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
@@ -668,8 +639,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
 
-   include 'mpif.h'  ! MPI Fortran include file
-
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
 
@@ -705,8 +674,6 @@ subroutine broadcast_array_log_1d(array, root_pe)
 !  Broadcasts a logical 3d array from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
 !  broadcast\_array interface.
-
-   include 'mpif.h'  ! MPI Fortran include file
 
    integer (int_kind), intent(in) :: &
      root_pe              ! processor number to broadcast from
