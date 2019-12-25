@@ -295,10 +295,11 @@ end
 #=====================
 
 set chk = 0
-if (-e ${hashfile}) set chk = `grep "\*\*${hash}" ${hashfile} | wc -l`
+if (-e ${hashfile}) set chk = `grep "#### ${hash}" ${hashfile} | wc -l`
 if ($chk == 0) then
+# Note: the line '#### ${hash}' is not a comment since it's in the here doc
 cat >! ${hashfile} << EOF
-**${hash}** :
+#### ${hash}
 
 | machine | compiler | version | date | test fail | comp fail | total |
 | ------ | ------ | ------ | ------  | ------ | ------ | ------ |
@@ -308,7 +309,7 @@ EOF
 if (-e ${hashfile}.prev) cat ${hashfile}.prev >> ${hashfile}
 
 else
-  set oline = `grep -n "\*\*${hash}" ${hashfile} | head -1 | cut -d : -f 1`
+  set oline = `grep -n "#### ${hash}" ${hashfile} | head -1 | cut -d : -f 1`
   @ nline = ${oline} + 3
   sed -i "$nline a | ${mach} | ${compiler} | ${vers} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${hashfile}
 endif
@@ -318,10 +319,11 @@ endif
 #=====================
 
 set chk = 0
-if (-e ${machfile}) set chk = `grep "\*\*${mach}" ${machfile} | wc -l`
+if (-e ${machfile}) set chk = `grep "#### ${mach}" ${machfile} | wc -l`
 if ($chk == 0) then
+# Note: the line '#### ${mach}' is not a comment since it's in the here doc
 cat >! ${machfile} << EOF
-**${mach}** :
+#### ${mach}
 
 | version | hash | compiler | date | test fail | comp fail | total |
 | ------ | ------ | ------ | ------ | ------  | ------ | ------ |
@@ -331,7 +333,7 @@ EOF
 if (-e ${machfile}.prev) cat ${machfile}.prev >> ${machfile}
 
 else
-  set oline = `grep -n "\*\*${mach}" ${machfile} | head -1 | cut -d : -f 1`
+  set oline = `grep -n "#### ${mach}" ${machfile} | head -1 | cut -d : -f 1`
   @ nline = ${oline} + 3
   sed -i "$nline a | ${vers} | ${shhash} | ${compiler} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${machfile}
 endif

@@ -16,7 +16,7 @@
       use icepack_intfc, only: icepack_nspint
       use icepack_intfc, only: icepack_query_tracer_sizes, icepack_query_parameters, &
           icepack_query_tracer_flags, &
-          icepack_warnings_flush, icepack_warnings_aborted, icepack_query_tracer_numbers
+          icepack_warnings_flush, icepack_warnings_aborted, icepack_query_tracer_sizes
 
       implicit none
       private
@@ -306,7 +306,7 @@
 
       character(len=*),parameter :: subname='(alloc_arrays_column)'
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr, nbtrcr_sw_out=nbtrcr_sw)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_sw_out=nbtrcr_sw)
       call icepack_query_tracer_sizes( max_nbtrcr_out=max_nbtrcr, &
          max_algae_out=max_algae, max_aero_out=max_aero, &
          nmodal1_out=nmodal1, nmodal2_out=nmodal2, max_don_out=max_don)

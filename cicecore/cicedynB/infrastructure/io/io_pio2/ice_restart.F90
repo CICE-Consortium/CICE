@@ -16,7 +16,7 @@
       use pio
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
-      use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_sizes
 
       implicit none
       private
@@ -168,7 +168,7 @@
 
       character(len=*), parameter :: subname = '(init_restart_write)'
 
-      call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+      call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
           tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &

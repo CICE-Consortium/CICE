@@ -29,7 +29,7 @@
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
 
       implicit none
       private
@@ -236,7 +236,7 @@
 
       character(len=*), parameter :: subname = '(restartfile)'
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -580,7 +580,7 @@
 
       character(len=*), parameter :: subname = '(restartfile_v4)'
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
