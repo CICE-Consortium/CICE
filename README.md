@@ -1,13 +1,51 @@
 [![Build Status](https://travis-ci.org/CICE-Consortium/CICE.svg?branch=master)](https://travis-ci.org/CICE-Consortium/CICE)
 [![Documentation Status](https://readthedocs.org/projects/cice-consortium-cice/badge/?version=master)](http://cice-consortium-cice.readthedocs.io/en/master/?badge=master)
 
-## Overview
-This repository contains the files and code needed to run the CICE sea ice numerical model starting with version 6. CICE is maintained by the CICE Consortium. Versions prior to v6 are found in the [CICE-svn-trunk repository](https://github.com/CICE-Consortium/CICE-svn-trunk).
+## The CICE Consortium sea-ice model
+> CICE is a computationally efficient model for simulating the growth, melting, and movement of polar sea ice. Designed as one component of coupled atmosphere-ocean-land-ice global climate models, today’s CICE model is the outcome of more than two decades of effort led by scientists at Los Alamos National Laboratory. The current version of the model has been enhanced greatly through collaborations with members of the community.
 
-CICE consists of a top level driver and dynamical core plus the Icepack column physics code, which is included in CICE as a git submodule.  Because Icepack is a submodule of CICE, Icepack and CICE development are handled independently with respect to the github repositories even though development and testing may be done together.    
+Source: *["About CICE"][about]* in the [CICE model documentation][doc].
 
-If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories. Basic instructions for working with CICE and Icepack are found in the Git Workflow Guidance, linked from the Resource Index (below). In order to incorporate your developments into the Consortium code it is
-imperative you follow the guidance for Pull Requests and requisite testing.
+[about]: https://cice-consortium-cice.readthedocs.io/en/master/intro/about.html
+[doc]: https://cice-consortium-cice.readthedocs.io/
+
+This repository contains the files and code needed to run the CICE sea ice numerical model starting with version 6. CICE is maintained by the CICE Consortium. 
+Versions prior to v6 are found in the [CICE-svn-trunk repository](https://github.com/CICE-Consortium/CICE-svn-trunk).
+
+CICE consists of a top level driver and dynamical core plus the [Icepack column physics code][icepack], which is included in CICE as a Git submodule.  
+Because Icepack is a submodule of CICE, Icepack and CICE development are handled independently with respect to the GitHub repositories even though development and testing may be done together.  
+
+[icepack]: https://github.com/CICE-Consortium/Icepack
+
+## Getting started
+To start using CICE on a [supported machine](/configuration/scripts/machines), simply clone the repository, create a test case, compile the model and run it:
+~~~bash
+git clone --recurse-submodules https://github.com/CICE-Consortium/CICE
+cd CICE
+./cice.setup -c ~/mycase1 -g gx3 -m <machine> -s diag1 -p 4x1
+cd ~/mycase1
+./cice.build
+./cice.submit
+~~~
+
+More information is available in the documentation :
+- [Quick start](https://cice-consortium-cice.readthedocs.io/en/master/intro/quickstart.html)
+- [Software Requirements](https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html#software)
+- [Scripts for running CICE](https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html#scripts)
+- [Porting to a new machine](https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html#porting)
+
+## Getting help
+If you need help getting started using the model afer reviewing the [model documentation][doc-running], the first point of contact with the CICE Consortium is the [Consortium Community Bulletin Board][bulletin-board]. 
+This forum is monitored by Consortium members and also opened to the whole community.
+**Please do not use our issue tracker for general support questions.**
+
+[doc-running]: https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html
+[bulletin-board]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
+
+## Contributing
+If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories. 
+In order to incorporate your developments into the Consortium code it is imperative you follow the guidance for Pull Requests and requisite testing.
+Head over to our [Contribution guide](CONTRIBUTING.md) to learn more about how you can help improve CICE.
 
 ## Useful links
 * **CICE wiki**: https://github.com/CICE-Consortium/CICE/wiki
@@ -26,5 +64,5 @@ imperative you follow the guidance for Pull Requests and requisite testing.
 
    List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
 
-## Contributing
-Head over to our [Contribution guide](CONTRIBUTING.md) to learn how you can help improve CICE.
+## License
+See our [License](Licese.pdf) and [Distribution Policy](DistributionPolicy.pdf).
