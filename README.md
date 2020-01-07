@@ -25,3 +25,6 @@ imperative you follow the guidance for Pull Requests and requisite testing.
 * **Resource Index**: https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index
 
    List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
+
+## Contributing
+Head over to our [Contribution guide](CONTRIBUTING.md) to learn how you can help improve CICE.
