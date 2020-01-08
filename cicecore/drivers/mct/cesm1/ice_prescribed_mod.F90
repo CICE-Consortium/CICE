@@ -111,6 +111,7 @@ contains
 !
 ! !INTERFACE: 
  subroutine ice_prescribed_init(compid, gsmap, dom)
+   use mpi   ! MPI Fortran module
    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys
 ! !DESCRIPTION:
 !    Prescribed ice initialization - needed to 
@@ -122,7 +123,6 @@ contains
 ! !INPUT/OUTPUT PARAMETERS:
 !
    implicit none
-   include 'mpif.h'
    integer(kind=int_kind), intent(in) :: compid
    type(mct_gsMap) :: gsmap
    type(mct_gGrid) :: dom

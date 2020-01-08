@@ -13,6 +13,7 @@
 !  2008-01-28: Elizabeth Hunke replaced old routines with new POP
 !              infrastructure
 
+   use mpi   ! MPI Fortran module
    use ice_kinds_mod
    use ice_communicate, only: my_task, mpiR4, mpiR8, mpitagHalo
    use ice_constants, only: field_type_scalar, &
@@ -36,8 +37,6 @@
 
    implicit none
    private
-
-   include 'mpif.h'
 
    type, public :: ice_halo
       integer (int_kind) ::  &
