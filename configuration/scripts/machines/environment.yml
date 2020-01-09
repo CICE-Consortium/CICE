@@ -1,0 +1,18 @@
+name: cice
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+# Build dependencies
+  - compilers
+  - netcdf-fortran
+  - openmpi
+  - make
+# Python dependencies for plotting scripts
+  - numpy
+  - matplotlib-base
+  - basemap
+  - netcdf4
+# Python dependencies for building the HTML documentation
+  - sphinx
+  - sphinxcontrib-bibtex
