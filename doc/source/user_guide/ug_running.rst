@@ -465,7 +465,7 @@ and write permissions such that a set of users can update the inputdata area as
 new datasets are available.
 
 CICE input datasets are stored on an anonymous ftp server.  More information about
-how to download the input data can be found at https://github.com/CICE-Consortium/CICE/wiki.
+how to download the input data can be found at https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data.
 Test forcing datasets are available for various grids at the ftp site.  
 These data files are designed only for testing the code, not for use in production runs 
 or as observational data. Please do not publish results based on these data sets.
@@ -582,3 +582,139 @@ To use the C-Shell version of the script, ::
 
 $ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
 
+
+Running CICE on laptop/personal computers
+-----------------------------------------
+To get the required software necessary to build and run CICE, and use the plotting and quality control scripts included in the repository, a `conda <https://docs.conda.io/en/latest/>`_ environment file is available at :
+
+``configuration/scripts/machines/environment.yml``.
+
+This configuration is supported by the Consortium on a best-effort basis on macOS and GNU/Linux. It is untested under Windows, but might work using the `Windows Subsystem for Linux <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_.
+
+Installing Miniconda
+~~~~~~~~~~~~~~~~~~~~
+
+We recommend the use of the `Miniconda distribution <https://docs.conda.io/en/latest/miniconda.html>`_ to create a self-contained conda environment from the ``environment.yml`` file. If you do not have Miniconda or Anaconda installed, you can install Miniconda by following the `official instructions  <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_, or with these steps:
+
+On macOS:
+
+.. code-block:: bash
+
+  # Download the Miniconda installer to ~/Downloads/miniconda.sh
+  wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/Downloads/miniconda.sh
+  # Install Miniconda
+  bash ~/Downloads/miniconda.sh
+  
+  # Answer 'yes' when the installer asks you if you want to initialize your shell to use conda
+  
+  # Close and reopen your shell
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+
+On GNU/Linux:
+
+.. code-block:: bash
+
+  # Download the Miniconda installer to ~/miniconda.sh
+  wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+  # Install Miniconda
+  bash ~/miniconda.sh
+  
+  # Answer 'yes' when the installer asks you if you want to initialize your shell to use conda
+  
+  # Close and reopen your shell
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+
+
+Creating CICE directories and the conda environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The conda configuration expects some directories to be present at ``$HOME/cice-dirs``:
+
+.. code-block:: bash
+
+  cd $HOME
+  mkdir -p cice-dirs/runs cice-dirs/baseline cice-dirs/input
+  # Download the required forcing from https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data
+  # and untar it at $HOME/cice-dirs/input
+
+Create the conda environment from the ``environment.yml`` file:
+
+.. code-block:: bash
+
+  conda env create -f configuration/scripts/machines/environment.yml
+
+
+Using the conda configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Follow the general instructions in :ref:`overview`, using the ``conda`` machine name and ``macos`` or ``linux`` as compiler names.
+
+On macOS:
+
+.. code-block:: bash
+
+  ./cice.setup -m conda -e macos -c ~/cice-dirs/cases/case1
+  cd ~/cice-dirs/cases/case1
+  ./cice.build
+  ./cice.run
+
+On GNU/Linux:
+
+.. code-block:: bash
+
+  ./cice.setup -m conda -e linux -c ~/cice-dirs/cases/case1
+  cd ~/cice-dirs/cases/case1
+  ./cice.build
+  ./cice.run
+
+A few notes about the conda configuration:
+
+- This configuration always runs the model interactively, such that ``./cice.run`` and ``./cice.submit`` are the same.
+- Depending on the numbers of CPUs in your machine, you might not be able to run with the default MPI configuration (``-p 4x1``). You likely will get an OpenMPI error such as:
+
+    There are not enough slots available in the system to satisfy the 4 slots that were requested by the application:  ./cice
+    
+  You can run CICE in serial mode by specifically requesting only one process:
+  
+  .. code-block:: bash
+  
+    ./cice.setup -m conda -e linux -p 1x1 ...
+  
+  If you do want to run with more MPI processes than the number of available CPUs in your machine, you can add the ``--oversubscribe`` flag to the ``mpirun`` call in ``cice.run``:
+  
+  .. code-block:: bash
+  
+    # For a specific case:
+    # Open cice.run and replace the line
+    mpirun -np <num> ./cice >&! $ICE_RUNLOG_FILE
+    # with
+    mpirun -np <num> --oversubscribe ./cice >&! $ICE_RUNLOG_FILE
+  
+    # For all future cases:
+    # Open configuration/scripts/cice.launch.csh and replace the line
+    mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+    # with
+    mpirun -np ${ntasks} --oversubscribe ./cice >&! \$ICE_RUNLOG_FILE
+  
+- It is not recommeded to run other test suites than ``quick_suite`` or ``travis_suite`` on a personal computer.
+- The conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts. To use the environment with the Python plotting (see :ref:`timeseries`) and quality control scripts (see :ref:`CodeCompliance`), you must manually activate the environment:
+
+  .. code-block:: bash
+  
+    cd ~/cice-dirs/cases/case1
+    conda activate cice
+    python timeseries.py ~/cice-dirs/cases/case1/logs
+    conda deactivate  # to deactivate the environment
+  
+- The environment also contains the Sphinx package necessesary to build the HTML documentation :
+
+  .. code-block:: bash
+  
+    cd doc
+    conda activate cice
+    make html
+    # Open build/html/index.html in your browser
+    conda deactivate  # to deactivate the environment
