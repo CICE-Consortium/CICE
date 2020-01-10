@@ -5174,7 +5174,7 @@
          enddo
 
          ! read more realistic data from a file
-         if (trim(wave_spec_type) == 'file') then
+         if (trim(wave_spec_type) /= 'none') then
          if (trim(wave_spec_file(1:4)) == 'unkn') then
             call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
          else
