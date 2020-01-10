@@ -673,6 +673,7 @@ On GNU/Linux:
 A few notes about the conda configuration:
 
 - This configuration always runs the model interactively, such that ``./cice.run`` and ``./cice.submit`` are the same.
+- You should not update the packages in the ``cice`` conda environment, nor install additional packages.
 - Depending on the numbers of CPUs in your machine, you might not be able to run with the default MPI configuration (``-p 4x1``). You likely will get an OpenMPI error such as:
 
     There are not enough slots available in the system to satisfy the 4 slots that were requested by the application:  ./cice
