@@ -2,12 +2,8 @@
 [![Documentation Status](https://readthedocs.org/projects/cice-consortium-cice/badge/?version=master)](http://cice-consortium-cice.readthedocs.io/en/master/?badge=master)
 
 ## The CICE Consortium sea-ice model
-> CICE is a computationally efficient model for simulating the growth, melting, and movement of polar sea ice. Designed as one component of coupled atmosphere-ocean-land-ice global climate models, today’s CICE model is the outcome of more than two decades of effort led by scientists at Los Alamos National Laboratory. The current version of the model has been enhanced greatly through collaborations with members of the community.
+CICE is a computationally efficient model for simulating the growth, melting, and movement of polar sea ice. Designed as one component of coupled atmosphere-ocean-land-ice global climate models, today’s CICE model is the outcome of more than two decades of community collaboration in building a sea ice model suitable for multiple uses including process studies, operational forecasting, and climate simulation.
 
-Source: *["About CICE"][about]* in the [CICE model documentation][doc].
-
-[about]: https://cice-consortium-cice.readthedocs.io/en/master/intro/about.html
-[doc]: https://cice-consortium-cice.readthedocs.io/
 
 This repository contains the files and code needed to run the CICE sea ice numerical model starting with version 6. CICE is maintained by the CICE Consortium. 
 Versions prior to v6 are found in the [CICE-svn-trunk repository](https://github.com/CICE-Consortium/CICE-svn-trunk).
@@ -28,11 +24,13 @@ cd ~/mycase1
 ./cice.submit
 ~~~
 
-More information is available in the documentation :
+More information is available in the [documentation][doc] :
 - [Quick start](https://cice-consortium-cice.readthedocs.io/en/master/intro/quickstart.html)
 - [Software Requirements](https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html#software)
 - [Scripts for running CICE](https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html#scripts)
 - [Porting to a new machine](https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html#porting)
+
+[doc]: https://cice-consortium-cice.readthedocs.io/
 
 ## Getting help
 If you need help getting started using the model afer reviewing the [model documentation][doc-running], the first point of contact with the CICE Consortium is the [Consortium Community Bulletin Board][bulletin-board]. 
