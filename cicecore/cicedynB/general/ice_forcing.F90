@@ -5164,13 +5164,14 @@
       ! wave spectrum and frequencies
       if (wave_spec) then
       ! get hardwired frequency bin info and a dummy wave spectrum profile
+      ! the latter was used for code development, but is no longer needed
          call icepack_init_wave(nfreq,                 &
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 
-         ! default, for testing only
+         ! if no wave data is provided, wave_spectrum is zero everywhere
          do k = 1, nfreq
-            wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
+            wave_spectrum(:,:,k,:) = c0
          enddo
 
          ! read more realistic data from a file
