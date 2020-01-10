@@ -5151,6 +5151,8 @@
 
       call ice_timer_start(timer_fsd)
 
+      print *, 'wave_spec_type ',wave_spec_type
+
       call icepack_query_parameters(wave_spec_out=wave_spec, &
                                     wave_spec_type_out=wave_spec_type)
       call icepack_warnings_flush(nu_diag)
@@ -5158,7 +5160,7 @@
          file=__FILE__, line=__LINE__)
 
       wave_spectrum(:,:,:,:) = c0
-      wave_spec_dir = ocn_data_dir
+      wave_spec_dir = '/glade/u/home/lettier/CICE6/'
       dbug = .false.
 
       ! wave spectrum and frequencies
@@ -5184,6 +5186,8 @@
             call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
                                   field_loc_center, field_type_scalar)
             call ice_close_nc(fid)
+            print *, 'reading wave spec file'
+            print *, 'max efreq ',MAXVAL(wave_spectrum)
 #else
             write (nu_diag,*) "wave spectrum file not available, requires ncdf"
             write (nu_diag,*) "wave spectrum file not available, using default profile"
