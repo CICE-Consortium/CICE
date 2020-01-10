@@ -33,7 +33,7 @@ More information is available in the [documentation][doc] :
 [doc]: https://cice-consortium-cice.readthedocs.io/
 
 ## Getting help
-If you need help getting started using the model afer reviewing the [model documentation][doc-running], the first point of contact with the CICE Consortium is the [Consortium Community Bulletin Board][bulletin-board]. 
+If you need help getting started using the model afer reviewing the [model documentation][doc-running], the first point of contact with the CICE Consortium is the [Consortium Community Forum][bulletin-board]. 
 This forum is monitored by Consortium members and also opened to the whole community.
 **Please do not use our issue tracker for general support questions.**
 
@@ -54,7 +54,7 @@ Head over to our [Contribution guide](CONTRIBUTING.md) to learn more about how y
 
    Numbered CICE releases since version 6 with associated documentation and DOIs. 
    
-* **Consortium Community Bulletin Board**: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
+* **Consortium Community Forum**: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
 
    First point of contact for discussing model development including bugs, diagnostics, and future directions.   
 

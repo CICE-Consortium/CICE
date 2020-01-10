@@ -3,17 +3,17 @@
 First, thanks a lot for considering to contribute to CICE !
 
 ## Getting help
-If you still need help getting started using the model afer reviewing the [model documentation][doc-running], the first point of contact with the CICE Consortium is the [Consortium Community Bulletin Board][bulletin-board]. 
+If you still need help getting started using the model afer reviewing the [model documentation][doc-running], the first point of contact with the CICE Consortium is the [Consortium Community Forum][forum]. 
 This forum is monitored by Consortium members and also opened to the whole community.
 **Please do not use our issue tracker for general support questions.**
 
 [doc-running]: https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html
-[bulletin-board]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
+[forum]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
 
 ## Reporting issues
 We use GitHub issues mainly for confirmed bugs in the model and discussion around Consortium-led future directions/development. 
 If you do believe you have found a bug in CICE, please [open an issue](https://github.com/CICE-Consortium/CICE/issues/new). 
-If you are not sure you're running into a bug, open a thread on the [Bulletin Board][bulletin-board] first.  
+If you are not sure you're running into a bug, open a thread on the [Forum][forum] first.  
 If you open an issue, be sure to:
 - Document (1) the steps you took, (2) the expected behavior of the model and (3) its actual behavior
 - Mention on which [supported machine](/configuration/scripts/machines) you are running CICE
@@ -24,7 +24,7 @@ If you open an issue, be sure to:
 - Use [GitHub Flavored Markdown][gfm] appropriately to format your issue, especially if you include [preformatted text][code]
 
 
-For feature/enhancement proposals, we suggest first opening a [new thread][new-thread] on the [Bulletin Board][discussion-board-wiki].
+For feature/enhancement proposals, we suggest first opening a [new thread][new-thread] on the [Forum][discussion-board-wiki].
 
 [new-thread]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/post-thread
 [discussion-board-wiki]: https://github.com/CICE-Consortium/About-Us/wiki/Contacting-the-Consortium#discussion-board
@@ -32,7 +32,7 @@ For feature/enhancement proposals, we suggest first opening a [new thread][new-t
 [code]: https://help.github.com/en/github/writing-on-github/creating-and-highlighting-code-blocks
 
 ## Contributing to development
-New CICE features should first be discussed with the Consortium members in the [Bulletin Board][bulletin-board]. 
+New CICE features should first be discussed with the Consortium members in the [Forum][forum]. 
 
 A quick start overview of how to get the code, compile the model and run a case is available in the [README][quick-start].
 
