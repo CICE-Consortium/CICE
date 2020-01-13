@@ -337,6 +337,7 @@ Table of namelist options
    "","", "false", "release (topo) pond water immediately to ocean", ""
    "\*","``oceanmixed_ice``", "true/false", "active ocean mixed layer calculation", "``.true.`` (if uncoupled)"
    "\*", "``wave_spec_type``", "``none``", "no wave data provided, no wave-ice interactions", ""
+   "", "", "``profile``", "no wave data file is provided, use fixed dummy wave spectrum, for testing", ""
    "", "", "``constant``", "wave data file is provided, constant wave spectrum, for testing", ""
    "", "", "``random``", "wave data file is provided, wave spectrum generated using random number", ""
    "\*","``restore_ocn``", "true/false", "restore sst to data", ""
