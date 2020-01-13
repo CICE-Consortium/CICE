@@ -5151,7 +5151,6 @@
 
       call ice_timer_start(timer_fsd)
 
-      print *, 'wave_spec_type ',wave_spec_type
 
       call icepack_query_parameters(wave_spec_out=wave_spec, &
                                     wave_spec_type_out=wave_spec_type)
@@ -5186,8 +5185,6 @@
             call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
                                   field_loc_center, field_type_scalar)
             call ice_close_nc(fid)
-            print *, 'reading wave spec file'
-            print *, 'max efreq ',MAXVAL(wave_spectrum)
 #else
             write (nu_diag,*) "wave spectrum file not available, requires ncdf"
             write (nu_diag,*) "wave spectrum file not available, using default profile"
