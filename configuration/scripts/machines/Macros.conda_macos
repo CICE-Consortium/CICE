@@ -39,6 +39,9 @@ LD:= $(FC)
 # Location of the compiled Fortran modules (NetCDF)
 MODDIR  += -I$(CONDA_PREFIX)/include
 
+# Location of the system C header files (required on recent macOS to compile makdep)
+CFLAGS_HOST = -isysroot$(shell xcrun --show-sdk-path)
+
 # Libraries to be passed to the linker
 SLIBS   := -lnetcdf -lnetcdff
 
