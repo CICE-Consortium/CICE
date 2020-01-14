@@ -121,7 +121,7 @@
         kitd, kcatbound
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, frzpnd, atmbndy, wave_spec_type
+        tfrz_option, frzpnd, atmbndy, wave_spec_type, wave_solver
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec
 
@@ -202,7 +202,8 @@
         highfreq,       natmiter,        ustar_min,     emissivity,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
-        precip_units,   default_season,  wave_spec_type,nfreq,          &
+        precip_units,   default_season,  wave_spec_type,wave_solver,    &
+        nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
         ice_data_type,  wave_spec_file,                                 &
         fyear_init,     ycycle,                                         &
@@ -350,6 +351,7 @@
       tfrz_option     = 'mushy'   ! freezing temp formulation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       wave_spec_type  = 'none'    ! type of wave spectrum forcing
+      wave_solver     = '1'       ! method of wave fracture solution
       nfreq           = 25        ! number of wave frequencies
       wave_spec_file  = ' '       ! wave forcing file name
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
@@ -617,6 +619,7 @@
       call broadcast_scalar(precip_units,       master_task)
       call broadcast_scalar(oceanmixed_ice,     master_task)
       call broadcast_scalar(wave_spec_type,     master_task)
+      call broadcast_scalar(wave_solver,        master_task)
       call broadcast_scalar(wave_spec_file,     master_task)
       call broadcast_scalar(nfreq,              master_task)
       call broadcast_scalar(tfrz_option,        master_task)
@@ -1125,6 +1128,7 @@
          if (wave_spec) then
             write(nu_diag,*)    ' wave_spec_type            = ', wave_spec_type
             write(nu_diag,*)    ' wave_spec_file            = ', wave_spec_file
+            write(nu_diag,*)    ' wave_solver               = ', wave_solver
          endif
          write(nu_diag,1020) ' nfreq                     = ', nfreq
          write(nu_diag,*)    ' tfrz_option               = ', &
@@ -1255,7 +1259,7 @@
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
-         wave_spec_type_in = wave_spec_type, &
+         wave_spec_type_in = wave_spec_type, wave_solver_in = wave_solver, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
