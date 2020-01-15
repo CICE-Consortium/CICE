@@ -34,6 +34,9 @@ set stime = `date -u "+%H%M%S"`
 set docase = 0
 set dotest = 0
 set dosuite = 0
+set suitebuild  = true
+set suiterun    = false
+set suitesubmit = true
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -79,6 +82,7 @@ SYNOPSIS
     --suite SUITE[,SUITE2] -m MACH --testid ID 
         [-e ENV1,ENV2][--acct ACCT][--bdir DIR][--bgen DIR]
         [--bcmp DIR][--tdir PATH][--report]
+        [--setup-only][--build-only][--run-interactive]
 
 DESCRIPTION
     --help, -h : help
@@ -104,6 +108,9 @@ DESCRIPTION
     --testid   : test ID, user-defined id for testing (REQUIRED with --test or --suite)
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
+    --setup-only : for suite, setup testcases, no build, no submission
+    --build-only : for suite, setup and build testcases, no submission
+    --run-interactive : for suite, instead of submitting, run cases interactively
 
 EXAMPLES
     cice.setup --version
@@ -122,44 +129,45 @@ SEE ALSO
 EOF1
 
 if ($helpheader > 1) then
-cat << EOF1
+  cat << EOF1
 
       Available --mach and --env combinations are in configuration/scripts/machines and include:
 EOF1
-      set soptions1 = `ls -1 configuration/scripts/machines | grep Macros | sed 's/Macros.//g' `
-      set soptions = `echo $soptions1 | fmt -1 | sort `
-      foreach sopt ($soptions)
-        echo "             $sopt"
-      end
-cat << EOF1
+  set soptions1 = `ls -1 configuration/scripts/machines | grep Macros | sed 's/Macros.//g' `
+  set soptions = `echo $soptions1 | fmt -1 | sort `
+  foreach sopt ($soptions)
+    echo "             $sopt"
+  end
+
+  cat << EOF1
 
       Available --set options are in configuration/scripts/options and include:
 EOF1
-      set soptions1 = `ls -1 configuration/scripts/options | grep set_ | sed 's/set_nml.//g' | sed 's/set_env.//g' | sed 's/set_files.//g' `
-      set soptions = `echo $soptions1 | fmt -1 | sort -u `
-      foreach sopt ($soptions)
-        echo "             $sopt"
-      end
+  set soptions1 = `ls -1 configuration/scripts/options | grep set_ | sed 's/set_nml.//g' | sed 's/set_env.//g' | sed 's/set_files.//g' `
+  set soptions = `echo $soptions1 | fmt -1 | sort -u `
+  foreach sopt ($soptions)
+    echo "             $sopt"
+  end
 
-cat << EOF1
+  cat << EOF1
 
       Available tests are in configuration/scripts/tests and include:
 EOF1
-      set soptions1 = `ls -1 configuration/scripts/tests | grep test_ | grep script | sed 's/test_//g' | sed 's/.script//g' `
-      set soptions = `echo $soptions1 | fmt -1 | sort `
-      foreach sopt ($soptions)
-        echo "             $sopt"
-      end
+  set soptions1 = `ls -1 configuration/scripts/tests | grep test_ | grep script | sed 's/test_//g' | sed 's/.script//g' `
+  set soptions = `echo $soptions1 | fmt -1 | sort `
+  foreach sopt ($soptions)
+    echo "             $sopt"
+  end
 
-cat << EOF1
+  cat << EOF1
 
       Available sets of predefined suites are in configurations/scripts/tests and include:
 EOF1
-      set soptions1 = `ls -1 configuration/scripts/tests | grep "\.ts" | sed 's/\.ts//g' `
-      set soptions = `echo $soptions1 | fmt -1 | sort `
-      foreach sopt ($soptions)
-        echo "             $sopt"
-      end
+  set soptions1 = `ls -1 configuration/scripts/tests | grep "\.ts" | sed 's/\.ts//g' `
+  set soptions = `echo $soptions1 | fmt -1 | sort `
+  foreach sopt ($soptions)
+    echo "             $sopt"
+  end
 
 endif
 exit -1
@@ -213,6 +221,24 @@ while (1)
 # arguments without settings
   if ("$option" == "--report") then
     set report = 1
+    shift argv
+
+  else if ("$option" == "--setup-only") then
+    set suitebuild  = false
+    set suiterun    = false
+    set suitesubmit = false
+    shift argv
+
+  else if ("$option" == "--build-only") then
+    set suitebuild  = true
+    set suiterun    = false
+    set suitesubmit = false
+    shift argv
+
+  else if ("$option" == "--run-interactive") then
+    set suitebuild  = true
+    set suiterun    = true
+    set suitesubmit = false
     shift argv
 
 # arguments with settings
@@ -379,16 +405,35 @@ else
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
-  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
-  cat >! $file << EOF0
+  cat >! ${tsdir}/suite.submit << EOF0
 #!/bin/csh -f
 
 set nonomatch && rm -f ciceexe.* && unset nonomatch
 
-EOF0
-  end
+set dobuild  = true
+set dorun    = false
+set dosubmit = true
+if (\$?SUITE_BUILD) then
+  set dobuild  = "\${SUITE_BUILD}"
+if (\$?SUITE_RUN) then
+  set dorun    = "\${SUITE_RUN}"
+endif
+if (\$?SUITE_SUBMIT) then
+  set dosubmit = "\${SUITE_SUBMIT}"
+endif
 
-cat >! ${tsdir}/results.csh << EOF0
+echo \${0}: dobuild  = \${dobuild}
+echo \${0}: dorun    = \${dorun}
+echo \${0}: dosubmit = \${dosubmit}
+
+if (\${dorun} == true && \${dosubmit} == true) then
+  echo \${0}: ERROR dorun and dosubmit should not both be true
+  exit -1
+endif
+
+EOF0
+
+  cat >! ${tsdir}/results.csh << EOF0
 #!/bin/csh -f
 rm -f results.log
 echo "#------- " >> results.log
@@ -406,7 +451,6 @@ echo "#vers = ${vers}" >> results.log
 echo "#------- " >> results.log
 EOF0
 
-  chmod +x ${tsdir}/suite.run
   chmod +x ${tsdir}/suite.submit
   chmod +x ${tsdir}/results.csh
 
@@ -445,11 +489,11 @@ foreach compiler ( $ncompilers )
       continue
     # Check if line is a sleep line, can only happen with suites
     else if ( $line:q =~ 'sleep'*) then
-cat >> ${tsdir}/suite.submit << EOF
+      cat >> ${tsdir}/suite.submit << EOF
+
 echo "-------test--------------"
 echo "$line:q"
 $line:q
-
 EOF
       echo "adding sleep line: $line"
       echo "" 
@@ -720,7 +764,7 @@ EOF
     if (-e ${fimods}) rm ${fimods}
     if (-e ${fsmods}) rm ${fsmods}
 
-cat >! ${fimods} << EOF1
+    cat >! ${fimods} << EOF1
 # cice.setup settings
 
 nprocs            = ${task}
@@ -749,7 +793,7 @@ EOF1
       set baseCom = `ls -t $basedir_tmp | head -1`
     endif
 
-cat >! ${fsmods} << EOF1
+    cat >! ${fsmods} << EOF1
 # cice.setup settings
 
 setenv ICE_SANDBOX  ${ICE_SANDBOX}
@@ -824,15 +868,13 @@ EOF1
     foreach name (${grid} $setsx)
       set found = 0
       if (-e ${ICE_SCRIPTS}/options/set_nml.${name}) then
-
-cat >> ${fimods} << EOF2
+        cat >> ${fimods} << EOF2
 
 # set_nml.${name}
 
 EOF2
         cat ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
-
-cat >> ${fimods} << EOF2
+        cat >> ${fimods} << EOF2
 
 EOF2
         echo "adding namelist mods set_nml.${name}"
@@ -841,18 +883,15 @@ EOF2
       endif
       if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
 
-cat >> ${fsmods} << EOF2
+        cat >> ${fsmods} << EOF2
 
 # set_env.${name}
 
 EOF2
-
         cat ${ICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
-
-cat >> ${fsmods} << EOF2
+        cat >> ${fsmods} << EOF2
 
 EOF2
-
         echo "adding env mods set_env.${name}"
         echo "`date` ${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
         set found = 1
@@ -906,34 +945,30 @@ EOF2
 
     if ( ${dosuite} == 1 ) then
       cd ${ICE_SANDBOX}
-      # Write build and run commands to suite.run and suite.submit
+      # Write build and run commands to suite.submit
 
-cat >> ${tsdir}/results.csh << EOF
+      cat >> ${tsdir}/results.csh << EOF
 cat ${testname_base}/test_output >> results.log
 EOF
-  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
-    cat >> $file  << EOF
+
+      cat >> ${tsdir}/suite.submit << EOF
+
 echo "-------test--------------"
 echo "${testname_base}"
 cd ${testname_base}
 source ./cice.settings
-set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
-./cice.build --exe \${ciceexe}
-if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
-EOF
-  end
-  cat >> ${tsdir}/suite.submit << EOF
-./cice.submit | tee -a ../suite.jobs
-EOF
-  cat >> ${tsdir}/suite.run << EOF
-./cice.test
-EOF
-  foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
-    cat >> $file << EOF
+if (\${dobuild} == true) then
+   set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
+  ./cice.build --exe \${ciceexe}
+  if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
+endif
+if (\${dosubmit} == true) then
+  ./cice.submit | tee -a ../suite.jobs
+else if (\${dorun} == true) then
+  ./cice.test
+endif
 cd ..
-
 EOF
-  end
     
       # Reset case for the next test in suite
       set case = ${spval}
@@ -954,16 +989,14 @@ end
 if ( ${dosuite} == 1 ) then
 
   # Delete reused ciceexe files at the end to save space
-foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
-cat >> $file << EOF0
+  cat >> ${tsdir}/suite.submit << EOF0
 
 set nonomatch && rm -f ciceexe.* && unset nonomatch
 
 EOF0
-end
 
   # Add code to results.csh to count the number of failures
-cat >> ${tsdir}/results.csh << EOF
+  cat >> ${tsdir}/results.csh << EOF
 cat ./results.log
 set pends = \`cat ./results.log | grep PEND | wc -l\`
 set failures = \`cat ./results.log | grep FAIL | wc -l\`
@@ -994,13 +1027,16 @@ exit \$failures
 EOF
 
   if ($?ICE_MACHINE_QSTAT) then
-cat >! ${tsdir}/poll_queue.env << EOF0
+    cat >! ${tsdir}/poll_queue.env << EOF0
 setenv ICE_MACHINE_QSTAT ${ICE_MACHINE_QSTAT}
 EOF0
   endif
 
   # build and submit tests
   cd ${tsdir}
+  setenv SUITE_BUILD ${suitebuild}
+  setenv SUITE_RUN ${suiterun}
+  setenv SUITE_SUBMIT ${suitesubmit}
   ./suite.submit | tee suite.log
   if ($report == 1) then
     echo "Reporting results"
