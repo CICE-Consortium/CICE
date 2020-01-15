@@ -612,6 +612,19 @@ On macOS:
   # Don't activate the "base" conda environment on shell startup
   conda config --set auto_activate_base false
 
+If your Mac has macOS 10.15 or higher, your login shell is Zsh. The miniconda installer only initializes the Bash shell for use with conda, so you need to initialize your shell to use conda:
+
+.. code-block:: bash
+
+  # Initialize Zsh to use conda
+  source $HOME/miniconda3/bin/activate
+  conda init zsh
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
 On GNU/Linux:
 
 .. code-block:: bash
@@ -627,6 +640,48 @@ On GNU/Linux:
   
   # Don't activate the "base" conda environment on shell startup
   conda config --set auto_activate_base false
+
+Note: the conda initialization procedures above assume you use the default shell for your operating system. If your login shell is different, the initialization procedure will need to be adapted.
+
+For tcsh:
+
+.. code-block:: bash
+  
+  # Install miniconda as indicated above, then initialize your shell to use conda:
+  source $HOME/miniconda3/etc/profile.d/conda.csh
+  conda init tcsh
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
+For fish:
+
+.. code-block:: bash
+  
+  # Install miniconda as indicated above, then initialize your shell to use conda:
+  source $HOME/miniconda3/etc/fish/conf.d/conda.fish
+  conda init fish
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
+For xonsh:
+
+.. code-block:: bash
+
+  # Install miniconda as indicated above, then initialize your shell to use conda:
+  source-bash $HOME/miniconda3/bin/activate
+  conda init xonsh
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
 
 
 Creating CICE directories and the conda environment
