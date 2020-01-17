@@ -63,10 +63,5 @@ ifeq ($(ICE_IOTYPE), pio)
    PIO_PATH:=/glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
    INCLDIR += -I/glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/include
    SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpiof
-
-   CPPDEFS :=  $(CPPDEFS) -Dncdf
 endif
 
-ifeq ($(ICE_IOTYPE), netcdf)
-   CPPDEFS :=  $(CPPDEFS) -Dncdf
-endif

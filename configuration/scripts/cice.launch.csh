@@ -29,7 +29,7 @@ cat >> ${jobfile} << EOFR
 EOFR
 else
 cat >> ${jobfile} << EOFR
-mpiexec_mpt omplace ./cice >&! \$ICE_RUNLOG_FILE
+mpiexec_mpt -np ${ntasks} omplace ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 
