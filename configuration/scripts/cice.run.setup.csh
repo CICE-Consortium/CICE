@@ -46,6 +46,8 @@ cd \${ICE_RUNDIR}
 setenv OMP_NUM_THREADS ${nthrds}
 
 cp -f \${ICE_CASEDIR}/ice_in \${ICE_RUNDIR}
+set diagtype = \`grep -i diag_type \${ICE_CASEDIR}/ice_in | grep -i stdout | wc -l\`
+
 echo " "
 echo "CICE rundir is \${ICE_RUNDIR}"
 echo "CICE log file is \${ICE_RUNLOG_FILE}"
@@ -73,10 +75,18 @@ echo " "
 if !(-d \${ICE_LOGDIR}) mkdir -p \${ICE_LOGDIR}
 cp -p \${ICE_RUNLOG_FILE} \${ICE_LOGDIR}
 
-grep ' CICE COMPLETED SUCCESSFULLY' \${ICE_RUNLOG_FILE}
-if ( \$status != 0 ) then
-  echo "CICE run did not complete - see \${ICE_LOGDIR}/\${ICE_RUNLOG_FILE}"
-  echo "\`date\` \${0}: \${ICE_CASENAME} run did NOT complete \${ICE_RUNLOG_FILE}"  >> \${ICE_CASEDIR}/README.case
+if ( \${diagtype} > 0) then
+  grep ' CICE COMPLETED SUCCESSFULLY' \${ICE_RUNLOG_FILE}
+  if ( \$status != 0 ) then
+    echo "CICE run did not complete - see \${ICE_LOGDIR}/\${ICE_RUNLOG_FILE}"
+    echo "\`date\` \${0}: \${ICE_CASENAME} run did NOT complete \${ICE_RUNLOG_FILE}"  >> \${ICE_CASEDIR}/README.case
+    exit -1
+  endif
+else
+  echo "\`date\` \${0}: \${ICE_CASENAME} run completed "
+  echo "CICE NOT run with diag_type='stdout', run status unknown"
+  echo "\`date\` \${0}: \${ICE_CASENAME} run completed "  >> \${ICE_CASEDIR}/README.case
+  echo "\`date\` \${0}: \${ICE_CASENAME} NOT run with diag_type='stdout', run status unknown"  >> \${ICE_CASEDIR}/README.case
   exit -1
 endif
 

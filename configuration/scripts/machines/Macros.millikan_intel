@@ -52,14 +52,14 @@ LIB_MPI := $(IMPILIBDIR)
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf -lgptl
 SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf
 
-ifeq ($(compile_threaded), true) 
+ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -openmp 
    CFLAGS += -openmp 
    FFLAGS += -openmp 
 endif
 
 ### if using parallel I/O, load all 3 libraries.  PIO must be first!
-ifeq ($(IO_TYPE), pio)
+ifeq ($(ICE_IOTYPE), pio)
    PIO_PATH:=/glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
    INCLDIR += -I/glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/include
    SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpiof
@@ -67,6 +67,6 @@ ifeq ($(IO_TYPE), pio)
    CPPDEFS :=  $(CPPDEFS) -Dncdf
 endif
 
-ifeq ($(IO_TYPE), netcdf)
+ifeq ($(ICE_IOTYPE), netcdf)
    CPPDEFS :=  $(CPPDEFS) -Dncdf
 endif
