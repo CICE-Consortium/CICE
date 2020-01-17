@@ -82,7 +82,7 @@ SYNOPSIS
     --suite SUITE[,SUITE2] -m MACH --testid ID 
         [-e ENV1,ENV2][--acct ACCT][--bdir DIR][--bgen DIR]
         [--bcmp DIR][--tdir PATH][--report]
-        [--setup-only][--build-only][--run-interactive]
+        [--setup-only || --setup-build || --setup-build-run || --setup-build-submit]
 
 DESCRIPTION
     --help, -h : help
@@ -108,9 +108,10 @@ DESCRIPTION
     --testid   : test ID, user-defined id for testing (REQUIRED with --test or --suite)
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
-    --setup-only : for suite, setup testcases, no build, no submission
-    --build-only : for suite, setup and build testcases, no submission
-    --run-interactive : for suite, instead of submitting, run cases interactively
+    --setup-only         : for suite, setup testcases, no build, no submission
+    --setup-build        : for suite, setup and build testcases, no submission
+    --setup-build-run    : for suite, setup, build, and run interactively
+    --setup-build-submit : for suite, setup, build, and submit (default behavior)
 
 EXAMPLES
     cice.setup --version
@@ -229,16 +230,22 @@ while (1)
     set suitesubmit = false
     shift argv
 
-  else if ("$option" == "--build-only") then
+  else if ("$option" == "--setup-build") then
     set suitebuild  = true
     set suiterun    = false
     set suitesubmit = false
     shift argv
 
-  else if ("$option" == "--run-interactive") then
+  else if ("$option" == "--setup-build-run") then
     set suitebuild  = true
     set suiterun    = true
     set suitesubmit = false
+    shift argv
+
+  else if ("$option" == "--setup-build-submit") then
+    set suitebuild  = true
+    set suiterun    = false
+    set suitesubmit = true
     shift argv
 
 # arguments with settings

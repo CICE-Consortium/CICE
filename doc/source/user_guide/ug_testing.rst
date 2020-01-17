@@ -381,17 +381,20 @@ following options are valid for suites,
   This is only used by ``--suite`` and when set, invokes a script that sends the test results to the results page when all tests are complete.  Please see :ref:`testreporting` for more information.
 
 ``--setup-only``
-  This is only used by ``--suite`` and when set, just creates the suite testcases.  It does not build or submit them to run.  By default, the suite testcases will be created, built, and submitted.
+  This is only used by ``--suite`` and when set, just creates the suite testcases.  It does not build or submit them to run.  By default, the suites do ``--setup-build-submit``.
 
-``--build-only``
-  This is only used by ``--suite`` and when set, just creates and builds the suite testcases.  It does not submit them to run.  By default, the suite testcases will be created, built, and submitted.
+``--setup-build``
+  This is only used by ``--suite`` and when set, just creates and builds the suite testcases.  It does not submit them to run.  By default, the suites do ``--setup-build-submit``.
 
-``--run-interactive``
-  This is only used by ``--suite`` and when set, runs the test cases interactively instead of submitting them in batch.  By default, the suite testcases will be created, built, and submitted.
+``--setup-build-run``
+  This is only used by ``--suite`` and when set, runs the test cases interactively instead of submitting them in batch.  By default, the suites do ``--setup-build-submit``.
+
+``--setup-build-submit``
+  This is only used by ``--suite`` and when set, sets up the cases, builds them, and submits them.  This is the default behavior of suites.
 
 Please see :ref:`case_options` and :ref:`indtests` for more details about how these options are used.
 
-As indicated above, **cice.setup** with ``--suite`` will create a directory called testsuite.[testid].  **cice.setup** also generates a script called **suite.submit** in that directory.  **suite.submit** is the script that builds and submits the various test cases in the test suite.  The *cice.setup** options ``--setup-only``, ``--build-only``, and ``--run-interactive`` modify how **suite.submit** is run by **cice.setup**.  **suite.submit** can also be run manually, and the environment variables, SUITE_BUILD (builds the testcases), SUITE_RUN (runs the testcases interactively), and SUITE_SUBMIT (submit the testcases to run) control **suite.submit**.   The default values for SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT are effectively true, false, and true.  By defining other values for those environment variables, users can control the suite script.  When using **suite.submit** manually, the string ``true`` (all lowercase) is the only string that will turn on a feature, and both SUITE_RUN and SUITE_SUBMIT cannot be true at the same time.  But by leveraging the **cice.setup** command line arguments ``--setup-only``, ``--build-only``, and ``--run-interactive`` as well as the environment variables SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT, users can run **cice.setup** and **suite.submit** in various combinations to quickly setup, setup and build, submit, resubmit, run interactively, or rebuild and resubmit full testsuites quickly and easily.  See below for an example.
+As indicated above, **cice.setup** with ``--suite`` will create a directory called testsuite.[testid].  **cice.setup** also generates a script called **suite.submit** in that directory.  **suite.submit** is the script that builds and submits the various test cases in the test suite.  The *cice.setup** options ``--setup-only``, ``--setup-build``, and ``--setup-build-run`` modify how **suite.submit** is run by **cice.setup**.  **suite.submit** can also be run manually, and the environment variables, SUITE_BUILD (builds the testcases), SUITE_RUN (runs the testcases interactively), and SUITE_SUBMIT (submit the testcases to run) control **suite.submit**.   The default values for SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT are effectively true, false, and true.  By defining other values for those environment variables, users can control the suite script.  When using **suite.submit** manually, the string ``true`` (all lowercase) is the only string that will turn on a feature, and both SUITE_RUN and SUITE_SUBMIT cannot be true at the same time.  But by leveraging the **cice.setup** command line arguments ``--setup-only``, ``--setup-build``, and ``--setup-build-run`` as well as the environment variables SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT, users can run **cice.setup** and **suite.submit** in various combinations to quickly setup, setup and build, submit, resubmit, run interactively, or rebuild and resubmit full testsuites quickly and easily.  See below for an example.
 
 
 Test Suite Examples
@@ -584,7 +587,7 @@ Test Suite Examples
     there is still no absolute guarantee the tests will be completed in the correct 
     sequence.
 
- 13) **Test Suite leveraging manual build followed by manual submission**
+ 13) **Test Suite generation then manual build followed by manual submission**
      
     Specify suite, mach, env, testid.
     ::
