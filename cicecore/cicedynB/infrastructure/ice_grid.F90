@@ -332,7 +332,7 @@
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, &
          pi, pi2, puny
-
+!      real (kind=dbl_kind) :: ANGLET_dum
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
 
@@ -491,24 +491,19 @@
             angle_w  = ANGLE(i-1,j  ,iblk) !   |    |
             angle_s  = ANGLE(i,  j-1,iblk) !   |    |
             angle_sw = ANGLE(i-1,j-1,iblk) !   sw---s
-
-            if ( angle_0 < c0 ) then
-               if ( abs(angle_w - angle_0) > pi) &
-                        angle_w = angle_w  - pi2
-               if ( abs(angle_s - angle_0) > pi) &
-                        angle_s = angle_s  - pi2
-               if ( abs(angle_sw - angle_0) > pi) &
-                        angle_sw = angle_sw - pi2
-            endif
-
-            ANGLET(i,j,iblk) = angle_0 * p25 + angle_w * p25 &
-                             + angle_s * p25 + angle_sw* p25
+            ANGLET(i,j,iblk) = atan2(p25*(sin(angle_0)+ &
+                                          sin(angle_w)+ &
+                                          sin(angle_s)+ &
+                                          sin(angle_sw)),&
+                                     p25*(cos(angle_0)+ &
+                                          cos(angle_w)+ &
+                                          cos(angle_s)+ &
+                                          cos(angle_sw)))
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
       endif ! cpom_grid
-
       if (trim(grid_type) == 'regional') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -2486,7 +2481,6 @@
 
           write (nu_diag,*) ' '
           write (nu_diag,*) 'Bathymetry file: ', trim(bathymetry_file)
-          write (*,*) 'Bathymetry file: ', trim(bathymetry_file)
           call icepack_warnings_flush(nu_diag)
 
       endif

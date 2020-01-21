@@ -1,0 +1,6 @@
+tr_fsd = .true.
+nfsd = 12
+wave_spec_type = 'constant'
+nfreq = 25
+ocn_data_format = 'nc'
+wave_spec_file  = 'unknown_wave_spec_file'

@@ -47,7 +47,7 @@ module ice_prescribed_mod
    use ice_read_write
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-   use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_numbers
+   use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
    use icepack_intfc, only: icepack_query_parameters
 
    implicit none
@@ -111,6 +111,7 @@ contains
 !
 ! !INTERFACE: 
  subroutine ice_prescribed_init(compid, gsmap, dom)
+   use mpi   ! MPI Fortran module
    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys
 ! !DESCRIPTION:
 !    Prescribed ice initialization - needed to 
@@ -122,7 +123,6 @@ contains
 ! !INPUT/OUTPUT PARAMETERS:
 !
    implicit none
-   include 'mpif.h'
    integer(kind=int_kind), intent(in) :: compid
    type(mct_gsMap) :: gsmap
    type(mct_gGrid) :: dom
@@ -422,7 +422,7 @@ subroutine ice_prescribed_phys
 
    call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
       nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
-   call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+   call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
    call icepack_query_parameters(rad_to_deg_out=rad_to_deg, pi_out=pi, &
       puny_out=puny, rhoi_out=rhoi, rhos_out=rhos, cp_ice_out=cp_ice, cp_ocn_out=cp_ocn, &
       lfresh_out=lfresh, depressT_out=depressT)
@@ -544,17 +544,21 @@ subroutine ice_prescribed_phys
       ! compute aggregate ice state and open water area
       !--------------------------------------------------------------------
       if (tmask(i,j,iblk)) &
-      call icepack_aggregate (ncat,                                         &
-                             aicen(i,j,:,iblk), trcrn(i,j,1:ntrcr,:,iblk), &
-                             vicen(i,j,:,iblk), vsnon(i,j,  :,iblk),       &
-                             aice (i,j,  iblk), trcr (i,j,1:ntrcr,  iblk), &
-                             vice (i,j,  iblk), vsno (i,j,    iblk),       &
-                             aice0(i,j,  iblk),                            &
-                             ntrcr,                                        &
-                             trcr_depend(1:ntrcr),                         &
-                             trcr_base(1:ntrcr,:),                         &
-                             n_trcr_strata(1:ntrcr),                       &
-                             nt_strata(1:ntrcr,:))
+         call icepack_aggregate(ncat  = ncat,                      &
+                                aicen = aicen(i,j,:,iblk),         &
+                                trcrn = trcrn(i,j,1:ntrcr,:,iblk), &
+                                vicen = vicen(i,j,:,iblk),         &
+                                vsnon = vsnon(i,j,:,iblk),         &
+                                aice  = aice (i,j,  iblk),         &
+                                trcr  = trcr (i,j,1:ntrcr,iblk),   &
+                                vice  = vice (i,j,  iblk),         &
+                                vsno  = vsno (i,j,  iblk),         &
+                                aice0 = aice0(i,j,  iblk),         &
+                                ntrcr = ntrcr,                     &
+                                trcr_depend   = trcr_depend(1:ntrcr),   &
+                                trcr_base     = trcr_base(1:ntrcr,:),   &
+                                n_trcr_strata = n_trcr_strata(1:ntrcr), &
+                                nt_strata     = nt_strata(1:ntrcr,:))
                               
    enddo                 ! i
    enddo                 ! j

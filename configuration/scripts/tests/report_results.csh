@@ -52,21 +52,17 @@ set compilers = `grep -v "#" results.log | grep ${mach}_ | cut -d "_" -f 2 | sor
 #echo "debug ${fail}"
 #echo "debug ${cases}"
 
-set xcdat = `echo $cdat | sed 's|-||g' | cut -c 3-`
+set xcdat = `echo $cdat | cut -c 3-`
 set xctim = `echo $ctim | sed 's|:||g'`
 set shrepo = `echo $repo | tr '[A-Z]' '[a-z]'`
 
 set tsubdir = cice_master
 set hfile = "cice_by_hash"
 set mfile = "cice_by_mach"
-set vfile = "cice_by_vers"
-set bfile = "cice_by_bran"
 if ("${shrepo}" !~ "*cice-consortium*") then
   set tsubdir = cice_dev
   set hfile = {$hfile}_forks
   set mfile = {$mfile}_forks
-  set vfile = {$vfile}_forks
-  set bfile = {$bfile}_forks
 endif
 
 set noglob
@@ -287,10 +283,8 @@ EOF
 
 set hashfile = "${wikiname}/${tsubdir}/${hfile}.md"
 set machfile = "${wikiname}/${tsubdir}/${mfile}.md"
-set versfile = "${wikiname}/${tsubdir}/${vfile}.md"
-set branfile = "${wikiname}/${tsubdir}/${bfile}.md"
 
-foreach xfile ($hashfile $machfile $versfile $branfile)
+foreach xfile ($hashfile $machfile)
   if (-e ${xfile}) then
     cp -f ${xfile} ${xfile}.prev
   endif
@@ -301,10 +295,11 @@ end
 #=====================
 
 set chk = 0
-if (-e ${hashfile}) set chk = `grep "\*\*${hash}" ${hashfile} | wc -l`
+if (-e ${hashfile}) set chk = `grep "#### ${hash}" ${hashfile} | wc -l`
 if ($chk == 0) then
+# Note: the line '#### ${hash}' is not a comment since it's in the here doc
 cat >! ${hashfile} << EOF
-**${hash}** :
+#### ${hash}
 
 | machine | compiler | version | date | test fail | comp fail | total |
 | ------ | ------ | ------ | ------  | ------ | ------ | ------ |
@@ -314,32 +309,9 @@ EOF
 if (-e ${hashfile}.prev) cat ${hashfile}.prev >> ${hashfile}
 
 else
-  set oline = `grep -n "\*\*${hash}" ${hashfile} | head -1 | cut -d : -f 1`
+  set oline = `grep -n "#### ${hash}" ${hashfile} | head -1 | cut -d : -f 1`
   @ nline = ${oline} + 3
   sed -i "$nline a | ${mach} | ${compiler} | ${vers} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${hashfile}
-endif
-
-#=====================
-# update versfile
-#=====================
-
-set chk = 0
-if (-e ${versfile}) set chk = `grep "\*\*${vers}" ${versfile} | wc -l`
-if ($chk == 0) then
-cat >! ${versfile} << EOF
-**${vers}** :
-
-| machine | compiler | hash | date | test fail | comp fail | total |
-| ------ | ------ | ------ | ------  | ------ | ------ | ------ |
-| ${mach} | ${compiler} | ${shhash} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) |
-
-EOF
-if (-e ${versfile}.prev) cat ${versfile}.prev >> ${versfile}
-
-else
-  set oline = `grep -n "\*\*${vers}" ${versfile} | head -1 | cut -d : -f 1`
-  @ nline = ${oline} + 3
-  sed -i "$nline a | ${mach} | ${compiler} | ${shhash} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${versfile}
 endif
 
 #=====================
@@ -347,10 +319,11 @@ endif
 #=====================
 
 set chk = 0
-if (-e ${machfile}) set chk = `grep "\*\*${mach}" ${machfile} | wc -l`
+if (-e ${machfile}) set chk = `grep "#### ${mach}" ${machfile} | wc -l`
 if ($chk == 0) then
+# Note: the line '#### ${mach}' is not a comment since it's in the here doc
 cat >! ${machfile} << EOF
-**${mach}** :
+#### ${mach}
 
 | version | hash | compiler | date | test fail | comp fail | total |
 | ------ | ------ | ------ | ------ | ------  | ------ | ------ |
@@ -360,32 +333,9 @@ EOF
 if (-e ${machfile}.prev) cat ${machfile}.prev >> ${machfile}
 
 else
-  set oline = `grep -n "\*\*${mach}" ${machfile} | head -1 | cut -d : -f 1`
+  set oline = `grep -n "#### ${mach}" ${machfile} | head -1 | cut -d : -f 1`
   @ nline = ${oline} + 3
   sed -i "$nline a | ${vers} | ${shhash} | ${compiler} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${machfile}
-endif
-
-#=====================
-# update branfile
-#=====================
-
-set chk = 0
-if (-e ${branfile}) set chk = `grep "\*\*${bran}" ${branfile} | wc -l`
-if ($chk == 0) then
-cat >! ${branfile} << EOF
-**${bran}** **${repo}**:
-
-| machine | compiler | hash | date | test fail | comp fail | total |
-| ------ | ------ | ------ | ------  | ------ | ------ | ------ |
-| ${mach} | ${compiler} | ${shhash} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) |
-
-EOF
-if (-e ${branfile}.prev) cat ${branfile}.prev >> ${branfile}
-
-else
-  set oline = `grep -n "\*\*${bran}" ${branfile} | head -1 | cut -d : -f 1`
-  @ nline = ${oline} + 3
-  sed -i "$nline a | ${mach} | ${compiler} | ${shhash} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${branfile}
 endif
 
 #foreach compiler
@@ -400,8 +350,6 @@ git add ${tsubdir}/${shhash}.${mach}*.md
 git add ${tsubdir}/${ofile}.md
 git add ${tsubdir}/${hfile}.md
 git add ${tsubdir}/${mfile}.md
-git add ${tsubdir}/${vfile}.md
-git add ${tsubdir}/${bfile}.md
 git commit -a -m "update $hash $mach"
 git push origin master
 cd ../

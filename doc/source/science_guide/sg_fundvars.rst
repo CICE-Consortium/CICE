@@ -12,6 +12,14 @@ ice lies in each thickness range. Thus the basic problem in sea ice
 modeling is to describe the evolution of the ice thickness distribution
 (ITD) in time and space.
 
+In addition to an ice thickness distribution, CICE includes an optional capability for a floe size distribution.
+
+Ice floe horizontal size may change through vertical and lateral growth and melting of existing floes, freezing of new ice, wave breaking, and welding of floes in freezing conditions.  The floe size distribution (FSD) is a probability function that characterizes this variability. The scheme is based on the theoretical framework described in :cite:`Horvat15` for a joint floe size and thickness distribution (FSTD), and was implemented by :cite:`Roach18` and :cite:`Roach19`.  The joint floe size distribution is carried as an area-weighted tracer, defined as the fraction of ice belonging to a given thickness category with lateral floe size belong to a given floe size class. This development includes interactions between sea ice and ocean surface waves. Input data on ocean surface wave spectra at a single time is provided for testing, but as with the other CICE datasets, it should not be used for production runs or publications.
+
+Additional information about the ITD and joint FSTD for CICE can be found in the
+`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+
+
 The fundamental equation solved by CICE is :cite:`Thorndike75`:
 
 .. math::
@@ -27,8 +35,6 @@ distribution function. We define :math:`g({\bf x},h,t)\,dh` as the
 fractional area covered by ice in the thickness range :math:`(h,h+dh)`
 at a given time and location.
 
-Additional information about the ITD for CICE can be found in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 
 In addition to the fractional ice area, :math:`a_{in}`, we define the
 following state variables for each category :math:`n`. In a change from

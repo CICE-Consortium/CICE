@@ -38,12 +38,13 @@
                                field_type_vector, field_loc_NEcorner
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_sea_freezing_temperature
+      use icepack_intfc, only: icepack_init_wave
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_parameters
 
       implicit none
       private
       public :: init_forcing_atmo, init_forcing_ocn, alloc_forcing, &
-                get_forcing_atmo, get_forcing_ocn, &
+                get_forcing_atmo, get_forcing_ocn, get_wave_spec, &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
                 read_data_nc_point, interp_coeff
@@ -126,6 +127,8 @@
       character(char_len_long), public :: & 
          atm_data_dir , & ! top directory for atmospheric data
          ocn_data_dir , & ! top directory for ocean data
+         wave_spec_dir, & ! dir name for wave spectrum
+         wave_spec_file,& ! file name for wave spectrum
          oceanmixed_file  ! file name for ocean forcing data
 
       integer (kind=int_kind), parameter :: & 
@@ -240,6 +243,7 @@
 
       if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55' .and. &
                                 trim(atm_data_type) /= 'default' .and. &
+                                trim(atm_data_type) /= 'hycom' .and. &
                                 trim(atm_data_type) /= 'box2001')) then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
          write(nu_diag,*) 'JRA55, default , and box2001 atmospheric data'
@@ -2260,6 +2264,8 @@
 
       end subroutine LY_data
 
+!=======================================================================
+
       subroutine JRA55_data (yr)
 
       use ice_blocks, only: block, get_block
@@ -2269,7 +2275,6 @@
       use ice_grid, only: hm, tlon, tlat, tmask, umask
       use ice_state, only: aice
       use ice_calendar, only: days_per_year, use_leap_years
-
 
       integer (kind=int_kind) :: & 
           ncid        , & ! netcdf file id
@@ -2319,7 +2324,7 @@
       sec3hr = secday/c8        ! seconds in 3 hours
       !maxrec = 2920            ! 365*8; for leap years = 366*8
 
-      if(use_leap_years) days_per_year = 366 !overrides setting of 365 in ice_calendar
+      if (use_leap_years) days_per_year = 366 !overrides setting of 365 in ice_calendar
       maxrec = days_per_year*8
 
       if(days_per_year == 365 .and. (mod(yr,  4) == 0)) then
@@ -2491,7 +2496,6 @@
         endif                   ! dbug
 
       end subroutine JRA55_data
-
 
 !=======================================================================
 !
@@ -4322,6 +4326,7 @@
       end subroutine ocn_data_hycom_init
 
 !=======================================================================
+
       subroutine hycom_atm_files
 
       use ice_broadcast, only: broadcast_array, broadcast_scalar
@@ -5116,6 +5121,80 @@
       enddo ! nblocks
 
       end subroutine box2001_data
+
+!=======================================================================
+
+      subroutine get_wave_spec
+  
+      use ice_read_write, only: ice_read_nc_xyf
+      use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
+                                   dwavefreq, wavefreq
+      use ice_constants, only: c0
+      use ice_domain_size, only: nfreq
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_fsd
+#ifdef ncdf
+      use netcdf
+#endif
+
+      ! local variables
+      integer (kind=int_kind) :: &
+         fid, &                  ! file id for netCDF routines
+         k
+
+      real(kind=dbl_kind), dimension(nfreq) :: &
+         wave_spectrum_profile  ! wave spectrum
+
+      character(char_len_long) :: spec_file
+      character(char_len) :: wave_spec_type
+      logical (kind=log_kind) :: wave_spec
+      character(len=*), parameter :: subname = '(get_wave_spec)'
+
+      call ice_timer_start(timer_fsd)
+
+      call icepack_query_parameters(wave_spec_out=wave_spec, &
+                                    wave_spec_type_out=wave_spec_type)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      wave_spectrum(:,:,:,:) = c0
+      wave_spec_dir = ocn_data_dir
+      dbug = .false.
+
+      ! wave spectrum and frequencies
+      if (wave_spec) then
+      ! get hardwired frequency bin info and a dummy wave spectrum profile
+         call icepack_init_wave(nfreq,                 &
+                                wave_spectrum_profile, &
+                                wavefreq, dwavefreq)
+
+         ! default, for testing only
+         do k = 1, nfreq
+            wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
+         enddo
+
+         ! read more realistic data from a file
+         if (trim(wave_spec_type) == 'file') then
+         if (trim(wave_spec_file(1:4)) == 'unkn') then
+            call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
+         else
+#ifdef ncdf
+            spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
+            call ice_open_nc(spec_file,fid)
+            call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
+                                  field_loc_center, field_type_scalar)
+            call ice_close_nc(fid)
+#else
+            write (nu_diag,*) "wave spectrum file not available, requires ncdf"
+            write (nu_diag,*) "wave spectrum file not available, using default profile"
+#endif
+         endif
+         endif
+      endif
+
+      call ice_timer_stop(timer_fsd)
+
+      end subroutine get_wave_spec
 
 !=======================================================================
 
