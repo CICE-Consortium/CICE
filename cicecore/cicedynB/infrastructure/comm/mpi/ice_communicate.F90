@@ -8,6 +8,7 @@
 ! author: Phil Jones, LANL
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
+   use mpi   ! MPI Fortran module
    use ice_kinds_mod
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -60,8 +61,6 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-
-   include 'mpif.h'   ! MPI Fortran include file
 
    integer (kind=int_kind), optional, intent(in) :: mpicom ! specified communicator
 
@@ -166,8 +165,6 @@
 !  this routine should be called from init_domain1 when the
 !  domain configuration (e.g. nprocs_btrop) has been determined
 
-   include 'mpif.h'
-
    integer (int_kind), intent(in) :: &
       num_procs         ! num of procs in new distribution
 
@@ -187,7 +184,7 @@
    integer (int_kind) :: &
      ierr                    ! error flag for MPI comms
 
-   integer (int_kind), dimension(3) :: &
+   integer (int_kind), dimension(3,1) :: &
      range                   ! range of tasks assigned to new dist
                              !  (assumed 0,num_procs-1)
 
@@ -201,9 +198,9 @@
 
    call MPI_COMM_GROUP (MPI_COMM_ICE, MPI_GROUP_ICE, ierr)
 
-   range(1) = 0
-   range(2) = num_procs-1
-   range(3) = 1
+   range(1,1) = 0
+   range(2,1) = num_procs-1
+   range(3,1) = 1
 
 !-----------------------------------------------------------------------
 !

@@ -14,6 +14,7 @@
 ! Jan. 2008: Elizabeth Hunke replaced old routines with new POP
 !              infrastructure, added specialized routine scatter_global_stress
 
+   use mpi   ! MPI Fortran module
    use ice_kinds_mod
    use ice_communicate, only: my_task, mpiR8, mpiR4, mpitag_gs, MPI_COMM_ICE
    use ice_constants, only: spval_dbl, c0, &
@@ -83,8 +84,6 @@
 !  to provide information on the generic interface (the generic
 !  interface is identical, but chooses a specific inteface based
 !  on the data type of the input argument).
-
-   include 'mpif.h'
 
    integer (int_kind), intent(in) :: &
      dst_task   ! task to which array should be gathered
@@ -253,8 +252,6 @@
 !
 !-----------------------------------------------------------------------
 
-   include 'mpif.h'
-
 !-----------------------------------------------------------------------
 !
 !  input variables
@@ -422,8 +419,6 @@
 !
 !-----------------------------------------------------------------------
 
-   include 'mpif.h'
-
 !-----------------------------------------------------------------------
 !
 !  input variables
@@ -586,8 +581,6 @@
 
 !  This subroutine gathers a distributed array to a global-sized
 !  array on the processor dst_task, including ghost cells.
-
-   include 'mpif.h'
 
    integer (int_kind), intent(in) :: &
      dst_task   ! task to which array should be gathered
@@ -983,8 +976,6 @@
 !  This subroutine gathers a distributed array to a global-sized
 !  array on the processor dst_task, including ghost cells.
 
-   include 'mpif.h'
-
    integer (int_kind), intent(in) :: &
      dst_task   ! task to which array should be gathered
 
@@ -1307,8 +1298,6 @@
 
 !  This subroutine gathers a distributed array to a global-sized
 !  array on the processor dst_task, including ghost cells.
-
-   include 'mpif.h'
 
    integer (int_kind), intent(in) :: &
      dst_task   ! task to which array should be gathered
@@ -1636,8 +1625,6 @@
 !  This is the specific interface for double precision arrays 
 !  corresponding to the generic interface scatter_global.
 
-   include 'mpif.h'
-
    integer (int_kind), intent(in) :: &
      src_task       ! task from which array should be scattered
 
@@ -1839,7 +1826,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR8, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
@@ -2014,8 +2001,6 @@
 !  This subroutine scatters a global-sized array to a distributed array.
 !
 !-----------------------------------------------------------------------
-
-   include 'mpif.h'
 
 !-----------------------------------------------------------------------
 !
@@ -2230,7 +2215,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR4, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
@@ -2405,8 +2390,6 @@
 !  This subroutine scatters a global-sized array to a distributed array.
 !
 !-----------------------------------------------------------------------
-
-   include 'mpif.h'
 
 !-----------------------------------------------------------------------
 !
@@ -2621,7 +2604,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpi_integer, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
@@ -2795,8 +2778,6 @@
 !  This is the specific interface for double precision arrays 
 !  corresponding to the generic interface scatter_global.
 
-   include 'mpif.h'
-
    integer (int_kind), intent(in) :: &
      src_task       ! task from which array should be scattered
 
@@ -2967,7 +2948,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR8, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do
@@ -3130,8 +3111,6 @@
 !  Ghost cells in the stress tensor must be handled separately on tripole
 !  grids, because matching the corner values requires 2 different arrays.
 
-   include 'mpif.h'
-
    integer (int_kind), intent(in) :: &
      src_task       ! task from which array should be scattered
 
@@ -3283,7 +3262,7 @@
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR8, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
-                       MPI_COMM_ICE, status, ierr)
+                       MPI_COMM_ICE, ierr)
 
        endif
      end do

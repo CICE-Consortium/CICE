@@ -350,9 +350,19 @@ be modified.
 Porting
 -------
 
+There are four basic issues that need to be addressed when porting, and these are addressed in four separate files in the script system,
+
+- setup of the environment such as compilers, environment variables, and other support software (in **env.[machine]_[environment]**)
+
+- setup of the Macros file to support the model build (in **Macros.[machine]_[environment]**)
+
+- setup of the batch submission scripts (in **cice.batch.csh**)
+
+- setup of the model launch command (in **cice.launch.csh**)
+
 To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment]** file have to be added to the
 **configuration/scripts/machines/** directory and the 
-**configuration/scripts/cice.batch.csh** file needs to be modified.
+**configuration/scripts/cice.batch.csh** and **configuration/scripts/cice.launch.csh** files need to be modified.
 In general, the machine is specified in ``cice.setup`` with ``--mach``
 and the environment (compiler) is specified with ``--env``.
  
@@ -365,7 +375,10 @@ and the environment (compiler) is specified with ``--env``.
 - cd .. to **configuration/scripts/**
 
 - Edit the **cice.batch.csh** script to add a section for your machine 
-  with batch settings and job launch settings
+  with batch settings
+
+- Edit the **cice.batch.csh** script to add a section for your machine 
+  with job launch settings
 
 - Download and untar a forcing dataset to the location defined by 
   ``ICE_MACHINE_INPUTDATA`` in the env file
@@ -375,7 +388,7 @@ to carry this out is to create an initial set of changes as described above, the
 create a case and manually modify the **env.[machine]** file and **Macros.[machine]** 
 file until the case can build and run.  Then copy the files from the case 
 directory back to **configuration/scripts/machines/** and update 
-the **configuration/scripts/cice.batch.csh** file, retest, 
+the **configuration/scripts/cice.batch.csh** and **configuratin/scripts/cice.launch.csh** files, retest, 
 and then add and commit the updated machine files to the repository.
 
 .. _machvars: 

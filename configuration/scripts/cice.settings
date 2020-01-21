@@ -12,7 +12,7 @@ setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
 setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
 setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
 setenv ICE_LOGDIR     ${ICE_CASEDIR}/logs
-setenv ICE_DRVOPT     cice
+setenv ICE_DRVOPT     standalone/cice
 setenv ICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
 setenv ICE_CLEANBUILD true
 setenv ICE_QUIETMODE  false

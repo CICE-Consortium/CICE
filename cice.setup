@@ -849,7 +849,7 @@ EOF2
 
         cat ${ICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
 
-cat >> ${fimods} << EOF2
+cat >> ${fsmods} << EOF2
 
 EOF2
 
@@ -952,6 +952,15 @@ end
 # more testsuite stuff
 
 if ( ${dosuite} == 1 ) then
+
+  # Delete reused ciceexe files at the end to save space
+foreach file (${tsdir}/suite.run ${tsdir}/suite.submit)
+cat >> $file << EOF0
+
+set nonomatch && rm -f ciceexe.* && unset nonomatch
+
+EOF0
+end
 
   # Add code to results.csh to count the number of failures
 cat >> ${tsdir}/results.csh << EOF

@@ -3,7 +3,7 @@
 .. _dev_dynamics:
 
 
-Dynamics and Infrastructure 
+Dynamics
 ============================
 
 The CICE **cicecore/** directory consists of the non icepack source code.  Within that 
@@ -27,11 +27,8 @@ coupling layers.
 kinds, and restart capabilities.
 
 
-Dynamics
-~~~~~~~~~~~~~~
-
 Dynamical Solvers
-************************
+--------------------
 
 The dynamics solvers are found in **cicecore/cicedynB/dynamics/**.  A couple of different solvers are
 available including EVP, revised EVP, and EAP.  The dynamics solver is specified in namelist with the
@@ -52,30 +49,30 @@ abort if set.  To override the abort, use value 102 for testing.
 
 
 Transport
-**************
+-----------------
 
 The transport (advection) methods are found in **cicecore/cicedynB/dynamics/**.  Two methods are supported,
 upwind and remap.  These are set in namelist via the advection variable.
 
 
 Infrastructure
-~~~~~~~~~~~~~~~~~~~~
+=======================
 
 Kinds
-*********
+------------------
 
 **cicecore/shared/ice_kinds_mod.F90** defines the kinds datatypes used in CICE.  These kinds are
 used throughout CICE code to define variable types.  The CICE kinds are adopted from the kinds
 defined in Icepack for consistency in interfaces.
 
 Constants
-*************
+------------------
 
 **cicecore/shared/ice_constants.F90** defines several model constants.  Some are hardwired parameters
 while others have internal defaults and can be set thru namelist.
 
 Dynamic Array Allocation
-**************************
+------------------
 
 CICE v5 and earlier was implemented using mainly static arrays and required several CPPs to be set to define grid size,
 blocks sizes, tracer numbers, and so forth.  With CICE v6 and later, arrays are dynamically allocated and those
@@ -89,7 +86,7 @@ as they have been migrated to :ref:`tabnamelist`
 
 
 Time Manager
-****************
+------------------
 
 Time manager data is module data in **cicecore/shared/ice_calendar.F90**.  Much of the time manager
 data is public and operated on during the model timestepping.  The model timestepping actually takes
@@ -103,7 +100,7 @@ place in the **CICE_RunMod.F90** file which is part of the driver code and tends
 
 
 Communication
-********************
+------------------
 
 Two low-level communications packages, mpi and serial, are provided as part of CICE.  This software
 provides a middle layer between the model and the underlying libraries.  Only the CICE mpi or 
@@ -119,7 +116,7 @@ if the number of MPI tasks is set to 1.  The serial library allows the model to 
 core or with OpenMP parallelism only without requiring an MPI library.
 
 I/O
-***********
+------------------
 
 There are three low-level IO packages in CICE, io_netcdf, io_binary, and io_pio.  This software
 provides a middle layer between the model and the underlying IO writing.

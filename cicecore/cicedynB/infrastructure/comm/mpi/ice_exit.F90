@@ -28,7 +28,7 @@
       use shr_sys_mod
 #else
       use ice_fileunits, only: nu_diag, ice_stderr, flush_fileunit
-      include 'mpif.h'   ! MPI Fortran include file
+      use mpi   ! MPI Fortran module
 #endif
 
       character (len=*), intent(in),optional :: error_message
@@ -39,7 +39,9 @@
       ! local variables
 
 #ifndef CESMCOUPLED
-      integer (int_kind) :: ierr ! MPI error flag
+      integer (int_kind) :: &
+         ierr,       & ! MPI error flag
+         error_code    ! return code
 #endif
       character(len=*), parameter :: subname='(abort_ice)'
 
@@ -62,7 +64,8 @@
       if (present(line))   write (ice_stderr,*) subname,' line number ',line
       if (present(error_message)) write (ice_stderr,*) subname,' error = ',trim(error_message)
       call flush_fileunit(ice_stderr)
-      call MPI_ABORT(MPI_COMM_WORLD, ierr)
+      error_code = 128
+      call MPI_ABORT(MPI_COMM_WORLD, error_code, ierr)
       stop
 #endif
 
