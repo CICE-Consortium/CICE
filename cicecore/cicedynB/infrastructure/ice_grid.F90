@@ -241,6 +241,7 @@
 
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
+          trim(grid_type) == 'reg_dmi' .or. &
           trim(grid_type) == 'regional'     ) then
 
          if (trim(grid_format) == 'nc') then
@@ -332,7 +333,6 @@
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, &
          pi, pi2, puny
-!      real (kind=dbl_kind) :: ANGLET_dum
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
 
@@ -355,6 +355,7 @@
 
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
+          trim(grid_type) == 'reg_dmi' .or. &
           trim(grid_type) == 'regional'      ) then
          if (trim(grid_format) == 'nc') then
             call popgrid_nc     ! read POP grid lengths from nc file
@@ -470,10 +471,13 @@
       !-----------------------------------------------------------------
       ! Compute ANGLE on T-grid
       !-----------------------------------------------------------------
-      ANGLET = c0
-      
+      if (.not. (trim(grid_type) == 'reg_dmi')) then
+          ANGLET = c0
+      endif
       if (trim(grid_type) == 'cpom_grid') then
          ANGLET(:,:,:) = ANGLE(:,:,:)
+      elseif (trim(grid_type) == 'reg_dmi') then
+      ! nothing done here as anglet is read
       else
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
@@ -531,9 +535,9 @@
       call ice_timer_stop(timer_bound)
 
       call makemask          ! velocity mask, hemisphere masks
-
-      call Tlatlon           ! get lat, lon on the T grid
-
+      if (.not. (trim(grid_type) == 'reg_dmi')) then
+         call Tlatlon           ! get lat, lon on the T grid
+      endif
       !-----------------------------------------------------------------
       ! bathymetry
       !-----------------------------------------------------------------
@@ -806,7 +810,22 @@
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_angle)
-
+      if (trim(grid_type) == 'reg_dmi') then
+      fieldname='anglet'
+      call ice_read_nc(fid_grid,1,fieldname,anglet,diag, &
+                       field_loc=field_loc_center, &
+                       field_type=field_type_angle)
+      where (ANGLET >  pi) ANGLET =  pi
+      where (ANGLET < -pi) ANGLET = -pi
+      fieldname="tlon"
+      call ice_read_nc(fid_grid,1,fieldname,tlon,diag, &
+                field_loc=field_loc_center, &
+                field_type=field_type_scalar)
+      fieldname="tlat"
+      call ice_read_nc(fid_grid,1,fieldname,TLAT,diag, &
+                field_loc=field_loc_center, &
+                field_type=field_type_scalar)
+      endif
       ! fix ANGLE: roundoff error due to single precision
       where (ANGLE >  pi) ANGLE =  pi
       where (ANGLE < -pi) ANGLE = -pi
@@ -820,7 +839,6 @@
       fieldname='htn'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
       call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
-
       fieldname='hte'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
@@ -1737,7 +1755,6 @@
          enddo                  ! j         
       enddo                     ! iblk
       !$OMP END PARALLEL DO
-
       if (trim(grid_type) == 'regional') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
