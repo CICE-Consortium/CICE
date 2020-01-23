@@ -640,6 +640,23 @@ The conda configuration expects some directories and files to be present at ``$H
 
 This step needs to be done only once.
 
+If you prefer that some or all of the CICE directories be located somewhere else, you can create a symlink from your home to another location:
+
+.. code-block:: bash
+
+  
+  # Create the CICE directories at your preferred location
+  cd ${somewhere}
+  mkdir -p cice-dirs/runs cice-dirs/baseline cice-dirs/input
+  # Download the required forcing from https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data
+  # and untar it at cice-dirs/input
+  
+  # Create a symlink to cice-dirs in your $HOME
+  cd $HOME
+  ln -s ${somewhere}/cice-dirs cice-dirs
+
+Note: if you wish, you can also create a complete machine port for your computer by leveraging the conda configuration as a starting point. See :ref:`porting`.
+
 Next, create the "cice" conda environment from the ``environment.yml`` file:
 
 .. code-block:: bash
