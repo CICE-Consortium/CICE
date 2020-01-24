@@ -11,25 +11,29 @@ This forum is monitored by Consortium members and also opened to the whole commu
 [forum]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
 
 ## Reporting issues
-We use GitHub issues mainly for confirmed bugs in the model and discussion around Consortium-led future directions/development. 
-If you do believe you have found a bug in CICE, please [open an issue](https://github.com/CICE-Consortium/CICE/issues/new). 
-If you are not sure you're running into a bug, open a thread on the [Forum][forum] first.  
-If you open an issue, be sure to:
-- Document (1) the steps you took, (2) the expected behavior of the model and (3) its actual behavior
-- Mention on which [supported machine](/configuration/scripts/machines) you are running CICE
-- If you are runnning on your own machine, and have a porting-related problem, let us know:
-   - The operating system and version
-   - The `env.<machine>_<compiler>` and `Macros.<machine>_<compiler>` you are using
-   - *Note:* your local IT help desk might be more helpful than us for porting issues! 
-- Use [GitHub Flavored Markdown][gfm] appropriately to format your issue, especially if you include [preformatted text][code]
+We use GitHub issues mainly for Consortium-confirmed bugs in the model and discussion around Consortium-led future directions/development.
+If you believe you have found a bug in CICE, please first [open a new thread][new-thread] on the [Forum][forum].
+If you are not sure you're running into a bug, open a thread on the [Forum][forum].  
+Be sure to document:
+1. The steps you took
+2. The expected behavior of the model
+3. Its actual behavior
+4. On which [supported machine](/configuration/scripts/machines) you are running CICE
+
+If you are runnning CICE on your own machine, and have a porting-related problem, we suggest first seeking help from your local IT help desk as they might be more helpful than us for porting issues !
+If you still need help, you can [open a new thread][new-thread] on the Forum.
+Be sure to document:
+1. Your operating system and version
+2. The `env.<machine>_<compiler>` and `Macros.<machine>_<compiler>` you are using
+Also, make sure to use approppriate [BB code syntax][bb-code] to format your post, especially if you include [preformatted text][bb-code-code].
 
 
 For feature/enhancement proposals, we suggest first opening a [new thread][new-thread] on the [Forum][discussion-board-wiki].
 
 [new-thread]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/post-thread
 [discussion-board-wiki]: https://github.com/CICE-Consortium/About-Us/wiki/Contacting-the-Consortium#discussion-board
-[gfm]: https://help.github.com/en/github/writing-on-github
-[code]: https://help.github.com/en/github/writing-on-github/creating-and-highlighting-code-blocks
+[bb-code]: https://xenforo.cgd.ucar.edu/cesm/help/bb-codes/
+[bb-code-code]: https://xenforo.cgd.ucar.edu/cesm/help/bb-codes/#code
 
 ## Contributing to development
 New CICE features should first be discussed with the Consortium members in the [Forum][forum]. 
@@ -76,7 +80,7 @@ Any contribution to CICE must be properly tested to ensure that any new feature 
 The required level of testing is described briefly on the [About-Us wiki][req-testing], and more in depth in the [Testing CICE][doc-testing] section of the model documentation.
 A detailed walk-through is available at [End-To-End Testing Procedure][end-to-end].  
 
-PR's introducing new feature should have corresponding tests added the the [base_suite](configuration/scripts/tests/base_suite.ts).
+PR's introducing new feature should have corresponding tests added to the [base_suite](configuration/scripts/tests/base_suite.ts).
 
 [req-testing]: https://github.com/CICE-Consortium/About-Us/wiki/Software-Development-Practices#required-testing
 [doc-testing]: https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_testing.html
@@ -108,6 +112,6 @@ Once opened, your pull request will be reviewed by members of the Consortium.
 You might be asked to polish your PR, add tests or add documentation before it is integrated in the `master` branch.
 Please respond to the given feedback and ask any question you might have.
 Once the reviewers are satisfied with the pull request, it will be [squashed-merged][squash] into the `master` branch.
-Any forward development at this point should happen in a new branch.
+Any forward development at this point should happen in a new branch created from from the updated `master`.
 
 [squash]: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-request-merges#squash-and-merge-your-pull-request-commits
