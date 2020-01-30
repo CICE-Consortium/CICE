@@ -193,6 +193,9 @@ Testing will be described in greater detail in the :ref:`testing` section.
 ``--acct``  ACCOUNT
   specifies a batch account number.  This is optional.  See :ref:`account` for more information.
 
+``--queue`` QUEUE
+  specifies a batch queue name.  This is optional.  See :ref:`queue` for more information.
+
 ``--grid``, ``-g`` GRID
   specifies the grid.  This is a string and for the current CICE driver, gx1, gx3, and tx1 are supported. (default = gx3)
 
@@ -202,7 +205,7 @@ Testing will be described in greater detail in the :ref:`testing` section.
 For CICE, when setting up cases, the ``--case`` and ``--mach`` must be specified.  
 It's also recommended that ``--env`` be set explicitly as well.  
 ``--pes`` and ``--grid`` can be very useful.
-``--acct`` is not normally used.  A more convenient method 
+``--acct`` and ``--queue`` are not normally used.  A more convenient method 
 is to use the **~/cice\_proj** file, see :ref:`account`.  The ``--set`` option can be 
 extremely handy.  The ``--set`` options are documented in :ref:`settings`.
 

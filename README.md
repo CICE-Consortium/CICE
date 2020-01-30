@@ -18,7 +18,7 @@ imperative you follow the guidance for Pull Requests and requisite testing.
 
    Numbered CICE releases since version 6 with associated documentation and DOIs. 
    
-* **Consortium Community Bulletin Board**: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
+* **Consortium Community Forum**: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
 
    First point of contact for discussing model development including bugs, diagnostics, and future directions.   
 
