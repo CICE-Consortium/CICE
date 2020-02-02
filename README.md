@@ -13,15 +13,13 @@ Because Icepack is a submodule of CICE, Icepack and CICE development are handled
 
 [icepack]: https://github.com/CICE-Consortium/Icepack
 
-## Getting help
 If you need help getting started using the model afer reviewing the [model documentation][doc-running], the first point of contact with the CICE Consortium is the [Consortium Community Forum][forum]. 
 This forum is monitored by Consortium members and also opened to the whole community.
-**Please do not use our issue tracker for general support questions.**
+Please do not use our issue tracker for general support questions.
 
 [doc-running]: https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html
 [forum]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
 
-## Contributing
 If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories. 
 In order to incorporate your developments into the Consortium code it is imperative you follow the guidance for Pull Requests and requisite testing.
 Head over to our [Contribution guide][contributing] to learn more about how you can help improve CICE.
