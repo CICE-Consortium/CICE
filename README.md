@@ -44,4 +44,4 @@ Head over to our [Contribution guide][contributing] to learn more about how you 
    List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
 
 ## License
-See our [License](Licese.pdf) and [Distribution Policy](DistributionPolicy.pdf).
+See our [License](License.pdf) and [Distribution Policy](DistributionPolicy.pdf).
