@@ -8,8 +8,7 @@ CICE is a computationally efficient model for simulating the growth, melting, an
 This repository contains the files and code needed to run the CICE sea ice numerical model starting with version 6. CICE is maintained by the CICE Consortium. 
 Versions prior to v6 are found in the [CICE-svn-trunk repository](https://github.com/CICE-Consortium/CICE-svn-trunk).
 
-CICE consists of a top level driver and dynamical core plus the [Icepack column physics code][icepack], which is included in CICE as a Git submodule.  
-Because Icepack is a submodule of CICE, Icepack and CICE development are handled independently with respect to the GitHub repositories even though development and testing may be done together.  
+CICE consists of a top level driver and dynamical core plus the [Icepack column physics code][icepack], which is included in CICE as a Git submodule.  Because Icepack is a submodule of CICE, Icepack and CICE development are handled independently with respect to the GitHub repositories even though development and testing may be done together.  
 
 [icepack]: https://github.com/CICE-Consortium/Icepack
 
