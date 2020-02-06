@@ -1,26 +1,29 @@
 #==============================================================================
-# Makefile macros for NCAR izumi, gnu compiler
+# Makefile macros for conda environment, GNU/Linux systems
 #==============================================================================
 
-CPP        := /usr/bin/cpp
+# Preprocessor macros
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+
+# Flags for the C compiler
 CFLAGS     := -c -O2
 
-FIXEDFLAGS := -ffixed-line-length-132
+# Flags for the Fortran compiler
 FREEFLAGS  := -ffree-form
 FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
-FFLAGS_NOOPT:= -O0
 
+# Additional flags for the Fortran compiler when compiling in debug mode
 ifeq ($(ICE_BLDDEBUG), true)
   FFLAGS   += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
 else
   FFLAGS   += -O2
 endif
 
-SCC   := gcc 
+# C and Fortran compilers and MPI wrappers
+SCC   := gcc
 SFC   := gfortran
 MPICC := mpicc
-MPIFC := mpif90
+MPIFC := mpifort
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC := $(MPIFC)
@@ -29,24 +32,20 @@ else
   FC := $(SFC)
   CC := $(SCC)
 endif
+
+# Linker
 LD:= $(FC)
 
-INCLDIR := -I$(NETCDF_PATH)/include
+# Location of the compiled Fortran modules (NetCDF)
+MODDIR  += -I$(CONDA_PREFIX)/include
 
-LIB_NETCDF := $(NETCDF_PATH)/lib
+# Libraries to be passed to the linker
+SLIBS   := -lnetcdf -lnetcdff
 
-SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
-
-ifeq ($(ICE_THREADED), true) 
+# Necessary flag to compile with OpenMP support
+ifeq ($(ICE_THREADED), true)
    LDFLAGS += -fopenmp
-   CFLAGS += -fopenmp
-   FFLAGS += -fopenmp
-endif
-
-## if using parallel I/O, load all 3 libraries.  PIO must be first!
-ifeq ($(ICE_IOTYPE), pio)
-   PIO_PATH:=
-   INCLDIR += -I
-   SLIBS   := $(SLIB) -L$(PIO_PATH) -lpiofS
+   CFLAGS  += -fopenmp
+   FFLAGS  += -fopenmp
 endif
 
