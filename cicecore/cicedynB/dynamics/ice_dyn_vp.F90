@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_dyn_evp.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 ! Elastic-viscous-plastic sea ice dynamics model
