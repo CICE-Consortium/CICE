@@ -400,9 +400,9 @@ The *cice.setup** options ``--setup-only``, ``--setup-build``, and ``--setup-bui
 
 ::
 
-SUITE_BUILD = true
-SUITE_RUN = false
-SUITE_SUBMIT = true
+  SUITE_BUILD = true
+  SUITE_RUN = false
+  SUITE_SUBMIT = true
 
 which means by default the test suite builds and submits the jobs.  By defining other values for those environment variables, users can control the suite script.  When using **suite.submit** manually, the string ``true`` (all lowercase) is the only string that will turn on a feature, and both SUITE_RUN and SUITE_SUBMIT cannot be true at the same time.  
 
@@ -604,20 +604,20 @@ Test Suite Examples
     Specify suite, mach, env, testid.
     ::
 
-       ./cice.setup --suite quick_suite,base_suite --mach conrad --env cray,gnu --testid v01a --setup-only
-       cd testsuite.v01a
-       setenv SUITE_BUILD true
-       setenv SUITE_RUN false
-       setenv SUITE_SUBMIT false
-       ./suite.submit
-       setenv SUITE_BUILD false
-       setenv SUITE_RUN false
-       setenv SUITE_SUBMIT true
-       ./suite.submit
-       # wait for runs to complete
-       ./results.csh
+      ./cice.setup --suite quick_suite,base_suite --mach conrad --env cray,gnu --testid v01a --setup-only
+      cd testsuite.v01a
+      setenv SUITE_BUILD true
+      setenv SUITE_RUN false
+      setenv SUITE_SUBMIT false
+      ./suite.submit
+      setenv SUITE_BUILD false
+      setenv SUITE_RUN false
+      setenv SUITE_SUBMIT true
+      ./suite.submit
+      # wait for runs to complete
+      ./results.csh
 
-     The setenv syntax is for csh/tcsh.  In bash, the syntax would be SUITE_BUILD=true.
+    The setenv syntax is for csh/tcsh.  In bash, the syntax would be SUITE_BUILD=true.
 
 
 .. _testreporting:
