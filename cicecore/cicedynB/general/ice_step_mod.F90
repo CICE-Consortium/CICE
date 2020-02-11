@@ -713,14 +713,13 @@
          ntrcr,           & !
          nbtrcr             !
 
-      character (len=char_len) :: wave_spec_type, wave_solver
+      character (len=char_len) :: wave_solver
 
       character(len=*), parameter :: subname = '(step_dyn_wave)'
 
       call ice_timer_start(timer_column)
       call ice_timer_start(timer_fsd)
 
-      call icepack_query_parameters(wave_spec_type_out=wave_spec_type)
       call icepack_query_parameters(wave_solver_out=wave_solver)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -738,7 +737,7 @@
          do j = jlo, jhi
          do i = ilo, ihi
             d_afsd_wave(i,j,:,iblk) = c0
-            call icepack_step_wavefracture (wave_spec_type, wave_solver,   &
+            call icepack_step_wavefracture (wave_solver,   &
                                             dt, ncat, nfsd, nfreq,         &
                                             aice           (i,j,    iblk), &
                                             vice           (i,j,    iblk), &
