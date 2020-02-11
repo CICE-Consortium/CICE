@@ -503,6 +503,17 @@ On GNU/Linux:
   # Follow the prompts
   
   # Close and reopen your shell
+
+Note: on some Linux distributions (including Ubuntu and its derivatives), the csh shell that comes with the system is not compatible with conda.
+You will need to install the tcsh shell (which is backwards compatible with csh), and configure your system to use tcsh as csh:
+ 
+.. code-block:: bash
+ 
+  # Install tcsh
+  sudo apt-get install tcsh
+  # Configure your system to use tcsh as csh
+  sudo update-alternatives --set csh /bin/tcsh
+ 
   
 
 .. _init_shell:
