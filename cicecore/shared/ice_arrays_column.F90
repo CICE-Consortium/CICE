@@ -291,6 +291,26 @@
 
       character (len=35), public, allocatable :: c_fsd_range(:)
 
+!      ! for wave fracture ML
+!      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+!          wfracbin_c, &
+!          full_weight2, &
+!          full_weight4, &
+!          full_weight6, &
+!          full_weight8, &
+!          full_weight10, &
+!          full_weight12
+ 
+!      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
+!          full_weight1, &
+!          full_weight3, &
+!          full_weight5, &
+!          full_weight7, &
+!          full_weight9, &
+!          full_weight11
+         
+
+
 !=======================================================================
 
       contains
@@ -430,6 +450,19 @@
          d_afsd_latm    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_wave    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_weld    (nx_block,ny_block,nfsd,     max_blocks), & !
+         !wfracbin_c (49), &
+         !full_weight1 (26,100), &
+         !full_weight2 (100), &
+         !full_weight3 (100,100), &
+         !full_weight4 (100), &
+         !full_weight5 (100,100), &
+         !full_weight6 (100), &
+         !full_weight7 (100,100), &
+         !full_weight8 (100), &
+         !full_weight9 (100,100), &
+         !full_weight10 (100), &
+         !full_weight11 (100,49), &
+         !full_weight12 (49), 
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory5')
 
