@@ -18,7 +18,7 @@
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave 
-      use icepack_intfc, only: icepack_init_spwf_fullnet
+      use icepack_intfc, only: icepack_init_spwf_fullnet, icepack_init_spwf_class
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
@@ -63,9 +63,6 @@
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
       use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
           floe_binwidth, c_fsd_range
-      !use ice_arrays_column, only: wfracbin_c, full_weight1, full_weight2, &
-      !    full_weight3, full_weight4, full_weight5, full_weight6, full_weight7, &
-      !    full_weight8, full_weight9, full_weight10, full_weight11, full_weight12
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
@@ -211,13 +208,8 @@
 #ifndef coupled
 #ifndef CESMCOUPLED
      ! ML fullnet
-      if (tr_fsd .and. wave_spec) call icepack_init_spwf_fullnet!wfracbin_c,&
-          !full_weight1, full_weight2,  &
-          !full_weight3, full_weight4,  &
-          !full_weight5, full_weight6,  &
-          !full_weight7, full_weight8,  &
-          !full_weight9, full_weight10, &
-          !full_weight11,full_weight12 )
+      if (tr_fsd .and. wave_spec) call icepack_init_spwf_fullnet
+      if (tr_fsd .and. wave_spec) call icepack_init_spwf_class
 
       if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
 
