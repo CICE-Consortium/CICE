@@ -389,13 +389,11 @@ else
       cat ${tarray} >> $tsfile
     else if (-e ${tarray}.ts) then
       cat ${tarray}.ts >> $tsfile
-    else 
-      if (-e ${ICE_SCRIPTS}/tests/${tarray}.ts) then
-        cat ${ICE_SCRIPTS}/tests/${tarray}.ts >> $tsfile
-      else
-        echo "${0}: ERROR, cannot find testsuite file ${tarray}, also checked ${ICE_SCRIPTS}/tests/${tarray}.ts"
-        exit -1
-      endif
+    else if (-e ${ICE_SCRIPTS}/tests/${tarray}.ts) then
+      cat ${ICE_SCRIPTS}/tests/${tarray}.ts >> $tsfile
+    else
+      echo "${0}: ERROR, cannot find testsuite file ${tarray}, also checked ${ICE_SCRIPTS}/tests/${tarray}.ts"
+      exit -1
     endif
   end
 
@@ -422,6 +420,7 @@ set dorun    = false
 set dosubmit = true
 if (\$?SUITE_BUILD) then
   set dobuild  = "\${SUITE_BUILD}"
+endif
 if (\$?SUITE_RUN) then
   set dorun    = "\${SUITE_RUN}"
 endif
