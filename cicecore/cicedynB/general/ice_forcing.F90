@@ -5158,6 +5158,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+      ! if no wave data is provided, wave_spectrum is zero everywhere
       wave_spectrum(:,:,:,:) = c0
       wave_spec_dir = '/glade/u/home/lettier/CICE6/'
       dbug = .false.
@@ -5165,17 +5166,14 @@
       ! wave spectrum and frequencies
       if (wave_spec) then
       ! get hardwired frequency bin info and a dummy wave spectrum profile
+      ! the latter is used if wave_spec_type == profile
          call icepack_init_wave(nfreq,                 &
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 
-         ! default, for testing only
-         do k = 1, nfreq
-            wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
-         enddo
 
          ! read more realistic data from a file
-         if (trim(wave_spec_type) == 'file') then
+         if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
          if (trim(wave_spec_file(1:4)) == 'unkn') then
             call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
          else

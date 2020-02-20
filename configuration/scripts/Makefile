@@ -119,10 +119,6 @@ db_flags:
 # the needed macros
 #-------------------------------------------------------------------------------
 
-ifndef $(CFLAGS_HOST)
-  CFLAGS_HOST :=
-endif
-
 $(DEPGEN): $(OBJS_DEPGEN)
 	@ echo "Building makdep"
 	$(SCC) -o $@ $(CFLAGS_HOST) $<
