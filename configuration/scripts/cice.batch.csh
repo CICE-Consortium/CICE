@@ -91,20 +91,7 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
-else if (${ICE_MACHINE} =~ gordon*) then
-if (${runlength} > 0) set queue = "standard"
-cat >> ${jobfile} << EOFB
-#PBS -N ${shortcase}
-#PBS -q ${queue}
-#PBS -A ${acct}
-#PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=${batchtime}
-#PBS -j oe
-###PBS -M username@domain.com
-###PBS -m be
-EOFB
-
-else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
+else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q ${queue}
