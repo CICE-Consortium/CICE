@@ -45,7 +45,7 @@
 
       use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
-          get_wave_spec
+          get_wave_spec, wave_spec_data
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
@@ -96,7 +96,7 @@
 #ifndef coupled
 #ifndef CESMCOUPLED
 ! for now, wave_spectrum is constant in time
-!         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+         if (tr_fsd .and. wave_spec) call wave_spec_data ! wave spectrum in ice
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
 

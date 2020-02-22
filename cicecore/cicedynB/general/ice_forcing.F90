@@ -17,7 +17,7 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
-      use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
+      use ice_domain_size, only: ncat,nfreq, max_blocks, nx_global, ny_global
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, time, time_forc, &
                               sec, mday, month, nyr, yday, daycal, dayyr, &
@@ -44,7 +44,8 @@
       implicit none
       private
       public :: init_forcing_atmo, init_forcing_ocn, alloc_forcing, &
-                get_forcing_atmo, get_forcing_ocn, get_wave_spec, &
+                get_forcing_atmo, get_forcing_ocn, &
+                get_wave_spec, wave_spec_data, &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
                 read_data_nc_point, interp_coeff
@@ -107,6 +108,9 @@
          sublim_data, &
           frain_data
 
+      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: &
+          wave_spectrum_data ! field values at 2 temporal data points
+ 
       real (kind=dbl_kind), & 
            dimension(:,:,:,:,:), allocatable :: &
         topmelt_data, &
@@ -199,6 +203,7 @@
            ocn_frc_m(nx_block,ny_block,  max_blocks,nfld,12), & ! ocn data for 12 months
         topmelt_file(ncat), &
         botmelt_file(ncat), &
+        wave_spectrum_data(nx_block,ny_block,nfreq,2,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_forcing): Out of Memory')
 
@@ -5127,7 +5132,7 @@
       subroutine get_wave_spec
   
       use ice_read_write, only: ice_read_nc_xyf
-      use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
+      use ice_arrays_column, only: wave_spectrum, &
                                    dwavefreq, wavefreq
       use ice_constants, only: c0
       use ice_domain_size, only: nfreq
@@ -5173,7 +5178,8 @@
 
 
          ! read more realistic data from a file
-         if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
+!         if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
+         if (trim(wave_spec_type) == 'file') then
          if (trim(wave_spec_file(1:4)) == 'unkn') then
             call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
          else
@@ -5184,8 +5190,10 @@
                                   field_loc_center, field_type_scalar)
             call ice_close_nc(fid)
 #else
-            write (nu_diag,*) "wave spectrum file not available, requires ncdf"
-            write (nu_diag,*) "wave spectrum file not available, using default profile"
+            write (nu_diag,*) &
+              "wave spectrum file not available, requires ncdf"
+            write (nu_diag,*) &
+              "wave spectrum file not available, using default profile"
 #endif
          endif
          endif
@@ -5194,6 +5202,152 @@
       call ice_timer_stop(timer_fsd)
 
       end subroutine get_wave_spec
+
+!=======================================================================
+!
+!   Read in wave spectrum forcing as a function of time. 6 hourly
+!   LR started working from JRA55_data routine
+!   Change fields, and change 3 hourly to 6 hourly
+!
+      subroutine wave_spec_data
+
+      use ice_blocks, only: block, get_block
+      use ice_global_reductions, only: global_minval, global_maxval
+      use ice_domain, only: nblocks, distrb_info, blocks_ice
+      use ice_arrays_column, only: wave_spectrum, &
+                                   dwavefreq, wavefreq
+      use ice_read_write, only: ice_read_nc_xyf
+      use ice_domain_size, only: nfreq
+      use ice_grid, only: hm, tlon, tlat, tmask, umask
+      use ice_calendar, only: days_per_year, use_leap_years
+
+      integer (kind=int_kind) :: & 
+          ncid        , & ! netcdf file id
+	  i, j, freq  , &
+          ixm,ixx,ixp , & ! record numbers for neighboring months
+          recnum      , & ! record number
+          maxrec      , & ! maximum record number
+          recslot     , & ! spline slot for current record
+          midmonth    , & ! middle day of month
+          dataloc     , & ! = 1 for data located in middle of time interval
+                          ! = 2 for date located at end of time interval
+          iblk        , & ! block index
+          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+          yr              ! current forcing year
+
+      real (kind=dbl_kind) :: &
+          sec6hr          , & ! number of seconds in 3 hours
+          secday          , & ! number of seconds in day
+          vmin, vmax
+
+      logical (kind=log_kind) :: readm, read6,debug_n_d
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+
+      character(len=64) :: fieldname !netcdf field name
+      character(char_len_long) :: spec_file 
+      character(len=*), parameter :: subname = '(wave_spec_data)'
+
+      debug_n_d = .false.  !usually false
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      wave_spec_dir = '/glade/u/home/lettier/CICE6/'
+      spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
+      yr = fyear_init + mod(nyr-1,ycycle)  ! current year 
+    !-------------------------------------------------------------------
+    ! 6-hourly data
+    ! 
+    ! Assume that the 6-hourly value is located at the end of the
+    !  6-hour period.  This is the convention for NCEP reanalysis data.
+    !  E.g. record 1 gives conditions at 6 am GMT on 1 January.
+    !-------------------------------------------------------------------
+
+      dataloc = 2               ! data located at end of interval
+      sec6hr = secday/c4        ! seconds in 6 hours
+      !maxrec = 2920            ! 365*8; for leap years = 366*8
+
+      if (use_leap_years) days_per_year = 366 !overrides setting of 365 in ice_calendar
+      maxrec = days_per_year*4
+
+      if(days_per_year == 365 .and. (mod(yr,  4) == 0)) then
+      call abort_ice('days_per_year should be set to 366 for leap years')
+      end if
+
+      ! current record number
+      recnum = 4*int(yday) - 3 + int(real(sec,kind=dbl_kind)/sec6hr)
+
+      ! Compute record numbers for surrounding data (2 on each side)
+
+      ixm = mod(recnum+maxrec-2,maxrec) + 1
+      ixx = mod(recnum-1,       maxrec) + 1
+
+      ! Compute interpolation coefficients
+      ! If data is located at the end of the time interval, then the
+      !  data value for the current record goes in slot 2
+
+      recslot = 2
+      ixp = -99
+      call interp_coeff (recnum, recslot, sec6hr, dataloc)
+
+      ! Read
+      read6 = .false.
+      if (istep==1 .or. oldrecnum .ne. recnum) read6 = .true.
+         !-------------------------------------------------------------------
+         ! File is NETCDF
+         ! file variable names are:
+         ! efreq   (wave spectrum, energy as a function of wave frequency UNITS)
+         !-------------------------------------------------------------------
+         call ice_open_nc(spec_file,ncid)
+
+         call ice_read_nc_xyf(ncid,recnum,'efreq',wave_spectrum_data(:,:,:,1,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+         call ice_read_nc_xyf(ncid,recnum,'efreq',wave_spectrum_data(:,:,:,2,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+	 call ice_close_nc(ncid)
+
+
+      ! Interpolate
+      call interpolate_data (wave_spectrum_data, wave_spectrum)
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+        do j = 1, ny_block
+        do i = 1, nx_block
+        do freq = 1,nfreq
+            ! multiply by land mask. Is this necessary?
+            wave_spectrum(i,j,freq,iblk) = wave_spectrum(i,j,freq,iblk) * hm(i,j,iblk)
+        enddo
+        enddo
+        enddo
+      enddo  ! iblk
+      !$OMP END PARALLEL DO
+
+      ! Save record number
+      oldrecnum = recnum
+
+         if (dbug) then
+           if (my_task == master_task) write (nu_diag,*) &
+              'wave_spec_data'
+           !vmin = global_minval(wave_spectrum,distrb_info,tmask)
+           !vmax = global_maxval(wave_spectrum,distrb_info,tmask)
+           !if (my_task.eq.master_task) & 
+           !    write (nu_diag,*) 'wave_spectrum',vmin,vmax
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'maxrec',maxrec
+               write (nu_diag,*) 'days_per_year', days_per_year
+
+        endif                   ! dbug
+
+      end subroutine wave_spec_data
+
 
 !=======================================================================
 
