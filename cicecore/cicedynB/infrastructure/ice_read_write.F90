@@ -102,7 +102,7 @@
             open(nu,file=filename,form='unformatted')
 
          else                   ! direct access
-            !RecSize = nx_global*ny_global*nbits/8
+            !RecSize = nx_global*ny_global*nbits/8  ! dah: original
             
             ! dah: use nbytes to avoid integer overflow of nx_global*ny_global*nbits
             nbytes = nbits/8
@@ -110,7 +110,7 @@
 
             if (present(algn)) then
               ! If data is keept in blocks using given sizes (=algn)
-              !  Used in eg. HYCOM binary files, which are stored as "blocks" dividable by 16384 bit (=algn)
+              ! Used in eg. HYCOM binary files, which are stored as "blocks" dividable by 16384 bit (=algn)
               if (algn /= 0) then
                 Remnant = modulo(RecSize,algn)
                 if (Remnant /= 0) then
