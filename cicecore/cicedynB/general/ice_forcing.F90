@@ -2041,7 +2041,7 @@
       character(len=*), parameter :: subname = '(JRA55_gx1_files)'
 
       uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/JRA55_gx1_03hr_forcing_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_2005.nc'
       call file_year(uwind_file,yr)
   if (my_task == master_task) then
          write (nu_diag,*) ' '
