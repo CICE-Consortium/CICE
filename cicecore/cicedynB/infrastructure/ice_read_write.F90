@@ -28,6 +28,11 @@
       implicit none
 
       private
+
+      integer (kind=int_kind), parameter, private :: &
+           bits_per_byte = 8 ! number of bits per byte. 
+                             ! used to determine RecSize in ice_open
+
       public :: ice_open,           &
                 ice_open_ext,       &
                 ice_open_nc,        &
@@ -87,7 +92,6 @@
 
       integer (kind=int_kind), intent(in), optional :: algn
       integer (kind=int_kind) :: RecSize, Remnant, nbytes
-      integer (kind=int_kind), parameter :: bits_per_byte = 8
 
       character (*) :: filename
 
@@ -140,7 +144,6 @@
            nbits         ! no. of bits per variable (0 for sequential access)
       
       integer (kind=int_kind) :: RecSize, nbytes
-      integer (kind=int_kind), parameter :: bits_per_byte = 8
 
       character (*) :: filename
 
