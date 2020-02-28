@@ -78,27 +78,18 @@
 ! nbits indicates whether the file is sequential or direct access.
 !
 ! author: Tony Craig, NCAR
-! 
-! update: David Hebert, NRLSSC, Feb 2020
-!         added nx8, ny8, RecSize defined as 8 byte integers
-!         to allow for large, high resolution gloabl grids.
 
       subroutine ice_open(nu, filename, nbits, algn)
 
       integer (kind=int_kind), intent(in) :: &
-           nu       , &  ! unit number
+           nu        , & ! unit number
            nbits         ! no. of bits per variable (0 for sequential access)
 
-      integer (kind=int8_kind), intent(in), optional :: algn
-      integer (kind=int8_kind) :: RecSize, Remnant
+      integer (kind=int_kind), intent(in), optional :: algn
+      integer (kind=int_kind) :: RecSize, Remnant, nbytes
+      integer (kind=int_kind), parameter :: bits_per_byte = 8
 
       character (*) :: filename
-
-      integer(kind=int8_kind) :: & 
-           nx_global8, ny_global8  ! 8 byte integers for use with large grids.
-
-      integer(kind=int8_kind), parameter :: &
-           i8 = 8_int8_kind  ! 8 byte integer for large grids
 
       character(len=*), parameter :: subname = '(ice_open)'
 
@@ -110,11 +101,11 @@
 
          else                   ! direct access
 
-            ! define 8 byte nx_globak, ny_global for large grids
-            nx_global8 = int(nx_global,kind=int8_kind)
-            ny_global8 = int(ny_global,kind=int8_kind)
-
-            RecSize = nx_global8*ny_global8*nbits/i8
+            ! use nbytes to compute RecSize.
+            ! this prevents integer overflow with large global grids
+            ! where RecSize > 2^31 -1 (i.e., global grid 9000x7054 with double precision)
+            nbytes = nbits/bits_per_byte
+            RecSize = nx_global*ny_global*nbytes
 
             if (present(algn)) then
               ! If data is keept in blocks using given sizes (=algn)
@@ -141,28 +132,20 @@
 !
 ! authors: Tony Craig, NCAR
 !          David Hebert, NRLSSC
-!
-! update: David Hebert, NRLSSC, Feb 2020
-!         nbits, algn, RecSize defined as 8 byte integers
-!         to allow for large, high resolution gloabl grids.
 
       subroutine ice_open_ext(nu, filename, nbits)
 
       integer (kind=int_kind), intent(in) :: &
            nu        , & ! unit number
            nbits         ! no. of bits per variable (0 for sequential access)
-
-      integer (kind=int8_kind) :: RecSize
+      
+      integer (kind=int_kind) :: RecSize, nbytes
+      integer (kind=int_kind), parameter :: bits_per_byte = 8
 
       character (*) :: filename
 
-      integer (kind=int8_kind) :: &
-           nx8, ny8      ! grid dimensions including ghost cells
-                         ! added '8' to signify 8 byte integer
-
-      integer(kind=int8_kind), parameter :: &  ! parameters for use below
-           i8 = 8_int8_kind, &
-           i2 = 2_int8_kind
+      integer (kind=int_kind) :: &
+           nx, ny        ! grid dimensions including ghost cells
 
       character(len=*), parameter :: subname = '(ice_open_ext)'
 
@@ -174,14 +157,16 @@
 
          else                   ! direct access
 
-            nx8 = nx_global + i2*nghost
-            ny8 = ny_global + i2*nghost
+            nx = nx_global + 2*nghost
+            ny = ny_global + 2*nghost
 
-            RecSize = nx8*ny8*nbits/i8
-
+            ! use nbytes to compute RecSize.
+            ! this prevents integer overflow with large global grids
+            ! where RecSize > 2^31 -1 (i.e., global grid 9000x7054 with double precision)
+            nbytes = nbits/bits_per_byte
+            RecSize = nx*ny*nbytes
             open(nu,file=filename,recl=RecSize, &
                   form='unformatted',access='direct')
-
          endif                   ! nbits = 0
 
       endif                      ! my_task = master_task
