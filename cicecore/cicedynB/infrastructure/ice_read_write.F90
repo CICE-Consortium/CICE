@@ -102,8 +102,8 @@
          else                   ! direct access
 
             ! use nbytes to compute RecSize.
-            ! this prevents integer overflow with large global grids
-            ! where RecSize > 2^31 -1 (i.e., global grid 9000x7054 with double precision)
+            ! this prevents integer overflow with large global grids using nbits
+            ! nx*ny*nbits > 2^31 -1 (i.e., global grid 9000x7054x64)
             nbytes = nbits/bits_per_byte
             RecSize = nx_global*ny_global*nbytes
 
@@ -161,8 +161,8 @@
             ny = ny_global + 2*nghost
 
             ! use nbytes to compute RecSize.
-            ! this prevents integer overflow with large global grids
-            ! where RecSize > 2^31 -1 (i.e., global grid 9000x7054 with double precision)
+            ! this prevents integer overflow with large global grids using nbits
+            ! nx*ny*nbits > 2^31 -1 (i.e., global grid 9000x7054x64)
             nbytes = nbits/bits_per_byte
             RecSize = nx*ny*nbytes
             open(nu,file=filename,recl=RecSize, &
