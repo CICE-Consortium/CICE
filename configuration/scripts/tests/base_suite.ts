@@ -37,8 +37,10 @@ smoke          gx3     8x1        bgcskl,debug
 #smoke          gx3     4x1        bgcz,thread        smoke_gx3_8x2_bgcz
 restart        gx1     4x2        bgcsklclim,medium
 restart        gx1     8x1        bgczclim,medium
-smoke          gx1     24x1       jra55_2008,medium,run90day
-restart        gx1     24x1       jra55,short
+smoke          gx1     24x1       jra55_gx1_2008,medium,run90day
+smoke          gx3     8x1        jra55_gx3_2008,medium,run90day
+restart        gx1     24x1       jra55_gx1,short
+restart        gx3     8x1        jra55_gx3,short
 smoke          gx3     4x2        fsd1,diag24,run5day,debug
 smoke          gx3     8x2        fsd12,diag24,run5day,short
 restart        gx3     4x2        fsd12,debug,short
