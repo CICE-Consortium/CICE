@@ -143,8 +143,8 @@
     precond         = 3
     im_fgmres       = 50
     im_pgmres       = 5
-    maxits_fgmres   = 50
-    maxits_pgmres   = 5
+    maxits_fgmres   = 1
+    maxits_pgmres   = 1
     monitor_nonlin  = .false.
     monitor_fgmres  = 1
     monitor_pgmres  = 1
