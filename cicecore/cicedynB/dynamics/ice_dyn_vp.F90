@@ -836,7 +836,7 @@
                                L2norm(iblk))
          enddo
          !$OMP END PARALLEL DO
-         nlres_norm = sqrt(sum(L2norm))  ! phb: change after parallelization
+         nlres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
          if (monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " nonlin_res_L2norm= ", nlres_norm
@@ -854,7 +854,6 @@
          ! Put initial guess for FGMRES in solx,soly and sol (needed for anderson)
          solx = uprev_k
          soly = vprev_k
-         ! Form sol vector for fgmres (sol is iniguess at the beginning)
          call arrays_to_vec (nx_block, ny_block, nblocks,      &
                              max_blocks, icellu (:), ntot,     &
                              indxui    (:,:), indxuj(:,:),     &
@@ -910,7 +909,7 @@
 
          ! Compute residual
          res = fpfunc - sol
-         fpres_norm = dnrm2(size(res), res, inc)
+         fpres_norm = global_sum(dnrm2(size(res), res, inc)**2, distrb_info)
          if (monitor_nonlin) then
             ! commented code is to compare fixed_point_res_L2norm BFB with progress_res_L2norm
             ! (should be BFB if Picard iteration is used)
@@ -929,7 +928,7 @@
             ! enddo
             ! !$OMP END PARALLEL DO
             ! write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
-            !                                   " fixed_point_res_L2norm= ", sqrt(sum(L2norm))
+            !                                   " fixed_point_res_L2norm= ", sqrt(global_sum(sum(L2norm), distrb_info))
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " fixed_point_res_L2norm= ", fpres_norm
          endif
@@ -1065,7 +1064,7 @@
          !$OMP END PARALLEL DO
          if (monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
-                                              " progress_res_L2norm= ", sqrt(sum(L2norm))
+                                              " progress_res_L2norm= ", sqrt(global_sum(sum(L2norm), distrb_info))
          endif
          
       enddo ! nonlinear iteration loop
