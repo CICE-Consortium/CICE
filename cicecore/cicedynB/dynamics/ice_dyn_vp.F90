@@ -36,6 +36,7 @@
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
       use ice_boundary, only: ice_halo
+      use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
@@ -837,7 +838,7 @@
          enddo
          !$OMP END PARALLEL DO
          nlres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
-         if (monitor_nonlin) then
+         if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " nonlin_res_L2norm= ", nlres_norm
          endif
@@ -910,25 +911,24 @@
          ! Compute residual
          res = fpfunc - sol
          fpres_norm = global_sum(dnrm2(size(res), res, inc)**2, distrb_info)
-         if (monitor_nonlin) then
-            ! commented code is to compare fixed_point_res_L2norm BFB with progress_res_L2norm
-            ! (should be BFB if Picard iteration is used)
-            ! call vec_to_arrays (nx_block, ny_block, nblocks,      &
-            !                     max_blocks, icellu (:), ntot,     & 
-            !                     indxui    (:,:), indxuj(:,:),     &
-            !                     res (:),                          &
-            !                     fpresx (:,:,:), fpresy (:,:,:))
-            ! !$OMP PARALLEL DO PRIVATE(iblk)
-            ! do iblk = 1, nblocks
-            ! call calc_L2norm_squared (nx_block        , ny_block,         &
-            !                           icellu    (iblk),                   & 
-            !                           indxui  (:,iblk), indxuj  (:,iblk), &
-            !                           fpresx(:,:,iblk), fpresy(:,:,iblk), &
-            !                           L2norm    (iblk))
-            ! enddo
-            ! !$OMP END PARALLEL DO
-            ! write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
-            !                                   " fixed_point_res_L2norm= ", sqrt(global_sum(sum(L2norm), distrb_info))
+         ! commented code is to compare fixed_point_res_L2norm BFB with progress_res_L2norm
+         ! (should be BFB if Picard iteration is used)
+         ! call vec_to_arrays (nx_block, ny_block, nblocks,      &
+         !                     max_blocks, icellu (:), ntot,     & 
+         !                     indxui    (:,:), indxuj(:,:),     &
+         !                     res (:),                          &
+         !                     fpresx (:,:,:), fpresy (:,:,:))
+         ! !$OMP PARALLEL DO PRIVATE(iblk)
+         ! do iblk = 1, nblocks
+         !    call calc_L2norm_squared (nx_block        , ny_block,         &
+         !                              icellu    (iblk),                   & 
+         !                              indxui  (:,iblk), indxuj  (:,iblk), &
+         !                              fpresx(:,:,iblk), fpresy(:,:,iblk), &
+         !                              L2norm    (iblk))
+         ! enddo
+         ! !$OMP END PARALLEL DO
+         ! fpres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " fixed_point_res_L2norm= ", fpres_norm
          endif
@@ -1062,9 +1062,10 @@
                                       L2norm    (iblk))
          enddo
          !$OMP END PARALLEL DO
-         if (monitor_nonlin) then
+         prog_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
-                                              " progress_res_L2norm= ", sqrt(global_sum(sum(L2norm), distrb_info))
+                                              " progress_res_L2norm= ", prog_norm
          endif
          
       enddo ! nonlinear iteration loop
