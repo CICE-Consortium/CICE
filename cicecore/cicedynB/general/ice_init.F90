@@ -102,7 +102,7 @@
                                 kridge, ktransport, brlx, arlx
       use ice_dyn_vp, only: maxits_nonlin, precond, im_fgmres, im_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
-                            monitor_pgmres, gammaNL, gamma, epsprecond, &
+                            monitor_pgmres, reltol_nonlin, reltol_fgmres, reltol_pgmres, &
                             algo_nonlin, fpfunc_andacc, im_andacc, reltol_andacc, &
                             damping_andacc, start_andacc, use_mean_vrel, ortho_type
       use ice_transport_driver, only: advection, conserv_check
@@ -201,8 +201,8 @@
         e_ratio,        Ktens,          Cf,             basalstress,    &
         k1,             maxits_nonlin,  precond,        im_fgmres,      &
         im_pgmres,      maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
-        monitor_fgmres, monitor_pgmres, gammaNL,        gamma,          &
-        epsprecond,     algo_nonlin,    im_andacc,      reltol_andacc,  &
+        monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
+        reltol_pgmres,  algo_nonlin,    im_andacc,      reltol_andacc,  &
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
         ortho_type,                                                     &
         k2,             alphab,         threshold_hw,                   &
@@ -344,9 +344,9 @@
       monitor_fgmres = 1     ! print fgmres info (0: nothing printed, 1: 1st ite only, 2: all iterations)
       monitor_pgmres = 1     ! print pgmres info (0: nothing printed, 1: all iterations)
       ortho_type = 'mgs'     ! orthogonalization procedure 'cgs' or 'mgs'
-      gammaNL = 1e-8_dbl_kind    ! nonlinear stopping criterion: gammaNL*res(k=0)
-      gamma = 1e-2_dbl_kind      ! fgmres stopping criterion: gamma*res(k)
-      epsprecond = 1e-6_dbl_kind ! pgmres stopping criterion: epsprecond*res(k)
+      reltol_nonlin = 1e-8_dbl_kind ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
+      reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
+      reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
       algo_nonlin = 1        ! nonlinear algorithm: 1: Picard iteration, 2: Anderson acceleration (andacc)
       fpfunc_andacc = 1      ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
       im_andacc = 5          ! size of Anderson minimization matrix (number of saved previous residuals)
@@ -669,9 +669,9 @@
       call broadcast_scalar(monitor_fgmres,     master_task)
       call broadcast_scalar(monitor_pgmres,     master_task)
       call broadcast_scalar(ortho_type,         master_task)
-      call broadcast_scalar(gammaNL,            master_task)
-      call broadcast_scalar(gamma,              master_task)
-      call broadcast_scalar(epsprecond,         master_task)
+      call broadcast_scalar(reltol_nonlin,      master_task)
+      call broadcast_scalar(reltol_fgmres,      master_task)
+      call broadcast_scalar(reltol_pgmres,      master_task)
       call broadcast_scalar(algo_nonlin,        master_task)
       call broadcast_scalar(fpfunc_andacc,      master_task)
       call broadcast_scalar(im_andacc,          master_task)
@@ -1587,9 +1587,9 @@
             write(nu_diag,1020) ' monitor_fgmres            = ', monitor_fgmres
             write(nu_diag,1020) ' monitor_pgmres            = ', monitor_pgmres
             write(nu_diag,1030) ' ortho_type                = ', ortho_type
-            write(nu_diag,1008) ' gammaNL                   = ', gammaNL
-            write(nu_diag,1008) ' gamma                     = ', gamma
-            write(nu_diag,1008) ' epsprecond                = ', epsprecond
+            write(nu_diag,1008) ' reltol_nonlin             = ', reltol_nonlin
+            write(nu_diag,1008) ' reltol_fgmres             = ', reltol_fgmres
+            write(nu_diag,1008) ' reltol_pgmres             = ', reltol_pgmres
             write(nu_diag,1020) ' algo_nonlin               = ', algo_nonlin
             write(nu_diag,1010) ' use_mean_vrel             = ', use_mean_vrel
             if (algo_nonlin == 2) then

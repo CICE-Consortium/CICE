@@ -78,9 +78,9 @@
          use_mean_vrel      ! use mean of previous 2 iterates to compute vrel
 
       real (kind=dbl_kind), public :: &
-         gammaNL        , & ! nonlinear stopping criterion: gammaNL*res(k=0)
-         gamma          , & ! fgmres stopping criterion: gamma*res(k)
-         epsprecond     , & ! pgmres stopping criterion: epsprecond*res(k)
+         reltol_nonlin  , & ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
+         reltol_fgmres  , & ! fgmres stopping criterion: reltol_fgmres*res(k)
+         reltol_pgmres  , & ! pgmres stopping criterion: reltol_pgmres*res(k)
          damping_andacc , & ! damping factor for Anderson acceleration
          reltol_andacc      ! relative tolerance for Anderson acceleration
 
@@ -736,7 +736,7 @@
 
       real (kind=dbl_kind) :: & 
          tol         , & ! tolerance for fixed point convergence: reltol_andacc * (initial fixed point residual norm)
-         tol_nl      , & ! tolerance for nonlinear convergence: gammaNL * (initial nonlinear residual norm)
+         tol_nl      , & ! tolerance for nonlinear convergence: reltol_nonlin * (initial nonlinear residual norm)
          fpres_norm  , & ! norm of current fixed point residual : f(x) = g(x) - x
          prog_norm   , & ! norm of difference between current and previous solution
          nlres_norm  , & ! norm of current nonlinear residual : F(x) = A(x)x -b(x)
@@ -843,7 +843,7 @@
          endif
          ! Compute relative tolerance at first iteration
          if (it_nl == 0) then
-            tol_nl = gammaNL*nlres_norm
+            tol_nl = reltol_nonlin*nlres_norm
          endif
          
          ! Check for nonlinear convergence
@@ -889,14 +889,14 @@
             endif
             
             ! FGMRES linear solver
-            call fgmres (zetaD,               &
-                         Cb,         vrel,    &
-                         umassdti,            &
-                         halo_info_mask,      &
-                         solx,       soly,    &
-                         bx,         by,      &
-                         Diagu,      Diagv,   &
-                         gamma, im_fgmres, &
+            call fgmres (zetaD,                    &
+                         Cb,            vrel,      &
+                         umassdti,                 &
+                         halo_info_mask,           &
+                         solx,          soly,      &
+                         bx,            by,        &
+                         Diagu,         Diagv,     &
+                         reltol_fgmres, im_fgmres, &
                          maxits_fgmres, nbiter, conv)
             ! Put FGMRES solution solx,soly in fpfunc vector (needed for anderson)
             call arrays_to_vec (nx_block, ny_block, nblocks,      &
@@ -4109,7 +4109,7 @@
          ! Initialize preconditioned vector to 0 !phb try with wx = vx or vx/diagx
          wx = c0
          wy = c0
-         tolerance = epsprecond
+         tolerance = reltol_pgmres
          maxinner = im_pgmres
          maxouter = maxits_pgmres
          call pgmres (zetaD,                &

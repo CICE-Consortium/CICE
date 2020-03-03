@@ -149,9 +149,9 @@
     monitor_fgmres  = 1
     monitor_pgmres  = 1
     ortho_type      = 'mgs'
-    gammaNL         = 1e-8
-    gamma           = 1e-2
-    epsprecond      = 1e-6
+    reltol_nonlin   = 1e-8
+    reltol_fgmres   = 1e-2
+    reltol_pgmres   = 1e-6
     algo_nonlin     = 1
     use_mean_vrel   = .false.
     fpfunc_andacc   = 1
