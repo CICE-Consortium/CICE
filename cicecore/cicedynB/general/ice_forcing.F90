@@ -1380,6 +1380,44 @@
 
 !=======================================================================
 
+      subroutine interpolate_wavespec_data (field_data, field)
+
+! Linear interpolation
+
+! author: Elizabeth C. Hunke, LANL
+
+      use ice_domain, only: nblocks
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nfreq,2,max_blocks), intent(in) :: &
+        field_data    ! 2 values used for interpolation
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nfreq,max_blocks), intent(out) :: &
+        field         ! interpolated field
+
+      ! local variables
+
+      integer (kind=int_kind) :: i,j, iblk, freq
+
+      character(len=*), parameter :: subname = '(interpolate data)'
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+         do freq = 1, nfreq
+            field(i,j,freq,iblk) = c1intp * field_data(i,j,freq,1,iblk) &
+                            + c2intp * field_data(i,j,freq,2,iblk)
+         enddo
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      end subroutine interpolate_wavespec_data
+
+
+!=======================================================================
+
       subroutine file_year (data_file, yr)
 
 ! Construct the correct name of the atmospheric data file
@@ -5185,10 +5223,11 @@
          else
 #ifdef ncdf
             spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
-            call ice_open_nc(spec_file,fid)
-            call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
-                                  field_loc_center, field_type_scalar)
-            call ice_close_nc(fid)
+            call wave_spec_data
+            !call ice_open_nc(spec_file,fid)
+            !call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
+            !                      field_loc_center, field_type_scalar)
+            !call ice_close_nc(fid)
 #else
             write (nu_diag,*) &
               "wave spectrum file not available, requires ncdf"
@@ -5257,9 +5296,14 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+
       wave_spec_dir = '/glade/u/home/lettier/CICE6/'
       spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
-      yr = fyear_init + mod(nyr-1,ycycle)  ! current year 
+      wave_spectrum_data = c0
+      wave_spectrum = c0
+      yr = fyear_init + mod(nyr-1,ycycle)  ! current year
+      yr = 2009 ! temporary
+      print *, 'warning, year in waves = ',yr 
     !-------------------------------------------------------------------
     ! 6-hourly data
     ! 
@@ -5313,22 +5357,13 @@
               field_type=field_type_scalar)
 	 call ice_close_nc(ncid)
 
-
+     
       ! Interpolate
-      call interpolate_data (wave_spectrum_data, wave_spectrum)
+      call interpolate_wavespec_data (wave_spectrum_data, wave_spectrum)
+      !wave_spectrum = wave_spectrum_data(:,:,:,1,:)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-        do j = 1, ny_block
-        do i = 1, nx_block
-        do freq = 1,nfreq
-            ! multiply by land mask. Is this necessary?
-            wave_spectrum(i,j,freq,iblk) = wave_spectrum(i,j,freq,iblk) * hm(i,j,iblk)
-        enddo
-        enddo
-        enddo
-      enddo  ! iblk
-      !$OMP END PARALLEL DO
+
+      !WHERE (wave_spectrum.gt.1e+20) wave_spectrum = c0
 
       ! Save record number
       oldrecnum = recnum

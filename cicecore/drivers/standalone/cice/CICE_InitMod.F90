@@ -76,7 +76,7 @@
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn, get_wave_spec
+          get_forcing_atmo, get_forcing_ocn, get_wave_spec, wave_spec_data
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default, faero_optics, alloc_forcing_bgc
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
@@ -207,16 +207,17 @@
 
 #ifndef coupled
 #ifndef CESMCOUPLED
+
+      call get_forcing_atmo     ! atmospheric forcing from data
+      call get_forcing_ocn(dt)  ! ocean forcing from data
+
      ! ML fullnet
       if (tr_fsd .and. wave_spec) call icepack_init_spwf_fullnet
       if (tr_fsd .and. wave_spec) call icepack_init_spwf_class
 
       if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+      !if (tr_fsd .and. wave_spec) call wave_spec_data ! wave spectrum in ice
 
-
-
-      call get_forcing_atmo     ! atmospheric forcing from data
-      call get_forcing_ocn(dt)  ! ocean forcing from data
 
       ! aerosols
       ! if (tr_aero)  call faero_data                   ! data file

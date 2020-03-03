@@ -96,10 +96,11 @@
 #ifndef coupled
 #ifndef CESMCOUPLED
 ! for now, wave_spectrum is constant in time
-         if (tr_fsd .and. wave_spec) call wave_spec_data ! wave spectrum in ice
+        !if (tr_fsd .and. wave_spec) call wave_spec_data ! wave spectrum in ice
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
-
+         if (tr_fsd .and. wave_spec) call get_wave_spec  ! wave spectrum in ice
+ 
          ! aerosols
          ! if (tr_aero)  call faero_data                   ! data file
          ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
