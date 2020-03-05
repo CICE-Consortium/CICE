@@ -222,6 +222,19 @@ endif
 #EOFR
 
 #=======
+else if (${ICE_MACHINE} =~ conda*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+
+#=======
 else
   echo "${0} ERROR ${ICE_MACHINE} unknown"
   exit -1

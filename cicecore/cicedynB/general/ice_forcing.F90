@@ -117,7 +117,7 @@
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 
                           ! 'LYq' or 'hadgem' or 'oned' or
-                          ! 'JRA55'
+                          ! 'JRA55_gx1' or 'JRA55_gx3'
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
@@ -241,8 +241,8 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55' .and. &
-                                trim(atm_data_type) /= 'default' .and. &
+      if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55_gx1' .and. &
+                                trim(atm_data_type) /= 'JRA55_gx3' .and. &
                                 trim(atm_data_type) /= 'hycom' .and. &
                                 trim(atm_data_type) /= 'box2001')) then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
@@ -259,8 +259,10 @@
          call NCAR_files(fyear)
       elseif (trim(atm_data_type) == 'LYq') then
          call LY_files(fyear)
-      elseif (trim(atm_data_type) == 'JRA55') then
-         call JRA55_files(fyear)
+      elseif (trim(atm_data_type) == 'JRA55_gx1') then
+         call JRA55_gx1_files(fyear)
+      elseif (trim(atm_data_type) == 'JRA55_gx3') then
+         call JRA55_gx3_files(fyear)
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_files(fyear)
       elseif (trim(atm_data_type) == 'monthly') then
@@ -556,7 +558,9 @@
          call ncar_data
       elseif (trim(atm_data_type) == 'LYq') then
          call LY_data
-      elseif (trim(atm_data_type) == 'JRA55') then
+      elseif (trim(atm_data_type) == 'JRA55_gx1') then
+         call JRA55_data(fyear)
+      elseif (trim(atm_data_type) == 'JRA55_gx3') then
          call JRA55_data(fyear)
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_data
@@ -1395,7 +1399,11 @@
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_type) == 'JRA55') then ! netcdf
+      elseif (trim(atm_data_type) == 'JRA55_gx1') then ! netcdf
+         i = index(data_file,'.nc') - 5
+         tmpname = data_file
+         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
+      elseif (trim(atm_data_type) == 'JRA55_gx3') then ! netcdf
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
@@ -2025,12 +2033,12 @@
       endif                     ! master_task
 
       end subroutine LY_files
-      subroutine JRA55_files(yr)
+      subroutine JRA55_gx1_files(yr)
 !
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
-      character(len=*), parameter :: subname = '(JRA55_files)'
+      character(len=*), parameter :: subname = '(JRA55_gx1_files)'
 
       uwind_file = &
            trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_2005.nc'
@@ -2040,8 +2048,23 @@
          write (nu_diag,*) 'Atmospheric data files:'
          write (nu_diag,*) trim(uwind_file)
     endif
-      end subroutine JRA55_files
+      end subroutine JRA55_gx1_files
+      subroutine JRA55_gx3_files(yr)
+!
+      integer (kind=int_kind), intent(in) :: &
+           yr                   ! current forcing year
 
+      character(len=*), parameter :: subname = '(JRA55_gx3_files)'
+
+      uwind_file = &
+           trim(atm_data_dir)//'/8XDAILY/JRA55_gx3_03hr_forcing_2005.nc'
+      call file_year(uwind_file,yr)
+  if (my_task == master_task) then
+         write (nu_diag,*) ' '
+         write (nu_diag,*) 'Atmospheric data files:'
+         write (nu_diag,*) trim(uwind_file)
+    endif
+      end subroutine JRA55_gx3_files
 !=======================================================================
 !
 ! read Large and Yeager atmospheric data
@@ -5157,6 +5180,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+      ! if no wave data is provided, wave_spectrum is zero everywhere
       wave_spectrum(:,:,:,:) = c0
       wave_spec_dir = ocn_data_dir
       dbug = .false.
@@ -5164,17 +5188,14 @@
       ! wave spectrum and frequencies
       if (wave_spec) then
       ! get hardwired frequency bin info and a dummy wave spectrum profile
+      ! the latter is used if wave_spec_type == profile
          call icepack_init_wave(nfreq,                 &
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 
-         ! default, for testing only
-         do k = 1, nfreq
-            wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
-         enddo
 
          ! read more realistic data from a file
-         if (trim(wave_spec_type) == 'file') then
+         if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
          if (trim(wave_spec_file(1:4)) == 'unkn') then
             call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
          else
