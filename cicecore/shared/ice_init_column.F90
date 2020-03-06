@@ -254,8 +254,6 @@
 
       allocate(ztrcr_sw(nbtrcr_sw, ncat))
 
-      !!$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block, &
-      !!$OMP                     l_print_point,debug,ipoint)
       do iblk=1,nblocks
 
          ! Initialize
@@ -387,12 +385,18 @@
               enddo
             endif
 
+         enddo ! i
+         enddo ! j
+
       !-----------------------------------------------------------------
       ! Aggregate albedos 
+      ! Match loop order in coupling_prep for same order of operations
       !-----------------------------------------------------------------
 
-            do n = 1, ncat
-               
+         do n = 1, ncat
+         do j = jlo, jhi
+         do i = ilo, ihi
+
                if (aicen(i,j,n,iblk) > puny) then
                   
                   alvdf(i,j,iblk) = alvdf(i,j,iblk) &
@@ -422,7 +426,12 @@
                
                endif ! aicen > puny
 
-            enddo  ! ncat
+         enddo ! i
+         enddo ! j
+         enddo ! ncat
+
+         do j = 1, ny_block
+         do i = 1, nx_block
 
       !----------------------------------------------------------------
       ! Store grid box mean albedos and fluxes before scaling by aice
@@ -432,14 +441,14 @@
             alidf_ai  (i,j,iblk) = alidf  (i,j,iblk)
             alvdr_ai  (i,j,iblk) = alvdr  (i,j,iblk)
             alidr_ai  (i,j,iblk) = alidr  (i,j,iblk)
-            
+
             ! for history averaging
 !echmod?            cszn = c0
 !echmod            if (coszen(i,j,iblk) > puny) cszn = c1
 !echmod            do n = 1, nstreams
 !echmod               albcnt(i,j,iblk,n) = albcnt(i,j,iblk,n) + cszn
 !echmod            enddo
-            
+
       !----------------------------------------------------------------
       ! Save net shortwave for scaling factor in scale_factor
       !----------------------------------------------------------------
