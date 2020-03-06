@@ -1,35 +1,14 @@
 !=======================================================================
 !
-! Elastic-viscous-plastic sea ice dynamics model
+! Viscous-plastic sea ice dynamics model
 ! Computes ice velocity and deformation
 !
 ! See:
 !
-! Hunke, E. C., and J. K. Dukowicz (1997). An elastic-viscous-plastic model
-! for sea ice dynamics. {\em J. Phys. Oceanogr.}, {\bf 27}, 1849--1867.
 !
-! Hunke, E. C. (2001).  Viscous-Plastic Sea Ice Dynamics with the EVP Model:
-! Linearization Issues. {\em Journal of Computational Physics}, {\bf 170},
-! 18--38.
 !
-! Hunke, E. C., and J. K. Dukowicz (2002).  The Elastic-Viscous-Plastic
-! Sea Ice Dynamics Model in General Orthogonal Curvilinear Coordinates
-! on a Sphere---Incorporation of Metric Terms. {\em Monthly Weather Review},
-! {\bf 130}, 1848--1865.
+! authors: JF Lemieux, ECCC, Philppe Blain, ECCC
 !
-! Hunke, E. C., and J. K. Dukowicz (2003).  The sea ice momentum
-! equation in the free drift regime.  Los Alamos Tech. Rep. LA-UR-03-2219.
-!
-! Bouillon, S., T. Fichefet, V. Legat and G. Madec (submitted 2013).  The 
-! revised elastic-viscous-plastic method.  Ocean Modelling.
-!
-! author: Elizabeth C. Hunke, LANL
-!
-! 2003: Vectorized by Clifford Chen (Fujitsu) and William Lipscomb (LANL)
-! 2004: Block structure added by William Lipscomb
-! 2005: Removed boundary calls for stress arrays (WHL)
-! 2006: Streamlined for efficiency by Elizabeth Hunke
-!       Converted to free source form (F90)
 
       module ice_dyn_vp
 
