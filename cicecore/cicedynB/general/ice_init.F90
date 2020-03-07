@@ -95,7 +95,8 @@
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 kevp_kernel, &
-                                basalstress, k1, Ktens, e_ratio, coriolis, &
+                                basalstress, k1, k2, alphab, threshold_hw, &
+                                Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
@@ -184,7 +185,7 @@
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
-        k1
+        k1,             k2,             alphab,         threshold_hw      
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
@@ -296,6 +297,9 @@
       close_boundaries = .false.   ! true = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
       k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
+      k2 = 15.0_dbl_kind     ! dah: second free parameter (N/m^3) for landfast parametrization
+      alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
+      threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
@@ -569,6 +573,9 @@
       call broadcast_scalar(Cf,                 master_task)
       call broadcast_scalar(basalstress,        master_task)
       call broadcast_scalar(k1,                 master_task)
+      call broadcast_scalar(k2,                 master_task)
+      call broadcast_scalar(alphab,             master_task)
+      call broadcast_scalar(threshold_hw,       master_task)
       call broadcast_scalar(Ktens,              master_task)
       call broadcast_scalar(e_ratio,            master_task)
       call broadcast_scalar(advection,          master_task)
@@ -1036,8 +1043,12 @@
          write(nu_diag,1000) ' mu_rdg                    = ', mu_rdg
          if (kstrength == 1) &
          write(nu_diag,1000) ' Cf                        = ', Cf
+
          write(nu_diag,1010) ' basalstress               = ', basalstress
          write(nu_diag,1005) ' k1                        = ', k1
+         write(nu_diag,1005) ' k2                        = ', k2
+         write(nu_diag,1005) ' alphab                    = ', alphab
+         write(nu_diag,1005) ' threshold_hw              = ', threshold_hw
          write(nu_diag,1005) ' Ktens                     = ', Ktens
          write(nu_diag,1005) ' e_ratio                   = ', e_ratio    
          write(nu_diag,1030) ' advection                 = ', &
