@@ -193,6 +193,9 @@ Testing will be described in greater detail in the :ref:`testing` section.
 ``--acct``  ACCOUNT
   specifies a batch account number.  This is optional.  See :ref:`account` for more information.
 
+``--queue`` QUEUE
+  specifies a batch queue name.  This is optional.  See :ref:`queue` for more information.
+
 ``--grid``, ``-g`` GRID
   specifies the grid.  This is a string and for the current CICE driver, gx1, gx3, and tx1 are supported. (default = gx3)
 
@@ -202,7 +205,7 @@ Testing will be described in greater detail in the :ref:`testing` section.
 For CICE, when setting up cases, the ``--case`` and ``--mach`` must be specified.  
 It's also recommended that ``--env`` be set explicitly as well.  
 ``--pes`` and ``--grid`` can be very useful.
-``--acct`` is not normally used.  A more convenient method 
+``--acct`` and ``--queue`` are not normally used.  A more convenient method 
 is to use the **~/cice\_proj** file, see :ref:`account`.  The ``--set`` option can be 
 extremely handy.  The ``--set`` options are documented in :ref:`settings`.
 
@@ -350,9 +353,19 @@ be modified.
 Porting
 -------
 
+There are four basic issues that need to be addressed when porting, and these are addressed in four separate files in the script system,
+
+- setup of the environment such as compilers, environment variables, and other support software (in **env.[machine]_[environment]**)
+
+- setup of the Macros file to support the model build (in **Macros.[machine]_[environment]**)
+
+- setup of the batch submission scripts (in **cice.batch.csh**)
+
+- setup of the model launch command (in **cice.launch.csh**)
+
 To port, an **env.[machine]_[environment]** and **Macros.[machine]_[environment]** file have to be added to the
 **configuration/scripts/machines/** directory and the 
-**configuration/scripts/cice.batch.csh** file needs to be modified.
+**configuration/scripts/cice.batch.csh** and **configuration/scripts/cice.launch.csh** files need to be modified.
 In general, the machine is specified in ``cice.setup`` with ``--mach``
 and the environment (compiler) is specified with ``--env``.
  
@@ -365,7 +378,10 @@ and the environment (compiler) is specified with ``--env``.
 - cd .. to **configuration/scripts/**
 
 - Edit the **cice.batch.csh** script to add a section for your machine 
-  with batch settings and job launch settings
+  with batch settings
+
+- Edit the **cice.batch.csh** script to add a section for your machine 
+  with job launch settings
 
 - Download and untar a forcing dataset to the location defined by 
   ``ICE_MACHINE_INPUTDATA`` in the env file
@@ -375,7 +391,7 @@ to carry this out is to create an initial set of changes as described above, the
 create a case and manually modify the **env.[machine]** file and **Macros.[machine]** 
 file until the case can build and run.  Then copy the files from the case 
 directory back to **configuration/scripts/machines/** and update 
-the **configuration/scripts/cice.batch.csh** file, retest, 
+the **configuration/scripts/cice.batch.csh** and **configuratin/scripts/cice.launch.csh** files, retest, 
 and then add and commit the updated machine files to the repository.
 
 .. _machvars: 
@@ -440,6 +456,306 @@ Supported machines will have a default queue specified by the variable ``ICE_MAC
 in the **env.[machine]** file.  This can also be manually changed in the **cice.run** or
 **cice.test** scripts or even better, use the ``--queue`` option in **cice.setup**.
 
+.. _laptops:
+
+Porting to Laptop or Personal Computers
+-----------------------------------------
+To get the required software necessary to build and run CICE, and use the plotting and quality control scripts included in the repository, a `conda <https://docs.conda.io/en/latest/>`_ environment file is available at :
+
+``configuration/scripts/machines/environment.yml``.
+
+This configuration is supported by the Consortium on a best-effort basis on macOS and GNU/Linux. It is untested under Windows, but might work using the `Windows Subsystem for Linux <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_.
+
+Once you have installed Miniconda and created the ``cice`` conda environment by following the procedures in this section, CICE should run on your machine without having to go through the formal :ref:`porting` process outlined above.
+
+.. _install_miniconda:
+
+Installing Miniconda
+~~~~~~~~~~~~~~~~~~~~
+
+We recommend the use of the `Miniconda distribution <https://docs.conda.io/en/latest/miniconda.html>`_ to create a self-contained conda environment from the ``environment.yml`` file.
+This process has to be done only once.
+If you do not have Miniconda or Anaconda installed, you can install Miniconda by following the `official instructions  <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_, or with these steps:
+
+On macOS:
+
+.. code-block:: bash
+
+  # Download the Miniconda installer to ~/Downloads/miniconda.sh
+  curl -L https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o ~/Downloads/miniconda.sh
+  # Install Miniconda
+  bash ~/Downloads/miniconda.sh
+  
+  # Follow the prompts
+  
+  # Close and reopen your shell
+
+
+On GNU/Linux:
+
+.. code-block:: bash
+
+  # Download the Miniconda installer to ~/miniconda.sh
+  wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+  # Install Miniconda
+  bash ~/miniconda.sh
+  
+  # Follow the prompts
+  
+  # Close and reopen your shell
+
+Note: on some Linux distributions (including Ubuntu and its derivatives), the csh shell that comes with the system is not compatible with conda.
+You will need to install the tcsh shell (which is backwards compatible with csh), and configure your system to use tcsh as csh:
+ 
+.. code-block:: bash
+ 
+  # Install tcsh
+  sudo apt-get install tcsh
+  # Configure your system to use tcsh as csh
+  sudo update-alternatives --set csh /bin/tcsh
+ 
+  
+
+.. _init_shell:
+
+Initializing your shell for use with conda
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We recommend initializing your default shell to use conda.
+This process has to be done only once.
+
+The Miniconda installer should ask you if you want to do that as part of the installation procedure.
+If you did not answer "yes", you can use one of the following procedures depending on your default shell.
+Bash should be your default shell if you are on macOS (10.14 and older) or GNU/Linux.
+
+Note: answering "yes" during the Miniconda installation procedure will only initialize the Bash shell for use with conda.
+
+If your Mac has macOS 10.15 or higher, your default shell is Zsh. 
+
+These instructions make sure that the ``conda`` command is available when you start your shell by modifying your shell's startup file.
+Also, they make sure not to activate the "base" conda environment when you start your shell.
+This conda environment is created during the Miniconda installation but is not used for CICE. 
+
+For Bash:
+
+.. code-block:: bash
+
+  # Install miniconda as indicated above, then initialize your shell to use conda:
+  source $HOME/miniconda3/bin/activate
+  conda init bash
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
+For Zsh (Z shell):
+
+.. code-block:: bash
+
+  # Initialize Zsh to use conda
+  source $HOME/miniconda3/bin/activate
+  conda init zsh
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
+For tcsh:
+
+.. code-block:: bash
+  
+  # Install miniconda as indicated above, then initialize your shell to use conda:
+  source $HOME/miniconda3/etc/profile.d/conda.csh
+  conda init tcsh
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
+For fish:
+
+.. code-block:: bash
+  
+  # Install miniconda as indicated above, then initialize your shell to use conda:
+  source $HOME/miniconda3/etc/fish/conf.d/conda.fish
+  conda init fish
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
+For xonsh:
+
+.. code-block:: bash
+
+  # Install miniconda as indicated above, then initialize your shell to use conda:
+  source-bash $HOME/miniconda3/bin/activate
+  conda init xonsh
+  
+  # Don't activate the "base" conda environment on shell startup
+  conda config --set auto_activate_base false
+  
+  # Close and reopen your shell
+
+.. _init_shell_manually:
+
+Initializing your shell for conda manually
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you prefer not to modify your shell startup files, you will need to run the appropriate ``source`` command below (depending on your default shell) before using any conda command, and before compiling and running CICE.
+These instructions make sure the ``conda`` command is available for the duration of your shell session.
+
+For Bash and Zsh:
+
+.. code-block:: bash
+
+  # Initialize your shell session to use conda:
+  source $HOME/miniconda3/bin/activate
+
+For tcsh:
+
+.. code-block:: bash
+  
+  # Initialize your shell session to use conda:
+  source $HOME/miniconda3/etc/profile.d/conda.csh
+
+
+For fish:
+
+.. code-block:: bash
+  
+  # Initialize your shell session to use conda:
+  source $HOME/miniconda3/etc/fish/conf.d/conda.fish
+
+For xonsh:
+
+.. code-block:: bash
+
+  # Initialize your shell session to use conda:
+  source-bash $HOME/miniconda3/bin/activate
+
+
+.. _create_conda_env:
+
+Creating CICE directories and the conda environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The conda configuration expects some directories and files to be present at ``$HOME/cice-dirs``:
+
+.. code-block:: bash
+
+  cd $HOME
+  mkdir -p cice-dirs/runs cice-dirs/baseline cice-dirs/input
+  # Download the required forcing from https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data
+  # and untar it at $HOME/cice-dirs/input
+
+This step needs to be done only once.
+
+If you prefer that some or all of the CICE directories be located somewhere else, you can create a symlink from your home to another location:
+
+.. code-block:: bash
+
+  
+  # Create the CICE directories at your preferred location
+  cd ${somewhere}
+  mkdir -p cice-dirs/runs cice-dirs/baseline cice-dirs/input
+  # Download the required forcing from https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data
+  # and untar it at cice-dirs/input
+  
+  # Create a symlink to cice-dirs in your $HOME
+  cd $HOME
+  ln -s ${somewhere}/cice-dirs cice-dirs
+
+Note: if you wish, you can also create a complete machine port for your computer by leveraging the conda configuration as a starting point. See :ref:`porting`.
+
+Next, create the "cice" conda environment from the ``environment.yml`` file:
+
+.. code-block:: bash
+
+  conda env create -f configuration/scripts/machines/environment.yml
+
+This step needs to be done only once.
+
+.. _using_conda_env:
+
+Using the conda configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Follow the general instructions in :ref:`overview`, using the ``conda`` machine name and ``macos`` or ``linux`` as compiler names.
+
+On macOS:
+
+.. code-block:: bash
+
+  ./cice.setup -m conda -e macos -c ~/cice-dirs/cases/case1
+  cd ~/cice-dirs/cases/case1
+  ./cice.build
+  ./cice.run
+
+On GNU/Linux:
+
+.. code-block:: bash
+
+  ./cice.setup -m conda -e linux -c ~/cice-dirs/cases/case1
+  cd ~/cice-dirs/cases/case1
+  ./cice.build
+  ./cice.run
+
+A few notes about the conda configuration:
+
+- This configuration always runs the model interactively, such that ``./cice.run`` and ``./cice.submit`` are the same.
+- You should not update the packages in the ``cice`` conda environment, nor install additional packages.
+- Depending on the numbers of CPUs in your machine, you might not be able to run with the default MPI configuration (``-p 4x1``). You likely will get an OpenMPI error such as:
+
+    There are not enough slots available in the system to satisfy the 4 slots that were requested by the application:  ./cice
+    
+  You can run CICE in serial mode by specifically requesting only one process:
+  
+  .. code-block:: bash
+  
+    ./cice.setup -m conda -e linux -p 1x1 ...
+  
+  If you do want to run with more MPI processes than the number of available CPUs in your machine, you can add the ``--oversubscribe`` flag to the ``mpirun`` call in ``cice.run``:
+  
+  .. code-block:: bash
+  
+    # For a specific case:
+    # Open cice.run and replace the line
+    mpirun -np <num> ./cice >&! $ICE_RUNLOG_FILE
+    # with
+    mpirun -np <num> --oversubscribe ./cice >&! $ICE_RUNLOG_FILE
+  
+    # For all future cases:
+    # Open configuration/scripts/cice.launch.csh and replace the line
+    mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+    # with
+    mpirun -np ${ntasks} --oversubscribe ./cice >&! \$ICE_RUNLOG_FILE
+  
+- It is not recommeded to run other test suites than ``quick_suite`` or ``travis_suite`` on a personal computer.
+- The conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts in the case directory. These scripts source the file ``env.conda_{linux.macos}``, which calls ``conda activate cice``.
+- To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control scripts (see :ref:`CodeCompliance`), you must manually activate the environment:
+
+  .. code-block:: bash
+  
+    cd ~/cice-dirs/cases/case1
+    conda activate cice
+    python timeseries.py ~/cice-dirs/cases/case1/logs
+    conda deactivate  # to deactivate the environment
+  
+- The environment also contains the Sphinx package necessesary to build the HTML documentation :
+
+  .. code-block:: bash
+  
+    cd doc
+    conda activate cice
+    make html
+    # Open build/html/index.html in your browser
+    conda deactivate  # to deactivate the environment
+
+
 .. _force:
 
 Forcing data
@@ -452,7 +768,7 @@ and write permissions such that a set of users can update the inputdata area as
 new datasets are available.
 
 CICE input datasets are stored on an anonymous ftp server.  More information about
-how to download the input data can be found at https://github.com/CICE-Consortium/CICE/wiki.
+how to download the input data can be found at https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data.
 Test forcing datasets are available for various grids at the ftp site.  
 These data files are designed only for testing the code, not for use in production runs 
 or as observational data. Please do not publish results based on these data sets.
@@ -568,4 +884,3 @@ does not include all of the capabilities present in the Python version.
 To use the C-Shell version of the script, ::
 
 $ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
-

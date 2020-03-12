@@ -23,7 +23,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_compute_tracers
       use icepack_intfc, only: icepack_query_tracer_flags, &
-          icepack_query_tracer_numbers, icepack_query_tracer_indices, &
+          icepack_query_tracer_sizes, icepack_query_tracer_indices, &
           icepack_query_parameters
 
       implicit none
@@ -82,16 +82,16 @@
 
       integer (kind=int_kind) :: ntrcr, nt_Tsfc, nt_qice, nt_qsno, &
           nt_sice, nt_fbri, nt_iage, nt_FY, nt_alvl, nt_vlvl, &
-          nt_apnd, nt_hpnd, nt_ipnd, nt_bgc_Nit, nt_bgc_S
+          nt_apnd, nt_hpnd, nt_ipnd, nt_fsd, nt_bgc_Nit, nt_bgc_S
 
       character(len=*), parameter :: subname = '(init_transport)'
 
       call ice_timer_start(timer_advect)  ! advection 
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
           nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fbri_out=nt_fbri, &
-          nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_alvl_out=nt_alvl, &
+          nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_alvl_out=nt_alvl, nt_fsd_out=nt_fsd, &
           nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
           nt_ipnd_out=nt_ipnd, nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S)
       call icepack_warnings_flush(nu_diag)
@@ -190,6 +190,9 @@
                                               has_dependents(nt)
              if (nt-k==nt_ipnd) &
                 write(nu_diag,*) 'nt_ipnd',nt,depend(nt),tracer_type(nt),&
+                                              has_dependents(nt)
+             if (nt-k==nt_fsd) &
+                write(nu_diag,*) 'nt_fsd ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_bgc_Nit) &
                 write(nu_diag,*) 'nt_bgc_Nit',nt,depend(nt),tracer_type(nt),&
@@ -301,7 +304,7 @@
       character(len=*), parameter :: subname = '(transport_remap)'
 
       call ice_timer_start(timer_advect)  ! advection 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -706,7 +709,7 @@
 
       call ice_timer_start(timer_advect)  ! advection 
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1679,13 +1682,15 @@
             i = indxi(ij)
             j = indxj(ij)
 
-            call icepack_compute_tracers (ntrcr,        trcr_depend(:),     &
-                                         work (ij,narrays+1:narrays+ntrcr), &
-                                         aicen(i,j,n),                     &
-                                         vicen(i,j,n), vsnon(i,j,n),       &
-                                         trcr_base(:,:), n_trcr_strata(:), &
-                                         nt_strata(:,:), &
-                                         trcrn(i,j,:,n))
+            call icepack_compute_tracers(ntrcr=ntrcr, trcr_depend=trcr_depend(:),    &
+                                         atrcrn = work (ij,narrays+1:narrays+ntrcr), &
+                                         aicen  = aicen(i,j,n),            &
+                                         vicen  = vicen(i,j,n),            &
+                                         vsnon  = vsnon(i,j,n),            &
+                                         trcr_base     = trcr_base(:,:),   &
+                                         n_trcr_strata = n_trcr_strata(:), &
+                                         nt_strata     = nt_strata(:,:),   &
+                                         trcrn  = trcrn(i,j,:,n))
          enddo
          narrays = narrays + ntrcr
 

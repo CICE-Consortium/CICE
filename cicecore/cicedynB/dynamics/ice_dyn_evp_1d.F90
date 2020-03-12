@@ -36,6 +36,8 @@ module ice_dyn_evp_1d
   use ice_kinds_mod
   use ice_fileunits, only: nu_diag
   use ice_exit, only: abort_ice
+  use icepack_intfc, only: icepack_query_parameters
+  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
   implicit none
   private
@@ -244,7 +246,6 @@ module ice_dyn_evp_1d
 
     use ice_kinds_mod
     use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c1
-    use icepack_parameters, only: puny
     use ice_dyn_shared, only: ecci, denom1, arlx1i, Ktens, revp
 
     implicit none
@@ -264,6 +265,8 @@ module ice_dyn_evp_1d
     !-- local variables
 
     integer (kind=int_kind) :: iw,il,iu
+    real    (kind=dbl_kind) ::                                                   &
+      puny
     real    (kind=DBL_KIND) ::                                                   &
       divune, divunw, divuse, divusw,tensionne, tensionnw, tensionse, tensionsw, & 
       shearne, shearnw, shearse, shearsw, Deltane, Deltanw, Deltase, Deltasw   , &
@@ -278,6 +281,11 @@ module ice_dyn_evp_1d
    
     character(len=*), parameter :: subname = '(stress_i)'
     !---------------------------------------
+
+    call icepack_query_parameters(puny_out=puny)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
 #ifdef _OPENACC
     !$acc parallel                                                                 &
@@ -509,7 +517,6 @@ module ice_dyn_evp_1d
 
     use ice_kinds_mod
     use ice_constants, only: p027, p055, p111, p166, p222, p25, p333, p5, c1p5, c0, c1
-    use icepack_parameters, only: puny
     use ice_dyn_shared, only: ecci, denom1, arlx1i, Ktens, revp
 
     implicit none
@@ -531,6 +538,8 @@ module ice_dyn_evp_1d
     !-- local variables
 
     integer (kind=int_kind) :: iw,il,iu
+    real    (kind=dbl_kind) ::                                                   &
+      puny
     real    (kind=DBL_KIND) ::                                                   &
       divune, divunw, divuse, divusw,tensionne, tensionnw, tensionse, tensionsw, & 
       shearne, shearnw, shearse, shearsw, Deltane, Deltanw, Deltase, Deltasw   , &
@@ -545,6 +554,11 @@ module ice_dyn_evp_1d
   
     character(len=*), parameter :: subname = '(stress_l)'
     !---------------------------------------
+
+    call icepack_query_parameters(puny_out=puny)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
 
 #ifdef _OPENACC
     !$acc parallel                                                                 &
@@ -867,7 +881,6 @@ module ice_dyn_evp_1d
 
     use ice_kinds_mod
     use ice_constants, only: c0, c1
-    use icepack_parameters, only: puny
     use ice_dyn_shared, only: brlx, revp, basalstress
 
     implicit none
@@ -1397,7 +1410,6 @@ module ice_dyn_evp_1d
 
     use ice_constants, only : c0
     use ice_dyn_shared, only: ndte
-    use icepack_intfc, only: icepack_query_parameters
     use ice_communicate, only: my_task, master_task
     implicit none
 
@@ -1413,6 +1425,9 @@ module ice_dyn_evp_1d
 
       !- Read constants...
       call icepack_query_parameters(rhow_out=rhow)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
       na=NA_len
       nb=NA_len
       navel=NAVEL_len

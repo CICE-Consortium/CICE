@@ -29,7 +29,7 @@
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
 
       implicit none
       private
@@ -236,7 +236,7 @@
 
       character(len=*), parameter :: subname = '(restartfile)'
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -493,21 +493,21 @@
       do j = 1, ny_block
       do i = 1, nx_block
          if (tmask(i,j,iblk)) &
-         call icepack_aggregate (ncat,               &
-                                aicen(i,j,:,iblk),  &
-                                trcrn(i,j,:,:,iblk),&
-                                vicen(i,j,:,iblk),  &
-                                vsnon(i,j,:,iblk),  &
-                                aice (i,j,  iblk),  &
-                                trcr (i,j,:,iblk),  &
-                                vice (i,j,  iblk),  &
-                                vsno (i,j,  iblk),  &
-                                aice0(i,j,  iblk),  &
-                                ntrcr,              &
-                                trcr_depend,        &
-                                trcr_base,          &
-                                n_trcr_strata,      &
-                                nt_strata)
+            call icepack_aggregate(ncat  = ncat,                  &
+                                   aicen = aicen(i,j,:,iblk),     &
+                                   trcrn = trcrn(i,j,:,:,iblk),   &
+                                   vicen = vicen(i,j,:,iblk),     &
+                                   vsnon = vsnon(i,j,:,iblk),     &
+                                   aice  = aice (i,j,  iblk),     &
+                                   trcr  = trcr (i,j,:,iblk),     &
+                                   vice  = vice (i,j,  iblk),     &
+                                   vsno  = vsno (i,j,  iblk),     &
+                                   aice0 = aice0(i,j,  iblk),     &
+                                   ntrcr = ntrcr,                 &
+                                   trcr_depend   = trcr_depend,   &
+                                   trcr_base     = trcr_base,     &
+                                   n_trcr_strata = n_trcr_strata, &
+                                   nt_strata     = nt_strata)
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
       enddo
@@ -580,7 +580,7 @@
 
       character(len=*), parameter :: subname = '(restartfile_v4)'
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -856,21 +856,21 @@
       do j = 1, ny_block
       do i = 1, nx_block
          if (tmask(i,j,iblk)) &
-         call icepack_aggregate (ncat,               &
-                                aicen(i,j,:,iblk),  &
-                                trcrn(i,j,:,:,iblk),&
-                                vicen(i,j,:,iblk),  &
-                                vsnon(i,j,:,iblk),  &
-                                aice (i,j,  iblk),  &
-                                trcr (i,j,:,iblk),  &
-                                vice (i,j,  iblk),  &
-                                vsno (i,j,  iblk),  &
-                                aice0(i,j,  iblk),  &
-                                ntrcr,              &
-                                trcr_depend,        &
-                                trcr_base,          &
-                                n_trcr_strata,      &
-                                nt_strata)
+            call icepack_aggregate(ncat  = ncat,                  &
+                                   aicen = aicen(i,j,:,iblk),     &
+                                   trcrn = trcrn(i,j,:,:,iblk),   &
+                                   vicen = vicen(i,j,:,iblk),     &
+                                   vsnon = vsnon(i,j,:,iblk),     &
+                                   aice  = aice (i,j,  iblk),     &
+                                   trcr  = trcr (i,j,:,iblk),     &
+                                   vice  = vice (i,j,  iblk),     &
+                                   vsno  = vsno (i,j,  iblk),     &
+                                   aice0 = aice0(i,j,  iblk),     &
+                                   ntrcr = ntrcr,                 &
+                                   trcr_depend   = trcr_depend,   &
+                                   trcr_base     = trcr_base,     &
+                                   n_trcr_strata = n_trcr_strata, &
+                                   nt_strata     = nt_strata)
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
       enddo

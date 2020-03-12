@@ -65,14 +65,9 @@ ifeq ($(ICE_THREADED), true)
 endif
 
 ### if using parallel I/O, load all 3 libraries.  PIO must be first!
-ifeq ($(IO_TYPE), pio)
+ifeq ($(ICE_IOTYPE), pio)
    PIO_PATH:=/glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
    INCLDIR += -I/glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/include
    SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpiof
-
-   CPPDEFS :=  $(CPPDEFS) -Dncdf
 endif
 
-ifeq ($(IO_TYPE), netcdf)
-   CPPDEFS :=  $(CPPDEFS) -Dncdf
-endif

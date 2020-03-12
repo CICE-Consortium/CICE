@@ -41,7 +41,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
-      use icepack_intfc, only: icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
@@ -139,7 +139,7 @@
       integer (int_kind) :: ntrcr, ierr
       character(len=*),parameter :: subname='(alloc_state)'
 
-      call icepack_query_tracer_numbers(ntrcr_out=ntrcr)
+      call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)

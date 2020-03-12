@@ -13,6 +13,9 @@
 !            and global_sum_prod_dbl by T Craig NCAR
 ! Mar. 2019: Refactored bit-for-bit option, T Craig
 
+#ifndef SERIAL_REMOVE_MPI
+   use mpi   ! MPI Fortran module
+#endif
    use ice_kinds_mod
    use ice_blocks, only: block, get_block, nx_block, ny_block
 #ifdef SERIAL_REMOVE_MPI
@@ -32,10 +35,6 @@
 
    implicit none
    private
-
-#ifndef SERIAL_REMOVE_MPI
-   include 'mpif.h'
-#endif
 
    public :: global_sum,      &
              global_sum_prod, &

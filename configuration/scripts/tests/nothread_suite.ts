@@ -9,8 +9,10 @@ smoke          gx3     4x1        debug,diag1,run5day,thread
 restart        gx3     16x1       thread
 smoke          gx3     16x1       diag24,run1year,medium
 
-restart        gx1     160x1      droundrobin,medium
-restart        tx1     160x1      dsectrobin,medium
+#tcraig, hangs nodes intermittently on izumi
+#restart        gx1     160x1      droundrobin,medium
+#restart        tx1     160x1      dsectrobin,medium
+
 restart        gx3     16x1       none
 restart        gx3     16x1       iobinary
 
@@ -38,8 +40,9 @@ smoke          gbox80  1x1        boxslotcyl
 smoke          gx3     16x1       bgcz
 smoke          gx3     16x1       bgcz,debug
 smoke          gx3     24x1       bgcskl,debug
-restart        gx1     128x1      bgcsklclim,medium
-restart        gx1     256x1      bgczclim,medium
+#tcraig, hangs nodes intermittently on izumi
+#restart        gx1     128x1      bgcsklclim,medium
+#restart        gx1     256x1      bgczclim,medium
 
 decomp         gx3     8x1x5x29x20
 restart        gx3     1x1x50x58x4   droundrobin        restart_gx3_8x1x25x29x2_dslenderX2

@@ -24,7 +24,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters
-      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_numbers
+      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
 
       implicit none
       private
@@ -45,15 +45,15 @@
       subroutine CICE_Run
 
       use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
-      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, atm_data_type
+      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
+          get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_couple, timer_step
-
       logical (kind=log_kind) :: &
-          tr_aero, tr_zaero, skl_bgc, z_tracers
+          tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
       character(len=*), parameter :: subname = '(CICE_Run)'
 
    !--------------------------------------------------------------------
@@ -62,8 +62,12 @@
 
       call ice_timer_start(timer_step)   ! start timing entire run
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
-      call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, &
+                                    z_tracers_out=z_tracers, &
+                                    wave_spec_out=wave_spec)
+      call icepack_query_tracer_flags(tr_aero_out=tr_aero, &
+                                      tr_zaero_out=tr_zaero, &
+                                      tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -74,14 +78,20 @@
 
 !      timeLoop: do
 
+!         call ice_step
+
          istep  = istep  + 1    ! update time step counters
          istep1 = istep1 + 1
          time = time + dt       ! determine the time and date
+
+!         call calendar(time)    ! at the end of the timestep
 
          call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
 #ifndef coupled
 #ifndef CESMCOUPLED
+! for now, wave_spectrum is constant in time
+!         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
 
@@ -125,7 +135,8 @@
       subroutine ice_step
 
       use ice_boundary, only: ice_HaloUpdate
-      use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep, idate, sec
+      use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
+      use ice_calendar, only: idate, sec
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
@@ -138,13 +149,13 @@
       use ice_restart, only: final_restart
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
           write_restart_lvl, write_restart_pond_cesm, write_restart_pond_lvl, &
-          write_restart_pond_topo, write_restart_aero, &
+          write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
           write_restart_bgc, write_restart_hbrine
       use ice_restart_driver, only: dumpfile
       use ice_restoring, only: restore_ice, ice_HaloRestore
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
-          biogeochemistry, save_init
+          biogeochemistry, save_init, step_dyn_wave
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
           timer_hist, timer_readwrite
@@ -160,17 +171,19 @@
          offset          ! d(age)/dt time offset
 
       logical (kind=log_kind) :: &
-          tr_iage, tr_FY, tr_lvl, &
+          tr_iage, tr_FY, tr_lvl, tr_fsd, &
           tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero, &
-          calc_Tsfc, skl_bgc, solve_zsal, z_tracers
+          calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
 
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
-           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm)
+           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
+           wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
-           tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero)
+           tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
+           tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -240,6 +253,11 @@
       !-----------------------------------------------------------------
 
          if (.not.prescribed_ice) then
+
+         ! wave fracture of the floe size distribution
+         ! note this is called outside of the dynamics subcycling loop
+         if (tr_fsd .and. wave_spec) call step_dyn_wave(dt)
+
          do k = 1, ndtd
 
             ! momentum, stress, transport
@@ -257,7 +275,8 @@
             call update_state (dt_dyn, daidtd, dvidtd, dagedtd, offset)
 
          enddo
-         endif
+
+         endif  ! not prescribed ice
 
       !-----------------------------------------------------------------
       ! albedo, shortwave radiation
@@ -266,6 +285,7 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
+!MHRI: CHECK THIS OMP
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
@@ -314,6 +334,7 @@
             if (tr_pond_cesm) call write_restart_pond_cesm
             if (tr_pond_lvl)  call write_restart_pond_lvl
             if (tr_pond_topo) call write_restart_pond_topo
+            if (tr_fsd)       call write_restart_fsd
             if (tr_aero)      call write_restart_aero
             if (solve_zsal .or. skl_bgc .or. z_tracers) &
                               call write_restart_bgc 
@@ -347,12 +368,14 @@
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
-          scale_fluxes, frzmlt_init, frzmlt, Uref, wind, fsurfn_f, flatn_f
+          scale_fluxes, frzmlt_init, frzmlt, Uref, wind
       use ice_flux_bgc, only: faero_ocn, fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask
-      use ice_state, only: aicen, aice, aice_init
+      use ice_state, only: aicen, aice
+      use ice_state, only: aice_init
+      use ice_flux, only: flatn_f, fsurfn_f
       use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
 
@@ -387,7 +410,7 @@
 
          call icepack_query_parameters(puny_out=puny, rhofresh_out=rhofresh)
          call icepack_query_parameters(skl_bgc_out=skl_bgc)
-         call icepack_query_tracer_numbers(nbtrcr_out=nbtrcr)
+         call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
          call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -577,7 +600,6 @@
                           fresh    (:,:,iblk),   fhocn    (:,:,iblk))
          endif                 
 !echmod
-
          call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
 
       end subroutine coupling_prep
@@ -648,7 +670,7 @@
          enddo   ! j
       enddo      ! n
 
-#endif 
+#endif
 
       end subroutine sfcflux_to_ocn
 
