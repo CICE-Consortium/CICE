@@ -5167,7 +5167,6 @@
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! wave spectrum
 
-      character(char_len_long) :: spec_file
       character(char_len) :: wave_spec_type
       logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(get_wave_spec)'
@@ -5193,23 +5192,21 @@
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 
-
          ! read more realistic data from a file
          if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
-         if (trim(wave_spec_file(1:4)) == 'unkn') then
-            call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
-         else
+            if (trim(wave_spec_file(1:4)) == 'unkn') then
+               call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
+            else
 #ifdef ncdf
-            spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
-            call ice_open_nc(spec_file,fid)
-            call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
-                                  field_loc_center, field_type_scalar)
-            call ice_close_nc(fid)
+               call ice_open_nc(wave_spec_file,fid)
+               call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
+                                     field_loc_center, field_type_scalar)
+               call ice_close_nc(fid)
 #else
-            write (nu_diag,*) "wave spectrum file not available, requires ncdf"
-            write (nu_diag,*) "wave spectrum file not available, using default profile"
+               write (nu_diag,*) "wave spectrum file not available, requires ncdf"
+               write (nu_diag,*) "wave spectrum file not available, using default profile"
 #endif
-         endif
+            endif
          endif
       endif
 
