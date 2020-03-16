@@ -387,7 +387,7 @@
                                       strength(i,j,  iblk) )
          enddo  ! ij
 
-         ! load velocity into array for boundary updates JFL move?
+         ! load velocity into array for boundary updates
          fld2(:,:,1,iblk) = uvel(:,:,iblk)
          fld2(:,:,2,iblk) = vvel(:,:,iblk)
 
@@ -401,7 +401,7 @@
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
-      ! velocities may have changed in dyn_prep2 ! JFL prends en compte la grille spherique qui se referme sur elle meme...
+      ! velocities may have changed in dyn_prep2
       call ice_HaloUpdate (fld2,               halo_info, & 
                            field_loc_NEcorner, field_type_vector)
       call ice_timer_stop(timer_bound)
@@ -1864,8 +1864,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         vrel      , & ! coeff for tauw ! jfl
-         Cb            ! seabed stress coeff ! jfl
+         vrel      , & ! coeff for tauw
+         Cb            ! seabed stress coeff
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
@@ -1954,8 +1954,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         Au      , & ! matvec, Fx = bx - Au (N/m^2)! jfl
-         Av          ! matvec, Fy = by - Av (N/m^2)! jfl    
+         Au      , & ! matvec, Fx = bx - Au (N/m^2)
+         Av          ! matvec, Fy = by - Av (N/m^2)
 
       ! local variables
 
@@ -2058,8 +2058,8 @@
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         Au      , & ! matvec, Fx = bx - Au (N/m^2)! jfl
-         Av          ! matvec, Fy = by - Av (N/m^2)! jfl    
+         Au      , & ! matvec, Fx = bx - Au (N/m^2)
+         Av          ! matvec, Fy = by - Av (N/m^2)
 
       ! local variables
 
@@ -2311,8 +2311,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), & 
          intent(out) :: &
-         bxfix   , & ! bx = taux + bxfix !jfl
-         byfix       ! by = tauy + byfix !jfl
+         bxfix   , & ! bx = taux + bxfix
+         byfix       ! by = tauy + byfix
 
       ! local variables
 
@@ -2371,8 +2371,8 @@
          uarear  , & ! 1/uarea
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
-         bxfix   , & ! bx = taux + bxfix !jfl
-         byfix   , & ! by = tauy + byfix !jfl
+         bxfix   , & ! bx = taux + bxfix
+         byfix   , & ! by = tauy + byfix
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          vrel        ! relative ice-ocean velocity
@@ -2383,8 +2383,8 @@
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
-         bx      , & ! b vector, bx = taux + bxfix (N/m^2) !jfl
-         by          ! b vector, by = tauy + byfix (N/m^2) !jfl
+         bx      , & ! b vector, bx = taux + bxfix (N/m^2)
+         by          ! b vector, by = tauy + byfix (N/m^2)
          
       ! local variables
 
@@ -2457,10 +2457,10 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         bx       , & ! b vector, bx = taux + bxfix (N/m^2) !jfl
-         by       , & ! b vector, by = tauy + byfix (N/m^2) !jfl
-         Au       , & ! matvec, Fx = bx - Au (N/m^2) ! jfl
-         Av           ! matvec, Fy = by - Av (N/m^2) ! jfl
+         bx       , & ! b vector, bx = taux + bxfix (N/m^2)
+         by       , & ! b vector, by = tauy + byfix (N/m^2)
+         Au       , & ! matvec, Fx = bx - Au (N/m^2)
+         Av           ! matvec, Fy = by - Av (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
@@ -2512,11 +2512,11 @@
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
-         icellu                ! no. of cells where icetmask = 1 JFL
+         icellu                ! no. of cells where icetmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), & 
          intent(in) :: &
-         indxui   , & ! compressed index in i-direction JFL
+         indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
@@ -3167,7 +3167,6 @@
 
       end subroutine vec_to_arrays
       
-!      JFL ROUTINE POUR CALC STRESS OCN POUR COUPLAGE
       
 !=======================================================================
 
