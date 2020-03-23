@@ -528,6 +528,7 @@
 
       use ice_arrays_column, only: Cdn_atm
       use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, &
+           fiso_atm, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
            fdoc, fdon, fdic, ffed, ffep
       use ice_grid, only: bathymetry
@@ -617,6 +618,8 @@
          fsensn_f   (:,:,:,:) =  c0           ! sensible heat flux (W/m^2)
       endif !   
 
+      fiso_atm  (:,:,:,:) = c0           ! isotope deposition rate (kg/m2/s)
+      fiso_evap (:,:,:,:) = c0           ! isotope evaporation rate (kg/m2/s)
       faero_atm (:,:,:,:) = c0           ! aerosol deposition rate (kg/m2/s)
       flux_bio_atm (:,:,:,:) = c0        ! zaero and bio deposition rate (kg/m2/s)
 
@@ -631,6 +634,11 @@
       frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
       frzmlt_init(:,:,:) = c0         ! freezing/melting potential (W/m^2)
       sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
+
+      ! water isotopes from ocean
+      HDO_ocn   (:,:,:,:) = c0
+      H2_16O_ocn(:,:,:,:) = c0
+      H2_18O_ocn(:,:,:,:) = c0
 
       do iblk = 1, size(Tf,3)
       do j = 1, size(Tf,2)
@@ -763,7 +771,7 @@
 
       subroutine init_flux_ocn
 
-      use ice_flux_bgc, only: faero_ocn
+      use ice_flux_bgc, only: faero_ocn, fiso_ocn
 
       character(len=*), parameter :: subname = '(init_flux_ocn)'
 
@@ -776,6 +784,7 @@
       fpond    (:,:,:)   = c0
       fhocn    (:,:,:)   = c0
       fswthru  (:,:,:)   = c0
+      fiso_ocn (:,:,:,:) = c0
       faero_ocn(:,:,:,:) = c0
 
       end subroutine init_flux_ocn
