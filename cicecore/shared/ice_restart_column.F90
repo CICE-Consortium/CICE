@@ -19,6 +19,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_algae, icepack_max_doc, &
           icepack_max_don, icepack_max_dic, icepack_max_fe, icepack_max_aero
+!echtmp          icepack_max_iso
       use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_sizes, icepack_query_tracer_flags, &
           icepack_query_tracer_indices
@@ -45,6 +46,7 @@
          restart_pond_lvl , & ! if .true., read meltponds restart file
          restart_pond_topo, & ! if .true., read meltponds restart file
          restart_fsd      , & ! if .true., read floe size restart file
+         restart_iso      , & ! if .true., read isotop tracer restart file
          restart_aero     , & ! if .true., read aerosol tracer restart file
          restart_zsal     , & ! if .true., read Salinity from restart file 
          restart_hbrine   , & ! if .true., read hbrine from restart file

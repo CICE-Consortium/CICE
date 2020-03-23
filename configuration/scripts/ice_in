@@ -63,6 +63,7 @@
 /
 
 &tracer_nml
+    n_iso        = 0
     n_aero       = 1
     n_zaero      = 0
     n_algae      = 0
@@ -83,6 +84,8 @@
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
     restart_pond_lvl  = .false.
+    tr_iso       = .false.
+    restart_iso  = .false.
     tr_aero      = .false.
     restart_aero = .false.
     tr_fsd       = .false.
