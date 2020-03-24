@@ -19,7 +19,6 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_algae, icepack_max_doc, &
           icepack_max_don, icepack_max_dic, icepack_max_fe, icepack_max_aero
-!echtmp          icepack_max_iso
       use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_sizes, icepack_query_tracer_flags, &
           icepack_query_tracer_indices
@@ -34,6 +33,7 @@
                  write_restart_pond_lvl,  read_restart_pond_lvl, &
                  write_restart_pond_topo, read_restart_pond_topo, &
                  write_restart_fsd,       read_restart_fsd, &
+                 write_restart_iso,       read_restart_iso, &
                  write_restart_aero,      read_restart_aero, &
                  write_restart_bgc,       read_restart_bgc,  &
                  write_restart_hbrine,    read_restart_hbrine
@@ -46,7 +46,7 @@
          restart_pond_lvl , & ! if .true., read meltponds restart file
          restart_pond_topo, & ! if .true., read meltponds restart file
          restart_fsd      , & ! if .true., read floe size restart file
-         restart_iso      , & ! if .true., read isotop tracer restart file
+         restart_iso      , & ! if .true., read isotope tracer restart file
          restart_aero     , & ! if .true., read aerosol tracer restart file
          restart_zsal     , & ! if .true., read Salinity from restart file 
          restart_hbrine   , & ! if .true., read hbrine from restart file
@@ -550,6 +550,81 @@
       enddo
 
       end subroutine read_restart_fsd
+
+!=======================================================================
+
+! Dumps all values needed for restarting
+! author Elizabeth C. Hunke, LANL
+
+      subroutine write_restart_iso()
+
+      use ice_domain_size, only: n_iso
+      use ice_fileunits, only: nu_dump_iso
+      use ice_state, only: trcrn
+
+      ! local variables
+
+      logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_isosno, nt_isoice, k
+      character*3 ck
+      character(len=*),parameter :: subname='(write_restart_iso)'
+
+      call icepack_query_tracer_indices(nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      diag = .true.
+
+      !-----------------------------------------------------------------
+
+      do k = 1, n_iso
+        write(ck,'(i3.3)') k
+        call write_restart_field(nu_dump_iso,0, trcrn(:,:,nt_isosno+k-1,:,:), &
+                            'ruf8','isosno'//trim(ck),ncat,diag)
+        call write_restart_field(nu_dump_iso,0, trcrn(:,:,nt_isoice+k-1,:,:), &
+                            'ruf8','isoice'//trim(ck),ncat,diag)
+      enddo
+
+      end subroutine write_restart_iso
+
+!=======================================================================
+
+! Reads all values needed to restart isotope tracers
+! author Elizabeth C. Hunke, LANL
+
+      subroutine read_restart_iso()
+
+      use ice_domain_size, only: n_iso
+      use ice_fileunits, only: nu_restart_iso
+      use ice_state, only: trcrn
+
+      ! local variables
+
+      logical (kind=log_kind) :: &
+         diag
+      integer (kind=int_kind) :: nt_isosno, nt_isoice, k
+      character*3 ck
+      character(len=*),parameter :: subname='(read_restart_iso)'
+
+      call icepack_query_tracer_indices(nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      diag = .true.
+
+      do k = 1, n_iso
+        write(ck,'(i3.3)') k
+        call read_restart_field(nu_restart_iso,0,trcrn(:,:,nt_isosno+k-1,:,:), &
+                 'ruf8','isosno'//trim(ck),ncat,diag, &
+                 field_type=field_type_scalar,field_loc=field_loc_center)
+        call read_restart_field(nu_restart_iso,0,trcrn(:,:,nt_isoice+k-1,:,:), &
+                 'ruf8','isoice'//trim(ck),ncat,diag, &
+                 field_type=field_type_scalar,field_loc=field_loc_center)
+      enddo
+
+      end subroutine read_restart_iso
 
 !=======================================================================
 
