@@ -220,7 +220,8 @@ EOFB
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -t `echo ${batchtime} | cut -f1-2 -d:`
+# #SBATCH -t `echo ${batchtime} | cut -f1-2 -d:`
+#SBATCH -t ${batchtime}
 #SBATCH -q batch
 #SBATCH -A marine-cpu
 #SBATCH -N ${nnodes}
