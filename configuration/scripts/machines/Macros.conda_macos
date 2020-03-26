@@ -43,7 +43,7 @@ MODDIR  += -I$(CONDA_PREFIX)/include
 CFLAGS_HOST = -isysroot$(shell xcrun --show-sdk-path)
 
 # Libraries to be passed to the linker
-SLIBS   := -lnetcdf -lnetcdff
+SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff
 
 # Necessary flag to compile with OpenMP support
 ifeq ($(ICE_THREADED), true)
