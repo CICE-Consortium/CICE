@@ -99,11 +99,14 @@
       real (kind=dbl_kind), &   ! coupling variable for tr_iso
          dimension (:,:,:,:), allocatable, public :: &
          fiso_evap , & ! isotope evaporation rate (kg/m^2 s)
-         HDO_ocn   , & ! seawater concentration of HDO (kg/kg)
-         H2_16O_ocn, & ! seawater concentration of H2_16O (kg/kg)
-         H2_18O_ocn, & ! seawater concentration of H2_18O (kg/kg)
          Qa_iso    , & ! isotope specific humidity (kg/kg)
          Qref_iso      ! 2m atm reference isotope spec humidity (kg/kg)
+
+      real (kind=dbl_kind), &   ! coupling variable for tr_iso
+         dimension (:,:,:), allocatable, public :: &
+         HDO_ocn   , & ! seawater concentration of HDO (kg/kg)
+         H2_16O_ocn, & ! seawater concentration of H2_16O (kg/kg)
+         H2_18O_ocn    ! seawater concentration of H2_18O (kg/kg)
 
 !=======================================================================
 
@@ -135,9 +138,9 @@
          fdust       (nx_block,ny_block,max_blocks), & ! ice-ocean dust flux (kg/m^2/s), positive to ocean
          hin_old     (nx_block,ny_block,ncat,max_blocks), & ! old ice thickness
          dsnown      (nx_block,ny_block,ncat,max_blocks), & ! change in snow thickness in category n (m)
-         HDO_ocn    (nx_block,ny_block,icepack_max_iso,max_blocks), & ! seawater concentration of HDO (kg/kg)
-         H2_16O_ocn (nx_block,ny_block,icepack_max_iso,max_blocks), & ! seawater concentration of H2_16O (kg/kg)
-         H2_18O_ocn (nx_block,ny_block,icepack_max_iso,max_blocks), & ! seawater concentration of H2_18O (kg/kg)
+         HDO_ocn    (nx_block,ny_block,max_blocks), & ! seawater concentration of HDO (kg/kg)
+         H2_16O_ocn (nx_block,ny_block,max_blocks), & ! seawater concentration of H2_16O (kg/kg)
+         H2_18O_ocn (nx_block,ny_block,max_blocks), & ! seawater concentration of H2_18O (kg/kg)
          Qa_iso     (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope specific humidity (kg/kg)
          Qref_iso   (nx_block,ny_block,icepack_max_iso,max_blocks), & ! 2m atm reference isotope spec humidity (kg/kg)
          fiso_atm   (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope deposition rate (kg/m^2 s)   

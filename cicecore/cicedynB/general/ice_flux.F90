@@ -786,9 +786,9 @@
 
       faero_ocn (:,:,:,:) = c0
       fiso_ocn  (:,:,:,:) = c0
-      HDO_ocn   (:,:,:,:) = c0
-      H2_16O_ocn(:,:,:,:) = c0
-      H2_18O_ocn(:,:,:,:) = c0
+      HDO_ocn     (:,:,:) = c0
+      H2_16O_ocn  (:,:,:) = c0
+      H2_18O_ocn  (:,:,:) = c0
 
       end subroutine init_flux_ocn
 

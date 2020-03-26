@@ -593,9 +593,9 @@
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
                             fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
                             flux_bio (:,:,1:nbtrcr,iblk),            &
-                            Qref_iso (:,:,:,iblk),                   &
-                            fiso_evap(:,:,:,iblk),                   &
-                            fiso_ocn (:,:,:,iblk))
+                            Qref_iso =Qref_iso (:,:,:,iblk),         &
+                            fiso_evap=fiso_evap(:,:,:,iblk),         &
+                            fiso_ocn =fiso_ocn (:,:,:,iblk))
  
 #ifdef CICE_IN_NEMO
 !echmod - comment this out for efficiency, if .not. calc_Tsfc
