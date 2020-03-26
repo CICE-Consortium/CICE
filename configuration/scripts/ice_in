@@ -532,9 +532,12 @@
 /
 
 &icefields_bgc_nml
+    f_fiso_atm     = 'x'
+    f_fiso_ocn     = 'x'
+    f_iso          = 'x'
     f_faero_atm    = 'x'
     f_faero_ocn    = 'x'
-    f_aero         = 'x'  
+    f_aero         = 'x'
     f_fbio         = 'm'
     f_fbio_ai      = 'm'
     f_zaero        = 'x'

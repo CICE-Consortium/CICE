@@ -200,10 +200,10 @@
 
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
-           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd)
+           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_Tsfc_out=nt_Tsfc, &
            nt_aero_out=nt_aero, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
-           nt_fsd_out=nt_fsd)
+           nt_fsd_out=nt_fsd,nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_query_parameters(Tffresh_out=Tffresh, rhos_out=rhos, &
            rhow_out=rhow, rhoi_out=rhoi, puny_out=puny, &
            awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf, &
