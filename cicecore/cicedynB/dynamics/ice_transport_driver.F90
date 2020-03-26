@@ -82,7 +82,7 @@
 
       integer (kind=int_kind) :: ntrcr, nt_Tsfc, nt_qice, nt_qsno, &
           nt_sice, nt_fbri, nt_iage, nt_FY, nt_alvl, nt_vlvl, &
-          nt_apnd, nt_hpnd, nt_ipnd, nt_fsd, nt_bgc_Nit, nt_bgc_S
+          nt_apnd, nt_hpnd, nt_ipnd, nt_fsd, nt_isosno, nt_isoice, nt_bgc_Nit, nt_bgc_S
 
       character(len=*), parameter :: subname = '(init_transport)'
 
@@ -93,7 +93,8 @@
           nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fbri_out=nt_fbri, &
           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_alvl_out=nt_alvl, nt_fsd_out=nt_fsd, &
           nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
-          nt_ipnd_out=nt_ipnd, nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S)
+          nt_ipnd_out=nt_ipnd, nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S, &
+          nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -193,6 +194,12 @@
                                               has_dependents(nt)
              if (nt-k==nt_fsd) &
                 write(nu_diag,*) 'nt_fsd ',nt,depend(nt),tracer_type(nt),&
+                                              has_dependents(nt)
+             if (nt-k==nt_isosno) &
+                write(nu_diag,*) 'nt_isosno',nt,depend(nt),tracer_type(nt),&
+                                              has_dependents(nt)
+             if (nt-k==nt_isoice) &
+                write(nu_diag,*) 'nt_isoice',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_bgc_Nit) &
                 write(nu_diag,*) 'nt_bgc_Nit',nt,depend(nt),tracer_type(nt),&

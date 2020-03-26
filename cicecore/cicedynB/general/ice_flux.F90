@@ -527,8 +527,7 @@
       subroutine init_coupler_flux
 
       use ice_arrays_column, only: Cdn_atm
-      use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, &
-           fiso_atm, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn, &
+      use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, fiso_atm, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
            fdoc, fdon, fdic, ffed, ffep
       use ice_grid, only: bathymetry
@@ -619,7 +618,6 @@
       endif !   
 
       fiso_atm  (:,:,:,:) = c0           ! isotope deposition rate (kg/m2/s)
-      fiso_evap (:,:,:,:) = c0           ! isotope evaporation rate (kg/m2/s)
       faero_atm (:,:,:,:) = c0           ! aerosol deposition rate (kg/m2/s)
       flux_bio_atm (:,:,:,:) = c0        ! zaero and bio deposition rate (kg/m2/s)
 
@@ -634,11 +632,6 @@
       frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
       frzmlt_init(:,:,:) = c0         ! freezing/melting potential (W/m^2)
       sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
-
-      ! water isotopes from ocean
-      HDO_ocn   (:,:,:,:) = c0
-      H2_16O_ocn(:,:,:,:) = c0
-      H2_18O_ocn(:,:,:,:) = c0
 
       do iblk = 1, size(Tf,3)
       do j = 1, size(Tf,2)
@@ -735,6 +728,8 @@
 
       subroutine init_flux_atm
 
+      use ice_flux_bgc, only: fiso_evap, Qref_iso, Qa_iso
+
       character(len=*), parameter :: subname = '(init_flux_atm)'
 
       !-----------------------------------------------------------------
@@ -756,6 +751,10 @@
       Qref    (:,:,:) = c0
       Uref    (:,:,:) = c0
 
+      fiso_evap(:,:,:,:) = c0
+      Qref_iso (:,:,:,:) = c0
+      Qa_iso   (:,:,:,:) = c0
+
       end subroutine init_flux_atm
 
 !=======================================================================
@@ -771,7 +770,7 @@
 
       subroutine init_flux_ocn
 
-      use ice_flux_bgc, only: faero_ocn, fiso_ocn
+      use ice_flux_bgc, only: faero_ocn, fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
 
       character(len=*), parameter :: subname = '(init_flux_ocn)'
 
@@ -784,8 +783,12 @@
       fpond    (:,:,:)   = c0
       fhocn    (:,:,:)   = c0
       fswthru  (:,:,:)   = c0
-      fiso_ocn (:,:,:,:) = c0
-      faero_ocn(:,:,:,:) = c0
+
+      faero_ocn (:,:,:,:) = c0
+      fiso_ocn  (:,:,:,:) = c0
+      HDO_ocn   (:,:,:,:) = c0
+      H2_16O_ocn(:,:,:,:) = c0
+      H2_18O_ocn(:,:,:,:) = c0
 
       end subroutine init_flux_ocn
 
@@ -981,7 +984,11 @@
                                fzsal,    fzsal_g,  &
                                flux_bio,           &
                                fsurf,    fcondtop, &
-                               Uref,     wind      )
+                               Uref,     wind,     &
+                               Qref_iso,           &
+                               fiso_evap,fiso_ocn)
+
+      use icepack_intfc, only: icepack_max_iso
 
       integer (kind=int_kind), intent(in) :: &
           nx_block, ny_block, &    ! block dimensions
@@ -1039,6 +1046,13 @@
           fzsal   , & ! salt flux to ocean with prognositic salinity (kg/m2/s)  
           fzsal_g     ! Gravity drainage salt flux to ocean (kg/m2/s) 
 
+      ! isotopes
+      real (kind=dbl_kind), dimension(nx_block,ny_block,icepack_max_iso), &
+          optional, intent(inout) :: &
+          Qref_iso , & ! isotope air sp hum reference level      (kg/kg)
+          fiso_evap, & ! isotope evaporation (kg/m2/s)
+          fiso_ocn     ! isotope flux to ocean (kg/m2/s)
+
       ! local variables
 
       real (kind=dbl_kind) :: &
@@ -1087,6 +1101,9 @@
             fzsal_g (i,j) = fzsal_g (i,j) * ar  
             flux_bio (i,j,:) = flux_bio (i,j,:) * ar
             faero_ocn(i,j,:) = faero_ocn(i,j,:) * ar
+            if (present(Qref_iso )) Qref_iso (i,j,:) = Qref_iso (i,j,:) * ar
+            if (present(fiso_evap)) fiso_evap(i,j,:) = fiso_evap(i,j,:) * ar
+            if (present(fiso_ocn )) fiso_ocn (i,j,:) = fiso_ocn (i,j,:) * ar
          else                   ! zero out fluxes
             strairxT(i,j) = c0
             strairyT(i,j) = c0
@@ -1112,6 +1129,9 @@
             fzsal_g (i,j) = c0 
             flux_bio (i,j,:) = c0
             faero_ocn(i,j,:) = c0
+            if (present(Qref_iso )) Qref_iso (i,j,:) = c0
+            if (present(fiso_evap)) fiso_evap(i,j,:) = c0
+            if (present(fiso_ocn )) fiso_ocn (i,j,:) = c0
          endif                  ! tmask and aice > 0
       enddo                     ! i
       enddo                     ! j

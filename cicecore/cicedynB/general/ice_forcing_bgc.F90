@@ -541,16 +541,14 @@
 
 ! constant values for atmospheric water isotopes
 !
-! authors: Elizabeth Hunke, LANL
+! authors: David Bailey, NCAR
 
       subroutine fiso_default
 
       use ice_flux_bgc, only: fiso_atm
       character(len=*), parameter :: subname='(fiso_default)'
 
-      fiso_atm(:,:,1,:) = 1.e-12_dbl_kind ! kg/m^2 s
-      fiso_atm(:,:,2,:) = 1.e-13_dbl_kind
-      fiso_atm(:,:,3,:) = 1.e-14_dbl_kind
+      fiso_atm(:,:,:,:) = 1.e-14_dbl_kind ! kg/m^2 s
 
       end subroutine fiso_default
 

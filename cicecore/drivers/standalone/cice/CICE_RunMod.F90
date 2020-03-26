@@ -21,7 +21,7 @@
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_max_aero
+      use icepack_intfc, only: icepack_max_iso, icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
 
@@ -47,12 +47,12 @@
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_default
+          fiso_default, faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_couple, timer_step
       logical (kind=log_kind) :: &
-          tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
+          tr_iso, tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
       character(len=*), parameter :: subname = '(CICE_Run)'
 
    !--------------------------------------------------------------------
@@ -64,7 +64,8 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
                                     z_tracers_out=z_tracers, &
                                     wave_spec_out=wave_spec)
-      call icepack_query_tracer_flags(tr_aero_out=tr_aero, &
+      call icepack_query_tracer_flags(tr_iso_out=tr_iso, &
+                                      tr_aero_out=tr_aero, &
                                       tr_zaero_out=tr_zaero, &
                                       tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
@@ -100,6 +101,8 @@
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
 
+         ! isotopes
+         if (tr_iso)     call fiso_default                 ! default values
          ! aerosols
          ! if (tr_aero)  call faero_data                   ! data file
          ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
@@ -151,7 +154,7 @@
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
           write_restart_lvl, write_restart_pond_cesm, write_restart_pond_lvl, &
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
-          write_restart_bgc, write_restart_hbrine
+          write_restart_iso, write_restart_bgc, write_restart_hbrine
       use ice_restart_driver, only: dumpfile
       use ice_restoring, only: restore_ice, ice_HaloRestore
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
@@ -171,10 +174,17 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, &
-          tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero, &
+          tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
+
+      character (len=char_len) :: plabeld
+
+      plabeld = 'beginning time step'
+      do iblk = 1, nblocks
+         call debug_ice (iblk, plabeld)
+      enddo
 
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
            solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
@@ -182,7 +192,7 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
-           tr_fsd_out=tr_fsd)
+           tr_iso_out=tr_iso, tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -208,6 +218,8 @@
 
          call save_init
 
+               plabeld = 'post save_init'
+               call debug_ice (iblk, plabeld)
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
@@ -219,13 +231,27 @@
 
                if (calc_Tsfc) call prep_radiation (iblk)
 
+               plabeld = 'post prep_radiation'
+               call debug_ice (iblk, plabeld)
+
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
             
                call step_therm1     (dt, iblk) ! vertical thermodynamics
+
+               plabeld = 'post step_therm1'
+               call debug_ice (iblk, plabeld)
+
                call biogeochemistry (dt, iblk) ! biogeochemistry
+
+               plabeld = 'post biogeochemistry'
+               call debug_ice (iblk, plabeld)
+
                call step_therm2     (dt, iblk) ! ice thickness distribution thermo
+
+               plabeld = 'post step_therm2'
+               call debug_ice (iblk, plabeld)
 
             endif
 
@@ -252,6 +278,9 @@
             ! momentum, stress, transport
             call step_dyn_horiz (dt_dyn)
 
+            plabeld = 'post step_dyn_horiz'
+            call debug_ice (iblk, plabeld)
+
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -263,6 +292,11 @@
             offset = c0
             call update_state (dt_dyn, daidtd, dvidtd, dagedtd, offset)
 
+         enddo
+
+         plabeld = 'post dynamics'
+         do iblk = 1, nblocks
+            call debug_ice (iblk, plabeld)
          enddo
 
       !-----------------------------------------------------------------
@@ -278,11 +312,17 @@
 
             if (ktherm >= 0) call step_radiation (dt, iblk)
 
+            plabeld = 'post step_radiation'
+            call debug_ice (iblk, plabeld)
+
       !-----------------------------------------------------------------
       ! get ready for coupling and the next time step
       !-----------------------------------------------------------------
 
             call coupling_prep (iblk)
+
+            plabeld = 'post coupling_prep'
+            call debug_ice (iblk, plabeld)
 
          enddo ! iblk
          !$OMP END PARALLEL DO
@@ -322,6 +362,7 @@
             if (tr_pond_lvl)  call write_restart_pond_lvl
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_fsd)       call write_restart_fsd
+            if (tr_iso)       call write_restart_iso
             if (tr_aero)      call write_restart_aero
             if (solve_zsal .or. skl_bgc .or. z_tracers) &
                               call write_restart_bgc 
@@ -356,7 +397,8 @@
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt
-      use ice_flux_bgc, only: faero_ocn, fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
+      use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
+          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
       use ice_grid, only: tmask
       use ice_state, only: aicen, aice
 #ifdef CICE_IN_NEMO
@@ -535,7 +577,8 @@
       !-----------------------------------------------------------------
 
          call scale_fluxes (nx_block,            ny_block,           &
-                            tmask    (:,:,iblk), nbtrcr, icepack_max_aero,   &
+                            tmask    (:,:,iblk), nbtrcr,             &
+                            icepack_max_aero,                        &
                             aice     (:,:,iblk), Tf      (:,:,iblk), &
                             Tair     (:,:,iblk), Qa      (:,:,iblk), &
                             strairxT (:,:,iblk), strairyT(:,:,iblk), &
@@ -549,7 +592,10 @@
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
                             fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
-                            flux_bio(:,:,1:nbtrcr,iblk))
+                            flux_bio (:,:,1:nbtrcr,iblk),            &
+                            Qref_iso (:,:,:,iblk),                   &
+                            fiso_evap(:,:,:,iblk),                   &
+                            fiso_ocn (:,:,:,iblk))
  
 #ifdef CICE_IN_NEMO
 !echmod - comment this out for efficiency, if .not. calc_Tsfc

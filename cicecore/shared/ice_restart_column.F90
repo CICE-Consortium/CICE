@@ -12,7 +12,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p5
       use ice_constants, only: field_loc_center, field_type_scalar
-      use ice_domain_size, only: ncat, nfsd, nblyr
+      use ice_domain_size, only: ncat, nfsd, nblyr, n_iso
       use ice_restart,only: read_restart_field, write_restart_field
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
@@ -558,7 +558,6 @@
 
       subroutine write_restart_iso()
 
-      use ice_domain_size, only: n_iso
       use ice_fileunits, only: nu_dump_iso
       use ice_state, only: trcrn
 
