@@ -179,13 +179,6 @@
 
       character(len=*), parameter :: subname = '(ice_step)'
 
-      character (len=char_len) :: plabeld
-
-      plabeld = 'beginning time step'
-      do iblk = 1, nblocks
-         call debug_ice (iblk, plabeld)
-      enddo
-
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
            solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
            wave_spec_out=wave_spec)
@@ -218,8 +211,6 @@
 
          call save_init
 
-               plabeld = 'post save_init'
-               call debug_ice (iblk, plabeld)
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
@@ -231,29 +222,15 @@
 
                if (calc_Tsfc) call prep_radiation (iblk)
 
-               plabeld = 'post prep_radiation'
-               call debug_ice (iblk, plabeld)
-
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
             
                call step_therm1     (dt, iblk) ! vertical thermodynamics
-
-               plabeld = 'post step_therm1'
-               call debug_ice (iblk, plabeld)
-
                call biogeochemistry (dt, iblk) ! biogeochemistry
-
-               plabeld = 'post biogeochemistry'
-               call debug_ice (iblk, plabeld)
-
                call step_therm2     (dt, iblk) ! ice thickness distribution thermo
 
-               plabeld = 'post step_therm2'
-               call debug_ice (iblk, plabeld)
-
-            endif
+            endif ! ktherm > 0
 
          enddo ! iblk
          !$OMP END PARALLEL DO
@@ -278,9 +255,6 @@
             ! momentum, stress, transport
             call step_dyn_horiz (dt_dyn)
 
-            plabeld = 'post step_dyn_horiz'
-            call debug_ice (iblk, plabeld)
-
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -292,11 +266,6 @@
             offset = c0
             call update_state (dt_dyn, daidtd, dvidtd, dagedtd, offset)
 
-         enddo
-
-         plabeld = 'post dynamics'
-         do iblk = 1, nblocks
-            call debug_ice (iblk, plabeld)
          enddo
 
       !-----------------------------------------------------------------
@@ -312,17 +281,11 @@
 
             if (ktherm >= 0) call step_radiation (dt, iblk)
 
-            plabeld = 'post step_radiation'
-            call debug_ice (iblk, plabeld)
-
       !-----------------------------------------------------------------
       ! get ready for coupling and the next time step
       !-----------------------------------------------------------------
 
             call coupling_prep (iblk)
-
-            plabeld = 'post coupling_prep'
-            call debug_ice (iblk, plabeld)
 
          enddo ! iblk
          !$OMP END PARALLEL DO
