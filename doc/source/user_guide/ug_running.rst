@@ -671,7 +671,7 @@ If you prefer that some or all of the CICE directories be located somewhere else
 
 Note: if you wish, you can also create a complete machine port for your computer by leveraging the conda configuration as a starting point. See :ref:`porting`.
 
-Next, create the "cice" conda environment from the ``environment.yml`` file:
+Next, create the "cice" conda environment from the ``environment.yml`` file in the CICE source code repository.  You will need to clone CICE to run the following command:
 
 .. code-block:: bash
 
