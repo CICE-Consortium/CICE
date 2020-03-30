@@ -122,7 +122,6 @@
       call ice_timer_start(timer_total)   ! start timing entire run
       call init_grid2           ! grid variables
       call init_zbgc            ! vertical biogeochemistry initialization
-
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
 
@@ -134,6 +133,7 @@
       endif
 
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
+
 #ifdef popcice
       call sst_sss              ! POP data for CICE initialization
 #endif 
@@ -253,6 +253,7 @@
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
           restart_fsd, read_restart_fsd, &
+          restart_iso, read_restart_iso, &
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
@@ -265,13 +266,13 @@
          iblk            ! block index
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-          tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
+          tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
-          nt_iage, nt_FY, nt_aero, nt_fsd
+          nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice
 
       character(len=*), parameter :: subname = '(init_restart)'
 
@@ -285,10 +286,11 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
-           tr_fsd_out=tr_fsd)
+           tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
-           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd)
+           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd, &
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -393,6 +395,18 @@
             call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,:))
          endif
       endif
+
+      ! isotopes
+      if (tr_iso) then
+         if (trim(runtype) == 'continue') restart_iso = .true.
+         if (restart_iso) then
+            call read_restart_iso
+         else
+!echtmp            call init_iso(trcrn(:,:,nt_isosno:nt_isosno+n_iso-1,:,:), &
+!echtmp                          trcrn(:,:,nt_isoice:nt_isoice+n_iso-1,:,:))
+         endif
+      endif
+
       if (tr_aero) then ! ice aerosol
          if (trim(runtype) == 'continue') restart_aero = .true.
          if (restart_aero) then
