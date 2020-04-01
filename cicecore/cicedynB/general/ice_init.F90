@@ -1450,8 +1450,8 @@
       endif
       if (tr_iso) then  ! isotopes
          do it = 1, n_iso
-            trcr_depend(nt_isosno) = 2          ! snow
-            trcr_depend(nt_isoice) = 1          ! ice
+            trcr_depend(nt_isosno+it-1) = 2     ! snow
+            trcr_depend(nt_isoice+it-1) = 1     ! ice
          enddo
       endif
       if (tr_aero) then ! volume-weighted aerosols
