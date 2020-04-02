@@ -44,11 +44,11 @@
       integer (kind=int_kind) ::                      &
          ntrace              ! number of tracers in use
                           
-      integer (kind=int_kind), dimension(:), allocatable ::             &
+      integer (kind=int_kind), dimension(:), allocatable, public ::      &
          tracer_type       ,&! = 1, 2, or 3 (depends on 0, 1 or 2 other tracers)
          depend              ! tracer dependencies (see below)
 
-      logical (kind=log_kind), dimension (:), allocatable ::             &
+      logical (kind=log_kind), dimension (:), allocatable, public ::     &
          has_dependents      ! true if a tracer has dependent tracers
 
       integer (kind=int_kind), parameter ::                      &

@@ -72,7 +72,7 @@
          sublim_file, &
            snow_file  
 
-      character (char_len_long), dimension(:), allocatable :: &  ! input data file names
+      character (char_len_long), dimension(:), allocatable, public :: &  ! input data file names
         topmelt_file, &
         botmelt_file
 
@@ -84,10 +84,10 @@
            oldrecnum = 0  , & ! old record number (save between steps)
            oldrecnum4X = 0    !
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
           cldf                ! cloud fraction
 
-      real (kind=dbl_kind), dimension(:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
             fsw_data, & ! field values at 2 temporal data points
            cldf_data, &
           fsnow_data, &
@@ -107,8 +107,7 @@
          sublim_data, &
           frain_data
 
-      real (kind=dbl_kind), & 
-           dimension(:,:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable, public :: &
         topmelt_data, &
         botmelt_data
 
@@ -141,8 +140,7 @@
          frcidr = 0.31_dbl_kind, & ! frac of incoming sw in near IR direct band
          frcidf = 0.17_dbl_kind    ! frac of incoming sw in near IR diffuse band
 
-      real (kind=dbl_kind), &
-       dimension (:,:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          ocn_frc_m   ! ocn data for 12 months
 
       logical (kind=log_kind), public :: &

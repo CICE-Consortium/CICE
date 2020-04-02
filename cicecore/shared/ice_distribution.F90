@@ -118,8 +118,7 @@
 
    case('spacecurve')
 
-      create_distribution = create_distrb_spacecurve(nprocs, &
-                                                   work_per_block)
+      create_distribution = create_distrb_spacecurve(nprocs, work_per_block)
 
    case default
 
@@ -364,7 +363,7 @@
 !
 !----------------------------------------------------------------------
 
-   distribution%nprocs       = 0
+   distribution%nprocs         = 0
    distribution%communicator   = 0
    distribution%numLocalBlocks = 0
 
@@ -377,6 +376,9 @@
    deallocate(distribution%blockLocation, stat=istat)
    deallocate(distribution%blockLocalID , stat=istat)
    deallocate(distribution%blockGlobalID, stat=istat)
+   deallocate(distribution%blockCnt , stat=istat)
+   deallocate(distribution%blockindex , stat=istat)
+
 
 !-----------------------------------------------------------------------
 
@@ -611,6 +613,12 @@
       return
    endif
 
+   allocate (newDistrb%blockCnt(nprocs))
+   newDistrb%blockCnt(:) = 0
+
+   allocate(newDistrb%blockIndex(nprocs,max_blocks))
+   newDistrb%blockIndex(:,:) = 0
+
 !----------------------------------------------------------------------
 !
 !  distribute blocks linearly across processors in each direction
@@ -640,6 +648,8 @@
             localID = localID + 1
             newDistrb%blockLocation(globalID) = processor
             newDistrb%blockLocalID (globalID) = localID
+            newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+            newDistrb%blockIndex(processor,localID) = globalID
          else  ! no work - eliminate block from distribution
             newDistrb%blockLocation(globalID) = 0
             newDistrb%blockLocalID (globalID) = 0
@@ -966,6 +976,12 @@
       return
    endif
 
+   allocate (newDistrb%blockCnt(nprocs))
+   newDistrb%blockCnt(:) = 0
+
+   allocate(newDistrb%blockIndex(nprocs,max_blocks))
+   newDistrb%blockIndex(:,:) = 0
+
    allocate(procTmp(nprocs), stat=istat)
    if (istat > 0) then
       call abort_ice( &
@@ -981,11 +997,13 @@
       if (pid > 0) then
          procTmp(pid) = procTmp(pid) + 1
          newDistrb%blockLocalID (n) = procTmp(pid)
+         newDistrb%blockIndex(pid,procTmp(pid)) = n
       else
          newDistrb%blockLocalID (n) = 0
       endif
    end do
 
+   newDistrb%blockCnt(:) = procTmp(:)
    newDistrb%numLocalBlocks = procTmp(my_task+1)
 
    if (minval(procTmp) < 1) then
@@ -2146,6 +2164,12 @@
    dist%blockLocation=0
    dist%blockLocalID =0
 
+   allocate (dist%blockCnt(nprocs))
+   dist%blockCnt(:) = 0
+
+   allocate(dist%blockIndex(nprocs,max_blocks))
+   dist%blockIndex(:,:) = 0
+
    !----------------------------------------------------------------------
    !  Create the array to hold the SFC and indices into it
    !----------------------------------------------------------------------
@@ -2281,12 +2305,14 @@
       if(pid>0) then
         proc_tmp(pid) = proc_tmp(pid) + 1
         dist%blockLocalID(n) = proc_tmp(pid)
+        dist%blockIndex(pid,proc_tmp(pid)) = n
       else
         dist%blockLocalID(n) = 0
       endif
    enddo
 
    dist%numLocalBlocks = proc_tmp(my_task+1)
+   dist%blockCnt(:) = proc_tmp(:)
 
    if (dist%numLocalBlocks > 0) then
       allocate (dist%blockGlobalID(dist%numLocalBlocks))

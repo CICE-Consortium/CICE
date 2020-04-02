@@ -34,11 +34,11 @@
       integer (kind=int_kind) :: &
          bgcrecnum = 0   ! old record number (save between steps)
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
-          nitdat      , & ! data value toward which nitrate is restored
-          sildat          ! data value toward which silicate is restored
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
+         nitdat      , & ! data value toward which nitrate is restored
+         sildat          ! data value toward which silicate is restored
 
-      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, save :: &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
          nit_data, & ! field values at 2 temporal data points
          sil_data
 
