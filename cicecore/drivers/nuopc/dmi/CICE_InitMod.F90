@@ -161,7 +161,8 @@
          floe_rad_l,    &  ! fsd size lower bound in m (radius)
          floe_rad_c,    &  ! fsd size bin centre in m (radius)
          floe_binwidth, &  ! fsd size bin width in m (radius)
-         c_fsd_range)      ! string for history output
+         c_fsd_range,   &  ! string for history output
+         write_diags=(my_task == master_task))  ! write diag on master only
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
