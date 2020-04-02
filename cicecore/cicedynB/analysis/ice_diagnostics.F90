@@ -93,8 +93,8 @@
       integer (kind=int_kind), parameter, public :: &
          check_step = 999999999, & ! begin printing at istep1=check_step
          iblkp = 1, &      ! block number 
-         ip = 2, &         ! i index
-         jp = 11, &         ! j index
+         ip = 72, &        ! i index
+         jp = 11, &        ! j index
          mtask = 0         ! my_task
 
 !=======================================================================
@@ -1564,18 +1564,20 @@
            qi, qs, Tsnow, &
            rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
-      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd
+      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd, &
+           nt_isosno, nt_isoice
 
-      logical (kind=log_kind) :: tr_fsd
+      logical (kind=log_kind) :: tr_fsd, tr_iso
 
       type (block) :: &
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(print_state)'
 
-      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
-           nt_qsno_out=nt_qsno, nt_fsd_out=nt_fsd)
+           nt_qsno_out=nt_qsno, nt_fsd_out=nt_fsd, &
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
@@ -1605,6 +1607,8 @@
          endif
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
          if (tr_fsd) write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk) ! fsd cat 1
+!         if (tr_iso) write(nu_diag,*) 'isosno',trcrn(i,j,nt_isosno,n,iblk) ! isotopes in snow
+!         if (tr_iso) write(nu_diag,*) 'isoice',trcrn(i,j,nt_isoice,n,iblk) ! isotopes in ice
          write(nu_diag,*) ' '
 
 ! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal

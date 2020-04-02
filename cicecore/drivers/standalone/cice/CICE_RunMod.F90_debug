@@ -276,8 +276,10 @@
             ! momentum, stress, transport
             call step_dyn_horiz (dt_dyn)
 
+            do iblk = 1, nblocks
             plabeld = 'post step_dyn_horiz'
             call debug_ice (iblk, plabeld)
+            enddo ! iblk
 
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
@@ -285,6 +287,11 @@
                if (kridge > 0) call step_dyn_ridge (dt_dyn, ndtd, iblk)
             enddo
             !$OMP END PARALLEL DO
+
+            do iblk = 1, nblocks
+            plabeld = 'post step_dyn_ridge'
+            call debug_ice (iblk, plabeld)
+            enddo ! iblk
 
             ! clean up, update tendency diagnostics
             offset = c0

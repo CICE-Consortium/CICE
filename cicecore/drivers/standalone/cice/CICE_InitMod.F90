@@ -77,7 +77,7 @@
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
           get_forcing_atmo, get_forcing_ocn, get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_default, faero_optics, alloc_forcing_bgc
+          faero_default, faero_optics, alloc_forcing_bgc, fiso_default
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runtype
@@ -92,7 +92,7 @@
 #endif
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
-         tr_fsd, wave_spec
+         tr_iso, tr_fsd, wave_spec
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -181,6 +181,7 @@
       call init_history_dyn     ! initialize dynamic history variables
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
+      call icepack_query_tracer_flags(tr_iso_out=tr_iso)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -211,6 +212,8 @@
       call get_forcing_atmo     ! atmospheric forcing from data
       call get_forcing_ocn(dt)  ! ocean forcing from data
 
+      ! isotopes
+      if (tr_iso)     call fiso_default                 ! default values
       ! aerosols
       ! if (tr_aero)  call faero_data                   ! data file
       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
@@ -239,14 +242,14 @@
       use ice_calendar, only: time, calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, n_aero, nfsd
+      use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
-          init_aerosol, init_hbrine, init_bgc, init_fsd
+          init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
           restart_pond_cesm, read_restart_pond_cesm, &
@@ -402,8 +405,10 @@
          if (restart_iso) then
             call read_restart_iso
          else
-!echtmp            call init_iso(trcrn(:,:,nt_isosno:nt_isosno+n_iso-1,:,:), &
-!echtmp                          trcrn(:,:,nt_isoice:nt_isoice+n_iso-1,:,:))
+            do iblk = 1, nblocks 
+               call init_isotope(trcrn(:,:,nt_isosno:nt_isosno+n_iso-1,:,iblk), &
+                                 trcrn(:,:,nt_isoice:nt_isoice+n_iso-1,:,iblk))
+            enddo ! iblk
          endif
       endif
 

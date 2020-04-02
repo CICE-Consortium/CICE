@@ -45,7 +45,7 @@
                 init_age, init_FY, init_lvl, init_fsd, &
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
-                count_tracers
+                count_tracers, init_isotope
 
       ! namelist parameters needed locally
 
@@ -668,6 +668,21 @@
       endif ! tr_fsd
 
       end subroutine init_fsd
+
+!=======================================================================
+
+!  Initialize isotope tracers (call prior to reading restart data)
+
+      subroutine init_isotope(isosno, isoice)
+
+      real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: &
+         isosno, isoice
+      character(len=*),parameter :: subname='(init_isotope)'
+
+      isosno(:,:,:,:) = c0
+      isoice(:,:,:,:) = c0
+
+      end subroutine init_isotope
 
 !=======================================================================
 
@@ -1913,7 +1928,7 @@
           ntrcr = ntrcr + 4*n_aero ! 4 dEdd layers, n_aero species
       else
 !tcx, modify code so we don't have to reset n_aero here
-          n_aero = 0
+          n_aero = 0       !echmod - this is not getting set correctly (overwritten later?)
       endif
               
       !-----------------------------------------------------------------
