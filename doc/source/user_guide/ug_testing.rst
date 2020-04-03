@@ -645,7 +645,11 @@ To post results, once a test suite is complete, run ``results.csh`` and
   ./results.csh
   ./report_results.csh
 
-The reporting can also be automated by adding ``--report`` to ``cice.setup``
+``report_results.csh`` will run ``results.csh`` by default automatically, but
+we recommmend running it manually first to verify results before publishing
+them.  ``report_results.csh -n`` will turn off automatic running of ``results.csh``.
+
+The reporting can also be automated in a test suite by adding ``--report`` to ``cice.setup``
 ::
 
   ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --report
