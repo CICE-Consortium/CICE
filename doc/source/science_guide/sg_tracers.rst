@@ -87,6 +87,7 @@ is not in use.
    " ", " ", "apnd", "nt_vpnd", " "
    " ", " ", "apnd", "nt_ipnd", " "
    "tr_aero", "n_aero", "vice, vsno", "nt_aero"," "
+   "tr_iso", "n_iso", "vice, vsno", "nt_iso"," "
    "tr_brine", " ", "vice", "nt_fbri", " "
    "tr_fsd","nfsd","aice","nt_fsd"," "
    "solve_zsal", "n_trzs", "fbri or (a,v)ice", "nt_bgc_S", " "
@@ -114,5 +115,4 @@ Users may add any number of additional tracers that are transported conservative
 provided that the dependency ``trcr_depend`` is defined appropriately. 
 See Section :ref:`addtrcr` for guidance on adding tracers.
 
-Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, the floe size distribution, age of the ice, aerosols, 
-brine height, and the sea ice ecosystem.
+Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, the floe size distribution, age of the ice, aerosols, water isotopes, brine height, and the sea ice ecosystem.
