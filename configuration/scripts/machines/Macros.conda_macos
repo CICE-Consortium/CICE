@@ -40,7 +40,12 @@ LD:= $(FC)
 MODDIR  += -I$(CONDA_PREFIX)/include
 
 # Location of the system C header files (required on recent macOS to compile makdep)
-CFLAGS_HOST = -isysroot$(shell xcrun --show-sdk-path)
+SDKPATH = $(shell xcrun --show-sdk-path)
+ifeq ($(strip $(SDKPATH)),)
+  CFLAGS_HOST := 
+else
+  CFLAGS_HOST = -isysroot $(SDKPATH)
+endif
 
 # Libraries to be passed to the linker
 SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff
