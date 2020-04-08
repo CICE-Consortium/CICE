@@ -125,7 +125,7 @@
                               time, time_forc, year_init
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
-                                 n_aero, nblyr, n_zaero, n_algae, n_doc,   &
+                                 n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
                                  n_dic, n_don, n_fed, n_fep
       use ice_dyn_shared, only: kdyn
       use ice_arrays_column, only: oceanmixed_ice
@@ -134,7 +134,7 @@
           solve_zsal, skl_bgc, z_tracers
 
       logical (kind=log_kind) :: &
-          tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
+          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
           tr_pond_topo, tr_pond_lvl, tr_brine, &
           tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
           tr_bgc_Sil, tr_bgc_DMS, &
@@ -171,7 +171,7 @@
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
-          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+          tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
           tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
@@ -472,6 +472,14 @@
             write(nchar,'(i3.3)') k
             call define_rest_field(File,'qsno'//trim(nchar),dims)
          enddo
+
+         if (tr_iso) then
+            do k=1,n_iso
+               write(nchar,'(i3.3)') k
+               call define_rest_field(File,'isosno'//nchar, dims)
+               call define_rest_field(File,'isoice'//nchar, dims)
+            enddo
+         endif
 
          if (tr_aero) then
             do k=1,n_aero

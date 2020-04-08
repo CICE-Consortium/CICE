@@ -16,8 +16,8 @@
       use ice_exit, only: abort_ice
       use ice_fileunits, only: init_fileunits, nu_diag
       use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
+      use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
@@ -49,6 +49,7 @@
    !--------------------------------------------------------------------
    ! model initialization
    !--------------------------------------------------------------------
+
       if (present(mpi_comm)) then
           call cice_init(mpi_comm)
       else
@@ -81,7 +82,7 @@
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
           get_forcing_atmo, get_forcing_ocn, get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_default, faero_optics, alloc_forcing_bgc
+          faero_default, faero_optics, alloc_forcing_bgc, fiso_default
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runtype
@@ -94,11 +95,14 @@
 #ifdef popcice
       use drv_forcing, only: sst_sss
 #endif
+
       integer (kind=int_kind), optional, intent(in) :: &
-          mpi_comm ! communicator for sequential ccsm
+         mpi_comm ! communicator for sequential ccsm
+
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
-         tr_fsd, wave_spec
+         tr_iso, tr_fsd, wave_spec
       character(len=*), parameter :: subname = '(cice_init)'
+
       if (present(mpi_comm)) then
           call init_communicate(mpi_comm)     ! initial setup for message passing
       else
@@ -130,7 +134,6 @@
       call ice_timer_start(timer_total)   ! start timing entire run
       call init_grid2           ! grid variables
       call init_zbgc            ! vertical biogeochemistry initialization
-
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
 
@@ -142,6 +145,7 @@
       endif
 
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
+
 #ifdef popcice
       call sst_sss              ! POP data for CICE initialization
 #endif 
@@ -189,6 +193,7 @@
       call init_history_dyn     ! initialize dynamic history variables
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
+      call icepack_query_tracer_flags(tr_iso_out=tr_iso)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -220,6 +225,9 @@
 #ifndef CICE_DMI
       call get_forcing_ocn(dt)  ! ocean forcing from data
 #endif
+
+      ! isotopes
+      if (tr_iso)     call fiso_default                 ! default values
       ! aerosols
       ! if (tr_aero)  call faero_data                   ! data file
       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
@@ -248,20 +256,21 @@
       use ice_calendar, only: time, calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, n_aero, nfsd
+      use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
-          init_aerosol, init_hbrine, init_bgc, init_fsd
+          init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
           restart_pond_cesm, read_restart_pond_cesm, &
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
           restart_fsd, read_restart_fsd, &
+          restart_iso, read_restart_iso, &
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
@@ -274,13 +283,13 @@
          iblk            ! block index
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-          tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
+          tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
-          nt_iage, nt_FY, nt_aero, nt_fsd
+          nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice
 
       character(len=*), parameter :: subname = '(init_restart)'
 
@@ -294,10 +303,11 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
-           tr_fsd_out=tr_fsd)
+           tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
-           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd)
+           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd, &
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -402,6 +412,20 @@
             call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,:))
          endif
       endif
+
+      ! isotopes
+      if (tr_iso) then
+         if (trim(runtype) == 'continue') restart_iso = .true.
+         if (restart_iso) then
+            call read_restart_iso
+         else
+            do iblk = 1, nblocks 
+               call init_isotope(trcrn(:,:,nt_isosno:nt_isosno+n_iso-1,:,iblk), &
+                                 trcrn(:,:,nt_isoice:nt_isoice+n_iso-1,:,iblk))
+            enddo ! iblk
+         endif
+      endif
+
       if (tr_aero) then ! ice aerosol
          if (trim(runtype) == 'continue') restart_aero = .true.
          if (restart_aero) then

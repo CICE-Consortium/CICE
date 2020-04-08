@@ -29,7 +29,8 @@
       implicit none
       private
       public :: get_forcing_bgc, get_atm_bgc, fzaero_data, alloc_forcing_bgc, &
-                init_bgc_data, faero_data, faero_default, faero_optics
+                init_bgc_data, faero_data, faero_default, faero_optics, &
+                fiso_default
 
       integer (kind=int_kind) :: &
          bgcrecnum = 0   ! old record number (save between steps)
@@ -535,6 +536,21 @@
       endif
 
       end subroutine get_atm_bgc
+
+!=======================================================================
+
+! constant values for atmospheric water isotopes
+!
+! authors: David Bailey, NCAR
+
+      subroutine fiso_default
+
+      use ice_flux_bgc, only: fiso_atm
+      character(len=*), parameter :: subname='(fiso_default)'
+
+      fiso_atm(:,:,:,:) = 1.e-14_dbl_kind ! kg/m^2 s
+
+      end subroutine fiso_default
 
 !=======================================================================
 

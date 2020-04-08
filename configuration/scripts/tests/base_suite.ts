@@ -45,3 +45,6 @@ smoke          gx3     4x2        fsd1,diag24,run5day,debug
 smoke          gx3     8x2        fsd12,diag24,run5day,short
 restart        gx3     4x2        fsd12,debug,short
 smoke          gx3     8x2        fsd12ww3,diag24,run1day,medium
+smoke          gx3     4x1        isotope,debug
+restart        gx3     8x2        isotope
+
