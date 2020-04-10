@@ -243,6 +243,7 @@ Table of namelist options
    "","", "``-1``", "thermodynamics disabled", ""
    "\*","``conduct``", "``Maykut71``", "conductivity :cite:`Maykut71`", ""
    "","", "``bubbly``", "conductivity :cite:`Pringle07`", ""
+   "\*","``ksno``", "real", "snow thermal conductivity", "0.3"
    "\*","``a_rapid_mode``", "real", "brine channel diameter", "0.5x10 :math:`^{-3}` m"
    "\*","``Rac_rapid_mode``", "real", "critical Rayleigh number", "10"
    "\*","``aspect_rapid_mode``", "real", "brine convection aspect ratio", "1"
