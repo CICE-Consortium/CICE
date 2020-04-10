@@ -132,7 +132,7 @@
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
       integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
-      real (kind=dbl_kind) :: Cf, puny
+      real (kind=dbl_kind) :: Cf, ksno, puny
       integer :: abort_flag
       character (len=64) :: tmpstr
 
@@ -176,7 +176,7 @@
         n_doc, n_dic, n_don, n_fed, n_fep
 
       namelist /thermo_nml/ &
-        kitd,           ktherm,          conduct,                       &
+        kitd,           ktherm,          conduct,     ksno,             &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy
 
@@ -296,6 +296,7 @@
       krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
       Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
+      ksno = 0.3_dbl_kind    ! snow thermal conductivity
       close_boundaries = .false.   ! true = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
       k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
@@ -576,6 +577,7 @@
       call broadcast_scalar(krdg_redist,        master_task)
       call broadcast_scalar(mu_rdg,             master_task)
       call broadcast_scalar(Cf,                 master_task)
+      call broadcast_scalar(ksno,               master_task)
       call broadcast_scalar(basalstress,        master_task)
       call broadcast_scalar(k1,                 master_task)
       call broadcast_scalar(k2,                 master_task)
@@ -949,6 +951,7 @@
       ice_IOUnitsMaxUnit = numax
 
       call icepack_init_parameters(Cf_in=Cf)
+      call icepack_init_parameters(ksno_in=ksno)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort1', &
          file=__FILE__, line=__LINE__)
@@ -1073,6 +1076,7 @@
                                trim(advection)
          write(nu_diag,1030) ' shortwave                 = ', &
                                trim(shortwave)
+         write(nu_diag,1000) ' ksno                      = ', ksno
          if (cpl_bgc) then
              write(nu_diag,1000) ' BGC coupling is switched ON'
          else
