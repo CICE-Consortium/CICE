@@ -4362,8 +4362,8 @@
       fsw_file   = trim(atm_data_dir)//'/forcing.shwflx.nc'
       flw_file   = trim(atm_data_dir)//'/forcing.radflx.nc'
       rain_file  = trim(atm_data_dir)//'/forcing.precip.nc'
-      uwind_file = trim(atm_data_dir)//'/forcing.ewndsp.nc'  !actually Xward, not Eward
-      vwind_file = trim(atm_data_dir)//'/forcing.nwndsp.nc'  !actually Yward, not Nward
+      uwind_file = trim(atm_data_dir)//'/forcing.wndewd.nc'
+      vwind_file = trim(atm_data_dir)//'/forcing.wndnwd.nc'
       tair_file  = trim(atm_data_dir)//'/forcing.airtmp.nc'
       humid_file = trim(atm_data_dir)//'/forcing.vapmix.nc'
 
@@ -4469,11 +4469,11 @@
          call read_data_nc_hycom (read6, recnum, &
                           tair_file, fieldname, Tair_data, &
                           field_loc_center, field_type_scalar)
-         fieldname = 'ewndsp'
+         fieldname = 'wndewd'
          call read_data_nc_hycom (read6, recnum, &
                           uwind_file, fieldname, uatm_data, &
                           field_loc_center, field_type_vector)
-         fieldname = 'nwndsp'
+         fieldname = 'wndnwd'
          call read_data_nc_hycom (read6, recnum, &
                           vwind_file, fieldname, vatm_data, &
                           field_loc_center, field_type_vector)
