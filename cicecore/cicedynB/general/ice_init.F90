@@ -61,7 +61,7 @@
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
-                                 n_aero, n_zaero, n_algae, &
+                                 n_iso, n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
                                  max_nstrm
       use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
@@ -71,7 +71,7 @@
       use ice_arrays_column, only: oceanmixed_ice
       use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
           restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
-          restart_fsd
+          restart_fsd, restart_iso
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
@@ -95,7 +95,8 @@
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 kevp_kernel, &
-                                basalstress, k1, Ktens, e_ratio, coriolis, &
+                                basalstress, k1, k2, alphab, threshold_hw, &
+                                Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection
       use ice_restoring, only: restore_ice
@@ -125,7 +126,8 @@
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec
 
-      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
+      logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
@@ -167,9 +169,10 @@
         tr_pond_cesm, restart_pond_cesm,                                &
         tr_pond_lvl, restart_pond_lvl,                                  &
         tr_pond_topo, restart_pond_topo,                                &
+        tr_iso, restart_iso,                                            &
         tr_aero, restart_aero,                                          &
         tr_fsd, restart_fsd,                                            &
-        n_aero, n_zaero, n_algae,                                       &
+        n_iso, n_aero, n_zaero, n_algae,                                &
         n_doc, n_dic, n_don, n_fed, n_fep
 
       namelist /thermo_nml/ &
@@ -184,7 +187,7 @@
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
-        k1
+        k1,             k2,             alphab,         threshold_hw      
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
@@ -296,6 +299,9 @@
       close_boundaries = .false.   ! true = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
       k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
+      k2 = 15.0_dbl_kind     ! dah: second free parameter (N/m^3) for landfast parametrization
+      alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
+      threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
@@ -388,11 +394,14 @@
       restart_pond_lvl  = .false. ! melt ponds restart
       tr_pond_topo = .false. ! explicit melt ponds (topographic)
       restart_pond_topo = .false. ! melt ponds restart
+      tr_iso       = .false. ! isotopes
+      restart_iso  = .false. ! isotopes restart
       tr_aero      = .false. ! aerosols
       restart_aero = .false. ! aerosols restart
       tr_fsd       = .false. ! floe size distribution
       restart_fsd  = .false. ! floe size distribution restart
 
+      n_iso = 0
       n_aero = 0
       n_zaero = 0
       n_algae = 0
@@ -569,6 +578,9 @@
       call broadcast_scalar(Cf,                 master_task)
       call broadcast_scalar(basalstress,        master_task)
       call broadcast_scalar(k1,                 master_task)
+      call broadcast_scalar(k2,                 master_task)
+      call broadcast_scalar(alphab,             master_task)
+      call broadcast_scalar(threshold_hw,       master_task)
       call broadcast_scalar(Ktens,              master_task)
       call broadcast_scalar(e_ratio,            master_task)
       call broadcast_scalar(advection,          master_task)
@@ -653,6 +665,8 @@
       call broadcast_scalar(restart_pond_lvl,   master_task)
       call broadcast_scalar(tr_pond_topo,       master_task)
       call broadcast_scalar(restart_pond_topo,  master_task)
+      call broadcast_scalar(tr_iso,             master_task)
+      call broadcast_scalar(restart_iso,        master_task)
       call broadcast_scalar(tr_aero,            master_task)
       call broadcast_scalar(restart_aero,       master_task)
       call broadcast_scalar(tr_fsd,             master_task)
@@ -662,6 +676,7 @@
       call broadcast_scalar(nilyr,              master_task)
       call broadcast_scalar(nslyr,              master_task)
       call broadcast_scalar(nblyr,              master_task)
+      call broadcast_scalar(n_iso,              master_task)
       call broadcast_scalar(n_aero,             master_task)
       call broadcast_scalar(n_zaero,            master_task)
       call broadcast_scalar(n_algae,            master_task)
@@ -714,6 +729,7 @@
          if (my_task == master_task) &
             write(nu_diag,*) subname//' WARNING: ice_ic = none or default, setting restart flags to .false.'
          restart = .false.
+         restart_iso =  .false. 
          restart_aero =  .false. 
          restart_fsd =  .false. 
          restart_age =  .false. 
@@ -819,6 +835,15 @@
             write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd'
          endif
          abort_flag = 8
+      endif
+
+      if (tr_iso .and. n_iso==0) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: isotopes activated but'
+            write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
+            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+         endif
+         abort_flag = 31
       endif
 
       if (tr_aero .and. n_aero==0) then
@@ -1036,8 +1061,12 @@
          write(nu_diag,1000) ' mu_rdg                    = ', mu_rdg
          if (kstrength == 1) &
          write(nu_diag,1000) ' Cf                        = ', Cf
+
          write(nu_diag,1010) ' basalstress               = ', basalstress
          write(nu_diag,1005) ' k1                        = ', k1
+         write(nu_diag,1005) ' k2                        = ', k2
+         write(nu_diag,1005) ' alphab                    = ', alphab
+         write(nu_diag,1005) ' threshold_hw              = ', threshold_hw
          write(nu_diag,1005) ' Ktens                     = ', Ktens
          write(nu_diag,1005) ' e_ratio                   = ', e_ratio    
          write(nu_diag,1030) ' advection                 = ', &
@@ -1186,6 +1215,8 @@
          write(nu_diag,1010) ' restart_pond_lvl          = ', restart_pond_lvl
          write(nu_diag,1010) ' tr_pond_topo              = ', tr_pond_topo
          write(nu_diag,1010) ' restart_pond_topo         = ', restart_pond_topo
+         write(nu_diag,1010) ' tr_iso                    = ', tr_iso
+         write(nu_diag,1010) ' restart_iso               = ', restart_iso
          write(nu_diag,1010) ' tr_aero                   = ', tr_aero
          write(nu_diag,1010) ' restart_aero              = ', restart_aero
          write(nu_diag,1010) ' tr_fsd                    = ', tr_fsd
@@ -1196,6 +1227,7 @@
          write(nu_diag,1020) ' nilyr                     = ', nilyr
          write(nu_diag,1020) ' nslyr                     = ', nslyr
          write(nu_diag,1020) ' nblyr                     = ', nblyr
+         write(nu_diag,1020) ' n_iso                     = ', n_iso
          write(nu_diag,1020) ' n_aero                    = ', n_aero
          write(nu_diag,1020) ' n_zaero                   = ', n_zaero
          write(nu_diag,1020) ' n_algae                   = ', n_algae
@@ -1260,10 +1292,12 @@
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
-         tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, tr_fsd_in=tr_fsd, tr_pond_in=tr_pond, &
+         tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
+         tr_fsd_in=tr_fsd, tr_pond_in=tr_pond, &
          tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
       call icepack_init_tracer_sizes(ncat_in=ncat, nilyr_in=nilyr, nslyr_in=nslyr, nblyr_in=nblyr, &
-         nfsd_in=nfsd, n_algae_in=n_algae, n_aero_in=n_aero, n_DOC_in=n_DOC, n_DON_in=n_DON, &
+         nfsd_in=nfsd, n_algae_in=n_algae, n_iso_in=n_iso, n_aero_in=n_aero, &
+         n_DOC_in=n_DOC, n_DON_in=n_DON, &
          n_DIC_in=n_DIC, n_fed_in=n_fed, n_fep_in=n_fep, n_zaero_in=n_zaero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -1291,7 +1325,7 @@
 
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: nblocks, blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nfsd
+      use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero, nfsd
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
       use ice_grid, only: tmask, ULON, TLAT
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
@@ -1312,11 +1346,11 @@
          heat_capacity   ! from icepack
 
       integer (kind=int_kind) :: ntrcr
-      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_aero, tr_fsd
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_fsd
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
-      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
-      integer (kind=int_kind) :: nt_fsd
+      integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd
+      integer (kind=int_kind) :: nt_isosno, nt_isoice, nt_aero, nt_fsd
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1328,12 +1362,14 @@
       call icepack_query_parameters(heat_capacity_out=heat_capacity)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
-        tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_fsd_out=tr_fsd, &
+        tr_lvl_out=tr_lvl, tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_fsd_out=tr_fsd, &
         tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
         nt_qice_out=nt_qice, nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_fy_out=nt_fy, &
         nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
-        nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd)
+        nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd, &
+        nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1411,6 +1447,12 @@
       if (tr_fsd) then
          do it = 1, nfsd
             trcr_depend(nt_fsd + it - 1) = 0    ! area-weighted floe size distribution
+         enddo
+      endif
+      if (tr_iso) then  ! isotopes
+         do it = 1, n_iso
+            trcr_depend(nt_isosno+it-1) = 2     ! snow
+            trcr_depend(nt_isoice+it-1) = 1     ! ice
          enddo
       endif
       if (tr_aero) then ! volume-weighted aerosols

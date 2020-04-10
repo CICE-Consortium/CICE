@@ -1,5 +1,19 @@
 #!/bin/csh -f
 
+if ($#argv == 0) then
+  echo "${0}: Running results.csh"
+  ./results.csh >& /dev/null
+else if ($#argv == 1) then
+  if ("$argv[1]" =~ "-n") then
+    #continue
+  else
+    echo "$0 usage:"
+    echo "$0 [-n]"
+    echo "   -n : do NOT run results.csh (by default it does)"
+    exit -1
+  endif
+endif
+
 if (! -e results.log) then
   echo " "
   echo "${0}: ERROR results.log does not exist, try running results.csh"
@@ -79,12 +93,21 @@ unset noglob
 
 foreach compiler ( ${compilers} )
 
-  set ofile = "${shhash}.${mach}.${compiler}.${xcdat}.${xctim}"
-  set outfile = "${wikiname}/${tsubdir}/${ofile}.md"
+  set cnt = 0
+  set found = 1
+  while ($found == 1)
+    set ofile = "${shhash}.${mach}.${compiler}.${xcdat}.${xctim}.$cnt"
+    set outfile = "${wikiname}/${tsubdir}/${ofile}.md"
+    if (-e ${outfile}) then
+      @ cnt = $cnt + 1
+    else
+      set found = 0
+    endif
+  end
+
   mkdir -p ${wikiname}/${tsubdir}
   echo "${0}: writing to ${outfile}"
 
-  if (-e ${outfile}) rm -f ${outfile}
 
 cat >! ${outfile} << EOF
 
@@ -103,7 +126,7 @@ EOF
 foreach case ( ${cases} )
 if ( ${case} =~ *_${compiler}_* ) then
 
-# check thata case results are meaningful
+# check that case results are meaningful
   set fbuild = `grep " ${case} " results.log | grep " build"   | cut -c 1-4`
   set frun   = `grep " ${case} " results.log | grep " run"     | cut -c 1-4`
   set ftest  = `grep " ${case} " results.log | grep " test"    | cut -c 1-4`

@@ -20,18 +20,22 @@ addons:
 
 install:
   # Fetch CICE grid files and initial conditions
-  - "wget ftp://ftp.cgd.ucar.edu/archive/Model-Data/CICE/CICE_data_ic_grid.tar.gz &&
-    tar xvfz CICE_data_ic_grid.tar.gz -C ~"
+  - "wget https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz &&
+    tar xvfz CICE_data_gx3_grid_ic-20200320.tar.gz -C ~"
 
   # Fetch forcing data
-  - "wget ftp://ftp.cgd.ucar.edu/archive/Model-Data/CICE/CICE_data_forcing_gx3_all.tar.gz &&
-    tar xvfz CICE_data_forcing_gx3_all.tar.gz -C ~"
+  - "wget https://zenodo.org/record/3728362/files/CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz &&
+    tar xvfz CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz -C ~"
 
   # Mirror entire data folder
   #- "lftp ftp://anonymous:travis@travis-ci.org@ftp.cgd.ucar.edu 
   #-e 'mirror /archive/Model-Data/CICE/ ~/ICEPACK_INPUTDATA; quit'"
 
 script:
+  # verify cice.setup --case and cice.setup --test don't error then run test suite
+  - "./cice.setup --case trcase --mach travisCI --env gnu --pes 2x2 -s diag1"
+  - "./cice.setup --test smoke --testid trtest --mach travisCI --env gnu 
+    --pes 2x2 -s diag1"
   - "./cice.setup --suite travis_suite --testid travisCItest
     --mach travisCI --env gnu;
     cd testsuite.travisCItest &&

@@ -28,6 +28,11 @@
       implicit none
 
       private
+
+      integer (kind=int_kind), parameter, private :: &
+           bits_per_byte = 8 ! number of bits per byte. 
+                             ! used to determine RecSize in ice_open
+
       public :: ice_open,           &
                 ice_open_ext,       &
                 ice_open_nc,        &
@@ -86,7 +91,7 @@
            nbits         ! no. of bits per variable (0 for sequential access)
 
       integer (kind=int_kind), intent(in), optional :: algn
-      integer (kind=int_kind) :: RecSize, Remnant
+      integer (kind=int_kind) :: RecSize, Remnant, nbytes
 
       character (*) :: filename
 
@@ -99,7 +104,13 @@
             open(nu,file=filename,form='unformatted')
 
          else                   ! direct access
-            RecSize = nx_global*ny_global*nbits/8
+
+            ! use nbytes to compute RecSize.
+            ! this prevents integer overflow with large global grids using nbits
+            ! nx*ny*nbits > 2^31 -1 (i.e., global grid 9000x7054x64)
+            nbytes = nbits/bits_per_byte
+            RecSize = nx_global*ny_global*nbytes
+
             if (present(algn)) then
               ! If data is keept in blocks using given sizes (=algn)
               !  Used in eg. HYCOM binary files, which are stored as "blocks" dividable by 16384 bit (=algn)
@@ -131,6 +142,8 @@
       integer (kind=int_kind), intent(in) :: &
            nu        , & ! unit number
            nbits         ! no. of bits per variable (0 for sequential access)
+      
+      integer (kind=int_kind) :: RecSize, nbytes
 
       character (*) :: filename
 
@@ -150,7 +163,12 @@
             nx = nx_global + 2*nghost
             ny = ny_global + 2*nghost
 
-            open(nu,file=filename,recl=nx*ny*nbits/8, &
+            ! use nbytes to compute RecSize.
+            ! this prevents integer overflow with large global grids using nbits
+            ! nx*ny*nbits > 2^31 -1 (i.e., global grid 9000x7054x64)
+            nbytes = nbits/bits_per_byte
+            RecSize = nx*ny*nbytes
+            open(nu,file=filename,recl=RecSize, &
                   form='unformatted',access='direct')
          endif                   ! nbits = 0
 

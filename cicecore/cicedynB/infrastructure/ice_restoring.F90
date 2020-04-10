@@ -32,12 +32,12 @@
       ! state of the ice for each category
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), dimension (:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          aicen_rest , & ! concentration of ice
          vicen_rest , & ! volume per unit area of ice          (m)
          vsnon_rest     ! volume per unit area of snow         (m)
 
-      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          trcrn_rest     ! tracers
 
 !=======================================================================

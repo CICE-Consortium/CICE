@@ -119,7 +119,7 @@ else if (${ICE_MACHINE} =~ cori*) then
 @ nthrds2 = ${nthrds} * 2
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-###SBATCH -A ${acct}
+#SBATCH -A ${acct}
 #SBATCH --qos ${queue}
 #SBATCH --time ${batchtime}
 #SBATCH --nodes ${nnodes}
@@ -241,6 +241,12 @@ else if (${ICE_MACHINE} =~ travisCI*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
 EOFB
+
+else if (${ICE_MACHINE} =~ conda*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
 
 else
   echo "${0} ERROR: ${ICE_MACHINE} unknown"
