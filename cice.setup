@@ -34,6 +34,8 @@ set stime = `date -u "+%H%M%S"`
 set docase = 0
 set dotest = 0
 set dosuite = 0
+set codecov = 0       # code coverage measurement and reporting
+set codecovflag = false
 set suitebuild  = true
 set suiterun    = false
 set suitesubmit = true
@@ -81,7 +83,7 @@ SYNOPSIS
 
     --suite SUITE[,SUITE2] -m MACH --testid ID 
         [-e ENV1,ENV2][--acct ACCT][--bdir DIR][--bgen DIR]
-        [--bcmp DIR][--tdir PATH][--report]
+        [--bcmp DIR][--tdir PATH][--report || --codecov]
         [--setup-only || --setup-build || --setup-build-run || --setup-build-submit]
 
 DESCRIPTION
@@ -108,6 +110,8 @@ DESCRIPTION
     --testid   : test ID, user-defined id for testing (REQUIRED with --test or --suite)
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
+    --codecov  : generate and report test coverage metrics when tests are complete,
+                 requires GNU compiler (--env gnu)
     --setup-only         : for suite, setup testcases, no build, no submission
     --setup-build        : for suite, setup and build testcases, no submission
     --setup-build-run    : for suite, setup, build, and run interactively
@@ -224,6 +228,11 @@ while (1)
     set report = 1
     shift argv
 
+  else if ("$option" == "--codecov") then
+    set codecov = 1
+    set codecovflag = true
+    shift argv
+
   else if ("$option" == "--setup-only") then
     set suitebuild  = false
     set suiterun    = false
@@ -252,11 +261,11 @@ while (1)
   else
     shift argv
     if ( $#argv < 1 ) then
-      echo "${0}: ERROR1 in $option"
+      echo "${0}: ERROR in $option, unsupported or missing an argument"
       exit -1
     endif
-    if ($argv[1] =~ $dash* ) then
-      echo "${0}: ERROR2 in $option"
+    if ("$argv[1]" =~ "$dash*" ) then
+      echo "${0}: ERROR in $option, possibly missing an argument"
       exit -1
     endif
 
@@ -321,7 +330,30 @@ if (${dosum} > 1) then
   exit -1
 endif
 
+if ($codecov == 1 && $report == 1) then
+  echo "${0}: ERROR in arguments, not recommmended to set both --codecov and --report"
+  exit -1
+endif
+
+if ($codecov == 1 && "$compilers" != "gnu") then
+  echo "${0}: ERROR in arguments, must use --env gnu with --codecov"
+  exit -1
+endif
+
+if ($codecov == 1 && `where curl` == "" && `where wget` == "") then
+  echo "${0}: ERROR 'curl' or 'wget' is required for --codecov"
+  exit -1
+endif
+
 if (${dosuite} == 0) then
+  if ($report == 1) then
+    echo "${0}: ERROR in arguments, must use --suite with --report"
+    exit -1
+  endif
+  if ($codecov == 1) then
+    echo "${0}: ERROR in arguments, must use --suite with --codecov"
+    exit -1
+  endif
   if ("$compilers" =~ "*,*") then
     echo "${0}: ERROR in arguments, cannot set multiple compilers without --suite"
     exit -1
@@ -449,6 +481,7 @@ echo "#hash = ${hash}" >> results.log
 echo "#hshs = ${shhash}" >> results.log
 echo "#hshu = ${hashuser}" >> results.log
 echo "#hshd = ${hashdate}" >> results.log
+echo "#suit = ${testsuite}" >> results.log
 echo "#date = ${cdate}" >> results.log
 echo "#time = ${ctime}" >> results.log
 echo "#mach = ${machine}" >> results.log
@@ -457,8 +490,19 @@ echo "#vers = ${vers}" >> results.log
 echo "#------- " >> results.log
 EOF0
 
+cat >! ${tsdir}/report_codecov.csh << EOF0
+#!/bin/csh -f
+
+setenv CODECOV_TOKEN "f3236008-0b92-4707-9ad5-ad906f5d2ba7"   # apcraig cice
+set report_name = "${shhash}:${branch}:${machine} ${testsuite}"
+
+set use_curl = 1
+
+EOF0
+
   chmod +x ${tsdir}/suite.submit
   chmod +x ${tsdir}/results.csh
+  chmod +x ${tsdir}/report_codecov.csh
 
 endif
 
@@ -734,6 +778,8 @@ EOF
       endif
     endif
 
+    set rundir = ${ICE_MACHINE_WKDIR}/${casename}
+
     #------------------------------------------------------------
     # Compute a default blocksize
 
@@ -755,6 +801,7 @@ EOF
     echo "ICE_CASEDIR  = ${casedir}"
     echo "ICE_MACHINE  = ${machine}"
     echo "ICE_COMPILER = ${compiler}"
+    echo "ICE_RUNDIR   = ${rundir}"
     echo "ICE_PES      = ${task}x${thrd}"
     echo "ICE_GRID     = ${grid} (${ICE_DECOMP_NXGLOB}x${ICE_DECOMP_NYGLOB}) blocksize=${ICE_DECOMP_BLCKX}x${ICE_DECOMP_BLCKY}x${ICE_DECOMP_MXBLCKS}"
     echo "ICE_DECOMP   = ${ICE_DECOMP_DECOMP} ${ICE_DECOMP_DSHAPE}"
@@ -809,7 +856,7 @@ setenv ICE_CASEDIR  ${casedir}
 setenv ICE_MACHINE  ${machine}
 setenv ICE_COMPILER ${compiler}
 setenv ICE_MACHCOMP ${machcomp}
-setenv ICE_RUNDIR   ${ICE_MACHINE_WKDIR}/${casename}
+setenv ICE_RUNDIR   ${rundir}
 setenv ICE_GRID     ${grid}
 #setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}  # moved to namelist
 #setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}  # moved to namelist
@@ -829,6 +876,7 @@ setenv ICE_TESTID   ${testid}
 setenv ICE_BFBCOMP  ${fbfbcomp}
 setenv ICE_ACCOUNT  ${acct}
 setenv ICE_QUEUE    ${queue}
+setenv ICE_CODECOV  ${codecovflag}
 EOF1
 
     if (${sets} != "") then
@@ -954,6 +1002,12 @@ EOF2
 cat ${testname_base}/test_output >> results.log
 EOF
 
+      cat >> ${tsdir}/report_codecov.csh << EOF
+mkdir ${testname_base}/codecov_output
+cp ${rundir}/compile/*.{gcno,gcda} ${testname_base}/codecov_output/
+
+EOF
+
       cat >> ${tsdir}/suite.submit << EOF
 
 echo "-------test--------------"
@@ -1059,6 +1113,18 @@ setenv ICE_MACHINE_QSTAT ${ICE_MACHINE_QSTAT}
 EOF0
   endif
 
+cat >> ${tsdir}/report_codecov.csh << EOF
+if ( \${use_curl} == 1 ) then
+  bash -c "bash <(curl -s https://codecov.io/bash) -n '\${report_name}' -y ./codecov.yml "
+else
+  bash -c "bash <(wget -O - https://codecov.io/bash) -n '\${report_name}' -y ./codecov.yml "
+endif
+
+sleep 10
+rm -r -f ./*/codecov_output
+
+EOF
+
   # build and submit tests
   cd ${tsdir}
   setenv SUITE_BUILD ${suitebuild}
@@ -1070,6 +1136,11 @@ EOF0
     ./poll_queue.csh
     ./results.csh
     ./report_results.csh
+  endif
+  if ($codecov == 1) then
+    echo "Generating codecov reports"
+    ./poll_queue.csh
+    ./report_codecov.csh
   endif
   cd ${ICE_SANDBOX}
 

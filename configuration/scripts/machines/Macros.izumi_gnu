@@ -4,7 +4,7 @@
 
 CPP        := /usr/bin/cpp
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-CFLAGS     := -c -O2
+CFLAGS     := -c
 
 FIXEDFLAGS := -ffixed-line-length-132
 FREEFLAGS  := -ffree-form
@@ -13,8 +13,20 @@ FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
   FFLAGS   += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
-else
+  CFLAGS   += -O0
+endif
+
+ifeq ($(ICE_CODECOV), true)
+  FFLAGS  += -O0 -g -fprofile-arcs -ftest-coverage
+  CFLAGS  += -O0 -g -coverage
+  LDFLAGS += -g -ftest-coverage -fprofile-arcs
+endif
+
+ifneq ($(ICE_BLDDEBUG), true) 
+ifneq ($(ICE_CODECOV), true) 
   FFLAGS   += -O2
+  CFLAGS   += -O2
+endif
 endif
 
 SCC   := gcc 
