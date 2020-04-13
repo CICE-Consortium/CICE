@@ -37,6 +37,7 @@ set dosuite = 0
 set codecov = 0       # code coverage measurement and reporting
 set codecovflag = false
 set suitebuild  = true
+set suitereuse  = true
 set suiterun    = false
 set suitesubmit = true
 
@@ -231,28 +232,33 @@ while (1)
   else if ("$option" == "--codecov") then
     set codecov = 1
     set codecovflag = true
+    set suitereuse  = false
     shift argv
 
   else if ("$option" == "--setup-only") then
     set suitebuild  = false
+    set suitereuse  = true
     set suiterun    = false
     set suitesubmit = false
     shift argv
 
   else if ("$option" == "--setup-build") then
     set suitebuild  = true
+    set suitereuse  = true
     set suiterun    = false
     set suitesubmit = false
     shift argv
 
   else if ("$option" == "--setup-build-run") then
     set suitebuild  = true
+    set suitereuse  = true
     set suiterun    = true
     set suitesubmit = false
     shift argv
 
   else if ("$option" == "--setup-build-submit") then
     set suitebuild  = true
+    set suitereuse  = true
     set suiterun    = false
     set suitesubmit = true
     shift argv
@@ -448,10 +454,14 @@ else
 set nonomatch && rm -f ciceexe.* && unset nonomatch
 
 set dobuild  = true
+set doreuse  = true
 set dorun    = false
 set dosubmit = true
 if (\$?SUITE_BUILD) then
   set dobuild  = "\${SUITE_BUILD}"
+endif
+if (\$?SUITE_REUSEBUILD) then
+  set doreuse = "\${SUITE_REUSEBUILD}"
 endif
 if (\$?SUITE_RUN) then
   set dorun    = "\${SUITE_RUN}"
@@ -461,6 +471,7 @@ if (\$?SUITE_SUBMIT) then
 endif
 
 echo \${0}: dobuild  = \${dobuild}
+echo \${0}: doreuse  = \${doreuse}
 echo \${0}: dorun    = \${dorun}
 echo \${0}: dosubmit = \${dosubmit}
 
@@ -493,7 +504,9 @@ EOF0
 cat >! ${tsdir}/report_codecov.csh << EOF0
 #!/bin/csh -f
 
-setenv CODECOV_TOKEN "f3236008-0b92-4707-9ad5-ad906f5d2ba7"   # apcraig cice
+#setenv CODECOV_TOKEN "1d09241f-ed9e-47d8-847c-038bab024b53"   # consortium cice
+#setenv CODECOV_TOKEN "f3236008-0b92-4707-9ad5-ad906f5d2ba7"   # apcraig cice
+setenv CODECOV_TOKEN "0dcc6066-fdce-47b6-b84a-c55e2a0af4c0"   # apcraig test_cice_icepack
 set report_name = "${shhash}:${branch}:${machine} ${testsuite}"
 
 set use_curl = 1
@@ -1015,9 +1028,13 @@ echo "${testname_base}"
 cd ${testname_base}
 source ./cice.settings
 if (\${dobuild} == true) then
-   set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
-  ./cice.build --exe \${ciceexe}
-  if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
+   if (\${doreuse} == true) then
+     set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
+     ./cice.build --exe \${ciceexe}
+     if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
+   else
+     ./cice.build
+   endif
 endif
 if (\${dosubmit} == true) then
   ./cice.submit | tee -a ../suite.jobs
@@ -1114,6 +1131,8 @@ EOF0
   endif
 
 cat >> ${tsdir}/report_codecov.csh << EOF
+source ${ICE_SCRIPTS}/machines/env.${machcomp} 
+
 if ( \${use_curl} == 1 ) then
   bash -c "bash <(curl -s https://codecov.io/bash) -n '\${report_name}' -y ./codecov.yml "
 else
@@ -1128,6 +1147,7 @@ EOF
   # build and submit tests
   cd ${tsdir}
   setenv SUITE_BUILD ${suitebuild}
+  setenv SUITE_REUSEBUILD ${suitereuse}
   setenv SUITE_RUN ${suiterun}
   setenv SUITE_SUBMIT ${suitesubmit}
   ./suite.submit | tee suite.log

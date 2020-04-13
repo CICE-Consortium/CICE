@@ -26,6 +26,12 @@ restart        gx3     20x1       alt02,debug,short
 restart        gx3     24x1       alt03,debug,short
 smoke          gx3     24x1       alt04,debug,short
 smoke          gx3     32x1       alt05,debug,short
+restart        gx3     16x1       isotope
+smoke          gx3     6x1        isotope,debug
+smoke          gx3     8x1        fsd1,diag24,run5day,debug
+smoke          gx3     16x1       fsd12,diag24,run5day,short
+restart        gx3     12x1       fsd12,debug,short
+smoke          gx3     20x1       fsd12ww3,diag24,run1day,medium
 
 restart        gbox128 8x1        short
 restart        gbox128 16x1       boxdyn,short
@@ -36,6 +42,12 @@ restart        gbox128 32x1       boxrestore,short
 smoke          gbox128 24x1       boxrestore,short,debug
 restart        gbox80  1x1        box2001
 smoke          gbox80  1x1        boxslotcyl
+
+smoke          gx3     16x1        jra55_gx3_2008,medium,run90day
+restart        gx3     12x1        jra55_gx3,short
+#tcraig, hangs nodes intermittently on izumi
+#smoke          gx1     24x1       jra55_gx1_2008,medium,run90day
+#restart        gx1     24x1       jra55_gx1,short
 
 smoke          gx3     16x1       bgcz
 smoke          gx3     16x1       bgcz,debug

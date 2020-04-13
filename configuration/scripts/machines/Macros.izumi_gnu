@@ -17,9 +17,9 @@ ifeq ($(ICE_BLDDEBUG), true)
 endif
 
 ifeq ($(ICE_CODECOV), true)
-  FFLAGS  += -O0 -g -fprofile-arcs -ftest-coverage
-  CFLAGS  += -O0 -g -coverage
-  LDFLAGS += -g -ftest-coverage -fprofile-arcs
+  FFLAGS   += -O0 -g -fprofile-arcs -ftest-coverage
+  CFLAGS   += -O0 -g -coverage
+  LDFLAGS  += -g -ftest-coverage -fprofile-arcs
 endif
 
 ifneq ($(ICE_BLDDEBUG), true) 
