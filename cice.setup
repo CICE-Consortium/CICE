@@ -393,7 +393,9 @@ endif
 if ( ${tdir} != ${spval} ) then
   set tsdir = ${tdir}
 endif
-if (-e $tsfile) then
+if (-e ${tsfile}) then
+  ls -al ${tsfile}
+  echo "${0}: ERROR in tsfile, ${tsfile}"
   echo "${0}: ERROR in tsfile, this should never happen"
   exit -1
 endif
