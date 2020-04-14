@@ -689,15 +689,26 @@ be run on that repository.  A sample script to do that would be::
 
   ./cice.setup --suite first_suite,base_suite,travis_suite,decomp_suite,reprosum_suite,quick_suite -m gordon -e gnu --codecov --testid cc01
 
-To use, submit a full test suite using the latest Test_CICE_Icepack version
-and the gnu compiler with the ``--codecov`` argument to **cice.setup**.
+To use, submit a full test suite using an updated Test_CICE_Icepack version
+and the gnu compiler with the ``--codecov`` argument.
 The test suite will run and then a report will be generated and uploaded to 
 the `codecov.io site <https://codecov.io/gh/apcraig/Test_CICE_Icepack>`_ by the 
 **report_codecov.csh** script.  
 
 This is a special diagnostic test and does not constitute proper model testing.
 General use is not recommended, this is mainly used as a diagnostic to periodically 
-assess test coverage.  In addition, the interaction with codecov.io is not always robust.
+assess test coverage.  The interaction with codecov.io is not always robust and
+can be tricky to manage.  Some constraints are that the output generated at runtime
+is copied into the directory where compilation took place.  That means each
+test should be compiled separately.  Tests that invoke multiple runs
+(such as exact restart and the decomp test) will only save coverage information
+for the last run, so some coverage information may be lost.  The gcov tool can
+be a little slow to run on large test suites, and the codecov.io bash uploader
+(that runs gcov and uploads the data to codecov.io) is constantly evolving.
+Finally, gcov requires that the diagnostic output be copied into the git sandbox for
+analysis.  These constraints are handled by the current scripts, but may change
+in the future.
+
 
 .. _compliance:
 
