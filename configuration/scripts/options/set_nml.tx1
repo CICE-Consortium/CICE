@@ -5,8 +5,8 @@ grid_format = 'bin'
 grid_type   = 'tripole'
 grid_file   = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/tx1/grid_tx1.bin'
 kmt_file    = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/tx1/kmt_tx1.bin'
-fyear_init      = 1997
-atm_data_format = 'bin'
-atm_data_type   = 'clim'
-atm_data_dir    = 'none'
-
+atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/tx1/JRA55'
+atm_data_format = 'nc'
+atm_data_type   = 'JRA55_tx1'
+year_init      = 2005
+fyear_init      = 2005
