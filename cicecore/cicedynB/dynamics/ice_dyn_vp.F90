@@ -670,6 +670,9 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(out) :: &
          zetaD        ! zetaD = 2zeta (viscous coeff)
 
+      type (ice_halo), intent(in) :: &
+         halo_info_mask !  ghost cell update info for masked halo
+
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
          fpresx   , & ! x fixed point residual vector, fx = uvel - uprev_k
          fpresy       ! y fixed point residual vector, fy = vvel - vprev_k
@@ -678,9 +681,6 @@
          bvec     , & ! RHS vector for FGMRES
          sol      , & ! current approximate solution
          diagvec      ! diagonal of matrix A for preconditioners
-
-      type (ice_halo) :: &
-         halo_info_mask !  ghost cell update info for masked halo
 
       ! local variables
 
@@ -897,11 +897,12 @@
                          Cb,            vrel,      &
                          umassdti,                 &
                          halo_info_mask,           &
-                         solx,          soly,      &
                          bx,            by,        &
                          Diagu,         Diagv,     &
                          reltol_fgmres, im_fgmres, &
-                         maxits_fgmres, nbiter, conv)
+                         maxits_fgmres,            &
+                         solx,          soly,      &
+                         nbiter,        conv)
             ! Put FGMRES solution solx,soly in fpfunc vector (needed for anderson)
             call arrays_to_vec (nx_block, ny_block, nblocks,      &
                                 max_blocks, icellu (:), ntot,     &
@@ -1754,7 +1755,8 @@
          Tbu,      & ! coefficient for basal stress (N/m^2)
          aiu     , & ! ice fraction on u-grid
          uocn    , & ! ocean current, x-direction (m/s)
-         vocn        ! ocean current, y-direction (m/s)
+         vocn    , & ! ocean current, y-direction (m/s)
+         Cw          ! ocean-ice neutral drag coefficient
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(in) :: &
@@ -1765,10 +1767,6 @@
          intent(inout) :: &
          vrel      , & ! coeff for tauw
          Cb            ! seabed stress coeff
-         
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
-         Cw                   ! ocean-ice neutral drag coefficient
 
       ! local variables
 
@@ -2281,7 +2279,7 @@
          stPr
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+         intent(out) :: &
          bx      , & ! b vector, bx = taux + bxfix (N/m^2)
          by          ! b vector, by = tauy + byfix (N/m^2)
          
@@ -2365,10 +2363,12 @@
          intent(inout) :: &
          Fx      , & ! x residual vector, Fx = bx - Au (N/m^2)
          Fy          ! y residual vector, Fy = by - Av (N/m^2)
-         
+
       real (kind=dbl_kind), intent(out), optional :: &
          sum_squared ! sum of squared residual vector components
-      
+
+      ! local variables
+
       integer (kind=int_kind) :: &
          i, j, ij
 
@@ -2433,7 +2433,7 @@
          zetaD          ! 2*zeta      
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
-         intent(inout) :: &
+         intent(out) :: &
          Dstr          ! intermediate calc for diagonal components of matrix A associated 
                        ! with rheology term         
 
@@ -2806,7 +2806,7 @@
          Dstr
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+         intent(out) :: &
          Diagu   , & ! matvec, Fx = bx - Au (N/m^2)
          Diagv       ! matvec, Fy = by - Av (N/m^2)
 
@@ -2974,7 +2974,7 @@
          tpu     , & ! x-component of vector
          tpv         ! y-component of vector         
          
-      real (kind=dbl_kind), dimension (ntot), intent(inout) :: &
+      real (kind=dbl_kind), dimension (ntot), intent(out) :: &
          outvec
 
       ! local variables
@@ -3033,7 +3033,7 @@
       real (kind=dbl_kind), dimension (ntot), intent(in) :: &
          invec         
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(out) :: &
          tpu     , & ! x-component of vector
          tpv         ! y-component of vector         
          
@@ -3126,11 +3126,12 @@
                          Cb,         vrel,    &
                          umassdti,            &
                          halo_info_mask,      &
-                         solx,       soly,    &
                          bx,         by,      &
                          diagx,      diagy,   &
                          tolerance, maxinner, &
-                         maxouter, nbiter, conv)
+                         maxouter,            &                         
+                         solx,       soly,    &
+                         nbiter,     conv)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
@@ -3140,18 +3141,12 @@
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
 
-      type (ice_halo) :: &
+      type (ice_halo), intent(in) :: &
          halo_info_mask !  ghost cell update info for masked halo
-
-      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(inout) :: &
-         solx     , & ! Initial guess on input, approximate solution on output (x components)
-         soly         ! Initial guess on input, approximate solution on output (y components)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          bx       , & ! Right hand side of the linear system (x components)
-         by           ! Right hand side of the linear system (y components)
-
-      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
+         by       , & ! Right hand side of the linear system (y components)
          diagx    , & ! Diagonal of the system matrix (x components)
          diagy        ! Diagonal of the system matrix (y components)
 
@@ -3160,12 +3155,14 @@
                      ! residual is below tolerance
 
       integer (kind=int_kind), intent(in) :: &
-         maxinner    ! Restart the method every maxinner inner (Arnoldi) iterations
-
-      integer (kind=int_kind), intent(in) :: &
+         maxinner, & ! Restart the method every maxinner inner (Arnoldi) iterations
          maxouter    ! Maximum number of outer (restarts) iterations
                      ! Iteration will stop after maxinner*maxouter Arnoldi steps
                      ! even if the specified tolerance has not been achieved
+
+      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(inout) :: &
+         solx     , & ! Initial guess on input, approximate solution on output (x components)
+         soly         ! Initial guess on input, approximate solution on output (y components)
 
       integer (kind=int_kind), intent(out) :: &
          nbiter      ! Total number of Arnoldi iterations performed
@@ -3364,8 +3361,10 @@
             !$OMP END PARALLEL DO
             
             ! Orthogonalize the new vector
-            call orthogonalize(arnoldi_basis_x, arnoldi_basis_y, &
-                               hessenberg, initer, nextit, maxinner, ortho_type)
+            call orthogonalize(ortho_type     , initer         , &
+                               nextit         , maxinner       , &
+                               arnoldi_basis_x, arnoldi_basis_y, &
+                               hessenberg)
             
             
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
@@ -3518,11 +3517,12 @@
       subroutine pgmres (zetaD,                &
                          Cb,         vrel,     &
                          umassdti,             &
-                         solx,       soly,     &
                          bx,         by,       &
                          diagx,      diagy,    &
                          tolerance,  maxinner, &
-                         maxouter, nbiter, conv)
+                         maxouter,             &
+                         solx,       soly,     &
+                         nbiter,     conv)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
@@ -3531,10 +3531,6 @@
          vrel  , & ! coefficient for tauw 
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
-
-      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(inout) :: &
-         solx     , & ! Initial guess on input, approximate solution on output (x components)
-         soly         ! Initial guess on input, approximate solution on output (y components)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          bx       , & ! Right hand side of the linear system (x components)
@@ -3549,12 +3545,14 @@
                      ! residual is below tolerance
 
       integer (kind=int_kind), intent(in) :: &
-         maxinner    ! Restart the method every maxinner inner (Arnoldi) iterations
-
-      integer (kind=int_kind), intent(in) :: &
+         maxinner, & ! Restart the method every maxinner inner (Arnoldi) iterations
          maxouter    ! Maximum number of outer (restarts) iterations
                      ! Iteration will stop after maxinner*maxouter Arnoldi steps
                      ! even if the specified tolerance has not been achieved
+
+      real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(inout) :: &
+         solx     , & ! Initial guess on input, approximate solution on output (x components)
+         soly         ! Initial guess on input, approximate solution on output (y components)
 
       integer (kind=int_kind), intent(out) :: &
          nbiter      ! Total number of Arnoldi iterations performed
@@ -3749,8 +3747,10 @@
             !$OMP END PARALLEL DO
             
             ! Orthogonalize the new vector
-            call orthogonalize(arnoldi_basis_x, arnoldi_basis_y, &
-                               hessenberg, initer, nextit, maxinner, ortho_type)
+            call orthogonalize(ortho_type     , initer         , &
+                               nextit         , maxinner       , &
+                               arnoldi_basis_x, arnoldi_basis_y, &
+                               hessenberg)
             
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
             !$OMP PARALLEL DO PRIVATE(iblk)
@@ -3992,11 +3992,12 @@
          call pgmres (zetaD,                &
                       Cb,         vrel,     &
                       umassdti,             &
-                      wx,         wy,       &
                       vx,         vy,       &
                       diagx,      diagy,    &
                       tolerance,  maxinner, &
-                      maxouter, nbiter, conv)
+                      maxouter,             &
+                      wx,         wy,       &
+                      nbiter,     conv)
       else
          
       endif
@@ -4009,25 +4010,26 @@
 !
 ! authors: Philippe Blain, ECCC
 
-      subroutine orthogonalize(arnoldi_basis_x, arnoldi_basis_y, & 
-                               hessenberg, initer, nextit, maxinner, ortho_type)
+      subroutine orthogonalize(ortho_type     , initer         , &
+                               nextit         , maxinner       , &
+                               arnoldi_basis_x, arnoldi_basis_y, &
+                               hessenberg)
+
+      character(len=*), intent(in) :: &
+         ortho_type ! type of orthogonalization
+
+      integer (kind=int_kind), intent(in) :: &
+         initer  , & ! inner (Arnoldi) loop counter
+         nextit  , & ! nextit == initer+1
+         maxinner    ! Restart the method every maxinner inner iterations
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner+1), intent(inout) :: &
          arnoldi_basis_x , & ! arnoldi basis (x components) !phb == vv
          arnoldi_basis_y     ! arnoldi basis (y components)
 
-      integer (kind=int_kind), intent(in) :: &
-         initer          , & ! inner (Arnoldi) loop counter
-         nextit              ! nextit == initer+1
-
       real (kind=dbl_kind), dimension(maxinner+1, maxinner), intent(inout) :: &
          hessenberg        ! system matrix of the Hessenberg (least squares) system
          !phb: removing this parameter and argument makes ifort error in the .i90 file
-      integer (kind=int_kind), intent(in) :: &
-         maxinner    ! Restart the method every maxinner inner iterations
-
-      character(len=*), intent(in) :: &
-         ortho_type ! type of orthogonalization
 
       ! local variables
 
@@ -4170,12 +4172,12 @@
       use ice_domain, only: halo_info, maskhalo_dyn
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
 
+      type (ice_halo), intent(in) :: &
+         halo_info_mask !  ghost cell update info for masked halo
+
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
          uvel    , & ! u components of velocity vector
          vvel        ! v components of velocity vector
-
-      type (ice_halo), intent(in) :: &
-         halo_info_mask !  ghost cell update info for masked halo
 
       ! local variables
 
