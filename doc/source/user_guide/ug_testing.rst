@@ -675,19 +675,33 @@ repository has to be created to test CICE with Icepack integrated directly.  The
 https://github.com/apcraig/Test_CICE_Icepack serves as the current default test repository.
 In general, to setup the code coverage test in CICE, the current CICE master has
 to be copied into the Test_CICE_Icepack repository, then the code coverage tool can
-be run on that repository.  A sample script to do that would be::
+be run on that repository.  A sample process to do that would be::
 
-  git clone https://github.com/cice-consortium/cice cice.master --recursive
+  # Check out current cice master
+  git clone https://github.com/cice-consortium/cice cice.master.${date} --recursive
+  cd cice.master.${date}
+  set hash = `git show --oneline -s | cut -f 1 -d " "`
+  cd ../
 
-  git clone https://github.com/apcraig/test_cice_icepack
-  cd test_cice_icepack
+  # Check out test_cice_icepack and update from cice master
+  git clone https://github.com/apcraig/test_cice_icepack test_cice_icepack.${date}
+  cd test_cice_icepack.${date}
   git rm -r *
-  cp -p -r ../cice.master/* .
+  cp -p -r ../cice.master.${date}/* .
+  diff -r ../cice.master.${date} . --exclude .git
+  # Manually copy files if needed (should be just dot files, do not copy in .gitmodules)
+  rm -r -f icepack/.git*
   git add .
-  git commit -m "update to current cice master"
+  git commit -m "update test_cice_icepack master to ${hash}"
+
+  # Push test_cice_icepack 
   git push origin master
 
-  ./cice.setup --suite first_suite,base_suite,travis_suite,decomp_suite,reprosum_suite,quick_suite -m gordon -e gnu --codecov --testid cc01
+  # Run test suite
+  ./cice.setup --suite first_suite,base_suite,travis_suite,decomp_suite,reprosum_suite,quick_suite -m gordon -e gnu --testid T${date} --codecov --queue standard
+
+There is also a script in **configuration/scripts/tests/cice_test_codecov.csh** that
+provides similar information.
 
 To use, submit a full test suite using an updated Test_CICE_Icepack version
 and the gnu compiler with the ``--codecov`` argument.
