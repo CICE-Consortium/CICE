@@ -668,46 +668,22 @@ Code Coverage Testing
 The ``--codecov`` feature in **cice.setup** provides a method to diagnose code coverage.
 This argument turns on special compiler flags including reduced optimization and then
 invokes the gcov tool.
-This option is currently only available with the gnu compiler and on a few systems.
+This option is currently only available with the gnu compiler and on a few systems
+with modified Macros files.
 
 Because codecov.io does not support git submodule analysis right now, a customized
 repository has to be created to test CICE with Icepack integrated directly.  The repository 
 https://github.com/apcraig/Test_CICE_Icepack serves as the current default test repository.
 In general, to setup the code coverage test in CICE, the current CICE master has
-to be copied into the Test_CICE_Icepack repository, then the code coverage tool can
-be run on that repository.  A sample process to do that would be::
+to be copied into the Test_CICE_Icepack repository, then the full test suite
+can be run with the gnu compiler with the ``--codecov`` argument.
 
-  # Check out current cice master
-  git clone https://github.com/cice-consortium/cice cice.master.${date} --recursive
-  cd cice.master.${date}
-  set hash = `git show --oneline -s | cut -f 1 -d " "`
-  cd ../
-
-  # Check out test_cice_icepack and update from cice master
-  git clone https://github.com/apcraig/test_cice_icepack test_cice_icepack.${date}
-  cd test_cice_icepack.${date}
-  git rm -r *
-  cp -p -r ../cice.master.${date}/* .
-  diff -r ../cice.master.${date} . --exclude .git
-  # Manually copy files if needed (should be just dot files, do not copy in .gitmodules)
-  rm -r -f icepack/.git*
-  git add .
-  git commit -m "update test_cice_icepack master to ${hash}"
-
-  # Push test_cice_icepack 
-  git push origin master
-
-  # Run test suite
-  ./cice.setup --suite first_suite,base_suite,travis_suite,decomp_suite,reprosum_suite,quick_suite -m gordon -e gnu --testid T${date} --codecov --queue standard
-
-There is also a script in **configuration/scripts/tests/cice_test_codecov.csh** that
-provides similar information.
-
-To use, submit a full test suite using an updated Test_CICE_Icepack version
-and the gnu compiler with the ``--codecov`` argument.
 The test suite will run and then a report will be generated and uploaded to 
 the `codecov.io site <https://codecov.io/gh/apcraig/Test_CICE_Icepack>`_ by the 
 **report_codecov.csh** script.  
+
+A script that carries out the end-to-end testing can be found in 
+**configuration/scripts/tests/cice_test_codecov.csh**
 
 This is a special diagnostic test and does not constitute proper model testing.
 General use is not recommended, this is mainly used as a diagnostic to periodically 
