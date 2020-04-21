@@ -32,7 +32,7 @@ echo " "
 echo "*** checkout current cice master ***"
 git clone https://github.com/cice-consortium/cice cice.master.${date} --recursive
 cd cice.master.${date}
-set hash = `git show --oneline -s | cut -f 1 -d " "`
+set hash = `git rev-parse --short HEAD `
 cd ../
 
 # Check out test_cice_icepack, remove all code and copy from cice master
