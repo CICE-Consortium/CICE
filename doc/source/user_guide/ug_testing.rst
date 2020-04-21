@@ -680,7 +680,10 @@ can be run with the gnu compiler with the ``--codecov`` argument.
 
 The test suite will run and then a report will be generated and uploaded to 
 the `codecov.io site <https://codecov.io/gh/apcraig/Test_CICE_Icepack>`_ by the 
-**report_codecov.csh** script.  
+**report_codecov.csh** script.  The env variable CODECOV_TOKEN needs to be defined
+either in the environment or in a file named **~/.codecov_cice_token**.  That
+token provides write permission to the Test_CICE_Icepack codecov.io site and is available
+by contacting the Consortium team directly.
 
 A script that carries out the end-to-end testing can be found in 
 **configuration/scripts/tests/cice_test_codecov.csh**
