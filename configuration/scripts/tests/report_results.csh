@@ -39,6 +39,7 @@ set hash = `grep "#hash = " results.log | cut -c 9-`
 set shhash   = `grep "#hshs = " results.log | cut -c 9-`
 set hashuser = `grep "#hshu = " results.log | cut -c 9-`
 set hashdate = `grep "#hshd = " results.log | cut -c 9-`
+set testsuites = `grep "#suit = " results.log | cut -c 9-`
 set cdat = `grep "#date = " results.log | cut -c 9-`
 set ctim = `grep "#time = " results.log | cut -c 9-`
 set user = `grep "#user = " results.log | cut -c 9-`
@@ -56,6 +57,7 @@ set compilers = `grep -v "#" results.log | grep ${mach}_ | cut -d "_" -f 2 | sor
 #echo "debug ${shhash}"
 #echo "debug ${hashuser}"
 #echo "debug ${hashdate}"
+#echo "debug ${testsuites}"
 #echo "debug ${cdat}"
 #echo "debug ${ctim}"
 #echo "debug ${user}"
