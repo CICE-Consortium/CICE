@@ -18,7 +18,7 @@
       use ice_fileunits, only: flush_fileunit
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_max_aero
+      use icepack_intfc, only: icepack_max_aero, icepack_max_iso
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags
       use icepack_intfc, only: icepack_query_tracer_indices
@@ -79,6 +79,10 @@
          toten            , & ! total ice/snow energy (J)
          totes                ! total ice/snow energy (J)
 
+      real (kind=dbl_kind), dimension(icepack_max_iso) :: &
+         totison         , & ! total isotope mass
+         totisos             ! total isotope mass
+
       real (kind=dbl_kind), dimension(icepack_max_aero) :: &
          totaeron         , & ! total aerosol mass
          totaeros             ! total aerosol mass
@@ -89,8 +93,8 @@
       integer (kind=int_kind), parameter, public :: &
          check_step = 999999999, & ! begin printing at istep1=check_step
          iblkp = 1, &      ! block number 
-         ip = 2, &         ! i index
-         jp = 11, &         ! j index
+         ip = 72, &        ! i index
+         jp = 11, &        ! j index
          mtask = 0         ! my_task
 
 !=======================================================================
@@ -113,7 +117,7 @@
       use ice_constants, only: c1, c1000, c2, p001, p5, &
           field_loc_center, m2_to_km2
       use ice_domain, only: distrb_info, nblocks
-      use ice_domain_size, only: ncat, n_aero, max_blocks, nfsd
+      use ice_domain_size, only: ncat, n_iso, n_aero, max_blocks, nfsd
       use ice_flux, only: alvdr, alidr, alvdf, alidf, evap, fsnow, frazil, &
           fswabs, fswthru, flw, flwout, fsens, fsurf, flat, frzmlt_init, frain, fpond, &
           fhocn_ai, fsalt_ai, fresh_ai, frazil_diag, &
@@ -121,7 +125,7 @@
           dsnow, congel, sst, sss, Tf, fhocn, &
           swvdr, swvdf, swidr, swidf, &
           alvdr_init, alvdf_init, alidr_init, alidf_init
-      use ice_flux_bgc, only: faero_atm, faero_ocn
+      use ice_flux_bgc, only: faero_atm, faero_ocn, fiso_atm, fiso_ocn
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
       use ice_grid, only: lmask_n, lmask_s, tarean, tareas
       use ice_state   ! everything
@@ -138,10 +142,11 @@
       integer (kind=int_kind) :: &
          i, j, k, n, iblk, nc, &
          ktherm, &
-         nt_tsfc, nt_aero, nt_fbri, nt_apnd, nt_hpnd, nt_fsd
+         nt_tsfc, nt_aero, nt_fbri, nt_apnd, nt_hpnd, nt_fsd, &
+         nt_isosno, nt_isoice
 
       logical (kind=log_kind) :: &
-         tr_pond_topo, tr_brine, tr_aero, calc_Tsfc, tr_fsd
+         tr_pond_topo, tr_brine, tr_iso, tr_aero, calc_Tsfc, tr_fsd
 
       real (kind=dbl_kind) :: &
          rhow, rhos, rhoi, puny, awtvdr, awtidr, awtvdf, awtidf, &
@@ -166,6 +171,13 @@
          delein, werrn, herrn, msltn, delmsltn, serrn, &
          deleis, werrs, herrs, mslts, delmslts, serrs
 
+      ! isotope diagnostics
+      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
+         fisoan, fisoon, isorn, &
+         fisoas, fisoos, isors, &
+         isomx1n, isomx1s, &
+         isototn, isotots
+
       ! aerosol diagnostics
       real (kind=dbl_kind), dimension(icepack_max_aero) :: &
          faeran, faeron, aerrn, &
@@ -188,10 +200,10 @@
 
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
-           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd)
+           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_Tsfc_out=nt_Tsfc, &
            nt_aero_out=nt_aero, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
-           nt_fsd_out=nt_fsd)
+           nt_fsd_out=nt_fsd,nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_query_parameters(Tffresh_out=Tffresh, rhos_out=rhos, &
            rhow_out=rhow, rhoi_out=rhoi, puny_out=puny, &
            awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf, &
@@ -683,6 +695,45 @@
          serrn = (sfsaltn + delmsltn) / (msltn + c1)
          serrs = (sfsalts + delmslts) / (mslts + c1)
 
+         ! isotopes
+         if (tr_iso) then
+         do n = 1, n_iso
+            fisoan(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init, &
+                                        distrb_info, field_loc_center, tarean)
+            fisoas(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init, &
+                                        distrb_info, field_loc_center, tareas)
+            fisoan(n) = fisoan(n)*dt
+            fisoas(n) = fisoas(n)*dt
+            fisoon(n) = global_sum_prod(fiso_ocn(:,:,n,:), aice, &
+                                        distrb_info, field_loc_center, tarean)
+            fisoos(n) = global_sum_prod(fiso_ocn(:,:,n,:), aice, &
+                                        distrb_info, field_loc_center, tareas)
+            fisoon(n) = fisoon(n)*dt
+            fisoos(n) = fisoos(n)*dt
+
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  work1(i,j,iblk) = c0
+                  do k = 1, n_iso
+                     work1(i,j,iblk) = work1(i,j,iblk) &
+                                     + vsno(i,j,iblk)*trcr(i,j,nt_isosno+k-1,iblk) &
+                                     + vice(i,j,iblk)*trcr(i,j,nt_isoice+k-1,iblk)
+                  enddo
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+            isototn(n) = global_sum(work1, distrb_info, field_loc_center, tarean)
+            isotots(n) = global_sum(work1, distrb_info, field_loc_center, tareas)
+            isomx1n(n) = global_maxval(work1, distrb_info, lmask_n)
+            isomx1s(n) = global_maxval(work1, distrb_info, lmask_s)
+            isorn(n) = (totison(n)-isototn(n)+fisoan(n)-fisoon(n))/(isototn(n)+c1)
+            isors(n) = (totisos(n)-isotots(n)+fisoas(n)-fisoos(n))/(isotots(n)+c1)
+         enddo ! n_iso
+         endif ! tr_iso
+
          ! aerosols
          if (tr_aero) then
          do n = 1, n_aero
@@ -917,6 +968,17 @@
          write(nu_diag,901) 'arwt salt flx error    = ',serrn,serrs
 
          write(nu_diag,*) '----------------------------'
+         if (tr_iso) then
+         do n = 1, n_iso
+         write(nu_diag,*)   '  isotope ',n
+         write(nu_diag,901) 'fiso_atm (kg/m2)       = ', fisoan(n), fisoas(n)
+         write(nu_diag,901) 'fiso_ocn (kg/m2)       = ', fisoon(n), fisoos(n)
+         write(nu_diag,901) 'total iso (kg/m2)      = ', isototn(n), isotots(n)
+         write(nu_diag,901) 'iso error              = ', isorn(n), isors(n)
+         write(nu_diag,901) 'maximum iso (kg/m2)    = ', isomx1n(n),isomx1s(n)
+         enddo
+         write(nu_diag,*) '----------------------------'
+         endif ! tr_iso
          if (tr_aero) then
          do n = 1, n_aero
          write(nu_diag,*)   '  aerosol ',n
@@ -1030,16 +1092,16 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: field_loc_center
       use ice_domain, only: distrb_info, nblocks
-      use ice_domain_size, only: n_aero, ncat, max_blocks
+      use ice_domain_size, only: n_iso, n_aero, ncat, max_blocks
       use ice_global_reductions, only: global_sum
       use ice_grid, only: tareas, tarean
       use ice_state, only: aicen, vice, vsno, trcrn, trcr
 
-      integer (kind=int_kind) :: n, i, j, iblk, &
-         nt_hpnd, nt_apnd, nt_aero
+      integer (kind=int_kind) :: n, i, j, k, iblk, &
+         nt_hpnd, nt_apnd, nt_aero, nt_isosno, nt_isoice
 
       logical (kind=log_kind) :: &
-         tr_aero, tr_pond_topo
+         tr_iso, tr_aero, tr_pond_topo
 
       real (kind=dbl_kind) :: &
          shmaxn, snwmxn,  shmaxs, snwmxs, totpn, totps, &
@@ -1051,7 +1113,8 @@
       character(len=*), parameter :: subname = '(init_mass_diags)'
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_pond_topo_out=tr_pond_topo)
-      call icepack_query_tracer_indices( &
+      call icepack_query_tracer_flags(tr_iso_out=tr_iso)
+      call icepack_query_tracer_indices(nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
          nt_hpnd_out=nt_hpnd, nt_apnd_out=nt_apnd, nt_aero_out=nt_aero)
       call icepack_query_parameters( &
          rhoi_out=rhoi, rhos_out=rhos, rhofresh_out=rhofresh)
@@ -1093,6 +1156,27 @@
             endif
          enddo  ! npnt
       endif                     ! print_points
+
+      if (tr_iso) then
+         do n=1,n_iso
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  work1(i,j,iblk) = c0
+                  do k = 1, n_iso
+                     work1(i,j,iblk) = work1(i,j,iblk) &
+                                     + vsno(i,j,iblk)*trcr(i,j,nt_isosno+k-1,iblk) &
+                                     + vice(i,j,iblk)*trcr(i,j,nt_isoice+k-1,iblk)
+                  enddo
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+            totison(n)= global_sum(work1, distrb_info, field_loc_center, tarean)
+            totisos(n)= global_sum(work1, distrb_info, field_loc_center, tareas)
+         enddo
+      endif
 
       if (tr_aero) then
          do n=1,n_aero
@@ -1480,18 +1564,20 @@
            qi, qs, Tsnow, &
            rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
-      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd
+      integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd, &
+           nt_isosno, nt_isoice
 
-      logical (kind=log_kind) :: tr_fsd
+      logical (kind=log_kind) :: tr_fsd, tr_iso
 
       type (block) :: &
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(print_state)'
 
-      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
-           nt_qsno_out=nt_qsno, nt_fsd_out=nt_fsd)
+           nt_qsno_out=nt_qsno, nt_fsd_out=nt_fsd, &
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
@@ -1521,6 +1607,8 @@
          endif
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
          if (tr_fsd) write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk) ! fsd cat 1
+!         if (tr_iso) write(nu_diag,*) 'isosno',trcrn(i,j,nt_isosno,n,iblk) ! isotopes in snow
+!         if (tr_iso) write(nu_diag,*) 'isoice',trcrn(i,j,nt_isoice,n,iblk) ! isotopes in ice
          write(nu_diag,*) ' '
 
 ! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal

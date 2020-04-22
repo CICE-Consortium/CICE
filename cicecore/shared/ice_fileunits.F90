@@ -54,6 +54,8 @@
          nu_restart_pond,&  ! restart input file for melt pond tracer
          nu_dump_fsd   , &  ! dump file for restarting floe size distribution
          nu_restart_fsd, &  ! restart input file for floe size distribution
+         nu_dump_iso   , &  ! dump file for restarting isotope tracers
+         nu_restart_iso, &  ! restart input file for isotope tracers
          nu_dump_aero  , &  ! dump file for restarting aerosol tracer
          nu_restart_aero,&  ! restart input file for aerosol tracer
          nu_dump_bgc   , &  ! dump file for restarting bgc
@@ -106,7 +108,7 @@
 
          character(len=*),parameter :: subname='(init_fileunits)'
 
-         allocate(ice_IOUnitsInUse(ice_IOUnitsMaxUnit))
+         if (.not.allocated(ice_IOUnitsInUse)) allocate(ice_IOUnitsInUse(ice_IOUnitsMaxUnit))
          ice_IOUnitsInUse = .false.
 
          ice_IOUnitsInUse(ice_stdin)  = .true. ! reserve unit 5
@@ -130,6 +132,8 @@
          call get_fileunit(nu_restart_pond)
          call get_fileunit(nu_dump_fsd)
          call get_fileunit(nu_restart_fsd)
+         call get_fileunit(nu_dump_iso)
+         call get_fileunit(nu_restart_iso)
          call get_fileunit(nu_dump_aero)
          call get_fileunit(nu_restart_aero)
          call get_fileunit(nu_dump_bgc)
@@ -217,6 +221,8 @@
          call release_fileunit(nu_restart_pond)
          call release_fileunit(nu_dump_fsd)
          call release_fileunit(nu_restart_fsd)
+         call release_fileunit(nu_dump_iso)
+         call release_fileunit(nu_restart_iso)
          call release_fileunit(nu_dump_aero)
          call release_fileunit(nu_restart_aero)
          call release_fileunit(nu_dump_bgc)

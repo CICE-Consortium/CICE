@@ -7,14 +7,6 @@ cp ice_in ice_in.0
 ${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/test_nml.restart1
 cp ice_in ice_in.1
 
-mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
-cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
-mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
-cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test" >! ${ICE_CASEDIR}/test_output
-rm -f ${ICE_CASEDIR}/test_output.prev
-echo "RUN  ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
-echo "PEND ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
-
 ./cice.run
 set res="$status"
 
@@ -27,8 +19,6 @@ if ( $res != 0 ) then
   echo "FAIL ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
   echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
   exit 99
-else
-  echo "PASS ${ICE_TESTNAME} initialrun" >> ${ICE_CASEDIR}/test_output
 endif
 
 # Prepend 'base_' to the final restart file to save for comparison

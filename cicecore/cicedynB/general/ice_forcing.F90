@@ -72,7 +72,7 @@
          sublim_file, &
            snow_file  
 
-      character (char_len_long), dimension(:), allocatable :: &  ! input data file names
+      character (char_len_long), dimension(:), allocatable, public :: &  ! input data file names
         topmelt_file, &
         botmelt_file
 
@@ -84,10 +84,10 @@
            oldrecnum = 0  , & ! old record number (save between steps)
            oldrecnum4X = 0    !
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
           cldf                ! cloud fraction
 
-      real (kind=dbl_kind), dimension(:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
             fsw_data, & ! field values at 2 temporal data points
            cldf_data, &
           fsnow_data, &
@@ -107,8 +107,7 @@
          sublim_data, &
           frain_data
 
-      real (kind=dbl_kind), & 
-           dimension(:,:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable, public :: &
         topmelt_data, &
         botmelt_data
 
@@ -141,8 +140,7 @@
          frcidr = 0.31_dbl_kind, & ! frac of incoming sw in near IR direct band
          frcidf = 0.17_dbl_kind    ! frac of incoming sw in near IR diffuse band
 
-      real (kind=dbl_kind), &
-       dimension (:,:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          ocn_frc_m   ! ocn data for 12 months
 
       logical (kind=log_kind), public :: &
@@ -4362,8 +4360,8 @@
       fsw_file   = trim(atm_data_dir)//'/forcing.shwflx.nc'
       flw_file   = trim(atm_data_dir)//'/forcing.radflx.nc'
       rain_file  = trim(atm_data_dir)//'/forcing.precip.nc'
-      uwind_file = trim(atm_data_dir)//'/forcing.ewndsp.nc'  !actually Xward, not Eward
-      vwind_file = trim(atm_data_dir)//'/forcing.nwndsp.nc'  !actually Yward, not Nward
+      uwind_file = trim(atm_data_dir)//'/forcing.wndewd.nc'
+      vwind_file = trim(atm_data_dir)//'/forcing.wndnwd.nc'
       tair_file  = trim(atm_data_dir)//'/forcing.airtmp.nc'
       humid_file = trim(atm_data_dir)//'/forcing.vapmix.nc'
 
@@ -4469,11 +4467,11 @@
          call read_data_nc_hycom (read6, recnum, &
                           tair_file, fieldname, Tair_data, &
                           field_loc_center, field_type_scalar)
-         fieldname = 'ewndsp'
+         fieldname = 'wndewd'
          call read_data_nc_hycom (read6, recnum, &
                           uwind_file, fieldname, uatm_data, &
                           field_loc_center, field_type_vector)
-         fieldname = 'nwndsp'
+         fieldname = 'wndnwd'
          call read_data_nc_hycom (read6, recnum, &
                           vwind_file, fieldname, vatm_data, &
                           field_loc_center, field_type_vector)

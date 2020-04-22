@@ -188,6 +188,7 @@
                ( (dble(nx_global-1)/dble(block_size_x + 1)) * &
                  (dble(ny_global-1)/dble(block_size_y + 1)) ) & 
                  / dble(nprocs))
+       max_blocks=max(1,max_blocks)
        write(nu_diag,'(/,a52,i6,/)') &
          '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
      endif
