@@ -15,11 +15,11 @@ module ice_comp_nuopc
   use NUOPC_Model        , only : model_label_SetRunClock    => label_SetRunClock
   use NUOPC_Model        , only : model_label_Finalize       => label_Finalize
   use NUOPC_Model        , only : NUOPC_ModelGet, SetVM
-  use shr_kind_mod       , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs 
+  use shr_kind_mod       , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_sys_mod        , only : shr_sys_abort, shr_sys_flush
   use shr_file_mod       , only : shr_file_getlogunit, shr_file_setlogunit
   use shr_string_mod     , only : shr_string_listGetNum
-  use shr_orb_mod        , only : shr_orb_decl
+  use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
   use shr_const_mod
   use shr_cal_mod        , only : shr_cal_noleap, shr_cal_gregorian, shr_cal_ymd2date
   use ice_constants      , only : ice_init_constants
@@ -71,12 +71,24 @@ module ice_comp_nuopc
   private :: ModelAdvance
   private :: ModelSetRunClock
   private :: ModelFinalize
+  private :: ice_orbital_init ! only for cesm
 
   character(len=CL) :: flds_scalar_name = ''
   integer           :: flds_scalar_num = 0
   integer           :: flds_scalar_index_nx = 0
   integer           :: flds_scalar_index_ny = 0
   integer           :: flds_scalar_index_nextsw_cday = 0
+
+  character(len=CL) :: orb_mode        ! attribute - orbital mode
+  integer           :: orb_iyear       ! attribute - orbital year
+  integer           :: orb_iyear_align ! attribute - associated with model year
+  real(R8)          :: orb_obliq       ! attribute - obliquity in degrees
+  real(R8)          :: orb_mvelp       ! attribute - moving vernal equinox longitude
+  real(R8)          :: orb_eccen       ! attribute and update-  orbital eccentricity
+
+  character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
+  character(len=*) , parameter :: orb_variable_year    = 'variable_year'
+  character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
   integer     , parameter :: dbug = 10
   integer     , parameter :: debug_import = 0 ! internal debug level
@@ -346,31 +358,32 @@ contains
 
     call ice_init_constants(omega_in=SHR_CONST_OMEGA, radius_in=SHR_CONST_REARTH, &
        spval_dbl_in=SHR_CONST_SPVAL)
+
     call icepack_init_parameters( &
-       secday_in = SHR_CONST_CDAY, &
-       rhoi_in   = SHR_CONST_RHOICE, &
-       rhow_in   = SHR_CONST_RHOSW, &
-       cp_air_in = SHR_CONST_CPDAIR, &
-       cp_ice_in = SHR_CONST_CPICE, &
-       cp_ocn_in = SHR_CONST_CPSW, &
-       gravit_in = SHR_CONST_G, &
-       rhofresh_in = SHR_CONST_RHOFW, &
-       zvir_in   = SHR_CONST_ZVIR, &
-       vonkar_in = SHR_CONST_KARMAN, &
-       cp_wv_in  = SHR_CONST_CPWV, &
-       stefan_boltzmann_in = SHR_CONST_STEBOL, &
-       Tffresh_in= SHR_CONST_TKFRZ, &
-       Lsub_in   = SHR_CONST_LATSUB, &
-       Lvap_in   = SHR_CONST_LATVAP, &
-!       Lfresh_in = SHR_CONST_LATICE, & ! computed in init_parameters as Lsub-Lvap              
-       Timelt_in = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
-       Tsmelt_in = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
-       ice_ref_salinity_in = SHR_CONST_ICE_REF_SAL, &
-       depressT_in = 0.054_dbl_kind, &
-       Tocnfrz_in= -34.0_dbl_kind*0.054_dbl_kind, &
-       pi_in     = SHR_CONST_PI, &
-       snowpatch_in = 0.005_dbl_kind, &
-       dragio_in = 0.00962_dbl_kind)
+       secday_in           = SHR_CONST_CDAY,                  &
+       rhoi_in             = SHR_CONST_RHOICE,                &
+       rhow_in             = SHR_CONST_RHOSW,                 &
+       cp_air_in           = SHR_CONST_CPDAIR,                &
+       cp_ice_in           = SHR_CONST_CPICE,                 &
+       cp_ocn_in           = SHR_CONST_CPSW,                  &
+       gravit_in           = SHR_CONST_G,                     &
+       rhofresh_in         = SHR_CONST_RHOFW,                 &
+       zvir_in             = SHR_CONST_ZVIR,                  &
+       vonkar_in           = SHR_CONST_KARMAN,                &
+       cp_wv_in            = SHR_CONST_CPWV,                  &
+       stefan_boltzmann_in = SHR_CONST_STEBOL,                &
+       Tffresh_in          = SHR_CONST_TKFRZ,                 &
+       Lsub_in             = SHR_CONST_LATSUB,                &
+       Lvap_in             = SHR_CONST_LATVAP,                &
+      !Lfresh_in           = SHR_CONST_LATICE,                & ! computed in init_parameters as Lsub-Lvap
+       Timelt_in           = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
+       Tsmelt_in           = SHR_CONST_TKFRZ-SHR_CONST_TKFRZ, &
+       ice_ref_salinity_in = SHR_CONST_ICE_REF_SAL,           &
+       depressT_in         = 0.054_dbl_kind,                  &
+       Tocnfrz_in          = -34.0_dbl_kind*0.054_dbl_kind,   &
+       pi_in               = SHR_CONST_PI,                    &
+       snowpatch_in        = 0.005_dbl_kind,                  &
+       dragio_in           = 0.00962_dbl_kind)
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
@@ -382,6 +395,10 @@ contains
     ! Get orbital values
     ! Note that these values are obtained in a call to init_orbit in ice_shortwave.F90
     ! if CESMCOUPLED is not defined
+#ifdef CESMCOUPLED
+    call ice_orbital_init(gcomp, clock, nu_diag, my_task==master_task, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#else
     call NUOPC_CompAttributeGet(gcomp, name='orb_eccen', value=cvalue, isPresent=isPresent, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
@@ -403,11 +420,11 @@ contains
        read(cvalue,*) mvelpp
     end if
 
-    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, &
-         lambm0_in=lambm0, obliqr_in=obliqr)
+    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, lambm0_in=lambm0, obliqr_in=obliqr)
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
+#endif
 
     ! Determine runtype and possibly nextsw_cday
     call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, isPresent=isPresent, rc=rc)
@@ -429,7 +446,7 @@ contains
        ! In the nuopc version it will be easier to assume that on startup - nextsw_cday is just the current time
 
        ! TOOD (mvertens, 2019-03-21): need to get the perpetual run working
-     
+
        if (trim(runtype) /= 'initial') then
           ! Set nextsw_cday to -1 (this will skip an orbital calculation on initialization
           nextsw_cday = -1.0_r8
@@ -441,7 +458,7 @@ contains
        end if
     else
        ! This would be the NEMS branch
-       ! Note that in NEMS - nextsw_cday is not needed in ice_orbital.F90 and what is needed is 
+       ! Note that in NEMS - nextsw_cday is not needed in ice_orbital.F90 and what is needed is
        ! simply a CPP variable declaratino of NEMSCOUPLED
 
        runtype = 'initial' ! determined from the namelist in ice_init if CESMCOUPLED is not defined
@@ -876,7 +893,7 @@ contains
          flds_scalar_name=flds_scalar_name, flds_scalar_num=flds_scalar_num, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-#ifdef CESMCOUPLED    
+#ifdef CESMCOUPLED
     !-----------------------------------------------------------------
     ! Prescribed ice initialization - first get compid
     !-----------------------------------------------------------------
@@ -1024,6 +1041,10 @@ contains
     !--------------------------------
     ! Obtain orbital values
     !--------------------------------
+#ifdef CESMCOUPLED
+    call ice_orbital_init(gcomp, clock, nu_diag, my_task==master_task, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#else
     call NUOPC_CompAttributeGet(gcomp, name='orb_eccen', value=cvalue, isPresent=isPresent, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
@@ -1050,6 +1071,7 @@ contains
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
+#endif
 
     !--------------------------------
     ! check that cice internal time is in sync with master clock before timestep update
@@ -1348,5 +1370,143 @@ contains
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ModelFinalize
+
+  !===============================================================================
+
+  subroutine ice_orbital_init(gcomp, clock, logunit, mastertask, rc)
+
+    !----------------------------------------------------------
+    ! Initialize orbital related values for cesm coupled
+    !----------------------------------------------------------
+
+    ! input/output variables
+    type(ESMF_GridComp)                 :: gcomp
+    type(ESMF_Clock)    , intent(in)    :: clock
+    integer             , intent(in)    :: logunit
+    logical             , intent(in)    :: mastertask
+    integer             , intent(out)   :: rc              ! output error
+
+    ! local variables
+    real(r8)          :: eccen, obliqr, lambm0, mvelpp
+    character(len=CL) :: msgstr   ! temporary
+    character(len=CL) :: cvalue   ! temporary
+    type(ESMF_Time)   :: CurrTime ! current time
+    integer           :: year     ! model year at current time
+    integer           :: orb_year ! orbital year for current orbital computation
+    logical           :: lprint
+    logical           :: first_time = .true.
+    character(len=*) , parameter :: subname = "(cice_orbital_init)"
+    !-------------------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    if (first_time) then
+
+       ! Determine orbital attributes from input
+       call NUOPC_CompAttributeGet(gcomp, name='orb_mode', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) orb_mode
+       call NUOPC_CompAttributeGet(gcomp, name="orb_iyear", value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) orb_iyear
+       call NUOPC_CompAttributeGet(gcomp, name="orb_iyear_align", value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) orb_iyear_align
+       call NUOPC_CompAttributeGet(gcomp, name="orb_obliq", value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) orb_obliq
+       call NUOPC_CompAttributeGet(gcomp, name="orb_eccen", value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) orb_eccen
+       call NUOPC_CompAttributeGet(gcomp, name="orb_mvelp", value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) orb_mvelp
+
+       ! Error checks
+       if (trim(orb_mode) == trim(orb_fixed_year)) then
+          orb_obliq = SHR_ORB_UNDEF_REAL
+          orb_eccen = SHR_ORB_UNDEF_REAL
+          orb_mvelp = SHR_ORB_UNDEF_REAL
+          if (orb_iyear == SHR_ORB_UNDEF_INT) then
+             if (mastertask) then
+                write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
+                write(logunit,*) trim(subname),' ERROR: fixed_year settings = ',orb_iyear
+                write (msgstr, *) ' ERROR: invalid settings for orb_mode '//trim(orb_mode)
+             end if
+             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+             return  ! bail out
+          endif
+       elseif (trim(orb_mode) == trim(orb_variable_year)) then
+          orb_obliq = SHR_ORB_UNDEF_REAL
+          orb_eccen = SHR_ORB_UNDEF_REAL
+          orb_mvelp = SHR_ORB_UNDEF_REAL
+          if (orb_iyear == SHR_ORB_UNDEF_INT .or. orb_iyear_align == SHR_ORB_UNDEF_INT) then
+             if (mastertask) then
+                write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
+                write(logunit,*) trim(subname),' ERROR: variable_year settings = ',orb_iyear, orb_iyear_align
+                write (msgstr, *) subname//' ERROR: invalid settings for orb_mode '//trim(orb_mode)
+             end if
+             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+             return  ! bail out
+          endif
+       elseif (trim(orb_mode) == trim(orb_fixed_parameters)) then
+          !-- force orb_iyear to undef to make sure shr_orb_params works properly
+          orb_iyear = SHR_ORB_UNDEF_INT
+          orb_iyear_align = SHR_ORB_UNDEF_INT
+          if (orb_eccen == SHR_ORB_UNDEF_REAL .or. &
+               orb_obliq == SHR_ORB_UNDEF_REAL .or. &
+               orb_mvelp == SHR_ORB_UNDEF_REAL) then
+             if (mastertask) then
+                write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
+                write(logunit,*) trim(subname),' ERROR: orb_eccen = ',orb_eccen
+                write(logunit,*) trim(subname),' ERROR: orb_obliq = ',orb_obliq
+                write(logunit,*) trim(subname),' ERROR: orb_mvelp = ',orb_mvelp
+                write (msgstr, *) subname//' ERROR: invalid settings for orb_mode '//trim(orb_mode)
+             end if
+             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+             return  ! bail out
+          endif
+       else
+          write (msgstr, *) subname//' ERROR: invalid orb_mode '//trim(orb_mode)
+          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+          rc = ESMF_FAILURE
+          return  ! bail out
+       endif
+    end if
+
+    if (trim(orb_mode) == trim(orb_variable_year)) then
+       call ESMF_ClockGet(clock, CurrTime=CurrTime, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeGet(CurrTime, yy=year, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       orb_year = orb_iyear + (year - orb_iyear_align)
+       lprint = mastertask
+    else
+       orb_year = orb_iyear
+       if (first_time) then
+          lprint = mastertask
+       else
+          lprint = .false.
+       end if
+    end if
+
+    eccen = orb_eccen
+    call shr_orb_params(orb_year, eccen, orb_obliq, orb_mvelp, obliqr, lambm0, mvelpp, lprint)
+
+    if ( eccen  == SHR_ORB_UNDEF_REAL .or. obliqr == SHR_ORB_UNDEF_REAL .or. &
+         mvelpp == SHR_ORB_UNDEF_REAL .or. lambm0 == SHR_ORB_UNDEF_REAL) then
+       write (msgstr, *) subname//' ERROR: orb params incorrect'
+       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+       return  ! bail out
+    endif
+
+    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, lambm0_in=lambm0, obliqr_in=obliqr)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
+
+    first_time = .false.
+
+  end subroutine ice_orbital_init
 
 end module ice_comp_nuopc
