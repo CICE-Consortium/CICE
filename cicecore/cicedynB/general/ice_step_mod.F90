@@ -27,7 +27,7 @@
       use icepack_intfc, only: icepack_biogeochemistry, icepack_load_ocean_bio_array
       use icepack_intfc, only: icepack_max_algae, icepack_max_nbtrcr, icepack_max_don
       use icepack_intfc, only: icepack_max_doc, icepack_max_dic, icepack_max_aero
-      use icepack_intfc, only: icepack_max_fe
+      use icepack_intfc, only: icepack_max_fe, icepack_max_iso
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_tracer_indices
@@ -161,7 +161,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero
+      use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
       use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, fside, &
           wind, rhoa, potT, Qa, zlvl, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
@@ -170,7 +170,8 @@
           flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
           fswthru, meltt, melts, meltb, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f
-      use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn
+      use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
+          Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
       use ice_state, only: aice, aicen, aice_init, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
@@ -198,10 +199,11 @@
 
       integer (kind=int_kind) :: &
          ntrcr, nt_apnd, nt_hpnd, nt_ipnd, nt_alvl, nt_vlvl, nt_Tsfc, &
-         nt_iage, nt_FY, nt_qice, nt_sice, nt_aero, nt_qsno
+         nt_iage, nt_FY, nt_qice, nt_sice, nt_aero, nt_qsno, &
+         nt_isosno, nt_isoice
 
       logical (kind=log_kind) :: &
-         tr_iage, tr_FY, tr_aero, tr_pond, tr_pond_cesm, &
+         tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, tr_pond_cesm, &
          tr_pond_lvl, tr_pond_topo, calc_Tsfc
 
       real (kind=dbl_kind) :: &
@@ -209,6 +211,9 @@
 
       real (kind=dbl_kind), dimension(n_aero,2,ncat) :: &
          aerosno,  aeroice    ! kg/m^2
+
+      real (kind=dbl_kind), dimension(n_iso,ncat) :: &
+         isosno,  isoice      ! kg/m^2
 
       type (block) :: &
          this_block      ! block information for current block
@@ -219,7 +224,7 @@
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags( &
-         tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+         tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_iso_out=tr_iso, &
          tr_aero_out=tr_aero, tr_pond_out=tr_pond, tr_pond_cesm_out=tr_pond_cesm, &
          tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
       call icepack_query_tracer_indices( &
@@ -227,7 +232,8 @@
          nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_Tsfc_out=nt_Tsfc, &
          nt_iage_out=nt_iage, nt_FY_out=nt_FY, &
          nt_qice_out=nt_qice, nt_sice_out=nt_sice, &
-         nt_aero_out=nt_aero, nt_qsno_out=nt_qsno)
+         nt_aero_out=nt_aero, nt_qsno_out=nt_qsno, &
+         nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -236,6 +242,8 @@
       prescribed_ice = .false.
 #endif
 
+      isosno (:,:)   = c0
+      isoice (:,:)   = c0
       aerosno(:,:,:) = c0
       aeroice(:,:,:) = c0
 
@@ -270,8 +278,16 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-         if (tr_aero) then
-         ! trcrn(nt_aero) has units kg/m^3
+         if (tr_iso) then ! trcrn(nt_iso*) has units kg/m^3
+            do n=1,ncat
+               do k=1,n_iso
+                  isosno(k,n) = trcrn(i,j,nt_isosno+k-1,n,iblk) * vsnon_init(i,j,n,iblk)
+                  isoice(k,n) = trcrn(i,j,nt_isoice+k-1,n,iblk) * vicen_init(i,j,n,iblk)
+               enddo
+            enddo
+         endif ! tr_iso
+
+         if (tr_aero) then ! trcrn(nt_aero) has units kg/m^3
             do n=1,ncat
                do k=1,n_aero
                   aerosno (k,:,n) = &
@@ -311,15 +327,19 @@
                       FY           = trcrn       (i,j,nt_FY  ,:,iblk),                   & 
                       aerosno      = aerosno     (:,:,:),      &
                       aeroice      = aeroice     (:,:,:),      &
+                      isosno       = isosno      (:,:),        &
+                      isoice       = isoice      (:,:),        &
                       uatm         = uatm        (i,j,  iblk), &
                       vatm         = vatm        (i,j,  iblk), &
                       wind         = wind        (i,j,  iblk), &
                       zlvl         = zlvl        (i,j,  iblk), &
                       Qa           = Qa          (i,j,  iblk), &
+                      Qa_iso       = Qa_iso      (i,j,:,iblk), &
                       rhoa         = rhoa        (i,j,  iblk), &
                       Tair         = Tair        (i,j,  iblk), &
                       Tref         = Tref        (i,j,  iblk), &
                       Qref         = Qref        (i,j,  iblk), &
+                      Qref_iso     = Qref_iso    (i,j,:,iblk), &
                       Uref         = Uref        (i,j,  iblk), &
                       Cdn_atm_ratio= Cdn_atm_ratio(i,j, iblk), &
                       Cdn_ocn      = Cdn_ocn     (i,j,  iblk), &
@@ -389,6 +409,12 @@
                       fcondtopn_f  = fcondtopn_f (i,j,:,iblk), &
                       faero_atm    = faero_atm   (i,j,1:n_aero,iblk), &
                       faero_ocn    = faero_ocn   (i,j,1:n_aero,iblk), &
+                      fiso_atm     = fiso_atm    (i,j,:,iblk), &
+                      fiso_ocn     = fiso_ocn    (i,j,:,iblk), &
+                      fiso_evap    = fiso_evap   (i,j,:,iblk), &
+                      HDO_ocn      = HDO_ocn     (i,j,  iblk), &
+                      H2_16O_ocn   = H2_16O_ocn  (i,j,  iblk), &
+                      H2_18O_ocn   = H2_18O_ocn  (i,j,  iblk), &
                       dhsn         = dhsn        (i,j,:,iblk), &
                       ffracn       = ffracn      (i,j,:,iblk), &
                       meltt        = meltt       (i,j,  iblk), &
@@ -407,6 +433,19 @@
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
                       frz_onset    = frz_onset   (i,j,  iblk), &
                       yday=yday, prescribed_ice=prescribed_ice)
+
+         if (tr_iso) then
+            do n = 1, ncat
+               if (vicen(i,j,n,iblk) > puny) &
+                  isoice(:,n) = isoice(:,n)/vicen(i,j,n,iblk)
+               if (vsnon(i,j,n,iblk) > puny) &
+                  isosno(:,n) = isosno(:,n)/vsnon(i,j,n,iblk)
+               do k = 1, n_iso
+                  trcrn(i,j,nt_isosno+k-1,n,iblk) = isosno(k,n)
+                  trcrn(i,j,nt_isoice+k-1,n,iblk) = isoice(k,n)
+               enddo
+            enddo
+         endif ! tr_iso
 
          if (tr_aero) then
             do n = 1, ncat
@@ -452,7 +491,8 @@
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
           meltl, frazil_diag
-      use ice_flux_bgc, only: flux_bio, faero_ocn 
+      use ice_flux_bgc, only: flux_bio, faero_ocn, &
+          fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: tmask
       use ice_state, only: aice, aicen, aice0, trcr_depend, &
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
@@ -550,7 +590,12 @@
                       ocean_bio  = ocean_bio (i,j,1:nbtrcr,iblk), &
                       frazil_diag= frazil_diag(i,j,iblk),  &
                       frz_onset  = frz_onset (i,j,  iblk), &
-                      yday = yday, nfsd=nfsd,              &
+                      yday       = yday,                   &
+                      fiso_ocn   = fiso_ocn  (i,j,:,iblk), &
+                      HDO_ocn    = HDO_ocn   (i,j,  iblk), &
+                      H2_16O_ocn = H2_16O_ocn(i,j,  iblk), &
+                      H2_18O_ocn = H2_18O_ocn(i,j,  iblk), &
+                      nfsd       = nfsd,                   &
                       wave_sig_ht= wave_sig_ht(i,j,iblk),  &
                       wave_spectrum = wave_spectrum(i,j,:,iblk),  &
                       wavefreq   = wavefreq(:),            &
@@ -820,7 +865,7 @@
           dvirdgdt, opening, fpond, fresh, fhocn, &
           aparticn, krdgn, aredistn, vredistn, dardg1ndt, dardg2ndt, &
           dvirdgndt, araftn, vraftn, fsalt
-      use ice_flux_bgc, only: flux_bio, faero_ocn
+      use ice_flux_bgc, only: flux_bio, faero_ocn, fiso_ocn
       use ice_grid, only: tmask
       use ice_state, only: trcrn, vsnon, aicen, vicen, &
           aice, aice0, trcr_depend, n_trcr_strata, &
@@ -897,6 +942,7 @@
                          fresh     = fresh    (i,j,  iblk), &
                          fhocn     = fhocn    (i,j,  iblk), &
                          faero_ocn = faero_ocn(i,j,:,iblk), &
+                         fiso_ocn  = fiso_ocn (i,j,:,iblk), &
                          aparticn  = aparticn (i,j,:,iblk), &
                          krdgn     = krdgn    (i,j,:,iblk), &
                          aredistn  = aredistn (i,j,:,iblk), &

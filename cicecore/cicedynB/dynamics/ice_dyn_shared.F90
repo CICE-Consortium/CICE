@@ -85,8 +85,14 @@
       logical (kind=log_kind), public :: &
          basalstress   ! if true, basal stress for landfast on
 
+      ! basal stress parameters
       real (kind=dbl_kind), public :: &
-         k1            ! 1st free parameter for landfast parameterization
+         k1, &        ! 1st free parameter for landfast parameterization
+         k2, &        ! second free parameter (N/m^3) for landfast parametrization 
+         alphab, &    ! alphab=Cb factor in Lemieux et al 2015
+         threshold_hw ! max water depth for grounding 
+                      ! see keel data from Amundrud et al. 2004 (JGR)
+
 
 !=======================================================================
 
@@ -887,11 +893,7 @@
          au,  & ! concentration of ice at u location
          hu,  & ! volume per unit area of ice at u location (mean thickness)
          hwu, & ! water depth at u location
-         hcu, & ! critical thickness at u location
-         k2 = 15.0_dbl_kind , &     ! second free parameter (N/m^3) for landfast parametrization 
-         alphab = 20.0_dbl_kind, &  ! alphab=Cb factor in Lemieux et al 2015
-         threshold_hw = 30.0_dbl_kind ! max water depth for grounding 
-                                      ! see keel data from Amundrud et al. 2004 (JGR)
+         hcu    ! critical thickness at u location
 
       integer (kind=int_kind) :: &
          i, j, ij

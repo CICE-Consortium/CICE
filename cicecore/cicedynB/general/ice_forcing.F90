@@ -73,7 +73,7 @@
          sublim_file, &
            snow_file  
 
-      character (char_len_long), dimension(:), allocatable :: &  ! input data file names
+      character (char_len_long), dimension(:), allocatable, public :: &  ! input data file names
         topmelt_file, &
         botmelt_file
 
@@ -85,10 +85,10 @@
            oldrecnum = 0  , & ! old record number (save between steps)
            oldrecnum4X = 0    !
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
           cldf                ! cloud fraction
 
-      real (kind=dbl_kind), dimension(:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
             fsw_data, & ! field values at 2 temporal data points
            cldf_data, &
           fsnow_data, &
@@ -108,11 +108,15 @@
          sublim_data, &
           frain_data
 
+<<<<<<< HEAD
       real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: &
           wave_spectrum_data ! field values at 2 temporal data points
  
       real (kind=dbl_kind), & 
            dimension(:,:,:,:,:), allocatable :: &
+=======
+      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable, public :: &
+>>>>>>> master
         topmelt_data, &
         botmelt_data
 
@@ -121,7 +125,7 @@
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 
                           ! 'LYq' or 'hadgem' or 'oned' or
-                          ! 'JRA55'
+                          ! 'JRA55_gx1' or 'JRA55_gx3'
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
@@ -145,8 +149,7 @@
          frcidr = 0.31_dbl_kind, & ! frac of incoming sw in near IR direct band
          frcidf = 0.17_dbl_kind    ! frac of incoming sw in near IR diffuse band
 
-      real (kind=dbl_kind), &
-       dimension (:,:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          ocn_frc_m   ! ocn data for 12 months
 
       logical (kind=log_kind), public :: &
@@ -246,8 +249,8 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55' .and. &
-                                trim(atm_data_type) /= 'default' .and. &
+      if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55_gx1' .and. &
+                                trim(atm_data_type) /= 'JRA55_gx3' .and. &
                                 trim(atm_data_type) /= 'hycom' .and. &
                                 trim(atm_data_type) /= 'box2001')) then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
@@ -264,8 +267,10 @@
          call NCAR_files(fyear)
       elseif (trim(atm_data_type) == 'LYq') then
          call LY_files(fyear)
-      elseif (trim(atm_data_type) == 'JRA55') then
-         call JRA55_files(fyear)
+      elseif (trim(atm_data_type) == 'JRA55_gx1') then
+         call JRA55_gx1_files(fyear)
+      elseif (trim(atm_data_type) == 'JRA55_gx3') then
+         call JRA55_gx3_files(fyear)
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_files(fyear)
       elseif (trim(atm_data_type) == 'monthly') then
@@ -561,7 +566,9 @@
          call ncar_data
       elseif (trim(atm_data_type) == 'LYq') then
          call LY_data
-      elseif (trim(atm_data_type) == 'JRA55') then
+      elseif (trim(atm_data_type) == 'JRA55_gx1') then
+         call JRA55_data(fyear)
+      elseif (trim(atm_data_type) == 'JRA55_gx3') then
          call JRA55_data(fyear)
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_data
@@ -1438,7 +1445,11 @@
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_type) == 'JRA55') then ! netcdf
+      elseif (trim(atm_data_type) == 'JRA55_gx1') then ! netcdf
+         i = index(data_file,'.nc') - 5
+         tmpname = data_file
+         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
+      elseif (trim(atm_data_type) == 'JRA55_gx3') then ! netcdf
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
@@ -2068,12 +2079,12 @@
       endif                     ! master_task
 
       end subroutine LY_files
-      subroutine JRA55_files(yr)
+      subroutine JRA55_gx1_files(yr)
 !
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
-      character(len=*), parameter :: subname = '(JRA55_files)'
+      character(len=*), parameter :: subname = '(JRA55_gx1_files)'
 
       uwind_file = &
            trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_2005.nc'
@@ -2083,8 +2094,23 @@
          write (nu_diag,*) 'Atmospheric data files:'
          write (nu_diag,*) trim(uwind_file)
     endif
-      end subroutine JRA55_files
+      end subroutine JRA55_gx1_files
+      subroutine JRA55_gx3_files(yr)
+!
+      integer (kind=int_kind), intent(in) :: &
+           yr                   ! current forcing year
 
+      character(len=*), parameter :: subname = '(JRA55_gx3_files)'
+
+      uwind_file = &
+           trim(atm_data_dir)//'/8XDAILY/JRA55_gx3_03hr_forcing_2005.nc'
+      call file_year(uwind_file,yr)
+  if (my_task == master_task) then
+         write (nu_diag,*) ' '
+         write (nu_diag,*) 'Atmospheric data files:'
+         write (nu_diag,*) trim(uwind_file)
+    endif
+      end subroutine JRA55_gx3_files
 !=======================================================================
 !
 ! read Large and Yeager atmospheric data
@@ -4382,8 +4408,8 @@
       fsw_file   = trim(atm_data_dir)//'/forcing.shwflx.nc'
       flw_file   = trim(atm_data_dir)//'/forcing.radflx.nc'
       rain_file  = trim(atm_data_dir)//'/forcing.precip.nc'
-      uwind_file = trim(atm_data_dir)//'/forcing.ewndsp.nc'  !actually Xward, not Eward
-      vwind_file = trim(atm_data_dir)//'/forcing.nwndsp.nc'  !actually Yward, not Nward
+      uwind_file = trim(atm_data_dir)//'/forcing.wndewd.nc'
+      vwind_file = trim(atm_data_dir)//'/forcing.wndnwd.nc'
       tair_file  = trim(atm_data_dir)//'/forcing.airtmp.nc'
       humid_file = trim(atm_data_dir)//'/forcing.vapmix.nc'
 
@@ -4489,11 +4515,11 @@
          call read_data_nc_hycom (read6, recnum, &
                           tair_file, fieldname, Tair_data, &
                           field_loc_center, field_type_scalar)
-         fieldname = 'ewndsp'
+         fieldname = 'wndewd'
          call read_data_nc_hycom (read6, recnum, &
                           uwind_file, fieldname, uatm_data, &
                           field_loc_center, field_type_vector)
-         fieldname = 'nwndsp'
+         fieldname = 'wndnwd'
          call read_data_nc_hycom (read6, recnum, &
                           vwind_file, fieldname, vatm_data, &
                           field_loc_center, field_type_vector)
@@ -5187,7 +5213,6 @@
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! wave spectrum
 
-      character(char_len_long) :: spec_file
       character(char_len) :: wave_spec_type
       logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(get_wave_spec)'
@@ -5214,27 +5239,21 @@
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 
-
          ! read more realistic data from a file
-!         if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
-         if (trim(wave_spec_type) == 'file') then
-         if (trim(wave_spec_file(1:4)) == 'unkn') then
-            call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
-         else
+         if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
+            if (trim(wave_spec_file(1:4)) == 'unkn') then
+               call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file))
+            else
 #ifdef ncdf
-            spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
-            call wave_spec_data
-            !call ice_open_nc(spec_file,fid)
-            !call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
-            !                      field_loc_center, field_type_scalar)
-            !call ice_close_nc(fid)
+               call ice_open_nc(wave_spec_file,fid)
+               call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
+                                     field_loc_center, field_type_scalar)
+               call ice_close_nc(fid)
 #else
-            write (nu_diag,*) &
-              "wave spectrum file not available, requires ncdf"
-            write (nu_diag,*) &
-              "wave spectrum file not available, using default profile"
+               write (nu_diag,*) "wave spectrum file not available, requires ncdf"
+               write (nu_diag,*) "wave spectrum file not available, using default profile"
 #endif
-         endif
+            endif
          endif
       endif
 

@@ -32,10 +32,11 @@
         nfsd      , & ! number of floe size categories
         nilyr     , & ! number of ice layers per category
         nslyr     , & ! number of snow layers per category
-        nblyr     , & ! number of bio/brine layers per category 
+        nblyr     , & ! number of bio/brine layers per category
+        n_iso     , & ! number of isotopes in use
         n_aero    , & ! number of aerosols in use
-        n_zaero   , & ! number of z aerosols in use 
-        n_algae   , & ! number of algae in use 
+        n_zaero   , & ! number of z aerosols in use
+        n_algae   , & ! number of algae in use
         n_doc     , & ! number of DOC pools in use
         n_dic     , & ! number of DIC pools in use
         n_don     , & ! number of DON pools in use

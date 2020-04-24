@@ -100,19 +100,19 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (int_kind), public :: &
       bufSizeSend,    &! max buffer size for send messages
       bufSizeRecv      ! max buffer size for recv messages
 
-   integer (int_kind), dimension(:,:), allocatable :: &
+   integer (int_kind), dimension(:,:), allocatable, public :: &
       bufSendI4,     &! buffer for use to send in 2D i4 halo updates
       bufRecvI4       ! buffer for use to recv in 2D i4 halo updates
 
-   real (real_kind), dimension(:,:), allocatable :: &
+   real (real_kind), dimension(:,:), allocatable, public :: &
       bufSendR4,     &! buffer for use to send in 2D r4 halo updates
       bufRecvR4       ! buffer for use to recv in 2D r4 halo updates
 
-   real (dbl_kind), dimension(:,:), allocatable :: &
+   real (dbl_kind), dimension(:,:), allocatable, public :: &
       bufSendR8,     &! buffer for use to send in 2D r8 halo updates
       bufRecvR8       ! buffer for use to recv in 2D r8 halo updates
 
@@ -122,13 +122,13 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), dimension(:,:), allocatable :: &
+   integer (int_kind), dimension(:,:), allocatable, public :: &
       bufTripoleI4
 
-   real (real_kind), dimension(:,:), allocatable :: &
+   real (real_kind), dimension(:,:), allocatable, public :: &
       bufTripoleR4
 
-   real (dbl_kind), dimension(:,:), allocatable :: &
+   real (dbl_kind), dimension(:,:), allocatable, public :: &
       bufTripoleR8
 
 !***********************************************************************
