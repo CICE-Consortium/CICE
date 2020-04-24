@@ -163,7 +163,7 @@ The parameterization for the seabed stress is described in :cite:`Lemieux16`. Th
    :label: Cb 
 
 where :math:`k_2` determines the maximum seabed stress that can be sustained by the grounded parameterized ridge(s), :math:`u_0` 
-is a small residual velocity and :math:`\alpha_b=20` is a parameter to ensure that the seabed stress quickly drops when 
+is a small residual velocity and :math:`\alpha_b` is a parameter to ensure that the seabed stress quickly drops when 
 the ice concentration is smaller than 1. In the code, :math:`k_2 \max [0,(h_u - h_{cu})]  e^{-\alpha_b * (1 - a_u)}` is defined as 
 :math:`T_b`. The quantities :math:`h_u`, :math:`a_{u}` and :math:`h_{cu}` are calculated at 
 the 'u' point based on local ice conditions (surrounding tracer points). They are respectively given by 

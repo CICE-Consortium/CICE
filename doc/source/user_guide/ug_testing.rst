@@ -380,6 +380,9 @@ following options are valid for suites,
 ``--report``
   This is only used by ``--suite`` and when set, invokes a script that sends the test results to the results page when all tests are complete.  Please see :ref:`testreporting` for more information.
 
+``--codecov``
+  When invoked, code coverage diagnostics are generated.  This will modify the build and reduce optimization.  The results will be uploaded to the **codecov.io** website via the **report_codecov.csh** script.  General use is not recommended, this is mainly used as a diagnostic to periodically assess test coverage.  Please see :ref:`codecoverage` for more information.
+
 ``--setup-only``
   This is only used by ``--suite`` and when set, just creates the suite testcases.  It does not build or submit them to run.  By default, the suites do ``--setup-build-submit``.
 
@@ -645,13 +648,59 @@ To post results, once a test suite is complete, run ``results.csh`` and
   ./results.csh
   ./report_results.csh
 
-The reporting can also be automated by adding ``--report`` to ``cice.setup``
+``report_results.csh`` will run ``results.csh`` by default automatically, but
+we recommmend running it manually first to verify results before publishing
+them.  ``report_results.csh -n`` will turn off automatic running of ``results.csh``.
+
+The reporting can also be automated in a test suite by adding ``--report`` to ``cice.setup``
 ::
 
   ./cice.setup --suite base_suite --mach conrad --env cray --testid v01a --report
 
 With ``--report``, the suite will create all the tests, build and submit them,
 wait for all runs to be complete, and run the results and report_results scripts.
+
+.. _codecoverage:
+
+Code Coverage Testing
+------------------------------
+
+The ``--codecov`` feature in **cice.setup** provides a method to diagnose code coverage.
+This argument turns on special compiler flags including reduced optimization and then
+invokes the gcov tool.
+This option is currently only available with the gnu compiler and on a few systems
+with modified Macros files.
+
+Because codecov.io does not support git submodule analysis right now, a customized
+repository has to be created to test CICE with Icepack integrated directly.  The repository 
+https://github.com/apcraig/Test_CICE_Icepack serves as the current default test repository.
+In general, to setup the code coverage test in CICE, the current CICE master has
+to be copied into the Test_CICE_Icepack repository, then the full test suite
+can be run with the gnu compiler with the ``--codecov`` argument.
+
+The test suite will run and then a report will be generated and uploaded to 
+the `codecov.io site <https://codecov.io/gh/apcraig/Test_CICE_Icepack>`_ by the 
+**report_codecov.csh** script.  The env variable CODECOV_TOKEN needs to be defined
+either in the environment or in a file named **~/.codecov_cice_token**.  That
+token provides write permission to the Test_CICE_Icepack codecov.io site and is available
+by contacting the Consortium team directly.
+
+A script that carries out the end-to-end testing can be found in 
+**configuration/scripts/tests/cice_test_codecov.csh**
+
+This is a special diagnostic test and does not constitute proper model testing.
+General use is not recommended, this is mainly used as a diagnostic to periodically 
+assess test coverage.  The interaction with codecov.io is not always robust and
+can be tricky to manage.  Some constraints are that the output generated at runtime
+is copied into the directory where compilation took place.  That means each
+test should be compiled separately.  Tests that invoke multiple runs
+(such as exact restart and the decomp test) will only save coverage information
+for the last run, so some coverage information may be lost.  The gcov tool can
+be a little slow to run on large test suites, and the codecov.io bash uploader
+(that runs gcov and uploads the data to codecov.io) is constantly evolving.
+Finally, gcov requires that the diagnostic output be copied into the git sandbox for
+analysis.  These constraints are handled by the current scripts, but may change
+in the future.
 
 
 .. _compliance:

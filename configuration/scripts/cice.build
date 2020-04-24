@@ -1,7 +1,7 @@
 #! /bin/csh -f
 
 #====================================
-# If the cice binary is passed as an argument and the file exists,
+# If the cice binary is passed via the --exe argument and the file exists,
 # copy it into the run directory and don't build the model.
 
 set dohelp = 0
