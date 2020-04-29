@@ -49,7 +49,7 @@ module ice_prescribed_mod
   ! !PUBLIC DATA MEMBERS:
   logical(kind=log_kind), public :: prescribed_ice      ! true if prescribed ice
 
-  integer(SHR_KIND_IN),parameter :: nFilesMaximum = 400 ! max number of files
+  integer(kind=int_kind),parameter :: nFilesMaximum = 400 ! max number of files
   integer(kind=int_kind)         :: stream_year_first   ! first year in stream to use
   integer(kind=int_kind)         :: stream_year_last    ! last year in stream to use
   integer(kind=int_kind)         :: model_year_align    ! align stream_year_first

@@ -1039,7 +1039,6 @@ contains
             lmask=tmask, ifrac=ailohi, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
-#endif
 
     ! ------
     ! optional short wave penetration to ocean ice category
@@ -1056,11 +1055,12 @@ contains
           ! penetrative shortwave by category
           ! Note: no need zero out pass-through fields over land for benefit of x2oacc fields in cpl hist files since
           ! the export state has been zeroed out at the beginning
-          call state_setexport(exportState, 'mean_sw_pen_to_ocn_ifrac_n', input=aicen_init, index=n, &
+          call state_setexport(exportState, 'mean_sw_pen_to_ocn_ifrac_n', input=fswthrun_ai, index=n, &
                lmask=tmask, ifrac=ailohi, ungridded_index=n, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
     end if
+#endif
 
   end subroutine ice_export
 
@@ -1487,10 +1487,6 @@ contains
     rc = ESMF_SUCCESS
 
     if (geomtype == ESMF_GEOMTYPE_MESH) then
-
-       if (present(ungridded_index)) then
-          write(6,*)'DEBUG: fldname = ',trim(fldname),' has ungridded index= ',ungridded_index
-       end if
 
        ! get field pointer
        if (present(ungridded_index)) then
