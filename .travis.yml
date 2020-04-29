@@ -33,9 +33,9 @@ install:
 
 script:
   # verify cice.setup --case and cice.setup --test don't error then run test suite
-  - "./cice.setup --case trcase --mach travisCI --env gnu --pes 2x2 -s diag1"
+  - "./cice.setup --case trcase --mach travisCI --env gnu --pes 2x2 -s diag1 && sleep 4"
   - "./cice.setup --test smoke --testid trtest --mach travisCI --env gnu 
-    --pes 2x2 -s diag1"
+    --pes 2x2 -s diag1 && sleep 4"
   - "./cice.setup --suite travis_suite --testid travisCItest
     --mach travisCI --env gnu;
     cd testsuite.travisCItest &&
