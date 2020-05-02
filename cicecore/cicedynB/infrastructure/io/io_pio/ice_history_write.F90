@@ -136,6 +136,8 @@
       real (kind=dbl_kind) :: secday
       real (kind=dbl_kind) :: rad_to_deg
 
+      integer (kind=int_kind) :: lprecision
+
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
       call icepack_query_parameters(secday_out=secday)
@@ -174,6 +176,10 @@
 
       ltime2 = time/int(secday)
       ltime  = real(time/int(secday),kind=real_kind)
+
+      ! option of turning on double precision history files
+      lprecision = pio_real
+      if (history_precision == 8) lprecision = pio_double
 
       !-----------------------------------------------------------------
       ! define dimensions
@@ -327,7 +333,7 @@
         dimid2(2) = jmtid
 
         do i = 1, ncoord
-          status = pio_def_var(File, trim(coord_var(i)%short_name), pio_real, &
+          status = pio_def_var(File, trim(coord_var(i)%short_name), lprecision, &
                                 dimid2, varid)
           status = pio_put_att(File,varid,'long_name',trim(coord_var(i)%long_name))
           status = pio_put_att(File, varid, 'units', trim(coord_var(i)%units))
@@ -351,7 +357,7 @@
 
         do i = 1, nvarz
            if (igrdz(i)) then
-              status = pio_def_var(File, trim(var_nz(i)%short_name), pio_real, &
+              status = pio_def_var(File, trim(var_nz(i)%short_name), lprecision, &
                                    (/dimidex(i)/), varid)
               status = pio_put_att(File, varid, 'long_name', var_nz(i)%long_name)
               status = pio_put_att(File, varid, 'units'    , var_nz(i)%units)
@@ -360,7 +366,7 @@
 
         ! Attributes for tmask defined separately, since it has no units
         if (igrd(n_tmask)) then
-           status = pio_def_var(File, 'tmask', pio_real, dimid2, varid)
+           status = pio_def_var(File, 'tmask', lprecision, dimid2, varid)
            status = pio_put_att(File,varid, 'long_name', 'ocean grid mask') 
            status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
            status = pio_put_att(File, varid, 'missing_value', spval)
@@ -368,7 +374,7 @@
            status = pio_put_att(File,varid,'comment', '0 = land, 1 = ocean')
         endif
         if (igrd(n_blkmask)) then
-           status = pio_def_var(File, 'blkmask', pio_real, dimid2, varid)
+           status = pio_def_var(File, 'blkmask', lprecision, dimid2, varid)
            status = pio_put_att(File,varid, 'long_name', 'ice grid block mask') 
            status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
            status = pio_put_att(File,varid,'comment', 'mytask + iblk/100')
@@ -379,7 +385,7 @@
         do i = 3, nvar       ! note: n_tmask=1, n_blkmask=2
           if (igrd(i)) then
              status = pio_def_var(File, trim(var(i)%req%short_name), &
-                                   pio_real, dimid2, varid)
+                                   lprecision, dimid2, varid)
              status = pio_put_att(File,varid, 'long_name', trim(var(i)%req%long_name))
              status = pio_put_att(File, varid, 'units', trim(var(i)%req%units))
              status = pio_put_att(File, varid, 'coordinates', trim(var(i)%coordinates))
@@ -395,7 +401,7 @@
         do i = 1, nvar_verts
           if (f_bounds) then
              status = pio_def_var(File, trim(var_nverts(i)%short_name), &
-                                   pio_real,dimid_nverts, varid)
+                                   lprecision,dimid_nverts, varid)
              status = & 
              pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name))
              status = &
@@ -420,7 +426,7 @@
         do n=1,num_avail_hist_fields_2D
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimid3, varid)
+                         lprecision, dimid3, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -469,7 +475,7 @@
         do n = n2D + 1, n3Dccum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -506,7 +512,7 @@
         do n = n3Dccum + 1, n3Dzcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -543,7 +549,7 @@
         do n = n3Dzcum + 1, n3Dbcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -580,7 +586,7 @@
         do n = n3Dbcum + 1, n3Dacum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -623,7 +629,7 @@
         do n = n3Dacum + 1, n4Dicum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             pio_real, dimidcz, varid)
+                             lprecision, dimidcz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -661,7 +667,7 @@
         do n = n4Dicum + 1, n4Dscum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             pio_real, dimidcz, varid)
+                             lprecision, dimidcz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &

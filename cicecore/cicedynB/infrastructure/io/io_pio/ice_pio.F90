@@ -6,7 +6,6 @@
 
   use shr_kind_mod, only: r8 => shr_kind_r8, in=>shr_kind_in
   use shr_kind_mod, only: cl => shr_kind_cl
-  use shr_sys_mod , only: shr_sys_flush
   use ice_kinds_mod
   use ice_blocks
   use ice_broadcast

@@ -76,7 +76,8 @@
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
-                             incond_dir, incond_file, version_name
+                             incond_dir, incond_file, version_name, &
+                             history_precision
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
@@ -152,7 +153,7 @@
         diagfreq,       diag_type,      diag_file,                      &
         print_global,   print_points,   latpnt,          lonpnt,        &
         dbug,           histfreq,       histfreq_n,      hist_avg,      &
-        history_dir,    history_file,   cpl_bgc,                        &
+        history_dir,    history_file,   history_precision, cpl_bgc,     &
         write_ic,       incond_dir,     incond_file,     version_name
 
       namelist /grid_nml/ &
@@ -251,6 +252,7 @@
       hist_avg = .true.      ! if true, write time-averages (not snapshots)
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
+      history_precision = 4  ! precision of history files
       write_ic = .false.     ! write out initial condition
       cpl_bgc = .false.      ! history file name prefix
       incond_dir = history_dir ! write to history dir for default
@@ -511,6 +513,13 @@
       if (trim(diag_type) == 'file') call get_fileunit(nu_diag)
 #endif
 
+      if (my_task == master_task) then
+         if(history_precision .ne. 4 .and. history_precision .ne. 8) then
+            write (nu_diag,*) 'ERROR: bad value for history_precision, allowed values: 4, 8'
+            call abort_ice('ice_init: history_precision')
+         endif
+      endif
+
       !-----------------------------------------------------------------
       ! broadcast namelist settings
       !-----------------------------------------------------------------
@@ -536,6 +545,7 @@
       call broadcast_scalar(hist_avg,           master_task)
       call broadcast_scalar(history_dir,        master_task)
       call broadcast_scalar(history_file,       master_task)
+      call broadcast_scalar(history_precision,  master_task)
       call broadcast_scalar(write_ic,           master_task)
       call broadcast_scalar(cpl_bgc,            master_task)
       call broadcast_scalar(incond_dir,         master_task)
@@ -993,6 +1003,7 @@
                                trim(history_dir)
          write(nu_diag,*)    ' history_file              = ', &
                                trim(history_file)
+         write(nu_diag,1020) ' history_precision         = ', history_precision
          if (write_ic) then
             write(nu_diag,*) 'Initial condition will be written in ', &
                                trim(incond_dir)

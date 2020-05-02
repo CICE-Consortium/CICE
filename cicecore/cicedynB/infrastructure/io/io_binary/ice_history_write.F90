@@ -62,6 +62,10 @@
 
       integer (kind=int_kind) :: icategory,i_aice
 
+      character (len=4) :: &
+           atype             ! format for output array
+                             ! (real/integer, 4-byte/8-byte)
+
       character (char_len) :: current_date,current_time
       character (len=16) :: c_aice
       logical (kind=log_kind) :: diag
@@ -69,6 +73,9 @@
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
       diag = .false.
+
+      atype = 'rda4'
+      if (history_precision == 8) atype = 'rda8'
 
       if (my_task == master_task) then
 
@@ -124,7 +131,7 @@
         write (nu_hdr, 996) nrec,'tarea','area of T grid cells','m^2'
         write (nu_hdr, *  ) 'History variables: (left column = nrec)'
       endif  ! my_task = master_task
-      call ice_write(nu_history, nrec, tarea, 'rda4', diag)
+      call ice_write(nu_history, nrec, tarea, atype, diag)
 
       do n=1,num_avail_hist_fields_2D
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
@@ -160,7 +167,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a2D(:,:,n,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a2D(:,:,n,:), atype, diag)
 
         endif
       enddo ! num_avail_hist_fields_2D
@@ -183,7 +190,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a3Dc(:,:,nn,n-n2D,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a3Dc(:,:,nn,n-n2D,:), atype, diag)
           enddo ! ncat
 
         endif
@@ -207,7 +214,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a3Dz(:,:,k,n-n3Dccum,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a3Dz(:,:,k,n-n3Dccum,:), atype, diag)
           enddo ! nzilyr
 
         endif
@@ -231,7 +238,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a3Db(:,:,k,n-n3Dzcum,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a3Db(:,:,k,n-n3Dzcum,:), atype, diag)
           enddo ! nzilyr
 
         endif
@@ -255,7 +262,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a3Da(:,:,k,n-n3Dbcum,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a3Da(:,:,k,n-n3Dbcum,:), atype, diag)
           enddo ! nzilyr
 
         endif
@@ -279,7 +286,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a3Df(:,:,k,n-n3Dacum,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a3Df(:,:,k,n-n3Dacum,:), atype, diag)
           enddo ! nfsd_hist
 
         endif
@@ -304,7 +311,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a4Di(:,:,k,nn,n-n3Dfcum,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a4Di(:,:,k,nn,n-n3Dfcum,:), atype, diag)
           enddo ! nzilyr
           enddo ! ncat_hist
 
@@ -330,7 +337,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a4Ds(:,:,k,nn,n-n4Dicum,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a4Ds(:,:,k,nn,n-n4Dicum,:), atype, diag)
           enddo ! nzilyr
           enddo ! ncat_hist
 
@@ -356,7 +363,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a4Df(:,:,k,nn,n-n4Dscum,:), 'rda4', diag)
+          call ice_write(nu_history, nrec, a4Df(:,:,k,nn,n-n4Dscum,:), atype, diag)
           enddo ! nfsd_hist
           enddo ! ncat_hist
 
