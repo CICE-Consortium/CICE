@@ -20,9 +20,11 @@ module ice_shr_methods
   use ESMF         , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast, ESMF_VMGetCurrent
   use NUOPC        , only : NUOPC_CompAttributeGet
   use NUOPC_Model  , only : NUOPC_ModelGet
-  use shr_kind_mod , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
-  use shr_sys_mod  , only : shr_sys_abort
+  use ice_kinds_mod, only : r8 => dbl_kind, cl=>char_len_long, cs=>char_len
+  use ice_exit     , only : abort_ice
+#ifdef CESMCOUPLED
   use shr_file_mod , only : shr_file_setlogunit, shr_file_getLogUnit
+#endif
 
   implicit none
   private
@@ -89,9 +91,11 @@ contains
     character(len=*), parameter :: subname='(memcheck)'
     !-----------------------------------------------------------------------
 
+#ifdef CESMCOUPLED
     if ((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
     endif
+#endif
 
   end subroutine memcheck
 
@@ -160,7 +164,9 @@ contains
        logUnit = 6
     endif
 
+#ifdef CESMCOUPLED
     call shr_file_setLogUnit (logunit)
+#endif
 
   end subroutine set_component_logging
 
@@ -710,10 +716,10 @@ contains
 
     case (optDate)
        if (.not. present(opt_ymd)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_ymd')
+          call abort_ice(subname//trim(option)//' requires opt_ymd')
        end if
        if (lymd < 0 .or. ltod < 0) then
-          call shr_sys_abort(subname//trim(option)//'opt_ymd, opt_tod invalid')
+          call abort_ice(subname//trim(option)//'opt_ymd, opt_tod invalid')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -723,13 +729,13 @@ contains
 
     case (optIfdays0)
        if (.not. present(opt_ymd)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_ymd')
+          call abort_ice(subname//trim(option)//' requires opt_ymd')
        end if
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0)  then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, mm=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -739,10 +745,10 @@ contains
 
     case (optNSteps)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -750,8 +756,8 @@ contains
        update_nextalarm  = .true.
 
     case (optNStep)
-       if (.not.present(opt_n)) call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       if (opt_n <= 0)  call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+       if (.not.present(opt_n)) call abort_ice(subname//trim(option)//' requires opt_n')
+       if (opt_n <= 0)  call abort_ice(subname//trim(option)//' invalid opt_n')
        call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        AlarmInterval = AlarmInterval * opt_n
@@ -759,10 +765,10 @@ contains
 
     case (optNSeconds)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, s=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -771,10 +777,10 @@ contains
 
     case (optNSecond)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, s=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -784,20 +790,20 @@ contains
     case (optNMinutes)
        call ESMF_TimeIntervalSet(AlarmInterval, s=60, rc=rc)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        AlarmInterval = AlarmInterval * opt_n
        update_nextalarm  = .true.
 
     case (optNMinute)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, s=60, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -806,10 +812,10 @@ contains
 
     case (optNHours)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, s=3600, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -818,10 +824,10 @@ contains
 
     case (optNHour)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, s=3600, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -830,10 +836,10 @@ contains
 
     case (optNDays)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, d=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -842,10 +848,10 @@ contains
 
     case (optNDay)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, d=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -854,10 +860,10 @@ contains
 
     case (optNMonths)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, mm=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -866,10 +872,10 @@ contains
 
     case (optNMonth)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, mm=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -885,10 +891,10 @@ contains
 
     case (optNYears)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, yy=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -897,10 +903,10 @@ contains
 
     case (optNYear)
        if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
+          call abort_ice(subname//trim(option)//' requires opt_n')
        end if
        if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
+          call abort_ice(subname//trim(option)//' invalid opt_n')
        end if
        call ESMF_TimeIntervalSet(AlarmInterval, yy=1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -915,7 +921,7 @@ contains
        update_nextalarm  = .true.
 
     case default
-       call shr_sys_abort(subname//'unknown option '//trim(option))
+       call abort_ice(subname//'unknown option '//trim(option))
 
     end select
 
@@ -964,7 +970,7 @@ contains
     rc = ESMF_SUCCESS
 
     if ( (ymd < 0) .or. (tod < 0) .or. (tod > SecPerDay) )then
-       call shr_sys_abort( subname//'ERROR yymmdd is a negative number or time-of-day out of bounds' )
+       call abort_ice( subname//'ERROR yymmdd is a negative number or time-of-day out of bounds' )
     end if
 
     tdate = abs(date)

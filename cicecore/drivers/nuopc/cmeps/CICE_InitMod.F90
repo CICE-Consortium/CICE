@@ -204,9 +204,9 @@
    ! coupler communication or forcing data initialization
    !--------------------------------------------------------------------
 
+#ifndef coupled
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
 
-#ifndef coupled
 #ifndef CESMCOUPLED
       if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
       call get_forcing_atmo     ! atmospheric forcing from data

@@ -276,7 +276,7 @@
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0          ! number of ice thickness categories
-      nfsd  = 0          ! number of floe size categories (1 = default)
+      nfsd  = 1          ! number of floe size categories (1 = default)
       nilyr = 0          ! number of vertical ice layers
       nslyr = 0          ! number of vertical snow layers
       nblyr = 0          ! number of bio layers
@@ -748,7 +748,7 @@
           ice_ic /= 'none' .and. ice_ic /= 'default') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: runtype, restart, ice_ic are inconsistent:'
-            write(nu_diag,*) subname//' ERROR:   runtype=',trim(runtype), 'restart=',restart, 'ice_ic=',trim(ice_ic)
+            write(nu_diag,*) subname//' ERROR:   runtype=',trim(runtype), ' restart=',restart, ' ice_ic=',trim(ice_ic)
             write(nu_diag,*) subname//' ERROR:   Please review user guide'
          endif
          abort_flag = 1
