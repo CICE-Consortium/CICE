@@ -147,7 +147,8 @@ endif
 if (${directmake} == 1) then
   echo "make ${target}"
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-    -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} ${target}
+    -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} \
+    DEPFILE=${ICE_CASEDIR}/makdep.c ${target}
   set bldstat = ${status}
   if (${bldstat} != 0) then
     echo "${0}: targeted make FAILED"
@@ -172,10 +173,12 @@ if (${ICE_CLEANBUILD} == 'true') then
   echo "gmake clean"
   if (${quiet} == "true") then
     ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean >& ${ICE_BLDLOG_FILE}
+        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} \
+        DEPFILE=${ICE_CASEDIR}/makdep.c clean >& ${ICE_BLDLOG_FILE}
   else
     ${ICE_MACHINE_MAKE} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} clean |& tee ${ICE_BLDLOG_FILE}
+        -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} \
+        DEPFILE=${ICE_CASEDIR}/makdep.c clean |& tee ${ICE_BLDLOG_FILE}
   endif
 endif
 
@@ -183,11 +186,13 @@ echo "gmake cice"
 if (${quiet} == "true") then
   echo "  quiet mode on... patience"
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} >& ${ICE_BLDLOG_FILE} 
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} \
+      DEPFILE=${ICE_CASEDIR}/makdep.c cice >& ${ICE_BLDLOG_FILE} 
   set bldstat = ${status}
 else
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} |& tee ${ICE_BLDLOG_FILE} 
+      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} \
+      DEPFILE=${ICE_CASEDIR}/makdep.c cice |& tee ${ICE_BLDLOG_FILE} 
   set bldstat = ${status}
 endif
 
