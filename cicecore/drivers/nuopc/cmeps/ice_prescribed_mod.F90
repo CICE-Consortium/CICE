@@ -1,6 +1,15 @@
 module ice_prescribed_mod
 
-#ifdef CESMCOUPLED
+#ifndef CESMCOUPLED
+
+  use ice_kinds_mod
+
+  implicit none
+  private ! except
+
+  logical(kind=log_kind), parameter, public :: prescribed_ice = .false.     ! true if prescribed ice
+
+#else
 
   ! !DESCRIPTION:
   ! The prescribed ice model reads in ice concentration data from a netCDF
