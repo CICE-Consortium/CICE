@@ -207,6 +207,7 @@
          forcey   , & ! work array: combined atm stress and ocn tilt, y
          bxfix    , & ! part of bx that is constant during Picard 
          byfix    , & ! part of by that is constant during Picard
+         Cb       , & ! seabed stress coefficient
          fpresx   , & ! x fixed point residual vector, fx = uvel - uprev_k
          fpresy   , & ! y fixed point residual vector, fy = vvel - vprev_k
          aiu      , & ! ice fraction on u-grid
@@ -467,7 +468,7 @@
                             umassdti, bvec,    & 
                             sol,      diagvec, &
                             fpresx,   fpresy,  &
-                            zetaD,             &
+                            zetaD,    Cb,      &
                             halo_info_mask)
       !-----------------------------------------------------------------
       ! End of nonlinear iteration
@@ -516,6 +517,22 @@
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk))
       enddo
       !$OMP END PARALLEL DO
+      
+      !-----------------------------------------------------------------
+      ! Compute seabed stress (diagnostic)
+      !-----------------------------------------------------------------
+      if (basalstress) then
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            call calc_seabed_stress (nx_block            ,  ny_block           , &
+                                     icellu(iblk)        ,                       &
+                                     indxui      (:,iblk), indxuj      (:,iblk), &
+                                     uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                                     Cb        (:,:,iblk),                       &
+                                     taubx     (:,:,iblk), tauby     (:,:,iblk))
+         enddo
+         !$OMP END PARALLEL DO
+      endif
       
       ! Force symmetry across the tripole seam
       if (trim(grid_type) == 'tripole') then
@@ -631,7 +648,7 @@
                                   umassdti, bvec,    & 
                                   sol,      diagvec, &
                                   fpresx,   fpresy,  &
-                                  zetaD,             &
+                                  zetaD,    Cb,      &
                                   halo_info_mask)
 
       use ice_arrays_column, only: Cdn_ocn
@@ -675,7 +692,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
          fpresx   , & ! x fixed point residual vector, fx = uvel - uprev_k
-         fpresy       ! y fixed point residual vector, fy = vvel - vprev_k
+         fpresy   , & ! y fixed point residual vector, fy = vvel - vprev_k
+         Cb           ! seabed stress coefficient
 
       real (kind=dbl_kind), dimension (ntot), intent(inout) :: &
          bvec     , & ! RHS vector for FGMRES
@@ -700,7 +718,6 @@
          ulin     , & ! uvel to linearize vrel
          vlin     , & ! vvel to linearize vrel
          vrel     , & ! coeff for tauw 
-         Cb       , & ! seabed stress coeff
          bx       , & ! b vector
          by       , & ! b vector
          Diagu    , & ! Diagonal (u component) of the matrix A
@@ -1800,13 +1817,60 @@
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
          vrel(i,j) = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - utp)**2 + &
-                                           (vocn(i,j) - vtp)**2)  ! m/s
+                                                (vocn(i,j) - vtp)**2)  ! m/s
       
          Cb(i,j)  = Tbu(i,j) / (sqrt(utp**2 + vtp**2) + u0) ! for basal stress
 
       enddo                     ! ij
 
-      end subroutine calc_vrel_Cb      
+      end subroutine calc_vrel_Cb
+
+!=======================================================================
+
+! Compute seabed stress (diagnostic)
+
+      subroutine calc_seabed_stress (nx_block  , ny_block, &
+                                     icellu    ,           &
+                                     indxui    , indxuj  , &
+                                     uvel      , vvel    , &
+                                     Cb        ,           &
+                                     taubx     , tauby)
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icellu                ! total count when iceumask is true
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+         intent(in) :: &
+         indxui  , & ! compressed index in i-direction
+         indxuj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvel    , & ! x-component of velocity (m/s)
+         vvel    , & ! y-component of velocity (m/s)
+         Cb          ! seabed stress coefficient
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
+         taubx   , & ! seabed stress, x-direction (N/m^2)
+         tauby       ! seabed stress, y-direction (N/m^2)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      character(len=*), parameter :: subname = '(calc_seabed_stress)'
+
+      do ij =1, icellu
+         i = indxui(ij)
+         j = indxuj(ij)
+         
+         taubx(i,j) = -uvel(i,j)*Cb(i,j)
+         tauby(i,j) = -vvel(i,j)*Cb(i,j)
+
+      enddo                     ! ij
+
+      end subroutine calc_seabed_stress
       
 !=======================================================================
 
