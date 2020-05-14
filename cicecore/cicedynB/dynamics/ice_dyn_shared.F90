@@ -91,8 +91,9 @@
          k1, &        ! 1st free parameter for landfast parameterization
          k2, &        ! second free parameter (N/m^3) for landfast parametrization 
          alphab, &    ! alphab=Cb factor in Lemieux et al 2015
-         threshold_hw ! max water depth for grounding 
-                      ! see keel data from Amundrud et al. 2004 (JGR)
+         threshold_hw, & ! max water depth for grounding 
+                         ! see keel data from Amundrud et al. 2004 (JGR)
+         u0 = 5e-5_dbl_kind ! residual velocity for basal stress (m/s)
 
 
 !=======================================================================
@@ -690,9 +691,6 @@
          Cb                , & ! complete basal stress coeff
          rhow                  !
 
-      real (kind=dbl_kind) :: &
-         u0 = 5e-5_dbl_kind    ! residual velocity for basal stress (m/s)
-         
       character(len=*), parameter :: subname = '(stepu)'
 
       !-----------------------------------------------------------------

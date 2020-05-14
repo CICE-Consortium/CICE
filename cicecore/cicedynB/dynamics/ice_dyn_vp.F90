@@ -1759,6 +1759,8 @@
                                uvel,       vvel,     &
                                vrel,       Cb)
 
+      use ice_dyn_shared, only: u0 ! residual velocity for basal stress (m/s)
+
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
@@ -1793,9 +1795,6 @@
       real (kind=dbl_kind) :: &
          utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
          rhow                  !
-
-      real (kind=dbl_kind) :: &
-         u0 = 5e-5_dbl_kind    ! residual velocity for basal stress (m/s)
          
       character(len=*), parameter :: subname = '(calc_vrel_Cb)'
       
