@@ -1788,7 +1788,7 @@
 
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do ij =1, icellu
@@ -2302,7 +2302,7 @@
       
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       do ij =1, icellu
