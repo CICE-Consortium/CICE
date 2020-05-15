@@ -172,6 +172,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks, ncat
+      use ice_dyn_shared, only: deformations
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
@@ -1623,129 +1624,6 @@
       enddo                     ! ij
 
       end subroutine stress_vp
-      
-!=======================================================================
-
-! Compute deformations for mechanical redistribution
-
-      subroutine deformations (nx_block,   ny_block,   & 
-                               icellt,                 & 
-                               indxti,     indxtj,     & 
-                               uvel,       vvel,       & 
-                               dxt,        dyt,        & 
-                               cxp,        cyp,        & 
-                               cxm,        cym,        & 
-                               tarear,                 & 
-                               shear,      divu,       & 
-                               rdg_conv,   rdg_shear )
-
-      integer (kind=int_kind), intent(in) :: & 
-         nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = 1
-
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
-         intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvel     , & ! x-component of velocity (m/s)
-         vvel     , & ! y-component of velocity (m/s)
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
-         tarear       ! 1/tarea
-         
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
-         intent(inout) :: &
-         shear    , & ! strain rate II component (1/s)
-         divu     , & ! strain rate I component, velocity divergence (1/s)
-         rdg_conv , & ! convergence term for ridging (1/s)
-         rdg_shear    ! shear term for ridging (1/s)
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, ij
-
-      real (kind=dbl_kind) :: &
-        divune, divunw, divuse, divusw            , & ! divergence
-        tensionne, tensionnw, tensionse, tensionsw, & ! tension
-        shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        tmp
-        
-      character(len=*), parameter :: subname = '(deformations)'
-      
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
-
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
-
-      !-----------------------------------------------------------------
-      ! strain rates
-      ! NOTE these are actually strain rates * area  (m^2/s)
-      !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
-         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
-         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
-         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
-         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
-         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
-         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
-
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
-                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
-         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
-                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
-         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
-                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
-         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
-                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
-         
-         ! Delta (in the denominator of zeta, eta)
-         Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-         Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
-
-      !-----------------------------------------------------------------
-      ! deformations for mechanical redistribution
-      !-----------------------------------------------------------------
-
-         divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
-            tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(i,j)
-            rdg_conv(i,j)  = -min(divu(i,j),c0)
-            rdg_shear(i,j) = p5*(tmp-abs(divu(i,j))) 
-
-            ! diagnostic only
-            ! shear = sqrt(tension**2 + shearing**2)
-         shear(i,j) = p25*tarear(i,j)*sqrt( &
-                   (tensionne + tensionnw + tensionse + tensionsw)**2 &
-                +  (shearne +   shearnw +   shearse +   shearsw)**2)
-
-      enddo                     ! ij
-
-      end subroutine deformations            
       
 !=======================================================================
 
