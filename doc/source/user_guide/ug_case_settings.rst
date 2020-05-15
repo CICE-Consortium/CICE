@@ -140,6 +140,7 @@ Table of namelist options
    "","", "false", "write snapshots of data", ""
    "","``history_dir``", "path/", "path to history output directory", ""
    "","``history_file``", "filename prefix", "output file for history", "‘iceh’"
+   "","``history_precision``", "integer", "history file precision: 4 or 8 byte", "4"
    "","``write_ic``", "true/false", "write initial condition", ""
    "","``incond_dir``", "path/", "path to initial condition directory", ""
    "","``incond_file``", "filename prefix", "output file for initial condition", "‘iceh’"
