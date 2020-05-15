@@ -18,7 +18,7 @@
 
       module ice_history_write
 
-      use ice_constants, only: c0, c360, spval
+      use ice_constants, only: c0, c360, spval, spval_dbl
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -359,10 +359,18 @@
           status = nf90_put_att(ncid, varid, 'units', coord_var(i)%units)
           if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining units for '//coord_var(i)%short_name)
-          status = nf90_put_att(ncid,varid,'missing_value',spval)
+          if (lprecision == nf90_float) then
+             status = nf90_put_att(ncid,varid,'missing_value',spval)
+          else
+             status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+          endif
           if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//coord_var(i)%short_name)
-          status = nf90_put_att(ncid,varid,'_FillValue',spval)
+          if (lprecision == nf90_float) then
+             status = nf90_put_att(ncid,varid,'_FillValue',spval)
+          else
+             status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+          endif
           if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//coord_var(i)%short_name)
           if (coord_var(i)%short_name == 'ULAT') then
@@ -411,9 +419,17 @@
            if (status /= nf90_noerr) call abort_ice(subname//'ERROR: tmask units') 
            status = nf90_put_att(ncid,varid,'comment', '0 = land, 1 = ocean')
            if (status /= nf90_noerr) call abort_ice(subname//'ERROR: tmask comment') 
-           status = nf90_put_att(ncid,varid,'missing_value',spval)
+           if (lprecision == nf90_float) then
+              status = nf90_put_att(ncid,varid,'missing_value',spval)
+           else
+              status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+           endif
            if (status /= nf90_noerr) call abort_ice(subname//'ERROR: defining missing_value for tmask')
-           status = nf90_put_att(ncid,varid,'_FillValue',spval)
+           if (lprecision == nf90_float) then
+              status = nf90_put_att(ncid,varid,'_FillValue',spval)
+           else
+              status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+           endif
            if (status /= nf90_noerr) call abort_ice(subname//'ERROR: defining _FillValue for tmask')
         endif
 
@@ -426,9 +442,17 @@
            if (status /= nf90_noerr) call abort_ice(subname//'ERROR: blkmask units') 
            status = nf90_put_att(ncid,varid,'comment', 'mytask + iblk/100')
            if (status /= nf90_noerr) call abort_ice(subname//'ERROR: blkmask comment') 
-           status = nf90_put_att(ncid,varid,'missing_value',spval)
+           if (lprecision == nf90_float) then
+              status = nf90_put_att(ncid,varid,'missing_value',spval)
+           else
+              status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+           endif
            if (status /= nf90_noerr) call abort_ice(subname//'ERROR: defining missing_value for blkmask')
-           status = nf90_put_att(ncid,varid,'_FillValue',spval)
+           if (lprecision == nf90_float) then
+              status = nf90_put_att(ncid,varid,'_FillValue',spval)
+           else
+              status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+           endif
            if (status /= nf90_noerr) call abort_ice(subname//'ERROR: defining _FillValue for blkmask')
         endif
 
@@ -447,10 +471,18 @@
              status = nf90_put_att(ncid, varid, 'coordinates', var(i)%coordinates)
              if (status /= nf90_noerr) call abort_ice(subname// &
                   'ERROR: defining coordinates for '//var(i)%req%short_name)
-             status = nf90_put_att(ncid,varid,'missing_value',spval)
+             if (lprecision == nf90_float) then
+                status = nf90_put_att(ncid,varid,'missing_value',spval)
+             else
+                status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+             endif
              if (status /= nf90_noerr) call abort_ice(subname// &
                   'ERROR: defining missing_value for '//var(i)%req%short_name)
-             status = nf90_put_att(ncid,varid,'_FillValue',spval)
+             if (lprecision == nf90_float) then
+                status = nf90_put_att(ncid,varid,'_FillValue',spval)
+             else
+                status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+             endif
              if (status /= nf90_noerr) call abort_ice(subname// &
                   'ERROR: defining _FillValue for '//var(i)%req%short_name)
           endif
@@ -472,10 +504,18 @@
              status = nf90_put_att(ncid, varid, 'units', var_nverts(i)%units)
              if (status /= nf90_noerr) call abort_ice(subname// &
                   'ERROR: defining units for '//var_nverts(i)%short_name)
-             status = nf90_put_att(ncid,varid,'missing_value',spval)
+             if (lprecision == nf90_float) then
+                status = nf90_put_att(ncid,varid,'missing_value',spval)
+             else
+                status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+             endif
              if (status /= nf90_noerr) call abort_ice(subname// &
                   'ERROR: defining missing_value for '//var_nverts(i)%short_name)
-             status = nf90_put_att(ncid,varid,'_FillValue',spval)
+             if (lprecision == nf90_float) then
+                status = nf90_put_att(ncid,varid,'_FillValue',spval)
+             else
+                status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+             endif
              if (status /= nf90_noerr) call abort_ice(subname// &
                   'ERROR: defining _FillValue for '//var_nverts(i)%short_name)
           endif
@@ -503,10 +543,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 
@@ -566,10 +614,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 
@@ -617,10 +673,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 
@@ -654,10 +718,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 
@@ -691,10 +763,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 
@@ -728,10 +808,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 
@@ -767,10 +855,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 
@@ -820,10 +916,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 
@@ -873,10 +977,18 @@
                         avail_hist_fields(n)%vcellmeas)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'missing_value',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'missing_value',spval)
+            else
+               status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining missing_value for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            if (lprecision == nf90_float) then
+               status = nf90_put_att(ncid,varid,'_FillValue',spval)
+            else
+               status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
+            endif
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining _FillValue for '//avail_hist_fields(n)%vname)
 

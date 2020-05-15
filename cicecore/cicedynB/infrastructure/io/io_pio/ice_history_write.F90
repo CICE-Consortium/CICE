@@ -342,8 +342,13 @@
                                 dimid2, varid)
           status = pio_put_att(File,varid,'long_name',trim(coord_var(i)%long_name))
           status = pio_put_att(File, varid, 'units', trim(coord_var(i)%units))
-          status = pio_put_att(File, varid, 'missing_value', spval)
-          status = pio_put_att(File, varid,'_FillValue',spval)
+          if (lprecision == pio_real) then
+             status = pio_put_att(File, varid, 'missing_value', spval)
+             status = pio_put_att(File, varid,'_FillValue',spval)
+          else
+             status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+             status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+          endif
           if (coord_var(i)%short_name == 'ULAT') then
              status = pio_put_att(File,varid,'comment', &
                   trim('Latitude of NE corner of T grid cell'))
@@ -375,8 +380,13 @@
            status = pio_def_var(File, 'tmask', lprecision, dimid2, varid)
            status = pio_put_att(File,varid, 'long_name', 'ocean grid mask') 
            status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
-           status = pio_put_att(File, varid, 'missing_value', spval)
-           status = pio_put_att(File, varid,'_FillValue',spval)
+           if (lprecision == pio_real) then
+              status = pio_put_att(File, varid, 'missing_value', spval)
+              status = pio_put_att(File, varid,'_FillValue',spval)
+           else
+              status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+              status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+           endif
            status = pio_put_att(File,varid,'comment', '0 = land, 1 = ocean')
         endif
         if (igrd(n_blkmask)) then
@@ -384,8 +394,13 @@
            status = pio_put_att(File,varid, 'long_name', 'ice grid block mask') 
            status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
            status = pio_put_att(File,varid,'comment', 'mytask + iblk/100')
-           status = pio_put_att(File, varid, 'missing_value', spval)
-           status = pio_put_att(File, varid,'_FillValue',spval)
+           if (lprecision == pio_real) then
+              status = pio_put_att(File, varid, 'missing_value', spval)
+              status = pio_put_att(File, varid,'_FillValue',spval)
+           else
+              status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+              status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+           endif
         endif
 
         do i = 3, nvar       ! note: n_tmask=1, n_blkmask=2
@@ -395,8 +410,13 @@
              status = pio_put_att(File,varid, 'long_name', trim(var(i)%req%long_name))
              status = pio_put_att(File, varid, 'units', trim(var(i)%req%units))
              status = pio_put_att(File, varid, 'coordinates', trim(var(i)%coordinates))
-             status = pio_put_att(File, varid, 'missing_value', spval)
-             status = pio_put_att(File, varid,'_FillValue',spval)
+             if (lprecision == pio_real) then
+                status = pio_put_att(File, varid, 'missing_value', spval)
+                status = pio_put_att(File, varid,'_FillValue',spval)
+             else
+                status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+                status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+             endif
           endif
         enddo
 
@@ -412,8 +432,13 @@
              pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name))
              status = &
              pio_put_att(File, varid, 'units', trim(var_nverts(i)%units))
-             status = pio_put_att(File, varid, 'missing_value', spval)
-             status = pio_put_att(File, varid,'_FillValue',spval)
+             if (lprecision == pio_real) then
+                status = pio_put_att(File, varid, 'missing_value', spval)
+                status = pio_put_att(File, varid,'_FillValue',spval)
+             else
+                status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+                status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+             endif
           endif
         enddo
  
@@ -441,8 +466,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -490,8 +520,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -527,8 +562,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -564,8 +604,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -601,8 +646,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -638,8 +688,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -681,8 +736,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -719,8 +779,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -758,8 +823,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -1067,7 +1137,6 @@
             enddo
             enddo
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
-!            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
             call pio_write_darray(File, varid, iodesc3da,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1088,7 +1157,6 @@
             enddo
             enddo
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
-!            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
             call pio_write_darray(File, varid, iodesc3df,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1133,7 +1201,6 @@
             enddo ! i
             enddo ! j
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
-!            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
             call pio_write_darray(File, varid, iodesc4ds,&
                                   workr4, status, fillval=spval_dbl)
          endif
@@ -1156,7 +1223,6 @@
             enddo ! i
             enddo ! j
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
-!            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
             call pio_write_darray(File, varid, iodesc4df,&
                                   workr4, status, fillval=spval_dbl)
          endif

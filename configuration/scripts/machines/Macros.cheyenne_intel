@@ -53,6 +53,13 @@ ifeq ($(ICE_IOTYPE), pio)
    PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
    PIO_PATH:=$(PIO_LIBDIR)
    INCLDIR += -I$(PIO_INCDIR)
-   SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpiof
+   SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(PIO_PATH) -lpiof
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+   PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+   PIO_PATH:=$(PIO_LIBDIR)
+   INCLDIR += -I$(PIO_INCDIR)
+   SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(PIO_PATH) -lpiof
 endif
 
