@@ -1671,7 +1671,6 @@
          i, j, ij
 
       real (kind=dbl_kind) :: &
-         utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
          rhow                  !
          
       character(len=*), parameter :: subname = '(calc_vrel_Cb)'
@@ -1689,14 +1688,11 @@
          i = indxui(ij)
          j = indxuj(ij)
 
-         utp = uvel(i,j)
-         vtp = vvel(i,j)
-
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel(i,j) = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - utp)**2 + &
-                                                (vocn(i,j) - vtp)**2)  ! m/s
+         vrel(i,j) = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
+                                                (vocn(i,j) - vvel(i,j))**2)  ! m/s
       
-         Cb(i,j)  = Tbu(i,j) / (sqrt(utp**2 + vtp**2) + u0) ! for basal stress
+         Cb(i,j)  = Tbu(i,j) / (sqrt(uvel(i,j)**2 + vvel(i,j)**2) + u0) ! for basal stress
 
       enddo                     ! ij
 
