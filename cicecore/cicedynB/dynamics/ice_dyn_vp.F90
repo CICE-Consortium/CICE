@@ -721,8 +721,8 @@
          vrel     , & ! coeff for tauw 
          bx       , & ! b vector
          by       , & ! b vector
-         Diagu    , & ! Diagonal (u component) of the matrix A
-         Diagv    , & ! Diagonal (v component) of the matrix A
+         diagx    , & ! Diagonal (x component) of the matrix A
+         diagy    , & ! Diagonal (y component) of the matrix A
          Au       , & ! matvec, Fx = bx - Au
          Av       , & ! matvec, Fy = by - Av
          Fx       , & ! x residual vector, Fx = bx - Au
@@ -905,7 +905,7 @@
                                        Dstrtmp  (:,:,:)   , vrel    (:,:,iblk), &
                                        umassdti (:,:,iblk),                     & 
                                        uarear   (:,:,iblk), Cb      (:,:,iblk), & 
-                                       Diagu    (:,:,iblk), Diagv   (:,:,iblk))
+                                       diagx    (:,:,iblk), diagy   (:,:,iblk))
                enddo
                !$OMP END PARALLEL DO
             endif
@@ -916,7 +916,7 @@
                          umassdti,                 &
                          halo_info_mask,           &
                          bx,            by,        &
-                         Diagu,         Diagv,     &
+                         diagx,         diagy,     &
                          reltol_fgmres, im_fgmres, &
                          maxits_fgmres,            &
                          solx,          soly,      &
@@ -2721,7 +2721,7 @@
                                  Dstr,       vrel,     &
                                  umassdti,             &
                                  uarear,     Cb,       &
-                                 Diagu,      Diagv )
+                                 diagx,      diagy )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -2744,8 +2744,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(out) :: &
-         Diagu   , & ! matvec, Fx = bx - Au (N/m^2)
-         Diagv       ! matvec, Fy = by - Av (N/m^2)
+         diagx   , & ! Diagonal (x component) of the matrix A
+         diagy       ! Diagonal (y component) of the matrix A
 
       ! local variables
 
@@ -2788,8 +2788,8 @@
          strinty = uarear(i,j)* &
              (Dstr(i,j,5) + Dstr(i,j,6) + Dstr(i,j,7) + Dstr(i,j,8))
 
-         Diagu(i,j) = ccaimp - strintx
-         Diagv(i,j) = ccaimp - strinty
+         diagx(i,j) = ccaimp - strintx
+         diagy(i,j) = ccaimp - strinty
          
       enddo                     ! ij
 
