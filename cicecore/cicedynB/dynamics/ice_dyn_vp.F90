@@ -763,7 +763,9 @@
          fpres_norm  , & ! norm of current fixed point residual : f(x) = g(x) - x
          prog_norm   , & ! norm of difference between current and previous solution
          nlres_norm  , & ! norm of current nonlinear residual : F(x) = A(x)x -b(x)
+#ifdef CICE_USE_LAPACK
          ddot, dnrm2 , & ! BLAS functions
+#endif
          conv            ! needed for FGMRES !phb keep ?
 
       character(len=*), parameter :: subname = '(anderson_solver)'
@@ -931,26 +933,27 @@
             ! g_2(x) = x - A(x)x + b(x) = x - F(x)
          endif
 
-         ! Compute residual
+         ! Compute fixed point residual
          res = fpfunc - sol
+#ifdef CICE_USE_LAPACK
          fpres_norm = global_sum(dnrm2(size(res), res, inc)**2, distrb_info)
-         ! commented code is to compare fixed_point_res_L2norm BFB with progress_res_L2norm
-         ! (should be BFB if Picard iteration is used)
-         ! call vec_to_arrays (nx_block, ny_block, nblocks,      &
-         !                     max_blocks, icellu (:), ntot,     & 
-         !                     indxui    (:,:), indxuj(:,:),     &
-         !                     res (:),                          &
-         !                     fpresx (:,:,:), fpresy (:,:,:))
-         ! !$OMP PARALLEL DO PRIVATE(iblk)
-         ! do iblk = 1, nblocks
-         !    call calc_L2norm_squared (nx_block        , ny_block,         &
-         !                              icellu    (iblk),                   & 
-         !                              indxui  (:,iblk), indxuj  (:,iblk), &
-         !                              fpresx(:,:,iblk), fpresy(:,:,iblk), &
-         !                              L2norm    (iblk))
-         ! enddo
-         ! !$OMP END PARALLEL DO
-         ! fpres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+#else
+         call vec_to_arrays (nx_block, ny_block, nblocks,      &
+                             max_blocks, icellu (:), ntot,     &
+                             indxui    (:,:), indxuj(:,:),     &
+                             res (:),                          &
+                             fpresx (:,:,:), fpresy (:,:,:))
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+            call calc_L2norm_squared (nx_block        , ny_block,         &
+                                      icellu    (iblk),                   &
+                                      indxui  (:,iblk), indxuj  (:,iblk), &
+                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
+                                      L2norm    (iblk))
+         enddo
+         !$OMP END PARALLEL DO
+         fpres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+#endif
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " fixed_point_res_L2norm= ", fpres_norm
@@ -971,6 +974,7 @@
             ! Simple fixed point (Picard) iteration in this case
             sol = fpfunc
          else
+#ifdef CICE_USE_LAPACK
             ! Begin Anderson acceleration
             if (it_nl > start_andacc) then
                ! Update residual difference vector
@@ -1034,6 +1038,11 @@
                   sol = sol - (1-damping_andacc)*res
                endif
             endif
+#else
+            ! Anderson solver is not usable without LAPACK; abort
+            call abort_ice(error_message=subname // " CICE was not compiled with LAPACK, and Anderson solver was chosen (algo_nonlin = 2)" , &
+               file=__FILE__, line=__LINE__)
+#endif
          endif
          
          !-----------------------------------------------------------------------
