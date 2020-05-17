@@ -12,7 +12,7 @@ restart        gx1     40x4       droundrobin,medium
 restart        tx1     40x4       dsectrobin,medium
 restart        gx3     4x4        none
 restart        gx3     4x4        iobinary
-restart        gx3     4x4        precision
+restart        gx3     4x4        precision8
 restart        gx3     6x2        alt01
 restart        gx3     8x2        alt02
 restart        gx3     4x2        alt03
