@@ -494,7 +494,8 @@
     f_fcondtopn_ai = 'x'
     f_fmelttn_ai   = 'x'
     f_flatn_ai     = 'x'
-    f_fsensn_ai     = 'x'
+    f_fsensn_ai    = 'x'
+    f_CMIP         = 'x'
 /
 
 &icefields_mechred_nml

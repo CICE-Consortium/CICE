@@ -175,7 +175,7 @@
       call ice_pio_initdecomp(ndim3=nverts, inner_dim=.true., iodesc=iodesc3dv)
       call ice_pio_initdecomp(ndim3=nzilyr,  ndim4=ncat_hist, iodesc=iodesc4di)
       call ice_pio_initdecomp(ndim3=nzslyr,  ndim4=ncat_hist, iodesc=iodesc4ds)
-      call ice_pio_initdecomp(ndim3=nzslyr,  ndim4=nfsd_hist, iodesc=iodesc4df)
+      call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df)
 
       ltime2 = time/int(secday)
       ltime  = real(time/int(secday),kind=real_kind)
@@ -1204,7 +1204,7 @@
             call pio_write_darray(File, varid, iodesc4ds,&
                                   workr4, status, fillval=spval_dbl)
          endif
-      enddo ! num_avail_hist_fields_4Di
+      enddo ! num_avail_hist_fields_4Ds
       deallocate(workr4)
 
       allocate(workr4(nx_block,ny_block,nblocks,ncat_hist,nfsd_hist))
@@ -1218,7 +1218,7 @@
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nfsd_hist
-               workr4(:,:,j,i,k) = a4Ds(:,:,k,i,nn,j)
+               workr4(:,:,j,i,k) = a4Df(:,:,k,i,nn,j)
             enddo ! k
             enddo ! i
             enddo ! j
@@ -1226,7 +1226,7 @@
             call pio_write_darray(File, varid, iodesc4df,&
                                   workr4, status, fillval=spval_dbl)
          endif
-      enddo ! num_avail_hist_fields_4Di
+      enddo ! num_avail_hist_fields_4Df
       deallocate(workr4)
 
 !     similarly for num_avail_hist_fields_4Db (define workr4b, iodesc4db)

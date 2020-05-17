@@ -428,11 +428,6 @@
          call accum_hist_field(n_fsdperim, iblk, worka, a2D)
       endif
 
-
-
-
-
-
       endif ! a2D allocated
 
       ! 3D category fields
@@ -474,19 +469,20 @@
       if (allocated(a4Df)) then
 
       if (f_afsdn(1:1) /= 'x') then
+         do n = 1, ncat_hist
+         do k = 1, nfsd_hist 
          do j = 1, ny_block
          do i = 1, nx_block
-            do n = 1, ncat_hist
-            do k = 1, nfsd_hist 
-               workd(i,j,k,n) = trcrn(i,j,nt_fsd+k-1,n,iblk) &
-                              * aicen_init(i,j,n,iblk)/floe_binwidth(k)
-            end do
-            end do
+            workd(i,j,k,n) = trcrn(i,j,nt_fsd+k-1,n,iblk) &
+                           * aicen_init(i,j,n,iblk)/floe_binwidth(k)
          end do
          end do
-         call accum_hist_field(n_afsdn-n4Dscum, iblk, &
-                               nfsd_hist, ncat_hist, workd, a4Df)
+         end do
+         end do
+         call accum_hist_field(n_afsdn-n4Dscum, iblk, nfsd_hist, ncat_hist, &
+                               workd(:,:,1:nfsd_hist,1:ncat_hist), a4Df)
       endif
+
       endif ! a4Df allocated
 
       endif ! tr_fsd

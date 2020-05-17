@@ -322,7 +322,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
 
           do nn = 1, ncat_hist
-          do k = 1, nzilyr
+          do k = 1, nzslyr
           nrec = nrec + 1
           if (my_task == master_task) then
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
@@ -338,7 +338,7 @@
           endif
 
           call ice_write(nu_history, nrec, a4Ds(:,:,k,nn,n-n4Dicum,:), atype, diag)
-          enddo ! nzilyr
+          enddo ! nzslyr
           enddo ! ncat_hist
 
         endif

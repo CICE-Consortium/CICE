@@ -2411,7 +2411,7 @@
          ! create thickness profile
          k1 = min(5,nlevel)
          do k = 1,k1
-            thick(k) = max(10000._dbl_kind/float(nlevel),500.)
+            thick(k) = max(10000._dbl_kind/float(nlevel),500._dbl_kind)
          enddo
          do k = k1+1,nlevel
             thick(k) = min(thick(k-1)*1.2_dbl_kind,20000._dbl_kind)

@@ -1218,7 +1218,7 @@
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nfsd_hist
-               workr4(:,:,j,i,k) = a4Ds(:,:,k,i,nn,j)
+               workr4(:,:,j,i,k) = a4Df(:,:,k,i,nn,j)
             enddo ! k
             enddo ! i
             enddo ! j

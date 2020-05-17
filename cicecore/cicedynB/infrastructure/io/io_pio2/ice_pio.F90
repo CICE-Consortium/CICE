@@ -28,7 +28,11 @@
   public ice_pio_init
   public ice_pio_initdecomp
 
-  type(iosystem_desc_t), pointer, public :: ice_pio_subsystem
+#ifdef CESMCOUPLED
+  type(iosystem_desc_t), pointer :: ice_pio_subsystem
+#else
+  type(iosystem_desc_t)          :: ice_pio_subsystem
+#endif
 
 !===============================================================================
 
@@ -41,7 +45,11 @@
 
    subroutine ice_pio_init(mode, filename, File, clobber, cdf64)
 
+#ifdef CESMCOUPLED
    use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype
+#else
+   use perf_mod, only : t_initf
+#endif
      
    implicit none
    character(len=*)     , intent(in),    optional :: mode
@@ -55,6 +63,11 @@
    integer (int_kind) :: &
       nml_error          ! namelist read error flag
 
+   integer :: nprocs
+   integer :: istride
+   integer :: basetask
+   integer :: numiotasks
+   integer :: rearranger
    integer :: pio_iotype
    logical :: exists
    logical :: lclobber
@@ -64,8 +77,54 @@
    character(len=*), parameter :: subname = '(ice_pio_init)'
    logical, save :: first_call = .true.
 
+#ifdef CESMCOUPLED
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
+#else
+   !--- initialize gptl
+   call t_initf('undefined_NLFileName', LogPrint=.false., mpicom=MPI_COMM_ICE, &
+         MasterTask=.true.)
+
+   !--- initialize ice_pio_subsystem
+   nprocs = get_num_procs()
+   istride = 4
+   basetask = min(1,nprocs-1)
+   numiotasks = max((nprocs-basetask)/istride,1)
+   rearranger = PIO_REARR_BOX
+   if (my_task == master_task) then
+      write(nu_diag,*) subname,' nprocs     = ',nprocs
+      write(nu_diag,*) subname,' istride    = ',istride
+      write(nu_diag,*) subname,' basetask   = ',basetask
+      write(nu_diag,*) subname,' numiotasks = ',numiotasks
+   end if
+
+   call pio_init(my_task, MPI_COMM_ICE, numiotasks, master_task, istride, &
+                 rearranger, ice_pio_subsystem, base=basetask)
+   !--- initialize rearranger options
+   !pio_rearr_opt_comm_type = integer (PIO_REARR_COMM_[P2P,COLL])
+   !pio_rearr_opt_fcd = integer, flow control (PIO_REARR_COMM_FC_[2D_ENABLE,1D_COMP2IO,1D_IO2COMP,2D_DISABLE])
+   !pio_rearr_opt_c2i_enable_hs = logical
+   !pio_rearr_opt_c2i_enable_isend = logical
+   !pio_rearr_opt_c2i_max_pend_req = integer
+   !pio_rearr_opt_i2c_enable_hs = logical
+   !pio_rearr_opt_i2c_enable_isend = logical
+   !pio_rearr_opt_c2i_max_pend_req = integer
+   !ret = pio_set_rearr_opts(ice_pio_subsystem, pio_rearr_opt_comm_type,&
+   !              pio_rearr_opt_fcd,&
+   !              pio_rearr_opt_c2i_enable_hs, pio_rearr_opt_c2i_enable_isend,&
+   !              pio_rearr_opt_c2i_max_pend_req,&
+   !              pio_rearr_opt_i2c_enable_hs, pio_rearr_opt_i2c_enable_isend,&
+   !              pio_rearr_opt_i2c_max_pend_req)
+   !if(ret /= PIO_NOERR) then
+   !   call abort_ice(subname//'ERROR: aborting in pio_set_rearr_opts')
+   !end if
+
+   !--- initialize type of io
+   !pio_iotype = PIO_IOTYPE_PNETCDF
+   !pio_iotype = PIO_IOTYPE_NETCDF4C
+   !pio_iotype = PIO_IOTYPE_NETCDF4P
+   pio_iotype = PIO_IOTYPE_NETCDF
+#endif
 
    if (present(mode) .and. present(filename) .and. present(File)) then
       
