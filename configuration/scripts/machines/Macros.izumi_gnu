@@ -55,10 +55,3 @@ ifeq ($(ICE_THREADED), true)
    FFLAGS += -fopenmp
 endif
 
-## if using parallel I/O, load all 3 libraries.  PIO must be first!
-ifeq ($(ICE_IOTYPE), pio)
-   PIO_PATH:=
-   INCLDIR += -I
-   SLIBS   := $(SLIB) -L$(PIO_PATH) -lpiofS
-endif
-

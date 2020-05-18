@@ -21,13 +21,47 @@ restart        gx3    16x2        bgcskl,histall,iobinary
 restart        gx3    14x2        isotope,histall,iobinary
 restart        gx3    16x2        fsd12,histall,iobinary
 
-restart        gx3    16x2        debug,histall,iopio
-restart        gx3    14x2        alt01,histall,iopio
-restart        gx3    32x1        alt02,histall,iopio
-restart        gx3    24x1        alt03,histall,iopio
-restart        gx3     8x4        alt04,histall,iopio
-restart        gx3     8x4        alt05,histall,iopio
-restart        gx3    16x2        bgcz,histall,iopio
-restart        gx3    30x1        bgcskl,histall,iopio
-restart        gx3     8x4        isotope,histall,iopio
-restart        gx3    12x2        debug,fsd12,histall,iopio
+restart        gx3    16x2        debug,histall,iopio1
+restart        gx3    14x2        alt01,histall,iopio1
+restart        gx3    32x1        alt02,histall,iopio1
+restart        gx3    24x1        alt03,histall,iopio1
+restart        gx3     8x4        alt04,histall,iopio1
+restart        gx3     8x4        alt05,histall,iopio1
+restart        gx3    16x2        bgcz,histall,iopio1
+restart        gx3    30x1        bgcskl,histall,iopio1
+restart        gx3     8x4        isotope,histall,iopio1
+restart        gx3    12x2        fsd12,histall,iopio1
+
+restart        gx3    16x2        debug,histall,iopio2
+restart        gx3    14x2        alt01,histall,iopio2
+restart        gx3    32x1        alt02,histall,iopio2
+restart        gx3    24x1        alt03,histall,iopio2
+restart        gx3     8x4        alt04,histall,iopio2
+restart        gx3     8x4        alt05,histall,iopio2
+restart        gx3    16x2        bgcz,histall,iopio2
+restart        gx3    30x1        bgcskl,histall,iopio2
+restart        gx3     8x4        isotope,histall,iopio2
+restart        gx3    12x2        fsd12,histall,iopio2
+
+restart        gx3    16x2        debug,histall,iopio1p
+restart        gx3    14x2        alt01,histall,iopio1p
+restart        gx3    32x1        alt02,histall,iopio1p
+restart        gx3    24x1        alt03,histall,iopio1p
+restart        gx3     8x4        alt04,histall,iopio1p
+restart        gx3     8x4        alt05,histall,iopio1p
+restart        gx3    16x2        bgcz,histall,iopio1p
+restart        gx3    30x1        bgcskl,histall,iopio1p
+restart        gx3     8x4        isotope,histall,iopio1p
+restart        gx3    12x2        fsd12,histall,iopio1p
+
+restart        gx3    16x2        debug,histall,iopio2p
+restart        gx3    14x2        alt01,histall,iopio2p
+restart        gx3    32x1        alt02,histall,iopio2p
+restart        gx3    24x1        alt03,histall,iopio2p
+restart        gx3     8x4        alt04,histall,iopio2p
+restart        gx3     8x4        alt05,histall,iopio2p
+restart        gx3    16x2        bgcz,histall,iopio2p
+restart        gx3    30x1        bgcskl,histall,iopio2p
+restart        gx3     8x4        isotope,histall,iopio2p
+restart        gx3    12x2        fsd12,histall,iopio2p
+

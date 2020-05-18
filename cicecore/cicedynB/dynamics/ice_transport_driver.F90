@@ -147,68 +147,70 @@
 
           ! diagnostic output
           if (my_task == master_task) then
-          write (nu_diag, *) 'tracer        index      depend        type has_dependents'
+          write (nu_diag, *) 'tracer          index  depend  type has_dependents'
              nt = 1
-                write(nu_diag,*) '   hi  ',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'hi          ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              nt = 2
-                write(nu_diag,*) '   hs  ',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'hs          ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
           k=2
           do nt = k+1, k+ntrcr
              if (nt-k==nt_Tsfc) &
-                write(nu_diag,*) 'nt_Tsfc',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_Tsfc     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_qice) &
-                write(nu_diag,*) 'nt_qice',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_qice     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_qsno) &
-                write(nu_diag,*) 'nt_qsno',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_qsno     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_sice) &
-                write(nu_diag,*) 'nt_sice',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_sice     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_fbri) &
-                write(nu_diag,*) 'nt_fbri',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_fbri     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_iage) &
-                write(nu_diag,*) 'nt_iage',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_iage     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_FY) &
-                write(nu_diag,*) 'nt_FY  ',  nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_FY       ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_alvl) &
-                write(nu_diag,*) 'nt_alvl',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_alvl     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_vlvl) &
-                write(nu_diag,*) 'nt_vlvl',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_vlvl     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_apnd) &
-                write(nu_diag,*) 'nt_apnd',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_apnd     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_hpnd) &
-                write(nu_diag,*) 'nt_hpnd',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_hpnd     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_ipnd) &
-                write(nu_diag,*) 'nt_ipnd',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_ipnd     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_fsd) &
-                write(nu_diag,*) 'nt_fsd ',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_fsd      ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_isosno) &
-                write(nu_diag,*) 'nt_isosno',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_isosno   ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_isoice) &
-                write(nu_diag,*) 'nt_isoice',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_isoice   ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_bgc_Nit) &
-                write(nu_diag,*) 'nt_bgc_Nit',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_bgc_Nit  ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
              if (nt-k==nt_bgc_S) &
-                write(nu_diag,*) 'nt_bgc_S',nt,depend(nt),tracer_type(nt),&
+                write(nu_diag,1000) 'nt_bgc_S    ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
           enddo
+          write(nu_diag,*) ' '
           endif ! master_task
+  1000    format (1x,a,2x,i6,2x,i6,2x,i4,4x,l4)
 
           if (trim(advection)=='remap') call init_remap    ! grid quantities
 

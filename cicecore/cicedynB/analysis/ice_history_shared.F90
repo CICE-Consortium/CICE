@@ -54,6 +54,9 @@
       character (len=char_len), public :: &
          version_name
 
+      character (len=char_len), public :: &
+         history_format
+
       !---------------------------------------------------------------
       ! Instructions for adding a field: (search for 'example')
       !     Here:

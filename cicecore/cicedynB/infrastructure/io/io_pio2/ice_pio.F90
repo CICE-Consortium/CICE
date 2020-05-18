@@ -43,12 +43,14 @@
 !    Initialize the io subsystem
 !    2009-Feb-17 - J. Edwards - initial version
 
-   subroutine ice_pio_init(mode, filename, File, clobber, cdf64)
+   subroutine ice_pio_init(mode, filename, File, clobber, cdf64, iotype)
 
 #ifdef CESMCOUPLED
    use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype
 #else
+#ifdef GPTL
    use perf_mod, only : t_initf
+#endif
 #endif
      
    implicit none
@@ -57,6 +59,7 @@
    type(file_desc_t)    , intent(inout), optional :: File
    logical              , intent(in),    optional :: clobber
    logical              , intent(in),    optional :: cdf64
+   integer              , intent(in),    optional :: iotype
 
    ! local variables
 
@@ -81,21 +84,36 @@
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
 #else
+
+#ifdef GPTL
    !--- initialize gptl
    call t_initf('undefined_NLFileName', LogPrint=.false., mpicom=MPI_COMM_ICE, &
          MasterTask=.true.)
+#endif
+
+   !--- initialize type of io
+   !pio_iotype = PIO_IOTYPE_PNETCDF
+   !pio_iotype = PIO_IOTYPE_NETCDF4C
+   !pio_iotype = PIO_IOTYPE_NETCDF4P
+   pio_iotype = PIO_IOTYPE_NETCDF
+   if (present(iotype)) then
+      pio_iotype = iotype
+   endif
 
    !--- initialize ice_pio_subsystem
    nprocs = get_num_procs()
    istride = 4
    basetask = min(1,nprocs-1)
    numiotasks = max((nprocs-basetask)/istride,1)
+!--tcraig this should work better but it causes pio2.4.4 to fail for reasons unknown
+!   numiotasks = 1 + (nprocs-basetask-1)/istride
    rearranger = PIO_REARR_BOX
    if (my_task == master_task) then
       write(nu_diag,*) subname,' nprocs     = ',nprocs
       write(nu_diag,*) subname,' istride    = ',istride
       write(nu_diag,*) subname,' basetask   = ',basetask
       write(nu_diag,*) subname,' numiotasks = ',numiotasks
+      write(nu_diag,*) subname,' pio_iotype = ',pio_iotype
    end if
 
    call pio_init(my_task, MPI_COMM_ICE, numiotasks, master_task, istride, &
@@ -119,11 +137,6 @@
    !   call abort_ice(subname//'ERROR: aborting in pio_set_rearr_opts')
    !end if
 
-   !--- initialize type of io
-   !pio_iotype = PIO_IOTYPE_PNETCDF
-   !pio_iotype = PIO_IOTYPE_NETCDF4C
-   !pio_iotype = PIO_IOTYPE_NETCDF4P
-   pio_iotype = PIO_IOTYPE_NETCDF
 #endif
 
    if (present(mode) .and. present(filename) .and. present(File)) then

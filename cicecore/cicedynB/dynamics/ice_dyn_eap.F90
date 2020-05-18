@@ -2183,7 +2183,7 @@
       call read_restart_field(nu_restart_eap,0,a12_4,'ruf8', &
            'a12_4',1,diag,field_loc_center,field_type_scalar) ! a12_4
 
-      if (trim(grid_type) == 'tripole' .and. trim(restart_format) == 'pio') then
+      if (trim(grid_type) == 'tripole' .and. restart_format(1:3) == 'pio') then
 
       call ice_HaloUpdate_stress(a11_1, a11_3, halo_info, &
                                  field_loc_center,  field_type_scalar)

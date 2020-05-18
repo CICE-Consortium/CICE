@@ -55,6 +55,8 @@
 
       integer (kind=int_kind) :: status
 
+      integer (kind=int_kind) :: iotype
+
       character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then 
@@ -74,9 +76,11 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
       end if
 
-      if (restart_format == 'pio') then
+      if (restart_format(1:3) == 'pio') then
+         iotype = PIO_IOTYPE_NETCDF
+         if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
-         call ice_pio_init(mode='read', filename=trim(filename), File=File)
+         call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
       
          call ice_pio_initdecomp(iodesc=iodesc2d)
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true.)
@@ -160,6 +164,8 @@
 
       integer (kind=int_kind), allocatable :: dims(:)
 
+      integer (kind=int_kind) :: iotype
+
       integer (kind=int_kind) :: &
         k,    n,    & ! loop index
         status        ! status variable from netCDF routine
@@ -199,7 +205,7 @@
               iyear,'-',month,'-',mday,'-',sec
       end if
         
-      if (restart_format /= 'bin') filename = trim(filename) // '.nc'
+      if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
 
       ! write pointer (path/file)
       if (my_task == master_task) then
@@ -208,11 +214,13 @@
          close(nu_rst_pointer)
       endif
 
-      if (restart_format == 'pio') then
+      if (restart_format(1:3) == 'pio') then
       
+         iotype = PIO_IOTYPE_NETCDF
+         if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
          call ice_pio_init(mode='write',filename=trim(filename), File=File, &
-              clobber=.true., cdf64=lcdf64 )
+              clobber=.true., cdf64=lcdf64, iotype=iotype)
 
          status = pio_put_att(File,pio_global,'istep1',istep1)
          status = pio_put_att(File,pio_global,'time',time)
@@ -688,7 +696,7 @@
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
-      if (restart_format == "pio") then
+      if (restart_format(1:3) == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file read: ',vname
 
@@ -796,7 +804,7 @@
 
       character(len=*), parameter :: subname = '(write_restart_field)'
 
-      if (restart_format == "pio") then
+      if (restart_format(1:3) == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file write: ',vname
 
@@ -853,7 +861,7 @@
 
       character(len=*), parameter :: subname = '(final_restart)'
 
-      if (restart_format == 'pio') then
+      if (restart_format(1:3) == 'pio') then
          call PIO_freeDecomp(File,iodesc2d)
          call PIO_freeDecomp(File,iodesc3d_ncat)
          call pio_closefile(File)

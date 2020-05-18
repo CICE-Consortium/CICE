@@ -12,7 +12,8 @@ FFLAGS     := -Kieee -Mbyteswapio -traceback
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -Mbounds -Mchkptr
+#  FFLAGS     += -O0 -g -Mbounds -Mchkptr
+  FFLAGS     += -O0 -g -Mchkptr
 else
   FFLAGS     += -O -g
 endif
@@ -53,8 +54,13 @@ ifeq ($(ICE_THREADED), true)
    FFLAGS += -mp 
 endif
 
-### if using parallel I/O, load all 3 libraries.  PIO must be first!
-ifeq ($(ICE_IOTYPE), pio)
+ifeq ($(ICE_IOTYPE), pio1)
+   LIB_PIO := $(PIO_LIBDIR)
+   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+   CPPDEFS := $(CPPDEFS) -DGPTL
    LIB_PIO := $(PIO_LIBDIR)
    SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc -lgptl
 endif
