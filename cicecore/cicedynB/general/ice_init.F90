@@ -513,13 +513,6 @@
       if (trim(diag_type) == 'file') call get_fileunit(nu_diag)
 #endif
 
-      if (my_task == master_task) then
-         if(history_precision .ne. 4 .and. history_precision .ne. 8) then
-            write (nu_diag,*) 'ERROR: bad value for history_precision, allowed values: 4, 8'
-            call abort_ice('ice_init: history_precision')
-         endif
-      endif
-
       !-----------------------------------------------------------------
       ! broadcast namelist settings
       !-----------------------------------------------------------------
@@ -945,6 +938,11 @@
          abort_flag = 19
       endif
       
+      if(history_precision .ne. 4 .and. history_precision .ne. 8) then
+         write (nu_diag,*) 'ERROR: bad value for history_precision, allowed values: 4, 8'
+         abort_flag = 22
+      endif
+
       if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &
                 trim(dumpfreq) == 'm' .or. trim(dumpfreq) == 'M' .or. &
                 trim(dumpfreq) == 'd' .or. trim(dumpfreq) == 'D' .or. &
