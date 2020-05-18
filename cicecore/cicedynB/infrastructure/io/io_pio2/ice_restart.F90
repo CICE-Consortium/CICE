@@ -76,7 +76,7 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
       end if
 
-      if (restart_format(1:3) == 'pio') then
+!     if (restart_format(1:3) == 'pio') then
          iotype = PIO_IOTYPE_NETCDF
          if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
@@ -98,7 +98,7 @@
             status = pio_get_att(File, pio_global, 'sec', sec)
          endif
          endif ! use namelist values if use_restart_time = F
-      endif
+!     endif
 
       if (my_task == master_task) then
          write(nu_diag,*) 'Restart read at istep=',istep0,time,time_forc
@@ -214,7 +214,7 @@
          close(nu_rst_pointer)
       endif
 
-      if (restart_format(1:3) == 'pio') then
+!     if (restart_format(1:3) == 'pio') then
       
          iotype = PIO_IOTYPE_NETCDF
          if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
@@ -639,7 +639,7 @@
          call ice_pio_initdecomp(iodesc=iodesc2d)
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat, remap=.true.)
 
-      endif
+!     endif  ! restart_format
 
       if (my_task == master_task) then
          write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
@@ -696,7 +696,7 @@
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
-      if (restart_format(1:3) == "pio") then
+!     if (restart_format(1:3) == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file read: ',vname
 
@@ -755,9 +755,9 @@
             endif
          
          endif
-      else
-         call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
-      endif
+!     else
+!        call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
+!     endif  ! restart_format
 
       end subroutine read_restart_field
       
@@ -804,7 +804,7 @@
 
       character(len=*), parameter :: subname = '(write_restart_field)'
 
-      if (restart_format(1:3) == "pio") then
+!      if (restart_format(1:3) == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file write: ',vname
 
@@ -843,9 +843,9 @@
                endif
             endif
          endif
-      else
-         call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
-      endif
+!     else
+!        call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
+!     endif
 
       end subroutine write_restart_field
 
@@ -861,11 +861,9 @@
 
       character(len=*), parameter :: subname = '(final_restart)'
 
-      if (restart_format(1:3) == 'pio') then
-         call PIO_freeDecomp(File,iodesc2d)
-         call PIO_freeDecomp(File,iodesc3d_ncat)
-         call pio_closefile(File)
-      endif
+      call PIO_freeDecomp(File,iodesc2d)
+      call PIO_freeDecomp(File,iodesc3d_ncat)
+      call pio_closefile(File)
 
       if (my_task == master_task) &
          write(nu_diag,*) 'Restart read/written ',istep1,time,time_forc

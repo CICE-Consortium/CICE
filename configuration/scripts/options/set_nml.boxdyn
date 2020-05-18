@@ -3,7 +3,6 @@ ice_ic = 'default'
 restart = .false.
 days_per_year = 360
 npt            = 72
-restart_format = 'bin'
 dumpfreq       = 'd'
 dumpfreq_n     = 2
 histfreq       = 'd','x','x','x','x'

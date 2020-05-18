@@ -250,7 +250,7 @@
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency 
       hist_avg = .true.      ! if true, write time-averages (not snapshots)
-      history_format = 'undefined' ! history file format: binary, netcdf, pio_netcdf, pio_pnetcdf
+      history_format = 'default' ! history file format
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
       history_precision = 4  ! precision of history files
@@ -265,9 +265,9 @@
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
-      use_restart_time = .true.     ! if true, use time info written in file
+      use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
-      restart_format = 'undefined'  ! restart file format: binary, netcdf, pio_netcdf, pio_pnetcdf
+      restart_format = 'default'  ! restart file format
       lcdf64       = .false. ! 64 bit offset for netCDF
       ice_ic       = 'default'      ! latitude and sst-dependent
       grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
