@@ -889,7 +889,11 @@
                 a,'-',a,'-',a,' at ',a,':',a)
         status = pio_put_att(File,pio_global,'history',trim(start_time))
 
-        status = pio_put_att(File,pio_global,'io_flavor','io_pio')
+        if (history_format == 'pio_pnetcdf') then
+           status = pio_put_att(File,pio_global,'io_flavor','io_pio pnetcdf')
+        else
+           status = pio_put_att(File,pio_global,'io_flavor','io_pio netcdf')
+        endif
 
       !-----------------------------------------------------------------
       ! end define mode
