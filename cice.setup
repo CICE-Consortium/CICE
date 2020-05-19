@@ -504,11 +504,18 @@ EOF0
 cat >! ${tsdir}/report_codecov.csh << EOF0
 #!/bin/csh -f
 
-#setenv CODECOV_TOKEN "1d09241f-ed9e-47d8-847c-038bab024b53"   # consortium cice
-#setenv CODECOV_TOKEN "f3236008-0b92-4707-9ad5-ad906f5d2ba7"   # apcraig cice
-setenv CODECOV_TOKEN "0dcc6066-fdce-47b6-b84a-c55e2a0af4c0"   # apcraig test_cice_icepack
-set report_name = "${shhash}:${branch}:${machine} ${testsuite}"
+# define CODECOV_TOKEN env variable
+if !(\$?CODECOV_TOKEN) then
+  if (-e ~/.codecov_cice_token) then
+    source ~/.codecov_cice_token
+  endif
+  if !(\$?CODECOV_TOKEN) then
+    echo "\${0}: ERROR, CODECOV_TOKEN env variable not defined"
+    exit 2
+  endif
+endif
 
+set report_name = "${shhash}:${branch}:${machine} ${testsuite}"
 set use_curl = 1
 
 EOF0
