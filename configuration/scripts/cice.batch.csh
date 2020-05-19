@@ -209,25 +209,28 @@ cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH -t ${batchtime}
 #SBATCH -q batch
-#SBATCH -A marine-cpu
+#SBATCH -A ${acct}
 #SBATCH -N ${nnodes}
 #SBATCH -e slurm%j.err
 #SBATCH -o slurm%j.out
-#SBATCH --mail-type FAIL
-#SBATCH --mail-user=robert.grumbine@noaa.gov
+###SBATCH --mail-type FAIL
+###SBATCH --mail-user=xxx@noaa.gov
 EOFB
 
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -t `echo ${batchtime} | cut -f1-2 -d:`
-#SBATCH -q batch
-#SBATCH -A marine-cpu
-#SBATCH -N ${nnodes}
+#SBATCH --partition=hera
+#SBATCH --qos=${queue}
+#SBATCH -A ${acct}
+#SBATCH --time=${batchtime}
+#SBATCH --nodes=${nnodes}
+#SBATCH --ntasks-per-node=${taskpernodelimit}
+#SBATCH --cpus-per-task=${nthrds}
 #SBATCH -e slurm%j.err
 #SBATCH -o slurm%j.out
-#SBATCH --mail-type FAIL
-#SBATCH --mail-user=robert.grumbine@noaa.gov
+##SBATCH --mail-type FAIL
+##SBATCH --mail-user=xxx@noaa.gov
 EOFB
 
 else if (${ICE_MACHINE} =~ phase2*) then
