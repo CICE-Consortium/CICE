@@ -878,13 +878,8 @@ setenv ICE_COMPILER ${compiler}
 setenv ICE_MACHCOMP ${machcomp}
 setenv ICE_RUNDIR   ${rundir}
 setenv ICE_GRID     ${grid}
-#setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}  # moved to namelist
-#setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}  # moved to namelist
 setenv ICE_NTASKS   ${task}
 setenv ICE_NTHRDS   ${thrd}
-#setenv ICE_MXBLCKS  ${ICE_DECOMP_MXBLCKS}  # moved to namelist
-#setenv ICE_BLCKX    ${ICE_DECOMP_BLCKX}  # moved to namelist
-#setenv ICE_BLCKY    ${ICE_DECOMP_BLCKY}  # moved to namelist
 setenv ICE_BASELINE ${basedir_tmp}
 setenv ICE_BASEGEN  ${baseGen}
 setenv ICE_BASECOM  ${baseCom}
