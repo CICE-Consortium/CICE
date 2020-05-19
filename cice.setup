@@ -34,7 +34,10 @@ set stime = `date -u "+%H%M%S"`
 set docase = 0
 set dotest = 0
 set dosuite = 0
+set codecov = 0       # code coverage measurement and reporting
+set codecovflag = false
 set suitebuild  = true
+set suitereuse  = true
 set suiterun    = false
 set suitesubmit = true
 
@@ -81,7 +84,7 @@ SYNOPSIS
 
     --suite SUITE[,SUITE2] -m MACH --testid ID 
         [-e ENV1,ENV2][--acct ACCT][--bdir DIR][--bgen DIR]
-        [--bcmp DIR][--tdir PATH][--report]
+        [--bcmp DIR][--tdir PATH][--report || --codecov]
         [--setup-only || --setup-build || --setup-build-run || --setup-build-submit]
 
 DESCRIPTION
@@ -108,6 +111,8 @@ DESCRIPTION
     --testid   : test ID, user-defined id for testing (REQUIRED with --test or --suite)
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
+    --codecov  : generate and report test coverage metrics when tests are complete,
+                 requires GNU compiler (--env gnu)
     --setup-only         : for suite, setup testcases, no build, no submission
     --setup-build        : for suite, setup and build testcases, no submission
     --setup-build-run    : for suite, setup, build, and run interactively
@@ -224,26 +229,36 @@ while (1)
     set report = 1
     shift argv
 
+  else if ("$option" == "--codecov") then
+    set codecov = 1
+    set codecovflag = true
+    set suitereuse  = false
+    shift argv
+
   else if ("$option" == "--setup-only") then
     set suitebuild  = false
+    set suitereuse  = true
     set suiterun    = false
     set suitesubmit = false
     shift argv
 
   else if ("$option" == "--setup-build") then
     set suitebuild  = true
+    set suitereuse  = true
     set suiterun    = false
     set suitesubmit = false
     shift argv
 
   else if ("$option" == "--setup-build-run") then
     set suitebuild  = true
+    set suitereuse  = true
     set suiterun    = true
     set suitesubmit = false
     shift argv
 
   else if ("$option" == "--setup-build-submit") then
     set suitebuild  = true
+    set suitereuse  = true
     set suiterun    = false
     set suitesubmit = true
     shift argv
@@ -252,11 +267,11 @@ while (1)
   else
     shift argv
     if ( $#argv < 1 ) then
-      echo "${0}: ERROR1 in $option"
+      echo "${0}: ERROR in $option, unsupported or missing an argument"
       exit -1
     endif
-    if ($argv[1] =~ $dash* ) then
-      echo "${0}: ERROR2 in $option"
+    if ("$argv[1]" =~ "$dash*" ) then
+      echo "${0}: ERROR in $option, possibly missing an argument"
       exit -1
     endif
 
@@ -321,7 +336,30 @@ if (${dosum} > 1) then
   exit -1
 endif
 
+if ($codecov == 1 && $report == 1) then
+  echo "${0}: ERROR in arguments, not recommmended to set both --codecov and --report"
+  exit -1
+endif
+
+if ($codecov == 1 && "$compilers" != "gnu") then
+  echo "${0}: ERROR in arguments, must use --env gnu with --codecov"
+  exit -1
+endif
+
+if ($codecov == 1 && `where curl` == "" && `where wget` == "") then
+  echo "${0}: ERROR 'curl' or 'wget' is required for --codecov"
+  exit -1
+endif
+
 if (${dosuite} == 0) then
+  if ($report == 1) then
+    echo "${0}: ERROR in arguments, must use --suite with --report"
+    exit -1
+  endif
+  if ($codecov == 1) then
+    echo "${0}: ERROR in arguments, must use --suite with --codecov"
+    exit -1
+  endif
   if ("$compilers" =~ "*,*") then
     echo "${0}: ERROR in arguments, cannot set multiple compilers without --suite"
     exit -1
@@ -355,7 +393,7 @@ endif
 if ( ${tdir} != ${spval} ) then
   set tsdir = ${tdir}
 endif
-if (-e $tsfile) then
+if (-e ${tsfile}) then
   echo "${0}: ERROR in tsfile, this should never happen"
   exit -1
 endif
@@ -416,10 +454,14 @@ else
 set nonomatch && rm -f ciceexe.* && unset nonomatch
 
 set dobuild  = true
+set doreuse  = true
 set dorun    = false
 set dosubmit = true
 if (\$?SUITE_BUILD) then
   set dobuild  = "\${SUITE_BUILD}"
+endif
+if (\$?SUITE_REUSEBUILD) then
+  set doreuse = "\${SUITE_REUSEBUILD}"
 endif
 if (\$?SUITE_RUN) then
   set dorun    = "\${SUITE_RUN}"
@@ -429,6 +471,7 @@ if (\$?SUITE_SUBMIT) then
 endif
 
 echo \${0}: dobuild  = \${dobuild}
+echo \${0}: doreuse  = \${doreuse}
 echo \${0}: dorun    = \${dorun}
 echo \${0}: dosubmit = \${dosubmit}
 
@@ -449,6 +492,7 @@ echo "#hash = ${hash}" >> results.log
 echo "#hshs = ${shhash}" >> results.log
 echo "#hshu = ${hashuser}" >> results.log
 echo "#hshd = ${hashdate}" >> results.log
+echo "#suit = ${testsuite}" >> results.log
 echo "#date = ${cdate}" >> results.log
 echo "#time = ${ctime}" >> results.log
 echo "#mach = ${machine}" >> results.log
@@ -457,8 +501,28 @@ echo "#vers = ${vers}" >> results.log
 echo "#------- " >> results.log
 EOF0
 
+cat >! ${tsdir}/report_codecov.csh << EOF0
+#!/bin/csh -f
+
+# define CODECOV_TOKEN env variable
+if !(\$?CODECOV_TOKEN) then
+  if (-e ~/.codecov_cice_token) then
+    source ~/.codecov_cice_token
+  endif
+  if !(\$?CODECOV_TOKEN) then
+    echo "\${0}: ERROR, CODECOV_TOKEN env variable not defined"
+    exit 2
+  endif
+endif
+
+set report_name = "${shhash}:${branch}:${machine} ${testsuite}"
+set use_curl = 1
+
+EOF0
+
   chmod +x ${tsdir}/suite.submit
   chmod +x ${tsdir}/results.csh
+  chmod +x ${tsdir}/report_codecov.csh
 
 endif
 
@@ -734,6 +798,8 @@ EOF
       endif
     endif
 
+    set rundir = ${ICE_MACHINE_WKDIR}/${casename}
+
     #------------------------------------------------------------
     # Compute a default blocksize
 
@@ -755,6 +821,7 @@ EOF
     echo "ICE_CASEDIR  = ${casedir}"
     echo "ICE_MACHINE  = ${machine}"
     echo "ICE_COMPILER = ${compiler}"
+    echo "ICE_RUNDIR   = ${rundir}"
     echo "ICE_PES      = ${task}x${thrd}"
     echo "ICE_GRID     = ${grid} (${ICE_DECOMP_NXGLOB}x${ICE_DECOMP_NYGLOB}) blocksize=${ICE_DECOMP_BLCKX}x${ICE_DECOMP_BLCKY}x${ICE_DECOMP_MXBLCKS}"
     echo "ICE_DECOMP   = ${ICE_DECOMP_DECOMP} ${ICE_DECOMP_DSHAPE}"
@@ -809,7 +876,7 @@ setenv ICE_CASEDIR  ${casedir}
 setenv ICE_MACHINE  ${machine}
 setenv ICE_COMPILER ${compiler}
 setenv ICE_MACHCOMP ${machcomp}
-setenv ICE_RUNDIR   ${ICE_MACHINE_WKDIR}/${casename}
+setenv ICE_RUNDIR   ${rundir}
 setenv ICE_GRID     ${grid}
 #setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}  # moved to namelist
 #setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}  # moved to namelist
@@ -829,6 +896,7 @@ setenv ICE_TESTID   ${testid}
 setenv ICE_BFBCOMP  ${fbfbcomp}
 setenv ICE_ACCOUNT  ${acct}
 setenv ICE_QUEUE    ${queue}
+setenv ICE_CODECOV  ${codecovflag}
 EOF1
 
     if (${sets} != "") then
@@ -941,9 +1009,6 @@ EOF2
         exit -1
       endif
 
-#      # Initial test_output file
-#      echo "#---" >! test_output
-#      echo "PEND ${testname_noid} " >> test_output
     endif
 
     #------------------------------------------------------------
@@ -957,6 +1022,12 @@ EOF2
 cat ${testname_base}/test_output >> results.log
 EOF
 
+      cat >> ${tsdir}/report_codecov.csh << EOF
+mkdir ${testname_base}/codecov_output
+cp ${rundir}/compile/*.{gcno,gcda} ${testname_base}/codecov_output/
+
+EOF
+
       cat >> ${tsdir}/suite.submit << EOF
 
 echo "-------test--------------"
@@ -964,9 +1035,13 @@ echo "${testname_base}"
 cd ${testname_base}
 source ./cice.settings
 if (\${dobuild} == true) then
-   set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
-  ./cice.build --exe \${ciceexe}
-  if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
+   if (\${doreuse} == true) then
+     set ciceexe = "../ciceexe.\${ICE_COMPILER}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
+     ./cice.build --exe \${ciceexe}
+     if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
+   else
+     ./cice.build
+   endif
 endif
 if (\${dosubmit} == true) then
   ./cice.submit | tee -a ../suite.jobs
@@ -1004,31 +1079,55 @@ EOF0
   # Add code to results.csh to count the number of failures
   cat >> ${tsdir}/results.csh << EOF
 cat ./results.log
-set pends = \`cat ./results.log | grep PEND | wc -l\`
-set failures = \`cat ./results.log | grep FAIL | wc -l\`
-set success = \`cat ./results.log | grep 'PASS\|COPY' | wc -l\`
-set comments = \`cat ./results.log | grep "#" | wc -l\`
-set alltotal = \`cat ./results.log | wc -l\`
+set pends     = \`cat ./results.log | grep PEND | wc -l\`
+set misses    = \`cat ./results.log | grep MISS | wc -l\`
+set failures  = \`cat ./results.log | grep FAIL | wc -l\`
+set failbuild = \`cat ./results.log | grep FAIL | grep " build " | wc -l\`
+set failrun   = \`cat ./results.log | grep FAIL | grep " run " | wc -l\`
+set failtest  = \`cat ./results.log | grep FAIL | grep " test " | wc -l\`
+set failcomp  = \`cat ./results.log | grep FAIL | grep " compare " | wc -l\`
+set failbfbc  = \`cat ./results.log | grep FAIL | grep " bfbcomp " | wc -l\`
+set failgen   = \`cat ./results.log | grep FAIL | grep " generate " | wc -l\`
+set success   = \`cat ./results.log | grep 'PASS\|COPY' | wc -l\`
+set comments  = \`cat ./results.log | grep "#" | wc -l\`
+set alltotal  = \`cat ./results.log | wc -l\`
 @ total = \$alltotal - \$comments
+@ chkcnt = \$pends + \$misses + \$failures + \$success
 
 echo "#------- " >> results.log
 echo " " >> results.log
-echo "#totl = \$total" >> results.log
+echo "#totl = \$total total" >> results.log
+echo "#chkd = \$chkcnt checked" >> results.log
 echo "#pass = \$success" >> results.log
-echo "#fail = \$failures" >> results.log
 echo "#pend = \$pends" >> results.log
+echo "#miss = \$misses" >> results.log
+echo "#fail = \$failures" >> results.log
+echo "    #failbuild = \$failbuild" >> results.log
+echo "    #failrun   = \$failrun" >> results.log
+echo "    #failtest  = \$failtest" >> results.log
+echo "    #failcomp  = \$failcomp" >> results.log
+echo "    #failbfbc  = \$failbfbc" >> results.log
+echo "    #failgen   = \$failgen" >> results.log
 
 echo ""
 echo "Descriptors:"
 echo " PASS - successful completion"
 echo " COPY - previously compiled code was copied for new test"
 echo " MISS - comparison data is missing"
-echo " PEND - run has been submitted to queue and is waiting or failed submission"
-echo " FAIL - test is still executing, did not complete, or completed and failed"
+echo " PEND - status is undertermined; test may still be queued, running, or timed out"
+echo " FAIL - test failed"
 echo ""
-echo "\$success of \$total tests PASSED"
-echo "\$failures of \$total tests FAILED"
-echo "\$pends of \$total tests PENDING"
+echo "\$chkcnt measured results of \$total total results"
+echo "\$success of \$chkcnt tests PASSED"
+echo "\$pends of \$chkcnt tests PENDING"
+echo "\$misses of \$chkcnt tests MISSING data"
+echo "\$failures of \$chkcnt tests FAILED"
+#echo "  \$failbuild of \$failures FAILED build"
+#echo "  \$failrun of \$failures FAILED run"
+#echo "  \$failtest of \$failures FAILED test"
+#echo "  \$failcomp of \$failures FAILED compare"
+#echo "  \$failbfbc of \$failures FAILED bfbcomp"
+#echo "  \$failgen of \$failures FAILED generate"
 exit \$failures
 EOF
 
@@ -1038,9 +1137,24 @@ setenv ICE_MACHINE_QSTAT ${ICE_MACHINE_QSTAT}
 EOF0
   endif
 
+cat >> ${tsdir}/report_codecov.csh << EOF
+source ${ICE_SCRIPTS}/machines/env.${machcomp} 
+
+if ( \${use_curl} == 1 ) then
+  bash -c "bash <(curl -s https://codecov.io/bash) -n '\${report_name}' -y ./codecov.yml "
+else
+  bash -c "bash <(wget -O - https://codecov.io/bash) -n '\${report_name}' -y ./codecov.yml "
+endif
+
+sleep 10
+rm -r -f ./*/codecov_output
+
+EOF
+
   # build and submit tests
   cd ${tsdir}
   setenv SUITE_BUILD ${suitebuild}
+  setenv SUITE_REUSEBUILD ${suitereuse}
   setenv SUITE_RUN ${suiterun}
   setenv SUITE_SUBMIT ${suitesubmit}
   ./suite.submit | tee suite.log
@@ -1049,6 +1163,11 @@ EOF0
     ./poll_queue.csh
     ./results.csh
     ./report_results.csh
+  endif
+  if ($codecov == 1) then
+    echo "Generating codecov reports"
+    ./poll_queue.csh
+    ./report_codecov.csh
   endif
   cd ${ICE_SANDBOX}
 

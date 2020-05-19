@@ -125,8 +125,8 @@
                               time, time_forc, year_init
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
-                                 n_aero, nblyr, n_zaero, n_algae, n_doc,   &
-                                 n_dic, n_don, n_fed, n_fep
+                                 n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
+                                 n_dic, n_don, n_fed, n_fep, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_arrays_column, only: oceanmixed_ice
 
@@ -134,14 +134,14 @@
           solve_zsal, skl_bgc, z_tracers
 
       logical (kind=log_kind) :: &
-          tr_iage, tr_FY, tr_lvl, tr_aero, tr_pond_cesm, &
+          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
           tr_pond_topo, tr_pond_lvl, tr_brine, &
           tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
           tr_bgc_Sil, tr_bgc_DMS, &
-          tr_bgc_chl,  tr_bgc_Am, &
+          tr_bgc_chl, tr_bgc_Am,  &
           tr_bgc_PON, tr_bgc_DON, &
-          tr_zaero,    tr_bgc_Fe, &
-          tr_bgc_hum
+          tr_zaero,   tr_bgc_Fe,  &
+          tr_bgc_hum, tr_fsd
 
       integer (kind=int_kind) :: &
           nbtrcr
@@ -171,14 +171,14 @@
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
-          tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+          tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
           tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
           tr_bgc_chl_out=tr_bgc_chl,  tr_bgc_Am_out=tr_bgc_Am, &
           tr_bgc_PON_out=tr_bgc_PON, tr_bgc_DON_out=tr_bgc_DON, &
           tr_zaero_out=tr_zaero,    tr_bgc_Fe_out=tr_bgc_Fe, &
-          tr_bgc_hum_out=tr_bgc_hum)
+          tr_bgc_hum_out=tr_bgc_hum, tr_fsd_out=tr_fsd)
       call icepack_query_parameters(solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, &
           z_tracers_out=z_tracers)
       call icepack_warnings_flush(nu_diag)
@@ -472,6 +472,21 @@
             write(nchar,'(i3.3)') k
             call define_rest_field(File,'qsno'//trim(nchar),dims)
          enddo
+
+         if (tr_fsd) then
+            do k=1,nfsd
+               write(nchar,'(i3.3)') k
+               call define_rest_field(File,'fsd'//trim(nchar),dims)
+            enddo
+         endif
+
+         if (tr_iso) then
+            do k=1,n_iso
+               write(nchar,'(i3.3)') k
+               call define_rest_field(File,'isosno'//nchar, dims)
+               call define_rest_field(File,'isoice'//nchar, dims)
+            enddo
+         endif
 
          if (tr_aero) then
             do k=1,n_aero

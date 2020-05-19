@@ -119,7 +119,7 @@ else if (${ICE_MACHINE} =~ cori*) then
 @ nthrds2 = ${nthrds} * 2
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-###SBATCH -A ${acct}
+#SBATCH -A ${acct}
 #SBATCH --qos ${queue}
 #SBATCH --time ${batchtime}
 #SBATCH --nodes ${nnodes}
@@ -196,7 +196,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
-else if (${ICE_MACHINE} =~ brooks*) then
+else if (${ICE_MACHINE} =~ daley* || ${ICE_MACHINE} =~ banting*) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -j oe

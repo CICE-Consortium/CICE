@@ -40,4 +40,5 @@ if (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial
 
 ### Specialty code
 setenv ICE_BLDDEBUG  false  # build debug flags
+setenv ICE_CODECOV   false  # build debug flags
 
