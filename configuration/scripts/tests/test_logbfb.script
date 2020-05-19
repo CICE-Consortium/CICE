@@ -4,11 +4,6 @@
 # This is identical to a smoke test, but triggers bfbcompare with log files instead of restarts
 # cice.run returns -1 if run did not complete successfully
 
-mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
-cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
-rm -f ${ICE_CASEDIR}/test_output.prev
-echo "RUN  ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
-
 ./cice.run
 set res="$status"
 

@@ -132,8 +132,8 @@ tracer.
 
 A number of optional tracers are available in the code, including ice
 age, first-year ice area, melt pond area and volume, brine height,
-aerosols, and level ice area and volume (from which ridged ice
-quantities are derived). Salinity, enthalpies, age, aerosols, level-ice
+aerosols, water isotopes, and level ice area and volume (from which ridged ice
+quantities are derived). Salinity, enthalpies, age, aerosols, isotopes, level-ice
 volume, brine height and most melt pond quantities are volume-weighted
 tracers, while first-year area, pond area, and level-ice area are area-weighted 
 tracers. Biogeochemistry tracers in the skeletal layer are area-weighted,
