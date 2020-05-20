@@ -1,5 +1,5 @@
 #==============================================================================
-# Makefile macros for generic test machine, intel compiler
+# Makefile macros for wcoss phase3 machine, intel compiler
 #==============================================================================
 
 CPP        := fpp
