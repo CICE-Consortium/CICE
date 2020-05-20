@@ -165,14 +165,6 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ theia*) then
-cat >> ${jobfile} << EOFR
-#mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
-srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
-#./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-
-#=======
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFR
 srun -n \${SLURM_NTASKS} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
@@ -180,13 +172,6 @@ EOFR
 
 #=======
 else if (${ICE_MACHINE} =~ high_Sierra*) then
-cat >> ${jobfile} << EOFR
-mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
-#./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-
-#=======
-else if (${ICE_MACHINE} =~ phase2*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 #./cice >&! \$ICE_RUNLOG_FILE

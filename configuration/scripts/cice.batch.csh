@@ -204,19 +204,6 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
-else if (${ICE_MACHINE} =~ theia*) then
-cat >> ${jobfile} << EOFB
-#SBATCH -J ${ICE_CASENAME}
-#SBATCH -t ${batchtime}
-#SBATCH -q batch
-#SBATCH -A ${acct}
-#SBATCH -N ${nnodes}
-#SBATCH -e slurm%j.err
-#SBATCH -o slurm%j.out
-###SBATCH --mail-type FAIL
-###SBATCH --mail-user=xxx@noaa.gov
-EOFB
-
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
@@ -231,11 +218,6 @@ cat >> ${jobfile} << EOFB
 #SBATCH -o slurm%j.out
 ##SBATCH --mail-type FAIL
 ##SBATCH --mail-user=xxx@noaa.gov
-EOFB
-
-else if (${ICE_MACHINE} =~ phase2*) then
-cat >> ${jobfile} << EOFB
-# nothing to do
 EOFB
 
 else if (${ICE_MACHINE} =~ phase3*) then
