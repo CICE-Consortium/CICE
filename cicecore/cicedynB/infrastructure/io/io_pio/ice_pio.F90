@@ -41,7 +41,7 @@
 !    Initialize the io subsystem
 !    2009-Feb-17 - J. Edwards - initial version
 
-   subroutine ice_pio_init(mode, filename, File, clobber, cdf64)
+   subroutine ice_pio_init(mode, filename, File, clobber, cdf64, iotype)
 
    use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype
      
@@ -51,6 +51,7 @@
    type(file_desc_t)    , intent(inout), optional :: File
    logical              , intent(in),    optional :: clobber
    logical              , intent(in),    optional :: cdf64
+   integer              , intent(in),    optional :: iotype
 
    ! local variables
 

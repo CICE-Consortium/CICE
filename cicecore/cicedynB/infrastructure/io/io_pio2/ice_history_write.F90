@@ -175,9 +175,9 @@
       call ice_pio_initdecomp(ndim3=nzblyr,    iodesc=iodesc3db)
       call ice_pio_initdecomp(ndim3=nzalyr,    iodesc=iodesc3da)
       call ice_pio_initdecomp(ndim3=nfsd_hist, iodesc=iodesc3df)
-      call ice_pio_initdecomp(ndim3=nverts, inner_dim=.true., iodesc=iodesc3dv)
-      call ice_pio_initdecomp(ndim3=nzilyr,  ndim4=ncat_hist, iodesc=iodesc4di)
-      call ice_pio_initdecomp(ndim3=nzslyr,  ndim4=ncat_hist, iodesc=iodesc4ds)
+      call ice_pio_initdecomp(ndim3=nverts,    iodesc=iodesc3dv, inner_dim=.true.)
+      call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di)
+      call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds)
       call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df)
 
       ltime2 = time/int(secday)
@@ -682,7 +682,7 @@
         do n = n3Dacum + 1, n3Dfcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -817,7 +817,7 @@
         do n = n4Dscum + 1, n4Dfcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             pio_real, dimidcz, varid)
+                             lprecision, dimidcz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
