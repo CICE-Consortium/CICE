@@ -274,6 +274,7 @@ either Celsius or Kelvin units).
    "histfreq_n", ":math:`\bullet` integer output frequency in histfreq units", ""
    "history_dir", ":math:`\bullet` path to history output files", ""
    "history_file", ":math:`\bullet` history output file prefix", ""
+   "history_precision", ":math:`\bullet` history output precision: 4 or 8 byte", "4"
    "hm", "land/boundary mask, thickness (T-cell)", ""
    "hmix", "ocean mixed layer depth", "20. m"
    "hour", "hour of the year", ""

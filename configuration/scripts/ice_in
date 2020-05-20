@@ -37,6 +37,7 @@
     hist_avg       = .true.
     history_dir    = './history/'
     history_file   = 'iceh'
+    history_precision = 4
     write_ic       = .true.
     incond_dir     = './history/'
     incond_file    = 'iceh_ic'

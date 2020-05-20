@@ -33,6 +33,8 @@
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename
       
+      integer (kind=int_kind), public :: history_precision
+
       logical (kind=log_kind), public :: &
          hist_avg  ! if true, write averaged data instead of snapshots
 

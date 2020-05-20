@@ -807,6 +807,9 @@ Additionally, a new history output variable, ``f_CMIP``, has been added. When ``
 is added to the **icefields\_nml** section of **ice\_in** then all SIMIP variables
 will be turned on for output at the frequency specified by ``f_CMIP``. 
 
+It may also be helpful for debugging to increase the precision of the history file
+output from 4 bytes to 8 bytes. This is changed through the ``history_precision``
+namelist flag.
 
 ****************
 Diagnostic files
