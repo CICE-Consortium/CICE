@@ -115,8 +115,6 @@ if !(-d ${ICE_RUNDIR}) mkdir -p ${ICE_RUNDIR}
 if !(-d ${ICE_OBJDIR}) mkdir -p ${ICE_OBJDIR}
 cd ${ICE_OBJDIR}
 
-setenv ICE_CPPDEFS " "
-
 if (${ICE_IOTYPE} == 'netcdf') then
   set IODIR = io_netcdf
   setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
