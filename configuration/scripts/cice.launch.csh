@@ -167,7 +167,13 @@ endif
 #=======
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFR
-srun -n \${SLURM_NTASKS} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
+#=======
+else if (${ICE_MACHINE} =~ orion*) then
+cat >> ${jobfile} << EOFR
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======

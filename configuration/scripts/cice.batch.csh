@@ -220,6 +220,22 @@ cat >> ${jobfile} << EOFB
 ##SBATCH --mail-user=xxx@noaa.gov
 EOFB
 
+else if (${ICE_MACHINE} =~ orion*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH --partition=orion
+#SBATCH --qos=${queue}
+#SBATCH -A ${acct}
+#SBATCH --time=${batchtime}
+#SBATCH --nodes=${nnodes}
+#SBATCH --ntasks-per-node=${taskpernodelimit}
+#SBATCH --cpus-per-task=${nthrds}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+##SBATCH --mail-type FAIL
+##SBATCH --mail-user=xxx@noaa.gov
+EOFB
+
 else if (${ICE_MACHINE} =~ phase3*) then
 if ( ${nnodes} > 15) then
   setenv p3tile 16
