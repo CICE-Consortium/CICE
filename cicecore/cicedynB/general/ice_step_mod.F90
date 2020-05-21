@@ -735,7 +735,7 @@
       subroutine step_dyn_wave (dt)
 
       use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
-          d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq
+          d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq, floe_binwidth
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: ncat, nfsd, nfreq
@@ -788,6 +788,7 @@
                                             vice           (i,j,    iblk), &
                                             aicen          (i,j,:,  iblk), &
                                             floe_rad_l(:), floe_rad_c(:),  &
+                                            floe_binwidth(:)            ,  &
                                             wave_spectrum  (i,j,:,  iblk), &
                                             wavefreq(:),   dwavefreq(:),   &
                                             trcrn          (i,j,:,:,iblk), &

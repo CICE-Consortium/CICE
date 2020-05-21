@@ -108,15 +108,11 @@
          sublim_data, &
           frain_data
 
-<<<<<<< HEAD
       real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: &
           wave_spectrum_data ! field values at 2 temporal data points
  
       real (kind=dbl_kind), & 
            dimension(:,:,:,:,:), allocatable :: &
-=======
-      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable, public :: &
->>>>>>> master
         topmelt_data, &
         botmelt_data
 
@@ -5303,6 +5299,8 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      real(kind=dbl_kind), dimension(nfreq) :: &
+         wave_spectrum_profile  ! wave spectrum
 
       character(len=64) :: fieldname !netcdf field name
       character(char_len_long) :: spec_file 
@@ -5315,14 +5313,16 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+         call icepack_init_wave(nfreq,                 &
+                                wave_spectrum_profile, &
+                                wavefreq, dwavefreq)
 
-      wave_spec_dir = '/glade/u/home/lettier/CICE6/'
+
+      wave_spec_dir = '/glade/work/lettier/WWATCH/forcing_data/'
       spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
       wave_spectrum_data = c0
       wave_spectrum = c0
       yr = fyear_init + mod(nyr-1,ycycle)  ! current year
-      yr = 2009 ! temporary
-      print *, 'warning, year in waves = ',yr 
     !-------------------------------------------------------------------
     ! 6-hourly data
     ! 
@@ -5381,7 +5381,6 @@
       call interpolate_wavespec_data (wave_spectrum_data, wave_spectrum)
       !wave_spectrum = wave_spectrum_data(:,:,:,1,:)
 
-
       !WHERE (wave_spectrum.gt.1e+20) wave_spectrum = c0
 
       ! Save record number
@@ -5389,7 +5388,7 @@
 
          if (dbug) then
            if (my_task == master_task) write (nu_diag,*) &
-              'wave_spec_data'
+              'wave_spec_data ',spec_file
            !vmin = global_minval(wave_spectrum,distrb_info,tmask)
            !vmax = global_maxval(wave_spectrum,distrb_info,tmask)
            !if (my_task.eq.master_task) & 
