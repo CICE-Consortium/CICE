@@ -848,7 +848,7 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: isotopes activated but'
             write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
-            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+            write(nu_diag,*) subname//' ERROR:   if tr_iso, n_iso must be > 0.'
          endif
          abort_flag = 31
       endif
@@ -857,9 +857,17 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: aerosols activated but'
             write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
-            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+            write(nu_diag,*) subname//' ERROR:   if tr_aero, n_aero must be > 0.'
          endif
          abort_flag = 9
+      endif
+
+      if (nfsd < 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: nfsd < 1'
+            write(nu_diag,*) subname//' ERROR:   not allowed due to history implementation.'
+         endif
+         abort_flag = 32
       endif
 
       if (trim(shortwave) /= 'dEdd' .and. tr_aero) then

@@ -701,7 +701,7 @@ Model output
 History files
 *************
 
-CICE provides restart data in binary unformatted or netCDF formats via
+CICE provides history data in binary unformatted or netCDF formats via
 separate implementations of binary, netcdf, and pio source code under the 
 directory **infrastructure/io**.  ``ICE_IOTYPE`` defined in cice.settings
 specifies the IO type and defines which source code directory is compiled.
