@@ -51,6 +51,9 @@
       logical (kind=log_kind), dimension (:), allocatable, public ::     &
          has_dependents      ! true if a tracer has dependent tracers
 
+      logical (kind=log_kind), public ::     &
+         conserv_check       ! if true, check conservation
+
       integer (kind=int_kind), parameter ::                      &
          integral_order = 3   ! polynomial order of quadrature integrals
                               ! linear=1, quadratic=2, cubic=3
@@ -290,7 +293,6 @@
       ! variables related to optional bug checks
 
       logical (kind=log_kind), parameter ::     &
-         l_conservation_check = .false. ,&! if true, check conservation
          l_monotonicity_check = .false.   ! if true, check monotonicity
 
       real (kind=dbl_kind), dimension(0:ncat) ::     &
@@ -398,7 +400,7 @@
 !---! Optional conservation and monotonicity checks.
 !---!-------------------------------------------------------------------
 
-      if (l_conservation_check) then
+      if (conserv_check) then
 
     !-------------------------------------------------------------------
     ! Compute initial values of globally conserved quantities.
@@ -436,7 +438,7 @@
             enddo               ! nt
          enddo                  ! n
 
-      endif                     ! l_conservation_check
+      endif                     ! conserv_check
       
       if (l_monotonicity_check) then
 
@@ -565,7 +567,7 @@
     ! Check global conservation of area and area*tracers.  (Optional)
     !-------------------------------------------------------------------
 
-      if (l_conservation_check) then
+      if (conserv_check) then
 
          do n = 0, ncat
             asum_final(n) = global_sum(aim(:,:,n,:),     distrb_info,      &
@@ -626,7 +628,7 @@
 
          endif                  ! my_task = master_task
 
-      endif                     ! l_conservation_check
+      endif                     ! conserv_check
 
     !-------------------------------------------------------------------
     ! Check tracer monotonicity.  (Optional)
