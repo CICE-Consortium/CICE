@@ -31,9 +31,9 @@
            f_dafsd_newi = 'm', f_dafsd_latg  = 'm', &
            f_dafsd_latm = 'm', f_dafsd_wave  = 'm', &
            f_dafsd_weld = 'm', f_wave_sig_ht = 'm', &
-           f_aice_ww    = 'x', f_diam_ww     = 'x', &
-           f_hice_ww    = 'x', f_fsdrad      = 'x', &
-           f_fsdperim   = 'x'
+           f_aice_ww    = 'm', f_diam_ww     = 'm', &
+           f_hice_ww    = 'm', f_fsdrad      = 'm', &
+           f_fsdperim   = 'm', f_frachist    = 'm'
 
       !---------------------------------------------------------------
       ! namelist variables
@@ -46,7 +46,7 @@
            f_dafsd_weld, f_wave_sig_ht, &
            f_aice_ww   , f_diam_ww    , &
            f_hice_ww   , f_fsdrad     , &
-           f_fsdperim
+           f_fsdperim,   f_frachist
 
       !---------------------------------------------------------------
       ! field indices
@@ -59,7 +59,7 @@
            n_dafsd_weld, n_wave_sig_ht, &
            n_aice_ww   , n_diam_ww    , &
            n_hice_ww   , n_fsdrad     , &
-           n_fsdperim
+           n_fsdperim  , n_frachist
 
 !=======================================================================
 
@@ -127,6 +127,7 @@
          f_wave_sig_ht = 'x'
          f_fsdrad      = 'x'
          f_fsdperim    = 'x'
+         f_frachist    = 'x'
       endif
       if ((.not. tr_fsd) .or. (.not. wave_spec)) then
          f_aice_ww  = 'x'
@@ -147,6 +148,8 @@
       call broadcast_scalar (f_hice_ww, master_task)
       call broadcast_scalar (f_fsdrad, master_task)
       call broadcast_scalar (f_fsdperim, master_task)
+      call broadcast_scalar (f_frachist, master_task)
+
 
       ! 2D variables
 
@@ -237,6 +240,10 @@
             call define_hist_field(n_dafsd_weld,"dafsd_weld","1",tstr3Df, tcstr, &
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
+          if (f_frachist(1:1) /= 'x') &
+            call define_hist_field(n_frachist,"frachist", "1", tstr3Df, tcstr, &
+               "wave fracture histogram",                 &
+               "Avg over freq period ", c1, c0, ns, f_frachist)
          endif ! if (histfreq(ns) /= 'x')
       enddo ! ns
 
@@ -294,7 +301,7 @@
          ncat_hist, accum_hist_field, n3Dacum, n4Dscum
       use ice_state, only: trcrn, aicen_init, vicen, aice_init
       use ice_arrays_column, only: wave_sig_ht, floe_rad_c, floe_binwidth, &
-         d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
+         d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld, frachist
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
@@ -468,6 +475,9 @@
       if (f_dafsd_weld(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
+      if (f_frachist(1:1)/= 'x') &
+             call accum_hist_field(n_frachist-n3Dacum, iblk, nfsd_hist, &
+                                    frachist(:,:,1:nfsd_hist,iblk), a3Df)
       endif ! a3Df allocated
 
       ! 4D floe size, thickness category fields

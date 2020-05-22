@@ -735,7 +735,7 @@
       subroutine step_dyn_wave (dt)
 
       use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
-          d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq, floe_binwidth
+          d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq, floe_binwidth, frachist
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: ncat, nfsd, nfreq
@@ -792,7 +792,8 @@
                                             wave_spectrum  (i,j,:,  iblk), &
                                             wavefreq(:),   dwavefreq(:),   &
                                             trcrn          (i,j,:,:,iblk), &
-                                            d_afsd_wave    (i,j,:,  iblk))
+                                            d_afsd_wave    (i,j,:,  iblk), &
+                                            frachist       (i,j,:,iblk) )
          end do ! i
          end do ! j
       end do    ! iblk
