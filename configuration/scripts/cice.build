@@ -120,8 +120,8 @@ setenv ICE_CPPDEFS " "
 if (${ICE_IOTYPE} == 'netcdf') then
   set IODIR = io_netcdf
   setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
-else if (${ICE_IOTYPE} == 'pio') then
-  set IODIR = io_pio
+else if (${ICE_IOTYPE} =~ pio*) then
+  set IODIR = io_pio2
   setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
 else
   set IODIR = io_binary

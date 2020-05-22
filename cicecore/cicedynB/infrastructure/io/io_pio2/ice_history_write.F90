@@ -78,6 +78,7 @@
       real (kind= dbl_kind) :: ltime2
       character (char_len) :: title
       character (char_len_long) :: ncfile(max_nstrm)
+      integer (kind=int_kind) :: iotype
 
       integer (kind=int_kind) :: iyear, imonth, iday
       integer (kind=int_kind) :: icategory,ind,i_aice,boundid
@@ -162,9 +163,11 @@
 
       ! create file
 
+      iotype = PIO_IOTYPE_NETCDF
+      if (history_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
       File%fh=-1
       call ice_pio_init(mode='write', filename=trim(filename), File=File, &
-        clobber=.true., cdf64=lcdf64)
+        clobber=.true., cdf64=lcdf64, iotype=iotype)
 
       call ice_pio_initdecomp(iodesc=iodesc2d)
       call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc)
@@ -172,10 +175,10 @@
       call ice_pio_initdecomp(ndim3=nzblyr,    iodesc=iodesc3db)
       call ice_pio_initdecomp(ndim3=nzalyr,    iodesc=iodesc3da)
       call ice_pio_initdecomp(ndim3=nfsd_hist, iodesc=iodesc3df)
-      call ice_pio_initdecomp(ndim3=nverts, inner_dim=.true., iodesc=iodesc3dv)
-      call ice_pio_initdecomp(ndim3=nzilyr,  ndim4=ncat_hist, iodesc=iodesc4di)
-      call ice_pio_initdecomp(ndim3=nzslyr,  ndim4=ncat_hist, iodesc=iodesc4ds)
-      call ice_pio_initdecomp(ndim3=nzslyr,  ndim4=nfsd_hist, iodesc=iodesc4df)
+      call ice_pio_initdecomp(ndim3=nverts,    iodesc=iodesc3dv, inner_dim=.true.)
+      call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di)
+      call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds)
+      call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df)
 
       ltime2 = time/int(secday)
       ltime  = real(time/int(secday),kind=real_kind)
@@ -679,7 +682,7 @@
         do n = n3Dacum + 1, n3Dfcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -814,7 +817,7 @@
         do n = n4Dscum + 1, n4Dfcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             pio_real, dimidcz, varid)
+                             lprecision, dimidcz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -886,7 +889,11 @@
                 a,'-',a,'-',a,' at ',a,':',a)
         status = pio_put_att(File,pio_global,'history',trim(start_time))
 
-        status = pio_put_att(File,pio_global,'io_flavor','io_pio')
+        if (history_format == 'pio_pnetcdf') then
+           status = pio_put_att(File,pio_global,'io_flavor','io_pio pnetcdf')
+        else
+           status = pio_put_att(File,pio_global,'io_flavor','io_pio netcdf')
+        endif
 
       !-----------------------------------------------------------------
       ! end define mode
@@ -1055,7 +1062,11 @@
             if (status /= pio_noerr) call abort_ice(subname// &
                'ERROR getting varid for '//avail_hist_fields(n)%vname)
             workr2(:,:,:) = a2D(:,:,n,1:nblocks)
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc2d,&
                                   workr2, status, fillval=spval_dbl)
          endif
@@ -1076,7 +1087,11 @@
                workr3(:,:,j,i) = a3Dc(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3dc,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1096,7 +1111,11 @@
                workr3(:,:,j,i) = a3Dz(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3di,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1116,7 +1135,11 @@
                workr3(:,:,j,i) = a3Db(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3db,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1136,7 +1159,11 @@
                workr3(:,:,j,i) = a3Da(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3da,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1156,7 +1183,11 @@
                workr3(:,:,j,i) = a3Df(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3df,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1178,7 +1209,11 @@
             enddo ! k
             enddo ! i
             enddo ! j
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc4di,&
                                   workr4, status, fillval=spval_dbl)
          endif
@@ -1200,11 +1235,15 @@
             enddo ! k
             enddo ! i
             enddo ! j
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc4ds,&
                                   workr4, status, fillval=spval_dbl)
          endif
-      enddo ! num_avail_hist_fields_4Di
+      enddo ! num_avail_hist_fields_4Ds
       deallocate(workr4)
 
       allocate(workr4(nx_block,ny_block,nblocks,ncat_hist,nfsd_hist))
@@ -1218,15 +1257,19 @@
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nfsd_hist
-               workr4(:,:,j,i,k) = a4Ds(:,:,k,i,nn,j)
+               workr4(:,:,j,i,k) = a4Df(:,:,k,i,nn,j)
             enddo ! k
             enddo ! i
             enddo ! j
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc4df,&
                                   workr4, status, fillval=spval_dbl)
          endif
-      enddo ! num_avail_hist_fields_4Di
+      enddo ! num_avail_hist_fields_4Df
       deallocate(workr4)
 
 !     similarly for num_avail_hist_fields_4Db (define workr4b, iodesc4db)

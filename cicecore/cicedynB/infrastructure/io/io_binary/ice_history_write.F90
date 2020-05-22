@@ -74,8 +74,14 @@
 
       diag = .false.
 
+      ! single precision
       atype = 'rda4'
-      if (history_precision == 8) atype = 'rda8'
+      nbits = 32
+      if (history_precision == 8) then
+         ! double precision
+         atype = 'rda8'
+         nbits = 64
+      endif
 
       if (my_task == master_task) then
 
@@ -92,7 +98,6 @@
         !-----------------------------------------------------------------
         ! create history files
         !-----------------------------------------------------------------
-        nbits = 32 ! single precision
         call ice_open(nu_history, ncfile(ns), nbits) ! direct access
         open(nu_hdr,file=hdrfile,form='formatted',status='unknown') ! ascii
 
@@ -322,7 +327,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
 
           do nn = 1, ncat_hist
-          do k = 1, nzilyr
+          do k = 1, nzslyr
           nrec = nrec + 1
           if (my_task == master_task) then
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
@@ -338,7 +343,7 @@
           endif
 
           call ice_write(nu_history, nrec, a4Ds(:,:,k,nn,n-n4Dicum,:), atype, diag)
-          enddo ! nzilyr
+          enddo ! nzslyr
           enddo ! ncat_hist
 
         endif

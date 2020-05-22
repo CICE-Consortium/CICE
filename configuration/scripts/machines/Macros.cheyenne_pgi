@@ -1,24 +1,25 @@
 #==============================================================================
-# Makefile macros for NCAR cheyenne, intel compiler
+# Makefile macros for NCAR cheyenne, gnu compiler
 #==============================================================================
 
-CPP        := fpp
-CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 -fp-model precise   -xHost
+CPP        := pgcc -Mcpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -Kieee
 
-FIXEDFLAGS := -132
-FREEFLAGS  := -FR
-FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+FIXEDFLAGS := -Mextend
+FREEFLAGS  := -Mfree
+FFLAGS     := -Kieee -Mbyteswapio -traceback 
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+#  FFLAGS     += -O0 -g -Mbounds -Mchkptr
+  FFLAGS     += -O0 -g -Mchkptr
 else
-  FFLAGS     += -O2
+  FFLAGS     += -O -g
 endif
 
-SCC   := icc 
-SFC   := ifort
+SCC   := pgcc
+SFC   := pgf90
 MPICC := mpicc
 MPIFC := mpif90
 
@@ -48,9 +49,9 @@ LIB_MPI := $(IMPILIBDIR)
 SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
 ifeq ($(ICE_THREADED), true) 
-   LDFLAGS += -qopenmp 
-   CFLAGS += -qopenmp 
-   FFLAGS += -qopenmp 
+   LDFLAGS += -mp 
+   CFLAGS += -mp 
+   FFLAGS += -mp 
 endif
 
 ifeq ($(ICE_IOTYPE), pio1)

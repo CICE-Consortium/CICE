@@ -77,7 +77,7 @@
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name, &
-                             history_precision
+                             history_precision, history_format
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
@@ -150,7 +150,7 @@
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
-        diagfreq,       diag_type,      diag_file,                      &
+        diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
         dbug,           histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
@@ -250,6 +250,7 @@
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency 
       hist_avg = .true.      ! if true, write time-averages (not snapshots)
+      history_format = 'default' ! history file format
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
       history_precision = 4  ! precision of history files
@@ -264,9 +265,9 @@
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
-      use_restart_time = .true.     ! if true, use time info written in file
+      use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
-      restart_format = 'nc'  ! file format ('bin'=binary or 'nc'=netcdf or 'pio')
+      restart_format = 'default'  ! restart file format
       lcdf64       = .false. ! 64 bit offset for netCDF
       ice_ic       = 'default'      ! latitude and sst-dependent
       grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
@@ -278,7 +279,7 @@
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0          ! number of ice thickness categories
-      nfsd  = 0          ! number of floe size categories (1 = default)
+      nfsd  = 1          ! number of floe size categories (1 = default)
       nilyr = 0          ! number of vertical ice layers
       nslyr = 0          ! number of vertical snow layers
       nblyr = 0          ! number of bio layers
@@ -539,6 +540,7 @@
       call broadcast_scalar(history_dir,        master_task)
       call broadcast_scalar(history_file,       master_task)
       call broadcast_scalar(history_precision,  master_task)
+      call broadcast_scalar(history_format,     master_task)
       call broadcast_scalar(write_ic,           master_task)
       call broadcast_scalar(cpl_bgc,            master_task)
       call broadcast_scalar(incond_dir,         master_task)
@@ -846,7 +848,7 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: isotopes activated but'
             write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
-            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+            write(nu_diag,*) subname//' ERROR:   if tr_iso, n_iso must be > 0.'
          endif
          abort_flag = 31
       endif
@@ -855,9 +857,17 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: aerosols activated but'
             write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
-            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+            write(nu_diag,*) subname//' ERROR:   if tr_aero, n_aero must be > 0.'
          endif
          abort_flag = 9
+      endif
+
+      if (nfsd < 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: nfsd < 1'
+            write(nu_diag,*) subname//' ERROR:   not allowed due to history implementation.'
+         endif
+         abort_flag = 32
       endif
 
       if (trim(shortwave) /= 'dEdd' .and. tr_aero) then
@@ -1002,6 +1012,8 @@
          write(nu_diag,*)    ' history_file              = ', &
                                trim(history_file)
          write(nu_diag,1020) ' history_precision         = ', history_precision
+         write(nu_diag,*)    ' history_format            = ', &
+                               trim(history_format)
          if (write_ic) then
             write(nu_diag,*) 'Initial condition will be written in ', &
                                trim(incond_dir)
@@ -1165,8 +1177,8 @@
                                oceanmixed_ice
          write(nu_diag,1010) ' wave_spec                 = ', wave_spec
          if (wave_spec) then
-            write(nu_diag,*)    ' wave_spec_type            = ', wave_spec_type
-            write(nu_diag,*)    ' wave_spec_file            = ', wave_spec_file
+            write(nu_diag,*) ' wave_spec_type            = ', trim(wave_spec_type)
+            write(nu_diag,*) ' wave_spec_file            = ', trim(wave_spec_file)
          endif
          write(nu_diag,1020) ' nfreq                     = ', nfreq
          write(nu_diag,*)    ' tfrz_option               = ', &

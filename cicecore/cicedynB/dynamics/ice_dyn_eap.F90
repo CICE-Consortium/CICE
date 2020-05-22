@@ -2144,7 +2144,6 @@
       use ice_domain, only: nblocks, halo_info
       use ice_grid, only: grid_type
       use ice_restart, only: read_restart_field
-      use ice_restart_shared, only: restart_format
 
       ! local variables
 
@@ -2183,7 +2182,7 @@
       call read_restart_field(nu_restart_eap,0,a12_4,'ruf8', &
            'a12_4',1,diag,field_loc_center,field_type_scalar) ! a12_4
 
-      if (trim(grid_type) == 'tripole' .and. trim(restart_format) == 'pio') then
+      if (trim(grid_type) == 'tripole') then
 
       call ice_HaloUpdate_stress(a11_1, a11_3, halo_info, &
                                  field_loc_center,  field_type_scalar)
