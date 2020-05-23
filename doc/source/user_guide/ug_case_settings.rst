@@ -124,6 +124,7 @@ Table of namelist options
    "\*","``diag_type``", "``stdout``", "write diagnostic output to stdout", ""
    "","", "``file``", "write diagnostic output to file", ""
    "","``diag_file``", "filename", "diagnostic output file (script may reset)", ""
+   "","``conserv_check``", "true/false", "check conservation in ridging", "``.false.``"
    "","``print_global``", "true/false", "print diagnostic data, global sums", "``.false.``"
    "","``print_points``", "true/false", "print diagnostic data for two grid points", "``.false.``"
    "","``latpnt``", "real", "latitude of (2) diagnostic points", "" 
