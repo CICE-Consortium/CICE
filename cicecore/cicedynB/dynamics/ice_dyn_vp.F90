@@ -931,6 +931,8 @@
                                 fpfunc(:))
          elseif (fpfunc_andacc == 2) then
             ! g_2(x) = x - A(x)x + b(x) = x - F(x)
+            call abort_ice(error_message=subname // " Fixed point function g_2(x) not yet implemented (fpfunc_andacc = 2)" , &
+               file=__FILE__, line=__LINE__)
          endif
 
          ! Compute fixed point residual
