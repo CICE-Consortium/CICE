@@ -146,7 +146,7 @@ conflicts in module dependencies.
     due to gathering data from processors.
 
 `conserv\_check` = true (**ice\_in**)
-    Diagnoses conservation in ice ridging.
+    Diagnoses conservation in various algorithms.
 
 *global\_minval, global\_maxval, global\_sum* (**ice\_global\_reductions.F90**)
     Compute and print the minimum and maximum values for an individual

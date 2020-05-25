@@ -106,7 +106,7 @@ either Celsius or Kelvin units).
    "coldsnow", "value for constant albedo parameterization", "0.81"
    "conduct", ":math:`\bullet` conductivity parameterization", ""
    "congel", "basal ice growth", "m"
-   "conserv_check", "if true, check conservation when ridging", ""
+   "conserv_check", "if true, check conservation", ""
    "cosw", "cosine of the turning angle in water", "1."
    "coszen", "cosine of the zenith angle", ""
    "Cp", "proportionality constant for potential energy", "kg/m\ :math:`^2`/s\ :math:`^2`"
