@@ -147,7 +147,13 @@ Some hints:
 - When the run scripts are submitted, the current **ice_in**, **cice.settings**, and 
 **env.[machine]** files are copied from the case directory into the run directory.  Users 
 should generally not edit files in the run directory as these are overwritten when following
-the standard workflow.
+the standard workflow.  An alias like the 
+following can be established to quickly switch between case and run directories::
+
+    alias  cdrun 'cd `\grep "setenv ICE_RUNDIR"  cice.settings | awk "{print "\$"NF}"`'
+    alias cdcase 'cd `\grep "setenv ICE_CASEDIR" cice.settings | awk "{print "\$"NF}"`'
+
+Or the **cice.settings** can be sourced to establish the case values in the login shell.
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
 - To change compiler options, manually edit the Macros file. To add user defined preprocessor macros, modify ``ICE_CPPDEFS`` in **cice.settings** using the syntax ``-DCICE_MACRO``.
 - To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.  It is recommended that the ``ICE_CLEANBUILD`` be set to true if there are any questions about whether the build is proceeding properly.
