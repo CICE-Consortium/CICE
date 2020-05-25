@@ -340,9 +340,9 @@
       im_pgmres = 5          ! size of pgmres Krylov subspace
       maxits_fgmres = 50     ! max nb of iteration for fgmres
       maxits_pgmres = 5      ! max nb of iteration for pgmres
-      monitor_nonlin = .false. ! print nonlinear solver info
-      monitor_fgmres = 1     ! print fgmres info (0: nothing printed, 1: 1st ite only, 2: all iterations)
-      monitor_pgmres = 1     ! print pgmres info (0: nothing printed, 1: all iterations)
+      monitor_nonlin = .false. ! print nonlinear residual norm
+      monitor_fgmres = .false. ! print fgmres residual norm
+      monitor_pgmres = .false. ! print pgmres residual norm
       ortho_type = 'mgs'     ! orthogonalization procedure 'cgs' or 'mgs'
       reltol_nonlin = 1e-8_dbl_kind ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
       reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
@@ -1584,8 +1584,8 @@
             write(nu_diag,1020) ' maxits_fgmres             = ', maxits_fgmres
             write(nu_diag,1020) ' maxits_pgmres             = ', maxits_pgmres
             write(nu_diag,1010) ' monitor_nonlin            = ', monitor_nonlin
-            write(nu_diag,1020) ' monitor_fgmres            = ', monitor_fgmres
-            write(nu_diag,1020) ' monitor_pgmres            = ', monitor_pgmres
+            write(nu_diag,1010) ' monitor_fgmres            = ', monitor_fgmres
+            write(nu_diag,1010) ' monitor_pgmres            = ', monitor_pgmres
             write(nu_diag,1030) ' ortho_type                = ', ortho_type
             write(nu_diag,1008) ' reltol_nonlin             = ', reltol_nonlin
             write(nu_diag,1008) ' reltol_fgmres             = ', reltol_fgmres

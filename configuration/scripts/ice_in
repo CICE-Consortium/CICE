@@ -146,8 +146,8 @@
     maxits_fgmres   = 1
     maxits_pgmres   = 1
     monitor_nonlin  = .false.
-    monitor_fgmres  = 1
-    monitor_pgmres  = 1
+    monitor_fgmres  = .false.
+    monitor_pgmres  = .false.
     ortho_type      = 'mgs'
     reltol_nonlin   = 1e-8
     reltol_fgmres   = 1e-2

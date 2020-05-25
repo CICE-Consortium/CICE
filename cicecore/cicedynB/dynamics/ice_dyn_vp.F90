@@ -45,14 +45,14 @@
          im_pgmres      , & ! size of pgmres Krylov subspace
          maxits_fgmres  , & ! max nb of iteration for fgmres
          maxits_pgmres  , & ! max nb of iteration for pgmres
-         monitor_fgmres , & ! print fgmres residual norm
-         monitor_pgmres , & ! print pgmres residual norm
          fpfunc_andacc  , & ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
          im_andacc      , & ! size of Anderson minimization matrix (number of saved previous residuals)
          start_andacc       ! acceleration delay factor (acceleration starts at this iteration)
 
       logical (kind=log_kind), public :: &
          monitor_nonlin , & ! print nonlinear residual norm
+         monitor_fgmres , & ! print fgmres residual norm
+         monitor_pgmres , & ! print pgmres residual norm
          use_mean_vrel      ! use mean of previous 2 iterates to compute vrel
 
       real (kind=dbl_kind), public :: &
