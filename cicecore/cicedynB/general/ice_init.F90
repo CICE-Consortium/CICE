@@ -1084,6 +1084,36 @@
          endif
       endif
 
+      ! Implicit solver input validation
+      if (.not. (trim(algo_nonlin) == 'picard' .or. trim(algo_nonlin) == 'anderson')) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown algo_nonlin: '//algo_nonlin
+            write(nu_diag,*) subname//' ERROR:   allowed values: ''picard'', ''anderson'''
+         endif
+         abort_list = trim(abort_list)//":60"
+      endif
+      
+      if (trim(algo_nonlin) == 'picard') then
+         ! Picard solver is implemented in the Anderson solver; reset number of saved residuals to zero
+         im_andacc = 0
+      endif
+      
+      if (.not. (trim(precond) == 'ident' .or. trim(precond) == 'diag' .or. trim(precond) == 'pgmres')) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown precond: '//precond
+            write(nu_diag,*) subname//' ERROR:   allowed values: ''ident'', ''diag'', ''pgmres'''
+         endif
+         abort_list = trim(abort_list)//":61"
+      endif
+      
+      if (.not. (trim(ortho_type) == 'cgs' .or. trim(ortho_type) == 'mgs')) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown ortho_type: '//ortho_type
+            write(nu_diag,*) subname//' ERROR:   allowed values: ''cgs'', ''mgs'''
+         endif
+         abort_list = trim(abort_list)//":62"
+      endif
+
       ice_IOUnitsMinUnit = numin
       ice_IOUnitsMaxUnit = numax
 

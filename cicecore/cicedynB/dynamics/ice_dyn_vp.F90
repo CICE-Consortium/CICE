@@ -67,7 +67,7 @@
          algo_nonlin    , & ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
          ortho_type         ! type of orthogonalization for FGMRES ('cgs' or 'mgs')
 
-      ! mmodule variables
+      ! module variables
 
       integer (kind=int_kind), allocatable :: &
          icellt(:)    , & ! no. of cells where icetmask = 1
@@ -772,11 +772,6 @@
       
       ! Initialization
       res_num = 0
-      
-      ! If Picard iteration chosen, set number of saved residuals to zero
-      if (algo_nonlin == 'picard') then
-         im_andacc = 0
-      endif
       
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
@@ -3945,7 +3940,8 @@
                       wx,         wy,       &
                       nbiter,     conv)
       else
-         
+         call abort_ice(error_message='wrong preconditioner in ' // subname, &
+         file=__FILE__, line=__LINE__)
       endif
       end subroutine precondition
 
