@@ -335,7 +335,7 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! VP ellipse aspect ratio
       maxits_nonlin = 1000   ! max nb of iteration for nonlinear solver
-      precond = 3            ! preconditioner for fgmres: 1: identity, 2: diagonal 3: pgmres + diag
+      precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
       im_fgmres = 50         ! size of fgmres Krylov subspace
       im_pgmres = 5          ! size of pgmres Krylov subspace
       maxits_fgmres = 50     ! max nb of iteration for fgmres
@@ -1578,7 +1578,7 @@
 
          if (kdyn == 3) then
             write(nu_diag,1020) ' maxits_nonlin             = ', maxits_nonlin
-            write(nu_diag,1020) ' precond                   = ', precond
+            write(nu_diag,1030) ' precond                   = ', precond
             write(nu_diag,1020) ' im_fgmres                 = ', im_fgmres
             write(nu_diag,1020) ' im_pgmres                 = ', im_pgmres
             write(nu_diag,1020) ' maxits_fgmres             = ', maxits_fgmres

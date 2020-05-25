@@ -140,7 +140,7 @@
     ktransport      = 1
     ssh_stress      = 'geostrophic'
     maxits_nonlin   = 1000
-    precond         = 3
+    precond         = 'pgmres'
     im_fgmres       = 50
     im_pgmres       = 5
     maxits_fgmres   = 1

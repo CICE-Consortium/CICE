@@ -41,7 +41,6 @@
 
       integer (kind=int_kind), public :: &
          maxits_nonlin  , & ! max nb of iteration for nonlinear solver
-         precond        , & ! preconditioner for fgmres: 1: identity, 2: diagonal 3: pgmres + diag
          im_fgmres      , & ! size of fgmres Krylov subspace
          im_pgmres      , & ! size of pgmres Krylov subspace
          maxits_fgmres  , & ! max nb of iteration for fgmres
@@ -64,6 +63,7 @@
          reltol_andacc      ! relative tolerance for Anderson acceleration
 
       character (len=char_len), public :: &
+         precond        , & ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
          algo_nonlin    , & ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
          ortho_type         ! type of orthogonalization for FGMRES ('cgs' or 'mgs')
 
@@ -890,7 +890,7 @@
             ! g_1(x) = FGMRES(A(x), b(x))
             
             ! Prepare precond matrix
-            if (precond .gt. 1) then
+            if (precond == 'diag' .or. precond == 'pgmres') then
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
                   call formDiag_step1 (nx_block           , ny_block,       & ! D term due to rheology
@@ -3159,7 +3159,7 @@
       real (kind=dbl_kind), dimension(maxinner+1, maxinner) :: &
          hessenberg        ! system matrix of the Hessenberg (least squares) system
 
-      integer (kind=int_kind) :: &
+      character (len=char_len) :: &
          precond_type ! type of preconditioner
 
       real (kind=dbl_kind) :: relative_tolerance, r0 !phb DESCRIBE if we keep
@@ -3543,13 +3543,11 @@
          rhs_hess            ! right hand side vector of the Hessenberg (least squares) system
 
       real (kind=dbl_kind), dimension(maxinner+1, maxinner) :: &
-         hessenberg        ! system matrix of the Hessenberg (least squares) system
-
-      integer (kind=int_kind) :: &
-         precond_type ! type of preconditioner
+         hessenberg          ! system matrix of the Hessenberg (least squares) system
 
       character(len=char_len) :: &
-         ortho_type ! type of orthogonalization
+         precond_type    , & ! type of preconditioner
+         ortho_type          ! type of orthogonalization
 
       real (kind=dbl_kind) :: relative_tolerance, r0 !phb DESCRIBE if we keep
 
@@ -3569,7 +3567,7 @@
       
       conv = c1
       
-      precond_type = 2 ! Jacobi preconditioner
+      precond_type = 'diag' ! Jacobi preconditioner
       ortho_type = 'cgs' ! classical gram-schmidt
       
       ! Cells with no ice should be zero-initialized
@@ -3882,7 +3880,7 @@
          diagx    , & ! diagonal of the system matrix (x components)
          diagy        ! diagonal of the system matrix (y components)
 
-      integer (kind=int_kind), intent(in) :: &
+      character (len=char_len), intent(in) :: &
          precond_type ! type of preconditioner
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
@@ -3913,10 +3911,10 @@
 
       character(len=*), parameter :: subname = '(precondition)'
 
-      if     (precond_type == 1) then ! identity (no preconditioner)
+      if     (precond_type == 'ident') then ! identity (no preconditioner)
          wx = vx
          wy = vy
-      elseif (precond_type == 2) then ! Jacobi preconditioner (diagonal)
+      elseif (precond_type == 'diag') then ! Jacobi preconditioner (diagonal)
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
             do ij =1, icellu(iblk)
@@ -3928,7 +3926,7 @@
             enddo ! ij
          enddo
          !$OMP END PARALLEL DO 
-      elseif (precond_type == 3) then ! PGMRES (Jacobi-preconditioned GMRES)
+      elseif (precond_type == 'pgmres') then ! PGMRES (Jacobi-preconditioned GMRES)
          ! Initialize preconditioned vector to 0 !phb try with wx = vx or vx/diagx
          wx = c0
          wy = c0
