@@ -347,7 +347,7 @@
       reltol_nonlin = 1e-8_dbl_kind ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
       reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
       reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
-      algo_nonlin = 1        ! nonlinear algorithm: 1: Picard iteration, 2: Anderson acceleration (andacc)
+      algo_nonlin = 'picard'        ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
       fpfunc_andacc = 1      ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
       im_andacc = 5          ! size of Anderson minimization matrix (number of saved previous residuals)
       reltol_andacc = 1e-6_dbl_kind  ! relative tolerance for Anderson acceleration
@@ -1590,9 +1590,9 @@
             write(nu_diag,1008) ' reltol_nonlin             = ', reltol_nonlin
             write(nu_diag,1008) ' reltol_fgmres             = ', reltol_fgmres
             write(nu_diag,1008) ' reltol_pgmres             = ', reltol_pgmres
-            write(nu_diag,1020) ' algo_nonlin               = ', algo_nonlin
+            write(nu_diag,1030) ' algo_nonlin               = ', algo_nonlin
             write(nu_diag,1010) ' use_mean_vrel             = ', use_mean_vrel
-            if (algo_nonlin == 2) then
+            if (algo_nonlin == 'anderson') then
                write(nu_diag,1020) ' fpfunc_andacc          = ', fpfunc_andacc
                write(nu_diag,1020) ' im_andacc              = ', im_andacc
                write(nu_diag,1008) ' reltol_andacc          = ', reltol_andacc

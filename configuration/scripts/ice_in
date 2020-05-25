@@ -152,7 +152,7 @@
     reltol_nonlin   = 1e-8
     reltol_fgmres   = 1e-2
     reltol_pgmres   = 1e-6
-    algo_nonlin     = 1
+    algo_nonlin     = 'picard'
     use_mean_vrel   = .false.
     fpfunc_andacc   = 1
     im_andacc       = 5

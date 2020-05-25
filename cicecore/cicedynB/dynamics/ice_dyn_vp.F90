@@ -48,7 +48,6 @@
          maxits_pgmres  , & ! max nb of iteration for pgmres
          monitor_fgmres , & ! print fgmres residual norm
          monitor_pgmres , & ! print pgmres residual norm
-         algo_nonlin    , & ! nonlinear algorithm: 1: Picard iteration, 2: Anderson acceleration (andacc)
          fpfunc_andacc  , & ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
          im_andacc      , & ! size of Anderson minimization matrix (number of saved previous residuals)
          start_andacc       ! acceleration delay factor (acceleration starts at this iteration)
@@ -65,6 +64,7 @@
          reltol_andacc      ! relative tolerance for Anderson acceleration
 
       character (len=char_len), public :: &
+         algo_nonlin    , & ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
          ortho_type         ! type of orthogonalization for FGMRES ('cgs' or 'mgs')
 
       ! mmodule variables
@@ -774,7 +774,7 @@
       res_num = 0
       
       ! If Picard iteration chosen, set number of saved residuals to zero
-      if (algo_nonlin == 1) then
+      if (algo_nonlin == 'picard') then
          im_andacc = 0
       endif
       
@@ -1040,7 +1040,7 @@
             endif
 #else
             ! Anderson solver is not usable without LAPACK; abort
-            call abort_ice(error_message=subname // " CICE was not compiled with LAPACK, and Anderson solver was chosen (algo_nonlin = 2)" , &
+            call abort_ice(error_message=subname // " CICE was not compiled with LAPACK, and Anderson solver was chosen (algo_nonlin = 'anderson')" , &
                file=__FILE__, line=__LINE__)
 #endif
          endif

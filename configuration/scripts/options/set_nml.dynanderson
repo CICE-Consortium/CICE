@@ -1,3 +1,3 @@
 kdyn            = 3
-algo_nonlin     = 2
+algo_nonlin     = 'anderson'
 maxits_nonlin   = 5000
