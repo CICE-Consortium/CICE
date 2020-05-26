@@ -1,15 +1,14 @@
 #==============================================================================
-# Makefile macros for generic test machine, intel compiler
+# Makefile macros for MSU orion, intel compiler
 #==============================================================================
 
 CPP        := fpp
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-#CFLAGS     := -c -O2 -fp-model precise   -xHost
-CFLAGS     := -c -O2 
+CFLAGS     := -c -O2 -fp-model precise   -xHost
 
 FIXEDFLAGS := -132
 FREEFLAGS  := -FR
-FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -align array64byte  -xHost
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
@@ -20,7 +19,7 @@ endif
 
 SCC   := icc 
 SFC   := ifort
-MPICC := mpicc
+MPICC := mpiicc
 MPIFC := mpiifort
 
 ifeq ($(ICE_COMMDIR), mpi)
@@ -32,16 +31,22 @@ else
 endif
 LD:= $(FC)
 
-NETCDF_PATH := $(NETCDF)
+NETCDF_PATH := $(NETCDF_ROOT)
 
 PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 
-INCLDIR := $(INCLDIR) $(NETCDF_INCLUDE)
+#PNETCDF_PATH := $(PNETCDF)
+#PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
 
+INC_NETCDF := $(NETCDF_PATH)/include
 LIB_NETCDF := $(NETCDF_PATH)/lib
-LIB_MPI := $(IMPILIBDIR)
 
-SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff 
+#LIB_PNETCDF := $(PNETCDF_PATH)/lib
+#LIB_MPI := $(IMPILIBDIR)
+
+INCLDIR := $(INCLDIR) -I$(INC_NETCDF)
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -qopenmp 
