@@ -3,9 +3,6 @@ module ice_import_export
   use ESMF
   use NUOPC
   use NUOPC_Model
-#ifdef CESMCOUPLED
-  use shr_frz_mod        , only : shr_frz_freezetemp
-#endif
   use ice_kinds_mod      , only : int_kind, dbl_kind, char_len, log_kind
   use ice_constants      , only : c0, c1, spval_dbl
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
@@ -19,16 +16,14 @@ module ice_import_export
 #if (defined NEWCODE)
   use ice_flux           , only : fswthruvdr, fswthruvdf, fswthruidr, fswthruidf
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
+  use ice_flux           , only : faero_atm, faero_ocn
+  use ice_flux           , only : fiso_atm, fiso_ocn, fiso_rain, fiso_evap
+  use ice_flux           , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
 #endif
   use ice_flux           , only : fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
   use ice_flux           , only : rhoa, swvdr, swvdf, swidr, swidf, flw, frain
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
   use ice_flux           , only : sss, Tf, wind, fsw
-#if (defined NEWCODE)
-  use ice_flux           , only : faero_atm, faero_ocn
-  use ice_flux           , only : fiso_atm, fiso_ocn, fiso_rain, fiso_evap
-  use ice_flux           , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
-#endif
   use ice_state          , only : vice, vsno, aice, aicen_init, trcr
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm, ocn_gridcell_frac
   use ice_grid           , only : grid_type, t2ugrid_vector
@@ -41,6 +36,7 @@ module ice_import_export
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
   use icepack_intfc      , only : icepack_liquidus_temperature
 #ifdef CESMCOUPLED
+  use shr_frz_mod        , only : shr_frz_freezetemp
   use perf_mod           , only : t_startf, t_stopf, t_barrierf
 #endif
 
@@ -127,7 +123,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) flds_wiso
     call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
-
 #if (defined NEWCODE)
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -149,7 +144,7 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 's_surf'                  )
     call fldlist_add(fldsToIce_num, fldsToIce, 'ocn_current_zonal'       )
     call fldlist_add(fldsToIce_num, fldsToIce, 'ocn_current_merid'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'freezing_melting_potential'                  )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'freezing_melting_potential')
     if (flds_wiso) then
        call fldlist_add(fldsToIce_num, fldsToIce, 'So_roce_wiso', ungridded_lbound=1, ungridded_ubound=3)
     end if
@@ -160,8 +155,7 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 'inst_merid_wind_height_lowest' )
     call fldlist_add(fldsToIce_num, fldsToIce, 'inst_spec_humid_height_lowest' )
     call fldlist_add(fldsToIce_num, fldsToIce, 'inst_temp_height_lowest'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_ptem'                       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'air_density_height_lowest'     )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'inst_pres_height_lowest'       )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_vis_dir_flx'      )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_ir_dir_flx'       )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_vis_dif_flx'      )
@@ -169,6 +163,8 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_lw_flx'              )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_prec_rate'                )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_fprec_rate'               )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_ptem'                       ) !cesm
+    call fldlist_add(fldsToIce_num, fldsToIce, 'air_density_height_lowest'     ) !cesm
 
 #ifdef CESMCOUPLED
     ! from atm - black carbon deposition fluxes (3)
@@ -348,7 +344,7 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    integer,parameter                :: nflds=15
+    integer,parameter                :: nflds=16
     integer,parameter                :: nfldv=6
     integer                          :: i, j, iblk, n
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
@@ -357,6 +353,7 @@ contains
     real (kind=dbl_kind)             :: workx, worky
     real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
     real (kind=dbl_kind)             :: tffresh
+    real (kind=dbl_kind)             :: inst_pres_height_lowest  
     character(len=*),   parameter    :: subname = 'ice_import'
     !-----------------------------------------------------
 
@@ -394,50 +391,56 @@ contains
     call state_getimport(importState, 's_surf', output=aflds, index=2, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! import ocean states
+    ! import atm states
 
     call state_getimport(importState, 'inst_height_lowest', output=aflds, index=3, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-!tcx errr.... this needs to be fixed in the dictionary!!!
-    call state_getimport(importState, 'Sa_ptem', output=aflds, index=4, rc=rc)
+    if (State_FldChk(importState, 'Sa_ptem') .and. State_fldchk(importState, 'air_density_height_lowest')) then
+       call state_getimport(importState, 'Sa_ptem', output=aflds, index=4, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getimport(importState, 'air_density_height_lowest', output=aflds, index=5, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (State_FldChk(importState, 'inst_pres_height_lowest')) then
+       call state_getimport(importState, 'inst_pres_height_lowest', output=aflds, index=6, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call abort_ice(trim(subname)//&
+            ": ERROR either Sa_ptem and air_density_height_lowest OR inst_pres_height_lowest must be in import state")
+    end if
+
+    call state_getimport(importState, 'inst_temp_height_lowest', output=aflds, index=7, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'inst_temp_height_lowest', output=aflds, index=5, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call state_getimport(importState, 'inst_spec_humid_height_lowest', output=aflds, index=6, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call state_getimport(importState, 'air_density_height_lowest', output=aflds, index=7, rc=rc)
+    call state_getimport(importState, 'inst_spec_humid_height_lowest', output=aflds, index=8, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! import ocn/ice fluxes
 
-    call state_getimport(importState, 'freezing_melting_potential', output=aflds, index=8, rc=rc)
+    call state_getimport(importState, 'freezing_melting_potential', output=aflds, index=9, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! import atm fluxes
 
-    call state_getimport(importState, 'mean_down_sw_vis_dir_flx', output=aflds, index=9, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_vis_dir_flx', output=aflds, index=10, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_ir_dir_flx', output=aflds, index=10, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_ir_dir_flx', output=aflds, index=11, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_vis_dif_flx', output=aflds, index=11, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_vis_dif_flx', output=aflds, index=12, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_ir_dif_flx', output=aflds, index=12, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_ir_dif_flx', output=aflds, index=13, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_lw_flx', output=aflds, index=13, rc=rc)
+    call state_getimport(importState, 'mean_down_lw_flx', output=aflds, index=14, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_prec_rate', output=aflds, index=14, rc=rc)
+    call state_getimport(importState, 'mean_prec_rate', output=aflds, index=15, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_fprec_rate', output=aflds, index=15, rc=rc)
+    call state_getimport(importState, 'mean_fprec_rate', output=aflds, index=16, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! perform a halo update
@@ -458,25 +461,58 @@ contains
     do iblk = 1, nblocks
        do j = 1,ny_block
           do i = 1,nx_block
-             sst  (i,j,iblk)   = aflds(i,j, 1,iblk)
-             sss  (i,j,iblk)   = aflds(i,j, 2,iblk)
-             zlvl (i,j,iblk)   = aflds(i,j, 3,iblk)
-             potT (i,j,iblk)   = aflds(i,j, 4,iblk)
-             Tair (i,j,iblk)   = aflds(i,j, 5,iblk)
-             Qa   (i,j,iblk)   = aflds(i,j, 6,iblk)
-             rhoa (i,j,iblk)   = aflds(i,j, 7,iblk)
-             frzmlt (i,j,iblk) = aflds(i,j, 8,iblk)
-             swvdr(i,j,iblk)   = aflds(i,j, 9,iblk)
-             swidr(i,j,iblk)   = aflds(i,j,10,iblk)
-             swvdf(i,j,iblk)   = aflds(i,j,11,iblk)
-             swidf(i,j,iblk)   = aflds(i,j,12,iblk)
-             flw  (i,j,iblk)   = aflds(i,j,13,iblk)
-             frain(i,j,iblk)   = aflds(i,j,14,iblk)
-             fsnow(i,j,iblk)   = aflds(i,j,15,iblk)
-          enddo    !i
-       enddo    !j
-    enddo        !iblk
+             sst  (i,j,iblk)         = aflds(i,j, 1,iblk)
+             sss  (i,j,iblk)         = aflds(i,j, 2,iblk)
+             zlvl (i,j,iblk)         = aflds(i,j, 3,iblk)
+             ! see below for 4,5,6
+             Tair (i,j,iblk)         = aflds(i,j, 7,iblk)
+             Qa   (i,j,iblk)         = aflds(i,j, 8,iblk)
+             frzmlt (i,j,iblk)       = aflds(i,j, 9,iblk)
+             swvdr(i,j,iblk)         = aflds(i,j,10,iblk)
+             swidr(i,j,iblk)         = aflds(i,j,11,iblk)
+             swvdf(i,j,iblk)         = aflds(i,j,12,iblk)
+             swidf(i,j,iblk)         = aflds(i,j,13,iblk)
+             flw  (i,j,iblk)         = aflds(i,j,14,iblk)
+             frain(i,j,iblk)         = aflds(i,j,15,iblk)
+             fsnow(i,j,iblk)         = aflds(i,j,16,iblk)
+          end do
+       end do
+    end do
     !$OMP END PARALLEL DO
+
+    if ( State_fldChk(importState, 'Sa_ptem') .and. State_fldchk(importState,'air_density_height_lowest')) then 
+       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+       do iblk = 1, nblocks
+          do j = 1,ny_block
+             do i = 1,nx_block
+                potT (i,j,iblk) = aflds(i,j, 4,iblk)
+                rhoa (i,j,iblk) = aflds(i,j, 5,iblk)
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    else if (State_fldChk(importState, 'inst_pres_height_lowest')) then
+       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+       do iblk = 1, nblocks
+          do j = 1,ny_block
+             do i = 1,nx_block
+                inst_pres_height_lowest = aflds(i,j,6,iblk)
+                if (inst_pres_height_lowest > 0.0_ESMF_KIND_R8) then
+                   potT (i,j,iblk) = Tair(i,j,iblk) * (100000._ESMF_KIND_R8/inst_pres_height_lowest)**0.286_ESMF_KIND_R8
+                else
+                   potT (i,j,iblk) = 0.0_ESMF_KIND_R8
+                end if
+                if (Tair(i,j,iblk) /= 0._ESMF_KIND_R8) then
+                   rhoa(i,j,iblk) = inst_pres_height_lowest / &
+                        (287.058_ESMF_KIND_R8*(1._ESMF_KIND_R8+0.608_ESMF_KIND_R8*Qa(i,j,iblk))*Tair(i,j,iblk))
+                else
+                   rhoa(i,j,iblk) = 0._ESMF_KIND_R8
+                endif
+             end do !i
+          end do !j
+       end do !iblk   
+       !$OMP END PARALLEL DO
+    end if
 
     deallocate(aflds)
     allocate(aflds(nx_block,ny_block,nfldv,nblocks))
