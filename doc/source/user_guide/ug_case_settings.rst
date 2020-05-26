@@ -41,6 +41,7 @@ to support the CICE model.
    " ", "pio", "parallel netCDF"
    " ", "none", "netCDF library is not available"
    "ICE_CLEANBUILD", "true, false", "automatically clean before building", "true"
+   "ICE_CPPDEFS", "user defined preprocessor macros for build", "null"
    "ICE_QUIETMODE", "true, false", "reduce build output to the screen", "false"
    "ICE_GRID", "string (see below)", "grid", "set by cice.setup"
    " ", "gx3", "3-deg displace-pole (Greenland) global grid", " "

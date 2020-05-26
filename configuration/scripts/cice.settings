@@ -15,6 +15,7 @@ setenv ICE_LOGDIR     ${ICE_CASEDIR}/logs
 setenv ICE_DRVOPT     standalone/cice
 setenv ICE_IOTYPE     netcdf    # binary, netcdf, pio1, pio2
 setenv ICE_CLEANBUILD true
+setenv ICE_CPPDEFS    ""
 setenv ICE_QUIETMODE  false
 setenv ICE_GRID       undefined
 setenv ICE_NTASKS     undefined
