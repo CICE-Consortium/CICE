@@ -99,7 +99,7 @@
                                 basalstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
-      use ice_transport_driver, only: advection
+      use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
@@ -154,6 +154,7 @@
         print_global,   print_points,   latpnt,          lonpnt,        &
         dbug,           histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
+        conserv_check,                                                  &
         write_ic,       incond_dir,     incond_file,     version_name
 
       namelist /grid_nml/ &
@@ -309,6 +310,7 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
+      conserv_check = .false.! tracer conservation check
       shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
       albedo_type = 'ccsm3'  ! 'ccsm3' or 'constant'
       ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
@@ -591,6 +593,7 @@
       call broadcast_scalar(Ktens,              master_task)
       call broadcast_scalar(e_ratio,            master_task)
       call broadcast_scalar(advection,          master_task)
+      call broadcast_scalar(conserv_check,      master_task)
       call broadcast_scalar(shortwave,          master_task)
       call broadcast_scalar(albedo_type,        master_task)
       call broadcast_scalar(ktherm,             master_task)
@@ -1098,6 +1101,7 @@
          write(nu_diag,1030) ' shortwave                 = ', &
                                trim(shortwave)
          write(nu_diag,1000) ' ksno                      = ', ksno
+         write(nu_diag,1010) ' conserv_check             = ', conserv_check
          if (cpl_bgc) then
              write(nu_diag,1000) ' BGC coupling is switched ON'
          else
@@ -1311,7 +1315,7 @@
          ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
-         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
+         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)

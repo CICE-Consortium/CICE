@@ -27,6 +27,7 @@
     diag_file      = 'ice_diag.d'
     print_global   = .true.
     print_points   = .true.
+    conserv_check  = .false.
     latpnt(1)      =  90.
     lonpnt(1)      =  0.
     latpnt(2)      = -65.
