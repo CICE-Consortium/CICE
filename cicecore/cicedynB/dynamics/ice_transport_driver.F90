@@ -312,6 +312,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
+      character(len=char_len_long) :: fieldid
+
       character(len=*), parameter :: subname = '(transport_remap)'
 
       call ice_timer_start(timer_advect)  ! advection 
@@ -602,7 +604,8 @@
          enddo                  ! n
 
          if (my_task == master_task) then
-            call global_conservation (l_stop,     &
+            fieldid = subname//':000'
+            call global_conservation (l_stop, fieldid,     &
                                       asum_init(0), asum_final(0))
 
             if (l_stop) then
@@ -612,9 +615,10 @@
                call abort_ice(subname//'ERROR: conservation error1')
             endif
 
-            do n = 1, ncat               
+            do n = 1, ncat
+               write(fieldid,'(a,i3.3)') subname,n
                call global_conservation                                 &
-                                     (l_stop,                           &
+                                     (l_stop, fieldid,                  &
                                       asum_init(n),    asum_final(n),   &
                                       atsum_init(:,n), atsum_final(:,n))
 
@@ -1079,9 +1083,12 @@
 !
 ! author William H. Lipscomb, LANL
 
-      subroutine global_conservation (l_stop,                     &
+      subroutine global_conservation (l_stop, fieldid,            &
                                       asum_init,  asum_final,     &
                                       atsum_init, atsum_final)
+
+      character(len=*), intent(in) ::     &
+         fieldid       ! field information string
 
       real (kind=dbl_kind), intent(in) ::     &
          asum_init   ,&! initial global ice area
@@ -1115,11 +1122,11 @@
          if (abs(diff/asum_init) > puny) then
             l_stop = .true.
             write (nu_diag,*)
-            write (nu_diag,*) 'Ice area conserv error'
-            write (nu_diag,*) 'Initial global area =', asum_init
-            write (nu_diag,*) 'Final global area =', asum_final
-            write (nu_diag,*) 'Fractional error =', abs(diff)/asum_init
-            write (nu_diag,*) 'asum_final-asum_init =', diff
+            write (nu_diag,*) subname,'Ice area conserv error ', trim(fieldid)
+            write (nu_diag,*) subname,'  Initial global area  =', asum_init
+            write (nu_diag,*) subname,'  Final global area    =', asum_final
+            write (nu_diag,*) subname,'  Fractional error     =', abs(diff)/asum_init
+            write (nu_diag,*) subname,'  asum_final-asum_init =', diff
          endif
       endif
 
@@ -1130,15 +1137,12 @@
             if (abs(diff/atsum_init(nt)) > puny) then
                l_stop = .true.
                write (nu_diag,*)
-               write (nu_diag,*) 'area*tracer conserv error'
-               write (nu_diag,*) 'tracer index =', nt
-               write (nu_diag,*) 'Initial global area*tracer =',   &
-                                  atsum_init(nt)
-               write (nu_diag,*) 'Final global area*tracer =',     &
-                                  atsum_final(nt)
-               write (nu_diag,*) 'Fractional error =',             &
-                                  abs(diff)/atsum_init(nt)
-               write (nu_diag,*) 'atsum_final-atsum_init =', diff
+               write (nu_diag,*) subname,'Ice area*tracer conserv error ', trim(fieldid),nt
+               write (nu_diag,*) subname,'  Tracer index               =', nt
+               write (nu_diag,*) subname,'  Initial global area*tracer =', atsum_init(nt)
+               write (nu_diag,*) subname,'  Final global area*tracer   =', atsum_final(nt)
+               write (nu_diag,*) subname,'  Fractional error           =', abs(diff)/atsum_init(nt)
+               write (nu_diag,*) subname,'  atsum_final-atsum_init     =', diff
             endif
          endif
        enddo
