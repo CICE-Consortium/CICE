@@ -1284,9 +1284,6 @@
       ! Compute ocean fluxes and update SST
       !-----------------------------------------------------------------
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
       do ij = 1, icells
          i = indxi(ij)
          j = indxj(ij)

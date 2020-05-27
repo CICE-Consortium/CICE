@@ -663,9 +663,6 @@
 
       str(:,:,:) = c0
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
       do ij = 1, icellt
          i = indxti(ij)
          j = indxtj(ij)
