@@ -217,7 +217,11 @@
          fresh   , & ! fresh water flux to ocean (kg/m^2/s)
          fsalt   , & ! salt flux to ocean (kg/m^2/s)
          fhocn   , & ! net heat flux to ocean (W/m^2)
-         fswthru     ! shortwave penetrating to ocean (W/m^2)
+         fswthru , & ! shortwave penetrating to ocean (W/m^2)
+         fswthruvdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthruvdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
+         fswthruidr , & ! nir dir shortwave penetrating to ocean (W/m^2)
+         fswthruidf     ! nir dif shortwave penetrating to ocean (W/m^2)
 
        ! internal
 
@@ -438,6 +442,10 @@
          fsalt      (nx_block,ny_block,max_blocks), & ! salt flux to ocean (kg/m^2/s)
          fhocn      (nx_block,ny_block,max_blocks), & ! net heat flux to ocean (W/m^2)
          fswthru    (nx_block,ny_block,max_blocks), & ! shortwave penetrating to ocean (W/m^2)
+         fswthruvdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthruvdf (nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
+         fswthruidr (nx_block,ny_block,max_blocks), & ! nir dir shortwave penetrating to ocean (W/m^2)
+         fswthruidf (nx_block,ny_block,max_blocks), & ! nir dif shortwave penetrating to ocean (W/m^2)
          scale_factor (nx_block,ny_block,max_blocks), & ! scaling factor for shortwave components
          strairx_ocn(nx_block,ny_block,max_blocks), & ! stress on ocean by air, x-direction
          strairy_ocn(nx_block,ny_block,max_blocks), & ! stress on ocean by air, y-direction
@@ -684,6 +692,10 @@
       fpond   (:,:,:) = c0
       fhocn   (:,:,:) = c0
       fswthru (:,:,:) = c0
+      fswthruvdr (:,:,:) = c0
+      fswthruvdf (:,:,:) = c0
+      fswthruidr (:,:,:) = c0
+      fswthruidf (:,:,:) = c0
       fresh_da(:,:,:) = c0    ! data assimilation
       fsalt_da(:,:,:) = c0
       flux_bio (:,:,:,:) = c0 ! bgc
@@ -783,6 +795,10 @@
       fpond    (:,:,:)   = c0
       fhocn    (:,:,:)   = c0
       fswthru  (:,:,:)   = c0
+      fswthruvdr  (:,:,:)   = c0
+      fswthruvdf  (:,:,:)   = c0
+      fswthruidr  (:,:,:)   = c0
+      fswthruidf  (:,:,:)   = c0
 
       faero_ocn (:,:,:,:) = c0
       fiso_ocn  (:,:,:,:) = c0
