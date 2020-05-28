@@ -143,6 +143,8 @@
 
       type (block) :: &
          this_block           ! block information for current block
+
+      logical (kind=log_kind), save :: first_time = .true.
       
       character(len=*), parameter :: subname = '(evp)'
 
@@ -349,7 +351,10 @@
       endif
       call ice_timer_start(timer_evp_2d)
       if (kevp_kernel > 0) then
-!        if (my_task == 0) write(nu_diag,*) subname,' Entering kevp_kernel version ',kevp_kernel
+        if (first_time .and. my_task == 0) then
+          write(nu_diag,'(2a,i6)') subname,' Entering kevp_kernel version ',kevp_kernel
+          first_time = .false.
+        endif
         if (trim(grid_type) == 'tripole') then
           call abort_ice(trim(subname)//' &
              & Kernel not tested on tripole grid. Set kevp_kernel=0')

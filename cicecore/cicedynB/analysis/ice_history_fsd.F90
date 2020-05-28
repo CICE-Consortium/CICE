@@ -116,24 +116,6 @@
          call abort_ice(subname//'ERROR: reading icefields_fsd_nml')
       endif
 
-      if (.not. tr_fsd) then
-         f_afsd        = 'x'
-         f_afsdn       = 'x'
-         f_dafsd_newi  = 'x'
-         f_dafsd_latg  = 'x'
-         f_dafsd_latm  = 'x'
-         f_dafsd_wave  = 'x'
-         f_dafsd_weld  = 'x'
-         f_wave_sig_ht = 'x'
-         f_fsdrad      = 'x'
-         f_fsdperim    = 'x'
-      endif
-      if ((.not. tr_fsd) .or. (.not. wave_spec)) then
-         f_aice_ww  = 'x'
-         f_diam_ww  = 'x'
-         f_hice_ww  = 'x'
-      endif
-
       call broadcast_scalar (f_afsd, master_task)
       call broadcast_scalar (f_afsdn, master_task)
       call broadcast_scalar (f_dafsd_newi, master_task)
@@ -183,6 +165,24 @@
 
 
       enddo ! nstreams
+
+      else  ! tr_fsd
+
+         f_afsd        = 'x'
+         f_afsdn       = 'x'
+         f_dafsd_newi  = 'x'
+         f_dafsd_latg  = 'x'
+         f_dafsd_latm  = 'x'
+         f_dafsd_wave  = 'x'
+         f_dafsd_weld  = 'x'
+         f_wave_sig_ht = 'x'
+         f_fsdrad      = 'x'
+         f_fsdperim    = 'x'
+         if (.not. wave_spec) then
+            f_aice_ww  = 'x'
+            f_diam_ww  = 'x'
+            f_hice_ww  = 'x'
+         endif
 
       endif ! tr_fsd
 
