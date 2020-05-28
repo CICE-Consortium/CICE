@@ -1087,9 +1087,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
       do j = 1, ny_block
       do i = 1, nx_block
          if (tmask(i,j) .and. aice(i,j) > c0) then
@@ -1155,9 +1152,6 @@
       ! Scale fluxes for history output
       if (present(fsurf) .and. present(fcondtop) ) then 
      
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
         do j = 1, ny_block
         do i = 1, nx_block
            if (tmask(i,j) .and. aice(i,j) > c0) then
