@@ -15,7 +15,7 @@
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
       use ice_boundary, only: ice_halo
-      use ice_communicate, only: my_task, master_task
+      use ice_communicate, only: my_task, master_task, get_num_procs
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
@@ -973,6 +973,13 @@
          else
 #ifdef CICE_USE_LAPACK
             ! Begin Anderson acceleration
+            if (get_num_procs() > 1) then
+               ! Anderson solver is not yet parallelized; abort
+               if (my_task == master_task) then
+                  call abort_ice(error_message=subname // " Anderson solver (algo_nonlin = 'anderson') is not yet parallelized, and nprocs > 1 " , &
+                     file=__FILE__, line=__LINE__)
+               endif
+            endif
             if (it_nl > start_andacc) then
                ! Update residual difference vector
                res_diff = res - res_old
