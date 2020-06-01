@@ -3236,6 +3236,11 @@
          !$OMP END PARALLEL DO 
          norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
          
+         if (my_task == master_task .and. monitor_fgmres) then
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_fgmres: iter_fgmres= ", nbiter, &
+                                              " fgmres_L2norm= ", norm_residual
+         endif
+         
          ! Current guess is a good enough solution
          ! if (norm_residual < tolerance) then
          !    return
@@ -3371,6 +3376,12 @@
             ! Check for convergence
             norm_residual = abs(rhs_hess(nextit))
             conv = norm_residual / r0
+            
+            if (my_task == master_task .and. monitor_fgmres) then
+               write(nu_diag, '(a,i4,a,d26.16)') "monitor_fgmres: iter_fgmres= ", nbiter, &
+                                                 " fgmres_L2norm= ", norm_residual
+            endif
+            
              if ((initer >= maxinner) .or. (norm_residual <= relative_tolerance)) then
                exit
             endif
@@ -3624,6 +3635,11 @@
          !$OMP END PARALLEL DO 
          norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
          
+         if (my_task == master_task .and. monitor_pgmres) then
+            write(nu_diag, '(a,i4,a,d26.16)') "monitor_pgmres: iter_pgmres= ", nbiter, &
+                                              " pgmres_L2norm= ", norm_residual
+         endif
+         
          ! Current guess is a good enough solution
          ! if (norm_residual < tolerance) then
          !    return
@@ -3753,6 +3769,12 @@
             
             ! Check for convergence
             norm_residual = abs(rhs_hess(nextit))
+            
+            if (my_task == master_task .and. monitor_pgmres) then
+               write(nu_diag, '(a,i4,a,d26.16)') "monitor_pgmres: iter_pgmres= ", nbiter, &
+                                                 " pgmres_L2norm= ", norm_residual
+            endif
+            
             conv = norm_residual / r0
              if ((initer >= maxinner) .or. (norm_residual <= relative_tolerance)) then
                exit
