@@ -24,7 +24,7 @@
       private
       public :: init_evp, set_evp_parameters, stepu, principal_stress, &
                 dyn_prep1, dyn_prep2, dyn_finish, basal_stress_coeff,  &
-                alloc_dyn_shared, deformations, strain_rates
+                alloc_dyn_shared, deformations, strain_rates, ice_HaloUpdate_vel
 
       ! namelist parameters
 
@@ -78,7 +78,7 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          uvel_init, & ! x-component of velocity (m/s), beginning of timestep
          vvel_init    ! y-component of velocity (m/s), beginning of timestep
-         
+
       ! ice isotropic tensile strength parameter
       real (kind=dbl_kind), public :: &
          Ktens         ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)   
@@ -95,6 +95,8 @@
                          ! see keel data from Amundrud et al. 2004 (JGR)
          u0 = 5e-5_dbl_kind ! residual velocity for basal stress (m/s)
 
+      real (kind=dbl_kind), allocatable :: &
+         fld2(:,:,:,:)    ! work array for boundary updates
 
 !=======================================================================
 
@@ -111,6 +113,7 @@
       allocate( &
          uvel_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
          vvel_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
+         fld2      (nx_block,ny_block,2,max_blocks), & ! work array for boundary updates
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_dyn_shared): Out of memory')
 
@@ -1183,6 +1186,60 @@
       Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
 
       end subroutine strain_rates
+
+!=======================================================================
+
+! Perform a halo update for the velocity field
+! author: Philippe Blain, ECCC
+
+      subroutine ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
+
+      use ice_boundary, only: ice_HaloUpdate, ice_halo
+      use ice_constants, only: field_loc_NEcorner, field_type_vector
+      use ice_domain, only: halo_info, maskhalo_dyn, nblocks
+      use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
+
+      type (ice_halo), intent(in) :: &
+         halo_info_mask !  ghost cell update info for masked halo
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+         uvel    , & ! u components of velocity vector
+         vvel        ! v components of velocity vector
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(ice_HaloUpdate_vel)'
+
+      ! load velocity into array for boundary updates
+      !$OMP PARALLEL DO PRIVATE(iblk)
+      do iblk = 1, nblocks
+         fld2(:,:,1,iblk) = uvel(:,:,iblk)
+         fld2(:,:,2,iblk) = vvel(:,:,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+
+      call ice_timer_start(timer_bound)
+      if (maskhalo_dyn) then
+         call ice_HaloUpdate (fld2,               halo_info_mask, &
+                              field_loc_NEcorner, field_type_vector)
+      else
+         call ice_HaloUpdate (fld2,               halo_info, &
+                              field_loc_NEcorner, field_type_vector)
+      endif
+      call ice_timer_stop(timer_bound)
+
+      ! Unload
+      !$OMP PARALLEL DO PRIVATE(iblk)
+      do iblk = 1, nblocks
+         uvel(:,:,iblk) = fld2(:,:,1,iblk)
+         vvel(:,:,iblk) = fld2(:,:,2,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+
+      end subroutine ice_HaloUpdate_vel
 
 !=======================================================================
 
