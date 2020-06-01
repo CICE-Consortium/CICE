@@ -994,6 +994,8 @@
                                Tref,     Qref,     &
                                fresh,    fsalt,    &
                                fhocn,    fswthru,  &
+                               fswthruvdr, fswthruvdf, &
+                               fswthruidr, fswthruidf, &
                                faero_ocn,          &
                                alvdr,    alidr,    &
                                alvdf,    alidf,    &
@@ -1038,6 +1040,10 @@
           fsalt   , & ! salt flux to ocean              (kg/m2/s)
           fhocn   , & ! actual ocn/ice heat flx         (W/m**2)
           fswthru , & ! sw radiation through ice bot    (W/m**2)
+          fswthruvdr , & ! vis dir sw radiation through ice bot    (W/m**2)
+          fswthruvdf , & ! vis dif sw radiation through ice bot    (W/m**2)
+          fswthruidr , & ! nir dir sw radiation through ice bot    (W/m**2)
+          fswthruidf , & ! nir dif sw radiation through ice bot    (W/m**2)
           alvdr   , & ! visible, direct   (fraction)
           alidr   , & ! near-ir, direct   (fraction)
           alvdf   , & ! visible, diffuse  (fraction)
@@ -1106,6 +1112,10 @@
             fsalt   (i,j) = fsalt   (i,j) * ar
             fhocn   (i,j) = fhocn   (i,j) * ar
             fswthru (i,j) = fswthru (i,j) * ar
+            fswthruvdr (i,j) = fswthruvdr (i,j) * ar
+            fswthruvdf (i,j) = fswthruvdf (i,j) * ar
+            fswthruidr (i,j) = fswthruidr (i,j) * ar
+            fswthruidf (i,j) = fswthruidf (i,j) * ar
             alvdr   (i,j) = alvdr   (i,j) * ar
             alidr   (i,j) = alidr   (i,j) * ar
             alvdf   (i,j) = alvdf   (i,j) * ar
@@ -1134,6 +1144,10 @@
             fsalt   (i,j) = c0
             fhocn   (i,j) = c0
             fswthru (i,j) = c0
+            fswthruvdr (i,j) = c0
+            fswthruvdf (i,j) = c0
+            fswthruidr (i,j) = c0
+            fswthruidf (i,j) = c0
             alvdr   (i,j) = c0  ! zero out albedo where ice is absent
             alidr   (i,j) = c0
             alvdf   (i,j) = c0 
