@@ -504,11 +504,18 @@ EOF0
 cat >! ${tsdir}/report_codecov.csh << EOF0
 #!/bin/csh -f
 
-#setenv CODECOV_TOKEN "1d09241f-ed9e-47d8-847c-038bab024b53"   # consortium cice
-#setenv CODECOV_TOKEN "f3236008-0b92-4707-9ad5-ad906f5d2ba7"   # apcraig cice
-setenv CODECOV_TOKEN "0dcc6066-fdce-47b6-b84a-c55e2a0af4c0"   # apcraig test_cice_icepack
-set report_name = "${shhash}:${branch}:${machine} ${testsuite}"
+# define CODECOV_TOKEN env variable
+if !(\$?CODECOV_TOKEN) then
+  if (-e ~/.codecov_cice_token) then
+    source ~/.codecov_cice_token
+  endif
+  if !(\$?CODECOV_TOKEN) then
+    echo "\${0}: ERROR, CODECOV_TOKEN env variable not defined"
+    exit 2
+  endif
+endif
 
+set report_name = "${shhash}:${branch}:${machine} ${testsuite}"
 set use_curl = 1
 
 EOF0
@@ -871,13 +878,8 @@ setenv ICE_COMPILER ${compiler}
 setenv ICE_MACHCOMP ${machcomp}
 setenv ICE_RUNDIR   ${rundir}
 setenv ICE_GRID     ${grid}
-#setenv ICE_NXGLOB   ${ICE_DECOMP_NXGLOB}  # moved to namelist
-#setenv ICE_NYGLOB   ${ICE_DECOMP_NYGLOB}  # moved to namelist
 setenv ICE_NTASKS   ${task}
 setenv ICE_NTHRDS   ${thrd}
-#setenv ICE_MXBLCKS  ${ICE_DECOMP_MXBLCKS}  # moved to namelist
-#setenv ICE_BLCKX    ${ICE_DECOMP_BLCKX}  # moved to namelist
-#setenv ICE_BLCKY    ${ICE_DECOMP_BLCKY}  # moved to namelist
 setenv ICE_BASELINE ${basedir_tmp}
 setenv ICE_BASEGEN  ${baseGen}
 setenv ICE_BASECOM  ${baseCom}

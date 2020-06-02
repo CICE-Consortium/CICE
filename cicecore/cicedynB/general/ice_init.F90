@@ -76,7 +76,8 @@
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
-                             incond_dir, incond_file, version_name
+                             incond_dir, incond_file, version_name, &
+                             history_precision, history_format
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
@@ -98,7 +99,7 @@
                                 basalstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
-      use ice_transport_driver, only: advection
+      use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
@@ -149,10 +150,11 @@
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
-        diagfreq,       diag_type,      diag_file,                      &
+        diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
         dbug,           histfreq,       histfreq_n,      hist_avg,      &
-        history_dir,    history_file,   cpl_bgc,                        &
+        history_dir,    history_file,   history_precision, cpl_bgc,     &
+        conserv_check,                                                  &
         write_ic,       incond_dir,     incond_file,     version_name
 
       namelist /grid_nml/ &
@@ -249,8 +251,10 @@
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency 
       hist_avg = .true.      ! if true, write time-averages (not snapshots)
+      history_format = 'default' ! history file format
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
+      history_precision = 4  ! precision of history files
       write_ic = .false.     ! write out initial condition
       cpl_bgc = .false.      ! history file name prefix
       incond_dir = history_dir ! write to history dir for default
@@ -262,9 +266,9 @@
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
-      use_restart_time = .true.     ! if true, use time info written in file
+      use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
-      restart_format = 'nc'  ! file format ('bin'=binary or 'nc'=netcdf or 'pio')
+      restart_format = 'default'  ! restart file format
       lcdf64       = .false. ! 64 bit offset for netCDF
       ice_ic       = 'default'      ! latitude and sst-dependent
       grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
@@ -276,7 +280,7 @@
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0          ! number of ice thickness categories
-      nfsd  = 0          ! number of floe size categories (1 = default)
+      nfsd  = 1          ! number of floe size categories (1 = default)
       nilyr = 0          ! number of vertical ice layers
       nslyr = 0          ! number of vertical snow layers
       nblyr = 0          ! number of bio layers
@@ -306,6 +310,7 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
+      conserv_check = .false.! tracer conservation check
       shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
       albedo_type = 'ccsm3'  ! 'ccsm3' or 'constant'
       ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
@@ -536,6 +541,8 @@
       call broadcast_scalar(hist_avg,           master_task)
       call broadcast_scalar(history_dir,        master_task)
       call broadcast_scalar(history_file,       master_task)
+      call broadcast_scalar(history_precision,  master_task)
+      call broadcast_scalar(history_format,     master_task)
       call broadcast_scalar(write_ic,           master_task)
       call broadcast_scalar(cpl_bgc,            master_task)
       call broadcast_scalar(incond_dir,         master_task)
@@ -586,6 +593,7 @@
       call broadcast_scalar(Ktens,              master_task)
       call broadcast_scalar(e_ratio,            master_task)
       call broadcast_scalar(advection,          master_task)
+      call broadcast_scalar(conserv_check,      master_task)
       call broadcast_scalar(shortwave,          master_task)
       call broadcast_scalar(albedo_type,        master_task)
       call broadcast_scalar(ktherm,             master_task)
@@ -843,7 +851,7 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: isotopes activated but'
             write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
-            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+            write(nu_diag,*) subname//' ERROR:   if tr_iso, n_iso must be > 0.'
          endif
          abort_flag = 31
       endif
@@ -852,9 +860,17 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: aerosols activated but'
             write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
-            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+            write(nu_diag,*) subname//' ERROR:   if tr_aero, n_aero must be > 0.'
          endif
          abort_flag = 9
+      endif
+
+      if (nfsd < 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: nfsd < 1'
+            write(nu_diag,*) subname//' ERROR:   not allowed due to history implementation.'
+         endif
+         abort_flag = 32
       endif
 
       if (trim(shortwave) /= 'dEdd' .and. tr_aero) then
@@ -935,6 +951,11 @@
          abort_flag = 19
       endif
       
+      if(history_precision .ne. 4 .and. history_precision .ne. 8) then
+         write (nu_diag,*) 'ERROR: bad value for history_precision, allowed values: 4, 8'
+         abort_flag = 22
+      endif
+
       if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &
                 trim(dumpfreq) == 'm' .or. trim(dumpfreq) == 'M' .or. &
                 trim(dumpfreq) == 'd' .or. trim(dumpfreq) == 'D' .or. &
@@ -993,6 +1014,9 @@
                                trim(history_dir)
          write(nu_diag,*)    ' history_file              = ', &
                                trim(history_file)
+         write(nu_diag,1020) ' history_precision         = ', history_precision
+         write(nu_diag,*)    ' history_format            = ', &
+                               trim(history_format)
          if (write_ic) then
             write(nu_diag,*) 'Initial condition will be written in ', &
                                trim(incond_dir)
@@ -1077,6 +1101,7 @@
          write(nu_diag,1030) ' shortwave                 = ', &
                                trim(shortwave)
          write(nu_diag,1000) ' ksno                      = ', ksno
+         write(nu_diag,1010) ' conserv_check             = ', conserv_check
          if (cpl_bgc) then
              write(nu_diag,1000) ' BGC coupling is switched ON'
          else
@@ -1156,8 +1181,8 @@
                                oceanmixed_ice
          write(nu_diag,1010) ' wave_spec                 = ', wave_spec
          if (wave_spec) then
-            write(nu_diag,*)    ' wave_spec_type            = ', wave_spec_type
-            write(nu_diag,*)    ' wave_spec_file            = ', wave_spec_file
+            write(nu_diag,*) ' wave_spec_type            = ', trim(wave_spec_type)
+            write(nu_diag,*) ' wave_spec_file            = ', trim(wave_spec_file)
          endif
          write(nu_diag,1020) ' nfreq                     = ', nfreq
          write(nu_diag,*)    ' tfrz_option               = ', &
@@ -1290,7 +1315,7 @@
          ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
-         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
+         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
@@ -1841,9 +1866,6 @@
          do n = 1, ncat
 
             ! ice volume, snow volume
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
             do ij = 1, icells
                i = indxi(ij)
                j = indxj(ij)

@@ -11,7 +11,7 @@
     restart        = .true.
     restart_ext    = .false.
     use_restart_time = .true.
-    restart_format = 'nc'
+    restart_format = 'default'
     lcdf64         = .false.
     numin          = 21
     numax          = 89
@@ -27,6 +27,7 @@
     diag_file      = 'ice_diag.d'
     print_global   = .true.
     print_points   = .true.
+    conserv_check  = .false.
     latpnt(1)      =  90.
     lonpnt(1)      =  0.
     latpnt(2)      = -65.
@@ -37,6 +38,8 @@
     hist_avg       = .true.
     history_dir    = './history/'
     history_file   = 'iceh'
+    history_precision = 4
+    history_format = 'default'
     write_ic       = .true.
     incond_dir     = './history/'
     incond_file    = 'iceh_ic'
@@ -493,7 +496,8 @@
     f_fcondtopn_ai = 'x'
     f_fmelttn_ai   = 'x'
     f_flatn_ai     = 'x'
-    f_fsensn_ai     = 'x'
+    f_fsensn_ai    = 'x'
+    f_CMIP         = 'x'
 /
 
 &icefields_mechred_nml

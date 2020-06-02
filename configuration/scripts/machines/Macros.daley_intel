@@ -1,0 +1,40 @@
+#==============================================================================
+# Makefile macros for ECCC daley
+#==============================================================================
+# For use with intel compiler
+#==============================================================================
+
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise
+#-xHost
+
+FREEFLAGS  := -FR
+FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceback
+#-xHost
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check -fpe0 -ftrapuv -fp-model except -check noarg_temp_created
+# -heap-arrays 1024 
+else
+  FFLAGS     += -O2
+endif
+
+SCC   := cc
+SFC   := ftn
+MPICC := cc
+MPIFC := ftn
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -qopenmp 
+   CFLAGS += -qopenmp 
+   FFLAGS += -qopenmp 
+endif

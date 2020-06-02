@@ -1248,9 +1248,6 @@
                enddo
                enddo
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
                do ij = 1, icells  ! Note: no tx or ty in ghost cells
                                   ! (bound calls are later)
                   i = indxi(ij)
@@ -3133,10 +3130,6 @@
 
       elseif (integral_order == 2) then ! quadratic (3-point formula)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
-
          do ng = 1, ngroups
          do ij = 1, icells(ng)
             i = indxi(ij,ng)
@@ -3164,9 +3157,6 @@
 
       else                      ! cubic (4-point formula)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
          do ng = 1, ngroups
          do ij = 1, icells(ng)
             i = indxi(ij,ng)
@@ -3298,9 +3288,6 @@
 
          if (integral_order == 1) then  ! linear (1-point formula)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
             do ij = 1, icells(ng)
                i = indxi(ij,ng)
                j = indxj(ij,ng)
@@ -3326,9 +3313,6 @@
 
          elseif (integral_order == 2) then  ! quadratic (3-point formula)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
             do ij = 1, icells(ng)
                i = indxi(ij,ng)
                j = indxj(ij,ng)
@@ -3373,9 +3357,6 @@
 
          else                   ! cubic (4-point formula)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
             do ij = 1, icells(ng)
                i = indxi(ij,ng)
                j = indxj(ij,ng)
@@ -3433,9 +3414,6 @@
             do nt = 1, ntrace
                if (tracer_type(nt)==1) then ! does not depend on another tracer
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
                   do ij = 1, icells(ng)
                      i = indxi(ij,ng)
                      j = indxj(ij,ng)
@@ -3464,9 +3442,6 @@
                elseif (tracer_type(nt)==2) then ! depends on another tracer
                   nt1 = depend(nt)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
                   do ij = 1, icells(ng)
                      i = indxi(ij,ng)
                      j = indxj(ij,ng)
@@ -3486,9 +3461,6 @@
                elseif (tracer_type(nt)==3) then ! depends on two tracers
                   nt1 = depend(nt)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
                   do ij = 1, icells(ng)
                      i = indxi(ij,ng)
                      j = indxj(ij,ng)
@@ -3690,9 +3662,6 @@
             elseif (tracer_type(nt)==2) then ! depends on another tracer
                nt1 = depend(nt)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
                do ij = 1, icells
                   i = indxi(ij)
                   j = indxj(ij)
@@ -3710,9 +3679,6 @@
                nt1 = depend(nt)
                nt2 = depend(nt1)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
                do ij = 1, icells
                   i = indxi(ij)
                   j = indxj(ij)

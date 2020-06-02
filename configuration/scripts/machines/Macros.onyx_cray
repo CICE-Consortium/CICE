@@ -54,10 +54,3 @@ ifeq ($(ICE_THREADED), false)
    FFLAGS += -hnoomp
 endif
 
-### if using parallel I/O, load all 3 libraries.  PIO must be first!
-ifeq ($(ICE_IOTYPE), pio)
-   PIO_PATH:=/glade/u/home/jedwards/pio1_6_5/pio
-   INCLDIR += -I$(PIO_PATH)
-   SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpio
-endif
-

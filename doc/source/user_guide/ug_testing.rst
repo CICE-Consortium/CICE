@@ -668,32 +668,25 @@ Code Coverage Testing
 The ``--codecov`` feature in **cice.setup** provides a method to diagnose code coverage.
 This argument turns on special compiler flags including reduced optimization and then
 invokes the gcov tool.
-This option is currently only available with the gnu compiler and on a few systems.
+This option is currently only available with the gnu compiler and on a few systems
+with modified Macros files.
 
 Because codecov.io does not support git submodule analysis right now, a customized
 repository has to be created to test CICE with Icepack integrated directly.  The repository 
 https://github.com/apcraig/Test_CICE_Icepack serves as the current default test repository.
 In general, to setup the code coverage test in CICE, the current CICE master has
-to be copied into the Test_CICE_Icepack repository, then the code coverage tool can
-be run on that repository.  A sample script to do that would be::
+to be copied into the Test_CICE_Icepack repository, then the full test suite
+can be run with the gnu compiler with the ``--codecov`` argument.
 
-  git clone https://github.com/cice-consortium/cice cice.master --recursive
-
-  git clone https://github.com/apcraig/test_cice_icepack
-  cd test_cice_icepack
-  git rm -r *
-  cp -p -r ../cice.master/* .
-  git add .
-  git commit -m "update to current cice master"
-  git push origin master
-
-  ./cice.setup --suite first_suite,base_suite,travis_suite,decomp_suite,reprosum_suite,quick_suite -m gordon -e gnu --codecov --testid cc01
-
-To use, submit a full test suite using an updated Test_CICE_Icepack version
-and the gnu compiler with the ``--codecov`` argument.
 The test suite will run and then a report will be generated and uploaded to 
 the `codecov.io site <https://codecov.io/gh/apcraig/Test_CICE_Icepack>`_ by the 
-**report_codecov.csh** script.  
+**report_codecov.csh** script.  The env variable CODECOV_TOKEN needs to be defined
+either in the environment or in a file named **~/.codecov_cice_token**.  That
+token provides write permission to the Test_CICE_Icepack codecov.io site and is available
+by contacting the Consortium team directly.
+
+A script that carries out the end-to-end testing can be found in 
+**configuration/scripts/tests/cice_test_codecov.csh**
 
 This is a special diagnostic test and does not constitute proper model testing.
 General use is not recommended, this is mainly used as a diagnostic to periodically 
