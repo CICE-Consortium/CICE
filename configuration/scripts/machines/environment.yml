@@ -8,6 +8,7 @@ dependencies:
   - netcdf-fortran
   - openmpi
   - make
+  - liblapack
 # Python dependencies for plotting scripts
   - numpy
   - matplotlib-base
