@@ -116,7 +116,7 @@
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 
                           ! 'LYq' or 'hadgem' or 'oned' or
-                          ! 'JRA55_gx1' or 'JRA55_gx3'
+                          ! 'JRA55_gx1' or 'JRA55_gx3' or 'JRA55_tx1'
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
@@ -241,6 +241,7 @@
 
       if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55_gx1' .and. &
                                 trim(atm_data_type) /= 'JRA55_gx3' .and. &
+                                trim(atm_data_type) /= 'JRA55_tx1' .and. &
                                 trim(atm_data_type) /= 'hycom' .and. &
                                 trim(atm_data_type) /= 'box2001')) then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
@@ -261,6 +262,8 @@
          call JRA55_gx1_files(fyear)
       elseif (trim(atm_data_type) == 'JRA55_gx3') then
          call JRA55_gx3_files(fyear)
+      elseif (trim(atm_data_type) == 'JRA55_tx1') then
+         call JRA55_tx1_files(fyear)
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_files(fyear)
       elseif (trim(atm_data_type) == 'monthly') then
@@ -559,6 +562,8 @@
       elseif (trim(atm_data_type) == 'JRA55_gx1') then
          call JRA55_data(fyear)
       elseif (trim(atm_data_type) == 'JRA55_gx3') then
+         call JRA55_data(fyear)
+      elseif (trim(atm_data_type) == 'JRA55_tx1') then
          call JRA55_data(fyear)
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_data
@@ -1405,6 +1410,10 @@
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
+      elseif (trim(atm_data_type) == 'JRA55_tx1') then ! netcdf
+         i = index(data_file,'.nc') - 5
+         tmpname = data_file
+         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
       else                                     ! LANL/NCAR naming convention
          i = index(data_file,'.dat') - 5
          tmpname = data_file
@@ -2047,6 +2056,22 @@
          write (nu_diag,*) trim(uwind_file)
     endif
       end subroutine JRA55_gx1_files
+      subroutine JRA55_tx1_files(yr)
+!
+      integer (kind=int_kind), intent(in) :: &
+           yr                   ! current forcing year
+
+      character(len=*), parameter :: subname = '(JRA55_tx1_files)'
+
+      uwind_file = &
+           trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_tx1_2005.nc'
+      call file_year(uwind_file,yr)
+  if (my_task == master_task) then
+         write (nu_diag,*) ' '
+         write (nu_diag,*) 'Atmospheric data files:'
+         write (nu_diag,*) trim(uwind_file)
+    endif
+      end subroutine JRA55_tx1_files
       subroutine JRA55_gx3_files(yr)
 !
       integer (kind=int_kind), intent(in) :: &

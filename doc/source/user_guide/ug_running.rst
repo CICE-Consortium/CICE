@@ -142,11 +142,15 @@ You can also submit the **cice.run** script on the command line.
 
 Some hints:
 
-- To change the block sizes required at build time, edit the **cice.settings** file.
 - To change namelist, manually edit the **ice_in** file
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
+- When the run scripts are submitted, the current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from the case directory into the run directory.  Users should generally not edit files in the run directory as these are overwritten when following the standard workflow.  **cice.settings** can be sourced to establish the case values in the login shell.  An alias like the following can be established to quickly switch between case and run directories::
+
+    alias  cdrun 'cd `\grep "setenv ICE_RUNDIR"  cice.settings | awk "{print "\$"NF}"`'
+    alias cdcase 'cd `\grep "setenv ICE_CASEDIR" cice.settings | awk "{print "\$"NF}"`'
+
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
-- To change compiler options, manually edit the Macros file
+- To change compiler options, manually edit the Macros file. To add user defined preprocessor macros, modify ``ICE_CPPDEFS`` in **cice.settings** using the syntax ``-DCICE_MACRO``.
 - To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.  It is recommended that the ``ICE_CLEANBUILD`` be set to true if there are any questions about whether the build is proceeding properly.
 
 To build and run::
@@ -268,7 +272,8 @@ To add some optional settings, one might do::
 
   cice.setup --case mycase2 --mach spirit --env intel --set debug,diag1,run1year
 
-Once the cases are created, users are free to modify the cice.settings and ice_in namelist to further modify their setup.
+Once the cases are created, users are free to modify the **cice.settings** and 
+**ice_in** namelist to further modify their setup.
 
 .. _cicebuild:
 
@@ -779,7 +784,11 @@ Run Directories
 
 The **cice.setup** script creates a case directory.  However, the model 
 is actually built and run under the ``ICE_OBJDIR`` and ``ICE_RUNDIR`` directories
-as defined in the **cice.settings** file.
+as defined in the **cice.settings** file.  It's important to note that when the
+run scripts are submitted, the current **ice_in**, **cice.settings**, and **env.[machine]**
+files are copied from the case directory into the run directory.  Users should 
+generally not edit files in the run directory as these are overwritten when following
+the standard workflow.
 
 Build and run logs will be copied from the run directory into the case **logs/** 
 directory when complete.

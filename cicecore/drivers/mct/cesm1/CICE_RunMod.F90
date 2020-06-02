@@ -374,7 +374,7 @@
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
+          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask
