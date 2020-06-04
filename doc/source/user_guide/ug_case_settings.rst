@@ -15,9 +15,11 @@ for CICE.  Variables in both files are described below.
 Table of CICE Settings
 --------------------------
 
-The **cice.settings** file is reasonably well self documented.  Several of
-the variables defined in the file are not used in CICE.  They exist
-to support the CICE model.
+The **cice.settings** file contains a number of environment variables that define
+configuration, file system, run, and build settings.  Several variables are set
+by the **cice.setup** script.  This file is created on a case by case basis and
+can be modified as needed.
+
 
 .. csv-table:: *CICE settings*
    :header: "variable", "options/format", "description", "default value"
@@ -77,6 +79,12 @@ to support the CICE model.
 
 Table of namelist options
 -------------------------------
+
+CICE reads a namelist input file, **ice_in**, consisting of several namelist groups.  The tables below
+summarize the different groups and the variables in each group.  The variables are organized alphabetically 
+and the default values listed are the values defined in the source code.  Those values will be 
+used unless overridden by the CICE namelist file, **ice_in**.  The source code default values as listed 
+in the table are not necessarily the recommended production values.
 
 setup_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
