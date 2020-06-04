@@ -6,6 +6,27 @@ Other things
 =============
 
 
+.. _debugger:
+
+Running with a Debugger
+-------------------------
+
+Availability and usage of interactive debuggers varies across machines.  Contact your 
+system administrator for additional information about what’s available on your system.  
+To run with an interactive debugger, the following general steps should be taken.
+
+- Setup a case
+- Modify the env file and Macros file to add appropriate modules and compiler/ linker flags
+- Build the model
+- Get interactive hardware resources as needed
+- Open a csh shell
+- Source the env.${machine} file
+- Source [cice,icepack].settings
+- Change directories to the run directory
+- Manually launch the executable thru the debugger
+
+
+
 Reproducible Sums
 ----------------------
 
@@ -78,6 +99,7 @@ A use `ice\_timers` statement may need to be added to the subroutine being
 modified. Be careful not to have one command outside of a loop and the
 other command inside. Timers can be run for individual blocks, if
 desired, by including the block ID in the timer calls.
+
 
 .. _addhist:
 
