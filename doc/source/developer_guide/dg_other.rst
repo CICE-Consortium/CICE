@@ -21,7 +21,7 @@ To run with an interactive debugger, the following general steps should be taken
 - Get interactive hardware resources as needed
 - Open a csh shell
 - Source the env.${machine} file
-- Source [cice,icepack].settings
+- Source cice.settings
 - Change directories to the run directory
 - Manually launch the executable thru the debugger
 
@@ -177,14 +177,14 @@ the tracer dependencies (weights), which are tracked using the arrays
 ``trcr_base`` (a dependency mask), ``n_trcr_strata`` (the number of
 underlying tracer layers), and ``nt_strata`` (indices of underlying layers). 
 Additional information about tracers can be found in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/index.html>`_.
+`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/index.html>`__.
 
 To add a tracer, follow these steps using one of the existing tracers as
 a pattern.
 
   1)  **icepack\_tracers.F90** and **icepack\_[tracer].F90**: declare tracers,
       add flags and indices, and create physics routines as described in the
-      `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/dg_adding_tracers.html>`_
+      `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/dg_adding_tracers.html>`__
 
   2)  **ice_arrays_column.F90**: declare arrays
 
@@ -233,6 +233,6 @@ a pattern.
        configuration in **configuration/scripts/options**.
 
   12)  If strict conservation is necessary, add diagnostics as noted for
-       topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+       topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`__.
 
   13)  Update documentation, including **cice_index.rst** and **ug_case_settings.rst**
