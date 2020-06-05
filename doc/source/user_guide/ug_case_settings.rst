@@ -21,7 +21,7 @@ by the **cice.setup** script.  This file is created on a case by case basis and
 can be modified as needed.
 
 
-.. csv-table:: *CICE settings*
+.. csv-table:: **CICE settings**
    :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 25, 20
 
@@ -90,7 +90,7 @@ setup_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **setup_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -165,7 +165,7 @@ grid_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **grid_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -199,7 +199,7 @@ domain_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **domain_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -240,7 +240,7 @@ tracer_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **tracer_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -277,7 +277,7 @@ thermo_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **thermo_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -302,7 +302,7 @@ dynamics_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **dynamics_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -347,7 +347,7 @@ shortwave_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **shortwave_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -372,7 +372,7 @@ ponds_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **ponds_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -391,7 +391,7 @@ forcing_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **forcing_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -470,7 +470,7 @@ zbgc_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **zbgc_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
@@ -628,7 +628,7 @@ icefields_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: **icefields_nml namelist options**
-   :header: "variable", "format", "description", "default value"
+   :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
