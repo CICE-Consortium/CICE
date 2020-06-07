@@ -572,6 +572,13 @@ EOF
       continue
     endif
 
+    # unset env variables that might not exist in env machine file
+    # to avoid any carry over during multi compiler suites
+    unsetenv ICE_MACHINE_MAXTHREADS
+    unsetenv ICE_MACHINE_MAXPES
+    unsetenv ICE_MACHINE_QUIETMODE
+    unsetenv ICE_MACHINE_CPPDEFS
+    unsetenv ICE_MACHINE_QSTAT
     source ${ICE_SCRIPTS}/machines/env.${machcomp} -nomodules || exit 2
 
     # Obtain the test name, sets, grid, and PE information from .ts file
@@ -782,6 +789,11 @@ EOF
       set quietmode = ${ICE_MACHINE_QUIETMODE}
     endif
 
+    set cppdefs = ""
+    if ($?ICE_MACHINE_CPPDEFS) then
+      set cppdefs = ${ICE_MACHINE_CPPDEFS}
+    endif
+
     if (${acct} == ${spval}) then
       if (-e ~/.cice_proj) then
         set acct = `head -1 ~/.cice_proj`
@@ -884,6 +896,7 @@ setenv ICE_BASELINE ${basedir_tmp}
 setenv ICE_BASEGEN  ${baseGen}
 setenv ICE_BASECOM  ${baseCom}
 setenv ICE_SPVAL    ${spval}
+setenv ICE_CPPDEFS  ${cppdefs}
 setenv ICE_QUIETMODE  ${quietmode}
 setenv ICE_TEST     ${test}
 setenv ICE_TESTNAME ${testname_noid}
