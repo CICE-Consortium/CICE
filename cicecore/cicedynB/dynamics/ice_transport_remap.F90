@@ -31,13 +31,13 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, ice_barrier
+      use ice_communicate, only: my_task
       use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, &
           eps13, eps16, &
           field_loc_center, field_type_scalar, &
           field_loc_NEcorner, field_type_vector
       use ice_domain_size, only: max_blocks, ncat
-      use ice_fileunits, only: nu_diag, flush_fileunit
+      use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
@@ -381,127 +381,57 @@
          ilo,ihi,jlo,jhi,&! beginning and end of physical domain
          n, m             ! ice category, tracer indices
 
-! tcraig, the intel 20.0.1 compiler generates a segfault when entering this subroutine
-! at runtime.
-! This is probably a compiler bug and a workaround is to allocate the temporary data 
-! rather than define it statically.  Initial results don't show any slowdown, but
-! to keep the issue highlighted, an ifdef was created as a workaround.
-
-#ifdef INTEL20_WORKAROUND
-      integer (kind=int_kind), dimension(:,:), allocatable ::     &
-#else
       integer (kind=int_kind), dimension(0:ncat,max_blocks) ::     &
-#endif
          icellsnc         ! number of cells with ice
 
-#ifdef INTEL20_WORKAROUND
-      integer (kind=int_kind), dimension(:,:), allocatable ::     &
-#else
       integer (kind=int_kind), dimension(nx_block*ny_block,0:ncat) ::     &
-#endif
          indxinc, indxjnc   ! compressed i/j indices
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension(:,:), allocatable ::  &
-#else
       real (kind=dbl_kind), dimension(nx_block,ny_block) ::  &
-#endif
          edgearea_e     ,&! area of departure regions for east edges
          edgearea_n       ! area of departure regions for north edges
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension (:,:,:), allocatable ::     &
-#else
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) ::     &
-#endif
          dpx            ,&! x coordinates of departure points at cell corners
          dpy              ! y coordinates of departure points at cell corners
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension(:,:,:,:), allocatable :: &
-#else
       real (kind=dbl_kind), dimension(nx_block,ny_block,0:ncat,max_blocks) :: &
-#endif
          mc             ,&! mass at geometric center of cell
          mx, my           ! limited derivative of mass wrt x and y
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
-#else
       real (kind=dbl_kind), dimension(nx_block,ny_block,0:ncat) :: &
-#endif
          mmask            ! = 1. if mass is present, = 0. otherwise
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable :: &
-#else
       real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat,max_blocks) :: &
-#endif
          tc             ,&! tracer values at geometric center of cell
          tx, ty           ! limited derivative of tracer wrt x and y
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension (:,:,:,:), allocatable ::     &
-#else
       real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat) ::     &
-#endif
          tmask            ! = 1. if tracer is present, = 0. otherwise
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension (:,:,:), allocatable ::     &
-#else
       real (kind=dbl_kind), dimension (nx_block,ny_block,0:ncat) ::     &
-#endif
          mflxe, mflxn     ! mass transports across E and N cell edges
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension (:,:,:,:), allocatable :: &
-#else
       real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat) :: &
-#endif
          mtflxe, mtflxn   ! mass*tracer transports across E and N cell edges
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension (:,:,:), allocatable ::     &
-#else
       real (kind=dbl_kind), dimension (nx_block,ny_block,ngroups) ::     &
-#endif
          triarea          ! area of east-edge departure triangle
 
-#ifdef INTEL20_WORKAROUND
-      real (kind=dbl_kind), dimension (:,:,:,:), allocatable ::  &
-#else
       real (kind=dbl_kind), dimension (nx_block,ny_block,0:nvert,ngroups) ::  &
-#endif
          xp, yp           ! x and y coordinates of special triangle points
                           ! (need 4 points for triangle integrals)
-#ifdef INTEL20_WORKAROUND
-      integer (kind=int_kind), dimension (:,:,:), allocatable ::     &
-#else
       integer (kind=int_kind), dimension (nx_block,ny_block,ngroups) ::     &
-#endif
          iflux          ,&! i index of cell contributing transport
          jflux            ! j index of cell contributing transport
 
-#ifdef INTEL20_WORKAROUND
-      integer (kind=int_kind), dimension(:,:), allocatable ::     &
-#else
       integer (kind=int_kind), dimension(ngroups,max_blocks) ::     &
-#endif
          icellsng         ! number of cells with ice
 
-#ifdef INTEL20_WORKAROUND
-      integer (kind=int_kind), dimension(:,:), allocatable ::     &
-#else
       integer (kind=int_kind), dimension(nx_block*ny_block,ngroups) ::     &
-#endif
          indxing, indxjng ! compressed i/j indices
 
-#ifdef INTEL20_WORKAROUND
-      integer (kind=int_kind), dimension(:,:,:), allocatable :: &
-#else
       integer (kind=int_kind), dimension(nx_block,ny_block,max_blocks) :: &
-#endif
          halomask         ! temporary mask for fast halo updates
 
       logical (kind=log_kind) ::     &
@@ -524,37 +454,6 @@
 !---! Remap the ice area and associated tracers.
 !---! Remap the open water area (without tracers).
 !---!-------------------------------------------------------------------
-
-#ifdef INTEL20_WORKAROUND
-      allocate(icellsnc(0:ncat,max_blocks))
-      allocate(indxinc(nx_block*ny_block,0:ncat))
-      allocate(indxjnc(nx_block*ny_block,0:ncat))
-      allocate(edgearea_e(nx_block,ny_block))
-      allocate(edgearea_n(nx_block,ny_block))
-      allocate(dpx(nx_block,ny_block,max_blocks))
-      allocate(dpy(nx_block,ny_block,max_blocks))
-      allocate(mc(nx_block,ny_block,0:ncat,max_blocks))
-      allocate(mx(nx_block,ny_block,0:ncat,max_blocks))
-      allocate(my(nx_block,ny_block,0:ncat,max_blocks))
-      allocate(mmask(nx_block,ny_block,0:ncat))
-      allocate(tc(nx_block,ny_block,ntrace,ncat,max_blocks))
-      allocate(tx(nx_block,ny_block,ntrace,ncat,max_blocks))
-      allocate(ty(nx_block,ny_block,ntrace,ncat,max_blocks))
-      allocate(tmask(nx_block,ny_block,ntrace,ncat))
-      allocate(mflxe(nx_block,ny_block,0:ncat))
-      allocate(mflxn(nx_block,ny_block,0:ncat))
-      allocate(mtflxe(nx_block,ny_block,ntrace,ncat))
-      allocate(mtflxn(nx_block,ny_block,ntrace,ncat))
-      allocate(triarea(nx_block,ny_block,ngroups))
-      allocate(xp(nx_block,ny_block,0:nvert,ngroups))
-      allocate(yp(nx_block,ny_block,0:nvert,ngroups))
-      allocate(iflux(nx_block,ny_block,ngroups))
-      allocate(jflux(nx_block,ny_block,ngroups))
-      allocate(icellsng(ngroups,max_blocks))
-      allocate(indxing(nx_block*ny_block,ngroups))
-      allocate(indxjng(nx_block*ny_block,ngroups))
-      allocate(halomask(nx_block,ny_block,max_blocks))
-#endif
 
       !--- tcraig, tcx, this omp loop leads to a seg fault in gnu
       !--- need to check private variables and debug further
@@ -947,37 +846,6 @@
 
       enddo                     ! iblk
       !$TCXOMP END PARALLEL DO
-
-#ifdef INTEL20_WORKAROUND
-      deallocate(icellsnc)
-      deallocate(indxinc)
-      deallocate(indxjnc)
-      deallocate(edgearea_e)
-      deallocate(edgearea_n)
-      deallocate(dpx)
-      deallocate(dpy)
-      deallocate(mc)
-      deallocate(mx)
-      deallocate(my)
-      deallocate(mmask)
-      deallocate(tc)
-      deallocate(tx)
-      deallocate(ty)
-      deallocate(tmask)
-      deallocate(mflxe)
-      deallocate(mflxn)
-      deallocate(mtflxe)
-      deallocate(mtflxn)
-      deallocate(triarea)
-      deallocate(xp)
-      deallocate(yp)
-      deallocate(iflux)
-      deallocate(jflux)
-      deallocate(icellsng)
-      deallocate(indxing)
-      deallocate(indxjng)
-      deallocate(halomask)
-#endif
 
       end subroutine horizontal_remap
 
