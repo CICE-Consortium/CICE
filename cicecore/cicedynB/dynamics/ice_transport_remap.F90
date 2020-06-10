@@ -30,6 +30,7 @@
       module ice_transport_remap
 
       use ice_kinds_mod
+      use ice_blocks, only: nx_block, ny_block
       use ice_communicate, only: my_task
       use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, &
           eps13, eps16, &
@@ -254,7 +255,6 @@
       subroutine init_remap
 
       use ice_domain, only: nblocks
-      use ice_blocks, only: nx_block, ny_block
       use ice_grid, only: xav, yav, xxav, yyav
 !                          dxt, dyt, xyav, &
 !                          xxxav, xxyav, xyyav, yyyav
@@ -324,7 +324,7 @@
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_remap
-      use ice_blocks, only: block, get_block, nghost, nx_block, ny_block
+      use ice_blocks, only: block, get_block, nghost
       use ice_grid, only: HTE, HTN, dxu, dyu,       &
                           tarear, hm,                  &
                           xav, yav, xxav, yyav
@@ -384,8 +384,7 @@
       integer (kind=int_kind), dimension(0:ncat,max_blocks) ::     &
          icellsnc         ! number of cells with ice
 
-      integer (kind=int_kind),     &
-         dimension(nx_block*ny_block,0:ncat) ::     &
+      integer (kind=int_kind), dimension(nx_block*ny_block,0:ncat) ::     &
          indxinc, indxjnc   ! compressed i/j indices
 
       real (kind=dbl_kind), dimension(nx_block,ny_block) ::  &
@@ -403,13 +402,11 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,0:ncat) :: &
          mmask            ! = 1. if mass is present, = 0. otherwise
 
-      real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,ntrace,ncat,max_blocks) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat,max_blocks) :: &
          tc             ,&! tracer values at geometric center of cell
          tx, ty           ! limited derivative of tracer wrt x and y
 
-      real (kind=dbl_kind), &
-         dimension (nx_block,ny_block,ntrace,ncat) ::     &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace,ncat) ::     &
          tmask            ! = 1. if tracer is present, = 0. otherwise
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,0:ncat) ::     &
@@ -424,18 +421,18 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,0:nvert,ngroups) ::  &
          xp, yp           ! x and y coordinates of special triangle points
                           ! (need 4 points for triangle integrals)
-
-      integer (kind=int_kind),     &
-         dimension (nx_block,ny_block,ngroups) ::     &
+      integer (kind=int_kind), dimension (nx_block,ny_block,ngroups) ::     &
          iflux          ,&! i index of cell contributing transport
          jflux            ! j index of cell contributing transport
 
       integer (kind=int_kind), dimension(ngroups,max_blocks) ::     &
          icellsng         ! number of cells with ice
 
-      integer (kind=int_kind),     &
-         dimension(nx_block*ny_block,ngroups) ::     &
+      integer (kind=int_kind), dimension(nx_block*ny_block,ngroups) ::     &
          indxing, indxjng ! compressed i/j indices
+
+      integer (kind=int_kind), dimension(nx_block,ny_block,max_blocks) :: &
+         halomask         ! temporary mask for fast halo updates
 
       logical (kind=log_kind) ::     &
          l_stop           ! if true, abort the model
@@ -445,9 +442,6 @@
 
       character (len=char_len) ::   &
          edge             ! 'north' or 'east'
-
-      integer (kind=int_kind), &
-         dimension(nx_block,ny_block,max_blocks) :: halomask
 
       type (ice_halo) :: halo_info_tracer
 
@@ -515,6 +509,7 @@
                                mmask (:,:,0) )
 
          ! ice categories
+
          do n = 1, ncat
 
             call construct_fields(nx_block,            ny_block,            &
