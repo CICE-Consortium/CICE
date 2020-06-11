@@ -1,9 +1,9 @@
 #! /bin/csh -f
 
 if ( $1 != "" ) then
-  echo ${0:t} ${1}
+  echo "running cice.batch.csh (creating ${1})"
 else
-  echo ${0:t}
+  echo "running cice.batch.csh"
 endif
 
 #source ./cice.settings
@@ -91,7 +91,7 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
-else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
+else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr* || ${ICE_MACHINE} =~ mustang) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q ${queue}
@@ -99,6 +99,7 @@ cat >> ${jobfile} << EOFB
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
 #PBS -l walltime=${batchtime}
 #PBS -j oe
+#PBS -W umask=022
 ###PBS -M username@domain.com
 ###PBS -m be
 EOFB
@@ -204,35 +205,36 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
-else if (${ICE_MACHINE} =~ theia*) then
-cat >> ${jobfile} << EOFB
-#SBATCH -J ${ICE_CASENAME}
-#SBATCH -t ${batchtime}
-#SBATCH -q batch
-#SBATCH -A marine-cpu
-#SBATCH -N ${nnodes}
-#SBATCH -e slurm%j.err
-#SBATCH -o slurm%j.out
-#SBATCH --mail-type FAIL
-#SBATCH --mail-user=robert.grumbine@noaa.gov
-EOFB
-
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-#SBATCH -t `echo ${batchtime} | cut -f1-2 -d:`
-#SBATCH -q batch
-#SBATCH -A marine-cpu
-#SBATCH -N ${nnodes}
+#SBATCH --partition=hera
+#SBATCH --qos=${queue}
+#SBATCH -A ${acct}
+#SBATCH --time=${batchtime}
+#SBATCH --nodes=${nnodes}
+#SBATCH --ntasks-per-node=${taskpernodelimit}
+#SBATCH --cpus-per-task=${nthrds}
 #SBATCH -e slurm%j.err
 #SBATCH -o slurm%j.out
-#SBATCH --mail-type FAIL
-#SBATCH --mail-user=robert.grumbine@noaa.gov
+##SBATCH --mail-type FAIL
+##SBATCH --mail-user=xxx@noaa.gov
 EOFB
 
-else if (${ICE_MACHINE} =~ phase2*) then
+else if (${ICE_MACHINE} =~ orion*) then
 cat >> ${jobfile} << EOFB
-# nothing to do
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH --partition=orion
+#SBATCH --qos=${queue}
+#SBATCH -A ${acct}
+#SBATCH --time=${batchtime}
+#SBATCH --nodes=${nnodes}
+#SBATCH --ntasks-per-node=${taskpernodelimit}
+#SBATCH --cpus-per-task=${nthrds}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+##SBATCH --mail-type FAIL
+##SBATCH --mail-user=xxx@noaa.gov
 EOFB
 
 else if (${ICE_MACHINE} =~ phase3*) then

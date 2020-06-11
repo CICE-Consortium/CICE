@@ -145,6 +145,9 @@ conflicts in module dependencies.
     are set in **ice\_diagnostics.F90**. This option can be fairly slow,
     due to gathering data from processors.
 
+`conserv\_check` = true (**ice\_in**)
+    Diagnoses conservation in various algorithms.
+
 *global\_minval, global\_maxval, global\_sum* (**ice\_global\_reductions.F90**)
     Compute and print the minimum and maximum values for an individual
     real array, or its global sum.

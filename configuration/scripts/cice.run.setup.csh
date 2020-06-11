@@ -46,6 +46,8 @@ cd \${ICE_RUNDIR}
 setenv OMP_NUM_THREADS ${nthrds}
 
 cp -f \${ICE_CASEDIR}/ice_in \${ICE_RUNDIR}
+cp -f \${ICE_CASEDIR}/env.${ICE_MACHCOMP} \${ICE_RUNDIR}
+cp -f \${ICE_CASEDIR}/cice.settings \${ICE_RUNDIR}
 set diagtype = \`grep -i diag_type \${ICE_CASEDIR}/ice_in | grep -i stdout | wc -l\`
 set diagfile = \`grep -i diag_file \${ICE_CASEDIR}/ice_in | sed -e "s/.* = '\(.*\)'/\1/"\`
 
