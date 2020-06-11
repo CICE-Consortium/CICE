@@ -255,8 +255,8 @@ cat >> ${jobfile} << EOFB
 #BSUB -R "affinity[core]"
 #BSUB -R "span[ptile=${p3tile}]"
 #BSUB -R "rusage[mem=${mem}]"
-#BSUB -o /u/Robert.Grumbine/${ICE_CASENAME}.out.%J
-#BSUB -e /u/Robert.Grumbine/${ICE_CASENAME}.err.%J
+#BSUB -o $HOME/${ICE_CASENAME}.out.%J
+#BSUB -e $HOME/${ICE_CASENAME}.err.%J
 EOFB
 
 else if (${ICE_MACHINE} =~ high_Sierra*) then

@@ -8,7 +8,6 @@ doc/build
 # Ignore macOS cache files
 .DS_Store
 
-
 # Ignore testsuite file/directories
 testsuite*
 caselist*
