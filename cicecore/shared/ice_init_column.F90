@@ -1937,6 +1937,7 @@
 
       nbtrcr = 0
       nbtrcr_sw = 0
+      nt_zbgc_frac = 0
 
       ! vectors of size icepack_max_algae
       nlt_bgc_N(:) = 0
@@ -2184,7 +2185,6 @@
             enddo   ! mm
          endif      ! tr_zaero
 
-         nt_zbgc_frac = 0
          if (nbtrcr > 0) then
             nt_zbgc_frac = ntrcr + 1
             ntrcr = ntrcr + nbtrcr

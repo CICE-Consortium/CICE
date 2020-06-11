@@ -76,7 +76,8 @@
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
-                             incond_dir, incond_file, version_name
+                             incond_dir, incond_file, version_name, &
+                             history_precision, history_format
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
@@ -98,7 +99,7 @@
                                 basalstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, &
                                 kridge, ktransport, brlx, arlx
-      use ice_transport_driver, only: advection
+      use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
@@ -116,7 +117,7 @@
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg
+        phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -133,7 +134,7 @@
 
       integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
       real (kind=dbl_kind) :: Cf, ksno, puny
-      integer :: abort_flag
+      character (len=char_len) :: abort_list
       character (len=64) :: tmpstr
 
       character(len=*), parameter :: subname='(input_data)'
@@ -149,10 +150,11 @@
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
-        diagfreq,       diag_type,      diag_file,                      &
+        diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
         dbug,           histfreq,       histfreq_n,      hist_avg,      &
-        history_dir,    history_file,   cpl_bgc,                        &
+        history_dir,    history_file,   history_precision, cpl_bgc,     &
+        conserv_check,                                                  &
         write_ic,       incond_dir,     incond_file,     version_name
 
       namelist /grid_nml/ &
@@ -202,7 +204,8 @@
 
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
-        highfreq,       natmiter,        ustar_min,     emissivity,     &
+        highfreq,       natmiter,        atmiter_conv,                  &
+        ustar_min,      emissivity,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
@@ -217,7 +220,7 @@
       ! default values
       !-----------------------------------------------------------------
 
-      abort_flag = 0
+      abort_list = ""
 
       call icepack_query_parameters(puny_out=puny)
 ! nu_diag not yet defined
@@ -249,10 +252,12 @@
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency 
       hist_avg = .true.      ! if true, write time-averages (not snapshots)
+      history_format = 'default' ! history file format
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
+      history_precision = 4  ! precision of history files
       write_ic = .false.     ! write out initial condition
-      cpl_bgc = .false.      ! history file name prefix
+      cpl_bgc = .false.      ! couple bgc thru driver
       incond_dir = history_dir ! write to history dir for default
       incond_file = 'iceh_ic'! file prefix
       dumpfreq='y'           ! restart frequency option
@@ -262,9 +267,9 @@
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
-      use_restart_time = .true.     ! if true, use time info written in file
+      use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
-      restart_format = 'nc'  ! file format ('bin'=binary or 'nc'=netcdf or 'pio')
+      restart_format = 'default'  ! restart file format
       lcdf64       = .false. ! 64 bit offset for netCDF
       ice_ic       = 'default'      ! latitude and sst-dependent
       grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
@@ -276,7 +281,7 @@
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0          ! number of ice thickness categories
-      nfsd  = 0          ! number of floe size categories (1 = default)
+      nfsd  = 1          ! number of floe size categories (1 = default)
       nilyr = 0          ! number of vertical ice layers
       nslyr = 0          ! number of vertical snow layers
       nblyr = 0          ! number of bio layers
@@ -297,6 +302,8 @@
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
       Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
       ksno = 0.3_dbl_kind    ! snow thermal conductivity
+      dxrect = 0.0_dbl_kind  ! user defined grid spacing in cm in x direction
+      dyrect = 0.0_dbl_kind  ! user defined grid spacing in cm in y direction
       close_boundaries = .false.   ! true = set land on edges of grid
       basalstress= .false.   ! if true, basal stress for landfast is on
       k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
@@ -306,6 +313,7 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
       advection  = 'remap'   ! incremental remapping transport scheme
+      conserv_check = .false.! tracer conservation check
       shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
       albedo_type = 'ccsm3'  ! 'ccsm3' or 'constant'
       ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
@@ -352,6 +360,7 @@
       formdrag        = .false.   ! calculate form drag
       highfreq        = .false.   ! calculate high frequency RASM coupling
       natmiter        = 5         ! number of iterations for atm boundary layer calcs
+      atmiter_conv    = c0        ! ustar convergence criteria
       precip_units    = 'mks'     ! 'mm_per_month' or
                                   ! 'mm_per_sec' = 'mks' = kg/m^2 s
       tfrz_option     = 'mushy'   ! freezing temp formulation
@@ -536,6 +545,8 @@
       call broadcast_scalar(hist_avg,           master_task)
       call broadcast_scalar(history_dir,        master_task)
       call broadcast_scalar(history_file,       master_task)
+      call broadcast_scalar(history_precision,  master_task)
+      call broadcast_scalar(history_format,     master_task)
       call broadcast_scalar(write_ic,           master_task)
       call broadcast_scalar(cpl_bgc,            master_task)
       call broadcast_scalar(incond_dir,         master_task)
@@ -586,6 +597,7 @@
       call broadcast_scalar(Ktens,              master_task)
       call broadcast_scalar(e_ratio,            master_task)
       call broadcast_scalar(advection,          master_task)
+      call broadcast_scalar(conserv_check,      master_task)
       call broadcast_scalar(shortwave,          master_task)
       call broadcast_scalar(albedo_type,        master_task)
       call broadcast_scalar(ktherm,             master_task)
@@ -623,6 +635,7 @@
       call broadcast_scalar(formdrag,           master_task)
       call broadcast_scalar(highfreq,           master_task)
       call broadcast_scalar(natmiter,           master_task)
+      call broadcast_scalar(atmiter_conv,       master_task)
       call broadcast_scalar(update_ocn_f,       master_task)
       call broadcast_scalar(l_mpond_fresh,      master_task)
       call broadcast_scalar(ustar_min,          master_task)
@@ -751,7 +764,7 @@
             write(nu_diag,*) subname//' ERROR:   runtype=',trim(runtype), 'restart=',restart, 'ice_ic=',trim(ice_ic)
             write(nu_diag,*) subname//' ERROR:   Please review user guide'
          endif
-         abort_flag = 1
+         abort_list = trim(abort_list)//":1"
       endif
 
 #ifndef ncdf
@@ -760,13 +773,13 @@
             write(nu_diag,*) subname//' ERROR: ncdf CPP flag unset, data formats must be bin'
             write(nu_diag,*) subname//' ERROR:   check grid_format, atm_data_format, ocn_data_format or set ncdf CPP'
          endif
-         abort_flag = 2
+         abort_list = trim(abort_list)//":2"
       endif
 #endif
 
       if (advection /= 'remap' .and. advection /= 'upwind' .and. advection /= 'none') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: invalid advection=',trim(advection)
-         abort_flag = 3
+         abort_list = trim(abort_list)//":3"
       endif
 
       if (ncat == 1 .and. kitd == 1) then
@@ -776,7 +789,7 @@
             write(nu_diag,*) subname//' ERROR:   Use kitd = 0 (delta function ITD) with kcatbound = 0'
             write(nu_diag,*) subname//' ERROR:   or for column configurations use kcatbound = -1'
          endif
-         abort_flag = 4
+         abort_list = trim(abort_list)//":4"
       endif
 
       if (ncat /= 1 .and. kcatbound == -1) then
@@ -785,7 +798,7 @@
             write(nu_diag,*) subname//' ERROR:   ncat=',ncat,' kcatbound=',kcatbound
             write(nu_diag,*) subname//' ERROR:   Please review user guide'
          endif
-         abort_flag = 5
+         abort_list = trim(abort_list)//":5"
       endif
 
       if (kdyn == 2 .and. revised_evp) then
@@ -810,14 +823,14 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: Must use only one melt pond scheme'
          endif
-         abort_flag = 6
+         abort_list = trim(abort_list)//":6"
       endif
 
       if (tr_pond_lvl .and. .not. tr_lvl) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: tr_pond_lvl=T but tr_lvl=F'
          endif
-         abort_flag = 30
+         abort_list = trim(abort_list)//":30"
       endif
 
 ! tcraig - this was originally implemented by resetting hs0=0. EH says it might be OK
@@ -828,7 +841,7 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: tr_pond_lvl=T and hs0 /= 0'
          endif
-         abort_flag = 7
+         abort_list = trim(abort_list)//":7"
       endif
 
       if (trim(shortwave) /= 'dEdd' .and. tr_pond .and. calc_tsfc) then
@@ -836,25 +849,62 @@
             write(nu_diag,*) subname//' ERROR: tr_pond=T, calc_tsfc=T, invalid shortwave'
             write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd'
          endif
-         abort_flag = 8
+         abort_list = trim(abort_list)//":8"
       endif
 
       if (tr_iso .and. n_iso==0) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: isotopes activated but'
             write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
-            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+            write(nu_diag,*) subname//' ERROR:   if tr_iso, n_iso must be > 0.'
          endif
-         abort_flag = 31
+         abort_list = trim(abort_list)//":31"
       endif
 
       if (tr_aero .and. n_aero==0) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: aerosols activated but'
             write(nu_diag,*) subname//' ERROR:   not allocated in tracer array.'
-            write(nu_diag,*) subname//' ERROR:   Activate in compilation script.'
+            write(nu_diag,*) subname//' ERROR:   if tr_aero, n_aero must be > 0.'
          endif
-         abort_flag = 9
+         abort_list = trim(abort_list)//":9"
+      endif
+
+      if (ncat < 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: ncat < 1'
+         endif
+         abort_list = trim(abort_list)//":32"
+      endif
+
+      if (nilyr < 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: nilyr < 1'
+         endif
+         abort_list = trim(abort_list)//":33"
+      endif
+
+      if (nslyr < 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: nslyr < 1'
+         endif
+         abort_list = trim(abort_list)//":34"
+      endif
+
+      if (nblyr < 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: nblyr < 1'
+            write(nu_diag,*) subname//' ERROR:   not allowed due to history implementation.'
+         endif
+         abort_list = trim(abort_list)//":35"
+      endif
+
+      if (nfsd < 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: nfsd < 1'
+            write(nu_diag,*) subname//' ERROR:   not allowed due to history implementation.'
+         endif
+         abort_list = trim(abort_list)//":36"
       endif
 
       if (trim(shortwave) /= 'dEdd' .and. tr_aero) then
@@ -862,7 +912,7 @@
             write(nu_diag,*) subname//' ERROR: tr_aero=T, invalid shortwave'
             write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd'
          endif
-         abort_flag = 10
+         abort_list = trim(abort_list)//":10"
       endif
 
       if ((rfracmin < -puny .or. rfracmin > c1+puny) .or. &
@@ -872,19 +922,19 @@
             write(nu_diag,*) subname//' ERROR: rfracmin, rfracmax must be between 0 and 1'
             write(nu_diag,*) subname//' ERROR:   and rfracmax >= rfracmin'
          endif
-         abort_flag = 11
+         abort_list = trim(abort_list)//":11"
       endif
       rfracmin = min(max(rfracmin,c0),c1)
       rfracmax = min(max(rfracmax,c0),c1)
 
       if (trim(atm_data_type) == 'monthly' .and. calc_strair) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: atm_data_type=monthly and calc_strair=T'
-         abort_flag = 12
+         abort_list = trim(abort_list)//":12"
       endif
 
       if (ktherm == 2 .and. .not. calc_Tsfc) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: ktherm = 2 and calc_Tsfc=F'
-         abort_flag = 13
+         abort_list = trim(abort_list)//":13"
       endif
 
 ! tcraig, is it really OK for users to run inconsistently?
@@ -906,35 +956,40 @@
       if (formdrag) then
          if (trim(atmbndy) == 'constant') then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and atmbndy=constant'
-            abort_flag = 14
+            abort_list = trim(abort_list)//":14"
          endif
 
          if (.not. calc_strair) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and calc_strair=F'
-            abort_flag = 15
+            abort_list = trim(abort_list)//":15"
          endif
 
          if (.not. tr_pond) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and tr_pond=F'
-            abort_flag = 16
+            abort_list = trim(abort_list)//":16"
          endif
 
          if (tr_pond_cesm) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and frzpnd=cesm'
-            abort_flag = 17
+            abort_list = trim(abort_list)//":17"
          endif
 
          if (.not. tr_lvl) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and tr_lvl=F'
-            abort_flag = 18
+            abort_list = trim(abort_list)//":18"
          endif
       endif
 
       if (trim(fbot_xfer_type) == 'Cdn_ocn' .and. .not. formdrag)  then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=F and fbot_xfer_type=Cdn_ocn'
-         abort_flag = 19
+         abort_list = trim(abort_list)//":19"
       endif
       
+      if(history_precision .ne. 4 .and. history_precision .ne. 8) then
+         write (nu_diag,*) 'ERROR: bad value for history_precision, allowed values: 4, 8'
+         abort_list = trim(abort_list)//":22"
+      endif
+
       if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &
                 trim(dumpfreq) == 'm' .or. trim(dumpfreq) == 'M' .or. &
                 trim(dumpfreq) == 'd' .or. trim(dumpfreq) == 'D' .or. &
@@ -993,6 +1048,9 @@
                                trim(history_dir)
          write(nu_diag,*)    ' history_file              = ', &
                                trim(history_file)
+         write(nu_diag,1020) ' history_precision         = ', history_precision
+         write(nu_diag,*)    ' history_format            = ', &
+                               trim(history_format)
          if (write_ic) then
             write(nu_diag,*) 'Initial condition will be written in ', &
                                trim(incond_dir)
@@ -1077,6 +1135,7 @@
          write(nu_diag,1030) ' shortwave                 = ', &
                                trim(shortwave)
          write(nu_diag,1000) ' ksno                      = ', ksno
+         write(nu_diag,1010) ' conserv_check             = ', conserv_check
          if (cpl_bgc) then
              write(nu_diag,1000) ' BGC coupling is switched ON'
          else
@@ -1129,6 +1188,7 @@
          write(nu_diag,1010) ' formdrag                  = ', formdrag
          write(nu_diag,1010) ' highfreq                  = ', highfreq
          write(nu_diag,1020) ' natmiter                  = ', natmiter
+         write(nu_diag,1005) ' atmiter_conv              = ', atmiter_conv
          write(nu_diag,1010) ' calc_strair               = ', calc_strair
          write(nu_diag,1010) ' calc_Tsfc                 = ', calc_Tsfc
 
@@ -1156,8 +1216,8 @@
                                oceanmixed_ice
          write(nu_diag,1010) ' wave_spec                 = ', wave_spec
          if (wave_spec) then
-            write(nu_diag,*)    ' wave_spec_type            = ', wave_spec_type
-            write(nu_diag,*)    ' wave_spec_file            = ', wave_spec_file
+            write(nu_diag,*) ' wave_spec_type            = ', trim(wave_spec_type)
+            write(nu_diag,*) ' wave_spec_file            = ', trim(wave_spec_file)
          endif
          write(nu_diag,1020) ' nfreq                     = ', nfreq
          write(nu_diag,*)    ' tfrz_option               = ', &
@@ -1251,7 +1311,7 @@
           grid_type  /=  'regional'       .and. &
           grid_type  /=  'latlon' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
-         abort_flag = 20
+         abort_list = trim(abort_list)//":20"
       endif
 
       ! check for valid kevp_kernel
@@ -1265,22 +1325,23 @@
             if (kevp_kernel == 2) then
                 if (my_task == master_task) write(nu_diag,*) subname//' kevp_kernel=2 not validated, use kevp_kernel=102 for testing until it is validated'
             endif
-            abort_flag = 21
+            abort_list = trim(abort_list)//":21"
         endif
       endif
 
-      if (abort_flag /= 0) then
+      if (abort_list /= "") then
          call flush_fileunit(nu_diag)
       endif
       call ice_barrier()
-      if (abort_flag /= 0) then
-         write(nu_diag,*) subname,' ERROR: abort_flag=',abort_flag
+      if (abort_list /=  "") then
+         write(nu_diag,*) subname,' ERROR: abort_list = ',trim(abort_list)
          call abort_ice (subname//' ABORTING on input ERRORS', &
             file=__FILE__, line=__LINE__)
       endif
 
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
-         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, emissivity_in=emissivity, &
+         albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, atmiter_conv_in=atmiter_conv, &
+         emissivity_in=emissivity, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
          R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
          kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &
@@ -1290,7 +1351,7 @@
          ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
-         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, &
+         phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
@@ -1841,9 +1902,6 @@
          do n = 1, ncat
 
             ! ice volume, snow volume
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
             do ij = 1, icells
                i = indxi(ij)
                j = indxj(ij)

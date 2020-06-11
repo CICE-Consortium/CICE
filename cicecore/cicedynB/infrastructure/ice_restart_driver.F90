@@ -883,7 +883,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      ! creates netcdf if restart_format = 'nc'
+      ! creates new file
       filename = trim(restart_dir) // '/iced.converted'
       call dumpfile(filename) 
       call final_restart

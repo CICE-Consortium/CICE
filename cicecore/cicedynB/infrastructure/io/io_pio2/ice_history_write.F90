@@ -78,6 +78,7 @@
       real (kind= dbl_kind) :: ltime2
       character (char_len) :: title
       character (char_len_long) :: ncfile(max_nstrm)
+      integer (kind=int_kind) :: iotype
 
       integer (kind=int_kind) :: iyear, imonth, iday
       integer (kind=int_kind) :: icategory,ind,i_aice,boundid
@@ -137,6 +138,8 @@
       real (kind=dbl_kind) :: secday
       real (kind=dbl_kind) :: rad_to_deg
 
+      integer (kind=int_kind) :: lprecision
+
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
       call icepack_query_parameters(secday_out=secday)
@@ -160,9 +163,11 @@
 
       ! create file
 
+      iotype = PIO_IOTYPE_NETCDF
+      if (history_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
       File%fh=-1
       call ice_pio_init(mode='write', filename=trim(filename), File=File, &
-        clobber=.true., cdf64=lcdf64)
+        clobber=.true., cdf64=lcdf64, iotype=iotype)
 
       call ice_pio_initdecomp(iodesc=iodesc2d)
       call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc)
@@ -170,13 +175,17 @@
       call ice_pio_initdecomp(ndim3=nzblyr,    iodesc=iodesc3db)
       call ice_pio_initdecomp(ndim3=nzalyr,    iodesc=iodesc3da)
       call ice_pio_initdecomp(ndim3=nfsd_hist, iodesc=iodesc3df)
-      call ice_pio_initdecomp(ndim3=nverts, inner_dim=.true., iodesc=iodesc3dv)
-      call ice_pio_initdecomp(ndim3=nzilyr,  ndim4=ncat_hist, iodesc=iodesc4di)
-      call ice_pio_initdecomp(ndim3=nzslyr,  ndim4=ncat_hist, iodesc=iodesc4ds)
-      call ice_pio_initdecomp(ndim3=nzslyr,  ndim4=nfsd_hist, iodesc=iodesc4df)
+      call ice_pio_initdecomp(ndim3=nverts,    iodesc=iodesc3dv, inner_dim=.true.)
+      call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di)
+      call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds)
+      call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df)
 
       ltime2 = time/int(secday)
       ltime  = real(time/int(secday),kind=real_kind)
+
+      ! option of turning on double precision history files
+      lprecision = pio_real
+      if (history_precision == 8) lprecision = pio_double
 
       !-----------------------------------------------------------------
       ! define dimensions
@@ -332,12 +341,17 @@
         dimid2(2) = jmtid
 
         do i = 1, ncoord
-          status = pio_def_var(File, trim(coord_var(i)%short_name), pio_real, &
+          status = pio_def_var(File, trim(coord_var(i)%short_name), lprecision, &
                                 dimid2, varid)
           status = pio_put_att(File,varid,'long_name',trim(coord_var(i)%long_name))
           status = pio_put_att(File, varid, 'units', trim(coord_var(i)%units))
-          status = pio_put_att(File, varid, 'missing_value', spval)
-          status = pio_put_att(File, varid,'_FillValue',spval)
+          if (lprecision == pio_real) then
+             status = pio_put_att(File, varid, 'missing_value', spval)
+             status = pio_put_att(File, varid,'_FillValue',spval)
+          else
+             status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+             status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+          endif
           if (coord_var(i)%short_name == 'ULAT') then
              status = pio_put_att(File,varid,'comment', &
                   trim('Latitude of NE corner of T grid cell'))
@@ -357,7 +371,7 @@
 
         do i = 1, nvarz
            if (igrdz(i)) then
-              status = pio_def_var(File, trim(var_nz(i)%short_name), pio_real, &
+              status = pio_def_var(File, trim(var_nz(i)%short_name), lprecision, &
                                    (/dimidex(i)/), varid)
               status = pio_put_att(File, varid, 'long_name', var_nz(i)%long_name)
               status = pio_put_att(File, varid, 'units'    , var_nz(i)%units)
@@ -366,31 +380,46 @@
 
         ! Attributes for tmask defined separately, since it has no units
         if (igrd(n_tmask)) then
-           status = pio_def_var(File, 'tmask', pio_real, dimid2, varid)
+           status = pio_def_var(File, 'tmask', lprecision, dimid2, varid)
            status = pio_put_att(File,varid, 'long_name', 'ocean grid mask') 
            status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
-           status = pio_put_att(File, varid, 'missing_value', spval)
-           status = pio_put_att(File, varid,'_FillValue',spval)
+           if (lprecision == pio_real) then
+              status = pio_put_att(File, varid, 'missing_value', spval)
+              status = pio_put_att(File, varid,'_FillValue',spval)
+           else
+              status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+              status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+           endif
            status = pio_put_att(File,varid,'comment', '0 = land, 1 = ocean')
         endif
         if (igrd(n_blkmask)) then
-           status = pio_def_var(File, 'blkmask', pio_real, dimid2, varid)
+           status = pio_def_var(File, 'blkmask', lprecision, dimid2, varid)
            status = pio_put_att(File,varid, 'long_name', 'ice grid block mask') 
            status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
            status = pio_put_att(File,varid,'comment', 'mytask + iblk/100')
-           status = pio_put_att(File, varid, 'missing_value', spval)
-           status = pio_put_att(File, varid,'_FillValue',spval)
+           if (lprecision == pio_real) then
+              status = pio_put_att(File, varid, 'missing_value', spval)
+              status = pio_put_att(File, varid,'_FillValue',spval)
+           else
+              status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+              status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+           endif
         endif
 
         do i = 3, nvar       ! note: n_tmask=1, n_blkmask=2
           if (igrd(i)) then
              status = pio_def_var(File, trim(var(i)%req%short_name), &
-                                   pio_real, dimid2, varid)
+                                   lprecision, dimid2, varid)
              status = pio_put_att(File,varid, 'long_name', trim(var(i)%req%long_name))
              status = pio_put_att(File, varid, 'units', trim(var(i)%req%units))
              status = pio_put_att(File, varid, 'coordinates', trim(var(i)%coordinates))
-             status = pio_put_att(File, varid, 'missing_value', spval)
-             status = pio_put_att(File, varid,'_FillValue',spval)
+             if (lprecision == pio_real) then
+                status = pio_put_att(File, varid, 'missing_value', spval)
+                status = pio_put_att(File, varid,'_FillValue',spval)
+             else
+                status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+                status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+             endif
           endif
         enddo
 
@@ -401,13 +430,18 @@
         do i = 1, nvar_verts
           if (f_bounds) then
              status = pio_def_var(File, trim(var_nverts(i)%short_name), &
-                                   pio_real,dimid_nverts, varid)
+                                   lprecision,dimid_nverts, varid)
              status = & 
              pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name))
              status = &
              pio_put_att(File, varid, 'units', trim(var_nverts(i)%units))
-             status = pio_put_att(File, varid, 'missing_value', spval)
-             status = pio_put_att(File, varid,'_FillValue',spval)
+             if (lprecision == pio_real) then
+                status = pio_put_att(File, varid, 'missing_value', spval)
+                status = pio_put_att(File, varid,'_FillValue',spval)
+             else
+                status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+                status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+             endif
           endif
         enddo
  
@@ -426,7 +460,7 @@
         do n=1,num_avail_hist_fields_2D
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimid3, varid)
+                         lprecision, dimid3, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -435,8 +469,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -475,7 +514,7 @@
         do n = n2D + 1, n3Dccum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -484,8 +523,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -512,7 +556,7 @@
         do n = n3Dccum + 1, n3Dzcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -521,8 +565,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -549,7 +598,7 @@
         do n = n3Dzcum + 1, n3Dbcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -558,8 +607,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -586,7 +640,7 @@
         do n = n3Dbcum + 1, n3Dacum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -595,8 +649,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -623,7 +682,7 @@
         do n = n3Dacum + 1, n3Dfcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         pio_real, dimidz, varid)
+                         lprecision, dimidz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -632,8 +691,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -666,7 +730,7 @@
         do n = n3Dfcum + 1, n4Dicum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             pio_real, dimidcz, varid)
+                             lprecision, dimidcz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -675,8 +739,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -704,7 +773,7 @@
         do n = n4Dicum + 1, n4Dscum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             pio_real, dimidcz, varid)
+                             lprecision, dimidcz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -713,8 +782,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -743,7 +817,7 @@
         do n = n4Dscum + 1, n4Dfcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             pio_real, dimidcz, varid)
+                             lprecision, dimidcz, varid)
             status = pio_put_att(File,varid,'units', &
                         trim(avail_hist_fields(n)%vunit))
             status = pio_put_att(File,varid, 'long_name', &
@@ -752,8 +826,13 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            status = pio_put_att(File,varid,'missing_value',spval)
-            status = pio_put_att(File,varid,'_FillValue',spval)
+            if (lprecision == pio_real) then
+               status = pio_put_att(File, varid, 'missing_value', spval)
+               status = pio_put_att(File, varid,'_FillValue',spval)
+            else
+               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+            endif
 
             ! Add cell_methods attribute to variables if averaged
             if (hist_avg .and. histfreq(ns) /= '1') then
@@ -810,7 +889,11 @@
                 a,'-',a,'-',a,' at ',a,':',a)
         status = pio_put_att(File,pio_global,'history',trim(start_time))
 
-        status = pio_put_att(File,pio_global,'io_flavor','io_pio')
+        if (history_format == 'pio_pnetcdf') then
+           status = pio_put_att(File,pio_global,'io_flavor','io_pio pnetcdf')
+        else
+           status = pio_put_att(File,pio_global,'io_flavor','io_pio netcdf')
+        endif
 
       !-----------------------------------------------------------------
       ! end define mode
@@ -979,7 +1062,11 @@
             if (status /= pio_noerr) call abort_ice(subname// &
                'ERROR getting varid for '//avail_hist_fields(n)%vname)
             workr2(:,:,:) = a2D(:,:,n,1:nblocks)
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc2d,&
                                   workr2, status, fillval=spval_dbl)
          endif
@@ -1000,7 +1087,11 @@
                workr3(:,:,j,i) = a3Dc(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3dc,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1020,7 +1111,11 @@
                workr3(:,:,j,i) = a3Dz(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3di,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1040,7 +1135,11 @@
                workr3(:,:,j,i) = a3Db(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3db,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1060,7 +1159,11 @@
                workr3(:,:,j,i) = a3Da(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3da,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1080,7 +1183,11 @@
                workr3(:,:,j,i) = a3Df(:,:,i,nn,j)
             enddo
             enddo
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc3df,&
                                   workr3, status, fillval=spval_dbl)
          endif
@@ -1102,7 +1209,11 @@
             enddo ! k
             enddo ! i
             enddo ! j
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc4di,&
                                   workr4, status, fillval=spval_dbl)
          endif
@@ -1124,11 +1235,15 @@
             enddo ! k
             enddo ! i
             enddo ! j
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc4ds,&
                                   workr4, status, fillval=spval_dbl)
          endif
-      enddo ! num_avail_hist_fields_4Di
+      enddo ! num_avail_hist_fields_4Ds
       deallocate(workr4)
 
       allocate(workr4(nx_block,ny_block,nblocks,ncat_hist,nfsd_hist))
@@ -1142,15 +1257,19 @@
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nfsd_hist
-               workr4(:,:,j,i,k) = a4Ds(:,:,k,i,nn,j)
+               workr4(:,:,j,i,k) = a4Df(:,:,k,i,nn,j)
             enddo ! k
             enddo ! i
             enddo ! j
+#ifdef CESM1_PIO
+            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
             call pio_write_darray(File, varid, iodesc4df,&
                                   workr4, status, fillval=spval_dbl)
          endif
-      enddo ! num_avail_hist_fields_4Di
+      enddo ! num_avail_hist_fields_4Df
       deallocate(workr4)
 
 !     similarly for num_avail_hist_fields_4Db (define workr4b, iodesc4db)

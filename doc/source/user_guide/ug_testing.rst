@@ -929,6 +929,10 @@ In order to run the script, the following requirements must be met:
 * matplotlib Python package (optional)
 * basemap Python package (optional)
 
+QC testing should be carried out using configurations (ie. namelist settings) that 
+exercise the active code modifications.  Multiple configurations may need to be tested 
+in some cases.  Developers can contact the Consortium for guidance or if there are questions.
+
 In order to generate the files necessary for the compliance test, test cases should be
 created with the ``qc`` option (i.e., ``--set qc``) when running cice.setup.  This 
 option results in daily, non-averaged history files being written for a 5 year simulation.
@@ -1010,6 +1014,7 @@ If the regression comparisons fail, then you may want to run the QC test,
 
   # Create a QC baseline
   # From the baseline sandbox
+  # Generate the test case(s) using options or namelist changes to activate new code modifications
 
   ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_base -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_base
@@ -1018,7 +1023,8 @@ If the regression comparisons fail, then you may want to run the QC test,
   ./cice.submit
 
   # Create the t-test testing data
-  # From the update sandbox
+  # From the updated sandbox
+  # Generate the same test case(s) as the baseline using options or namelist changes to activate new code modifications
 
   ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test

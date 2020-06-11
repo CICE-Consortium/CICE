@@ -342,6 +342,7 @@
       file=__FILE__, line=__LINE__)
 
    if (trim(ns_boundary_type) == 'closed') then
+      call abort_ice(subname//'ERROR: ns_boundary_type = closed not supported')
       allocate(nocn(nblocks_tot))
       nocn = 0
       do n=1,nblocks_tot
@@ -373,13 +374,14 @@
          enddo
          endif
          if (nocn(n) > 0) then
-            print*, 'ice: Not enough land cells along ns edge'
-            call abort_ice(subname//'ERROR: Not enough land cells along ns edge')
+            write(nu_diag,*) subname,'ns closed, Not enough land cells along ns edge'
+            call abort_ice(subname//'ERROR: Not enough land cells along ns edge for ns closed')
          endif
       enddo
       deallocate(nocn)
    endif
    if (trim(ew_boundary_type) == 'closed') then
+      call abort_ice(subname//'ERROR: ew_boundary_type = closed not supported')
       allocate(nocn(nblocks_tot))
       nocn = 0
       do n=1,nblocks_tot
@@ -411,8 +413,8 @@
          enddo
          endif
          if (nocn(n) > 0) then
-            print*, 'ice: Not enough land cells along ew edge'
-            call abort_ice(subname//'ERROR: Not enough land cells along ew edge')
+            write(nu_diag,*) subname,'ew closed, Not enough land cells along ew edge'
+            call abort_ice(subname//'ERROR: Not enough land cells along ew edge for ew closed')
          endif
       enddo
       deallocate(nocn)

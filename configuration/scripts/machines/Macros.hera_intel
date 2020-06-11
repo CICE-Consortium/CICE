@@ -1,44 +1,21 @@
 #==============================================================================
-# Makefile macros for theia - intel and openmpi compilers
+# Makefile macros for NOAA hera, intel compiler
 #==============================================================================
 
-CPP        := cpp
-CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
-CFLAGS     := -c -O2  -xHost
+CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise   -xHost
 
 FIXEDFLAGS := -132
 FREEFLAGS  := -FR
-FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
-
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -align array64byte  -xHost
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-#RG: this looks more like gfortran options:  
-##  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
-  FFLAGS     += -O0 -g -check-bounds -implicit-none -fpe3
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
 else
   FFLAGS     += -O2
 endif
-
-#Note that on theia mpif90 refers to gfortran even though it is in the intel bin
-FC := mpiifort
-MPIFC:= mpiifort
-LD:= $(MPIFC)
-
-NETCDF_PATH := $(NETCDF)
-
-ifeq ($(ICE_IOTYPE), netcdf)
-    NETCDF_PATH := $(shell nc-config --prefix)
-    INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
-    LIB_NETCDF := $(NETCDF_PATH)/lib
-    LIB_PNETCDF := 
-    SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
-else
-    SLIBS   := 
-endif
-
-LIB_MPI := 
-
 
 SCC   := icc 
 SFC   := ifort
@@ -52,9 +29,28 @@ else
   FC := $(SFC)
   CC := $(SCC)
 endif
+LD:= $(FC)
+
+NETCDF_PATH := $(NETCDF)
+
+PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+
+#PNETCDF_PATH := $(PNETCDF)
+#PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
+
+INC_NETCDF := $(NETCDF_PATH)/include
+LIB_NETCDF := $(NETCDF_PATH)/lib
+
+#LIB_PNETCDF := $(PNETCDF_PATH)/lib
+#LIB_MPI := $(IMPILIBDIR)
+
+INCLDIR := $(INCLDIR) -I$(INC_NETCDF)
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
 ifeq ($(ICE_THREADED), true) 
-   LDFLAGS += -fopenmp
-   CFLAGS += -fopenmp
-   FFLAGS += -fopenmp
+   LDFLAGS += -qopenmp 
+   CFLAGS += -qopenmp 
+   FFLAGS += -qopenmp 
 endif
+

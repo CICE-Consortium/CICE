@@ -26,7 +26,7 @@ do
 
     #sed -i 's|\(^\s*'"$vname"'\s*\=\s*\)\(.*$\)|\1'"$value"'|g' $filename
     cp ${filename} ${filename}.check
-    sed -i -e 's|\(^[[:space:]]*'"$vname"'[[:space:]]*=[[:space:]]*\)\(.*$\)|\1'"$foundstring"'|g' ${filename}.check
+    sed -i.sedbak -e 's|\(^[[:space:]]*'"$vname"'[[:space:]]*=[[:space:]]*\)\(.*$\)|\1'"$foundstring"'|g' ${filename}.check
     grep -q ${foundstring} ${filename}.check
     if [ $? -eq 0 ]; then
       sed -i.sedbak -e 's|\(^[[:space:]]*'"$vname"'[[:space:]]*=[[:space:]]*\)\(.*$\)|\1'"$value"'|g' ${filename}
@@ -37,7 +37,7 @@ do
       echo "$0 ERROR: parsing error for ${vname}"
       exit -99
     fi
-    rm ${filename}.check
+    rm ${filename}.check ${filename}.check.sedbak
 
   fi
 
