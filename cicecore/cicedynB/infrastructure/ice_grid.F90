@@ -133,6 +133,10 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
 
+      logical (kind=log_kind), private :: &
+         l_readCenter ! If anglet exist in grid file read it otherwise calculate it
+
+
 !=======================================================================
 
       contains
@@ -469,11 +473,10 @@
       !-----------------------------------------------------------------
       ! Compute ANGLE on T-grid
       !-----------------------------------------------------------------
-      ANGLET = c0
       if (trim(grid_type) == 'cpom_grid') then
          ANGLET(:,:,:) = ANGLE(:,:,:)
-      else
-
+      else if (.not. (l_readCenter)) then
+          ANGLET = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     angle_0,angle_w,angle_s,angle_sw)
@@ -503,7 +506,8 @@
       enddo
       !$OMP END PARALLEL DO
       endif ! cpom_grid
-      if (trim(grid_type) == 'regional') then
+      if (trim(grid_type) == 'regional' .and. &
+          (.not. (l_readCenter))) then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
@@ -530,7 +534,9 @@
       call ice_timer_stop(timer_bound)
 
       call makemask          ! velocity mask, hemisphere masks
+      if (.not. (l_readCenter)) then
          call Tlatlon           ! get lat, lon on the T grid
+      endif
       !-----------------------------------------------------------------
       ! bathymetry
       !-----------------------------------------------------------------
@@ -713,6 +719,8 @@
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
+      use netcdf
+      use ice_communicate, only: ice_barrier
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -736,6 +744,12 @@
 
       type (block) :: &
          this_block           ! block information for current block
+      
+      integer(kind=int_kind) :: &
+         varid
+      integer (kind=int_kind) :: &
+         status                ! status flag
+
 
       character(len=*), parameter :: subname = '(popgrid_nc)'
 
@@ -748,7 +762,7 @@
       call ice_open_nc(kmt_file,fid_kmt)
 
       diag = .true.       ! write diagnostic info
-
+      l_readCenter = .false.
       !-----------------------------------------------------------------
       ! topography
       !-----------------------------------------------------------------
@@ -820,13 +834,40 @@
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
 
+      ! if grid file includes anglet then read instead
+      fieldname='anglet'
+      if (my_task == master_task) then
+         status = nf90_inq_varid(fid_grid, trim(fieldname) , varid)
+         if (status /= nf90_noerr) then
+            write(nu_diag,*) subname//' CICE will calculate angleT, TLON and TLAT'
+         else
+            write(nu_diag,*) subname//' angleT, TLON and TLAT is read from grid file'
+            l_readCenter = .true.
+         endif
+      endif
+      call broadcast_scalar(l_readCenter,master_task)
+      if (l_readCenter) then
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) 
+         call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_angle)
+         where (ANGLET >  pi) ANGLET =  pi
+         where (ANGLET < -pi) ANGLET = -pi
+          fieldname="tlon"
+          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+          call scatter_global(TLON, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_scalar)
+          fieldname="tlat"
+          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+          call scatter_global(TLAT, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_scalar)
+      endif
       deallocate(work_g1)
 
       if (my_task == master_task) then
          call ice_close_nc(fid_grid)
          call ice_close_nc(fid_kmt)
       endif
-
+       call ice_barrier()
 #endif
       end subroutine popgrid_nc
 
@@ -2457,7 +2498,6 @@
 
       ! use module
       use ice_read_write
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_type_scalar
 
       ! local variables
@@ -2485,7 +2525,6 @@
 
       if (my_task == master_task) then
          write(nu_diag,*) 'reading ',TRIM(fieldname)
-         write(*,*) 'reading ',TRIM(fieldname)
          call icepack_warnings_flush(nu_diag)
       endif
       call ice_read_nc(fid_init,1,fieldname,bathymetry,diag, &
