@@ -432,7 +432,9 @@ if ( ${dosuite} == 0 ) then
 
 else
   set tarrays = `echo ${testsuite} | sed 's/,/ /g' | fmt -1 | sort -u`
+  set testsuitecnt = 0
   foreach tarray ( ${tarrays} )
+    @ testsuitecnt = ${testsuitecnt} + 1
     if (-e ${tarray}) then
       cat ${tarray} >> $tsfile
     else if (-e ${tarray}.ts) then
@@ -516,8 +518,9 @@ cat >! ${tsdir}/report_codecov.csh << EOF0
 
 source ${ICE_SCRIPTS}/machines/env.${machcomp}
 
-set rn0 = "${shhash}:${sdate}-${stime}:${testsuite}"
-set report_name = \`echo \${rn0} | sed -e 's/ //g'\`
+set rn0 = "${shhash}:${sdate}-${stime}:${testsuitecnt}:${testsuite}"
+set rn1 = \`echo \${rn0} | sed -e 's/ //g'\`
+set report_name = \`echo \${rn1} | sed -e 's/_suite//g'\`
 
 #for codecov
 set use_curl = 1
