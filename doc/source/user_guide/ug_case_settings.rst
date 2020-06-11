@@ -71,7 +71,7 @@ can be modified as needed.
    "ICE_QUEUE", "string", "batch queue name", "set by cice.setup or by default"
    "ICE_THREADED", "true, false", "force threading in compile, will always compile threaded if ICE_NTHRDS :math:`> 1`", "false"
    "ICE_BLDDEBUG", "true, false", "turn on compile debug flags", "false"
-   "ICE_CODECOV", "true,false", "turn on code coverage flags", "false"
+   "ICE_COVERAGE", "true, false", "turn on code coverage flags", "false"
 
 
 .. _tabnamelist:

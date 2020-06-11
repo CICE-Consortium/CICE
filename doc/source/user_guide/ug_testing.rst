@@ -380,8 +380,8 @@ following options are valid for suites,
 ``--report``
   This is only used by ``--suite`` and when set, invokes a script that sends the test results to the results page when all tests are complete.  Please see :ref:`testreporting` for more information.
 
-``--codecov``
-  When invoked, code coverage diagnostics are generated.  This will modify the build and reduce optimization.  The results will be uploaded to the **codecov.io** website via the **report_codecov.csh** script.  General use is not recommended, this is mainly used as a diagnostic to periodically assess test coverage.  Please see :ref:`codecoverage` for more information.
+``--coverage``
+  When invoked, code coverage diagnostics are generated.  This will modify the build and reduce optimization.  The results can then be processed by **report_codecov.csh** or **report_lcov.csh**.  General use is not recommended, this is mainly used as a diagnostic to periodically assess test coverage.  Please see :ref:`codecoverage` for more information.
 
 ``--setup-only``
   This is only used by ``--suite`` and when set, just creates the suite testcases.  It does not build or submit them to run.  By default, the suites do ``--setup-build-submit``.
@@ -665,7 +665,7 @@ wait for all runs to be complete, and run the results and report_results scripts
 Code Coverage Testing
 ------------------------------
 
-The ``--codecov`` feature in **cice.setup** provides a method to diagnose code coverage.
+The ``--coverage`` feature in **cice.setup** provides a method to diagnose code coverage.
 This argument turns on special compiler flags including reduced optimization and then
 invokes the gcov tool.
 This option is currently only available with the gnu compiler and on a few systems
@@ -676,7 +676,7 @@ repository has to be created to test CICE with Icepack integrated directly.  The
 https://github.com/apcraig/Test_CICE_Icepack serves as the current default test repository.
 In general, to setup the code coverage test in CICE, the current CICE master has
 to be copied into the Test_CICE_Icepack repository, then the full test suite
-can be run with the gnu compiler with the ``--codecov`` argument.
+can be run with the gnu compiler with the ``--coverage`` argument.
 
 The test suite will run and then a report will be generated and uploaded to 
 the `codecov.io site <https://codecov.io/gh/apcraig/Test_CICE_Icepack>`_ by the 
