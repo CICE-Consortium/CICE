@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 if ( $1 != "" ) then
   echo "running cice.batch.csh (creating ${1})"
