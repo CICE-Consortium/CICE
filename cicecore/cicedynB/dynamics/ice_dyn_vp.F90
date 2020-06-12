@@ -756,6 +756,7 @@
       
       ! Initialization
       res_num = 0
+      L2norm  = c0
       
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
@@ -3142,7 +3143,7 @@
       nbiter = 0
       
       conv = c1
-      
+      norm_squared = c0
       precond_type = precond
       
       ! Cells with no ice should be zero-initialized
@@ -3540,7 +3541,7 @@
       nbiter = 0
       
       conv = c1
-      
+      norm_squared = c0
       precond_type = 'diag' ! Jacobi preconditioner
       ortho_type = 'cgs' ! classical gram-schmidt
       
