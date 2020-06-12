@@ -12,13 +12,14 @@ git clone https://github.com/apcraig/${lcovrepo}
 cp -p -r ${lcovhtmldir} ${lcovrepo}/
 
 cd ${lcovrepo}
-set oline = `grep -n "add_cice_entry_here" index.html | head -1 | cut -d : -f 1`
-@ nline = ${oline}
-sed -i "$nline a    <li><a href="${lcovhtmldir}/index.html">${lcovhtmldir}</a></li> " index.html
-
 set covp0 = `grep message coverage.json | cut -d : -f 2 | cut -d \" -f 2 | cut -d % -f 1`
 set covp  = `grep -i headerCovTableEntryLo ${lcovhtmldir}/index.html | head -1 | cut -d \> -f 2 | cut -d % -f 1`
 set covpi = `echo $covp | cut -d . -f 1`
+
+set lcovhtmlname = "${covpi}%:${report_name}"
+set oline = `grep -n "add_cice_entry_here" index.html | head -1 | cut -d : -f 1`
+@ nline = ${oline}
+sed -i "$nline a    <li><a href="${lcovhtmldir}/index.html">${lcovhtmlname}</a></li> " index.html
 
 set covpcolor = red
 if (${covpi} > 50) set covpcolor = orange

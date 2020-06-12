@@ -518,7 +518,7 @@ cat >! ${tsdir}/report_codecov.csh << EOF0
 
 source ${ICE_SCRIPTS}/machines/env.${machcomp}
 
-set rn0 = "${shhash}:${sdate}-${stime}:${testsuitecnt}:${testsuite}"
+set rn0 = "${sdate}-${stime}:${shhash}:${testsuitecnt}:${testsuite}"
 set rn1 = \`echo \${rn0} | sed -e 's/ //g'\`
 set report_name = \`echo \${rn1} | sed -e 's/_suite//g'\`
 
