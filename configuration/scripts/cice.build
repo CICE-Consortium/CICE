@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 #====================================
 # If the cice binary is passed via the --exe argument and the file exists,
