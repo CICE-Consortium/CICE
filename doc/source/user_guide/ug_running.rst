@@ -378,7 +378,7 @@ and the environment (compiler) is specified with ``--env``.
 
 - Copy an existing env and a Macros file to new names for your new machine
 
-- Edit your env and Macros files
+- Edit your env and Macros files, update as needed
 
 - cd .. to **configuration/scripts/**
 
@@ -412,8 +412,10 @@ system.  Some variables are optional.
    :header: "variable", "format", "description"
    :widths: 15, 15, 25
 
-   "ICE_MACHINE_ENVNAME", "string", "machine name"
-   "ICE_MACHINE_COMPILER", "string", "compiler"
+   "ICE_MACHINE_MACHNAME", "string", "machine name"
+   "ICE_MACHINE_MACHINFO", "string", "machine information"
+   "ICE_MACHINE_ENVNAME", "string", "env/compiler name"
+   "ICE_MACHINE_ENVINFO", "string", "env/compiler information"
    "ICE_MACHINE_MAKE", "string", "make command"
    "ICE_MACHINE_WKDIR", "string", "root work directory"
    "ICE_MACHINE_INPUTDATA", "string", "root input data directory"
