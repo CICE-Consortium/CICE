@@ -112,7 +112,7 @@ DESCRIPTION
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
     --coverage : generate and report test coverage metrics when tests are complete,
-                 requires GNU compiler (--env gnu*)
+                 requires GNU env (--env gnu*)
     --setup-only         : for suite, setup testcases, no build, no submission
     --setup-build        : for suite, setup and build testcases, no submission
     --setup-build-run    : for suite, setup, build, and run interactively
@@ -369,22 +369,15 @@ if (${dosuite} == 0) then
   endif
 else
   if ($coverage == 1) then
-    if ("$compilers" =~ "*,*") then
-      echo "${0}: ERROR in arguments, cannot set multiple compilers with --coverage"
+    if ("$envnames" =~ "*,*") then
+      echo "${0}: ERROR in arguments, cannot set multiple envnamess with --coverage"
       exit -1
     else
-      set compiler = ${compilers}
-      set machcomp = ${machine}_${compiler}
+      set envname = ${envnames}
+      set machcomp = ${machine}_${envname}
     endif
   endif
 endif
-
-# tcraig, lets find another way to validate argument
-#if (${test} != ${spval} && ${test} != 'smoke' && ${test} != '10day' && ${test} != 'annual' \
-# && ${test} != 'restart') then
-#  echo "${0}: ERROR in arguments.  ${test} is not a valid test"
-#  exit -1
-#endif
 
 if ((${dosuite} == 1 || ${dotest} == 1) && ${testid} == ${spval}) then
   echo "${0}: ERROR in arguments.  --testid must be passed if using --suite or --test"

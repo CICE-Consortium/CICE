@@ -1,7 +1,7 @@
 
 #--- cice.results.csh --- 
 
-cat ./results.log
+cat ./results.log | grep -iv "#machinfo" | grep -iv "#envinfo"
 set pends     = `cat ./results.log | grep PEND | wc -l`
 set misses    = `cat ./results.log | grep MISS | wc -l`
 set failures  = `cat ./results.log | grep FAIL | wc -l`
