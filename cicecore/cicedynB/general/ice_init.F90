@@ -997,36 +997,36 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Calendar'
          write(nu_diag,*) '--------------------------------'
-         write(nu_diag,1022) ' days_per_year             = ',days_per_year,' number of days in a model year'
+         write(nu_diag,1022) ' days_per_year    = ',days_per_year,' number of days in a model year'
          if (use_leap_years) then
             tmpstr2 = ' leap days are included'
          else
             tmpstr2 = ' leap days are not included'
          endif
-         write(nu_diag,1012) ' use_leap_years            = ',use_leap_years,tmpstr2
-         write(nu_diag,1002) ' dt                        = ', dt, ' model time step'
+         write(nu_diag,1012) ' use_leap_years   = ',use_leap_years,trim(tmpstr2)
+         write(nu_diag,1002) ' dt               = ', dt, ' model time step'
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Grid, Discretization'
          write(nu_diag,*) '--------------------------------'
          if (trim(grid_type) == 'rectangular') &
-         write(nu_diag,*)    ' grid_type                 = ', &
+         write(nu_diag,*)    'grid_type        = ', &
                                trim(grid_type),': internally defined, rectangular grid'
          if (trim(grid_type) == 'regional') &
-         write(nu_diag,*)    ' grid_type                 = ', &
+         write(nu_diag,*)    'grid_type        = ', &
                                trim(grid_type),': user-defined, regional grid'
          if (trim(grid_type) == 'displaced_pole') &
-         write(nu_diag,*)    ' grid_type                 = ', &
+         write(nu_diag,*)    'grid_type        = ', &
                                trim(grid_type),': user-defined grid with rotated north pole'
          if (trim(grid_type) == 'tripole') then
-         write(nu_diag,*)    ' grid_type                 = ', &
+         write(nu_diag,*)    'grid_type        = ', &
                                trim(grid_type),': user-defined grid with northern hemisphere zipper'
          if (trim(ns_boundary_type) == 'tripole') then
             tmpstr2 = '  on U points (nodes)'
          elseif (trim(ns_boundary_type) == 'tripoleT') then
             tmpstr2 = '  on T points (cell centers)'
          endif
-         write(nu_diag,*)    ' ns_boundary_type          = ', trim(ns_boundary_type), tmpstr2
+         write(nu_diag,*)    'ns_boundary_type = ', trim(ns_boundary_type),trim(tmpstr2)
          endif
          if (trim(grid_type) /= 'rectangular') then
             if (use_bathymetry) then
@@ -1034,14 +1034,14 @@
             else
                tmpstr2 = ' bathymetric input data is not used'
             endif
-            write(nu_diag,*) ' use_bathymetry            = ', use_bathymetry, tmpstr2
+            write(nu_diag,*) 'use_bathymetry   =    ', use_bathymetry,trim(tmpstr2)
          endif
-         write(nu_diag,1022) ' nilyr                     = ', nilyr, ' number of ice layers (equal thickness)'
-         write(nu_diag,1022) ' nslyr                     = ', nslyr, ' number of snow layers (equal thickness)'
-         write(nu_diag,1022) ' nblyr                     = ', nblyr, ' number of bio layers (equal thickness)'
+         write(nu_diag,1022) ' nilyr            = ', nilyr, ' number of ice layers (equal thickness)'
+         write(nu_diag,1022) ' nslyr            = ', nslyr, ' number of snow layers (equal thickness)'
+         write(nu_diag,1022) ' nblyr            = ', nblyr, ' number of bio layers (equal thickness)'
          if (trim(shortwave) == 'dEdd') &
-         write(nu_diag,*) ' dEdd interior and sfc scattering layers are used in both ice, snow (unequal)'
-         write(nu_diag,1022) ' ncat                      = ', ncat,  ' number of ice categories'
+         write(nu_diag,*) 'dEdd interior and sfc scattering layers are used in both ice, snow (unequal)'
+         write(nu_diag,1022) ' ncat             = ', ncat,  ' number of ice categories'
          if (kcatbound == 0) then
             tmpstr2 = ' original ITD category bounds'
          elseif (kcatbound == 1) then
@@ -1051,47 +1051,49 @@
          elseif (kcatbound == -1) then
             tmpstr2 = ' one thickness category'
          endif
-         write(nu_diag,1022) ' kcatbound                 = ', kcatbound, tmpstr2
+         write(nu_diag,1022) ' kcatbound        = ', kcatbound,trim(tmpstr2)
          if (kitd==0) then
             tmpstr2 = ' delta function ITD approx'
          else
             tmpstr2 = ' linear remapping ITD approx'
          endif
-         write(nu_diag,1022) ' kitd                      = ', kitd, tmpstr2
+         write(nu_diag,1022) ' kitd             = ', kitd,trim(tmpstr2)
 
-         write(nu_diag,1012) ' tr_fsd                    = ', tr_fsd,' floe size distribution'
+         write(nu_diag,1022) ' nfsd             = ', nfsd, ' number of floe size categories'
          if (tr_fsd) then
-            write(nu_diag,*) ' floe size distribution is enabled'
-            write(nu_diag,1022) ' nfsd                      = ', nfsd, ' number of floe size categories'
+            tmpstr2 = ' floe size distribution is enabled'
+         else
+            tmpstr2 = ' floe size distribution is disabled'
          endif
+         write(nu_diag,1012) ' tr_fsd           = ', tr_fsd,trim(tmpstr2)
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Horizontal Dynamics'
          write(nu_diag,*) '--------------------------------'
          if (kdyn == 1) then
             tmpstr2 = ' elastic-viscous-plastic dynamics'
-            write(nu_diag,*)    ' yield_curve               = ', trim(yield_curve)
+            write(nu_diag,*)    'yield_curve      = ', trim(yield_curve)
             if (trim(yield_curve) == 'ellipse') &
-            write(nu_diag,1007) ' e_ratio                   = ', e_ratio, ' aspect ratio of ellipse'
+            write(nu_diag,1007) ' e_ratio          = ', e_ratio, ' aspect ratio of ellipse'
          elseif (kdyn == 2) then
             tmpstr2 = ' elastic-anisotropic-plastic dynamics'
          elseif (kdyn < 1) then
             tmpstr2 = ' dynamics disabled'
          endif
-         write(nu_diag,1022) ' kdyn                      = ', kdyn, tmpstr2
+         write(nu_diag,1022) ' kdyn             = ', kdyn,trim(tmpstr2)
          if (kdyn >= 1) then
             if (revised_evp) then
                tmpstr2 = ' revised EVP formulation used'
             else
                tmpstr2 = ' revised EVP formulation not used'
             endif
-            write(nu_diag,1012) ' revised_evp               = ', revised_evp, tmpstr2
-            write(nu_diag,1020) ' kevp_kernel               = ', kevp_kernel,' EVP solver'
+            write(nu_diag,1012) ' revised_evp      = ', revised_evp,trim(tmpstr2)
+            write(nu_diag,1022) ' kevp_kernel      = ', kevp_kernel,' EVP solver'
 
-            write(nu_diag,1022) ' ndtd                      = ', ndtd, ' number of dynamics/advection/ridging/steps per thermo timestep'
-            write(nu_diag,1022) ' ndte                      = ', ndte, ' number of EVP or EAP subcycles'
-            write(nu_diag,1005) ' brlx                      = ', brlx
-            write(nu_diag,1005) ' arlx                      = ', arlx
+            write(nu_diag,1022) ' ndtd             = ', ndtd, ' number of dynamics/advection/ridging/steps per thermo timestep'
+            write(nu_diag,1022) ' ndte             = ', ndte, ' number of EVP or EAP subcycles'
+            write(nu_diag,1007) ' brlx             = ', brlx
+            write(nu_diag,1007) ' arlx             = ', arlx
 
             if (trim(coriolis) == 'latitude') then
                tmpstr2 = ': latitude-dependent Coriolis parameter'
@@ -1100,33 +1102,33 @@
             elseif (trim(coriolis) == 'zero') then
                tmpstr2 = ' = 0.0'
             endif
-            write(nu_diag,1032) ' coriolis                  = ', coriolis, tmpstr2
+            write(nu_diag,*) 'coriolis         = ',trim(coriolis),trim(tmpstr2)
 
             if (ktransport == 1) then
                tmpstr2 = ' transport enabled'
             else
                tmpstr2 = ' transport disabled'
             endif
-            write(nu_diag,1022) ' ktransport                = ', ktransport, tmpstr2
+            write(nu_diag,1022) ' ktransport       = ', ktransport,trim(tmpstr2)
             if (trim(advection) == 'remap') then
                tmpstr2 = ': linear remapping advection'
             elseif (trim(advection) == 'upwind') then
                tmpstr2 = ': donor cell (upwind) advection'
             endif
-            write(nu_diag,1032) ' advection                 = ', trim(advection), tmpstr2
+            write(nu_diag,*) 'advection        = ', trim(advection),trim(tmpstr2)
 
             if (basalstress) then
                tmpstr2 = ' use basal stress parameterization for landfast ice'
             else
                tmpstr2 = ' basal stress not used for landfast ice'
             endif
-            write(nu_diag,1012) ' basalstress               = ', basalstress, tmpstr2
+            write(nu_diag,1012) ' basalstress      = ', basalstress,trim(tmpstr2)
             if (basalstress) then
-               write(nu_diag,1007) ' k1                        = ', k1, ' free parameter for landfast ice'
-               write(nu_diag,1007) ' k2                        = ', k2, ' free parameter for landfast ice'
-               write(nu_diag,1007) ' alphab                    = ', alphab, ' factor for landfast ice'
-               write(nu_diag,1007) ' threshold_hw              = ', threshold_hw, ' max water depth for grounding ice'
-               write(nu_diag,1007) ' Ktens                     = ', Ktens, ' tensile strength factor'
+               write(nu_diag,1007) ' k1               = ', k1, ' free parameter for landfast ice'
+               write(nu_diag,1007) ' k2               = ', k2, ' free parameter for landfast ice'
+               write(nu_diag,1007) ' alphab           = ', alphab, ' factor for landfast ice'
+               write(nu_diag,1007) ' threshold_hw     = ', threshold_hw, ' max water depth for grounding ice'
+               write(nu_diag,1007) ' Ktens            = ', Ktens, ' tensile strength factor'
             endif
          endif ! kdyn enabled
 
@@ -1138,32 +1140,32 @@
          else
             tmpstr2 = ' ridging disabled'
          endif
-         write(nu_diag,1012) ' tr_lvl                    = ', tr_lvl,' ridging related tracers'
-         write(nu_diag,1022) ' kridge                    = ', kridge, tmpstr2
+         write(nu_diag,1012) ' tr_lvl           = ', tr_lvl,' ridging related tracers'
+         write(nu_diag,1022) ' kridge           = ', kridge,trim(tmpstr2)
          if (krdg_partic == 1) then
             tmpstr2 = ' new participation function'
          else
             tmpstr2 = ' old participation function'
          endif
-         write(nu_diag,1022) ' krdg_partic               = ', krdg_partic, tmpstr2
+         write(nu_diag,1022) ' krdg_partic      = ', krdg_partic,trim(tmpstr2)
          if (krdg_partic == 1) &
-         write(nu_diag,1002) ' mu_rdg                    = ', mu_rdg,' e-folding scale of ridged ice'
+         write(nu_diag,1007) ' mu_rdg           = ', mu_rdg,' e-folding scale of ridged ice'
 
          if (krdg_redist == 1) then
             tmpstr2 = ' new redistribution function'
          else
             tmpstr2 = ' old redistribution function'
          endif
-         write(nu_diag,1022) ' krdg_redist               = ', krdg_redist, tmpstr2
+         write(nu_diag,1022) ' krdg_redist      = ', krdg_redist,trim(tmpstr2)
 
          if (kstrength == 0) then
             tmpstr2 = ' Hibler (1979)'
          elseif (kstrength == 1) then
             tmpstr2 = ' Rothrock (1975)'
          endif
-         write(nu_diag,1022) ' kstrength                 = ', kstrength,tmpstr2
+         write(nu_diag,1022) ' kstrength        = ', kstrength,trim(tmpstr2)
          if (kstrength == 1) &
-         write(nu_diag,1002) ' Cf                        = ', Cf, ' ratio of ridging work to PE change'
+         write(nu_diag,1007) ' Cf               = ', Cf, ' ratio of ridging work to PE change'
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Thermodynamics'
@@ -1179,18 +1181,18 @@
             tmpstr2 = ' thermodynamics disabled'
          endif
          if (ktherm >= 0) then
-            write(nu_diag,1022) ' ktherm                    = ', ktherm, tmpstr2
-            write(nu_diag,1002) ' dt                        = ', dt, ' thermodynamic time step'
-            write(nu_diag,1002) ' ksno                      = ', ksno,' snow thermal conductivity'
+            write(nu_diag,1022) ' ktherm           = ', ktherm,trim(tmpstr2)
+            write(nu_diag,1002) ' dt               = ', dt, ' thermodynamic time step'
+            write(nu_diag,1007) ' ksno             = ', ksno,' snow thermal conductivity'
             if (ktherm == 1) &
-            write(nu_diag,1032) ' conduct                   = ', conduct, ' ice thermal conductivity'
+            write(nu_diag,*) 'conduct          = ', trim(conduct),' ice thermal conductivity'
             if (ktherm == 2) then
-               write(nu_diag,1007) ' a_rapid_mode              = ', a_rapid_mode,' brine channel diameter'
-               write(nu_diag,1007) ' Rac_rapid_mode            = ', Rac_rapid_mode,' critical Rayleigh number'
-               write(nu_diag,1007) ' aspect_rapid_mode         = ', aspect_rapid_mode,' brine convection aspect ratio'
-               write(nu_diag,1007) ' dSdt_slow_mode            = ', dSdt_slow_mode,' drainage strength parameter'
-               write(nu_diag,1007) ' phi_c_slow_mode           = ', phi_c_slow_mode,' critical liquid fraction'
-               write(nu_diag,1007) ' phi_i_mushy               = ', phi_i_mushy,' solid fraction at lower boundary'
+               write(nu_diag,1007) ' a_rapid_mode     = ', a_rapid_mode,' brine channel diameter'
+               write(nu_diag,1007) ' Rac_rapid_mode   = ', Rac_rapid_mode,' critical Rayleigh number'
+               write(nu_diag,1007) ' aspect_rapid_mode= ', aspect_rapid_mode,' brine convection aspect ratio'
+               write(nu_diag,1007) ' dSdt_slow_mode   = ', dSdt_slow_mode,' drainage strength parameter'
+               write(nu_diag,1007) ' phi_c_slow_mode  = ', phi_c_slow_mode,' critical liquid fraction'
+               write(nu_diag,1007) ' phi_i_mushy      = ', phi_i_mushy,' solid fraction at lower boundary'
             endif
          endif
 
@@ -1202,46 +1204,46 @@
          elseif (trim(shortwave) == 'ccsm3') then
             tmpstr2 = ' NCAR CCSM3 distribution method'
          endif
-         write(nu_diag,1032) ' shortwave                 = ', trim(shortwave), tmpstr2
+         write(nu_diag,*) 'shortwave       = ', trim(shortwave),trim(tmpstr2)
          if (trim(shortwave) == 'dEdd') then
-            write(nu_diag,1002) ' R_ice                     = ', R_ice,' tuning parameter for sea ice albedo'
-            write(nu_diag,1002) ' R_pnd                     = ', R_pnd,' tuning parameter for ponded sea ice albedo'
-            write(nu_diag,1002) ' R_snw                     = ', R_snw,' tuning parameter for snow broadband albedo'
-            write(nu_diag,1002) ' dT_mlt                    = ', dT_mlt,' change in temperature per change in snow grain radius'
-            write(nu_diag,1002) ' rsnw_mlt                  = ', rsnw_mlt,' maximum melting snow grain radius'
-            write(nu_diag,1002) ' kalg                      = ', kalg,' absorption coefficient for algae'
+            write(nu_diag,1007) ' R_ice           = ', R_ice,' tuning parameter for sea ice albedo'
+            write(nu_diag,1007) ' R_pnd           = ', R_pnd,' tuning parameter for ponded sea ice albedo'
+            write(nu_diag,1007) ' R_snw           = ', R_snw,' tuning parameter for snow broadband albedo'
+            write(nu_diag,1007) ' dT_mlt          = ', dT_mlt,' change in temperature per change in snow grain radius'
+            write(nu_diag,1002) ' rsnw_mlt        = ', rsnw_mlt,' maximum melting snow grain radius'
+            write(nu_diag,1007) ' kalg            = ', kalg,' absorption coefficient for algae'
          else
             if (trim(albedo_type) == 'ccsm3') then
                tmpstr2 = ' NCAR CCSM3 albedos'
             elseif (trim(albedo_type) == 'constant') then
                tmpstr2 = ' four constant albedos'
             endif
-            write(nu_diag,1032) ' albedo_type               = ', trim(albedo_type), tmpstr2
+            write(nu_diag,*) 'albedo_type     = ', trim(albedo_type),trim(tmpstr2)
             if (trim(albedo_type) == 'ccsm3') then
-               write(nu_diag,1002) ' albicev                   = ', albicev,' visible  ice albedo for thicker ice'
-               write(nu_diag,1002) ' albicei                   = ', albicei,' near infrared ice albedo for thicker ice'
-               write(nu_diag,1002) ' albsnowv                  = ', albsnowv,' visible, cold snow albedo'
-               write(nu_diag,1002) ' albsnowi                  = ', albsnowi,' near infrared, cold snow albedo'
-               write(nu_diag,1002) ' ahmax                     = ', ahmax,' albedo is constant above this thickness'
+               write(nu_diag,1007) ' albicev         = ', albicev,' visible  ice albedo for thicker ice'
+               write(nu_diag,1007) ' albicei         = ', albicei,' near infrared ice albedo for thicker ice'
+               write(nu_diag,1007) ' albsnowv        = ', albsnowv,' visible, cold snow albedo'
+               write(nu_diag,1007) ' albsnowi        = ', albsnowi,' near infrared, cold snow albedo'
+               write(nu_diag,1007) ' ahmax           = ', ahmax,' albedo is constant above this thickness'
             endif
          endif
-         write(nu_diag,1002) ' emissivity                = ', emissivity,' emissivity of snow and ice'
+         write(nu_diag,1007) ' emissivity         = ', emissivity,' emissivity of snow and ice'
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Atmospheric Forcing / Coupling'
          write(nu_diag,*) '--------------------------------'
-         write(nu_diag,1012) ' calc_Tsfc                 = ', calc_Tsfc,' calculate surface temperature as part of thermo'
-         write(nu_diag,1012) ' calc_strair               = ', calc_strair,' calculate wind stress and speed'
-         write(nu_diag,1012) ' formdrag                  = ', formdrag,' use form drag parameterization'
+         write(nu_diag,1012) ' calc_Tsfc        = ', calc_Tsfc,' calculate surface temperature as part of thermo'
+         write(nu_diag,1012) ' calc_strair      = ', calc_strair,' calculate wind stress and speed'
+         write(nu_diag,1012) ' formdrag         = ', formdrag,' use form drag parameterization'
          if (trim(atmbndy) == 'constant') then
             tmpstr2 = ': stability-based boundary layer'
-            write(nu_diag,1010) ' highfreq                  = ', highfreq,' high-frequency atmospheric coupling'
-            write(nu_diag,1020) ' natmiter                  = ', natmiter,' number of atmo boundary layer iterations'
-            write(nu_diag,1005) ' atmiter_conv              = ', atmiter_conv,' convergence criterion for ustar'
+            write(nu_diag,1010) ' highfreq         = ', highfreq,' high-frequency atmospheric coupling'
+            write(nu_diag,1020) ' natmiter         = ', natmiter,' number of atmo boundary layer iterations'
+            write(nu_diag,1005) ' atmiter_conv     = ', atmiter_conv,' convergence criterion for ustar'
          elseif (trim(atmbndy) == 'default') then
             tmpstr2 = ': boundary layer uses bulk transfer coefficients'
          endif
-         write(nu_diag,1032) ' atmbndy                   = ', trim(atmbndy),tmpstr2
+         write(nu_diag,*) 'atmbndy          = ', trim(atmbndy),trim(tmpstr2)
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Oceanic Forcing / Coupling'
@@ -1251,7 +1253,7 @@
          else
             tmpstr2 = ' ocean mixed layer calculation (SST) disabled'
          endif
-         write(nu_diag,1012) ' oceanmixed_ice            = ', oceanmixed_ice,tmpstr2
+         write(nu_diag,1012) ' oceanmixed_ice   = ', oceanmixed_ice,trim(tmpstr2)
          if (trim(tfrz_option) == 'minus1p8') then
             tmpstr2 = ': constant ocean freezing temperature (-1.8C)'
          elseif (trim(tfrz_option) == 'linear_salt') then
@@ -1259,26 +1261,26 @@
          elseif (trim(tfrz_option) == 'mushy') then
             tmpstr2 = ': Assur (1958) as in mushy-layer thermo (ktherm=2)'
          endif
-         write(nu_diag,*)    ' tfrz_option               = ', trim(tfrz_option),tmpstr2
+         write(nu_diag,*)    'tfrz_option      = ', trim(tfrz_option),trim(tmpstr2)
          if (update_ocn_f) then
             tmpstr2 = ' frazil water/salt fluxes included in ocean fluxes'
          else
             tmpstr2 = ' frazil water/salt fluxes not included in ocean fluxes'
          endif
-         write(nu_diag,1012) ' update_ocn_f              = ', update_ocn_f, tmpstr2
+         write(nu_diag,1012) ' update_ocn_f     = ', update_ocn_f,trim(tmpstr2)
          if (l_mpond_fresh .and. tr_pond_topo) then
             tmpstr2 = ' retain (topo) pond water until ponds drain'
          else
             tmpstr2 = ' pond water not retained on ice (virtual only)'
          endif
-         write(nu_diag,1012) ' l_mpond_fresh             = ', l_mpond_fresh, tmpstr2
+         write(nu_diag,1012) ' l_mpond_fresh    = ', l_mpond_fresh,trim(tmpstr2)
          if (trim(fbot_xfer_type) == 'constant') then
             tmpstr2 = ': ocean heat transfer coefficient is constant'
          elseif (trim(fbot_xfer_type) == 'Cdn_ocn') then
             tmpstr2 = ': variable ocean heat transfer coefficient'  ! only used with form_drag=T?
          endif
-         write(nu_diag, *)   ' fbot_xfer_type            = ', trim(fbot_xfer_type), tmpstr2
-         write(nu_diag,1007) ' ustar_min                 = ', ustar_min,' minimum value of ocean friction velocity'
+         write(nu_diag, *)   'fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
+         write(nu_diag,1007) ' ustar_min        = ', ustar_min,' minimum value of ocean friction velocity'
 
          if (tr_fsd) then
          if (wave_spec) then
@@ -1286,7 +1288,7 @@
          else
             tmpstr2 = ' floe size distribution does not use wave spectrum'
          endif
-         write(nu_diag,1012) ' wave_spec                 = ', wave_spec, tmpstr2
+         write(nu_diag,1012) ' wave_spec          = ', wave_spec,trim(tmpstr2)
          if (wave_spec) then
             if (trim(wave_spec_type) == 'none') then
                tmpstr2 = 'no wave data provided, no wave-ice interactions'
@@ -1297,69 +1299,69 @@
             elseif (trim(wave_spec_type) == 'random') then
                tmpstr2 = 'wave data file provided, spectrum generated using random number'
             endif
-            write(nu_diag,*) ' wave_spec_type            = ', trim(wave_spec_type), tmpstr2
+            write(nu_diag,*) 'wave_spec_type   = ', trim(wave_spec_type),trim(tmpstr2)
          endif
-         write(nu_diag,1022) ' nfreq                     = ', nfreq,' number of wave spectral forcing frequencies'
+         write(nu_diag,1022) ' nfreq            = ', nfreq,' number of wave spectral forcing frequencies'
          endif
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Age related tracers'
          write(nu_diag,*) '--------------------------------'
-         write(nu_diag,1012) ' tr_iage                   = ', tr_iage,' chronological ice age'
-         write(nu_diag,1012) ' tr_FY                     = ', tr_FY,' first-year ice area'
+         write(nu_diag,1012) ' tr_iage         = ', tr_iage,' chronological ice age'
+         write(nu_diag,1012) ' tr_FY           = ', tr_FY,' first-year ice area'
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Melt ponds'
          write(nu_diag,*) '--------------------------------'
          if (tr_pond_cesm) &
-         write(nu_diag,1012) ' tr_pond_cesm              = ', tr_pond_cesm,' CESM pond formulation'
+         write(nu_diag,1012) ' tr_pond_cesm    = ', tr_pond_cesm,' CESM pond formulation'
 
          if (tr_pond_lvl) then
-            write(nu_diag,1012) ' tr_pond_lvl               = ', tr_pond_lvl,' level-ice pond formulation'
-            write(nu_diag,1002) ' dpscale                   = ', dpscale,' time scale for flushing in permeable ice'
+            write(nu_diag,1012) ' tr_pond_lvl     = ', tr_pond_lvl,' level-ice pond formulation'
+            write(nu_diag,1007) ' dpscale         = ', dpscale,' time scale for flushing in permeable ice'
             if (trim(frzpnd) == 'hlid') then
                tmpstr2 = ': Stefan refreezing with pond ice thickness'
             elseif (trim(frzpnd) == 'cesm') then
                tmpstr2 = ': CESM refreezing empirical formula'
             endif
-            write(nu_diag,1032) ' frzpnd                    = ', trim(frzpnd), tmpstr2
-            write(nu_diag,1002) ' hs1                       = ', hs1,' snow depth of transition to pond ice'
+            write(nu_diag,*) 'frzpnd          = ', trim(frzpnd),trim(tmpstr2)
+            write(nu_diag,1007) ' hs1             = ', hs1,' snow depth of transition to pond ice'
          endif
 
          if (tr_pond_topo) then
-            write(nu_diag,1012) ' tr_pond_topo              = ', tr_pond_topo,' topo pond formulation'
-            write(nu_diag,1002) ' hp1                       = ', hp1,' critical ice lid thickness for topo ponds'
+            write(nu_diag,1012) ' tr_pond_topo    = ', tr_pond_topo,' topo pond formulation'
+            write(nu_diag,1007) ' hp1             = ', hp1,' critical ice lid thickness for topo ponds'
          endif
 
          if (trim(shortwave) == 'dEdd') then
-            write(nu_diag,1002) ' hs0                       = ', hs0,' snow depth of transition to bare sea ice'
+            write(nu_diag,1007) ' hs0             = ', hs0,' snow depth of transition to bare sea ice'
          endif
 
-         write(nu_diag,1002) ' rfracmin                  = ', rfracmin,' minimum fraction of melt water added to ponds'
-         write(nu_diag,1002) ' rfracmax                  = ', rfracmax,' maximum fraction of melt water added to ponds'
+         write(nu_diag,1007) ' rfracmin        = ', rfracmin,' minimum fraction of melt water added to ponds'
+         write(nu_diag,1007) ' rfracmax        = ', rfracmax,' maximum fraction of melt water added to ponds'
          if (tr_pond .and. .not. tr_pond_lvl) &
-         write(nu_diag,1002) ' pndaspect                 = ', pndaspect
+         write(nu_diag,1007) ' pndaspect       = ', pndaspect
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Primary state variables, tracers'
          write(nu_diag,*) '   (excluding biogeochemistry)'
          write(nu_diag,*) '---------------------------------'
-         write(nu_diag,*) ' Conserved properties (all tracers are conserved):'
-         write(nu_diag,*) ' ice concentration, volume and enthalpy'
-         write(nu_diag,*) ' snow volume and enthalpy'
-         if (ktherm == 2)  write(nu_diag,*) ' ice salinity'
-         if (tr_fsd)       write(nu_diag,1012) ' tr_fsd                    = ', tr_fsd,' floe size distribution'
-         if (tr_lvl)       write(nu_diag,1012) ' tr_lvl                    = ', tr_lvl,' ridging related tracers'
-         if (tr_pond_lvl)  write(nu_diag,1012) ' tr_pond_lvl               = ', tr_pond_lvl,' level-ice pond formulation'
-         if (tr_pond_topo) write(nu_diag,1012) ' tr_pond_topo              = ', tr_pond_topo,' topo pond formulation'
-         if (tr_pond_cesm) write(nu_diag,1012) ' tr_pond_cesm              = ', tr_pond_cesm,' CESM pond formulation'
-         if (tr_iage)      write(nu_diag,1012) ' tr_iage                   = ', tr_iage,' chronological ice age'
-         if (tr_FY)        write(nu_diag,1012) ' tr_FY                     = ', tr_FY,' first-year ice area'
-         if (tr_iso)       write(nu_diag,1012) ' tr_iso                    = ', tr_iso,' diagnostic isotope tracers'
-         if (tr_aero)      write(nu_diag,1012) ' tr_aero                   = ', tr_aero,' CESM aerosol tracers'
-         write(nu_diag,*) ' Non-conserved properties:'
-         write(nu_diag,*) ' ice surface temperature'
-         write(nu_diag,*) ' ice velocity components and internal stress'
+         write(nu_diag,*) 'Conserved properties (all tracers are conserved):'
+         write(nu_diag,*) 'ice concentration, volume and enthalpy'
+         write(nu_diag,*) 'snow volume and enthalpy'
+         if (ktherm == 2)  write(nu_diag,*) 'ice salinity'
+         if (tr_fsd)       write(nu_diag,1012) ' tr_fsd           = ', tr_fsd,' floe size distribution'
+         if (tr_lvl)       write(nu_diag,1012) ' tr_lvl           = ', tr_lvl,' ridging related tracers'
+         if (tr_pond_lvl)  write(nu_diag,1012) ' tr_pond_lvl      = ', tr_pond_lvl,' level-ice pond formulation'
+         if (tr_pond_topo) write(nu_diag,1012) ' tr_pond_topo     = ', tr_pond_topo,' topo pond formulation'
+         if (tr_pond_cesm) write(nu_diag,1012) ' tr_pond_cesm     = ', tr_pond_cesm,' CESM pond formulation'
+         if (tr_iage)      write(nu_diag,1012) ' tr_iage          = ', tr_iage,' chronological ice age'
+         if (tr_FY)        write(nu_diag,1012) ' tr_FY            = ', tr_FY,' first-year ice area'
+         if (tr_iso)       write(nu_diag,1012) ' tr_iso           = ', tr_iso,' diagnostic isotope tracers'
+         if (tr_aero)      write(nu_diag,1012) ' tr_aero          = ', tr_aero,' CESM aerosol tracers'
+         write(nu_diag,*) 'Non-conserved properties:'
+         write(nu_diag,*) 'ice surface temperature'
+         write(nu_diag,*) 'ice velocity components and internal stress'
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Other ice_in namelist parameters:'
@@ -1583,15 +1585,14 @@
          file=__FILE__, line=__LINE__)
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
- 1002    format (a30,2x,f9.2,a)
+ 1002    format (a20,1x,f7.2,a)
  1005    format (a30,2x,f12.6) ! float
- 1007    format (a30,2x,f12.6,a)
+ 1007    format (a20,2x,f6.2,a)
  1010    format (a30,2x,l6)    ! logical
- 1012    format (a30,2x,l6,a)  ! logical
+ 1012    format (a20,2x,l3,1x,a)  ! logical
  1020    format (a30,2x,i6)    ! integer
- 1022    format (a30,2x,i6,a)  ! integer
+ 1022    format (a20,2x,i3,1x,a)  ! integer
  1030    format (a30,   a8)    ! character
- 1032    format (a30,   a8,a)  ! character
  1040    format (a30,2x,6i6)   ! integer
  1050    format (a30,2x,6a6)   ! character
 
