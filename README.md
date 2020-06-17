@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/CICE-Consortium/CICE.svg?branch=master)](https://travis-ci.org/CICE-Consortium/CICE)
 [![Documentation Status](https://readthedocs.org/projects/cice-consortium-cice/badge/?version=master)](http://cice-consortium-cice.readthedocs.io/en/master/?badge=master)
-![lcov](https://img.shields.io/endpoint?url=https://apcraig.github.io/coverage.json)
+[![lcov](https://apcraig.github.io)](https://img.shields.io/endpoint?url=https://apcraig.github.io/coverage.json)
 
 <!--- [![codecov](https://codecov.io/gh/apcraig/Test_CICE_Icepack/branch/master/graph/badge.svg)](https://codecov.io/gh/apcraig/Test_CICE_Icepack) --->
 
