@@ -1,8 +1,7 @@
 #!/bin/csh 
 
 # This was a script on gordon
-# This script should only be run on hardware with the gnu compiler with a
-#   modified Macros file to turn on the codecov flags
+# This script should only be run on hardware with the gnu compiler
 # This should be run interactively because git push will require login information
 
 #PBS -N cice_test
@@ -69,7 +68,7 @@ git push origin master
 # Run test suite
 echo " "
 echo "*** run test suite ***"
-./cice.setup --suite first_suite,base_suite,travis_suite,decomp_suite,reprosum_suite,quick_suite -m gordon -e gnu --testid T${date} --codecov --queue standard
+./cice.setup --suite first_suite,base_suite,travis_suite,decomp_suite,reprosum_suite,io_suite,quick_suite -m gordon -e gnu --testid T${date} --coverage --queue standard
 
-# The test suite will wait until all jobs are complete then run report_codecov.csh
-# If that fails, you can run report_codecov.csh manually after all jobs are done
+# The test suite will wait until all jobs are complete then run report_codecov.csh or report_lcov.csh
+# If that fails, you can run report_codecov.csh or report_lcov.csh manually after all jobs are done
