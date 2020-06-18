@@ -1323,7 +1323,8 @@
          else
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: kevp_kernel = ',kevp_kernel
             if (kevp_kernel == 2) then
-                if (my_task == master_task) write(nu_diag,*) subname//' kevp_kernel=2 not validated, use kevp_kernel=102 for testing until it is validated'
+                if (my_task == master_task) write(nu_diag,*) &
+                  subname//' kevp_kernel=2 not validated, use kevp_kernel=102 for testing until it is validated'
             endif
             abort_list = trim(abort_list)//":21"
         endif

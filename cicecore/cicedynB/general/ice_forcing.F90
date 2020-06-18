@@ -2324,7 +2324,7 @@
 
       integer (kind=int_kind) :: & 
           ncid        , & ! netcdf file id
-	  i, j        , &
+          i, j        , &
           ixm,ixx,ixp , & ! record numbers for neighboring months
           recnum      , & ! record number
           maxrec      , & ! maximum record number
@@ -2409,7 +2409,7 @@
          !-------------------------------------------------------------------
          call ice_open_nc(uwind_file,ncid)
 
-	 fieldname = 'airtmp'
+         fieldname = 'airtmp'
          call ice_read_nc(ncid,recnum,fieldname,Tair_data(:,:,1,:),debug_n_d, &
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
@@ -2417,7 +2417,7 @@
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
 
-	 fieldname = 'wndewd'
+         fieldname = 'wndewd'
          call ice_read_nc(ncid,recnum,fieldname,uatm_data(:,:,1,:),debug_n_d, &
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
@@ -2425,7 +2425,7 @@
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
 
-	 fieldname = 'wndnwd'
+         fieldname = 'wndnwd'
          call ice_read_nc(ncid,recnum,fieldname,vatm_data(:,:,1,:),debug_n_d, &
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
@@ -2433,7 +2433,7 @@
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
 
-	 fieldname = 'spchmd'
+         fieldname = 'spchmd'
          call ice_read_nc(ncid,recnum,fieldname,Qa_data(:,:,1,:),debug_n_d, &
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
@@ -2441,7 +2441,7 @@
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
 
-	 fieldname = 'glbrad'
+         fieldname = 'glbrad'
          call ice_read_nc(ncid,recnum,fieldname,fsw_data(:,:,1,:),debug_n_d, &
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
@@ -2449,7 +2449,7 @@
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
 
-	 fieldname = 'dlwsfc'
+         fieldname = 'dlwsfc'
          call ice_read_nc(ncid,recnum,fieldname,flw_data(:,:,1,:),debug_n_d, &
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
@@ -2457,7 +2457,7 @@
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
 
-	 fieldname = 'ttlpcp'
+         fieldname = 'ttlpcp'
          call ice_read_nc(ncid,recnum,fieldname,fsnow_data(:,:,1,:),debug_n_d, &
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
@@ -2465,7 +2465,7 @@
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
 
-	 call ice_close_nc(ncid)
+         call ice_close_nc(ncid)
 
 
       ! Interpolate

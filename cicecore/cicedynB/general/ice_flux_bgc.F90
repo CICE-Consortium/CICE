@@ -153,7 +153,8 @@
          flux_bio    (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! all bio fluxes to ocean
          flux_bio_ai (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! all bio fluxes to ocean, averaged over grid cell
          algalN      (nx_block,ny_block,icepack_max_algae,max_blocks), & ! ocean algal nitrogen (mmol/m^3) (diatoms, pico, phaeo)
-         falgalN     (nx_block,ny_block,icepack_max_algae,max_blocks), & ! ice-ocean algal nitrogen flux (mmol/m^2/s) (diatoms, pico, phaeo)
+         falgalN     (nx_block,ny_block,icepack_max_algae,max_blocks), & ! ice-ocean algal nitrogen flux 
+                                                                         !   (mmol/m^2/s) (diatoms, pico, phaeo)
          doc         (nx_block,ny_block,icepack_max_doc,max_blocks), & ! ocean doc (mmol/m^3)  (saccharids, lipids, tbd )
          fdoc        (nx_block,ny_block,icepack_max_doc,max_blocks), & ! ice-ocean doc flux (mmol/m^2/s)  (saccharids, lipids, tbd)
          don         (nx_block,ny_block,icepack_max_don,max_blocks), & ! ocean don (mmol/m^3) (proteins and amino acids)
