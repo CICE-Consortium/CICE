@@ -956,7 +956,7 @@
       endif
       
       if(history_precision .ne. 4 .and. history_precision .ne. 8) then
-         write (nu_diag,*) 'ERROR: bad value for history_precision, allowed values: 4, 8'
+         write (nu_diag,*) subname//' ERROR: bad value for history_precision, allowed values: 4, 8'
          abort_flag = 22
       endif
 
@@ -1021,12 +1021,12 @@
          if (trim(grid_type) == 'tripole') then
          write(nu_diag,*)    'grid_type        = ', &
                                trim(grid_type),': user-defined grid with northern hemisphere zipper'
-         if (trim(ns_boundary_type) == 'tripole') then
-            tmpstr2 = '  on U points (nodes)'
-         elseif (trim(ns_boundary_type) == 'tripoleT') then
-            tmpstr2 = '  on T points (cell centers)'
-         endif
-         write(nu_diag,*)    'ns_boundary_type = ', trim(ns_boundary_type),trim(tmpstr2)
+            if (trim(ns_boundary_type) == 'tripole') then
+               tmpstr2 = '  on U points (nodes)'
+            elseif (trim(ns_boundary_type) == 'tripoleT') then
+               tmpstr2 = '  on T points (cell centers)'
+            endif
+            write(nu_diag,*)    'ns_boundary_type = ', trim(ns_boundary_type),trim(tmpstr2)
          endif
          if (trim(grid_type) /= 'rectangular') then
             if (use_bathymetry) then
@@ -1034,7 +1034,7 @@
             else
                tmpstr2 = ' bathymetric input data is not used'
             endif
-            write(nu_diag,*) 'use_bathymetry   =    ', use_bathymetry,trim(tmpstr2)
+            write(nu_diag,1012) ' use_bathymetry   = ', use_bathymetry,trim(tmpstr2)
          endif
          write(nu_diag,1022) ' nilyr            = ', nilyr, ' number of ice layers (equal thickness)'
          write(nu_diag,1022) ' nslyr            = ', nslyr, ' number of snow layers (equal thickness)'
@@ -1059,13 +1059,14 @@
          endif
          write(nu_diag,1022) ' kitd             = ', kitd,trim(tmpstr2)
 
-         write(nu_diag,1022) ' nfsd             = ', nfsd, ' number of floe size categories'
          if (tr_fsd) then
             tmpstr2 = ' floe size distribution is enabled'
+         !   write(nu_diag,1002) ' floediam         = ', floediam, ' constant floe diameter'
          else
             tmpstr2 = ' floe size distribution is disabled'
          endif
          write(nu_diag,1012) ' tr_fsd           = ', tr_fsd,trim(tmpstr2)
+         write(nu_diag,1022) ' nfsd             = ', nfsd, ' number of floe size categories'
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Horizontal Dynamics'
@@ -1164,8 +1165,12 @@
             tmpstr2 = ' Rothrock (1975)'
          endif
          write(nu_diag,1022) ' kstrength        = ', kstrength,trim(tmpstr2)
-         if (kstrength == 1) &
-         write(nu_diag,1007) ' Cf               = ', Cf, ' ratio of ridging work to PE change'
+         if (kstrength == 0) then
+         !   write(nu_diag,1007) ' Pstar            = ', Pstar, ' P* strength factor'
+         !   write(nu_diag,1007) ' Cstar            = ', Cstar, ' C* strength exponent factor'
+         elseif (kstrength == 1) then
+            write(nu_diag,1007) ' Cf               = ', Cf, ' ratio of ridging work to PE change'
+         endif
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Thermodynamics'
@@ -1195,16 +1200,17 @@
                write(nu_diag,1007) ' phi_i_mushy      = ', phi_i_mushy,' solid fraction at lower boundary'
             endif
          endif
+         !write(nu_diag,1007) ' hfrazilmin       = ', hfrazilmin,' minimum new frazil ice thickness'
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Radiation'
          write(nu_diag,*) '--------------------------------'
          if (trim(shortwave) == 'dEdd') then
-            tmpstr2 = ' delta-Eddington multiple-scattering method'
+            tmpstr2 = ': delta-Eddington multiple-scattering method'
          elseif (trim(shortwave) == 'ccsm3') then
-            tmpstr2 = ' NCAR CCSM3 distribution method'
+            tmpstr2 = ': NCAR CCSM3 distribution method'
          endif
-         write(nu_diag,*) 'shortwave       = ', trim(shortwave),trim(tmpstr2)
+         write(nu_diag,*) ' shortwave       = ', trim(shortwave),trim(tmpstr2)
          if (trim(shortwave) == 'dEdd') then
             write(nu_diag,1007) ' R_ice           = ', R_ice,' tuning parameter for sea ice albedo'
             write(nu_diag,1007) ' R_pnd           = ', R_pnd,' tuning parameter for ponded sea ice albedo'
@@ -1214,9 +1220,9 @@
             write(nu_diag,1007) ' kalg            = ', kalg,' absorption coefficient for algae'
          else
             if (trim(albedo_type) == 'ccsm3') then
-               tmpstr2 = ' NCAR CCSM3 albedos'
+               tmpstr2 = ': NCAR CCSM3 albedos'
             elseif (trim(albedo_type) == 'constant') then
-               tmpstr2 = ' four constant albedos'
+               tmpstr2 = ': four constant albedos'
             endif
             write(nu_diag,*) 'albedo_type     = ', trim(albedo_type),trim(tmpstr2)
             if (trim(albedo_type) == 'ccsm3') then
@@ -1279,7 +1285,7 @@
          elseif (trim(fbot_xfer_type) == 'Cdn_ocn') then
             tmpstr2 = ': variable ocean heat transfer coefficient'  ! only used with form_drag=T?
          endif
-         write(nu_diag, *)   'fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
+         write(nu_diag,*)   'fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
          write(nu_diag,1007) ' ustar_min        = ', ustar_min,' minimum value of ocean friction velocity'
 
          if (tr_fsd) then
@@ -1291,13 +1297,13 @@
          write(nu_diag,1012) ' wave_spec          = ', wave_spec,trim(tmpstr2)
          if (wave_spec) then
             if (trim(wave_spec_type) == 'none') then
-               tmpstr2 = 'no wave data provided, no wave-ice interactions'
+               tmpstr2 = ': no wave data provided, no wave-ice interactions'
             elseif (trim(wave_spec_type) == 'profile') then
-               tmpstr2 = 'use fixed dummy wave spectrum for testing'
+               tmpstr2 = ': use fixed dummy wave spectrum for testing'
             elseif (trim(wave_spec_type) == 'constant') then
-               tmpstr2 = 'constant wave spectrum data file provided for testing'
+               tmpstr2 = ': constant wave spectrum data file provided for testing'
             elseif (trim(wave_spec_type) == 'random') then
-               tmpstr2 = 'wave data file provided, spectrum generated using random number'
+               tmpstr2 = ': wave data file provided, spectrum generated using random number'
             endif
             write(nu_diag,*) 'wave_spec_type   = ', trim(wave_spec_type),trim(tmpstr2)
          endif
@@ -1324,7 +1330,7 @@
             elseif (trim(frzpnd) == 'cesm') then
                tmpstr2 = ': CESM refreezing empirical formula'
             endif
-            write(nu_diag,*) 'frzpnd          = ', trim(frzpnd),trim(tmpstr2)
+            write(nu_diag,*) ' frzpnd          = ', trim(frzpnd),trim(tmpstr2)
             write(nu_diag,1007) ' hs1             = ', hs1,' snow depth of transition to pond ice'
          endif
 
