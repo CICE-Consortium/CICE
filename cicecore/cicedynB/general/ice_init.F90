@@ -994,7 +994,7 @@
       endif
       
       if(history_precision .ne. 4 .and. history_precision .ne. 8) then
-         write (nu_diag,*) subname//'ERROR: bad value for history_precision, allowed values: 4, 8'
+         write (nu_diag,*) subname//' ERROR: bad value for history_precision, allowed values: 4, 8'
          abort_list = trim(abort_list)//":22"
       endif
 
