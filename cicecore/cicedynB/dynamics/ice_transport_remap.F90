@@ -464,9 +464,9 @@
          l_stop = .false.
          istop = 0
          jstop = 0
-         PRINT *,"RG:horizontal remap ",iblk, nblocks
+
          this_block = get_block(blocks_ice(iblk),iblk)         
-         PRINT *,"RG:back from get_block ",iblk, nblocks
+
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -533,7 +533,6 @@
                                   tmask(:,:,:,n) )
 
          enddo                  ! n
-         PRINT *,'RG:finished ncat loop inside iblk'
        
     !-------------------------------------------------------------------
     ! Given velocity field at cell corners, compute departure points
@@ -562,7 +561,7 @@
          endif
 
       enddo                     ! iblk
-      PRINT *,'RG:finished iblk loop'
+
       !$TCXOMP END PARALLEL DO
 
     !-------------------------------------------------------------------

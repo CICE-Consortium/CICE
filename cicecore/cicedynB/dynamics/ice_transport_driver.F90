@@ -415,7 +415,6 @@
 
          do n = 1, ncat
             do nt = 1, ntrace
-               PRINT *,'RG:hello from ice transport driver line 419',n,nt
                if (tracer_type(nt)==1) then ! does not depend on another tracer
                   atsum_init(nt,n) =      &
                       global_sum_prod(trm(:,:,nt,n,:), aim(:,:,n,:),       &
@@ -522,7 +521,6 @@
     !-------------------------------------------------------------------
     ! Main remapping routine: Step ice area and tracers forward in time.
     !-------------------------------------------------------------------
-         PRINT *,'RG:calling horizontal remap'
          call horizontal_remap (dt,                ntrace,             &
                                 uvel      (:,:,:), vvel      (:,:,:),  &
                                 aim     (:,:,:,:), trm   (:,:,:,:,:),  &
