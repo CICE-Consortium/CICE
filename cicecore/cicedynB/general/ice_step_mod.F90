@@ -182,7 +182,6 @@
       logical (kind=log_kind) :: & 
          prescribed_ice ! if .true., use prescribed ice instead of computed
 #endif
-
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -190,7 +189,10 @@
          iblk    ! block index
 
       ! local variables
-
+#ifdef CICE_IN_NEMO
+      real (kind=dbl_kind)    :: & 
+         raice              ! temporary reverse ice concentration
+#endif
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j           , & ! horizontal indices

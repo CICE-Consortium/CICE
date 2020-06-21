@@ -852,13 +852,13 @@
                              field_loc_center, field_type_angle)
          where (ANGLET >  pi) ANGLET =  pi
          where (ANGLET < -pi) ANGLET = -pi
-          fieldname="tlon"
-          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
-          call scatter_global(TLON, work_g1, master_task, distrb_info, &
+         fieldname="tlon"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(TLON, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_scalar)
-          fieldname="tlat"
-          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
-          call scatter_global(TLAT, work_g1, master_task, distrb_info, &
+         fieldname="tlat"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(TLAT, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_scalar)
       endif
       deallocate(work_g1)
