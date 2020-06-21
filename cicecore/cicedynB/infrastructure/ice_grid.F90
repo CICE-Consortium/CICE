@@ -720,7 +720,6 @@
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
       use netcdf
-      use ice_communicate, only: ice_barrier
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -821,19 +820,6 @@
       where (ANGLE >  pi) ANGLE =  pi
       where (ANGLE < -pi) ANGLE = -pi
 
-      !-----------------------------------------------------------------
-      ! cell dimensions
-      ! calculate derived quantities from global arrays to preserve 
-      ! information on boundaries
-      !-----------------------------------------------------------------
-
-      fieldname='htn'
-      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
-      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
-      fieldname='hte'
-      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
-      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
-
       ! if grid file includes anglet then read instead
       fieldname='anglet'
       if (my_task == master_task) then
@@ -861,13 +847,25 @@
          call scatter_global(TLAT, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_scalar)
       endif
+      !-----------------------------------------------------------------
+      ! cell dimensions
+      ! calculate derived quantities from global arrays to preserve 
+      ! information on boundaries
+      !-----------------------------------------------------------------
+
+      fieldname='htn'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
+      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
+      fieldname='hte'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
+      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
+
       deallocate(work_g1)
 
       if (my_task == master_task) then
          call ice_close_nc(fid_grid)
          call ice_close_nc(fid_kmt)
       endif
-       call ice_barrier()
 #endif
       end subroutine popgrid_nc
 
