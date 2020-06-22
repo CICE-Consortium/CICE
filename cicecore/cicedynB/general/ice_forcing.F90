@@ -1629,21 +1629,12 @@
 
       endif
 
-      if (calc_strair .and. (.not.rotate_wind)) then
+      if (calc_strair) then
 
-        do j = jlo, jhi
-        do i = ilo, ihi
-           wind(i,j) = sqrt(uatm(i,j)**2 + vatm(i,j)**2)
-        enddo                     ! i
-        enddo                     ! j
-
-      else if (calc_strair) then
-
-        do j = jlo, jhi
-        do i = ilo, ihi
-
-           wind(i,j) = sqrt(uatm(i,j)**2 + vatm(i,j)**2)
-
+        if (rotate_wind) then
+          do j = jlo, jhi
+          do i = ilo, ihi
+             wind(i,j) = sqrt(uatm(i,j)**2 + vatm(i,j)**2)
       !-----------------------------------------------------------------
       ! Rotate zonal/meridional vectors to local coordinates.
       ! Velocity comes in on T grid, but is oriented geographically ---
@@ -1655,33 +1646,40 @@
       ! atmo_boundary_layer, and are interpolated to the U grid later as 
       ! necessary.
       !-----------------------------------------------------------------
-           workx      = uatm(i,j) ! wind velocity, m/s
-           worky      = vatm(i,j)
-           uatm (i,j) = workx*cos(ANGLET(i,j)) & ! convert to POP grid
-                      + worky*sin(ANGLET(i,j))   ! note uatm, vatm, wind
-           vatm (i,j) = worky*cos(ANGLET(i,j)) & !  are on the T-grid here
-                      - workx*sin(ANGLET(i,j))
+             workx      = uatm(i,j) ! wind velocity, m/s
+             worky      = vatm(i,j)
+             uatm (i,j) = workx*cos(ANGLET(i,j)) & ! convert to POP grid
+                        + worky*sin(ANGLET(i,j))   ! note uatm, vatm, wind
+             vatm (i,j) = worky*cos(ANGLET(i,j)) & !  are on the T-grid here
+                        - workx*sin(ANGLET(i,j))
+          enddo                     ! i
+          enddo                     ! j
+        else ! not rotated
+          do j = jlo, jhi
+          do i = ilo, ihi
+             wind(i,j) = sqrt(uatm(i,j)**2 + vatm(i,j)**2)
+          enddo                     ! i
+          enddo                     ! j
+        endif ! rotated
 
-        enddo                     ! i
-        enddo                     ! j
+      else ! strax, stray, wind are read from files
 
-      else if (rotate_wind) then ! strax, stray, wind are read from files
-
-        do j = jlo, jhi
-        do i = ilo, ihi
-
-           workx      = strax(i,j) ! wind stress
-           worky      = stray(i,j)
-           strax(i,j) = workx*cos(ANGLET(i,j)) & ! convert to POP grid
-                      + worky*sin(ANGLET(i,j))   ! note strax, stray, wind
-           stray(i,j) = worky*cos(ANGLET(i,j)) & !  are on the T-grid here
-                      - workx*sin(ANGLET(i,j))
-
-        enddo                     ! i
-        enddo                     ! j
+        if (rotate_wind) then
+          do j = jlo, jhi
+          do i = ilo, ihi
+             workx      = strax(i,j) ! wind stress
+             worky      = stray(i,j)
+             strax(i,j) = workx*cos(ANGLET(i,j)) & ! convert to POP grid
+                        + worky*sin(ANGLET(i,j))   ! note strax, stray, wind
+             stray(i,j) = worky*cos(ANGLET(i,j)) & !  are on the T-grid here
+                        - workx*sin(ANGLET(i,j))
+          enddo                     ! i
+          enddo                     ! j
+        else ! not rotated
+          ! wind (speed) is already read from file, so all is in place
+        endif ! rotated
 
       endif                   ! calc_strair
-
 
       end subroutine prepare_forcing
 
