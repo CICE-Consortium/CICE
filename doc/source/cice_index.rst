@@ -91,6 +91,7 @@ either Celsius or Kelvin units).
    "bTiz", "temperature of ice layers on bio grid", ""
    "**C**", "", ""
    "c<n>", "real(\ :math:`n`)", ""
+   "rotate_wind", ":math:`\bullet` if true, rotate wind/stress composants to computational grid", "T"
    "calc_strair", ":math:`\bullet` if true, calculate wind stress", "T"
    "calc_Tsfc", ":math:`\bullet` if true, calculate surface temperature", "T"
    "Cdn_atm", "atmospheric drag coefficient", ""

@@ -83,7 +83,7 @@
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
           ycycle,          fyear_init,    dbug, &
-          atm_data_type,   atm_data_dir,  precip_units, &
+          atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
           ocn_data_type, ocn_data_dir,    wave_spec_file,  &
@@ -206,7 +206,7 @@
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
         highfreq,       natmiter,        atmiter_conv,                  &
-        ustar_min,      emissivity,     &
+        ustar_min,      emissivity,                                     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
@@ -214,7 +214,7 @@
         ice_data_type,  wave_spec_file,                                 &
         fyear_init,     ycycle,                                         &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
-        atm_data_format, ocn_data_format,                               &
+        atm_data_format, ocn_data_format, rotate_wind,                  &
         oceanmixed_file
 
       !-----------------------------------------------------------------
@@ -357,6 +357,7 @@
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       atm_data_type   = 'default'
       atm_data_dir    = ' '
+      rotate_wind     = .true.    ! rotate wind/stress composants to computational grid orientation
       calc_strair     = .true.    ! calculate wind stress
       formdrag        = .false.   ! calculate form drag
       highfreq        = .false.   ! calculate high frequency RASM coupling
@@ -631,6 +632,7 @@
       call broadcast_scalar(atm_data_format,    master_task)
       call broadcast_scalar(atm_data_type,      master_task)
       call broadcast_scalar(atm_data_dir,       master_task)
+      call broadcast_scalar(rotate_wind,        master_task)
       call broadcast_scalar(calc_strair,        master_task)
       call broadcast_scalar(calc_Tsfc,          master_task)
       call broadcast_scalar(formdrag,           master_task)
@@ -1279,6 +1281,7 @@
          write(nu_diag,*) '--------------------------------'
          write(nu_diag,1012) ' calc_Tsfc        = ', calc_Tsfc,' calculate surface temperature as part of thermo'
          write(nu_diag,1012) ' calc_strair      = ', calc_strair,' calculate wind stress and speed'
+         write(nu_diag,1012) ' rotate_wind      = ', rotate_wind,' rotate wind/stress to computational grid'
          write(nu_diag,1012) ' formdrag         = ', formdrag,' use form drag parameterization'
          if (trim(atmbndy) == 'constant') then
             tmpstr2 = ': stability-based boundary layer'
