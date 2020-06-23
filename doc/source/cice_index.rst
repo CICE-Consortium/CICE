@@ -61,6 +61,7 @@ either Celsius or Kelvin units).
    "ardgn", "fractional area of ridged ice", ""
    "aspect_rapid_mode", ":math:`\bullet` brine convection aspect ratio", "1"
    "astar", "e-folding scale for participation function", "0.05"
+   "atmiter_conv", ":math:`\bullet` convergence criteria for ustar", "0.00"
    "atm_data_dir", ":math:`\bullet` directory for atmospheric forcing data", ""
    "atm_data_format", ":math:`\bullet` format of atmospheric forcing files", ""
    "atm_data_type", ":math:`\bullet` type of atmospheric forcing", ""

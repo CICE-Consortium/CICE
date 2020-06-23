@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 #source ./cice.settings
 #source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2

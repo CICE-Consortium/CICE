@@ -23,8 +23,7 @@ binary and netcdf files.
 **cicecore/drivers/** contains subdirectories that support stand-alone drivers and other high level
 coupling layers.
 
-**cicecore/shared/** contains some basic methods related to grid decomposition, time managers, constants,
-kinds, and restart capabilities.
+**cicecore/shared/** contains some basic methods related to grid decomposition, time managers, constants, kinds, and restart capabilities.
 
 
 Dynamical Solvers
@@ -72,7 +71,7 @@ Constants
 while others have internal defaults and can be set thru namelist.
 
 Dynamic Array Allocation
-------------------
+-------------------------------
 
 CICE v5 and earlier was implemented using mainly static arrays and required several CPPs to be set to define grid size,
 blocks sizes, tracer numbers, and so forth.  With CICE v6 and later, arrays are dynamically allocated and those
