@@ -28,7 +28,7 @@ can be modified as needed.
    "ICE_CASENAME", "string", "case name", "set by cice.setup"
    "ICE_SANDBOX", "string", "sandbox directory", "set by cice.setup"
    "ICE_MACHINE", "string", "machine name", "set by cice.setup"
-   "ICE_COMPILER", "string", "environment name", "set by cice.setup"
+   "ICE_ENVNAME", "string", "environment name", "set by cice.setup"
    "ICE_MACHCOMP", "string", "machine_environment name", "set by cice.setup"
    "ICE_SCRIPTS", "string", "scripts directory", "set by cice.setup"
    "ICE_CASEDIR", "string", "case directory", "set by cice.setup"
@@ -71,7 +71,7 @@ can be modified as needed.
    "ICE_QUEUE", "string", "batch queue name", "set by cice.setup or by default"
    "ICE_THREADED", "true, false", "force threading in compile, will always compile threaded if ICE_NTHRDS :math:`> 1`", "false"
    "ICE_BLDDEBUG", "true, false", "turn on compile debug flags", "false"
-   "ICE_CODECOV", "true,false", "turn on code coverage flags", "false"
+   "ICE_COVERAGE", "true, false", "turn on code coverage flags", "false"
 
 
 .. _tabnamelist:

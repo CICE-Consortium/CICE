@@ -98,3 +98,18 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
 endif
 
 #-----------------------------------------------------------
+
+# Document machine and env
+
+set machinfo = ""
+set envinfo  = ""
+if ($?ICE_MACHINE_MACHINFO) then
+  set machinfo = "${ICE_MACHINE_MACHINFO}"
+endif
+if ($?ICE_MACHINE_ENVINFO) then
+  set envinfo = "${ICE_MACHINE_ENVINFO}"
+endif
+echo "#machinfo = ${machinfo}" >> ${ICE_CASEDIR}/test_output
+echo "#envinfo ${ICE_ENVNAME} = ${envinfo}" >> ${ICE_CASEDIR}/test_output
+
+#-----------------------------------------------------------

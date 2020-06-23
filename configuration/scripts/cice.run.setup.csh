@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 #echo ${0}
 echo "running cice.run.setup.csh"

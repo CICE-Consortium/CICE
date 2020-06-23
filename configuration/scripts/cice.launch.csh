@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 #echo ${0}
 echo "running cice.launch.csh"
@@ -42,18 +42,6 @@ EOFR
 else
 cat >> ${jobfile} << EOFR
 mpiexec -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-endif
-
-#=======
-else if (${ICE_MACHINE} =~ thunder*) then
-if (${ICE_COMMDIR} =~ serial*) then
-cat >> ${jobfile} << EOFR
-./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-else
-cat >> ${jobfile} << EOFR
-mpiexec_mpt -np ${ntasks} omplace ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 
@@ -105,17 +93,6 @@ mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 
-#=======
-else if (${ICE_MACHINE} =~ loft*) then
-if (${ICE_COMMDIR} =~ serial*) then
-cat >> ${jobfile} << EOFR
-./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-else
-cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-endif
 #=======
 else if (${ICE_MACHINE} =~ fram*) then
 if (${ICE_COMMDIR} =~ serial*) then

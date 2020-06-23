@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 if ( $1 != "" ) then
   echo "running cice.batch.csh (creating ${1})"
@@ -91,7 +91,7 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
-else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr* || ${ICE_MACHINE} =~ mustang) then
+else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr* || ${ICE_MACHINE} =~ mustang) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q ${queue}
@@ -144,18 +144,6 @@ cat >> ${jobfile} << EOFB
 ###SBATCH --mail-type END,FAIL
 ###SBATCH --mail-user=eclare@lanl.gov
 #SBATCH --qos=standby
-EOFB
-
-else if (${ICE_MACHINE} =~ loft*) then
-cat >> ${jobfile} << EOFB
-#PBS -N ${shortcase}
-#PBS -q ${queue}
-#PBS -A ${acct}
-#PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=${batchtime}
-#PBS -j oe
-###PBS -M username@domain.com
-###PBS -m be
 EOFB
 
 else if (${ICE_MACHINE} =~ fram*) then
