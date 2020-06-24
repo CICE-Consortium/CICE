@@ -182,7 +182,7 @@
 
       use ice_arrays_column, only: fswpenln, Iswabsn, Sswabsn, albicen, &
           albsnon, alvdrn, alidrn, alvdfn, alidfn, fswsfcn, &
-          fswthrun, fswthrunvdr, fswthrunvdf, fswthrunidr, fswthrunidf, &
+          fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, gaer_bc_tab, bcenh, &
           swgrid, igrid
@@ -305,10 +305,10 @@
                fswsfcn(i,j,n,iblk) = c0
                fswintn(i,j,n,iblk) = c0
                fswthrun(i,j,n,iblk) = c0
-               fswthrunvdr(i,j,n,iblk) = c0
-               fswthrunvdf(i,j,n,iblk) = c0
-               fswthrunidr(i,j,n,iblk) = c0
-               fswthrunidf(i,j,n,iblk) = c0
+               fswthrun_vdr(i,j,n,iblk) = c0
+               fswthrun_vdf(i,j,n,iblk) = c0
+               fswthrun_idr(i,j,n,iblk) = c0
+               fswthrun_idf(i,j,n,iblk) = c0
             enddo   ! ncat
 
          enddo
@@ -369,10 +369,10 @@
                           alidrn=alidrn(i,j,:,iblk),     alidfn=alidfn(i,j,:,iblk), &
                           fswsfcn=fswsfcn(i,j,:,iblk),   fswintn=fswintn(i,j,:,iblk), &
                           fswthrun=fswthrun(i,j,:,iblk),                       &
-                          fswthrunvdr=fswthrunvdr(i,j,:,iblk),                 &
-                          fswthrunvdf=fswthrunvdf(i,j,:,iblk),                 &
-                          fswthrunidr=fswthrunidr(i,j,:,iblk),                 &
-                          fswthrunidf=fswthrunidf(i,j,:,iblk),                 &
+                          fswthrun_vdr=fswthrun_vdr(i,j,:,iblk),               &
+                          fswthrun_vdf=fswthrun_vdf(i,j,:,iblk),               &
+                          fswthrun_idr=fswthrun_idr(i,j,:,iblk),               &
+                          fswthrun_idf=fswthrun_idf(i,j,:,iblk),               &
                           fswpenln=fswpenln(i,j,:,:,iblk),                     &
                           Sswabsn=Sswabsn(i,j,:,:,iblk), Iswabsn=Iswabsn(i,j,:,:,iblk), &
                           albicen=albicen(i,j,:,iblk),   albsnon=albsnon(i,j,:,iblk), &

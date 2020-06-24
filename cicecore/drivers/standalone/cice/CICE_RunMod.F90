@@ -357,7 +357,7 @@
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, &
-          fswthru, fswthruvdr, fswthruvdf, fswthruidr, fswthruidf, &
+          fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           scale_factor, snowfrac, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
@@ -554,10 +554,10 @@
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
                             fhocn    (:,:,iblk),                     &
                             fswthru (:,:,iblk),                      &
-                            fswthruvdr (:,:,iblk),                   &
-                            fswthruvdf (:,:,iblk),                   &
-                            fswthruidr (:,:,iblk),                   &
-                            fswthruidf (:,:,iblk),                   &
+                            fswthru_vdr (:,:,iblk),                  &
+                            fswthru_vdf (:,:,iblk),                  &
+                            fswthru_idr (:,:,iblk),                  &
+                            fswthru_idf (:,:,iblk),                  &
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &

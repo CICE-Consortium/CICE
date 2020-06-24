@@ -218,10 +218,10 @@
          fsalt   , & ! salt flux to ocean (kg/m^2/s)
          fhocn   , & ! net heat flux to ocean (W/m^2)
          fswthru , & ! shortwave penetrating to ocean (W/m^2)
-         fswthruvdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
-         fswthruvdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
-         fswthruidr , & ! nir dir shortwave penetrating to ocean (W/m^2)
-         fswthruidf     ! nir dif shortwave penetrating to ocean (W/m^2)
+         fswthru_vdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_vdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
+         fswthru_idr , & ! nir dir shortwave penetrating to ocean (W/m^2)
+         fswthru_idf     ! nir dif shortwave penetrating to ocean (W/m^2)
 
        ! internal
 
@@ -442,10 +442,10 @@
          fsalt      (nx_block,ny_block,max_blocks), & ! salt flux to ocean (kg/m^2/s)
          fhocn      (nx_block,ny_block,max_blocks), & ! net heat flux to ocean (W/m^2)
          fswthru    (nx_block,ny_block,max_blocks), & ! shortwave penetrating to ocean (W/m^2)
-         fswthruvdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
-         fswthruvdf (nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
-         fswthruidr (nx_block,ny_block,max_blocks), & ! nir dir shortwave penetrating to ocean (W/m^2)
-         fswthruidf (nx_block,ny_block,max_blocks), & ! nir dif shortwave penetrating to ocean (W/m^2)
+         fswthru_vdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_vdf (nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
+         fswthru_idr (nx_block,ny_block,max_blocks), & ! nir dir shortwave penetrating to ocean (W/m^2)
+         fswthru_idf (nx_block,ny_block,max_blocks), & ! nir dif shortwave penetrating to ocean (W/m^2)
          scale_factor (nx_block,ny_block,max_blocks), & ! scaling factor for shortwave components
          strairx_ocn(nx_block,ny_block,max_blocks), & ! stress on ocean by air, x-direction
          strairy_ocn(nx_block,ny_block,max_blocks), & ! stress on ocean by air, y-direction
@@ -692,10 +692,10 @@
       fpond   (:,:,:) = c0
       fhocn   (:,:,:) = c0
       fswthru (:,:,:) = c0
-      fswthruvdr (:,:,:) = c0
-      fswthruvdf (:,:,:) = c0
-      fswthruidr (:,:,:) = c0
-      fswthruidf (:,:,:) = c0
+      fswthru_vdr (:,:,:) = c0
+      fswthru_vdf (:,:,:) = c0
+      fswthru_idr (:,:,:) = c0
+      fswthru_idf (:,:,:) = c0
       fresh_da(:,:,:) = c0    ! data assimilation
       fsalt_da(:,:,:) = c0
       flux_bio (:,:,:,:) = c0 ! bgc
@@ -795,10 +795,10 @@
       fpond    (:,:,:)   = c0
       fhocn    (:,:,:)   = c0
       fswthru  (:,:,:)   = c0
-      fswthruvdr  (:,:,:)   = c0
-      fswthruvdf  (:,:,:)   = c0
-      fswthruidr  (:,:,:)   = c0
-      fswthruidf  (:,:,:)   = c0
+      fswthru_vdr  (:,:,:)   = c0
+      fswthru_vdf  (:,:,:)   = c0
+      fswthru_idr  (:,:,:)   = c0
+      fswthru_idf  (:,:,:)   = c0
 
       faero_ocn (:,:,:,:) = c0
       fiso_ocn  (:,:,:,:) = c0
@@ -994,8 +994,8 @@
                                Tref,     Qref,     &
                                fresh,    fsalt,    &
                                fhocn,    fswthru,  &
-                               fswthruvdr, fswthruvdf, &
-                               fswthruidr, fswthruidf, &
+                               fswthru_vdr, fswthru_vdf, &
+                               fswthru_idr, fswthru_idf, &
                                faero_ocn,          &
                                alvdr,    alidr,    &
                                alvdf,    alidf,    &
@@ -1040,10 +1040,10 @@
           fsalt   , & ! salt flux to ocean              (kg/m2/s)
           fhocn   , & ! actual ocn/ice heat flx         (W/m**2)
           fswthru , & ! sw radiation through ice bot    (W/m**2)
-          fswthruvdr , & ! vis dir sw radiation through ice bot    (W/m**2)
-          fswthruvdf , & ! vis dif sw radiation through ice bot    (W/m**2)
-          fswthruidr , & ! nir dir sw radiation through ice bot    (W/m**2)
-          fswthruidf , & ! nir dif sw radiation through ice bot    (W/m**2)
+          fswthru_vdr , & ! vis dir sw radiation through ice bot    (W/m**2)
+          fswthru_vdf , & ! vis dif sw radiation through ice bot    (W/m**2)
+          fswthru_idr , & ! nir dir sw radiation through ice bot    (W/m**2)
+          fswthru_idf , & ! nir dif sw radiation through ice bot    (W/m**2)
           alvdr   , & ! visible, direct   (fraction)
           alidr   , & ! near-ir, direct   (fraction)
           alvdf   , & ! visible, diffuse  (fraction)
@@ -1112,10 +1112,10 @@
             fsalt   (i,j) = fsalt   (i,j) * ar
             fhocn   (i,j) = fhocn   (i,j) * ar
             fswthru (i,j) = fswthru (i,j) * ar
-            fswthruvdr (i,j) = fswthruvdr (i,j) * ar
-            fswthruvdf (i,j) = fswthruvdf (i,j) * ar
-            fswthruidr (i,j) = fswthruidr (i,j) * ar
-            fswthruidf (i,j) = fswthruidf (i,j) * ar
+            fswthru_vdr (i,j) = fswthru_vdr (i,j) * ar
+            fswthru_vdf (i,j) = fswthru_vdf (i,j) * ar
+            fswthru_idr (i,j) = fswthru_idr (i,j) * ar
+            fswthru_idf (i,j) = fswthru_idf (i,j) * ar
             alvdr   (i,j) = alvdr   (i,j) * ar
             alidr   (i,j) = alidr   (i,j) * ar
             alvdf   (i,j) = alvdf   (i,j) * ar
@@ -1144,10 +1144,10 @@
             fsalt   (i,j) = c0
             fhocn   (i,j) = c0
             fswthru (i,j) = c0
-            fswthruvdr (i,j) = c0
-            fswthruvdf (i,j) = c0
-            fswthruidr (i,j) = c0
-            fswthruidf (i,j) = c0
+            fswthru_vdr (i,j) = c0
+            fswthru_vdf (i,j) = c0
+            fswthru_idr (i,j) = c0
+            fswthru_idf (i,j) = c0
             alvdr   (i,j) = c0  ! zero out albedo where ice is absent
             alidr   (i,j) = c0
             alvdf   (i,j) = c0 
