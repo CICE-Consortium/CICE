@@ -701,6 +701,15 @@ Model output
 History files
 *************
 
+CICE provides history data in binary unformatted or netCDF formats via
+separate implementations of binary, netcdf, and pio source code under the 
+directory **infrastructure/io**.  ``ICE_IOTYPE`` defined in cice.settings
+specifies the IO type and defines which source code directory is compiled.
+At the present time, binary, netcdf, and PIO are exclusive formats
+for history and restart files, and history and restart file must use the same 
+io package.  The namelist variable ``history_format`` further refines the
+format approach or style for some io packages.
+
 Model output data is averaged over the period(s) given by ``histfreq`` and
 ``histfreq_n``, and written to binary or netCDF files prepended by ``history_file``
 in **ice_in**. These settings for history files are set in the 
@@ -711,7 +720,7 @@ depending on the output file format chosen in **cice.settings** (set
 ``ICE_IOTYPE``). The netCDF history files are CF-compliant; header information for
 data contained in the netCDF files is displayed with the command ``ncdump -h
 filename.nc``. Parallel netCDF output is available using the PIO library; the
-attribute ``io_flavor`` distinguishes output files written with PIO from
+output file attribute ``io_flavor`` distinguishes output files written with PIO from
 those written with standard netCDF. With binary files, a separate header
 file is written with equivalent information. Standard fields are output
 according to settings in the **icefields\_nml** section of **ice\_in** 
@@ -807,6 +816,9 @@ Additionally, a new history output variable, ``f_CMIP``, has been added. When ``
 is added to the **icefields\_nml** section of **ice\_in** then all SIMIP variables
 will be turned on for output at the frequency specified by ``f_CMIP``. 
 
+It may also be helpful for debugging to increase the precision of the history file
+output from 4 bytes to 8 bytes. This is changed through the ``history_precision``
+namelist flag.
 
 ****************
 Diagnostic files
@@ -890,11 +902,14 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
 Restart files
 *************
 
-CICE provides restart data in binary unformatted or netCDF formats, via
-the ``ICE_IOTYPE`` flag in **cice.settings** and namelist variable
-``restart_format``. Restart and history files must use the same format. As
-with the history output, there is also an option for writing parallel netCDF
-restart files using PIO.
+CICE provides restart data in binary unformatted or netCDF formats via
+separate implementations of binary, netcdf, and pio source code under the 
+directory **infrastructure/io**.  ``ICE_IOTYPE`` defined in cice.settings
+specifies the IO type and defines which source code directory is compiled.
+At the present time, binary, netcdf, and PIO are exclusive formats
+for history and restart files, and history and restart file must use the same 
+io package.  The namelist variable ``restart_format`` further refines the
+format approach or style for some io packages.
 
 The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string

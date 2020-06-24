@@ -72,7 +72,6 @@ contains
     logical (kind=log_kind) :: tr_aero, tr_iage, tr_FY, tr_pond
     logical (kind=log_kind) :: tr_lvl, tr_zaero, tr_bgc_Nit 
     real (kind=dbl_kind)    :: tffresh
-    logical (kind=log_kind) :: first_call = .true.
     character(len=*), parameter :: subname = '(ice_import)'
     !-----------------------------------------------------
 

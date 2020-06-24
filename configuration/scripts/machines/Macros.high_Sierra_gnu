@@ -1,5 +1,5 @@
 #==============================================================================
-# Makefile macros for Travis-CI - GCC and openmpi compilers
+# Makefile macros for high sierra - GCC and openmpi compilers
 #==============================================================================
 
 CPP        := cpp

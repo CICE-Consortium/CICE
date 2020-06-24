@@ -122,6 +122,9 @@
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn'
          ice_data_type, & ! 'default', 'box2001', 'boxslotcyl'
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
+
+      logical (kind=log_kind), public :: &
+         rotate_wind      ! rotate wind/stress to computational grid from true north directed
  
       character(char_len_long), public :: & 
          atm_data_dir , & ! top directory for atmospheric data
@@ -1628,11 +1631,10 @@
 
       if (calc_strair) then
 
-        do j = jlo, jhi
-        do i = ilo, ihi
-
-            wind(i,j) = sqrt(uatm(i,j)**2 + vatm(i,j)**2)
-
+        if (rotate_wind) then
+          do j = jlo, jhi
+          do i = ilo, ihi
+             wind(i,j) = sqrt(uatm(i,j)**2 + vatm(i,j)**2)
       !-----------------------------------------------------------------
       ! Rotate zonal/meridional vectors to local coordinates.
       ! Velocity comes in on T grid, but is oriented geographically ---
@@ -1644,30 +1646,38 @@
       ! atmo_boundary_layer, and are interpolated to the U grid later as 
       ! necessary.
       !-----------------------------------------------------------------
-           workx      = uatm(i,j) ! wind velocity, m/s
-           worky      = vatm(i,j)
-           uatm (i,j) = workx*cos(ANGLET(i,j)) & ! convert to POP grid
-                      + worky*sin(ANGLET(i,j))   ! note uatm, vatm, wind
-           vatm (i,j) = worky*cos(ANGLET(i,j)) & !  are on the T-grid here
-                      - workx*sin(ANGLET(i,j))
+             workx      = uatm(i,j) ! wind velocity, m/s
+             worky      = vatm(i,j)
+             uatm (i,j) = workx*cos(ANGLET(i,j)) & ! convert to POP grid
+                        + worky*sin(ANGLET(i,j))   ! note uatm, vatm, wind
+             vatm (i,j) = worky*cos(ANGLET(i,j)) & !  are on the T-grid here
+                        - workx*sin(ANGLET(i,j))
+          enddo                     ! i
+          enddo                     ! j
+        else ! not rotated
+          do j = jlo, jhi
+          do i = ilo, ihi
+             wind(i,j) = sqrt(uatm(i,j)**2 + vatm(i,j)**2)
+          enddo                     ! i
+          enddo                     ! j
+        endif ! rotated
 
-        enddo                     ! i
-        enddo                     ! j
+      else ! strax, stray, wind are read from files
 
-      else  ! strax, stray, wind are read from files
-
-        do j = jlo, jhi
-        do i = ilo, ihi
-
-           workx      = strax(i,j) ! wind stress
-           worky      = stray(i,j)
-           strax(i,j) = workx*cos(ANGLET(i,j)) & ! convert to POP grid
-                      + worky*sin(ANGLET(i,j))   ! note strax, stray, wind
-           stray(i,j) = worky*cos(ANGLET(i,j)) & !  are on the T-grid here
-                      - workx*sin(ANGLET(i,j))
-
-        enddo                     ! i
-        enddo                     ! j
+        if (rotate_wind) then
+          do j = jlo, jhi
+          do i = ilo, ihi
+             workx      = strax(i,j) ! wind stress
+             worky      = stray(i,j)
+             strax(i,j) = workx*cos(ANGLET(i,j)) & ! convert to POP grid
+                        + worky*sin(ANGLET(i,j))   ! note strax, stray, wind
+             stray(i,j) = worky*cos(ANGLET(i,j)) & !  are on the T-grid here
+                        - workx*sin(ANGLET(i,j))
+          enddo                     ! i
+          enddo                     ! j
+        else ! not rotated
+          ! wind (speed) is already read from file, so all is in place
+        endif ! rotated
 
       endif                   ! calc_strair
 
@@ -2050,11 +2060,11 @@
       uwind_file = &
            trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_2005.nc'
       call file_year(uwind_file,yr)
-  if (my_task == master_task) then
+      if (my_task == master_task) then
          write (nu_diag,*) ' '
          write (nu_diag,*) 'Atmospheric data files:'
          write (nu_diag,*) trim(uwind_file)
-    endif
+      endif
       end subroutine JRA55_gx1_files
       subroutine JRA55_tx1_files(yr)
 !
@@ -2066,11 +2076,11 @@
       uwind_file = &
            trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_tx1_2005.nc'
       call file_year(uwind_file,yr)
-  if (my_task == master_task) then
+      if (my_task == master_task) then
          write (nu_diag,*) ' '
          write (nu_diag,*) 'Atmospheric data files:'
          write (nu_diag,*) trim(uwind_file)
-    endif
+      endif
       end subroutine JRA55_tx1_files
       subroutine JRA55_gx3_files(yr)
 !
@@ -2082,11 +2092,11 @@
       uwind_file = &
            trim(atm_data_dir)//'/8XDAILY/JRA55_gx3_03hr_forcing_2005.nc'
       call file_year(uwind_file,yr)
-  if (my_task == master_task) then
+      if (my_task == master_task) then
          write (nu_diag,*) ' '
          write (nu_diag,*) 'Atmospheric data files:'
          write (nu_diag,*) trim(uwind_file)
-    endif
+      endif
       end subroutine JRA55_gx3_files
 !=======================================================================
 !
@@ -4471,7 +4481,7 @@
          write (nu_diag,*) &
          'ERROR: CICE: Atm forcing not available at hcdate =',hcdate
          write (nu_diag,*) &
-         'ERROR: CICE: nyr, year_init, yday = ',nyr, year_init, yday
+         'ERROR: CICE: nyr, year_init, yday ,sec = ',nyr, year_init, yday, sec
          call abort_ice ('ERROR: CICE stopped')
       endif
 

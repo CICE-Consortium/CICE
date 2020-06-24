@@ -24,8 +24,10 @@
       module ice_history_shared
 
       use ice_kinds_mod
+      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: max_nstrm
       use ice_exit, only: abort_ice
+      use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
@@ -33,6 +35,8 @@
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename
       
+      integer (kind=int_kind), public :: history_precision
+
       logical (kind=log_kind), public :: &
          hist_avg  ! if true, write averaged data instead of snapshots
 
@@ -49,6 +53,9 @@
 
       character (len=char_len), public :: &
          version_name
+
+      character (len=char_len), public :: &
+         history_format
 
       !---------------------------------------------------------------
       ! Instructions for adding a field: (search for 'example')
@@ -77,7 +84,7 @@
       end type
 
       integer (kind=int_kind), parameter, public :: &
-         max_avail_hist_fields = 600      ! Max number of history fields
+         max_avail_hist_fields = 800      ! Max number of history fields
 
       integer (kind=int_kind), public :: &
          num_avail_hist_fields_tot  = 0, & ! Current, total number of defined fields
@@ -109,8 +116,8 @@
          nzblyr , & ! bio grid
          nzalyr     ! aerosols (2 snow & nblyr+2 bio)
 
-      type (ice_hist_field), dimension(max_avail_hist_fields), public :: &
-         avail_hist_fields
+      type (ice_hist_field), public :: &
+         avail_hist_fields(max_avail_hist_fields)
 
       integer (kind=int_kind), parameter, public :: &
          nvar = 12              , & ! number of grid fields that can be written
@@ -804,8 +811,13 @@
                num_avail_hist_fields_4Df = num_avail_hist_fields_4Df + 1
             endif
 
-            if (num_avail_hist_fields_tot > max_avail_hist_fields) &
-               call abort_ice(subname//'ERROR: Need to increase max_avail_hist_fields')
+            if (num_avail_hist_fields_tot > max_avail_hist_fields) then
+               if (my_task == master_task) then
+                  write(nu_diag,*) subname,' num_avail_hist_fields_tot = ',num_avail_hist_fields_tot
+                  write(nu_diag,*) subname,' max_avail_hist_fields     = ',max_avail_hist_fields
+               endif
+               call abort_ice(subname//'ERROR: Need in computation of max_avail_hist_fields')
+            endif
 
             if (num_avail_hist_fields_tot /= &
                 num_avail_hist_fields_2D  + &
@@ -817,8 +829,11 @@
                 num_avail_hist_fields_4Di + &
                 num_avail_hist_fields_4Ds + &
                 num_avail_hist_fields_4Df) then
-                call abort_ice(subname//'ERROR: num_avail_hist_fields error')
-             endif
+               if (my_task == master_task) then
+                  write(nu_diag,*) subname,' num_avail_hist_fields_tot = ',num_avail_hist_fields_tot
+               endif
+               call abort_ice(subname//'ERROR: in num_avail_hist_fields')
+            endif
 
             id(ns) = num_avail_hist_fields_tot
 
