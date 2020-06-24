@@ -163,6 +163,7 @@
 &forcing_nml
     formdrag        = .false.
     atmbndy         = 'default'
+    rotate_wind     = .true.
     calc_strair     = .true.
     calc_Tsfc       = .true.
     highfreq        = .false.
