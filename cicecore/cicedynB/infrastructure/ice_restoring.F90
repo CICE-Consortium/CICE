@@ -499,9 +499,6 @@
 
          do n = 1, ncat
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
             do ij = 1, icells
                i = indxi(ij)
                j = indxj(ij)

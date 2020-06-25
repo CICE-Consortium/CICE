@@ -1,9 +1,9 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 setenv ICE_CASENAME   undefined
 setenv ICE_SANDBOX    undefined
 setenv ICE_MACHINE    undefined
-setenv ICE_COMPILER   undefined
+setenv ICE_ENVNAME    undefined
 setenv ICE_MACHCOMP   undefined
 setenv ICE_SCRIPTS    undefined
 setenv ICE_CASEDIR    undefined
@@ -13,8 +13,9 @@ setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
 setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
 setenv ICE_LOGDIR     ${ICE_CASEDIR}/logs
 setenv ICE_DRVOPT     standalone/cice
-setenv ICE_IOTYPE     netcdf    # set to none if netcdf library is unavailable
+setenv ICE_IOTYPE     netcdf    # binary, netcdf, pio1, pio2
 setenv ICE_CLEANBUILD true
+setenv ICE_CPPDEFS    ""
 setenv ICE_QUIETMODE  false
 setenv ICE_GRID       undefined
 setenv ICE_NTASKS     undefined
@@ -40,5 +41,5 @@ if (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial
 
 ### Specialty code
 setenv ICE_BLDDEBUG  false  # build debug flags
-setenv ICE_CODECOV   false  # build debug flags
+setenv ICE_COVERAGE  false  # build debug flags
 
