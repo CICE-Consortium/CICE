@@ -117,7 +117,7 @@
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv
+        phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -190,7 +190,8 @@
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
-        k1,             k2,             alphab,         threshold_hw      
+        k1,             k2,             alphab,         threshold_hw,   &
+        Pstar,          Cstar
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
@@ -298,6 +299,8 @@
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
       yield_curve = 'ellipse'
       kstrength = 1          ! 1 = Rothrock 75 strength, 0 = Hibler 79
+      Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
+      Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
       krdg_partic = 1        ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
@@ -586,6 +589,8 @@
       call broadcast_scalar(revised_evp,        master_task)
       call broadcast_scalar(yield_curve,        master_task)
       call broadcast_scalar(kstrength,          master_task)
+      call broadcast_scalar(Pstar,              master_task)
+      call broadcast_scalar(Cstar,              master_task)
       call broadcast_scalar(krdg_partic,        master_task)
       call broadcast_scalar(krdg_redist,        master_task)
       call broadcast_scalar(mu_rdg,             master_task)
@@ -1207,8 +1212,8 @@
          endif
          write(nu_diag,1022) ' kstrength        = ', kstrength,trim(tmpstr2)
          if (kstrength == 0) then
-         !   write(nu_diag,1007) ' Pstar            = ', Pstar, ' P* strength factor'
-         !   write(nu_diag,1007) ' Cstar            = ', Cstar, ' C* strength exponent factor'
+            write(nu_diag,1009) ' Pstar            = ', Pstar, ' P* strength factor'
+            write(nu_diag,1007) ' Cstar            = ', Cstar, ' C* strength exponent factor'
          elseif (kstrength == 1) then
             write(nu_diag,1007) ' Cf               = ', Cf, ' ratio of ridging work to PE change'
          endif
@@ -1620,7 +1625,8 @@
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
-         tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type)
+         tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
+         Pstar_in=Pstar, Cstar_in=Cstar)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
          tr_fsd_in=tr_fsd, tr_pond_in=tr_pond, &
@@ -1638,6 +1644,7 @@
  1005    format (a30,2x,f12.6) ! float
  1006    format (a20,2x,f10.6,a)
  1007    format (a20,2x,f6.2,a)
+ 1009    format (a20,2x,d13.6,a)  ! float, exponential notation
  1010    format (a30,2x,l6)    ! logical
  1012    format (a20,2x,l3,1x,a)  ! logical
  1020    format (a30,2x,i6)    ! integer
