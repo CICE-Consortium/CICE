@@ -8,12 +8,13 @@ set lcovrepo = apcraig.github.io
 set lcovhtmldir = lcov_cice_${report_name}
 genhtml -o ./${lcovhtmldir} --precision 2 -t "${report_name}" total.info
 
+rm -r -f ${lcovrepo}
 git clone https://github.com/apcraig/${lcovrepo}
 cp -p -r ${lcovhtmldir} ${lcovrepo}/
 
 cd ${lcovrepo}
 set covp0 = `grep message coverage.json | cut -d : -f 2 | cut -d \" -f 2 | cut -d % -f 1`
-set covp  = `grep -i headerCovTableEntryLo ${lcovhtmldir}/index.html | head -1 | cut -d \> -f 2 | cut -d % -f 1`
+set covp  = `grep -i headerCovTableEntry ${lcovhtmldir}/index.html | grep % | head -1 | cut -d \> -f 2 | cut -d % -f 1`
 set covpi = `echo $covp | cut -d . -f 1`
 
 set lcovhtmlname = "${covpi}%:${report_name}"
