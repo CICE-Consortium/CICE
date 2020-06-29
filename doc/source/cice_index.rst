@@ -490,7 +490,7 @@ either Celsius or Kelvin units).
    "print_points", ":math:`\bullet` if true, print point data", "F"
    "processor_shape", ":math:`\bullet` descriptor for processor aspect ratio", ""
    "prs_sig", "replacement pressure", "N/m"
-   "Pstar", "ice strength parameter", "2.75\ :math:`\times`\ 10\ :math:`^4`\ N/m"
+   "Pstar", "ice strength parameter", "2.75\ :math:`\times`\ 10\ :math:`^4`\ N/m\ :math:`^2`"
    "puny", "a small positive number", "1\ :math:`\times`\ 10\ :math:`^{-11}`" 
    "**Q**", "", ""
    "Qa", "specific humidity at 10 m", "kg/kg"
