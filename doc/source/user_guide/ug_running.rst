@@ -135,7 +135,8 @@ The **casescripts/** directory holds scripts used to create the case and can
 largely be ignored.  Once a case is created, the **cice.build** script should be run
 interactively and then the case should be submitted by executing the 
 **cice.submit** script interactively.  The **cice.submit** script
-submits the **cice.run script** or **cice.test** script.  
+submits the **cice.run script** or **cice.test** script.  These scripts can
+also be run interactively or submitted manually without the **cice.submit** script.
 
 Some hints:
 
