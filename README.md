@@ -15,7 +15,7 @@ CICE consists of a top level driver and dynamical core plus the [Icepack column 
 
 [icepack]: https://github.com/CICE-Consortium/Icepack
 
-If you need help getting started using the model afer reviewing the [model documentation][doc-resources], the first point of contact with the CICE Consortium is the [Consortium Community Forum][forum]. 
+The first point of contact with the CICE Consortium is the [Consortium Community Forum][forum]. 
 This forum is monitored by Consortium members and also opened to the whole community.
 Please do not use our issue tracker for general support questions.
 
@@ -47,4 +47,4 @@ Head over to our [Contribution guide][contributing] to learn more about how you 
    List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
 
 ## License
-See our [License](License.pdf) and [Distribution Policy](DistributionPolicy.pdf).
+See our [License](LICENSE.pdf) and [Distribution Policy](DistributionPolicy.pdf).
