@@ -785,7 +785,7 @@
       
       if (solve_zsal) then  ! default values 
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,trcrn_bgc)
          do iblk = 1, nblocks
 
             this_block = get_block(blocks_ice(iblk),iblk)         
@@ -816,6 +816,7 @@
             enddo      ! i
             enddo      ! j  
          enddo         ! iblk
+         !$OMP END PARALLEL DO
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
@@ -855,6 +856,7 @@
             enddo  ! j
 
          enddo     ! iblk
+         !$OMP END PARALLEL DO
 
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -865,7 +867,7 @@
 
       endif     ! .not. restart
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,sicen,trcrn_bgc)
       do iblk = 1, nblocks
 
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -900,6 +902,7 @@
          enddo  ! j
 
       enddo     ! iblk
+      !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -925,6 +928,7 @@
             enddo  ! i
             enddo  ! j
          enddo     ! iblk
+         !$OMP END PARALLEL DO
 
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
