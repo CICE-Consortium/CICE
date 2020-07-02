@@ -15,12 +15,6 @@ module ice_comp_nuopc
   use NUOPC_Model        , only : model_label_SetRunClock    => label_SetRunClock
   use NUOPC_Model        , only : model_label_Finalize       => label_Finalize
   use NUOPC_Model        , only : NUOPC_ModelGet, SetVM
-#ifdef CESMCOUPLED
-  use shr_file_mod       , only : shr_file_getlogunit, shr_file_setlogunit
-  use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
-  use shr_const_mod
-  use shr_cal_mod        , only : shr_cal_noleap, shr_cal_gregorian
-#endif
   use ice_constants      , only : ice_init_constants
   use ice_shr_methods    , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
   use ice_shr_methods    , only : set_component_logging, get_component_instance
@@ -42,26 +36,20 @@ module ice_comp_nuopc
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name, inst_suffix, release_all_fileunits, flush_fileunit
   use ice_restart_shared , only : runid, runtype, restart_dir, restart_file
   use ice_history        , only : accum_hist
-#if (defined NEWCODE)
-  use ice_history_shared , only : model_doi_url  ! TODO: add this functionality
-#endif
-#ifdef CESMCOUPLED
-  use ice_prescribed_mod , only : ice_prescribed_init
-#endif
-#if (defined NEWCODE)
-  use ice_atmo           , only : flux_convergence_tolerance, flux_convergence_max_iteration
-  use ice_atmo           , only : use_coldair_outbreak_mod
-#endif
   use CICE_InitMod       , only : CICE_Init
   use CICE_RunMod        , only : CICE_Run
   use ice_exit           , only : abort_ice
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_init_orbit, icepack_init_parameters, icepack_query_orbit
   use icepack_intfc      , only : icepack_query_tracer_flags, icepack_query_parameters
+  use ice_timers
 #ifdef CESMCOUPLED
+  use shr_file_mod       , only : shr_file_getlogunit, shr_file_setlogunit
+  use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
+  use shr_const_mod
+  use ice_prescribed_mod , only : ice_prescribed_init
   use perf_mod           , only : t_startf, t_stopf, t_barrierf
 #endif
-  use ice_timers
 
   implicit none
   private
@@ -75,32 +63,33 @@ module ice_comp_nuopc
   private :: ModelAdvance
   private :: ModelSetRunClock
   private :: ModelFinalize
-#ifdef CESMCOUPLED
-  private :: ice_orbital_init ! only for cesm
-#endif
+  private :: ice_orbital_init ! only valid for cesm
 
   character(len=char_len_long) :: flds_scalar_name = ''
-  integer           :: flds_scalar_num = 0
-  integer           :: flds_scalar_index_nx = 0
-  integer           :: flds_scalar_index_ny = 0
-  integer           :: flds_scalar_index_nextsw_cday = 0
+  integer                      :: flds_scalar_num = 0
+  integer                      :: flds_scalar_index_nx = 0
+  integer                      :: flds_scalar_index_ny = 0
+  integer                      :: flds_scalar_index_nextsw_cday = 0
 
   character(len=char_len_long) :: orb_mode        ! attribute - orbital mode
-  integer           :: orb_iyear       ! attribute - orbital year
-  integer           :: orb_iyear_align ! attribute - associated with model year
-  real(dbl_kind)          :: orb_obliq       ! attribute - obliquity in degrees
-  real(dbl_kind)          :: orb_mvelp       ! attribute - moving vernal equinox longitude
-  real(dbl_kind)          :: orb_eccen       ! attribute and update-  orbital eccentricity
+  integer                      :: orb_iyear       ! attribute - orbital year
+  integer                      :: orb_iyear_align ! attribute - associated with model year
+  real(dbl_kind)               :: orb_obliq       ! attribute - obliquity in degrees
+  real(dbl_kind)               :: orb_mvelp       ! attribute - moving vernal equinox longitude
+  real(dbl_kind)               :: orb_eccen       ! attribute and update-  orbital eccentricity
 
   character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
-  integer     , parameter :: dbug = 10
-  integer     , parameter :: debug_import = 0 ! internal debug level
-  integer     , parameter :: debug_export = 0 ! internal debug level
-  character(*), parameter :: modName =  "(ice_comp_nuopc)"
-  character(*), parameter :: u_FILE_u = &
+  character(len=*),parameter   :: shr_cal_noleap    = 'NO_LEAP'
+  character(len=*),parameter   :: shr_cal_gregorian = 'GREGORIAN'
+
+  integer     , parameter      :: dbug = 10
+  integer     , parameter      :: debug_import = 0 ! internal debug level
+  integer     , parameter      :: debug_export = 0 ! internal debug level
+  character(*), parameter      :: modName =  "(ice_comp_nuopc)"
+  character(*), parameter      :: u_FILE_u = &
        __FILE__
 
 !=======================================================================
@@ -244,8 +233,6 @@ contains
        write(logmsg,*) flds_scalar_index_nextsw_cday
        call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_nextsw_cday = '//trim(logmsg), ESMF_LOGMSG_INFO)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call abort_ice(subname//'Need to set attribute ScalarFieldIdxNextSwCday')
     endif
 
     call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
@@ -265,6 +252,7 @@ contains
     integer, intent(out) :: rc
 
     ! Local variables
+    real(dbl_kind)                :: eccen, obliqr, lambm0, mvelpp
     type(ESMF_DistGrid)     :: distGrid
     type(ESMF_Mesh)         :: Emesh, EmeshTemp
     integer                 :: spatialDim
@@ -277,7 +265,6 @@ contains
     integer , allocatable   :: gindex(:)
     integer                 :: globalID
     character(ESMF_MAXSTR)  :: cvalue
-    real(dbl_kind)                :: eccen, obliqr, lambm0, mvelpp
     character(len=char_len) :: tfrz_option
     character(ESMF_MAXSTR)  :: convCIM, purpComp
     type(ESMF_VM)           :: vm
@@ -356,9 +343,7 @@ contains
     ! start cice timers
     !----------------------------------------------------------------------------
 
-#ifdef CESMCOUPLED
     call t_startf ('cice_init_total')
-#endif
 
     !----------------------------------------------------------------------------
     ! Initialize constants
@@ -403,44 +388,8 @@ contains
     !----------------------------------------------------------------------------
 
     ! Get orbital values
-    ! Note that these values are obtained in a call to init_orbit in ice_shortwave.F90
-    ! if CESMCOUPLED is not defined
-#ifdef CESMCOUPLED
     call ice_orbital_init(gcomp, clock, nu_diag, my_task==master_task, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#else
-    ! Start with icepack values then update with values defined in configure file if they exist
-    call icepack_query_orbit(eccen_out=eccen, mvelpp_out=mvelpp, lambm0_out=lambm0, obliqr_out=obliqr)
-    call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-        file=__FILE__, line=__LINE__)
-
-    call NUOPC_CompAttributeGet(gcomp, name='orb_eccen', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) eccen
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='orb_obliqr', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) obliqr
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='orb_lambm0', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) lambm0
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='orb_mvelpp', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) mvelpp
-    end if
-
-    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, lambm0_in=lambm0, obliqr_in=obliqr)
-    call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-        file=__FILE__, line=__LINE__)
-#endif
 
     ! Determine runtype and possibly nextsw_cday
     call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, isPresent=isPresent, rc=rc)
@@ -473,22 +422,17 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     else
-       ! This would be the NEMS branch
-       ! Note that in NEMS - nextsw_cday is not needed in ice_orbital.F90 and what is needed is
-       ! simply a CPP variable declaratino of NEMSCOUPLED
-
        runtype = 'initial' ! determined from the namelist in ice_init if CESMCOUPLED is not defined
     end if
 
     single_column = .false.
-#ifdef CESMCOUPLED
-    ! Determine single column info
-    call NUOPC_CompAttributeGet(gcomp, name='single_column', value=cvalue, isPresent=isPresent, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) single_column
-    end if
-#endif
+    ! Determine single column info - only valid for cesm
+    !call NUOPC_CompAttributeGet(gcomp, name='single_column', value=cvalue, isPresent=isPresent, rc=rc)
+    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !if (isPresent) then
+    !   read(cvalue,*) single_column
+    !end if
+
     if (single_column) then
        ! Must have these attributes present
        call NUOPC_CompAttributeGet(gcomp, name='scmlon', value=cvalue, rc=rc)
@@ -506,46 +450,6 @@ contains
     else
        runid = 'unknown'  ! read in from the namelist in ice_init.F90 if CESMCOUPLED is not defined
     end if
-
-#ifdef CESMCOUPLED
-    ! Determine tfreeze_option, flux convertence before call to cice_init
-    ! tcx, what is going on here?  if not present, set it?  if present, ignore it?
-    call NUOPC_CompAttributeGet(gcomp, name="tfreeze_option", value=tfrz_option, isPresent=isPresent, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (.not. isPresent) then
-       tfrz_option = 'linear_salt'  ! TODO: is this right? This must be the same as mom is using for the calculation.
-    end if
-    call icepack_init_parameters(tfrz_option_in=tfrz_option)
-    call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-        file=__FILE__, line=__LINE__)
-#endif
-
-#if (defined NEWCODE)
-    call NUOPC_CompAttributeGet(gcomp, name="flux_convergence", value=cvalue, isPresent=isPresent, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) flux_convergence_tolerance
-    else
-       flux_convergence_tolerance = 0._dbl_kind
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name="flux_max_iteration", value=cvalue, isPresent=isPresent, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) flux_convergence_max_iteration
-    else
-       flux_convergence_max_iteration = 5
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name="coldair_outbreak_mod", value=cvalue, isPresent=isPresent, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) use_coldair_outbreak_mod
-    else
-       use_coldair_outbreak_mod = .false.
-    end if
-#endif
 
     ! Get clock information before call to cice_init
 
@@ -576,8 +480,6 @@ contains
 
     call ESMF_TimeGet( currTime, calkindflag=esmf_caltype, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-#ifdef CESMCOUPLED
     if (esmf_caltype == ESMF_CALKIND_NOLEAP) then
        calendar_type = shr_cal_noleap
     else if (esmf_caltype == ESMF_CALKIND_GREGORIAN) then
@@ -585,7 +487,6 @@ contains
     else
        call abort_ice( subname//'ERROR:: bad calendar for ESMF' )
     end if
-#endif
 
     !----------------------------------------------------------------------------
     ! Set cice logging
@@ -594,13 +495,14 @@ contains
     ! Set the nu_diag_set flag so it's not reset later
 
 #ifdef CESMCOUPLED
-    call set_component_logging(gcomp, my_task==master_task, nu_diag, shrlogunit, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (my_task == master_task) then
+       call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeGet(gcomp, name="logfile", value=logfile, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       open(newunit=nu_diag, file=trim(diro)//"/"//trim(logfile))
+    end if
     nu_diag_set = .true.
-#endif
-
-#ifdef CESMCOUPLED
-    call shr_file_setLogUnit (shrlogunit)
 #endif
 
     !----------------------------------------------------------------------------
@@ -610,13 +512,9 @@ contains
     ! Note that cice_init also sets time manager info as well as mpi communicator info,
     ! including master_task and my_task
 
-#ifdef CESMCOUPLED
     call t_startf ('cice_init')
-#endif
     call cice_init( lmpicom )
-#ifdef CESMCOUPLED
     call t_stopf ('cice_init')
-#endif
 
     !----------------------------------------------------------------------------
     ! reset shr logging to my log file
@@ -637,10 +535,6 @@ contains
        write(nu_diag,*) trim(subname),' inst_name   = ',trim(inst_name)
        write(nu_diag,*) trim(subname),' inst_index  = ',inst_index
        write(nu_diag,*) trim(subname),' inst_suffix = ',trim(inst_suffix)
-#if (defined NEWCODE)
-       write(nu_diag,*) trim(subname),' flux_convergence = ', flux_convergence_tolerance
-       write(nu_diag,*) trim(subname),' flux_convergence_max_iteration = ', flux_convergence_max_iteration
-#endif
     endif
 
     !---------------------------------------------------------------------------
@@ -968,25 +862,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
-#ifdef USE_ESMF_METADATA
-    convCIM  = "CIM"
-    purpComp = "Model Component Simulation Description"
-    call ESMF_AttributeAdd(comp, convention=convCIM, purpose=purpComp, rc=rc)
-    call ESMF_AttributeSet(comp, "ShortName", "CICE", convention=convCIM, purpose=purpComp, rc=rc)
-    call ESMF_AttributeSet(comp, "LongName", "CICE Model", convention=convCIM, purpose=purpComp, rc=rc)
-    call ESMF_AttributeSet(comp, "Description", "CICE5", convention=convCIM, purpose=purpComp, rc=rc)
-    call ESMF_AttributeSet(comp, "ReleaseDate", "TBD", convention=convCIM, purpose=purpComp, rc=rc)
-    call ESMF_AttributeSet(comp, "ModelType", "Sea Ice",  convention=convCIM, purpose=purpComp, rc=rc)
-    call ESMF_AttributeSet(comp, "Name", "David Bailey", convention=convCIM, purpose=purpComp, rc=rc)
-    call ESMF_AttributeSet(comp, "EmailAddress", "dbailey@ucar.edu", convention=convCIM, purpose=purpComp, rc=rc)
-    call ESMF_AttributeSet(comp, "ResponsiblePartyRole", "contact", convention=convCIM, purpose=purpComp, rc=rc)
-#endif
-
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-#ifdef CESMCOUPLED
     call t_stopf ('cice_init_total')
-#endif
 
     deallocate(gindex_ice)
     deallocate(gindex)
@@ -1030,7 +908,7 @@ contains
     integer                    :: tod_sync   ! Sync current time of day (sec)
     character(char_len_long)   :: restart_date
     character(char_len_long)   :: restart_filename
-    logical                    :: isPresent
+    logical                    :: isPresent, isSet
     character(*)   , parameter :: F00   = "('(ice_comp_nuopc) ',2a,i8,d21.14)"
     character(len=*),parameter :: subname=trim(modName)//':(ModelAdvance) '
     !--------------------------------
@@ -1043,19 +921,15 @@ contains
     !--------------------------------
 
     call ice_timer_start(timer_total) ! time entire run
-#ifdef CESMCOUPLED
     call t_barrierf('cice_run_total_BARRIER',mpi_comm_ice)
     call t_startf ('cice_run_total')
-#endif
 
     !--------------------------------
     ! Reset shr logging to my log file
     !--------------------------------
 
-#ifdef CESMCOUPLED
     call shr_file_getLogUnit (shrlogunit)
     call shr_file_setLogUnit (nu_diag)
-#endif
 
     !--------------------------------
     ! Query the Component for its clock, importState and exportState
@@ -1068,10 +942,18 @@ contains
     ! Determine time of next atmospheric shortwave calculation
     !--------------------------------
 
-    call State_GetScalar(importState, flds_scalar_index_nextsw_cday, nextsw_cday, &
-         flds_scalar_name, flds_scalar_num, rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    if (isPresent .and. isSet) then
+       call State_GetScalar(importState, flds_scalar_index_nextsw_cday, nextsw_cday, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call ESMF_ClockGetNextTime(clock, nextTime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeGet(nextTime, dayOfYear_r8=nextsw_cday, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
     if (my_task == master_task) then
        write(nu_diag,F00) trim(subname),' cice istep, nextsw_cday = ',istep, nextsw_cday
     end if
@@ -1079,44 +961,8 @@ contains
     !--------------------------------
     ! Obtain orbital values
     !--------------------------------
-#ifdef CESMCOUPLED
     call ice_orbital_init(gcomp, clock, nu_diag, my_task==master_task, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#else
-    ! Start with icepack values then update with values defined in configure file if they exist
-    ! tcx, This should be identical with initialization, why do it again?  Get rid of it
-    call icepack_query_orbit(eccen_out=eccen, mvelpp_out=mvelpp, lambm0_out=lambm0, obliqr_out=obliqr)
-    call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-        file=__FILE__, line=__LINE__)
-
-    call NUOPC_CompAttributeGet(gcomp, name='orb_eccen', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) eccen
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='orb_obliqr', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) obliqr
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='orb_lambm0', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) lambm0
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='orb_mvelpp', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       read(cvalue,*) mvelpp
-    end if
-
-    call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, &
-         lambm0_in=lambm0, obliqr_in=obliqr)
-    call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-        file=__FILE__, line=__LINE__)
-#endif
 
     !--------------------------------
     ! check that cice internal time is in sync with master clock before timestep update
@@ -1175,19 +1021,11 @@ contains
     ! Unpack import state
     !--------------------------------
 
-#ifdef CESMCOUPLED
     call t_barrierf('cice_run_import_BARRIER',mpi_comm_ice)
     call t_startf ('cice_run_import')
-    call ice_timer_start(timer_cplrecv)
-#endif
-
     call ice_import(importState, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-#ifdef CESMCOUPLED
-    call ice_timer_stop(timer_cplrecv)
     call t_stopf ('cice_run_import')
-#endif
 
     ! write Debug output
     if (debug_import  > 0 .and. my_task==master_task) then
@@ -1200,29 +1038,17 @@ contains
     ! Advance cice and timestep update
     !--------------------------------
 
-!tcraig    if (force_restart_now) then
-!       call CICE_Run(restart_filename=restart_filename)
-!    else
-       call CICE_Run()
-!    end if
+    call CICE_Run()
 
     !--------------------------------
     ! Create export state
     !--------------------------------
 
-#ifdef CESMCOUPLED
     call t_barrierf('cice_run_export_BARRIER',mpi_comm_ice)
     call t_startf ('cice_run_export')
-    call ice_timer_start(timer_cplsend)
-#endif
-
     call ice_export(exportState, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-#ifdef CESMCOUPLED
-    call ice_timer_stop(timer_cplsend)
     call t_stopf ('cice_run_export')
-#endif
 
     if (debug_export > 0 .and. my_task==master_task) then
        call State_fldDebug(exportState, flds_scalar_name, 'cice_export:', &
@@ -1230,10 +1056,8 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-#ifdef CESMCOUPLED
     ! reset shr logging to my original values
     call shr_file_setLogUnit (shrlogunit)
-#endif
 
     !--------------------------------
     ! stop timers and print timer info
@@ -1257,9 +1081,7 @@ contains
        stop_now = .false.
     endif
 
-#ifdef CESMCOUPLED
     call t_stopf ('cice_run_total')
-#endif
 
     ! Need to stop this at the end of every run phase in a coupled run.
     call ice_timer_stop(timer_total)
@@ -1333,7 +1155,7 @@ contains
 
        call ESMF_GridCompGet(gcomp, name=name, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_LogWrite(subname//'setting alarms for' // trim(name), ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(subname//'setting alarms for ' // trim(name), ESMF_LOGMSG_INFO)
 
        !----------------
        ! Restart alarm
@@ -1564,8 +1386,64 @@ contains
         file=__FILE__, line=__LINE__)
 
     first_time = .false.
+  end subroutine ice_orbital_init
+
+#else  
+
+  subroutine ice_orbital_init(gcomp, clock, logunit, mastertask, rc)
+
+    ! dummy input/output arguments
+    type(ESMF_GridComp)                 :: gcomp
+    type(ESMF_Clock)    , intent(in)    :: clock
+    integer             , intent(in)    :: logunit
+    logical             , intent(in)    :: mastertask
+    integer             , intent(out)   :: rc              ! output error
+
+    ! local variables
+    real(dbl_kind)         :: eccen, obliqr, lambm0, mvelpp
+    logical                :: isPresent, isSet
+    character(ESMF_MAXSTR) :: cvalue
+    logical                :: first_time = .true.
+    character(len=*) , parameter :: subname = "(cice_orbital_init)"
+    !--------------------------------
+    
+    rc = ESMF_SUCCESS
+
+    if (first_time) then
+       ! Start with icepack values then update with values defined in configure file if they exist
+       ! tcx, This should be identical with initialization, why do it again?  Get rid of it
+       call icepack_query_orbit(eccen_out=eccen, mvelpp_out=mvelpp, lambm0_out=lambm0, obliqr_out=obliqr)
+       call icepack_warnings_flush(nu_diag)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
+
+      ! call NUOPC_CompAttributeGet(gcomp, name='orb_eccen', value=cvalue, isPresent=isPresent, rc=rc)
+      ! if (isPresent) then
+      !    read(cvalue,*) eccen
+      ! end if
+      ! call NUOPC_CompAttributeGet(gcomp, name='orb_obliqr', value=cvalue, isPresent=isPresent, rc=rc)
+      ! if (isPresent) then
+      !    read(cvalue,*) obliqr
+      ! end if
+      ! call NUOPC_CompAttributeGet(gcomp, name='orb_lambm0', value=cvalue, isPresent=isPresent, rc=rc)
+      ! if (isPresent) then
+      !    read(cvalue,*) lambm0
+      ! end if
+      ! call NUOPC_CompAttributeGet(gcomp, name='orb_mvelpp', value=cvalue, isPresent=isPresent, rc=rc)
+      ! if (isPresent) then
+      !    read(cvalue,*) mvelpp
+      ! end if
+
+      ! call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, lambm0_in=lambm0, obliqr_in=obliqr)
+      ! call icepack_warnings_flush(nu_diag)
+      ! if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+      !      file=__FILE__, line=__LINE__)
+       
+       first_time = .false.
+    end if
 
   end subroutine ice_orbital_init
+
 #endif
   !===============================================================================
 
@@ -1592,5 +1470,29 @@ contains
   end subroutine ice_cal_ymd2date
 
   !===============================================================================
+
+#ifndef CESMCOUPLED
+  subroutine shr_file_setLogUnit(nunit)
+    integer, intent(in) :: nunit
+    ! do nothing for this stub - its just here to replace
+    ! having cppdefs in the main program
+  end subroutine shr_file_setLogUnit
+  subroutine shr_file_getLogUnit(nunit)
+    integer, intent(in) :: nunit
+    ! do nothing for this stub - its just here to replace
+    ! having cppdefs in the main program
+  end subroutine shr_file_getLogUnit
+
+  subroutine t_startf(string)
+    character(len=*) :: string
+  end subroutine t_startf
+  subroutine t_stopf(string)
+    character(len=*) :: string
+  end subroutine t_stopf
+  subroutine t_barrierf(string, comm)
+    character(len=*) :: string
+    integer:: comm
+  end subroutine t_barrierf
+#endif
 
 end module ice_comp_nuopc

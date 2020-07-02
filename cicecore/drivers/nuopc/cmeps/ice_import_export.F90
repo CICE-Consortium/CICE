@@ -190,19 +190,19 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, trim(flds_scalar_name))
 
     ! ice states
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_mask'                )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction'            )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'sea_ice_temperature'     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_ice_volume'         )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_snow_volume'        )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_tref'                 )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'                 )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'                )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'                  )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dir_albedo' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'  )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'  )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_mask'                    )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction'                )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'sea_ice_surface_temperature' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_ice_volume'             )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_snow_volume'            )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_tref'                     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'                     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'                    )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'                      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dir_albedo'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'      )
 #if (defined NEWCODE)
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction_n', &
@@ -908,7 +908,8 @@ contains
     ! ----
 
     ! surface temperature of ice covered portion (degK)
-    call state_setexport(exportState, 'sea_ice_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
+    !call state_setexport(exportState, 'sea_ice_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'sea_ice_surface_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! albedo vis dir
