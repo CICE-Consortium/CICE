@@ -62,6 +62,7 @@ module ice_comp_nuopc
   use perf_mod           , only : t_startf, t_stopf, t_barrierf
 #endif
   use ice_timers
+  use ice_communicate, only: init_communicate
 
   implicit none
   private
@@ -328,6 +329,7 @@ contains
     integer(int_kind)       :: ktherm
     character(*), parameter     :: F00   = "('(ice_comp_nuopc) ',2a,1x,d21.14)"
     character(len=*), parameter :: subname=trim(modName)//':(InitializeRealize) '
+    logical                 :: mastertask
     !--------------------------------
 
     rc = ESMF_SUCCESS
@@ -406,7 +408,9 @@ contains
     ! Note that these values are obtained in a call to init_orbit in ice_shortwave.F90
     ! if CESMCOUPLED is not defined
 #ifdef CESMCOUPLED
-    call ice_orbital_init(gcomp, clock, nu_diag, my_task==master_task, rc)
+    mastertask = .false.
+    if (my_task == master_task) mastertask = .true.
+    call ice_orbital_init(gcomp, clock, nu_diag, mastertask, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 #else
     ! Start with icepack values then update with values defined in configure file if they exist
@@ -593,11 +597,13 @@ contains
     ! Note that sets the nu_diag module variable in ice_fileunits
     ! Set the nu_diag_set flag so it's not reset later
 
-#ifdef CESMCOUPLED
-    call set_component_logging(gcomp, my_task==master_task, nu_diag, shrlogunit, rc)
+    call init_communicate(lmpicom)     ! initial setup for message passing
+
+    mastertask = .false.
+    if (my_task == master_task) mastertask = .true.
+    call set_component_logging(gcomp, mastertask, nu_diag, shrlogunit, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     nu_diag_set = .true.
-#endif
 
 #ifdef CESMCOUPLED
     call shr_file_setLogUnit (shrlogunit)
@@ -613,7 +619,7 @@ contains
 #ifdef CESMCOUPLED
     call t_startf ('cice_init')
 #endif
-    call cice_init( lmpicom )
+    call cice_init
 #ifdef CESMCOUPLED
     call t_stopf ('cice_init')
 #endif
