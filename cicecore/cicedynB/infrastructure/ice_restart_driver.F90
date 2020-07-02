@@ -58,9 +58,7 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-#ifdef CESMCOUPLED
       use ice_flux, only: coszen
-#endif
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel
 
       character(len=char_len_long), intent(in), optional :: filename_spec
@@ -132,9 +130,7 @@
       !-----------------------------------------------------------------
       ! radiation fields
       !-----------------------------------------------------------------
-#ifdef CESMCOUPLED
       call write_restart_field(nu_dump,0,coszen,'ruf8','coszen',1,diag)
-#endif
       call write_restart_field(nu_dump,0,scale_factor,'ruf8','scale_factor',1,diag)
 
       call write_restart_field(nu_dump,0,swvdr,'ruf8','swvdr',1,diag)
@@ -209,9 +205,7 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-#ifdef CESMCOUPLED
       use ice_flux, only: coszen
-#endif
       use ice_grid, only: tmask, grid_type
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
@@ -310,11 +304,9 @@
       if (my_task == master_task) &
          write(nu_diag,*) 'radiation fields'
 
-#ifdef CESMCOUPLED
       call read_restart_field(nu_restart,0,coszen,'ruf8', &
 !           'coszen',1,diag, field_loc_center, field_type_scalar)
            'coszen',1,diag)
-#endif
       call read_restart_field(nu_restart,0,scale_factor,'ruf8', &
            'scale_factor',1,diag, field_loc_center, field_type_scalar)
       call read_restart_field(nu_restart,0,swvdr,'ruf8', &
