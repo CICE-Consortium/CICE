@@ -769,7 +769,7 @@
           ice_ic /= 'none' .and. ice_ic /= 'default') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: runtype, restart, ice_ic are inconsistent:'
-            write(nu_diag,*) subname//' ERROR:   runtype=',trim(runtype), 'restart=',restart, 'ice_ic=',trim(ice_ic)
+            write(nu_diag,*) subname//' ERROR:   runtype=',trim(runtype), ' restart=',restart, ' ice_ic=',trim(ice_ic)
             write(nu_diag,*) subname//' ERROR:   Please review user guide'
          endif
          abort_list = trim(abort_list)//":1"
