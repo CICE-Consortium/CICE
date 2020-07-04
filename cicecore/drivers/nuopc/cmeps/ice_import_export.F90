@@ -35,7 +35,7 @@ module ice_import_export
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
   use icepack_intfc      , only : icepack_liquidus_temperature
-  use ice_wrapper_mod    , only : t_startf, t_stopf, t_barrierf
+  use cice_wrapper_mod    , only : t_startf, t_stopf, t_barrierf
 #ifdef CESMCOUPLED
   use shr_frz_mod        , only : shr_frz_freezetemp
 #endif
@@ -171,7 +171,7 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_ptem'                       ) !cesm
     call fldlist_add(fldsToIce_num, fldsToIce, 'air_density_height_lowest'     ) !cesm
 
-    ! the folloing are advertised but might not be connected if they are not present
+    ! the following are advertised but might not be connected if they are not present
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     ! from atm - black carbon deposition fluxes (3)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_bcph',  ungridded_lbound=1, ungridded_ubound=3)
@@ -253,8 +253,8 @@ contains
     if (flds_wiso) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_fresh_water_to_ocean_rate_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
-            ungridded_lbound=1, ungridded_ubound=3)
+       !call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
+       !     ungridded_lbound=1, ungridded_ubound=3)
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
     end if

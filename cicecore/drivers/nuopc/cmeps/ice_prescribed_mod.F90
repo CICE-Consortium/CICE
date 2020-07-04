@@ -7,6 +7,9 @@ module ice_prescribed_mod
   implicit none
   private ! except
 
+  ! MEMBER FUNCTIONS:
+  public  :: ice_prescribed_init      ! initialize input data stream
+
   logical(kind=log_kind), parameter, public :: prescribed_ice = .false.     ! true if prescribed ice
 
 #else
@@ -90,6 +93,7 @@ module ice_prescribed_mod
 !       ,  rcpidepressT = rcpi*depressT & ! param for finding T(z) from q (J/m^3)
 !       ,  rLfidepressT = rLfi*depressT   ! param for heat capacity       (J deg/m^3)
 !  ! heat capacity of sea ice, rhoi*C=rcpi+rLfidepressT*salinity/T^2
+#endif
 
 !=======================================================================
 contains
@@ -657,7 +661,6 @@ contains
     integer(kind=int_kind), intent(in) :: gindex(:)
     ! do nothing
   end subroutine ice_prescribed_init
-
 #endif
 
 end module ice_prescribed_mod

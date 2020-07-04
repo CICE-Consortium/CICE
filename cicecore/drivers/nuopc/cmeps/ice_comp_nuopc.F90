@@ -48,8 +48,8 @@ module ice_comp_nuopc
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
-  use ice_prescribed_mod , only : ice_prescribed_init
 #endif
+  use ice_prescribed_mod , only : ice_prescribed_init
 
   implicit none
   private
@@ -834,7 +834,7 @@ contains
 
     call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent and isSet) then
+    if (isPresent .and. isSet) then
        read(cvalue,*) compid  ! convert from string to integer
     else
        compid = 0
