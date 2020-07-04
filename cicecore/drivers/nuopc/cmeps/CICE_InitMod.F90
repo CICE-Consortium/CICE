@@ -25,39 +25,20 @@
 
       implicit none
       private
-      public :: CICE_Initialize, cice_init
+      public :: cice_init
 
 !=======================================================================
 
       contains
 
 !=======================================================================
-
-!  Initialize the basic state, grid and all necessary parameters for
-!  running the CICE model.  Return the initial state in routine
-!  export state.
-!  Note: This initialization driver is designed for standalone and
-!        CESM-coupled applications.  For other
-!        applications (e.g., standalone CAM), this driver would be
-!        replaced by a different driver that calls subroutine cice_init,
-!        where most of the work is done.
-
-      subroutine CICE_Initialize
-
-      character(len=*), parameter :: subname='(CICE_Initialize)'
-   !--------------------------------------------------------------------
-   ! model initialization
-   !--------------------------------------------------------------------
-
-      call cice_init
-
-      end subroutine CICE_Initialize
-
-!=======================================================================
 !
 !  Initialize CICE model.
 
       subroutine cice_init(mpicom_ice)
+
+        !  Initialize the basic state, grid and all necessary parameters for
+        !  running the CICE model.
 
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
       use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
@@ -66,7 +47,7 @@
       use ice_flux_bgc, only: alloc_flux_bgc
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
-      use ice_communicate, only: init_communicate, my_task, master_task
+      use ice_communicate, only: my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
@@ -74,8 +55,7 @@
       use ice_dyn_shared, only: kdyn, init_evp, alloc_dyn_shared
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
-      use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn, get_wave_spec
+      use ice_forcing, only: init_forcing_ocn
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default, faero_optics, alloc_forcing_bgc, fiso_default
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
@@ -87,9 +67,6 @@
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-#ifdef popcice
-      use drv_forcing, only: sst_sss
-#endif
 
       integer (kind=int_kind), optional, intent(in) :: &
          mpicom_ice ! communicator for sequential ccsm
@@ -98,7 +75,6 @@
          tr_iso, tr_fsd, wave_spec
       character(len=*), parameter :: subname = '(cice_init)'
 
-      call init_communicate(mpicom_ice)     ! initial setup for message passing
       call init_fileunits       ! unit numbers
 
       call icepack_configure()  ! initialize icepack
@@ -133,10 +109,6 @@
       endif
 
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
-
-#ifdef popcice
-      call sst_sss              ! POP data for CICE initialization
-#endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
 
       call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
@@ -162,7 +134,9 @@
 
       call calendar(time)       ! determine the initial date
 
+      ! TODO: - why is this being called when you are using CMEPS?
       call init_forcing_ocn(dt) ! initialize sss and sst from data
+
       call init_state           ! initialize the ice state
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
@@ -186,50 +160,30 @@
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
-      if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
-                                                   !property tables
+      if (tr_aero .or. tr_zaero) then
+         call faero_optics !initialize aerosol optical property tables
+      end if
 
       ! Initialize shortwave components using swdn from previous timestep 
       ! if restarting. These components will be scaled to current forcing 
       ! in prep_radiation.
-      if (trim(runtype) == 'continue' .or. restart) &
+
+      if (trim(runtype) == 'continue' .or. restart) then
          call init_shortwave    ! initialize radiative transfer
+      end if
 
-!      istep  = istep  + 1    ! update time step counters
-!      istep1 = istep1 + 1
-!      time = time + dt       ! determine the time and date
-!      call calendar(time)    ! at the end of the first timestep
+      !--------------------------------------------------------------------
+      ! coupler communication or forcing data initialization
+      !--------------------------------------------------------------------
 
-   !--------------------------------------------------------------------
-   ! coupler communication or forcing data initialization
-   !--------------------------------------------------------------------
-
-#ifndef coupled
-      call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
-
-#ifndef CESMCOUPLED
-      if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
-      call get_forcing_atmo     ! atmospheric forcing from data
-      call get_forcing_ocn(dt)  ! ocean forcing from data
-
-      ! isotopes
-      if (tr_iso)     call fiso_default                 ! default values
-      ! aerosols
-      ! if (tr_aero)  call faero_data                   ! data file
-      ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
-      if (tr_aero .or. tr_zaero)  call faero_default    ! default values
-      if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
-#endif
-#endif
       if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-      if (runtype == 'initial' .and. .not. restart) &
+      if (runtype == 'initial' .and. .not. restart) then
          call init_shortwave    ! initialize radiative transfer using current swdn
+      end if
 
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
-
-!      if (write_ic) call accum_hist(dt) ! write initial conditions 
 
       end subroutine cice_init
 

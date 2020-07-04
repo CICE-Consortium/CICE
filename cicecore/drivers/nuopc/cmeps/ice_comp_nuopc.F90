@@ -27,7 +27,7 @@ module ice_comp_nuopc
   use ice_blocks         , only : nblocks_tot, get_block_parameter
   use ice_distribution   , only : ice_distributiongetblockloc
   use ice_grid           , only : tlon, tlat, hm, tarea, ULON, ULAT
-  use ice_communicate    , only : my_task, master_task, mpi_comm_ice
+  use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
   use ice_calendar       , only : idate, mday, time, month, daycal, time2sec, year_init
   use ice_calendar       , only : sec, dt, calendar, calendar_type, nextsw_cday, istep
@@ -36,19 +36,19 @@ module ice_comp_nuopc
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name, inst_suffix, release_all_fileunits, flush_fileunit
   use ice_restart_shared , only : runid, runtype, restart_dir, restart_file
   use ice_history        , only : accum_hist
-  use CICE_InitMod       , only : CICE_Init
-  use CICE_RunMod        , only : CICE_Run
+  use CICE_InitMod       , only : cice_init
+  use CICE_RunMod        , only : cice_run
   use ice_exit           , only : abort_ice
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_init_orbit, icepack_init_parameters, icepack_query_orbit
   use icepack_intfc      , only : icepack_query_tracer_flags, icepack_query_parameters
   use ice_timers
+  use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
+  use cice_wrapper_mod   , only : shr_file_getlogunit, shr_file_setlogunit
 #ifdef CESMCOUPLED
-  use shr_file_mod       , only : shr_file_getlogunit, shr_file_setlogunit
-  use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
   use shr_const_mod
+  use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
   use ice_prescribed_mod , only : ice_prescribed_init
-  use perf_mod           , only : t_startf, t_stopf, t_barrierf
 #endif
 
   implicit none
@@ -179,7 +179,7 @@ contains
     ! Local variables
     character(len=char_len_long) :: cvalue
     character(len=char_len_long) :: logmsg
-    logical            :: isPresent, isSet
+    logical                      :: isPresent, isSet
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
@@ -252,69 +252,69 @@ contains
     integer, intent(out) :: rc
 
     ! Local variables
-    real(dbl_kind)                :: eccen, obliqr, lambm0, mvelpp
-    type(ESMF_DistGrid)     :: distGrid
-    type(ESMF_Mesh)         :: Emesh, EmeshTemp
-    integer                 :: spatialDim
-    integer                 :: numOwnedElements
-    real(dbl_kind), pointer       :: ownedElemCoords(:)
-    real(dbl_kind), pointer       :: lat(:), latMesh(:)
-    real(dbl_kind), pointer       :: lon(:), lonMesh(:)
-    integer , allocatable   :: gindex_ice(:)
-    integer , allocatable   :: gindex_elim(:)
-    integer , allocatable   :: gindex(:)
-    integer                 :: globalID
-    character(ESMF_MAXSTR)  :: cvalue
-    character(len=char_len) :: tfrz_option
-    character(ESMF_MAXSTR)  :: convCIM, purpComp
-    type(ESMF_VM)           :: vm
-    type(ESMF_Time)         :: currTime           ! Current time
-    type(ESMF_Time)         :: startTime          ! Start time
-    type(ESMF_Time)         :: stopTime           ! Stop time
-    type(ESMF_Time)         :: refTime            ! Ref time
-    type(ESMF_TimeInterval) :: timeStep           ! Model timestep
-    type(ESMF_Calendar)     :: esmf_calendar      ! esmf calendar
-    type(ESMF_CalKind_Flag) :: esmf_caltype       ! esmf calendar type
-    integer                 :: start_ymd          ! Start date (YYYYMMDD)
-    integer                 :: start_tod          ! start time of day (s)
-    integer                 :: curr_ymd           ! Current date (YYYYMMDD)
-    integer                 :: curr_tod           ! Current time of day (s)
-    integer                 :: stop_ymd           ! stop date (YYYYMMDD)
-    integer                 :: stop_tod           ! stop time of day (sec)
-    integer                 :: ref_ymd            ! Reference date (YYYYMMDD)
-    integer                 :: ref_tod            ! reference time of day (s)
-    integer                 :: yy,mm,dd           ! Temporaries for time query
-    integer                 :: iyear              ! yyyy
-    integer                 :: dtime              ! time step
-    integer                 :: lmpicom
-    integer                 :: shrlogunit         ! original log unit
-    character(len=char_len) :: starttype          ! infodata start type
-    integer                 :: lsize              ! local size of coupling array
-    character(len=512)      :: diro
-    character(len=512)      :: logfile
-    logical                 :: isPresent
-    integer                 :: localPet
-    integer                 :: n,c,g,i,j,m        ! indices
-    integer                 :: iblk, jblk         ! indices
-    integer                 :: ig, jg             ! indices
-    integer                 :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
-    type(block)             :: this_block         ! block information for current block
-    integer                 :: compid             ! component id
+    real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
+    type(ESMF_DistGrid)          :: distGrid
+    type(ESMF_Mesh)              :: Emesh, EmeshTemp
+    integer                      :: spatialDim
+    integer                      :: numOwnedElements
+    real(dbl_kind), pointer      :: ownedElemCoords(:)
+    real(dbl_kind), pointer      :: lat(:), latMesh(:)
+    real(dbl_kind), pointer      :: lon(:), lonMesh(:)
+    integer , allocatable        :: gindex_ice(:)
+    integer , allocatable        :: gindex_elim(:)
+    integer , allocatable        :: gindex(:)
+    integer                      :: globalID
+    character(ESMF_MAXSTR)       :: cvalue
+    character(len=char_len)      :: tfrz_option
+    character(ESMF_MAXSTR)       :: convCIM, purpComp
+    type(ESMF_VM)                :: vm
+    type(ESMF_Time)              :: currTime           ! Current time
+    type(ESMF_Time)              :: startTime          ! Start time
+    type(ESMF_Time)              :: stopTime           ! Stop time
+    type(ESMF_Time)              :: refTime            ! Ref time
+    type(ESMF_TimeInterval)      :: timeStep           ! Model timestep
+    type(ESMF_Calendar)          :: esmf_calendar      ! esmf calendar
+    type(ESMF_CalKind_Flag)      :: esmf_caltype       ! esmf calendar type
+    integer                      :: start_ymd          ! Start date (YYYYMMDD)
+    integer                      :: start_tod          ! start time of day (s)
+    integer                      :: curr_ymd           ! Current date (YYYYMMDD)
+    integer                      :: curr_tod           ! Current time of day (s)
+    integer                      :: stop_ymd           ! stop date (YYYYMMDD)
+    integer                      :: stop_tod           ! stop time of day (sec)
+    integer                      :: ref_ymd            ! Reference date (YYYYMMDD)
+    integer                      :: ref_tod            ! reference time of day (s)
+    integer                      :: yy,mm,dd           ! Temporaries for time query
+    integer                      :: iyear              ! yyyy
+    integer                      :: dtime              ! time step
+    integer                      :: lmpicom
+    integer                      :: shrlogunit         ! original log unit
+    character(len=char_len)      :: starttype          ! infodata start type
+    integer                      :: lsize              ! local size of coupling array
+    logical                      :: isPresent
+    logical                      :: isSet
+    integer                      :: localPet
+    integer                      :: n,c,g,i,j,m        ! indices
+    integer                      :: iblk, jblk         ! indices
+    integer                      :: ig, jg             ! indices
+    integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
+    type(block)                  :: this_block         ! block information for current block
+    integer                      :: compid             ! component id
     character(len=char_len_long) :: tempc1,tempc2
-    real(dbl_kind)          :: diff_lon
-    integer                 :: npes
-    integer                 :: num_elim_global
-    integer                 :: num_elim_local
-    integer                 :: num_elim
-    integer                 :: num_ice
-    integer                 :: num_elim_gcells    ! local number of eliminated gridcells
-    integer                 :: num_elim_blocks    ! local number of eliminated blocks
-    integer                 :: num_total_blocks
-    integer                 :: my_elim_start, my_elim_end
-    real(dbl_kind)          :: rad_to_deg
-    integer(int_kind)       :: ktherm
-    character(*), parameter     :: F00   = "('(ice_comp_nuopc) ',2a,1x,d21.14)"
-    character(len=*), parameter :: subname=trim(modName)//':(InitializeRealize) '
+    real(dbl_kind)               :: diff_lon
+    integer                      :: npes
+    integer                      :: num_elim_global
+    integer                      :: num_elim_local
+    integer                      :: num_elim
+    integer                      :: num_ice
+    integer                      :: num_elim_gcells    ! local number of eliminated gridcells
+    integer                      :: num_elim_blocks    ! local number of eliminated blocks
+    integer                      :: num_total_blocks
+    integer                      :: my_elim_start, my_elim_end
+    real(dbl_kind)               :: rad_to_deg
+    integer(int_kind)            :: ktherm
+    character(len=char_len_long) :: diag_filename = 'unset'
+    character(len=*), parameter  :: F00   = "('(ice_comp_nuopc) ',2a,1x,d21.14)"
+    character(len=*), parameter  :: subname=trim(modName)//':(InitializeRealize) '
     !--------------------------------
 
     rc = ESMF_SUCCESS
@@ -378,6 +378,7 @@ contains
        pi_in               = SHR_CONST_PI,                    &
        snowpatch_in        = 0.005_dbl_kind,                  &
        dragio_in           = 0.00962_dbl_kind)
+
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
@@ -406,12 +407,8 @@ contains
           call abort_ice( subname//' ERROR: unknown starttype' )
        end if
 
-       ! Note that in the mct version the atm was initialized first so that nextsw_cday could be passed to the other
-       ! components - this assumed that cam or datm was ALWAYS initialized first.
-       ! In the nuopc version it will be easier to assume that on startup - nextsw_cday is just the current time
-
+       ! We assume here that on startup - nextsw_cday is just the current time
        ! TOOD (mvertens, 2019-03-21): need to get the perpetual run working
-
        if (trim(runtype) /= 'initial') then
           ! Set nextsw_cday to -1 (this will skip an orbital calculation on initialization
           nextsw_cday = -1.0_dbl_kind
@@ -425,34 +422,33 @@ contains
        runtype = 'initial' ! determined from the namelist in ice_init if CESMCOUPLED is not defined
     end if
 
-    single_column = .false.
-    ! Determine single column info - only valid for cesm
-    !call NUOPC_CompAttributeGet(gcomp, name='single_column', value=cvalue, isPresent=isPresent, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !if (isPresent) then
-    !   read(cvalue,*) single_column
-    !end if
-
-    if (single_column) then
-       ! Must have these attributes present
-       call NUOPC_CompAttributeGet(gcomp, name='scmlon', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scmlon
-       call NUOPC_CompAttributeGet(gcomp, name='scmlat', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scmlat
+    ! Determine if single column
+    call NUOPC_CompAttributeGet(gcomp, name='single_column', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) single_column
+       if (single_column) then
+          call NUOPC_CompAttributeGet(gcomp, name='scmlon', value=cvalue, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          read(cvalue,*) scmlon
+          call NUOPC_CompAttributeGet(gcomp, name='scmlat', value=cvalue, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          read(cvalue,*) scmlat
+       end if
+    else
+       single_column = .false.
     end if
 
     ! Determine runid
-    call NUOPC_CompAttributeGet(gcomp, name='case_name', value=cvalue, isPresent=isPresent, rc=rc)
-    if (isPresent) then
+    call NUOPC_CompAttributeGet(gcomp, name='case_name', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (isPresent .and. isSet) then
        read(cvalue,*) runid
     else
-       runid = 'unknown'  ! read in from the namelist in ice_init.F90 if CESMCOUPLED is not defined
+       ! read in from the namelist in ice_init.F90 if this is not an attribute passed from the driver
+       runid = 'unknown'
     end if
 
     ! Get clock information before call to cice_init
-
     call ESMF_ClockGet( clock, &
          currTime=currTime, startTime=startTime, stopTime=stopTime, refTime=RefTime, &
          timeStep=timeStep, rc=rc)
@@ -489,21 +485,34 @@ contains
     end if
 
     !----------------------------------------------------------------------------
+    ! Initialize cice communicators
+    !----------------------------------------------------------------------------
+
+    call init_communicate(lmpicom)     ! initial setup for message passing
+
+    !----------------------------------------------------------------------------
     ! Set cice logging
     !----------------------------------------------------------------------------
+    ! Note - this must be done AFTER the communicators are set
     ! Note that sets the nu_diag module variable in ice_fileunits
     ! Set the nu_diag_set flag so it's not reset later
 
-#ifdef CESMCOUPLED
     if (my_task == master_task) then
-       call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name="diro", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call NUOPC_CompAttributeGet(gcomp, name="logfile", value=logfile, rc=rc)
+       if (isPresent .and. isSet) then
+          diag_filename = trim(cvalue)
+       end if
+       call NUOPC_CompAttributeGet(gcomp, name="logfile", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       open(newunit=nu_diag, file=trim(diro)//"/"//trim(logfile))
+       if (isPresent .and. isSet) then
+          diag_filename = trim(diag_filename) // '/' // trim(cvalue)
+       end if
+       if (trim(diag_filename) /= 'unset') then
+          open(newunit=nu_diag, file=trim(diag_filename))
+          nu_diag_set = .true.
+       end if
     end if
-    nu_diag_set = .true.
-#endif
 
     !----------------------------------------------------------------------------
     ! Initialize cice
@@ -513,7 +522,7 @@ contains
     ! including master_task and my_task
 
     call t_startf ('cice_init')
-    call cice_init( lmpicom )
+    call cice_init()
     call t_stopf ('cice_init')
 
     !----------------------------------------------------------------------------
@@ -819,18 +828,18 @@ contains
          flds_scalar_name=flds_scalar_name, flds_scalar_num=flds_scalar_num, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-#ifdef CESMCOUPLED
     !-----------------------------------------------------------------
     ! Prescribed ice initialization - first get compid
     !-----------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) compid  ! convert from string to integer
-
-    ! Having this if-defd means that MCT does not need to be build in a NEMS configuration
+    if (isPresent and isSet) then
+       read(cvalue,*) compid  ! convert from string to integer
+    else
+       compid = 0
+    end if
     call ice_prescribed_init(lmpicom, compid, gindex_ice)
-#endif
 
     !-----------------------------------------------------------------
     ! Create cice export state
@@ -847,7 +856,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! TODO (mvertens, 2018-12-21): fill in iceberg_prognostic as .false.
-
     if (debug_export > 0 .and. my_task==master_task) then
        call State_fldDebug(exportState, flds_scalar_name, 'cice_export:', &
             idate, sec, nu_diag, rc=rc)
@@ -1267,14 +1275,14 @@ contains
     integer             , intent(out)   :: rc              ! output error
 
     ! local variables
-    real(dbl_kind)    :: eccen, obliqr, lambm0, mvelpp
+    real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
     character(len=char_len_long) :: msgstr   ! temporary
     character(len=char_len_long) :: cvalue   ! temporary
-    type(ESMF_Time)   :: CurrTime ! current time
-    integer           :: year     ! model year at current time
-    integer           :: orb_year ! orbital year for current orbital computation
-    logical           :: lprint
-    logical           :: first_time = .true.
+    type(ESMF_Time)              :: CurrTime ! current time
+    integer                      :: year     ! model year at current time
+    integer                      :: orb_year ! orbital year for current orbital computation
+    logical                      :: lprint
+    logical                      :: first_time = .true.
     character(len=*) , parameter :: subname = "(cice_orbital_init)"
     !-------------------------------------------------------------------------------
 
@@ -1388,7 +1396,7 @@ contains
     first_time = .false.
   end subroutine ice_orbital_init
 
-#else  
+#else
 
   subroutine ice_orbital_init(gcomp, clock, logunit, mastertask, rc)
 
@@ -1401,12 +1409,10 @@ contains
 
     ! local variables
     real(dbl_kind)         :: eccen, obliqr, lambm0, mvelpp
-    logical                :: isPresent, isSet
-    character(ESMF_MAXSTR) :: cvalue
     logical                :: first_time = .true.
     character(len=*) , parameter :: subname = "(cice_orbital_init)"
     !--------------------------------
-    
+
     rc = ESMF_SUCCESS
 
     if (first_time) then
@@ -1417,28 +1423,6 @@ contains
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
-      ! call NUOPC_CompAttributeGet(gcomp, name='orb_eccen', value=cvalue, isPresent=isPresent, rc=rc)
-      ! if (isPresent) then
-      !    read(cvalue,*) eccen
-      ! end if
-      ! call NUOPC_CompAttributeGet(gcomp, name='orb_obliqr', value=cvalue, isPresent=isPresent, rc=rc)
-      ! if (isPresent) then
-      !    read(cvalue,*) obliqr
-      ! end if
-      ! call NUOPC_CompAttributeGet(gcomp, name='orb_lambm0', value=cvalue, isPresent=isPresent, rc=rc)
-      ! if (isPresent) then
-      !    read(cvalue,*) lambm0
-      ! end if
-      ! call NUOPC_CompAttributeGet(gcomp, name='orb_mvelpp', value=cvalue, isPresent=isPresent, rc=rc)
-      ! if (isPresent) then
-      !    read(cvalue,*) mvelpp
-      ! end if
-
-      ! call icepack_init_orbit(eccen_in=eccen, mvelpp_in=mvelpp, lambm0_in=lambm0, obliqr_in=obliqr)
-      ! call icepack_warnings_flush(nu_diag)
-      ! if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-      !      file=__FILE__, line=__LINE__)
-       
        first_time = .false.
     end if
 
@@ -1471,28 +1455,5 @@ contains
 
   !===============================================================================
 
-#ifndef CESMCOUPLED
-  subroutine shr_file_setLogUnit(nunit)
-    integer, intent(in) :: nunit
-    ! do nothing for this stub - its just here to replace
-    ! having cppdefs in the main program
-  end subroutine shr_file_setLogUnit
-  subroutine shr_file_getLogUnit(nunit)
-    integer, intent(in) :: nunit
-    ! do nothing for this stub - its just here to replace
-    ! having cppdefs in the main program
-  end subroutine shr_file_getLogUnit
-
-  subroutine t_startf(string)
-    character(len=*) :: string
-  end subroutine t_startf
-  subroutine t_stopf(string)
-    character(len=*) :: string
-  end subroutine t_stopf
-  subroutine t_barrierf(string, comm)
-    character(len=*) :: string
-    integer:: comm
-  end subroutine t_barrierf
-#endif
 
 end module ice_comp_nuopc

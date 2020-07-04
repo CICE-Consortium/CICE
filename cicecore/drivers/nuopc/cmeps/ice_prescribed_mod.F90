@@ -95,6 +95,8 @@ module ice_prescribed_mod
 contains
 !===============================================================================
 
+#ifdef CESM_COUPLED
+
   subroutine ice_prescribed_init(mpicom, compid, gindex)
 
     use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys, shr_pio_getioformat
@@ -646,6 +648,15 @@ contains
     deallocate(data1, data2, data3, data4, data5, data6)
 
   end subroutine ice_prescribed_set_domain
+
+#else 
+  ! This is a stub routine for now
+  subroutine ice_prescribed_init(mpicom, compid, gindex)
+    integer(kind=int_kind), intent(in) :: mpicom
+    integer(kind=int_kind), intent(in) :: compid
+    integer(kind=int_kind), intent(in) :: gindex(:)
+    ! do nothing
+  end subroutine ice_prescribed_init
 
 #endif
 
