@@ -1,13 +1,12 @@
 module cice_wrapper_mod
 
 #ifdef CESMCOUPLED
-  use perf_mod, only : t_startf, t_stopf, t_barrierf
-#endif
+  use perf_mod     , only : t_startf, t_stopf, t_barrierf
+  use shr_file_mod , only : shr_file_getlogunit, shr_file_setlogunit
 
-
+#else
 contains
 
-#ifndef CESMCOUPLED
   ! These are just stub routines put in place to remove
 
   subroutine shr_file_setLogUnit(nunit)

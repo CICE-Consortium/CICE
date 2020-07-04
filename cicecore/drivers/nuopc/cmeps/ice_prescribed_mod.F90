@@ -1,19 +1,5 @@
 module ice_prescribed_mod
 
-#ifndef CESMCOUPLED
-
-  use ice_kinds_mod
-
-  implicit none
-  private ! except
-
-  ! MEMBER FUNCTIONS:
-  public  :: ice_prescribed_init      ! initialize input data stream
-
-  logical(kind=log_kind), parameter, public :: prescribed_ice = .false.     ! true if prescribed ice
-
-#else
-
   ! !DESCRIPTION:
   ! The prescribed ice model reads in ice concentration data from a netCDF
   ! file.  Ice thickness, temperature, the ice temperature profile are
@@ -21,8 +7,28 @@ module ice_prescribed_mod
   ! Ice/ocean fluxes are set to zero, and ice dynamics are not calculated.
   ! Regridding and data cycling capabilities are included.
 
-  ! !USES:
-  use shr_nl_mod, only : shr_nl_find_group_name
+#ifndef CESMCOUPLED
+
+  use ice_kinds_mod
+
+  implicit none
+  private ! except
+
+  public  :: ice_prescribed_init      ! initialize input data stream
+  logical(kind=log_kind), parameter, public :: prescribed_ice = .false.     ! true if prescribed ice
+
+contains
+  ! This is a stub routine for now
+  subroutine ice_prescribed_init(mpicom, compid, gindex)
+    integer(kind=int_kind), intent(in) :: mpicom
+    integer(kind=int_kind), intent(in) :: compid
+    integer(kind=int_kind), intent(in) :: gindex(:)
+    ! do nothing
+  end subroutine ice_prescribed_init
+
+#else 
+
+  use shr_nl_mod        , only : shr_nl_find_group_name
   use shr_strdata_mod
   use shr_dmodel_mod
   use shr_string_mod
@@ -31,24 +37,23 @@ module ice_prescribed_mod
   use shr_mct_mod
   use mct_mod
   use pio
-
   use ice_broadcast
-  use ice_communicate  , only : my_task, master_task, MPI_COMM_ICE
+  use ice_communicate   , only : my_task, master_task, MPI_COMM_ICE
   use ice_kinds_mod
   use ice_fileunits
-  use ice_exit         , only : abort_ice
-  use ice_domain_size  , only : nx_global, ny_global, ncat, nilyr, nslyr, max_blocks
+  use ice_exit          , only : abort_ice
+  use ice_domain_size   , only : nx_global, ny_global, ncat, nilyr, nslyr, max_blocks
   use ice_constants
-  use ice_blocks       , only : nx_block, ny_block, block, get_block
-  use ice_domain       , only : nblocks, distrb_info, blocks_ice
-  use ice_grid         , only : TLAT, TLON, hm, tmask, tarea, grid_type, ocn_gridcell_frac
-  use ice_calendar     , only : idate, sec, calendar_type
-  use ice_arrays_column, only : hin_max
+  use ice_blocks        , only : nx_block, ny_block, block, get_block
+  use ice_domain        , only : nblocks, distrb_info, blocks_ice
+  use ice_grid          , only : TLAT, TLON, hm, tmask, tarea, grid_type, ocn_gridcell_frac
+  use ice_calendar      , only : idate, sec, calendar_type
+  use ice_arrays_column , only : hin_max
   use ice_read_write
-  use ice_exit, only: abort_ice
-  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-  use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
-  use icepack_intfc, only: icepack_query_parameters
+  use ice_exit          , only: abort_ice
+  use icepack_intfc     , only: icepack_warnings_flush, icepack_warnings_aborted
+  use icepack_intfc     , only: icepack_query_tracer_indices, icepack_query_tracer_sizes
+  use icepack_intfc     , only: icepack_query_parameters
 
   implicit none
   private ! except
@@ -59,59 +64,38 @@ module ice_prescribed_mod
   public  :: ice_prescribed_phys      ! set prescribed ice state and fluxes
 
   ! !PUBLIC DATA MEMBERS:
-  logical(kind=log_kind), public :: prescribed_ice      ! true if prescribed ice
-
+  logical(kind=log_kind), public   :: prescribed_ice      ! true if prescribed ice
   integer(kind=int_kind),parameter :: nFilesMaximum = 400 ! max number of files
-  integer(kind=int_kind)         :: stream_year_first   ! first year in stream to use
-  integer(kind=int_kind)         :: stream_year_last    ! last year in stream to use
-  integer(kind=int_kind)         :: model_year_align    ! align stream_year_first
-  ! with this model year
+  integer(kind=int_kind)           :: stream_year_first   ! first year in stream to use
+  integer(kind=int_kind)           :: stream_year_last    ! last year in stream to use
+  integer(kind=int_kind)           :: model_year_align    ! align stream_year_first with this model year
+  character(len=char_len_long)     :: stream_fldVarName
+  character(len=char_len_long)     :: stream_fldFileName(nFilesMaximum)
+  character(len=char_len_long)     :: stream_domTvarName
+  character(len=char_len_long)     :: stream_domXvarName
+  character(len=char_len_long)     :: stream_domYvarName
+  character(len=char_len_long)     :: stream_domAreaName
+  character(len=char_len_long)     :: stream_domMaskName
+  character(len=char_len_long)     :: stream_domFileName
+  character(len=char_len_long)     :: stream_mapread
+  logical(kind=log_kind)           :: prescribed_ice_fill ! true if data fill required
+  type(shr_strdata_type)           :: sdat                ! prescribed data stream
+  character(len=char_len_long)     :: fldList             ! list of fields in data stream
+  real(kind=dbl_kind),allocatable  :: ice_cov(:,:,:)      ! ice cover
 
-  character(len=char_len_long)   :: stream_fldVarName
-  character(len=char_len_long)   :: stream_fldFileName(nFilesMaximum)
-  character(len=char_len_long)   :: stream_domTvarName
-  character(len=char_len_long)   :: stream_domXvarName
-  character(len=char_len_long)   :: stream_domYvarName
-  character(len=char_len_long)   :: stream_domAreaName
-  character(len=char_len_long)   :: stream_domMaskName
-  character(len=char_len_long)   :: stream_domFileName
-  character(len=char_len_long)   :: stream_mapread
-  logical(kind=log_kind)         :: prescribed_ice_fill        ! true if data fill required
-
-  type(shr_strdata_type)       :: sdat         ! prescribed data stream
-  character(len=char_len_long) :: fldList      ! list of fields in data stream
-  real(kind=dbl_kind),allocatable :: ice_cov(:,:,:) ! ice cover
-
-!  real (kind=dbl_kind), parameter :: &
-!       cp_sno = 0.0_dbl_kind & ! specific heat of snow                   (J/kg/K)
-!       ,  rLfi = Lfresh*rhoi & ! latent heat of fusion ice               (J/m^3)
-!       ,  rLfs = Lfresh*rhos & ! latent heat of fusion snow              (J/m^3)
-!       ,  rLvi = Lvap*rhoi   & ! latent heat of vapor*rhoice             (J/m^3)
-!       ,  rLvs = Lvap*rhos   & ! latent heat of vapor*rhosno             (J/m^3)
-!       ,  rcpi = cp_ice*rhoi & ! heat capacity of fresh ice              (J/m^3)
-!       ,  rcps = cp_sno*rhos & ! heat capacity of snow                   (J/m^3)
-!       ,  rcpidepressT = rcpi*depressT & ! param for finding T(z) from q (J/m^3)
-!       ,  rLfidepressT = rLfi*depressT   ! param for heat capacity       (J deg/m^3)
-!  ! heat capacity of sea ice, rhoi*C=rcpi+rLfidepressT*salinity/T^2
-#endif
-
-!=======================================================================
 contains
-!===============================================================================
-
-#ifdef CESM_COUPLED
 
   subroutine ice_prescribed_init(mpicom, compid, gindex)
 
-    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys, shr_pio_getioformat
-    ! !DESCRIPTION:
     !    Prescribed ice initialization - needed to
     !    work with new shr_strdata module derived type
 
-    ! !INPUT/OUTPUT PARAMETERS:
+    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys, shr_pio_getioformat
+
     implicit none
     include 'mpif.h'
 
+    ! !nput/output parameters:
     integer(kind=int_kind), intent(in) :: mpicom
     integer(kind=int_kind), intent(in) :: compid
     integer(kind=int_kind), intent(in) :: gindex(:)
@@ -263,7 +247,6 @@ contains
   end subroutine ice_prescribed_init
 
   !=======================================================================
-
   subroutine ice_prescribed_run(mDateIn, secIn)
 
     ! !DESCRIPTION:
@@ -335,24 +318,11 @@ contains
   end subroutine ice_prescribed_run
 
   !===============================================================================
-  !BOP ===========================================================================
-  !
-  ! !IROUTINE: ice_prescribed_phys -- set prescribed ice state and fluxes
-  !
-  ! !DESCRIPTION:
-  !
-  ! Set prescribed ice state using input ice concentration;
-  ! set surface ice temperature to atmospheric value; use
-  ! linear temperature gradient in ice to ocean temperature.
-  !
-  ! !REVISION HISTORY:
-  !     2005-May-23 - J. Schramm - Updated with data models
-  !     2004-July   - J. Schramm - Modified to allow variable snow cover
-  !     2001-May    - B. P. Briegleb - Original version
-  !
-  ! !INTERFACE: ------------------------------------------------------------------
-
   subroutine ice_prescribed_phys
+
+    ! Set prescribed ice state using input ice concentration;
+    ! set surface ice temperature to atmospheric value; use
+    ! linear temperature gradient in ice to ocean temperature.
 
     ! !USES:
     use ice_flux
@@ -394,20 +364,6 @@ contains
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
        file=__FILE__, line=__LINE__)
-
-    !-----------------------------------------------------------------
-    ! Initialize ice state
-    !-----------------------------------------------------------------
-
-    ! TODO  - can we now get rid of the following???
-
-    !  aicen(:,:,:,:) = c0
-    !  vicen(:,:,:,:) = c0
-    !  eicen(:,:,:,:) = c0
-
-    !  do nc=1,ncat
-    !     trcrn(:,:,nt_Tsfc,nc,:) = Tf(:,:,:)
-    !  enddo
 
     !-----------------------------------------------------------------
     ! Set ice cover over land to zero, not sure if this should be
@@ -554,7 +510,6 @@ contains
   end subroutine ice_prescribed_phys
 
   !===============================================================================
-
   subroutine ice_prescribed_set_domain( lsize, mpicom, gsmap_i, dom_i )
 
     ! Arguments
@@ -653,14 +608,6 @@ contains
 
   end subroutine ice_prescribed_set_domain
 
-#else 
-  ! This is a stub routine for now
-  subroutine ice_prescribed_init(mpicom, compid, gindex)
-    integer(kind=int_kind), intent(in) :: mpicom
-    integer(kind=int_kind), intent(in) :: compid
-    integer(kind=int_kind), intent(in) :: gindex(:)
-    ! do nothing
-  end subroutine ice_prescribed_init
 #endif
 
 end module ice_prescribed_mod
