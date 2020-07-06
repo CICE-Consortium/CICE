@@ -93,7 +93,7 @@ DESCRIPTION
     --setvers  : updates cice version number in sandbox
     --case, -c : case, case directory/name (not with --test or --suite)
     --mach, -m : machine, machine name (required)
-    --env,  -e : envname(s), comma separated (default = $envnames)
+    --env,  -e : compilation environment name(s), comma separated (default = $envnames)
     --pes,  -p : tasks x threads [x blocksize_x x blocksize_y [x maxblocks]] (default is ${pesx})
     --acct     : account number for the batch submission
     --grid, -g : grid, grid (default = ${grid})
@@ -112,7 +112,7 @@ DESCRIPTION
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
     --coverage : generate and report test coverage metrics when tests are complete,
-                 requires GNU env (--env gnu*)
+                 requires GNU compiler (ie. normally ``--env gnu``)
     --setup-only         : for suite, setup testcases, no build, no submission
     --setup-build        : for suite, setup and build testcases, no submission
     --setup-build-run    : for suite, setup, build, and run interactively
@@ -529,7 +529,6 @@ if !(\$?CODECOV_TOKEN) then
 endif
 
 #for lcov
-setenv PERL5LIB ~/usr/lib/perl5/site_perl/5.18.2/x86_64-linux-thread-multi/
 set lcovalist = ""
 
 EOF0
@@ -791,12 +790,21 @@ EOF
     end
 
     # from basic script dir to casescr
-    foreach file (parse_namelist.sh parse_settings.sh parse_namelist_from_env.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh cice.results.csh cice.codecov.csh cice.lcov.csh)
+    foreach file (parse_namelist.sh parse_settings.sh parse_namelist_from_env.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
       if !(-e ${ICE_SCRIPTS}/$file) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
         exit -1
       endif
       cp -f -p ${ICE_SCRIPTS}/$file ${casescr}/
+    end
+
+    # from tests dir to casescr
+    foreach file (cice.results.csh cice.codecov.csh cice.lcov.csh)
+      if !(-e ${ICE_SCRIPTS}/tests/$file) then
+        echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
+        exit -1
+      endif
+      cp -f -p ${ICE_SCRIPTS}/tests/$file ${casescr}/
     end
 
     cd ${casedir}

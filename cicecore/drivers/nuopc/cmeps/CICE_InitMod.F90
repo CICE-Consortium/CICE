@@ -57,7 +57,7 @@
 !
 !  Initialize CICE model.
 
-      subroutine cice_init(mpicom_ice)
+      subroutine cice_init
 
       use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
       use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
@@ -66,7 +66,7 @@
       use ice_flux_bgc, only: alloc_flux_bgc
       use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
           init_calendar, calendar
-      use ice_communicate, only: init_communicate, my_task, master_task
+      use ice_communicate, only: my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
@@ -91,14 +91,10 @@
       use drv_forcing, only: sst_sss
 #endif
 
-      integer (kind=int_kind), optional, intent(in) :: &
-         mpicom_ice ! communicator for sequential ccsm
-
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_iso, tr_fsd, wave_spec
       character(len=*), parameter :: subname = '(cice_init)'
 
-      call init_communicate(mpicom_ice)     ! initial setup for message passing
       call init_fileunits       ! unit numbers
 
       call icepack_configure()  ! initialize icepack
@@ -204,9 +200,9 @@
    ! coupler communication or forcing data initialization
    !--------------------------------------------------------------------
 
+#ifndef coupled
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
 
-#ifndef coupled
 #ifndef CESMCOUPLED
       if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
       call get_forcing_atmo     ! atmospheric forcing from data
