@@ -11,6 +11,7 @@
       logical (kind=log_kind), public :: &
          restart    , &   ! if true, initialize using restart file instead of defaults
          restart_ext, &   ! if true, read/write extended grid (with ghost cells)
+         restart_coszen, &   ! if true, read/write coszen
          use_restart_time ! if true, use time written in core restart file
 
       character (len=char_len), public :: &

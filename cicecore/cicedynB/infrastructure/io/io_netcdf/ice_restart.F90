@@ -11,7 +11,7 @@
       use netcdf
       use ice_restart_shared, only: &
           restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, use_restart_time, lcdf64, lenstr
+          runid, use_restart_time, lcdf64, lenstr, restart_coszen
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
@@ -226,8 +226,9 @@
 
          call define_rest_field(ncid,'uvel',dims)
          call define_rest_field(ncid,'vvel',dims)
+         
+         if (restart_coszen) call define_rest_field(ncid,'coszen',dims)
 
-         call define_rest_field(ncid,'coszen',dims)
          call define_rest_field(ncid,'scale_factor',dims)
          call define_rest_field(ncid,'swvdr',dims)
          call define_rest_field(ncid,'swvdf',dims)

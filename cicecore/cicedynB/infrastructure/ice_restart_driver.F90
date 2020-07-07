@@ -23,7 +23,7 @@
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_restart_shared, only: restart_dir, pointer_file, &
-          runid, use_restart_time, lenstr
+          runid, use_restart_time, lenstr, restart_coszen
       use ice_restart
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
@@ -130,7 +130,9 @@
       !-----------------------------------------------------------------
       ! radiation fields
       !-----------------------------------------------------------------
-      call write_restart_field(nu_dump,0,coszen,'ruf8','coszen',1,diag)
+      
+      if (restart_coszen) call write_restart_field(nu_dump,0,coszen,'ruf8','coszen',1,diag)
+
       call write_restart_field(nu_dump,0,scale_factor,'ruf8','scale_factor',1,diag)
 
       call write_restart_field(nu_dump,0,swvdr,'ruf8','swvdr',1,diag)
@@ -304,8 +306,7 @@
       if (my_task == master_task) &
          write(nu_diag,*) 'radiation fields'
 
-      call read_restart_field(nu_restart,0,coszen,'ruf8', &
-!           'coszen',1,diag, field_loc_center, field_type_scalar)
+      if (restart_coszen) call read_restart_field(nu_restart,0,coszen,'ruf8', &
            'coszen',1,diag)
       call read_restart_field(nu_restart,0,scale_factor,'ruf8', &
            'scale_factor',1,diag, field_loc_center, field_type_scalar)
