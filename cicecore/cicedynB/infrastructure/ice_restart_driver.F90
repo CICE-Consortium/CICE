@@ -130,7 +130,9 @@
       !-----------------------------------------------------------------
       ! radiation fields
       !-----------------------------------------------------------------
+      
       if (restart_coszen) call write_restart_field(nu_dump,0,coszen,'ruf8','coszen',1,diag)
+
       call write_restart_field(nu_dump,0,scale_factor,'ruf8','scale_factor',1,diag)
 
       call write_restart_field(nu_dump,0,swvdr,'ruf8','swvdr',1,diag)
