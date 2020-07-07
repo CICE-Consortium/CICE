@@ -84,7 +84,6 @@
          endif
          endif ! use namelist values if use_restart_time = F
 
-         write(nu_diag,*) 'Restart read at istep=',istep0,time,time_forc
       endif
 
       call broadcast_scalar(istep0,master_task)
@@ -228,9 +227,7 @@
          call define_rest_field(ncid,'uvel',dims)
          call define_rest_field(ncid,'vvel',dims)
 
-#ifdef CESMCOUPLED
          call define_rest_field(ncid,'coszen',dims)
-#endif
          call define_rest_field(ncid,'scale_factor',dims)
          call define_rest_field(ncid,'swvdr',dims)
          call define_rest_field(ncid,'swvdf',dims)

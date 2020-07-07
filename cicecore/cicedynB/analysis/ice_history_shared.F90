@@ -672,9 +672,7 @@
         iday = mday
         isec = sec - dt
 
-#ifdef CESMCOUPLED
         if (write_ic) isec = sec
-#endif
         ! construct filename
         if (write_ic) then
            write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
