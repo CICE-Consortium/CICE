@@ -523,6 +523,7 @@ either Celsius or Kelvin units).
    "restart_format", ":math:`\bullet` restart file format", ""
    "restart_[tracer]", ":math:`\bullet` if true, read tracer restart file", ""
    "restart_ext", ":math:`\bullet` if true, read/write halo cells in restart file", ""
+   "restart_coszen", ":math:`\bullet` if true, read/write coszen in restart file", ""
    "restore_bgc", ":math:`\bullet` if true, restore nitrate/silicate to data", ""
    "restore_ice", ":math:`\bullet` if true, restore ice state along lateral boundaries", ""
    "restore_ocn", ":math:`\bullet` restore sst to data", ""

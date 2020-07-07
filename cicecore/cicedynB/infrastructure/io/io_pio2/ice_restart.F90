@@ -11,7 +11,8 @@
       use ice_kinds_mod
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr
+          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr, &
+          restart_coszen
       use ice_pio
       use pio
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -245,10 +246,7 @@
 
          call define_rest_field(File,'uvel',dims)
          call define_rest_field(File,'vvel',dims)
-
-#ifdef CESMCOUPLED
-         call define_rest_field(File,'coszen',dims)
-#endif
+         if (restart_coszen) call define_rest_field(File,'coszen',dims)
          call define_rest_field(File,'scale_factor',dims)
          call define_rest_field(File,'swvdr',dims)
          call define_rest_field(File,'swvdf',dims)
