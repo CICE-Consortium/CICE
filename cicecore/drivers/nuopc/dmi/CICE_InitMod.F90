@@ -171,10 +171,12 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
-
-!     call calendar(time)       ! determine the initial date
-
+#ifndef CICE_DMI
+      call calendar(time)       ! determine the initial date
+#endif
+#ifndef CICE_IN_NEMO
       call init_forcing_ocn(dt) ! initialize sss and sst from data
+#endif
       call init_state           ! initialize the ice state
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
@@ -216,7 +218,9 @@
    ! coupler communication or forcing data initialization
    !--------------------------------------------------------------------
 
+#ifndef CICE_IN_NEMO
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
+#endif
 
 #ifndef coupled
 #ifndef CESMCOUPLED

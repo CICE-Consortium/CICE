@@ -16,7 +16,8 @@
 #
 # Usage examples:
 #   % gmake -j 8 VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
-#      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.conrad_intel
+#      -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.conrad_intel \
+#      DEPFILE=${ICE_CASEDIR}/makdep.c cice
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
@@ -25,6 +26,7 @@
 
 EXEC     := a.out
 MACFILE  := NONE 
+DEPFILE  := NONE 
 MODEL    := NONE 
 VPFILE   := NONE
 VPATH    := .
@@ -33,6 +35,13 @@ SRCS     := NONE
 
 # dependency generator
 DEPGEN   := ./makdep
+OBJS_DEPGEN := $(DEPFILE)
+
+ifneq ($(ESMFMKFILE),)
+  -include $(ESMFMKFILE)
+  INCLDIR += $(ESMF_F90COMPILEPATHS)
+  SLIBS += $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) $(ESMF_F90ESMFLINKLIBS)
+endif
 
 ifneq ($(VPATH),.)
   # this variable was specified on cmd line or in an env var
@@ -59,14 +68,14 @@ endif
 OBJS  := $(addsuffix .o, $(sort $(basename $(notdir $(SRCS)))))
 DEPS  := $(addsuffix .d, $(sort $(basename $(notdir $(SRCS)))))
 INCS  := $(patsubst %,-I%, $(VPATH) )
-OBJS_DEPGEN := $(addprefix $(ICE_CASEDIR)/,$(addsuffix .c, $(notdir $(DEPGEN))))
 MODDIR:= -I.
 RM    := rm
+AR    := ar
 
 .SUFFIXES:
 .SUFFIXES: .F90 .F .c .o
 
-.PHONY: all cice targets target db_files db_flags clean realclean
+.PHONY: all cice libcice targets target db_files db_flags clean realclean
 all: $(EXEC)
 
 cice: $(EXEC)
@@ -83,7 +92,7 @@ cice: $(EXEC)
 
 targets:
 	@echo " "
-	@echo "Supported Makefile Targets are: cice, makdep, depends, clean, realclean, targets, db_files, db_flags"
+	@echo "Supported Makefile Targets are: cice, libcice, makdep, depends, clean, realclean, targets, db_files, db_flags"
 target: targets
 
 db_files:
@@ -100,6 +109,7 @@ db_files:
 	@echo "* ULIBS   := $(ULIBS)"
 	@echo "* SLIBS   := $(SLIBS)"
 	@echo "* INCLDIR := $(INCLDIR)"
+	@echo "* DEPFILE := $(DEPFILE)"
 	@echo "* OBJS_DEPGEN := $(OBJS_DEPGEN)"
 db_flags:
 	@echo " "
@@ -112,6 +122,7 @@ db_flags:
 	@echo "* .c.o    := $(CC) $(CFLAGS) $(CPPDEFS) $(INCLDIR)"
 	@echo "* .F.o    := $(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCLDIR)"
 	@echo "* .F90.o  := $(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(MODDIR) $(INCLDIR)"
+	@echo "* libcice := $(AR) -r $(EXEC) "
 	@echo "* $(notdir $(EXEC)) := $(LD) $(LDFLAGS) $(ULIBS) $(SLIBS)"
 
 #-------------------------------------------------------------------------------
@@ -129,6 +140,10 @@ $(DEPGEN): $(OBJS_DEPGEN)
 
 $(EXEC): $(OBJS)
 	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJS) $(ULIBS) $(SLIBS)
+
+libcice: $(OBJS)
+	@ echo "$(AR) -r $(EXEC) $(OBJS)"
+	$(AR) -r $(EXEC) $(OBJS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(CPPDEFS) $(INCLDIR) $<

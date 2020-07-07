@@ -120,6 +120,8 @@
     krdg_partic     = 1
     krdg_redist     = 1
     mu_rdg          = 3
+    Pstar           = 2.75e4
+    Cstar           = 20
     Cf              = 17.
     Ktens           = 0.
     e_ratio         = 2.
@@ -163,6 +165,7 @@
 &forcing_nml
     formdrag        = .false.
     atmbndy         = 'default'
+    rotate_wind     = .true.
     calc_strair     = .true.
     calc_Tsfc       = .true.
     highfreq        = .false.

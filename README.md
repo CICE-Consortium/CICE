@@ -1,6 +1,8 @@
 [![Build Status](https://travis-ci.org/CICE-Consortium/CICE.svg?branch=master)](https://travis-ci.org/CICE-Consortium/CICE)
 [![Documentation Status](https://readthedocs.org/projects/cice-consortium-cice/badge/?version=master)](http://cice-consortium-cice.readthedocs.io/en/master/?badge=master)
-[![codecov](https://codecov.io/gh/apcraig/Test_CICE_Icepack/branch/master/graph/badge.svg)](https://codecov.io/gh/apcraig/Test_CICE_Icepack)
+[![lcov](https://img.shields.io/endpoint?url=https://apcraig.github.io/coverage.json)](https://apcraig.github.io)
+
+<!--- [![codecov](https://codecov.io/gh/apcraig/Test_CICE_Icepack/branch/master/graph/badge.svg)](https://codecov.io/gh/apcraig/Test_CICE_Icepack) --->
 
 ## The CICE Consortium sea-ice model
 CICE is a computationally efficient model for simulating the growth, melting, and movement of polar sea ice. Designed as one component of coupled atmosphere-ocean-land-ice global climate models, today’s CICE model is the outcome of more than two decades of community collaboration in building a sea ice model suitable for multiple uses including process studies, operational forecasting, and climate simulation.
@@ -13,7 +15,7 @@ CICE consists of a top level driver and dynamical core plus the [Icepack column 
 
 [icepack]: https://github.com/CICE-Consortium/Icepack
 
-If you need help getting started using the model afer reviewing the [model documentation][doc-resources], the first point of contact with the CICE Consortium is the [Consortium Community Forum][forum]. 
+The first point of contact with the CICE Consortium is the [Consortium Community Forum][forum]. 
 This forum is monitored by Consortium members and also opened to the whole community.
 Please do not use our issue tracker for general support questions.
 
@@ -45,4 +47,4 @@ Head over to our [Contribution guide][contributing] to learn more about how you 
    List of resources for information about the Consortium and its repositories as well as model documentation, testing, and development.
 
 ## License
-See our [License](License.pdf) and [Distribution Policy](DistributionPolicy.pdf).
+See our [License](LICENSE.pdf) and [Distribution Policy](DistributionPolicy.pdf).

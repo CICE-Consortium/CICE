@@ -809,6 +809,7 @@
          enddo    ! i 
          enddo    ! j
       enddo       ! iblk
+      !$OMP END PARALLEL DO
 
       end subroutine read_restart_hbrine
 
@@ -868,6 +869,7 @@
         enddo    ! i
         enddo    ! j
       enddo      ! iblk
+      !$OMP END PARALLEL DO
 
       call write_restart_field(nu_dump_hbrine,0,trcrn(:,:,nt_fbri,:,:),'ruf8', &
                                'fbrn',ncat,diag)
@@ -997,6 +999,7 @@
          enddo
          enddo
       enddo
+      !$OMP END PARALLEL DO
 
       call write_restart_field(nu_dump_bgc,0,Rayleigh_real,'ruf8','Rayleigh',1,diag)
 
@@ -1411,7 +1414,8 @@
             endif
          enddo
          enddo
-      enddo
+      enddo ! iblk
+      !$OMP END PARALLEL DO
       endif ! restart_zsal
 
       !-----------------------------------------------------------------

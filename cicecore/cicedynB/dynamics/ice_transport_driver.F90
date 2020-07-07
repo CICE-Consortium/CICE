@@ -615,8 +615,8 @@
                                       asum_init(0), asum_final(0))
 
             if (l_stop) then
-               write (nu_diag,*) 'istep1, my_task, iblk =',     &
-                                  istep1, my_task, iblk
+               write (nu_diag,*) 'istep1, my_task =',     &
+                                  istep1, my_task
                write (nu_diag,*) 'transport: conservation error, cat 0'
                call abort_ice(subname//'ERROR: conservation error1')
             endif
@@ -629,8 +629,8 @@
                                       atsum_init(:,n), atsum_final(:,n))
 
                if (l_stop) then
-                  write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
-                                     istep1, my_task, iblk, n
+                  write (nu_diag,*) 'istep1, my_task, cat =',     &
+                                     istep1, my_task, n
                   write (nu_diag,*) 'transport: conservation error, cat ',n
                   call abort_ice(subname//'ERROR: conservation error2')
                endif

@@ -15,7 +15,9 @@
       module CICE_RunMod
 
       use ice_kinds_mod
+#ifdef CESMCOUPLED
       use perf_mod, only : t_startf, t_stopf, t_barrierf
+#endif
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: oceanmixed_ice
       use ice_constants, only: c0, c1
@@ -207,12 +209,14 @@
          call init_history_bgc
          call ice_timer_stop(timer_diags)   ! diagnostics/history
 
+#ifdef CESMCOUPLED
          if (prescribed_ice) then  ! read prescribed ice
             call t_barrierf('cice_run_presc_BARRIER',MPI_COMM_ICE)
             call t_startf ('cice_run_presc')
             call ice_prescribed_run(idate, sec)
             call t_stopf ('cice_run_presc')
          endif
+#endif
 
          call save_init
 
@@ -374,7 +378,7 @@
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
+          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask
