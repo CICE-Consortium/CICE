@@ -204,12 +204,6 @@
              if (nt-k==nt_isoice) &
                 write(nu_diag,1000) 'nt_isoice   ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
-             if (nt-k==nt_isosno) &
-                write(nu_diag,*) 'nt_isosno',nt,depend(nt),tracer_type(nt),&
-                                              has_dependents(nt)
-             if (nt-k==nt_isoice) &
-                write(nu_diag,*) 'nt_isoice',nt,depend(nt),tracer_type(nt),&
-                                              has_dependents(nt)
              if (nt-k==nt_bgc_Nit) &
                 write(nu_diag,1000) 'nt_bgc_Nit  ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)

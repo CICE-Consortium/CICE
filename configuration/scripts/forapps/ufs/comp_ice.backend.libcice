@@ -18,7 +18,7 @@ setenv THRD     no        # set to yes for OpenMP threading
 
 if (${SITE} =~ cheyenne*) then
   setenv ARCH cheyenne_intel
-else if (${SITE} =~ Orion*) then
+else if (${SITE} =~ orion*) then
   setenv ARCH orion_intel
 else if (${SITE} =~ hera*) then
   setenv ARCH hera_intel
