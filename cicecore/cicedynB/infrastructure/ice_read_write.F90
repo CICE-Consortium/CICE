@@ -1106,7 +1106,6 @@
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
          status             ! status output from netcdf routines
-!         status         , & ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
 !        id,              & ! dimension index
 !        dimlen             ! dimension size
@@ -1114,7 +1113,7 @@
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-!      character (char_len) :: &
+!     character (char_len) :: &
 !        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
@@ -1280,7 +1279,6 @@
          n,               & ! ncat index
          varid         , & ! variable id
          status            ! status output from netcdf routines
-!         status        , & ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
 !        id,              & ! dimension index
 !        dimlen             ! size of dimension
@@ -1288,7 +1286,7 @@
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-!      character (char_len) :: &
+!     character (char_len) :: &
 !        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
@@ -1366,7 +1364,7 @@
 
       if (my_task==master_task .and. diag) then
 !          write(nu_diag,*) & 
-!           'ice_read_nc_xyz, fid= ',fid, ', nrec = ',nrec, &
+!            'ice_read_nc_xyz, fid= ',fid, ', nrec = ',nrec, & 
 !            ', varname = ',trim(varname)
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
 !          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
@@ -1837,7 +1835,6 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          status             ! status output from netcdf routines
-!         status,         & ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
 !        id,              & ! dimension index
 !        dimlen             ! size of dimension
@@ -1847,8 +1844,7 @@
 
       character (char_len) :: &
          lvarname           ! variable name
-!         lvarname, &        ! variable name
-!         dimname            ! dimension name            
+!        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1959,18 +1955,16 @@
       integer (kind=int_kind) :: & 
          n,               & ! ncat index
          status             ! status output from netcdf routines
-!         status,          &  ! status output from netcdf routines
-!        ndim, nvar,       & ! sizes of netcdf file
-!        id,               & ! dimension index
-!        dimlen              ! size of dimension
+!        ndim, nvar,      & ! sizes of netcdf file
+!        id,              & ! dimension index
+!        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
       character (char_len) :: &
          lvarname           ! variable name
-!         lvarname, &        ! variable name
-!         dimname            ! dimension name            
+!        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -2087,7 +2081,6 @@
       integer (kind=int_kind) :: & 
          varid,           & ! netcdf id for field
          status             ! status output from netcdf routines
-!         status,         & ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
 !        id,              & ! dimension index
 !        dimlen             ! size of dimension      
@@ -2095,9 +2088,9 @@
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-!      character (char_len) :: &
+!    character (char_len) :: &
 !        dimname            ! dimension name            
-
+!
 #ifdef ORCA_GRID
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g3
@@ -2239,7 +2232,6 @@
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
          status             ! status output from netcdf routines
-!         status,         & ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
 !        id,              & ! dimension index
 !        dimlen             ! size of dimension
@@ -2247,7 +2239,7 @@
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-!      character (char_len) :: &
+!     character (char_len) :: &
 !        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
