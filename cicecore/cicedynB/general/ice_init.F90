@@ -73,7 +73,7 @@
           restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
           restart_fsd, restart_iso
       use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
+          restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name, &
@@ -149,7 +149,8 @@
         dt,             npt,            ndtd,            numin,         &
         runtype,        runid,          bfbflag,         numax,         &
         ice_ic,         restart,        restart_dir,     restart_file,  &
-        restart_ext,    use_restart_time, restart_format, lcdf64,       &
+        restart_ext,    restart_coszen, use_restart_time, restart_format, &
+        lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
@@ -269,6 +270,7 @@
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
+      restart_coszen  = .false. ! if true, read/write coszen
       use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
       restart_format = 'default'  ! restart file format
@@ -563,6 +565,7 @@
       call broadcast_scalar(restart,            master_task)
       call broadcast_scalar(restart_dir,        master_task)
       call broadcast_scalar(restart_ext,        master_task)
+      call broadcast_scalar(restart_coszen,     master_task)
       call broadcast_scalar(use_restart_time,   master_task)
       call broadcast_scalar(restart_format,     master_task)
       call broadcast_scalar(lcdf64,             master_task)
@@ -1458,6 +1461,7 @@
          write(nu_diag,*)    ' restart_dir               = ', &
                                trim(restart_dir)
          write(nu_diag,*)    ' restart_ext               = ', restart_ext
+         write(nu_diag,*)    ' restart_coszen            = ', restart_coszen
          write(nu_diag,*)    ' restart_format            = ', &
                                trim(restart_format)
          write(nu_diag,*)    ' lcdf64                    = ', &
