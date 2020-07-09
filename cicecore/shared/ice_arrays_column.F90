@@ -106,6 +106,10 @@
          public :: &
          fswsfcn     , & ! SW absorbed at ice/snow surface (W m-2)
          fswthrun    , & ! SW through ice to ocean            (W/m^2)
+         fswthrun_vdr , & ! vis dir SW through ice to ocean            (W/m^2)
+         fswthrun_vdf , & ! vis dif SW through ice to ocean            (W/m^2)
+         fswthrun_idr , & ! nir dir SW through ice to ocean            (W/m^2)
+         fswthrun_idf , & ! nir dif SW through ice to ocean            (W/m^2)
          fswintn         ! SW absorbed in ice interior, below surface (W m-2)
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, &
@@ -359,6 +363,10 @@
          snowfracn    (nx_block,ny_block,ncat,max_blocks), & ! Category snow fraction used in radiation
          fswsfcn      (nx_block,ny_block,ncat,max_blocks), & ! SW absorbed at ice/snow surface (W m-2)
          fswthrun     (nx_block,ny_block,ncat,max_blocks), & ! SW through ice to ocean            (W/m^2)
+         fswthrun_vdr  (nx_block,ny_block,ncat,max_blocks), & ! vis dir SW through ice to ocean            (W/m^2)
+         fswthrun_vdf  (nx_block,ny_block,ncat,max_blocks), & ! vis dif SW through ice to ocean            (W/m^2)
+         fswthrun_idr  (nx_block,ny_block,ncat,max_blocks), & ! nir dir SW through ice to ocean            (W/m^2)
+         fswthrun_idf  (nx_block,ny_block,ncat,max_blocks), & ! nir dif SW through ice to ocean            (W/m^2)
          fswintn      (nx_block,ny_block,ncat,max_blocks), & ! SW absorbed in ice interior, below surface (W m-2)
          first_ice_real                                    &
                       (nx_block,ny_block,ncat,max_blocks), & ! .true. = c1, .false. = c0
