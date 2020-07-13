@@ -1174,8 +1174,8 @@
                write(nu_diag,1007) ' k2               = ', k2, ' free parameter for landfast ice'
                write(nu_diag,1007) ' alphab           = ', alphab, ' factor for landfast ice'
                write(nu_diag,1007) ' threshold_hw     = ', threshold_hw, ' max water depth for grounding ice'
-               write(nu_diag,1007) ' Ktens            = ', Ktens, ' tensile strength factor'
             endif
+            write(nu_diag,1007) ' Ktens            = ', Ktens, ' tensile strength factor'
          endif ! kdyn enabled
 
          write(nu_diag,*) ' '
