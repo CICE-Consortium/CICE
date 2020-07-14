@@ -153,7 +153,7 @@
     reltol_fgmres   = 1e-2
     reltol_pgmres   = 1e-6
     algo_nonlin     = 'picard'
-    use_mean_vrel   = .false.
+    use_mean_vrel   = .true.
     im_andacc       = 5
     reltol_andacc   = 1e-6
     damping_andacc  = 0

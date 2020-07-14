@@ -353,7 +353,7 @@
       reltol_andacc = 1e-6_dbl_kind  ! relative tolerance for Anderson acceleration
       damping_andacc = 0     ! damping factor for Anderson acceleration
       start_andacc = 0       ! acceleration delay factor (acceleration starts at this iteration)
-      use_mean_vrel = .false. ! use mean of previous 2 iterates to compute vrel
+      use_mean_vrel = .true. ! use mean of previous 2 iterates to compute vrel
       advection  = 'remap'   ! incremental remapping transport scheme
       conserv_check = .false.! tracer conservation check
       shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
