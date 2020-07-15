@@ -34,7 +34,7 @@ Head over to our [Contribution guide][contributing] to learn more about how you 
 
    Information about the CICE model
 
-* **CICE Version Index**: https://github.com/CICE-Consortium/CICE/wiki/CICE-Version-Index
+* **CICE Release Table**: https://github.com/CICE-Consortium/CICE/wiki/CICE-Release-Table
 
    Numbered CICE releases since version 6 with associated documentation and DOIs. 
    
