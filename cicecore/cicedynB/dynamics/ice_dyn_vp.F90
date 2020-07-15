@@ -200,7 +200,7 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
+      use ice_grid, only: tmask, umask, dxt, dyt, cxp, cyp, cxm, cym, &
           tarear, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
           grid_type
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
@@ -663,13 +663,13 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: c1
-      use ice_domain, only: halo_info, maskhalo_dyn
+      use ice_domain, only: maskhalo_dyn
       use ice_domain_size, only: max_blocks
       use ice_flux, only:   uocn, vocn, fm, Tbu
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           uarear, tinyarea
       use ice_state, only: uvel, vvel, strength
-      use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
+      use ice_timers, only: ice_timer_start, ice_timer_stop
 
       integer (kind=int_kind), intent(in) :: & 
          ntot         ! size of problem for fgmres (for given cpu)
