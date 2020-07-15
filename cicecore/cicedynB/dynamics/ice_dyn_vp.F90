@@ -754,7 +754,6 @@
          res_diff   , & ! difference between current and previous residuals
          fpfunc     , & ! current value of fixed point function
          fpfunc_old , & ! previous value of fixed point function
-         Fvec       , & ! (Fx,Fy) (nonlinear residual) as vector
          tmp            ! temporary vector for BLAS calls
       
       real (kind=dbl_kind), dimension(ntot,im_andacc) :: &
@@ -769,7 +768,7 @@
          coeffs       ! coeffs used to combine previous solutions
 
       real (kind=dbl_kind) :: & 
-         tol         , & ! tolerance for fixed point convergence: reltol_andacc * (initial fixed point residual norm)
+         ! tol         , & ! tolerance for fixed point convergence: reltol_andacc * (initial fixed point residual norm)  [unused for now]
          tol_nl      , & ! tolerance for nonlinear convergence: reltol_nonlin * (initial nonlinear residual norm)
          fpres_norm  , & ! norm of current fixed point residual : f(x) = g(x) - x
          prog_norm   , & ! norm of difference between current and previous solution
@@ -2771,9 +2770,7 @@
          
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          workspace_x , & ! work vector (x components)
-         workspace_y , & ! work vector (y components)
-         Fx          , & ! residual vector (x components), Fx = bx - Au (N/m^2)
-         Fy              ! residual vector (y components), Fy = by - Av (N/m^2)
+         workspace_y     ! work vector (y components)
 
       real (kind=dbl_kind), dimension (max_blocks) :: &
          norm_squared   ! array to accumulate squared norm of grid function over blocks
@@ -2809,12 +2806,6 @@
          precond_type ! type of preconditioner
 
       real (kind=dbl_kind) :: relative_tolerance, r0 !phb DESCRIBE if we keep
-
-      real (kind=dbl_kind) :: &
-         local_dot         ! local value to accumulate dot product computations
-         
-      real (kind=dbl_kind), dimension(maxinner) :: &
-         dotprod_local     ! local array to accumulate several dot product computations
 
       character(len=*), parameter :: subname = '(fgmres)'
 
@@ -3172,9 +3163,7 @@
          
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          workspace_x , & ! work vector (x components)
-         workspace_y , & ! work vector (y components)
-         Fx          , & ! residual vector (x components), Fx = bx - Au (N/m^2)
-         Fy              ! residual vector (y components), Fy = by - Av (N/m^2)
+         workspace_y     ! work vector (y components)
 
       real (kind=dbl_kind), dimension (max_blocks) :: &
          norm_squared   ! array to accumulate squared norm of grid function over blocks
@@ -3207,12 +3196,6 @@
          ortho_type          ! type of orthogonalization
 
       real (kind=dbl_kind) :: relative_tolerance, r0 !phb DESCRIBE if we keep
-
-      real (kind=dbl_kind) :: &
-         local_dot         ! local value to accumulate dot product computations
-         
-      real (kind=dbl_kind), dimension(maxinner) :: &
-         dotprod_local     ! local array to accumulate several dot product computations
 
       character(len=*), parameter :: subname = '(pgmres)'
       
