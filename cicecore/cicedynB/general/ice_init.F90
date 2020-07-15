@@ -777,16 +777,6 @@
          abort_list = trim(abort_list)//":1"
       endif
 
-#ifndef ncdf
-      if (grid_format /= 'bin' .or. atm_data_format /= 'bin' .or. ocn_data_format /= 'bin') then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: ncdf CPP flag unset, data formats must be bin'
-            write(nu_diag,*) subname//' ERROR:   check grid_format, atm_data_format, ocn_data_format or set ncdf CPP'
-         endif
-         abort_list = trim(abort_list)//":2"
-      endif
-#endif
-
       if (advection /= 'remap' .and. advection /= 'upwind' .and. advection /= 'none') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: invalid advection=',trim(advection)
          abort_list = trim(abort_list)//":3"

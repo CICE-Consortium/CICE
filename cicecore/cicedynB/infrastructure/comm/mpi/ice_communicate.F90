@@ -98,7 +98,11 @@
    master_task = 0
    call MPI_COMM_RANK  (MPI_COMM_ICE, my_task, ierr)
 
+#if (defined NO_R16)
+   mpiR16 = MPI_REAL8
+#else
    mpiR16 = MPI_REAL16
+#endif
    mpiR8  = MPI_REAL8
    mpiR4  = MPI_REAL4
 

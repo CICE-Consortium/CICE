@@ -1,3 +1,6 @@
+#ifdef ncdf
+#define USE_NETCDF
+#endif
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_domain
@@ -26,7 +29,7 @@
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
    use icepack_intfc, only: icepack_query_parameters
 
-#ifdef ncdf
+#ifdef USE_NETCDF
    use netcdf
 #endif
 
@@ -303,7 +306,7 @@
       i,j,n              ,&! dummy loop indices
       ig,jg              ,&! global indices
       work_unit          ,&! size of quantized work unit
-#ifdef ncdf
+#ifdef USE_NETCDF
       fid                ,&! file id
       varid              ,&! var id
       status             ,&! netcdf return code
@@ -439,7 +442,7 @@
       allocate(wght(nx_global,ny_global))
       if (my_task == master_task) then
          ! cannot use ice_read_write due to circular dependency
-#ifdef ncdf
+#ifdef USE_NETCDF
          write(nu_diag,*) 'read ',trim(distribution_wght_file),minval(wght),maxval(wght)
          status = nf90_open(distribution_wght_file, NF90_NOWRITE, fid)
          if (status /= nf90_noerr) then
@@ -449,7 +452,8 @@
          status = nf90_get_var(fid, varid, wght)
          status = nf90_close(fid)
 #else
-         call abort_ice (subname//'ERROR: distribution_wght file needs ncdf cpp ')
+         call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+             file=__FILE__, line=__LINE__)
 #endif
       endif
       call broadcast_array(wght, master_task)

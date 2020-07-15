@@ -1,3 +1,6 @@
+#ifdef ncdf
+#define USE_NETCDF
+#endif
 !=======================================================================
 
 ! Routines for opening, reading and writing external files
@@ -21,7 +24,7 @@
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
 
-#ifdef ncdf
+#ifdef USE_NETCDF
       use netcdf      
 #endif
 
@@ -1044,7 +1047,7 @@
 
       character(len=*), parameter :: subname = '(ice_open_nc)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine 
 
@@ -1058,6 +1061,8 @@
       endif                      ! my_task = master_task
 
 #else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(filename), &
+          file=__FILE__, line=__LINE__)
       fid = -999 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_open_nc
@@ -1101,7 +1106,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_nc_xy)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
@@ -1230,6 +1235,8 @@
 #endif
 
 #else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_xy
@@ -1273,7 +1280,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_nc_xyz)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          n,               & ! ncat index
@@ -1412,6 +1419,8 @@
 #endif
 
 #else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_xyz
@@ -1458,7 +1467,6 @@
 
       ! local variables
 
-#ifdef ncdf
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid,           & ! variable id
@@ -1480,6 +1488,9 @@
 
       integer (kind=int_kind) :: nx, ny
 
+      character(len=*), parameter :: subname = '(ice_read_nc_xyf)'
+
+#ifdef USE_NETCDF
 #ifdef ORCA_GRID
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g2
@@ -1606,6 +1617,8 @@
 #endif
 
 #else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
 
@@ -1640,7 +1653,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_nc_point)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid,           & ! netcdf id for field
@@ -1699,6 +1712,8 @@
       work = workg(1) 
 
 #else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_point
@@ -1731,7 +1746,7 @@
 
       ! local variables
 
-#ifdef ncdf
+#ifdef USE_NETCDF
       real (kind=dbl_kind), dimension(:), allocatable :: &
            work_z
 
@@ -1749,7 +1764,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_nc_z)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 
       allocate(work_z(nilyr))
 
@@ -1795,6 +1810,8 @@
       deallocate(work_z)
 
 #else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_z
@@ -1831,7 +1848,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_nc_xy)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          status             ! status output from netcdf routines
@@ -1915,7 +1932,11 @@
 
       deallocate(work_g1)
       
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
 #endif
+
       end subroutine ice_write_nc_xy
 
 !=======================================================================
@@ -1950,7 +1971,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_nc_xyz)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          n,               & ! ncat index
@@ -2045,7 +2066,11 @@
 
       deallocate(work_g1)
       
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
 #endif
+
       end subroutine ice_write_nc_xyz
       
 !=======================================================================
@@ -2076,7 +2101,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_global_nc)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid,           & ! netcdf id for field
@@ -2158,8 +2183,11 @@
 #endif
 
 #else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       work_g = c0 ! to satisfy intent(out) attribute
 #endif
+
       end subroutine ice_read_global_nc
 
 !=======================================================================
@@ -2176,13 +2204,16 @@
 
       character(len=*), parameter :: subname = '(ice_close_nc)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine 
 
       if (my_task == master_task) then
          status = nf90_close(fid)
       endif
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_close_nc
@@ -2227,7 +2258,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_nc_uv)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
@@ -2318,8 +2349,11 @@
       deallocate(work_g1)
 
 #else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
+
       end subroutine ice_read_nc_uv
 
 !=======================================================================
@@ -2350,7 +2384,7 @@
 
       character(len=*), parameter :: subname = '(ice_read_vec_nc)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
@@ -2393,9 +2427,11 @@
       endif
 
 #else
-      write(*,*) 'ERROR: ncdf not defined during compilation'
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       work_g = c0 ! to satisfy intent(out) attribute
 #endif
+
       end subroutine ice_read_vec_nc
 
 !=======================================================================
@@ -2411,7 +2447,7 @@
 
       ! local variables
 
-#ifdef ncdf
+#ifdef USE_NETCDF
       integer (kind=int_kind) :: &
          ndims, i, status
       character (char_len) :: &
@@ -2419,7 +2455,7 @@
 #endif
       character(len=*), parameter :: subname = '(ice_get_ncvarsize)'
 
-#ifdef ncdf
+#ifdef USE_NETCDF
       if (my_task ==  master_task) then
          status=nf90_inquire(fid, nDimensions = nDims)
          if (status /= nf90_noerr) then
@@ -2437,9 +2473,11 @@
          endif
       endif
 #else
-      write(*,*) 'ERROR: ncdf not defined during compilation'
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
       recsize = 0 ! to satisfy intent(out) attribute
 #endif
+
       end subroutine ice_get_ncvarsize
 
 !=======================================================================
