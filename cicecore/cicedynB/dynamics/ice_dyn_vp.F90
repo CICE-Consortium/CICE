@@ -250,9 +250,7 @@
          this_block           ! block information for current block
       
       real (kind=dbl_kind), allocatable :: &
-         bvec(:)     , & ! right-hand-side vector
-         sol(:)      , & ! solution vector
-         diagvec(:)      ! diagonal vector
+         sol(:)          ! solution vector
       
       character(len=*), parameter :: subname = '(imp_solver)'
       
@@ -462,7 +460,7 @@
       enddo
       ntot = 2*ntot ! times 2 because of u and v
       
-      allocate(bvec(ntot), sol(ntot), diagvec(ntot))
+      allocate(sol(ntot))
       
       !-----------------------------------------------------------------
       ! Start of nonlinear iteration
@@ -473,8 +471,7 @@
                             aiu,      ntot,    &
                             waterx,   watery,  & 
                             bxfix,    byfix,   &
-                            umassdti, bvec,    & 
-                            sol,      diagvec, &
+                            umassdti, sol,     &
                             fpresx,   fpresy,  &
                             zetaD,    Cb,      &
                             halo_info_mask)
@@ -482,7 +479,7 @@
       ! End of nonlinear iteration
       !-----------------------------------------------------------------
 
-      deallocate(bvec, sol, diagvec)
+      deallocate(sol)
       
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
@@ -657,8 +654,7 @@
                                   aiu,      ntot,    &
                                   waterx,   watery,  & 
                                   bxfix,    byfix,   &
-                                  umassdti, bvec,    & 
-                                  sol,      diagvec, &
+                                  umassdti, sol,     &
                                   fpresx,   fpresy,  &
                                   zetaD,    Cb,      &
                                   halo_info_mask)
@@ -708,9 +704,7 @@
          Cb           ! seabed stress coefficient
 
       real (kind=dbl_kind), dimension (ntot), intent(inout) :: &
-         bvec     , & ! RHS vector for FGMRES
-         sol      , & ! current approximate solution
-         diagvec      ! diagonal of matrix A for preconditioners
+         sol          ! current approximate solution
 
       ! local variables
 
