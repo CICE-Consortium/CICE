@@ -834,9 +834,7 @@
             call calc_bvec (nx_block           , ny_block,           &
                             icellu       (iblk),                     & 
                             indxui     (:,iblk), indxuj    (:,iblk), &
-                            stPrtmp  (:,:,:)   , Cdn_ocn (:,:,iblk), &
-                            aiu      (:,:,iblk), uarear  (:,:,iblk), & 
-                            uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                            stPrtmp  (:,:,:)   , uarear  (:,:,iblk), &
                             waterx   (:,:,iblk), watery  (:,:,iblk), & 
                             ulin     (:,:,iblk), vlin    (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
@@ -1867,9 +1865,7 @@
       subroutine calc_bvec (nx_block,   ny_block, &
                        icellu,               &
                        indxui,     indxuj,   &
-                       stPr,       Cw,       &
-                       aiu,        uarear,   &
-                       uocn,       vocn,     &
+                       stPr,       uarear,   &
                        waterx,     watery,   &
                        uvel,       vvel,     &
                        bxfix,      byfix,    &
@@ -1888,15 +1884,11 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel    , & ! y-component of velocity (m/s)
-         Cw      , & ! ocean-ice neutral drag coefficient
-         aiu     , & ! ice fraction on u-grid
          uarear  , & ! 1/uarea
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          bxfix   , & ! bx = taux + bxfix
          byfix   , & ! by = tauy + byfix
-         uocn    , & ! ocean current, x-direction (m/s)
-         vocn    , & ! ocean current, y-direction (m/s)
          vrel        ! relative ice-ocean velocity
          
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
