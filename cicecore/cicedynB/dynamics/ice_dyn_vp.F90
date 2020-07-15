@@ -5,7 +5,30 @@
 !
 ! See:
 !
+! Lemieux, J.‐F., Tremblay, B., Thomas, S., Sedláček, J., and Mysak, L. A. (2008),
+! Using the preconditioned Generalized Minimum RESidual (GMRES) method to solve
+! the sea‐ice momentum equation, J. Geophys. Res., 113, C10004, doi:10.1029/2007JC004680.
 !
+! Hibler, W. D., and Ackley, S. F. (1983), Numerical simulation of the Weddell Sea pack ice,
+! J. Geophys. Res., 88( C5), 2873– 2887, doi:10.1029/JC088iC05p02873.
+!
+! Y. Saad. A Flexible Inner-Outer Preconditioned GMRES Algorithm. SIAM J. Sci. Comput.,
+! 14(2):461–469, 1993. URL: https://doi.org/10.1137/0914028, doi:10.1137/0914028.
+!
+! C. T. Kelley, Iterative Methods for Linear and Nonlinear Equations, SIAM, 1995.
+! (https://www.siam.org/books/textbooks/fr16_book.pdf)
+!
+! Y. Saad, Iterative Methods for Sparse Linear Systems. SIAM, 2003.
+! (http://www-users.cs.umn.edu/~saad/IterMethBook_2ndEd.pdf)
+!
+! Walker, H. F., & Ni, P. (2011). Anderson Acceleration for Fixed-Point Iterations.
+! SIAM Journal on Numerical Analysis, 49(4), 1715–1735. https://doi.org/10.1137/10078356X
+!
+! Fang, H., & Saad, Y. (2009). Two classes of multisecant methods for nonlinear acceleration.
+! Numerical Linear Algebra with Applications, 16(3), 197–221. https://doi.org/10.1002/nla.617
+!
+! Birken, P. (2015) Termination criteria for inexact fixed‐point schemes.
+! Numer. Linear Algebra Appl., 22: 702– 716. doi: 10.1002/nla.1982.
 !
 ! authors: JF Lemieux, ECCC, Philppe Blain, ECCC
 !
@@ -53,7 +76,7 @@
          monitor_nonlin , & ! print nonlinear residual norm
          monitor_fgmres , & ! print fgmres residual norm
          monitor_pgmres , & ! print pgmres residual norm
-         use_mean_vrel      ! use mean of previous 2 iterates to compute vrel
+         use_mean_vrel      ! use mean of previous 2 iterates to compute vrel (see Hibler and Ackley 1983)
 
       real (kind=dbl_kind), public :: &
          reltol_nonlin  , & ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
@@ -623,6 +646,10 @@
 ! using Anderson acceleration (accelerated fixed point (Picard) iteration)
 !
 ! author: JF Lemieux, A. Qaddouri, F. Dupont and P. Blain ECCC
+!
+! Anderson algorithm adadpted from:
+! H. F. Walker, “Anderson Acceleration: Algorithms and Implementations”
+!   [Online]. Available: https://users.wpi.edu/~walker/Papers/anderson_accn_algs_imps.pdf
 
       subroutine anderson_solver (icellt,   icellu,  &
                                   indxti,   indxtj,  &
@@ -2988,6 +3015,10 @@
 ! Update Q and R factor after deletion of the 1st column of G_diff
 !
 ! author: P. Blain ECCC
+!
+! adapted from :
+! H. F. Walker, “Anderson Acceleration: Algorithms and Implementations”
+!   [Online]. Available: https://users.wpi.edu/~walker/Papers/anderson_accn_algs_imps.pdf
 
       subroutine qr_delete(Q, R)
       
