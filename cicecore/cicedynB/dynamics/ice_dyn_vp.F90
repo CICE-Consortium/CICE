@@ -215,7 +215,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         ntot           , & ! size of problem for fgmres (for given cpu)
+         ntot           , & ! size of problem for Anderson
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
@@ -229,8 +229,8 @@
          bxfix    , & ! part of bx that is constant during Picard
          byfix    , & ! part of by that is constant during Picard
          Cb       , & ! seabed stress coefficient
-         fpresx   , & ! x fixed point residual vector, fx = uvel - uprev_k
-         fpresy   , & ! y fixed point residual vector, fy = vvel - vprev_k
+         fpresx   , & ! fixed point residual vector, x components: fx = uvel - uprev_k
+         fpresy   , & ! fixed point residual vector, y components: fy = vvel - vprev_k
          aiu      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
@@ -452,7 +452,7 @@
       endif
       
       !-----------------------------------------------------------------
-      ! calc size of problem (ntot) and allocate arrays and vectors
+      ! calc size of problem (ntot) and allocate solution vector
       !-----------------------------------------------------------------
       
       ntot = 0
@@ -673,7 +673,7 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop
 
       integer (kind=int_kind), intent(in) :: &
-         ntot         ! size of problem for fgmres (for given cpu)
+         ntot         ! size of problem for Anderson
 
       integer (kind=int_kind), dimension(max_blocks), intent(in) :: &
          icellt   , & ! no. of cells where icetmask = 1
@@ -700,8 +700,8 @@
          halo_info_mask !  ghost cell update info for masked halo
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
-         fpresx   , & ! x fixed point residual vector, fx = uvel - uprev_k
-         fpresy   , & ! y fixed point residual vector, fy = vvel - vprev_k
+         fpresx   , & ! fixed point residual vector, x components: fx = uvel - uprev_k
+         fpresy   , & ! fixed point residual vector, y components: fy = vvel - vprev_k
          Cb           ! seabed stress coefficient
 
       real (kind=dbl_kind), dimension (ntot), intent(inout) :: &
@@ -737,11 +737,11 @@
          soly         ! solution of FGMRES (y components)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
-         stPrtmp,   & ! doit etre (nx_block,ny_block,max_blocks,8)???? PAs besoin des 2? reuse?
-         Dstrtmp
+         stPrtmp,   & ! x,y-derivatives of the replacement pressure
+         Dstrtmp      ! contributions of the rhelogy term to the diagonal
 
       real (kind=dbl_kind), dimension (max_blocks) :: &
-         L2norm       ! to compute l^2 norm of grid function
+         L2norm       ! array used to compute l^2 norm of grid function
 
       real (kind=dbl_kind), dimension (ntot) :: &
          res        , & ! current residual
@@ -769,7 +769,7 @@
          prog_norm   , & ! norm of difference between current and previous solution
          nlres_norm  , & ! norm of current nonlinear residual : F(x) = A(x)x -b(x)
 #ifdef CICE_USE_LAPACK
-         ddot, dnrm2 , & ! BLAS functions
+         ddot, dnrm2 , & ! external BLAS functions
 #endif
          conv            ! needed for FGMRES !phb keep ?
 
@@ -790,7 +790,7 @@
       do it_nl = 0, maxits_nonlin        ! nonlinear iteration loop
          ! Compute quantities needed for computing PDE residual and g(x) (fixed point map)
          !-----------------------------------------------------------------
-         ! Calc zetaD, Pr, Cb and vrel = f(uprev_k, vprev_k)
+         ! Calc zetaD, dPr/dx, dPr/dy, Cb and vrel = f(uprev_k, vprev_k)
          !-----------------------------------------------------------------
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
@@ -888,11 +888,12 @@
          if (fpfunc_andacc == 1) then
             ! g_1(x) = FGMRES(A(x), b(x))
             
-            ! Prepare precond matrix
+            ! Prepare diagonal for preconditioner
             if (precond == 'diag' .or. precond == 'pgmres') then
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
-                  call formDiag_step1 (nx_block             , ny_block      , & ! D term due to rheology
+                  ! first compute diagonal contributions due to rheology term
+                  call formDiag_step1 (nx_block             , ny_block      , &
                                        icellu       (iblk)  ,                 &
                                        indxui     (:,iblk)  , indxuj(:,iblk), &
                                        dxt      (:,:,iblk)  , dyt (:,:,iblk), &
@@ -900,6 +901,7 @@
                                        cxp      (:,:,iblk)  , cyp (:,:,iblk), &
                                        cxm      (:,:,iblk)  , cym (:,:,iblk), &
                                        zetaD    (:,:,iblk,:), Dstrtmp (:,:,:))
+                  ! second compute the full diagonal
                   call formDiag_step2 (nx_block           , ny_block          , &
                                        icellu       (iblk),                     &
                                        indxui     (:,iblk), indxuj    (:,iblk), &
@@ -922,7 +924,7 @@
                          maxits_fgmres ,            &
                          solx          , soly     , &
                          nbiter        , conv)
-            ! Put FGMRES solution solx,soly in fpfunc vector (needed for anderson)
+            ! Put FGMRES solution solx,soly in fpfunc vector (needed for Anderson)
             call arrays_to_vec (nx_block       , ny_block     , &
                                 nblocks        , max_blocks   , &
                                 icellu      (:), ntot         , &
@@ -935,7 +937,7 @@
                file=__FILE__, line=__LINE__)
          endif
 
-         ! Compute fixed point residual
+         ! Compute fixed point residual f(x) = g(x) - x
          res = fpfunc - sol
 #ifdef CICE_USE_LAPACK
          fpres_norm = global_sum(dnrm2(size(res), res, inc)**2, distrb_info)
@@ -1023,17 +1025,17 @@
                   R(res_num, res_num) = dnrm2(size(res_diff) ,res_diff, inc)
                   Q(:,res_num) = res_diff / R(res_num, res_num)
                endif
-               ! phb: here, drop more columns to improve conditioning
+               ! TODO: here, drop more columns to improve conditioning
                ! if (droptol) then
                
                ! endif
                ! Solve least square problem for coefficients
                ! 1. Compute rhs_tri = Q^T * res
                call dgemv ('t', size(Q,1), res_num, c1, Q(:,1:res_num), size(Q,1), res, inc, c0, rhs_tri, inc)
-               ! 2. Solve R*coeffs = rhs_tri, puts result in rhs_tri
+               ! 2. Solve R*coeffs = rhs_tri, put result in rhs_tri
                call dtrsv ('u', 'n', 'n', res_num, R(1:res_num,1:res_num), res_num, rhs_tri, inc)
                coeffs = rhs_tri
-               ! Update approximate solution: x = fpfunc - G_diff*coeffs, puts result in fpfunc
+               ! Update approximate solution: x = fpfunc - G_diff*coeffs, put result in fpfunc
                call dgemv ('n', size(G_diff,1), res_num, -c1, G_diff(:,1:res_num), size(G_diff,1), coeffs, inc, c1, fpfunc, inc)
                sol = fpfunc
                ! Apply damping
@@ -1065,10 +1067,10 @@
                              sol      (:),               &
                              uvel (:,:,:), vvel (:,:,:))
          
-         ! phb NOT SURE IF THIS HALO UPDATE IS ACTUALLY NEEDED
+         ! Do halo update so that halo cells contain up to date info for advection
          call ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
          
-         ! Compute fixed point residual norm
+         ! Compute "progress" residual norm
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
             fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
@@ -1092,7 +1094,7 @@
 
 !=======================================================================
 
-! Computes the viscous coefficients (in fact zetaD=2*zeta) and dPr/dx.
+! Computes the viscous coefficients (in fact zetaD=2*zeta) and dPr/dx, dPr/dy
 
       subroutine calc_zeta_Pr  (nx_block, ny_block, &
                                 icellt  ,           &
@@ -1134,7 +1136,7 @@
          zetaD          ! 2*zeta
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
-         stPr          ! stress Pr combinations
+         stPr          ! stress combinations from replacement pressure
 
       ! local variables
 
@@ -1279,7 +1281,7 @@
 
 !=======================================================================
 
-! Computes the VP stress (as diagnostic)
+! Computes the VP stresses (as diagnostic)
 
       subroutine stress_vp (nx_block  , ny_block  , &
                             icellt    ,             &
@@ -1386,7 +1388,7 @@
 
 !=======================================================================
 
-! Compute vrel and basal stress coefficients
+! Compute vrel and seabed stress coefficients
 
       subroutine calc_vrel_Cb (nx_block, ny_block, &
                                icellu  , Cw      , &
@@ -1430,10 +1432,6 @@
          rhow                  !
 
       character(len=*), parameter :: subname = '(calc_vrel_Cb)'
-      
-      !-----------------------------------------------------------------
-      ! integrate the momentum equation
-      !-----------------------------------------------------------------
 
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
@@ -1448,7 +1446,7 @@
          vrel(i,j) = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
                                                 (vocn(i,j) - vvel(i,j))**2)  ! m/s
       
-         Cb(i,j)  = Tbu(i,j) / (sqrt(uvel(i,j)**2 + vvel(i,j)**2) + u0) ! for basal stress
+         Cb(i,j)  = Tbu(i,j) / (sqrt(uvel(i,j)**2 + vvel(i,j)**2) + u0) ! for seabed stress
       enddo                     ! ij
 
       end subroutine calc_vrel_Cb
@@ -1569,7 +1567,7 @@
       real (kind=dbl_kind) :: &
          utp, vtp          , & ! utp = uvel, vtp = vvel
          ccaimp,ccb        , & ! intermediate variables
-         strintx, strinty
+         strintx, strinty      ! divergence of the internal stress tensor
 
       real (kind=dbl_kind) :: &
         divune, divunw, divuse, divusw            , & ! divergence
@@ -1629,7 +1627,7 @@
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
-      ! JFL commented part of stressp is for the rep pressure Pr
+      ! NOTE: commented part of stressp is from the replacement pressure Pr
       !-----------------------------------------------------------------
 
          stressp_1 = zetaD(i,j,1)*(divune*(c1+Ktens))! - Deltane*(c1-Ktens))
@@ -1814,10 +1812,6 @@
 
       character(len=*), parameter :: subname = '(calc_bfix)'
 
-      !-----------------------------------------------------------------
-      ! Define variables for momentum equation
-      !-----------------------------------------------------------------
-
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -1873,7 +1867,7 @@
 
       real (kind=dbl_kind) :: &
          taux, tauy        , & ! part of ocean stress term
-         strintx, strinty  , & ! divergence of the internal stress tensor (only Pr part)
+         strintx, strinty  , & ! divergence of the internal stress tensor (only Pr contributions)
          rhow                  !
 
       character(len=*), parameter :: subname = '(calc_bvec)'
@@ -1895,7 +1889,7 @@
          taux = vrel(i,j)*waterx(i,j) ! NOTE this is not the entire
          tauy = vrel(i,j)*watery(i,j) ! ocn stress term
          
-         ! divergence of the internal stress tensor (only Pr part, i.e. dPr/dx)
+         ! divergence of the internal stress tensor (only Pr part, i.e. dPr/dx, dPr/dy)
          strintx = uarear(i,j)* &
              (stPr(i,j,1) + stPr(i+1,j,2) + stPr(i,j+1,3) + stPr(i+1,j+1,4))
          strinty = uarear(i,j)* &
@@ -1974,7 +1968,7 @@
 !=======================================================================
 
 ! Form the diagonal of the matrix A(u,v) (first part of the computation)
-! Part 1: compute the contributions of the diagonal to the rheology term
+! Part 1: compute the contributions to the diagonal from the rheology term
 
       subroutine formDiag_step1  (nx_block, ny_block, &
                                   icellu  ,           &
@@ -2007,7 +2001,7 @@
          zetaD          ! 2*zeta
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
-         Dstr          ! intermediate calc for diagonal components of matrix A associated
+         Dstr          ! intermediate value for diagonal components of matrix A associated
                        ! with rheology term
 
       ! local variables
@@ -2019,7 +2013,7 @@
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        uij,ui1j,uij1,ui1j1,vij,vi1j,vij1,vi1j1   , & ! c0 or c1
+        uij,ui1j,uij1,ui1j1,vij,vi1j,vij1,vi1j1   , & ! == c0 or c1
         stressp_1, stressp_2, stressp_3, stressp_4, &
         stressm_1, stressm_2, stressm_3, stressm_4, &
         stress12_1,stress12_2,stress12_3,stress12_4,&
@@ -2043,8 +2037,11 @@
 !cdir nodep      !NEC
 !ocl novrec      !Fujitsu
 
-      Dstr(:,:,:) = c0 ! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8
-                       ! come from the surrounding T cells but are all refrerenced to the i,j (u point)
+      Dstr(:,:,:) = c0
+      
+      ! Be careful: Dstr contains 4 terms for u and 4 terms for v.
+      ! These 8 terms come from the surrounding T cells but are all
+      ! refrerenced to the i,j (u point) :
       
       ! Dstr(i,j,1) corresponds to str(i,j,1)
       ! Dstr(i,j,2) corresponds to str(i+1,j,2)
@@ -2386,7 +2383,7 @@
 
       real (kind=dbl_kind) :: &
          ccaimp             , & ! intermediate variables
-         strintx, strinty
+         strintx, strinty       ! diagonal contributions to the divergence
 
       character(len=*), parameter :: subname = '(formDiag_step2)'
 
@@ -2397,8 +2394,9 @@
       strintx = c0
       strinty = c0
       
-      ! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8
-      ! come from the surrounding T cells but are all refrerenced to the i,j (u point)
+      ! Be careful: Dstr contains 4 terms for u and 4 terms for v.
+      ! These 8 terms come from the surrounding T cells but are all
+      ! refrerenced to the i,j (u point) :
 
       ! Dstr(i,j,1) corresponds to str(i,j,1)
       ! Dstr(i,j,2) corresponds to str(i+1,j,2)
@@ -2476,7 +2474,6 @@
 !=======================================================================
 
 ! Convert a grid function (tpu,tpv) to a one dimensional vector
-! to be passed to the legacy FGMRES driver
 
       subroutine arrays_to_vec (nx_block, ny_block  , &
                                 nblocks , max_blocks, &
@@ -2489,7 +2486,7 @@
          nx_block, ny_block, & ! block dimensions
          nblocks,            & ! nb of blocks
          max_blocks,         & ! max nb of blocks
-         ntot                  ! size of problem for fgmres
+         ntot                  ! size of problem for Anderson
 
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
          icellu
@@ -2503,7 +2500,7 @@
          tpv         ! y-component of vector
 
       real (kind=dbl_kind), dimension (ntot), intent(out) :: &
-         outvec
+         outvec      ! output 1D vector
 
       ! local variables
 
@@ -2513,7 +2510,7 @@
       character(len=*), parameter :: subname = '(arrays_to_vec)'
 
       !-----------------------------------------------------------------
-      ! form vector (converts from max_blocks arrays to single vector
+      ! form vector (converts from max_blocks arrays to single vector)
       !-----------------------------------------------------------------
 
       outvec(:) = c0
@@ -2534,8 +2531,7 @@
 
 !=======================================================================
 
-! Convert one dimensional vector received from the legacy FGMRES driver
-! to a grid function (tpu,tpv)
+! Convert one dimensional vector to a grid function (tpu,tpv)
 
       subroutine vec_to_arrays (nx_block, ny_block  , &
                                 nblocks , max_blocks, &
@@ -2548,7 +2544,7 @@
          nx_block, ny_block, & ! block dimensions
          nblocks,            & ! nb of blocks
          max_blocks,         & ! max nb of blocks
-         ntot                  ! size of problem for fgmres
+         ntot                  ! size of problem for Anderson
 
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
          icellu
@@ -2558,7 +2554,7 @@
          indxuj      ! compressed index in j-direction
          
       real (kind=dbl_kind), dimension (ntot), intent(in) :: &
-         invec
+         invec       ! input 1D vector
 
       real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(out) :: &
          tpu     , & ! x-component of vector
@@ -2572,7 +2568,7 @@
       character(len=*), parameter :: subname = '(vec_to_arrays)'
 
       !-----------------------------------------------------------------
-      ! form arrays (converts from vector to the max_blocks arrays
+      ! form arrays (converts from vector to the max_blocks arrays)
       !-----------------------------------------------------------------
 
       tpu(:,:,:) = c0
@@ -2594,7 +2590,7 @@
 
 !=======================================================================
 
-! Update Q and R factor after deletion of the 1st column of G_diff
+! Update Q and R factors after deletion of the 1st column of G_diff
 !
 ! author: P. Blain ECCC
 !
@@ -2714,8 +2710,8 @@
          norm_squared   ! array to accumulate squared norm of grid function over blocks
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner+1) :: &
-         arnoldi_basis_x , & ! arnoldi basis (x components) !phb == vv
-         arnoldi_basis_y     ! arnoldi basis (y components)
+         arnoldi_basis_x , & ! Arnoldi basis (x components)
+         arnoldi_basis_y     ! Arnoldi basis (y components)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner) :: &
          wwx             , & ! !phb FIND BETTER NAME (x components)
@@ -2812,7 +2808,7 @@
                                               " fgmres_L2norm= ", norm_residual
          endif
          
-         ! Current guess is a good enough solution
+         ! Current guess is a good enough solution TODO: reactivate and test this
          ! if (norm_residual < tolerance) then
          !    return
          ! end if
@@ -3106,8 +3102,8 @@
          norm_squared   ! array to accumulate squared norm of grid function over blocks
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner+1) :: &
-         arnoldi_basis_x , & ! arnoldi basis (x components) !phb == vv
-         arnoldi_basis_y     ! arnoldi basis (y components)
+         arnoldi_basis_x , & ! Arnoldi basis (x components)
+         arnoldi_basis_y     ! Arnoldi basis (y components)
 
       real (kind=dbl_kind) :: &
          norm_residual   , & ! current L^2 norm of residual vector
@@ -3145,7 +3141,7 @@
       conv = c1
       norm_squared = c0
       precond_type = 'diag' ! Jacobi preconditioner
-      ortho_type = 'cgs' ! classical gram-schmidt
+      ortho_type = 'cgs' ! classical gram-schmidt TODO: try with MGS
       
       ! Cells with no ice should be zero-initialized
       workspace_x = c0
@@ -3251,7 +3247,9 @@
                               precond_type,                  &
                               workspace_x , workspace_y)
             
-            ! !phb haloUpdate would go here (for workspace_x, _y)
+            ! NOTE: halo updates for (workspace_x, workspace_y)
+            ! are skipped here for efficiency since this is just a preconditioner
+            
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
                call matvec (nx_block               , ny_block             , &
@@ -3483,19 +3481,19 @@
          i, j        ! grid indices
 
       real (kind=dbl_kind) :: &
-         tolerance   ! Tolerance for pgmres
+         tolerance   ! Tolerance for PGMRES
 
       integer (kind=int_kind) :: &
-         maxinner    ! Restart parameter for pgmres
+         maxinner    ! Restart parameter for PGMRES
 
       integer (kind=int_kind) :: &
-         maxouter    ! Maximum number of outer iterations for pgmres
+         maxouter    ! Maximum number of outer iterations for PGMRES
 
       integer (kind=int_kind) :: &
-         nbiter      ! Total number of iteration pgmres performed
+         nbiter      ! Total number of iteration PGMRES performed
 
       real (kind=dbl_kind) :: &
-         conv        ! !phb DESCRIBE IF WE KEEP for pgmres
+         conv        ! !phb DESCRIBE IF WE KEEP for PGMRES
 
       character(len=*), parameter :: subname = '(precondition)'
 
@@ -3515,7 +3513,7 @@
          enddo
          !$OMP END PARALLEL DO
       elseif (precond_type == 'pgmres') then ! PGMRES (Jacobi-preconditioned GMRES)
-         ! Initialize preconditioned vector to 0 !phb try with wx = vx or vx/diagx
+         ! Initialize preconditioned vector to 0 ! TODO: try with wx = vx or vx/diagx
          wx = c0
          wy = c0
          tolerance = reltol_pgmres
@@ -3557,12 +3555,11 @@
          maxinner    ! Restart the method every maxinner inner iterations
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner+1), intent(inout) :: &
-         arnoldi_basis_x , & ! arnoldi basis (x components) !phb == vv
+         arnoldi_basis_x , & ! arnoldi basis (x components)
          arnoldi_basis_y     ! arnoldi basis (y components)
 
       real (kind=dbl_kind), dimension(maxinner+1, maxinner), intent(inout) :: &
          hessenberg        ! system matrix of the Hessenberg (least squares) system
-         !phb: removing this parameter and argument makes ifort error in the .i90 file
 
       ! local variables
 
@@ -3576,7 +3573,7 @@
          local_dot      ! local array value to accumulate dot product of grid function over blocks
 
       real (kind=dbl_kind), dimension(maxinner) :: &
-         dotprod_local     ! local array to accumulate several dot product computations
+         dotprod_local  ! local array to accumulate several dot product computations
 
       character(len=*), parameter :: subname = '(orthogonalize)'
 
