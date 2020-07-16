@@ -1565,7 +1565,6 @@
          str
 
       real (kind=dbl_kind) :: &
-         utp, vtp          , & ! utp = uvel, vtp = vvel
          ccaimp,ccb        , & ! intermediate variables
          strintx, strinty      ! divergence of the internal stress tensor
 
@@ -1754,9 +1753,6 @@
          i = indxui(ij)
          j = indxuj(ij)
 
-         utp = uvel(i,j)
-         vtp = vvel(i,j)
-
          ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
          
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel(i,j) * sinw ! kg/m^2 s
@@ -1767,8 +1763,8 @@
          strinty = uarear(i,j)* &
              (str(i,j,5) + str(i,j+1,6) + str(i+1,j,7) + str(i+1,j+1,8))
 
-         Au(i,j) = ccaimp*utp - ccb*vtp - strintx
-         Av(i,j) = ccaimp*vtp + ccb*utp - strinty
+         Au(i,j) = ccaimp*uvel(i,j) - ccb*vvel(i,j) - strintx
+         Av(i,j) = ccaimp*vvel(i,j) + ccb*uvel(i,j) - strinty
       enddo ! ij - icellu
 
       end subroutine matvec
