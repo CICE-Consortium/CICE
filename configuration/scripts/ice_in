@@ -10,7 +10,6 @@
     ice_ic         = './restart/iced_gx3_v5.nc'
     restart        = .true.
     restart_ext    = .false.
-    restart_coszen = .false.
     use_restart_time = .true.
     restart_format = 'default'
     lcdf64         = .false.
@@ -182,6 +181,7 @@
     wave_spec_type  = 'none'
     wave_spec_file  = 'unknown_wave_spec_file'
     nfreq           = 25
+    restart_coszen  = .false.
     restore_ice     = .false.
     restore_ocn     = .false.
     trestore        =  90
