@@ -737,8 +737,8 @@
          soly         ! solution of FGMRES (y components)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
-         stPrtmp,   & ! x,y-derivatives of the replacement pressure
-         Dstrtmp      ! contributions of the rhelogy term to the diagonal
+         stress_Pr,   & ! x,y-derivatives of the replacement pressure
+         diag_rheo      ! contributions of the rhelogy term to the diagonal
 
       real (kind=dbl_kind), dimension (max_blocks) :: &
          L2norm       ! array used to compute l^2 norm of grid function
@@ -815,7 +815,7 @@
                                cxm      (:,:,iblk), cym     (:,:,iblk), &
                                tinyarea (:,:,iblk),                     &
                                strength (:,:,iblk), zetaD (:,:,iblk,:), &
-                               stPrtmp  (:,:,:))
+                               stress_Pr  (:,:,:))
             
             call calc_vrel_Cb (nx_block           , ny_block          , &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), &
@@ -829,7 +829,7 @@
             call calc_bvec (nx_block           , ny_block          , &
                             icellu       (iblk),                     &
                             indxui     (:,iblk), indxuj    (:,iblk), &
-                            stPrtmp     (:,:,:), uarear  (:,:,iblk), &
+                            stress_Pr   (:,:,:), uarear  (:,:,iblk), &
                             waterx   (:,:,iblk), watery  (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
@@ -900,12 +900,12 @@
                                        dxhy     (:,:,iblk)  , dyhx(:,:,iblk), &
                                        cxp      (:,:,iblk)  , cyp (:,:,iblk), &
                                        cxm      (:,:,iblk)  , cym (:,:,iblk), &
-                                       zetaD    (:,:,iblk,:), Dstrtmp (:,:,:))
+                                       zetaD    (:,:,iblk,:), diag_rheo(:,:,:))
                   ! second compute the full diagonal
                   call formDiag_step2 (nx_block           , ny_block          , &
                                        icellu       (iblk),                     &
                                        indxui     (:,iblk), indxuj    (:,iblk), &
-                                       Dstrtmp     (:,:,:), vrel    (:,:,iblk), &
+                                       diag_rheo   (:,:,:), vrel    (:,:,iblk), &
                                        umassdti (:,:,iblk),                     &
                                        uarear   (:,:,iblk), Cb      (:,:,iblk), &
                                        diagx    (:,:,iblk), diagy   (:,:,iblk))
@@ -1973,7 +1973,7 @@
                                   dxhy    , dyhx    , &
                                   cxp     , cyp     , &
                                   cxm     , cym     , &
-                                  zetaD   , Dstr)
+                                  zetaD   , Drheo)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1997,7 +1997,7 @@
          zetaD          ! 2*zeta
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
-         Dstr          ! intermediate value for diagonal components of matrix A associated
+         Drheo          ! intermediate value for diagonal components of matrix A associated
                        ! with rheology term
 
       ! local variables
@@ -2033,20 +2033,20 @@
 !cdir nodep      !NEC
 !ocl novrec      !Fujitsu
 
-      Dstr(:,:,:) = c0
+      Drheo(:,:,:) = c0
       
-      ! Be careful: Dstr contains 4 terms for u and 4 terms for v.
+      ! Be careful: Drheo contains 4 terms for u and 4 terms for v.
       ! These 8 terms come from the surrounding T cells but are all
       ! refrerenced to the i,j (u point) :
       
-      ! Dstr(i,j,1) corresponds to str(i,j,1)
-      ! Dstr(i,j,2) corresponds to str(i+1,j,2)
-      ! Dstr(i,j,3) corresponds to str(i,j+1,3)
-      ! Dstr(i,j,4) corresponds to str(i+1,j+1,4))
-      ! Dstr(i,j,5) corresponds to str(i,j,5)
-      ! Dstr(i,j,6) corresponds to str(i,j+1,6)
-      ! Dstr(i,j,7) corresponds to str(i+1,j,7)
-      ! Dstr(i,j,8) corresponds to str(i+1,j+1,8))
+      ! Drheo(i,j,1) corresponds to str(i,j,1)
+      ! Drheo(i,j,2) corresponds to str(i+1,j,2)
+      ! Drheo(i,j,3) corresponds to str(i,j+1,3)
+      ! Drheo(i,j,4) corresponds to str(i+1,j+1,4))
+      ! Drheo(i,j,5) corresponds to str(i,j,5)
+      ! Drheo(i,j,6) corresponds to str(i,j+1,6)
+      ! Drheo(i,j,7) corresponds to str(i+1,j,7)
+      ! Drheo(i,j,8) corresponds to str(i+1,j+1,8))
       
       do cc = 1, 8 ! 4 for u and 4 for v
       
@@ -2260,7 +2260,7 @@
                strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
 
                ! northeast (i,j)
-               Dstr(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
+               Drheo(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
                   + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
                
             elseif (cc == 2) then ! T cell i+1,j
@@ -2269,7 +2269,7 @@
                strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
                
                ! northwest (i+1,j)
-               Dstr(iu,ju,2) = strp_tmp + strm_tmp - str12we &
+               Drheo(iu,ju,2) = strp_tmp + strm_tmp - str12we &
                   + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
 
             elseif (cc == 3) then ! T cell i,j+1
@@ -2278,7 +2278,7 @@
                strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
 
                ! southeast (i,j+1)
-               Dstr(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
+               Drheo(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
                   + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
 
             elseif (cc == 4) then ! T cell i+1,j+1
@@ -2287,7 +2287,7 @@
                strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
                
                ! southwest (i+1,j+1)
-               Dstr(iu,ju,4) = strp_tmp + strm_tmp + str12we &
+               Drheo(iu,ju,4) = strp_tmp + strm_tmp + str12we &
                   + dxhy(i,j)*(-csigpsw + csigmsw) + dyhx(i,j)*csig12sw
 
          !-----------------------------------------------------------------
@@ -2300,7 +2300,7 @@
                strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
 
                ! northeast (i,j)
-               Dstr(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
+               Drheo(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
                   - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
 
             elseif (cc == 6) then ! T cell i,j+1
@@ -2309,7 +2309,7 @@
                strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
                
                ! southeast (i,j+1)
-               Dstr(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
+               Drheo(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
                   - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
 
             elseif (cc == 7) then ! T cell i,j+1
@@ -2318,7 +2318,7 @@
                strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
 
                ! northwest (i+1,j)
-               Dstr(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
+               Drheo(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
                   - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
 
             elseif (cc == 8) then ! T cell i+1,j+1
@@ -2327,7 +2327,7 @@
                strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
                
                ! southwest (i+1,j+1)
-               Dstr(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
+               Drheo(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
                   - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
                
             endif
@@ -2346,7 +2346,7 @@
       subroutine formDiag_step2 (nx_block, ny_block, &
                                  icellu  ,           &
                                  indxui  , indxuj  , &
-                                 Dstr    , vrel    , &
+                                 Drheo   , vrel    , &
                                  umassdti,           &
                                  uarear  , Cb      , &
                                  diagx   , diagy)
@@ -2366,7 +2366,7 @@
          uarear      ! 1/uarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(in) :: &
-         Dstr
+         Drheo
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          diagx   , & ! Diagonal (x component) of the matrix A
@@ -2390,18 +2390,18 @@
       strintx = c0
       strinty = c0
       
-      ! Be careful: Dstr contains 4 terms for u and 4 terms for v.
+      ! Be careful: Drheo contains 4 terms for u and 4 terms for v.
       ! These 8 terms come from the surrounding T cells but are all
       ! refrerenced to the i,j (u point) :
 
-      ! Dstr(i,j,1) corresponds to str(i,j,1)
-      ! Dstr(i,j,2) corresponds to str(i+1,j,2)
-      ! Dstr(i,j,3) corresponds to str(i,j+1,3)
-      ! Dstr(i,j,4) corresponds to str(i+1,j+1,4))
-      ! Dstr(i,j,5) corresponds to str(i,j,5)
-      ! Dstr(i,j,6) corresponds to str(i,j+1,6)
-      ! Dstr(i,j,7) corresponds to str(i+1,j,7)
-      ! Dstr(i,j,8) corresponds to str(i+1,j+1,8))
+      ! Drheo(i,j,1) corresponds to str(i,j,1)
+      ! Drheo(i,j,2) corresponds to str(i+1,j,2)
+      ! Drheo(i,j,3) corresponds to str(i,j+1,3)
+      ! Drheo(i,j,4) corresponds to str(i+1,j+1,4))
+      ! Drheo(i,j,5) corresponds to str(i,j,5)
+      ! Drheo(i,j,6) corresponds to str(i,j+1,6)
+      ! Drheo(i,j,7) corresponds to str(i+1,j,7)
+      ! Drheo(i,j,8) corresponds to str(i+1,j+1,8))
       
       do ij = 1, icellu
          i = indxui(ij)
@@ -2410,9 +2410,9 @@
          ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
          
          strintx = uarear(i,j)* &
-             (Dstr(i,j,1) + Dstr(i,j,2) + Dstr(i,j,3) + Dstr(i,j,4))
+             (Drheo(i,j,1) + Drheo(i,j,2) + Drheo(i,j,3) + Drheo(i,j,4))
          strinty = uarear(i,j)* &
-             (Dstr(i,j,5) + Dstr(i,j,6) + Dstr(i,j,7) + Dstr(i,j,8))
+             (Drheo(i,j,5) + Drheo(i,j,6) + Drheo(i,j,7) + Drheo(i,j,8))
 
          diagx(i,j) = ccaimp - strintx
          diagy(i,j) = ccaimp - strinty
