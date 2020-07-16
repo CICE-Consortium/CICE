@@ -2061,7 +2061,7 @@
       
       do cc = 1, 8 ! 4 for u and 4 for v
       
-         if (cc .eq. 1) then     ! u comp, T cell i,j
+         if (cc == 1) then     ! u comp, T cell i,j
             uij   = c1
             ui1j  = c0
             uij1  = c0
@@ -2072,7 +2072,7 @@
             vi1j1 = c0
             di    = 0
             dj    = 0
-         elseif (cc .eq. 2) then ! u comp, T cell i+1,j
+         elseif (cc == 2) then ! u comp, T cell i+1,j
             uij   = c0
             ui1j  = c1
             uij1  = c0
@@ -2083,7 +2083,7 @@
             vi1j1 = c0
             di    = 1
             dj    = 0
-         elseif (cc .eq. 3) then ! u comp, T cell i,j+1
+         elseif (cc == 3) then ! u comp, T cell i,j+1
             uij   = c0
             ui1j  = c0
             uij1  = c1
@@ -2094,7 +2094,7 @@
             vi1j1 = c0
             di    = 0
             dj    = 1
-         elseif (cc .eq. 4) then ! u comp, T cell i+1,j+1
+         elseif (cc == 4) then ! u comp, T cell i+1,j+1
             uij   = c0
             ui1j  = c0
             uij1  = c0
@@ -2105,7 +2105,7 @@
             vi1j1 = c0
             di    = 1
             dj    = 1
-         elseif (cc .eq. 5) then ! v comp, T cell i,j
+         elseif (cc == 5) then ! v comp, T cell i,j
             uij   = c0
             ui1j  = c0
             uij1  = c0
@@ -2116,7 +2116,7 @@
             vi1j1 = c0
             di    = 0
             dj    = 0
-         elseif (cc .eq. 6) then ! v comp, T cell i,j+1
+         elseif (cc == 6) then ! v comp, T cell i,j+1
             uij   = c0
             ui1j  = c0
             uij1  = c0
@@ -2127,7 +2127,7 @@
             vi1j1 = c0
             di    = 0
             dj    = 1
-         elseif (cc .eq. 7) then ! v comp, T cell i+1,j
+         elseif (cc == 7) then ! v comp, T cell i+1,j
             uij   = c0
             ui1j  = c0
             uij1  = c0
@@ -2138,7 +2138,7 @@
             vi1j1 = c0
             di    = 1
             dj    = 0
-         elseif (cc .eq. 8) then ! v comp, T cell i+1,j+1
+         elseif (cc == 8) then ! v comp, T cell i+1,j+1
             uij   = c0
             ui1j  = c0
             uij1  = c0
@@ -2265,7 +2265,7 @@
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
          
-            if (cc .eq. 1) then ! T cell i,j
+            if (cc == 1) then ! T cell i,j
             
                strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
                strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
@@ -2274,7 +2274,7 @@
                Dstr(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
                   + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
                
-            elseif (cc .eq. 2) then ! T cell i+1,j
+            elseif (cc == 2) then ! T cell i+1,j
                
                strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
                strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
@@ -2283,7 +2283,7 @@
                Dstr(iu,ju,2) = strp_tmp + strm_tmp - str12we &
                   + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
 
-            elseif (cc .eq. 3) then ! T cell i,j+1
+            elseif (cc == 3) then ! T cell i,j+1
                
                strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
                strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
@@ -2292,7 +2292,7 @@
                Dstr(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
                   + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
 
-            elseif (cc .eq. 4) then ! T cell i+1,j+1
+            elseif (cc == 4) then ! T cell i+1,j+1
                  
                strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
                strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
@@ -2305,7 +2305,7 @@
          ! for dF/dy (v momentum)
          !-----------------------------------------------------------------
             
-            elseif (cc .eq. 5) then ! T cell i,j
+            elseif (cc == 5) then ! T cell i,j
                
                strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
                strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
@@ -2314,7 +2314,7 @@
                Dstr(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
                   - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
 
-            elseif (cc .eq. 6) then ! T cell i,j+1
+            elseif (cc == 6) then ! T cell i,j+1
                
                strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
                strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
@@ -2323,7 +2323,7 @@
                Dstr(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
                   - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
 
-            elseif (cc .eq. 7) then ! T cell i,j+1
+            elseif (cc == 7) then ! T cell i,j+1
                
                strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
                strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
@@ -2332,7 +2332,7 @@
                Dstr(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
                   - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
 
-            elseif (cc .eq. 8) then ! T cell i+1,j+1
+            elseif (cc == 8) then ! T cell i+1,j+1
                
                strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
                strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
