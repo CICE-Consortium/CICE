@@ -112,7 +112,7 @@
 ! author: Philippe Blain, ECCC
 
       subroutine init_vp (dt)
-      
+
       use ice_blocks, only: get_block, block
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: c1, &
@@ -120,22 +120,22 @@
       use ice_domain, only: blocks_ice, halo_info
       use ice_dyn_shared, only: init_evp
       use ice_grid, only: tarea, tinyarea
-      
+
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
-      
+
       ! local variables
-      
+
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi      ! beginning and end of physical domain
 
       type (block) :: &
          this_block           ! block information for current block
-         
+
       real (kind=dbl_kind) :: &
          min_strain_rate = 2e-09_dbl_kind      ! used for recomputing tinyarea
-      
+
       ! Initialize variables shared with evp
       call init_evp(dt)
       
@@ -169,6 +169,7 @@
                            fillValue=c1)
       
       end subroutine init_vp
+
 !=======================================================================
 
 ! Viscous-plastic dynamics driver
@@ -248,12 +249,12 @@
 
       type (block) :: &
          this_block           ! block information for current block
-      
+
       real (kind=dbl_kind), allocatable :: &
          sol(:)          ! solution vector
-      
+
       character(len=*), parameter :: subname = '(imp_solver)'
-      
+
       call ice_timer_start(timer_dynamics) ! dynamics
 
       !-----------------------------------------------------------------
@@ -401,12 +402,12 @@
             i = indxti(ij, iblk)
             j = indxtj(ij, iblk)
             call icepack_ice_strength (ncat,                 &
-                                      aice    (i,j,  iblk), &
-                                      vice    (i,j,  iblk), &
-                                      aice0   (i,j,  iblk), &
-                                      aicen   (i,j,:,iblk), &
-                                      vicen   (i,j,:,iblk), &
-                                      strength(i,j,  iblk) )
+                                       aice    (i,j,  iblk), &
+                                       vice    (i,j,  iblk), &
+                                       aice0   (i,j,  iblk), &
+                                       aicen   (i,j,:,iblk), &
+                                       vicen   (i,j,:,iblk), &
+                                       strength(i,j,  iblk))
          enddo  ! ij
 
       enddo  ! iblk
@@ -454,11 +455,11 @@
       ! calc size of problem (ntot) and allocate arrays and vectors
       !-----------------------------------------------------------------
       
-      ntot=0
+      ntot = 0
       do iblk = 1, nblocks
-        ntot = ntot + icellu(iblk)
+         ntot = ntot + icellu(iblk)
       enddo
-      ntot = 2*ntot ! times 2 because of u and v
+      ntot = 2 * ntot ! times 2 because of u and v
       
       allocate(sol(ntot))
       
@@ -749,14 +750,14 @@
          fpfunc     , & ! current value of fixed point function
          fpfunc_old , & ! previous value of fixed point function
          tmp            ! temporary vector for BLAS calls
-      
+
       real (kind=dbl_kind), dimension(ntot,im_andacc) :: &
          Q        , & ! Q factor for QR factorization of F (residuals) matrix
          G_diff       ! Matrix containing the differences of g(x) (fixed point function) evaluations
-      
+
       real (kind=dbl_kind), dimension(im_andacc,im_andacc) :: &
          R            ! R factor for QR factorization of F (residuals) matrix
-      
+
       real (kind=dbl_kind), dimension(im_andacc) :: &
          rhs_tri  , & ! right hand side vector for matrix-vector product
          coeffs       ! coeffs used to combine previous solutions
@@ -773,7 +774,7 @@
          conv            ! needed for FGMRES !phb keep ?
 
       character(len=*), parameter :: subname = '(anderson_solver)'
-      
+
       ! Initialization
       res_num = 0
       L2norm  = c0
@@ -1126,11 +1127,11 @@
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm      , & ! 0.5*HTN - 1.5*HTN
          tinyarea     ! min_strain_rate*tarea
-         
+
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
          intent(out) :: &
          zetaD          ! 2*zeta
-         
+
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
          intent(out) :: &
          stPr          ! stress Pr combinations
@@ -1149,7 +1150,7 @@
         csigpne, csigpnw, csigpsw, csigpse            , &
         stressp_1, stressp_2, stressp_3, stressp_4    , &
         strp_tmp
-        
+
       logical :: capping ! of the viscous coeff
 
       character(len=*), parameter :: subname = '(calc_zeta_Pr)'
@@ -1189,19 +1190,15 @@
                             Deltase,    Deltasw     )
 
          if (capping) then
-         
-          zetaD(i,j,1) = strength(i,j)/max(Deltane,tinyarea(i,j))
-          zetaD(i,j,2) = strength(i,j)/max(Deltanw,tinyarea(i,j))
-          zetaD(i,j,3) = strength(i,j)/max(Deltasw,tinyarea(i,j))
-          zetaD(i,j,4) = strength(i,j)/max(Deltase,tinyarea(i,j))
-          
+            zetaD(i,j,1) = strength(i,j)/max(Deltane,tinyarea(i,j))
+            zetaD(i,j,2) = strength(i,j)/max(Deltanw,tinyarea(i,j))
+            zetaD(i,j,3) = strength(i,j)/max(Deltasw,tinyarea(i,j))
+            zetaD(i,j,4) = strength(i,j)/max(Deltase,tinyarea(i,j))
          else
-
-          zetaD(i,j,1) = strength(i,j)/(Deltane + tinyarea(i,j))
-          zetaD(i,j,2) = strength(i,j)/(Deltanw + tinyarea(i,j))
-          zetaD(i,j,3) = strength(i,j)/(Deltasw + tinyarea(i,j))
-          zetaD(i,j,4) = strength(i,j)/(Deltase + tinyarea(i,j))
-         
+            zetaD(i,j,1) = strength(i,j)/(Deltane + tinyarea(i,j))
+            zetaD(i,j,2) = strength(i,j)/(Deltanw + tinyarea(i,j))
+            zetaD(i,j,3) = strength(i,j)/(Deltasw + tinyarea(i,j))
+            zetaD(i,j,4) = strength(i,j)/(Deltase + tinyarea(i,j))
          endif
          
       !-----------------------------------------------------------------
@@ -1279,7 +1276,7 @@
       enddo                     ! ij
 
       end subroutine calc_zeta_Pr
-      
+
 !=======================================================================
 
 ! Computes the VP stress (as diagnostic)
@@ -1319,7 +1316,7 @@
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm          ! 0.5*HTN - 1.5*HTN
-         
+
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
          intent(in) :: &
          zetaD          ! 2*zeta
@@ -1389,7 +1386,7 @@
       enddo                     ! ij
 
       end subroutine stress_vp
-      
+
 !=======================================================================
 
 ! Compute vrel and basal stress coefficients
@@ -1437,7 +1434,7 @@
 
       real (kind=dbl_kind) :: &
          rhow                  !
-         
+
       character(len=*), parameter :: subname = '(calc_vrel_Cb)'
       
       !-----------------------------------------------------------------
@@ -1449,7 +1446,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do ij =1, icellu
+      do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
@@ -1458,7 +1455,6 @@
                                                 (vocn(i,j) - vvel(i,j))**2)  ! m/s
       
          Cb(i,j)  = Tbu(i,j) / (sqrt(uvel(i,j)**2 + vvel(i,j)**2) + u0) ! for basal stress
-
       enddo                     ! ij
 
       end subroutine calc_vrel_Cb
@@ -1499,17 +1495,16 @@
 
       character(len=*), parameter :: subname = '(calc_seabed_stress)'
 
-      do ij =1, icellu
+      do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
          
          taubx(i,j) = -uvel(i,j)*Cb(i,j)
          tauby(i,j) = -vvel(i,j)*Cb(i,j)
-
       enddo                     ! ij
 
       end subroutine calc_seabed_stress
-      
+
 !=======================================================================
 
 ! Computes the matrix vector product A(u,v) * (u,v)
@@ -1554,7 +1549,7 @@
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm          ! 0.5*HTN - 1.5*HTN
-         
+
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
@@ -1568,7 +1563,7 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
          intent(in) :: &
          zetaD          ! 2*zeta
-         
+
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          Au      , & ! matvec, Fx = bx - Au (N/m^2)
@@ -1581,7 +1576,7 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          str
-         
+
       real (kind=dbl_kind) :: &
          utp, vtp          , & ! utp = uvel, vtp = vvel
          ccaimp,ccb        , & ! intermediate variables
@@ -1601,7 +1596,7 @@
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp
-        
+
       real (kind=dbl_kind) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22 (without Pr)
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
@@ -1761,14 +1756,14 @@
          ! southwest (i+1,j+1)
          str(i,j,8) = strp_tmp - strm_tmp + str12sn &
               - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
-  
+
       enddo ! ij - icellt
-         
+      
       !-----------------------------------------------------------------
       ! Form Au and Av
       !-----------------------------------------------------------------
 
-      do ij =1, icellu
+      do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
@@ -1776,7 +1771,7 @@
          vtp = vvel(i,j)
 
          ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
-               
+         
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel(i,j) * sinw ! kg/m^2 s
 
          ! divergence of the internal stress tensor
@@ -1787,8 +1782,7 @@
 
          Au(i,j) = ccaimp*utp - ccb*vtp - strintx
          Av(i,j) = ccaimp*vtp + ccb*utp - strinty
-         
-      enddo ! ij - icellu               
+      enddo ! ij - icellu
 
       end subroutine matvec
 
@@ -1844,11 +1838,10 @@
 
          bxfix(i,j) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
          byfix(i,j) = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
-         
       enddo
 
-      end subroutine calc_bfix            
-      
+      end subroutine calc_bfix
+
 !=======================================================================
 
 ! Compute the vector b(u,v), i.e. the part of the nonlinear function F(u,v)
@@ -1856,14 +1849,14 @@
 ! depending on (u,v)
 
       subroutine calc_bvec (nx_block,   ny_block, &
-                       icellu,               &
-                       indxui,     indxuj,   &
-                       stPr,       uarear,   &
-                       waterx,     watery,   &
-                       uvel,       vvel,     &
-                       bxfix,      byfix,    &
-                       bx,         by,       &
-                       vrel)
+                            icellu,               &
+                            indxui,     indxuj,   &
+                            stPr,       uarear,   &
+                            waterx,     watery,   &
+                            uvel,       vvel,     &
+                            bxfix,      byfix,    &
+                            bx,         by,       &
+                            vrel)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1883,16 +1876,16 @@
          bxfix   , & ! bx = taux + bxfix
          byfix   , & ! by = tauy + byfix
          vrel        ! relative ice-ocean velocity
-         
+
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
          intent(in) :: &
          stPr
-         
+
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(out) :: &
          bx      , & ! b vector, bx = taux + bxfix (N/m^2)
          by          ! b vector, by = tauy + byfix (N/m^2)
-         
+
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1903,7 +1896,7 @@
          taux, tauy        , & ! part of ocean stress term
          strintx, strinty  , & ! divergence of the internal stress tensor (only Pr part)
          rhow                  !
-         
+
       character(len=*), parameter :: subname = '(calc_bvec)'
       
       !-----------------------------------------------------------------
@@ -1915,7 +1908,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do ij =1, icellu
+      do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
@@ -1934,11 +1927,10 @@
 
          bx(i,j) = bxfix(i,j) + taux + strintx
          by(i,j) = byfix(i,j) + tauy + strinty
-         
       enddo                     ! ij
 
       end subroutine calc_bvec
-      
+
 !=======================================================================
 
 ! Compute the non linear residual F(u,v) = b(u,v) - A(u,v) * (u,v),
@@ -1991,8 +1983,8 @@
       if (present(sum_squared)) then
          sum_squared = c0
       endif
-         
-      do ij =1, icellu
+      
+      do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
@@ -2004,7 +1996,7 @@
       enddo                     ! ij
 
       end subroutine residual_vec
-      
+
 !=======================================================================
 
 ! Form the diagonal of the matrix A(u,v) (first part of the computation)
@@ -2017,7 +2009,7 @@
                                   dxhy,       dyhx,       &
                                   cxp,        cyp,        &
                                   cxm,        cym,        &
-                                  zetaD,      Dstr )
+                                  zetaD,      Dstr)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -2082,307 +2074,306 @@
 
       Dstr(:,:,:) = c0 ! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8
                        ! come from the surrounding T cells but are all refrerenced to the i,j (u point)
-       
- !      Dstr(i,j,1) corresponds to str(i,j,1)
- !      Dstr(i,j,2) corresponds to str(i+1,j,2)
- !      Dstr(i,j,3) corresponds to str(i,j+1,3)
- !      Dstr(i,j,4) corresponds to str(i+1,j+1,4))
- !      Dstr(i,j,5) corresponds to str(i,j,5)
- !      Dstr(i,j,6) corresponds to str(i,j+1,6)
- !      Dstr(i,j,7) corresponds to str(i+1,j,7)
- !      Dstr(i,j,8) corresponds to str(i+1,j+1,8))
-             
-      do cc=1, 8 ! 4 for u and 4 for v
       
-       if (cc .eq. 1) then     ! u comp, T cell i,j
-        uij   = c1
-        ui1j  = c0
-        uij1  = c0
-        ui1j1 = c0
-        vij   = c0
-        vi1j  = c0
-        vij1  = c0
-        vi1j1 = c0
-        di    = 0
-        dj    = 0
-       elseif (cc .eq. 2) then ! u comp, T cell i+1,j
-        uij   = c0
-        ui1j  = c1
-        uij1  = c0
-        ui1j1 = c0
-        vij   = c0
-        vi1j  = c0
-        vij1  = c0
-        vi1j1 = c0
-        di    = 1
-        dj    = 0
-       elseif (cc .eq. 3) then ! u comp, T cell i,j+1
-        uij   = c0
-        ui1j  = c0
-        uij1  = c1
-        ui1j1 = c0
-        vij   = c0
-        vi1j  = c0
-        vij1  = c0
-        vi1j1 = c0
-        di    = 0
-        dj    = 1
-       elseif (cc .eq. 4) then ! u comp, T cell i+1,j+1
-        uij   = c0
-        ui1j  = c0
-        uij1  = c0
-        ui1j1 = c1
-        vij   = c0
-        vi1j  = c0
-        vij1  = c0
-        vi1j1 = c0
-        di    = 1
-        dj    = 1
-       elseif (cc .eq. 5) then ! v comp, T cell i,j
-        uij   = c0
-        ui1j  = c0
-        uij1  = c0
-        ui1j1 = c0
-        vij   = c1
-        vi1j  = c0
-        vij1  = c0
-        vi1j1 = c0
-        di    = 0
-        dj    = 0
-       elseif (cc .eq. 6) then ! v comp, T cell i,j+1
-        uij   = c0
-        ui1j  = c0
-        uij1  = c0
-        ui1j1 = c0
-        vij   = c0
-        vi1j  = c0
-        vij1  = c1
-        vi1j1 = c0
-        di    = 0
-        dj    = 1
-       elseif (cc .eq. 7) then ! v comp, T cell i+1,j
-        uij   = c0
-        ui1j  = c0
-        uij1  = c0
-        ui1j1 = c0
-        vij   = c0
-        vi1j  = c1
-        vij1  = c0
-        vi1j1 = c0
-        di    = 1
-        dj    = 0
-       elseif (cc .eq. 8) then ! v comp, T cell i+1,j+1
-        uij   = c0
-        ui1j  = c0
-        uij1  = c0
-        ui1j1 = c0
-        vij   = c0
-        vi1j  = c0
-        vij1  = c0
-        vi1j1 = c1
-        di    = 1
-        dj    = 1
-       endif
-       
-      do ij = 1, icellu
+      ! Dstr(i,j,1) corresponds to str(i,j,1)
+      ! Dstr(i,j,2) corresponds to str(i+1,j,2)
+      ! Dstr(i,j,3) corresponds to str(i,j+1,3)
+      ! Dstr(i,j,4) corresponds to str(i+1,j+1,4))
+      ! Dstr(i,j,5) corresponds to str(i,j,5)
+      ! Dstr(i,j,6) corresponds to str(i,j+1,6)
+      ! Dstr(i,j,7) corresponds to str(i+1,j,7)
+      ! Dstr(i,j,8) corresponds to str(i+1,j+1,8))
       
-         iu = indxui(ij)
-         ju = indxuj(ij)
-         i=iu+di
-         j=ju+dj
-          
-      !-----------------------------------------------------------------
-      ! strain rates
-      ! NOTE these are actually strain rates * area  (m^2/s)
-      !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*uij - dyt(i,j)*ui1j &
-                   + cxp(i,j)*vij - dxt(i,j)*vij1
-         divunw    = cym(i,j)*ui1j + dyt(i,j)*uij &
-                   + cxp(i,j)*vi1j - dxt(i,j)*vi1j1
-         divusw    = cym(i,j)*ui1j1 + dyt(i,j)*uij1 &
-                   + cxm(i,j)*vi1j1 + dxt(i,j)*vi1j
-         divuse    = cyp(i,j)*uij1 - dyt(i,j)*ui1j1 &
-                   + cxm(i,j)*vij1 + dxt(i,j)*vij
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*uij - dyt(i,j)*ui1j &
-                   +  cxm(i,j)*vij + dxt(i,j)*vij1
-         tensionnw = -cyp(i,j)*ui1j + dyt(i,j)*uij &
-                   +  cxm(i,j)*vi1j + dxt(i,j)*vi1j1
-         tensionsw = -cyp(i,j)*ui1j1 + dyt(i,j)*uij1 &
-                   +  cxp(i,j)*vi1j1 - dxt(i,j)*vi1j
-         tensionse = -cym(i,j)*uij1  - dyt(i,j)*ui1j1 &
-                   +  cxp(i,j)*vij1 - dxt(i,j)*vij
-
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*vij - dyt(i,j)*vi1j &
-                 -  cxm(i,j)*uij - dxt(i,j)*uij1
-         shearnw = -cyp(i,j)*vi1j + dyt(i,j)*vij &
-                 -  cxm(i,j)*ui1j - dxt(i,j)*ui1j1
-         shearsw = -cyp(i,j)*vi1j1 + dyt(i,j)*vij1 &
-                 -  cxp(i,j)*ui1j1 + dxt(i,j)*ui1j
-         shearse = -cym(i,j)*vij1 - dyt(i,j)*vi1j1 &
-                 -  cxp(i,j)*uij1 + dxt(i,j)*uij
-         
-      !-----------------------------------------------------------------
-      ! the stresses                            ! kg/s^2
-      ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
-      !-----------------------------------------------------------------
-         
-         stressp_1 = zetaD(i,j,1)*divune*(c1+Ktens)
-         stressp_2 = zetaD(i,j,2)*divunw*(c1+Ktens)
-         stressp_3 = zetaD(i,j,3)*divusw*(c1+Ktens)
-         stressp_4 = zetaD(i,j,4)*divuse*(c1+Ktens)
-         
-         stressm_1 = zetaD(i,j,1)*tensionne*(c1+Ktens)*ecci
-         stressm_2 = zetaD(i,j,2)*tensionnw*(c1+Ktens)*ecci
-         stressm_3 = zetaD(i,j,3)*tensionsw*(c1+Ktens)*ecci
-         stressm_4 = zetaD(i,j,4)*tensionse*(c1+Ktens)*ecci
-                          
-         stress12_1 = zetaD(i,j,1)*shearne*p5*(c1+Ktens)*ecci
-         stress12_2 = zetaD(i,j,2)*shearnw*p5*(c1+Ktens)*ecci
-         stress12_3 = zetaD(i,j,3)*shearsw*p5*(c1+Ktens)*ecci
-         stress12_4 = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
-
-      !-----------------------------------------------------------------
-      ! combinations of the stresses for the momentum equation ! kg/s^2
-      !-----------------------------------------------------------------
-
-         ssigpn  = stressp_1 + stressp_2
-         ssigps  = stressp_3 + stressp_4
-         ssigpe  = stressp_1 + stressp_4
-         ssigpw  = stressp_2 + stressp_3
-         ssigp1  =(stressp_1 + stressp_3)*p055
-         ssigp2  =(stressp_2 + stressp_4)*p055
-
-         ssigmn  = stressm_1 + stressm_2
-         ssigms  = stressm_3 + stressm_4
-         ssigme  = stressm_1 + stressm_4
-         ssigmw  = stressm_2 + stressm_3
-         ssigm1  =(stressm_1 + stressm_3)*p055
-         ssigm2  =(stressm_2 + stressm_4)*p055
-
-         ssig12n = stress12_1 + stress12_2
-         ssig12s = stress12_3 + stress12_4
-         ssig12e = stress12_1 + stress12_4
-         ssig12w = stress12_2 + stress12_3
-         ssig121 =(stress12_1 + stress12_3)*p111
-         ssig122 =(stress12_2 + stress12_4)*p111
-
-         csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-         csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-         csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-         csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
-         
-         csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-         csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-         csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-         csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
-         
-         csig12ne = p222*stress12_1 + ssig122 &
-                  + p055*stress12_3
-         csig12nw = p222*stress12_2 + ssig121 &
-                  + p055*stress12_4
-         csig12sw = p222*stress12_3 + ssig122 &
-                  + p055*stress12_1
-         csig12se = p222*stress12_4 + ssig121 &
-                  + p055*stress12_2
-
-         str12ew = p5*dxt(i,j)*(p333*ssig12e + p166*ssig12w)
-         str12we = p5*dxt(i,j)*(p333*ssig12w + p166*ssig12e)
-         str12ns = p5*dyt(i,j)*(p333*ssig12n + p166*ssig12s)
-         str12sn = p5*dyt(i,j)*(p333*ssig12s + p166*ssig12n)
-
-      !-----------------------------------------------------------------
-      ! for dF/dx (u momentum)
-      !-----------------------------------------------------------------
+      do cc = 1, 8 ! 4 for u and 4 for v
       
-         if (cc .eq. 1) then ! T cell i,j
-         
-          strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
-          strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
-
-         ! northeast (i,j)
-         Dstr(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
-              + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
-              
-         elseif (cc .eq. 2) then ! T cell i+1,j
-          
-          strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
-          strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
-          
-         ! northwest (i+1,j)
-         Dstr(iu,ju,2) = strp_tmp + strm_tmp - str12we &
-              + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
-
-         elseif (cc .eq. 3) then ! T cell i,j+1
-              
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
-
-         ! southeast (i,j+1)
-         Dstr(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
-              + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
-
-         elseif (cc .eq. 4) then ! T cell i+1,j+1
-              
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
-              
-         ! southwest (i+1,j+1)
-         Dstr(iu,ju,4) = strp_tmp + strm_tmp + str12we &
-              + dxhy(i,j)*(-csigpsw + csigmsw) + dyhx(i,j)*csig12sw
-
-      !-----------------------------------------------------------------
-      ! for dF/dy (v momentum)
-      !-----------------------------------------------------------------
-         
-         elseif (cc .eq. 5) then ! T cell i,j
-         
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
-
-         ! northeast (i,j)
-         Dstr(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
-              - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
-
-         elseif (cc .eq. 6) then ! T cell i,j+1
-              
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
-              
-         ! southeast (i,j+1)
-         Dstr(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
-              - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
-
-         elseif (cc .eq. 7) then ! T cell i,j+1
-              
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
-
-         ! northwest (i+1,j)
-         Dstr(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
-              - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
-
-         elseif (cc .eq. 8) then ! T cell i+1,j+1
-              
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
-              
-         ! southwest (i+1,j+1)
-         Dstr(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
-              - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
-              
+         if (cc .eq. 1) then     ! u comp, T cell i,j
+            uij   = c1
+            ui1j  = c0
+            uij1  = c0
+            ui1j1 = c0
+            vij   = c0
+            vi1j  = c0
+            vij1  = c0
+            vi1j1 = c0
+            di    = 0
+            dj    = 0
+         elseif (cc .eq. 2) then ! u comp, T cell i+1,j
+            uij   = c0
+            ui1j  = c1
+            uij1  = c0
+            ui1j1 = c0
+            vij   = c0
+            vi1j  = c0
+            vij1  = c0
+            vi1j1 = c0
+            di    = 1
+            dj    = 0
+         elseif (cc .eq. 3) then ! u comp, T cell i,j+1
+            uij   = c0
+            ui1j  = c0
+            uij1  = c1
+            ui1j1 = c0
+            vij   = c0
+            vi1j  = c0
+            vij1  = c0
+            vi1j1 = c0
+            di    = 0
+            dj    = 1
+         elseif (cc .eq. 4) then ! u comp, T cell i+1,j+1
+            uij   = c0
+            ui1j  = c0
+            uij1  = c0
+            ui1j1 = c1
+            vij   = c0
+            vi1j  = c0
+            vij1  = c0
+            vi1j1 = c0
+            di    = 1
+            dj    = 1
+         elseif (cc .eq. 5) then ! v comp, T cell i,j
+            uij   = c0
+            ui1j  = c0
+            uij1  = c0
+            ui1j1 = c0
+            vij   = c1
+            vi1j  = c0
+            vij1  = c0
+            vi1j1 = c0
+            di    = 0
+            dj    = 0
+         elseif (cc .eq. 6) then ! v comp, T cell i,j+1
+            uij   = c0
+            ui1j  = c0
+            uij1  = c0
+            ui1j1 = c0
+            vij   = c0
+            vi1j  = c0
+            vij1  = c1
+            vi1j1 = c0
+            di    = 0
+            dj    = 1
+         elseif (cc .eq. 7) then ! v comp, T cell i+1,j
+            uij   = c0
+            ui1j  = c0
+            uij1  = c0
+            ui1j1 = c0
+            vij   = c0
+            vi1j  = c1
+            vij1  = c0
+            vi1j1 = c0
+            di    = 1
+            dj    = 0
+         elseif (cc .eq. 8) then ! v comp, T cell i+1,j+1
+            uij   = c0
+            ui1j  = c0
+            uij1  = c0
+            ui1j1 = c0
+            vij   = c0
+            vi1j  = c0
+            vij1  = c0
+            vi1j1 = c1
+            di    = 1
+            dj    = 1
          endif
 
-      enddo                     ! ij
-      
+         do ij = 1, icellu
+         
+            iu = indxui(ij)
+            ju = indxuj(ij)
+            i  = iu + di
+            j  = ju + dj
+             
+         !-----------------------------------------------------------------
+         ! strain rates
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+            ! divergence  =  e_11 + e_22
+            divune    = cyp(i,j)*uij   - dyt(i,j)*ui1j  &
+                      + cxp(i,j)*vij   - dxt(i,j)*vij1
+            divunw    = cym(i,j)*ui1j  + dyt(i,j)*uij   &
+                      + cxp(i,j)*vi1j  - dxt(i,j)*vi1j1
+            divusw    = cym(i,j)*ui1j1 + dyt(i,j)*uij1  &
+                      + cxm(i,j)*vi1j1 + dxt(i,j)*vi1j
+            divuse    = cyp(i,j)*uij1  - dyt(i,j)*ui1j1 &
+                      + cxm(i,j)*vij1  + dxt(i,j)*vij
+
+            ! tension strain rate  =  e_11 - e_22
+            tensionne = -cym(i,j)*uij   - dyt(i,j)*ui1j  &
+                      +  cxm(i,j)*vij   + dxt(i,j)*vij1
+            tensionnw = -cyp(i,j)*ui1j  + dyt(i,j)*uij   &
+                      +  cxm(i,j)*vi1j  + dxt(i,j)*vi1j1
+            tensionsw = -cyp(i,j)*ui1j1 + dyt(i,j)*uij1  &
+                      +  cxp(i,j)*vi1j1 - dxt(i,j)*vi1j
+            tensionse = -cym(i,j)*uij1  - dyt(i,j)*ui1j1 &
+                      +  cxp(i,j)*vij1  - dxt(i,j)*vij
+
+            ! shearing strain rate  =  2*e_12
+            shearne = -cym(i,j)*vij   - dyt(i,j)*vi1j  &
+                    -  cxm(i,j)*uij   - dxt(i,j)*uij1
+            shearnw = -cyp(i,j)*vi1j  + dyt(i,j)*vij   &
+                    -  cxm(i,j)*ui1j  - dxt(i,j)*ui1j1
+            shearsw = -cyp(i,j)*vi1j1 + dyt(i,j)*vij1  &
+                    -  cxp(i,j)*ui1j1 + dxt(i,j)*ui1j
+            shearse = -cym(i,j)*vij1  - dyt(i,j)*vi1j1 &
+                    -  cxp(i,j)*uij1  + dxt(i,j)*uij
+            
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+         !-----------------------------------------------------------------
+            
+            stressp_1 = zetaD(i,j,1)*divune*(c1+Ktens)
+            stressp_2 = zetaD(i,j,2)*divunw*(c1+Ktens)
+            stressp_3 = zetaD(i,j,3)*divusw*(c1+Ktens)
+            stressp_4 = zetaD(i,j,4)*divuse*(c1+Ktens)
+            
+            stressm_1 = zetaD(i,j,1)*tensionne*(c1+Ktens)*ecci
+            stressm_2 = zetaD(i,j,2)*tensionnw*(c1+Ktens)*ecci
+            stressm_3 = zetaD(i,j,3)*tensionsw*(c1+Ktens)*ecci
+            stressm_4 = zetaD(i,j,4)*tensionse*(c1+Ktens)*ecci
+            
+            stress12_1 = zetaD(i,j,1)*shearne*p5*(c1+Ktens)*ecci
+            stress12_2 = zetaD(i,j,2)*shearnw*p5*(c1+Ktens)*ecci
+            stress12_3 = zetaD(i,j,3)*shearsw*p5*(c1+Ktens)*ecci
+            stress12_4 = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
+
+         !-----------------------------------------------------------------
+         ! combinations of the stresses for the momentum equation ! kg/s^2
+         !-----------------------------------------------------------------
+
+            ssigpn  = stressp_1 + stressp_2
+            ssigps  = stressp_3 + stressp_4
+            ssigpe  = stressp_1 + stressp_4
+            ssigpw  = stressp_2 + stressp_3
+            ssigp1  =(stressp_1 + stressp_3)*p055
+            ssigp2  =(stressp_2 + stressp_4)*p055
+
+            ssigmn  = stressm_1 + stressm_2
+            ssigms  = stressm_3 + stressm_4
+            ssigme  = stressm_1 + stressm_4
+            ssigmw  = stressm_2 + stressm_3
+            ssigm1  =(stressm_1 + stressm_3)*p055
+            ssigm2  =(stressm_2 + stressm_4)*p055
+
+            ssig12n = stress12_1 + stress12_2
+            ssig12s = stress12_3 + stress12_4
+            ssig12e = stress12_1 + stress12_4
+            ssig12w = stress12_2 + stress12_3
+            ssig121 =(stress12_1 + stress12_3)*p111
+            ssig122 =(stress12_2 + stress12_4)*p111
+
+            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
+            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
+            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
+            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            
+            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
+            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
+            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
+            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            
+            csig12ne = p222*stress12_1 + ssig122 &
+                     + p055*stress12_3
+            csig12nw = p222*stress12_2 + ssig121 &
+                     + p055*stress12_4
+            csig12sw = p222*stress12_3 + ssig122 &
+                     + p055*stress12_1
+            csig12se = p222*stress12_4 + ssig121 &
+                     + p055*stress12_2
+
+            str12ew = p5*dxt(i,j)*(p333*ssig12e + p166*ssig12w)
+            str12we = p5*dxt(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ns = p5*dyt(i,j)*(p333*ssig12n + p166*ssig12s)
+            str12sn = p5*dyt(i,j)*(p333*ssig12s + p166*ssig12n)
+
+         !-----------------------------------------------------------------
+         ! for dF/dx (u momentum)
+         !-----------------------------------------------------------------
+         
+            if (cc .eq. 1) then ! T cell i,j
+            
+               strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
+               strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+
+               ! northeast (i,j)
+               Dstr(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
+                  + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
+               
+            elseif (cc .eq. 2) then ! T cell i+1,j
+               
+               strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
+               strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+               
+               ! northwest (i+1,j)
+               Dstr(iu,ju,2) = strp_tmp + strm_tmp - str12we &
+                  + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
+
+            elseif (cc .eq. 3) then ! T cell i,j+1
+               
+               strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
+               strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+
+               ! southeast (i,j+1)
+               Dstr(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
+                  + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
+
+            elseif (cc .eq. 4) then ! T cell i+1,j+1
+                 
+               strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
+               strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+               
+               ! southwest (i+1,j+1)
+               Dstr(iu,ju,4) = strp_tmp + strm_tmp + str12we &
+                  + dxhy(i,j)*(-csigpsw + csigmsw) + dyhx(i,j)*csig12sw
+
+         !-----------------------------------------------------------------
+         ! for dF/dy (v momentum)
+         !-----------------------------------------------------------------
+            
+            elseif (cc .eq. 5) then ! T cell i,j
+               
+               strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
+               strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+
+               ! northeast (i,j)
+               Dstr(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
+                  - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
+
+            elseif (cc .eq. 6) then ! T cell i,j+1
+               
+               strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
+               strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+               
+               ! southeast (i,j+1)
+               Dstr(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
+                  - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
+
+            elseif (cc .eq. 7) then ! T cell i,j+1
+               
+               strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
+               strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+
+               ! northwest (i+1,j)
+               Dstr(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
+                  - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
+
+            elseif (cc .eq. 8) then ! T cell i+1,j+1
+               
+               strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
+               strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+               
+               ! southwest (i+1,j+1)
+               Dstr(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
+                  - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
+               
+            endif
+
+         enddo                     ! ij
+
       enddo                     ! cc
 
       end subroutine formDiag_step1
-      
-      
+
 !=======================================================================
 
 ! Form the diagonal of the matrix A(u,v) (second part of the computation)
@@ -2394,7 +2385,7 @@
                                  Dstr,       vrel,     &
                                  umassdti,             &
                                  uarear,     Cb,       &
-                                 diagx,      diagy )
+                                 diagx,      diagy)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -2435,22 +2426,22 @@
       ! integrate the momentum equation
       !-----------------------------------------------------------------
 
-      strintx=c0
-      strinty=c0
-         
-! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8
-! come from the surrounding T cells but are all refrerenced to the i,j (u point)
-       
- !      Dstr(i,j,1) corresponds to str(i,j,1)
- !      Dstr(i,j,2) corresponds to str(i+1,j,2)
- !      Dstr(i,j,3) corresponds to str(i,j+1,3)
- !      Dstr(i,j,4) corresponds to str(i+1,j+1,4))
- !      Dstr(i,j,5) corresponds to str(i,j,5)
- !      Dstr(i,j,6) corresponds to str(i,j+1,6)
- !      Dstr(i,j,7) corresponds to str(i+1,j,7)
- !      Dstr(i,j,8) corresponds to str(i+1,j+1,8))
-         
-      do ij =1, icellu
+      strintx = c0
+      strinty = c0
+      
+      ! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8
+      ! come from the surrounding T cells but are all refrerenced to the i,j (u point)
+
+      ! Dstr(i,j,1) corresponds to str(i,j,1)
+      ! Dstr(i,j,2) corresponds to str(i+1,j,2)
+      ! Dstr(i,j,3) corresponds to str(i,j+1,3)
+      ! Dstr(i,j,4) corresponds to str(i+1,j+1,4))
+      ! Dstr(i,j,5) corresponds to str(i,j,5)
+      ! Dstr(i,j,6) corresponds to str(i,j+1,6)
+      ! Dstr(i,j,7) corresponds to str(i+1,j,7)
+      ! Dstr(i,j,8) corresponds to str(i+1,j+1,8))
+      
+      do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
@@ -2463,11 +2454,10 @@
 
          diagx(i,j) = ccaimp - strintx
          diagy(i,j) = ccaimp - strinty
-         
       enddo                     ! ij
 
       end subroutine formDiag_step2
-      
+
 !=======================================================================
 
 ! Compute squared l^2 norm of a grid function (tpu,tpv)
@@ -2505,18 +2495,17 @@
       ! compute squared l^2 norm of vector grid function (tpu,tpv)
       !-----------------------------------------------------------------
 
-     L2norm = c0
+      L2norm = c0
       
-      do ij =1, icellu
+      do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
          
          L2norm = L2norm + tpu(i,j)**2 + tpv(i,j)**2
-         
       enddo ! ij
       
       end subroutine calc_L2norm_squared
-      
+
 !=======================================================================
 
 ! Convert a grid function (tpu,tpv) to a one dimensional vector
@@ -2536,7 +2525,7 @@
 
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
          icellu
-         
+
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
          intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -2545,7 +2534,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(in) :: &
          tpu     , & ! x-component of vector
          tpv         ! y-component of vector
-         
+
       real (kind=dbl_kind), dimension (ntot), intent(out) :: &
          outvec
 
@@ -2553,7 +2542,6 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk, tot, ij
-         
 
       character(len=*), parameter :: subname = '(arrays_to_vec)'
 
@@ -2561,22 +2549,22 @@
       ! form vector (converts from max_blocks arrays to single vector
       !-----------------------------------------------------------------
 
-      outvec(:)=c0
-      tot=0
+      outvec(:) = c0
+      tot = 0
       
-      do iblk=1, nblocks
-       do ij =1, icellu(iblk)
-          i = indxui(ij,iblk)
-          j = indxuj(ij,iblk)
-          tot=tot+1
-          outvec(tot)=tpu(i,j,iblk)
-          tot=tot+1
-          outvec(tot)=tpv(i,j,iblk)
-       enddo
-      enddo! ij
+      do iblk = 1, nblocks
+         do ij = 1, icellu(iblk)
+            i = indxui(ij, iblk)
+            j = indxuj(ij, iblk)
+            tot = tot + 1
+            outvec(tot) = tpu(i, j, iblk)
+            tot = tot + 1
+            outvec(tot) = tpv(i, j, iblk)
+         enddo
+      enddo ! ij
 
       end subroutine arrays_to_vec
-      
+
 !=======================================================================
 
 ! Convert one dimensional vector received from the legacy FGMRES driver
@@ -2596,7 +2584,7 @@
 
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
          icellu
-         
+
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
          intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -2607,13 +2595,12 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(out) :: &
          tpu     , & ! x-component of vector
-         tpv         ! y-component of vector         
-         
+         tpv         ! y-component of vector
+
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, iblk, tot, ij
-         
 
       character(len=*), parameter :: subname = '(vec_to_arrays)'
 
@@ -2621,23 +2608,23 @@
       ! form arrays (converts from vector to the max_blocks arrays
       !-----------------------------------------------------------------
 
-      tpu(:,:,:)=c0
-      tpv(:,:,:)=c0
-      tot=0
+      tpu(:,:,:) = c0
+      tpv(:,:,:) = c0
+      tot = 0
       
-      do iblk=1, nblocks
-       do ij =1, icellu(iblk)
-          i = indxui(ij,iblk)
-          j = indxuj(ij,iblk)
-          tot=tot+1
-          tpu(i,j,iblk)=invec(tot)
-          tot=tot+1
-          tpv(i,j,iblk)=invec(tot)
-       enddo
+      do iblk = 1, nblocks
+         do ij = 1, icellu(iblk)
+            i = indxui(ij, iblk)
+            j = indxuj(ij, iblk)
+            tot = tot + 1
+            tpu(i, j, iblk) = invec(tot)
+            tot = tot + 1
+            tpv(i, j, iblk) = invec(tot)
+         enddo
       enddo! ij
 
       end subroutine vec_to_arrays
-      
+
 !=======================================================================
 
 ! Update Q and R factor after deletion of the 1st column of G_diff
@@ -2649,7 +2636,7 @@
 !   [Online]. Available: https://users.wpi.edu/~walker/Papers/anderson_accn_algs_imps.pdf
 
       subroutine qr_delete(Q, R)
-      
+
       real (kind=dbl_kind), intent(inout) :: &
          Q(:,:),  & ! Q factor
          R(:,:)     ! R factor
@@ -2659,34 +2646,34 @@
       integer (kind=int_kind) :: &
          i, j, k, & ! loop indices
          m, n       ! size of Q matrix
-         
+
       real (kind=dbl_kind) :: &
          temp, c, s
-               
+
       character(len=*), parameter :: subname = '(qr_delete)'
       
-      n = size(Q,1)
-      m = size(Q,2)
+      n = size(Q, 1)
+      m = size(Q, 2)
       do i = 1, m-1
-         temp = sqrt(R(i,i+1)**2 + R(i+1,i+1)**2)
-         c = R(i,i+1)/temp
-         s = R(i+1,i+1)/temp
-         R(i,i+1) = temp
-         R(i+1,i+1) = 0
+         temp = sqrt(R(i, i+1)**2 + R(i+1, i+1)**2)
+         c = R(i  , i+1) / temp
+         s = R(i+1, i+1) / temp
+         R(i  , i+1) = temp
+         R(i+1, i+1) = 0
          if (i < m-1) then
             do j = i+2, m
-               temp = c*R(i,j) + s*R(i+1,j)
-               R(i+1,j) = -s*R(i,j) + c*R(i+1,j)
-               R(i,j) = temp
+               temp      =  c*R(i, j) + s*R(i+1, j)
+               R(i+1, j) = -s*R(i, j) + c*R(i+1, j)
+               R(i  , j) = temp
             enddo
          endif
          do k = 1, n
-            temp = c*Q(k,i) + s*Q(k,i+1);
-            Q(k,i+1) = -s*Q(k,i) + c*Q(k,i+1);
-            Q(k,i) = temp
+            temp      =  c*Q(k, i) + s*Q(k, i+1);
+            Q(k, i+1) = -s*Q(k, i) + c*Q(k, i+1);
+            Q(k, i)   = temp
          enddo
       enddo
-      R(:,1:m-1) = R(:,2:m)
+      R(:, 1:m-1) = R(:, 2:m)
       
       end subroutine qr_delete
 
@@ -2751,7 +2738,7 @@
          iblk    , & ! block index
          ij      , & ! index for indx[t|u][i|j]
          i, j        ! grid indices
-         
+
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          workspace_x , & ! work vector (x components)
          workspace_y     ! work vector (y components)
@@ -2867,7 +2854,7 @@
          inverse_norm = c1 / norm_residual
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            do ij =1, icellu(iblk)
+            do ij = 1, icellu(iblk)
                i = indxui(ij, iblk)
                j = indxuj(ij, iblk)
 
@@ -2889,7 +2876,7 @@
          rhs_hess(2:) = c0
          
          initer = 0
-      
+         
          ! Start of inner (Arnoldi) loop
          do
             
@@ -2938,7 +2925,6 @@
                                arnoldi_basis_x, arnoldi_basis_y, &
                                hessenberg)
             
-            
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -2958,7 +2944,7 @@
                inverse_norm = c1 / hessenberg(nextit,initer)
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
-                  do ij =1, icellu(iblk)
+                  do ij = 1, icellu(iblk)
                      i = indxui(ij, iblk)
                      j = indxuj(ij, iblk)
                      
@@ -3004,7 +2990,7 @@
             endif
             
          end do ! end of inner (Arnoldi) loop
-      
+         
          ! At this point either the maximum number of inner iterations
          ! was reached or the absolute residual is below the scaled tolerance.
 
@@ -3025,7 +3011,7 @@
             t = rhs_hess(it)
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
-               do ij =1, icellu(iblk)
+               do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
 
@@ -3069,7 +3055,7 @@
          do it = 1, nextit
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
-               do ij =1, icellu(iblk)
+               do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
 
@@ -3144,7 +3130,7 @@
          iblk    , & ! block index
          ij      , & ! index for indx[t|u][i|j]
          i, j        ! grid indices
-         
+
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          workspace_x , & ! work vector (x components)
          workspace_y     ! work vector (y components)
@@ -3258,7 +3244,7 @@
          inverse_norm = c1 / norm_residual
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            do ij =1, icellu(iblk)
+            do ij = 1, icellu(iblk)
                i = indxui(ij, iblk)
                j = indxuj(ij, iblk)
 
@@ -3280,7 +3266,7 @@
          rhs_hess(2:) = c0
          
          initer = 0
-      
+         
          ! Start of inner (Arnoldi) loop
          do
             
@@ -3344,7 +3330,7 @@
                inverse_norm = c1 / hessenberg(nextit,initer)
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
-                  do ij =1, icellu(iblk)
+                  do ij = 1, icellu(iblk)
                      i = indxui(ij, iblk)
                      j = indxuj(ij, iblk)
                      
@@ -3390,7 +3376,7 @@
             endif
             
          end do ! end of inner (Arnoldi) loop
-      
+         
          ! At this point either the maximum number of inner iterations
          ! was reached or the absolute residual is below the scaled tolerance.
 
@@ -3413,7 +3399,7 @@
             t = rhs_hess(it)
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
-               do ij =1, icellu(iblk)
+               do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
 
@@ -3469,7 +3455,7 @@
          do it = 1, nextit
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
-               do ij =1, icellu(iblk)
+               do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
 
@@ -3552,7 +3538,7 @@
       elseif (precond_type == 'diag') then ! Jacobi preconditioner (diagonal)
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            do ij =1, icellu(iblk)
+            do ij = 1, icellu(iblk)
                i = indxui(ij, iblk)
                j = indxuj(ij, iblk)
 
@@ -3579,7 +3565,7 @@
                       nbiter,     conv)
       else
          call abort_ice(error_message='wrong preconditioner in ' // subname, &
-         file=__FILE__, line=__LINE__)
+            file=__FILE__, line=__LINE__)
       endif
       end subroutine precondition
 
@@ -3631,12 +3617,12 @@
          ! Classical Gram-Schmidt orthogonalisation process
          ! First loop of Gram-Schmidt (compute coefficients)
          dotprod_local = c0
-         do it=1,initer
+         do it = 1, initer
             local_dot = c0
             
             !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
             do iblk = 1, nblocks
-               do ij =1, icellu(iblk)
+               do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
                   
@@ -3650,13 +3636,13 @@
             dotprod_local(it) = sum(local_dot)
          end do
 
-         hessenberg(1:initer,initer) = global_sums(dotprod_local(1:initer), distrb_info)
+         hessenberg(1:initer, initer) = global_sums(dotprod_local(1:initer), distrb_info)
 
          ! Second loop of Gram-Schmidt (orthonormalize)
          do it = 1, initer
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
-               do ij =1, icellu(iblk)
+               do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
                   
@@ -3670,12 +3656,12 @@
          end do
       elseif (trim(ortho_type) == 'mgs') then ! Modified Gram-Schmidt
          ! Modified Gram-Schmidt orthogonalisation process
-         do it=1,initer
+         do it = 1, initer
             local_dot = c0
             
             !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
             do iblk = 1, nblocks
-               do ij =1, icellu(iblk)
+               do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
                   
@@ -3690,7 +3676,7 @@
             
             !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
             do iblk = 1, nblocks
-               do ij =1, icellu(iblk)
+               do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
                   
