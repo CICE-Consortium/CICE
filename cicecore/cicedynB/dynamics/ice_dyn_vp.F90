@@ -831,7 +831,6 @@
                             indxui     (:,iblk), indxuj    (:,iblk), &
                             stPrtmp     (:,:,:), uarear  (:,:,iblk), &
                             waterx   (:,:,iblk), watery  (:,:,iblk), &
-                            ulin     (:,:,iblk), vlin    (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
                             vrel     (:,:,iblk))
@@ -1840,7 +1839,6 @@
                             indxui  , indxuj  , &
                             stPr    , uarear  , &
                             waterx  , watery  , &
-                            uvel    , vvel    , &
                             bxfix   , byfix   , &
                             bx      , by      , &
                             vrel)
@@ -1854,8 +1852,6 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvel    , & ! x-component of velocity (m/s)
-         vvel    , & ! y-component of velocity (m/s)
          uarear  , & ! 1/uarea
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
@@ -1876,7 +1872,6 @@
          i, j, ij
 
       real (kind=dbl_kind) :: &
-         utp, vtp          , & ! utp = uvel, vtp = vvel !jfl needed?
          taux, tauy        , & ! part of ocean stress term
          strintx, strinty  , & ! divergence of the internal stress tensor (only Pr part)
          rhow                  !
@@ -1895,9 +1890,6 @@
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
-
-         utp = uvel(i,j)
-         vtp = vvel(i,j)
 
          ! ice/ocean stress
          taux = vrel(i,j)*waterx(i,j) ! NOTE this is not the entire
