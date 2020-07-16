@@ -175,9 +175,9 @@
 !
 #ifdef CICE_IN_NEMO
 ! Wind stress is set during this routine from the values supplied
-! via NEMO (unless calc_strair is true).  These values are supplied 
-! rotated on u grid and multiplied by aice.  strairxT = 0 in this 
-! case so operations in dyn_prep1 are pointless but carried out to 
+! via NEMO (unless calc_strair is true).  These values are supplied
+! rotated on u grid and multiplied by aice.  strairxT = 0 in this
+! case so operations in dyn_prep1 are pointless but carried out to
 ! minimise code changes.
 #endif
 !
@@ -225,7 +225,7 @@
          watery   , & ! for ocean stress calculation, y (m/s)
          forcex   , & ! work array: combined atm stress and ocn tilt, x
          forcey   , & ! work array: combined atm stress and ocn tilt, y
-         bxfix    , & ! part of bx that is constant during Picard 
+         bxfix    , & ! part of bx that is constant during Picard
          byfix    , & ! part of by that is constant during Picard
          Cb       , & ! seabed stress coefficient
          fpresx   , & ! x fixed point residual vector, fx = uvel - uprev_k
@@ -265,7 +265,7 @@
 
       !-----------------------------------------------------------------
       ! boundary updates
-      ! commented out because the ghost cells are freshly 
+      ! commented out because the ghost cells are freshly
       ! updated after cleanup_itd
       !-----------------------------------------------------------------
 
@@ -281,31 +281,31 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
-         do j = 1, ny_block 
-         do i = 1, nx_block 
-            rdg_conv (i,j,iblk) = c0 
-            rdg_shear(i,j,iblk) = c0 
-            divu (i,j,iblk) = c0 
-            shear(i,j,iblk) = c0 
+         do j = 1, ny_block
+         do i = 1, nx_block
+            rdg_conv (i,j,iblk) = c0
+            rdg_shear(i,j,iblk) = c0
+            divu (i,j,iblk) = c0
+            shear(i,j,iblk) = c0
          enddo
          enddo
 
       !-----------------------------------------------------------------
-      ! preparation for dynamics 
+      ! preparation for dynamics
       !-----------------------------------------------------------------
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call dyn_prep1 (nx_block,           ny_block,           & 
+         call dyn_prep1 (nx_block,           ny_block,           &
                          ilo, ihi,           jlo, jhi,           &
-                         aice    (:,:,iblk), vice    (:,:,iblk), & 
-                         vsno    (:,:,iblk), tmask   (:,:,iblk), & 
-                         strairxT(:,:,iblk), strairyT(:,:,iblk), & 
-                         strairx (:,:,iblk), strairy (:,:,iblk), & 
+                         aice    (:,:,iblk), vice    (:,:,iblk), &
+                         vsno    (:,:,iblk), tmask   (:,:,iblk), &
+                         strairxT(:,:,iblk), strairyT(:,:,iblk), &
+                         strairx (:,:,iblk), strairy (:,:,iblk), &
                          tmass   (:,:,iblk), icetmask(:,:,iblk))
 
       enddo                     ! iblk
@@ -332,13 +332,13 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (.not. calc_strair) then       
+      if (.not. calc_strair) then
          strairx(:,:,:) = strax(:,:,:)
          strairy(:,:,:) = stray(:,:,:)
       else
          call t2ugrid_vector(strairx)
          call t2ugrid_vector(strairy)
-      endif      
+      endif
 
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
 ! need to do more debugging
@@ -349,49 +349,49 @@
       ! more preparation for dynamics
       !-----------------------------------------------------------------
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         call dyn_prep2 (nx_block,             ny_block,             & 
+         call dyn_prep2 (nx_block,             ny_block,             &
                          ilo, ihi,             jlo, jhi,             &
-                         icellt(iblk),         icellu(iblk),         & 
-                         indxti      (:,iblk), indxtj      (:,iblk), & 
-                         indxui      (:,iblk), indxuj      (:,iblk), & 
-                         aiu       (:,:,iblk), umass     (:,:,iblk), & 
-                         umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), & 
-                         umask     (:,:,iblk),                       & 
-                         uocn      (:,:,iblk), vocn      (:,:,iblk), & 
-                         strairx   (:,:,iblk), strairy   (:,:,iblk), & 
-                         ss_tltx   (:,:,iblk), ss_tlty   (:,:,iblk), &  
-                         icetmask  (:,:,iblk), iceumask  (:,:,iblk), & 
-                         fm        (:,:,iblk), dt,                   & 
-                         strtltx   (:,:,iblk), strtlty   (:,:,iblk), & 
-                         strocnx   (:,:,iblk), strocny   (:,:,iblk), & 
-                         strintx   (:,:,iblk), strinty   (:,:,iblk), & 
-                         taubx     (:,:,iblk), tauby     (:,:,iblk), & 
-                         waterx    (:,:,iblk), watery    (:,:,iblk), & 
-                         forcex    (:,:,iblk), forcey    (:,:,iblk), & 
-                         stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
-                         stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                         stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
-                         stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
-                         stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
+                         icellt(iblk),         icellu(iblk),         &
+                         indxti      (:,iblk), indxtj      (:,iblk), &
+                         indxui      (:,iblk), indxuj      (:,iblk), &
+                         aiu       (:,:,iblk), umass     (:,:,iblk), &
+                         umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
+                         umask     (:,:,iblk),                       &
+                         uocn      (:,:,iblk), vocn      (:,:,iblk), &
+                         strairx   (:,:,iblk), strairy   (:,:,iblk), &
+                         ss_tltx   (:,:,iblk), ss_tlty   (:,:,iblk), &
+                         icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
+                         fm        (:,:,iblk), dt,                   &
+                         strtltx   (:,:,iblk), strtlty   (:,:,iblk), &
+                         strocnx   (:,:,iblk), strocny   (:,:,iblk), &
+                         strintx   (:,:,iblk), strinty   (:,:,iblk), &
+                         taubx     (:,:,iblk), tauby     (:,:,iblk), &
+                         waterx    (:,:,iblk), watery    (:,:,iblk), &
+                         forcex    (:,:,iblk), forcey    (:,:,iblk), &
+                         stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
+                         stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
+                         stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
+                         stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
+                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
+                         stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
                          uvel      (:,:,iblk), vvel      (:,:,iblk), &
                          Tbu       (:,:,iblk))
 
-         call calc_bfix (nx_block            , ny_block,             & 
-                         icellu(iblk)        ,                       & 
-                         indxui      (:,iblk), indxuj      (:,iblk), & 
-                         umassdti  (:,:,iblk),                       & 
-                         forcex    (:,:,iblk), forcey    (:,:,iblk), & 
+         call calc_bfix (nx_block            , ny_block,             &
+                         icellu(iblk)        ,                       &
+                         indxui      (:,iblk), indxuj      (:,iblk), &
+                         umassdti  (:,:,iblk),                       &
+                         forcex    (:,:,iblk), forcey    (:,:,iblk), &
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
-                         bxfix     (:,:,iblk), byfix     (:,:,iblk))                         
-                         
+                         bxfix     (:,:,iblk), byfix     (:,:,iblk))
+         
       !-----------------------------------------------------------------
       ! ice strength
       !-----------------------------------------------------------------
@@ -401,11 +401,11 @@
             i = indxti(ij, iblk)
             j = indxtj(ij, iblk)
             call icepack_ice_strength (ncat,                 &
-                                      aice    (i,j,  iblk), & 
-                                      vice    (i,j,  iblk), & 
-                                      aice0   (i,j,  iblk), & 
-                                      aicen   (i,j,:,iblk), &  
-                                      vicen   (i,j,:,iblk), & 
+                                      aice    (i,j,  iblk), &
+                                      vice    (i,j,  iblk), &
+                                      aice0   (i,j,  iblk), &
+                                      aicen   (i,j,:,iblk), &
+                                      vicen   (i,j,:,iblk), &
                                       strength(i,j,  iblk) )
          enddo  ! ij
 
@@ -456,7 +456,7 @@
       
       ntot=0
       do iblk = 1, nblocks
-        ntot = ntot + icellu(iblk)      
+        ntot = ntot + icellu(iblk)
       enddo
       ntot = 2*ntot ! times 2 because of u and v
       
@@ -469,7 +469,7 @@
                             indxti,   indxtj,  &
                             indxui,   indxuj,  &
                             aiu,      ntot,    &
-                            waterx,   watery,  & 
+                            waterx,   watery,  &
                             bxfix,    byfix,   &
                             umassdti, sol,     &
                             fpresx,   fpresy,  &
@@ -614,16 +614,16 @@
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
 
-         call dyn_finish                               & 
-              (nx_block,           ny_block,           & 
-               icellu      (iblk), Cdn_ocn (:,:,iblk), & 
-               indxui    (:,iblk), indxuj    (:,iblk), & 
-               uvel    (:,:,iblk), vvel    (:,:,iblk), & 
-               uocn    (:,:,iblk), vocn    (:,:,iblk), & 
-               aiu     (:,:,iblk), fm      (:,:,iblk), & 
+         call dyn_finish                               &
+              (nx_block,           ny_block,           &
+               icellu      (iblk), Cdn_ocn (:,:,iblk), &
+               indxui    (:,iblk), indxuj    (:,iblk), &
+               uvel    (:,:,iblk), vvel    (:,:,iblk), &
+               uocn    (:,:,iblk), vocn    (:,:,iblk), &
+               aiu     (:,:,iblk), fm      (:,:,iblk), &
                strintx (:,:,iblk), strinty (:,:,iblk), &
                strairx (:,:,iblk), strairy (:,:,iblk), &
-               strocnx (:,:,iblk), strocny (:,:,iblk), & 
+               strocnx (:,:,iblk), strocny (:,:,iblk), &
                strocnxT(:,:,iblk), strocnyT(:,:,iblk))
 
       enddo
@@ -652,7 +652,7 @@
                                   indxti,   indxtj,  &
                                   indxui,   indxuj,  &
                                   aiu,      ntot,    &
-                                  waterx,   watery,  & 
+                                  waterx,   watery,  &
                                   bxfix,    byfix,   &
                                   umassdti, sol,     &
                                   fpresx,   fpresy,  &
@@ -671,10 +671,10 @@
       use ice_state, only: uvel, vvel, strength
       use ice_timers, only: ice_timer_start, ice_timer_stop
 
-      integer (kind=int_kind), intent(in) :: & 
+      integer (kind=int_kind), intent(in) :: &
          ntot         ! size of problem for fgmres (for given cpu)
 
-      integer (kind=int_kind), dimension(max_blocks), intent(in) :: & 
+      integer (kind=int_kind), dimension(max_blocks), intent(in) :: &
          icellt   , & ! no. of cells where icetmask = 1
          icellu       ! no. of cells where iceumask = 1
 
@@ -708,7 +708,7 @@
 
       ! local variables
 
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          it_nl      , & ! nonlinear loop iteration index
          res_num    , & ! current number of stored residuals
          j          , & ! iteration index for QR update
@@ -723,7 +723,7 @@
          vprev_k  , & ! vvel at previous Picard iteration
          ulin     , & ! uvel to linearize vrel
          vlin     , & ! vvel to linearize vrel
-         vrel     , & ! coeff for tauw 
+         vrel     , & ! coeff for tauw
          bx       , & ! b vector
          by       , & ! b vector
          diagx    , & ! Diagonal (x component) of the matrix A
@@ -761,7 +761,7 @@
          rhs_tri  , & ! right hand side vector for matrix-vector product
          coeffs       ! coeffs used to combine previous solutions
 
-      real (kind=dbl_kind) :: & 
+      real (kind=dbl_kind) :: &
          ! tol         , & ! tolerance for fixed point convergence: reltol_andacc * (initial fixed point residual norm)  [unused for now]
          tol_nl      , & ! tolerance for nonlinear convergence: reltol_nonlin * (initial nonlinear residual norm)
          fpres_norm  , & ! norm of current fixed point residual : f(x) = g(x) - x
@@ -786,7 +786,7 @@
       !$OMP END PARALLEL DO
       
       ! Start iterations
-      do it_nl = 0, maxits_nonlin        ! nonlinear iteration loop 
+      do it_nl = 0, maxits_nonlin        ! nonlinear iteration loop
          ! Compute quantities needed for computing PDE residual and g(x) (fixed point map)
          !-----------------------------------------------------------------
          ! Calc zetaD, Pr, Cb and vrel = f(uprev_k, vprev_k)
@@ -805,31 +805,31 @@
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
             
             call calc_zeta_Pr (nx_block           , ny_block,           &
-                               icellt(iblk),                            & 
-                               indxti   (:,iblk)  , indxtj(:,iblk),     & 
-                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), & 
-                               dxt      (:,:,iblk), dyt   (:,:,iblk),   & 
-                               dxhy     (:,:,iblk), dyhx  (:,:,iblk),   & 
-                               cxp      (:,:,iblk), cyp   (:,:,iblk),   & 
-                               cxm      (:,:,iblk), cym   (:,:,iblk),   & 
-                               tinyarea (:,:,iblk),                     & 
+                               icellt(iblk),                            &
+                               indxti   (:,iblk)  , indxtj(:,iblk),     &
+                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
+                               dxt      (:,:,iblk), dyt   (:,:,iblk),   &
+                               dxhy     (:,:,iblk), dyhx  (:,:,iblk),   &
+                               cxp      (:,:,iblk), cyp   (:,:,iblk),   &
+                               cxm      (:,:,iblk), cym   (:,:,iblk),   &
+                               tinyarea (:,:,iblk),                     &
                                strength (:,:,iblk), zetaD (:,:,iblk,:) ,&
-                               stPrtmp  (:,:,:) )                      
+                               stPrtmp  (:,:,:))
             
             call calc_vrel_Cb (nx_block           , ny_block,           &
-                               icellu       (iblk), Cdn_ocn (:,:,iblk), & 
+                               icellu       (iblk), Cdn_ocn (:,:,iblk), &
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                aiu      (:,:,iblk), Tbu     (:,:,iblk), &
-                               uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                               uocn     (:,:,iblk), vocn    (:,:,iblk), &
                                ulin     (:,:,iblk), vlin    (:,:,iblk), &
                                vrel     (:,:,iblk), Cb      (:,:,iblk))
             
             ! prepare b vector (RHS)
             call calc_bvec (nx_block           , ny_block,           &
-                            icellu       (iblk),                     & 
+                            icellu       (iblk),                     &
                             indxui     (:,iblk), indxuj    (:,iblk), &
                             stPrtmp  (:,:,:)   , uarear  (:,:,iblk), &
-                            waterx   (:,:,iblk), watery  (:,:,iblk), & 
+                            waterx   (:,:,iblk), watery  (:,:,iblk), &
                             ulin     (:,:,iblk), vlin    (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
@@ -851,7 +851,7 @@
                          uarear   (:,:,iblk)  ,                      &
                          Au       (:,:,iblk)  , Av       (:,:,iblk))
             call residual_vec (nx_block           , ny_block,           &
-                               icellu       (iblk),                     & 
+                               icellu       (iblk),                     &
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                bx       (:,:,iblk), by      (:,:,iblk), &
                                Au       (:,:,iblk), Av      (:,:,iblk), &
@@ -894,17 +894,17 @@
                   call formDiag_step1 (nx_block           , ny_block,       & ! D term due to rheology
                                        icellu       (iblk),                 &
                                        indxui     (:,iblk), indxuj(:,iblk), &
-                                       dxt      (:,:,iblk), dyt (:,:,iblk), & 
-                                       dxhy     (:,:,iblk), dyhx(:,:,iblk), & 
-                                       cxp      (:,:,iblk), cyp (:,:,iblk), & 
-                                       cxm      (:,:,iblk), cym (:,:,iblk), & 
-                                       zetaD (:,:,iblk,:) , Dstrtmp (:,:,:) )
+                                       dxt      (:,:,iblk), dyt (:,:,iblk), &
+                                       dxhy     (:,:,iblk), dyhx(:,:,iblk), &
+                                       cxp      (:,:,iblk), cyp (:,:,iblk), &
+                                       cxm      (:,:,iblk), cym (:,:,iblk), &
+                                       zetaD (:,:,iblk,:) , Dstrtmp (:,:,:))
                   call formDiag_step2 (nx_block           , ny_block,           &
-                                       icellu       (iblk),                     & 
+                                       icellu       (iblk),                     &
                                        indxui     (:,iblk), indxuj    (:,iblk), &
                                        Dstrtmp  (:,:,:)   , vrel    (:,:,iblk), &
-                                       umassdti (:,:,iblk),                     & 
-                                       uarear   (:,:,iblk), Cb      (:,:,iblk), & 
+                                       umassdti (:,:,iblk),                     &
+                                       uarear   (:,:,iblk), Cb      (:,:,iblk), &
                                        diagx    (:,:,iblk), diagy   (:,:,iblk))
                enddo
                !$OMP END PARALLEL DO
@@ -965,12 +965,12 @@
          !    tol = reltol_andacc*fpres_norm
          ! endif
          ! 
-         ! ! Check residual 
+         ! ! Check residual
          ! if (fpres_norm < tol) then
          !    exit
          ! endif
 
-         if (im_andacc == 0 .or. it_nl < start_andacc) then 
+         if (im_andacc == 0 .or. it_nl < start_andacc) then
             ! Simple fixed point (Picard) iteration in this case
             sol = fpfunc
          else
@@ -1056,7 +1056,7 @@
          !     Put vector sol in uvel and vvel arrays
          !-----------------------------------------------------------------------
          call vec_to_arrays (nx_block, ny_block, nblocks,      &
-                             max_blocks, icellu (:), ntot,     & 
+                             max_blocks, icellu (:), ntot,     &
                              indxui    (:,:), indxuj(:,:),     &
                              sol (:),                          &
                              uvel (:,:,:), vvel (:,:,:))
@@ -1070,7 +1070,7 @@
             fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
             fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
             call calc_L2norm_squared (nx_block        , ny_block,         &
-                                      icellu    (iblk),                   & 
+                                      icellu    (iblk),                   &
                                       indxui  (:,iblk), indxuj  (:,iblk), &
                                       fpresx(:,:,iblk), fpresy(:,:,iblk), &
                                       L2norm    (iblk))
@@ -1088,27 +1088,27 @@
 
 !=======================================================================
 
-! Computes the viscous coefficients (in fact zetaD=2*zeta) and dPr/dx. 
+! Computes the viscous coefficients (in fact zetaD=2*zeta) and dPr/dx.
 
-      subroutine calc_zeta_Pr  (nx_block,   ny_block,   & 
-                                icellt,                 & 
-                                indxti,     indxtj,     & 
-                                uvel,       vvel,       & 
-                                dxt,        dyt,        & 
-                                dxhy,       dyhx,       & 
-                                cxp,        cyp,        & 
-                                cxm,        cym,        & 
-                                tinyarea,               & 
+      subroutine calc_zeta_Pr  (nx_block,   ny_block,   &
+                                icellt,                 &
+                                indxti,     indxtj,     &
+                                uvel,       vvel,       &
+                                dxt,        dyt,        &
+                                dxhy,       dyhx,       &
+                                cxp,        cyp,        &
+                                cxm,        cym,        &
+                                tinyarea,               &
                                 strength,   zetaD,      &
                                 stPr)
 
       use ice_dyn_shared, only: strain_rates
 
-      integer (kind=int_kind), intent(in) :: & 
+      integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
          indxti   , & ! compressed index in i-direction
          indxtj       ! compressed index in j-direction
@@ -1127,11 +1127,11 @@
          cxm      , & ! 0.5*HTN - 1.5*HTN
          tinyarea     ! min_strain_rate*tarea
          
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
          intent(out) :: &
          zetaD          ! 2*zeta
          
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
          intent(out) :: &
          stPr          ! stress Pr combinations
 
@@ -1150,7 +1150,7 @@
         stressp_1, stressp_2, stressp_3, stressp_4    , &
         strp_tmp
         
-      logical :: capping ! of the viscous coeff  
+      logical :: capping ! of the viscous coeff
 
       character(len=*), parameter :: subname = '(calc_zeta_Pr)'
 
@@ -1201,7 +1201,6 @@
           zetaD(i,j,2) = strength(i,j)/(Deltanw + tinyarea(i,j))
           zetaD(i,j,3) = strength(i,j)/(Deltasw + tinyarea(i,j))
           zetaD(i,j,4) = strength(i,j)/(Deltase + tinyarea(i,j))
-          
          
          endif
          
@@ -1279,7 +1278,7 @@
 
       enddo                     ! ij
 
-      end subroutine calc_zeta_Pr      
+      end subroutine calc_zeta_Pr
       
 !=======================================================================
 
@@ -1302,11 +1301,11 @@
 
       use ice_dyn_shared, only: strain_rates
 
-      integer (kind=int_kind), intent(in) :: & 
+      integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
          indxti   , & ! compressed index in i-direction
          indxtj       ! compressed index in j-direction
@@ -1321,11 +1320,11 @@
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm          ! 0.5*HTN - 1.5*HTN
          
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
          intent(in) :: &
-         zetaD          ! 2*zeta   
+         zetaD          ! 2*zeta
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
+      real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
@@ -1521,13 +1520,13 @@
                          icellu,     icellt ,  &
                          indxui,     indxuj,   &
                          indxti,     indxtj,   &
-                         dxt,        dyt,      & 
-                         dxhy,       dyhx,     & 
-                         cxp,        cyp,      & 
-                         cxm,        cym,      & 
+                         dxt,        dyt,      &
+                         dxhy,       dyhx,     &
+                         cxp,        cyp,      &
+                         cxm,        cym,      &
                          uvel,       vvel,     &
                          vrel,       Cb,       &
-                         zetaD,                & 
+                         zetaD,                &
                          umassdti,   fm,       &
                          uarear,               &
                          Au,         Av)
@@ -1566,9 +1565,9 @@
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
          intent(in) :: &
-         zetaD          ! 2*zeta   
+         zetaD          ! 2*zeta
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(inout) :: &
@@ -1581,7 +1580,7 @@
          i, j, ij
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
-         str    
+         str
          
       real (kind=dbl_kind) :: &
          utp, vtp          , & ! utp = uvel, vtp = vvel
@@ -1606,7 +1605,7 @@
       real (kind=dbl_kind) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22 (without Pr)
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
-         stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12        
+         stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12
 
       character(len=*), parameter :: subname = '(matvec)'
 
@@ -1793,15 +1792,15 @@
 
       end subroutine matvec
 
-!=======================================================================      
+!=======================================================================
 
 ! Compute the constant component of b(u,v) i.e. the part of b(u,v) that
 ! does not depend on (u,v) and thus do not change during the nonlinear iteration
 
-     subroutine calc_bfix  (nx_block,   ny_block,   & 
-                            icellu,                 & 
-                            indxui,     indxuj,     & 
-                            umassdti,               & 
+     subroutine calc_bfix  (nx_block,   ny_block,   &
+                            icellu,                 &
+                            indxui,     indxuj,     &
+                            umassdti,               &
                             forcex,     forcey,     &
                             uvel_init,  vvel_init,  &
                             bxfix,      byfix)
@@ -1810,12 +1809,12 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! no. of cells where iceumask = 1
          
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
+      real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(in) :: &
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
@@ -1823,7 +1822,7 @@
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          forcey      ! work array: combined atm stress and ocn tilt, y
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), & 
+      real (kind=dbl_kind), dimension (nx_block,ny_block), &
          intent(out) :: &
          bxfix   , & ! bx = taux + bxfix
          byfix       ! by = tauy + byfix
@@ -2011,20 +2010,20 @@
 ! Form the diagonal of the matrix A(u,v) (first part of the computation)
 ! Part 1: compute the contributions of the diagonal to the rheology term
 
-      subroutine formDiag_step1  (nx_block,   ny_block,   & 
-                                  icellu,                 & 
-                                  indxui,     indxuj,     & 
-                                  dxt,        dyt,        & 
-                                  dxhy,       dyhx,       & 
-                                  cxp,        cyp,        & 
-                                  cxm,        cym,        & 
+      subroutine formDiag_step1  (nx_block,   ny_block,   &
+                                  icellu,                 &
+                                  indxui,     indxuj,     &
+                                  dxt,        dyt,        &
+                                  dxhy,       dyhx,       &
+                                  cxp,        cyp,        &
+                                  cxm,        cym,        &
                                   zetaD,      Dstr )
 
-      integer (kind=int_kind), intent(in) :: & 
+      integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), & 
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
          intent(in) :: &
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
@@ -2039,14 +2038,14 @@
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm          ! 0.5*HTN - 1.5*HTN
          
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
          intent(in) :: &
-         zetaD          ! 2*zeta      
+         zetaD          ! 2*zeta
          
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), & 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
          intent(out) :: &
-         Dstr          ! intermediate calc for diagonal components of matrix A associated 
-                       ! with rheology term         
+         Dstr          ! intermediate calc for diagonal components of matrix A associated
+                       ! with rheology term
 
       ! local variables
 
@@ -2081,16 +2080,16 @@
 !cdir nodep      !NEC
 !ocl novrec      !Fujitsu
 
-      Dstr(:,:,:) = c0 ! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8 
-                       ! come from the surrounding T cells but are all refrerenced to the i,j (u point)  
+      Dstr(:,:,:) = c0 ! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8
+                       ! come from the surrounding T cells but are all refrerenced to the i,j (u point)
        
  !      Dstr(i,j,1) corresponds to str(i,j,1)
  !      Dstr(i,j,2) corresponds to str(i+1,j,2)
- !      Dstr(i,j,3) corresponds to str(i,j+1,3) 
+ !      Dstr(i,j,3) corresponds to str(i,j+1,3)
  !      Dstr(i,j,4) corresponds to str(i+1,j+1,4))
- !      Dstr(i,j,5) corresponds to str(i,j,5) 
+ !      Dstr(i,j,5) corresponds to str(i,j,5)
  !      Dstr(i,j,6) corresponds to str(i,j+1,6)
- !      Dstr(i,j,7) corresponds to str(i+1,j,7) 
+ !      Dstr(i,j,7) corresponds to str(i+1,j,7)
  !      Dstr(i,j,8) corresponds to str(i+1,j+1,8))
              
       do cc=1, 8 ! 4 for u and 4 for v
@@ -2183,7 +2182,7 @@
         vi1j1 = c1
         di    = 1
         dj    = 1
-       endif 
+       endif
        
       do ij = 1, icellu
       
@@ -2308,7 +2307,7 @@
          Dstr(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
               + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
               
-         elseif (cc .eq. 2) then ! T cell i+1,j     
+         elseif (cc .eq. 2) then ! T cell i+1,j
           
           strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
           strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
@@ -2317,7 +2316,7 @@
          Dstr(iu,ju,2) = strp_tmp + strm_tmp - str12we &
               + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
 
-         elseif (cc .eq. 3) then ! T cell i,j+1        
+         elseif (cc .eq. 3) then ! T cell i,j+1
               
          strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
          strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
@@ -2326,10 +2325,10 @@
          Dstr(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
               + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
 
-         elseif (cc .eq. 4) then ! T cell i+1,j+1     
+         elseif (cc .eq. 4) then ! T cell i+1,j+1
               
          strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)     
+         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
               
          ! southwest (i+1,j+1)
          Dstr(iu,ju,4) = strp_tmp + strm_tmp + str12we &
@@ -2339,7 +2338,7 @@
       ! for dF/dy (v momentum)
       !-----------------------------------------------------------------
          
-         elseif (cc .eq. 5) then ! T cell i,j 
+         elseif (cc .eq. 5) then ! T cell i,j
          
          strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
          strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
@@ -2348,16 +2347,16 @@
          Dstr(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
               - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
 
-         elseif (cc .eq. 6) then ! T cell i,j+1      
+         elseif (cc .eq. 6) then ! T cell i,j+1
               
          strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)              
+         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
               
          ! southeast (i,j+1)
          Dstr(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
               - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
 
-         elseif (cc .eq. 7) then ! T cell i,j+1     
+         elseif (cc .eq. 7) then ! T cell i,j+1
               
          strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
          strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
@@ -2366,22 +2365,22 @@
          Dstr(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
               - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
 
-         elseif (cc .eq. 8) then ! T cell i+1,j+1        
+         elseif (cc .eq. 8) then ! T cell i+1,j+1
               
          strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)     
+         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
               
          ! southwest (i+1,j+1)
          Dstr(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
               - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
               
-         endif     
+         endif
 
       enddo                     ! ij
       
       enddo                     ! cc
 
-      end subroutine formDiag_step1      
+      end subroutine formDiag_step1
       
       
 !=======================================================================
@@ -2439,16 +2438,16 @@
       strintx=c0
       strinty=c0
          
-! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8 
-! come from the surrounding T cells but are all refrerenced to the i,j (u point)  
+! BE careful: Dstr contains 4 terms for u and 4 terms for v. These 8
+! come from the surrounding T cells but are all refrerenced to the i,j (u point)
        
  !      Dstr(i,j,1) corresponds to str(i,j,1)
  !      Dstr(i,j,2) corresponds to str(i+1,j,2)
- !      Dstr(i,j,3) corresponds to str(i,j+1,3) 
+ !      Dstr(i,j,3) corresponds to str(i,j+1,3)
  !      Dstr(i,j,4) corresponds to str(i+1,j+1,4))
- !      Dstr(i,j,5) corresponds to str(i,j,5) 
+ !      Dstr(i,j,5) corresponds to str(i,j,5)
  !      Dstr(i,j,6) corresponds to str(i,j+1,6)
- !      Dstr(i,j,7) corresponds to str(i+1,j,7) 
+ !      Dstr(i,j,7) corresponds to str(i+1,j,7)
  !      Dstr(i,j,8) corresponds to str(i+1,j+1,8))
          
       do ij =1, icellu
@@ -2467,7 +2466,7 @@
          
       enddo                     ! ij
 
-      end subroutine formDiag_step2     
+      end subroutine formDiag_step2
       
 !=======================================================================
 
@@ -2536,7 +2535,7 @@
          ntot                  ! size of problem for fgmres
 
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
-         icellu          
+         icellu
          
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
          intent(in) :: &
@@ -2545,7 +2544,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(in) :: &
          tpu     , & ! x-component of vector
-         tpv         ! y-component of vector         
+         tpv         ! y-component of vector
          
       real (kind=dbl_kind), dimension (ntot), intent(out) :: &
          outvec
@@ -2596,7 +2595,7 @@
          ntot                  ! size of problem for fgmres
 
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
-         icellu          
+         icellu
          
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
          intent(in) :: &
@@ -2604,7 +2603,7 @@
          indxuj      ! compressed index in j-direction
          
       real (kind=dbl_kind), dimension (ntot), intent(in) :: &
-         invec         
+         invec
 
       real (kind=dbl_kind), dimension (nx_block,ny_block, max_blocks), intent(out) :: &
          tpu     , & ! x-component of vector
@@ -2638,7 +2637,6 @@
       enddo! ij
 
       end subroutine vec_to_arrays
-      
       
 !=======================================================================
 
@@ -2694,7 +2692,7 @@
 
 !=======================================================================
 
-! FGMRES: Flexible generalized minimum residual method (with restarts). 
+! FGMRES: Flexible generalized minimum residual method (with restarts).
 ! Solves the linear system A x = b using GMRES with a varying (right) preconditioner
 !
 ! authors: Stéphane Gaudreault, Abdessamad Qaddouri, Philippe Blain, ECCC
@@ -2706,7 +2704,7 @@
                          bx,         by,      &
                          diagx,      diagy,   &
                          tolerance, maxinner, &
-                         maxouter,            &                         
+                         maxouter,            &
                          solx,       soly,    &
                          nbiter,     conv)
 
@@ -2714,7 +2712,7 @@
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
-         vrel  , & ! coefficient for tauw 
+         vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
 
@@ -2781,7 +2779,7 @@
          it, k, ii, jj       ! reusable loop counters
 
       real (kind=dbl_kind), dimension(maxinner+1) :: &
-         rot_cos         , & ! cosine elements of Givens rotations 
+         rot_cos         , & ! cosine elements of Givens rotations
          rot_sin         , & ! sine elements of Givens rotations
          rhs_hess            ! right hand side vector of the Hessenberg (least squares) system
 
@@ -2830,7 +2828,7 @@
                       uarear     (:,:,iblk)  ,                        &
                       workspace_x(:,:,iblk)  , workspace_y(:,:,iblk))
          call residual_vec (nx_block             , ny_block             , &
-                            icellu         (iblk),                        & 
+                            icellu         (iblk),                        &
                             indxui       (:,iblk), indxuj    (:,iblk)   , &
                             bx         (:,:,iblk), by      (:,:,iblk)   , &
                             workspace_x(:,:,iblk), workspace_y(:,:,iblk), &
@@ -2852,7 +2850,7 @@
                                      norm_squared(iblk))
 
          enddo
-         !$OMP END PARALLEL DO 
+         !$OMP END PARALLEL DO
          norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
          
          if (my_task == master_task .and. monitor_fgmres) then
@@ -2951,7 +2949,7 @@
                                         arnoldi_basis_y(:,:,iblk, nextit), &
                                         norm_squared(iblk))
             enddo
-            !$OMP END PARALLEL DO 
+            !$OMP END PARALLEL DO
             hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
             
             ! Watch out for happy breakdown
@@ -2968,7 +2966,7 @@
                      arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit)*inverse_norm
                   enddo ! ij
                enddo
-               !$OMP END PARALLEL DO 
+               !$OMP END PARALLEL DO
             end if
             
             ! Apply previous Givens rotation to the last column of the Hessenberg matrix
@@ -3050,14 +3048,14 @@
          ! \begin{equation}
          !    r =  V_{m+1} * Q_m^T * (\gamma_{m+1} * e_{m+1})
          ! \end{equation}
-         ! where : 
+         ! where :
          ! $r$ is the residual
          ! $V_{m+1}$ is a matrix whose columns are the Arnoldi vectors from 1 to nextit (m+1)
          ! $Q_m$ is the product of the Givens rotation : Q_m = G_m G_{m-1} ... G_1
          ! $gamma_{m+1}$ is the last element of rhs_hess
          ! $e_{m+1})$ is the unit vector (0, 0, ..., 1)^T \in \reals^{m+1}
          
-         ! Apply the Givens rotation in reverse order to g := \gamma_{m+1} * e_{m+1}, 
+         ! Apply the Givens rotation in reverse order to g := \gamma_{m+1} * e_{m+1},
          ! store the result in rhs_hess
          do it = 1, initer
             jj = nextit - it + 1
@@ -3089,7 +3087,7 @@
 
 !=======================================================================
 
-! PGMRES: Right-preconditioned generalized minimum residual method (with restarts). 
+! PGMRES: Right-preconditioned generalized minimum residual method (with restarts).
 ! Solves the linear A x = b using GMRES with a right preconditioner
 !
 ! authors: Stéphane Gaudreault, Abdessamad Qaddouri, Philippe Blain, ECCC
@@ -3108,7 +3106,7 @@
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
-         vrel  , & ! coefficient for tauw 
+         vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
 
@@ -3170,7 +3168,7 @@
          it, k, ii, jj       ! reusable loop counters
 
       real (kind=dbl_kind), dimension(maxinner+1) :: &
-         rot_cos         , & ! cosine elements of Givens rotations 
+         rot_cos         , & ! cosine elements of Givens rotations
          rot_sin         , & ! sine elements of Givens rotations
          rhs_hess            ! right hand side vector of the Hessenberg (least squares) system
 
@@ -3221,7 +3219,7 @@
                       uarear     (:,:,iblk)  ,                        &
                       workspace_x(:,:,iblk)  , workspace_y(:,:,iblk))
          call residual_vec (nx_block             , ny_block             , &
-                            icellu         (iblk),                        & 
+                            icellu         (iblk),                        &
                             indxui       (:,iblk), indxuj    (:,iblk)   , &
                             bx         (:,:,iblk), by      (:,:,iblk)   , &
                             workspace_x(:,:,iblk), workspace_y(:,:,iblk), &
@@ -3243,7 +3241,7 @@
                                      norm_squared(iblk))
 
          enddo
-         !$OMP END PARALLEL DO 
+         !$OMP END PARALLEL DO
          norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
          
          if (my_task == master_task .and. monitor_pgmres) then
@@ -3337,7 +3335,7 @@
                                         arnoldi_basis_y(:,:,iblk, nextit), &
                                         norm_squared(iblk))
             enddo
-            !$OMP END PARALLEL DO 
+            !$OMP END PARALLEL DO
             hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
             
             ! Watch out for happy breakdown
@@ -3354,7 +3352,7 @@
                      arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit)*inverse_norm
                   enddo ! ij
                enddo
-               !$OMP END PARALLEL DO 
+               !$OMP END PARALLEL DO
             end if
             
             ! Apply previous Givens rotation to the last column of the Hessenberg matrix
@@ -3450,14 +3448,14 @@
          ! \begin{equation}
          !    r =  V_{m+1} * Q_m^T * (\gamma_{m+1} * e_{m+1})
          ! \end{equation}
-         ! where : 
+         ! where :
          ! $r$ is the residual
          ! $V_{m+1}$ is a matrix whose columns are the Arnoldi vectors from 1 to nextit (m+1)
          ! $Q_m$ is the product of the Givens rotation : Q_m = G_m G_{m-1} ... G_1
          ! $gamma_{m+1}$ is the last element of rhs_hess
          ! $e_{m+1})$ is the unit vector (0, 0, ..., 1)^T \in \reals^{m+1}
          
-         ! Apply the Givens rotation in reverse order to g := \gamma_{m+1} * e_{m+1}, 
+         ! Apply the Givens rotation in reverse order to g := \gamma_{m+1} * e_{m+1},
          ! store the result in rhs_hess
          do it = 1, initer
             jj = nextit - it + 1
@@ -3505,7 +3503,7 @@
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
-         vrel  , & ! coefficient for tauw 
+         vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
 
@@ -3562,7 +3560,7 @@
                wy(i,j,iblk) = vy(i,j,iblk) / diagy(i,j,iblk)
             enddo ! ij
          enddo
-         !$OMP END PARALLEL DO 
+         !$OMP END PARALLEL DO
       elseif (precond_type == 'pgmres') then ! PGMRES (Jacobi-preconditioned GMRES)
          ! Initialize preconditioned vector to 0 !phb try with wx = vx or vx/diagx
          wx = c0
@@ -3642,7 +3640,7 @@
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
                   
-                  local_dot(iblk) = local_dot(iblk) + & 
+                  local_dot(iblk) = local_dot(iblk) + &
                                     (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
                                     (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
                enddo ! ij
@@ -3668,7 +3666,7 @@
                                                         - hessenberg(it,initer) * arnoldi_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
-            !$OMP END PARALLEL DO 
+            !$OMP END PARALLEL DO
          end do
       elseif (trim(ortho_type) == 'mgs') then ! Modified Gram-Schmidt
          ! Modified Gram-Schmidt orthogonalisation process
@@ -3702,7 +3700,7 @@
                                                         - hessenberg(it,initer) * arnoldi_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
-            !$OMP END PARALLEL DO 
+            !$OMP END PARALLEL DO
          end do
       else
          call abort_ice(error_message='wrong orthonalization in ' // subname, &
