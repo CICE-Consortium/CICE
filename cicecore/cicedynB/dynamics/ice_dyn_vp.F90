@@ -1109,8 +1109,7 @@
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
          indxtj       ! compressed index in j-direction
 
@@ -1128,12 +1127,10 @@
          cxm      , & ! 0.5*HTN - 1.5*HTN
          tinyarea     ! min_strain_rate*tarea
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
          zetaD          ! 2*zeta
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          stPr          ! stress Pr combinations
 
       ! local variables
@@ -1302,8 +1299,7 @@
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
          indxtj       ! compressed index in j-direction
 
@@ -1317,12 +1313,10 @@
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm          ! 0.5*HTN - 1.5*HTN
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
          zetaD          ! 2*zeta
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
          stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12
@@ -1405,8 +1399,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -1417,13 +1410,11 @@
          vocn    , & ! ocean current, y-direction (m/s)
          Cw          ! ocean-ice neutral drag coefficient
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel        ! y-component of velocity (m/s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          vrel      , & ! coeff for tauw
          Cb            ! seabed stress coeff
 
@@ -1474,8 +1465,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -1533,8 +1523,7 @@
          icellu,             & ! total count when iceumask is true
          icellt                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj  , & ! compressed index in j-direction
          indxti  , & ! compressed index in i-direction
@@ -1550,8 +1539,7 @@
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm          ! 0.5*HTN - 1.5*HTN
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel    , & ! y-component of velocity (m/s)
          vrel    , & ! coefficient for tauw
@@ -1560,12 +1548,10 @@
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
          zetaD          ! 2*zeta
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Au      , & ! matvec, Fx = bx - Au (N/m^2)
          Av          ! matvec, Fy = by - Av (N/m^2)
 
@@ -1802,22 +1788,19 @@
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellu                ! no. of cells where iceumask = 1
-         
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          forcey      ! work array: combined atm stress and ocn tilt, y
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          bxfix   , & ! bx = taux + bxfix
          byfix       ! by = tauy + byfix
 
@@ -1862,8 +1845,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -1877,12 +1859,10 @@
          byfix   , & ! by = tauy + byfix
          vrel        ! relative ice-ocean velocity
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(in) :: &
          stPr
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          bx      , & ! b vector, bx = taux + bxfix (N/m^2)
          by          ! b vector, by = tauy + byfix (N/m^2)
 
@@ -1950,8 +1930,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -1961,8 +1940,7 @@
          Au       , & ! matvec, Fx = bx - Au (N/m^2)
          Av           ! matvec, Fy = by - Av (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Fx      , & ! x residual vector, Fx = bx - Au (N/m^2)
          Fy          ! y residual vector, Fy = by - Av (N/m^2)
 
@@ -2015,8 +1993,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! no. of cells where icetmask = 1
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
@@ -2029,13 +2006,11 @@
          cxp      , & ! 1.5*HTN - 0.5*HTN
          cym      , & ! 0.5*HTE - 1.5*HTE
          cxm          ! 0.5*HTN - 1.5*HTN
-         
-      real (kind=dbl_kind), dimension(nx_block,ny_block,4), &
-         intent(in) :: &
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
          zetaD          ! 2*zeta
-         
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
-         intent(out) :: &
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          Dstr          ! intermediate calc for diagonal components of matrix A associated
                        ! with rheology term
 
@@ -2391,8 +2366,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -2402,12 +2376,10 @@
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          uarear      ! 1/uarea
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), &
-         intent(in) :: &
+      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(in) :: &
          Dstr
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), &
-         intent(out) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          diagx   , & ! Diagonal (x component) of the matrix A
          diagy       ! Diagonal (y component) of the matrix A
 
@@ -2472,8 +2444,7 @@
          nx_block, ny_block, & ! block dimensions
          icellu                ! total count when iceumask is true
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -2526,8 +2497,7 @@
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
          icellu
 
-      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
 
@@ -2585,8 +2555,7 @@
       integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
          icellu
 
-      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), &
-         intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
          
