@@ -19,7 +19,7 @@ The CICE model supports a number of C Preprocessor (CPP) Directives.  These
 can be turned on during compilation to activate different pieces of source
 code.  The main purpose is to introduce build-time code modifications to
 include or exclude certain libraries or Fortran language features.  More information
-can be found in :ref:`cicecpps`.  The primary CPPs are listed here.
+can be found in :ref:`cicecpps`.  The following general CPPs are available.
 
 .. csv-table:: **CPP general directives**
    :header: "CPP name", "description"
@@ -40,6 +40,8 @@ can be found in :ref:`cicecpps`.  The primary CPPs are listed here.
    "USE_NETCDF", "Turns on netcdf code.  This is normally on and is needed for released configurations.  An older value, ncdf, is still supported"
 
 
+The following CPPs are application specific.
+
 .. csv-table:: **CPP application specific directives**
    :header: "CPP name", "description"
    :widths: 15, 60
@@ -50,6 +52,8 @@ can be found in :ref:`cicecpps`.  The primary CPPs are listed here.
    "ICE_DA", "Turns on code changes in the hadgem driver"
    "RASM_MODS", "Turns on code changes for the RASM coupled application"
 
+
+The following CPPs are automatically defined by specific libraries.
 
 .. csv-table:: **CPP library specific directives**
    :header: "CPP name", "description"
