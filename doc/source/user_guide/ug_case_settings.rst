@@ -23,7 +23,7 @@ can be found in :ref:`cicecpps`.  The following general CPPs are available.
 
 .. csv-table:: **CPP general directives**
    :header: "CPP name", "description"
-   :width: 20%, 80%
+   :widths: 15, 60
 
    "CESM1_PIO", "Provide backwards compatible support for PIO interfaces/version released with CESM1 in about 2010"
    "coupled", " "
@@ -44,9 +44,9 @@ The following CPPs are application specific.
 
 .. csv-table:: **CPP application specific directives**
    :header: "CPP name", "description"
-   :width: 20%, 80%
+   :widths: 15, 60
 
-   "CESMCOUPLED", "Turns on code changes for the CESM coupled application"
+   "CESMCOUPLED", "Turns on code changes for the CESM coupled application                          "
    "CICE_IN_NEMO", "Turns on code changes for coupling in the NEMO ocean model"
    "CICE_DMI", "Turns on code changes for the DMI coupled model application"
    "ICE_DA", "Turns on code changes in the hadgem driver"
@@ -57,10 +57,10 @@ The following CPPs are automatically defined by specific libraries.
 
 .. csv-table:: **CPP library specific directives**
    :header: "CPP name", "description"
-   :width: 20%, 80%
+   :widths: 15, 60
 
-   "_OPENMP", "Automatically defined when compiling with OpenMP"
-   "_OPENACC", "Automatically defined when compiling with OpenACC"
+   "_OPENMP", "Automatically defined when compiling with OpenMP                          "
+   "_OPENACC", "Automatically defined when compiling with OpenACC                        "
 
 
 .. _tabsettings:
