@@ -2710,8 +2710,8 @@
          arnoldi_basis_y     ! Arnoldi basis (y components)
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks, maxinner) :: &
-         wwx             , & ! !phb FIND BETTER NAME (x components)
-         wwy                 ! !phb FIND BETTER NAME (y components)
+         orig_basis_x , & ! original basis (x components)
+         orig_basis_y     ! original basis (y components)
 
       real (kind=dbl_kind) :: &
          norm_residual   , & ! current L^2 norm of residual vector
@@ -2851,9 +2851,8 @@
                               diagx       , diagy          , &
                               precond_type,                  &
                               workspace_x , workspace_y)
-            ! !phb DESCRIBE ww
-            wwx(:,:,:,initer) = workspace_x
-            wwy(:,:,:,initer) = workspace_y
+            orig_basis_x(:,:,:,initer) = workspace_x
+            orig_basis_y(:,:,:,initer) = workspace_y
             
             ! Update workspace with boundary values
             call ice_HaloUpdate_vel(workspace_x, workspace_y,  &
@@ -2974,8 +2973,8 @@
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
 
-                  solx(i, j, iblk) = solx(i, j, iblk) + t * wwx(i, j, iblk, it)
-                  soly(i, j, iblk) = soly(i, j, iblk) + t * wwy(i, j, iblk, it)
+                  solx(i, j, iblk) = solx(i, j, iblk) + t * orig_basis_x(i, j, iblk, it)
+                  soly(i, j, iblk) = soly(i, j, iblk) + t * orig_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO
