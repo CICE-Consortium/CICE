@@ -27,14 +27,18 @@ can be found in :ref:`cicecpps`.  The primary CPPs are listed here.
 
    "CESM1_PIO", "Provide backwards compatible support for PIO interfaces/version released with CESM1 in about 2010"
    "coupled", " "
-   "ESMF_INTERFACE, USE_ESMF_LIB, USE_ESMF_METADATA", "Turns on ESMF support in a subset of driver code"
+   "ESMF_INTERFACE", "Turns on ESMF support in a subset of driver code.  Also USE_ESMF_LIB and USE_ESMF_METADATA"
    "FORTRANUNDERSCORE", "Used in ice_shr_reprosum86.c to support Fortran-C interfaces.  This should generally be turned on at all times.  There are other CPPs (FORTRANDOUBULEUNDERSCORE, FORTRANCAPS, etc) in ice_shr_reprosum.c that are generally not used in CICE but could be useful if problems arise in the Fortran-C interfaces"
    "GPTL", "Turns on GPTL initialization if needed for PIO"
-   "key_oasis3, key_oasis3mct, key_oasis4, key_iomput", "Leverages Oasis CPPs to define the local MPI communicator"
+   "key_oasis3", "Leverages Oasis CPPs to define the local MPI communicator"
+   "key_oasis3mct", "Leverages Oasis CPPs to define the local MPI communicator"
+   "key_oasis4", "Leverages Oasis CPPs to define the local MPI communicator"
+   "key_iomput", "Leverages Oasis CPPs to define the local MPI communicator"
    "NO_F2003", "Turns off some Fortran 2003 features"
    "NO_I8", "Converts integer*8 to integer*4.  This could have adverse affects for certain algorithms including the ddpdd implementation associated with the ``bfbflag``"
    "NO_R16", "Converts real*16 to real*8.  This could have adverse affects for certain algorithms including the lsum16 implementation associated with the ``bfbflag``"
    "USE_NETCDF", "Turns on netcdf code.  This is normally on and is needed for released configurations.  An older value, ncdf, is still supported"
+
 
 .. csv-table:: **CPP application specific directives**
    :header: "CPP name", "description"
@@ -46,12 +50,14 @@ can be found in :ref:`cicecpps`.  The primary CPPs are listed here.
    "ICE_DA", "Turns on code changes in the hadgem driver"
    "RASM_MODS", "Turns on code changes for the RASM coupled application"
 
+
 .. csv-table:: **CPP library specific directives**
    :header: "CPP name", "description"
    :widths: 15, 60
 
    "_OPENMP", "Automatically defined when compiling with OpenMP"
    "_OPENACC", "Automatically defined when compiling with OpenACC"
+
 
 .. _tabsettings:
 
