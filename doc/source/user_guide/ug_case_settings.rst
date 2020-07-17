@@ -21,10 +21,12 @@ code.  The main purpose is to introduce build-time code modifications to
 include or exclude certain libraries or Fortran language features.  More information
 can be found in :ref:`cicecpps`.  The following CPPs are available.
 
-.. csv-table:: **CPP general directives**
+.. csv-table:: **CPP directives**
    :header: "CPP name", "description"
    :widths: 15, 60
 
+   "",""
+   "**General Directives**", ""
    "CESM1_PIO", "Provide backwards compatible support for PIO interfaces/version released with CESM1 in about 2010"
    "coupled", " "
    "ESMF_INTERFACE", "Turns on ESMF support in a subset of driver code.  Also USE_ESMF_LIB and USE_ESMF_METADATA"
@@ -38,24 +40,15 @@ can be found in :ref:`cicecpps`.  The following CPPs are available.
    "NO_I8", "Converts integer*8 to integer*4.  This could have adverse affects for certain algorithms including the ddpdd implementation associated with the ``bfbflag``"
    "NO_R16", "Converts real*16 to real*8.  This could have adverse affects for certain algorithms including the lsum16 implementation associated with the ``bfbflag``"
    "USE_NETCDF", "Turns on netcdf code.  This is normally on and is needed for released configurations.  An older value, ncdf, is still supported"
-
-
-.. csv-table:: **CPP application specific directives**
-   :header: "CPP name", "description"
-   :widths: 15, 60
-
+   "",""
+   "**Application Specific Directives**", ""
    "CESMCOUPLED", "Turns on code changes for the CESM coupled application                          "
    "CICE_IN_NEMO", "Turns on code changes for coupling in the NEMO ocean model"
    "CICE_DMI", "Turns on code changes for the DMI coupled model application"
    "ICE_DA", "Turns on code changes in the hadgem driver"
    "RASM_MODS", "Turns on code changes for the RASM coupled application"
-
-
-
-.. csv-table:: **CPP library specific directives**
-   :header: "CPP name", "description"
-   :widths: 15, 60
-
+   "",""
+   "**Library Specific Directives**", ""
    "_OPENMP", "Automatically defined when compiling with OpenMP                          "
    "_OPENACC", "Automatically defined when compiling with OpenACC                        "
 
