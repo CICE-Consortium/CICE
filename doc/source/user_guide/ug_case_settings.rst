@@ -19,11 +19,12 @@ The CICE model supports a number of C Preprocessor (CPP) Directives.  These
 can be turned on during compilation to activate different pieces of source
 code.  The main purpose is to introduce build-time code modifications to
 include or exclude certain libraries or Fortran language features.  More information
-can be found in :ref:`cicecpps`.  The following general CPPs are available.
+can be found in :ref:`cicecpps`.  The following CPPs are available.
 
 .. csv-table:: **CPP general directives**
    :header: "CPP name", "description"
    :widths: 15, 60
+   :align: "left"
 
    "CESM1_PIO", "Provide backwards compatible support for PIO interfaces/version released with CESM1 in about 2010"
    "coupled", " "
@@ -40,11 +41,10 @@ can be found in :ref:`cicecpps`.  The following general CPPs are available.
    "USE_NETCDF", "Turns on netcdf code.  This is normally on and is needed for released configurations.  An older value, ncdf, is still supported"
 
 
-The following CPPs are application specific.
-
 .. csv-table:: **CPP application specific directives**
    :header: "CPP name", "description"
    :widths: 15, 60
+   :align: "left"
 
    "CESMCOUPLED", "Turns on code changes for the CESM coupled application                          "
    "CICE_IN_NEMO", "Turns on code changes for coupling in the NEMO ocean model"
@@ -53,11 +53,11 @@ The following CPPs are application specific.
    "RASM_MODS", "Turns on code changes for the RASM coupled application"
 
 
-The following CPPs are automatically defined by specific libraries.
 
 .. csv-table:: **CPP library specific directives**
    :header: "CPP name", "description"
    :widths: 15, 60
+   :align: "left"
 
    "_OPENMP", "Automatically defined when compiling with OpenMP                          "
    "_OPENACC", "Automatically defined when compiling with OpenACC                        "
