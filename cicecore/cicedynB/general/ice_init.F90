@@ -73,7 +73,7 @@
           restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
           restart_fsd, restart_iso
       use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
+          restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name, &
@@ -212,7 +212,7 @@
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
-        ice_data_type,  wave_spec_file,                                 &
+        ice_data_type,  wave_spec_file,  restart_coszen,                &
         fyear_init,     ycycle,                                         &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format, rotate_wind,                  &
@@ -269,6 +269,7 @@
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
+      restart_coszen  = .false. ! if true, read/write coszen
       use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
       restart_format = 'default'  ! restart file format
@@ -563,6 +564,7 @@
       call broadcast_scalar(restart,            master_task)
       call broadcast_scalar(restart_dir,        master_task)
       call broadcast_scalar(restart_ext,        master_task)
+      call broadcast_scalar(restart_coszen,     master_task)
       call broadcast_scalar(use_restart_time,   master_task)
       call broadcast_scalar(restart_format,     master_task)
       call broadcast_scalar(lcdf64,             master_task)
@@ -1458,6 +1460,7 @@
          write(nu_diag,*)    ' restart_dir               = ', &
                                trim(restart_dir)
          write(nu_diag,*)    ' restart_ext               = ', restart_ext
+         write(nu_diag,*)    ' restart_coszen            = ', restart_coszen
          write(nu_diag,*)    ' restart_format            = ', &
                                trim(restart_format)
          write(nu_diag,*)    ' lcdf64                    = ', &

@@ -569,6 +569,10 @@ An additional namelist option, ``restart_ext`` specifies whether halo cells
 are included in the restart files. This option is useful for tripole and
 regional grids, but can not be used with PIO.
 
+An additional namelist option, ``restart_coszen`` specifies whether the
+cosine of the zenith angle is included in the restart files. This is mainly
+used in coupled models.
+
 MPI is initialized in *init\_communicate* for both coupled and
 stand-alone MPI runs. The ice component communicates with a flux coupler
 or other climate components via external routines that handle the

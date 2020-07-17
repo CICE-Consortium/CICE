@@ -18,10 +18,10 @@ setenv THRD     no        # set to yes for OpenMP threading
 
 if (${SITE} =~ cheyenne*) then
   setenv ARCH cheyenne_intel
-#else if (${SITE} =~ Orion*) then
-#  setenv ARCH orion_intel
-#else if (${SITE} =~ hera*) then
-#  setenv ARCH hera_intel
+else if (${SITE} =~ Orion*) then
+  setenv ARCH orion_intel
+else if (${SITE} =~ hera*) then
+  setenv ARCH hera_intel
 else
   echo "CICE6 ${0}: ERROR in ARCH setup, ${hname}"
   exit -2
@@ -129,6 +129,7 @@ endif
 mkdir -p ${BINDIR}
 cp -f ${OBJDIR}/libcice6.a ${BINDIR}/
 cp -f ${OBJDIR}/ice_comp_nuopc.mod ${BINDIR}/
+cp -f ${OBJDIR}/ice_timers.mod ${BINDIR}/
 
 cat >! ${BINDIR}/cice6.mk << EOF
 # ESMF self-describing build dependency makefile fragment
