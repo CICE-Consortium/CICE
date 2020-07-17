@@ -182,6 +182,7 @@
     wave_spec_type  = 'none'
     wave_spec_file  = 'unknown_wave_spec_file'
     nfreq           = 25
+    restart_coszen  = .false.
     restore_ice     = .false.
     restore_ocn     = .false.
     trestore        =  90
