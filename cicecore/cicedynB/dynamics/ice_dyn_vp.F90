@@ -805,17 +805,17 @@
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
             
-            call calc_zeta_Pr (nx_block           , ny_block          , &
-                               icellt       (iblk),                     &
-                               indxti     (:,iblk), indxtj    (:,iblk), &
-                               uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
-                               dxt      (:,:,iblk), dyt     (:,:,iblk), &
-                               dxhy     (:,:,iblk), dyhx    (:,:,iblk), &
-                               cxp      (:,:,iblk), cyp     (:,:,iblk), &
-                               cxm      (:,:,iblk), cym     (:,:,iblk), &
-                               tinyarea (:,:,iblk),                     &
-                               strength (:,:,iblk), zetaD (:,:,iblk,:), &
-                               stress_Pr  (:,:,:))
+            call calc_zeta_dPr (nx_block           , ny_block          , &
+                                icellt       (iblk),                     &
+                                indxti     (:,iblk), indxtj    (:,iblk), &
+                                uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
+                                dxt      (:,:,iblk), dyt     (:,:,iblk), &
+                                dxhy     (:,:,iblk), dyhx    (:,:,iblk), &
+                                cxp      (:,:,iblk), cyp     (:,:,iblk), &
+                                cxm      (:,:,iblk), cym     (:,:,iblk), &
+                                tinyarea (:,:,iblk),                     &
+                                strength (:,:,iblk), zetaD (:,:,iblk,:), &
+                                stress_Pr  (:,:,:))
             
             call calc_vrel_Cb (nx_block           , ny_block          , &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), &
@@ -1096,7 +1096,7 @@
 
 ! Computes the viscous coefficients (in fact zetaD=2*zeta) and dPr/dx, dPr/dy
 
-      subroutine calc_zeta_Pr  (nx_block, ny_block, &
+      subroutine calc_zeta_dPr (nx_block, ny_block, &
                                 icellt  ,           &
                                 indxti  , indxtj  , &
                                 uvel    , vvel    , &
@@ -1155,7 +1155,7 @@
 
       logical :: capping ! of the viscous coeff
 
-      character(len=*), parameter :: subname = '(calc_zeta_Pr)'
+      character(len=*), parameter :: subname = '(calc_zeta_dPr)'
 
       ! Initialize
 
@@ -1277,7 +1277,7 @@
 
       enddo                     ! ij
 
-      end subroutine calc_zeta_Pr
+      end subroutine calc_zeta_dPr
 
 !=======================================================================
 
