@@ -24,7 +24,6 @@ can be found in :ref:`cicecpps`.  The following CPPs are available.
 .. csv-table:: **CPP general directives**
    :header: "CPP name", "description"
    :widths: 15, 60
-   :align: "left"
 
    "CESM1_PIO", "Provide backwards compatible support for PIO interfaces/version released with CESM1 in about 2010"
    "coupled", " "
@@ -44,7 +43,6 @@ can be found in :ref:`cicecpps`.  The following CPPs are available.
 .. csv-table:: **CPP application specific directives**
    :header: "CPP name", "description"
    :widths: 15, 60
-   :align: "left"
 
    "CESMCOUPLED", "Turns on code changes for the CESM coupled application                          "
    "CICE_IN_NEMO", "Turns on code changes for coupling in the NEMO ocean model"
@@ -57,7 +55,6 @@ can be found in :ref:`cicecpps`.  The following CPPs are available.
 .. csv-table:: **CPP library specific directives**
    :header: "CPP name", "description"
    :widths: 15, 60
-   :align: "left"
 
    "_OPENMP", "Automatically defined when compiling with OpenMP                          "
    "_OPENACC", "Automatically defined when compiling with OpenACC                        "
