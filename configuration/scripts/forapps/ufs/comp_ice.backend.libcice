@@ -68,9 +68,11 @@ endif
 # Build in debug mode. If DEBUG=Y, enable DEBUG compilation. This
 # flag is set in ${ROOTDIR}/coupledFV3_MOM6_CICE_debug.appBuilder file.
 if (! $?DEBUG) then
-  setenv ICE_BLDDEBUG true
+  setenv ICE_BLDDEBUG false
 else
-  if ($DEBUG != "Y") then
+  if ($DEBUG == "Y") then
+    setenv ICE_BLDDEBUG true
+  else
     setenv ICE_BLDDEBUG false
   endif
 endif
