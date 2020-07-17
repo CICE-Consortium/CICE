@@ -48,6 +48,7 @@
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
          bathymetry_file, & !  input bathymetry for basalstress
+         bathymetry_format, & ! bathymetry file format (default or pop)
          grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
@@ -544,11 +545,14 @@
       ! bathymetry
       !-----------------------------------------------------------------
 
-#ifdef RASM_MODS
-      call get_bathymetry_popfile
-#else
-      call get_bathymetry
-#endif
+      if (trim(bathymetry_format) == 'default') then
+         call get_bathymetry
+      elseif (trim(bathymetry_format) == 'pop') then
+         call get_bathymetry_popfile
+      else
+         call abort_ice(subname//'ERROR: bathymetry_format value must be default or pop', &
+            file=__FILE__, line=__LINE__)
+      endif
 
       !----------------------------------------------------------------
       ! Corner coordinates for CF compliant history files

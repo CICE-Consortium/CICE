@@ -10,6 +10,49 @@ There are two important files that define the case, **cice.settings** and
 values used to setup, build and run the case.  **ice_in** is the input namelist file
 for CICE.  Variables in both files are described below.
 
+.. _tabcpps:
+
+Table of CICE C Preprocessor (CPP) Directives
+---------------------------------------------------
+
+The CICE model supports a number of C Preprocessor (CPP) Directives.  These
+can be turned on during compilation to activate different pieces of source
+code.  The main purpose is to introduce build-time code modifications to
+include or exclude certain libraries or Fortran language features.  More information
+can be found in :ref:`cicecpps`.  The primary CPPs are listed here.
+
+.. csv-table:: **CPP general directives**
+   :header: "CPP name", "description"
+   :widths: 15, 60
+
+   "CESM1_PIO", "Provide backwards compatible support for PIO interfaces/version released with CESM1 in about 2010"
+   "coupled", " "
+   "ESMF_INTERFACE, USE_ESMF_LIB, USE_ESMF_METADATA", "Turns on ESMF support in a subset of driver code"
+   "FORTRANUNDERSCORE", "Used in ice_shr_reprosum86.c to support Fortran-C interfaces.  This should generally be turned on at all times.  There are other CPPs (FORTRANDOUBULEUNDERSCORE, FORTRANCAPS, etc) in ice_shr_reprosum.c that are generally not used in CICE but could be useful if problems arise in the Fortran-C interfaces"
+   "GPTL", "Turns on GPTL initialization if needed for PIO"
+   "key_oasis3, key_oasis3mct, key_oasis4, key_iomput", "Leverages Oasis CPPs to define the local MPI communicator"
+   "NO_F2003", "Turns off some Fortran 2003 features"
+   "NO_I8", "Converts integer*8 to integer*4.  This could have adverse affects for certain algorithms including the ddpdd implementation associated with the ``bfbflag``"
+   "NO_R16", "Converts real*16 to real*8.  This could have adverse affects for certain algorithms including the lsum16 implementation associated with the ``bfbflag``"
+   "USE_NETCDF", "Turns on netcdf code.  This is normally on and is needed for released configurations.  An older value, ncdf, is still supported"
+
+.. csv-table:: **CPP application specific directives**
+   :header: "CPP name", "description"
+   :widths: 15, 60
+
+   "CESMCOUPLED", "Turns on code changes for the CESM coupled application"
+   "CICE_IN_NEMO", "Turns on code changes for coupling in the NEMO ocean model"
+   "CICE_DMI", "Turns on code changes for the DMI coupled model application"
+   "ICE_DA", "Turns on code changes in the hadgem driver"
+   "RASM_MODS", "Turns on code changes for the RASM coupled application"
+
+.. csv-table:: **CPP library specific directives**
+   :header: "CPP name", "description"
+   :widths: 15, 60
+
+   "_OPENMP", "Automatically defined when compiling with OpenMP"
+   "_OPENACC", "Automatically defined when compiling with OpenACC"
+
 .. _tabsettings:
 
 Table of CICE Settings
@@ -37,7 +80,7 @@ can be modified as needed.
    "ICE_RSTDIR", "string", "unused", "${ICE_RUNDIR}/restart"
    "ICE_HSTDIR", "string", "unused", "${ICE_RUNDIR}/history"
    "ICE_LOGDIR", "string", "log directory", "${ICE_CASEDIR}/logs"
-   "ICE_DRVOPT", "string", "unused", "cice"
+   "ICE_DRVOPT", "string", "unused", "standalone/cice"
    "ICE_IOTYPE", "string", "I/O format", "set by cice.setup"
    " ", "netcdf", "serial netCDF"
    " ", "pio", "parallel netCDF"
@@ -170,6 +213,8 @@ grid_nml
 
    "", "", "", ""
    "``bathymetry_file``", "string", "name of bathymetry file to be read", "‘unknown_bathymetry_file’"
+   "``bathymetry_format``", "``default``", "netcdf depth field", "‘default’"
+   "", "``pop``", "pop thickness file in cm in ascii format", ""
    "``close_boundaries``", "logical", "set land on edges of grid", "``.false.``"
    "``dxrect``", "real", "x-direction grid spacing for rectangular grid in cm", "0.0"
    "``dyrect``", "real", "y-direction grid spacing for rectangular grid in cm", "0.0"
@@ -192,6 +237,7 @@ grid_nml
    "``nfsd``", "integer", "number of floe size categories", "1"
    "``nilyr``", "integer", "number of vertical layers in ice", "0"
    "``nslyr``", "integer", "number of vertical layers in snow", "0"
+   "``orca_halogrid``", "logical", "use orca haloed grid for data/grid read", "``.false.``"
    "``use_bathymetry``", "logical", "use read in bathymetry file for basalstress option", "``.false.``"
    "", "", "", ""
 
@@ -203,6 +249,7 @@ domain_nml
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
+   "``add_mpi_barriers``", "logical", "throttle communication", "``.false.``"
    "``block_size_x``", "integer", "block size in x direction", "-1"
    "``block_size_y``", "integer", "block size in y direction", "-1"
    "``distribution_type``", "``cartesian``", "2D cartesian block distribution method", "``cartesian``"

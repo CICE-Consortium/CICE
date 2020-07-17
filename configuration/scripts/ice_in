@@ -52,6 +52,7 @@
     grid_file    = 'grid'
     kmt_file     = 'kmt'
     bathymetry_file = 'unknown_bathymetry_file'
+    bathymetry_format = 'default'
     use_bathymetry = .false.
     gridcpl_file = 'unknown_gridcpl_file'
     kcatbound    = 0
@@ -63,6 +64,7 @@
     nilyr        = 7
     nslyr        = 1
     nblyr        = 7
+    orca_halogrid = .false.
 /
 
 &tracer_nml
@@ -217,6 +219,7 @@
     maskhalo_dyn      = .false.
     maskhalo_remap    = .false.
     maskhalo_bound    = .false.
+    add_mpi_barriers  = .false.
 /
 
 &zbgc_nml

@@ -45,6 +45,9 @@
       mpitagHalo            = 1,    &! MPI tags for various
       mpitag_gs             = 1000   ! communication patterns
 
+   logical (log_kind), public :: &
+      add_mpi_barriers      = .false. ! turn on mpi barriers for throttling
+
 !***********************************************************************
 
  contains

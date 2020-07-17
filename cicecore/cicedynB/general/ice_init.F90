@@ -59,7 +59,7 @@
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
-      use ice_domain, only: close_boundaries, ns_boundary_type
+      use ice_domain, only: close_boundaries, ns_boundary_type, orca_halogrid
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
                                  n_iso, n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
@@ -92,6 +92,7 @@
       use ice_arrays_column, only: bgc_data_dir, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
+                          bathymetry_format, &
                           grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
@@ -160,10 +161,10 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
-        bathymetry_file, use_bathymetry, nfsd,                          &
+        bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
-        close_boundaries
+        close_boundaries, orca_halogrid
 
       namelist /tracer_nml/                                             &
         tr_iage, restart_age,                                           &
@@ -279,8 +280,10 @@
       grid_type    = 'rectangular'  ! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
       gridcpl_file = 'unknown_gridcpl_file'
-      bathymetry_file    = 'unknown_bathymetry_file'
-      use_bathymetry = .false.
+      orca_halogrid = .false.  ! orca haloed grid
+      bathymetry_file   = 'unknown_bathymetry_file'
+      bathymetry_format = 'default'
+      use_bathymetry    = .false.
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0          ! number of ice thickness categories
@@ -577,7 +580,9 @@
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)
+      call broadcast_scalar(orca_halogrid,      master_task)
       call broadcast_scalar(bathymetry_file,    master_task)
+      call broadcast_scalar(bathymetry_format,  master_task)
       call broadcast_scalar(use_bathymetry,     master_task)
       call broadcast_scalar(kmt_file,           master_task)
       call broadcast_scalar(kitd,               master_task)
@@ -1072,6 +1077,7 @@
                tmpstr2 = ' bathymetric input data is not used'
             endif
             write(nu_diag,1012) ' use_bathymetry   = ', use_bathymetry,trim(tmpstr2)
+            write(nu_diag,*)    ' bathymetry_format= ', trim(bathymetry_format)
          endif
          write(nu_diag,1022) ' nilyr            = ', nilyr, ' number of ice layers (equal thickness)'
          write(nu_diag,1022) ' nslyr            = ', nslyr, ' number of snow layers (equal thickness)'
@@ -1475,6 +1481,8 @@
          endif
          write(nu_diag,1010) ' close_boundaries          = ', &
                                close_boundaries
+         write(nu_diag,1010) ' orca_halogrid             = ', &
+                               orca_halogrid
 
          write(nu_diag,1010) ' conserv_check             = ', conserv_check
 

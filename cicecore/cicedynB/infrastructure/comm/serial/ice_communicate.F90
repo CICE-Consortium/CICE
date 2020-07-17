@@ -27,6 +27,9 @@
       my_task,                  &! MPI task number for this task
       master_task                ! task number of master task
 
+   logical (log_kind), public :: &
+      add_mpi_barriers      = .false. ! turn on mpi barriers for throttling
+
 !***********************************************************************
 
  contains

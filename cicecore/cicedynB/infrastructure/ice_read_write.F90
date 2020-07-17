@@ -18,7 +18,7 @@
           field_loc_noupdate, field_type_noupdate
       use ice_communicate, only: my_task, master_task
       use ice_broadcast, only: broadcast_scalar
-      use ice_domain, only: distrb_info
+      use ice_domain, only: distrb_info, orca_halogrid
       use ice_domain_size, only: max_blocks, nx_global, ny_global, ncat
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_exit, only: abort_ice
@@ -1126,18 +1126,17 @@
 
       integer (kind=int_kind) :: nx, ny
 
-#ifdef ORCA_GRID
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
 
-      if (.not. present(restart_ext)) then
+      if (orca_halogrid .and. .not. present(restart_ext)) then
          if (my_task == master_task) then
             allocate(work_g2(nx_global+2,ny_global+1))
          else
             allocate(work_g2(1,1))   ! to save memory
          endif
+         work_g2(:,:) = c0
       endif
-#endif
 
       nx = nx_global
       ny = ny_global
@@ -1171,22 +1170,16 @@
        ! Read global array 
        !--------------------------------------------------------------
 
-#ifndef ORCA_GRID
-         status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,nrec/), & 
-               count=(/nx,ny,1/) )
-#else
-         if (.not. present(restart_ext)) then
+         if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
                start=(/1,1,nrec/), & 
                count=(/nx_global+2,ny_global+1,1/) )
             work_g1 = work_g2(2:nx_global+1,1:ny_global)
          else
             status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,nrec/), & 
-               count=(/nx,ny,1/) )
+                  start=(/1,1,nrec/), & 
+                  count=(/nx,ny,1/) )
          endif
-#endif
 
       endif                     ! my_task = master_task
 
@@ -1230,9 +1223,7 @@
       endif
 
       deallocate(work_g1)
-#ifdef ORCA_GRID
-      if (.not. present(restart_ext)) deallocate(work_g2)
-#endif
+      if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
@@ -1301,18 +1292,17 @@
 
       integer (kind=int_kind) :: nx, ny
 
-#ifdef ORCA_GRID
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g2
 
-      if (.not. present(restart_ext)) then
+      if (orca_halogrid .and. .not. present(restart_ext)) then
          if (my_task == master_task) then
             allocate(work_g2(nx_global+2,ny_global+1,ncat))
          else
             allocate(work_g2(1,1,ncat))   ! to save memory
          endif
+         work_g2(:,:,:) = c0
       endif
-#endif
 
       nx = nx_global
       ny = ny_global
@@ -1346,12 +1336,7 @@
        ! Read global array 
        !--------------------------------------------------------------
 
-#ifndef ORCA_GRID
-         status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,1,nrec/), & 
-               count=(/nx,ny,ncat,1/) )
-#else
-         if (.not. present(restart_ext)) then
+         if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
                start=(/1,1,1,nrec/), & 
                count=(/nx_global+2,ny_global+1,ncat,1/) )
@@ -1361,7 +1346,6 @@
                start=(/1,1,1,nrec/), & 
                count=(/nx,ny,ncat,1/) )
          endif
-#endif
 
       endif                     ! my_task = master_task
 
@@ -1414,9 +1398,7 @@
       endif
 
       deallocate(work_g1)
-#ifdef ORCA_GRID
-      if (.not. present(restart_ext)) deallocate(work_g2)
-#endif
+      if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
@@ -1491,18 +1473,17 @@
       character(len=*), parameter :: subname = '(ice_read_nc_xyf)'
 
 #ifdef USE_NETCDF
-#ifdef ORCA_GRID
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g2
 
-      if (.not. present(restart_ext)) then
+      if (orca_halogrid .and. .not. present(restart_ext)) then
          if (my_task == master_task) then
             allocate(work_g2(nx_global+2,ny_global+1,nfreq))
          else
             allocate(work_g2(1,1,nfreq))   ! to save memory
          endif
+         work_g2(:,:,:) = c0
       endif
-#endif
 
       nx = nx_global
       ny = ny_global
@@ -1537,13 +1518,7 @@
        ! Read global array 
        !--------------------------------------------------------------
 
-#ifndef ORCA_GRID
-         status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,1,nrec/), & 
-               count=(/nx,ny,nfreq,1/) )
-#else
-          print *, 'restart_ext',restart_ext
-         if (.not. present(restart_ext)) then
+         if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
                start=(/1,1,1,nrec/), & 
                count=(/nx_global+2,ny_global+1,nfreq,1/) )
@@ -1553,8 +1528,6 @@
                start=(/1,1,1,nrec/), & 
                count=(/nx,ny,nfreq,1/) )
          endif
-         print *, 'fid',fid ,' varid',varid
-#endif
 
          status = nf90_get_att(fid, varid, "missing_value", missingvalue)
       endif                     ! my_task = master_task
@@ -1612,9 +1585,7 @@
       where (work > 1.0e+30_dbl_kind) work = c0
 
       deallocate(work_g1)
-#ifdef ORCA_GRID
-      if (.not. present(restart_ext)) deallocate(work_g2)
-#endif
+      if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
@@ -2116,18 +2087,18 @@
 !    character (char_len) :: &
 !        dimname            ! dimension name            
 !
-#ifdef ORCA_GRID
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g3
 
-      if (my_task == master_task) then
-          allocate(work_g3(nx_global+2,ny_global+1))
-       else
-          allocate(work_g3(1,1))   ! to save memory
-       endif
+      if (orca_halogrid) then
+         if (my_task == master_task) then
+            allocate(work_g3(nx_global+2,ny_global+1))
+         else
+            allocate(work_g3(1,1))   ! to save memory
+         endif
+         work_g3(:,:) = c0     
+      endif
 
-      work_g3(:,:) = c0     
-#endif
       work_g(:,:) = c0
 
       if (my_task == master_task) then
@@ -2146,16 +2117,16 @@
        ! Read global array 
        !--------------------------------------------------------------
  
-#ifndef ORCA_GRID
-         status = nf90_get_var( fid, varid, work_g, &
-               start=(/1,1,nrec/), & 
-               count=(/nx_global,ny_global,1/) )
-#else
-         status = nf90_get_var( fid, varid, work_g3, &
-               start=(/1,1,nrec/), &
-               count=(/nx_global+2,ny_global+1,1/) )
-         work_g=work_g3(2:nx_global+1,1:ny_global)
-#endif
+         if (orca_halogrid) then
+            status = nf90_get_var( fid, varid, work_g3, &
+                  start=(/1,1,nrec/), &
+                  count=(/nx_global+2,ny_global+1,1/) )
+            work_g=work_g3(2:nx_global+1,1:ny_global)
+         else
+            status = nf90_get_var( fid, varid, work_g, &
+                  start=(/1,1,nrec/), & 
+                  count=(/nx_global,ny_global,1/) )
+         endif
       endif                     ! my_task = master_task
 
     !-------------------------------------------------------------------
@@ -2178,9 +2149,7 @@
          write(nu_diag,*) 'min, max, sum = ', amin, amax, asum, trim(varname)
       endif
 
-#ifdef ORCA_GRID
-      deallocate(work_g3)
-#endif
+      if (orca_halogrid) deallocate(work_g3)
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
