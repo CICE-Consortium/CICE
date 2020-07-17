@@ -767,11 +767,12 @@
          tol_nl      , & ! tolerance for nonlinear convergence: reltol_nonlin * (initial nonlinear residual norm)
          fpres_norm  , & ! norm of current fixed point residual : f(x) = g(x) - x
          prog_norm   , & ! norm of difference between current and previous solution
-         nlres_norm  , & ! norm of current nonlinear residual : F(x) = A(x)x -b(x)
+         nlres_norm      ! norm of current nonlinear residual : F(x) = A(x)x -b(x)
+
 #ifdef CICE_USE_LAPACK
-         ddot, dnrm2 , & ! external BLAS functions
+      real (kind=dbl_kind) :: &
+         ddot, dnrm2     ! external BLAS functions
 #endif
-         conv            ! needed for FGMRES !phb keep ?
 
       character(len=*), parameter :: subname = '(anderson_solver)'
 
@@ -923,7 +924,7 @@
                          reltol_fgmres , im_fgmres, &
                          maxits_fgmres ,            &
                          solx          , soly     , &
-                         nbiter        , conv)
+                         nbiter)
             ! Put FGMRES solution solx,soly in fpfunc vector (needed for Anderson)
             call arrays_to_vec (nx_block       , ny_block     , &
                                 nblocks        , max_blocks   , &
@@ -2652,7 +2653,7 @@
                          tolerance, maxinner, &
                          maxouter ,           &
                          solx     , soly    , &
-                         nbiter   , conv)
+                         nbiter)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
@@ -2687,9 +2688,6 @@
 
       integer (kind=int_kind), intent(out) :: &
          nbiter      ! Total number of Arnoldi iterations performed
-
-      real (kind=dbl_kind), intent(out) :: &
-         conv        ! !phb DESCRIBE IF WE KEEP
 
       ! local variables
 
@@ -2735,7 +2733,8 @@
       character (len=char_len) :: &
          precond_type ! type of preconditioner
 
-      real (kind=dbl_kind) :: relative_tolerance, r0 !phb DESCRIBE if we keep
+      real (kind=dbl_kind) :: &
+         relative_tolerance  ! relative_tolerance, i.e. tolerance*norm(initial residual)
 
       character(len=*), parameter :: subname = '(fgmres)'
 
@@ -2745,7 +2744,6 @@
       outiter = 0
       nbiter = 0
       
-      conv = c1
       norm_squared = c0
       precond_type = precond
       
@@ -2825,10 +2823,7 @@
          
          if (outiter == 0) then
             relative_tolerance = tolerance * norm_residual
-            r0 = norm_residual
          end if
-         
-         conv = norm_residual / r0
          
          ! Initialize 1-st term of RHS of Hessenberg system
          rhs_hess(1)  = norm_residual
@@ -2936,7 +2931,6 @@
             
             ! Check for convergence
             norm_residual = abs(rhs_hess(nextit))
-            conv = norm_residual / r0
             
             if (my_task == master_task .and. monitor_fgmres) then
                write(nu_diag, '(a,i4,a,d26.16)') "monitor_fgmres: iter_fgmres= ", nbiter, &
@@ -3044,7 +3038,7 @@
                          tolerance, maxinner, &
                          maxouter ,           &
                          solx     , soly    , &
-                         nbiter   , conv)
+                         nbiter)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
@@ -3078,9 +3072,6 @@
 
       integer (kind=int_kind), intent(out) :: &
          nbiter      ! Total number of Arnoldi iterations performed
-
-      real (kind=dbl_kind), intent(out) :: &
-         conv        ! !phb DESCRIBE IF WE KEEP
 
       ! local variables
 
@@ -3123,7 +3114,8 @@
          precond_type    , & ! type of preconditioner
          ortho_type          ! type of orthogonalization
 
-      real (kind=dbl_kind) :: relative_tolerance, r0 !phb DESCRIBE if we keep
+      real (kind=dbl_kind) :: &
+         relative_tolerance  ! relative_tolerance, i.e. tolerance*norm(initial residual)
 
       character(len=*), parameter :: subname = '(pgmres)'
       
@@ -3133,7 +3125,6 @@
       outiter = 0
       nbiter = 0
       
-      conv = c1
       norm_squared = c0
       precond_type = 'diag' ! Jacobi preconditioner
       ortho_type = 'cgs' ! classical gram-schmidt TODO: try with MGS
@@ -3214,10 +3205,7 @@
          
          if (outiter == 0) then
             relative_tolerance = tolerance * norm_residual
-            r0 = norm_residual
          end if
-         
-         conv = norm_residual / r0
          
          ! Initialize 1-st term of RHS of Hessenberg system
          rhs_hess(1)  = norm_residual
@@ -3330,7 +3318,6 @@
                                                  " pgmres_L2norm= ", norm_residual
             endif
             
-            conv = norm_residual / r0
              if ((initer >= maxinner) .or. (norm_residual <= relative_tolerance)) then
                exit
             endif
@@ -3487,9 +3474,6 @@
       integer (kind=int_kind) :: &
          nbiter      ! Total number of iteration PGMRES performed
 
-      real (kind=dbl_kind) :: &
-         conv        ! !phb DESCRIBE IF WE KEEP for PGMRES
-
       character(len=*), parameter :: subname = '(precondition)'
 
       if     (precond_type == 'ident') then ! identity (no preconditioner)
@@ -3522,7 +3506,7 @@
                       tolerance, maxinner, &
                       maxouter ,           &
                       wx       , wy      , &
-                      nbiter   , conv)
+                      nbiter)
       else
          call abort_ice(error_message='wrong preconditioner in ' // subname, &
             file=__FILE__, line=__LINE__)
