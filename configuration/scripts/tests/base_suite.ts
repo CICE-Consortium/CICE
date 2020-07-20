@@ -50,3 +50,4 @@ restart        gx3     4x4        iobinary
 restart        gx3     4x4        histall,precision8,cdf64
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
+smoke          gx3     4x1        dynpicard,medium
