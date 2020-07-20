@@ -334,7 +334,7 @@
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_ratio = 2.0_dbl_kind ! VP ellipse aspect ratio
-      maxits_nonlin = 1000   ! max nb of iteration for nonlinear solver
+      maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
       precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
       im_fgmres = 50         ! size of fgmres Krylov subspace
       im_pgmres = 5          ! size of pgmres Krylov subspace
