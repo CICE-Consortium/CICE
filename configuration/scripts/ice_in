@@ -141,8 +141,8 @@
     ssh_stress      = 'geostrophic'
     maxits_nonlin   = 4
     precond         = 'pgmres'
-    im_fgmres       = 50
-    im_pgmres       = 5
+    dim_fgmres       = 50
+    dim_pgmres       = 5
     maxits_fgmres   = 1
     maxits_pgmres   = 1
     monitor_nonlin  = .false.

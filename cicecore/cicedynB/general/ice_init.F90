@@ -100,10 +100,10 @@
                                 basalstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, ktransport, brlx, arlx
-      use ice_dyn_vp, only: maxits_nonlin, precond, im_fgmres, im_pgmres, maxits_fgmres, &
+      use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
                             monitor_pgmres, reltol_nonlin, reltol_fgmres, reltol_pgmres, &
-                            algo_nonlin, fpfunc_andacc, im_andacc, reltol_andacc, &
+                            algo_nonlin, fpfunc_andacc, dim_andacc, reltol_andacc, &
                             damping_andacc, start_andacc, use_mean_vrel, ortho_type
       use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
@@ -199,10 +199,10 @@
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
-        k1,             maxits_nonlin,  precond,        im_fgmres,      &
-        im_pgmres,      maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
+        k1,             maxits_nonlin,  precond,        dim_fgmres,     &
+        dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
-        reltol_pgmres,  algo_nonlin,    im_andacc,      reltol_andacc,  &
+        reltol_pgmres,  algo_nonlin,    dim_andacc,     reltol_andacc,  &
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
         ortho_type,                                                     &
         k2,             alphab,         threshold_hw,                   &
@@ -336,8 +336,8 @@
       e_ratio = 2.0_dbl_kind ! VP ellipse aspect ratio
       maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
       precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
-      im_fgmres = 50         ! size of fgmres Krylov subspace
-      im_pgmres = 5          ! size of pgmres Krylov subspace
+      dim_fgmres = 50        ! size of fgmres Krylov subspace
+      dim_pgmres = 5         ! size of pgmres Krylov subspace
       maxits_fgmres = 50     ! max nb of iteration for fgmres
       maxits_pgmres = 5      ! max nb of iteration for pgmres
       monitor_nonlin = .false. ! print nonlinear residual norm
@@ -349,7 +349,7 @@
       reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
       algo_nonlin = 'picard'        ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
       fpfunc_andacc = 1      ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
-      im_andacc = 5          ! size of Anderson minimization matrix (number of saved previous residuals)
+      dim_andacc = 5         ! size of Anderson minimization matrix (number of saved previous residuals)
       reltol_andacc = 1e-6_dbl_kind  ! relative tolerance for Anderson acceleration
       damping_andacc = 0     ! damping factor for Anderson acceleration
       start_andacc = 0       ! acceleration delay factor (acceleration starts at this iteration)
@@ -661,8 +661,8 @@
       call broadcast_scalar(ktransport,         master_task)
       call broadcast_scalar(maxits_nonlin,      master_task)
       call broadcast_scalar(precond,            master_task)
-      call broadcast_scalar(im_fgmres,          master_task)
-      call broadcast_scalar(im_pgmres,          master_task)
+      call broadcast_scalar(dim_fgmres,         master_task)
+      call broadcast_scalar(dim_pgmres,         master_task)
       call broadcast_scalar(maxits_fgmres,      master_task)
       call broadcast_scalar(maxits_pgmres,      master_task)
       call broadcast_scalar(monitor_nonlin,     master_task)
@@ -674,7 +674,7 @@
       call broadcast_scalar(reltol_pgmres,      master_task)
       call broadcast_scalar(algo_nonlin,        master_task)
       call broadcast_scalar(fpfunc_andacc,      master_task)
-      call broadcast_scalar(im_andacc,          master_task)
+      call broadcast_scalar(dim_andacc,         master_task)
       call broadcast_scalar(reltol_andacc,      master_task)
       call broadcast_scalar(damping_andacc,     master_task)
       call broadcast_scalar(start_andacc,       master_task)
@@ -1095,7 +1095,7 @@
       
       if (trim(algo_nonlin) == 'picard') then
          ! Picard solver is implemented in the Anderson solver; reset number of saved residuals to zero
-         im_andacc = 0
+         dim_andacc = 0
       endif
       
       if (.not. (trim(precond) == 'ident' .or. trim(precond) == 'diag' .or. trim(precond) == 'pgmres')) then
@@ -1609,8 +1609,8 @@
          if (kdyn == 3) then
             write(nu_diag,1020) ' maxits_nonlin             = ', maxits_nonlin
             write(nu_diag,1030) ' precond                   = ', precond
-            write(nu_diag,1020) ' im_fgmres                 = ', im_fgmres
-            write(nu_diag,1020) ' im_pgmres                 = ', im_pgmres
+            write(nu_diag,1020) ' dim_fgmres                = ', dim_fgmres
+            write(nu_diag,1020) ' dim_pgmres                = ', dim_pgmres
             write(nu_diag,1020) ' maxits_fgmres             = ', maxits_fgmres
             write(nu_diag,1020) ' maxits_pgmres             = ', maxits_pgmres
             write(nu_diag,1010) ' monitor_nonlin            = ', monitor_nonlin
@@ -1624,7 +1624,7 @@
             write(nu_diag,1010) ' use_mean_vrel             = ', use_mean_vrel
             if (algo_nonlin == 'anderson') then
                write(nu_diag,1020) ' fpfunc_andacc          = ', fpfunc_andacc
-               write(nu_diag,1020) ' im_andacc              = ', im_andacc
+               write(nu_diag,1020) ' dim_andacc             = ', dim_andacc
                write(nu_diag,1008) ' reltol_andacc          = ', reltol_andacc
                write(nu_diag,1005) ' damping_andacc         = ', damping_andacc
                write(nu_diag,1020) ' start_andacc           = ', start_andacc

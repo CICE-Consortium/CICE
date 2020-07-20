@@ -64,12 +64,12 @@
 
       integer (kind=int_kind), public :: &
          maxits_nonlin  , & ! max nb of iteration for nonlinear solver
-         im_fgmres      , & ! size of fgmres Krylov subspace
-         im_pgmres      , & ! size of pgmres Krylov subspace
+         dim_fgmres     , & ! size of fgmres Krylov subspace
+         dim_pgmres     , & ! size of pgmres Krylov subspace
          maxits_fgmres  , & ! max nb of iteration for fgmres
          maxits_pgmres  , & ! max nb of iteration for pgmres
          fpfunc_andacc  , & ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
-         im_andacc      , & ! size of Anderson minimization matrix (number of saved previous residuals)
+         dim_andacc     , & ! size of Anderson minimization matrix (number of saved previous residuals)
          start_andacc       ! acceleration delay factor (acceleration starts at this iteration)
 
       logical (kind=log_kind), public :: &
@@ -751,14 +751,14 @@
          fpfunc_old , & ! previous value of fixed point function
          tmp            ! temporary vector for BLAS calls
 
-      real (kind=dbl_kind), dimension(ntot,im_andacc) :: &
+      real (kind=dbl_kind), dimension(ntot,dim_andacc) :: &
          Q        , & ! Q factor for QR factorization of F (residuals) matrix
          G_diff       ! Matrix containing the differences of g(x) (fixed point function) evaluations
 
-      real (kind=dbl_kind), dimension(im_andacc,im_andacc) :: &
+      real (kind=dbl_kind), dimension(dim_andacc,dim_andacc) :: &
          R            ! R factor for QR factorization of F (residuals) matrix
 
-      real (kind=dbl_kind), dimension(im_andacc) :: &
+      real (kind=dbl_kind), dimension(dim_andacc) :: &
          rhs_tri  , & ! right hand side vector for matrix-vector product
          coeffs       ! coeffs used to combine previous solutions
 
@@ -915,15 +915,15 @@
             endif
             
             ! FGMRES linear solver
-            call fgmres (zetaD         ,            &
-                         Cb            , vrel     , &
-                         umassdti      ,            &
-                         halo_info_mask,            &
-                         bx            , by       , &
-                         diagx         , diagy    , &
-                         reltol_fgmres , im_fgmres, &
-                         maxits_fgmres ,            &
-                         solx          , soly     , &
+            call fgmres (zetaD         ,             &
+                         Cb            , vrel      , &
+                         umassdti      ,             &
+                         halo_info_mask,             &
+                         bx            , by        , &
+                         diagx         , diagy     , &
+                         reltol_fgmres , dim_fgmres, &
+                         maxits_fgmres ,             &
+                         solx          , soly      , &
                          nbiter)
             ! Put FGMRES solution solx,soly in fpfunc vector (needed for Anderson)
             call arrays_to_vec (nx_block       , ny_block     , &
@@ -976,7 +976,7 @@
          !    exit
          ! endif
 
-         if (im_andacc == 0 .or. it_nl < start_andacc) then
+         if (dim_andacc == 0 .or. it_nl < start_andacc) then
             ! Simple fixed point (Picard) iteration in this case
             sol = fpfunc
          else
@@ -993,7 +993,7 @@
                ! Update residual difference vector
                res_diff = res - res_old
                ! Update fixed point function difference matrix
-               if (res_num < im_andacc) then
+               if (res_num < dim_andacc) then
                   ! Add column
                   G_diff(:,res_num+1) = fpfunc - fpfunc_old
                else
@@ -1013,7 +1013,7 @@
                   R(1,1) = dnrm2(size(res_diff), res_diff, inc)
                   Q(:,1) = res_diff/R(1,1)
                else
-                  if (res_num > im_andacc) then
+                  if (res_num > dim_andacc) then
                      ! Update factorization since 1st column was deleted
                      call qr_delete(Q,R)
                      res_num = res_num - 1
@@ -3496,7 +3496,7 @@
          wx = c0
          wy = c0
          tolerance = reltol_pgmres
-         maxinner = im_pgmres
+         maxinner = dim_pgmres
          maxouter = maxits_pgmres
          call pgmres (zetaD,               &
                       Cb       , vrel    , &
