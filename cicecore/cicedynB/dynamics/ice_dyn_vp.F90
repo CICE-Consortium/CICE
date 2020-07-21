@@ -58,7 +58,7 @@
 
       implicit none
       private
-      public :: imp_solver, init_vp
+      public :: implicit_solver, init_vp
 
       ! namelist parameters
 
@@ -184,7 +184,7 @@
 !
 ! author: JF Lemieux, A. Qaddouri and F. Dupont ECCC
 
-      subroutine imp_solver (dt)
+      subroutine implicit_solver (dt)
 
       use ice_arrays_column, only: Cdn_ocn
       use ice_boundary, only: ice_HaloMask, ice_HaloUpdate, &
@@ -253,7 +253,7 @@
       real (kind=dbl_kind), allocatable :: &
          sol(:)          ! solution vector
 
-      character(len=*), parameter :: subname = '(imp_solver)'
+      character(len=*), parameter :: subname = '(implicit_solver)'
 
       call ice_timer_start(timer_dynamics) ! dynamics
 
@@ -635,7 +635,7 @@
 
       call ice_timer_stop(timer_dynamics)    ! dynamics
 
-      end subroutine imp_solver
+      end subroutine implicit_solver
 
 !=======================================================================
 
