@@ -202,7 +202,7 @@ specifies the compilation environment associated with the machine.  This should 
   specifies the grid.  This is a string and for the current CICE driver, gx1, gx3, and tx1 are supported. (default = gx3)
 
 ``--set``,  ``-s`` SET1,SET2,SET3
-  specifies the optional settings for the case.  The settings for ``--suite`` are defined in the suite file.  Multiple settings can be specified by providing a comma deliminated set of values without spaces between settings.  The available settings are in **configurations/scripts/options** and ``cice.setup --help`` will also list them.  These settings files can change either the namelist values or overall case settings (such as the debug flag).  For cases and tests (not suites), settings defined in **~/.cice_set** will be included in the --set options.  This behaviour can be overridden with the `--ignore-user-set`` command line option.
+  specifies the optional settings for the case.  The settings for ``--suite`` are defined in the suite file.  Multiple settings can be specified by providing a comma deliminated set of values without spaces between settings.  The available settings are in **configurations/scripts/options** and ``cice.setup --help`` will also list them.  These settings files can change either the namelist values or overall case settings (such as the debug flag).  For cases and tests (not suites), settings defined in **~/.cice_set** (if it exists) will be included in the --set options.  This behaviour can be overridden with the `--ignore-user-set`` command line option.
 
 ``--ignore-user-set``
   ignores settings defined in **~/.cice.set** (if it exists) for cases and tests.  **~/.cice_set** is always ignored for test suites.
