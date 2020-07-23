@@ -8,11 +8,13 @@ Case Settings
 There are two important files that define the case, **cice.settings** and 
 **ice_in**.  **cice.settings** is a list of env variables that define many
 values used to setup, build and run the case.  **ice_in** is the input namelist file
-for CICE.  Variables in both files are described below.
+for CICE.  Variables in both files are described below.  In addition, the first
+table lists available preprocessor directives to activate or deactivate various
+features when compiling.
 
 .. _tabcpps:
 
-Table of CICE C Preprocessor (CPP) Directives
+Table of C Preprocessor (CPP) Directives
 ---------------------------------------------------
 
 The CICE model supports a number of C Preprocessor (CPP) Directives.  These
