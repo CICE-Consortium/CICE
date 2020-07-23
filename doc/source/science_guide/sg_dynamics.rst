@@ -44,6 +44,8 @@ dynamics into CICE is described in detail in
 
 The VP solver implementation mostly follows :cite:`Lemieux08`, with
 FGMRES :cite:`Saad93` as the linear solver and GMRES as the preconditioner.
+Note that the VP solver has not yet been tested on the ``tx1`` grid or with
+threading enabled.
 
 Here we summarize the equations and
 direct the reader to the above references for details.
