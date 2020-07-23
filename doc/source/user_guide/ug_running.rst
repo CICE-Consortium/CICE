@@ -202,7 +202,10 @@ specifies the compilation environment associated with the machine.  This should 
   specifies the grid.  This is a string and for the current CICE driver, gx1, gx3, and tx1 are supported. (default = gx3)
 
 ``--set``,  ``-s`` SET1,SET2,SET3
-  specifies the optional settings for the case.  The settings for ``--suite`` are defined in the suite file.  Multiple settings can be specified by providing a comma deliminated set of values without spaces between settings.  The available settings are in **configurations/scripts/options** and ``cice.setup --help`` will also list them.  These settings files can change either the namelist values or overall case settings (such as the debug flag).
+  specifies the optional settings for the case.  The settings for ``--suite`` are defined in the suite file.  Multiple settings can be specified by providing a comma deliminated set of values without spaces between settings.  The available settings are in **configurations/scripts/options** and ``cice.setup --help`` will also list them.  These settings files can change either the namelist values or overall case settings (such as the debug flag).  For cases and tests (not suites), settings defined in **~/.cice_set** will be included in the --set options.  This behaviour can be overridden with the `--ignore-user-set`` command line option.
+
+``--ignore-user-set``
+  ignores settings defined in **~/.cice.set** (if it exists) for cases and tests.  **~/.cice_set** is always ignored for test suites.
 
 For CICE, when setting up cases, the ``--case`` and ``--mach`` must be specified.  
 It's also recommended that ``--env`` be set explicitly as well.  
@@ -229,6 +232,8 @@ change the defaults.  This is done as part of the ``cice.setup`` and the
 modifications are resolved in the **cice.settings** and **ice_in** file placed in 
 the case directory.  If multiple options are chosen that conflict, then the last
 option chosen takes precedent.  Not all options are compatible with each other.
+Settings on the command line will take precedent over serttings defined in 
+**~/.cice_set**.
 
 Some of the options are
 

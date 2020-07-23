@@ -56,6 +56,8 @@ For individual tests, the following command line options can be set
 
 ``--set`` SET1,SET2,SET3 (see :ref:`case_options`)
 
+``--ignore-user-set`` (see :ref:`case_options`)
+
 ``--acct`` ACCOUNT (see :ref:`case_options`)
 
 ``--grid`` GRID (see :ref:`case_options`)
