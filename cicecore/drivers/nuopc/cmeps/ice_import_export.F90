@@ -35,9 +35,9 @@ module ice_import_export
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
   use icepack_intfc      , only : icepack_liquidus_temperature
+  use cice_wrapper_mod    , only : t_startf, t_stopf, t_barrierf
 #ifdef CESMCOUPLED
   use shr_frz_mod        , only : shr_frz_freezetemp
-  use perf_mod           , only : t_startf, t_stopf, t_barrierf
 #endif
 
   implicit none
@@ -105,30 +105,35 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    integer       :: n
+    integer             :: n
     character(char_len) :: stdname
     character(char_len) :: cvalue
-    logical       :: flds_wiso         ! use case
-    logical       :: flds_i2o_per_cat  ! .true. => select per ice thickness category
+    logical             :: flds_wiso         ! use case
+    logical             :: flds_i2o_per_cat  ! .true. => select per ice thickness category
+    logical             :: isPresent, isSet
     character(len=*), parameter :: subname='(ice_import_export:ice_advertise_fields)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
+    ! Determine if the following attributes are sent by the driver and if so read them in
     flds_wiso = .false.
-    flds_i2o_per_cat = .false.
-#ifdef CESMCOUPLED
-    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) flds_wiso
-    call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flds_wiso
+       call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    end if
+
 #if (defined NEWCODE)
-    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
+    flds_i2o_per_cat = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) send_i2x_per_cat
-    call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
-#endif
+    if (isPresent .and. isSet) then
+       read(cvalue,*) send_i2x_per_cat
+       call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    end if
 #endif
 
     !-----------------
@@ -166,16 +171,14 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_ptem'                       ) !cesm
     call fldlist_add(fldsToIce_num, fldsToIce, 'air_density_height_lowest'     ) !cesm
 
-#ifdef CESMCOUPLED
+    ! the following are advertised but might not be connected if they are not present
+    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     ! from atm - black carbon deposition fluxes (3)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_bcph',  ungridded_lbound=1, ungridded_ubound=3)
-
     ! from atm - wet dust deposition frluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
-
     ! from - atm dry dust deposition frluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
-#endif
 
     do n = 1,fldsToIce_num
        call NUOPC_Advertise(importState, standardName=fldsToIce(n)%stdname, &
@@ -190,20 +193,23 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, trim(flds_scalar_name))
 
     ! ice states
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_mask'                )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction'            )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'sea_ice_temperature'     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_ice_volume'         )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_snow_volume'        )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_tref'                 )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'                 )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'                )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'                  )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dir_albedo' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'  )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'  )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_mask'                    )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction'                )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'sea_ice_surface_temperature' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_ice_volume'             )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_snow_volume'            )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_tref'                     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'                     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'                    )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'                      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dir_albedo'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'      )
+
 #if (defined NEWCODE)
+    ! the following are advertised but might not be connected if they are not present
+    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
@@ -226,6 +232,7 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_vis_dif_flx' )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dir_flx'  )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dif_flx'  )
+
 #if (defined NEWCODE)
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ifrac_n', &
@@ -236,16 +243,18 @@ contains
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_salt_rate'                 )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_zonal'        )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_merid'        )
-#ifdef CESMCOUPLED
+
+    ! the following are advertised but might not be connected if they are not present
+    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcpho'                     )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcphi'                     )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_flxdst'                    )
-#endif
+
     if (flds_wiso) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_fresh_water_to_ocean_rate_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
-            ungridded_lbound=1, ungridded_ubound=3)
+       !call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
+       !     ungridded_lbound=1, ungridded_ubound=3)
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
     end if
@@ -446,13 +455,9 @@ contains
     ! perform a halo update
 
     if (.not.prescribed_ice) then
-#ifdef CESMCOUPLED
        call t_startf ('cice_imp_halo')
-#endif
        call ice_HaloUpdate(aflds, halo_info, field_loc_center, field_type_scalar)
-#ifdef CESMCOUPLED
        call t_stopf ('cice_imp_halo')
-#endif
     endif
 
     ! now fill in the ice internal data types
@@ -537,13 +542,9 @@ contains
 
 
     if (.not.prescribed_ice) then
-#ifdef CESMCOUPLED
        call t_startf ('cice_imp_halo')
-#endif
        call ice_HaloUpdate(aflds, halo_info, field_loc_center, field_type_vector)
-#ifdef CESMCOUPLED
        call t_stopf ('cice_imp_halo')
-#endif
     endif
 
     !$OMP PARALLEL DO PRIVATE(iblk,i,j)
@@ -656,9 +657,8 @@ contains
     ! interpolate across the pole)
     ! use ANGLET which is on the T grid !
 
-#ifdef CESMCOUPLED
     call t_startf ('cice_imp_ocn')
-#endif
+
     !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
     do iblk = 1, nblocks
 
@@ -667,14 +667,16 @@ contains
              ! ocean
              workx      = uocn  (i,j,iblk) ! currents, m/s
              worky      = vocn  (i,j,iblk)
-             uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
+
+             uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! rotate to align with model i,j
                             + worky*sin(ANGLET(i,j,iblk))
              vocn(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
                             - workx*sin(ANGLET(i,j,iblk))
 
              workx      = ss_tltx  (i,j,iblk)           ! sea sfc tilt, m/m
              worky      = ss_tlty  (i,j,iblk)
-             ss_tltx(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
+
+             ss_tltx(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! rotate to align with model i,j
                                + worky*sin(ANGLET(i,j,iblk))
              ss_tlty(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
                                - workx*sin(ANGLET(i,j,iblk))
@@ -682,47 +684,46 @@ contains
              sst(i,j,iblk) = sst(i,j,iblk) - Tffresh       ! sea sfc temp (C)
 
              sss(i,j,iblk) = max(sss(i,j,iblk),c0)
-#ifndef CESMCOUPLED
-!tcx should this be icepack_sea_freezing_temperature?
-             Tf (i,j,iblk) = icepack_liquidus_temperature(sss(i,j,iblk))
-#endif
+
           enddo
        enddo
+    end do
 
 #ifdef CESMCOUPLED
-       ! Use shr_frz_mod for this, overwrite Tf computed above
-       Tf(:,:,iblk) = shr_frz_freezetemp(sss(:,:,iblk))
-#endif
-
-    enddo
+    ! Use shr_frz_mod for this
+    Tf(:,:,iblk) = shr_frz_freezetemp(sss(:,:,iblk))
+#else       
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
+    do iblk = 1, nblocks
+       do j = 1,ny_block
+          do i = 1,nx_block
+             !TODO: tcx should this be icepack_sea_freezing_temperature?
+             Tf (i,j,iblk) = icepack_liquidus_temperature(sss(i,j,iblk))
+          end do
+       end do
+    end do
     !$OMP END PARALLEL DO
-#ifdef CESMCOUPLED
-    call t_stopf ('cice_imp_ocn')
 #endif
+
+    call t_stopf ('cice_imp_ocn')
 
     ! Interpolate ocean dynamics variables from T-cell centers to
     ! U-cell centers.
 
     if (.not.prescribed_ice) then
-#ifdef CESMCOUPLED
        call t_startf ('cice_imp_t2u')
-#endif
        call t2ugrid_vector(uocn)
        call t2ugrid_vector(vocn)
        call t2ugrid_vector(ss_tltx)
        call t2ugrid_vector(ss_tlty)
-#ifdef CESMCOUPLED
        call t_stopf ('cice_imp_t2u')
-#endif
     end if
 
     ! Atmosphere variables are needed in T cell centers in
     ! subroutine stability and are interpolated to the U grid
     ! later as necessary.
 
-#ifdef CESMCOUPLED
     call t_startf ('cice_imp_atm')
-#endif
     !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
     do iblk = 1, nblocks
        do j = 1, ny_block
@@ -743,9 +744,7 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
-#ifdef CESMCOUPLED
     call t_stopf ('cice_imp_atm')
-#endif
 
   end subroutine ice_import
 
@@ -908,7 +907,8 @@ contains
     ! ----
 
     ! surface temperature of ice covered portion (degK)
-    call state_setexport(exportState, 'sea_ice_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
+    !call state_setexport(exportState, 'sea_ice_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'sea_ice_surface_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! albedo vis dir
