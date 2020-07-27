@@ -231,8 +231,8 @@ settings (options), the set_env.setting and set_nml.setting will be used to
 change the defaults.  This is done as part of the ``cice.setup`` and the
 modifications are resolved in the **cice.settings** and **ice_in** file placed in 
 the case directory.  If multiple options are chosen that conflict, then the last
-option chosen takes precedent.  Not all options are compatible with each other.
-Settings on the command line will take precedent over serttings defined in 
+option chosen takes precedence.  Not all options are compatible with each other.
+Settings on the command line will take precedence over serttings defined in 
 **~/.cice_set**.
 
 Some of the options are
@@ -458,7 +458,7 @@ the **env.[machine]** file.  The easiest way to change a user's default is to
 create a file in your home directory called **.cice\_proj** and add your 
 preferred account name to the first line.  
 There is also an option (``--acct``) in **cice.setup** to define the account number.  
-The order of precedent is **cice.setup** command line option, 
+The order of precedence is **cice.setup** command line option, 
 **.cice\_proj** setting, and then value in the **env.[machine]** file.
 
 .. _queue:
