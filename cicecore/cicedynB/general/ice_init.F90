@@ -213,7 +213,7 @@
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
-        ice_data_type,  wave_spec_file,                                 &
+        ice_data_type,  wave_spec_file,  restart_coszen,                &
         fyear_init,     ycycle,                                         &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format, rotate_wind,                  &
@@ -1177,8 +1177,8 @@
                write(nu_diag,1007) ' k2               = ', k2, ' free parameter for landfast ice'
                write(nu_diag,1007) ' alphab           = ', alphab, ' factor for landfast ice'
                write(nu_diag,1007) ' threshold_hw     = ', threshold_hw, ' max water depth for grounding ice'
-               write(nu_diag,1007) ' Ktens            = ', Ktens, ' tensile strength factor'
             endif
+            write(nu_diag,1007) ' Ktens            = ', Ktens, ' tensile strength factor'
          endif ! kdyn enabled
 
          write(nu_diag,*) ' '
