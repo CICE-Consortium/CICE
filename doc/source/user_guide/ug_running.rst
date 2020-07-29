@@ -353,7 +353,7 @@ be modified.
 
 .. _cicecpps:
 
-C Preprocessing (CPP) Directives
+C Preprocessor (CPP) Macros
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are a number of C Preprocessing Directives supported in the CICE model.  These
