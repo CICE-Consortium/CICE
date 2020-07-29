@@ -356,7 +356,7 @@ be modified.
 C Preprocessor (CPP) Macros
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are a number of C Preprocessing Directives supported in the CICE model.  These
+There are a number of C Preprocessing Macros supported in the CICE model.  These
 allow certain coding features like NetCDF, MPI, or specific Fortran features to be 
 excluded or included during the compile.  
 
