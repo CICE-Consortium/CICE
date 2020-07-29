@@ -9,7 +9,7 @@ There are two important files that define the case, **cice.settings** and
 **ice_in**.  **cice.settings** is a list of env variables that define many
 values used to setup, build and run the case.  **ice_in** is the input namelist file
 for CICE.  Variables in both files are described below.  In addition, the first
-table lists available preprocessor directives to activate or deactivate various
+table lists available preprocessor macros to activate or deactivate various
 features when compiling.
 
 .. _tabcpps:
@@ -699,6 +699,5 @@ icefields_nml
    "", "``1``", "write field cell average var every time step", ""
    "", "``md``", "*e.g.,* write both monthly and daily files", ""
    "", "", "", ""
-
 
 
