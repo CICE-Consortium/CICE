@@ -215,7 +215,7 @@ grid_nml
 
    "", "", "", ""
    "``bathymetry_file``", "string", "name of bathymetry file to be read", "‘unknown_bathymetry_file’"
-   "``bathymetry_format``", "``default``", "netcdf depth field", "‘default’"
+   "``bathymetry_format``", "``default``", "NetCDF depth field", "‘default’"
    "", "``pop``", "pop thickness file in cm in ascii format", ""
    "``close_boundaries``", "logical", "set land on edges of grid", "``.false.``"
    "``dxrect``", "real", "x-direction grid spacing for rectangular grid in cm", "0.0"
@@ -699,5 +699,4 @@ icefields_nml
    "", "``1``", "write field cell average var every time step", ""
    "", "``md``", "*e.g.,* write both monthly and daily files", ""
    "", "", "", ""
-
 
