@@ -357,7 +357,7 @@ C Preprocessor (CPP) Macros
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are a number of C Preprocessing Directives supported in the CICE model.  These
-allow certain coding features like NetCDF, MPI, or local Fortran features to be 
+allow certain coding features like NetCDF, MPI, or specific Fortran features to be 
 excluded or included during the compile.  
 
 The CPPs are defined by the `CPPDEFS` variable in the Makefile.  They are defined
