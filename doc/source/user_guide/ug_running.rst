@@ -366,7 +366,7 @@ is what needs to be set in the `CPPDEFS` variable.  The value of `ICE_CPPDEFS` i
 **cice.settings** is copied into the Makefile `CPPDEFS` variable as are settings
 hardwired into the **Macros.[machine]_[environment]** file.
 
-In general, -DFORTRANUNDERSCORE should always be set to support the Fortran/C
+In general, ``-DFORTRANUNDERSCORE`` should always be set to support the Fortran/C
 interfaces in **ice_shr_reprosum.c**.  In addition, if NetCDF is used, -DUSE_NETCDF
 should also be defined.  A list of available CPPs can be found in
 :ref:`tabcpps`.
