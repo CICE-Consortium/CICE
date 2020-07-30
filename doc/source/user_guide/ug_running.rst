@@ -232,8 +232,12 @@ change the defaults.  This is done as part of the ``cice.setup`` and the
 modifications are resolved in the **cice.settings** and **ice_in** file placed in 
 the case directory.  If multiple options are chosen that conflict, then the last
 option chosen takes precedence.  Not all options are compatible with each other.
-Settings on the command line will take precedence over settings defined in 
-**~/.cice_set**.
+
+Settings defined in **~/.cice_set** (if it exists) will be included in the ``--set`` 
+options.  This behaviour can be overridden with the `--ignore-user-set`` command 
+line option.  The format of the **~/.cice_set** file is a identical to the
+``--set`` option, a single command delimited line of options.  Settings on the 
+command line will take precedence over settings defined in **~/.cice_set**.
 
 Some of the options are
 
