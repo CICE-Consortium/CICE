@@ -36,7 +36,7 @@
 
       character (len=char_len), public :: &
          coriolis   , & ! 'constant', 'zero', or 'latitude'
-         ssh_stress     ! 'geostrophic' or 'slope'
+         ssh_stress     ! 'geostrophic' or 'coupled'
 
       logical (kind=log_kind), public :: &
          revised_evp ! if true, use revised evp procedure
@@ -576,7 +576,7 @@
       ! Define variables for momentum equation
       !-----------------------------------------------------------------
 
-      if (trim(ssh_stress) == 'slope') then
+      if (trim(ssh_stress) == 'coupled') then
          call icepack_query_parameters(gravit_out=gravit)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -600,7 +600,7 @@
             ! calculate tilt from geostrophic currents if needed
             strtltx(i,j) = -fm(i,j)*vocn(i,j)
             strtlty(i,j) =  fm(i,j)*uocn(i,j)
-         elseif (trim(ssh_stress) == 'slope') then
+         elseif (trim(ssh_stress) == 'coupled') then
             strtltx(i,j) = -gravit*umass(i,j)*ss_tltx(i,j)
             strtlty(i,j) = -gravit*umass(i,j)*ss_tlty(i,j)
          else

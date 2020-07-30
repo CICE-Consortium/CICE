@@ -324,7 +324,7 @@
       ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
       coriolis = 'latitude'  ! latitude dependent, or 'constant'
-      ssh_stress = 'geostrophic'  ! 'geostrophic' or 'slope'
+      ssh_stress = 'geostrophic'  ! 'geostrophic' or 'coupled'
       kridge   = 1           ! -1 = off, 1 = on
       ktransport = 1         ! -1 = off, 1 = on
       calc_Tsfc = .true.     ! calculate surface temperature
@@ -1156,7 +1156,7 @@
 
             if (trim(ssh_stress) == 'geostrophic') then
                tmpstr2 = ': from ocean velocity'
-            elseif (trim(ssh_stress) == 'slope') then
+            elseif (trim(ssh_stress) == 'coupled') then
                tmpstr2 = ': from coupled sea surface height gradients'
             endif
             write(nu_diag,*) 'ssh_stress       = ',trim(ssh_stress),trim(tmpstr2)

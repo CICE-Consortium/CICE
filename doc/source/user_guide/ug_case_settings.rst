@@ -342,7 +342,7 @@ dynamics_nml
    "``Pstar``", "real", "constant in Hibler strength formula (N/m\ :math:`^2`)", "2.75e4"
    "``revised_evp``", "logical", "use revised EVP formulation", "``.false.``"
    "``ssh_stress``", "``geostropic``", "computed from ocean velocity", "``geostrophic``"
-   "", "``slope``", "computed from coupled sea surface height tilt", ""
+   "", "``coupled``", "computed from coupled sea surface height gradient", ""
    "``threshold_hw``", "real", "Max water depth for grounding (see :cite:`Amundrud04`)", "30."
    "``yield_curve``", "``ellipse``", "elliptical yield curve", "``ellipse``"
    "", "", "", ""
