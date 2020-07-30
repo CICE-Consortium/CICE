@@ -232,7 +232,7 @@ change the defaults.  This is done as part of the ``cice.setup`` and the
 modifications are resolved in the **cice.settings** and **ice_in** file placed in 
 the case directory.  If multiple options are chosen that conflict, then the last
 option chosen takes precedence.  Not all options are compatible with each other.
-Settings on the command line will take precedence over serttings defined in 
+Settings on the command line will take precedence over settings defined in 
 **~/.cice_set**.
 
 Some of the options are
