@@ -1318,6 +1318,11 @@
             tmpstr2 = ' ocean mixed layer calculation (SST) disabled'
          endif
          write(nu_diag,1012) ' oceanmixed_ice   = ', oceanmixed_ice,trim(tmpstr2)
+         if (oceanmixed_ice) then
+            write(nu_diag,*) '     WARNING: ocean mixed layer ON'
+            write(nu_diag,*) '     WARNING: will impact ocean forcing interaction'
+            write(nu_diag,*) '     WARNING: coupled forcing will be modified by mixed layer routine'
+         endif
          if (trim(tfrz_option) == 'minus1p8') then
             tmpstr2 = ': constant ocean freezing temperature (-1.8C)'
          elseif (trim(tfrz_option) == 'linear_salt') then
@@ -1546,17 +1551,6 @@
          if (restore_ice .or. restore_ocn) &
          write(nu_diag,1020) ' trestore                  = ', trestore
  
-#ifdef CESMCOUPLED
-         if( oceanmixed_ice ) then
-            write(nu_diag,*) subname//' WARNING ** WARNING ** WARNING ** WARNING '
-            write(nu_diag,*) subname//' WARNING: CESMCOUPLED CPP and oceanmixed_ice namelist are BOTH ON'
-            write(nu_diag,*) subname//' WARNING:   Ocean data received from coupler will'
-            write(nu_diag,*) subname//' WARNING:   be altered by mixed layer routine!'
-            write(nu_diag,*) subname//' WARNING ** WARNING ** WARNING ** WARNING '
-            write(nu_diag,*) ' '
-         endif
-#endif
-
          write(nu_diag,*) ' '
          write(nu_diag,'(a30,2f8.2)') 'Diagnostic point 1: lat, lon =', &
                             latpnt(1), lonpnt(1)
