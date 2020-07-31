@@ -236,7 +236,7 @@ option chosen takes precedence.  Not all options are compatible with each other.
 Settings defined in **~/.cice_set** (if it exists) will be included in the ``--set`` 
 options.  This behaviour can be overridden with the `--ignore-user-set`` command 
 line option.  The format of the **~/.cice_set** file is a identical to the
-``--set`` option, a single command delimited line of options.  Settings on the 
+``--set`` option, a single comma-delimited line of options.  Settings on the 
 command line will take precedence over settings defined in **~/.cice_set**.
 
 Some of the options are
