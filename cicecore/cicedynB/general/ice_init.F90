@@ -1295,12 +1295,12 @@
          write(nu_diag,1012) ' calc_strair      = ', calc_strair,' calculate wind stress and speed'
          write(nu_diag,1012) ' rotate_wind      = ', rotate_wind,' rotate wind/stress to computational grid'
          write(nu_diag,1012) ' formdrag         = ', formdrag,' use form drag parameterization'
-         if (trim(atmbndy) == 'constant') then
+         if (trim(atmbndy) == 'default') then
             tmpstr2 = ': stability-based boundary layer'
             write(nu_diag,1012) ' highfreq         = ', highfreq,' high-frequency atmospheric coupling'
             write(nu_diag,1022) ' natmiter         = ', natmiter,' number of atmo boundary layer iterations'
             write(nu_diag,1006) ' atmiter_conv     = ', atmiter_conv,' convergence criterion for ustar'
-         elseif (trim(atmbndy) == 'default') then
+         elseif (trim(atmbndy) == 'constant') then
             tmpstr2 = ': boundary layer uses bulk transfer coefficients'
          endif
          write(nu_diag,*) 'atmbndy          = ', trim(atmbndy),trim(tmpstr2)

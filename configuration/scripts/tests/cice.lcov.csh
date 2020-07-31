@@ -9,7 +9,7 @@ set lcovhtmldir = lcov_cice_${report_name}
 genhtml -o ./${lcovhtmldir} --precision 2 -t "${report_name}" total.info
 
 rm -r -f ${lcovrepo}
-git clone https://github.com/apcraig/${lcovrepo}
+git clone --depth=1 https://github.com/apcraig/${lcovrepo}
 cp -p -r ${lcovhtmldir} ${lcovrepo}/
 
 cd ${lcovrepo}

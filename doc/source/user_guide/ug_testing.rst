@@ -56,6 +56,8 @@ For individual tests, the following command line options can be set
 
 ``--set`` SET1,SET2,SET3 (see :ref:`case_options`)
 
+``--ignore-user-set`` (see :ref:`case_options`)
+
 ``--acct`` ACCOUNT (see :ref:`case_options`)
 
 ``--grid`` GRID (see :ref:`case_options`)
@@ -312,7 +314,7 @@ If a user adds ``--set`` to the suite, all tests in that suite will add that opt
 
   ./cice.setup --suite base_suite,decomp_suite --mach wolf --env gnu --testid myid -s debug
 
-The option settings defined in the suite have precendent over the command line
+The option settings defined in the suite have precendence over the command line
 values if there are conflicts.
 
 The predefined test suites are defined under **configuration/scripts/tests** and 
@@ -459,7 +461,7 @@ Test Suite Examples
       ./results.csh
 
     If there are conflicts between the ``--set`` options in the suite and on the command line,
-    the suite will take precedent.
+    the suite will take precedence.
 
  5) **Multiple test suites from a single command line**
 
