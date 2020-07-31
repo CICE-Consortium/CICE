@@ -98,7 +98,7 @@
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 kevp_kernel, &
                                 basalstress, k1, k2, alphab, threshold_hw, &
-                                Ktens, e_ratio, coriolis, &
+                                Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
@@ -187,7 +187,7 @@
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
         kevp_kernel,                                                    &
-        brlx,           arlx,                                           &
+        brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
@@ -327,6 +327,7 @@
       ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
       coriolis = 'latitude'  ! latitude dependent, or 'constant'
+      ssh_stress = 'geostrophic'  ! 'geostrophic' or 'coupled'
       kridge   = 1           ! -1 = off, 1 = on
       ktransport = 1         ! -1 = off, 1 = on
       calc_Tsfc = .true.     ! calculate surface temperature
@@ -616,6 +617,7 @@
       call broadcast_scalar(albedo_type,        master_task)
       call broadcast_scalar(ktherm,             master_task)
       call broadcast_scalar(coriolis,           master_task)
+      call broadcast_scalar(ssh_stress,         master_task)
       call broadcast_scalar(kridge,             master_task)
       call broadcast_scalar(ktransport,         master_task)
       call broadcast_scalar(conduct,            master_task)
@@ -1148,6 +1150,13 @@
             endif
             write(nu_diag,*) 'coriolis         = ',trim(coriolis),trim(tmpstr2)
 
+            if (trim(ssh_stress) == 'geostrophic') then
+               tmpstr2 = ': from ocean velocity'
+            elseif (trim(ssh_stress) == 'coupled') then
+               tmpstr2 = ': from coupled sea surface height gradients'
+            endif
+            write(nu_diag,*) 'ssh_stress       = ',trim(ssh_stress),trim(tmpstr2)
+
             if (ktransport == 1) then
                tmpstr2 = ' transport enabled'
                if (trim(advection) == 'remap') then
@@ -1305,6 +1314,11 @@
             tmpstr2 = ' ocean mixed layer calculation (SST) disabled'
          endif
          write(nu_diag,1012) ' oceanmixed_ice   = ', oceanmixed_ice,trim(tmpstr2)
+         if (oceanmixed_ice) then
+            write(nu_diag,*) '     WARNING: ocean mixed layer ON'
+            write(nu_diag,*) '     WARNING: will impact ocean forcing interaction'
+            write(nu_diag,*) '     WARNING: coupled forcing will be modified by mixed layer routine'
+         endif
          if (trim(tfrz_option) == 'minus1p8') then
             tmpstr2 = ': constant ocean freezing temperature (-1.8C)'
          elseif (trim(tfrz_option) == 'linear_salt') then
@@ -1535,17 +1549,6 @@
          if (restore_ice .or. restore_ocn) &
          write(nu_diag,1020) ' trestore                  = ', trestore
  
-#ifdef coupled
-         if( oceanmixed_ice ) then
-            write(nu_diag,*) subname//' WARNING ** WARNING ** WARNING ** WARNING '
-            write(nu_diag,*) subname//' WARNING: coupled CPP and oceanmixed_ice namelist are BOTH ON'
-            write(nu_diag,*) subname//' WARNING:   Ocean data received from coupler will'
-            write(nu_diag,*) subname//' WARNING:   be altered by mixed layer routine!'
-            write(nu_diag,*) subname//' WARNING ** WARNING ** WARNING ** WARNING '
-            write(nu_diag,*) ' '
-         endif
-#endif
-
          write(nu_diag,*) ' '
          write(nu_diag,'(a30,2f8.2)') 'Diagnostic point 1: lat, lon =', &
                             latpnt(1), lonpnt(1)

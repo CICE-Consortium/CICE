@@ -135,6 +135,7 @@
     coriolis        = 'latitude'
     kridge          = 1
     ktransport      = 1
+    ssh_stress      = 'geostrophic'
 /
 
 &shortwave_nml
