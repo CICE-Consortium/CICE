@@ -1,3 +1,6 @@
+#ifdef ncdf
+#define USE_NETCDF
+#endif
 !=======================================================================
 
 ! Spatial grids, masks, and boundary conditions
@@ -45,6 +48,7 @@
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
          bathymetry_file, & !  input bathymetry for basalstress
+         bathymetry_format, & ! bathymetry file format (default or pop)
          grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
@@ -541,11 +545,14 @@
       ! bathymetry
       !-----------------------------------------------------------------
 
-#ifdef RASM_MODS
-      call get_bathymetry_popfile
-#else
-      call get_bathymetry
-#endif
+      if (trim(bathymetry_format) == 'default') then
+         call get_bathymetry
+      elseif (trim(bathymetry_format) == 'pop') then
+         call get_bathymetry_popfile
+      else
+         call abort_ice(subname//'ERROR: bathymetry_format value must be default or pop', &
+            file=__FILE__, line=__LINE__)
+      endif
 
       !----------------------------------------------------------------
       ! Corner coordinates for CF compliant history files
@@ -713,13 +720,14 @@
 
       subroutine popgrid_nc
 
-#ifdef ncdf
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
+#ifdef USE_NETCDF
       use netcdf
+#endif
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -752,6 +760,7 @@
 
       character(len=*), parameter :: subname = '(popgrid_nc)'
 
+#ifdef USE_NETCDF
       call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -866,7 +875,11 @@
          call ice_close_nc(fid_grid)
          call ice_close_nc(fid_kmt)
       endif
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
 #endif
+
       end subroutine popgrid_nc
 
 #ifdef CESMCOUPLED
@@ -879,13 +892,14 @@
 
       subroutine latlongrid
 
-#ifdef ncdf
 !     use ice_boundary
       use ice_domain_size
       use ice_scam, only : scmlat, scmlon, single_column
       use ice_constants, only: c0, c1, p5, p25, &
           field_loc_center, field_type_scalar, radius
+#ifdef USE_NETCDF
       use netcdf
+#endif
 
       integer (kind=int_kind) :: &
          i, j, iblk    
@@ -927,6 +941,7 @@
 
       character(len=*), parameter :: subname = '(lonlatgrid)'
 
+#ifdef USE_NETCDF
       !-----------------------------------------------------------------
       ! - kmt file is actually clm fractional land file
       ! - Determine consistency of dimensions
@@ -1139,6 +1154,9 @@
       !$OMP END PARALLEL DO
 
       call makemask
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine latlongrid
@@ -2510,11 +2528,9 @@
       character(len=*), parameter :: subname = '(read_basalstress_bathy)'
 
       if (my_task == master_task) then
-
           write (nu_diag,*) ' '
           write (nu_diag,*) 'Bathymetry file: ', trim(bathymetry_file)
           call icepack_warnings_flush(nu_diag)
-
       endif
 
       call ice_open_nc(bathymetry_file,fid_init)

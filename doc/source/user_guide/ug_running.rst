@@ -14,9 +14,10 @@ Software Requirements
 
 To run stand-alone, CICE requires
 
+- bash and csh
 - gmake (GNU Make)
 - Fortran and C	compilers (Intel, PGI, GNU, Cray, and NAG have been tested)
-- NetCDF
+- NetCDF (this is actually optional but required to test out of the box configurations)
 - MPI (this is actually	optional but without it	you can	only run on 1 processor)
 
 Below are lists of software versions that the Consortium has tested at some point.  There is no
@@ -350,6 +351,25 @@ automatically clean the prior build.  If incremental builds are desired to save
 time during development, the ``ICE_CLEANBUILD`` setting in **cice.settings** should
 be modified.
 
+.. _cicecpps:
+
+C Preprocessor (CPP) Macros
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are a number of C Preprocessing Macros supported in the CICE model.  These
+allow certain coding features like NetCDF, MPI, or specific Fortran features to be 
+excluded or included during the compile.  
+
+The CPPs are defined by the `CPPDEFS` variable in the Makefile.  They are defined
+by passing the -D[CPP] to the C and Fortran compilers (ie. -DUSE_NETCDF) and this
+is what needs to be set in the `CPPDEFS` variable.  The value of `ICE_CPPDEFS` in
+**cice.settings** is copied into the Makefile `CPPDEFS` variable as are settings
+hardwired into the **Macros.[machine]_[environment]** file.
+
+In general, ``-DFORTRANUNDERSCORE`` should always be set to support the Fortran/C
+interfaces in **ice_shr_reprosum.c**.  In addition, if NetCDF is used, ``-DUSE_NETCDF``
+should also be defined.  A list of available CPPs can be found in
+:ref:`tabcpps`.
 
 .. _porting:
 
