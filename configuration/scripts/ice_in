@@ -106,6 +106,9 @@
     dSdt_slow_mode    = -5.0e-8
     phi_c_slow_mode   =    0.05
     phi_i_mushy       =    0.85
+    sw_redist         = .false.
+    sw_frac           = 0.9d0
+    sw_dtemp          = 0.02d0
 /
 
 &dynamics_nml

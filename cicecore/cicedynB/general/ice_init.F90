@@ -117,7 +117,8 @@
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar
+        phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
+        sw_frac, sw_dtemp
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -125,7 +126,8 @@
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
         tfrz_option, frzpnd, atmbndy, wave_spec_type
 
-      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec
+      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
+                                 sw_redist
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd
@@ -181,7 +183,8 @@
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,     ksno,             &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
-        dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy
+        dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
+        sw_redist,      sw_frac,         sw_dtemp
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
@@ -434,6 +437,11 @@
       dSdt_slow_mode    = -1.5e-7_dbl_kind ! slow mode drainage strength (m s-1 K-1)
       phi_c_slow_mode   =    0.05_dbl_kind ! critical liquid fraction porosity cutoff
       phi_i_mushy       =    0.85_dbl_kind ! liquid fraction of congelation ice
+
+      ! shortwave redistribution in the thermodynamics
+      sw_redist = .false.
+      sw_frac   = 0.9_dbl_kind
+      sw_dtemp  = 0.02_dbl_kind
 
       !-----------------------------------------------------------------
       ! read from input file
@@ -716,6 +724,9 @@
       call broadcast_scalar(dSdt_slow_mode,     master_task)
       call broadcast_scalar(phi_c_slow_mode,    master_task)
       call broadcast_scalar(phi_i_mushy,        master_task)
+      call broadcast_scalar(sw_redist,          master_task)
+      call broadcast_scalar(sw_frac,            master_task)
+      call broadcast_scalar(sw_dtemp,           master_task)
 
 #ifdef CESMCOUPLED
       pointer_file = trim(pointer_file) // trim(inst_suffix)
@@ -969,6 +980,12 @@
          endif
       endif
 !tcraig
+      if (ktherm == 1 .and. .not.sw_redist) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: ktherm = 1 and sw_redist = ',sw_redist
+            write(nu_diag,*) subname//' WARNING:   For consistency, set sw_redist = .true.'
+         endif
+      endif
 
       if (formdrag) then
          if (trim(atmbndy) == 'constant') then
@@ -1239,6 +1256,9 @@
             write(nu_diag,1007) ' ksno             = ', ksno,' snow thermal conductivity'
             if (ktherm == 1) &
             write(nu_diag,*) 'conduct          = ', trim(conduct),' ice thermal conductivity'
+            write(nu_diag,1012) ' sw_redist        = ', sw_redist,' redistribute internal shortwave to surface'
+            write(nu_diag,1002) ' sw_frac          = ', sw_frac,' fraction redistributed'
+            write(nu_diag,1002) ' sw_dtemp         = ', sw_dtemp,' temperature difference from freezing to redistribute'
             if (ktherm == 2) then
                write(nu_diag,1002) ' a_rapid_mode     = ', a_rapid_mode,' brine channel diameter'
                write(nu_diag,1007) ' Rac_rapid_mode   = ', Rac_rapid_mode,' critical Rayleigh number'
@@ -1629,7 +1649,8 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
-         Pstar_in=Pstar, Cstar_in=Cstar)
+         Pstar_in=Pstar, Cstar_in=Cstar, &
+         sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
          tr_fsd_in=tr_fsd, tr_pond_in=tr_pond, &
