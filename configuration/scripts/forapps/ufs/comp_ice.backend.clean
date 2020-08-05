@@ -10,10 +10,10 @@ setenv OBJDIR $EXEDIR/compile           ; if !(-d $OBJDIR) mkdir -p $OBJDIR
 
 if (${SITE} =~ cheyenne*) then
   setenv ARCH cheyenne_intel
-#else if (${SITE} =~ Orion*) then
-#  setenv ARCH orion_intel
-#else if (${SITE} =~ hera*) then
-#  setenv ARCH hera_intel
+else if (${SITE} =~ orion*) then
+  setenv ARCH orion_intel
+else if (${SITE} =~ hera*) then
+  setenv ARCH hera_intel
 else
   echo "CICE6 ${0}: ERROR in ARCH setup, ${hname}"
   exit -2

@@ -539,6 +539,7 @@ contains
     !----------------------------------------------------------------------------
 
     call icepack_query_parameters(ktherm_out=ktherm)
+    call icepack_query_parameters(tfrz_option_out=tfrz_option)
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=__FILE__, line=__LINE__)
@@ -602,6 +603,7 @@ contains
           write(nu_diag,*) trim(subname),' cice calendar_type = ',trim(calendar_type)
        endif
 
+#ifdef CESMCOUPLED
        if (calendar_type == "GREGORIAN" .or. &
            calendar_type == "Gregorian" .or. &
            calendar_type == "gregorian") then
@@ -609,6 +611,7 @@ contains
        else
           call time2sec(iyear-year_init,month,mday,time)
        endif
+#endif
        time = time+start_tod
     end if
 
@@ -875,7 +878,7 @@ contains
     !--------------------------------
 
     if (dbug > 1) then
-       call State_diagnose(exportState,subname//':ES',rc=rc)
+       call state_diagnose(exportState,subname//':ES',rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
@@ -905,8 +908,10 @@ contains
     ! Local variables
     type(ESMF_Clock)           :: clock
     type(ESMF_Alarm)           :: alarm
+    type(ESMF_Time)            :: startTime
     type(ESMF_Time)            :: currTime
     type(ESMF_Time)            :: nextTime
+    type(ESMF_TimeInterval)    :: timeStep
     type(ESMF_State)           :: importState, exportState
     character(ESMF_MAXSTR)     :: cvalue
     real(dbl_kind)             :: eccen, obliqr, lambm0, mvelpp
@@ -928,11 +933,30 @@ contains
     logical                    :: isPresent, isSet
     character(*)   , parameter :: F00   = "('(ice_comp_nuopc) ',2a,i8,d21.14)"
     character(len=*),parameter :: subname=trim(modName)//':(ModelAdvance) '
+    character(char_len_long)   :: msgString
     !--------------------------------
 
     rc = ESMF_SUCCESS
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
+    ! query the Component for its clock, importState and exportState
+    call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, &
+      exportState=exportState, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_ClockPrint(clock, options="currTime", &
+      preString="------>Advancing ICE from: ", unit=msgString, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(subname//trim(msgString), ESMF_LOGMSG_INFO)
+
+    call ESMF_ClockGet(clock, startTime=startTime, currTime=currTime, &
+      timeStep=timeStep, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_TimePrint(currTime + timeStep, &
+      preString="--------------------------------> to: ", unit=msgString, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
     !--------------------------------
     ! Turn on timers
     !--------------------------------
@@ -1050,6 +1074,10 @@ contains
             idate, sec, nu_diag, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
+    if (dbug > 1) then
+       call state_diagnose(importState,subname//':IS',rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     !--------------------------------
     ! Advance cice and timestep update
@@ -1067,9 +1095,14 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call t_stopf ('cice_run_export')
 
+    ! write Debug output
     if (debug_export > 0 .and. my_task==master_task) then
        call State_fldDebug(exportState, flds_scalar_name, 'cice_export:', &
             idate, sec, nu_diag, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+    if (dbug > 1) then
+       call state_diagnose(exportState,subname//':ES',rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
