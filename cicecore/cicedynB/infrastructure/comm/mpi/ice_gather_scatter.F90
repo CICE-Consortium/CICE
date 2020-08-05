@@ -16,7 +16,8 @@
 
    use mpi   ! MPI Fortran module
    use ice_kinds_mod
-   use ice_communicate, only: my_task, mpiR8, mpiR4, mpitag_gs, MPI_COMM_ICE
+   use ice_communicate, only: my_task, mpiR8, mpiR4, mpitag_gs, MPI_COMM_ICE, &
+       ice_barrier, add_mpi_barriers
    use ice_constants, only: spval_dbl, c0, &
        field_loc_center, field_loc_NEcorner, field_loc_Nface, field_loc_Eface, &
        field_loc_noupdate, &
@@ -233,9 +234,9 @@
 
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -400,9 +401,9 @@
 
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -567,9 +568,9 @@
 
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -961,9 +962,9 @@
 
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1284,9 +1285,9 @@
 
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1607,9 +1608,9 @@
 
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1983,9 +1984,9 @@
       enddo
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -2372,9 +2373,9 @@
       enddo
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -2761,9 +2762,9 @@
       enddo
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -3093,9 +3094,9 @@
      deallocate(rcv_request, rcv_status)
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -3379,9 +3380,9 @@
      deallocate(rcv_request, rcv_status)
    endif
 
-#ifdef gather_scatter_barrier
-   call MPI_BARRIER(MPI_COMM_ICE, ierr)
-#endif
+   if (add_mpi_barriers) then
+     call ice_barrier()
+   endif
 
 !-----------------------------------------------------------------------
 

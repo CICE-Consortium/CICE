@@ -181,6 +181,12 @@ that prints out the variable ``blkmask`` to the history file and
 which labels the blocks in the grid decomposition according to ``blkmask =
 my_task + iblk/100``.
 
+The namelist ``add_mpi_barriers`` can be set to ``.true.`` to help 
+throttle communication for communication intensive configurations.  This
+may slow the code down a bit.  These barriers have been added to
+a few select locations, but it's possible others may be needed.  As a general
+rule, ``add_mpi_barriers`` should be ``.false.``.
+
 *************
 Tripole grids
 *************

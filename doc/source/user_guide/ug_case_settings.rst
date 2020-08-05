@@ -8,7 +8,51 @@ Case Settings
 There are two important files that define the case, **cice.settings** and 
 **ice_in**.  **cice.settings** is a list of env variables that define many
 values used to setup, build and run the case.  **ice_in** is the input namelist file
-for CICE.  Variables in both files are described below.
+for CICE.  Variables in both files are described below.  In addition, the first
+table lists available preprocessor macros to activate or deactivate various
+features when compiling.
+
+.. _tabcpps:
+
+Table of C Preprocessor (CPP) Macros
+---------------------------------------------------
+
+The CICE model supports a number of C Preprocessor (CPP) Macros.  These
+can be turned on during compilation to activate different pieces of source
+code.  The main purpose is to introduce build-time code modifications to
+include or exclude certain libraries or Fortran language features.  More information
+can be found in :ref:`cicecpps`.  The following CPPs are available.
+
+.. csv-table:: **CPP Macros**
+   :header: "CPP name", "description"
+   :widths: 15, 60
+
+   "",""
+   "**General Macros**", ""
+   "CESM1_PIO", "Provide backwards compatible support for PIO interfaces/version released with CESM1 in about 2010"
+   "ESMF_INTERFACE", "Turns on ESMF support in a subset of driver code.  Also USE_ESMF_LIB and USE_ESMF_METADATA"
+   "FORTRANUNDERSCORE", "Used in ice_shr_reprosum86.c to support Fortran-C interfaces.  This should generally be turned on at all times.  There are other CPPs (FORTRANDOUBULEUNDERSCORE, FORTRANCAPS, etc) in ice_shr_reprosum.c that are generally not used in CICE but could be useful if problems arise in the Fortran-C interfaces"
+   "GPTL", "Turns on GPTL initialization if needed for PIO"
+   "key_oasis3", "Leverages Oasis CPPs to define the local MPI communicator"
+   "key_oasis3mct", "Leverages Oasis CPPs to define the local MPI communicator"
+   "key_oasis4", "Leverages Oasis CPPs to define the local MPI communicator"
+   "key_iomput", "Leverages Oasis CPPs to define the local MPI communicator"
+   "NO_F2003", "Turns off some Fortran 2003 features"
+   "NO_I8", "Converts integer*8 to integer*4.  This could have adverse affects for certain algorithms including the ddpdd implementation associated with the ``bfbflag``"
+   "NO_R16", "Converts real*16 to real*8.  This could have adverse affects for certain algorithms including the lsum16 implementation associated with the ``bfbflag``"
+   "USE_NETCDF", "Turns on netcdf code.  This is normally on and is needed for released configurations.  An older value, ncdf, is still supported"
+   "",""
+   "**Application Macros**", ""
+   "CESMCOUPLED", "Turns on code changes for the CESM coupled application                          "
+   "CICE_IN_NEMO", "Turns on code changes for coupling in the NEMO ocean model"
+   "CICE_DMI", "Turns on code changes for the DMI coupled model application"
+   "ICE_DA", "Turns on code changes in the hadgem driver"
+   "RASM_MODS", "Turns on code changes for the RASM coupled application"
+   "",""
+   "**Library Macros**", ""
+   "_OPENMP", "Automatically defined when compiling with OpenMP                          "
+   "_OPENACC", "Automatically defined when compiling with OpenACC                        "
+
 
 .. _tabsettings:
 
@@ -37,7 +81,7 @@ can be modified as needed.
    "ICE_RSTDIR", "string", "unused", "${ICE_RUNDIR}/restart"
    "ICE_HSTDIR", "string", "unused", "${ICE_RUNDIR}/history"
    "ICE_LOGDIR", "string", "log directory", "${ICE_CASEDIR}/logs"
-   "ICE_DRVOPT", "string", "unused", "cice"
+   "ICE_DRVOPT", "string", "unused", "standalone/cice"
    "ICE_IOTYPE", "string", "I/O format", "set by cice.setup"
    " ", "netcdf", "serial netCDF"
    " ", "pio", "parallel netCDF"
@@ -171,6 +215,8 @@ grid_nml
 
    "", "", "", ""
    "``bathymetry_file``", "string", "name of bathymetry file to be read", "‘unknown_bathymetry_file’"
+   "``bathymetry_format``", "``default``", "NetCDF depth field", "‘default’"
+   "", "``pop``", "pop thickness file in cm in ascii format", ""
    "``close_boundaries``", "logical", "set land on edges of grid", "``.false.``"
    "``dxrect``", "real", "x-direction grid spacing for rectangular grid in cm", "0.0"
    "``dyrect``", "real", "y-direction grid spacing for rectangular grid in cm", "0.0"
@@ -193,6 +239,7 @@ grid_nml
    "``nfsd``", "integer", "number of floe size categories", "1"
    "``nilyr``", "integer", "number of vertical layers in ice", "0"
    "``nslyr``", "integer", "number of vertical layers in snow", "0"
+   "``orca_halogrid``", "logical", "use orca haloed grid for data/grid read", "``.false.``"
    "``use_bathymetry``", "logical", "use read in bathymetry file for basalstress option", "``.false.``"
    "", "", "", ""
 
@@ -204,6 +251,7 @@ domain_nml
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
+   "``add_mpi_barriers``", "logical", "throttle communication", "``.false.``"
    "``block_size_x``", "integer", "block size in x direction", "-1"
    "``block_size_y``", "integer", "block size in y direction", "-1"
    "``distribution_type``", "``cartesian``", "2D cartesian block distribution method", "``cartesian``"
@@ -297,6 +345,9 @@ thermo_nml
    "``phi_c_slow_mode``", ":math:`0<\phi_c < 1`", "critical liquid fraction", "0.05"
    "``phi_i_mushy``", ":math:`0<\phi_i < 1`", "solid fraction at lower boundary", "0.85"
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
+   "``sw_redist``", "logical", "redistribute internal shortwave to surface", "``.false.``"
+   "``sw_frac``", "real", "fraction redistributed", "0.9"
+   "``sw_dtemp``", "real", "temperature difference from melt to start redistributing", "0.02"
    "", "", "", ""
 
 dynamics_nml
@@ -315,9 +366,9 @@ dynamics_nml
    "``basalstress``", "logical", "use basal stress parameterization for landfast ice", "``.false.``"
    "``Cf``", "real", "ratio of ridging work to PE change in ridging", "17.0"
    "``coriolis``", "``constant``", "constant coriolis value = 1.46e-4", "``latitude``"
-   "``Cstar``", "real", "constant in Hibler strength formula", "20"
    "", "``latitude``", "coriolis variable by latitude", ""
    "", "``zero``", "zero coriolis", ""
+   "``Cstar``", "real", "constant in Hibler strength formula", "20"
    "``e_ratio``", "real", "EVP ellipse aspect ratio", "2.0"
    "``kdyn``", "``-1``", "dynamics algorithm OFF", "1"
    "", "``0``", "dynamics OFF", ""
@@ -342,6 +393,8 @@ dynamics_nml
    "``ndte``", "integer", "number of EVP subcycles", "120"
    "``Pstar``", "real", "constant in Hibler strength formula (N/m\ :math:`^2`)", "2.75e4"
    "``revised_evp``", "logical", "use revised EVP formulation", "``.false.``"
+   "``ssh_stress``", "``coupled``", "computed from coupled sea surface height gradient", "``geostrophic``"
+   "", "``geostropic``", "computed from ocean velocity", ""
    "``threshold_hw``", "real", "Max water depth for grounding (see :cite:`Amundrud04`)", "30."
    "``yield_curve``", "``ellipse``", "elliptical yield curve", "``ellipse``"
    "", "", "", ""
@@ -651,6 +704,4 @@ icefields_nml
    "", "``1``", "write field cell average var every time step", ""
    "", "``md``", "*e.g.,* write both monthly and daily files", ""
    "", "", "", ""
-
-
 

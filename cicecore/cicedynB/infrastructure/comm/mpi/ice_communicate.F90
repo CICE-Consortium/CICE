@@ -45,6 +45,9 @@
       mpitagHalo            = 1,    &! MPI tags for various
       mpitag_gs             = 1000   ! communication patterns
 
+   logical (log_kind), public :: &
+      add_mpi_barriers      = .false. ! turn on mpi barriers for throttling
+
 !***********************************************************************
 
  contains
@@ -98,7 +101,11 @@
    master_task = 0
    call MPI_COMM_RANK  (MPI_COMM_ICE, my_task, ierr)
 
+#if (defined NO_R16)
+   mpiR16 = MPI_REAL8
+#else
    mpiR16 = MPI_REAL16
+#endif
    mpiR8  = MPI_REAL8
    mpiR4  = MPI_REAL4
 

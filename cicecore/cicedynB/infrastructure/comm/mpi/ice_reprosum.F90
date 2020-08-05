@@ -39,7 +39,7 @@ MODULE ice_reprosum
 #ifndef SERIAL_REMOVE_MPI
 use mpi   ! MPI Fortran module
 #endif
-#if ( defined noI8 )
+#if defined (NO_I8)
    ! Workaround for when shr_kind_i8 is not supported.
    use ice_kinds_mod, only: r8 => dbl_kind, i8 => int_kind
 #else
@@ -1032,7 +1032,7 @@ use mpi   ! MPI Fortran module
 #ifdef SERIAL_REMOVE_MPI
       i8_arr_gsum_level = i8_arr_lsum_level
 #else
-#if ( defined noI8 )
+#if defined (NO_I8)
      ! Workaround for when i8 is not supported.
 !      if (detailed_timing) call xicex_timer_start("repro_sum_allr_i4")
       call mpi_allreduce (i8_arr_lsum_level, i8_arr_gsum_level, & 

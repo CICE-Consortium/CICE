@@ -17,7 +17,6 @@
 ! https://github.com/CICE-Consortium
 ! 
 !=======================================================================
-#ifndef popcice
 !
 ! Main driver routine for CICE.  Initializes and steps through the model.
 ! This program should be compiled if CICE is run as a separate executable,
@@ -57,7 +56,6 @@
 
       end program icemodel
 
-#endif
 !=======================================================================
 !
 ! Wrapper for the print_state debugging routine.

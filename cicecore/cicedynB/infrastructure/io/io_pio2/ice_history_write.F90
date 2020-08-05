@@ -39,7 +39,6 @@
 
       subroutine ice_write_hist (ns)
 
-#ifdef ncdf
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: time, sec, idate, idate0, write_ic, &
@@ -55,8 +54,6 @@
       use ice_history_shared
       use ice_arrays_column, only: hin_max, floe_rad_c
       use ice_restart_shared, only: runid, lcdf64
-      use netcdf
-#endif
       use ice_pio
       use pio
 
@@ -64,7 +61,6 @@
 
       ! local variables
 
-#ifdef ncdf
       integer (kind=int_kind) :: i,j,k,ic,n,nn, &
          ncid,status,imtid,jmtid,kmtidi,kmtids,kmtidb, cmtid,timid, &
          length,nvertexid,ivertex,kmtida,fmtid
@@ -1299,8 +1295,6 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) 'Finished writing ',trim(ncfile(ns))
       endif
-
-#endif
 
       end subroutine ice_write_hist
 

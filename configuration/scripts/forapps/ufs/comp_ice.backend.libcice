@@ -57,10 +57,10 @@ if !($?IO_TYPE) then
 endif
 if ($IO_TYPE == 'netcdf3' || $IO_TYPE == 'netcdf4') then
   setenv IODIR io_netcdf
-  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
+  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -DUSE_NETCDF"
 else if ($IO_TYPE == 'pio') then
   setenv IODIR io_pio
-  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
+  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -DUSE_NETCDF"
 else
   setenv IODIR io_binary
 endif

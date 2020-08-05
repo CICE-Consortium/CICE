@@ -87,9 +87,6 @@
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-#ifdef popcice
-      use drv_forcing, only: sst_sss
-#endif
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_fsd, wave_spec
@@ -131,9 +128,6 @@
       endif
 
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
-#ifdef popcice
-      call sst_sss              ! POP data for CICE initialization
-#endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
 
       call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
@@ -202,19 +196,17 @@
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
 #endif
 
-#ifndef coupled
-#ifndef CESMCOUPLED
-      if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
-      call get_forcing_atmo     ! atmospheric forcing from data
-      call get_forcing_ocn(dt)  ! ocean forcing from data
+! standalone
+!      if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+!      call get_forcing_atmo     ! atmospheric forcing from data
+!      call get_forcing_ocn(dt)  ! ocean forcing from data
 
-      ! aerosols
-      ! if (tr_aero)  call faero_data                   ! data file
-      ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
-      if (tr_aero .or. tr_zaero)  call faero_default    ! default values
-      if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
-#endif
-#endif
+!      ! aerosols
+!      ! if (tr_aero)  call faero_data                   ! data file
+!      ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
+!      if (tr_aero .or. tr_zaero)  call faero_default    ! default values
+!      if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
+
       if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
       if (runtype == 'initial' .and. .not. restart) &
