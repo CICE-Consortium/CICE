@@ -88,7 +88,7 @@ module ice_import_export
   type (fld_list_type)     :: fldsFrIce(fldsMax)
   type(ESMF_GeomType_Flag) :: geomtype
 
-  integer     , parameter  :: dbug = 10        ! i/o debug messages
+  integer     , parameter  :: io_dbug = 10        ! i/o debug messages
   character(*), parameter  :: u_FILE_u = &
        __FILE__
 
@@ -116,7 +116,7 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     ! Determine if the following attributes are sent by the driver and if so read them in
     flds_wiso = .false.
@@ -266,7 +266,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     enddo
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ice_advertise_fields
 
@@ -373,9 +373,11 @@ contains
     call icepack_query_parameters(Tffresh_out=Tffresh)
     call icepack_query_parameters(tfrz_option_out=tfrz_option)
     call icepack_query_parameters(ktherm_out=ktherm)
-    write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
+    if (io_dbug > 5) then 
+     write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
        // trim(tfrz_option)//', ktherm = ',ktherm
-    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+    end if
 !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
 !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
 !       Tffresh_out=Tffresh)
@@ -782,7 +784,7 @@ contains
     !-----------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
 !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
