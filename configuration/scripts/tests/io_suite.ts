@@ -1,8 +1,9 @@
 # Test         Grid    PEs        Sets    BFB-compare
+# some iobinary configurations fail due to bathymetry netcdf file requirement, remove them
 restart        gx3     8x4        debug,histall,iobinary,precision8
-restart        gx3    12x2        alt01,histall,iobinary
+#restart        gx3    12x2        alt01,histall,iobinary
 restart        gx3    16x2        alt02,histall,iobinary,precision8
-restart        gx3     4x2        alt03,histall,iobinary
+#restart        gx3     4x2        alt03,histall,iobinary
 restart        gx3     8x4        alt04,histall,iobinary,precision8
 restart        gx3     4x4        alt05,histall,iobinary
 restart        gx3    32x1        bgcz,histall,iobinary,precision8
