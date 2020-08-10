@@ -35,10 +35,11 @@
          ndte         ! number of subcycles:  ndte=dt/dte
 
       character (len=char_len), public :: &
-         coriolis     ! 'constant', 'zero', or 'latitude'
+         coriolis   , & ! 'constant', 'zero', or 'latitude'
+         ssh_stress     ! 'geostrophic' or 'coupled'
 
       logical (kind=log_kind), public :: &
-         revised_evp  ! if true, use revised evp procedure
+         revised_evp ! if true, use revised evp procedure
 
       integer (kind=int_kind), public :: &
          kevp_kernel ! 0 = 2D org version
@@ -475,9 +476,7 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
-#ifdef coupled
       real (kind=dbl_kind) :: gravit
-#endif
 
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          iceumask_old      ! old-time iceumask
@@ -577,12 +576,12 @@
       ! Define variables for momentum equation
       !-----------------------------------------------------------------
 
-#ifdef coupled
-      call icepack_query_parameters(gravit_out=gravit)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-#endif
+      if (trim(ssh_stress) == 'coupled') then
+         call icepack_query_parameters(gravit_out=gravit)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
+      endif
 
       do ij = 1, icellu
          i = indxui(ij)
@@ -597,14 +596,18 @@
          watery(i,j) = vocn(i,j)*cosw + uocn(i,j)*sinw*sign(c1,fm(i,j))
 
          ! combine tilt with wind stress
-#ifndef coupled
-         ! calculate tilt from geostrophic currents if needed
-         strtltx(i,j) = -fm(i,j)*vocn(i,j)
-         strtlty(i,j) =  fm(i,j)*uocn(i,j)
-#else
-         strtltx(i,j) = -gravit*umass(i,j)*ss_tltx(i,j)
-         strtlty(i,j) = -gravit*umass(i,j)*ss_tlty(i,j)
-#endif
+         if (trim(ssh_stress) == 'geostrophic') then
+            ! calculate tilt from geostrophic currents if needed
+            strtltx(i,j) = -fm(i,j)*vocn(i,j)
+            strtlty(i,j) =  fm(i,j)*uocn(i,j)
+         elseif (trim(ssh_stress) == 'coupled') then
+            strtltx(i,j) = -gravit*umass(i,j)*ss_tltx(i,j)
+            strtlty(i,j) = -gravit*umass(i,j)*ss_tlty(i,j)
+         else
+            call abort_ice(subname//' ERROR: unknown ssh_stress='//trim(ssh_stress), &
+               file=__FILE__, line=__LINE__)
+         endif
+
          forcex(i,j) = strairx(i,j) + strtltx(i,j)
          forcey(i,j) = strairy(i,j) + strtlty(i,j)
       enddo

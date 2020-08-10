@@ -25,7 +25,7 @@ set wikirepo = "https://github.com/CICE-Consortium/Test-Results.wiki.git"
 set wikiname = Test-Results.wiki
 
 rm -r -f ${wikiname}
-git clone ${wikirepo} ${wikiname}
+git clone --depth=1 ${wikirepo} ${wikiname}
 if ($status != 0) then
   echo " "
   echo "${0}: ERROR git clone failed"

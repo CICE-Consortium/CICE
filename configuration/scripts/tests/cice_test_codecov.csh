@@ -29,7 +29,7 @@ cd ${testdir}
 # Check out current cice master
 echo " "
 echo "*** checkout current cice master ***"
-git clone https://github.com/cice-consortium/cice cice.master.${date} --recursive
+git clone --depth=1 https://github.com/cice-consortium/cice cice.master.${date} --recursive
 cd cice.master.${date}
 set hash = `git rev-parse --short HEAD `
 cd ../
@@ -40,7 +40,7 @@ cd ../
 # This also copies in all dot file at the root that do not start with .g (ie. .git*)
 echo " "
 echo "*** checkout current test_cice_master ***"
-git clone https://github.com/apcraig/test_cice_icepack test_cice_icepack.${date}
+git clone --depth=1 https://github.com/apcraig/test_cice_icepack test_cice_icepack.${date}
 cd test_cice_icepack.${date}
 echo " "
 echo "*** remove current files and copy in cice master files ***"

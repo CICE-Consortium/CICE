@@ -177,7 +177,8 @@
           flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
           fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           meltt, melts, meltb, congel, snoice, &
-          flatn_f, fsensn_f, fsurfn_f, fcondtopn_f
+          flatn_f, fsensn_f, fsurfn_f, fcondtopn_f, &
+          send_i2x_per_cat, fswthrun_ai
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
@@ -310,7 +311,8 @@
             enddo
          endif ! tr_aero
 
-         if (tmask(i,j,iblk)) &
+         if (tmask(i,j,iblk)) then
+
          call icepack_step_therm1(dt=dt, ncat=ncat,            &
                       nilyr=nilyr, nslyr=nslyr,                &
                       aicen_init   = aicen_init  (i,j,:,iblk), &
@@ -451,6 +453,21 @@
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
                       frz_onset    = frz_onset   (i,j,  iblk), &
                       yday=yday, prescribed_ice=prescribed_ice)
+
+      !-----------------------------------------------------------------
+      ! handle per-category i2x fields, no merging
+      !-----------------------------------------------------------------
+
+         if (send_i2x_per_cat) then
+            do n = 1, ncat
+               ! TODO (mvertens, 2018-12-22): do we need to add the band separated quantities
+               ! for MOM6 here also?
+
+               fswthrun_ai(i,j,n,iblk) = fswthrun(i,j,n,iblk)*aicen_init(i,j,n,iblk)
+            enddo                  ! ncat
+         endif
+
+         endif
 
          if (tr_iso) then
             do n = 1, ncat
