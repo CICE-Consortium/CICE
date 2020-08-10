@@ -192,7 +192,6 @@ setup_nml
    "``restart``", "logical", "initialize using restart file", "``.false.``"
    "``restart_dir``", "string", "path to restart directory", "'./'"
    "``restart_ext``", "logical", "read/write halo cells in restart files", "``.false.``"
-   "``restart_coszen``", "logical", "read/write coszen in restart files", "``.false.``"
    "``restart_file``", "string", "output file prefix for restart dump", "'iced'"
    "``restart_format``", "``default``", "read/write restart file with default format", "``default``"
    "", "``pio_pnetcdf``", "read/write restart files with pnetcdf in pio", ""

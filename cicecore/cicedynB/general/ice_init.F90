@@ -152,8 +152,7 @@
         dt,             npt,            ndtd,            numin,         &
         runtype,        runid,          bfbflag,         numax,         &
         ice_ic,         restart,        restart_dir,     restart_file,  &
-        restart_ext,    restart_coszen, use_restart_time, restart_format, &
-        lcdf64,       &
+        restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
