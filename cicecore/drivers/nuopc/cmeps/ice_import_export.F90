@@ -35,6 +35,7 @@ module ice_import_export
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
   use icepack_intfc      , only : icepack_liquidus_temperature
+  use icepack_intfc      , only : icepack_sea_freezing_temperature
   use cice_wrapper_mod    , only : t_startf, t_stopf, t_barrierf
 #ifdef CESMCOUPLED
   use shr_frz_mod        , only : shr_frz_freezetemp
@@ -87,7 +88,7 @@ module ice_import_export
   type (fld_list_type)     :: fldsFrIce(fldsMax)
   type(ESMF_GeomType_Flag) :: geomtype
 
-  integer     , parameter  :: dbug = 10        ! i/o debug messages
+  integer     , parameter  :: io_dbug = 10        ! i/o debug messages
   character(*), parameter  :: u_FILE_u = &
        __FILE__
 
@@ -115,7 +116,7 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     ! Determine if the following attributes are sent by the driver and if so read them in
     flds_wiso = .false.
@@ -253,8 +254,8 @@ contains
     if (flds_wiso) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_fresh_water_to_ocean_rate_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
-       !call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
-       !     ungridded_lbound=1, ungridded_ubound=3)
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
+            ungridded_lbound=1, ungridded_ubound=3)
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
     end if
@@ -265,7 +266,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     enddo
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ice_advertise_fields
 
@@ -361,12 +362,22 @@ contains
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
     real (kind=dbl_kind)             :: workx, worky
     real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
-    real (kind=dbl_kind)             :: tffresh
+    real (kind=dbl_kind)             :: Tffresh
     real (kind=dbl_kind)             :: inst_pres_height_lowest  
+    character(len=char_len)          :: tfrz_option
+    integer(int_kind)                :: ktherm
     character(len=*),   parameter    :: subname = 'ice_import'
+    character(len=1024)              :: msgString
     !-----------------------------------------------------
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
+    call icepack_query_parameters(tfrz_option_out=tfrz_option)
+    call icepack_query_parameters(ktherm_out=ktherm)
+    if (io_dbug > 5) then 
+     write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
+       // trim(tfrz_option)//', ktherm = ',ktherm
+     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+    end if
 !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
 !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
 !       Tffresh_out=Tffresh)
@@ -693,8 +704,7 @@ contains
     do iblk = 1, nblocks
        do j = 1,ny_block
           do i = 1,nx_block
-             !TODO: tcx should this be icepack_sea_freezing_temperature?
-             Tf (i,j,iblk) = icepack_liquidus_temperature(sss(i,j,iblk))
+            Tf(i,j,iblk) = icepack_sea_freezing_temperature(sss(i,j,iblk))
           end do
        end do
     end do
@@ -769,12 +779,12 @@ contains
     real    (kind=dbl_kind) :: tauyo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
-    real    (kind=dbl_kind) :: tffresh
+    real    (kind=dbl_kind) :: Tffresh
     character(len=*),parameter :: subname = 'ice_export'
     !-----------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
 !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
@@ -903,7 +913,6 @@ contains
     ! ----
 
     ! surface temperature of ice covered portion (degK)
-    !call state_setexport(exportState, 'sea_ice_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
     call state_setexport(exportState, 'sea_ice_surface_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
