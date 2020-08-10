@@ -86,7 +86,7 @@ module ice_comp_nuopc
   character(len=*),parameter   :: shr_cal_noleap    = 'NO_LEAP'
   character(len=*),parameter   :: shr_cal_gregorian = 'GREGORIAN'
 
-  integer     , parameter      :: dbug = 0
+  integer                      :: dbug = 0
   integer     , parameter      :: debug_import = 0 ! internal debug level
   integer     , parameter      :: debug_export = 0 ! internal debug level
   character(*), parameter      :: modName =  "(ice_comp_nuopc)"
