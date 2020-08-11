@@ -769,7 +769,7 @@
          prog_norm   , & ! norm of difference between current and previous solution
          nlres_norm      ! norm of current nonlinear residual : F(x) = A(x)x -b(x)
 
-#ifdef CICE_USE_LAPACK
+#ifdef USE_LAPACK
       real (kind=dbl_kind) :: &
          ddot, dnrm2     ! external BLAS functions
 #endif
@@ -940,7 +940,7 @@
 
          ! Compute fixed point residual f(x) = g(x) - x
          res = fpfunc - sol
-#ifdef CICE_USE_LAPACK
+#ifdef USE_LAPACK
          fpres_norm = global_sum(dnrm2(size(res), res, inc)**2, distrb_info)
 #else
          call vec_to_arrays (nx_block      , ny_block    , &
@@ -980,7 +980,7 @@
             ! Simple fixed point (Picard) iteration in this case
             sol = fpfunc
          else
-#ifdef CICE_USE_LAPACK
+#ifdef USE_LAPACK
             ! Begin Anderson acceleration
             if (get_num_procs() > 1) then
                ! Anderson solver is not yet parallelized; abort
