@@ -14,9 +14,7 @@ module ice_import_export
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
-#if (defined NEWCODE)
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
-#endif
   use ice_flux_bgc       , only : faero_atm, faero_ocn
   use ice_flux_bgc       , only : fiso_atm, fiso_ocn, fiso_evap
   use ice_flux_bgc       , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
@@ -127,7 +125,6 @@ contains
        call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
     end if
 
-#if (defined NEWCODE)
     flds_i2o_per_cat = .false.
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -135,7 +132,6 @@ contains
        read(cvalue,*) send_i2x_per_cat
        call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
     end if
-#endif
 
     !-----------------
     ! advertise import fields
@@ -208,14 +204,12 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo'     )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'      )
 
-#if (defined NEWCODE)
     ! the following are advertised but might not be connected if they are not present
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
-#endif
 
     ! ice/atm fluxes computed by ice
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'stress_on_air_ice_zonal'          )
@@ -234,12 +228,10 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dir_flx'  )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dif_flx'  )
 
-#if (defined NEWCODE)
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ifrac_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
-#endif
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_fresh_water_to_ocean_rate' )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_salt_rate'                 )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_zonal'        )
@@ -1116,7 +1108,6 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
-#if (defined NEWCODE)
     ! ------
     ! optional short wave penetration to ocean ice category
     ! ------
@@ -1137,7 +1128,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
     end if
-#endif
 
   end subroutine ice_export
 

@@ -40,6 +40,7 @@ set suitebuild  = true
 set suitereuse  = true
 set suiterun    = false
 set suitesubmit = true
+set ignoreuserset = false
 
 if ($#argv < 1) then
   set helpheader = 1
@@ -98,6 +99,7 @@ DESCRIPTION
     --acct     : account number for the batch submission
     --grid, -g : grid, grid (default = ${grid})
     --set,  -s : case option setting(s), comma separated (default = " ")
+    --ignore-user-set: ignore ~/.cice_set if it exists
     --queue    : queue for the batch submission
 
     For testing
@@ -112,7 +114,7 @@ DESCRIPTION
     --diff     : generate comparison against another case
     --report   : automatically post results when tests are complete
     --coverage : generate and report test coverage metrics when tests are complete,
-                 requires GNU compiler (ie. normally ``--env gnu``)
+                 requires GNU compiler (ie. normally --env gnu)
     --setup-only         : for suite, setup testcases, no build, no submission
     --setup-build        : for suite, setup and build testcases, no submission
     --setup-build-run    : for suite, setup, build, and run interactively
@@ -261,6 +263,10 @@ while (1)
     set suitereuse  = true
     set suiterun    = false
     set suitesubmit = true
+    shift argv
+
+  else if ("$option" == "--ignore-user-set") then
+    set ignoreuserset = true
     shift argv
 
 # arguments with settings
@@ -412,6 +418,17 @@ set vers = ${ICE_VERSION}
 set shhash = `echo ${hash} | cut -c 1-10`
 
 if ( ${dosuite} == 0 ) then
+  # grab user defined default sets
+  if ("${ignoreuserset}" == "false" && -e ~/.cice_set) then
+    set setsu1 = `cat ~/.cice_set`
+    # get rid of spaces if they exist!
+    set setsuser = `echo ${setsu1} | sed 's/ //g'`
+    if ( ${sets} == "" ) then
+      set sets = "${setsuser}"
+    else
+      set sets = "${setsuser},${sets}"
+    endif
+  endif
   set teststring = "${test} ${grid} ${pesx} ${sets}"
   if ( $bfbcomp != ${spval} ) then
     if ( ${sets} == "" ) then
