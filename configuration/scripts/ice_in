@@ -10,7 +10,6 @@
     ice_ic         = './restart/iced_gx3_v5.nc'
     restart        = .true.
     restart_ext    = .false.
-    restart_coszen = .false.
     use_restart_time = .true.
     restart_format = 'default'
     lcdf64         = .false.
