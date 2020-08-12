@@ -13,13 +13,11 @@ module ice_import_export
   use ice_flux           , only : strairxt, strairyt, strocnxt, strocnyt
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
-#if (defined NEWCODE)
-  use ice_flux           , only : fswthruvdr, fswthruvdf, fswthruidr, fswthruidf
+  use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
-  use ice_flux           , only : faero_atm, faero_ocn
-  use ice_flux           , only : fiso_atm, fiso_ocn, fiso_rain, fiso_evap
-  use ice_flux           , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
-#endif
+  use ice_flux_bgc       , only : faero_atm, faero_ocn
+  use ice_flux_bgc       , only : fiso_atm, fiso_ocn, fiso_evap
+  use ice_flux_bgc       , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
   use ice_flux           , only : fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
   use ice_flux           , only : rhoa, swvdr, swvdf, swidr, swidf, flw, frain
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
@@ -35,6 +33,7 @@ module ice_import_export
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
   use icepack_intfc      , only : icepack_liquidus_temperature
+  use icepack_intfc      , only : icepack_sea_freezing_temperature
   use cice_wrapper_mod    , only : t_startf, t_stopf, t_barrierf
 #ifdef CESMCOUPLED
   use shr_frz_mod        , only : shr_frz_freezetemp
@@ -87,7 +86,7 @@ module ice_import_export
   type (fld_list_type)     :: fldsFrIce(fldsMax)
   type(ESMF_GeomType_Flag) :: geomtype
 
-  integer     , parameter  :: dbug = 10        ! i/o debug messages
+  integer     , parameter  :: io_dbug = 10        ! i/o debug messages
   character(*), parameter  :: u_FILE_u = &
        __FILE__
 
@@ -115,7 +114,7 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     ! Determine if the following attributes are sent by the driver and if so read them in
     flds_wiso = .false.
@@ -126,7 +125,6 @@ contains
        call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
     end if
 
-#if (defined NEWCODE)
     flds_i2o_per_cat = .false.
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -134,7 +132,6 @@ contains
        read(cvalue,*) send_i2x_per_cat
        call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
     end if
-#endif
 
     !-----------------
     ! advertise import fields
@@ -207,14 +204,12 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo'     )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'      )
 
-#if (defined NEWCODE)
     ! the following are advertised but might not be connected if they are not present
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
-#endif
 
     ! ice/atm fluxes computed by ice
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'stress_on_air_ice_zonal'          )
@@ -233,12 +228,10 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dir_flx'  )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dif_flx'  )
 
-#if (defined NEWCODE)
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ifrac_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
-#endif
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_fresh_water_to_ocean_rate' )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_salt_rate'                 )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_zonal'        )
@@ -253,8 +246,8 @@ contains
     if (flds_wiso) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_fresh_water_to_ocean_rate_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
-       !call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
-       !     ungridded_lbound=1, ungridded_ubound=3)
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
+            ungridded_lbound=1, ungridded_ubound=3)
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
     end if
@@ -265,7 +258,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     enddo
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ice_advertise_fields
 
@@ -361,12 +354,22 @@ contains
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
     real (kind=dbl_kind)             :: workx, worky
     real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
-    real (kind=dbl_kind)             :: tffresh
+    real (kind=dbl_kind)             :: Tffresh
     real (kind=dbl_kind)             :: inst_pres_height_lowest  
+    character(len=char_len)          :: tfrz_option
+    integer(int_kind)                :: ktherm
     character(len=*),   parameter    :: subname = 'ice_import'
+    character(len=1024)              :: msgString
     !-----------------------------------------------------
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
+    call icepack_query_parameters(tfrz_option_out=tfrz_option)
+    call icepack_query_parameters(ktherm_out=ktherm)
+    if (io_dbug > 5) then 
+     write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
+       // trim(tfrz_option)//', ktherm = ',ktherm
+     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+    end if
 !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
 !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
 !       Tffresh_out=Tffresh)
@@ -568,7 +571,6 @@ contains
     ! Get aerosols from mediator
     !-------------------------------------------------------
 
-#if (defined NEWCODE)
     if (State_FldChk(importState, 'Faxa_bcph')) then
        ! the following indices are based on what the atmosphere is sending
        ! bcphidry  ungridded_index=1
@@ -604,7 +606,6 @@ contains
        call state_getimport(importState, 'Faxa_dstdry', output=faero_atm,  index=3, do_sum=.true., ungridded_index=4, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-#endif
 
     !-------------------------------------------------------
     ! Water isotopes from the mediator
@@ -614,7 +615,6 @@ contains
     ! 18O => ungridded_index=2
     ! HDO => ungridded_index=3
 
-#if (defined NEWCODE)
     if (State_FldChk(importState, 'shum_wiso')) then
        call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=1, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -623,12 +623,12 @@ contains
        call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=3, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=1, ungridded_index=3, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=2, ungridded_index=1, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=3, ungridded_index=2, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=1, ungridded_index=3, rc=rc)
+!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=2, ungridded_index=1, rc=rc)
+!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=3, ungridded_index=2, rc=rc)
+!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call state_getimport(importState, 'mean_fprec_rate_wiso', output=fiso_atm, index=1, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -644,7 +644,6 @@ contains
        call state_getimport(importState, 'So_roce_wiso', output=H2_18O_ocn, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-#endif
 
     !-----------------------------------------------------------------
     ! rotate zonal/meridional vectors to local coordinates
@@ -697,8 +696,7 @@ contains
     do iblk = 1, nblocks
        do j = 1,ny_block
           do i = 1,nx_block
-             !TODO: tcx should this be icepack_sea_freezing_temperature?
-             Tf (i,j,iblk) = icepack_liquidus_temperature(sss(i,j,iblk))
+            Tf(i,j,iblk) = icepack_sea_freezing_temperature(sss(i,j,iblk))
           end do
        end do
     end do
@@ -773,12 +771,12 @@ contains
     real    (kind=dbl_kind) :: tauyo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
-    real    (kind=dbl_kind) :: tffresh
+    real    (kind=dbl_kind) :: Tffresh
     character(len=*),parameter :: subname = 'ice_export'
     !-----------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
 !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
@@ -907,7 +905,6 @@ contains
     ! ----
 
     ! surface temperature of ice covered portion (degK)
-    !call state_setexport(exportState, 'sea_ice_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
     call state_setexport(exportState, 'sea_ice_surface_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1005,23 +1002,21 @@ contains
     call state_setexport(exportState, 'mean_sw_pen_to_ocn' , input=fswthru, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-#if (defined NEWCODE)
     ! flux of vis dir shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dir_flx' , input=fswthruvdr, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dir_flx' , input=fswthru_vdr, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of vis dif shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dif_flx' , input=fswthruvdf, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dif_flx' , input=fswthru_vdf, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of ir dir shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dir_flx' , input=fswthruidr, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dir_flx' , input=fswthru_idr, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of ir dif shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dif_flx' , input=fswthruidf, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dif_flx' , input=fswthru_idf, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
 
     ! heat exchange with ocean
     call state_setexport(exportState, 'net_heat_flx_to_ocn' , input=fhocn, lmask=tmask, ifrac=ailohi, rc=rc)
@@ -1043,7 +1038,6 @@ contains
     call state_setexport(exportState, 'stress_on_ocn_ice_merid' , input=tauyo, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-#if (defined NEWCODE)
     ! ------
     ! optional aerosol fluxes to ocean
     ! ------
@@ -1134,7 +1128,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
     end if
-#endif
 
   end subroutine ice_export
 

@@ -92,9 +92,6 @@
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-#ifdef popcice
-      use drv_forcing, only: sst_sss
-#endif
 
       integer (kind=int_kind), optional, intent(in) :: &
          mpi_comm ! communicator for sequential ccsm
@@ -146,9 +143,6 @@
 
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
 
-#ifdef popcice
-      call sst_sss              ! POP data for CICE initialization
-#endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
 
       call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution

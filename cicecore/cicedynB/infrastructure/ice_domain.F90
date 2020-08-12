@@ -1,3 +1,6 @@
+#ifdef ncdf
+#define USE_NETCDF
+#endif
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ice_domain
@@ -14,7 +17,8 @@
 
    use ice_kinds_mod
    use ice_constants, only: shlat, nhlat
-   use ice_communicate, only: my_task, master_task, get_num_procs
+   use ice_communicate, only: my_task, master_task, get_num_procs, &
+       add_mpi_barriers
    use ice_broadcast, only: broadcast_scalar, broadcast_array
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
        nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block
@@ -26,7 +30,7 @@
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
    use icepack_intfc, only: icepack_query_parameters
 
-#ifdef ncdf
+#ifdef USE_NETCDF
    use netcdf
 #endif
 
@@ -58,7 +62,8 @@
    logical (kind=log_kind), public :: &
       maskhalo_dyn   , & ! if true, use masked halo updates for dynamics
       maskhalo_remap , & ! if true, use masked halo updates for transport
-      maskhalo_bound     ! if true, use masked halo updates for bound_state
+      maskhalo_bound , & ! if true, use masked halo updates for bound_state
+      orca_halogrid      ! if true, input fields are haloed as defined by orca grid
 
 !-----------------------------------------------------------------------
 !
@@ -128,7 +133,8 @@
                          ns_boundary_type,  &
                          maskhalo_dyn,      &
                          maskhalo_remap,    &
-                         maskhalo_bound
+                         maskhalo_bound,    &
+                         add_mpi_barriers
 
 !----------------------------------------------------------------------
 !
@@ -146,6 +152,7 @@
    maskhalo_dyn      = .false.     ! if true, use masked halos for dynamics
    maskhalo_remap    = .false.     ! if true, use masked halos for transport
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
+   add_mpi_barriers  = .false.     ! if true, throttle communication
    max_blocks        = -1           ! max number of blocks per processor
    block_size_x      = -1          ! size of block in first horiz dimension
    block_size_y      = -1          ! size of block in second horiz dimension
@@ -182,6 +189,7 @@
    call broadcast_scalar(maskhalo_dyn,      master_task)
    call broadcast_scalar(maskhalo_remap,    master_task)
    call broadcast_scalar(maskhalo_bound,    master_task)
+   call broadcast_scalar(add_mpi_barriers,  master_task)
    if (my_task == master_task) then
      if (max_blocks < 1) then
        max_blocks=int(                                        &
@@ -259,6 +267,7 @@
      write(nu_diag,'(a,l6)')  '  maskhalo_dyn          = ', maskhalo_dyn
      write(nu_diag,'(a,l6)')  '  maskhalo_remap        = ', maskhalo_remap
      write(nu_diag,'(a,l6)')  '  maskhalo_bound        = ', maskhalo_bound
+     write(nu_diag,'(a,l6)')  '  add_mpi_barriers      = ', add_mpi_barriers
      write(nu_diag,'(a,2i6)') '  block_size_x,_y       = ', block_size_x, block_size_y
      write(nu_diag,'(a,i6)')  '  max_blocks            = ', max_blocks
      write(nu_diag,'(a,i6,/)')'  Number of ghost cells = ', nghost
@@ -303,7 +312,7 @@
       i,j,n              ,&! dummy loop indices
       ig,jg              ,&! global indices
       work_unit          ,&! size of quantized work unit
-#ifdef ncdf
+#ifdef USE_NETCDF
       fid                ,&! file id
       varid              ,&! var id
       status             ,&! netcdf return code
@@ -439,7 +448,7 @@
       allocate(wght(nx_global,ny_global))
       if (my_task == master_task) then
          ! cannot use ice_read_write due to circular dependency
-#ifdef ncdf
+#ifdef USE_NETCDF
          write(nu_diag,*) 'read ',trim(distribution_wght_file),minval(wght),maxval(wght)
          status = nf90_open(distribution_wght_file, NF90_NOWRITE, fid)
          if (status /= nf90_noerr) then
@@ -449,7 +458,8 @@
          status = nf90_get_var(fid, varid, wght)
          status = nf90_close(fid)
 #else
-         call abort_ice (subname//'ERROR: distribution_wght file needs ncdf cpp ')
+         call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+             file=__FILE__, line=__LINE__)
 #endif
       endif
       call broadcast_array(wght, master_task)

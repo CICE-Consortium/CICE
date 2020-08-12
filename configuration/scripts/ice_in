@@ -10,7 +10,6 @@
     ice_ic         = './restart/iced_gx3_v5.nc'
     restart        = .true.
     restart_ext    = .false.
-    restart_coszen = .false.
     use_restart_time = .true.
     restart_format = 'default'
     lcdf64         = .false.
@@ -53,6 +52,7 @@
     grid_file    = 'grid'
     kmt_file     = 'kmt'
     bathymetry_file = 'unknown_bathymetry_file'
+    bathymetry_format = 'default'
     use_bathymetry = .false.
     gridcpl_file = 'unknown_gridcpl_file'
     kcatbound    = 0
@@ -64,6 +64,7 @@
     nilyr        = 7
     nslyr        = 1
     nblyr        = 7
+    orca_halogrid = .false.
 /
 
 &tracer_nml
@@ -107,6 +108,9 @@
     dSdt_slow_mode    = -5.0e-8
     phi_c_slow_mode   =    0.05
     phi_i_mushy       =    0.85
+    sw_redist         = .false.
+    sw_frac           = 0.9d0
+    sw_dtemp          = 0.02d0
 /
 
 &dynamics_nml
@@ -134,6 +138,7 @@
     coriolis        = 'latitude'
     kridge          = 1
     ktransport      = 1
+    ssh_stress      = 'geostrophic'
 /
 
 &shortwave_nml
@@ -182,6 +187,7 @@
     wave_spec_type  = 'none'
     wave_spec_file  = 'unknown_wave_spec_file'
     nfreq           = 25
+    restart_coszen  = .false.
     restore_ice     = .false.
     restore_ocn     = .false.
     trestore        =  90
@@ -217,6 +223,7 @@
     maskhalo_dyn      = .false.
     maskhalo_remap    = .false.
     maskhalo_bound    = .false.
+    add_mpi_barriers  = .false.
 /
 
 &zbgc_nml

@@ -662,7 +662,7 @@
       use ice_global_reductions, only: global_minval, global_maxval, global_sum
 
       integer (kind=int_kind), intent(in) :: &
-           nu            , & ! unit number (not used for netcdf)
+           nu            , & ! unit number
            ndim3         , & ! third dimension
            nrec              ! record number (0 for sequential access)
 

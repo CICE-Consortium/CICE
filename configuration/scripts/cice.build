@@ -117,10 +117,10 @@ cd ${ICE_OBJDIR}
 
 if (${ICE_IOTYPE} == 'netcdf') then
   set IODIR = io_netcdf
-  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
+  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -DUSE_NETCDF"
 else if (${ICE_IOTYPE} =~ pio*) then
   set IODIR = io_pio2
-  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -Dncdf"
+  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -DUSE_NETCDF"
 else
   set IODIR = io_binary
 endif
