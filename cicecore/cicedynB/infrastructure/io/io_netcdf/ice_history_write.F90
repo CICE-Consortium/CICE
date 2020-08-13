@@ -1,3 +1,6 @@
+#ifdef ncdf
+#define USE_NETCDF
+#endif
 !=======================================================================
 !
 ! Writes history in netCDF format
@@ -41,7 +44,6 @@
       subroutine ice_write_hist (ns)
 
       use ice_kinds_mod
-#ifdef ncdf
       use ice_arrays_column, only: hin_max, floe_rad_c
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
@@ -56,6 +58,7 @@
           lont_bounds, latt_bounds, lonu_bounds, latu_bounds
       use ice_history_shared
       use ice_restart_shared, only: runid, lcdf64
+#ifdef USE_NETCDF
       use netcdf
 #endif
 
@@ -63,7 +66,6 @@
 
       ! local variables
 
-#ifdef ncdf
       real (kind=dbl_kind),  dimension(:,:),   allocatable :: work_g1
       real (kind=real_kind), dimension(:,:),   allocatable :: work_gr
       real (kind=real_kind), dimension(:,:,:), allocatable :: work_gr3
@@ -120,6 +122,7 @@
 
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
+#ifdef USE_NETCDF
       call icepack_query_parameters(secday_out=secday, rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -1571,6 +1574,10 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) 'Finished writing ',trim(ncfile(ns))
       endif
+
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_hist

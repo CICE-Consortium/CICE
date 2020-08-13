@@ -29,6 +29,7 @@ either Celsius or Kelvin units).
    "a4Df", "history field accumulations, 4D categories, fsd", ""
    "a_min", "minimum area concentration for computing velocity", "0.001"
    "a_rapid_mode", ":math:`{\bullet}` brine channel diameter", ""
+   "add_mpi_barriers", ":math:`\bullet` turns on MPI barriers for communication throttling", ""
    "advection", ":math:`\bullet` type of advection algorithm used (‘remap’ or ‘upwind’)", "remap"
    "afsd(n)", "floe size distribution (in category n)", ""
    "ahmax", ":math:`\bullet` thickness above which ice albedo is constant", "0.3m"

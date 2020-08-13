@@ -59,7 +59,7 @@
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
-      use ice_domain, only: close_boundaries, ns_boundary_type
+      use ice_domain, only: close_boundaries, ns_boundary_type, orca_halogrid
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
                                  n_iso, n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
@@ -92,12 +92,13 @@
       use ice_arrays_column, only: bgc_data_dir, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
+                          bathymetry_format, &
                           grid_type, grid_format, &
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 kevp_kernel, &
                                 basalstress, k1, k2, alphab, threshold_hw, &
-                                Ktens, e_ratio, coriolis, &
+                                Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, ktransport, brlx, arlx
       use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
@@ -117,7 +118,8 @@
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
-        phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar
+        phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
+        sw_frac, sw_dtemp
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -125,7 +127,8 @@
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
         tfrz_option, frzpnd, atmbndy, wave_spec_type
 
-      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec
+      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
+                                 sw_redist
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd
@@ -149,8 +152,7 @@
         dt,             npt,            ndtd,            numin,         &
         runtype,        runid,          bfbflag,         numax,         &
         ice_ic,         restart,        restart_dir,     restart_file,  &
-        restart_ext,    restart_coszen, use_restart_time, restart_format, &
-        lcdf64,       &
+        restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
@@ -161,10 +163,10 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
-        bathymetry_file, use_bathymetry, nfsd,                          &
+        bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
-        close_boundaries
+        close_boundaries, orca_halogrid
 
       namelist /tracer_nml/                                             &
         tr_iage, restart_age,                                           &
@@ -182,12 +184,13 @@
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,     ksno,             &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
-        dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy
+        dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
+        sw_redist,      sw_frac,         sw_dtemp
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
         kevp_kernel,                                                    &
-        brlx,           arlx,                                           &
+        brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
@@ -280,8 +283,10 @@
       grid_type    = 'rectangular'  ! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
       gridcpl_file = 'unknown_gridcpl_file'
-      bathymetry_file    = 'unknown_bathymetry_file'
-      use_bathymetry = .false.
+      orca_halogrid = .false.  ! orca haloed grid
+      bathymetry_file   = 'unknown_bathymetry_file'
+      bathymetry_format = 'default'
+      use_bathymetry    = .false.
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0          ! number of ice thickness categories
@@ -325,6 +330,7 @@
       ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
       coriolis = 'latitude'  ! latitude dependent, or 'constant'
+      ssh_stress = 'geostrophic'  ! 'geostrophic' or 'coupled'
       kridge   = 1           ! -1 = off, 1 = on
       ktransport = 1         ! -1 = off, 1 = on
       calc_Tsfc = .true.     ! calculate surface temperature
@@ -435,6 +441,11 @@
       dSdt_slow_mode    = -1.5e-7_dbl_kind ! slow mode drainage strength (m s-1 K-1)
       phi_c_slow_mode   =    0.05_dbl_kind ! critical liquid fraction porosity cutoff
       phi_i_mushy       =    0.85_dbl_kind ! liquid fraction of congelation ice
+
+      ! shortwave redistribution in the thermodynamics
+      sw_redist = .false.
+      sw_frac   = 0.9_dbl_kind
+      sw_dtemp  = 0.02_dbl_kind
 
       !-----------------------------------------------------------------
       ! read from input file
@@ -578,7 +589,9 @@
       call broadcast_scalar(grid_type,          master_task)
       call broadcast_scalar(grid_file,          master_task)
       call broadcast_scalar(gridcpl_file,       master_task)
+      call broadcast_scalar(orca_halogrid,      master_task)
       call broadcast_scalar(bathymetry_file,    master_task)
+      call broadcast_scalar(bathymetry_format,  master_task)
       call broadcast_scalar(use_bathymetry,     master_task)
       call broadcast_scalar(kmt_file,           master_task)
       call broadcast_scalar(kitd,               master_task)
@@ -612,6 +625,7 @@
       call broadcast_scalar(albedo_type,        master_task)
       call broadcast_scalar(ktherm,             master_task)
       call broadcast_scalar(coriolis,           master_task)
+      call broadcast_scalar(ssh_stress,         master_task)
       call broadcast_scalar(kridge,             master_task)
       call broadcast_scalar(ktransport,         master_task)
       call broadcast_scalar(conduct,            master_task)
@@ -717,6 +731,9 @@
       call broadcast_scalar(dSdt_slow_mode,     master_task)
       call broadcast_scalar(phi_c_slow_mode,    master_task)
       call broadcast_scalar(phi_i_mushy,        master_task)
+      call broadcast_scalar(sw_redist,          master_task)
+      call broadcast_scalar(sw_frac,            master_task)
+      call broadcast_scalar(sw_dtemp,           master_task)
 
 #ifdef CESMCOUPLED
       pointer_file = trim(pointer_file) // trim(inst_suffix)
@@ -777,16 +794,6 @@
          endif
          abort_list = trim(abort_list)//":1"
       endif
-
-#ifndef ncdf
-      if (grid_format /= 'bin' .or. atm_data_format /= 'bin' .or. ocn_data_format /= 'bin') then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: ncdf CPP flag unset, data formats must be bin'
-            write(nu_diag,*) subname//' ERROR:   check grid_format, atm_data_format, ocn_data_format or set ncdf CPP'
-         endif
-         abort_list = trim(abort_list)//":2"
-      endif
-#endif
 
       if (advection /= 'remap' .and. advection /= 'upwind' .and. advection /= 'none') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: invalid advection=',trim(advection)
@@ -970,6 +977,12 @@
          endif
       endif
 !tcraig
+      if (ktherm == 1 .and. .not.sw_redist) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: ktherm = 1 and sw_redist = ',sw_redist
+            write(nu_diag,*) subname//' WARNING:   For consistency, set sw_redist = .true.'
+         endif
+      endif
 
       if (formdrag) then
          if (trim(atmbndy) == 'constant') then
@@ -1083,6 +1096,7 @@
                tmpstr2 = ' bathymetric input data is not used'
             endif
             write(nu_diag,1012) ' use_bathymetry   = ', use_bathymetry,trim(tmpstr2)
+            write(nu_diag,*)    ' bathymetry_format= ', trim(bathymetry_format)
          endif
          write(nu_diag,1022) ' nilyr            = ', nilyr, ' number of ice layers (equal thickness)'
          write(nu_diag,1022) ' nslyr            = ', nslyr, ' number of snow layers (equal thickness)'
@@ -1152,6 +1166,13 @@
                tmpstr2 = ' = 0.0'
             endif
             write(nu_diag,*) 'coriolis         = ',trim(coriolis),trim(tmpstr2)
+
+            if (trim(ssh_stress) == 'geostrophic') then
+               tmpstr2 = ': from ocean velocity'
+            elseif (trim(ssh_stress) == 'coupled') then
+               tmpstr2 = ': from coupled sea surface height gradients'
+            endif
+            write(nu_diag,*) 'ssh_stress       = ',trim(ssh_stress),trim(tmpstr2)
 
             if (ktransport == 1) then
                tmpstr2 = ' transport enabled'
@@ -1240,6 +1261,9 @@
             write(nu_diag,1007) ' ksno             = ', ksno,' snow thermal conductivity'
             if (ktherm == 1) &
             write(nu_diag,*) 'conduct          = ', trim(conduct),' ice thermal conductivity'
+            write(nu_diag,1012) ' sw_redist        = ', sw_redist,' redistribute internal shortwave to surface'
+            write(nu_diag,1002) ' sw_frac          = ', sw_frac,' fraction redistributed'
+            write(nu_diag,1002) ' sw_dtemp         = ', sw_dtemp,' temperature difference from freezing to redistribute'
             if (ktherm == 2) then
                write(nu_diag,1002) ' a_rapid_mode     = ', a_rapid_mode,' brine channel diameter'
                write(nu_diag,1007) ' Rac_rapid_mode   = ', Rac_rapid_mode,' critical Rayleigh number'
@@ -1291,12 +1315,12 @@
          write(nu_diag,1012) ' calc_strair      = ', calc_strair,' calculate wind stress and speed'
          write(nu_diag,1012) ' rotate_wind      = ', rotate_wind,' rotate wind/stress to computational grid'
          write(nu_diag,1012) ' formdrag         = ', formdrag,' use form drag parameterization'
-         if (trim(atmbndy) == 'constant') then
+         if (trim(atmbndy) == 'default') then
             tmpstr2 = ': stability-based boundary layer'
             write(nu_diag,1012) ' highfreq         = ', highfreq,' high-frequency atmospheric coupling'
             write(nu_diag,1022) ' natmiter         = ', natmiter,' number of atmo boundary layer iterations'
             write(nu_diag,1006) ' atmiter_conv     = ', atmiter_conv,' convergence criterion for ustar'
-         elseif (trim(atmbndy) == 'default') then
+         elseif (trim(atmbndy) == 'constant') then
             tmpstr2 = ': boundary layer uses bulk transfer coefficients'
          endif
          write(nu_diag,*) 'atmbndy          = ', trim(atmbndy),trim(tmpstr2)
@@ -1310,6 +1334,11 @@
             tmpstr2 = ' ocean mixed layer calculation (SST) disabled'
          endif
          write(nu_diag,1012) ' oceanmixed_ice   = ', oceanmixed_ice,trim(tmpstr2)
+         if (oceanmixed_ice) then
+            write(nu_diag,*) '     WARNING: ocean mixed layer ON'
+            write(nu_diag,*) '     WARNING: will impact ocean forcing interaction'
+            write(nu_diag,*) '     WARNING: coupled forcing will be modified by mixed layer routine'
+         endif
          if (trim(tfrz_option) == 'minus1p8') then
             tmpstr2 = ': constant ocean freezing temperature (-1.8C)'
          elseif (trim(tfrz_option) == 'linear_salt') then
@@ -1486,6 +1515,8 @@
          endif
          write(nu_diag,1010) ' close_boundaries          = ', &
                                close_boundaries
+         write(nu_diag,1010) ' orca_halogrid             = ', &
+                               orca_halogrid
 
          write(nu_diag,1010) ' conserv_check             = ', conserv_check
 
@@ -1538,17 +1569,6 @@
          if (restore_ice .or. restore_ocn) &
          write(nu_diag,1020) ' trestore                  = ', trestore
  
-#ifdef coupled
-         if( oceanmixed_ice ) then
-            write(nu_diag,*) subname//' WARNING ** WARNING ** WARNING ** WARNING '
-            write(nu_diag,*) subname//' WARNING: coupled CPP and oceanmixed_ice namelist are BOTH ON'
-            write(nu_diag,*) subname//' WARNING:   Ocean data received from coupler will'
-            write(nu_diag,*) subname//' WARNING:   be altered by mixed layer routine!'
-            write(nu_diag,*) subname//' WARNING ** WARNING ** WARNING ** WARNING '
-            write(nu_diag,*) ' '
-         endif
-#endif
-
          write(nu_diag,*) ' '
          write(nu_diag,'(a30,2f8.2)') 'Diagnostic point 1: lat, lon =', &
                             latpnt(1), lonpnt(1)
@@ -1630,7 +1650,8 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
-         Pstar_in=Pstar, Cstar_in=Cstar)
+         Pstar_in=Pstar, Cstar_in=Cstar, &
+         sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
          tr_fsd_in=tr_fsd, tr_pond_in=tr_pond, &

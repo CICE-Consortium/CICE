@@ -311,6 +311,11 @@
          fresh_da, & ! fresh water flux to ocean due to data assim (kg/m^2/s)
          fsalt_da    ! salt flux to ocean due to data assimilation(kg/m^2/s)
 
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+         fswthrun_ai  ! per-category fswthru * ai (W/m^2)
+ 
+      logical (kind=log_kind), public :: send_i2x_per_cat = .false.
+
       !-----------------------------------------------------------------
       ! internal
       !-----------------------------------------------------------------
@@ -713,6 +718,11 @@
       ffep   (:,:,:,:)= c0
       ffed   (:,:,:,:)= c0
       
+      if (send_i2x_per_cat) then
+         allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
+         fswthrun_ai(:,:,:,:) = c0
+      endif
+
       !-----------------------------------------------------------------
       ! derived or computed fields
       !-----------------------------------------------------------------
@@ -805,6 +815,10 @@
       HDO_ocn     (:,:,:) = c0
       H2_16O_ocn  (:,:,:) = c0
       H2_18O_ocn  (:,:,:) = c0
+
+      if (send_i2x_per_cat) then
+         fswthrun_ai(:,:,:,:) = c0
+      endif
 
       end subroutine init_flux_ocn
 

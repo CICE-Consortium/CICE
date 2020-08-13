@@ -1,3 +1,6 @@
+#ifdef ncdf
+#define USE_NETCDF
+#endif
 !=======================================================================
 !
 ! Reads and interpolates forcing data for biogeochemistry
@@ -587,7 +590,6 @@
       use ice_flux_bgc, only: faero_atm
       use ice_forcing, only: interp_coeff_monthly, read_clim_data_nc, interpolate_data
 
-#ifdef ncdf 
       ! local parameters
 
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable, &
@@ -672,7 +674,6 @@
       where (faero_atm(:,:,:,:) > 1.e20) faero_atm(:,:,:,:) = c0
 
       deallocate( aero1_data, aero2_data, aero3_data )
-#endif
 
       end subroutine faero_data
 
@@ -688,7 +689,6 @@
       use ice_flux_bgc, only: faero_atm
       use ice_forcing, only: interp_coeff_monthly, read_clim_data_nc, interpolate_data
 
-#ifdef ncdf 
       ! local parameters
 
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable, &
@@ -766,7 +766,6 @@
       where (faero_atm(:,:,nlt_zaero(1),:) > 1.e20) faero_atm(:,:,nlt_zaero(1),:) = c0
 
       deallocate( aero_data )
-#endif
 
       end subroutine fzaero_data
 
@@ -780,10 +779,6 @@
 
       use ice_read_write, only: ice_open_nc, ice_read_nc, ice_close_nc
 
-#ifdef ncdf
-      use netcdf
-#endif
-           
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(inout) :: &
            fed1, &  ! first dissolved iron pool (nM)
            fep1    ! first particulate iron pool (nM)
@@ -868,7 +863,7 @@
          gaer_bc_tab, & ! BC aerosol asymmetry parameter (cos(theta))
          bcenh          ! BC absorption enhancement facto
 
-#ifdef ncdf
+#ifdef USE_NETCDF
       use netcdf
 #endif
 
@@ -876,7 +871,6 @@
 
       logical (kind=log_kind) :: modal_aero
 
-#ifdef ncdf
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
          status         , & ! status output from netcdf routines
@@ -891,7 +885,6 @@
       character (char_len_long) :: & 
          optics_file,   &   ! netcdf filename
          fieldname          ! field name in netcdf file
-#endif
 
       character(len=*), parameter :: subname = '(faero_optics)'
 
@@ -968,8 +961,8 @@
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
        file=__FILE__, line=__LINE__)
 
-#ifdef ncdf
     if (modal_aero) then
+#ifdef USE_NETCDF
        optics_file =  &
         '/usr/projects/climate/njeffery/DATA/CAM/snicar/snicar_optics_5bnd_mam_c140303.nc'
 
@@ -1004,12 +997,11 @@
                 call broadcast_array(bcenh(n,:,k),      master_task)
             enddo
          enddo          
-      endif      ! modal_aero
 #else
-    if (modal_aero) then
-      call abort_ice(subname//'ERROR: netcdf required for modal_aero')
-    endif
+         call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+             file=__FILE__, line=__LINE__)
 #endif
+      endif      ! modal_aero
 
       end subroutine faero_optics
 
