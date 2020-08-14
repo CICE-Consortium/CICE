@@ -50,7 +50,7 @@
           vvel_init, basal_stress_coeff, basalstress, Ktens, ice_HaloUpdate_vel
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fm
-      use ice_global_reductions, only: global_sum, global_sums
+      use ice_global_reductions, only: global_sum, global_allreduce_sum
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, uarear
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -3568,7 +3568,7 @@
             dotprod_local(it) = sum(local_dot)
          end do
 
-         hessenberg(1:initer, initer) = global_sums(dotprod_local(1:initer), distrb_info)
+         hessenberg(1:initer, initer) = global_allreduce_sum(dotprod_local(1:initer), distrb_info)
 
          ! Second loop of Gram-Schmidt (orthonormalize)
          do it = 1, initer

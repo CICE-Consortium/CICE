@@ -37,7 +37,7 @@
    private
 
    public :: global_sum,      &
-             global_sums,     &
+             global_allreduce_sum, &
              global_sum_prod, &
              global_maxval,   &
              global_minval
@@ -57,10 +57,10 @@
                       global_sum_scalar_int
    end interface
 
-   interface global_sums
-     module procedure global_sums_dbl!,              &
-     ! module procedure global_sums_real,            & ! not yet implemented
-     ! module procedure global_sums_int                ! not yet implemented
+   interface global_allreduce_sum
+     module procedure global_allreduce_sum_vector_dbl!,   &
+     ! module procedure global_allreduce_sum_vector_real, & ! not yet implemented
+     ! module procedure global_allreduce_sum_vector_int     ! not yet implemented
    end interface
 
    interface global_sum_prod
@@ -710,13 +710,13 @@
 
 !***********************************************************************
 
- function global_sums_dbl(vector, dist) &
+ function global_allreduce_sum_vector_dbl(vector, dist) &
           result(globalSums)
 
 !  Computes the global sums of sets of scalars (elements of 'vector') 
 !  distributed across a parallel machine.
 !
-!  This is actually the specific interface for the generic global_sums
+!  This is actually the specific interface for the generic global_allreduce_sum
 !  function corresponding to double precision vectors.  The generic
 !  interface is identical but will handle real and integer vectors.
 
@@ -745,7 +745,7 @@
    real (dbl_kind), dimension(:,:), allocatable :: &
       work           ! temporary local array
 
-   character(len=*), parameter :: subname = '(global_sums_dbl)'
+   character(len=*), parameter :: subname = '(global_allreduce_sum_vector_dbl)'
 
 !-----------------------------------------------------------------------
 !
@@ -769,7 +769,7 @@
 
 !-----------------------------------------------------------------------
 
- end function global_sums_dbl
+ end function global_allreduce_sum_vector_dbl
 
 !***********************************************************************
 
