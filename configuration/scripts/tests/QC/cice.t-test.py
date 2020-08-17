@@ -448,7 +448,12 @@ def plot_data(data, lat, lon, units, case, plot_type):
     # Make some room at the bottom of the figure, and create a colorbar
     fig.subplots_adjust(bottom=0.2)
     cbar_ax = fig.add_axes([0.11,0.1,0.8,0.05])
-    cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2f")
+    if '\n- ' in case:
+      # If making a difference plot, use scientific notation for colorbar
+      cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2e")
+    else:
+      # If plotting non-difference data, do not use scientific notation for colorbar
+      cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2f")
     cb.set_label(units, x=1.0)
 
     outfile = 'ice_thickness_{}.png'.format(case.replace('\n- ','_minus_'))
