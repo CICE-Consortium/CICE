@@ -1181,6 +1181,8 @@
                   tmpstr2 = ': linear remapping advection'
 !deprecate upwind               elseif (trim(advection) == 'upwind') then
 !deprecate upwind                  tmpstr2 = ': donor cell (upwind) advection'
+               elseif (trim(advection) == 'none') then
+                  tmpstr2 = ': advection off'
                endif
                write(nu_diag,*) 'advection        = ', trim(advection),trim(tmpstr2)
             else
