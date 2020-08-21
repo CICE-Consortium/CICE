@@ -52,7 +52,7 @@ Transport
 
 The transport (advection) methods are found in **cicecore/cicedynB/dynamics/**.  Only the incremental
 remapping method is supported at this time, and is set in namelist via the ``advection`` variable.
-Transport can be turned off by setting ``advection = 'none'`` or ``ktransport = -1``.
+Transport can be turned off by setting ``advection = none`` or ``ktransport = -1``.
 
 
 Infrastructure
