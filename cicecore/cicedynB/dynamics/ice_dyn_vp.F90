@@ -47,7 +47,8 @@
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           ecci, cosw, sinw, fcor_blk, uvel_init,  &
-          vvel_init, basal_stress_coeff, basalstress, Ktens, ice_HaloUpdate_vel
+          vvel_init, basal_stress_coeff, basalstress, Ktens, &
+          stack_velocity_field,  unstack_velocity_field
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fm
       use ice_global_reductions, only: global_sum, global_allreduce_sum
@@ -102,6 +103,9 @@
          indxui(:,:)  , & ! compressed index in i-direction
          indxuj(:,:)      ! compressed index in j-direction
 
+      real (kind=dbl_kind), allocatable :: & 
+         fld2(:,:,:,:)    ! work array for boundary updates
+
 !=======================================================================
 
       contains
@@ -145,6 +149,7 @@
                indxtj(nx_block*ny_block, max_blocks), &
                indxui(nx_block*ny_block, max_blocks), &
                indxuj(nx_block*ny_block, max_blocks))
+      allocate(fld2(nx_block,ny_block,2,max_blocks))
       
       ! Redefine tinyarea using min_strain_rate
       
@@ -433,7 +438,17 @@
       endif
 
       ! velocities may have changed in dyn_prep2
-      call ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
+      call stack_velocity_field(uvel, vvel, fld2)
+      call ice_timer_start(timer_bound)
+      if (maskhalo_dyn) then
+         call ice_HaloUpdate (fld2,               halo_info_mask, &
+                              field_loc_NEcorner, field_type_vector)
+      else
+         call ice_HaloUpdate (fld2,               halo_info, &
+                              field_loc_NEcorner, field_type_vector)
+      endif
+      call ice_timer_stop(timer_bound)
+      call unstack_velocity_field(fld2, uvel, vvel)
 
       !-----------------------------------------------------------------
       ! basal stress coefficients (landfast ice)
@@ -664,13 +679,13 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: c1
-      use ice_domain, only: maskhalo_dyn
+      use ice_domain, only: maskhalo_dyn, halo_info
       use ice_domain_size, only: max_blocks
       use ice_flux, only:   uocn, vocn, fm, Tbu
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           uarear, tinyarea
       use ice_state, only: uvel, vvel, strength
-      use ice_timers, only: ice_timer_start, ice_timer_stop
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       integer (kind=int_kind), intent(in) :: &
          ntot         ! size of problem for Anderson
@@ -1069,7 +1084,17 @@
                              uvel (:,:,:), vvel (:,:,:))
          
          ! Do halo update so that halo cells contain up to date info for advection
-         call ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
+         call stack_velocity_field(uvel, vvel, fld2)
+         call ice_timer_start(timer_bound)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                 field_loc_NEcorner, field_type_vector)
+         else
+            call ice_HaloUpdate (fld2,               halo_info, &
+                                 field_loc_NEcorner, field_type_vector)
+         endif
+         call ice_timer_stop(timer_bound)
+         call unstack_velocity_field(fld2, uvel, vvel)
          
          ! Compute "progress" residual norm
          !$OMP PARALLEL DO PRIVATE(iblk)
@@ -2644,6 +2669,10 @@
                          solx     , soly    , &
                          nbiter)
 
+      use ice_boundary, only: ice_HaloUpdate
+      use ice_domain, only: maskhalo_dyn, halo_info
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetaD   ! zetaD = 2*zeta (viscous coefficient)
 
@@ -2839,8 +2868,18 @@
             orig_basis_y(:,:,:,initer) = workspace_y
             
             ! Update workspace with boundary values
-            call ice_HaloUpdate_vel(workspace_x, workspace_y,  &
-                                    halo_info_mask)
+            call stack_velocity_field(workspace_x, workspace_y, fld2)
+            call ice_timer_start(timer_bound)
+            if (maskhalo_dyn) then
+               call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                    field_loc_NEcorner, field_type_vector)
+            else
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_NEcorner, field_type_vector)
+            endif
+            call ice_timer_stop(timer_bound)
+            call unstack_velocity_field(fld2, workspace_x, workspace_y)
+
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
                call matvec (nx_block               , ny_block             , &

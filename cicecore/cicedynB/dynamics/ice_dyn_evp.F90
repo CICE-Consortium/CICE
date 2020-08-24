@@ -94,7 +94,7 @@
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
-      use ice_dyn_shared, only: kevp_kernel, ice_HaloUpdate_vel
+      use ice_dyn_shared, only: kevp_kernel, stack_velocity_field, unstack_velocity_field
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -127,6 +127,8 @@
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
+      real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
+
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation
 
@@ -151,6 +153,8 @@
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
+
+      allocate(fld2(nx_block,ny_block,2,max_blocks))
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -316,7 +320,17 @@
       endif
 
       ! velocities may have changed in dyn_prep2
-      call ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
+      call stack_velocity_field(uvel, vvel, fld2)
+      call ice_timer_start(timer_bound)
+      if (maskhalo_dyn) then
+         call ice_HaloUpdate (fld2,               halo_info_mask, &
+                              field_loc_NEcorner, field_type_vector)
+      else
+         call ice_HaloUpdate (fld2,               halo_info, &
+                              field_loc_NEcorner, field_type_vector)
+      endif
+      call ice_timer_stop(timer_bound)
+      call unstack_velocity_field(fld2, uvel, vvel)
 
       !-----------------------------------------------------------------
       ! basal stress coefficients (landfast ice)
@@ -429,12 +443,23 @@
          enddo
          !$TCXOMP END PARALLEL DO
 
-         call ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
+         call stack_velocity_field(uvel, vvel, fld2)
+         call ice_timer_start(timer_bound)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                 field_loc_NEcorner, field_type_vector)
+         else
+            call ice_HaloUpdate (fld2,               halo_info, &
+                                 field_loc_NEcorner, field_type_vector)
+         endif
+         call ice_timer_stop(timer_bound)
+         call unstack_velocity_field(fld2, uvel, vvel)
          
       enddo                     ! subcycling
       endif  ! kevp_kernel
       call ice_timer_stop(timer_evp_2d)
 
+      deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       ! Force symmetry across the tripole seam

@@ -24,7 +24,8 @@
       private
       public :: init_evp, set_evp_parameters, stepu, principal_stress, &
                 dyn_prep1, dyn_prep2, dyn_finish, basal_stress_coeff,  &
-                alloc_dyn_shared, deformations, strain_rates, ice_HaloUpdate_vel
+                alloc_dyn_shared, deformations, strain_rates, &
+                stack_velocity_field, unstack_velocity_field
 
       ! namelist parameters
 
@@ -95,9 +96,6 @@
                          ! see keel data from Amundrud et al. 2004 (JGR)
          u0 = 5e-5_dbl_kind ! residual velocity for basal stress (m/s)
 
-      real (kind=dbl_kind), allocatable :: &
-         fld2(:,:,:,:)    ! work array for boundary updates
-
 !=======================================================================
 
       contains
@@ -113,7 +111,6 @@
       allocate( &
          uvel_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
          vvel_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
-         fld2      (nx_block,ny_block,2,max_blocks), & ! work array for boundary updates
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_dyn_shared): Out of memory')
 
@@ -1186,29 +1183,25 @@
 
 !=======================================================================
 
-! Perform a halo update for the velocity field
-! author: Philippe Blain, ECCC
+! Load velocity components into array for boundary updates
 
-      subroutine ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
+   subroutine stack_velocity_field(uvel, vvel, fld2)
 
-      use ice_boundary, only: ice_HaloUpdate, ice_halo
-      use ice_constants, only: field_loc_NEcorner, field_type_vector
-      use ice_domain, only: halo_info, maskhalo_dyn, nblocks
-      use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
+      use ice_domain, only: nblocks
 
-      type (ice_halo), intent(in) :: &
-         halo_info_mask !  ghost cell update info for masked halo
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
          uvel    , & ! u components of velocity vector
          vvel        ! v components of velocity vector
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(out) :: &
+         fld2        ! work array for boundary updates
 
       ! local variables
 
       integer (kind=int_kind) :: &
          iblk        ! block index
 
-      character(len=*), parameter :: subname = '(ice_HaloUpdate_vel)'
+      character(len=*), parameter :: subname = '(stack_velocity_field)'
 
       ! load velocity into array for boundary updates
       !$OMP PARALLEL DO PRIVATE(iblk)
@@ -1218,17 +1211,31 @@
       enddo
       !$OMP END PARALLEL DO
 
-      call ice_timer_start(timer_bound)
-      if (maskhalo_dyn) then
-         call ice_HaloUpdate (fld2,               halo_info_mask, &
-                              field_loc_NEcorner, field_type_vector)
-      else
-         call ice_HaloUpdate (fld2,               halo_info, &
-                              field_loc_NEcorner, field_type_vector)
-      endif
-      call ice_timer_stop(timer_bound)
+      end subroutine stack_velocity_field
 
-      ! Unload
+!=======================================================================
+
+! Unload velocity components from array after boundary updates
+
+   subroutine unstack_velocity_field(fld2, uvel, vvel)
+
+      use ice_domain, only: nblocks
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(in) :: &
+         fld2        ! work array for boundary updates
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
+         uvel    , & ! u components of velocity vector
+         vvel        ! v components of velocity vector
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(unstack_velocity_field)'
+
+      ! Unload velocity from array after boundary updates
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
          uvel(:,:,iblk) = fld2(:,:,1,iblk)
@@ -1236,10 +1243,10 @@
       enddo
       !$OMP END PARALLEL DO
 
-      end subroutine ice_HaloUpdate_vel
+      end subroutine unstack_velocity_field
 
 !=======================================================================
-
+      
       end module ice_dyn_shared
 
 !=======================================================================

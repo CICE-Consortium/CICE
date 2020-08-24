@@ -122,7 +122,8 @@
       use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
           denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
-          basal_stress_coeff, basalstress, ice_HaloUpdate_vel
+          basal_stress_coeff, basalstress, &
+          stack_velocity_field, unstack_velocity_field
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
@@ -172,6 +173,8 @@
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
+      real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
+
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation
 
@@ -194,6 +197,8 @@
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
+
+      allocate(fld2(nx_block,ny_block,2,max_blocks))
 
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
@@ -373,7 +378,17 @@
       endif
 
       ! velocities may have changed in dyn_prep2
-      call ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
+      call stack_velocity_field(uvel, vvel, fld2)
+      call ice_timer_start(timer_bound)
+      if (maskhalo_dyn) then
+         call ice_HaloUpdate (fld2,               halo_info_mask, &
+                              field_loc_NEcorner, field_type_vector)
+      else
+         call ice_HaloUpdate (fld2,               halo_info, &
+                              field_loc_NEcorner, field_type_vector)
+      endif
+      call ice_timer_stop(timer_bound)
+      call unstack_velocity_field(fld2, uvel, vvel)
 
       !-----------------------------------------------------------------
       ! basal stress coefficients (landfast ice)
@@ -480,10 +495,21 @@
          enddo
          !$TCXOMP END PARALLEL DO
 
-         call ice_HaloUpdate_vel(uvel, vvel, halo_info_mask)
+         call stack_velocity_field(uvel, vvel, fld2)
+         call ice_timer_start(timer_bound)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                 field_loc_NEcorner, field_type_vector)
+         else
+            call ice_HaloUpdate (fld2,               halo_info, &
+                                 field_loc_NEcorner, field_type_vector)
+         endif
+         call ice_timer_stop(timer_bound)
+         call unstack_velocity_field(fld2, uvel, vvel)
 
       enddo                     ! subcycling
 
+      deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       !-----------------------------------------------------------------
