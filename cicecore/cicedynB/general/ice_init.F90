@@ -797,6 +797,9 @@
 
 !deprecate upwind      if (advection /= 'remap' .and. advection /= 'upwind' .and. advection /= 'none') then
       if (advection /= 'remap' .and. advection /= 'none') then
+         if (trim(advection) == 'upwind') then
+            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: upwind advection has been deprecated'
+         endif
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: invalid advection=',trim(advection)
          abort_list = trim(abort_list)//":3"
       endif
