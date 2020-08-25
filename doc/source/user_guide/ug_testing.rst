@@ -228,7 +228,7 @@ boundary around the entire domain.  It includes the following namelist modificat
 - ``dxrect``: ``16.e5`` cm
 - ``dyrect``: ``16.e5`` cm
 - ``ktherm``: ``-1`` (disables thermodynamics)
-- ``coriolis``: ``zero`` (zero coriolis force)
+- ``coriolis``: ``constant`` (``f=1.46e-4`` s\ :math:`^{-1}`)
 - ``ice_data_type`` : ``box2001`` (special ice concentration initialization)
 - ``atm_data_type`` : ``box2001`` (special atmospheric and ocean forcing)
 
