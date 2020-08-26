@@ -115,18 +115,14 @@
 ! Initialize parameters and variables needed for the vp dynamics
 ! author: Philippe Blain, ECCC
 
-      subroutine init_vp (dt)
+      subroutine init_vp
 
       use ice_blocks, only: get_block, block
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: c1, &
           field_loc_center, field_type_scalar
       use ice_domain, only: blocks_ice, halo_info
-      use ice_dyn_shared, only: init_dyn
       use ice_grid, only: tarea, tinyarea
-
-      real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
 
       ! local variables
 
@@ -139,9 +135,6 @@
 
       real (kind=dbl_kind) :: &
          min_strain_rate = 2e-09_dbl_kind      ! used for recomputing tinyarea
-
-      ! Initialize variables shared with evp
-      call init_dyn(dt)
       
       ! Initialize module variables
       allocate(icellt(max_blocks), icellu(max_blocks))
