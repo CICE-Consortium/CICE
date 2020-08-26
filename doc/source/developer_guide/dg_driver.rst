@@ -58,7 +58,7 @@ The initialize calling sequence looks something like::
       if (kdyn == 2) then
          call init_eap (dt_dyn) ! define eap dynamics parameters, variables
       else                      ! for both kdyn = 0 or 1
-         call init_evp (dt_dyn) ! define evp dynamics parameters, variables
+         call init_dyn (dt_dyn) ! define evp dynamics parameters, variables
       endif
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
       call init_thermo_vertical ! initialize vertical thermodynamics

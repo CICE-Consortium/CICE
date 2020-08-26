@@ -122,7 +122,7 @@
       use ice_constants, only: c1, &
           field_loc_center, field_type_scalar
       use ice_domain, only: blocks_ice, halo_info
-      use ice_dyn_shared, only: init_evp
+      use ice_dyn_shared, only: init_dyn
       use ice_grid, only: tarea, tinyarea
 
       real (kind=dbl_kind), intent(in) :: &
@@ -141,7 +141,7 @@
          min_strain_rate = 2e-09_dbl_kind      ! used for recomputing tinyarea
 
       ! Initialize variables shared with evp
-      call init_evp(dt)
+      call init_dyn(dt)
       
       ! Initialize module variables
       allocate(icellt(max_blocks), icellu(max_blocks))

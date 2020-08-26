@@ -544,13 +544,13 @@
 !=======================================================================
 
 ! Initialize parameters and variables needed for the eap dynamics
-! (based on init_evp)
+! (based on init_dyn)
 
       subroutine init_eap (dt)
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
-      use ice_dyn_shared, only: init_evp
+      use ice_dyn_shared, only: init_dyn
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -583,7 +583,7 @@
          file=__FILE__, line=__LINE__)
       phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
 
-      call init_evp (dt)
+      call init_dyn (dt)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks

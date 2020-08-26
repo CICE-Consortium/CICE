@@ -22,7 +22,7 @@
 
       implicit none
       private
-      public :: init_evp, set_evp_parameters, stepu, principal_stress, &
+      public :: init_dyn, set_evp_parameters, stepu, principal_stress, &
                 dyn_prep1, dyn_prep2, dyn_finish, basal_stress_coeff,  &
                 alloc_dyn_shared, deformations, strain_rates, &
                 stack_velocity_field, unstack_velocity_field
@@ -118,10 +118,10 @@
 
 !=======================================================================
 
-! Initialize parameters and variables needed for the evp dynamics
+! Initialize parameters and variables needed for the dynamics
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine init_evp (dt)
+      subroutine init_dyn (dt)
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
@@ -142,7 +142,7 @@
          i, j, &
          iblk            ! block index
 
-      character(len=*), parameter :: subname = '(init_evp)'
+      character(len=*), parameter :: subname = '(init_dyn)'
 
       call set_evp_parameters (dt)
 
@@ -200,7 +200,7 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-      end subroutine init_evp
+      end subroutine init_dyn
 
 !=======================================================================
 
