@@ -364,7 +364,7 @@ dynamics_nml
    "``brlx``", "real", "revised_evp value", "300.0"
    "``basalstress``", "logical", "use basal stress parameterization for landfast ice", "``.false.``"
    "``Cf``", "real", "ratio of ridging work to PE change in ridging", "17.0"
-   "``coriolis``", "``constant``", "constant coriolis value = 1.46e-4", "``latitude``"
+   "``coriolis``", "``constant``", "constant coriolis value = 1.46e-4 s\ :math:`^{-1}`", "``latitude``"
    "", "``latitude``", "coriolis variable by latitude", ""
    "", "``zero``", "zero coriolis", ""
    "``Cstar``", "real", "constant in Hibler strength formula", "20"
