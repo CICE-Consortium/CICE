@@ -33,7 +33,7 @@ introductory comments in **ice\_transport\_remap.F90**. Prognostic
 equations for ice and/or snow density may be included in future model
 versions but have not yet been implemented.
 
-Two transport schemes are available: upwind and the incremental
+One transport scheme is available, the incremental
 remapping scheme of :cite:`Dukowicz00` as modified for sea ice by
 :cite:`Lipscomb04`. The remapping scheme has several desirable features:
 
