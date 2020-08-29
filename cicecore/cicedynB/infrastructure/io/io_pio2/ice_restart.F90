@@ -140,7 +140,7 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
-          tr_pond_topo, tr_pond_lvl, tr_brine, &
+          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
           tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
           tr_bgc_Sil, tr_bgc_DMS, &
           tr_bgc_chl, tr_bgc_Am,  &
@@ -179,7 +179,8 @@
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
           tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
-          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine, &
+          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
+          tr_snow_out=tr_snow, tr_brine_out=tr_brine, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
           tr_bgc_chl_out=tr_bgc_chl,  tr_bgc_Am_out=tr_bgc_Am, &
@@ -399,6 +400,13 @@
             call define_rest_field(File,'dhs',dims)
             call define_rest_field(File,'ffrac',dims)
          end if
+
+         if (tr_snow) then
+            call define_rest_field(File,'smice',dims)
+            call define_rest_field(File,'smliq',dims)
+            call define_rest_field(File,'rhos' ,dims)
+            call define_rest_field(File,'rsnw' ,dims)
+         endif
 
          if (tr_brine) then
             call define_rest_field(File,'fbrn',dims)

@@ -232,12 +232,12 @@
       use ice_calendar, only: time, calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
+      use ice_domain_size, only: ncat, n_iso, n_aero, nfsd, nslyr
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
-      use ice_init_column, only: init_age, init_FY, init_lvl, &
+      use ice_init_column, only: init_age, init_FY, init_lvl, init_snow, &
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
           init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
@@ -245,6 +245,7 @@
           restart_pond_cesm, read_restart_pond_cesm, &
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
+          restart_snow, read_restart_snow, &
           restart_fsd, read_restart_fsd, &
           restart_iso, read_restart_iso, &
           restart_aero, read_restart_aero, &
@@ -259,12 +260,13 @@
          iblk            ! block index
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-          tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, &
+          tr_pond_topo, tr_snow, tr_fsd, tr_iso, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
+          nt_smice, nt_smliq, nt_rhos, nt_rsnw, &
           nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice
 
       character(len=*), parameter :: subname = '(init_restart)'
@@ -279,10 +281,12 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
-           tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
+           tr_snow_out=tr_snow, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
            nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd, &
+           nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
+           nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw, &
            nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -379,6 +383,22 @@
             enddo ! iblk
          endif ! .not. restart_pond
       endif
+
+      ! snow redistribution/metamorphism
+      if (tr_iso) then
+         if (trim(runtype) == 'continue') restart_snow = .true.
+         if (restart_snow) then
+            call read_restart_snow
+         else
+            do iblk = 1, nblocks
+               call init_snow(trcrn(:,:,nt_smice:nt_smice+nslyr-1,:,iblk), &
+                              trcrn(:,:,nt_smliq:nt_smliq+nslyr-1,:,iblk), &
+                              trcrn(:,:,nt_rhos :nt_rhos +nslyr-1,:,iblk), &
+                              trcrn(:,:,nt_rsnw :nt_rsnw +nslyr-1,:,iblk))
+            enddo ! iblk
+         endif
+      endif
+
       ! floe size distribution
       if (tr_fsd) then
          if (trim(runtype) == 'continue') restart_fsd = .true.
@@ -395,7 +415,7 @@
          if (restart_iso) then
             call read_restart_iso
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_isotope(trcrn(:,:,nt_isosno:nt_isosno+n_iso-1,:,iblk), &
                                  trcrn(:,:,nt_isoice:nt_isoice+n_iso-1,:,iblk))
             enddo ! iblk

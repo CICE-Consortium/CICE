@@ -1,0 +1,6 @@
+tr_snow = .true.
+snwredist  = 'ITDrdg'
+nslyr = 3
+runtype        = 'initial'
+ice_ic         = 'none'
+restart        = .false.

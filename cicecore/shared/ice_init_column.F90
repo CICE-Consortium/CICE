@@ -45,7 +45,7 @@
                 init_age, init_FY, init_lvl, init_fsd, &
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
-                count_tracers, init_isotope
+                count_tracers, init_isotope, init_snow
 
       ! namelist parameters needed locally
 
@@ -584,6 +584,23 @@
       ipnd(:,:,:) = c0
         
       end subroutine init_meltponds_topo
+
+!=======================================================================
+
+!  Initialize snow redistribution/metamorphosis tracers (call prior to reading restart data)
+
+      subroutine init_snow(smice, smliq, rhos, rsnw)
+
+      real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: &
+         smice, smliq, rhos, rsnw
+      character(len=*),parameter :: subname='(init_snow)'
+
+      smice(:,:,:,:) = c0
+      smliq(:,:,:,:) = c0
+      rhos (:,:,:,:) = c0  !ech - should probably use a different name and initialize to rhos
+      rsnw (:,:,:,:) = c0
+
+      end subroutine init_snow
 
 !=======================================================================
 
@@ -1770,10 +1787,12 @@
 
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
+      logical (kind=log_kind) :: tr_snow
       logical (kind=log_kind) :: tr_iso, tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice
+      integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     &
@@ -1856,7 +1875,7 @@
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
          tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
          tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, &
-         tr_iso_out=tr_iso, &
+         tr_snow_out=tr_snow, tr_iso_out=tr_iso, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
          tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C,   tr_bgc_chl_out=tr_bgc_chl,   &
@@ -1917,6 +1936,21 @@
               ntrcr = ntrcr + 1    ! 
               nt_ipnd = ntrcr      ! refrozen pond ice lid thickness
           endif
+      endif
+
+      nt_smice = 0
+      nt_smliq = 0
+      nt_rhos = 0
+      nt_rsnw = 0
+      if (tr_snow) then
+         nt_smice = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! mass of ice in nslyr snow layers
+         nt_smliq = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! mass of liquid in nslyr snow layers
+         nt_rhos = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! snow density in nslyr layers
+         nt_rsnw = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! snow grain radius in nslyr layers
       endif
 
       nt_fsd = 0
@@ -2206,7 +2240,7 @@
 !tcx, +1 here is the unused tracer, want to get rid of it
       ntrcr = ntrcr + 1
 
-!tcx, reset unusaed tracer index, eventually get rid of it.
+!tcx, reset unused tracer index, eventually get rid of it.
       if (nt_iage  <= 0) nt_iage  = ntrcr
       if (nt_FY    <= 0) nt_FY    = ntrcr
       if (nt_alvl  <= 0) nt_alvl  = ntrcr
@@ -2214,6 +2248,10 @@
       if (nt_apnd  <= 0) nt_apnd  = ntrcr
       if (nt_hpnd  <= 0) nt_hpnd  = ntrcr
       if (nt_ipnd  <= 0) nt_ipnd  = ntrcr
+      if (nt_smice <= 0) nt_smice = ntrcr
+      if (nt_smliq <= 0) nt_smliq = ntrcr
+      if (nt_rhos  <= 0) nt_rhos  = ntrcr
+      if (nt_rsnw  <= 0) nt_rsnw  = ntrcr
       if (nt_fsd   <= 0) nt_fsd   = ntrcr
       if (nt_isosno<= 0) nt_isosno= ntrcr
       if (nt_isoice<= 0) nt_isoice= ntrcr
@@ -2240,6 +2278,7 @@
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
          nt_ipnd_in=nt_ipnd, nt_fsd_in=nt_fsd, nt_aero_in=nt_aero, &
+         nt_smice_in=nt_smice, nt_smliq_in=nt_smliq, nt_rhos_in=nt_rhos, nt_rsnw_in=nt_rsnw, &
          nt_isosno_in=nt_isosno,     nt_isoice_in=nt_isoice,       nt_fbri_in=nt_fbri,      &
          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
          nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &

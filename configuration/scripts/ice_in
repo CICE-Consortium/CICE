@@ -89,6 +89,8 @@
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
     restart_pond_lvl  = .false.
+    tr_snow      = .false.
+    restart_snow = .false.
     tr_iso       = .false.
     restart_iso  = .false.
     tr_aero      = .false.
@@ -166,6 +168,17 @@
     rfracmin        = 0.15
     rfracmax        = 1.
     pndaspect       = 0.8
+/
+
+&snow_nml
+    snwredist       = '30percentsw'
+    use_smliq_pnd   = .false.
+    rsnw_fall       = 54.526
+    rsnw_tmax       = 1500.0
+    rhosnew         =  100.0
+    rhosmax         =  450.0
+    windmin         =   10.0
+    drhosdwind      =   27.3
 /
 
 &forcing_nml

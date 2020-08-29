@@ -52,6 +52,8 @@
          nu_restart_lvl, &  ! restart input file for level ice tracers
          nu_dump_pond  , &  ! dump file for restarting melt pond tracer
          nu_restart_pond,&  ! restart input file for melt pond tracer
+         nu_dump_snow  , &  ! dump file for restarting snow redist/metamorph tracers
+         nu_restart_snow,&  ! restart input file for snow redist/metamorph tracers
          nu_dump_fsd   , &  ! dump file for restarting floe size distribution
          nu_restart_fsd, &  ! restart input file for floe size distribution
          nu_dump_iso   , &  ! dump file for restarting isotope tracers
@@ -130,6 +132,8 @@
          call get_fileunit(nu_restart_lvl)
          call get_fileunit(nu_dump_pond)
          call get_fileunit(nu_restart_pond)
+         call get_fileunit(nu_dump_snow)
+         call get_fileunit(nu_restart_snow)
          call get_fileunit(nu_dump_fsd)
          call get_fileunit(nu_restart_fsd)
          call get_fileunit(nu_dump_iso)
@@ -219,6 +223,8 @@
          call release_fileunit(nu_restart_lvl)
          call release_fileunit(nu_dump_pond)
          call release_fileunit(nu_restart_pond)
+         call release_fileunit(nu_dump_snow)
+         call release_fileunit(nu_restart_snow)
          call release_fileunit(nu_dump_fsd)
          call release_fileunit(nu_restart_fsd)
          call release_fileunit(nu_dump_iso)
