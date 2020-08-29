@@ -45,7 +45,7 @@
                 init_age, init_FY, init_lvl, init_fsd, &
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
-                count_tracers, init_isotope, init_snow
+                count_tracers, init_isotope, init_snowtracers
 
       ! namelist parameters needed locally
 
@@ -589,18 +589,18 @@
 
 !  Initialize snow redistribution/metamorphosis tracers (call prior to reading restart data)
 
-      subroutine init_snow(smice, smliq, rhos, rsnw)
+      subroutine init_snowtracers(smice, smliq, rhoseff, rsnw)
 
       real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: &
-         smice, smliq, rhos, rsnw
-      character(len=*),parameter :: subname='(init_snow)'
+         smice, smliq, rhoseff, rsnw
+      character(len=*),parameter :: subname='(init_snowtracers)'
 
-      smice(:,:,:,:) = c0
-      smliq(:,:,:,:) = c0
-      rhos (:,:,:,:) = c0  !ech - should probably use a different name and initialize to rhos
-      rsnw (:,:,:,:) = c0
+      smice  (:,:,:,:) = c0
+      smliq  (:,:,:,:) = c0
+      rhoseff(:,:,:,:) = c0
+      rsnw   (:,:,:,:) = c0
 
-      end subroutine init_snow
+      end subroutine init_snowtracers
 
 !=======================================================================
 

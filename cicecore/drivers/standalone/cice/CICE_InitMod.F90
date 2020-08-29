@@ -237,7 +237,7 @@
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
-      use ice_init_column, only: init_age, init_FY, init_lvl, init_snow, &
+      use ice_init_column, only: init_age, init_FY, init_lvl, init_snowtracers, &
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
           init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
@@ -391,10 +391,10 @@
             call read_restart_snow
          else
             do iblk = 1, nblocks
-               call init_snow(trcrn(:,:,nt_smice:nt_smice+nslyr-1,:,iblk), &
-                              trcrn(:,:,nt_smliq:nt_smliq+nslyr-1,:,iblk), &
-                              trcrn(:,:,nt_rhos :nt_rhos +nslyr-1,:,iblk), &
-                              trcrn(:,:,nt_rsnw :nt_rsnw +nslyr-1,:,iblk))
+               call init_snowtracers(trcrn(:,:,nt_smice:nt_smice+nslyr-1,:,iblk), &
+                                     trcrn(:,:,nt_smliq:nt_smliq+nslyr-1,:,iblk), &
+                                     trcrn(:,:,nt_rhos :nt_rhos +nslyr-1,:,iblk), &
+                                     trcrn(:,:,nt_rsnw :nt_rsnw +nslyr-1,:,iblk))
             enddo ! iblk
          endif
       endif

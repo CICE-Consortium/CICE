@@ -171,14 +171,16 @@
 /
 
 &snow_nml
-    snwredist       = '30percentsw'
+    snwredist       = 'none'
     use_smliq_pnd   = .false.
     rsnw_fall       = 54.526
     rsnw_tmax       = 1500.0
     rhosnew         =  100.0
+    rhosmin         =  100.0
     rhosmax         =  450.0
     windmin         =   10.0
     drhosdwind      =   27.3
+    snwlvlfac       =    0.3
 /
 
 &forcing_nml

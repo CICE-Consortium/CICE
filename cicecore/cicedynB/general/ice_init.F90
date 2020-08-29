@@ -119,8 +119,8 @@
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
-        sw_frac, sw_dtemp, rsnw_fall, rsnw_tmax, rhosnew, rhosmax, &
-        windmin, drhosdwind
+        sw_frac, sw_dtemp, rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, &
+        windmin, drhosdwind, snwlvlfac
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound
@@ -212,7 +212,8 @@
 
       namelist /snow_nml/ &
         snwredist,      use_smliq_pnd,   rsnw_fall,     rsnw_tmax,      &
-        rhosnew,        rhosmax,         windmin,       drhosdwind
+        rhosnew,        rhosmin,         rhosmax,       snwlvlfac,      &
+        windmin,        drhosdwind
 
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
@@ -367,9 +368,11 @@
       rsnw_fall = 54.526_dbl_kind ! radius of new snow (10^-6 m)
       rsnw_tmax = 1500.0_dbl_kind ! maximum snow radius (10^-6 m)
       rhosnew   =  100.0_dbl_kind ! new snow density (kg/m^3)
+      rhosmin   =  100.0_dbl_kind ! minimum snow density (kg/m^3)
       rhosmax   =  450.0_dbl_kind ! maximum snow density (kg/m^3)
       windmin   =   10.0_dbl_kind ! minimum wind speed to compact snow (m/s)
       drhosdwind=   27.3_dbl_kind ! wind compaction factor for snow (kg s/m^4)
+      snwlvlfac =    0.3_dbl_kind ! fractional increase in snow depth for bulk redistribution
       albicev   = 0.78_dbl_kind   ! visible ice albedo for h > ahmax
       albicei   = 0.36_dbl_kind   ! near-ir ice albedo for h > ahmax
       albsnowv  = 0.98_dbl_kind   ! cold snow albedo, visible
@@ -669,9 +672,11 @@
       call broadcast_scalar(rsnw_fall,          master_task)
       call broadcast_scalar(rsnw_tmax,          master_task)
       call broadcast_scalar(rhosnew,            master_task)
+      call broadcast_scalar(rhosmin,            master_task)
       call broadcast_scalar(rhosmax,            master_task)
       call broadcast_scalar(windmin,            master_task)
       call broadcast_scalar(drhosdwind,         master_task)
+      call broadcast_scalar(snwlvlfac,          master_task)
       call broadcast_scalar(albicev,            master_task)
       call broadcast_scalar(albicei,            master_task)
       call broadcast_scalar(albsnowv,           master_task)
@@ -1505,13 +1510,17 @@
             if (snwredist(1:4) == 'none') then
                write(nu_diag,*) ' Snow redistribution scheme turned off'
             else
-               if (snwredist(1:9) == '30percent') then
-                  write(nu_diag,*) ' Using 30percent snow redistribution scheme'
+               if (snwredist(1:9) == 'bulk') then
+                  write(nu_diag,*) ' Using bulk snow redistribution scheme'
+                  write(nu_diag,1007) ' snwlvlfac       = ', snwlvlfac, &
+                                   ' fractional increase in snow depth for bulk redistribution'
                elseif (snwredist(1:6) == 'ITDrdg') then
                   write(nu_diag,*) ' Using ridging based snow redistribution scheme'
                endif
                write(nu_diag,1007) ' rhosnew         = ', rhosnew, &
                                    ' new snow density (kg/m^3)'
+               write(nu_diag,1007) ' rhosmin         = ', rhosmin, &
+                                   ' minimum snow density (kg/m^3)'
                write(nu_diag,1007) ' rhosmax         = ', rhosmax, &
                                    ' maximum snow density (kg/m^3)'
                write(nu_diag,1007) ' windmin         = ', windmin, &
@@ -1524,7 +1533,7 @@
             endif
             write(nu_diag,1007) ' rsnw_fall       = ', rsnw_fall, &
                                 ' radius of new snow (10^-6 m)'
-            write(nu_diag,1006) ' rsnw_tmax       = ', rsnw_tmax, &
+            write(nu_diag,1002) ' rsnw_tmax       = ', rsnw_tmax, &
                                 ' maximum snow radius (10^-6 m)'
          endif
 
@@ -1752,7 +1761,9 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
-         Pstar_in=Pstar, Cstar_in=Cstar, &
+         Pstar_in=Pstar, Cstar_in=Cstar, windmin_in=windmin, drhosdwind_in=drhosdwind, &
+         rsnw_fall_in=rsnw_fall, rsnw_tmax_in=rsnw_tmax, rhosnew_in=rhosnew, &
+         snwlvlfac_in=snwlvlfac, rhosmin_in=rhosmin, rhosmax_in=rhosmax, &
          sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
