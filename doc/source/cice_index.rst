@@ -578,7 +578,7 @@ either Celsius or Kelvin units).
    "strairx(y)", "stress on ice by air in the x(y)-direction (centered in U cell)", "N/m\ :math:`^2`"
    "strairx(y)T", "stress on ice by air, x(y)-direction (centered in T cell)", "N/m\ :math:`^2`"
    "strax(y)", "wind stress components from data", "N/m\ :math:`^2`"
-   "strength", "ice strength (pressure)", "N/m"
+   "strength", "ice strength", "N/m"
    "stress12", "internal ice stress, :math:`\sigma_{12}`", "N/m"
    "stressm", "internal ice stress, :math:`\sigma_{11}-\sigma_{22}`", "N/m"
    "stressp", "internal ice stress, :math:`\sigma_{11}+\sigma_{22}`", "N/m"

@@ -877,7 +877,7 @@
 
       endif     ! .not. restart
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,sicen,trcrn_bgc)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -888,15 +888,6 @@
 
          do j = jlo, jhi
          do i = ilo, ihi  
-
-            do n = 1, ncat
-            do k = 1, nilyr
-               sicen(k,n) = trcrn(i,j,nt_sice+k-1,n,iblk)
-            enddo
-            do k = ntrcr_o+1, ntrcr
-               trcrn_bgc(k-ntrcr_o,n) = trcrn(i,j,k,n,iblk)
-            enddo
-            enddo
 
             call icepack_load_ocean_bio_array(max_nbtrcr=icepack_max_nbtrcr,     &
                          max_algae=icepack_max_algae, max_don=icepack_max_don,   &
@@ -919,7 +910,7 @@
          file=__FILE__, line=__LINE__)
 
       if (.not. restart_bgc) then       
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,sicen,trcrn_bgc)
          do iblk = 1, nblocks
 
             this_block = get_block(blocks_ice(iblk),iblk)         
@@ -930,7 +921,14 @@
 
             do j = jlo, jhi
             do i = ilo, ihi  
-
+                do n = 1, ncat
+                do k = 1, nilyr
+                   sicen(k,n) = trcrn(i,j,nt_sice+k-1,n,iblk)
+                enddo
+                do k = ntrcr_o+1, ntrcr
+                   trcrn_bgc(k-ntrcr_o,n) = trcrn(i,j,k,n,iblk)
+                enddo
+                enddo
             call icepack_init_bgc(ncat=ncat, nblyr=nblyr, nilyr=nilyr, ntrcr_o=ntrcr_o,  &
                          cgrid=cgrid, igrid=igrid, ntrcr=ntrcr, nbtrcr=nbtrcr,           &
                          sicen=sicen(:,:), trcrn=trcrn_bgc(:,:), sss=sss(i,j, iblk), &
