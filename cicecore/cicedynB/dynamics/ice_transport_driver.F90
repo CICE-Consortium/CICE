@@ -1,6 +1,7 @@
 !=======================================================================
 !
-! Drivers for remapping and upwind ice transport
+!deprecate upwind Drivers for remapping and upwind ice transport
+! Drivers for incremental remapping ice transport
 !
 ! authors: Elizabeth C. Hunke and William H. Lipscomb, LANL 
 !
@@ -9,6 +10,7 @@
 ! 2006: Incorporated remap transport driver and renamed from
 !       ice_transport_upwind.  
 ! 2011: ECH moved edgearea arrays into ice_transport_remap.F90
+! 2020: deprecated upwind transport
 
       module ice_transport_driver
 
@@ -28,12 +30,13 @@
 
       implicit none
       private
-      public :: init_transport, transport_remap, transport_upwind
+      public :: init_transport, transport_remap!deprecate upwind:, transport_upwind
 
       character (len=char_len), public ::     &
          advection   ! type of advection scheme used
-                     ! 'upwind' => 1st order donor cell scheme
+!deprecate upwind                     ! 'upwind' => 1st order donor cell scheme
                      ! 'remap' => remapping scheme
+                     ! 'none'  => advection off (ktransport = -1 also turns it off)
 
       logical, parameter :: & ! if true, prescribe area flux across each edge  
          l_fixed_area = .false.
@@ -69,8 +72,9 @@
 !=======================================================================
 !
 ! This subroutine is a wrapper for init_remap, which initializes the
-! remapping transport scheme.  If the model is run with upwind
-! transport, no initializations are necessary.
+! remapping transport scheme.
+!deprecate upwind  If the model is run with upwind
+!deprecate upwind! transport, no initializations are necessary.
 !
 ! authors William H. Lipscomb, LANL
 
@@ -680,11 +684,12 @@
       end subroutine transport_remap
 
 !=======================================================================
-!
+!deprecate upwind!
 ! Computes the transport equations for one timestep using upwind. Sets
 ! several fields into a work array and passes it to upwind routine.
 
-      subroutine transport_upwind (dt)
+!deprecate upwind
+      subroutine transport_upwind_deprecated (dt)
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_blocks, only: nx_block, ny_block, block, get_block, nx_block, ny_block
@@ -769,52 +774,52 @@
                            field_loc_Nface, field_type_vector)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
+!deprecate upwind      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+!deprecate upwind      do iblk = 1, nblocks
+!deprecate upwind         this_block = get_block(blocks_ice(iblk),iblk)         
+!deprecate upwind         ilo = this_block%ilo
+!deprecate upwind         ihi = this_block%ihi
+!deprecate upwind         jlo = this_block%jlo
+!deprecate upwind         jhi = this_block%jhi
 
       !-----------------------------------------------------------------
       ! fill work arrays with fields to be advected
       !-----------------------------------------------------------------
 
-         call state_to_work (nx_block,             ny_block,             &
-                             ntrcr,                                      &
-                             narr,                 trcr_depend,          &
-                             aicen (:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
-                             vicen (:,:,  :,iblk), vsnon (:,:,  :,iblk), &
-                             aice0 (:,:,    iblk), works (:,:,  :,iblk))
+!deprecate upwind
+!deprecate upwind         call state_to_work (nx_block,             ny_block,             &
+!deprecate upwind                             ntrcr,                                      &
+!deprecate upwind                             narr,                 trcr_depend,          &
+!deprecate upwind                             aicen (:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
+!deprecate upwind                             vicen (:,:,  :,iblk), vsnon (:,:,  :,iblk), &
+!deprecate upwind                             aice0 (:,:,    iblk), works (:,:,  :,iblk))
 
       !-----------------------------------------------------------------
       ! advect
       !-----------------------------------------------------------------
 
-         call upwind_field (nx_block,       ny_block,               &
-                            ilo, ihi,       jlo, jhi,               &
-                            dt,                                     &
-                            narr,           works(:,:,:,iblk),      &
-                            uee(:,:,iblk),  vnn    (:,:,iblk),      &
-                            HTE(:,:,iblk),  HTN    (:,:,iblk),      &
-                            tarea(:,:,iblk))
+!deprecate upwind         call upwind_field (nx_block,       ny_block,               &
+!deprecate upwind                            ilo, ihi,       jlo, jhi,               &
+!deprecate upwind                            dt,                                     &
+!deprecate upwind                            narr,           works(:,:,:,iblk),      &
+!deprecate upwind                            uee(:,:,iblk),  vnn    (:,:,iblk),      &
+!deprecate upwind                            HTE(:,:,iblk),  HTN    (:,:,iblk),      &
+!deprecate upwind                            tarea(:,:,iblk))
 
       !-----------------------------------------------------------------
       ! convert work arrays back to state variables
       !-----------------------------------------------------------------
 
-         call work_to_state (nx_block,            ny_block,             &
-                             ntrcr,               narr,                 &
-                             trcr_depend(:),      trcr_base(:,:),       &
-                             n_trcr_strata(:),    nt_strata(:,:),       &
-                             aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
-                             vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
-                             aice0(:,:,    iblk), works (:,:,  :,iblk)) 
+!deprecate upwind         call work_to_state (nx_block,            ny_block,             &
+!deprecate upwind                             ntrcr,               narr,                 &
+!deprecate upwind                             trcr_depend(:),      trcr_base(:,:),       &
+!deprecate upwind                             n_trcr_strata(:),    nt_strata(:,:),       &
+!deprecate upwind                             aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
+!deprecate upwind                             vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
+!deprecate upwind                             aice0(:,:,    iblk), works (:,:,  :,iblk)) 
 
-      enddo                     ! iblk
-      !$OMP END PARALLEL DO
+!deprecate upwind      enddo                     ! iblk
+!deprecate upwind      !$OMP END PARALLEL DO
  
       deallocate (works)
 
@@ -832,7 +837,8 @@
 
       call ice_timer_stop(timer_advect)  ! advection 
 
-      end subroutine transport_upwind
+      end subroutine transport_upwind_deprecated
+!deprecate upwind
 
 !=======================================================================
 ! The next few subroutines (through check_monotonicity) are called
@@ -1455,12 +1461,12 @@
       end subroutine check_monotonicity
 
 !=======================================================================
-! The remaining subroutines are called by transport_upwind.
+!deprecate upwind! The remaining subroutines are called by transport_upwind.
 !=======================================================================
 !
 ! Fill work array with state variables in preparation for upwind transport
-
-      subroutine state_to_work (nx_block, ny_block,        &
+!deprecate upwind
+      subroutine state_to_work_deprecated (nx_block, ny_block,        &
                                 ntrcr,                     &
                                 narr,     trcr_depend,     &
                                 aicen,    trcrn,           &
@@ -1601,13 +1607,13 @@
       if (narr /= narrays) write(nu_diag,*)      &
            "Wrong number of arrays in transport bound call"
 
-      end subroutine state_to_work
+      end subroutine state_to_work_deprecated
 
 !=======================================================================
 !
 ! Convert work array back to state variables
-
-      subroutine work_to_state (nx_block, ny_block, &
+!deprecate upwind
+      subroutine work_to_state_deprecated (nx_block, ny_block, &
                                 ntrcr,    narr,     &
                                 trcr_depend,        &
                                 trcr_base,          &
@@ -1715,13 +1721,13 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      end subroutine work_to_state
+      end subroutine work_to_state_deprecated
 
 !=======================================================================
 !
 ! upwind transport algorithm
-
-      subroutine upwind_field (nx_block, ny_block,   &
+!deprecate upwind
+      subroutine upwind_field_deprecated (nx_block, ny_block,   &
                                ilo, ihi, jlo, jhi,   &
                                dt,                   &
                                narrays,  phi,        &
@@ -1764,26 +1770,26 @@
 
       do n = 1, narrays
 
-         do j = 1, jhi
-         do i = 1, ihi
-            worka(i,j)=     &
-               upwind(phi(i,j,n),phi(i+1,j,n),uee(i,j),HTE(i,j),dt)
-            workb(i,j)=     &
-               upwind(phi(i,j,n),phi(i,j+1,n),vnn(i,j),HTN(i,j),dt)
-         enddo
-         enddo
+!deprecate upwind         do j = 1, jhi
+!deprecate upwind         do i = 1, ihi
+!deprecate upwind            worka(i,j)=     &
+!deprecate upwind               upwind(phi(i,j,n),phi(i+1,j,n),uee(i,j),HTE(i,j),dt)
+!deprecate upwind            workb(i,j)=     &
+!deprecate upwind               upwind(phi(i,j,n),phi(i,j+1,n),vnn(i,j),HTN(i,j),dt)
+!deprecate upwind         enddo
+!deprecate upwind         enddo
 
-         do j = jlo, jhi
-         do i = ilo, ihi
-            phi(i,j,n) = phi(i,j,n) - ( worka(i,j)-worka(i-1,j)      &
-                                      + workb(i,j)-workb(i,j-1) )    &
-                                      / tarea(i,j)
-         enddo
-         enddo
+!deprecate upwind         do j = jlo, jhi
+!deprecate upwind         do i = ilo, ihi
+!deprecate upwind            phi(i,j,n) = phi(i,j,n) - ( worka(i,j)-worka(i-1,j)      &
+!deprecate upwind                                      + workb(i,j)-workb(i,j-1) )    &
+!deprecate upwind                                      / tarea(i,j)
+!deprecate upwind         enddo
+!deprecate upwind         enddo
 
       enddo                     ! narrays
 
-      end subroutine upwind_field
+      end subroutine upwind_field_deprecated
 
 !=======================================================================
 
@@ -1791,13 +1797,13 @@
     ! Define upwind function
     !-------------------------------------------------------------------
 
-      real(kind=dbl_kind) function upwind(y1,y2,a,h,dt)
+!deprecate upwind      real(kind=dbl_kind) function upwind(y1,y2,a,h,dt)
 
-      real(kind=dbl_kind), intent(in) :: y1,y2,a,h,dt
+!deprecate upwind      real(kind=dbl_kind), intent(in) :: y1,y2,a,h,dt
 
-      upwind = p5*dt*h*((a+abs(a))*y1+(a-abs(a))*y2)
+!deprecate upwind      upwind = p5*dt*h*((a+abs(a))*y1+(a-abs(a))*y2)
 
-      end function upwind
+!deprecate upwind      end function upwind
 
 !=======================================================================
 
