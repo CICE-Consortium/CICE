@@ -329,7 +329,7 @@
             call read_restart_lvl
          else
             do iblk = 1, nblocks 
-               call init_lvl(trcrn(:,:,nt_alvl,:,iblk), &
+               call init_lvl(iblk,trcrn(:,:,nt_alvl,:,iblk), &
                              trcrn(:,:,nt_vlvl,:,iblk))
             enddo ! iblk
          endif
