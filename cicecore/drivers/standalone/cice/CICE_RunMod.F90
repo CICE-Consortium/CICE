@@ -627,11 +627,12 @@
       
       real (kind=dbl_kind)    :: &
           puny, &          !
+          Lsub, &          !
           rLsub            ! 1/Lsub
 
       character(len=*), parameter :: subname = '(sfcflux_to_ocn)'
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny, Lsub_out=Lsub)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
