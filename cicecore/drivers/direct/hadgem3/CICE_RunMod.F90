@@ -223,7 +223,7 @@
       ! Scale radiation fields
       !-----------------------------------------------------------------
 
-               if (calc_Tsfc) call prep_radiation (dt, iblk)
+               if (calc_Tsfc) call prep_radiation (iblk)
 
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
@@ -307,9 +307,9 @@
          call ice_timer_start(timer_diags)  ! diagnostics
          if (mod(istep,diagfreq) == 0) then
             call runtime_diags(dt)          ! log file
-            if (solve_zsal) call zsal_diags(dt)  
-            if (skl_bgc .or. z_tracers)  call bgc_diags (dt)
-            if (tr_brine) call hbrine_diags(dt)
+            if (solve_zsal) call zsal_diags
+            if (skl_bgc .or. z_tracers)  call bgc_diags
+            if (tr_brine) call hbrine_diags
          endif
          call ice_timer_stop(timer_diags)   ! diagnostics
 
