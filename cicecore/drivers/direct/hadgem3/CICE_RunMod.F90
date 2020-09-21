@@ -252,7 +252,7 @@
          ! wave fracture of the floe size distribution
          ! note this is called outside of the dynamics subcycling loop
          if (tr_fsd .and. wave_spec) call step_dyn_wave(dt)
-+
+
          do k = 1, ndtd
 
             ! momentum, stress, transport
