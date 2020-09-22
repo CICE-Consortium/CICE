@@ -139,6 +139,21 @@
     kridge          = 1
     ktransport      = 1
     ssh_stress      = 'geostrophic'
+    maxits_nonlin   = 4
+    precond         = 'pgmres'
+    dim_fgmres       = 50
+    dim_pgmres       = 5
+    maxits_fgmres   = 1
+    maxits_pgmres   = 1
+    monitor_nonlin  = .false.
+    monitor_fgmres  = .false.
+    monitor_pgmres  = .false.
+    ortho_type      = 'mgs'
+    reltol_nonlin   = 1e-8
+    reltol_fgmres   = 1e-2
+    reltol_pgmres   = 1e-6
+    algo_nonlin     = 'picard'
+    use_mean_vrel   = .true.
 /
 
 &shortwave_nml
