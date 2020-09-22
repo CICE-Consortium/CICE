@@ -353,6 +353,7 @@
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
+          fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyt, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           fsurfn_f, flatn_f, scale_fluxes, frzmlt_init, frzmlt
@@ -528,6 +529,10 @@
                             Tref     (:,:,iblk), Qref    (:,:,iblk), &
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
                             fhocn    (:,:,iblk), fswthru (:,:,iblk), &
+                            fswthru_vdr(:,:,iblk),                   &
+                            fswthru_vdf(:,:,iblk),                   &
+                            fswthru_idr(:,:,iblk),                   &
+                            fswthru_idf(:,:,iblk),                   &
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
