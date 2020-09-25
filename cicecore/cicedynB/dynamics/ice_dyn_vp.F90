@@ -418,6 +418,11 @@
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
+      ! velocities may have changed in dyn_prep2
+      call stack_velocity_field(uvel, vvel, fld2)
+      call ice_HaloUpdate (fld2,               halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call unstack_velocity_field(fld2, uvel, vvel)
       call ice_timer_stop(timer_bound)
 
       if (maskhalo_dyn) then
@@ -429,19 +434,6 @@
          call ice_timer_stop(timer_bound)
          call ice_HaloMask(halo_info_mask, halo_info, halomask)
       endif
-
-      ! velocities may have changed in dyn_prep2
-      call stack_velocity_field(uvel, vvel, fld2)
-      call ice_timer_start(timer_bound)
-      if (maskhalo_dyn) then
-         call ice_HaloUpdate (fld2,               halo_info_mask, &
-                              field_loc_NEcorner, field_type_vector)
-      else
-         call ice_HaloUpdate (fld2,               halo_info, &
-                              field_loc_NEcorner, field_type_vector)
-      endif
-      call ice_timer_stop(timer_bound)
-      call unstack_velocity_field(fld2, uvel, vvel)
 
       !-----------------------------------------------------------------
       ! basal stress coefficients (landfast ice)
