@@ -384,7 +384,7 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
-!     tarea(:,:,:) = c0
+      tarea(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
