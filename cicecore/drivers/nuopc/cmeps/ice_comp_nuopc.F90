@@ -17,16 +17,12 @@ module ice_comp_nuopc
   use NUOPC_Model        , only : NUOPC_ModelGet, SetVM
   use ice_constants      , only : ice_init_constants
   use ice_shr_methods    , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
-  use ice_shr_methods    , only : set_component_logging, get_component_instance
-  use ice_shr_methods    , only : state_flddebug
-  use ice_import_export  , only : ice_import, ice_export
-  use ice_import_export  , only : ice_advertise_fields, ice_realize_fields
+  use ice_shr_methods    , only : set_component_logging, get_component_instance, state_flddebug
+  use ice_import_export  , only : ice_import, ice_export, ice_advertise_fields, ice_realize_fields
   use ice_domain_size    , only : nx_global, ny_global
   use ice_domain         , only : nblocks, blocks_ice, distrb_info
   use ice_blocks         , only : block, get_block, nx_block, ny_block, nblocks_x, nblocks_y
-  use ice_blocks         , only : nblocks_tot, get_block_parameter
-  use ice_distribution   , only : ice_distributiongetblockloc
-  use ice_grid           , only : tlon, tlat, hm, tarea, ULON, ULAT
+  use ice_grid           , only : tlon, tlat
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
   use ice_calendar       , only : idate, mday, time, month, daycal, time2sec, year_init
@@ -37,6 +33,7 @@ module ice_comp_nuopc
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
   use ice_restart_shared , only : runid, runtype, restart_dir, restart_file
   use ice_history        , only : accum_hist
+  use ice_flux           , only : send_i2x_per_cat
   use CICE_InitMod       , only : cice_init
   use CICE_RunMod        , only : cice_run
   use ice_exit           , only : abort_ice
@@ -85,6 +82,8 @@ module ice_comp_nuopc
 
   character(len=*),parameter   :: shr_cal_noleap    = 'NO_LEAP'
   character(len=*),parameter   :: shr_cal_gregorian = 'GREGORIAN'
+
+  type(ESMF_Mesh)              :: Emesh
 
   integer                      :: dbug = 0
   integer     , parameter      :: debug_import = 0 ! internal debug level
@@ -181,6 +180,64 @@ contains
     character(len=char_len_long) :: cvalue
     character(len=char_len_long) :: logmsg
     logical                      :: isPresent, isSet
+    real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
+    type(ESMF_DistGrid)          :: distGrid
+    type(ESMF_Mesh)              :: EmeshTemp
+    integer                      :: spatialDim
+    integer                      :: numOwnedElements
+    real(dbl_kind), pointer      :: ownedElemCoords(:)
+    real(dbl_kind), pointer      :: lat(:), latMesh(:)
+    real(dbl_kind), pointer      :: lon(:), lonMesh(:)
+    integer , allocatable        :: gindex_ice(:)
+    integer , allocatable        :: gindex_elim(:)
+    integer , allocatable        :: gindex(:)
+    integer                      :: globalID
+    character(len=char_len)      :: tfrz_option
+    type(ESMF_VM)                :: vm
+    type(ESMF_Time)              :: currTime           ! Current time
+    type(ESMF_Time)              :: startTime          ! Start time
+    type(ESMF_Time)              :: stopTime           ! Stop time
+    type(ESMF_Time)              :: refTime            ! Ref time
+    type(ESMF_TimeInterval)      :: timeStep           ! Model timestep
+    type(ESMF_Calendar)          :: esmf_calendar      ! esmf calendar
+    type(ESMF_CalKind_Flag)      :: esmf_caltype       ! esmf calendar type
+    integer                      :: start_ymd          ! Start date (YYYYMMDD)
+    integer                      :: start_tod          ! start time of day (s)
+    integer                      :: curr_ymd           ! Current date (YYYYMMDD)
+    integer                      :: curr_tod           ! Current time of day (s)
+    integer                      :: stop_ymd           ! stop date (YYYYMMDD)
+    integer                      :: stop_tod           ! stop time of day (sec)
+    integer                      :: ref_ymd            ! Reference date (YYYYMMDD)
+    integer                      :: ref_tod            ! reference time of day (s)
+    integer                      :: yy,mm,dd           ! Temporaries for time query
+    integer                      :: iyear              ! yyyy
+    integer                      :: dtime              ! time step
+    integer                      :: lmpicom
+    integer                      :: shrlogunit         ! original log unit
+    character(len=char_len)      :: starttype          ! infodata start type
+    integer                      :: lsize              ! local size of coupling array
+    integer                      :: localPet
+    integer                      :: n,c,g,i,j,m        ! indices
+    integer                      :: iblk, jblk         ! indices
+    integer                      :: ig, jg             ! indices
+    integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
+    type(block)                  :: this_block         ! block information for current block
+    integer                      :: compid             ! component id
+    character(len=char_len_long) :: tempc1,tempc2
+    real(dbl_kind)               :: diff_lon
+    integer                      :: npes
+    integer                      :: num_elim_global
+    integer                      :: num_elim_local
+    integer                      :: num_elim
+    integer                      :: num_ice
+    integer                      :: num_elim_gcells    ! local number of eliminated gridcells
+    integer                      :: num_elim_blocks    ! local number of eliminated blocks
+    integer                      :: num_total_blocks
+    integer                      :: my_elim_start, my_elim_end
+    real(dbl_kind)               :: rad_to_deg
+    integer(int_kind)            :: ktherm
+    logical                      :: mastertask
+    character(len=char_len_long) :: diag_filename = 'unset'
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
@@ -244,91 +301,13 @@ contains
     write(logmsg,'(i6)') dbug
     call ESMF_LogWrite('CICE_cap: dbug = '//trim(logmsg), ESMF_LOGMSG_INFO)
 
-    call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
+    send_i2x_per_cat = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-  end subroutine InitializeAdvertise
-
-  !===============================================================================
-
-  subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
-
-    ! Arguments
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState
-    type(ESMF_State)     :: exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
-
-    ! Local variables
-    real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
-    type(ESMF_DistGrid)          :: distGrid
-    type(ESMF_Mesh)              :: Emesh, EmeshTemp
-    integer                      :: spatialDim
-    integer                      :: numOwnedElements
-    real(dbl_kind), pointer      :: ownedElemCoords(:)
-    real(dbl_kind), pointer      :: lat(:), latMesh(:)
-    real(dbl_kind), pointer      :: lon(:), lonMesh(:)
-    integer , allocatable        :: gindex_ice(:)
-    integer , allocatable        :: gindex_elim(:)
-    integer , allocatable        :: gindex(:)
-    integer                      :: globalID
-    character(ESMF_MAXSTR)       :: cvalue
-    character(len=char_len)      :: tfrz_option
-    character(ESMF_MAXSTR)       :: convCIM, purpComp
-    type(ESMF_VM)                :: vm
-    type(ESMF_Time)              :: currTime           ! Current time
-    type(ESMF_Time)              :: startTime          ! Start time
-    type(ESMF_Time)              :: stopTime           ! Stop time
-    type(ESMF_Time)              :: refTime            ! Ref time
-    type(ESMF_TimeInterval)      :: timeStep           ! Model timestep
-    type(ESMF_Calendar)          :: esmf_calendar      ! esmf calendar
-    type(ESMF_CalKind_Flag)      :: esmf_caltype       ! esmf calendar type
-    integer                      :: start_ymd          ! Start date (YYYYMMDD)
-    integer                      :: start_tod          ! start time of day (s)
-    integer                      :: curr_ymd           ! Current date (YYYYMMDD)
-    integer                      :: curr_tod           ! Current time of day (s)
-    integer                      :: stop_ymd           ! stop date (YYYYMMDD)
-    integer                      :: stop_tod           ! stop time of day (sec)
-    integer                      :: ref_ymd            ! Reference date (YYYYMMDD)
-    integer                      :: ref_tod            ! reference time of day (s)
-    integer                      :: yy,mm,dd           ! Temporaries for time query
-    integer                      :: iyear              ! yyyy
-    integer                      :: dtime              ! time step
-    integer                      :: lmpicom
-    integer                      :: shrlogunit         ! original log unit
-    character(len=char_len)      :: starttype          ! infodata start type
-    integer                      :: lsize              ! local size of coupling array
-    logical                      :: isPresent
-    logical                      :: isSet
-    integer                      :: localPet
-    integer                      :: n,c,g,i,j,m        ! indices
-    integer                      :: iblk, jblk         ! indices
-    integer                      :: ig, jg             ! indices
-    integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
-    type(block)                  :: this_block         ! block information for current block
-    integer                      :: compid             ! component id
-    character(len=char_len_long) :: tempc1,tempc2
-    real(dbl_kind)               :: diff_lon
-    integer                      :: npes
-    integer                      :: num_elim_global
-    integer                      :: num_elim_local
-    integer                      :: num_elim
-    integer                      :: num_ice
-    integer                      :: num_elim_gcells    ! local number of eliminated gridcells
-    integer                      :: num_elim_blocks    ! local number of eliminated blocks
-    integer                      :: num_total_blocks
-    integer                      :: my_elim_start, my_elim_end
-    real(dbl_kind)               :: rad_to_deg
-    integer(int_kind)            :: ktherm
-    logical                      :: mastertask
-    character(len=char_len_long) :: diag_filename = 'unset'
-    character(len=*), parameter  :: F00   = "('(ice_comp_nuopc) ',2a,1x,d21.14)"
-    character(len=*), parameter  :: subname=trim(modName)//':(InitializeRealize) '
-    !--------------------------------
-
-    rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (isPresent .and. isSet) then
+       read(cvalue,*) send_i2x_per_cat
+       call ESMF_LogWrite('send_i2x_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    end if
 
     !----------------------------------------------------------------------------
     ! generate local mpi comm
@@ -554,14 +533,14 @@ contains
 
     ! Now write output to nu_diag - this must happen AFTER call to cice_init
     if (mastertask) then
-       write(nu_diag,F00) trim(subname),' cice init nextsw_cday = ',nextsw_cday
-       write(nu_diag,*) trim(subname),' tfrz_option = ',trim(tfrz_option)
+       write(nu_diag,'(a,d21.14)') trim(subname)//' cice init nextsw_cday = ',nextsw_cday
+       write(nu_diag,'(a)') trim(subname)//' tfrz_option = '//trim(tfrz_option)
        if (ktherm == 2 .and. trim(tfrz_option) /= 'mushy') then
           write(nu_diag,*) trim(subname),' Warning: Using ktherm = 2 and tfrz_option = ', trim(tfrz_option)
        endif
-       write(nu_diag,*) trim(subname),' inst_name   = ',trim(inst_name)
-       write(nu_diag,*) trim(subname),' inst_index  = ',inst_index
-       write(nu_diag,*) trim(subname),' inst_suffix = ',trim(inst_suffix)
+       write(nu_diag,'(a    )') trim(subname)//' inst_name   = '//trim(inst_name)
+       write(nu_diag,'(a,i8 )') trim(subname)//' inst_index  = ',inst_index
+       write(nu_diag,'(a    )') trim(subname)//' inst_suffix = ',trim(inst_suffix)
     endif
 
     !---------------------------------------------------------------------------
@@ -835,21 +814,8 @@ contains
        end if
     end do
 
-    ! deallocate memory
-    deallocate(ownedElemCoords)
-    deallocate(lon, lonMesh)
-    deallocate(lat, latMesh)
-
     !-----------------------------------------------------------------
-    ! Realize the actively coupled fields
-    !-----------------------------------------------------------------
-
-    call ice_realize_fields(gcomp, mesh=Emesh, &
-         flds_scalar_name=flds_scalar_name, flds_scalar_num=flds_scalar_num, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !-----------------------------------------------------------------
-    ! Prescribed ice initialization - first get compid
+    ! Prescribed ice initialization
     !-----------------------------------------------------------------
 
     call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -860,6 +826,56 @@ contains
        compid = 0
     end if
     call ice_prescribed_init(lmpicom, compid, gindex_ice)
+
+    !-----------------------------------------------------------------
+    ! Advertise fields
+    !-----------------------------------------------------------------
+
+    ! NOTE: the advertise phase needs to be called after the ice
+    ! initialization since the number of ice categories is needed for
+    ! ice_fraction_n and mean_sw_pen_to_ocn_ifrac_n
+    call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !-----------------------------------------------------------------
+    ! deallocate memory
+    !-----------------------------------------------------------------
+
+    deallocate(ownedElemCoords)
+    deallocate(lon, lonMesh)
+    deallocate(lat, latMesh)
+    deallocate(gindex_ice)
+    deallocate(gindex)
+
+    call t_stopf ('cice_init_total')
+
+  end subroutine InitializeAdvertise
+
+  !===============================================================================
+
+  subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
+
+    ! Arguments
+    type(ESMF_GridComp)  :: gcomp
+    type(ESMF_State)     :: importState
+    type(ESMF_State)     :: exportState
+    type(ESMF_Clock)     :: clock
+    integer, intent(out) :: rc
+
+    ! Local variables
+    character(len=*), parameter  :: subname=trim(modName)//':(InitializeRealize) '
+    !--------------------------------
+
+    rc = ESMF_SUCCESS
+    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
+    !-----------------------------------------------------------------
+    ! Realize the actively coupled fields
+    !-----------------------------------------------------------------
+
+    call ice_realize_fields(gcomp, mesh=Emesh, &
+         flds_scalar_name=flds_scalar_name, flds_scalar_num=flds_scalar_num, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !-----------------------------------------------------------------
     ! Create cice export state
@@ -875,15 +891,15 @@ contains
          flds_scalar_name, flds_scalar_num, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !--------------------------------
+    ! diagnostics
+    !--------------------------------
+
     ! TODO (mvertens, 2018-12-21): fill in iceberg_prognostic as .false.
     if (debug_export > 0 .and. my_task==master_task) then
        call State_fldDebug(exportState, flds_scalar_name, 'cice_export:', &
             idate, sec, nu_diag, rc=rc)
     end if
-
-    !--------------------------------
-    ! diagnostics
-    !--------------------------------
 
     if (dbug > 0) then
        call state_diagnose(exportState,subname//':ES',rc=rc)
@@ -891,11 +907,6 @@ contains
     endif
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
-
-    call t_stopf ('cice_init_total')
-
-    deallocate(gindex_ice)
-    deallocate(gindex)
 
     call flush_fileunit(nu_diag)
 
@@ -939,7 +950,6 @@ contains
     character(char_len_long)   :: restart_date
     character(char_len_long)   :: restart_filename
     logical                    :: isPresent, isSet
-    character(*)   , parameter :: F00   = "('(ice_comp_nuopc) ',2a,i8,d21.14)"
     character(len=*),parameter :: subname=trim(modName)//':(ModelAdvance) '
     character(char_len_long)   :: msgString
     !--------------------------------
@@ -1005,7 +1015,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if (my_task == master_task) then
-       write(nu_diag,F00) trim(subname),' cice istep, nextsw_cday = ',istep, nextsw_cday
+       write(nu_diag,'(a,2x,i8,2x,d24.14)') trim(subname)//' cice istep, nextsw_cday = ',istep, nextsw_cday
     end if
 
     !--------------------------------
@@ -1283,28 +1293,26 @@ contains
   !===============================================================================
 
   subroutine ModelFinalize(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    ! local variables
-    character(*), parameter :: F00   = "('(ice_comp_nuopc) ',8a)"
-    character(*), parameter :: F91   = "('(ice_comp_nuopc) ',73('-'))"
-    character(len=*),parameter  :: subname=trim(modName)//':(ModelFinalize) '
-    !--------------------------------
 
     !--------------------------------
     ! Finalize routine
     !--------------------------------
 
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    character(*), parameter :: F91 = "('(ice_comp_nuopc) ',73('-'))"
+    character(len=*),parameter  :: subname=trim(modName)//':(ModelFinalize) '
+    !--------------------------------
+
     rc = ESMF_SUCCESS
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
-
     if (my_task == master_task) then
        write(nu_diag,F91)
-       write(nu_diag,F00) 'CICE: end of main integration loop'
+       write(nu_diag,'(a)') 'CICE: end of main integration loop'
        write(nu_diag,F91)
     end if
-
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ModelFinalize

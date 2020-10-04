@@ -108,7 +108,6 @@ contains
     character(char_len) :: stdname
     character(char_len) :: cvalue
     logical             :: flds_wiso         ! use case
-    logical             :: flds_i2o_per_cat  ! .true. => select per ice thickness category
     logical             :: isPresent, isSet
     character(len=*), parameter :: subname='(ice_import_export:ice_advertise_fields)'
     !-------------------------------------------------------------------------------
@@ -123,14 +122,6 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) flds_wiso
        call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
-    end if
-
-    flds_i2o_per_cat = .false.
-    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) send_i2x_per_cat
-       call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
     end if
 
     !-----------------
@@ -1187,6 +1178,7 @@ contains
     integer                :: n
     type(ESMF_Field)       :: field
     character(len=80)      :: stdname
+    character(ESMF_MAXSTR) :: msg
     character(len=*),parameter  :: subname='(ice_import_export:fld_list_realize)'
     ! ----------------------------------------------
 
@@ -1203,8 +1195,6 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
              if (present(mesh)) then
-                call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected using mesh", &
-                     ESMF_LOGMSG_INFO)
                 ! Create the field
                 if (fldlist(n)%ungridded_lbound > 0 .and. fldlist(n)%ungridded_ubound > 0) then
                    field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
@@ -1212,9 +1202,16 @@ contains
                         ungriddedUbound=(/fldlist(n)%ungridded_ubound/), &
                         gridToFieldMap=(/2/), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   write(msg, '(a,i4,2x,i4)') trim(subname)//trim(tag)//" Field = "//trim(stdname)//&
+                        " is connected using mesh with lbound, ubound = ",&
+                        fldlist(n)%ungridded_lbound,fldlist(n)%ungridded_ubound
+                   call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
                 else
                    field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   write(msg, '(a,i4,a,i4)') trim(subname)//trim(tag)//" Field = "//trim(stdname)//&
+                        " is connected using mesh without ungridded dimension"
+                   call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
                 end if
              else if (present(grid)) then
                 call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected using grid", &
@@ -1812,7 +1809,7 @@ contains
 
     call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    
     call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
   end subroutine State_GetFldPtr_2d
