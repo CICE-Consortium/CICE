@@ -818,14 +818,8 @@ contains
     ! Prescribed ice initialization
     !-----------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call ice_prescribed_init(clock, Emesh, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) compid  ! convert from string to integer
-    else
-       compid = 0
-    end if
-    call ice_prescribed_init(lmpicom, compid, gindex_ice)
 
     !-----------------------------------------------------------------
     ! Advertise fields
