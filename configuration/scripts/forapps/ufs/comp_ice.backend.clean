@@ -16,6 +16,8 @@ else if (${MACHINE_ID} =~ hera*) then
   setenv ARCH hera_intel
 else if (${MACHINE_ID} =~ wcoss*) then
   setenv ARCH wcoss_dell_p3_intel
+else if (${MACHINE_ID} =~ stampede*) then
+  setenv ARCH stampede_intel
 else
   echo "CICE6 ${0}: ERROR in ARCH setup, ${hname}"
   exit -2
