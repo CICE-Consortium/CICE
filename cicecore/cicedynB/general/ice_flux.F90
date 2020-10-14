@@ -654,9 +654,7 @@
       enddo
       enddo
 
-#ifndef CICE_IN_NEMO
       sst   (:,:,:) = Tf(:,:,:)       ! sea surface temp (C)
-#endif
       qdp   (:,:,:) = c0              ! deep ocean heat flux (W/m^2)
       hmix  (:,:,:) = c20             ! ocean mixed layer depth (m)
       hwater(:,:,:) = bathymetry(:,:,:) ! ocean water depth (m)
