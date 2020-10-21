@@ -575,7 +575,11 @@
       nprocsX,             &! num of procs in x for global domain
       nprocsY,             &! num of procs in y for global domain
       numBlocksXPerProc,     &! num of blocks per processor in x
-      numBlocksYPerProc       ! num of blocks per processor in y
+      numBlocksYPerProc,     &! num of blocks per processor in y
+      numBlocksPerProc        ! required number of blocks per processor
+
+   character(len=char_len) :: &
+      numBlocksPerProc_str    ! required number of blocks per processor (as string)
 
    character(len=*),parameter :: subname='(create_distrb_cart)'
 
@@ -627,6 +631,14 @@
 
    numBlocksXPerProc = (nblocks_x-1)/nprocsX + 1
    numBlocksYPerProc = (nblocks_y-1)/nprocsY + 1
+
+   ! Check if max_blocks is too small
+   numBlocksPerProc = numBlocksXPerProc * numBlocksYPerProc
+   if (numBlocksPerProc > max_blocks) then
+      write(numBlocksPerProc_str, '(i2)') numBlocksPerProc
+      call abort_ice(subname//'ERROR: max_blocks too small (need at least '//trim(numBlocksPerProc_str)//')')
+      return
+   endif
 
    do j=1,nprocsY
    do i=1,nprocsX
@@ -996,6 +1008,10 @@
 
       if (pid > 0) then
          procTmp(pid) = procTmp(pid) + 1
+         if (procTmp(pid) > max_blocks) then
+            call abort_ice(subname//'ERROR: max_blocks too small')
+            return
+         endif
          newDistrb%blockLocalID (n) = procTmp(pid)
          newDistrb%blockIndex(pid,procTmp(pid)) = n
       else
@@ -2304,6 +2320,10 @@
 
       if(pid>0) then
         proc_tmp(pid) = proc_tmp(pid) + 1
+        if (proc_tmp(pid) > max_blocks) then
+            call abort_ice(subname//'ERROR: max_blocks too small')
+            return
+         endif
         dist%blockLocalID(n) = proc_tmp(pid)
         dist%blockIndex(pid,proc_tmp(pid)) = n
       else
