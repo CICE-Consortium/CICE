@@ -192,10 +192,8 @@
    call broadcast_scalar(add_mpi_barriers,  master_task)
    if (my_task == master_task) then
      if (max_blocks < 1) then
-       max_blocks=int(                                        &
-               ( (dble(nx_global-1)/dble(block_size_x + 1)) * &
-                 (dble(ny_global-1)/dble(block_size_y + 1)) ) & 
-                 / dble(nprocs))
+       max_blocks=( ((nx_global-1)/block_size_x + 1) *         &
+                    ((ny_global-1)/block_size_y + 1) ) / nprocs
        max_blocks=max(1,max_blocks)
        write(nu_diag,'(/,a52,i6,/)') &
          '(ice_domain): max_block < 1: max_block estimated to ',max_blocks

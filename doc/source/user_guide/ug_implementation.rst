@@ -163,7 +163,7 @@ information to the log file, and if the block size or max blocks is
 inconsistent with the task and thread size, the model will abort.  The 
 code will also print a warning if the maximum number of blocks is too large. 
 Although this is not fatal, it does use extra memory.  If ``max_blocks`` is
-set to -1, the code will compute a ``max_blocks`` on the fly.
+set to -1, the code will compute a tentative ``max_blocks`` on the fly.
 
 A loop at the end of routine *create\_blocks* in module
 **ice\_blocks.F90** will print the locations for all of the blocks on
