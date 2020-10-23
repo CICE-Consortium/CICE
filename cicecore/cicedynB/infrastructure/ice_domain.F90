@@ -21,7 +21,7 @@
        add_mpi_barriers
    use ice_broadcast, only: broadcast_scalar, broadcast_array
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
-       nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block
+       nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block, debug_blocks
    use ice_distribution, only: distrb
    use ice_boundary, only: ice_halo
    use ice_exit, only: abort_ice
@@ -134,7 +134,8 @@
                          maskhalo_dyn,      &
                          maskhalo_remap,    &
                          maskhalo_bound,    &
-                         add_mpi_barriers
+                         add_mpi_barriers,  &
+                         debug_blocks
 
 !----------------------------------------------------------------------
 !
@@ -153,6 +154,7 @@
    maskhalo_remap    = .false.     ! if true, use masked halos for transport
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
    add_mpi_barriers  = .false.     ! if true, throttle communication
+   debug_blocks      = .false.     ! if true, print verbose block information
    max_blocks        = -1           ! max number of blocks per processor
    block_size_x      = -1          ! size of block in first horiz dimension
    block_size_y      = -1          ! size of block in second horiz dimension
@@ -190,6 +192,7 @@
    call broadcast_scalar(maskhalo_remap,    master_task)
    call broadcast_scalar(maskhalo_bound,    master_task)
    call broadcast_scalar(add_mpi_barriers,  master_task)
+   call broadcast_scalar(debug_blocks,      master_task)
    if (my_task == master_task) then
      if (max_blocks < 1) then
        max_blocks=( ((nx_global-1)/block_size_x + 1) *         &
@@ -266,6 +269,7 @@
      write(nu_diag,'(a,l6)')  '  maskhalo_remap        = ', maskhalo_remap
      write(nu_diag,'(a,l6)')  '  maskhalo_bound        = ', maskhalo_bound
      write(nu_diag,'(a,l6)')  '  add_mpi_barriers      = ', add_mpi_barriers
+     write(nu_diag,'(a,l6)')  '  debug_blocks          = ', debug_blocks
      write(nu_diag,'(a,2i6)') '  block_size_x,_y       = ', block_size_x, block_size_y
      write(nu_diag,'(a,i6)')  '  max_blocks            = ', max_blocks
      write(nu_diag,'(a,i6,/)')'  Number of ghost cells = ', nghost

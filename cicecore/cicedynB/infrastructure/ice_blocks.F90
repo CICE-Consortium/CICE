@@ -83,6 +83,9 @@
       nblocks_x        ,&! tot num blocks in i direction
       nblocks_y          ! tot num blocks in j direction
 
+   logical (kind=log_kind), public :: &
+      debug_blocks       ! print verbose block information
+
 !-----------------------------------------------------------------------
 !
 !  module private data
@@ -132,8 +135,6 @@ contains
       i, j, n              ,&! loop indices
       iblock, jblock       ,&! block loop indices
       is, ie, js, je         ! temp start, end indices
-
-   logical (log_kind) :: dbug
 
    character(len=*), parameter :: subname = '(create_blocks)'
 
@@ -311,9 +312,7 @@ contains
       end do
    end do
 
-!   dbug = .true.
-   dbug = .false.
-   if (dbug) then
+   if (debug_blocks) then
       if (my_task == master_task) then
       write(nu_diag,*) 'block i,j locations'
       do n = 1, nblocks_tot

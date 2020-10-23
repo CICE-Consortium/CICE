@@ -258,6 +258,7 @@ domain_nml
    "``add_mpi_barriers``", "logical", "throttle communication", "``.false.``"
    "``block_size_x``", "integer", "block size in x direction", "-1"
    "``block_size_y``", "integer", "block size in y direction", "-1"
+   "``debug_blocks``", "logical", "add additional print statements to debug the block decomposition", "``.false.``"
    "``distribution_type``", "``cartesian``", "2D cartesian block distribution method", "``cartesian``"
    "", "``rake``", "redistribute blocks among neighbors", ""
    "", "``roundrobin``", "1 block per proc until blocks are used", ""

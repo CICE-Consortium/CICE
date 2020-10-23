@@ -12,7 +12,7 @@
    use ice_kinds_mod
    use ice_domain_size, only: max_blocks
    use ice_communicate, only: my_task, master_task, create_communicator
-   use ice_blocks, only: nblocks_x, nblocks_y, nblocks_tot
+   use ice_blocks, only: nblocks_x, nblocks_y, nblocks_tot, debug_blocks
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_diag
 
@@ -154,8 +154,6 @@
    integer (int_kind) :: &
       n, bcount              ! dummy counters
 
-   logical (log_kind) :: dbug
-
    character(len=*),parameter :: subname='(create_local_block_ids)'
 
 !-----------------------------------------------------------------------
@@ -178,14 +176,12 @@
 !
 !-----------------------------------------------------------------------
 
-!   dbug = .true.
-   dbug = .false.
    if (bcount > 0) then
       do n=1,size(distribution%blockLocation)
          if (distribution%blockLocation(n) == my_task+1) then
             block_ids(distribution%blockLocalID(n)) = n
 
-            if (dbug) then
+            if (debug_blocks) then
             write(nu_diag,*) subname,'block id, proc, local_block: ', &
                              block_ids(distribution%blockLocalID(n)), &
                              distribution%blockLocation(n), &
