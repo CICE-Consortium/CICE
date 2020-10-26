@@ -5067,7 +5067,7 @@
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
       use ice_grid, only: uvm, to_ugrid
-      use ice_state, only: aice_init
+      use ice_state, only: aice
 
       ! local parameters
 
@@ -5082,7 +5082,7 @@
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
 
-      call to_ugrid(aice_init, aiu)
+      call to_ugrid(aice, aiu)
 
       period = c4*secday
 
