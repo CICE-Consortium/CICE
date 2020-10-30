@@ -5059,22 +5059,30 @@
       subroutine box2001_data
 
 ! wind and current fields as in Hunke, JCP 2001
+! these are defined at the u point
 ! authors: Elizabeth Hunke, LANL
 
       use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
-      use ice_grid, only: uvm
+      use ice_grid, only: uvm, to_ugrid
+      use ice_state, only: aice
 
       ! local parameters
 
       integer (kind=int_kind) :: &
          iblk, i,j           ! loop indices
 
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         aiu                 ! ice fraction on u-grid 
+
       real (kind=dbl_kind) :: &
           secday, pi , puny, period, pi2, tau
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
+
+      call to_ugrid(aice, aiu)
 
       period = c4*secday
 
@@ -5106,8 +5114,8 @@
          ! wind stress
          wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
          tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-         strax(i,j,iblk) = tau * uatm(i,j,iblk)
-         stray(i,j,iblk) = tau * vatm(i,j,iblk)
+         strax(i,j,iblk) = aiu(i,j,iblk) * tau * uatm(i,j,iblk)
+         stray(i,j,iblk) = aiu(i,j,iblk) * tau * vatm(i,j,iblk)
 
 ! initialization test
        ! Diagonal wind vectors 1

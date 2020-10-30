@@ -1,4 +1,3 @@
-!  SVN:$Id: ice_fileunits.F90 1228 2017-05-23 21:33:34Z tcraig $
 !=======================================================================
 !
 !  This module contains an I/O unit manager for tracking, assigning

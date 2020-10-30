@@ -11,7 +11,7 @@ CFLAGS     := -c -O2 -fp-model precise
 
 FIXEDFLAGS := -132
 FREEFLAGS  := -FR
-FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceback
+FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceback -no-wrap-margin
 #-xHost
 FFLAGS_NOOPT:= -O0
 
