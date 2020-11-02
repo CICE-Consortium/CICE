@@ -18,6 +18,7 @@ SFC   := ftn
 
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
 CFLAGS     := -c -O2 -fp-model precise
+
 # Additional flags
 FIXEDFLAGS := -132
 FREEFLAGS  := -FR
@@ -45,6 +46,11 @@ LDFLAGS    := $(FFLAGS) -v
 # Linker flags
 
 # Additional flags
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -qopenmp 
