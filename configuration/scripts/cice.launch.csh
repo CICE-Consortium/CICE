@@ -130,7 +130,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ daley* || ${ICE_MACHINE} =~ banting*) then
+else if (${ICE_MACHINE} =~ daley* || ${ICE_MACHINE} =~ banting* || ${ICE_MACHINE} =~ freya*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE

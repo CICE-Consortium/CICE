@@ -185,7 +185,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
-else if (${ICE_MACHINE} =~ daley* || ${ICE_MACHINE} =~ banting*) then
+else if (${ICE_MACHINE} =~ daley* || ${ICE_MACHINE} =~ banting* || ${ICE_MACHINE} =~ freya* ) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -j oe
