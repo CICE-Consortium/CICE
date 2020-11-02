@@ -103,8 +103,6 @@
 
       call input_data           ! namelist variables
 
-      if (trim(runid) == 'bering') call check_finished_file
-
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
       call alloc_grid           ! allocate grid
@@ -458,36 +456,6 @@
          file=__FILE__, line=__LINE__)
 
       end subroutine init_restart
-
-!=======================================================================
-!
-! Check whether a file indicating that the previous run finished cleanly
-! If so, then do not continue the current restart.  This is needed only 
-! for runs on machine 'bering' (set using runid = 'bering').
-!
-!  author: Adrian Turner, LANL
-
-      subroutine check_finished_file()
-
-      use ice_communicate, only: my_task, master_task
-      use ice_restart_shared, only: restart_dir
-
-      character(len=char_len_long) :: filename
-      logical :: lexist = .false.
-
-      character(len=*),parameter :: subname = '(check_finished_file)'
-
-      if (my_task == master_task) then
-           
-         filename = trim(restart_dir)//"finished"
-         inquire(file=filename, exist=lexist)
-         if (lexist) then
-            call abort_ice(subname//"ERROR: Found already finished file - quitting")
-         end if
-
-      endif
-
-      end subroutine check_finished_file
 
 !=======================================================================
 
