@@ -349,6 +349,8 @@ thermo_nml
    "``sw_dtemp``", "real", "temperature difference from melt to start redistributing", "0.02"
    "", "", "", ""
 
+.. _dynamics_nml:
+
 dynamics_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -369,10 +371,13 @@ dynamics_nml
    "", "``zero``", "zero coriolis", ""
    "``Cstar``", "real", "constant in Hibler strength formula", "20"
    "``e_ratio``", "real", "EVP ellipse aspect ratio", "2.0"
+   "``dim_fgmres``", "integer", "maximum number of Arnoldi iterations for FGMRES solver", "50"
+   "``dim_pgmres``", "integer", "maximum number of Arnoldi iterations for PGMRES preconditioner", "5"
    "``kdyn``", "``-1``", "dynamics algorithm OFF", "1"
    "", "``0``", "dynamics OFF", ""
    "", "``1``", "EVP dynamics", ""
    "", "``2``", "EAP dynamics", ""
+   "", "``3``", "VP dynamics", ""
    "``kevp_kernel``", "``0``", "standard 2D EVP memory parallel solver", "0"
    "", "``2``", "1D shared memory solver (not fully validated)", ""
    "``kstrength``", "``0``", "ice strength formulation :cite:`Hibler79`", "1"
@@ -388,9 +393,23 @@ dynamics_nml
    "``Ktens``", "real", "Tensile strength factor (see :cite:`Konig10`)", "0.0"
    "``k1``", "real", "1st free parameter for landfast parameterization", "8.0"
    "``k2``", "real", "2nd free parameter (N/m\ :math:`^3`) for landfast parameterization", "15.0"
+   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "1000"
+   "``maxits_fgmres``", "integer", "maximum number of restarts for FGMRES solver", "1"
+   "``maxits_pgmres``", "integer", "maximum number of restarts for PGMRES preconditioner", "1"
+   "``monitor_nonlin``", "logical", "write velocity norm at each nonlinear iteration", "``.false.``"
+   "``monitor_fgmres``", "logical", "write velocity norm at each FGMRES iteration", "``.false.``"
+   "``monitor_pgmres``", "logical", "write velocity norm at each PGMRES iteration", "``.false.``"
    "``mu_rdg``", "real", "e-folding scale of ridged ice for ``krdg_partic`` = 1 in m^0.5", "3.0"
    "``ndte``", "integer", "number of EVP subcycles", "120"
+   "``ortho_type``", "``mgs``", "Use modified Gram-Shchmidt in FGMRES solver", "``mgs``"
+   "", "``cgs``", "Use classical Gram-Shchmidt in FGMRES solver", ""
+   "``precond``", "``pgmres``", "Use GMRES as preconditioner for FGMRES solver", "``pgmres``"
+   "", "``diag``", "Use Jacobi preconditioner for the FGMRES solver", ""
+   "", "``ident``", "Don't use a preconditioner for the FGMRES solver", ""
    "``Pstar``", "real", "constant in Hibler strength formula (N/m\ :math:`^2`)", "2.75e4"
+   "``reltol_nonlin``", "real", "relative tolerance for nonlinear solver", "1e-8"
+   "``reltol_fgmres``", "real", "relative tolerance for FGMRES solver", "1e-2"
+   "``reltol_pgmres``", "real", "relative tolerance for PGMRES preconditioner", "1e-6"
    "``revised_evp``", "logical", "use revised EVP formulation", "``.false.``"
    "``ssh_stress``", "``coupled``", "computed from coupled sea surface height gradient", "``geostrophic``"
    "", "``geostropic``", "computed from ocean velocity", ""

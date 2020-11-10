@@ -100,6 +100,11 @@
                                 basalstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, ktransport, brlx, arlx
+      use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
+                            maxits_pgmres, monitor_nonlin, monitor_fgmres, &
+                            monitor_pgmres, reltol_nonlin, reltol_fgmres, reltol_pgmres, &
+                            algo_nonlin, fpfunc_andacc, dim_andacc, reltol_andacc, &
+                            damping_andacc, start_andacc, use_mean_vrel, ortho_type
       use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
 #ifdef CESMCOUPLED
@@ -194,7 +199,13 @@
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
         e_ratio,        Ktens,          Cf,             basalstress,    &
-        k1,             k2,             alphab,         threshold_hw,   &
+        k1,             maxits_nonlin,  precond,        dim_fgmres,     &
+        dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
+        monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
+        reltol_pgmres,  algo_nonlin,    dim_andacc,     reltol_andacc,  &
+        damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
+        ortho_type,                                                     &
+        k2,             alphab,         threshold_hw,                   &
         Pstar,          Cstar
 
       namelist /shortwave_nml/ &
@@ -322,7 +333,27 @@
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
-      e_ratio = 2.0_dbl_kind ! EVP ellipse aspect ratio
+      e_ratio = 2.0_dbl_kind ! VP ellipse aspect ratio
+      maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
+      precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
+      dim_fgmres = 50        ! size of fgmres Krylov subspace
+      dim_pgmres = 5         ! size of pgmres Krylov subspace
+      maxits_fgmres = 50     ! max nb of iteration for fgmres
+      maxits_pgmres = 5      ! max nb of iteration for pgmres
+      monitor_nonlin = .false. ! print nonlinear residual norm
+      monitor_fgmres = .false. ! print fgmres residual norm
+      monitor_pgmres = .false. ! print pgmres residual norm
+      ortho_type = 'mgs'     ! orthogonalization procedure 'cgs' or 'mgs'
+      reltol_nonlin = 1e-8_dbl_kind ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
+      reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
+      reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
+      algo_nonlin = 'picard'        ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
+      fpfunc_andacc = 1      ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
+      dim_andacc = 5         ! size of Anderson minimization matrix (number of saved previous residuals)
+      reltol_andacc = 1e-6_dbl_kind  ! relative tolerance for Anderson acceleration
+      damping_andacc = 0     ! damping factor for Anderson acceleration
+      start_andacc = 0       ! acceleration delay factor (acceleration starts at this iteration)
+      use_mean_vrel = .true. ! use mean of previous 2 iterates to compute vrel
       advection  = 'remap'   ! incremental remapping transport scheme
       conserv_check = .false.! tracer conservation check
       shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
@@ -628,6 +659,26 @@
       call broadcast_scalar(ssh_stress,         master_task)
       call broadcast_scalar(kridge,             master_task)
       call broadcast_scalar(ktransport,         master_task)
+      call broadcast_scalar(maxits_nonlin,      master_task)
+      call broadcast_scalar(precond,            master_task)
+      call broadcast_scalar(dim_fgmres,         master_task)
+      call broadcast_scalar(dim_pgmres,         master_task)
+      call broadcast_scalar(maxits_fgmres,      master_task)
+      call broadcast_scalar(maxits_pgmres,      master_task)
+      call broadcast_scalar(monitor_nonlin,     master_task)
+      call broadcast_scalar(monitor_fgmres,     master_task)
+      call broadcast_scalar(monitor_pgmres,     master_task)
+      call broadcast_scalar(ortho_type,         master_task)
+      call broadcast_scalar(reltol_nonlin,      master_task)
+      call broadcast_scalar(reltol_fgmres,      master_task)
+      call broadcast_scalar(reltol_pgmres,      master_task)
+      call broadcast_scalar(algo_nonlin,        master_task)
+      call broadcast_scalar(fpfunc_andacc,      master_task)
+      call broadcast_scalar(dim_andacc,         master_task)
+      call broadcast_scalar(reltol_andacc,      master_task)
+      call broadcast_scalar(damping_andacc,     master_task)
+      call broadcast_scalar(start_andacc,       master_task)
+      call broadcast_scalar(use_mean_vrel,      master_task)
       call broadcast_scalar(conduct,            master_task)
       call broadcast_scalar(R_ice,              master_task)
       call broadcast_scalar(R_pnd,              master_task)
@@ -831,7 +882,7 @@
          revised_evp = .false.
       endif
 
-      if (kdyn > 2) then
+      if (kdyn > 3) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: kdyn out of range'
          endif
@@ -1037,6 +1088,38 @@
          endif
       endif
 
+      ! Implicit solver input validation
+      if (kdyn == 3) then
+         if (.not. (trim(algo_nonlin) == 'picard' .or. trim(algo_nonlin) == 'anderson')) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: unknown algo_nonlin: '//algo_nonlin
+               write(nu_diag,*) subname//' ERROR:   allowed values: ''picard'', ''anderson'''
+            endif
+            abort_list = trim(abort_list)//":60"
+         endif
+         
+         if (trim(algo_nonlin) == 'picard') then
+            ! Picard solver is implemented in the Anderson solver; reset number of saved residuals to zero
+            dim_andacc = 0
+         endif
+         
+         if (.not. (trim(precond) == 'ident' .or. trim(precond) == 'diag' .or. trim(precond) == 'pgmres')) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: unknown precond: '//precond
+               write(nu_diag,*) subname//' ERROR:   allowed values: ''ident'', ''diag'', ''pgmres'''
+            endif
+            abort_list = trim(abort_list)//":61"
+         endif
+         
+         if (.not. (trim(ortho_type) == 'cgs' .or. trim(ortho_type) == 'mgs')) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: unknown ortho_type: '//ortho_type
+               write(nu_diag,*) subname//' ERROR:   allowed values: ''cgs'', ''mgs'''
+            endif
+            abort_list = trim(abort_list)//":62"
+         endif
+      endif
+
       ice_IOUnitsMinUnit = numin
       ice_IOUnitsMaxUnit = numax
 
@@ -1139,28 +1222,35 @@
          write(nu_diag,*) '--------------------------------'
          if (kdyn == 1) then
             tmpstr2 = ' elastic-viscous-plastic dynamics'
-            write(nu_diag,*)    'yield_curve      = ', trim(yield_curve)
-            if (trim(yield_curve) == 'ellipse') &
-            write(nu_diag,1007) ' e_ratio          = ', e_ratio, ' aspect ratio of ellipse'
          elseif (kdyn == 2) then
             tmpstr2 = ' elastic-anisotropic-plastic dynamics'
+         elseif (kdyn == 3) then
+            tmpstr2 = ' viscous-plastic dynamics'
          elseif (kdyn < 1) then
             tmpstr2 = ' dynamics disabled'
          endif
          write(nu_diag,1022) ' kdyn             = ', kdyn,trim(tmpstr2)
          if (kdyn >= 1) then
-            if (revised_evp) then
-               tmpstr2 = ' revised EVP formulation used'
-            else
-               tmpstr2 = ' revised EVP formulation not used'
-            endif
-            write(nu_diag,1012) ' revised_evp      = ', revised_evp,trim(tmpstr2)
-            write(nu_diag,1022) ' kevp_kernel      = ', kevp_kernel,' EVP solver'
+            if (kdyn == 1 .or. kdyn == 2) then
+               if (revised_evp) then
+                  tmpstr2 = ' revised EVP formulation used'
+                  write(nu_diag,1007) ' arlx             = ', arlx, ' stress equation factor alpha'
+                  write(nu_diag,1007) ' brlx             = ', brlx, ' stress equation factor beta'
+               else
+                  tmpstr2 = ' revised EVP formulation not used'
+               endif
+               write(nu_diag,1012) ' revised_evp      = ', revised_evp,trim(tmpstr2)
+               write(nu_diag,1022) ' kevp_kernel      = ', kevp_kernel,' EVP solver'
 
-            write(nu_diag,1022) ' ndtd             = ', ndtd, ' number of dynamics/advection/ridging/steps per thermo timestep'
-            write(nu_diag,1022) ' ndte             = ', ndte, ' number of EVP or EAP subcycles'
-            write(nu_diag,1007) ' arlx             = ', arlx, ' stress equation factor alpha'
-            write(nu_diag,1007) ' brlx             = ', brlx, ' stress equation factor beta'
+               write(nu_diag,1022) ' ndtd             = ', ndtd, ' number of dynamics/advection/ridging/steps per thermo timestep'
+               write(nu_diag,1022) ' ndte             = ', ndte, ' number of EVP or EAP subcycles'
+           endif
+
+           if (kdyn == 1 .or. kdyn == 3) then
+              write(nu_diag,*)    'yield_curve      = ', trim(yield_curve)
+              if (trim(yield_curve) == 'ellipse') &
+              write(nu_diag,1007) ' e_ratio          = ', e_ratio, ' aspect ratio of ellipse'
+           endif
 
             if (trim(coriolis) == 'latitude') then
                tmpstr2 = ': latitude-dependent Coriolis parameter'
@@ -1524,6 +1614,31 @@
          write(nu_diag,1010) ' orca_halogrid             = ', &
                                orca_halogrid
 
+         if (kdyn == 3) then
+            write(nu_diag,1020) ' maxits_nonlin             = ', maxits_nonlin
+            write(nu_diag,1030) ' precond                   = ', precond
+            write(nu_diag,1020) ' dim_fgmres                = ', dim_fgmres
+            write(nu_diag,1020) ' dim_pgmres                = ', dim_pgmres
+            write(nu_diag,1020) ' maxits_fgmres             = ', maxits_fgmres
+            write(nu_diag,1020) ' maxits_pgmres             = ', maxits_pgmres
+            write(nu_diag,1010) ' monitor_nonlin            = ', monitor_nonlin
+            write(nu_diag,1010) ' monitor_fgmres            = ', monitor_fgmres
+            write(nu_diag,1010) ' monitor_pgmres            = ', monitor_pgmres
+            write(nu_diag,1030) ' ortho_type                = ', ortho_type
+            write(nu_diag,1008) ' reltol_nonlin             = ', reltol_nonlin
+            write(nu_diag,1008) ' reltol_fgmres             = ', reltol_fgmres
+            write(nu_diag,1008) ' reltol_pgmres             = ', reltol_pgmres
+            write(nu_diag,1030) ' algo_nonlin               = ', algo_nonlin
+            write(nu_diag,1010) ' use_mean_vrel             = ', use_mean_vrel
+            if (algo_nonlin == 'anderson') then
+               write(nu_diag,1020) ' fpfunc_andacc          = ', fpfunc_andacc
+               write(nu_diag,1020) ' dim_andacc             = ', dim_andacc
+               write(nu_diag,1008) ' reltol_andacc          = ', reltol_andacc
+               write(nu_diag,1005) ' damping_andacc         = ', damping_andacc
+               write(nu_diag,1020) ' start_andacc           = ', start_andacc
+            endif
+         endif
+
          write(nu_diag,1010) ' conserv_check             = ', conserv_check
 
          write(nu_diag,1020) ' fyear_init                = ', &
@@ -1675,6 +1790,7 @@
  1005    format (a30,2x,f12.6) ! float
  1006    format (a20,2x,f10.6,a)
  1007    format (a20,2x,f6.2,a)
+ 1008    format (a30,2x,d13.6)  ! float, exponential notation
  1009    format (a20,2x,d13.6,a)  ! float, exponential notation
  1010    format (a30,2x,l6)    ! logical
  1012    format (a20,2x,l3,1x,a)  ! logical

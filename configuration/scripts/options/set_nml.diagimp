@@ -1,0 +1,3 @@
+monitor_nonlin  = .true.
+monitor_fgmres  = .true.
+monitor_pgmres  = .true.
