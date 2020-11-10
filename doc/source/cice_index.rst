@@ -336,7 +336,7 @@ either Celsius or Kelvin units).
    "kalg", ":math:`\bullet` absorption coefficient for algae", ""
    "kappav", "visible extinction coefficient in ice, wavelength\ :math:`<`\ 700nm", "1.4 m\ :math:`^{-1}`"
    "kcatbound", ":math:`\bullet` category boundary formula", ""
-   "kdyn", ":math:`\bullet` type of dynamics (1 = EVP, 0 = off)", "1"
+   "kdyn", ":math:`\bullet` type of dynamics (1 = EVP, 2 = EAP, 3 = VP, 0,-1 = off)", "1"
    "kg_to_g", "kg to g conversion factor", "1000."
    "kice", "thermal conductivity of fresh ice (:cite:`Bitz99`)", "2.03 W/m/deg"
    "kitd", ":math:`\bullet` type of itd conversions (0 = delta function, 1 = linear remap)", "1"

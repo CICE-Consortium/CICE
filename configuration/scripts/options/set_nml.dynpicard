@@ -1,0 +1,3 @@
+kdyn            = 3
+algo_nonlin     = 'picard'
+use_mean_vrel   = .true.

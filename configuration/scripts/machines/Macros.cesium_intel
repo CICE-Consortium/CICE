@@ -11,7 +11,7 @@ CFLAGS     := -c -O2 -fp-model precise
 
 FIXEDFLAGS := -132
 FREEFLAGS  := -FR
-FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceback
+FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceback -no-wrap-margin
 #-xHost
 FFLAGS_NOOPT:= -O0
 
@@ -50,7 +50,7 @@ LIB_PNETCDF := $(PNETCDF_PATH)/lib
 LIB_MPI := $(IMPILIBDIR)
 
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf -L$(LIB_PNETCDF) -lpnetcdf -lgptl
-SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf
+SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf  -llapack -lblas
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -openmp 

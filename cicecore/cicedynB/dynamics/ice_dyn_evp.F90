@@ -94,7 +94,7 @@
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
-      use ice_dyn_shared, only: kevp_kernel
+      use ice_dyn_shared, only: kevp_kernel, stack_velocity_field, unstack_velocity_field
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -297,10 +297,6 @@
                                       strength = strength(i,j,  iblk) )
          enddo  ! ij
 
-         ! load velocity into array for boundary updates
-         fld2(:,:,1,iblk) = uvel(:,:,iblk)
-         fld2(:,:,2,iblk) = vvel(:,:,iblk)
-
       enddo  ! iblk
       !$TCXOMP END PARALLEL DO
 
@@ -312,17 +308,11 @@
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
       ! velocities may have changed in dyn_prep2
+      call stack_velocity_field(uvel, vvel, fld2)
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
+      call unstack_velocity_field(fld2, uvel, vvel)
       call ice_timer_stop(timer_bound)
-
-      ! unload
-      !$OMP PARALLEL DO PRIVATE(iblk)
-      do iblk = 1, nblocks
-         uvel(:,:,iblk) = fld2(:,:,1,iblk)
-         vvel(:,:,iblk) = fld2(:,:,2,iblk)
-      enddo
-      !$OMP END PARALLEL DO
 
       if (maskhalo_dyn) then
          call ice_timer_start(timer_bound)
@@ -442,13 +432,10 @@
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
                         uvel     (:,:,iblk), vvel    (:,:,iblk), &
                         Tbu      (:,:,iblk))
-
-            ! load velocity into array for boundary updates
-            fld2(:,:,1,iblk) = uvel(:,:,iblk)
-            fld2(:,:,2,iblk) = vvel(:,:,iblk)
          enddo
          !$TCXOMP END PARALLEL DO
 
+         call stack_velocity_field(uvel, vvel, fld2)
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
             call ice_HaloUpdate (fld2,               halo_info_mask, &
@@ -458,14 +445,7 @@
                                  field_loc_NEcorner, field_type_vector)
          endif
          call ice_timer_stop(timer_bound)
-
-         ! unload
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            uvel(:,:,iblk) = fld2(:,:,1,iblk)
-            vvel(:,:,iblk) = fld2(:,:,2,iblk)
-         enddo
-         !$OMP END PARALLEL DO
+         call unstack_velocity_field(fld2, uvel, vvel)
          
       enddo                     ! subcycling
       endif  ! kevp_kernel
@@ -599,6 +579,8 @@
                          rdg_conv,   rdg_shear,  & 
                          str )
 
+      use ice_dyn_shared, only: strain_rates, deformations
+
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          ksub              , & ! subcycling step
@@ -676,58 +658,20 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
-         divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
-         divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
-         divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                   +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
-         tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                   +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
-         tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                   +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
-         tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                   +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
-
-         ! shearing strain rate  =  e_12
-         shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
-                 -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
-         shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
-                 -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
-         shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
-                 -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
-         shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
-                 -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
-         
-         ! Delta (in the denominator of zeta, eta)
-         Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-         Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-         Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
-         Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
-
-      !-----------------------------------------------------------------
-      ! on last subcycle, save quantities for mechanical redistribution
-      !-----------------------------------------------------------------
-         if (ksub == ndte) then
-            divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
-            tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(i,j)
-            rdg_conv(i,j)  = -min(divu(i,j),c0)
-            rdg_shear(i,j) = p5*(tmp-abs(divu(i,j))) 
-
-            ! diagnostic only
-            ! shear = sqrt(tension**2 + shearing**2)
-            shear(i,j) = p25*tarear(i,j)*sqrt( &
-                 (tensionne + tensionnw + tensionse + tensionsw)**2 &
-                +  (shearne +   shearnw +   shearse +   shearsw)**2)
-
-         endif
+         call strain_rates (nx_block,   ny_block,   &
+                            i,          j,          &
+                            uvel,       vvel,       &
+                            dxt,        dyt,        &
+                            cxp,        cyp,        &
+                            cxm,        cym,        &
+                            divune,     divunw,     &
+                            divuse,     divusw,     &
+                            tensionne,  tensionnw,  &
+                            tensionse,  tensionsw,  &
+                            shearne,    shearnw,    &
+                            shearse,    shearsw,    &
+                            Deltane,    Deltanw,    &
+                            Deltase,    Deltasw     )
 
       !-----------------------------------------------------------------
       ! strength/Delta                   ! kg/s
@@ -901,6 +845,23 @@
               - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
 
       enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! on last subcycle, save quantities for mechanical redistribution
+      !-----------------------------------------------------------------
+      if (ksub == ndte) then
+         call deformations (nx_block  , ny_block  , &
+                            icellt    ,             &
+                            indxti    , indxtj    , &
+                            uvel      , vvel      , &
+                            dxt       , dyt       , &
+                            cxp       , cyp       , &
+                            cxm       , cym       , &
+                            tarear    ,             &
+                            shear     , divu      , &
+                            rdg_conv  , rdg_shear )
+
+      endif
 
       end subroutine stress
 

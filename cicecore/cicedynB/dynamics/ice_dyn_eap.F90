@@ -122,7 +122,8 @@
       use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
           denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
-          basal_stress_coeff, basalstress
+          basal_stress_coeff, basalstress, &
+          stack_velocity_field, unstack_velocity_field
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
@@ -354,11 +355,6 @@
                                       vicen    = vicen   (i,j,:,iblk), & 
                                       strength = strength(i,j,  iblk) )
          enddo  ! ij
-
-         ! load velocity into array for boundary updates
-         fld2(:,:,1,iblk) = uvel(:,:,iblk)
-         fld2(:,:,2,iblk) = vvel(:,:,iblk)
-
       enddo  ! iblk
       !$TCXOMP END PARALLEL DO
 
@@ -370,17 +366,11 @@
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
       ! velocities may have changed in dyn_prep2
+      call stack_velocity_field(uvel, vvel, fld2)
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
+      call unstack_velocity_field(fld2, uvel, vvel)
       call ice_timer_stop(timer_bound)
-
-      ! unload
-      !$OMP PARALLEL DO PRIVATE(iblk)
-      do iblk = 1, nblocks
-         uvel(:,:,iblk) = fld2(:,:,1,iblk)
-         vvel(:,:,iblk) = fld2(:,:,2,iblk)
-      enddo
-      !$OMP END PARALLEL DO
 
       if (maskhalo_dyn) then
          call ice_timer_start(timer_bound)
@@ -472,10 +462,6 @@
                         uvel     (:,:,iblk), vvel    (:,:,iblk), &
                         Tbu      (:,:,iblk))
 
-            ! load velocity into array for boundary updates
-            fld2(:,:,1,iblk) = uvel(:,:,iblk)
-            fld2(:,:,2,iblk) = vvel(:,:,iblk)
-
       !-----------------------------------------------------------------
       ! evolution of structure tensor A
       !-----------------------------------------------------------------
@@ -501,6 +487,7 @@
          enddo
          !$TCXOMP END PARALLEL DO
 
+         call stack_velocity_field(uvel, vvel, fld2)
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
             call ice_HaloUpdate (fld2,               halo_info_mask, &
@@ -510,14 +497,7 @@
                                  field_loc_NEcorner, field_type_vector)
          endif
          call ice_timer_stop(timer_bound)
-
-         ! unload
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            uvel(:,:,iblk) = fld2(:,:,1,iblk)
-            vvel(:,:,iblk) = fld2(:,:,2,iblk)
-         enddo
-         !$OMP END PARALLEL DO
+         call unstack_velocity_field(fld2, uvel, vvel)
 
       enddo                     ! subcycling
 
@@ -556,16 +536,12 @@
 !=======================================================================
 
 ! Initialize parameters and variables needed for the eap dynamics
-! (based on init_evp)
+! (based on init_dyn)
 
-      subroutine init_eap (dt)
+      subroutine init_eap
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
-      use ice_dyn_shared, only: init_evp
-
-      real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
 
       ! local variables
 
@@ -594,8 +570,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
       phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
-
-      call init_evp (dt)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
@@ -1321,7 +1295,7 @@
          tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
                    +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
 
-         ! shearing strain rate  =  e_12
+         ! shearing strain rate  =  2*e_12
          shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
                  -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
          shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
