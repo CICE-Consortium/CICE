@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 if ( $1 != "" ) then
   echo "running cice.batch.csh (creating ${1})"
@@ -91,8 +91,7 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
-else if (${ICE_MACHINE} =~ koehr*) then
-if (${runlength} > 0) set queue = "standard"
+else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr* || ${ICE_MACHINE} =~ mustang) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q ${queue}
@@ -100,18 +99,7 @@ cat >> ${jobfile} << EOFB
 #PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
 #PBS -l walltime=${batchtime}
 #PBS -j oe
-###PBS -M username@domain.com
-###PBS -m be
-EOFB
-
-else if (${ICE_MACHINE} =~ thunder* ||  ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ test1*) then
-cat >> ${jobfile} << EOFB
-#PBS -N ${shortcase}
-#PBS -q ${queue}
-#PBS -A ${acct}
-#PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=${batchtime}
-#PBS -j oe
+#PBS -W umask=022
 ###PBS -M username@domain.com
 ###PBS -m be
 EOFB
@@ -158,18 +146,6 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
-else if (${ICE_MACHINE} =~ loft*) then
-cat >> ${jobfile} << EOFB
-#PBS -N ${shortcase}
-#PBS -q ${queue}
-#PBS -A ${acct}
-#PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
-#PBS -l walltime=${batchtime}
-#PBS -j oe
-###PBS -M username@domain.com
-###PBS -m be
-EOFB
-
 else if (${ICE_MACHINE} =~ fram*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
@@ -210,6 +186,14 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ daley* || ${ICE_MACHINE} =~ banting*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -j oe
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
+#PBS -l walltime=${batchtime}
+EOFB
+
+else if (${ICE_MACHINE} =~ freya* ) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -j oe
