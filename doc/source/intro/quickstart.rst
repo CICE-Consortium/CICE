@@ -16,6 +16,8 @@ You will probably have to download some inputdata, see the `CICE wiki <https://g
 
 Software requirements are noted in this :ref:`software` section.
 
+Porting information can be found in the :ref:`porting` section and a special porting section for personal computers is in the :ref:`laptop` section.
+
 From your main CICE directory, execute::
 
   ./cice.setup -c ~/mycase1 -g gx3 -m testmachine -s diag1,thread -p 8x1

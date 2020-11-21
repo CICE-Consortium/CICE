@@ -1169,6 +1169,7 @@
          if (trim(grid_type) == 'tripole') then
          write(nu_diag,*)    'grid_type        = ', &
                                trim(grid_type),': user-defined grid with northern hemisphere zipper'
+            tmpstr2 = ' '
             if (trim(ns_boundary_type) == 'tripole') then
                tmpstr2 = '  on U points (nodes)'
             elseif (trim(ns_boundary_type) == 'tripoleT') then
