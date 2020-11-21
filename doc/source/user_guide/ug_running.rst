@@ -840,15 +840,17 @@ Useful aliases
 -------------------
 
 This section provides a list of some potentially useful aliases that leverage the CICE 
-scripts.  These are not required for using CICE.
+scripts.  These are not defined by CICE and are not required for using CICE.  They
+are provided as a sample of the types of things that can be done by users.
 
 The current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from 
 the case directory into the run directory when the model is run.  Users can create aliases 
 leveraging the variables in these files.  Aliases like the following can be established 
 to quickly switch between case and run directories and query or carry out other tasks
-quickly.:
+quickly:
 
 .. code-block:: bash
+
   #!/bin/tcsh
   # From a case or run directory, source the necessary environment files to run CICE
   alias cice_env 'source env.*; source cice.settings'
