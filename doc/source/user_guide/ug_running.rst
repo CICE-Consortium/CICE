@@ -493,8 +493,9 @@ in the **env.[machine]** file.  This can also be manually changed in the **cice.
 
 .. _laptops:
 
-Porting to Laptop or Personal Computers
+Porting to Laptops or Personal Computers
 -----------------------------------------
+
 To get the required software necessary to build and run CICE, and use the plotting and quality control scripts included in the repository, a `conda <https://docs.conda.io/en/latest/>`_ environment file is available at :
 
 ``configuration/scripts/machines/environment.yml``.
