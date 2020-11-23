@@ -836,13 +836,12 @@ directory when the model is built, submitted, and run.
 
 .. _aliases:
 
-Useful aliases
--------------------
+Use of Shell Aliases
+-------------------------
 
 This section provides a list of some potentially useful shell aliases that leverage the CICE 
 scripts.  These are not defined by CICE and are not required for using CICE.  They
-are provided as an example of what could be done by users.
-
+are provided as an example of what can be done by users.
 The current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from 
 the case directory into the run directory when the model is run.  Users can create aliases 
 leveraging the variables in these files.  Aliases like the following can be established 

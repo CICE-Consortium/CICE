@@ -16,7 +16,7 @@ You will probably have to download some inputdata, see the `CICE wiki <https://g
 
 Software requirements are noted in this :ref:`software` section.
 
-Porting information can be found in the :ref:`porting` section and a special porting section for personal computers is in the :ref:`laptop` section.
+Porting information can be found in the :ref:`porting` section and a special porting section for personal computers is in the :ref:`laptops` section.
 
 From your main CICE directory, execute::
 
