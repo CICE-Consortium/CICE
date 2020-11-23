@@ -25,12 +25,11 @@ From your main CICE directory, execute::
   ./cice.build
   ./cice.submit
 
-
 ``testmachine`` is a generic machine name included with the cice scripts.
 The local machine name will have to be substituted for ``testmachine`` and
-there are working ports for several different machines.  However, it may be necessary
-to port the model to a new machine.  See :ref:`porting` for 
-more information about how to port. See :ref:`scripts` for more information about 
+there are working ports for several different machines.  If you need to
+port, see the :ref:`porting` section as noted above.
+:ref:`scripts` provides more information about 
 how to use the cice.setup and cice.submit scripts.
 
 Please cite any use of the CICE code. More information can be found at :ref:`citing`.

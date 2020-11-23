@@ -144,7 +144,7 @@ Some hints:
 - To change namelist, manually edit the **ice_in** file
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
 - When the run scripts are submitted, the current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from the case directory into the run directory.  Users should generally not edit files in the run directory as these are overwritten when following the standard workflow.  **cice.settings** can be sourced to establish the case values in the login shell.
-- Some useful alias can be found in the :ref:`aliases` section
+- Some useful aliases can be found in the :ref:`aliases` section
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
 - To change compiler options, manually edit the Macros file. To add user defined preprocessor macros, modify ``ICE_CPPDEFS`` in **cice.settings** using the syntax ``-DCICE_MACRO``.
 - To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.  It is recommended that the ``ICE_CLEANBUILD`` be set to true if there are any questions about whether the build is proceeding properly.
@@ -839,15 +839,14 @@ directory when the model is built, submitted, and run.
 Useful aliases
 -------------------
 
-This section provides a list of some potentially useful aliases that leverage the CICE 
+This section provides a list of some potentially useful shell aliases that leverage the CICE 
 scripts.  These are not defined by CICE and are not required for using CICE.  They
-are provided as a sample of the types of things that can be done by users.
+are provided as an example of what could be done by users.
 
 The current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from 
 the case directory into the run directory when the model is run.  Users can create aliases 
 leveraging the variables in these files.  Aliases like the following can be established 
-to quickly switch between case and run directories and query or carry out other tasks
-quickly:
+in shell startup files or otherwise at users discretion:
 
 .. code-block:: bash
 
@@ -874,6 +873,11 @@ quickly:
   # open a tcsh shell and source env.* and cice.settings (useful for launching CICE in a debugger)
   alias cice_shell='tcsh -c "cice_env; tcsh"'
 
+  ## Functions
+  # Print the value of a CICE variable ($1) from cice.settings
+  cice_var() {
+  \grep "setenv $1" cice.settings | awk "{print "\$"3}"
+  }
 
 .. _timeseries:
 
