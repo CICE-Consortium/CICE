@@ -1,5 +1,8 @@
 dt = 3600.0
 runtype = 'initial'
+year_init      = 2005
+use_leap_years = .true.
+use_restart_time = .false.
 ice_ic  = 'ICE_MACHINE_INPUTDATA/CICE_data/ic/gx1/iced_gx1_v5.nc'
 grid_format = 'bin'
 grid_type   = 'displaced_pole'
@@ -10,11 +13,9 @@ maskhalo_dyn   = .true.
 maskhalo_remap = .true.
 maskhalo_bound = .true.
 fyear_init      = 2005
-ycycle          = 1
-atm_data_format = 'bin'
-atm_data_type   = 'LYq'
-atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1/COREII'
-precip_units    = 'mm_per_sec'
+atm_data_format = 'nc'
+atm_data_type   = 'JRA55_gx1'
+atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1/JRA55'
+precip_units    = 'mks'
 ocn_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1/COREII'
 bgc_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1/WOA/MONTHLY'
-
