@@ -356,7 +356,7 @@ dynamics_nml
 
    "", "", "", ""
    "``advection``", "``remap``", "linear remapping advection scheme", "``remap``"
-   "", "``none``", "advection off", ""
+   "", "``upwind``", "donor cell advection", ""
    "``alphab``", "real", ":math:`\alpha_{b}` factor in :cite:`Lemieux16`", "20.0"
    "``arlx``", "real", "revised_evp value", "300.0"
    "``brlx``", "real", "revised_evp value", "300.0"

@@ -846,11 +846,7 @@
          abort_list = trim(abort_list)//":1"
       endif
 
-!deprecate upwind      if (advection /= 'remap' .and. advection /= 'upwind' .and. advection /= 'none') then
-      if (advection /= 'remap' .and. advection /= 'none') then
-         if (trim(advection) == 'upwind') then
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: upwind advection has been deprecated'
-         endif
+      if (advection /= 'remap' .and. advection /= 'upwind' .and. advection /= 'none') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: invalid advection=',trim(advection)
          abort_list = trim(abort_list)//":3"
       endif
@@ -1273,10 +1269,8 @@
                tmpstr2 = ' transport enabled'
                if (trim(advection) == 'remap') then
                   tmpstr2 = ': linear remapping advection'
-!deprecate upwind               elseif (trim(advection) == 'upwind') then
-!deprecate upwind                  tmpstr2 = ': donor cell (upwind) advection'
-               elseif (trim(advection) == 'none') then
-                  tmpstr2 = ': advection off'
+               elseif (trim(advection) == 'upwind') then
+                  tmpstr2 = ': donor cell (upwind) advection'
                endif
                write(nu_diag,*) 'advection        = ', trim(advection),trim(tmpstr2)
             else
