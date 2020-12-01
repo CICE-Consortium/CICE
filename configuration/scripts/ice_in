@@ -111,6 +111,8 @@
     sw_redist         = .false.
     sw_frac           = 0.9d0
     sw_dtemp          = 0.02d0
+    hfrazilmin        = 0.05d0
+    floediam          = 300.0d0
 /
 
 &dynamics_nml

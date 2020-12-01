@@ -330,6 +330,8 @@ thermo_nml
    "``conduct``", "``bubbly``", "conductivity scheme :cite:`Pringle07`", "``bubbly``"
    "", "``MU71``", "conductivity :cite:`Maykut71`", ""
    "``dSdt_slow_mode``", "real", "slow drainage strength parameter m/s/K", "-1.5e-7"
+   "``floediam``", "real", "effective floe diameter for lateral melt in m", "300.0"
+   "``hfrazilmin``", "real", "min thickness of new frazil ice in m", "0.05"
    "``kitd``", "``0``", "delta function ITD approximation", "1"
    "", "``1``", "linear remapping ITD approximation", ""
    "``ksno``", "real", "snow thermal conductivity", "0.3"
