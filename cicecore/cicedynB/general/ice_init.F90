@@ -1275,7 +1275,6 @@
             write(nu_diag,*) 'ssh_stress       = ',trim(ssh_stress),trim(tmpstr2)
 
             if (ktransport <= 0) then
-               write(nu_diag,*) 'WARNING: ktransport <= 0, setting advection to none'
                advection = 'none'
             endif
             if (trim(advection) == 'remap') then
@@ -1283,7 +1282,7 @@
             elseif (trim(advection) == 'upwind') then
                tmpstr2 = ': donor cell (upwind) advection'
             elseif (trim(advection) == 'none') then
-               tmpstr2 = ': advection disabled'
+               tmpstr2 = ': advection disabled by ktransport namelist'
             else
                tmpstr2 = ': unknown value'
             endif

@@ -30,7 +30,7 @@ either Celsius or Kelvin units).
    "a_min", "minimum area concentration for computing velocity", "0.001"
    "a_rapid_mode", ":math:`{\bullet}` brine channel diameter", ""
    "add_mpi_barriers", ":math:`\bullet` turns on MPI barriers for communication throttling", ""
-   "advection", ":math:`\bullet` type of advection algorithm used (‘remap’, ‘upwind’, or 'none')", "remap"
+   "advection", ":math:`\bullet` type of advection algorithm used (‘remap’ or ‘upwind’)", "remap"
    "afsd(n)", "floe size distribution (in category n)", ""
    "ahmax", ":math:`\bullet` thickness above which ice albedo is constant", "0.3m"
    "aice_extmin", "minimum value for ice extent diagnostic", "0.15"
