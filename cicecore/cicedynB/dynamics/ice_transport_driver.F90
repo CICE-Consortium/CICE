@@ -34,6 +34,7 @@
          advection   ! type of advection scheme used
                      ! 'upwind' => 1st order donor cell scheme
                      ! 'remap' => remapping scheme
+                     ! 'none' => advection turned off
 
       logical, parameter :: & ! if true, prescribe area flux across each edge  
          l_fixed_area = .false.
