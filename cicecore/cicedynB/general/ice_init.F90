@@ -846,7 +846,7 @@
          abort_list = trim(abort_list)//":1"
       endif
 
-      if (advection /= 'remap' .and. advection /= 'upwind' .and. advection /= 'none') then
+      if (ktransport > 0 .and. advection /= 'remap' .and. advection /= 'upwind') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: invalid advection=',trim(advection)
          abort_list = trim(abort_list)//":3"
       endif
@@ -1165,11 +1165,12 @@
          if (trim(grid_type) == 'tripole') then
          write(nu_diag,*)    'grid_type        = ', &
                                trim(grid_type),': user-defined grid with northern hemisphere zipper'
-            tmpstr2 = ' '
             if (trim(ns_boundary_type) == 'tripole') then
                tmpstr2 = '  on U points (nodes)'
             elseif (trim(ns_boundary_type) == 'tripoleT') then
                tmpstr2 = '  on T points (cell centers)'
+            else
+               tmpstr2 = ' '
             endif
             write(nu_diag,*)    'ns_boundary_type = ', trim(ns_boundary_type),trim(tmpstr2)
          endif
@@ -1196,6 +1197,8 @@
             tmpstr2 = ' WMO standard ITD categories'
          elseif (kcatbound == -1) then
             tmpstr2 = ' one thickness category'
+         else
+            tmpstr2 = ': unknown value'
          endif
          write(nu_diag,1022) ' kcatbound        = ', kcatbound,trim(tmpstr2)
          if (kitd==0) then
@@ -1225,6 +1228,8 @@
             tmpstr2 = ' viscous-plastic dynamics'
          elseif (kdyn < 1) then
             tmpstr2 = ' dynamics disabled'
+         else
+            tmpstr2 = ': unknown value'
          endif
          write(nu_diag,1022) ' kdyn             = ', kdyn,trim(tmpstr2)
          if (kdyn >= 1) then
@@ -1255,6 +1260,8 @@
                tmpstr2 = ' = 1.46e-4/s'
             elseif (trim(coriolis) == 'zero') then
                tmpstr2 = ' = 0.0'
+            else
+               tmpstr2 = ': unknown value'
             endif
             write(nu_diag,*) 'coriolis         = ',trim(coriolis),trim(tmpstr2)
 
@@ -1262,12 +1269,13 @@
                tmpstr2 = ': from ocean velocity'
             elseif (trim(ssh_stress) == 'coupled') then
                tmpstr2 = ': from coupled sea surface height gradients'
+            else
+               tmpstr2 = ': unknown value'
             endif
             write(nu_diag,*) 'ssh_stress       = ',trim(ssh_stress),trim(tmpstr2)
 
             if (ktransport <= 0) then
                write(nu_diag,*) 'WARNING: ktransport <= 0, setting advection to none'
-               write(nu_diag,*) 'WARNING: ktransport has been deprecated, use advection=none instead'
                advection = 'none'
             endif
             if (trim(advection) == 'remap') then
@@ -1277,7 +1285,7 @@
             elseif (trim(advection) == 'none') then
                tmpstr2 = ': advection disabled'
             else
-               tmpstr2 = ': unknown advection scheme'
+               tmpstr2 = ': unknown value'
             endif
             write(nu_diag,*) 'advection        = ', trim(advection),trim(tmpstr2)
 
@@ -1327,6 +1335,8 @@
             tmpstr2 = ' Hibler (1979)'
          elseif (kstrength == 1) then
             tmpstr2 = ' Rothrock (1975)'
+         else
+            tmpstr2 = ': unknown value'
          endif
          write(nu_diag,1022) ' kstrength        = ', kstrength,trim(tmpstr2)
          if (kstrength == 0) then
@@ -1348,6 +1358,8 @@
             tmpstr2 = ' zero-layer thermo'
          elseif (ktherm < 0) then
             tmpstr2 = ' thermodynamics disabled'
+         else
+            tmpstr2 = ': unknown value'
          endif
          if (ktherm >= 0) then
             write(nu_diag,1022) ' ktherm           = ', ktherm,trim(tmpstr2)
@@ -1376,6 +1388,8 @@
             tmpstr2 = ': delta-Eddington multiple-scattering method'
          elseif (trim(shortwave) == 'ccsm3') then
             tmpstr2 = ': NCAR CCSM3 distribution method'
+         else
+            tmpstr2 = ': unknown value'
          endif
          write(nu_diag,*) ' shortwave       = ', trim(shortwave),trim(tmpstr2)
          if (trim(shortwave) == 'dEdd') then
@@ -1390,6 +1404,8 @@
                tmpstr2 = ': NCAR CCSM3 albedos'
             elseif (trim(albedo_type) == 'constant') then
                tmpstr2 = ': four constant albedos'
+            else
+               tmpstr2 = ': unknown value'
             endif
             write(nu_diag,*) 'albedo_type     = ', trim(albedo_type),trim(tmpstr2)
             if (trim(albedo_type) == 'ccsm3') then
@@ -1416,6 +1432,8 @@
             write(nu_diag,1006) ' atmiter_conv     = ', atmiter_conv,' convergence criterion for ustar'
          elseif (trim(atmbndy) == 'constant') then
             tmpstr2 = ': boundary layer uses bulk transfer coefficients'
+         else
+            tmpstr2 = ': unknown value'
          endif
          write(nu_diag,*) 'atmbndy          = ', trim(atmbndy),trim(tmpstr2)
 
@@ -1439,6 +1457,8 @@
             tmpstr2 = ': linear function of salinity (use with ktherm=1)'
          elseif (trim(tfrz_option) == 'mushy') then
             tmpstr2 = ': Assur (1958) as in mushy-layer thermo (ktherm=2)'
+         else
+            tmpstr2 = ': unknown value'
          endif
          write(nu_diag,*)    'tfrz_option      = ', trim(tfrz_option),trim(tmpstr2)
          if (update_ocn_f) then
@@ -1457,6 +1477,8 @@
             tmpstr2 = ': ocean heat transfer coefficient is constant'
          elseif (trim(fbot_xfer_type) == 'Cdn_ocn') then
             tmpstr2 = ': variable ocean heat transfer coefficient'  ! only used with form_drag=T?
+         else
+            tmpstr2 = ': unknown value'
          endif
          write(nu_diag,*)   'fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
          write(nu_diag,1006) ' ustar_min        = ', ustar_min,' minimum value of ocean friction velocity'
@@ -1477,6 +1499,8 @@
                tmpstr2 = ': constant wave spectrum data file provided for testing'
             elseif (trim(wave_spec_type) == 'random') then
                tmpstr2 = ': wave data file provided, spectrum generated using random number'
+            else
+               tmpstr2 = ': unknown value'
             endif
             write(nu_diag,*) 'wave_spec_type   = ', trim(wave_spec_type),trim(tmpstr2)
          endif
@@ -1503,6 +1527,8 @@
                tmpstr2 = ': Stefan refreezing with pond ice thickness'
             elseif (trim(frzpnd) == 'cesm') then
                tmpstr2 = ': CESM refreezing empirical formula'
+            else
+               tmpstr2 = ': unknown value'
             endif
             write(nu_diag,*) ' frzpnd          = ', trim(frzpnd),trim(tmpstr2)
             write(nu_diag,1007) ' hs1             = ', hs1,' snow depth of transition to pond ice'

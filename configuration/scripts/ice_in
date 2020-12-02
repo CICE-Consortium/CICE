@@ -137,6 +137,7 @@
     threshold_hw    = 30.
     coriolis        = 'latitude'
     kridge          = 1
+    ktransport      = 1
     ssh_stress      = 'geostrophic'
     maxits_nonlin   = 4
     precond         = 'pgmres'
