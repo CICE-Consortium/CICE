@@ -99,7 +99,7 @@
                                 kevp_kernel, &
                                 basalstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
-                                kridge, ktransport, brlx, arlx
+                                kridge, brlx, arlx
       use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
                             monitor_pgmres, reltol_nonlin, reltol_fgmres, reltol_pgmres, &
@@ -127,7 +127,7 @@
         sw_frac, sw_dtemp
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
-        kitd, kcatbound
+        kitd, kcatbound, ktransport
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
         tfrz_option, frzpnd, atmbndy, wave_spec_type
@@ -1265,18 +1265,21 @@
             endif
             write(nu_diag,*) 'ssh_stress       = ',trim(ssh_stress),trim(tmpstr2)
 
-            if (ktransport == 1) then
-               tmpstr2 = ' transport enabled'
-               if (trim(advection) == 'remap') then
-                  tmpstr2 = ': linear remapping advection'
-               elseif (trim(advection) == 'upwind') then
-                  tmpstr2 = ': donor cell (upwind) advection'
-               endif
-               write(nu_diag,*) 'advection        = ', trim(advection),trim(tmpstr2)
-            else
-               tmpstr2 = ' transport disabled'
+            if (ktransport <= 0) then
+               write(nu_diag,*) 'WARNING: ktransport <= 0, setting advection to none'
+               write(nu_diag,*) 'WARNING: ktransport has been deprecated, use advection=none instead'
+               advection = 'none'
             endif
-            write(nu_diag,1022) ' ktransport       = ', ktransport,trim(tmpstr2)
+            if (trim(advection) == 'remap') then
+               tmpstr2 = ': linear remapping advection'
+            elseif (trim(advection) == 'upwind') then
+               tmpstr2 = ': donor cell (upwind) advection'
+            elseif (trim(advection) == 'none') then
+               tmpstr2 = ': advection disabled'
+            else
+               tmpstr2 = ': unknown advection scheme'
+            endif
+            write(nu_diag,*) 'advection        = ', trim(advection),trim(tmpstr2)
 
             if (basalstress) then
                tmpstr2 = ' use basal stress parameterization for landfast ice'

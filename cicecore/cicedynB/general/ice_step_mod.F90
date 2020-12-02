@@ -851,7 +851,7 @@
       use ice_dyn_evp, only: evp
       use ice_dyn_eap, only: eap
       use ice_dyn_vp, only: implicit_solver
-      use ice_dyn_shared, only: kdyn, ktransport
+      use ice_dyn_shared, only: kdyn
       use ice_flux, only: init_history_dyn
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
@@ -874,12 +874,10 @@
       ! Horizontal ice transport
       !-----------------------------------------------------------------
 
-      if (ktransport > 0) then
       if (advection == 'upwind') then
          call transport_upwind (dt)    ! upwind
-      else
+      elseif (advection == 'remap') then
          call transport_remap (dt)     ! incremental remapping
-      endif
       endif
 
       end subroutine step_dyn_horiz

@@ -355,7 +355,8 @@ dynamics_nml
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
-   "``advection``", "``remap``", "linear remapping advection scheme", "``remap``"
+   "``advection``", "``none``", "advection disabled", "``remap``"
+   "", "``remap``", "linear remapping advection scheme", ""
    "", "``upwind``", "donor cell advection", ""
    "``alphab``", "real", ":math:`\alpha_{b}` factor in :cite:`Lemieux16`", "20.0"
    "``arlx``", "real", "revised_evp value", "300.0"
@@ -384,8 +385,6 @@ dynamics_nml
    "", "``1``", "new ridging redistribution function", ""
    "``kridge``", "``-1``", "ridging disabled", "1"
    "", "``1``", "ridging enabled", ""
-   "``ktransport``", "``-1``", "transport disabled", "1"
-   "", "``1``", "transport enabled", ""
    "``Ktens``", "real", "Tensile strength factor (see :cite:`Konig10`)", "0.0"
    "``k1``", "real", "1st free parameter for landfast parameterization", "8.0"
    "``k2``", "real", "2nd free parameter (N/m\ :math:`^3`) for landfast parameterization", "15.0"

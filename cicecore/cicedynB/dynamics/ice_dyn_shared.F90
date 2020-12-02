@@ -32,7 +32,6 @@
       integer (kind=int_kind), public :: &
          kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap )
          kridge     , & ! set to "-1" to turn off ridging
-         ktransport , & ! set to "-1" to turn off transport
          ndte         ! number of subcycles:  ndte=dt/dte
 
       character (len=char_len), public :: &

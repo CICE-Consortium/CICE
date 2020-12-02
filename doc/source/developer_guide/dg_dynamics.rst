@@ -51,7 +51,8 @@ Transport
 -----------------
 
 The transport (advection) methods are found in **cicecore/cicedynB/dynamics/**.  Two methods are supported,
-upwind and remap.  These are set in namelist via the advection variable.
+upwind and remap.  In addition, transport can be turned off by setting ``advection = none``.
+These are set in namelist via the ``advection`` variable.
 
 
 Infrastructure
