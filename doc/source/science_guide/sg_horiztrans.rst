@@ -35,7 +35,7 @@ versions but have not yet been implemented.
 
 Two transport schemes are available: upwind and the incremental
 remapping scheme of :cite:`Dukowicz00` as modified for sea ice by
-:cite:`Lipscomb04`. The CICE model also allow the transport scheme
+:cite:`Lipscomb04`. The CICE model also allows the transport scheme
 to be turned off.  The remapping scheme has several desirable features:
 
 -  It conserves the quantity being transported (area, volume, or
