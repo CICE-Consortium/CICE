@@ -124,7 +124,7 @@
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
-        sw_frac, sw_dtemp
+        sw_frac, sw_dtemp, floediam, hfrazilmin
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound, ktransport
@@ -190,7 +190,8 @@
         kitd,           ktherm,          conduct,     ksno,             &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
-        sw_redist,      sw_frac,         sw_dtemp
+        sw_redist,      sw_frac,         sw_dtemp,                      &
+        floediam,       hfrazilmin
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
@@ -472,6 +473,9 @@
       dSdt_slow_mode    = -1.5e-7_dbl_kind ! slow mode drainage strength (m s-1 K-1)
       phi_c_slow_mode   =    0.05_dbl_kind ! critical liquid fraction porosity cutoff
       phi_i_mushy       =    0.85_dbl_kind ! liquid fraction of congelation ice
+
+      floediam          =   300.0_dbl_kind ! min thickness of new frazil ice (m)
+      hfrazilmin        =    0.05_dbl_kind ! effective floe diameter (m)
 
       ! shortwave redistribution in the thermodynamics
       sw_redist = .false.
@@ -777,6 +781,8 @@
       call broadcast_scalar(n_fed,              master_task)
       call broadcast_scalar(n_fep,              master_task)
       call broadcast_scalar(a_rapid_mode,       master_task)
+      call broadcast_scalar(floediam,           master_task)
+      call broadcast_scalar(hfrazilmin,         master_task)
       call broadcast_scalar(Rac_rapid_mode,     master_task)
       call broadcast_scalar(aspect_rapid_mode,  master_task)
       call broadcast_scalar(dSdt_slow_mode,     master_task)
@@ -1210,7 +1216,7 @@
 
          if (tr_fsd) then
             tmpstr2 = ' floe size distribution is enabled'
-         !   write(nu_diag,1002) ' floediam         = ', floediam, ' constant floe diameter'
+            write(nu_diag,1002) ' floediam         = ', floediam, ' constant floe diameter'
          else
             tmpstr2 = ' floe size distribution is disabled'
          endif
@@ -1378,7 +1384,7 @@
                write(nu_diag,1007) ' phi_i_mushy      = ', phi_i_mushy,' solid fraction at lower boundary'
             endif
          endif
-         !write(nu_diag,1007) ' hfrazilmin       = ', hfrazilmin,' minimum new frazil ice thickness'
+         write(nu_diag,1007) ' hfrazilmin       = ', hfrazilmin,' minimum new frazil ice thickness'
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Radiation'
@@ -1789,6 +1795,7 @@
          rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
          ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
+         floediam_in=floediam, hfrazilmin_in=hfrazilmin, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &
          wave_spec_type_in = wave_spec_type, &
