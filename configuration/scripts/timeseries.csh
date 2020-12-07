@@ -44,8 +44,6 @@ set fieldlist=("total ice area  (km^2)" \
                "total ice extent(km^2)" \
                "total ice volume (m^3)" \
                "total snw volume (m^3)" \
-               "sst (C)               " \
-               "arwt tot mass (kg)    " \
                "rms ice speed    (m/s)" )
 
 # Get the filename for the latest log
