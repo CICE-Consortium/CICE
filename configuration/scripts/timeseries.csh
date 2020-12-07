@@ -13,9 +13,9 @@ endif
 set basename = `echo $1 | sed -e 's#/$##' | sed -e 's/^\.\///'`
 
 # Set x-axis limits
-  # Manuallyl set x-axis limits
+  # Manually set x-axis limits
 #set xrange = 'set xrange ["19980101":"19981231"]'
-  # Let gnuplot determine x-alis limits
+  # Let gnuplot determine x-axis limits
 set xrange = ''
 
 # Determine if BASELINE dataset exists
