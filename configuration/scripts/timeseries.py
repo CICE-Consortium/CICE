@@ -53,7 +53,7 @@ def get_data(logfile,field):
     # Build the regular expression to extract the data
     field_regex = field.replace('(','\(').replace('^','\^').replace(')','\)')
     number_regex = '[-+]?\d+\.?\d+([eE][-+]?\d+)?'
-    my_regex = '{}\s+=\s+({})\s+({})'.format(field_regex,number_regex,number_regex)
+    my_regex = '^{}\s+=\s+({})\s+({})'.format(field_regex,number_regex,number_regex)
 
     dtg = []
     arctic = []
@@ -95,9 +95,10 @@ def plot_timeseries(log, field, dtg, arctic, antarctic, expon, dtg_base=None, ar
     Plot the timeseries data from the CICE log file
     '''
 
-    casename = os.path.abspath(log).rstrip('/').rstrip('/logs').split('/')[-1]
+    import re
+    casename = re.sub(r"/logs", "", os.path.abspath(log).rstrip('/')).split('/')[-1]
     if base_dir:
-        base_casename = os.path.abspath(base_dir).rstrip('/').rstrip('/logs').split('/')[-1]
+        base_casename = re.sub(r"/logs", "", os.path.abspath(base_dir).rstrip('/')).split('/')[-1]
 
     # Load the plotting libraries, but set the logging level for matplotlib
     # to WARNING so that matplotlib debugging info is not printed when running
@@ -215,6 +216,8 @@ def main():
                         volume?', action='store_true')
     parser.add_argument('--speed', dest='speed', help='Create a plot for rms ice speed?', \
                         action='store_true')
+    parser.add_argument('--sst', dest='sst', help='Create a plot for sst?', \
+                        action='store_true')
     parser.add_argument('--grid',dest='grid', help='Add grid lines to the figures?', \
                         action='store_true')
 
@@ -225,17 +228,20 @@ def main():
     parser.set_defaults(ice_volume=False)
     parser.set_defaults(snow_volume=False)
     parser.set_defaults(speed=False)
+    parser.set_defaults(sst=False)
     parser.set_defaults(grid=False)
 
     args = parser.parse_args()
 
     # If no fields are passed, plot all fields
-    if not ( args.area or args.extent or args.ice_volume or args.snow_volume or args.speed ):
+    if not ( args.area or args.extent or args.ice_volume or args.snow_volume or args.speed \
+             args.sst ):
         args.area = True
         args.extent = True
         args.ice_volume = True
         args.snow_volume = True
         args.speed = True
+        args.sst = True
 
     # Build the fieldlist based on which fields are passed
     fieldlist = []
@@ -249,6 +255,8 @@ def main():
         fieldlist.append('total snw volume (m^3)')
     if args.speed:
         fieldlist.append('rms ice speed    (m/s)')
+    if args.sst:
+        fieldlist.append('sst (C)               ')
 
     # Setup the logger
     global logger

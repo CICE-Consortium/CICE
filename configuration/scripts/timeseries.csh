@@ -44,6 +44,8 @@ set fieldlist=("total ice area  (km^2)" \
                "total ice extent(km^2)" \
                "total ice volume (m^3)" \
                "total snw volume (m^3)" \
+               "sst (C)               " \
+               "arwt tot mass (kg)    " \
                "rms ice speed    (m/s)" )
 
 # Get the filename for the latest log
@@ -59,8 +61,10 @@ endif
 
 # Loop through each field and create the plot
 foreach field ($fieldlist:q)
+  # Add backslashes before (, ), and ^ for grep searches
+  set search_name = "`echo '$field' | sed 's/(/\\(/' | sed 's/)/\\)/' | sed 's/\^/\\^/'`"
   set fieldname = `echo "$field" | sed -e 's/([^()]*)//g'`
-  set search = "'$fieldname'\|istep1"
+  set search = "'$search_name'\|istep1"
   rm -f data.txt
   foreach line ("`egrep $search $logfile`")
     if ("$line" =~ *"istep1"*) then
