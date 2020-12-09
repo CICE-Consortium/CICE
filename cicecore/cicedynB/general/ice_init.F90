@@ -1291,7 +1291,7 @@
             if (basalstress) then
                tmpstr2 = ' : use basal stress parameterization for landfast ice'
             else
-               tmpstr2 = ' : basal stress not used for landfast ice'
+               tmpstr2 = ' : no basal stress parameterization'
             endif
             write(nu_diag,1010) ' basalstress      = ', basalstress,trim(tmpstr2)
             if (basalstress) then
@@ -1304,18 +1304,18 @@
 
             if (kdyn == 3) then
                write(nu_diag,1020) ' maxits_nonlin    = ', maxits_nonlin,' : max nb of iteration for nonlinear solver'
-               write(nu_diag,1030) ' precond          = ', trim(precond),' : preconditioner for fgmres'
-               write(nu_diag,1020) ' dim_fgmres       = ', dim_fgmres,' : size of fgmres Krylov subspace'
-               write(nu_diag,1020) ' dim_pgmres       = ', dim_pgmres,' : size of pgmres Krylov subspace'
-               write(nu_diag,1020) ' maxits_fgmres    = ', maxits_fgmres,' : max nb of iteration for fgmres'
-               write(nu_diag,1020) ' maxits_pgmres    = ', maxits_pgmres,' : max nb of iteration for pgmres'
+               write(nu_diag,1030) ' precond          = ', trim(precond),' : preconditioner for FGMRES'
+               write(nu_diag,1020) ' dim_fgmres       = ', dim_fgmres,' : size of FGMRES Krylov subspace'
+               write(nu_diag,1020) ' dim_pgmres       = ', dim_pgmres,' : size of PGMRES Krylov subspace'
+               write(nu_diag,1020) ' maxits_fgmres    = ', maxits_fgmres,' : max nb of iteration for FGMRES'
+               write(nu_diag,1020) ' maxits_pgmres    = ', maxits_pgmres,' : max nb of iteration for PGMRES'
                write(nu_diag,1010) ' monitor_nonlin   = ', monitor_nonlin,' : print nonlinear residual norm'
-               write(nu_diag,1010) ' monitor_fgmres   = ', monitor_fgmres,' : print fgmres residual norm'
-               write(nu_diag,1010) ' monitor_pgmres   = ', monitor_pgmres,' : print pgmres residual norm'
+               write(nu_diag,1010) ' monitor_fgmres   = ', monitor_fgmres,' : print FGMRES residual norm'
+               write(nu_diag,1010) ' monitor_pgmres   = ', monitor_pgmres,' : print PGMRES residual norm'
                write(nu_diag,1030) ' ortho_type       = ', trim(ortho_type),' : type of orthogonalization for FGMRES'
                write(nu_diag,1009) ' reltol_nonlin    = ', reltol_nonlin,' : nonlinear stopping criterion'
-               write(nu_diag,1009) ' reltol_fgmres    = ', reltol_fgmres,' : fgmres stopping criterion'
-               write(nu_diag,1009) ' reltol_pgmres    = ', reltol_pgmres,' : pgmres stopping criterion'
+               write(nu_diag,1009) ' reltol_fgmres    = ', reltol_fgmres,' : FGMRES stopping criterion'
+               write(nu_diag,1009) ' reltol_pgmres    = ', reltol_pgmres,' : PGMRES stopping criterion'
                write(nu_diag,1030) ' algo_nonlin      = ', trim(algo_nonlin),' : nonlinear algorithm'
                write(nu_diag,1010) ' use_mean_vrel    = ', use_mean_vrel,' : use mean of previous 2 iterates to compute vrel'
                if (algo_nonlin == 'anderson') then
@@ -1323,7 +1323,7 @@
                   write(nu_diag,1020) ' dim_andacc       = ', dim_andacc,' : size of Anderson minimization matrix'
                   write(nu_diag,1009) ' reltol_andacc    = ', reltol_andacc,' : relative tolerance for Anderson acceleration'
                   write(nu_diag,1000) ' damping_andacc   = ', damping_andacc,' : damping factor for Anderson acceleration'
-                  write(nu_diag,1020) ' start_andacc     = ', start_andacc,' : acceleration delay factor'
+                  write(nu_diag,1020) ' start_andacc     = ', start_andacc,' : nonlinear iteration at which acceleration starts'
                endif
             endif
 
