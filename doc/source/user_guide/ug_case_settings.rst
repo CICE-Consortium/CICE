@@ -212,7 +212,6 @@ grid_nml
    "``bathymetry_file``", "string", "name of bathymetry file to be read", "‘unknown_bathymetry_file’"
    "``bathymetry_format``", "``default``", "NetCDF depth field", "‘default’"
    "", "``pop``", "pop thickness file in cm in ascii format", ""
-   "``close_boundaries``", "logical", "set land on edges of grid", "``.false.``"
    "``dxrect``", "real", "x-direction grid spacing for rectangular grid in cm", "0.0"
    "``dyrect``", "real", "y-direction grid spacing for rectangular grid in cm", "0.0"
    "``gridcpl_file``", "string", "input file for coupling grid info", "'unknown_gridcpl_file'"
@@ -342,9 +341,6 @@ thermo_nml
    "``phi_c_slow_mode``", ":math:`0<\phi_c < 1`", "critical liquid fraction", "0.05"
    "``phi_i_mushy``", ":math:`0<\phi_i < 1`", "solid fraction at lower boundary", "0.85"
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
-   "``sw_redist``", "logical", "redistribute internal shortwave to surface", "``.false.``"
-   "``sw_frac``", "real", "fraction redistributed", "0.9"
-   "``sw_dtemp``", "real", "temperature difference from melt to start redistributing", "0.02"
    "", "", "", ""
 
 .. _dynamics_nml:
@@ -438,6 +434,9 @@ shortwave_nml
    "``R_snw``", "real", "tuning parameter for snow (broadband albedo) from Delta-Eddington shortwave", "1.5"
    "``shortwave``", "``ccsm3``", "NCAR CCSM3 shortwave distribution method", "``ccsm3``"
    "", "``dEdd``", "Delta-Eddington method", ""
+   "``sw_dtemp``", "real", "temperature difference from melt to start redistributing", "0.02"
+   "``sw_frac``", "real", "fraction redistributed", "0.9"
+   "``sw_redist``", "logical", "redistribute internal shortwave to surface", "``.false.``"
    "", "", "", ""
 
 ponds_nml
