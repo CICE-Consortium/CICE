@@ -212,7 +212,6 @@ grid_nml
    "``bathymetry_file``", "string", "name of bathymetry file to be read", "‘unknown_bathymetry_file’"
    "``bathymetry_format``", "``default``", "NetCDF depth field", "‘default’"
    "", "``pop``", "pop thickness file in cm in ascii format", ""
-   "``close_boundaries``", "logical", "set land on edges of grid", "``.false.``"
    "``dxrect``", "real", "x-direction grid spacing for rectangular grid in cm", "0.0"
    "``dyrect``", "real", "y-direction grid spacing for rectangular grid in cm", "0.0"
    "``gridcpl_file``", "string", "input file for coupling grid info", "'unknown_gridcpl_file'"

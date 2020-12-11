@@ -1173,8 +1173,6 @@
             endif
             write(nu_diag,1010) ' use_bathymetry   = ', use_bathymetry,trim(tmpstr2)
             write(nu_diag,1030) ' bathymetry_format= ', trim(bathymetry_format)
-         else  ! rectangular
-            write(nu_diag,1010) ' close_boundaries = ', close_boundaries
          endif
          write(nu_diag,1020) ' nilyr            = ', nilyr, ' : number of ice layers (equal thickness)'
          write(nu_diag,1020) ' nslyr            = ', nslyr, ' : number of snow layers (equal thickness)'
