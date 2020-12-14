@@ -202,7 +202,7 @@
          if (restore_ice) call ice_HaloRestore
 
       !-----------------------------------------------------------------
-      ! initialize diagnostics
+      ! initialize diagnostics and save initial state values
       !-----------------------------------------------------------------
 
          call ice_timer_start(timer_diags)  ! diagnostics/history
@@ -213,6 +213,8 @@
 
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
+
+         call save_init
 
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
