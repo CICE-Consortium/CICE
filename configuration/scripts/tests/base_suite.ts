@@ -1,59 +1,4 @@
 # Test         Grid    PEs        Sets    BFB-compare
-smoke          gx3     8x2        gx3ncarbulk,diag1,run5day
-smoke          gx3     1x1        gx3ncarbulk,debug,diag1,run2day
-smoke          gx3     1x4        gx3ncarbulk,debug,diag1,run2day
-smoke          gx3     4x1        gx3ncarbulk,debug,diag1,run5day
-restart        gx3     8x2        gx3ncarbulk,debug
-smoke          gx3     8x2        gx3ncarbulk,diag24,run1year,medium
-decomp         gx3     4x2x25x29x5  gx3ncarbulk
-smoke          gx3     4x2        gx3ncarbulk,diag1,run5day          smoke_gx3_8x2_diag1_gx3ncarbulk_run5day
-smoke          gx3     4x1        gx3ncarbulk,diag1,run5day,thread   smoke_gx3_8x2_diag1_gx3ncarbulk_run5day
-restart        gx1    40x4        gx1coreii,droundrobin,medium
-restart        tx1    40x4        dsectrobin,medium
-restart        gx3     4x4        gx3ncarbulk,none
-restart        gx3     6x2        gx3ncarbulk,alt01
-restart        gx3     8x2        gx3ncarbulk,alt02
-restart        gx3     4x2        gx3ncarbulk,alt03
-restart        gx3     4x4        gx3ncarbulk,alt04
-restart        gx3     4x4        gx3ncarbulk,alt05
-restart        gx3     6x2        gx3ncarbulk,alt01,debug,short
-restart        gx3     8x2        gx3ncarbulk,alt02,debug,short
-restart        gx3     4x2        gx3ncarbulk,alt03,debug,short
-smoke          gx3     4x4        gx3ncarbulk,alt04,debug,short
-smoke          gx3     4x4        gx3ncarbulk,alt05,debug,short
-restart        gbox128 4x2        short
-restart        gbox128 4x2        boxdyn,short
-restart        gbox128 4x2        boxdyn,short,debug
-restart        gbox128 2x2        boxadv,short
-smoke          gbox128 2x2        boxadv,short,debug
-restart        gbox128 4x4        boxrestore,short
-smoke          gbox128 4x4        boxrestore,short,debug
-restart        gbox80  1x1        box2001
-smoke          gbox80  1x1        boxslotcyl
-smoke          gx3     8x2        gx3ncarbulk,bgcz
-smoke          gx3     8x2        gx3ncarbulk,bgcz,debug
-smoke          gx3     8x1        gx3ncarbulk,bgcskl,debug
-#smoke          gx3     4x1        gx3ncarbulk,bgcz,thread        smoke_gx3_8x2_bgcz_gx3ncarbulk
-restart        gx1     4x2        gx1coreii,bgcsklclim,medium
-restart        gx1     8x1        gx1coreii,bgczclim,medium
-smoke          gx1    24x1        gx1coreii,medium,run90day
-smoke          gx3     8x1        gx3ncarbulk,medium,run90day
-restart        gx1    24x1        gx1coreii,short
-restart        gx3     8x1        gx3ncarbulk,short
-smoke          gx3     4x2        gx3ncarbulk,fsd1,diag24,run5day,debug
-smoke          gx3     8x2        gx3ncarbulk,fsd12,diag24,run5day,short
-restart        gx3     4x2        gx3ncarbulk,fsd12,debug,short
-smoke          gx3     8x2        gx3ncarbulk,fsd12ww3,diag24,run1day,medium
-smoke          gx3     4x1        gx3ncarbulk,isotope,debug
-restart        gx3     8x2        gx3ncarbulk,isotope
-restart        gx3     4x4        gx3ncarbulk,iobinary
-restart        gx3     4x4        gx3ncarbulk,histall,precision8,cdf64
-smoke          gx3    30x1        gx3ncarbulk,bgcz,histall
-smoke          gx3    14x2        gx3ncarbulk,fsd12,histall
-smoke          gx3     4x1        gx3ncarbulk,dynpicard,medium
-
-# jra55
-# Test         Grid    PEs        Sets    BFB-compare
 smoke          gx3     8x2        diag1,run5day
 smoke          gx3     1x1        debug,diag1,run2day
 smoke          gx3     1x4        debug,diag1,run2day
@@ -106,3 +51,7 @@ restart        gx3     4x4        histall,precision8,cdf64
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard,medium
+
+restart        gx3     8x2        gx3ncarbulk,debug
+restart        gx3     4x4        gx3ncarbulk,diag1
+restart        gx1    24x1        gx1coreii,short
