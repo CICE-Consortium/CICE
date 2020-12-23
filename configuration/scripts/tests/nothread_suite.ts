@@ -16,12 +16,12 @@ smoke          gx3     16x1       diag24,run1year,medium
 restart        gx3     16x1       none
 restart        gx3     16x1       gx3ncarbulk,iobinary
 
-restart        gx3     12x1       alt01a
+restart        gx3     12x1       alt01
 restart        gx3     16x1       alt02
 restart        gx3     8x1        alt03
 restart        gx3     16x1       alt04
 restart        gx3     16x1       alt05
-restart        gx3     18x1       alt01a,debug,short
+restart        gx3     18x1       alt01,debug,short
 restart        gx3     20x1       alt02,debug,short
 restart        gx3     24x1       alt03,debug,short
 smoke          gx3     24x1       alt04,debug,short
