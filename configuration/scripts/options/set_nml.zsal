@@ -1,0 +1,9 @@
+ktherm          = 1
+sw_redist       = .true.
+tfrz_option     = 'linear_salt'
+tr_brine        = .true.
+solve_zsal      = .true.
+z_tracers       = .true.
+ice_ic          = 'default'
+restart         = .false.
+
