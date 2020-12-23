@@ -51,6 +51,6 @@ restart        gx3     4x4        histall,precision8,cdf64
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard,medium
-smoke          gx3     8x2        diag24,run5day,medium,zsal,debug
-restart        gx3     8x1        zsal
+smoke          gx3     8x2        diag24,run5day,zsal,debug
+restart        gx3     8x2        zsal
 
