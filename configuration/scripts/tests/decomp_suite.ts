@@ -1,6 +1,6 @@
 # Test         Grid    PEs        Sets    BFB-compare
 restart        gx3     4x2x25x29x4   dslenderX2
-decomp         gx3     4x2x25x29x5
+decomp         gx3     4x2x25x29x5   none
 sleep 30
 restart        gx3     1x1x50x58x4   droundrobin,thread restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     4x1x25x116x1  dslenderX1,thread  restart_gx3_4x2x25x29x4_dslenderX2

@@ -25,7 +25,11 @@ install:
 
   # Fetch forcing data
   - "wget https://zenodo.org/record/3728362/files/CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz &&
-    tar xvfz CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz -C ~"
+    tar xvfz CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz -C ~" 
+
+  # Fetch jra55_gx3 forcing data
+  - "wget https://zenodo.org/record/3728364/files/CICE_data_gx3_forcing_JRA55-20200320.tar.gz &&
+    tar xvfz CICE_data_gx3_forcing_JRA55-20200320.tar.gz -C ~" 
 
   # Mirror entire data folder
   #- "lftp ftp://anonymous:travis@travis-ci.org@ftp.cgd.ucar.edu 
