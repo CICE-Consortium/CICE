@@ -22,8 +22,8 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
       use ice_communicate, only: my_task, master_task
-      use ice_calendar, only: istep, istep1, time, time_forc, &
-                              sec, mday, month, nyr, yday, daycal, dayyr, &
+      use ice_calendar, only: istep, istep1, &
+                              sec, mday, month, nyr, yday, daycal, &
                               daymo, days_per_year, hc_jday
       use ice_fileunits, only: nu_diag, nu_forcing
       use ice_exit, only: abort_ice
@@ -80,8 +80,7 @@
         botmelt_file
 
       real (kind=dbl_kind), public  :: &
-           c1intp, c2intp , & ! interpolation coefficients
-           ftime              ! forcing time (for restart)
+           c1intp, c2intp     ! interpolation coefficients
 
       integer (kind=int_kind) :: &
            oldrecnum = 0  , & ! old record number (save between steps)
@@ -554,9 +553,6 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
-
-      ftime = time         ! forcing time
-      time_forc = ftime    ! for restarting
 
     !-------------------------------------------------------------------
     ! Read and interpolate atmospheric data
@@ -1222,8 +1218,8 @@
 
       real (kind=dbl_kind) :: &
           secday       , & ! seconds in day
-          tt           , & ! seconds elapsed in current year
-          t1, t2           ! seconds elapsed at month midpoint
+          tt           , & ! days elapsed in current year
+          t1, t2           ! days elapsed at month midpoint
 
       real (kind=dbl_kind) :: &
           daymid(0:13)     ! month mid-points
@@ -1238,8 +1234,8 @@
       daymid(1:13) = 14._dbl_kind   ! time frame ends 0 sec into day 15
       daymid(0)    = 14._dbl_kind - daymo(12)  ! Dec 15, 0 sec
 
-      ! make time cyclic
-      tt = mod(ftime/secday,dayyr)
+      ! compute days since Jan 1, 00h, yday is the day counter for the year
+      tt = real(yday-1,kind=dbl_kind) + real(sec,kind=dbl_kind)/secday
 
       ! Find neighboring times
 
@@ -1253,6 +1249,12 @@
       else                      ! second half of month
         t1 = daycal(month) + daymid(month)    ! midpoint, current month
         t2 = daycal(month+1) + daymid(month+1)! day 15 of next month (0 sec)
+      endif
+
+      if (tt < t1 .or. tt > t2) then
+        write(nu_diag,*) subname,' ERROR in tt',tt,t1,t2
+        call abort_ice (error_message=subname//' ERROR in tt', &
+           file=__FILE__, line=__LINE__)
       endif
 
       ! Compute coefficients
@@ -1282,8 +1284,7 @@
       ! local variables
 
       real (kind=dbl_kind) :: &
-          secday, &        ! seconds in a day
-          secyr            ! seconds in a year
+          secday           ! seconds in a day
 
       real (kind=dbl_kind) :: &
           tt           , & ! seconds elapsed in current year
@@ -1297,8 +1298,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      secyr = dayyr * secday         ! seconds in a year
-      tt = mod(ftime,secyr)
+      ! compute seconds since Jan 1, 00h, yday is the day counter for the year
+      tt = real(yday-1,kind=dbl_kind)*secday + real(sec,kind=dbl_kind)
 
       ! Find neighboring times
       rcnum = real(recnum,kind=dbl_kind)
@@ -1579,7 +1580,7 @@
 
       ! convert precipitation units to kg/m^2 s
       if (trim(precip_units) == 'mm_per_month') then
-         precip_factor = c12/(secday*days_per_year) 
+         precip_factor = c12/(secday*real(days_per_year,kind=dbl_kind))
       elseif (trim(precip_units) == 'mm_per_day') then
          precip_factor = c1/secday
       elseif (trim(precip_units) == 'mm_per_sec' .or. &
@@ -4430,7 +4431,6 @@
 
       use ice_flux, only: fsw, fsnow, Tair, uatm, vatm, Qa, flw
       use ice_domain, only: nblocks
-      use ice_calendar, only: year_init
 
       integer (kind=int_kind) :: &
           recnum       ! record number
@@ -4454,7 +4454,7 @@
       call icepack_query_parameters(secday_out=secday)
 
       ! current time in HYCOM jday units
-      hcdate = hc_jday(nyr+year_init-1,0,0)+ yday+sec/secday
+      hcdate = hc_jday(nyr,0,0)+ yday+sec/secday
 
       ! Init recnum try
       recnum=min(max(oldrecnum,1),Njday_atm-1)
@@ -4477,7 +4477,7 @@
          write (nu_diag,*) &
          'ERROR: CICE: Atm forcing not available at hcdate =',hcdate
          write (nu_diag,*) &
-         'ERROR: CICE: nyr, year_init, yday ,sec = ',nyr, year_init, yday, sec
+         'ERROR: CICE: nyr, yday ,sec = ',nyr, yday, sec
          call abort_ice ('ERROR: CICE stopped')
       endif
 
@@ -5074,6 +5074,7 @@
 
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
+      use ice_calendar, only: timesecs
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
       use ice_grid, only: uvm, to_ugrid
@@ -5111,12 +5112,12 @@
          vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)
 
          ! wind components
-         uatm(i,j,iblk) = c5 + (sin(pi2*time/period)-c3) &
+         uatm(i,j,iblk) = c5 + (sin(pi2*timesecs/period)-c3) &
                               * sin(pi2*real(i-nghost, kind=dbl_kind)  &
                                        /real(nx_global,kind=dbl_kind)) &
                               * sin(pi *real(j-nghost, kind=dbl_kind)  &
                                        /real(ny_global,kind=dbl_kind))
-         vatm(i,j,iblk) = c5 + (sin(pi2*time/period)-c3) &
+         vatm(i,j,iblk) = c5 + (sin(pi2*timesecs/period)-c3) &
                               * sin(pi *real(i-nghost, kind=dbl_kind)  &
                                        /real(nx_global,kind=dbl_kind)) &
                               * sin(pi2*real(j-nghost, kind=dbl_kind)  &

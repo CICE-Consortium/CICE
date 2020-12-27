@@ -10,6 +10,7 @@
 !           Converted to free form source (F90).
 ! 2010 CM : Fixed support for Gregorian calendar: subroutines
 !           sec2time, time2sec and set_calendar added.
+! 2020 TC : Significant refactor to move away from time as prognostic
 
       module ice_calendar
 
@@ -25,53 +26,46 @@
       implicit none
       private
 
-      public :: init_calendar, calendar, time2sec, sec2time, hc_jday
+      ! PUBLIC
+
+      public :: init_calendar, advance_time, calendar, hc_jday
+      public :: calendar_compute_elapsed_days, calendar_compute_days_between
+      public :: calendar_set_date_from_timesecs
+!      public :: date2rdate, rdate2date
+
+      character(len=*), public, parameter :: &
+         ice_calendar_gregorian = 'Gregorian', &  ! calendar name, actually proleptic gregorian here
+         ice_calendar_noleap    = 'NO_LEAP', &    ! 365 day per year calendar
+         ice_calendar_360day    = '360day'        ! 360 day calendar with 30 days per month
+
+      integer (kind=int_kind), public, parameter :: &
+         months_per_year = 12, &     ! months per year
+         hours_per_day   = 24        ! hours per day
 
       integer (kind=int_kind), public :: &
-         days_per_year        , & ! number of days in one year
-         daymo(12)            , & ! number of days in each month
-         daycal(13)               ! day number at end of month
-
-      ! 360-day year data
-      integer (kind=int_kind) :: &
-         daymo360(12)         , & ! number of days in each month
-         daycal360(13)            ! day number at end of month
-      data daymo360 /   30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30/
-      data daycal360/ 0,30, 60, 90,120,150,180,210,240,270,300,330,360/
-
-      ! 365-day year data
-      integer (kind=int_kind) :: &
-         daymo365(12)         , & ! number of days in each month
-         daycal365(13)            ! day number at end of month
-      data daymo365 /   31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/
-      data daycal365/ 0,31, 59, 90,120,151,181,212,243,273,304,334,365/
-
-      ! 366-day year data (leap year)
-      integer (kind=int_kind) :: &
-         daymo366(12)         , & ! number of days in each month
-         daycal366(13)            ! day number at end of month
-      data daymo366 /   31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/
-      data daycal366/ 0,31, 60, 91,121,152,182,213,244,274,305,335,366/
-
-      real (kind=dbl_kind), parameter :: &
-        days_per_4c = 146097.0_dbl_kind, &
-        days_per_c  = 36524.0_dbl_kind,  &
-        days_per_4y = 1461.0_dbl_kind,   &
-        days_per_y  = 365.0_dbl_kind
+         days_per_year         , & ! number of days in one year
+         daymo(months_per_year), & ! number of days in each month
+         daycal(months_per_year+1) ! accumulated days in year to end of prior month
 
       integer (kind=int_kind), public :: &
-         istep    , & ! local step counter for time loop
-         istep0   , & ! counter, number of steps taken in previous run
+         ! step counters
+         istep    , & ! local step counter for current run in time loop
+         istep0   , & ! counter, number of steps at start of run
          istep1   , & ! counter, number of steps at current timestep
-         mday     , & ! day of the month
-         hour     , & ! hour of the day
-         month    , & ! month number, 1 to 12
-         monthp   , & ! last month
-         year_init, & ! initial year
+         ! basic time variables
          nyr      , & ! year number
-         idate    , & ! date (yyyymmdd)
-         idate0   , & ! initial date (yyyymmdd)
+         month    , & ! month number, 1 to months_per_year
+         mday     , & ! day of the month
          sec      , & ! elapsed seconds into date
+         ! initial time
+         year_init, & ! initial year
+         month_init,& ! initial month
+         day_init, & ! initial day of month
+         sec_init , & ! initial seconds
+         ! other stuff
+         idate    , & ! date (yyyymmdd)
+         idate0   , & ! initial date (yyyymmdd), associated with year_init, month_init, day_init
+         dayyr    , & ! number of days in the current year
          npt      , & ! total number of time steps (dt)
          ndtd     , & ! number of dynamics subcycles: dt_dyn=dt/ndtd
          stop_now     , & ! if 1, end program execution
@@ -79,24 +73,26 @@
          diagfreq     , & ! diagnostic output frequency (10 = once per 10 dt)
          dumpfreq_n   , & ! restart output frequency (10 = once per 10 d,m,y)
          nstreams     , & ! number of history output streams
-         histfreq_n(max_nstrm) ! history output frequency 
-
-      real (kind=dbl_kind), public :: &
-         dt             , & ! thermodynamics timestep (s)
-         dt_dyn         , & ! dynamics/transport/ridging timestep (s)
-         time           , & ! total elapsed time (s)
-         time_forc      , & ! time of last forcing update (s)
-         yday           , & ! day of the year
-         tday           , & ! absolute day number
-         dayyr          , & ! number of days per year
-         nextsw_cday    , & ! julian day of next shortwave calculation
-         basis_seconds      ! Seconds since calendar zero
+         histfreq_n(max_nstrm) ! history output frequency
 
       logical (kind=log_kind), public :: &
          new_year       , & ! new year = .true.
          new_month      , & ! new month = .true.
          new_day        , & ! new day = .true.
-         new_hour       , & ! new hour = .true.
+         new_hour           ! new hour = .true.
+
+      real (kind=dbl_kind), public :: &
+         dt             , & ! thermodynamics timestep (s)
+         dt_dyn         , & ! dynamics/transport/ridging timestep (s)
+         timesecs       , & ! total elapsed time (s)
+         rdate_forc     , & ! time of last forcing update (s)
+         yday           , & ! day of the year
+!tcx1         tday           , & ! absolute day number
+!tcx1         dayyr          , & ! number of days per year
+         nextsw_cday        ! julian day of next shortwave calculation
+!tcx1         basis_seconds      ! Seconds since calendar zero
+
+      logical (kind=log_kind), public :: &
          use_leap_years , & ! use leap year functionality if true
          write_ic       , & ! write initial condition now
          dump_last      , & ! write restart file on last time step
@@ -104,12 +100,34 @@
          write_history(max_nstrm) ! write history now
 
       character (len=1), public :: &
+         npt_unit,            & ! run length unit, 'y', 'm', 'd', 'h', 's', '1'
          histfreq(max_nstrm), & ! history output frequency, 'y','m','d','h','1'
          dumpfreq               ! restart frequency, 'y','m','d'
 
       character (len=char_len), public :: &
          calendar_type       ! differentiates Gregorian from other calendars
                              ! default = ' '
+
+      ! PRIVATE
+
+      integer (kind=int_kind) :: &
+         hour         ! hour of the day
+
+      ! 360-day year data
+      integer (kind=int_kind) :: &
+         daymo360(months_per_year)    ! number of days in each month
+      data daymo360 /   30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30/
+
+      ! 365-day year data
+      integer (kind=int_kind) :: &
+         daymo365(months_per_year)    ! number of days in each month
+      data daymo365 /   31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/
+
+      ! 366-day year data (leap year)
+      integer (kind=int_kind) :: &
+         daymo366(months_per_year)    ! number of days in each month
+      data daymo366 /   31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/
+
 
 !=======================================================================
 
@@ -135,60 +153,40 @@
          file=__FILE__, line=__LINE__)
 
       istep = 0         ! local timestep number
-      time=istep0*dt    ! s
-      yday=c0           ! absolute day number
-      mday=0            ! day of the month
-      month=0           ! month
-      nyr=0             ! year
-      idate=00000101    ! date
-      sec=0             ! seconds into date
+      nyr=year_init     ! year
+      month=month_init  ! month
+      mday=day_init     ! day of the month
+      sec=sec_init      ! seconds into date
       istep1 = istep0   ! number of steps at current timestep
                         ! real (dumped) or imagined (use to set calendar)
+      idate0 = (nyr)*10000 + month*100 + mday ! date (yyyymmdd) 
       stop_now = 0      ! end program execution if stop_now=1
       dt_dyn = dt/real(ndtd,kind=dbl_kind) ! dynamics et al timestep
       force_restart_now = .false.
 
-      ! Check that the number of days per year is set correctly when using
-      ! leap years. If not, set days_per_year correctly and warn the user.
-      if (use_leap_years .and. days_per_year /= 365) then
-         days_per_year = 365
-         write(nu_diag,*) 'Warning: days_per_year has been set to 365', &
-              ' because use_leap_years = .true.'
-      end if
-
 #ifdef CESMCOUPLED
       ! calendar_type set by coupling
 #else
-      calendar_type = ' '
-      if (use_leap_years .and. days_per_year == 365) calendar_type = 'Gregorian'
-#endif
-      
-      dayyr = real(days_per_year, kind=dbl_kind)
-      if (days_per_year == 360) then
-         daymo  = daymo360
-         daycal = daycal360
-      elseif (days_per_year == 365) then
-         daymo  = daymo365
-         daycal = daycal365
-      else 
-         call abort_ice(subname//'ERROR: days_per_year must be 360 or 365')
+      calendar_type = ''
+      if (use_leap_years) then
+         if (days_per_year == 365) then
+            calendar_type = trim(ice_calendar_gregorian)
+         else
+            call abort_ice(subname//'ERROR: use_leap_years is true, must set days_per_year to 365')
+         endif
+      else
+         if (days_per_year == 365) then
+            calendar_type = trim(ice_calendar_noleap)
+         elseif (days_per_year == 360) then
+            calendar_type = trim(ice_calendar_360day)
+         else
+            call abort_ice(subname//'ERROR: days_per_year only 365 or 360 supported')
+         endif
       endif
+#endif
 
-      ! Get the time in seconds from calendar zero to start of initial year
-      call time2sec(year_init,1,1,basis_seconds)
-
-      ! determine initial date (assumes namelist year_init, istep0 unchanged)     
-      sec = mod(time,secday)            ! elapsed seconds into date at
-                                        ! end of dt
-      tday = (time-sec)/secday + c1     ! absolute day number
-
-      ! Convert the current timestep into a calendar date
-      call sec2time(nyr,month,mday,basis_seconds+sec)
-
-      yday = mday + daycal(month)  ! day of the year
-      nyr = nyr - year_init + 1    ! year number
-
-      idate0 = (nyr+year_init-1)*10000 + month*100 + mday ! date (yyyymmdd) 
+      call set_calendar(nyr)
+      call calendar()
 
       end subroutine init_calendar
 
@@ -200,7 +198,182 @@
 !          Tony Craig, NCAR
 !          Craig MacLachlan, UK Met Office
 
-      subroutine calendar(ttime)
+      subroutine advance_time()
+
+      use ice_communicate, only: my_task, master_task
+
+      ! local variables
+
+      integer(kind=int_kind) :: &
+         idt       ! integer dt
+      character(len=*),parameter :: subname='(advance_time)'
+
+      istep = istep + 1
+      istep1 = istep1 + 1
+      idt = nint(dt)
+      sec = sec + idt
+
+      call calendar()
+
+      end subroutine advance_time
+
+!=======================================================================
+
+! Determine the date at the end of the time step
+!
+! authors: Elizabeth C. Hunke, LANL
+!          Tony Craig, NCAR
+!          Craig MacLachlan, UK Met Office
+
+      subroutine calendar()
+
+      use ice_communicate, only: my_task, master_task
+
+!      real (kind=dbl_kind), intent(in), optional :: &
+!         ttime                          ! time variable
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         ns                         , & ! loop index
+         nyrp,monthp,mdayp,hourp    , & ! previous year, day, hour
+         elapsed_days               , & ! since beginning this run
+         elapsed_months             , & ! since beginning this run
+         elapsed_hours                  ! since beginning this run
+      real    (kind=dbl_kind) :: secday ! seconds per day
+      integer (kind=int_kind) :: isecday  ! seconds per day
+      character(len=*),parameter :: subname='(calendar)'
+
+      nyrp=nyr
+      monthp=month
+      mdayp=mday
+      hourp=hour
+      new_year=.false.
+      new_month=.false.
+      new_day=.false.
+      new_hour=.false.
+      write_history(:)=.false.
+      write_restart=0
+
+      !--- recompute yr/mon/day/sec
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      isecday = nint(secday)
+      if (sec >= isecday) then
+         mday = mday + int(sec/isecday)
+         sec = mod(sec,isecday)
+      endif
+      do while (mday > daymo(month))
+         mday = mday - daymo(month)
+         month = month + 1
+         do while (month > months_per_year)
+            month = month - months_per_year
+            nyr = nyr + 1
+            call set_calendar(nyr)
+         enddo
+      enddo
+
+      idate = (nyr)*10000 + month*100 + mday ! date (yyyymmdd) 
+      yday = daycal(month) + mday            ! day of the year
+      dayyr = daycal(months_per_year+1)
+      elapsed_months = (nyr - year_init)*months_per_year + month - month_init
+      elapsed_days = calendar_compute_days_between(year_init,month_init,day_init,nyr,month,mday)
+      elapsed_hours = elapsed_days * hours_per_day
+      timesecs = real(elapsed_days,kind=dbl_kind)*secday + &
+                 real(sec,kind=dbl_kind)
+
+      !--- compute other stuff
+
+!tcx      hour = int((sec)/c3600) + c1 ! hour
+
+#ifndef CESMCOUPLED
+      if (istep >= npt+1)  stop_now = 1
+      if (istep == npt .and. dump_last) write_restart = 1 ! last timestep
+#endif
+      if (nyr   /= nyrp)   new_year = .true.
+      if (month /= monthp) new_month = .true.
+      if (mday  /= mdayp)  new_day = .true.
+      if (hour  /= hourp)  new_hour = .true.
+
+      ! History writing flags
+
+      do ns = 1, nstreams
+
+         select case (histfreq(ns))
+         case ("y", "Y")
+            if (new_year  .and. histfreq_n(ns)/=0) then
+               if (mod(nyr, histfreq_n(ns))==0) &
+                   write_history(ns) = .true.
+            endif
+         case ("m", "M")
+            if (new_month .and. histfreq_n(ns)/=0) then
+               if (mod(elapsed_months,histfreq_n(ns))==0) &
+                   write_history(ns) = .true.
+            endif
+         case ("d", "D")
+            if (new_day  .and. histfreq_n(ns)/=0) then
+               if (mod(elapsed_days,histfreq_n(ns))==0) &
+                   write_history(ns) = .true.
+            endif
+         case ("h", "H")
+            if (new_hour  .and. histfreq_n(ns)/=0) then
+               if (mod(elapsed_hours,histfreq_n(ns))==0) &
+                   write_history(ns) = .true.
+            endif
+         case ("1")
+            if (histfreq_n(ns)/=0) then
+               if (mod(istep1, histfreq_n(ns))==0) &
+                  write_history(ns)=.true.
+            endif
+         end select
+
+      enddo
+
+      ! Restart writing flag
+
+      select case (dumpfreq)
+      case ("y", "Y")
+         if (new_year  .and. mod(nyr, dumpfreq_n)==0) &
+            write_restart = 1
+      case ("m", "M")
+         if (new_month .and. mod(elapsed_months,dumpfreq_n)==0) &
+            write_restart = 1
+      case ("d", "D")
+         if (new_day   .and. mod(elapsed_days, dumpfreq_n)==0) &
+            write_restart = 1
+      case ("h", "H")
+         if (new_hour  .and. mod(elapsed_hours, dumpfreq_n)==0) &
+            write_restart = 1
+      case ("1")
+         if (mod(istep1, dumpfreq_n)==0) &
+            write_restart = 1
+      end select
+
+      if (force_restart_now) write_restart = 1
+      
+      if (my_task == master_task .and. mod(istep1,diagfreq) == 0 &
+                                 .and. stop_now /= 1) then
+        write(nu_diag,*) ' '
+        write(nu_diag,'(a7,i10,4x,a6,i10,4x,a4,i10)') &
+             'istep1:', istep1, 'idate:', idate, 'sec:', sec
+      endif
+
+      end subroutine calendar
+
+!=======================================================================
+#if (1 == 0)
+
+! Determine the date at the end of the time step
+!
+! authors: Elizabeth C. Hunke, LANL
+!          Tony Craig, NCAR
+!          Craig MacLachlan, UK Met Office
+
+      subroutine calendar_old(ttime)
 
       use ice_communicate, only: my_task, master_task
 
@@ -211,13 +384,13 @@
 
       integer (kind=int_kind) :: &
          ns                         , & ! loop index
-         nyrp,mdayp,hourp           , & ! previous year, day, hour
+         nyrp,mdayp,hourp           , & ! previous year, month, day, hour
          elapsed_days               , & ! since beginning this run
          elapsed_months             , & ! since beginning this run
          elapsed_hours              , & ! since beginning this run
          month0
       real    (kind=dbl_kind) :: secday ! seconds per day
-      character(len=*),parameter :: subname='(calendar)'
+      character(len=*),parameter :: subname='(calendar_old)'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
@@ -237,7 +410,7 @@
 
       sec = mod(ttime,secday)           ! elapsed seconds into date at
                                         ! end of dt
-      tday = (ttime-sec)/secday + c1    ! absolute day number
+!tcx1      tday = (ttime-sec)/secday + c1    ! absolute day number
 
       ! Deterime the current date from the timestep
       call sec2time(nyr,month,mday,basis_seconds+ttime)
@@ -249,7 +422,7 @@
 
       month0 = int((idate0 - int(idate0 / 10000) * 10000) / 100)
 
-      elapsed_months = (nyr - 1)*12 + (month - month0)
+      elapsed_months = (nyr - 1)*months_per_year + (month - month0)
       elapsed_days = int((istep * dt) / secday)
       elapsed_hours = int(ttime/3600)
 
@@ -332,176 +505,59 @@
              'istep1:', istep1, 'idate:', idate, 'sec:', sec
       endif
 
-      end subroutine calendar
-
+      end subroutine calendar_old
+#endif
 !=======================================================================
+! Convert the date to a real value time
 
-! Convert the date to seconds since calendar zero.
-!  ** This is based on the UM routine TIME2SEC **
-!
-! authors: Craig MacLachlan, UK Met Office
-
-      subroutine time2sec(year,month,day,tsec)
+      subroutine date2rdate(year,month,day,sec,time)
 
       integer (kind=int_kind), intent(in) :: year  ! year
       integer (kind=int_kind), intent(in) :: month ! month
-      integer (kind=int_kind), intent(in) :: day   ! year
-      real (kind=dbl_kind),   intent(out) :: tsec  ! seconds since calendar zero
+      integer (kind=int_kind), intent(in) :: day   ! day
+      integer (kind=int_kind), intent(in) :: sec   ! seconds
+      real (kind=dbl_kind),   intent(out) :: time  ! ymds expressed in real
 
       ! local variables
 
-      real    (kind=dbl_kind) :: days_since_calz   ! days since calendar zero
-      real    (kind=dbl_kind) :: secday            ! seconds per day
-      integer (kind=int_kind) :: years_since_calz  ! days since calendar zero
-      character(len=*),parameter :: subname='(time2sec)'
+      character(len=*),parameter :: subname='(date2rdate)'
 
-      call icepack_query_parameters(secday_out=secday)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      ! Needs to be consistent with rdate2date
 
-      if (dayyr == 360) then
-         days_since_calz = c360*year + c30*(month-1) + day - c1
-         tsec = secday * days_since_calz
+      time = real((year*10000 + month*100 + day),kind=dbl_kind) + &
+             real(sec,kind=dbl_kind)/100000._dbl_kind
 
-      else
-         
-         if (use_leap_years) then
-
-            call set_calendar(year)
-
-            ! Add on the days from this year
-            days_since_calz = day + daycal(month) - c1
-
-            ! Subtract a year because we only want to count whole years
-            years_since_calz = year - 1
-            
-            ! Add days from preceeding years
-            days_since_calz  = days_since_calz &
-                             + int(years_since_calz/c400)*days_per_4c
-            years_since_calz = years_since_calz &
-                             - int(years_since_calz/c400)*400
-
-            days_since_calz  = days_since_calz &
-                             + int(years_since_calz/c100)*days_per_c
-            years_since_calz = years_since_calz &
-                             - int(years_since_calz/c100)*100
-
-            days_since_calz  = days_since_calz &
-                             + int(years_since_calz/c4)*days_per_4y
-            years_since_calz = years_since_calz &
-                             - int(years_since_calz/c4)*4
-
-            days_since_calz  = days_since_calz &
-                             + years_since_calz*days_per_y
-
-            tsec = secday * days_since_calz
-            
-         else ! Using fixed 365-day calendar
-            
-            days_since_calz = c365*year + daycal365(month) + day - c1
-            tsec = secday * days_since_calz
-
-         end if
-
-      end if
-
-      end subroutine time2sec
+      end subroutine date2rdate
 
 !=======================================================================
+! Convert the real time value to a date
 
-! Convert the time in seconds since calendar zero to a date.
-!
-! authors: Craig MacLachlan, UK Met Office
+      subroutine rdate2date(time,year,month,day,sec)
 
-      subroutine sec2time(year,month,day,tsec)
-
+      real (kind=dbl_kind),    intent(in)  :: time     ! ymds expressed in real
       integer (kind=int_kind), intent(out) :: year     ! year
       integer (kind=int_kind), intent(out) :: month    ! month
-      integer (kind=int_kind), intent(out) :: day      ! year
-      real (kind=dbl_kind),    intent(in)  :: tsec     ! seconds since calendar zero      
+      integer (kind=int_kind), intent(out) :: day      ! day
+      integer (kind=int_kind), intent(out) :: sec      ! seconds
 
       ! local variables
 
-      real    (kind=dbl_kind) :: days_since_calz  ! days since calendar zero
-      real    (kind=dbl_kind) :: secday           ! seconds per day
-      integer (kind=int_kind) :: k                ! counter
-      character(len=*),parameter :: subname='(sec2time)'
+      integer (kind=int_kind) :: itime
+      character(len=*),parameter :: subname='(rdate2date)'
 
-      call icepack_query_parameters(secday_out=secday)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      ! Needs to be consistent with date2rdate
 
-      days_since_calz = int(tsec/secday)
+      ! Since time is a real and the decimal should >= 0 and <= .86400, 
+      ! add 0.001 in case decimal is zero but real has underflowed by roundoff to make
+      ! sure "int" generates correct result
 
-      if (dayyr == 360) then
+      itime = int(time+0.001_dbl_kind)
+      year  = itime/100000
+      month = mod(itime,10000) / 100
+      day   = mod(itime,100)
+      sec   = nint(mod(time,1.0_dbl_kind)*100000._dbl_kind)
 
-         year = int(days_since_calz/c360)
-         month = mod(int(days_since_calz/c30),12) + 1
-         day = mod(int(days_since_calz),30) + 1
-
-      else
-
-         if (use_leap_years) then
-
-            year = int(days_since_calz/days_per_4c)*400
-            days_since_calz = days_since_calz &
-                            - int(days_since_calz/days_per_4c)*days_per_4c
-            
-            if (days_since_calz == 4*days_per_c) then
-               year = year + 400
-               days_since_calz = days_per_y + 1
-            else
-               year = year + int(days_since_calz/days_per_c)*100
-               days_since_calz = days_since_calz &
-                               - int(days_since_calz/days_per_c)*days_per_c
-               
-               year = year + int(days_since_calz/days_per_4y)*4
-               days_since_calz = days_since_calz &
-                               - int(days_since_calz/days_per_4y)*days_per_4y
-               
-               if (days_since_calz == 4*days_per_y) then
-                  year = year + 4
-                  days_since_calz = days_per_y + 1
-               else
-                  year = year + int(days_since_calz/days_per_y) + 1
-                  days_since_calz = days_since_calz &
-                                  - int(days_since_calz/days_per_y)*days_per_y + c1
-               endif
-            endif
-
-            ! Ensure the calendar variables are correct for this year.
-            call set_calendar(year)
-
-            ! Calculate the month
-            month = 1
-            do k = 1, 12
-               if (days_since_calz > daycal(k)) month = k
-            enddo
-
-            ! Calculate the day of the month
-            day = days_since_calz - daycal(month)
-
-         else ! Using fixed 365-day calendar
-            
-            year = int(days_since_calz/c365)
-            days_since_calz = days_since_calz - year*365 + 1
-      
-            ! Calculate the month
-            month = 1
-            do k = 1, 12
-               if (days_since_calz > daycal365(k)) month = k
-            enddo
-
-            ! Calculate the day of the month
-            day = days_since_calz - daycal365(month)
-
-         end if
-
-      end if
-
-      end subroutine sec2time
+      end subroutine rdate2date
 
 !=======================================================================
 
@@ -516,27 +572,172 @@
 
       ! Internal variable
       logical (kind=log_kind) :: isleap   ! Leap year logical
+      integer (kind=int_kind) :: n
       character(len=*),parameter :: subname='(set_calendar)'
 
-      isleap = .false. ! not a leap year
-      if (mod(year,  4) == 0) isleap = .true.
-      if (mod(year,100) == 0) isleap = .false.
-      if (mod(year,400) == 0) isleap = .true.
-      
-      ! Ensure the calendar is set correctly
-      if (isleap) then
-         daycal = daycal366
-         daymo = daymo366
-         dayyr=real(daycal(13), kind=dbl_kind)
-         days_per_year=int(dayyr)
+      if (trim(calendar_type) == trim(ice_calendar_gregorian)) then
+
+         isleap = .false. ! not a leap year
+         if (mod(year,  4) == 0) isleap = .true.
+         if (mod(year,100) == 0) isleap = .false.
+         if (mod(year,400) == 0) isleap = .true.      
+
+         if (isleap) then
+            daymo = daymo366
+         else
+            daymo = daymo365
+         endif
+
+      elseif (trim(calendar_type) == trim(ice_calendar_360day)) then
+         daymo = daymo360
       else
-         daycal = daycal365
          daymo = daymo365
-         dayyr=real(daycal(13), kind=dbl_kind)
-         days_per_year=int(dayyr)
       endif
 
-    end subroutine set_calendar
+      daycal(1) = 0
+      do n = 1, months_per_year
+         daycal(n+1) = daycal(n) + daymo(n)
+      enddo
+      days_per_year=daycal(months_per_year+1)
+
+      end subroutine set_calendar
+
+!=======================================================================
+
+! Compute elapsed days from year0,month0,day0 to year1,month1,day1
+! Same day results in 0 elapsed days
+
+      integer function calendar_compute_days_between(year0,month0,day0,year1,month1,day1)
+
+      integer (kind=int_kind), intent(in) :: year0   ! start year
+      integer (kind=int_kind), intent(in) :: month0  ! start month
+      integer (kind=int_kind), intent(in) :: day0    ! start day
+      integer (kind=int_kind), intent(in) :: year1   ! end year
+      integer (kind=int_kind), intent(in) :: month1  ! end month
+      integer (kind=int_kind), intent(in) :: day1    ! end day
+
+      ! Internal variable
+      logical (kind=log_kind) :: isleap   ! Leap year logical
+      integer (kind=int_kind) :: nday0, nday1
+      character(len=*),parameter :: subname='(calendar_compute_days_between)'
+
+      nday0 = calendar_compute_elapsed_days(year0,month0,day0)
+      nday1 = calendar_compute_elapsed_days(year1,month1,day1)
+
+      calendar_compute_days_between = nday1 - nday0
+
+      end function calendar_compute_days_between
+
+!=======================================================================
+
+! Compute elapsed days from 0000-01-01 to year1,month1,day1
+! 0000-01-01 is 0 elapsed days
+
+      integer function calendar_compute_elapsed_days(year,month,day)
+
+      integer (kind=int_kind), intent(in) :: year   ! year
+      integer (kind=int_kind), intent(in) :: month  ! month
+      integer (kind=int_kind), intent(in) :: day    ! day
+
+      ! Internal variable
+      logical (kind=log_kind) :: isleap   ! Leap year logical
+      integer (kind=int_kind) :: nday, n
+      integer (kind=int_kind) :: daymo_local(months_per_year)
+      character(len=*),parameter :: subname='(calendar_compute_elapsed_days)'
+
+      ! use 0000-01-01 as base, year 0 is a leap year
+      ! this must be implemented consistent with set_calendar
+
+      if (year < 0 .or. month <= 0 .or. month > months_per_year .or. day <= 0) then
+         write(nu_diag,*) trim(subname),' ERROR for year,month,day = ',year,month,day
+         call abort_ice(subname//'ERROR: illegal date')
+      endif
+
+      ! set calendar for year
+      daymo_local = daymo
+      if (trim(calendar_type) == trim(ice_calendar_gregorian)) then
+         isleap = .false. ! not a leap year
+         if (mod(year,  4) == 0) isleap = .true.
+         if (mod(year,100) == 0) isleap = .false.
+         if (mod(year,400) == 0) isleap = .true.      
+         if (isleap) then
+            daymo_local = daymo366
+         else
+            daymo_local = daymo365
+         endif
+      endif
+
+      ! compute days from year 0000-01-01 to year-01-01
+      ! don't loop thru years for performance reasons
+      if (trim(calendar_type) == trim(ice_calendar_gregorian)) then
+         if (year == 0) then
+            nday = 0
+         else
+            nday = year * 365 + 1 + (year-1)/4 - (year-1)/100 + (year-1)/400
+         endif
+      else
+         nday = year * daycal(months_per_year+1)
+      endif
+
+      do n = 1, month-1
+         nday = nday + daymo_local(n)
+      enddo
+
+      if (day <= daymo_local(month)) then
+         nday = nday + day - 1
+      else
+         write(nu_diag,*) trim(subname),' ERROR for year,month,day = ',year,month,day
+         call abort_ice(subname//'ERROR: illegal day in month')
+      endif
+
+      calendar_compute_elapsed_days = nday
+
+      end function calendar_compute_elapsed_days
+
+!=======================================================================
+
+! Compute elapsed days from 0000-01-01 to year1,month1,day1
+! 0000-01-01 is 0 elapsed days
+
+      subroutine calendar_set_date_from_timesecs(ttimesecs)
+
+      real (kind=dbl_kind), intent(in) :: ttimesecs   ! seconds since init date
+
+      ! Internal variable
+      integer (kind=int_kind) :: nday0, nday1, n
+      integer (kind=int_kind) :: isecday  ! seconds per day
+      real (kind=dbl_kind) :: secday
+      character(len=*),parameter :: subname='(calendar_set_date_from_timesecs)'
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      timesecs = ttimesecs
+
+      nyr = year_init
+      month = month_init
+      mday = day_init
+      sec = ttimesecs
+      call set_calendar(nyr)
+
+      isecday = nint(secday)
+      if (sec >= isecday) then
+         mday = mday + int(sec/isecday)
+         sec = mod(sec,isecday)
+      endif
+      do while (mday > daymo(month))
+         mday = mday - daymo(month)
+         month = month + 1
+         do while (month > months_per_year)
+            month = month - months_per_year
+            nyr = nyr + 1
+            call set_calendar(nyr)
+         enddo
+      enddo
+
+      end subroutine calendar_set_date_from_timesecs
 
 !=======================================================================
 
@@ -551,16 +752,22 @@
         real(kind=dbl_kind)     :: dtime
         integer(kind=int_kind)  :: iyear,iyr,imm,idd,idoy,ihr
         integer(kind=int_kind), optional :: ihour
+        integer (kind=int_kind) :: n
 
         if (present(ihour)) then
           !-----------------
           ! yyyy mm dd HH
           !-----------------
           iyr=iyear-1901
+          dtime = floor(365.25_dbl_kind*iyr)*c1 + idd*c1 + ihour/24._dbl_kind
           if (mod(iyr,4)==3) then
-            dtime = floor(365.25_dbl_kind*iyr)*c1 + daycal366(imm)*c1 + idd*c1 + ihour/24._dbl_kind
+            do n = 1,imm-1
+               dtime = dtime + daymo366(n)
+            enddo
           else
-            dtime = floor(365.25_dbl_kind*iyr)*c1 + daycal365(imm)*c1 + idd*c1 + ihour/24._dbl_kind
+            do n = 1,imm-1
+               dtime = dtime + daymo365(n)
+            enddo
           endif
 
         else

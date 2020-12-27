@@ -47,7 +47,7 @@ module ice_comp_mct
   use ice_constants,   only : ice_init_constants
   use ice_communicate, only : my_task, master_task, MPI_COMM_ICE
   use ice_calendar,    only : istep, istep1, force_restart_now, write_ic,&
-                              idate, idate0, mday, time, month, daycal,  &
+                              idate, idate0, mday, time, month,          &
                               sec, dt, dt_dyn, calendar,                 &
                               calendar_type, nextsw_cday, days_per_year, &
                               nyr, new_year, time2sec, year_init
@@ -157,7 +157,6 @@ contains
     integer            :: shrlogunit,shrloglev ! old values
     integer            :: iam,ierr
     integer            :: lbnum
-    integer            :: daycal(13)  !number of cumulative days per month
     integer            :: nleaps      ! number of leap days before current year
     integer            :: mpicom_loc  ! temporary mpicom
     logical (kind=log_kind) :: atm_aero, tr_aero, tr_zaero

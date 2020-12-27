@@ -655,7 +655,7 @@
 
       use ice_calendar, only: sec, nyr, month, daymo,  &
                               mday, write_ic, histfreq, histfreq_n, &
-                              year_init, new_year, new_month, new_day, &
+                              new_year, new_month, new_day, &
                               dt
       use ice_restart_shared, only: lenstr
 
@@ -667,7 +667,7 @@
       character (len=1) :: cstream
       character(len=*), parameter :: subname = '(construct_filename)'
 
-        iyear = nyr + year_init - 1 ! set year_init=1 in ice_in to get iyear=nyr
+        iyear = nyr
         imonth = month
         iday = mday
         isec = sec - dt
