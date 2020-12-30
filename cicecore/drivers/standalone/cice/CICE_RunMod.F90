@@ -548,7 +548,7 @@
                             Tref     (:,:,iblk), Qref    (:,:,iblk), &
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
                             fhocn    (:,:,iblk),                     &
-                            fswthru (:,:,iblk),                      &
+                            fswthru  (:,:,iblk),                     &
                             fswthru_vdr (:,:,iblk),                  &
                             fswthru_vdf (:,:,iblk),                  &
                             fswthru_idr (:,:,iblk),                  &
