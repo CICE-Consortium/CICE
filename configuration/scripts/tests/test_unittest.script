@@ -1,0 +1,24 @@
+
+#----------------------------------------------------
+# Run the CICE model
+# cice.run returns -1 if run did not complete successfully
+
+./cice.run
+set res="$status"
+
+set log_file = `ls -t1 ${ICE_RUNDIR}/cice.runlog* | head -1`
+
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test" >! ${ICE_CASEDIR}/test_output
+rm -f ${ICE_CASEDIR}/test_output.prev
+
+set grade = FAIL
+if ( $res == 0 ) then
+  set grade = PASS
+endif
+
+echo "$grade ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
+echo "$grade ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+

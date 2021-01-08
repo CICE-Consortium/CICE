@@ -98,6 +98,11 @@ else if (${grid} == 'tx1') then
     set blckx = 10; set blcky = 10
   endif
 
+else if (${grid} == 'none') then
+  set nxglob = 1
+  set nyglob = 1
+  set blckx = 1; set blcky = 1
+
 else
   echo "${0:t}: ERROR unknown grid ${grid}"
   exit -9

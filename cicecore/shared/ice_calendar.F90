@@ -31,7 +31,6 @@
       public :: init_calendar, advance_time, calendar, hc_jday
       public :: calendar_compute_elapsed_days, calendar_compute_days_between
       public :: calendar_set_date_from_timesecs
-!      public :: date2rdate, rdate2date
 
       character(len=*), public, parameter :: &
          ice_calendar_gregorian = 'Gregorian', &  ! calendar name, actually proleptic gregorian here
@@ -211,6 +210,10 @@
       istep = istep + 1
       istep1 = istep1 + 1
       idt = nint(dt)
+      if (abs(real(idt,kind=dbl_kind)-dt) > 1.0e-7) then
+         write(nu_diag,*) trim(subname),' ERROR dt error, needs to be integer number of seconds, dt=',dt
+         call abort_ice(subname//'ERROR: improper dt')
+      endif
       sec = sec + idt
 
       call calendar()
@@ -256,17 +259,28 @@
       write_restart=0
 
       !--- recompute yr/mon/day/sec
+      !--- do so months before days
+      !--- the order could make a difference
+      !--- for instance, if month=13 and mday = 40 then if you add 40 days then 13 months
+      !--- vs 13 months then 40 days, you could end up on a different date
+      !--- in general, users should just increment one unit at a time for most consistent results
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+      call set_calendar(nyr)
       isecday = nint(secday)
       if (sec >= isecday) then
          mday = mday + int(sec/isecday)
          sec = mod(sec,isecday)
       endif
+      do while (month > months_per_year)
+         month = month - months_per_year
+         nyr = nyr + 1
+         call set_calendar(nyr)
+      enddo
       do while (mday > daymo(month))
          mday = mday - daymo(month)
          month = month + 1
@@ -279,7 +293,6 @@
 
       idate = (nyr)*10000 + month*100 + mday ! date (yyyymmdd) 
       yday = daycal(month) + mday            ! day of the year
-      dayyr = daycal(months_per_year+1)
       elapsed_months = (nyr - year_init)*months_per_year + month - month_init
       elapsed_days = calendar_compute_days_between(year_init,month_init,day_init,nyr,month,mday)
       elapsed_hours = elapsed_days * hours_per_day
@@ -508,58 +521,6 @@
       end subroutine calendar_old
 #endif
 !=======================================================================
-! Convert the date to a real value time
-
-      subroutine date2rdate(year,month,day,sec,time)
-
-      integer (kind=int_kind), intent(in) :: year  ! year
-      integer (kind=int_kind), intent(in) :: month ! month
-      integer (kind=int_kind), intent(in) :: day   ! day
-      integer (kind=int_kind), intent(in) :: sec   ! seconds
-      real (kind=dbl_kind),   intent(out) :: time  ! ymds expressed in real
-
-      ! local variables
-
-      character(len=*),parameter :: subname='(date2rdate)'
-
-      ! Needs to be consistent with rdate2date
-
-      time = real((year*10000 + month*100 + day),kind=dbl_kind) + &
-             real(sec,kind=dbl_kind)/100000._dbl_kind
-
-      end subroutine date2rdate
-
-!=======================================================================
-! Convert the real time value to a date
-
-      subroutine rdate2date(time,year,month,day,sec)
-
-      real (kind=dbl_kind),    intent(in)  :: time     ! ymds expressed in real
-      integer (kind=int_kind), intent(out) :: year     ! year
-      integer (kind=int_kind), intent(out) :: month    ! month
-      integer (kind=int_kind), intent(out) :: day      ! day
-      integer (kind=int_kind), intent(out) :: sec      ! seconds
-
-      ! local variables
-
-      integer (kind=int_kind) :: itime
-      character(len=*),parameter :: subname='(rdate2date)'
-
-      ! Needs to be consistent with date2rdate
-
-      ! Since time is a real and the decimal should >= 0 and <= .86400, 
-      ! add 0.001 in case decimal is zero but real has underflowed by roundoff to make
-      ! sure "int" generates correct result
-
-      itime = int(time+0.001_dbl_kind)
-      year  = itime/100000
-      month = mod(itime,10000) / 100
-      day   = mod(itime,100)
-      sec   = nint(mod(time,1.0_dbl_kind)*100000._dbl_kind)
-
-      end subroutine rdate2date
-
-!=======================================================================
 
 ! Set the "days per month", "days per year", etc variables for the 
 ! current year.
@@ -598,7 +559,7 @@
       do n = 1, months_per_year
          daycal(n+1) = daycal(n) + daymo(n)
       enddo
-      days_per_year=daycal(months_per_year+1)
+      dayyr=daycal(months_per_year+1)
 
       end subroutine set_calendar
 
@@ -696,17 +657,16 @@
 
 !=======================================================================
 
-! Compute elapsed days from 0000-01-01 to year1,month1,day1
-! 0000-01-01 is 0 elapsed days
+! Compute calendar from timesecs input
+! Implemented to minimize accumulating errors and avoid overflows
 
       subroutine calendar_set_date_from_timesecs(ttimesecs)
 
       real (kind=dbl_kind), intent(in) :: ttimesecs   ! seconds since init date
 
       ! Internal variable
-      integer (kind=int_kind) :: nday0, nday1, n
-      integer (kind=int_kind) :: isecday  ! seconds per day
-      real (kind=dbl_kind) :: secday
+      integer (kind=int_kind) :: ndays
+      real (kind=dbl_kind) :: secday, rdays
       character(len=*),parameter :: subname='(calendar_set_date_from_timesecs)'
 
       call icepack_query_parameters(secday_out=secday)
@@ -717,16 +677,28 @@
       timesecs = ttimesecs
 
       nyr = year_init
-      month = month_init
-      mday = day_init
-      sec = ttimesecs
+      month = 1
+      mday = 1
+      sec = 0
       call set_calendar(nyr)
 
-      isecday = nint(secday)
-      if (sec >= isecday) then
-         mday = mday + int(sec/isecday)
-         sec = mod(sec,isecday)
+      ! first estimate of nyr
+      call set_calendar(nyr)
+      rdays = ttimesecs/secday
+      nyr = nyr + int(rdays)/dayyr
+
+      ! reduce estimate of nyr if ndays > rdays
+      ndays = calendar_compute_days_between(year_init,month_init,day_init,nyr,month,mday)
+      if (ndays > int(rdays)) then
+         nyr = nyr - (ndays - int(rdays))/dayyr - 1
+         ndays = calendar_compute_days_between(year_init,month_init,day_init,nyr,month,mday)
       endif
+      call set_calendar(nyr)
+
+      ! compute residiual, switch to integers, advance calendar
+      rdays = ttimesecs/secday
+      mday = int(rdays) - ndays + 1
+
       do while (mday > daymo(month))
          mday = mday - daymo(month)
          month = month + 1
@@ -736,6 +708,13 @@
             call set_calendar(nyr)
          enddo
       enddo
+
+      ndays = calendar_compute_days_between(year_init,month_init,day_init,nyr,month,mday)
+      sec = int(ttimesecs - real(ndays,kind=dbl_kind)*secday)
+      if (sec > secday) then
+         write(nu_diag,*) trim(subname),' ERROR in seconds, ',nyr,month,mday,sec
+         call abort_ice(subname//'ERROR: in seconds')
+      endif
 
       end subroutine calendar_set_date_from_timesecs
 
