@@ -550,22 +550,23 @@
 
       logical (kind=log_kind) :: &
          tr_fsd,          & ! floe size distribution tracers
-         z_tracers
+         z_tracers,       & ! vertical biogeochemistry
+         solve_zsal         ! zsalinity
 
       type (block) :: &
          this_block         ! block information for current block
 
       character(len=*), parameter :: subname = '(step_therm2)'
 
-      call icepack_query_parameters(z_tracers_out=z_tracers)
+      call icepack_query_parameters(z_tracers_out=z_tracers,solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      ! tcraig, nltrcr used to be the number of zbgc tracers, but it's used as a zbgc flag in icepack
-      if (z_tracers) then
+      ! nltrcr is only used as a zbgc flag in icepack (number of zbgc tracers > 0)
+      if (z_tracers .or. solve_zsal) then
          nltrcr = 1
       else
          nltrcr = 0
