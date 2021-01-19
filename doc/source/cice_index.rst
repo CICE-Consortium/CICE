@@ -188,7 +188,7 @@ either Celsius or Kelvin units).
    "e11, e12, e22", "strain rate tensor components", ""
    "ecci", "yield curve minor/major axis ratio, squared", "1/4"
    "eice(n)", "energy of melting of ice per unit area (in category n)", "J/m\ :math:`^2`"
-   "emissivity", "emissivity of snow and ice", "0.95"
+   "emissivity", "emissivity of snow and ice", "0.985"
    "eps13", "a small number", "10\ :math:`^{-13}`"
    "eps16", "a small number", "10\ :math:`^{-16}`"
    "esno(n)", "energy of melting of snow per unit area (in category n)", "J/m\ :math:`^2`"

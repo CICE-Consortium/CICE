@@ -368,7 +368,7 @@
       calc_Tsfc = .true.     ! calculate surface temperature
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
-      emissivity = 0.95      ! emissivity of snow and ice
+      emissivity = 0.985     ! emissivity of snow and ice
       l_mpond_fresh = .false.     ! logical switch for including meltpond freshwater
                                   ! flux feedback to ocean model
       fbot_xfer_type = 'constant' ! transfer coefficient type for ocn heat flux
@@ -1436,7 +1436,7 @@
                   write(nu_diag,1002) ' ahmax            = ', ahmax,' : albedo is constant above this thickness'
                endif
             endif
-            write(nu_diag,1002) ' emissivity       = ', emissivity,' : emissivity of snow and ice'
+            write(nu_diag,1000) ' emissivity       = ', emissivity,' : emissivity of snow and ice'
             write(nu_diag,1010) ' sw_redist        = ', sw_redist,' : redistribute internal shortwave to surface'
             if (sw_redist) then
                write(nu_diag,1002) ' sw_frac          = ', sw_frac,' : fraction redistributed'
