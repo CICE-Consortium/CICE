@@ -492,7 +492,7 @@ forcing_nml
    "``calc_Tsfc``", "logical", "calculate surface temperature", "``.true.``"
    "``default_season``", "``summer``", "forcing initial summer values", "``winter``"
    "", "``winter``", "forcing initial winter values", ""
-   "``emissivity``", "real", "emissivity of snow and ice", "0.95"
+   "``emissivity``", "real", "emissivity of snow and ice", "0.985"
    "``fbot_xfer_type``", "``Cdn_ocn``", "variabler ocean heat transfer coefficient scheme", "``constant``"
    "", "``constant``", "constant ocean heat transfer coefficient", ""
    "``fe_data_type``", "``clim``", "ocean climatology forcing value for iron", "``default``"
