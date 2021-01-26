@@ -24,7 +24,7 @@
       private
       public :: init_dyn, set_evp_parameters, stepu, principal_stress, &
                 dyn_prep1, dyn_prep2, dyn_finish, &
-                basal_stress_coeff,  basal_stress_prob, &
+                seabed1_stress_coeff,  seabed2_stress_coeff, &
                 alloc_dyn_shared, deformations, strain_rates, &
                 stack_velocity_field, unstack_velocity_field
 
@@ -87,14 +87,14 @@
       logical (kind=log_kind), public :: &
          basalstress   ! if true, basal stress for landfast on
 
-      ! basal stress parameters
+      ! seabed (basal) stress parameters
       real (kind=dbl_kind), public :: &
-         k1, &        ! 1st free parameter for landfast parameterization
-         k2, &        ! second free parameter (N/m^3) for landfast parametrization 
+         k1, &        ! 1st free parameter for seabed1 grounding parameterization
+         k2, &        ! second free parameter (N/m^3) for seabed1 grounding parametrization 
          alphab, &    ! alphab=Cb factor in Lemieux et al 2015
          threshold_hw, & ! max water depth for grounding 
                          ! see keel data from Amundrud et al. 2004 (JGR)
-         u0 = 5e-5_dbl_kind ! residual velocity for basal stress (m/s)
+         u0 = 5e-5_dbl_kind ! residual velocity for seabed stress (m/s)
 
 !=======================================================================
 
@@ -447,7 +447,7 @@
          dt          ! time step
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         Tbu,      & ! coefficient for basal stress (N/m^2)
+         Tbu,      & ! coefficient for seabed stress (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
@@ -469,8 +469,8 @@
          strocny , & ! ice-ocean stress, y-direction
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty , & ! divergence of internal ice stress, y (N/m^2)
-         taubx   , & ! basal stress, x-direction (N/m^2)
-         tauby       ! basal stress, y-direction (N/m^2)
+         taubx   , & ! seabed stress, x-direction (N/m^2)
+         tauby       ! seabed stress, y-direction (N/m^2)
 
       ! local variables
 
@@ -648,7 +648,7 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Tbu,      & ! coefficient for basal stress (N/m^2)
+         Tbu,      & ! coefficient for seabed stress (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
          aiu     , & ! ice fraction on u-grid
@@ -672,8 +672,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty , & ! divergence of internal ice stress, y (N/m^2)
-         taubx   , & ! basal stress, x-direction (N/m^2)
-         tauby       ! basal stress, y-direction (N/m^2)
+         taubx   , & ! seabed stress, x-direction (N/m^2)
+         tauby       ! seabed stress, y-direction (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Cw                   ! ocean-ice neutral drag coefficient
@@ -688,7 +688,7 @@
          vrel              , & ! relative ice-ocean velocity
          cca,ccb,ab2,cc1,cc2,& ! intermediate variables
          taux, tauy        , & ! part of ocean stress term
-         Cb                , & ! complete basal stress coeff
+         Cb                , & ! complete seabed (basal) stress coeff
          rhow                  !
 
       character(len=*), parameter :: subname = '(stepu)'
@@ -716,7 +716,7 @@
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
          tauy = vrel*watery(i,j) ! ocn stress term
       
-         Cb  = Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0) ! for basal stress
+         Cb  = Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0) ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
          cca = (brlx + revp)*umassdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
                
@@ -739,7 +739,7 @@
          uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
 
-      ! calculate basal stress component for outputs
+      ! calculate seabed stress component for outputs
          if (ksub == ndte) then ! on last subcycling iteration
           if ( basalstress ) then
            taubx(i,j) = -uvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
@@ -854,7 +854,7 @@
       end subroutine dyn_finish
 
 !=======================================================================
-! Computes basal stress Tbu coefficients (landfast ice)
+! Computes seabed (basal) stress Tbu coefficients (landfast ice)
 !
 ! Lemieux, J. F., B. Tremblay, F. Dupont, M. Plante, G.C. Smith, D. Dumont (2015). 
 ! A basal stress parameterization form modeling landfast ice, J. Geophys. Res. 
@@ -866,13 +866,14 @@
 !
 ! author: JF Lemieux, Philippe Blain (ECCC)
 !
-! note: Tbu is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
-!
-      subroutine basal_stress_coeff (nx_block, ny_block,         &
-                                     icellu,                     &
-                                     indxui,   indxuj,           &
-                                     vice,     aice,             &
-                                     hwater,   Tbu)
+! note1: Tbu is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
+! note2: Seabed stress (better name) was called basal stress in Lemieux et al. 2015
+
+      subroutine seabed1_stress_coeff (nx_block, ny_block,         &
+                                       icellu,                     &
+                                       indxui,   indxuj,           &
+                                       vice,     aice,             &
+                                       hwater,   Tbu)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
@@ -888,7 +889,7 @@
          hwater      ! water depth at tracer location
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         Tbu         ! coefficient for basal stress (N/m^2)
+         Tbu         ! coefficient for seabed stress (N/m^2)
 
       real (kind=dbl_kind) :: &
          au,  & ! concentration of ice at u location
@@ -899,7 +900,7 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
-      character(len=*), parameter :: subname = '(basal_stress_coeff)'
+      character(len=*), parameter :: subname = '(seabed1_stress_coeff)'
 
       do ij = 1, icellu
          i = indxui(ij)
@@ -917,25 +918,25 @@
             ! 1- calculate critical thickness
             hcu = au * hwu / k1
 
-            ! 2- calculate basal stress factor                    
+            ! 2- calculate seabed stress factor                    
             Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
             
          endif
 
       enddo                     ! ij
 
-      end subroutine basal_stress_coeff
+      end subroutine seabed1_stress_coeff
 
 !=======================================================================
 ! Computes seabed stress due to grounded ridges
 !
 ! authors: E. Dumas-Lefebvre, D. Dumont, F. Dupont, JF Lemieux (June 2018)
 !
-      subroutine basal_stress_prob (nx_block, ny_block,         &
-                                   icellt, indxti,   indxtj,    &
-                                   icellu, indxui,   indxuj,    &
-                                   aicen,  vicen,               &
-                                   hwater, Tbu)
+      subroutine seabed2_stress_coeff (nx_block, ny_block,         &
+                                       icellt, indxti,   indxtj,    &
+                                       icellu, indxui,   indxuj,    &
+                                       aicen,  vicen,               &
+                                       hwater, Tbu)
 ! use modules
         
       use ice_arrays_column, only: hin_max
@@ -960,7 +961,7 @@
            vicen       ! partial volume for last thickness category in ITD
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-           Tbu         ! landfast basal stress
+           Tbu         ! seabed stress factor
 
 ! local variables 
 
@@ -997,6 +998,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt
       real (kind=dbl_kind) :: atot, x_kmax, x95, x99, x995, x996, x997, x998, x999, xinf
       real (kind=dbl_kind) :: cut, rhoi, rhow, pi, puny
+
+      character(len=*), parameter :: subname = '(seabed2_stress_coeff)'
 
       call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi)
       call icepack_query_parameters(pi_out=pi)    
@@ -1088,7 +1091,7 @@
          Tbu(i,j)  = max(Tbt(i,j),Tbt(i+1,j),Tbt(i,j+1),Tbt(i+1,j+1))
       enddo                     ! ij          
       
-    end subroutine basal_stress_prob
+    end subroutine seabed2_stress_coeff
       
 !=======================================================================
 
