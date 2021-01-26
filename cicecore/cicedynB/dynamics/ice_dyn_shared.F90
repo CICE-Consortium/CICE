@@ -11,8 +11,8 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1, c2, p01, p001
-      use ice_constants, only: omega, spval_dbl, p5, c4
+      use ice_constants, only: c0, c1, c2, c3, c4
+      use ice_constants, only: omega, spval_dbl, p01, p001, p5
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: nu_diag
@@ -938,7 +938,6 @@
                                    hwater, Tbu)
 ! use modules
         
-      use ice_constants, only: c0, c1, c2, c3, p1, p5, rhoi, pi, puny
       use ice_itd, only: hin_max
 
       integer (kind=int_kind), intent(in) :: &
@@ -996,12 +995,12 @@
       real (kind=dbl_kind), dimension(ncat_i):: tb_tmp
       real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt
       real (kind=dbl_kind) :: atot, x_kmax, x95, x99, x995, x996, x997, x998, x999, xinf
-      real (kind=dbl_kind) :: cut
+      real (kind=dbl_kind) :: cut, rhoi, rhow, pi, puny
 
-!      call icepack_query_parameters(rhow_out=rhow)   
-!      call icepack_query_parameters(rhoi_out=rhoi) 
-!      call icepack_query_parameters(pi_out=pi)    
-
+      call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi)
+      call icepack_query_parameters(pi_out=pi)    
+      call icepack_query_parameters(puny_out=puny)
+      
       Tbt=c0
       sigma_b = 0.5d0 ! To be changed/tested
 
