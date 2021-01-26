@@ -117,6 +117,8 @@
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
+      integer :: seabed ! IMPROVE THIS!!!!!!!!!!!  
+      
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          tmass    , & ! total mass of ice and snow (kg/m^2)
          waterx   , & ! for ocean stress calculation, x (m/s)
@@ -329,13 +331,25 @@
       !-----------------------------------------------------------------
       
       if (basalstress) then
+         seabed = 2
        !$OMP PARALLEL DO PRIVATE(iblk)
-       do iblk = 1, nblocks
-         call basal_stress_coeff (nx_block,         ny_block,       &
-                                  icellu  (iblk),                   &
-                                  indxui(:,iblk),   indxuj(:,iblk), &
-                                  vice(:,:,iblk),   aice(:,:,iblk), &
-                                  hwater(:,:,iblk), Tbu(:,:,iblk))
+         do iblk = 1, nblocks
+            select case (seabed)
+
+            case (1)
+               call basal_stress_coeff (nx_block,         ny_block,       &
+                                        icellu  (iblk),                   &
+                                        indxui(:,iblk),   indxuj(:,iblk), &
+                                        vice(:,:,iblk),   aice(:,:,iblk), &
+                                        hwater(:,:,iblk), Tbu(:,:,iblk))
+            case (2)
+               call basal_stress_prob (nx_block,         ny_block,                   &
+                                       icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                       icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
+                                       aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
+                                       hwater(:,:,iblk), Tbu(:,:,iblk))
+            end select
+         
        enddo
        !$OMP END PARALLEL DO
       endif

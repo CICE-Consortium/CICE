@@ -23,7 +23,8 @@
       implicit none
       private
       public :: init_dyn, set_evp_parameters, stepu, principal_stress, &
-                dyn_prep1, dyn_prep2, dyn_finish, basal_stress_coeff,  &
+                dyn_prep1, dyn_prep2, dyn_finish, &
+                basal_stress_coeff,  basal_stress_prob, &
                 alloc_dyn_shared, deformations, strain_rates, &
                 stack_velocity_field, unstack_velocity_field
 
@@ -925,6 +926,170 @@
 
       end subroutine basal_stress_coeff
 
+!=======================================================================
+! Computes seabed stress due to grounded ridges
+!
+! authors: E. Dumas-Lefebvre, D. Dumont, F. Dupont, JF Lemieux (June 2018)
+!
+      subroutine basal_stress_prob (nx_block, ny_block,         &
+                                   icellt, indxti,   indxtj,    &
+                                   icellu, indxui,   indxuj,    &
+                                   aicen,  vicen,               &
+                                   hwater, Tbu)
+! use modules
+        
+      use ice_constants, only: c0, c1, c2, c3, p1, p5, rhoi, pi, puny
+      use ice_itd, only: hin_max
+
+      integer (kind=int_kind), intent(in) :: &
+           nx_block, ny_block, &  ! block dimensions
+           icellt, icellu         ! no. of cells where icetmask = 1
+      
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+           intent(in) :: &
+           indxti   , & ! compressed index in i-direction                                                
+           indxtj   , & ! compressed index in j-direction
+           indxui   , & ! compressed index in i-direction
+           indxuj       ! compressed index in j-direction
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+           hwater      ! water depth at tracer location
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(in) :: &
+           aicen,    & ! partial concentration for last thickness category in ITD
+           vicen       ! partial volume for last thickness category in ITD
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+           Tbu         ! landfast basal stress
+
+! local variables 
+
+      integer (kind=int_kind) :: &
+           i, j, ij, ii, n
+
+      integer, parameter :: &
+           ncat_b = 100, &  ! number of bathymetry categories
+           ncat_i = 100  ! number of ice thikness categories
+
+      real (kind=dbl_kind), parameter :: &
+           max_depth = 50.0_dbl_kind, &
+           mu_s = 0.1_dbl_kind, &
+           gacc = 9.81_dbl_kind, & ! JFL use gravit
+           alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
+
+      real (kind=dbl_kind), dimension(ncat_i) :: &
+           x_k, g_k, P_x    ! Center of ice thickness categories
+
+      real (kind=dbl_kind), dimension(ncat_b) :: &
+           y_n, b_n, P_y  ! Center of bathymetry categories                                          
+
+      real (kind=dbl_kind), dimension(ncat) :: &
+           vcat, acat
+
+      integer, dimension(ncat_b) :: &
+           tmp  ! Temporary vector tmp = merge(1,0,gt)
+      
+      logical, dimension (ncat_b) :: &
+           gt
+
+      real (kind=dbl_kind) :: wid_i, wid_b, mu_i, sigma_i, mu_b, sigma_b, m_i, v_i
+      real (kind=dbl_kind), dimension(ncat_i):: tb_tmp
+      real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt
+      real (kind=dbl_kind) :: atot, x_kmax, x95, x99, x995, x996, x997, x998, x999, xinf
+      real (kind=dbl_kind) :: cut
+
+!      call icepack_query_parameters(rhow_out=rhow)   
+!      call icepack_query_parameters(rhoi_out=rhoi) 
+!      call icepack_query_parameters(pi_out=pi)    
+
+      Tbt=c0
+      sigma_b = 0.5d0 ! To be changed/tested
+
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
+
+         atot = sum(aicen(i,j,1:ncat))
+
+         if (atot .gt. 0.05_dbl_kind .and. hwater(i,j) .lt. max_depth) then
+
+            mu_b = hwater(i,j)
+            wid_i = max_depth/ncat_i
+            wid_b = c2*c3*sigma_b/ncat_b
+
+            x_k = (/(wid_i*(i*c1-0.5d0), i=1, ncat_i)/)
+            y_n = (/( (mu_b-c3*sigma_b)+(i*c1-0.5d0)*(c2*c3*sigma_b/ncat_b), i=1, ncat_b )/)
+
+            vcat(1:ncat) = vicen(i,j,1:ncat)
+            acat(1:ncat) = aicen(i,j,1:ncat)
+
+            m_i = sum(vcat)
+
+            v_i=c0
+            do n =1, ncat
+               v_i = v_i + vcat(n)**2 / (max(acat(n), puny))
+            enddo
+            v_i = v_i - m_i**2
+
+            mu_i    = log(m_i/sqrt(c1 + v_i/m_i**2))
+            sigma_i = sqrt(log(c1 + v_i/m_i**2))
+
+            x95  = exp(mu_i + sqrt(c2*sigma_i)*1.1631d0)
+            x99  = exp(mu_i + sqrt(c2*sigma_i)*1.6450d0)
+            x995 = exp(mu_i + sqrt(c2*sigma_i)*1.8214d0)
+            x996 = exp(mu_i + sqrt(c2*sigma_i)*1.8753d0)
+            x997 = exp(mu_i + sqrt(c2*sigma_i)*1.9430d0)
+            x998 = exp(mu_i + sqrt(c2*sigma_i)*2.0352d0)
+            x999 = exp(mu_i + sqrt(c2*sigma_i)*2.1851d0)
+            xinf = exp(mu_i + sqrt(c2*sigma_i)*4.4981d0) ! 0.9999999999
+            x_kmax = x997
+
+            ! Set x_kmax to hlev of the last category where there is ice
+            ! when there is no ice in the last category           
+            cut = x_k(ncat_i)
+            do n = ncat,-1,1
+               if (acat(n) < puny) then
+                  cut = hin_max(n-1)
+               else
+                  exit
+               endif
+            enddo
+            x_kmax = min(cut, x_kmax)
+
+            g_k = exp(-(log(x_k) - mu_i) ** 2 / (c2 * sigma_i ** 2)) / (x_k * sigma_i * sqrt(c2 * pi))
+
+            b_n  = exp(-(y_n - mu_b) ** 2 / (c2 * sigma_b ** 2)) / (sigma_b * sqrt(c2 * pi))
+
+            P_x = g_k*wid_i
+            P_y = b_n*wid_b
+
+            do n =1, ncat_i
+               if (x_k(n) .gt. x_kmax) P_x(n)=c0
+            enddo
+
+            do n=1, ncat_i
+               gt = (y_n .le. rhoi*x_k(n)/rhow)
+               tmp = merge(1,0,gt)
+               ii = sum(tmp)
+               if (ii .eq. 0) then
+                  tb_tmp(n) = c0
+               else
+                  tb_tmp(n) = max(mu_s*gacc*P_x(n)*sum(P_y(1:ii)*(rhoi*x_k(n) - rhow*y_n(1:ii))), c0)
+               endif
+            enddo
+            Tbt(i,j) = sum(tb_tmp)*exp(-alphab * (c1 - atot))
+         endif
+      enddo
+
+      do ij = 1, icellu
+         i = indxui(ij)
+         j = indxuj(ij)
+         ! convert quantities to u-location            
+         Tbu(i,j)  = max(Tbt(i,j),Tbt(i+1,j),Tbt(i,j+1),Tbt(i+1,j+1))
+      enddo                     ! ij          
+      
+    end subroutine basal_stress_prob
+      
 !=======================================================================
 
 ! Computes principal stresses for comparison with the theoretical
