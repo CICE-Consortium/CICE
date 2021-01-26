@@ -41,7 +41,7 @@
           p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
-          vvel_init, basal_stress_coeff, basalstress, Ktens, revp
+          vvel_init, basal_stress_coeff, basal_stress_prob, basalstress, Ktens, revp
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted

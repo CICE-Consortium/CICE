@@ -938,7 +938,8 @@
                                    hwater, Tbu)
 ! use modules
         
-      use ice_itd, only: hin_max
+      use ice_arrays_column, only: hin_max
+      use ice_domain_size, only: ncat
 
       integer (kind=int_kind), intent(in) :: &
            nx_block, ny_block, &  ! block dimensions
