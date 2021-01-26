@@ -269,12 +269,10 @@
       dumpfreq='y'           ! restart frequency option
       dumpfreq_n = 1         ! restart frequency
       dump_last = .false.    ! write restart on last time step
-      restart = .false.      ! if true, read restart files for initialization
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
       restart_coszen  = .false. ! if true, read/write coszen
-      use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
       restart_format = 'default'  ! restart file format
       lcdf64       = .false. ! 64 bit offset for netCDF
@@ -402,6 +400,8 @@
 #ifndef CESMCOUPLED
       runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
       runtype = 'initial'   ! run type: 'initial', 'continue'
+      restart = .false.      ! if true, read restart files for initialization
+      use_restart_time = .true.   ! if true, use time info written in file
 #endif
 
       ! extra tracers

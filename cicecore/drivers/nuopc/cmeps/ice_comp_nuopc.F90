@@ -31,7 +31,7 @@ module ice_comp_nuopc
   use ice_scam           , only : scmlat, scmlon, single_column
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
-  use ice_restart_shared , only : runid, runtype, restart_dir, restart_file
+  use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file
   use ice_history        , only : accum_hist
   use ice_flux           , only : send_i2x_per_cat
   use CICE_InitMod       , only : cice_init
@@ -401,8 +401,12 @@ contains
           runtype = "initial"
        else if (trim(starttype) == trim('continue') ) then
           runtype = "continue"
+          restart = .true.
+          use_restart_time = .true.
        else if (trim(starttype) == trim('branch')) then
           runtype = "continue"
+          restart = .true.
+          use_restart_time = .true.
        else
           call abort_ice( subname//' ERROR: unknown starttype' )
        end if
