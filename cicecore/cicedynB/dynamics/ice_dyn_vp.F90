@@ -47,7 +47,7 @@
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           ecci, cosw, sinw, fcor_blk, uvel_init, vvel_init, &
-          seabed1_stress_factor, seabed2_stress_factor, basalstress, Ktens, &
+          seabed1_stress_factor, seabed2_stress_factor, seabedstress, Ktens, &
           stack_velocity_field,  unstack_velocity_field
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fm
@@ -441,7 +441,7 @@
       ! seabed stress factor Tbu (Tbu is part of Cb coefficient)
       !-----------------------------------------------------------------
       
-      if (basalstress) then
+      if (seabedstress) then
          seabed = 2
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
@@ -541,7 +541,7 @@
       !-----------------------------------------------------------------
       ! Compute seabed stress (diagnostic)
       !-----------------------------------------------------------------
-      if (basalstress) then
+      if (seabedstress) then
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
             call calc_seabed_stress (nx_block            ,  ny_block           , &

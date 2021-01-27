@@ -85,7 +85,7 @@
          Ktens         ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)   
 
       logical (kind=log_kind), public :: &
-         basalstress   ! if true, basal stress for landfast on
+         seabedstress   ! if true, seabed stress for landfast on
 
       ! seabed (basal) stress parameters
       real (kind=dbl_kind), public :: &
@@ -741,7 +741,7 @@
 
       ! calculate seabed stress component for outputs
          if (ksub == ndte) then ! on last subcycling iteration
-          if ( basalstress ) then
+          if ( seabedstress ) then
            taubx(i,j) = -uvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
            tauby(i,j) = -vvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
           endif
@@ -901,7 +901,7 @@
          i, j, ij
 
       character(len=*), parameter :: subname = '(seabed1_stress_coeff)'
-
+      
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -920,7 +920,7 @@
 
             ! 2- calculate seabed stress factor                    
             Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
-            
+
          endif
 
       enddo                     ! ij

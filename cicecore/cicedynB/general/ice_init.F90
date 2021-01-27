@@ -97,7 +97,7 @@
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 kevp_kernel, &
-                                basalstress, k1, k2, alphab, threshold_hw, &
+                                seabedstress, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, brlx, arlx
       use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
@@ -198,7 +198,7 @@
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_ratio,        Ktens,          Cf,             basalstress,    &
+        e_ratio,        Ktens,          Cf,             seabedstress,   &
         k1,             maxits_nonlin,  precond,        dim_fgmres,     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
@@ -328,7 +328,7 @@
       dxrect = 0.0_dbl_kind  ! user defined grid spacing in cm in x direction
       dyrect = 0.0_dbl_kind  ! user defined grid spacing in cm in y direction
       close_boundaries = .false.   ! true = set land on edges of grid
-      basalstress= .false.   ! if true, basal stress for landfast is on
+      seabedstress= .false.   ! if true, seabed stress for landfast is on
       k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
       k2 = 15.0_dbl_kind     ! dah: second free parameter (N/m^3) for landfast parametrization
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
@@ -647,7 +647,7 @@
       call broadcast_scalar(mu_rdg,             master_task)
       call broadcast_scalar(Cf,                 master_task)
       call broadcast_scalar(ksno,               master_task)
-      call broadcast_scalar(basalstress,        master_task)
+      call broadcast_scalar(seabedstress,       master_task)
       call broadcast_scalar(k1,                 master_task)
       call broadcast_scalar(k2,                 master_task)
       call broadcast_scalar(alphab,             master_task)
@@ -1286,6 +1286,7 @@
             endif
             write(nu_diag,1030) ' advection        = ', trim(advection),trim(tmpstr2)
 
+<<<<<<< HEAD
             if (basalstress) then
                tmpstr2 = ' : use basal stress parameterization for landfast ice'
             else
@@ -1323,6 +1324,19 @@
                   write(nu_diag,1000) ' damping_andacc   = ', damping_andacc,' : damping factor for Anderson acceleration'
                   write(nu_diag,1020) ' start_andacc     = ', start_andacc,' : nonlinear iteration at which acceleration starts'
                endif
+=======
+            if (seabedstress) then
+               tmpstr2 = ' use seabed stress parameterization for landfast ice'
+            else
+               tmpstr2 = ' seabed stress not used for landfast ice'
+            endif
+            write(nu_diag,1012) ' seabedstress      = ', seabedstress,trim(tmpstr2)
+            if (seabedstress) then
+               write(nu_diag,1007) ' k1               = ', k1, ' free parameter for landfast ice'
+               write(nu_diag,1007) ' k2               = ', k2, ' free parameter for landfast ice'
+               write(nu_diag,1007) ' alphab           = ', alphab, ' factor for landfast ice'
+               write(nu_diag,1007) ' threshold_hw     = ', threshold_hw, ' max water depth for grounding ice'
+>>>>>>> seabed everywhere...basalstress logical replaced by seabedstress
             endif
 
          endif ! kdyn enabled

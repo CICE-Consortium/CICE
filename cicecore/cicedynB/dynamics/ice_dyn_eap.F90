@@ -122,7 +122,7 @@
       use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
           denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
-          seabed1_stress_factor, seabed2_stress_factor, basalstress, &
+          seabed1_stress_factor, seabed2_stress_factor, seabedstress, &
           stack_velocity_field, unstack_velocity_field
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
@@ -388,7 +388,7 @@
       ! seabed stress factor Tbu (Tbu is part of Cb coefficient)  
       !-----------------------------------------------------------------
       
-      if (basalstress) then
+      if (seabedstress) then
          seabed = 1
        !$OMP PARALLEL DO PRIVATE(iblk)
        do iblk = 1, nblocks
