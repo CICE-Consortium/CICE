@@ -24,7 +24,7 @@
       private
       public :: init_dyn, set_evp_parameters, stepu, principal_stress, &
                 dyn_prep1, dyn_prep2, dyn_finish, &
-                seabed1_stress_coeff,  seabed2_stress_coeff, &
+                seabed1_stress_factor, seabed2_stress_factor, &
                 alloc_dyn_shared, deformations, strain_rates, &
                 stack_velocity_field, unstack_velocity_field
 
@@ -447,7 +447,7 @@
          dt          ! time step
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         Tbu,      & ! coefficient for seabed stress (N/m^2)
+         Tbu,      & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
@@ -648,7 +648,7 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Tbu,      & ! coefficient for seabed stress (N/m^2)
+         Tbu,      & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
          aiu     , & ! ice fraction on u-grid
@@ -854,7 +854,7 @@
       end subroutine dyn_finish
 
 !=======================================================================
-! Computes seabed (basal) stress Tbu coefficients (landfast ice)
+! Computes seabed (basal) stress factor Tbu (landfast ice)
 !
 ! Lemieux, J. F., B. Tremblay, F. Dupont, M. Plante, G.C. Smith, D. Dumont (2015). 
 ! A basal stress parameterization form modeling landfast ice, J. Geophys. Res. 
@@ -869,7 +869,7 @@
 ! note1: Tbu is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
 ! note2: Seabed stress (better name) was called basal stress in Lemieux et al. 2015
 
-      subroutine seabed1_stress_coeff (nx_block, ny_block,         &
+      subroutine seabed1_stress_factor (nx_block, ny_block,         &
                                        icellu,                     &
                                        indxui,   indxuj,           &
                                        vice,     aice,             &
@@ -925,14 +925,14 @@
 
       enddo                     ! ij
 
-      end subroutine seabed1_stress_coeff
+    end subroutine seabed1_stress_factor
 
 !=======================================================================
 ! Computes seabed stress due to grounded ridges
 !
 ! authors: E. Dumas-Lefebvre, D. Dumont, F. Dupont, JF Lemieux (June 2018)
 !
-      subroutine seabed2_stress_coeff (nx_block, ny_block,         &
+      subroutine seabed2_stress_factor (nx_block, ny_block,         &
                                        icellt, indxti,   indxtj,    &
                                        icellu, indxui,   indxuj,    &
                                        aicen,  vicen,               &
@@ -1091,7 +1091,7 @@
          Tbu(i,j)  = max(Tbt(i,j),Tbt(i+1,j),Tbt(i,j+1),Tbt(i+1,j+1))
       enddo                     ! ij          
       
-    end subroutine seabed2_stress_coeff
+    end subroutine seabed2_stress_factor
       
 !=======================================================================
 

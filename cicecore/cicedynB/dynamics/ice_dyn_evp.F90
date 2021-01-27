@@ -41,7 +41,7 @@
           p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
-          vvel_init, seabed1_stress_coeff, seabed2_stress_coeff, basalstress, Ktens, revp
+          vvel_init, seabed1_stress_factor, seabed2_stress_factor, basalstress, Ktens, revp
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -327,7 +327,7 @@
       endif
 
       !-----------------------------------------------------------------
-      ! seabed stress coefficients (landfast ice)
+      ! seabed stress factor Tbu (Tbu is part of Cb coefficient)
       !-----------------------------------------------------------------
       
       if (basalstress) then
@@ -337,13 +337,13 @@
             select case (seabed)
 
             case (1)
-               call seabed1_stress_coeff (nx_block,         ny_block,       &
+               call seabed1_stress_factor (nx_block,         ny_block,       &
                                           icellu  (iblk),                   &
                                           indxui(:,iblk),   indxuj(:,iblk), &
                                           vice(:,:,iblk),   aice(:,:,iblk), &
                                           hwater(:,:,iblk), Tbu(:,:,iblk))
             case (2)
-               call seabed2_stress_coeff (nx_block,         ny_block,                   &
+               call seabed2_stress_factor (nx_block,         ny_block,                   &
                                           icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
                                           icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
                                           aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &

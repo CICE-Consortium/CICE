@@ -46,8 +46,8 @@
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
-          ecci, cosw, sinw, fcor_blk, uvel_init,  &
-          vvel_init, basal_stress_coeff, basalstress, Ktens, &
+          ecci, cosw, sinw, fcor_blk, uvel_init, vvel_init, &
+          seabed1_stress_factor, seabed2_stress_factor, basalstress, Ktens, &
           stack_velocity_field,  unstack_velocity_field
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fm
@@ -217,6 +217,8 @@
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
+
+      integer :: seabed ! IMPROVE THIS!!!!!!!!!!!   
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          tmass    , & ! total mass of ice and snow (kg/m^2)
@@ -436,17 +438,29 @@
       endif
 
       !-----------------------------------------------------------------
-      ! basal stress coefficients (landfast ice)
+      ! seabed stress factor Tbu (Tbu is part of Cb coefficient)
       !-----------------------------------------------------------------
       
       if (basalstress) then
+         seabed = 2
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            call basal_stress_coeff (nx_block        , ny_block      , &
-                                     icellu    (iblk),                 &
-                                     indxui  (:,iblk), indxuj(:,iblk), &
-                                     vice  (:,:,iblk), aice(:,:,iblk), &
-                                     hwater(:,:,iblk), Tbu (:,:,iblk))
+            select case (seabed)
+
+            case (1)
+               call seabed1_stress_factor (nx_block,         ny_block,       &
+                                          icellu  (iblk),                   &
+                                          indxui(:,iblk),   indxuj(:,iblk), &
+                                          vice(:,:,iblk),   aice(:,:,iblk), &
+                                          hwater(:,:,iblk), Tbu(:,:,iblk))
+            case (2)
+               call seabed2_stress_factor (nx_block,         ny_block,                   &
+                                          icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                          icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
+                                          aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
+                                          hwater(:,:,iblk), Tbu(:,:,iblk))
+            end select
+
          enddo
          !$OMP END PARALLEL DO
       endif
@@ -1406,7 +1420,7 @@
                                uvel    , vvel    , &
                                vrel    , Cb)
 
-      use ice_dyn_shared, only: u0 ! residual velocity for basal stress (m/s)
+      use ice_dyn_shared, only: u0 ! residual velocity for seabed stress (m/s)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1417,7 +1431,7 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Tbu,      & ! coefficient for basal stress (N/m^2)
+         Tbu,      & ! seabed stress factor (N/m^2)
          aiu     , & ! ice fraction on u-grid
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
@@ -1552,7 +1566,7 @@
          uvel    , & ! x-component of velocity (m/s)
          vvel    , & ! y-component of velocity (m/s)
          vrel    , & ! coefficient for tauw
-         Cb      , & ! coefficient for basal stress
+         Cb      , & ! coefficient for seabed stress
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
@@ -2361,7 +2375,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          vrel,     & ! coefficient for tauw
-         Cb,       & ! coefficient for basal stress
+         Cb,       & ! coefficient for seabed stress
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          uarear      ! 1/uarea
 

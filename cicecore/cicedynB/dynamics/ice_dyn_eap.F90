@@ -122,7 +122,7 @@
       use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
           denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
-          basal_stress_coeff, basalstress, &
+          seabed1_stress_factor, seabed2_stress_factor, basalstress, &
           stack_velocity_field, unstack_velocity_field
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
@@ -172,6 +172,8 @@
          aiu      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
+
+      integer :: seabed ! IMPROVE THIS!!!!!!!!!!!
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
 
@@ -383,17 +385,29 @@
       endif
 
       !-----------------------------------------------------------------
-      ! basal stress coefficients (landfast ice)
+      ! seabed stress factor Tbu (Tbu is part of Cb coefficient)  
       !-----------------------------------------------------------------
       
       if (basalstress) then
+         seabed = 1
        !$OMP PARALLEL DO PRIVATE(iblk)
        do iblk = 1, nblocks
-         call basal_stress_coeff (nx_block,         ny_block,       &
-                                  icellu  (iblk),                   &
-                                  indxui(:,iblk),   indxuj(:,iblk), &
-                                  vice(:,:,iblk),   aice(:,:,iblk), &
-                                  hwater(:,:,iblk), Tbu(:,:,iblk))
+          select case (seabed)
+
+          case (1)
+             call seabed1_stress_factor (nx_block,         ny_block,       &
+                                        icellu  (iblk),                   &
+                                        indxui(:,iblk),   indxuj(:,iblk), &
+                                        vice(:,:,iblk),   aice(:,:,iblk), &
+                                        hwater(:,:,iblk), Tbu(:,:,iblk))
+          case (2)
+             call seabed2_stress_factor (nx_block,         ny_block,                   &
+                                        icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                        icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
+                                        aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
+                                        hwater(:,:,iblk), Tbu(:,:,iblk))
+          end select
+
        enddo
        !$OMP END PARALLEL DO 
       endif
