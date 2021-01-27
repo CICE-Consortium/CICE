@@ -53,8 +53,8 @@
       ndtd = 1
 
       ! test nyrmax years from year 0
-      nyrmax = 1000
-!      nyrmax = 100000
+!      nyrmax = 1000
+      nyrmax = 100000
 
    ! test 3 calendars
    do n = 1,3

@@ -33,12 +33,8 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     echo "base_file: ${base_file}"
     echo "test_file: ${test_file}"
 
-    set bfbstatus = 2
-    if (-e ${base_file} && -e ${test_file}) then
-      set bfbstatus = 99
-      set ldiff = `diff ${base_file} ${test_file} | wc -l`
-      if (${ldiff} == 0) set bfbstatus = 0
-    endif
+    ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file} notcicefile
+    set bfbstatus = $status
 
   else
 
@@ -63,17 +59,49 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
     set bfbstatus = $status
 
+    if ( ${bfbstatus} != 0 ) then
+
+      set test_file = `ls -1t ${ICE_RUNDIR}/cice.runlog* | head -1`
+      set base_file = `ls -1t ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/cice.runlog* | head -1`
+
+      echo ""
+      echo "bfb Log Compare Mode:"
+      echo "base_file: ${base_file}"
+      echo "test_file: ${test_file}"
+
+      ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
+      set logstatus = $status
+
+      if ( ${logstatus} == 0 ) then
+        echo "PASS ${ICE_TESTNAME} complog ${ICE_BASECOM}" >> ${ICE_CASEDIR}/test_output
+        echo "Regression baseline and test dataset may be the same"
+      else if ( ${logstatus} == 1 ) then
+        echo "FAIL ${ICE_TESTNAME} complog ${ICE_BASECOM} different-data" >> ${ICE_CASEDIR}/test_output
+        echo "Regression baseline and test dataset are not the same"
+      else if ( ${logstatus} == 2 ) then
+        echo "MISS ${ICE_TESTNAME} complog ${ICE_BASECOM} missing-data" >> ${ICE_CASEDIR}/test_output
+        echo "Missing data"
+      else
+        echo "FAIL ${ICE_TESTNAME} complog ${ICE_BASECOM} usage-error" >> ${ICE_CASEDIR}/test_output
+        echo "Regression baseline and test dataset error in usage"
+      endif
+
+    endif
+
   endif
 
   if ( ${bfbstatus} == 0 ) then
     echo "PASS ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn}" >> ${ICE_CASEDIR}/test_output
     echo "Regression baseline and test dataset are identical"
+  else if ( ${bfbstatus} == 1 ) then
+    echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn} different-data" >> ${ICE_CASEDIR}/test_output
+    echo "Regression baseline and test dataset are different"
   else if ( ${bfbstatus} == 2 ) then
     echo "MISS ${ICE_TESTNAME} compare ${ICE_BASECOM}  ${btimeloop} ${bdynamics} ${bcolumn} missing-data" >> ${ICE_CASEDIR}/test_output
     echo "Missing data"
   else
-    echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn} different-data" >> ${ICE_CASEDIR}/test_output
-    echo "Regression baseline and test dataset are different"
+    echo "FAIL ${ICE_TESTNAME} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn} usage-error" >> ${ICE_CASEDIR}/test_output
+    echo "Regression baseline and test dataset error in usage"
   endif
 endif
 
@@ -110,12 +138,15 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
   if (${bfbstatus} == 0) then
     echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
     echo "bfb baseline and test dataset are identical"
+  else if (${bfbstatus} == 1) then
+    echo "FAIL ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} different-data" >> ${ICE_CASEDIR}/test_output
+    echo "bfbcomp and test dataset are different"
   else if (${bfbstatus} == 2) then
     echo "MISS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} missing-data" >> ${ICE_CASEDIR}/test_output
     echo "Missing data"
   else
-    echo "FAIL ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} different-data" >> ${ICE_CASEDIR}/test_output
-    echo "bfbcomp and test dataset are different"
+    echo "FAIL ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} usage-error" >> ${ICE_CASEDIR}/test_output
+    echo "bfbcomp and test dataset usage error"
   endif
 endif
 
