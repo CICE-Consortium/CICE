@@ -65,7 +65,7 @@
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
       use ice_calendar, only: dt, dt_dyn, istep, istep1, write_ic, &
-          init_calendar, advance_time
+          init_calendar, advance_timestep
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
@@ -189,12 +189,12 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
-! tcraig, use advance_time here
+! tcraig, use advance_timestep here
 !      istep  = istep  + 1    ! update time step counters
 !      istep1 = istep1 + 1
 !      time = time + dt       ! determine the time and date
 !      call calendar(time)    ! at the end of the first timestep
-      call advance_time()
+      call advance_timestep()
 
    !--------------------------------------------------------------------
    ! coupler communication or forcing data initialization

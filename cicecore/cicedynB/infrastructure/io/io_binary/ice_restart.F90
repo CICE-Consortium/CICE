@@ -45,7 +45,7 @@
       subroutine init_restart_read(ice_ic)
 
       use ice_calendar, only: istep0, istep1, timesecs, npt, nyr, &
-          calendar_set_date_from_timesecs
+          set_date_from_timesecs
       use ice_communicate, only: my_task, master_task
       use ice_dyn_shared, only: kdyn
       use ice_read_write, only: ice_open, ice_open_ext
@@ -119,7 +119,7 @@
       call broadcast_scalar(timesecs,master_task)
       call broadcast_scalar(time_forc,master_task)
       call broadcast_scalar(nyr,master_task)
-      call calendar_set_date_from_timesecs(timesecs)
+      call set_date_from_timesecs(timesecs)
       
       istep1 = istep0
 

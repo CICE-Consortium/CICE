@@ -531,7 +531,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_blocks, only: nghost, nx_block, ny_block
       use ice_calendar, only: istep0, istep1, timesecs, calendar, npt, &
-          calendar_set_date_from_timesecs
+          set_date_from_timesecs
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
@@ -614,7 +614,7 @@
          istep1 = istep0
          call broadcast_scalar(timesecs,master_task)
 !         call broadcast_scalar(time_forc,master_task)
-         call calendar_set_date_from_timesecs(timesecs)
+         call set_date_from_timesecs(timesecs)
          call calendar()
 
       else
