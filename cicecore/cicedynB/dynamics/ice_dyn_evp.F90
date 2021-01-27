@@ -40,8 +40,8 @@
       use ice_constants, only: c0, p027, p055, p111, p166, &
           p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
-          ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init,  &
-          vvel_init, seabed1_stress_factor, seabed2_stress_factor, seabedstress, Ktens, revp
+          ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init, vvel_init, &
+          seabed1_stress_factor, seabed2_stress_factor, seabedstress, kseabed, Ktens, revp
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -117,8 +117,6 @@
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
-      integer :: seabed ! IMPROVE THIS!!!!!!!!!!!  
-      
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          tmass    , & ! total mass of ice and snow (kg/m^2)
          waterx   , & ! for ocean stress calculation, x (m/s)
@@ -331,10 +329,10 @@
       !-----------------------------------------------------------------
       
       if (seabedstress) then
-         seabed = 2
+
        !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            select case (seabed)
+            select case (kseabed)
 
             case (1)
                call seabed1_stress_factor (nx_block,         ny_block,       &

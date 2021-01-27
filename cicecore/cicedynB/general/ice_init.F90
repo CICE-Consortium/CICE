@@ -97,7 +97,7 @@
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 kevp_kernel, &
-                                seabedstress, k1, k2, alphab, threshold_hw, &
+                                seabedstress, kseabed, k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, brlx, arlx
       use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
@@ -205,7 +205,7 @@
         reltol_pgmres,  algo_nonlin,    dim_andacc,     reltol_andacc,  &
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
         ortho_type,                                                     &
-        k2,             alphab,         threshold_hw,                   &
+        k2,             alphab,         threshold_hw,   kseabed,        &
         Pstar,          Cstar
 
       namelist /shortwave_nml/ &
@@ -309,7 +309,7 @@
 
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
-      kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
+      kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap, 3 = vp)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       kevp_kernel = 0    ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
@@ -329,6 +329,7 @@
       dyrect = 0.0_dbl_kind  ! user defined grid spacing in cm in y direction
       close_boundaries = .false.   ! true = set land on edges of grid
       seabedstress= .false.   ! if true, seabed stress for landfast is on
+      kseabed = 1            ! seabed stress method (1 = Lemieux et al 2015, 2 = Dupont et al. in prep)
       k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
       k2 = 15.0_dbl_kind     ! dah: second free parameter (N/m^3) for landfast parametrization
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
@@ -648,6 +649,7 @@
       call broadcast_scalar(Cf,                 master_task)
       call broadcast_scalar(ksno,               master_task)
       call broadcast_scalar(seabedstress,       master_task)
+      call broadcast_scalar(kseabed,            master_task)
       call broadcast_scalar(k1,                 master_task)
       call broadcast_scalar(k2,                 master_task)
       call broadcast_scalar(alphab,             master_task)
@@ -1324,9 +1326,13 @@
                   write(nu_diag,1000) ' damping_andacc   = ', damping_andacc,' : damping factor for Anderson acceleration'
                   write(nu_diag,1020) ' start_andacc     = ', start_andacc,' : nonlinear iteration at which acceleration starts'
                endif
-=======
+
             if (seabedstress) then
-               tmpstr2 = ' use seabed stress parameterization for landfast ice'
+               if (kseabed == 1) then
+                  tmpstr2 = ' use seabed1 method for landfast ice'
+               elseif (kseabed == 2) then
+                  tmpstr2 = ' use seabed2 method for landfast ice'
+               endif
             else
                tmpstr2 = ' seabed stress not used for landfast ice'
             endif
@@ -1336,7 +1342,6 @@
                write(nu_diag,1007) ' k2               = ', k2, ' free parameter for landfast ice'
                write(nu_diag,1007) ' alphab           = ', alphab, ' factor for landfast ice'
                write(nu_diag,1007) ' threshold_hw     = ', threshold_hw, ' max water depth for grounding ice'
->>>>>>> seabed everywhere...basalstress logical replaced by seabedstress
             endif
 
          endif ! kdyn enabled

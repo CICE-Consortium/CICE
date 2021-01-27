@@ -47,7 +47,7 @@
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           ecci, cosw, sinw, fcor_blk, uvel_init, vvel_init, &
-          seabed1_stress_factor, seabed2_stress_factor, seabedstress, Ktens, &
+          seabed1_stress_factor, seabed2_stress_factor, seabedstress, kseabed, Ktens, &
           stack_velocity_field,  unstack_velocity_field
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fm
@@ -217,8 +217,6 @@
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij
-
-      integer :: seabed ! IMPROVE THIS!!!!!!!!!!!   
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          tmass    , & ! total mass of ice and snow (kg/m^2)
@@ -442,10 +440,10 @@
       !-----------------------------------------------------------------
       
       if (seabedstress) then
-         seabed = 2
+
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            select case (seabed)
+            select case (kseabed)
 
             case (1)
                call seabed1_stress_factor (nx_block,         ny_block,       &

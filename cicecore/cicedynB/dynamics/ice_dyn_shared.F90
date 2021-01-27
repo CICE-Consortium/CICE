@@ -82,12 +82,15 @@
 
       ! ice isotropic tensile strength parameter
       real (kind=dbl_kind), public :: &
-         Ktens         ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)   
+         Ktens        ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)   
 
+      ! seabed (basal) stress parameters and settings
       logical (kind=log_kind), public :: &
-         seabedstress   ! if true, seabed stress for landfast on
+         seabedstress ! if true, seabed stress for landfast on
 
-      ! seabed (basal) stress parameters
+      integer (kind=int_kind), public :: &
+         kseabed      ! seabed stress method (1=Lemieux et al. 2015, 2=Dupont et al. in prep,)  
+
       real (kind=dbl_kind), public :: &
          k1, &        ! 1st free parameter for seabed1 grounding parameterization
          k2, &        ! second free parameter (N/m^3) for seabed1 grounding parametrization 
@@ -973,16 +976,16 @@
            ncat_i = 100  ! number of ice thikness categories
 
       real (kind=dbl_kind), parameter :: &
-           max_depth = 50.0_dbl_kind, &
+           max_depth = 50.0_dbl_kind, & ! JFL use threshold_hw!!!!
            mu_s = 0.1_dbl_kind, &
-           gacc = 9.81_dbl_kind, & ! JFL use gravit
+           gacc = 9.81_dbl_kind, & ! JFL use gravit!!!!
            alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
 
       real (kind=dbl_kind), dimension(ncat_i) :: &
            x_k, g_k, P_x    ! Center of ice thickness categories
 
       real (kind=dbl_kind), dimension(ncat_b) :: &
-           y_n, b_n, P_y  ! Center of bathymetry categories                                          
+           y_n, b_n, P_y  ! Center of bathymetry categories                
 
       real (kind=dbl_kind), dimension(ncat) :: &
            vcat, acat
@@ -1004,7 +1007,7 @@
       call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi)
       call icepack_query_parameters(pi_out=pi)    
       call icepack_query_parameters(puny_out=puny)
-      
+
       Tbt=c0
       sigma_b = 0.5d0 ! To be changed/tested
 
@@ -1046,6 +1049,7 @@
             x999 = exp(mu_i + sqrt(c2*sigma_i)*2.1851d0)
             xinf = exp(mu_i + sqrt(c2*sigma_i)*4.4981d0) ! 0.9999999999
             x_kmax = x997
+            !x_kmax=xinf
 
             ! Set x_kmax to hlev of the last category where there is ice
             ! when there is no ice in the last category           

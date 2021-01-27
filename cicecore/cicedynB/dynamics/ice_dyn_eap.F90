@@ -122,7 +122,7 @@
       use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
           denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
-          seabed1_stress_factor, seabed2_stress_factor, seabedstress, &
+          seabed1_stress_factor, seabed2_stress_factor, kseabed, seabedstress, &
           stack_velocity_field, unstack_velocity_field
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
@@ -172,8 +172,6 @@
          aiu      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
-
-      integer :: seabed ! IMPROVE THIS!!!!!!!!!!!
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
 
@@ -389,10 +387,10 @@
       !-----------------------------------------------------------------
       
       if (seabedstress) then
-         seabed = 1
+
        !$OMP PARALLEL DO PRIVATE(iblk)
        do iblk = 1, nblocks
-          select case (seabed)
+          select case (kseabed)
 
           case (1)
              call seabed1_stress_factor (nx_block,         ny_block,       &
