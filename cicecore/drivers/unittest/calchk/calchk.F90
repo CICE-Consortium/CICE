@@ -1,24 +1,36 @@
 
       program calchk
       use ice_kinds_mod, only: int_kind, dbl_kind
-      use ice_calendar
+      use ice_calendar, only: nyr, month, mday, sec
+      use ice_calendar, only: year_init, month_init, day_init, sec_init
+      use ice_calendar, only: dt, ndtd, istep0, diagfreq
+      use ice_calendar, only: months_per_year, daymo, timesecs, seconds_per_day
+      use ice_calendar, only: use_leap_years, days_per_year
+      use ice_calendar, only: compute_elapsed_days
+      use ice_calendar, only: update_date
+      use ice_calendar, only: init_calendar, calendar
+      use ice_calendar, only: set_date_from_timesecs
+      use ice_calendar, only: calendar_date2time, calendar_time2date
+      use ice_calendar, only: compute_calendar_data
       implicit none
 
-      integer(kind=int_kind) :: nyr1,month1,mday1,sec1
-      integer(kind=int_kind) :: nyr3,month3,mday3,sec3,nday3
-      integer(kind=int_kind) :: nyr4,month4,mday4,sec4,nday4
-      integer(kind=int_kind) :: nyr5a,month5a,mday5a,sec5a,nday5a
-      integer(kind=int_kind) :: nyr5b,month5b,mday5b,sec5b,nday5b
       integer(kind=int_kind) :: nyrmax
-      integer(kind=int_kind) :: nday,ndayp
-      integer(kind=int_kind) :: n,nd,nf,xadd
+      integer(kind=int_kind) :: nday
+      integer(kind=int_kind) :: n,m,ny,nm,nd,nf1,nf2,xadd,nfa,nfb,nfc,ns1,ns2
       integer(kind=int_kind) :: yi,mi,di,si
-      integer(kind=int_kind) :: dnyr,dmon,dday,dsec,mday5
-      real(kind=dbl_kind) :: timesecs4
-      character(len=128) :: str1,str2,xunits
-      character(len=8) :: errorflagA
-      character(len=8) :: errorflag1 ,errorflag2 ,errorflag3
-      character(len=8) :: errorflag1A,errorflag2A,errorflag3A,errorflag4A,errorflag5A,errorflag5B
+      integer(kind=int_kind) :: dnyr,dmon,dday,dsec
+      integer(kind=int_kind) :: fnyr,fmon,fday,fsec
+      character(len=32) :: calstr,unitstr,signstr
+      integer (kind=int_kind) :: tdaymo (months_per_year)   ! days per month
+      integer (kind=int_kind) :: tdaycal(months_per_year+1) ! day count per month
+      integer (kind=int_kind) :: tdayyr                     ! days in year
+
+      integer(kind=int_kind), parameter :: ntests = 7
+      character(len=8)  :: errorflag0,errorflag(1:ntests),errorflagtmp
+      character(len=32) :: testname(ntests)
+      integer(kind=int_kind) :: nyrv(ntests),monv(ntests),dayv(ntests),secv(ntests),ndayv(ntests) ! computed values
+      integer(kind=int_kind) :: nyrc(ntests),monc(ntests),dayc(ntests),secc(ntests),ndayc(ntests) ! correct results
+      real(kind=dbl_kind) :: timesecsv(ntests),timesecsc(ntests)
       character(len=*), parameter ::  &
          passflag = 'PASS', &
          failflag = 'FAIL'
@@ -27,35 +39,40 @@
       write(6,*) 'Running CALCHK'
       write(6,*) ' '
 
-      errorflagA = passflag
-      errorflag1A = passflag
-      errorflag2A = passflag
-      errorflag3A = passflag
-      errorflag4A = passflag
-      errorflag5A = passflag
-      errorflag5B = passflag
+      errorflag0   = passflag
+      errorflag(:) = passflag
+      testname(:) = ''
+      testname(1) = 'compute_elapsed_days'
+      testname(2) = 'set_date_from_timesecs'
+      testname(3) = 'calendar advance'
+      testname(4) = 'date2time time2date'
+      testname(5) = 'big add/sub update_date'
+      testname(6) = 'small add/sub update_date'
+      testname(7) = 'special checks'
 
       ndtd = 1
 
       ! test nyrmax years from year 0
-!      nyrmax = 1000
-      nyrmax = 100000
+      nyrmax = 1000
+!      nyrmax = 100000
 
-    ! test 3 calendars
-    do n = 1,3
+   ! test 3 calendars
+   do n = 1,3
+
+      errorflag(:) = passflag
 
       if (n == 1) then
          use_leap_years = .false.
          days_per_year = 365
-         str1 = 'noleap'
+         calstr = 'noleap'
       elseif (n == 2) then
          use_leap_years = .false.
          days_per_year = 360
-         str1 = '360day'
+         calstr = '360day'
       elseif (n == 3) then
          use_leap_years = .true.
          days_per_year = 365
-         str1 = 'gregorian'
+         calstr = 'gregorian'
       endif
          
       istep0 = 1000
@@ -74,41 +91,63 @@
       ! This test makes sure compute_elapsed_days works for different calendars
       ! and multiple years.  This also checks that the timesecs value computed
       ! in calendar and passed into set_date_from_timesecs returns the correct date.
+      ! In test1, nday should increment 1 day each loop and the final number
+      !   of days is known for 1000 and 100000 years (precomputed)
+      ! In test2, set_date_from_timesecs will reset nyr, month, mday, sec
       !-----------------
 
-      ndayp = -1   ! prior day
-      sec = 0
-      do nyr = 0,nyrmax
-         do month = 1,months_per_year
-            do mday = 1,daymo(month)
-               errorflag1 = passflag
-               errorflag2 = passflag
+      ndayc(1) = -1   ! prior day
+      do ny = 0,nyrmax
+         do nm = 1,months_per_year
+            do nd = 1,daymo(nm)
+
+               errorflagtmp = passflag
+               nyrv(1) = ny
+               monv(1) = nm
+               dayv(1) = nd
+               secv(1) = 0
+
+               ! check days increment by 1
+               ndayv(1) = compute_elapsed_days(nyrv(1),monv(1),dayv(1))
+               if (ndayv(1) - ndayc(1) /= 1) then
+                  errorflagtmp  = failflag
+                  errorflag(1) = failflag
+                  write(6,*) 'ERROR1: did not increment one day',nyrv(1),monv(1),dayv(1),ndayv(1)
+               endif
+
+               ! establish internal date and update internal calendar including timesecs
+               nyr = nyrv(1)
+               month = monv(1)
+               mday = dayv(1)
+               sec = secv(1)
                call calendar()
-               nday = compute_elapsed_days(nyr,month,mday)
-               if (nday - ndayp /= 1) then
-                  errorflagA  = failflag
-                  errorflag1  = failflag
-                  errorflag1A = failflag
-                  write(6,*) 'ERROR1: did not increment one day'
-               endif
-               nyr1 = nyr
-               month1 = month
-               mday1 = mday
-               sec1 = sec
-               call set_date_from_timesecs(timesecs)
-               if (nyr /= nyr1 .or. month /= month1 .or. mday /= mday1 .or. sec /= sec1) then
-                  errorflagA  = failflag
-                  errorflag2  = failflag
-                  errorflag2A = failflag
+               timesecsv(1) = timesecs
+
+               ! check set_date_from_timesecs
+               nyrc(2) = nyr
+               monc(2) = month
+               dayc(2) = mday
+               secc(2) = sec
+               timesecsc(2) = timesecs
+               ndayc(2) = ndayv(1)
+               nyr = -1
+               month = -1
+               mday = -1
+               sec = -1
+               timesecs = -1
+               call set_date_from_timesecs(timesecsc(2))
+               if (nyr /= nyrc(2) .or. month /= monc(2) .or. mday /= dayc(2) .or. sec /= secc(2) .or. timesecs /= timesecsc(2)) then
+                  errorflagtmp  = failflag
+                  errorflag(2) = failflag
                   write(6,*) 'ERROR2: timesecs error'
-                  write(6,1001) 'e2',nday,nyr1,'-',month1,'-',mday1,':',sec1,' timesecs = ',timesecs
+                  write(6,1001) 'e2',ndayc(2),nyrc(2),'-',monc(2),'-',dayc(2),':',secc(2),' timesecs = ',timesecsc(2)
                endif
-               if (errorflag1 /= passflag .or. errorflag2 /= passflag .or. &
-                   nday <= 10 .or. mod(nday,nyrmax*10) == 0 .or. &
-                   (nyr == nyrmax .and. month == months_per_year)) then
-                  write(6,1001) '  ',nday,nyr ,'-',month ,'-',mday ,':',sec ,' timesecs = ',timesecs
+               if (errorflagtmp /= passflag .or. &
+                   ndayv(1) <= 10 .or. mod(ndayv(1),nyrmax*10) == 0 .or. &
+                   (nyrv(1) == nyrmax .and. monv(1) == months_per_year)) then
+                  write(6,1001) ' CHECK1: ',ndayv(1),nyrv(1) ,'-',monv(1),'-',dayv(1),':',secv(1) ,' timesecs = ',timesecsv(1)
                endif
-               ndayp = nday
+               ndayc(1) = ndayv(1)
             enddo
          enddo
       enddo
@@ -116,212 +155,379 @@
       ! check total number of days run in nyrmax years
       if (nyrmax == 1000) then
          if (n == 1) then
-            nday = 365364
+            ndayc(1) = 365364
          elseif (n == 2) then
-            nday = 360359
+            ndayc(1) = 360359
          elseif (n == 3) then
-            nday = 365607
+            ndayc(1) = 365607
          endif
-         if (ndayp /= nday) then
-            errorflagA  = failflag
-            errorflag1  = failflag
-            errorflag1A = failflag
-            write(6,*) 'ERROR1a: final nday incorrect', ndayp, nday
+         if (ndayv(1) /= ndayc(1)) then
+            errorflag(1) = failflag
+            write(6,*) 'ERROR1a: final nday incorrect', ndayv(1), ndayc(1)
          endif
       endif
 
       ! check total number of days run in nyrmax years
       if (nyrmax == 100000) then
          if (n == 1) then
-            nday = 36500364
+            ndayc(1) = 36500364
          elseif (n == 2) then
-            nday = 36000359
+            ndayc(1) = 36000359
          elseif (n == 3) then
-            nday = 36524615
+            ndayc(1) = 36524615
          endif
-         if (ndayp /= nday) then
-            errorflagA  = failflag
-            errorflag1  = failflag
-            errorflag1A = failflag
-            write(6,*) 'ERROR1a: final nday incorrect', ndayp, nday
+         if (ndayv(1) /= ndayc(1)) then
+            errorflag(1) = failflag
+            write(6,*) 'ERROR1a: final nday incorrect', ndayv(1), ndayc(1)
          endif
       endif
 
       !-----------------
       ! check adding arbitrary amounts to each date unit and see if calendar reconciles properly
+      ! then subtract same arbitrary amounts in reverse order and make sure it ends at original value
       !-----------------
 
-      nyr = 1000
-      month = 1
-      mday = 1
-      sec = 0
+      nyrv(1) = 1000
+      monv(1) = 1
+      dayv(1) = 1
+      secv(1) = 0
+      nyr = nyrv(1)
+      month = monv(1)
+      mday = dayv(1)
+      sec = secv(1)
       call calendar()
       nday = compute_elapsed_days(nyr,month,mday)
-      write(6,*) ' '
-      write(6,1001) '      ',nday,nyr ,'-',month ,'-',mday ,':',sec ,' timesecs = ',timesecs
-      nyr1 = nyr
-      month1 = month
-      mday1 = mday
-      sec1 = sec
       dnyr = 0
       dmon = 0
       dday = 0
       dsec = 0
-      do nd = 1,10
-         do nf = 1,4
-            if (nf == 1) then
-               xadd = nd*nd
-               xunits = 'years'
-               nyr = nyr + xadd
-               dnyr = dnyr + xadd
-            elseif (nf == 2) then
-               xadd = nd*nd
-               xunits = 'months'
-               month = month + xadd
-               dmon = dmon + xadd
-            elseif (nf == 3) then
-               xadd = nd*nd*nd*nd
-               xunits = 'days'
-               mday = mday + xadd
-               dday = dday + xadd
-            elseif (nf == 4) then
-               xadd = nd*nd*nd*nd*nd*nd*nd
-               xunits = 'seconds'
-               sec = sec + xadd
-               dsec = dsec + xadd
-            endif
-            call calendar()
-            nday = compute_elapsed_days(nyr,month,mday)
-            write(6,1002) '  Add ',xadd,trim(xunits)
-            write(6,1001) '      ',nday,nyr ,'-',month ,'-',mday ,':',sec ,' timesecs = ',timesecs
+      do nfa = 1,-1,-2
+         write(6,*) ' '
+         write(6,1001) ' CHECK3: ',nday,nyr ,'-',month ,'-',mday ,':',sec ,' timesecs = ',timesecs
+         do nfb = 1,10
+            do nfc = 1,4
+               if (nfa == 1) then
+                  nf1 = nfb
+                  nf2 = nfc
+                  signstr = 'Add'
+               elseif (nfa == -1) then
+                  nf1 = 11-nfb
+                  nf2 = 5-nfc
+                  signstr = 'Sub'
+               endif
+               fnyr = 0
+               fmon = 0
+               fday = 0
+               fsec = 0
+               if (nf2 == 1) then
+                  xadd = nf1*nf1
+                  unitstr = 'years'
+                  nyr = nyr + nfa*xadd
+                  if (nfa == 1) dnyr = dnyr + nfa*xadd
+                  fnyr = nfa*xadd
+               elseif (nf2 == 2) then
+                  xadd = nf1*nf1
+                  unitstr = 'months'
+                  month = month + nfa*xadd
+                  if (nfa == 1) dmon = dmon + nfa*xadd
+                  fmon = nfa*xadd
+               elseif (nf2 == 3) then
+                  xadd = nf1*nf1*nf1*nf1
+                  unitstr = 'days'
+                  mday = mday + nfa*xadd
+                  if (nfa == 1) dday = dday + nfa*xadd
+                  fday = nfa*xadd
+               elseif (nf2 == 4) then
+                  xadd = nf1*nf1*nf1*nf1*nf1*nf1*nf1
+                  unitstr = 'seconds'
+                  sec = sec + nfa*xadd
+                  if (nfa == 1) dsec = dsec + nfa*xadd
+                  fsec = nfa*xadd
+               endif
+               call calendar()
+               nday = compute_elapsed_days(nyr,month,mday)
+               write(6,1002) ' CHECK3: '//trim(signstr)//' ',xadd,trim(unitstr)
+               write(6,1001) ' CHECK3: ',nday,nyr ,'-',month ,'-',mday ,':',sec ,' timesecs = ',timesecs
 
-            ! This checks date2time and time2date leveraging the pseudo random dates
-            ! plus various _init settings.  Reset the _init setting to the original
-            ! values at the end of the test
-            yi = year_init
-            mi = month_init
-            di = day_init
-            si = sec_init
-            year_init = nyr/2
-            month_init = max(month/2,1)
-            day_init = max(mday*7/8,1)
-            sec_init = max(sec*7/8,1)
-            nyr4 = -1
-            month4 = -1
-            mday4 = -1
-            sec4 = -1
-            call calendar_date2time(nyr,month,mday,sec,timesecs4)
-            call calendar_time2date(timesecs4,nyr4,month4,mday4,sec4)
-!            write(6,*) 'd2t2d ',timesecs,timesecs4
-            if (nyr /= nyr4 .or. month /= month4 .or. mday /= mday4 .or. sec /= sec4) then
-               errorflagA  = failflag
-               errorflag4A = failflag
-               write(6,*) 
-               write(6,*) 'ERROR4A: date2time time2date error'
-               write(6,1001) 'e4',nday,nyr4,'-',month4,'-',mday4,':',sec4,' timesecs = ',timesecs4
-               write(6,1001) '  ',nday,nyr ,'-',month ,'-',mday ,':',sec ,' timesecs = ',timesecs
-               write(6,*) 
-            endif
-            year_init = yi
-            month_init = mi
-            day_init = di
-            sec_init = si
+               !-----------------
+               ! This checks update_date add and subtract to make sure the original value is returned
+               !-----------------
+
+               nyrc(6) = nyr
+               monc(6) = month
+               dayc(6) = mday
+               secc(6) = sec
+               timesecsc(6) = timesecs
+               nyrv(6) = nyrc(6)
+               monv(6) = monc(6)
+               dayv(6) = dayc(6)
+               secv(6) = secc(6)
+               call update_date(nyrv(6),monv(6),dayv(6),secv(6),fnyr,fmon,fday,fsec)
+               write(6,1001) ' CHECK6: ',-1,nyrv(6),'-',monv(6),'-',dayv(6),':',secv(6)
+               if (nyrc(6) == nyrv(6) .and. monc(6) == monv(6) .and. dayc(6) == dayv(6) .and. secc(6) == secv(6) .and. timesecsc(6) == timesecsv(6)) then
+                  errorflag(6) = failflag
+                  write(6,*) ' '
+                  write(6,*) 'ERROR6a: update date error'
+                  write(6,1001) 'e6',nday,nyrv(6),'-',monv(6),'-',dayv(6),':',secv(6),' timesecs = ',timesecsv(6)
+                  write(6,1001) '  ',nday,nyrc(6),'-',monc(6),'-',dayc(6),':',secc(6),' timesecs = ',timesecsc(6)
+                  write(6,*)    '  ',fnyr,fmon,fday,fsec
+                  write(6,*) ' '
+               endif
+               call update_date(nyrv(6),monv(6),dayv(6),secv(6),-fnyr,-fmon,-fday,-fsec)
+               call calendar_date2time(nyrc(6),monc(6),dayc(6),secc(6),timesecsv(6))
+               if (nyrc(6) /= nyrv(6) .or. monc(6) /= monv(6) .or. dayc(6) /= dayv(6) .or. secc(6) /= secv(6) .or. timesecsc(6) /= timesecsv(6)) then
+                  errorflag(6) = failflag
+                  write(6,*) ' '
+                  write(6,*) 'ERROR6b: update date error'
+                  write(6,1001) 'e6',nday,nyrv(6),'-',monv(6),'-',dayv(6),':',secv(6),' timesecs = ',timesecsv(6)
+                  write(6,1001) '  ',nday,nyrc(6),'-',monc(6),'-',dayc(6),':',secc(6),' timesecs = ',timesecsc(6)
+                  write(6,*)    '  ',fnyr,fmon,fday,fsec
+                  write(6,*) ' '
+               endif
+
+               !-----------------
+               ! This checks date2time and time2date leveraging the pseudo random dates
+               ! plus various reference settings.  Different reference dates means
+               ! timesecs won't match, so don't check them.
+               !-----------------
+
+               yi = nyr/2
+               mi = max(month/2,1)
+               di = max(mday*7/8,1)
+               si = max(sec*7/8,1)
+               nyrc(4) = nyr
+               monc(4) = month
+               dayc(4) = mday
+               secc(4) = sec
+               timesecsc(4) = timesecs
+               nyrv(4) = -1
+               monv(4) = -1
+               dayv(4) = -1
+               secv(4) = -1
+               timesecsv(4) = -1
+               call calendar_date2time(nyrc(4),monc(4),dayc(4),secc(4),timesecsv(4),yi,mi,di,si)
+               call calendar_time2date(timesecsv(4),nyrv(4),monv(4),dayv(4),secv(4),yi,mi,di,si)
+               write(6,*) 'CHECK4: ',timesecsv(4)
+               if (nyrc(4) /= nyrv(4) .or. monc(4) /= monv(4) .or. dayc(4) /= dayv(4) .or. secc(4) /= secv(4)) then
+                  errorflag(4) = failflag
+                  write(6,*) ' '
+                  write(6,*) 'ERROR4: date2time time2date error'
+                  write(6,1001) 'e4',nday,nyrv(4),'-',monv(4),'-',dayv(4),':',secv(4),' timesecs = ',timesecsv(4)
+                  write(6,1001) '  ',nday,nyrc(4),'-',monc(4),'-',dayc(4),':',secc(4),' timesecs = ',timesecsc(4)
+                  write(6,*) ' '
+               endif
+
+            enddo
          enddo
+
+         nyrv(3) = nyr
+         monv(3) = month
+         dayv(3) = mday
+         secv(3) = sec
+         timesecsv(3) = timesecs
+         if (nfa == 1) then
+            if (n == 1) then
+               nyrc(3) = 1487
+               monc(3) = 1
+               dayc(3) = 21
+               secc(3) = 22825
+               ndayc(3) = 542775
+            elseif (n == 2) then
+               nyrc(3) = 1488
+               monc(3) = 1
+               dayc(3) = 13
+               secc(3) = 22825
+               ndayc(3) = 535692
+            elseif (n == 3) then
+               nyrc(3) = 1487
+               monc(3) = 1
+               dayc(3) = 5
+               secc(3) = 22825
+               ndayc(3) = 543120
+            endif
+         elseif (nfa == -1) then
+            nyrc(3) = nyrv(1)
+            monc(3) = monv(1)
+            dayc(3) = dayv(1)
+            secc(3) = secv(1)
+            if (n == 1) then
+               ndayc(3) = 365000
+            elseif (n == 2) then
+               ndayc(3) = 360000
+            elseif (n == 3) then
+               ndayc(3) = 365243
+            endif
+         endif
+
+         ! check answers
+         if (nyrv(3) /= nyrc(3) .or. monv(3) /= monc(3) .or. dayv(3) /= dayc(3) .or. secv(3) /= secc(3)) then
+            errorflag(3) = failflag
+            write(6,*) ' '
+            write(6,*) 'ERROR3: calendar advance error'
+            write(6,1001) 'e3',nday,nyrc(3),'-',monc(3),'-',dayc(3),':',secc(3),' timesecs = ',timesecsc(3)
+            write(6,1001) '  ',nday,nyrv(3),'-',monv(3),'-',dayv(3),':',secv(3),' timesecs = ',timesecsv(3)
+            write(6,*) ' '
+         endif
       enddo
 
       write(6,*) ' '
-      nyr5a = nyr1
-      month5a = month1
-      mday5a = mday1
-      sec5a = sec1
-      write(6,1001) '      ',-1,nyr5a ,'-',month5a ,'-',mday5a ,':',sec5a 
+      nyrv(1) = 1000
+      monv(1) = 1
+      dayv(1) = 1
+      secv(1) = 0
+      nyrv(5) = nyrv(1)
+      monv(5) = monv(1)
+      dayv(5) = dayv(1)
+      secv(5) = secv(1)
+      write(6,1001) ' CHECK5a: ',-1,nyrv(5) ,'-',monv(5) ,'-',dayv(5) ,':',secv(5)
       write(6,1002) '  Add ',dnyr,'years'
       write(6,1002) '  Add ',dmon,'months'
       write(6,1002) '  Add ',dday,'days'
       write(6,1002) '  Add ',dsec,'seconds'
-      call update_date(nyr5a,month5a,mday5a,sec5a,dnyr,dmon,dday,dsec)
-      write(6,1001) '      ',-1,nyr5a ,'-',month5a ,'-',mday5a ,':',sec5a 
-      nyr5b = nyr5a
-      month5b = month5a
-      mday5b = mday5a
-      sec5b = sec5a
-      write(6,1001) '      ',-1,nyr5b ,'-',month5b ,'-',mday5b ,':',sec5b 
+      call update_date(nyrv(5),monv(5),dayv(5),secv(5),dnyr,dmon,dday,dsec)
+      write(6,1001) ' CHECK5a: ',-1,nyrv(5) ,'-',monv(5) ,'-',dayv(5) ,':',secv(5)
+      write(6,*) ' '
+
+      ! correct answers
+      if (n == 1) then
+         nyrc(5) = 1487
+         monc(5) = 1
+         dayc(5) = 24
+         secc(5) = 22825
+         ndayc(5) = 542775
+      elseif (n == 2) then
+         nyrc(5) = 1488
+         monc(5) = 1
+         dayc(5) = 13
+         secc(5) = 22825
+         ndayc(5) = 535692
+      elseif (n == 3) then
+         nyrc(5) = 1487
+         monc(5) = 1
+         dayc(5) = 7
+         secc(5) = 22825
+         ndayc(5) = 543120
+      endif
+
+      ! check answers
+      if (nyrv(5) /= nyrc(5) .or. monv(5) /= monc(5) .or. dayv(5) /= dayc(5) .or. secv(5) /= secc(5)) then
+         errorflag(5) = failflag
+         write(6,*) ' '
+         write(6,*) 'ERROR5a: calendar advance error'
+         write(6,1001) 'e5',nday,nyrc(5),'-',monc(5),'-',dayc(5),':',secc(5),' timesecs = ',timesecs
+         write(6,1001) '  ',nday,nyrv(5),'-',monv(5),'-',dayv(5),':',secv(5),' timesecs = ',timesecs
+         write(6,*) ' '
+      endif
+
+      write(6,1001) ' CHECK5b: ',-1,nyrv(5) ,'-',monv(5) ,'-',dayv(5) ,':',secv(5)
       write(6,1002) '  Sub ',dnyr,'years'
       write(6,1002) '  Sub ',dmon,'months'
       write(6,1002) '  Sub ',dday,'days'
       write(6,1002) '  Sub ',dsec,'seconds'
-      call update_date(nyr5b,month5b,mday5b,sec5b,-dnyr,-dmon,-dday,-dsec)
-      write(6,1001) '      ',-1,nyr5b ,'-',month5b ,'-',mday5b ,':',sec5b 
+      call update_date(nyrv(5),monv(5),dayv(5),secv(5),-dnyr,-dmon,-dday,-dsec)
+      write(6,1001) ' CHECK5b: ',-1,nyrv(5) ,'-',monv(5) ,'-',dayv(5) ,':',secv(5)
 
-      errorflag3A = passflag
-      errorflag5A = passflag
-      errorflag5B = passflag
-      if (n == 1) then
-         nyr3 = 1487
-         month3 = 1
-         mday3 = 21
-         mday5 = 24
-         sec3 = 22825
-         nday3 = 542775
-      elseif (n == 2) then
-         nyr3 = 1488
-         month3 = 1
-         mday3 = 13
-         mday5 = 13
-         sec3 = 22825
-         nday3 = 535692
-      elseif (n == 3) then
-         nyr3 = 1487
-         month3 = 1
-         mday3 = 5
-         mday5 = 7
-         sec3 = 22825
-         nday3 = 543120
+      ! correct answers
+      nyrc(5) = nyrv(1)
+      monc(5) = monv(1)
+      dayc(5) = dayv(1)
+      secc(5) = secv(1)
+      if (nyrv(5) /= nyrc(5) .or. monv(5) /= monc(5) .or. dayv(5) /= dayc(5) .or. secv(5) /= secc(5)) then
+         errorflag(5) = failflag
+         write(6,*) ' '
+         write(6,*) 'ERROR5b: calendar advance error'
+         write(6,1001) 'e5',nday,nyrc(5),'-',monc(5),'-',dayc(5),':',secc(5),' timesecs = ',timesecs
+         write(6,1001) '  ',nday,nyrv(5),'-',monv(5),'-',dayv(5),':',secv(5),' timesecs = ',timesecs
+         write(6,*) ' '
       endif
-      if (nyr /= nyr3 .or. month /= month3 .or. mday /= mday3 .or. sec /= sec3) then
-         errorflagA  = failflag
-         errorflag3A = failflag
-         write(6,*) 
-         write(6,*) 'ERROR3A: calendar advance error'
-         write(6,1001) 'e3',nday,nyr3,'-',month3,'-',mday3,':',sec3,' timesecs = ',timesecs
-         write(6,1001) '  ',nday,nyr ,'-',month ,'-',mday ,':',sec ,' timesecs = ',timesecs
-         write(6,*) 
-      endif
-      if (nyr5a /= nyr3 .or. month5a /= month3 .or. mday5a /= mday5 .or. sec5a /= sec3) then
-         errorflagA  = failflag
-         errorflag5A = failflag
-         write(6,*) 
-         write(6,*) 'ERROR5A: calendar advance error'
-         write(6,1001) 'e5',nday,nyr3 ,'-',month3 ,'-',mday5 ,':',sec3 ,' timesecs = ',timesecs
-         write(6,1001) '  ',nday,nyr5a,'-',month5a,'-',mday5a,':',sec5a,' timesecs = ',timesecs
-         write(6,*) 
-      endif
-      if (nyr5b /= nyr1 .or. month5b /= month1 .or. mday5b /= mday1 .or. sec5b /= sec1) then
-         errorflagA  = failflag
-         errorflag5B = failflag
-         write(6,*) 
-         write(6,*) 'ERROR5B: calendar advance error'
-         write(6,1001) 'e5',nday,nyr1 ,'-',month1 ,'-',mday1 ,':',sec1 ,' timesecs = ',timesecs
-         write(6,1001) '  ',nday,nyr5b,'-',month5b,'-',mday5b,':',sec5b,' timesecs = ',timesecs
-         write(6,*) 
-      endif
+
+      !-------------------------
+      ! Special checks:
+      ! Add a month to the last day of each month
+      ! Check date2time for seconds
+      !-------------------------
 
       write(6,*) ' '
-      write(6,*) trim(errorflag1A)," ... ",trim(str1)," compute_elapsed_days: ",nyrmax," years "
-      write(6,*) trim(errorflag2A)," ... ",trim(str1)," set_date_from_timesecs: ",nyrmax," years "
-      write(6,*) trim(errorflag3A)," ... ",trim(str1)," calendar advancing check: "
-      write(6,*) trim(errorflag4A)," ... ",trim(str1)," date2time time2date check: "
-      write(6,*) trim(errorflag5A)," ... ",trim(str1)," calendar update_date check: "
-      write(6,*) trim(errorflag5B)," ... ",trim(str1)," calendar neg update_date check: "
+      do ny = 1,5
+      do nm = 1, months_per_year
+         if (ny == 1) nyrv(7) = 1900
+         if (ny == 2) nyrv(7) = 1999
+         if (ny == 3) nyrv(7) = 2000
+         if (ny == 4) nyrv(7) = 2004
+         if (ny == 5) nyrv(7) = 2005
+         call compute_calendar_data(nyrv(7),tdaymo,tdaycal,tdayyr)
+         monv(7) = nm
+         dayv(7) = tdaymo(nm)
+         secv(7) = 0
+         if (tdaymo(mod(nm,months_per_year)+1) >= tdaymo(nm)) then
+            monc(7) = mod(nm,months_per_year)+1
+            dayc(7) = dayv(7)
+         else
+            monc(7) = mod(nm+1,months_per_year)+1
+            dayc(7) = tdaymo(nm) - tdaymo(mod(nm,months_per_year)+1)
+         endif
+         nyrc(7) = nyrv(7)
+         if (monc(7) < monv(7)) nyrc(7) = nyrv(7) + 1
+         secc(7) = secv(7)
+         call update_date(nyrv(7),monv(7),dayv(7),secv(7),dmon=1)
+         write(6,1001) ' CHECK7a:',1,nyrv(7),'-',monv(7),'-',dayv(7),':',secv(7)
+         if (nyrv(7) /= nyrc(7) .or. monv(7) /= monc(7) .or. dayv(7) /= dayc(7) .or. secv(7) /= secc(7)) then
+            errorflag(7) = failflag
+            write(6,*) ' '
+            write(6,*) 'ERROR7a: add 1 month to end of month error'
+            write(6,1001) 'e7',-1,nyrc(7),'-',monc(7),'-',dayc(7),':',secc(7)
+            write(6,1001) '  ',-1,nyrv(7),'-',monv(7),'-',dayv(7),':',secv(7)
+            write(6,*) ' '
+         endif
+      enddo
+      enddo
+
+      do ns1 = 0,seconds_per_day,seconds_per_day/4
+      do ns2 = 0,seconds_per_day,seconds_per_day/4
+         nyrv(7) = 2002
+         monv(7) = 3
+         call compute_calendar_data(nyrv(7),tdaymo,tdaycal,tdayyr)
+         dayv(7) = tdaymo(monv(7))
+         call calendar_date2time(nyrv(7),monv(7),dayv(7),ns2,timesecsv(7),nyrv(7),monv(7),dayv(7),ns1)
+         write(6,*) 'CHECK7b:',ns1,ns2,timesecsv(7)
+         if (timesecsv(7) /= ns2-ns1) then
+            errorflag(7) = failflag
+            write(6,*) ' '
+            write(6,*) 'ERROR7b: sec diff same date error'
+            write(6,*) '  ',ns1,ns2,timesecsv(7),ns2-ns1
+            write(6,*) ' '
+         endif
+         call calendar_date2time(nyrv(7),monv(7)+1,1,ns2,timesecsv(7),nyrv(7),monv(7),dayv(7),ns1)
+         write(6,*) 'CHECK7c:',ns1,ns2,timesecsv(7)
+         if (timesecsv(7) /= ns2-ns1+seconds_per_day) then
+            errorflag(7) = failflag
+            write(6,*) ' '
+            write(6,*) 'ERROR7c: sec diff next day error'
+            write(6,*) '  ',ns1,ns2,timesecsv(7),ns2-ns1+seconds_per_day
+            write(6,*) ' '
+         endif
+      enddo
+      enddo
+
+      !-------------------------
+      ! write test results
+      !-------------------------
+
+      write(6,*) ' '
+      write(6,*) 'Test Results: ',nyrmax,' years'
+      do m = 1,ntests
+         write(6,*) trim(errorflag(m))," ... ",trim(calstr)," ",trim(testname(m))
+         if (errorflag(m) == failflag) errorflag0=failflag
+      enddo
       write(6,*) ' '
 
-    enddo  ! do n
+   enddo  ! do n
 
  1001 format(a,i10,1x,i7.4,a,i2.2,a,i2.2,a,i5.5,a,e23.16)
  1002 format(a,i10,1x,a)
 
       write(6,*) ' '
-      if (errorflagA == passflag) then
+      if (errorflag0 == passflag) then
          write(6,*) 'CALCHK COMPLETED SUCCESSFULLY'
       else
          write(6,*) 'CALCHK FAILED'

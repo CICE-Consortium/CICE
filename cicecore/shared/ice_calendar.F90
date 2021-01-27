@@ -42,10 +42,10 @@
       public :: update_date          ! input date and delta date, compute new date
       public :: calendar_date2time   ! convert date to time relative to init date
       public :: calendar_time2date   ! convert time to date relative to init date
+      public :: compute_calendar_data ! compute info about calendar for a given year
 
       ! private functions
       private :: set_calendar          ! sets model calendar type (noleap, etc)
-      private :: compute_calendar_data ! compute info about calendar for a given year
 
       ! PUBLIC
 
@@ -59,6 +59,7 @@
          hours_per_day   = 24        ! hours per day
 
       integer (kind=int_kind), public :: &
+         seconds_per_day       , & ! seconds per day
          days_per_year         , & ! number of days in one year
          daymo(months_per_year), & ! number of days in each month
          daycal(months_per_year+1) ! accumulated days in year to end of prior month
@@ -162,6 +163,12 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      seconds_per_day = nint(secday)
+      if (abs(real(seconds_per_day,kind=dbl_kind) - secday) > 1.0e-7) then
+         write(nu_diag,*) trim(subname),' ERROR secday should basically be an integer',secday
+         call abort_ice(subname//'ERROR: improper secday')
+      endif
 
       istep = 0         ! local timestep number
       nyr=year_init     ! year
@@ -706,6 +713,7 @@
 #endif
       character(len=*),parameter :: subname='(set_date_from_timesecs)'
 
+      timesecs = ttimesecs
       call calendar_time2date(ttimesecs,nyr,month,mday,sec,year_init,month_init,day_init,sec_init)
 
 #if (1 == 0)
