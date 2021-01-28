@@ -15,6 +15,7 @@
       module ice_calendar
 
       use ice_kinds_mod
+      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, c100, c30, c360, c365, c3600, &
           c4, c400
       use ice_domain_size, only: max_nstrm
@@ -29,6 +30,7 @@
       ! INTERFACES
 
       public :: init_calendar     ! initialize calendar
+      public :: calc_timesteps    ! initialize number of timesteps (after namelist and restart are read)
       public :: advance_timestep  ! advance model 1 timestep and update calendar
       public :: calendar ! update model internal calendar/time information
       public :: set_date_from_timesecs ! set model date from time in seconds
@@ -84,6 +86,7 @@
          idate0   , & ! initial date (yyyymmdd), associated with year_init, month_init, day_init
          dayyr    , & ! number of days in the current year
          npt      , & ! total number of time steps (dt)
+         npt0     , & ! original npt value in npt0_unit
          ndtd     , & ! number of dynamics subcycles: dt_dyn=dt/ndtd
          stop_now     , & ! if 1, end program execution
          write_restart, & ! if 1, write restart now
@@ -118,6 +121,7 @@
 
       character (len=1), public :: &
          npt_unit,            & ! run length unit, 'y', 'm', 'd', 'h', 's', '1'
+         npt0_unit,           & ! original run length unit, 'y', 'm', 'd', 'h', 's', '1'
          histfreq(max_nstrm), & ! history output frequency, 'y','m','d','h','1'
          dumpfreq               ! restart frequency, 'y','m','d'
 
@@ -165,7 +169,7 @@
          file=__FILE__, line=__LINE__)
 
       seconds_per_day = nint(secday)
-      if (abs(real(seconds_per_day,kind=dbl_kind) - secday) > 1.0e-7) then
+      if ((abs(real(seconds_per_day,kind=dbl_kind)/secday)-1.0_dbl_kind) > 1.0e-7) then
          write(nu_diag,*) trim(subname),' ERROR secday should basically be an integer',secday
          call abort_ice(subname//'ERROR: improper secday')
       endif
@@ -209,11 +213,76 @@
       end subroutine init_calendar
 
 !=======================================================================
+! Initialize timestep counter
+! This converts npt_unit and npt to a number of timesteps stored in npt
+! npt0 and npt0_unit remember the original values
+! It is safe to call this more than once, but it should be called only after
+! the initial model run date is known (from namelist or restart) and before
+! the first timestep
+
+      subroutine calc_timesteps
+
+      real    (kind=dbl_kind) :: secday           ! seconds per day
+      real    (kind=dbl_kind) :: dtimesecs        ! time in seconds of run
+      integer (kind=int_kind) :: nyre,monthe,mdaye,sece  ! time at end of run
+      character(len=*),parameter :: subname='(calc_timesteps)'
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      nyre = nyr
+      monthe = month
+      mdaye = mday
+      sece = sec
+      npt0 = npt
+      npt0_unit = npt_unit
+
+      if (npt_unit == 'y') then
+         call update_date(nyre,monthe,mdaye,sece,dnyr=npt)
+         call calendar_date2time(nyre,monthe,mdaye,sece,dtimesecs,nyr,month,mday,sec)
+      elseif (npt_unit == 'm') then
+         call update_date(nyre,monthe,mdaye,sece,dmon=npt)
+         call calendar_date2time(nyre,monthe,mdaye,sece,dtimesecs,nyr,month,mday,sec)
+      elseif (npt_unit == 'd') then
+         dtimesecs = real(npt,kind=dbl_kind)*secday
+         call update_date(nyre,monthe,mdaye,sece,dday=npt)
+      elseif (npt_unit == 'h') then
+         dtimesecs = real(npt,kind=dbl_kind)*secday/real(hours_per_day,kind=dbl_kind)
+         call update_date(nyre,monthe,mdaye,sece,dsec=nint(dtimesecs))
+      elseif (npt_unit == 's') then
+         call update_date(nyre,monthe,mdaye,sece,dsec=npt)
+         dtimesecs = real(npt,kind=dbl_kind)
+      elseif (npt_unit == '1') then
+         dtimesecs = dt*real(npt,kind=dbl_kind)
+         call update_date(nyre,monthe,mdaye,sece,dsec=nint(dtimesecs))
+      endif
+
+      npt = nint(dtimesecs/dt)
+      npt_unit = '1'
+
+      if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,'(1x,2a,i9,a,f13.2)') subname,' modified npt from ',npt0,' '//trim(npt0_unit)//' with dt= ',dt
+         write(nu_diag,'(1x,2a,i9,a,f13.2)') subname,'                to ',npt ,' '//trim(npt_unit )//' with dt= ',dt
+         write(nu_diag,'(1x,2a,i6.4,a,i2.2,a,i2.2,a,i5.5)') subname,' start time is',nyr,'-',month,'-',mday,':',sec
+         write(nu_diag,'(1x,2a,i6.4,a,i2.2,a,i2.2,a,i5.5)') subname,'   end time is',nyre,'-',monthe,'-',mdaye,':',sece
+         write(nu_diag,*) ' '
+      endif
+
+      ! check that npt is very close to an integer
+      if ((abs(real(npt,kind=dbl_kind)*dt/dtimesecs)-1.0_dbl_kind) > 1.0e-7) then
+         write(nu_diag,*) trim(subname),' ERROR dt and npt not consistent',npt,dt
+         call abort_ice(subname//'ERROR: improper npt')
+      endif
+
+      end subroutine calc_timesteps
+
+!=======================================================================
 ! Determine the date at the end of the time step
 
       subroutine advance_timestep()
-
-      use ice_communicate, only: my_task, master_task
 
       ! local variables
 
@@ -221,12 +290,18 @@
          idt       ! integer dt
       character(len=*),parameter :: subname='(advance_timestep)'
 
+      if (trim(npt_unit) /= '1') then
+         write(nu_diag,*) trim(subname),' ERROR npt_unit should be coverted to timesteps by now ',trim(npt_unit)
+         write(nu_diag,*) trim(subname),' ERROR you may need to call calc_timesteps to convert from other units'
+         call abort_ice(subname//'ERROR: npt_unit incorrect')
+      endif
+
       istep = istep + 1
       istep1 = istep1 + 1
       idt = nint(dt)
       ! dt is historically a real but it should be an integer
       ! make sure dt is very close to an integer
-      if (abs(real(idt,kind=dbl_kind)-dt) > 1.0e-7) then
+      if ((abs(real(idt,kind=dbl_kind)/dt)-1.0_dbl_kind) > 1.0e-7) then
          write(nu_diag,*) trim(subname),' ERROR dt error, needs to be integer number of seconds, dt=',dt
          call abort_ice(subname//'ERROR: improper dt')
       endif
@@ -239,8 +314,6 @@
 ! Update the calendar and time manager info
 
       subroutine calendar()
-
-      use ice_communicate, only: my_task, master_task
 
 !      real (kind=dbl_kind), intent(in), optional :: &
 !         ttime                          ! time variable
@@ -578,8 +651,6 @@
 ! delta time arguments are optional
 
       subroutine update_date(anyr,amon,aday,asec,dnyr,dmon,dday,dsec)
-
-      use ice_communicate, only: my_task, master_task
 
       integer (kind=int_kind), intent(inout) :: anyr, amon, aday, asec  ! year, month, day, sec
       integer (kind=int_kind), intent(in), optional :: dnyr, dmon, dday, dsec  ! delta year, month, day, sec

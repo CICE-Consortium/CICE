@@ -1,13 +1,14 @@
 
       program calchk
+
       use ice_kinds_mod, only: int_kind, dbl_kind
       use ice_calendar, only: nyr, month, mday, sec
       use ice_calendar, only: year_init, month_init, day_init, sec_init
-      use ice_calendar, only: dt, ndtd, istep0, diagfreq
+      use ice_calendar, only: dt, ndtd, istep0, diagfreq, npt, npt_unit
       use ice_calendar, only: months_per_year, daymo, timesecs, seconds_per_day
       use ice_calendar, only: use_leap_years, days_per_year
       use ice_calendar, only: compute_elapsed_days
-      use ice_calendar, only: update_date
+      use ice_calendar, only: update_date, calc_timesteps
       use ice_calendar, only: init_calendar, calendar
       use ice_calendar, only: set_date_from_timesecs
       use ice_calendar, only: calendar_date2time, calendar_time2date
@@ -15,7 +16,7 @@
       implicit none
 
       integer(kind=int_kind) :: nyrmax
-      integer(kind=int_kind) :: nday
+      integer(kind=int_kind) :: nday,nptc
       integer(kind=int_kind) :: n,m,ny,nm,nd,nf1,nf2,xadd,nfa,nfb,nfc,ns1,ns2
       integer(kind=int_kind) :: yi,mi,di,si
       integer(kind=int_kind) :: dnyr,dmon,dday,dsec
@@ -25,7 +26,7 @@
       integer (kind=int_kind) :: tdaycal(months_per_year+1) ! day count per month
       integer (kind=int_kind) :: tdayyr                     ! days in year
 
-      integer(kind=int_kind), parameter :: ntests = 7
+      integer(kind=int_kind), parameter :: ntests = 8
       character(len=8)  :: errorflag0,errorflag(1:ntests),errorflagtmp
       character(len=32) :: testname(ntests)
       integer(kind=int_kind) :: nyrv(ntests),monv(ntests),dayv(ntests),secv(ntests),ndayv(ntests) ! computed values
@@ -49,12 +50,13 @@
       testname(5) = 'big add/sub update_date'
       testname(6) = 'small add/sub update_date'
       testname(7) = 'special checks'
+      testname(8) = 'calc_timesteps'
 
       ndtd = 1
 
       ! test nyrmax years from year 0
-!      nyrmax = 1000
-      nyrmax = 100000
+      nyrmax = 1000
+!      nyrmax = 100000
 
    ! test 3 calendars
    do n = 1,3
@@ -507,6 +509,55 @@
             write(6,*) ' '
          endif
       enddo
+      enddo
+
+      !-------------------------
+      ! calc_timesteps
+      !-------------------------
+
+      nyr = 2000
+      month = 2
+      mday = 1
+      sec = 0
+      do nf1 = 1,6
+         npt = 10
+         dt = 3600._dbl_kind
+
+         if (nf1 == 1) then
+            npt_unit = '1'
+            nptc = 10
+         endif
+         if (nf1 == 2) then
+            npt_unit = 's'
+            npt = 36000.
+            nptc = 10
+         endif
+         if (nf1 == 3) then
+            npt_unit = 'h'
+            nptc = 10
+         endif
+         if (nf1 == 4) then
+            npt_unit = 'd'
+            nptc = 240
+         endif
+         if (nf1 == 5) then
+            npt_unit = 'm'
+            if (n == 1) nptc = 7272
+            if (n == 2) nptc = 7200
+            if (n == 3) nptc = 7296
+         endif
+         if (nf1 == 6) then
+            npt_unit = 'y'
+            if (n == 1) nptc = 87600
+            if (n == 2) nptc = 86400
+            if (n == 3) nptc = 87672
+         endif
+         call calc_timesteps()
+         write(6,*) 'CHECK8:',npt
+         if (npt /= nptc) then
+            errorflag(8) = failflag
+            write(6,*) 'ERROR8: npt error',npt,nptc
+         endif
       enddo
 
       !-------------------------
