@@ -857,7 +857,8 @@
       end subroutine dyn_finish
 
 !=======================================================================
-! Computes seabed (basal) stress factor Tbu (landfast ice)
+! Computes seabed (basal) stress factor Tbu (landfast ice) based on mean
+! thickness and bathymetry data.
 !
 ! Lemieux, J. F., B. Tremblay, F. Dupont, M. Plante, G.C. Smith, D. Dumont (2015). 
 ! A basal stress parameterization form modeling landfast ice, J. Geophys. Res. 
@@ -931,9 +932,12 @@
     end subroutine seabed1_stress_factor
 
 !=======================================================================
-! Computes seabed stress due to grounded ridges
+! Computes seabed (basal) stress factor Tbu (landfast ice) based on 
+! probability of contact between the ITD and the seabed.  
 !
-! authors: E. Dumas-Lefebvre, D. Dumont, F. Dupont, JF Lemieux (June 2018)
+! Dupont, F. Dumont, D., Lemieux, J. F., Dumas-Lefebvre, E., in prep.
+!
+! authors: D. Dumont, JF Lemieux, E. Dumas-Lefebvre, F. Dupont
 !
       subroutine seabed2_stress_factor (nx_block, ny_block,         &
                                        icellt, indxti,   indxtj,    &
@@ -977,9 +981,7 @@
 
       real (kind=dbl_kind), parameter :: &
            max_depth = 50.0_dbl_kind, & ! JFL use threshold_hw!!!!
-           mu_s = 0.1_dbl_kind, &
-           gacc = 9.81_dbl_kind, & ! JFL use gravit!!!!
-           alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
+           mu_s = 0.1_dbl_kind
 
       real (kind=dbl_kind), dimension(ncat_i) :: &
            x_k, g_k, P_x    ! Center of ice thickness categories
@@ -1000,11 +1002,12 @@
       real (kind=dbl_kind), dimension(ncat_i):: tb_tmp
       real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt
       real (kind=dbl_kind) :: atot, x_kmax, x95, x99, x995, x996, x997, x998, x999, xinf
-      real (kind=dbl_kind) :: cut, rhoi, rhow, pi, puny
+      real (kind=dbl_kind) :: cut, rhoi, rhow, gravit, pi, puny
 
       character(len=*), parameter :: subname = '(seabed2_stress_coeff)'
 
       call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi)
+      call icepack_query_parameters(gravit_out=gravit)
       call icepack_query_parameters(pi_out=pi)    
       call icepack_query_parameters(puny_out=puny)
 
@@ -1081,7 +1084,7 @@
                if (ii .eq. 0) then
                   tb_tmp(n) = c0
                else
-                  tb_tmp(n) = max(mu_s*gacc*P_x(n)*sum(P_y(1:ii)*(rhoi*x_k(n) - rhow*y_n(1:ii))), c0)
+                  tb_tmp(n) = max(mu_s*gravit*P_x(n)*sum(P_y(1:ii)*(rhoi*x_k(n) - rhow*y_n(1:ii))),c0)
                endif
             enddo
             Tbt(i,j) = sum(tb_tmp)*exp(-alphab * (c1 - atot))
