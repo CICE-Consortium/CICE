@@ -20,22 +20,16 @@ module ice_comp_nuopc
   use ice_shr_methods    , only : set_component_logging, get_component_instance, state_flddebug
   use ice_import_export  , only : ice_import, ice_export, ice_advertise_fields, ice_realize_fields
   use ice_domain_size    , only : nx_global, ny_global
-  use ice_domain         , only : nblocks, blocks_ice, distrb_info
-  use ice_blocks         , only : block, get_block, nx_block, ny_block, nblocks_x, nblocks_y
-  use ice_grid           , only : tlon, tlat
+  use ice_grid           , only : grid_type, init_grid2
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
   use ice_calendar       , only : idate, mday, time, month, daycal, time2sec, year_init
   use ice_calendar       , only : sec, dt, calendar, calendar_type, nextsw_cday, istep
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
-  use ice_scam           , only : scmlat, scmlon, single_column
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
   use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file
   use ice_history        , only : accum_hist
-  use ice_flux           , only : send_i2x_per_cat
-  use CICE_InitMod       , only : cice_init
-  use CICE_RunMod        , only : cice_run
   use ice_exit           , only : abort_ice
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_init_orbit, icepack_init_parameters, icepack_query_orbit
@@ -47,6 +41,9 @@ module ice_comp_nuopc
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
 #endif
   use ice_timers
+  use CICE_InitMod       , only : cice_init1, cice_init2
+  use CICE_RunMod        , only : cice_run
+  use ice_mesh_mod       , only : ice_mesh_set_distgrid, ice_mesh_setmask_from_maskfile, ice_mesh_check
   use ice_prescribed_mod , only : ice_prescribed_init
 
   implicit none
@@ -178,6 +175,7 @@ contains
 
     ! Local variables
     character(len=char_len_long) :: cvalue
+    character(len=char_len_long) :: ice_meshfile
     logical                      :: isPresent, isSet
     real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
     type(ESMF_DistGrid)          :: ice_distGrid
@@ -213,8 +211,8 @@ contains
     integer                      :: iblk, jblk         ! indices
     integer                      :: ig, jg             ! indices
     integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
-    type(block)                  :: this_block         ! block information for current block
     character(len=char_len_long) :: diag_filename = 'unset'
+    character(len=char_len_long) :: logmsg
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
@@ -277,14 +275,6 @@ contains
     end if
     write(logmsg,'(i6)') dbug
     call ESMF_LogWrite('CICE_cap: dbug = '//trim(logmsg), ESMF_LOGMSG_INFO)
-
-    send_i2x_per_cat = .false.
-    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) send_i2x_per_cat
-       call ESMF_LogWrite('send_i2x_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
-    end if
 
     !----------------------------------------------------------------------------
     ! generate local mpi comm
@@ -403,23 +393,6 @@ contains
        runtype = 'initial' ! determined from the namelist in ice_init if CESMCOUPLED is not defined
     end if
 
-    ! Determine if single column
-    call NUOPC_CompAttributeGet(gcomp, name='single_column', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) single_column
-       if (single_column) then
-          call NUOPC_CompAttributeGet(gcomp, name='scmlon', value=cvalue, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          read(cvalue,*) scmlon
-          call NUOPC_CompAttributeGet(gcomp, name='scmlat', value=cvalue, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          read(cvalue,*) scmlat
-       end if
-    else
-       single_column = .false.
-    end if
-
     ! Determine runid
     call NUOPC_CompAttributeGet(gcomp, name='case_name', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (isPresent .and. isSet) then
@@ -474,12 +447,14 @@ contains
 
     call shr_file_setLogUnit (shrlogunit)
 
-    call NUOPC_CompAttributeGet(gcomp, name="diro", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="diro", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        diag_filename = trim(cvalue)
     end if
-    call NUOPC_CompAttributeGet(gcomp, name="logfile", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="logfile", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        diag_filename = trim(diag_filename) // '/' // trim(cvalue)
@@ -508,27 +483,19 @@ contains
     call ice_mesh_set_distgrid(localpet, npes, ice_distgrid, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! read in the mesh
-    call NUOPC_CompAttributeGet(gcomp, name='mesh_ice', value=cvalue, rc=rc)
+    ! Read in the ice mesh on the cice distribution
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_ice', value=ice_meshfile, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (my_task == master_task) then
-       write(nu_diag,*)'mesh file for cice domain is ',trim(cvalue)
+       write(nu_diag,*)'mesh file for cice domain is ',trim(ice_meshfile)
     end if
-
-    ! Read in the ice mesh on the cice distribution
-    ice_mesh = ESMF_MeshCreate(filename=trim(ice_meshfile), fileformat=ESMF_FILEFORMAT_ESMFMESH, &
-         elementDistGrid=ice_distgrid, rc=rc)
+    ice_mesh = ESMF_MeshCreate(filename=trim(ice_meshfile), &
+         fileformat=ESMF_FILEFORMAT_ESMFMESH, elementDistGrid=ice_distgrid, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Initialize the cice mesh and the cice mask
     if (trim(grid_type) == 'setmask') then
-       ! Determine mask input file and create the mask
-       call NUOPC_CompAttributeGet(gcomp, name='mesh_mask', value=ice_maskfile, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (my_task == master_task) then
-          write(nu_diag,*)'mask file for cice domain is ',trim(ice_maskfile)
-       end if
-       call ice_mesh_setmask_from_maskfile(ice_mesh, ice_maskfile, rc=rc)
+       call ice_mesh_setmask_from_maskfile(gcomp, ice_mesh, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        ! In this case init_grid2 will initialize tlon, tlat, area and hm
@@ -1279,8 +1246,5 @@ contains
     if (year < 0) date = -date
 
   end subroutine ice_cal_ymd2date
-
-  !===============================================================================
-
 
 end module ice_comp_nuopc

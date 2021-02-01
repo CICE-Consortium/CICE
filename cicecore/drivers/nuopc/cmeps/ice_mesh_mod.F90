@@ -1,14 +1,17 @@
 module ice_mesh_mod
 
   use ESMF
-  use ice_kinds_mod    , only : dbl_kind, int_kind
+  use NUOPC            , only : NUOPC_CompAttributeGet
+  use ice_kinds_mod    , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_domain_size  , only : nx_global, ny_global, max_blocks
   use ice_domain       , only : nblocks, blocks_ice, distrb_info
   use ice_blocks       , only : block, get_block, nx_block, ny_block, nblocks_x, nblocks_y
   use ice_shr_methods  , only : chkerr
   use ice_fileunits    , only : nu_diag
   use ice_communicate  , only : my_task, master_task
-  use ice_initfc       , only : icepack_query_parameters
+  use ice_exit         , only : abort_ice
+  use icepack_intfc    , only : icepack_query_parameters
+  use icepack_intfc    , only : icepack_warnings_flush, icepack_warnings_aborted
   implicit none
   private
 
@@ -200,7 +203,7 @@ contains
   end subroutine ice_mesh_set_distgrid
   
   !=======================================================================
-  subroutine ice_mesh_setmask_from_maskfile(ice_mesh, ice_maskfile, rc)
+  subroutine ice_mesh_setmask_from_maskfile(gcomp, ice_mesh, rc)
 
     use ice_scam           , only : scmlat, scmlon, single_column
     use ice_grid           , only : tlon, tlat, hm, tarea, ULON, ULAT, HTN, HTE, ANGLE, ANGLET
@@ -209,18 +212,18 @@ contains
     use ice_grid           , only : kmt_file,  makemask, tmask
     use ice_boundary       , only : ice_HaloUpdate
     use ice_domain         , only : blocks_ice, nblocks, halo_info, distrb_info
-    use ice_constants      , only : c0, c1, c2, p5, radius
+    use ice_constants      , only : c0, c1, c2, p25, radius
     use ice_constants      , only : field_loc_center, field_type_scalar
     use ice_read_write     , only : ice_open_nc, ice_close_nc
-    use ice_exit           , only : abort_ice
     use netcdf
 
     ! input/output variables
-    type(ESMF_Mesh)  , intent(in)  :: ice_mesh
-    character(len=*) , intent(in)  :: ice_maskfile
-    integer          , intent(out) :: rc
+    type(ESMF_GridComp) , intent(inout) :: gcomp
+    type(ESMF_Mesh)     , intent(in)    :: ice_mesh
+    integer             , intent(out)   :: rc
 
     ! local variables
+    character(len=char_len_long) :: ice_maskfile
     integer                      :: i,j,n
     integer                      :: iblk, jblk           ! indices
     integer                      :: ilo, ihi, jlo, jhi   ! beginning and end of physical domain
@@ -250,12 +253,40 @@ contains
     integer (int_kind), pointer  :: ice_mask(:)
     real(dbl_kind)    , pointer  :: ice_frac(:)
     real(dbl_kind)               :: pi
+    real(dbl_kind)               :: c180
     real(dbl_kind)               :: puny
     real(dbl_kind)               :: deg_to_rad
+    logical                      :: isPresent, isSet
+    character(len=char_len_long) :: cvalue
     character(len=*), parameter  :: subname = ' ice_mesh_setmask_from_maskfile'
     !---------------------------------------------------
 
     rc = ESMF_SUCCESS
+
+    ! Determine mask input file and create the mask
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_mask', value=ice_maskfile, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (my_task == master_task) then
+       write(nu_diag,*)'mask file for cice domain is ',trim(ice_maskfile)
+    end if
+
+    ! Determine if single column
+    call NUOPC_CompAttributeGet(gcomp, name='single_column', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) single_column
+       if (single_column) then
+          call NUOPC_CompAttributeGet(gcomp, name='scmlon', value=cvalue, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          read(cvalue,*) scmlon
+          call NUOPC_CompAttributeGet(gcomp, name='scmlat', value=cvalue, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          read(cvalue,*) scmlat
+       end if
+    else
+       single_column = .false.
+    end if
 
     ! Determine start/count to read in for either single column or global lat-lon grid
     ! If single_column, then assume that only master_task is used since there is only one task
@@ -288,9 +319,10 @@ contains
        allocate(ocn_gridcell_frac(nx_block,ny_block,max_blocks))
 
        ! Get required constants
-       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny, deg_to_rad_out=deg_to_rad)
+       call icepack_query_parameters(pi_out=pi, puny_out=puny, c180_out=c180)
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
+       deg_to_rad = pi/c180
 
        ! Set tlon, tlat, tarea, hm and ocn_gridcell_frac
        ! Convert mesh areas from radians^2 to m^2 (tarea is in m^2)
@@ -641,6 +673,7 @@ contains
     real(dbl_kind)          :: diff_lon
     real(dbl_kind)          :: diff_lat
     real(dbl_kind)          :: rad_to_deg
+    character(len=*), parameter :: subname = ' ice_mesh_check: '
     !---------------------------------------------------
 
     ! error check differences between internally generated lons and those read in
@@ -680,11 +713,13 @@ contains
              if ( (diff_lon > 1.e2  .and. abs(diff_lon - 360.) > 1.e-1) .or.&
                   (diff_lon > 1.e-3 .and. diff_lon < c1) ) then
                 write(6,100)n,lonMesh(n),lon(n), diff_lon
-                !call shr_sys_abort()
+                call abort_ice(error_message=subname, &
+                     file=__FILE__, line=__LINE__)
              end if
              if (abs(latMesh(n) - lat(n)) > 1.e-1) then
                 write(6,101)n,latMesh(n),lat(n), abs(latMesh(n)-lat(n))
-                !call shr_sys_abort()
+                call abort_ice(error_message=subname, &
+                     file=__FILE__, line=__LINE__)
              end if
 
           enddo

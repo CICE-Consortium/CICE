@@ -3,7 +3,7 @@ module CICE_InitMod
   !  Initialize CICE model.
 
   use ice_kinds_mod
-  use ice_exit, only: abort_ice
+  use ice_exit     , only: abort_ice
   use ice_fileunits, only: init_fileunits, nu_diag
   use icepack_intfc, only: icepack_aggregate
   use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
@@ -15,7 +15,10 @@ module CICE_InitMod
 
   implicit none
   private
-  public :: cice_init
+  public :: cice_init1
+  public :: cice_init2
+
+  private :: init_restart
 
 !=======================================================================
 contains
