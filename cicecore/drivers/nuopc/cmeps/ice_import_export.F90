@@ -59,14 +59,14 @@ module ice_import_export
   private :: state_getfldptr
 
   interface state_getimport
-     module procedure state_getimport_4d_output
-     module procedure state_getimport_3d_output
+     module procedure state_getimport_4d
+     module procedure state_getimport_3d
   end interface state_getimport
   private :: state_getimport
 
   interface state_setexport
-     module procedure state_setexport_4d_input
-     module procedure state_setexport_3d_input
+     module procedure state_setexport_4d
+     module procedure state_setexport_3d
   end interface state_setexport
   private :: state_setexport
 
@@ -291,6 +291,7 @@ contains
     real(dbl_kind), allocatable :: mesh_areas(:)
     real(dbl_kind), allocatable :: model_areas(:)
     real(dbl_kind), pointer     :: dataptr(:)
+    integer                     :: num_ice
     character(len=*), parameter :: subname='(ice_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
@@ -355,9 +356,10 @@ contains
           enddo
        enddo
     enddo
+    num_ice = n
 
     ! Determine flux correction factors (module variables)
-    do n = 1,numOwnedElements
+    do n = 1,num_ice
        if (model_areas(n) == mesh_areas(n)) then
           mod2med_areacor(n) = c1
           med2mod_areacor(n) = c1
@@ -1400,7 +1402,7 @@ contains
   end function State_FldChk
 
   !===============================================================================
-  subroutine state_getimport_4d_output(state, fldname, output, index, ungridded_index, areacor, rc)
+  subroutine state_getimport_4d(state, fldname, output, index, ungridded_index, areacor, rc)
 
     ! ----------------------------------------------
     ! Map import state field to output array
@@ -1421,7 +1423,7 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    character(len=*), parameter  :: subname='(ice_import_export:state_getimport_4d_output)'
+    character(len=*), parameter  :: subname='(ice_import_export:state_getimport_4d)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1458,21 +1460,24 @@ contains
        end do
     end do
     if (present(areacor)) then
-       if (present(ungridded_index)) then
-          do n = 1,size(dataptr2d,dim=2)
-             dataPtr2d(:,n) = dataPtr2d(:,n) * areacor(n)
+       n = 0
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          do j = jlo, jhi
+             do i = ilo, ihi
+                n = n + 1
+                output(i,j,index,iblk) = output(i,j,index,iblk) * areacor(n)
+             end do
           end do
-       else
-          do n = 1,size(dataptr1d)
-             dataPtr1d(n) = dataPtr1d(n) * areacor(n)
-          end do
-       end if
+       end do
     end if
 
-  end subroutine state_getimport_4d_output
+  end subroutine state_getimport_4d
 
   !===============================================================================
-  subroutine state_getimport_3d_output(state, fldname, output, ungridded_index, areacor, rc)
+  subroutine state_getimport_3d(state, fldname, output, ungridded_index, areacor, rc)
 
     ! ----------------------------------------------
     ! Map import state field to output array
@@ -1492,7 +1497,7 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    character(len=*) , parameter :: subname='(ice_import_export:state_getimport)'
+    character(len=*) , parameter :: subname='(ice_import_export:state_getimport_3d)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1543,10 +1548,10 @@ contains
        end do
     end if
 
-  end subroutine state_getimport_3d_output
+  end subroutine state_getimport_3d
 
   !===============================================================================
-  subroutine state_setexport_4d_input(state, fldname, input, index, lmask, ifrac, ungridded_index, areacor, rc)
+  subroutine state_setexport_4d(state, fldname, input, index, lmask, ifrac, ungridded_index, areacor, rc)
 
     ! ----------------------------------------------
     ! Map 4d input array to export state field
@@ -1569,7 +1574,8 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! indices
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    character(len=*), parameter  :: subname='(ice_import_export:state_setexport)'
+    integer                      :: num_ice
+    character(len=*), parameter  :: subname='(ice_import_export:state_setexport_4d)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1616,21 +1622,22 @@ contains
        end do
     end do
     if (present(areacor)) then
+       num_ice = n
        if (present(ungridded_index)) then
-          do n = 1,size(dataptr2d,dim=2)
+          do n = 1,num_ice
              dataPtr2d(:,n) = dataPtr2d(:,n) * areacor(n)
           end do
        else
-          do n = 1,size(dataptr1d)
+          do n = 1,num_ice
              dataPtr1d(n) = dataPtr1d(n) * areacor(n)
           end do
        end if
     end if
 
-  end subroutine state_setexport_4d_input
+  end subroutine state_setexport_4d
 
   !===============================================================================
-  subroutine state_setexport_3d_input(state, fldname, input, lmask, ifrac, ungridded_index, areacor, rc)
+  subroutine state_setexport_3d(state, fldname, input, lmask, ifrac, ungridded_index, areacor, rc)
 
     ! ----------------------------------------------
     ! Map 3d input array to export state field
@@ -1652,7 +1659,8 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    character(len=*), parameter  :: subname='(ice_import_export:state_setexport)'
+    integer                      :: num_ice
+    character(len=*), parameter  :: subname='(ice_import_export:state_setexport_3d)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1697,19 +1705,20 @@ contains
           end do
        end do
     end do
+    num_ice = n
     if (present(areacor)) then
        if (present(ungridded_index)) then
-          do n = 1,size(dataptr2d,dim=2)
+          do n = 1,num_ice
              dataPtr2d(:,n) = dataPtr2d(:,n) * areacor(n)
           end do
        else
-          do n = 1,size(dataptr1d)
+          do n = 1,num_ice
              dataPtr1d(n) = dataPtr1d(n) * areacor(n)
           end do
        end if
     end if
 
-  end subroutine state_setexport_3d_input
+  end subroutine state_setexport_3d
 
   !===============================================================================
   subroutine State_GetFldPtr_1d(State, fldname, fldptr, rc)
