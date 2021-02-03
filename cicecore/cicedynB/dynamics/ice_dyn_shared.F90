@@ -933,11 +933,17 @@
 
 !=======================================================================
 ! Computes seabed (basal) stress factor Tbu (landfast ice) based on 
-! probability of contact between the ITD and the seabed.  
+! probability of contact between the ITD and the seabed. The water depth 
+! could take into account variations of the SSH. In the simplest 
+! formulation, hwater is simply the value of the bathymetry. To calculate
+! the probability of contact, it is assumed that the bathymetry follows 
+! a normal distribution with sigma_b = 0.5d0. An improvement would 
+! be to provide the distribution based on high resolution data. 
+!     
+! Dupont, F. Dumont, D., Lemieux, J.F., Dumas-Lefebvre, E., Caya, A. 
+! in prep.
 !
-! Dupont, F. Dumont, D., Lemieux, J. F., Dumas-Lefebvre, E., in prep.
-!
-! authors: D. Dumont, JF Lemieux, E. Dumas-Lefebvre, F. Dupont
+! authors: D. Dumont, J.F. Lemieux, E. Dumas-Lefebvre, F. Dupont
 !
       subroutine seabed2_stress_factor (nx_block, ny_block,         &
                                        icellt, indxti,   indxtj,    &
@@ -977,17 +983,21 @@
 
       integer, parameter :: &
            ncat_b = 100, &  ! number of bathymetry categories
-           ncat_i = 100  ! number of ice thikness categories
+           ncat_i = 100     ! number of ice thickness categories (log-normal)
 
       real (kind=dbl_kind), parameter :: &
-           max_depth = 50.0_dbl_kind, & ! JFL use threshold_hw!!!!
-           mu_s = 0.1_dbl_kind
+           max_depth = 50.0_dbl_kind, & ! initial range of log-normal dist.  
+           mu_s = 0.1_dbl_kind          ! friction coefficient
 
-      real (kind=dbl_kind), dimension(ncat_i) :: &
-           x_k, g_k, P_x    ! Center of ice thickness categories
+      real (kind=dbl_kind), dimension(ncat_i) :: & ! log-normal for ice thickness
+           x_k, & ! center of thickness categories
+           g_k, & ! probability density function (thickness)
+           P_x    ! probability for each thickness category
 
-      real (kind=dbl_kind), dimension(ncat_b) :: &
-           y_n, b_n, P_y  ! Center of bathymetry categories                
+      real (kind=dbl_kind), dimension(ncat_b) :: & ! normal dist for bathymetry
+           y_n, & ! center of bathymetry categories 
+           b_n, & ! probability density function (bathymetry)
+           P_y    ! probability for each bathymetry category        
 
       real (kind=dbl_kind), dimension(ncat) :: &
            vcat, acat
@@ -998,10 +1008,10 @@
       logical, dimension (ncat_b) :: &
            gt
 
-      real (kind=dbl_kind) :: wid_i, wid_b, mu_i, sigma_i, mu_b, sigma_b, m_i, v_i
+      real (kind=dbl_kind) :: wid_i, wid_b, mu_i, sigma_i, mu_b, sigma_b, m_i, v_i ! parameters for PDFs
       real (kind=dbl_kind), dimension(ncat_i):: tb_tmp
       real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt
-      real (kind=dbl_kind) :: atot, x_kmax, x95, x99, x995, x996, x997, x998, x999, xinf
+      real (kind=dbl_kind) :: atot, x_kmax, x997
       real (kind=dbl_kind) :: cut, rhoi, rhow, gravit, pi, puny
 
       character(len=*), parameter :: subname = '(seabed2_stress_coeff)'
@@ -1012,7 +1022,7 @@
       call icepack_query_parameters(puny_out=puny)
 
       Tbt=c0
-      sigma_b = 0.5d0 ! To be changed/tested
+      sigma_b = 0.5d0 ! Standard deviation of bathymetry. 
 
       do ij = 1, icellt
          i = indxti(ij)
@@ -1022,11 +1032,11 @@
 
          if (atot .gt. 0.05_dbl_kind .and. hwater(i,j) .lt. max_depth) then
 
-            mu_b = hwater(i,j)
-            wid_i = max_depth/ncat_i
-            wid_b = c2*c3*sigma_b/ncat_b
+            mu_b = hwater(i,j)           ! mean of PDF (normal dist) bathymetry
+            wid_i = max_depth/ncat_i     ! width of ice categories
+            wid_b = c2*c3*sigma_b/ncat_b ! width of bathymetry categories
 
-            x_k = (/(wid_i*(i*c1-0.5d0), i=1, ncat_i)/)
+            x_k = (/(wid_i*(i*c1-0.5d0), i=1, ncat_i)/) 
             y_n = (/( (mu_b-c3*sigma_b)+(i*c1-0.5d0)*(c2*c3*sigma_b/ncat_b), i=1, ncat_b )/)
 
             vcat(1:ncat) = vicen(i,j,1:ncat)
@@ -1040,19 +1050,21 @@
             enddo
             v_i = v_i - m_i**2
 
-            mu_i    = log(m_i/sqrt(c1 + v_i/m_i**2))
+            mu_i    = log(m_i/sqrt(c1 + v_i/m_i**2)) ! parameters for the log-normal
             sigma_i = sqrt(log(c1 + v_i/m_i**2))
 
-            x95  = exp(mu_i + sqrt(c2*sigma_i)*1.1631d0)
-            x99  = exp(mu_i + sqrt(c2*sigma_i)*1.6450d0)
-            x995 = exp(mu_i + sqrt(c2*sigma_i)*1.8214d0)
-            x996 = exp(mu_i + sqrt(c2*sigma_i)*1.8753d0)
+            ! max thickness associated with percentile of log-normal PDF
+            ! x997 was obtained from an optimization procedure (Dupont et al.)  
+
+!            x95  = exp(mu_i + sqrt(c2*sigma_i)*1.1631d0)
+!            x99  = exp(mu_i + sqrt(c2*sigma_i)*1.6450d0)
+!            x995 = exp(mu_i + sqrt(c2*sigma_i)*1.8214d0)
+!            x996 = exp(mu_i + sqrt(c2*sigma_i)*1.8753d0)
             x997 = exp(mu_i + sqrt(c2*sigma_i)*1.9430d0)
-            x998 = exp(mu_i + sqrt(c2*sigma_i)*2.0352d0)
-            x999 = exp(mu_i + sqrt(c2*sigma_i)*2.1851d0)
-            xinf = exp(mu_i + sqrt(c2*sigma_i)*4.4981d0) ! 0.9999999999
+!            x998 = exp(mu_i + sqrt(c2*sigma_i)*2.0352d0)
+!            x999 = exp(mu_i + sqrt(c2*sigma_i)*2.1851d0)
+!            xinf = exp(mu_i + sqrt(c2*sigma_i)*4.4981d0) ! 0.9999999999
             x_kmax = x997
-            !x_kmax=xinf
 
             ! Set x_kmax to hlev of the last category where there is ice
             ! when there is no ice in the last category           
@@ -1077,6 +1089,7 @@
                if (x_k(n) .gt. x_kmax) P_x(n)=c0
             enddo
 
+            ! calculate Tb factor at t-location
             do n=1, ncat_i
                gt = (y_n .le. rhoi*x_k(n)/rhow)
                tmp = merge(1,0,gt)
