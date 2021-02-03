@@ -236,8 +236,31 @@ pending further testing.
 Seabed stress
 ***************
 
-The parameterization for the seabed stress is described in :cite:`Lemieux16`. The components of the basal seabed stress are 
-:math:`\tau_{bx}=C_bu` and :math:`\tau_{by}=C_bv`, where :math:`C_b` is a coefficient expressed as
+CICE now includes two options for calculating the seabed stress,
+i.e. the term in the momentum equation that represents the interaction
+between grounded ice keels and the seabed. The seabed stress can be
+activated by setting ``seabedstress`` to true in the namelist. The seabed stress (or basal
+stress) parameterization of :cite:`Lemieux16` is chosen if ``kseabed``
+= 1 while the new probabilistic approach is used if ``kseabed`` = 2. 
+
+For both parameterizations, the components of the seabed
+stress are expressed as :math:`\tau_{bx}=C_bu` and
+:math:`\tau_{by}=C_bv`, where :math:`C_b` is a seabed stress
+coefficient.
+
+The two parameterizations differ in their calculation of
+the :math:`C_b` coefficients. 
+
+Note that the user must provide a bathymetry field for using these
+grounding schemes. It is suggested to have a bathymetry field with water depths
+larger than 5 m that represents well shallow water regions such as the Laptev Sea
+and the East Siberian Sea.  
+
+Seabed stress based on the mean thickness
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This parameterization for the seabed stress is described in
+:cite:`Lemieux16`. The :math:`C_b` coefficients are expressed as
 
 .. math::
    C_b= k_2 \max [0,(h_u - h_{cu})]  e^{-\alpha_b * (1 - a_u)} (\sqrt{u^2+v^2}+u_0)^{-1}, \\
@@ -270,14 +293,39 @@ The maximum seabed stress depends on the weight of the ridge
 above hydrostatic balance and the value of :math:`k_2`. It is, however, the parameter :math:`k_1` that has the most notable impact on the simulated extent of landfast ice. 
 The value of :math:`k_1` can be changed at runtime using the namelist variable ``k1``. The grounding scheme can be turned on or off using the namelist logical basalstress. 
 
-Note that the user must provide a bathymetry field for using this grounding 
-scheme. It is suggested to have a bathymetry field with water depths larger than 
-5 m that represents well shallow water regions such as the Laptev Sea and the 
-East Siberian Sea. To prevent unrealistic grounding, :math:`T_b` is set to zero when :math:`h_{wu}` 
+To prevent unrealistic grounding, :math:`T_b` is set to zero when :math:`h_{wu}` 
 is larger than 30 m. This maximum value is chosen based on observations of large 
 keels in the Arctic Ocean :cite:`Amundrud04`.
 
-   
+Seabed stress based on probabilistic approach
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This new grounding parameterization computes the seabed stress based
+on the probability of contact between the ice thickness distribution
+(ITD) and the seabed. Multi-thickness category models such as CICE typically use a
+few thickness categories (5-10). This crude representation of the ITD
+does not resolve the tail of the ITD which is crucial for grounding
+events. 
+
+To represent the tail of the distribution, the simulated ITD is
+converted to a positevely skewed probability function :math:`f(x)`
+with :math:`x` the sea ice thickness. The mean and variance are set 
+equal to the ones of the original ITD. A
+log-normal distribution is used for :math:`f(x)`.
+
+It assumed that the bathymetry :math:`y` (at the 't' point) follows a normal
+distribution :math:`b(y)`. The mean of :math:`b(y)` comes from the user's bathymetry field and the
+standard deviation :math:`\sigma_b` is currently fixed to 0.5 m. Two
+possible improvements would be to specify a distribution based on high
+resolution bathymetry data and to take into account variations of the
+water depth due to changes in the sea surface height. 
+
+:math:`T_b` at the 'u' point is calculate from the 't' point values around it according to 
+
+.. math::
+   T_b=\max[T_{bt}(i,j),T_{bt}(i+1,j),T_{bt}(i,j+1),T_{bt}(i+1,j+1)], \\
+   :label: Tb
+
 .. _internal-stress:
 
 ***************
