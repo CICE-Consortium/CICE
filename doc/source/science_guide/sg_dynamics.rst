@@ -300,7 +300,7 @@ keels in the Arctic Ocean :cite:`Amundrud04`.
 Seabed stress based on probabilistic approach
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This new grounding parameterization computes the seabed stress based
+This new and more sophisticated grounding parameterization computes the seabed stress based
 on the probability of contact between the ice thickness distribution
 (ITD) and the seabed. Multi-thickness category models such as CICE typically use a
 few thickness categories (5-10). This crude representation of the ITD
@@ -308,19 +308,38 @@ does not resolve the tail of the ITD which is crucial for grounding
 events. 
 
 To represent the tail of the distribution, the simulated ITD is
-converted to a positevely skewed probability function :math:`f(x)`
+converted to a positively skewed probability function :math:`f(x)`
 with :math:`x` the sea ice thickness. The mean and variance are set 
 equal to the ones of the original ITD. A
 log-normal distribution is used for :math:`f(x)`.
 
-It assumed that the bathymetry :math:`y` (at the 't' point) follows a normal
+It is assumed that the bathymetry :math:`y` (at the 't' point) follows a normal
 distribution :math:`b(y)`. The mean of :math:`b(y)` comes from the user's bathymetry field and the
 standard deviation :math:`\sigma_b` is currently fixed to 0.5 m. Two
 possible improvements would be to specify a distribution based on high
 resolution bathymetry data and to take into account variations of the
 water depth due to changes in the sea surface height. 
 
-:math:`T_b` at the 'u' point is calculate from the 't' point values around it according to 
+Assuming hydrostatic balance and neglecting the impact of snow, the draft of floating ice of thickness
+:math:`x` is :math:`D(x)=\rho_i x / \rho_w` where :math:`\rho_i` is the sea ice density. Hence, the probability of contact (:math:`y`) between the
+ITD and the seabed is given by
+
+.. math::
+   P_c=\int_{0}^{\inf} \int_{0}^{D(x)} g(x)b(y) dy dx \label{prob_contact}.
+
+:math:`T_b` is first calculated at the 't' point (referred to as :math:`T_{bt}`). :math:`T_{bt}` depends on the weight of ridge in excess of hydrostatic balance. It is given by
+
+.. math::
+   T_{bt}=\mu_s g \int_{0}^{\inf} \int_{0}^{D(x)} (\rho_i x - \rho_w y)g(x)b(y) dy dx \label{Tbt}.
+
+To calculate :math:`T_{bt}` in equation :ref:`Tbt`, :math:`f(x)` and
+:math:`b(y)` are discretized using many small categories (100). :math:`b(y)` is also truncated at plus and minus three
+:math:`\sigma_b`. :math:`f(x)` is also modified by setting it to zero after a percentile of the log-normal distribution. This
+percentile, wich is currently set to 99.7%, notably affects the
+grounding and is used as a tuning parameter. Its impact is similar to
+the one of the parameter :math:`k_1` for ``kseabed`` = 1.  
+ 
+Finally, :math:`T_b` at the 'u' point is calculated from the 't' point values around it according to 
 
 .. math::
    T_b=\max[T_{bt}(i,j),T_{bt}(i+1,j),T_{bt}(i,j+1),T_{bt}(i+1,j+1)], \\

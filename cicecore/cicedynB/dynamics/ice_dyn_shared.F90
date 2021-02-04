@@ -889,17 +889,17 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          aice    , & ! concentration of ice at tracer location
-         vice    , & ! volume per unit area of ice at tracer location
-         hwater      ! water depth at tracer location
+         vice    , & ! volume per unit area of ice at tracer location (m)
+         hwater      ! water depth at tracer location (m)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         Tbu         ! coefficient for seabed stress (N/m^2)
+         Tbu         ! seabed stress factor (N/m^2)
 
       real (kind=dbl_kind) :: &
          au,  & ! concentration of ice at u location
-         hu,  & ! volume per unit area of ice at u location (mean thickness)
-         hwu, & ! water depth at u location
-         hcu    ! critical thickness at u location
+         hu,  & ! volume per unit area of ice at u location (mean thickness, m)
+         hwu, & ! water depth at u location (m)
+         hcu    ! critical thickness at u location (m)
 
       integer (kind=int_kind) :: &
          i, j, ij
@@ -967,14 +967,14 @@
            indxuj       ! compressed index in j-direction
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-           hwater      ! water depth at tracer location
+           hwater      ! water depth at tracer location (m)
       
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(in) :: &
            aicen,    & ! partial concentration for last thickness category in ITD
-           vicen       ! partial volume for last thickness category in ITD
+           vicen       ! partial volume for last thickness category in ITD (m)
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-           Tbu         ! seabed stress factor
+           Tbu         ! seabed stress factor (N/m^2)
 
 ! local variables 
 
@@ -990,13 +990,13 @@
            mu_s = 0.1_dbl_kind          ! friction coefficient
 
       real (kind=dbl_kind), dimension(ncat_i) :: & ! log-normal for ice thickness
-           x_k, & ! center of thickness categories
-           g_k, & ! probability density function (thickness)
+           x_k, & ! center of thickness categories (m)
+           g_k, & ! probability density function (thickness, 1/m)
            P_x    ! probability for each thickness category
 
       real (kind=dbl_kind), dimension(ncat_b) :: & ! normal dist for bathymetry
-           y_n, & ! center of bathymetry categories 
-           b_n, & ! probability density function (bathymetry)
+           y_n, & ! center of bathymetry categories (m)
+           b_n, & ! probability density function (bathymetry, 1/m)
            P_y    ! probability for each bathymetry category        
 
       real (kind=dbl_kind), dimension(ncat) :: &
@@ -1010,7 +1010,7 @@
 
       real (kind=dbl_kind) :: wid_i, wid_b, mu_i, sigma_i, mu_b, sigma_b, m_i, v_i ! parameters for PDFs
       real (kind=dbl_kind), dimension(ncat_i):: tb_tmp
-      real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt
+      real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt ! seabed stress factor at t point (N/m^2) 
       real (kind=dbl_kind) :: atot, x_kmax, x997
       real (kind=dbl_kind) :: cut, rhoi, rhow, gravit, pi, puny
 
