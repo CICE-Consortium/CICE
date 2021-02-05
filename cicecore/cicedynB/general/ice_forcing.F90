@@ -2371,7 +2371,9 @@
       ! 3-hourly data
       ! states are instantaneous, 1st record is 00z Jan 1
       ! fluxes are 3 hour averages, 1st record is 00z-03z Jan 1
+      ! Both states and fluxes have 1st record defined as 00z Jan 1
       ! interpolate states, do not interpolate fluxes
+      ! fluxes are held constant from [init period, end period)
       !-------------------------------------------------------------------
       ! File is NETCDF with winds in NORTH and EAST direction
       ! file variable names are:
@@ -2399,7 +2401,6 @@
             if (my_task == master_task .and. (recnum <= 2 .or. recnum >= maxrec-1)) then
                write(nu_diag,*) subname,' reading forcing file 1st ts = ',trim(uwind_file)
             endif
-!            call interp_coeff (recnum, recslot, sec3hr, dataloc)
          elseif (n1 == 2) then
             recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr) + 1
             if (recnum > maxrec) then
