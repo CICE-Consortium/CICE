@@ -5,38 +5,29 @@
 Standalone Forcing
 ======================
 
-Users are strongly encouraged to run CICE in a coupled system :ref:`coupl` to improve
+Users are strongly encouraged to run CICE in a coupled system (see :ref:`coupl`) to improve
 quality of science.  The standalone mode is best used for technical testing
 and only preliminary science testing.  Several different input forcing datasets have
 been implemented over the history of CICE.  Some have become obsolete, others
 have been supplanted by newer forcing data options, and others have been implemented
 by outside users and are not testable by the Consortium.  The forcing code has
-generally not been maintained by the Consortium outside what is being tested by
-the Consortium.
+generally not been maintained by the Consortium and only a subset of the code is
+tested by the Consortium.
 
 The forcing implementation can be found in the file 
 **cicecore/cicedynB/general/ice_forcing.F90**.  As noted above, only a subset of the
-forcing modes are tested and supported.  Most implementations
-use aspects of the following approach, largely driven by history.
+forcing modes are tested and supported.  In many ways, the implemetation is fairly
+primitive, in part due to historical reasons and in part because standalone runs
+are discouraged for evaluating complex science.  In general, most implementations
+use aspects of the following approach,
 
 - Input files are organized by year.
-- Namelist inputs `fyear` and `ycycle` specify the forcing year dataset.
-- The forcing year is computed on the fly and is assumed to be cyclical over
-the forcing dataset length defined by ycycle.
-- The namelist `atm_dat_dir` specifies the directory of the atm input data files
-and the namelist `atm_data_type` defines the atmospheric forcing mode.
-- The namelist `ocn_dat_dir` specifies the directory of the ocn input data files
-and the namelist `ocn_data_type` defines the ocean forcing mode.
-- The filenames follow a particular naming convention that is defined in the source
-code (ie. subroutine **JRA55_gx1_files**).  The forcing year is typically found just
-before the **.nc** part of the filename and there are tools 
-(subroutine **file_year**) to update the filename based on the model year and
-appropriate forcing year.
-- The input data time axis is generally NOT read by the forcing subroutine.  The
-forcing frequency is hardwired into the model and the file record number is computed
-based on the forcing frequency and model time.  Mixing leap year input data and noleap 
-model calendars (and vice versa) is not handled particularly gracefully.  The CICE
-model does not read or check against the input data time axis.
+- Namelist inputs ``fyear`` and ``ycycle`` specify the forcing year dataset.
+- The forcing year is computed on the fly and is assumed to be cyclical over the forcing dataset length defined by ycycle.
+- The namelist ``atm_dat_dir`` specifies the directory of the atm input data files and the namelist ``atm_data_type`` defines the atmospheric forcing mode.
+- The namelist ``ocn_dat_dir`` specifies the directory of the ocn input data files and the namelist ``ocn_data_type`` defines the ocean forcing mode.
+- The filenames follow a particular naming convention that is defined in the source code (ie. subroutine **JRA55_gx1_files**).  The forcing year is typically found just before the **.nc** part of the filename and there are tools (subroutine **file_year**) to update the filename based on the model year and appropriate forcing year.
+- The input data time axis is generally NOT read by the forcing subroutine.  The forcing frequency is hardwired into the model and the file record number is computed based on the forcing frequency and model time.  Mixing leap year input data and noleap model calendars (and vice versa) is not handled particularly gracefully.  The CICEmodel does not read or check against the input data time axis.
 - Data is read on the model grid, no spatial interpolation exists.
 - Data is often time interpolated linearly between two input timestamps to the model time each model timestep.
 
@@ -78,13 +69,13 @@ From Ocean:
 - hmix    = mixed layer depth (m)
 - daice_da= data assimilation concentration increment rate (concentration s-1)(only used in hadgem drivers)
 
-All variables have reasonable but static defaults and these will be used in `default` mode.
+All variables have reasonable but static defaults and these will be used in ``default`` mode.
 
-To advance the forcing, the subroutine **get_forcing_atmo** is called from the step
-loop.  That subroutine computes the forcing year (`fyear`), calls the appropriate
+To advance the forcing, the subroutines **get_forcing_atmo** and
+**get_forcing_ocn** is called each timestep from the step
+loop.  That subroutine computes the forcing year (``fyear``), calls the appropriate
 forcing data method, and then calls **prepare_forcing** which converts the 
 input data fields to model forcing fields.
-
 
 .. _JRA55forcing:
 
@@ -102,7 +93,7 @@ air temperature (airtmp), east and north wind speed (wndewd and wndnwd),
 specific humidity (spchmd), incoming short and longwave radiation (glbrad and dswsfc),
 and precipitation (ttlpcp) are read from the input files.  The four state fields
 are instantaneous data at 3 hour intervals while the three flux fields are 3
-hour averages.  In the JRA55 files provide by the Consortium, the time defined for
+hour averages.  In the JRA55 files provided by the Consortium, the time defined for
 3 hour average fields is the start time of the 3 hour interval.  **NOTE that this is different
 from the implementation on the original JRA55 files and also different from how models
 normally define time on an accumulated/averaged field**.  The state fields are linearly time 
@@ -135,7 +126,7 @@ The NCAR forcing was used in earlier standalone runs on the gx3 grid, and the
 Consortium continues to do some limited testing with this forcing dataset.
 Monthly average data for fsw, cldf, fsnow are read.  6-hourly data for
 Tair, uatm, vatm, rhoa, and Qa are also read.
-Users are encouraged to switch to the JRA55 :ref:`JRA55forcing` dataset, and this
+Users are encouraged to switch to the JRA55 (see :ref:`JRA55forcing`) dataset.  This
 atmosphere forcing dataset may be deprecated in the future.
 
 
@@ -144,12 +135,13 @@ atmosphere forcing dataset may be deprecated in the future.
 LYq Atmosphere Forcing
 -------------------------
 
-The LYq (Large and Yeager) forcing was used in earlier standalone runs on the gx1 
-grid, and the
+The LYq (Large and Yeager :cite:`Large09`) forcing was used in earlier standalone 
+runs on the gx1 grid, and the
 Consortium continues to do some very limited testing with this forcing dataset.
+This dataset is largely based on the CORE II data.
 Monthly average data for cldf and fsnow is read while 6-hourly data for Qa, Tair, 
 uatm, and vatm are read with other fields derived or set by default.
-Users are encouraged to switch to the JRA55 :ref:`JRA55forcing` dataset, and this
+Users are encouraged to switch to the JRA55 (see :ref:`JRA55forcing`) dataset. This
 atmosphere forcing dataset may be deprecated in the future.
 
 
@@ -158,10 +150,11 @@ atmosphere forcing dataset may be deprecated in the future.
 Default Atmosphere Forcing
 ----------------------------
 
-The default atmosphere forcing option sets the atmosphere forcing internally.
-No files are read.  Values for forcing fields are defined at initialization
-in subroutine **init_coupler_flux** and held constant thereafter.  Different
-conditions can be specified thru the `default_season` namelist variable.
+The default atmosphere forcing option sets the atmosphere forcing
+internally.  No files are read.  Values for forcing fields are defined
+at initialization in subroutine **init_coupler_flux** and held
+constant thereafter.  Different conditions can be specified thru the
+``default_season`` namelist variable.
 
 
 .. _box2001forcing:
@@ -178,7 +171,7 @@ dataset is used to test an idealized box case as defined in :cite:`Hunke01`.
 Other Atmosphere Forcing
 -------------------------
 
-There are a few other atmospheric forcing modes, as defined by `atm_data_type`, but
+There are a few other atmospheric forcing modes, as defined by ``atm_data_type``, but
 they are not tested by the Consortium on a regular basis.
 
 
@@ -187,7 +180,7 @@ they are not tested by the Consortium on a regular basis.
 Default Ocean Forcing
 -------------------------
 
-The `default` ocean setting is the standard setting used in standalone CICE runs.
+The ``default`` ocean setting is the standard setting used in standalone CICE runs.
 In this mode, the sea surface salinity is set to 34 ppt and the sea surface
 temperature is set to the freezing temperature at all grid points and
 held constant.  Other ocean coupling fields are set to zero.  No files are read.
@@ -198,6 +191,6 @@ held constant.  Other ocean coupling fields are set to zero.  No files are read.
 Other Ocean Forcing
 -------------------------
 
-There are a few other ocean forcing modes, as defined by `ocn_data_type`, but
+There are a few other ocean forcing modes, as defined by ``ocn_data_type``, but
 they are not tested by the Consortium on a regular basis.
 
