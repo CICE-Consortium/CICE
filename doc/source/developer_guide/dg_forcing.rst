@@ -24,10 +24,10 @@ use aspects of the following approach,
 - Input files are organized by year.
 - Namelist inputs ``fyear`` and ``ycycle`` specify the forcing year dataset.
 - The forcing year is computed on the fly and is assumed to be cyclical over the forcing dataset length defined by ``ycycle``.
-- The namelist ``atm_dat_dir`` specifies the directory of the atm input data files and the namelist ``atm_data_type`` defines the atmospheric forcing mode.
-- The namelist ``ocn_dat_dir`` specifies the directory of the ocn input data files and the namelist ``ocn_data_type`` defines the ocean forcing mode.
+- The namelist ``atm_dat_dir`` specifies the directory of the atmosphere input data files and the namelist ``atm_data_type`` defines the atmospheric forcing mode.
+- The namelist ``ocn_dat_dir`` specifies the directory of the ocean input data files and the namelist ``ocn_data_type`` defines the ocean forcing mode.
 - The filenames follow a particular naming convention that is defined in the source code (ie. subroutine **JRA55_gx1_files**).  The forcing year is typically found just before the **.nc** part of the filename and there are tools (subroutine **file_year**) to update the filename based on the model year and appropriate forcing year.
-- The input data time axis is generally NOT read by the forcing subroutine.  The forcing frequency is hardwired into the model and the file record number is computed based on the forcing frequency and model time.  Mixing leap year input data and noleap model calendars (and vice versa) is not handled particularly gracefully.  The CICEmodel does not read or check against the input data time axis.
+- The input data time axis is generally NOT read by the forcing subroutine.  The forcing frequency is hardwired into the model and the file record number is computed based on the forcing frequency and model time.  Mixing leap year input data and noleap model calendars (and vice versa) is not handled particularly gracefully.  The CICE model does not read or check against the input data time axis.
 - Data is read on the model grid, no spatial interpolation exists.
 - Data is often time interpolated linearly between two input timestamps to the model time each model timestep.
 
@@ -35,7 +35,7 @@ In general, the following variables need to be defined by the forcing module,
 
 From Atmosphere:
 
-- zlvl    = atm level height (m)
+- zlvl    = atmosphere level height (m)
 - uatm    = model grid i-direction wind velocity component (m/s)
 - vatm    = model grid j-direction wind velocity component (m/s)
 - strax   = model grid i-direction wind stress (N/m^2)
@@ -72,7 +72,7 @@ From Ocean:
 All variables have reasonable but static defaults and these will be used in ``default`` mode.
 
 To advance the forcing, the subroutines **get_forcing_atmo** and
-**get_forcing_ocn** is called each timestep from the step
+**get_forcing_ocn** are called each timestep from the step
 loop.  That subroutine computes the forcing year (``fyear``), calls the appropriate
 forcing data method, and then calls **prepare_forcing** which converts the 
 input data fields to model forcing fields.
@@ -120,7 +120,7 @@ Because the input files are on the gregorian time axis, the model can run with t
 365 day (noleap) calendar, but in that case, the Feb 29 input data will be used on 
 March 1, and all data
 after March 1 will be shifted one day.  December 31 in leap years will be skipped when
-running with the CICE calendar with no leap days.
+running with a CICE calendar with no leap days.
 
 
 .. _NCARforcing:
@@ -128,7 +128,7 @@ running with the CICE calendar with no leap days.
 NCAR Atmosphere Forcing
 -------------------------
 
-The NCAR forcing was used in earlier standalone runs on the gx3 grid, and the
+The NCAR atmospheric forcing was used in earlier standalone runs on the gx3 grid, and the
 Consortium continues to do some limited testing with this forcing dataset.
 Monthly average data for fsw, cldf, fsnow are read.  6-hourly data for
 Tair, uatm, vatm, rhoa, and Qa are also read.
