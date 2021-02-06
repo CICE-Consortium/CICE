@@ -23,7 +23,7 @@ use aspects of the following approach,
 
 - Input files are organized by year.
 - Namelist inputs ``fyear`` and ``ycycle`` specify the forcing year dataset.
-- The forcing year is computed on the fly and is assumed to be cyclical over the forcing dataset length defined by ycycle.
+- The forcing year is computed on the fly and is assumed to be cyclical over the forcing dataset length defined by ``ycycle``.
 - The namelist ``atm_dat_dir`` specifies the directory of the atm input data files and the namelist ``atm_data_type`` defines the atmospheric forcing mode.
 - The namelist ``ocn_dat_dir`` specifies the directory of the ocn input data files and the namelist ``ocn_data_type`` defines the ocean forcing mode.
 - The filenames follow a particular naming convention that is defined in the source code (ie. subroutine **JRA55_gx1_files**).  The forcing year is typically found just before the **.nc** part of the filename and there are tools (subroutine **file_year**) to update the filename based on the model year and appropriate forcing year.
@@ -85,8 +85,8 @@ JRA55 Atmosphere Forcing
 The current default atmosphere forcing for gx3, gx1, and tx1 standalone grids for
 Consortium testing is the JRA55 forcing
 dataset :cite:`Tsujino18`.  The Consortium has released 5 years of forcing data, 
-2005-2009.  Each year is a separate file and the dataset is on a gregorian time
-axis which includes leap days.
+2005-2009 for gx3, gx1, and tx1 grids.  Each year is a separate file and 
+the dataset is on a gregorian time axis which includes leap days.
 
 The forcing is read and interpolated in subroutine **JRA55_data**.  In particular,
 air temperature (airtmp), east and north wind speed (wndewd and wndnwd), 
@@ -97,7 +97,7 @@ hour averages.  In the JRA55 files provided by the Consortium, the time defined 
 3 hour average fields is the start time of the 3 hour interval.  **NOTE that this is different
 from the implementation on the original JRA55 files and also different from how models
 normally define time on an accumulated/averaged field**.  The state fields are linearly time 
-intepolated between input timestamps 
+interpolated between input timestamps 
 while the flux fields are read and held constant during each 3 hour model period.
 The forcing frequency is hardwired to 3 hours in the implementation,
 and the record number is computed based on the time of the current model year.
@@ -115,6 +115,12 @@ called in **get_forcing_atmo**.  To clarify, the JRA55 input data includes
 - fsnow   = snowfall rate (kg/m^2 s)
 
 and model forcing inputs are derived from those fields and the defaults.
+
+Because the input files are on the gregorian time axis, the model can run with the regular
+365 day (noleap) calendar, but in that case, the Feb 29 input data will be used on 
+March 1, and all data
+after March 1 will be shifted one day.  December 31 in leap years will be skipped when
+running with the CICE calendar with no leap days.
 
 
 .. _NCARforcing:
