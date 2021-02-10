@@ -88,16 +88,27 @@ dataset :cite:`Tsujino18`.  The Consortium has released 5 years of forcing data,
 2005-2009 for gx3, gx1, and tx1 grids.  Each year is a separate file and 
 the dataset is on a gregorian time axis which includes leap days.
 
+.. _fig-jra55-data:
+.. figure:: ./figures/jra55data.png
+   :align: center
+   :scale: 20%
+
 The forcing is read and interpolated in subroutine **JRA55_data**.  In particular,
 air temperature (airtmp), east and north wind speed (wndewd and wndnwd), 
 specific humidity (spchmd), incoming short and longwave radiation (glbrad and dswsfc),
-and precipitation (ttlpcp) are read from the input files.  The four state fields
-are instantaneous data at 3 hour intervals while the three flux fields are 3
-hour averages.  In the JRA55 files provided by the Consortium, the time defined for
-3 hour average fields is the start time of the 3 hour interval.  **NOTE that this is different
+and precipitation (ttlpcp) are read from the input files.   The JRA55 reanalysis is 
+run with updated initial conditions every 6 hours and output is written every 3 hours.
+The four state fields (air temperature, winds, specific humidity)
+are instantaneous data, while the three flux fields (radition, precipitation) are 3
+hour averages.  In the JRA55 forcing files provided by the Consortium, the time 
+defined for 3 hour average fields is shifted 3 hours to the start time of the 3 
+hour interval.  **NOTE that this is different
 from the implementation on the original JRA55 files and also different from how models
-normally define time on an accumulated/averaged field**.  The state fields are linearly time 
-interpolated between input timestamps 
+normally define time on an accumulated/averaged field**.  This is all shown 
+schematically in Figure :ref:`fig-jra55data`.  
+
+The state fields are linearly 
+time interpolated between input timestamps 
 while the flux fields are read and held constant during each 3 hour model period.
 The forcing frequency is hardwired to 3 hours in the implementation,
 and the record number is computed based on the time of the current model year.
