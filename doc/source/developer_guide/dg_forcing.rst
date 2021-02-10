@@ -91,7 +91,7 @@ the dataset is on a gregorian time axis which includes leap days.
 .. _fig-jra55-data:
 .. figure:: ./figures/jra55data.png
    :align: center
-   :scale: 20%
+   :scale: 80%
 
 The forcing is read and interpolated in subroutine **JRA55_data**.  In particular,
 air temperature (airtmp), east and north wind speed (wndewd and wndnwd), 
