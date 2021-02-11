@@ -1326,23 +1326,6 @@
                   write(nu_diag,1020) ' start_andacc     = ', start_andacc,' : nonlinear iteration at which acceleration starts'
                endif
 
-            if (seabedstress) then
-               if (kseabed == 1) then
-                  tmpstr2 = ' use seabed1 method for landfast ice'
-               elseif (kseabed == 2) then
-                  tmpstr2 = ' use seabed2 method for landfast ice'
-               endif
-            else
-               tmpstr2 = ' seabed stress not used for landfast ice'
-            endif
-            write(nu_diag,1012) ' seabedstress      = ', seabedstress,trim(tmpstr2)
-            if (seabedstress) then
-               write(nu_diag,1007) ' k1               = ', k1, ' free parameter for landfast ice'
-               write(nu_diag,1007) ' k2               = ', k2, ' free parameter for landfast ice'
-               write(nu_diag,1007) ' alphab           = ', alphab, ' factor for landfast ice'
-               write(nu_diag,1007) ' threshold_hw     = ', threshold_hw, ' max water depth for grounding ice'
-            endif
-
          endif ! kdyn enabled
 
          write(nu_diag,*) ' '
