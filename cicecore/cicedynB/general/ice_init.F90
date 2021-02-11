@@ -1325,6 +1325,7 @@
                   write(nu_diag,1000) ' damping_andacc   = ', damping_andacc,' : damping factor for Anderson acceleration'
                   write(nu_diag,1020) ' start_andacc     = ', start_andacc,' : nonlinear iteration at which acceleration starts'
                endif
+            endif
 
          endif ! kdyn enabled
 
