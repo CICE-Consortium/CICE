@@ -1288,14 +1288,13 @@
             endif
             write(nu_diag,1030) ' advection        = ', trim(advection),trim(tmpstr2)
 
-<<<<<<< HEAD
-            if (basalstress) then
-               tmpstr2 = ' : use basal stress parameterization for landfast ice'
+            if (seabedstress) then
+               tmpstr2 = ' : use seabed stress parameterization for landfast ice'
             else
-               tmpstr2 = ' : no basal stress parameterization'
+               tmpstr2 = ' : no seabed stress parameterization'
             endif
-            write(nu_diag,1010) ' basalstress      = ', basalstress,trim(tmpstr2)
-            if (basalstress) then
+            write(nu_diag,1010) ' seabedstress      = ', seabedstress,trim(tmpstr2)
+            if (seabedstress) then
                write(nu_diag,1002) ' k1               = ', k1, ' : free parameter for landfast ice'
                write(nu_diag,1002) ' k2               = ', k2, ' : free parameter for landfast ice'
                write(nu_diag,1002) ' alphab           = ', alphab, ' : factor for landfast ice'
