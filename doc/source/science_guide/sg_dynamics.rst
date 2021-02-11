@@ -291,7 +291,7 @@ when :math:`h_u > h_{cu}`.
 
 The maximum seabed stress depends on the weight of the ridge 
 above hydrostatic balance and the value of :math:`k_2`. It is, however, the parameter :math:`k_1` that has the most notable impact on the simulated extent of landfast ice. 
-The value of :math:`k_1` can be changed at runtime using the namelist variable ``k1``. The grounding scheme can be turned on or off using the namelist logical basalstress. 
+The value of :math:`k_1` can be changed at runtime using the namelist variable ``k1``. 
 
 To prevent unrealistic grounding, :math:`T_b` is set to zero when :math:`h_{wu}` 
 is larger than 30 m. This maximum value is chosen based on observations of large 
@@ -327,22 +327,29 @@ ITD and the seabed is given by
 .. math::
    P_c=\int_{0}^{\inf} \int_{0}^{D(x)} g(x)b(y) dy dx \label{prob_contact}.
 
-:math:`T_b` is first calculated at the 't' point (referred to as :math:`T_{bt}`). :math:`T_{bt}` depends on the weight of the ridge in excess of hydrostatic balance. It is given by
+:math:`T_b` is first calculated at the 't' point (referred to as :math:`T_{bt}`). :math:`T_{bt}` depends on the weight of the ridge in excess of hydrostatic balance. The parameterization first calculates
 
 .. math::
-   T_{bt}=\mu_s g \int_{0}^{\inf} \int_{0}^{D(x)} (\rho_i x - \rho_w y)g(x)b(y) dy dx \label{Tbt}.
+   T_{bt}^*=\mu_s g \int_{0}^{\inf} \int_{0}^{D(x)} (\rho_i x - \rho_w
+   y)g(x)b(y) dy dx, \\
+   :label: Tbt
 
-To calculate :math:`T_{bt}` in equation :ref:`Tbt`, :math:`f(x)` and
-:math:`b(y)` are discretized using many small categories (100). :math:`f(x)` is discretized between 0 and 50 m while :math:`b(y)` is truncated at plus and minus three :math:`\sigma_b`. :math:`f(x)` is also modified by setting it to zero after a percentile of the log-normal distribution. This
-percentile, wich is currently set to 99.7%, notably affects the
-grounding and is used as a tuning parameter. Its impact is similar to
-the one of the parameter :math:`k_1` for ``kseabed`` = 1.  
- 
-Finally, :math:`T_b` at the 'u' point is calculated from the 't' point values around it according to 
+and then obtains :math:`T_{bt}` by multiplying :math:`T_{bt}^*` by :math:`e^{-\alpha_b * (1 - a_i)}` (similar to what is done for
+``kseabed`` = 1). 
+
+To calculate :math:`T_{bt}^*` in equation :eq:`Tbt`, :math:`f(x)` and :math:`b(y)` are discretized using many small categories (100). :math:`f(x)` is discretized between 0 and 50 m while :math:`b(y)` is truncated at plus and minus three :math:`\sigma_b`. :math:`f(x)` is also modified by setting it to	zero after a certain percentile of the log-normal distribution. This percentile, which is currently set to 99.7%, notably affects the simulation of landfast ice and is used as a tuning parameter. Its impact is similar to the one of the parameter :math:`k_1` for ``kseabed`` = 1.
+
+:math:`T_b` at the 'u' point is calculated from the 't' point values around it according to 
 
 .. math::
-   T_b=\max[T_{bt}(i,j),T_{bt}(i+1,j),T_{bt}(i,j+1),T_{bt}(i+1,j+1)], \\
+   T_b=\max[T_{bt}(i,j),T_{bt}(i+1,j),T_{bt}(i,j+1),T_{bt}(i+1,j+1)]. \\
    :label: Tb
+
+Following again the approach of ``kseabed`` = 1, the seabed stress coefficients are finally expressed as
+
+.. math::
+   C_b= T_b (\sqrt{u^2+v^2}+u_0)^{-1}, \\
+   :label: Cb2
 
 .. _internal-stress:
 
