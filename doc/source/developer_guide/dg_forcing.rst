@@ -155,7 +155,7 @@ atmosphere forcing dataset may be deprecated in the future.
 LYq Atmosphere Forcing
 -------------------------
 
-The LYq (Large and Yeager :cite:`Hunke07`) forcing was used in earlier standalone 
+The LYq (:cite:`Hunke07`) forcing was used in earlier standalone 
 runs on the gx1 grid, and the
 Consortium continues to do some very limited testing with this forcing dataset.
 This dataset is largely based on the CORE II data.
