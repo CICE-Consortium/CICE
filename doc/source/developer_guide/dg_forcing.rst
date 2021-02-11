@@ -88,7 +88,8 @@ dataset :cite:`Tsujino18`.  The Consortium has released 5 years of forcing data,
 2005-2009 for gx3, gx1, and tx1 grids.  Each year is a separate file and 
 the dataset is on a gregorian time axis which includes leap days.
 
-.. _fig-jra55-data:
+.. _fig-jra55data:
+
 .. figure:: ./figures/jra55data.png
    :align: center
    :scale: 100%
