@@ -97,9 +97,9 @@ the dataset is on a gregorian time axis which includes leap days.
    Schematic of JRA55 CICE forcing file generation.
 
 The forcing is read and interpolated in subroutine **JRA55_data**.  In particular,
-air temperature (airtmp), east and north wind speed (wndewd and wndnwd), 
-specific humidity (spchmd), incoming short and longwave radiation (glbrad and dswsfc),
-and precipitation (ttlpcp) are read from the input files.   The JRA55 reanalysis is 
+air temperature (``airtmp``), east and north wind speed (``wndewd`` and ``wndnwd``), 
+specific humidity (``spchmd``), incoming short and longwave radiation (``glbrad`` and ``dswsfc``),
+and precipitation (``ttlpcp``) are read from the input files.   The JRA55 reanalysis is 
 run with updated initial conditions every 6 hours and output is written every 3 hours.
 The four state fields (air temperature, winds, specific humidity)
 are instantaneous data, while the three flux fields (radition, precipitation) are 3
@@ -155,7 +155,7 @@ atmosphere forcing dataset may be deprecated in the future.
 LYq Atmosphere Forcing
 -------------------------
 
-The LYq (Large and Yeager :cite:`Large09`) forcing was used in earlier standalone 
+The LYq (Large and Yeager :cite:`Hunke07`) forcing was used in earlier standalone 
 runs on the gx1 grid, and the
 Consortium continues to do some very limited testing with this forcing dataset.
 This dataset is largely based on the CORE II data.
@@ -203,7 +203,8 @@ Default Ocean Forcing
 The ``default`` ocean setting is the standard setting used in standalone CICE runs.
 In this mode, the sea surface salinity is set to 34 ppt and the sea surface
 temperature is set to the freezing temperature at all grid points and
-held constant.  Other ocean coupling fields are set to zero.  No files are read.
+held constant unless the mixed layer parameterization is turned on, in which
+case the SST evolves.  Other ocean coupling fields are set to zero.  No files are read.
 
 
 .. _otherocnforcing:
