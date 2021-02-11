@@ -234,7 +234,7 @@ grid_nml
    "``nilyr``", "integer", "number of vertical layers in ice", "0"
    "``nslyr``", "integer", "number of vertical layers in snow", "0"
    "``orca_halogrid``", "logical", "use orca haloed grid for data/grid read", "``.false.``"
-   "``use_bathymetry``", "logical", "use read in bathymetry file for basalstress option", "``.false.``"
+   "``use_bathymetry``", "logical", "use read in bathymetry file for seabedstress option", "``.false.``"
    "", "", "", ""
 
 domain_nml
@@ -358,7 +358,7 @@ dynamics_nml
    "``alphab``", "real", ":math:`\alpha_{b}` factor in :cite:`Lemieux16`", "20.0"
    "``arlx``", "real", "revised_evp value", "300.0"
    "``brlx``", "real", "revised_evp value", "300.0"
-   "``basalstress``", "logical", "use basal stress parameterization for landfast ice", "``.false.``"
+   "``seabedstress``", "logical", "use seabed stress parameterization for landfast ice", "``.false.``"
    "``Cf``", "real", "ratio of ridging work to PE change in ridging", "17.0"
    "``coriolis``", "``constant``", "constant coriolis value = 1.46e-4 s\ :math:`^{-1}`", "``latitude``"
    "", "``latitude``", "coriolis variable by latitude", ""
