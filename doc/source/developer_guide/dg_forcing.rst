@@ -93,6 +93,8 @@ the dataset is on a gregorian time axis which includes leap days.
    :align: center
    :scale: 100%
 
+   Schematic of JRA55 CICE forcing file generation.
+
 The forcing is read and interpolated in subroutine **JRA55_data**.  In particular,
 air temperature (airtmp), east and north wind speed (wndewd and wndnwd), 
 specific humidity (spchmd), incoming short and longwave radiation (glbrad and dswsfc),
