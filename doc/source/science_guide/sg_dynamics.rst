@@ -315,7 +315,7 @@ log-normal distribution is used for :math:`f(x)`.
 
 It is assumed that the bathymetry :math:`y` (at the 't' point) follows a normal
 distribution :math:`b(y)`. The mean of :math:`b(y)` comes from the user's bathymetry field and the
-standard deviation :math:`\sigma_b` is currently fixed to 0.5 m. Two
+standard deviation :math:`\sigma_b` is currently fixed to 2.5 m. Two
 possible improvements would be to specify a distribution based on high
 resolution bathymetry data and to take into account variations of the
 water depth due to changes in the sea surface height. 

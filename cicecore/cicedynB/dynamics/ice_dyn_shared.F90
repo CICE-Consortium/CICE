@@ -1022,7 +1022,7 @@
       call icepack_query_parameters(puny_out=puny)
 
       Tbt=c0
-      sigma_b = 0.5d0 ! Standard deviation of bathymetry. 
+      sigma_b = 2.5d0 ! Standard deviation of bathymetry. 
 
       do ij = 1, icellt
          i = indxti(ij)
