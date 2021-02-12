@@ -76,7 +76,7 @@
          days_per_year = 365
          calstr = 'gregorian'
       endif
-         
+
       istep0 = 1000
       year_init = 0
       month_init = 1

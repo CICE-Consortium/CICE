@@ -453,7 +453,7 @@
       end select
 
       if (force_restart_now) write_restart = 1
-      
+
       if (my_task == master_task .and. mod(istep1,diagfreq) == 0 &
                                  .and. stop_now /= 1) then
         write(nu_diag,*) ' '
@@ -623,7 +623,7 @@
          isleap = .false. ! not a leap year
          if (mod(year,  4) == 0) isleap = .true.
          if (mod(year,100) == 0) isleap = .false.
-         if (mod(year,400) == 0) isleap = .true.      
+         if (mod(year,400) == 0) isleap = .true.
 
          if (isleap) then
             daymo = daymo366
@@ -893,7 +893,7 @@
          isleap = .false. ! not a leap year
          if (mod(ayear,  4) == 0) isleap = .true.
          if (mod(ayear,100) == 0) isleap = .false.
-         if (mod(ayear,400) == 0) isleap = .true.      
+         if (mod(ayear,400) == 0) isleap = .true.
 
          if (isleap) then
             adaymo = daymo366

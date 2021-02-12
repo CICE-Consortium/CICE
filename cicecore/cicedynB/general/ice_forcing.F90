@@ -170,7 +170,7 @@
       ! PRIVATE:
 
       logical (kind=log_kind), parameter :: &
-         forcing_debug = .true.   ! local debug flag
+         forcing_debug = .false.   ! local debug flag
 
 !=======================================================================
 
@@ -562,7 +562,7 @@
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(get_forcing_atmo)'
-      
+
       if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_forcing)
@@ -2432,15 +2432,15 @@
       use ice_state, only: aice
       use ice_calendar, only: days_per_year
 
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
           ncid        , & ! netcdf file id
-	  i, j, n1    , &
+          i, j, n1    , &
           lfyear      , & ! local year value
           recnum      , & ! record number
           maxrec      , & ! maximum record number
           iblk            ! block index
 
-      integer (kind=int_kind), save :: & 
+      integer (kind=int_kind), save :: &
           frec_info(2,2) = -99    ! remember prior values to reduce reading
                                   ! first dim is yr, recnum
                                   ! second dim is data1 data2
@@ -2490,7 +2490,7 @@
 
       uwind_file_old = uwind_file
       if (uwind_file /= uwind_file_old .and. my_task == master_task) then
-         write(nu_diag,*) subname,' uwind_file = ',trim(uwind_file)
+         write(nu_diag,*) subname,' reading forcing file = ',trim(uwind_file)
       endif
 
       call ice_open_nc(uwind_file,ncid)
@@ -2501,12 +2501,10 @@
          call file_year(uwind_file,lfyear)
          if (n1 == 1) then
             recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr)
-!            call interp_coeff (recnum, recslot, sec3hr, dataloc)
+            if (my_task == master_task .and. (recnum <= 2 .or. recnum >= maxrec-1)) then
+               write(nu_diag,*) subname,' reading forcing file 1st ts = ',trim(uwind_file)
+            endif
          elseif (n1 == 2) then
-!tcx
-#if (1 == 1) 
-            recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr)
-#else
             recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr) + 1
             if (recnum > maxrec) then
                lfyear = fyear + 1  ! next year
@@ -2514,27 +2512,27 @@
                recnum = 1
                call file_year(uwind_file,lfyear)
                if (my_task == master_task) then
-                  write(nu_diag,*) subname,' uwind_file 2nd ts = ',trim(uwind_file)
+                  write(nu_diag,*) subname,' reading forcing file 2nd ts = ',trim(uwind_file)
                endif
                call ice_close_nc(ncid)
                call ice_open_nc(uwind_file,ncid)
             endif
-#endif
          endif
 
          if (forcing_debug .and. my_task == master_task) then
             write(nu_diag,*) subname,'fdbg read recnum = ',recnum,n1
          endif
 
-         ! check whether it's the same data as last read
+         ! to reduce reading, check whether it's the same data as last read
 
          if (lfyear /= frec_info(1,n1) .or. recnum /= frec_info(2,n1)) then
 
             ! check whether we can copy values from 2 to 1, should be faster than reading
             ! can only do this from 2 to 1 or 1 to 2 without setting up a temporary
-            ! it's likely that the values from data2 when time advances are needed in data1
+            ! it's more likely that the values from data2 when time advances are needed in data1
+            ! compare n1=1 year/record with data from last timestep at n1=2
 
-            if (n1 == 1 .and. lfyear == frec_info(2,2) .and. recnum == frec_info(2,2)) then
+            if (n1 == 1 .and. lfyear == frec_info(1,2) .and. recnum == frec_info(2,2)) then
                 Tair_data(:,:,1,:) =  Tair_data(:,:,2,:)
                 uatm_data(:,:,1,:) =  uatm_data(:,:,2,:)
                 vatm_data(:,:,1,:) =  vatm_data(:,:,2,:)
@@ -2564,28 +2562,22 @@
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
-               ! only read one timestep for fluxes, 3 hr average, no interpolation
-!tcx
-!               if (n1 == 1) then
-                  fieldname = 'glbrad'
-                  call ice_read_nc(ncid,recnum,fieldname,fsw_data(:,:,n1,:),forcing_debug, &
-                       field_loc=field_loc_center, &
-                       field_type=field_type_scalar)
+               fieldname = 'glbrad'
+               call ice_read_nc(ncid,recnum,fieldname,fsw_data(:,:,n1,:),forcing_debug, &
+                    field_loc=field_loc_center, &
+                    field_type=field_type_scalar)
 
-                  fieldname = 'dlwsfc'
-                  call ice_read_nc(ncid,recnum,fieldname,flw_data(:,:,n1,:),forcing_debug, &
-                       field_loc=field_loc_center, &
-                       field_type=field_type_scalar)
+               fieldname = 'dlwsfc'
+               call ice_read_nc(ncid,recnum,fieldname,flw_data(:,:,n1,:),forcing_debug, &
+                    field_loc=field_loc_center, &
+                    field_type=field_type_scalar)
 
-                  fieldname = 'ttlpcp'
-                  call ice_read_nc(ncid,recnum,fieldname,fsnow_data(:,:,n1,:),forcing_debug, &
-                       field_loc=field_loc_center, &
-                       field_type=field_type_scalar)
-!tcx
-!               endif  ! skip some fields for data2
-            endif  ! data1 copied from data2
-
-         endif  ! same data
+               fieldname = 'ttlpcp'
+               call ice_read_nc(ncid,recnum,fieldname,fsnow_data(:,:,n1,:),forcing_debug, &
+                    field_loc=field_loc_center, &
+                    field_type=field_type_scalar)
+            endif  ! copy data from n1=2 from last timestep to n1=1
+         endif  ! input data is same as last timestep
 
          frec_info(1,n1) = lfyear
          frec_info(2,n1) = recnum
@@ -2597,10 +2589,6 @@
       ! reset uwind_file to original year
       call file_year(uwind_file,fyear)
 
-!tcx
-#if (1 == 1)
-      call interp_coeff (recnum, 2, sec3hr, 2)
-#else
       ! Compute interpolation coefficients
       eps = 1.0e-6
       tt = real(mod(sec,nint(sec3hr)),kind=dbl_kind)
@@ -2613,7 +2601,6 @@
          call abort_ice (error_message=subname//' ERROR: c2intp out of range', &
             file=__FILE__, line=__LINE__)
       endif
-#endif
       if (forcing_debug .and. my_task == master_task) then
          write(nu_diag,*) subname,'fdbg c12intp = ',c1intp,c2intp
       endif
@@ -2623,14 +2610,13 @@
       call interpolate_data (uatm_data, uatm)
       call interpolate_data (vatm_data, vatm)
       call interpolate_data (Qa_data, Qa)
-      ! use 3 hr average for heat flux and precip fields
-!tcx
-      call interpolate_data (fsw_data, fsw)
-      call interpolate_data (flw_data, flw)
-      call interpolate_data (fsnow_data, fsnow)
-!      fsw(:,:,:) = fsw_data(:,:,1,:)
-!      flw(:,:,:) = flw_data(:,:,1,:)
-!      fsnow(:,:,:) = fsnow_data(:,:,1,:)
+      ! use 3 hr average for heat flux and precip fields, no interpolation
+!      call interpolate_data (fsw_data, fsw)
+!      call interpolate_data (flw_data, flw)
+!      call interpolate_data (fsnow_data, fsnow)
+      fsw(:,:,:) = fsw_data(:,:,1,:)
+      flw(:,:,:) = flw_data(:,:,1,:)
+      fsnow(:,:,:) = fsnow_data(:,:,1,:)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
@@ -2660,7 +2646,7 @@
          if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg JRA55_bulk_data'
          vmin = global_minval(fsw,distrb_info,tmask)
          vmax = global_maxval(fsw,distrb_info,tmask)
-         if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg fsw',vmin,vmax 
+         if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg fsw',vmin,vmax
          vmin = global_minval(flw,distrb_info,tmask)
          vmax = global_maxval(flw,distrb_info,tmask)
          if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg flw',vmin,vmax
