@@ -257,6 +257,9 @@
       elseif (npt_unit == '1') then
          dtimesecs = dt*real(npt,kind=dbl_kind)
          call update_date(nyre,monthe,mdaye,sece,dsec=nint(dtimesecs))
+      else
+         write(nu_diag,*) trim(subname),' ERROR invalid npt_unit = ',trim(npt_unit)
+         call abort_ice(subname//'ERROR: invalid npt_unit')
       endif
 
       npt = nint(dtimesecs/dt)

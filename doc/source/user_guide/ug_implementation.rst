@@ -529,12 +529,52 @@ schemes and the aerosol tracers, and the level-ice pond
 parameterization additionally requires the level-ice tracers.
 
 
+.. _timemanagerplus:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Time Manager and Initialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The time manager is an important piece of the CICE model.
+
+.. _timemanager:
+
+****************************
+Time Manager
+****************************
+
+The primary prognostic variables in the time manager are ``nyr``, 
+``month``, ``mday``, and ``sec``.  These are integers and identify
+the current model year, month, day, and second respectively.
+The model timestep is ``dt`` with units of seconds.  See :ref:parameters
+for additional information about choosing an appropriate timestep.
+The internal variables ``istep``, ``istep0``, and ``istep1`` keep
+track of the number of timesteps.  ``istep`` is the counter for
+the current run and is set to 0 at the start of each run.  ``istep0``
+is the step count at the start of a long multi-restart run, and
+``istep1`` is the step count of a long multi-restart run.
+
+In general, the time manager should be advanced by calling
+*advance\_timestep*.  This subroutine in **ice\_calendar.F90**
+automatically advances the model time by ``dt``.  It also advances
+the istep numbers and calls subroutine *calendar* to compute
+additional calendar data.  
+
+The namelist variable ``use_restart_time`` specifies whether to
+use the time and step numbers saved on a restart file or whether
+to set the initial model time to the namelist values defined by
+``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
+Normally, ``use_restart_time`` is set to false on the initial run
+and then set to true on subsequent restart runs of the same
+case to allow time to advance thereafter.  More information about 
+the restart capability can be found here, :ref:restartfiles.
+
 
 .. _init:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Initialization and coupling
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+****************************
+Initialization and Restarts
+****************************
 
 The ice model’s parameters and variables are initialized in several
 steps. Many constants and physical parameters are set in
@@ -612,9 +652,9 @@ reset to ‘none.’
 
 .. _parameters:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**********************************
 Choosing an appropriate time step
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**********************************
 
 The time step is chosen based on stability of the transport component
 (both horizontal and in thickness space) and on resolution of the
@@ -704,6 +744,8 @@ the problem, and ``brlx`` represents the effective subcycling
 ~~~~~~~~~~~~
 Model output
 ~~~~~~~~~~~~
+
+There are a number of model output streams and formats.
 
 .. _history:
 
@@ -908,6 +950,8 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    | 16           | BGC         | biogeochemistry                                    |
    +--------------+-------------+----------------------------------------------------+
 
+.. _restartfiles:
+
 *************
 Restart files
 *************
@@ -937,7 +981,8 @@ Additional namelist flags provide further control of restart behavior.
 of a run when it is otherwise not scheduled to occur. The flag
 ``use_restart_time`` enables the user to choose to use the model date
 provided in the restart files. If ``use_restart_time`` = false then the
-initial model date stamp is determined from the namelist parameters.
+initial model date stamp is determined from the namelist parameters,
+``year_init``, ``month_init``, ``day_init``, and ``sec_init``..
 lcdf64 = true sets 64-bit netCDF output, allowing larger file sizes.
 
 Routines for gathering, scattering and (unformatted) reading and writing
@@ -957,5 +1002,6 @@ initialized with no ice. The gx3 case was run for 1 year using the 1997
 forcing data provided with the code. The gx1 case was run for 20 years,
 so that the date of restart in the file is 1978-01-01. Note that the
 restart dates provided in the restart files can be overridden using the
-namelist variables ``use_restart_time``, ``year_init`` and ``istep0``. The
+namelist variables ``use_restart_time``, ``year_init``, ``month_init``,
+``day_init``, and ``sec_init``. The
 forcing time can also be overridden using ``fyear_init``.
