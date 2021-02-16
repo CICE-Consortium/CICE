@@ -326,7 +326,7 @@ module ice_dyn_evp_1d
       ! tension strain rate  =  e_11 - e_22
       tensionne = -cym*uvel(iw) - dyt(iw)*tmp_uvel_ee                      &
                 +  cxm*vvel(iw) + dxt(iw)*tmp_vvel_se
-      ! shearing strain rate  =  e_12
+      ! shearing strain rate  =  2*e_12
       shearne = -cym*vvel(iw) - dyt(iw)*tmp_vvel_ee                        &
               -  cxm*uvel(iw) - dxt(iw)*tmp_uvel_se
       ! Delta (in the denominator of zeta, eta)
@@ -614,7 +614,7 @@ module ice_dyn_evp_1d
       tensionse = -cym*tmp_uvel_se - dyt(iw)*tmp_uvel_ne                  &
                 +  cxp*tmp_vvel_se - dxt(iw)*vvel(iw)
   
-      ! shearing strain rate  =  e_12
+      ! shearing strain rate  =  2*e_12
       shearne = -cym*vvel(iw) - dyt(iw)*tmp_vvel_ee                        &
               -  cxm*uvel(iw) - dxt(iw)*tmp_uvel_se
       shearnw = -cyp*tmp_vvel_ee + dyt(iw)*vvel(iw)                        &

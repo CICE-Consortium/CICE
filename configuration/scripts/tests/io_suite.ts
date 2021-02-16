@@ -1,15 +1,16 @@
 # Test         Grid    PEs        Sets    BFB-compare
 # some iobinary configurations fail due to bathymetry netcdf file requirement, remove them
-restart        gx3     8x4        debug,histall,iobinary,precision8
-#restart        gx3    12x2        alt01,histall,iobinary
-restart        gx3    16x2        alt02,histall,iobinary,precision8
-#restart        gx3     4x2        alt03,histall,iobinary
-restart        gx3     8x4        alt04,histall,iobinary,precision8
-restart        gx3     4x4        alt05,histall,iobinary
-restart        gx3    32x1        bgcz,histall,iobinary,precision8
-restart        gx3    16x2        bgcskl,histall,iobinary
-restart        gx3    14x2        isotope,histall,iobinary,precision8
-restart        gx3    16x2        fsd12,histall,iobinary
+# iobinary cannot work with JRA55 because netcdf is turned off
+restart        gx3     8x4        gx3ncarbulk,debug,histall,iobinary,precision8
+#restart        gx3    12x2        gx3ncarbulk,alt01,histall,iobinary
+restart        gx3    16x2        gx3ncarbulk,alt02,histall,iobinary,precision8
+#restart        gx3     4x2        gx3ncarbulk,alt03,histall,iobinary
+restart        gx3     8x4        gx3ncarbulk,alt04,histall,iobinary,precision8
+restart        gx3     4x4        gx3ncarbulk,alt05,histall,iobinary
+restart        gx3    32x1        gx3ncarbulk,bgcz,histall,iobinary,precision8
+restart        gx3    16x2        gx3ncarbulk,bgcskl,histall,iobinary
+restart        gx3    14x2        gx3ncarbulk,isotope,histall,iobinary,precision8
+restart        gx3    16x2        gx3ncarbulk,fsd12,histall,iobinary
 
 restart        gx3    32x1        debug,histall,ionetcdf
 restart        gx3    15x2        alt01,histall,ionetcdf,precision8,cdf64

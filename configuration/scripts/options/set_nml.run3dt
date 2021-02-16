@@ -1,0 +1,6 @@
+npt             = 3
+dump_last       = .true.
+histfreq        = '1','x','x','x','x'
+hist_avg        = .false.
+f_uvel          = '1' 
+f_vvel          = '1' 

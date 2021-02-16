@@ -340,6 +340,7 @@
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, &
          pi, pi2, puny
+
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
 
@@ -1662,7 +1663,7 @@
                            field_loc_center, field_type_scalar)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block

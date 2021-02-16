@@ -142,6 +142,18 @@ EOFR
 endif
 
 #=======
+else if (${ICE_MACHINE} =~ freya*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+aprun -n 1 -N 1 -d 1 ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#=======
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFR
 srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE

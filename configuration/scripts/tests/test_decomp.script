@@ -75,10 +75,16 @@ foreach decomp (${decomps})
       set bfbstatus = $status
       if ($bfbstatus == 0) then
         set grade = PASS
-        echo "bfb baseline and test dataset are identical"
+        echo "bfbcomp baseline and test dataset are identical"
+      else if ( ${bfbstatus} == 1 ) then
+        set grade = FAIL
+        echo "bfbcomp baseline and test dataset are different"
+      else if ( ${bfbstatus} == 2 ) then
+        set grade = FAIL
+        echo "bfbcomp baseline missing data"
       else
         set grade = FAIL
-        echo "bfbcomp and test dataset are different"
+        echo "bfbcomp script failed"
       endif
       echo "$grade ${ICE_TESTNAME}_${decomp} bfbcomp ${base_case}" >> ${ICE_CASEDIR}/test_output
     endif

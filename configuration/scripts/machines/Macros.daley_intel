@@ -9,7 +9,7 @@ CFLAGS     := -c -O2 -fp-model precise
 #-xHost
 
 FREEFLAGS  := -FR
-FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceback
+FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceback -no-wrap-margin
 #-xHost
 
 ifeq ($(ICE_BLDDEBUG), true)
