@@ -986,8 +986,9 @@
            ncat_i = 100     ! number of ice thickness categories (log-normal)
 
       real (kind=dbl_kind), parameter :: &
-           max_depth = 50.0_dbl_kind, & ! initial range of log-normal dist.  
-           mu_s = 0.1_dbl_kind          ! friction coefficient
+           max_depth = 50.0_dbl_kind, & ! initial range of log-normal distribution  
+           mu_s = 0.1_dbl_kind, &       ! friction coefficient
+           sigma_b = 2.5d0              ! Standard deviation of bathymetry
 
       real (kind=dbl_kind), dimension(ncat_i) :: & ! log-normal for ice thickness
            x_k, & ! center of thickness categories (m)
@@ -1008,7 +1009,7 @@
       logical, dimension (ncat_b) :: &
            gt
 
-      real (kind=dbl_kind) :: wid_i, wid_b, mu_i, sigma_i, mu_b, sigma_b, m_i, v_i ! parameters for PDFs
+      real (kind=dbl_kind) :: wid_i, wid_b, mu_i, sigma_i, mu_b, m_i, v_i ! parameters for PDFs
       real (kind=dbl_kind), dimension(ncat_i):: tb_tmp
       real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt ! seabed stress factor at t point (N/m^2) 
       real (kind=dbl_kind) :: atot, x_kmax, x997
@@ -1022,7 +1023,6 @@
       call icepack_query_parameters(puny_out=puny)
 
       Tbt=c0
-      sigma_b = 2.5d0 ! Standard deviation of bathymetry. 
 
       do ij = 1, icellt
          i = indxti(ij)
@@ -1030,14 +1030,14 @@
 
          atot = sum(aicen(i,j,1:ncat))
 
-         if (atot .gt. 0.05_dbl_kind .and. hwater(i,j) .lt. max_depth) then
+         if (atot > 0.05_dbl_kind .and. hwater(i,j) < max_depth) then
 
             mu_b = hwater(i,j)           ! mean of PDF (normal dist) bathymetry
             wid_i = max_depth/ncat_i     ! width of ice categories
             wid_b = c2*c3*sigma_b/ncat_b ! width of bathymetry categories
 
-            x_k = (/(wid_i*(i*c1-0.5d0), i=1, ncat_i)/) 
-            y_n = (/( (mu_b-c3*sigma_b)+(i*c1-0.5d0)*(c2*c3*sigma_b/ncat_b), i=1, ncat_b )/)
+            x_k = (/( wid_i*(i*c1-0.5d0), i=1, ncat_i )/) 
+            y_n = (/( ( mu_b-c3*sigma_b )+( i*c1-0.5d0 )*( c2*c3*sigma_b/ncat_b ), i=1, ncat_b )/)
 
             vcat(1:ncat) = vicen(i,j,1:ncat)
             acat(1:ncat) = aicen(i,j,1:ncat)

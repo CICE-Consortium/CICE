@@ -446,13 +446,13 @@
             select case (kseabed)
 
             case (1)
-               call seabed1_stress_factor (nx_block,         ny_block,       &
+               call seabed1_stress_factor (nx_block,         ny_block,      &
                                           icellu  (iblk),                   &
                                           indxui(:,iblk),   indxuj(:,iblk), &
                                           vice(:,:,iblk),   aice(:,:,iblk), &
                                           hwater(:,:,iblk), Tbu(:,:,iblk))
             case (2)
-               call seabed2_stress_factor (nx_block,         ny_block,                   &
+               call seabed2_stress_factor (nx_block,         ny_block,                  &
                                           icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
                                           icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
                                           aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &

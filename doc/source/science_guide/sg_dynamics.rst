@@ -236,7 +236,7 @@ pending further testing.
 Seabed stress
 ***************
 
-CICE now includes two options for calculating the seabed stress,
+CICE includes two options for calculating the seabed stress,
 i.e. the term in the momentum equation that represents the interaction
 between grounded ice keels and the seabed. The seabed stress can be
 activated by setting ``seabedstress`` to true in the namelist. The seabed stress (or basal
@@ -304,7 +304,7 @@ This new and more sophisticated grounding parameterization computes the seabed s
 on the probability of contact between the ice thickness distribution
 (ITD) and the seabed. Multi-thickness category models such as CICE typically use a
 few thickness categories (5-10). This crude representation of the ITD
-does not resolve the tail of the ITD which is crucial for grounding
+does not resolve the tail of the ITD, which is crucial for grounding
 events. 
 
 To represent the tail of the distribution, the simulated ITD is
