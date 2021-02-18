@@ -239,9 +239,10 @@ Seabed stress
 CICE includes two options for calculating the seabed stress,
 i.e. the term in the momentum equation that represents the interaction
 between grounded ice keels and the seabed. The seabed stress can be
-activated by setting ``seabedstress`` to true in the namelist. The seabed stress (or basal
-stress) parameterization of :cite:`Lemieux16` is chosen if ``kseabed``
-= 1 while the new probabilistic approach is used if ``kseabed`` = 2. 
+activated by setting ``seabed_stress`` to true in the namelist. The seabed stress (or basal
+stress) parameterization of :cite:`Lemieux16` is chosen if ``seabed_stress_method``
+= ``LKD`` while the new probabilistic approach is used if ``seabed_stress_method``
+= ``probabilistic``. 
 
 For both parameterizations, the components of the seabed
 stress are expressed as :math:`\tau_{bx}=C_bu` and
@@ -256,11 +257,11 @@ grounding schemes. It is suggested to have a bathymetry field with water depths
 larger than 5 m that represents well shallow water (less than 30 m) regions such as the Laptev Sea
 and the East Siberian Sea.   
 
-Seabed stress based on the mean thickness
+Seabed stress based on linear keel draft
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This parameterization for the seabed stress is described in
-:cite:`Lemieux16`. The :math:`C_b` coefficients are expressed as
+:cite:`Lemieux16`. It assumes that the largest keel draft varies linearly with the mean thickness in a grid cell (i.e. sea ice volume). The :math:`C_b` coefficients are expressed as
 
 .. math::
    C_b= k_2 \max [0,(h_u - h_{cu})]  e^{-\alpha_b * (1 - a_u)} (\sqrt{u^2+v^2}+u_0)^{-1}, \\
@@ -337,7 +338,7 @@ ITD and the seabed is given by
 and then obtains :math:`T_{bt}` by multiplying :math:`T_{bt}^*` by :math:`e^{-\alpha_b * (1 - a_i)}` (similar to what is done for
 ``kseabed`` = 1). 
 
-To calculate :math:`T_{bt}^*` in equation :eq:`Tbt`, :math:`f(x)` and :math:`b(y)` are discretized using many small categories (100). :math:`f(x)` is discretized between 0 and 50 m while :math:`b(y)` is truncated at plus and minus three :math:`\sigma_b`. :math:`f(x)` is also modified by setting it to	zero after a certain percentile of the log-normal distribution. This percentile, which is currently set to 99.7%, notably affects the simulation of landfast ice and is used as a tuning parameter. Its impact is similar to the one of the parameter :math:`k_1` for ``kseabed`` = 1.
+To calculate :math:`T_{bt}^*` in equation :eq:`Tbt`, :math:`f(x)` and :math:`b(y)` are discretized using many small categories (100). :math:`f(x)` is discretized between 0 and 50 m while :math:`b(y)` is truncated at plus and minus three :math:`\sigma_b`. :math:`f(x)` is also modified by setting it to	zero after a certain percentile of the log-normal distribution. This percentile, which is currently set to 99.7%, notably affects the simulation of landfast ice and is used as a tuning parameter. Its impact is similar to the one of the parameter :math:`k_1` for the LKD method.
 
 :math:`T_b` at the 'u' point is calculated from the 't' point values around it according to 
 

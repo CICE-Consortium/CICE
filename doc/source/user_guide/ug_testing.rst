@@ -1013,6 +1013,7 @@ Below is an example of a step-by-step procedure for testing a code change that m
   # Run a full regression test to verify bit-for-bit
 
   # Create a baseline dataset (only necessary if no baseline exists on the system)
+  # if you want to replace an existing baseline, you should first delete the directory cice.my.baseline in cice/baselines.
   # git clone the baseline code
 
   ./cice.setup -m onyx -e intel --suite base_suite --testid base0 --bgen cice.my.baseline
