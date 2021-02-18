@@ -1,0 +1,9 @@
+year_init      = 1997
+use_leap_years = .false.
+use_restart_time = .true.
+fyear_init      = 1997
+atm_data_format = 'bin'
+atm_data_type   = 'ncar'
+atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx3/NCAR_bulk'
+precip_units    = 'mm_per_month'
+

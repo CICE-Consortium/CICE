@@ -1561,11 +1561,11 @@
 
       real (kind=dbl_kind) :: &
            eidebug, esdebug, &
-           qi, qs, Tsnow, &
+           qi, qs, Tsnow, si, &
            rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
       integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd, &
-           nt_isosno, nt_isoice
+           nt_isosno, nt_isoice, nt_sice
 
       logical (kind=log_kind) :: tr_fsd, tr_iso
 
@@ -1576,7 +1576,7 @@
 
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
-           nt_qsno_out=nt_qsno, nt_fsd_out=nt_fsd, &
+           nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fsd_out=nt_fsd, &
            nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
@@ -1621,7 +1621,6 @@
 
       enddo                     ! n
 
-
       eidebug = c0
       do n = 1,ncat
          do k = 1,nilyr
@@ -1652,6 +1651,14 @@
          endif
       enddo
       write(nu_diag,*) 'qsnow(i,j)',esdebug
+      write(nu_diag,*) ' '
+
+      do n = 1,ncat
+         do k = 1,nilyr
+            si = trcrn(i,j,nt_sice+k-1,n,iblk)
+            write(nu_diag,*) 'sice, cat ',n,' layer ',k, si
+         enddo
+      enddo
       write(nu_diag,*) ' '
 
       write(nu_diag,*) 'uvel(i,j)',uvel(i,j,iblk)

@@ -143,11 +143,8 @@ Some hints:
 
 - To change namelist, manually edit the **ice_in** file
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
-- When the run scripts are submitted, the current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from the case directory into the run directory.  Users should generally not edit files in the run directory as these are overwritten when following the standard workflow.  **cice.settings** can be sourced to establish the case values in the login shell.  An alias like the following can be established to quickly switch between case and run directories::
-
-    alias  cdrun 'cd `\grep "setenv ICE_RUNDIR"  cice.settings | awk "{print "\$"NF}"`'
-    alias cdcase 'cd `\grep "setenv ICE_CASEDIR" cice.settings | awk "{print "\$"NF}"`'
-
+- When the run scripts are submitted, the current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from the case directory into the run directory.  Users should generally not edit files in the run directory as these are overwritten when following the standard workflow.  **cice.settings** can be sourced to establish the case values in the login shell.
+- Some useful aliases can be found in the :ref:`aliases` section
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
 - To change compiler options, manually edit the Macros file. To add user defined preprocessor macros, modify ``ICE_CPPDEFS`` in **cice.settings** using the syntax ``-DCICE_MACRO``.
 - To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.  It is recommended that the ``ICE_CLEANBUILD`` be set to true if there are any questions about whether the build is proceeding properly.
@@ -496,8 +493,9 @@ in the **env.[machine]** file.  This can also be manually changed in the **cice.
 
 .. _laptops:
 
-Porting to Laptop or Personal Computers
+Porting to Laptops or Personal Computers
 -----------------------------------------
+
 To get the required software necessary to build and run CICE, and use the plotting and quality control scripts included in the repository, a `conda <https://docs.conda.io/en/latest/>`_ environment file is available at :
 
 ``configuration/scripts/machines/environment.yml``.
@@ -836,6 +834,50 @@ should be rebuilt before being resubmitted.  It is always recommended that users
 modify the scripts and input settings in the case directory, NOT the run directory.
 In general, files in the run directory are overwritten by versions in the case
 directory when the model is built, submitted, and run.
+
+.. _aliases:
+
+Use of Shell Aliases
+-------------------------
+
+This section provides a list of some potentially useful shell aliases that leverage the CICE 
+scripts.  These are not defined by CICE and are not required for using CICE.  They
+are provided as an example of what can be done by users.
+The current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from 
+the case directory into the run directory when the model is run.  Users can create aliases 
+leveraging the variables in these files.  Aliases like the following can be established 
+in shell startup files or otherwise at users discretion:
+
+.. code-block:: bash
+
+  #!/bin/tcsh
+  # From a case or run directory, source the necessary environment files to run CICE
+  alias cice_env 'source env.*; source cice.settings'
+  # Go from case directory to run directory and back (see https://stackoverflow.com/a/34874698/)
+  alias cdrun  'set rundir=`\grep "setenv ICE_RUNDIR" cice.settings | awk "{print "\$"NF}"` && cd $rundir'
+  alias cdcase 'set casedir=`\grep "setenv ICE_CASEDIR" cice.settings | awk "{print "\$"NF}"` && cd $casedir'
+
+  #!/bin/bash
+  # From case/test directory, go to run directory
+  alias cdrun='cd $(cice_var ICE_RUNDIR)'
+  # From run directory, go to case/test directory
+  alias cdcase='cd $(cice_var ICE_CASEDIR)'
+  # monitor current cice run (from ICE_RUNDIR directory)
+  alias cice_tail='tail -f $(ls -1t cice.runlog.* |head -1)'
+  # open log from last CICE run (from ICE_CASEDIR directory)
+  alias cice_lastrun='$EDITOR $(ls -1t logs/cice.runlog.* |head -1)'
+  # open log from last CICE build (from ICE_CASEDIR directory)
+  alias cice_lastbuild='$EDITOR $(ls -1t logs/cice.bldlog.* |head -1)'
+  # show CICE run directory when run in the case directory
+  alias cice_rundir='cice_var ICE_RUNDIR'
+  # open a tcsh shell and source env.* and cice.settings (useful for launching CICE in a debugger)
+  alias cice_shell='tcsh -c "cice_env; tcsh"'
+
+  ## Functions
+  # Print the value of a CICE variable ($1) from cice.settings
+  cice_var() {
+  \grep "setenv $1" cice.settings | awk "{print "\$"3}"
+  }
 
 .. _timeseries:
 

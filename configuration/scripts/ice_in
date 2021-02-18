@@ -63,7 +63,7 @@
     nfsd         = 1
     nilyr        = 7
     nslyr        = 1
-    nblyr        = 7
+    nblyr        = 1
     orca_halogrid = .false.
 /
 
@@ -110,9 +110,8 @@
     dSdt_slow_mode    = -5.0e-8
     phi_c_slow_mode   =    0.05
     phi_i_mushy       =    0.85
-    sw_redist         = .false.
-    sw_frac           = 0.9d0
-    sw_dtemp          = 0.02d0
+    hfrazilmin        = 0.05d0
+    floediam          = 300.0d0
 /
 
 &dynamics_nml
@@ -141,6 +140,21 @@
     kridge          = 1
     ktransport      = 1
     ssh_stress      = 'geostrophic'
+    maxits_nonlin   = 4
+    precond         = 'pgmres'
+    dim_fgmres       = 50
+    dim_pgmres       = 5
+    maxits_fgmres   = 1
+    maxits_pgmres   = 1
+    monitor_nonlin  = .false.
+    monitor_fgmres  = .false.
+    monitor_pgmres  = .false.
+    ortho_type      = 'mgs'
+    reltol_nonlin   = 1e-8
+    reltol_fgmres   = 1e-2
+    reltol_pgmres   = 1e-6
+    algo_nonlin     = 'picard'
+    use_mean_vrel   = .true.
 /
 
 &shortwave_nml
@@ -157,6 +171,9 @@
     dT_mlt          = 1.5
     rsnw_mlt        = 1500.
     kalg            = 0.6
+    sw_redist         = .false.
+    sw_frac           = 0.9d0
+    sw_dtemp          = 0.02d0
 /
 
 &ponds_nml
@@ -193,7 +210,7 @@
     natmiter        = 5
     atmiter_conv    = 0.0d0
     ustar_min       = 0.0005
-    emissivity      = 0.95
+    emissivity      = 0.985
     fbot_xfer_type  = 'constant'
     update_ocn_f    = .false.
     l_mpond_fresh   = .false.
