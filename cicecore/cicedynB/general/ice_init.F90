@@ -332,7 +332,7 @@
       seabed_stress= .false.   ! if true, seabed stress for landfast is on
       seabed_stress_method  = 'LKD' ! LKD = Lemieux et al 2015, probabilistic = Dupont et al. in prep
       k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
-      k2 = 15.0_dbl_kind     ! dah: second free parameter (N/m^3) for landfast parametrization
+      k2 = 15.0_dbl_kind     ! 2nd free parameter (N/m^3) for landfast parametrization
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
@@ -1304,9 +1304,9 @@
             else
                tmpstr2 = ' : no seabed stress parameterization'
             endif
-            write(nu_diag,1010) ' seabed_stress = ', seabed_stress,trim(tmpstr2)
+            write(nu_diag,1010) ' seabed_stress    = ', seabed_stress,trim(tmpstr2)
             if (seabed_stress) then 
-               write(nu_diag,1030) ' seabed_stress_method = ',trim(seabed_stress_method)
+               write(nu_diag,1030) ' seabed method    = ',trim(seabed_stress_method)
                if (seabed_stress_method == 'LKD') then
                   write(nu_diag,1002) ' k1               = ', k1, ' : free parameter for landfast ice'
                   write(nu_diag,1002) ' k2               = ', k2, ' : free parameter for landfast ice'
