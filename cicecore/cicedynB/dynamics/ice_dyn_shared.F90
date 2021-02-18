@@ -24,7 +24,7 @@
       private
       public :: init_dyn, set_evp_parameters, stepu, principal_stress, &
                 dyn_prep1, dyn_prep2, dyn_finish, &
-                seabed1_stress_factor, seabed2_stress_factor, &
+                seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 alloc_dyn_shared, deformations, strain_rates, &
                 stack_velocity_field, unstack_velocity_field
 
@@ -50,8 +50,10 @@
       ! other EVP parameters
 
       character (len=char_len), public :: & 
-         yield_curve  ! 'ellipse' ('teardrop' needs further testing)
-                                                                      ! 
+         yield_curve , &      ! 'ellipse' ('teardrop' needs further testing)
+         seabed_stress_method ! method for seabed stress calculation
+                              ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. in prep.  
+                                                                      
       real (kind=dbl_kind), parameter, public :: &
          eyc = 0.36_dbl_kind, &
                          ! coefficient for calculating the parameter E
@@ -86,10 +88,7 @@
 
       ! seabed (basal) stress parameters and settings
       logical (kind=log_kind), public :: &
-         seabedstress ! if true, seabed stress for landfast on
-
-      integer (kind=int_kind), public :: &
-         kseabed      ! seabed stress method (1=Lemieux et al. 2015, 2=Dupont et al. in prep,)  
+         seabed_stress ! if true, seabed stress for landfast on
 
       real (kind=dbl_kind), public :: &
          k1, &        ! 1st free parameter for seabed1 grounding parameterization
@@ -744,7 +743,7 @@
 
       ! calculate seabed stress component for outputs
          if (ksub == ndte) then ! on last subcycling iteration
-          if ( seabedstress ) then
+          if ( seabed_stress ) then
            taubx(i,j) = -uvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
            tauby(i,j) = -vvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
           endif
@@ -858,7 +857,9 @@
 
 !=======================================================================
 ! Computes seabed (basal) stress factor Tbu (landfast ice) based on mean
-! thickness and bathymetry data.
+! thickness and bathymetry data. LKD refers to linear keel draft. This
+! parameterization assumes that the largest keel draft varies linearly 
+! with the mean thickness.
 !
 ! Lemieux, J. F., B. Tremblay, F. Dupont, M. Plante, G.C. Smith, D. Dumont (2015). 
 ! A basal stress parameterization form modeling landfast ice, J. Geophys. Res. 
@@ -873,11 +874,11 @@
 ! note1: Tbu is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
 ! note2: Seabed stress (better name) was called basal stress in Lemieux et al. 2015
 
-      subroutine seabed1_stress_factor (nx_block, ny_block,         &
-                                       icellu,                     &
-                                       indxui,   indxuj,           &
-                                       vice,     aice,             &
-                                       hwater,   Tbu)
+      subroutine seabed_stress_factor_LKD (nx_block, ny_block,         &
+                                           icellu,                     &
+                                           indxui,   indxuj,           &
+                                           vice,     aice,             &
+                                           hwater,   Tbu)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
@@ -929,7 +930,7 @@
 
       enddo                     ! ij
 
-    end subroutine seabed1_stress_factor
+    end subroutine seabed_stress_factor_LKD
 
 !=======================================================================
 ! Computes seabed (basal) stress factor Tbu (landfast ice) based on 
@@ -945,11 +946,11 @@
 !
 ! authors: D. Dumont, J.F. Lemieux, E. Dumas-Lefebvre, F. Dupont
 !
-      subroutine seabed2_stress_factor (nx_block, ny_block,         &
-                                       icellt, indxti,   indxtj,    &
-                                       icellu, indxui,   indxuj,    &
-                                       aicen,  vicen,               &
-                                       hwater, Tbu)
+      subroutine seabed_stress_factor_prob (nx_block, ny_block,          &
+                                            icellt, indxti,   indxtj,    &
+                                            icellu, indxui,   indxuj,    &
+                                            aicen,  vicen,               &
+                                            hwater, Tbu)
 ! use modules
         
       use ice_arrays_column, only: hin_max
@@ -1111,7 +1112,7 @@
          Tbu(i,j)  = max(Tbt(i,j),Tbt(i+1,j),Tbt(i,j+1),Tbt(i+1,j+1))
       enddo                     ! ij          
       
-    end subroutine seabed2_stress_factor
+    end subroutine seabed_stress_factor_prob
       
 !=======================================================================
 

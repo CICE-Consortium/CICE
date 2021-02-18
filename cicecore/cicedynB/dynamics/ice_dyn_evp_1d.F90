@@ -881,7 +881,7 @@ module ice_dyn_evp_1d
 
     use ice_kinds_mod
     use ice_constants, only: c0, c1
-    use ice_dyn_shared, only: brlx, revp, seabedstress
+    use ice_dyn_shared, only: brlx, revp, seabed_stress
 
     implicit none
 
@@ -955,7 +955,7 @@ module ice_dyn_evp_1d
        uvel(iw) = (cca*cc1 + ccb*cc2) / ab2 
        vvel(iw) = (cca*cc2 - ccb*cc1) / ab2
        ! calculate seabed stress component for outputs
-       if ( seabedstress ) then
+       if ( seabed_stress ) then
          taubx(iw) = -uvel(iw)*Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
          tauby(iw) = -vvel(iw)*Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
        endif

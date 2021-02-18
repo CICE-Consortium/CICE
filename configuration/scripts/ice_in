@@ -129,8 +129,8 @@
     Cf              = 17.
     Ktens           = 0.
     e_ratio         = 2.
-    seabedstress    = .false.
-    kseabed         = 1
+    seabed_stress   = .false.
+    seabed_stress_method = 'LKD'
     k1              = 8.
     k2              = 15.
     alphab          = 20.

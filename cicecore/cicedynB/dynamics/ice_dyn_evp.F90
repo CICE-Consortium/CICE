@@ -41,7 +41,8 @@
           p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init, vvel_init, &
-          seabed1_stress_factor, seabed2_stress_factor, seabedstress, kseabed, Ktens, revp
+          seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
+          seabed_stress, Ktens, revp
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -328,25 +329,27 @@
       ! seabed stress factor Tbu (Tbu is part of Cb coefficient)
       !-----------------------------------------------------------------
       
-      if (seabedstress) then
+      if (seabed_stress) then
 
        !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            select case (kseabed)
 
-            case (1)
-               call seabed1_stress_factor (nx_block,         ny_block,      &
-                                          icellu  (iblk),                   &
-                                          indxui(:,iblk),   indxuj(:,iblk), &
-                                          vice(:,:,iblk),   aice(:,:,iblk), &
-                                          hwater(:,:,iblk), Tbu(:,:,iblk))
-            case (2)
-               call seabed2_stress_factor (nx_block,         ny_block,                  &
-                                          icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
-                                          icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
-                                          aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
-                                          hwater(:,:,iblk), Tbu(:,:,iblk))
-            end select
+            if ( seabed_stress_method == 'LKD' ) then
+
+               call seabed_stress_factor_LKD (nx_block,         ny_block,       &
+                                              icellu  (iblk),                   &
+                                              indxui(:,iblk),   indxuj(:,iblk), &
+                                              vice(:,:,iblk),   aice(:,:,iblk), &
+                                              hwater(:,:,iblk), Tbu(:,:,iblk))
+
+            elseif ( seabed_stress_method == 'probabilistic' ) then
+
+               call seabed_stress_factor_prob (nx_block,         ny_block,                   &
+                                               icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                               icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
+                                               aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
+                                               hwater(:,:,iblk), Tbu(:,:,iblk))
+            endif
          
        enddo
        !$OMP END PARALLEL DO
