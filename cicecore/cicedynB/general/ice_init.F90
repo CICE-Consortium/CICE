@@ -1304,9 +1304,9 @@
             else
                tmpstr2 = ' : no seabed stress parameterization'
             endif
-            write(nu_diag,1010) ' seabed_stress      = ', seabed_stress,trim(tmpstr2)
+            write(nu_diag,1010) ' seabed_stress = ', seabed_stress,trim(tmpstr2)
             if (seabed_stress) then 
-               write(nu_diag,1030) ' seabed_stress_method       = ',trim(seabed_stress_method)
+               write(nu_diag,1030) ' seabed_stress_method = ',trim(seabed_stress_method)
                if (seabed_stress_method == 'LKD') then
                   write(nu_diag,1002) ' k1               = ', k1, ' : free parameter for landfast ice'
                   write(nu_diag,1002) ' k2               = ', k2, ' : free parameter for landfast ice'
