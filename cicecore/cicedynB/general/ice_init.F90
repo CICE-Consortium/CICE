@@ -1647,33 +1647,33 @@
          write(nu_diag,*) ' Snow redistribution/metamorphism tracers'
          write(nu_diag,*) '-----------------------------------------'
          if (tr_snow) then
-            write(nu_diag,1012) ' tr_snow         = ', tr_snow, &
+            write(nu_diag,1010) ' tr_snow         = ', tr_snow, &
                                 ' snow redistribution/metamorphism'
             if (snwredist(1:4) == 'none') then
                write(nu_diag,*) ' Snow redistribution scheme turned off'
             else
                if (snwredist(1:9) == 'bulk') then
                   write(nu_diag,*) ' Using bulk snow redistribution scheme'
-                  write(nu_diag,1007) ' snwlvlfac       = ', snwlvlfac, &
+                  write(nu_diag,1002) ' snwlvlfac       = ', snwlvlfac, &
                                    ' fractional increase in snow depth for bulk redistribution'
                elseif (snwredist(1:6) == 'ITDrdg') then
                   write(nu_diag,*) ' Using ridging based snow redistribution scheme'
                endif
-               write(nu_diag,1007) ' rhosnew         = ', rhosnew, &
+               write(nu_diag,1002) ' rhosnew         = ', rhosnew, &
                                    ' new snow density (kg/m^3)'
-               write(nu_diag,1007) ' rhosmin         = ', rhosmin, &
+               write(nu_diag,1002) ' rhosmin         = ', rhosmin, &
                                    ' minimum snow density (kg/m^3)'
-               write(nu_diag,1007) ' rhosmax         = ', rhosmax, &
+               write(nu_diag,1002) ' rhosmax         = ', rhosmax, &
                                    ' maximum snow density (kg/m^3)'
-               write(nu_diag,1007) ' windmin         = ', windmin, &
+               write(nu_diag,1002) ' windmin         = ', windmin, &
                                    ' minimum wind speed to compact snow (m/s)'
-               write(nu_diag,1007) ' drhosdwind      = ', drhosdwind, &
+               write(nu_diag,1002) ' drhosdwind      = ', drhosdwind, &
                                    ' wind compaction factor (kg s/m^4)'
             endif
             if (use_smliq_pnd) then
                write(nu_diag,*) ' Using liquid water in snow for melt ponds'
             endif
-            write(nu_diag,1007) ' rsnw_fall       = ', rsnw_fall, &
+            write(nu_diag,1002) ' rsnw_fall       = ', rsnw_fall, &
                                 ' radius of new snow (10^-6 m)'
             write(nu_diag,1002) ' rsnw_tmax       = ', rsnw_tmax, &
                                 ' maximum snow radius (10^-6 m)'
@@ -1692,7 +1692,7 @@
          if (tr_pond_lvl)  write(nu_diag,1010) ' tr_pond_lvl      = ', tr_pond_lvl,' : level-ice pond formulation'
          if (tr_pond_topo) write(nu_diag,1010) ' tr_pond_topo     = ', tr_pond_topo,' : topo pond formulation'
          if (tr_pond_cesm) write(nu_diag,1010) ' tr_pond_cesm     = ', tr_pond_cesm,' : CESM pond formulation'
-         if (tr_snow)      write(nu_diag,1012) ' tr_snow          = ', tr_snow,' : snow redistribution/metamorphism'
+         if (tr_snow)      write(nu_diag,1010) ' tr_snow          = ', tr_snow,' : snow redistribution/metamorphism'
          if (tr_iage)      write(nu_diag,1010) ' tr_iage          = ', tr_iage,' : chronological ice age'
          if (tr_FY)        write(nu_diag,1010) ' tr_FY            = ', tr_FY,' : first-year ice area'
          if (tr_iso)       write(nu_diag,1010) ' tr_iso           = ', tr_iso,' : diagnostic isotope tracers'
