@@ -257,7 +257,7 @@ grounding schemes. It is suggested to have a bathymetry field with water depths
 larger than 5 m that represents well shallow water (less than 30 m) regions such as the Laptev Sea
 and the East Siberian Sea.   
 
-Seabed stress based on linear keel draft
+Seabed stress based on linear keel draft (LKD)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This parameterization for the seabed stress is described in

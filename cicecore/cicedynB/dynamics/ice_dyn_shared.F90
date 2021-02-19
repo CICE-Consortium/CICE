@@ -938,7 +938,7 @@
 ! could take into account variations of the SSH. In the simplest 
 ! formulation, hwater is simply the value of the bathymetry. To calculate
 ! the probability of contact, it is assumed that the bathymetry follows 
-! a normal distribution with sigma_b = 0.5d0. An improvement would 
+! a normal distribution with sigma_b = 2.5d0. An improvement would 
 ! be to provide the distribution based on high resolution data. 
 !     
 ! Dupont, F. Dumont, D., Lemieux, J.F., Dumas-Lefebvre, E., Caya, A. 
@@ -1013,7 +1013,7 @@
       real (kind=dbl_kind) :: wid_i, wid_b, mu_i, sigma_i, mu_b, m_i, v_i ! parameters for PDFs
       real (kind=dbl_kind), dimension(ncat_i):: tb_tmp
       real (kind=dbl_kind), dimension (nx_block,ny_block):: Tbt ! seabed stress factor at t point (N/m^2) 
-      real (kind=dbl_kind) :: atot, x_kmax, x997
+      real (kind=dbl_kind) :: atot, x_kmax
       real (kind=dbl_kind) :: cut, rhoi, rhow, gravit, pi, puny
 
       character(len=*), parameter :: subname = '(seabed2_stress_coeff)'
@@ -1055,17 +1055,9 @@
             sigma_i = sqrt(log(c1 + v_i/m_i**2))
 
             ! max thickness associated with percentile of log-normal PDF
-            ! x997 was obtained from an optimization procedure (Dupont et al.)  
+            ! x_kmax=x997 was obtained from an optimization procedure (Dupont et al.)  
 
-!            x95  = exp(mu_i + sqrt(c2*sigma_i)*1.1631d0)
-!            x99  = exp(mu_i + sqrt(c2*sigma_i)*1.6450d0)
-!            x995 = exp(mu_i + sqrt(c2*sigma_i)*1.8214d0)
-!            x996 = exp(mu_i + sqrt(c2*sigma_i)*1.8753d0)
-            x997 = exp(mu_i + sqrt(c2*sigma_i)*1.9430d0)
-!            x998 = exp(mu_i + sqrt(c2*sigma_i)*2.0352d0)
-!            x999 = exp(mu_i + sqrt(c2*sigma_i)*2.1851d0)
-!            xinf = exp(mu_i + sqrt(c2*sigma_i)*4.4981d0) ! 0.9999999999
-            x_kmax = x997
+            x_kmax = exp(mu_i + sqrt(c2*sigma_i)*1.9430d0)
 
             ! Set x_kmax to hlev of the last category where there is ice
             ! when there is no ice in the last category           
@@ -1087,15 +1079,15 @@
             P_y = b_n*wid_b
 
             do n =1, ncat_i
-               if (x_k(n) .gt. x_kmax) P_x(n)=c0
+               if (x_k(n) > x_kmax) P_x(n)=c0
             enddo
 
             ! calculate Tb factor at t-location
             do n=1, ncat_i
-               gt = (y_n .le. rhoi*x_k(n)/rhow)
+               gt = (y_n <= rhoi*x_k(n)/rhow)
                tmp = merge(1,0,gt)
                ii = sum(tmp)
-               if (ii .eq. 0) then
+               if (ii == 0) then
                   tb_tmp(n) = c0
                else
                   tb_tmp(n) = max(mu_s*gravit*P_x(n)*sum(P_y(1:ii)*(rhoi*x_k(n) - rhow*y_n(1:ii))),c0)
