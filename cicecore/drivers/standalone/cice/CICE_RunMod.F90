@@ -271,12 +271,12 @@
       ! snow redistribution and metamorphosis
       !-----------------------------------------------------------------
 
-         do iblk = 1, nblocks
-            if (tr_snow) call step_snow (dt, iblk)
-         enddo
-
-         ! clean up
-         call update_state (dt)
+         if (tr_snow) then
+            do iblk = 1, nblocks
+               call step_snow (dt, iblk)
+            enddo
+            call update_state (dt) ! clean up
+         endif
 
 !MHRI: CHECK THIS OMP
          !$OMP PARALLEL DO PRIVATE(iblk)
