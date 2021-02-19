@@ -672,13 +672,15 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), intent(in) :: &
-         dt    , & ! time step
-         offset    ! d(age)/dt time offset = dt for thermo, 0 for dyn
+         dt       ! time step
 
-      real (kind=dbl_kind), dimension(:,:,:), intent(inout) :: &
-          daidt, & ! change in ice area per time step
-          dvidt, & ! change in ice volume per time step
-          dagedt   ! change in ice age per time step
+      real (kind=dbl_kind), dimension(:,:,:), intent(inout), optional :: &
+         daidt, & ! change in ice area per time step
+         dvidt, & ! change in ice volume per time step
+         dagedt   ! change in ice age per time step
+
+      real (kind=dbl_kind), intent(in), optional :: &
+         offset   ! d(age)/dt time offset = dt for thermo, 0 for dyn
 
       integer (kind=int_kind) :: & 
          iblk,  & ! block index 

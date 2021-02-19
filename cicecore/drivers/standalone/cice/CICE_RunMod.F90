@@ -267,15 +267,20 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
-!MHRI: CHECK THIS OMP
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-
       !-----------------------------------------------------------------
       ! snow redistribution and metamorphosis
       !-----------------------------------------------------------------
 
+         do iblk = 1, nblocks
             if (tr_snow) call step_snow (dt, iblk)
+         enddo
+
+         ! clean up
+         call update_state (dt)
+
+!MHRI: CHECK THIS OMP
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
       ! albedo, shortwave radiation
