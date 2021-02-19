@@ -11,7 +11,7 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c1, c2, c3, c4
+      use ice_constants, only: c0, c1, c2, c3, c4, c6
       use ice_constants, only: omega, spval_dbl, p01, p001, p5
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
@@ -1035,10 +1035,10 @@
 
             mu_b = hwater(i,j)           ! mean of PDF (normal dist) bathymetry
             wid_i = max_depth/ncat_i     ! width of ice categories
-            wid_b = c2*c3*sigma_b/ncat_b ! width of bathymetry categories
+            wid_b = c6*sigma_b/ncat_b    ! width of bathymetry categories (6 sigma_b = 2x3 sigma_b)
 
-            x_k = (/( wid_i*(i*c1-0.5d0), i=1, ncat_i )/) 
-            y_n = (/( ( mu_b-c3*sigma_b )+( i*c1-0.5d0 )*( c2*c3*sigma_b/ncat_b ), i=1, ncat_b )/)
+            x_k = (/( wid_i*( real(i,kind=dbl_kind) - p5 ), i=1, ncat_i )/) 
+            y_n = (/( ( mu_b-c3*sigma_b )+( real(i,kind=dbl_kind) - p5 )*( c6*sigma_b/ncat_b ), i=1, ncat_b )/)
 
             vcat(1:ncat) = vicen(i,j,1:ncat)
             acat(1:ncat) = aicen(i,j,1:ncat)
