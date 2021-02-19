@@ -736,6 +736,8 @@
                                    n_trcr_strata = n_trcr_strata(:), &
                                    nt_strata     = nt_strata(:,:))
 
+         if (present(offset)) then
+
       !-----------------------------------------------------------------
       ! Compute thermodynamic area and volume tendencies.
       !-----------------------------------------------------------------
@@ -751,7 +753,8 @@
                dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
                                 - dagedt(i,j,iblk)) / dt
             endif
-         endif
+         endif ! tr_iage
+         endif ! present(offset)
 
          enddo ! i
          enddo ! j
