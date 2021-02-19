@@ -36,7 +36,7 @@
       private
 
       public :: step_therm1, step_therm2, step_dyn_horiz, step_dyn_ridge, &
-                prep_radiation, step_radiation, ocean_mixed_layer, &
+                step_snow, prep_radiation, step_radiation, ocean_mixed_layer, &
                 update_state, biogeochemistry, save_init, step_dyn_wave
 
 !=======================================================================
@@ -178,7 +178,7 @@
           fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           meltt, melts, meltb, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f, &
-          send_i2x_per_cat, fswthrun_ai
+          send_i2x_per_cat, fswthrun_ai, dsnow
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
@@ -447,6 +447,7 @@
                       congeln      = congeln     (i,j,:,iblk), &
                       snoice       = snoice      (i,j,  iblk), &
                       snoicen      = snoicen     (i,j,:,iblk), &
+                      dsnow        = dsnow       (i,j,  iblk), &
                       dsnown       = dsnown      (i,j,:,iblk), &
                       lmask_n      = lmask_n     (i,j,  iblk), &
                       lmask_s      = lmask_s     (i,j,  iblk), &
@@ -1007,6 +1008,127 @@
       call ice_timer_stop(timer_column)
 
       end subroutine step_dyn_ridge
+
+!=======================================================================
+!
+! Updates snow tracers
+!
+! authors: Elizabeth C. Hunke, LANL
+!          Nicole Jeffery, LANL
+
+      subroutine step_snow (dt, iblk)
+
+      use ice_arrays_column, only: rhos_eff, rhos_cmp
+      use ice_blocks, only: block, get_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_domain_size, only: ncat, nslyr, nilyr
+      use ice_flux, only: snwcnt, wind, fresh, fhocn, fsloss, fsnow
+      use ice_state, only: trcrn, vsno, vsnon, vicen, aicen, aice
+      use icepack_intfc, only: icepack_step_snow
+
+      real (kind=dbl_kind), intent(in) :: &
+         dt                 ! time step
+
+      integer (kind=int_kind), intent(in) :: &
+         iblk               ! block index
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         nt_smice, nt_smliq, nt_rsnw, &
+         nt_Tsfc, nt_qice, nt_sice, nt_qsno, &
+         nt_alvl, nt_vlvl, nt_rhos
+
+      integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         i, j,            & ! horizontal indices
+         n,               & ! category index
+         ns,              & ! history streams index
+         ipoint             ! index for print diagnostic
+
+      real (kind=dbl_kind) :: &
+         puny
+
+      real (kind=dbl_kind), dimension(nslyr,ncat) :: &
+         rhos_effn          ! snow effective density: content (kg/m^3)
+
+      real (kind=dbl_kind) :: &
+         fhs                ! flag for presence of snow
+
+      character(len=*), parameter :: subname = '(step_snow)'
+
+      type (block) :: &
+         this_block         ! block information for current block
+
+      this_block = get_block(blocks_ice(iblk),iblk)         
+      ilo = this_block%ilo
+      ihi = this_block%ihi
+      jlo = this_block%jlo
+      jhi = this_block%jhi
+
+      !-----------------------------------------------------------------
+      ! query icepack values
+      !-----------------------------------------------------------------
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_tracer_indices( &
+         nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
+         nt_rsnw_out=nt_rsnw, nt_Tsfc_out=nt_Tsfc, &
+         nt_qice_out=nt_qice, nt_sice_out=nt_sice, nt_qsno_out=nt_qsno, &
+         nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_rhos_out=nt_rhos)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      !-----------------------------------------------------------------
+      ! Snow redistribution and metamorphosis
+      !-----------------------------------------------------------------
+
+      do j = jlo, jhi
+      do i = ilo, ihi
+
+         rhos_effn(:,:) = c0
+
+         call icepack_step_snow (dt,     nilyr, &
+                     nslyr,              ncat,  &
+                     wind (i,j,iblk),           &
+                     aice  (i,j,iblk),          &
+                     aicen(i,j,:,iblk),         &
+                     vicen (i,j,:,iblk),        &
+                     vsnon(i,j,:,iblk),         &
+                     trcrn(i,j,nt_Tsfc,:,iblk), &
+                     trcrn(i,j,nt_qice,:,iblk), & ! top layer only
+                     trcrn(i,j,nt_sice,:,iblk), & ! top layer only
+                     trcrn(i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk),   &
+                     trcrn(i,j,nt_alvl,:,iblk), &
+                     trcrn(i,j,nt_vlvl,:,iblk), &
+                     trcrn(i,j,nt_smice:nt_smice+nslyr-1,:,iblk), & 
+                     trcrn(i,j,nt_smliq:nt_smliq+nslyr-1,:,iblk), &
+                     trcrn(i,j,nt_rhos:nt_rhos+nslyr-1,:,iblk),   &
+                     trcrn(i,j,nt_rsnw:nt_rsnw+nslyr-1,:,iblk),   &
+                     rhos_eff(i,j,iblk),        &
+                     rhos_effn(:,:),            &
+                     rhos_cmp(i,j,iblk),        &
+                     fresh(i,j,  iblk),         &
+                     fhocn(i,j,  iblk),         &
+                     fsloss(i,j, iblk),         &
+                     fsnow(i,j,  iblk))
+      enddo
+      enddo
+
+      ! increment counter for history averaging
+      do j = jlo, jhi
+      do i = ilo, ihi
+         fhs = c0
+         if (vsno(i,j,iblk) > puny) fhs = c1
+         do ns = 1, nstreams
+            snwcnt(i,j,iblk,ns) = snwcnt(i,j,iblk,ns) + fhs
+         enddo
+      enddo
+      enddo
+
+      end subroutine step_snow
 
 !=======================================================================
 !

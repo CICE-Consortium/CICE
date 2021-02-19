@@ -67,6 +67,12 @@
 
       character (len=35), public, allocatable :: c_hi_range(:)
 
+      ! icepack_snow.F90
+      real (kind=dbl_kind), public, &
+         dimension (:,:,:), allocatable :: &
+         rhos_eff , & ! mean effective snow density: content (kg/m^3)
+         rhos_cmp     ! mean effective snow density: compaction (kg/m^3)
+
       ! icepack_meltpond_lvl.F90
       real (kind=dbl_kind), public, &
          dimension (:,:,:,:), allocatable :: &
@@ -350,6 +356,8 @@
          fzsal_g      (nx_block,ny_block,max_blocks), & ! Total gravity drainage flux
          upNO         (nx_block,ny_block,max_blocks), & ! nitrate uptake rate (mmol/m^2/d) times aice
          upNH         (nx_block,ny_block,max_blocks), & ! ammonium uptake rate (mmol/m^2/d) times aice
+         rhos_eff     (nx_block,ny_block,max_blocks), & ! mean effective snow density: content (kg/m^3)
+         rhos_cmp     (nx_block,ny_block,max_blocks), & ! mean effective snow density: compaction (kg/m^3)
          dhsn         (nx_block,ny_block,ncat,max_blocks), & ! depth difference for snow on sea ice and pond ice
          ffracn       (nx_block,ny_block,ncat,max_blocks), & ! fraction of fsurfn used to melt ipond
          alvdrn       (nx_block,ny_block,ncat,max_blocks), & ! visible direct albedo           (fraction)

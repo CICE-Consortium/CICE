@@ -155,7 +155,7 @@
       use ice_restoring, only: restore_ice, ice_HaloRestore
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
-          biogeochemistry, save_init, step_dyn_wave
+          biogeochemistry, save_init, step_dyn_wave, step_snow
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
           timer_hist, timer_readwrite
@@ -169,7 +169,7 @@
          offset          ! d(age)/dt time offset
 
       logical (kind=log_kind) :: &
-          tr_iage, tr_FY, tr_lvl, tr_fsd, &
+          tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
           tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
@@ -181,7 +181,7 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
-           tr_iso_out=tr_iso, tr_fsd_out=tr_fsd)
+           tr_iso_out=tr_iso, tr_fsd_out=tr_fsd, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -264,16 +264,22 @@
 
          enddo
 
-      !-----------------------------------------------------------------
-      ! albedo, shortwave radiation
-      !-----------------------------------------------------------------
-
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
 !MHRI: CHECK THIS OMP
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
+
+      !-----------------------------------------------------------------
+      ! snow redistribution and metamorphosis
+      !-----------------------------------------------------------------
+
+            if (tr_snow) call step_snow (dt, iblk)
+
+      !-----------------------------------------------------------------
+      ! albedo, shortwave radiation
+      !-----------------------------------------------------------------
 
             if (ktherm >= 0) call step_radiation (dt, iblk)
 
