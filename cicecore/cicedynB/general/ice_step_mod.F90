@@ -163,7 +163,7 @@
           Cdn_ocn, Cdn_ocn_skin, Cdn_ocn_floe, Cdn_ocn_keel, Cdn_atm_ratio, &
           Cdn_atm, Cdn_atm_skin, Cdn_atm_floe, Cdn_atm_rdg, Cdn_atm_pond, &
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
-          fswsfcn, fswintn, Sswabsn, Iswabsn, &
+          fswsfcn, fswintn, Sswabsn, Iswabsn, meltsliqn, meltsliq, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: yday
@@ -211,7 +211,7 @@
       integer (kind=int_kind) :: &
          ntrcr, nt_apnd, nt_hpnd, nt_ipnd, nt_alvl, nt_vlvl, nt_Tsfc, &
          nt_iage, nt_FY, nt_qice, nt_sice, nt_aero, nt_qsno, &
-         nt_isosno, nt_isoice
+         nt_isosno, nt_isoice, nt_rsnw, nt_smice, nt_smliq
 
       logical (kind=log_kind) :: &
          tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, tr_pond_cesm, &
@@ -244,6 +244,7 @@
          nt_iage_out=nt_iage, nt_FY_out=nt_FY, &
          nt_qice_out=nt_qice, nt_sice_out=nt_sice, &
          nt_aero_out=nt_aero, nt_qsno_out=nt_qsno, &
+         nt_rsnw_out=nt_rsnw, nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
          nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -337,6 +338,9 @@
                       ipnd         = trcrn       (i,j,nt_ipnd,:,iblk),                   & 
                       iage         = trcrn       (i,j,nt_iage,:,iblk),                   &
                       FY           = trcrn       (i,j,nt_FY  ,:,iblk),                   & 
+                      rsnwn        = trcrn       (i,j,nt_rsnw :nt_rsnw +nslyr-1,:,iblk), &
+                      smicen       = trcrn       (i,j,nt_smice:nt_smice+nslyr-1,:,iblk), &
+                      smliqn       = trcrn       (i,j,nt_smliq:nt_smliq+nslyr-1,:,iblk), &
                       aerosno      = aerosno     (:,:,:),      &
                       aeroice      = aeroice     (:,:,:),      &
                       isosno       = isosno      (:,:),        &
@@ -443,6 +447,7 @@
                       meltbn       = meltbn      (i,j,:,iblk), &
                       melts        = melts       (i,j,  iblk), &
                       meltsn       = meltsn      (i,j,:,iblk), &
+                      meltsliqn    = meltsliqn   (i,j,:,iblk), &
                       congel       = congel      (i,j,  iblk), &
                       congeln      = congeln     (i,j,:,iblk), &
                       snoice       = snoice      (i,j,  iblk), &

@@ -2038,7 +2038,7 @@
                    trcr_depend(nt_hpnd)  = 2+nt_apnd   ! melt pond depth
                    trcr_depend(nt_ipnd)  = 2+nt_apnd   ! refrozen pond lid
       endif
-      if (tr_snow) then
+      if (tr_snow) then                                ! snow-volume-weighted tracers
          do k = 1, nslyr
             trcr_depend(nt_smice + k - 1) = 2          ! ice mass in snow
             trcr_depend(nt_smliq + k - 1) = 2          ! liquid mass in snow

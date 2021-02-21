@@ -71,7 +71,12 @@
       real (kind=dbl_kind), public, &
          dimension (:,:,:), allocatable :: &
          rhos_eff , & ! mean effective snow density: content (kg/m^3)
-         rhos_cmp     ! mean effective snow density: compaction (kg/m^3)
+         rhos_cmp , & ! mean effective snow density: compaction (kg/m^3)
+         meltsliq     ! snow melt mass (kg/m^2/step-->kg/m^2/day)
+
+      real (kind=dbl_kind), public, &
+         dimension (:,:,:,:), allocatable :: &
+         meltsliqn       ! snow melt mass in category n (kg/m^2)
 
       ! icepack_meltpond_lvl.F90
       real (kind=dbl_kind), public, &
@@ -358,6 +363,8 @@
          upNH         (nx_block,ny_block,max_blocks), & ! ammonium uptake rate (mmol/m^2/d) times aice
          rhos_eff     (nx_block,ny_block,max_blocks), & ! mean effective snow density: content (kg/m^3)
          rhos_cmp     (nx_block,ny_block,max_blocks), & ! mean effective snow density: compaction (kg/m^3)
+         meltsliq     (nx_block,ny_block,max_blocks), & ! mean effective snow density: compaction (kg/m^3)
+         meltsliqn    (nx_block,ny_block,ncat,max_blocks), & ! depth difference for snow on sea ice and pon
          dhsn         (nx_block,ny_block,ncat,max_blocks), & ! depth difference for snow on sea ice and pond ice
          ffracn       (nx_block,ny_block,ncat,max_blocks), & ! fraction of fsurfn used to melt ipond
          alvdrn       (nx_block,ny_block,ncat,max_blocks), & ! visible direct albedo           (fraction)
