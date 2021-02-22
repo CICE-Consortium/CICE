@@ -1065,6 +1065,13 @@
          abort_list = trim(abort_list)//":10"
       endif
 
+      if (trim(shortwave) /= 'dEdd' .and. tr_snow) then
+         if (my_task == master_task) then
+            write (nu_diag,*) 'WARNING: snow grain radius activated but'
+            write (nu_diag,*) 'WARNING: dEdd shortwave is not.'
+         endif
+      endif
+
       if ((rfracmin < -puny .or. rfracmin > c1+puny) .or. &
           (rfracmax < -puny .or. rfracmax > c1+puny) .or. &
           (rfracmin > rfracmax)) then
