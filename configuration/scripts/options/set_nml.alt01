@@ -17,6 +17,7 @@ ktherm = 0
 conduct = 'bubbly'
 kdyn  =  0
 seabed_stress = .true.
+seabed_stress_method = 'probabilistic'
 use_bathymetry = .true.
 shortwave = 'ccsm3'
 albedo_type = 'constant'
