@@ -553,6 +553,8 @@ either Celsius or Kelvin units).
    "s11, s12, s22", "stress tensor components", ""
    "saltmax", "max salinity, at ice base (:cite:`Bitz99`)", "3.2 ppt"
    "scale_factor", "scaling factor for shortwave radiation components", ""
+   "seabed_stress", "if true, calculate seabed stress", "F"
+   "seabed_stress_method", "method for calculating seabed stress (‘LKD’ or ‘probabilistic’)", "LKD"
    "sec", "seconds elasped into idate", ""
    "secday", "number of seconds in a day", "86400."
    "shcoef", "transfer coefficient for sensible heat", ""

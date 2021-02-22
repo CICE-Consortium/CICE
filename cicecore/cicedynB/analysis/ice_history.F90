@@ -925,12 +925,12 @@
              ns1, f_strinty)
 
          call define_hist_field(n_taubx,"taubx","N/m^2",ustr2D, ucstr,   &
-             "basal (seabed) stress (x)",                                &
+             "seabed (basal) stress (x)",                                &
              "positive is x direction on U grid", c1, c0,                &
              ns1, f_taubx)
 
          call define_hist_field(n_tauby,"tauby","N/m^2",ustr2D, ucstr,   &
-             "basal (seabed) stress (y)",                                &
+             "seabed (basal) stress (y)",                                &
              "positive is y direction on U grid", c1, c0,                &
              ns1, f_tauby)
       

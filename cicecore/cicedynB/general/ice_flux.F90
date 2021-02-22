@@ -46,7 +46,7 @@
          vocn    , & ! ocean current, y-direction (m/s)
          ss_tltx , & ! sea surface slope, x-direction (m/m)
          ss_tlty , & ! sea surface slope, y-direction
-         hwater  , & ! water depth for basal stress calc (landfast ice) 
+         hwater  , & ! water depth for seabed stress calc (landfast ice) 
 
        ! out to atmosphere
          strairxT, & ! stress on ice by air, x-direction
@@ -63,8 +63,8 @@
          sig1    , & ! normalized principal stress component
          sig2    , & ! normalized principal stress component
          sigP    , & ! internal ice pressure (N/m)
-         taubx   , & ! basal stress (x) (N/m^2)
-         tauby   , & ! basal stress (y) (N/m^2)
+         taubx   , & ! seabed stress (x) (N/m^2)
+         tauby   , & ! seabed stress (y) (N/m^2)
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
          strocnx , & ! ice-ocean stress, x-direction
@@ -112,7 +112,7 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu          ! coefficient for basal stress (N/m^2)
+         Tbu          ! factor for seabed stress (N/m^2)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -351,7 +351,7 @@
          vocn       (nx_block,ny_block,max_blocks), & ! ocean current, y-direction (m/s)
          ss_tltx    (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
          ss_tlty    (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction
-         hwater     (nx_block,ny_block,max_blocks), & ! water depth for basal stress calc (landfast ice) 
+         hwater     (nx_block,ny_block,max_blocks), & ! water depth for seabed stress calc (landfast ice) 
          strairxT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
          strairyT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
          strocnxT   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
@@ -359,8 +359,8 @@
          sig1       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sig2       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sigP       (nx_block,ny_block,max_blocks), & ! internal ice pressure (N/m)
-         taubx      (nx_block,ny_block,max_blocks), & ! basal stress (x) (N/m^2)
-         tauby      (nx_block,ny_block,max_blocks), & ! basal stress (y) (N/m^2)
+         taubx      (nx_block,ny_block,max_blocks), & ! seabed stress (x) (N/m^2)
+         tauby      (nx_block,ny_block,max_blocks), & ! seabed stress (y) (N/m^2)
          strairx    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
          strairy    (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
          strocnx    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
@@ -390,7 +390,7 @@
          stress12_4 (nx_block,ny_block,max_blocks), & ! sigma12
          iceumask   (nx_block,ny_block,max_blocks), & ! ice extent mask (U-cell)
          fm         (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu        (nx_block,ny_block,max_blocks), & ! coefficient for basal stress (landfast ice)
+         Tbu        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
          zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
          vatm       (nx_block,ny_block,max_blocks), &
