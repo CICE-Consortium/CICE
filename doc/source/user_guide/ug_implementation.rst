@@ -557,7 +557,7 @@ is the step count at the start of a long multi-restart run, and
 In general, the time manager should be advanced by calling
 *advance\_timestep*.  This subroutine in **ice\_calendar.F90**
 automatically advances the model time by ``dt``.  It also advances
-the istep numbers and calls subroutine *calendar* to compute
+the istep numbers and calls subroutine *calendar* to update
 additional calendar data.  
 
 The namelist variable ``use_restart_time`` specifies whether to
@@ -568,6 +568,26 @@ Normally, ``use_restart_time`` is set to false on the initial run
 and then set to true on subsequent restart runs of the same
 case to allow time to advance thereafter.  More information about 
 the restart capability can be found here, :ref:restartfiles.
+
+The time manager was updated in early 2021.  The standalone model
+was modified, and some tests were done in a coupled framework after
+modifications to the high level coupling interface.  For some coupled models, the 
+coupling interface may need to be updated when updating CICE with the new time manager.
+In particular, the old prognostic variable ``time`` no longer exists in CICE,
+``year_init`` only defines the model initial year, and
+the calendar subroutine is called without any arguments.  One can
+set the namelist variables  ``year_init``, ``month_init``, ``day_init``, 
+``sec_init``, and ``dt`` in conjuction with ``days_per_year`` and 
+``use_leap_years`` to initialize the model date, timestep, and calendar.
+To overwrite the default/namelist settings in the coupling layer,
+set the **ice\_calendar.F90** variables ``nyr``, ``month``, ``mday``, 
+``sec`` and ``dt`` after the namelists have been read.  Subroutine
+*calendar* should then be called to update all the calendar data.
+Finally, subroutine *advance\_timestep* should be used to advance
+the model time manager.  It advances the step numbers, advances
+time by ``dt``, and updates the calendar data.  The older method
+of manually advancing the steps and adding ``dt`` to ``time`` should
+be deprecated.
 
 
 .. _init:
