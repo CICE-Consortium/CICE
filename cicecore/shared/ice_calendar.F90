@@ -107,10 +107,7 @@
          timesecs       , & ! total elapsed time (s)
          rdate_forc     , & ! time of last forcing update (s)
          yday           , & ! day of the year
-!tcx1         tday           , & ! absolute day number
-!tcx1         dayyr          , & ! number of days per year
          nextsw_cday        ! julian day of next shortwave calculation
-!tcx1         basis_seconds      ! Seconds since calendar zero
 
       logical (kind=log_kind), public :: &
          use_leap_years , & ! use leap year functionality if true
@@ -329,10 +326,6 @@
          elapsed_days               , & ! since beginning this run
          elapsed_months             , & ! since beginning this run
          elapsed_hours                  ! since beginning this run
-#if (1 == 0)
-      real    (kind=dbl_kind) :: secday ! seconds per day
-      integer (kind=int_kind) :: isecday  ! seconds per day
-#endif
       character(len=*),parameter :: subname='(calendar)'
 
       nyrp=nyr
@@ -346,51 +339,17 @@
       write_history(:)=.false.
       write_restart=0
 
-#if (1 == 0)
-      call icepack_query_parameters(secday_out=secday)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-#endif
-
       call update_date(nyr,month,mday,sec)
       call set_calendar(nyr)
-#if (1 == 0)
-      isecday = nint(secday)
-      if (sec >= isecday) then
-         mday = mday + int(sec/isecday)
-         sec = mod(sec,isecday)
-      endif
-      do while (month > months_per_year)
-         month = month - months_per_year
-         nyr = nyr + 1
-         call set_calendar(nyr)
-      enddo
-      do while (mday > daymo(month))
-         mday = mday - daymo(month)
-         month = month + 1
-         do while (month > months_per_year)
-            month = month - months_per_year
-            nyr = nyr + 1
-            call set_calendar(nyr)
-         enddo
-      enddo
-#endif
 
       idate = (nyr)*10000 + month*100 + mday ! date (yyyymmdd) 
       yday = daycal(month) + mday            ! day of the year
       elapsed_months = (nyr - year_init)*months_per_year + month - month_init
       elapsed_days = compute_days_between(year_init,month_init,day_init,nyr,month,mday)
       elapsed_hours = elapsed_days * hours_per_day
-#if (1 == 0)
-      timesecs = real(elapsed_days,kind=dbl_kind)*secday + &
-                 real(sec,kind=dbl_kind)
-#endif
       call calendar_date2time(nyr,month,mday,sec,timesecs)
 
       !--- compute other stuff
-
-!tcx      hour = int((sec)/c3600) + c1 ! hour
 
 #ifndef CESMCOUPLED
       if (istep >= npt+1)  stop_now = 1
@@ -467,144 +426,6 @@
       end subroutine calendar
 
 !=======================================================================
-#if (1 == 0)
-! Determine the date at the end of the time step
-
-      subroutine calendar_old(ttime)
-
-      use ice_communicate, only: my_task, master_task
-
-      real (kind=dbl_kind), intent(in) :: &
-         ttime                          ! time variable
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         ns                         , & ! loop index
-         nyrp,mdayp,hourp           , & ! previous year, month, day, hour
-         elapsed_days               , & ! since beginning this run
-         elapsed_months             , & ! since beginning this run
-         elapsed_hours              , & ! since beginning this run
-         month0
-      real    (kind=dbl_kind) :: secday ! seconds per day
-      character(len=*),parameter :: subname='(calendar_old)'
-
-      call icepack_query_parameters(secday_out=secday)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      nyrp=nyr
-      monthp=month
-      mdayp=mday
-      hourp=hour
-      new_year=.false.
-      new_month=.false.
-      new_day=.false.
-      new_hour=.false.
-      write_history(:)=.false.
-      write_restart=0
-
-      sec = mod(ttime,secday)           ! elapsed seconds into date at
-                                        ! end of dt
-!tcx1      tday = (ttime-sec)/secday + c1    ! absolute day number
-
-      ! Deterime the current date from the timestep
-      call sec2time(nyr,month,mday,basis_seconds+ttime)
-
-      yday = mday + daycal(month)   ! day of the year
-      nyr = nyr - year_init + 1     ! year number
-      
-      hour = int((ttime)/c3600) + c1 ! hour
-
-      month0 = int((idate0 - int(idate0 / 10000) * 10000) / 100)
-
-      elapsed_months = (nyr - 1)*months_per_year + (month - month0)
-      elapsed_days = int((istep * dt) / secday)
-      elapsed_hours = int(ttime/3600)
-
-      idate = (nyr+year_init-1)*10000 + month*100 + mday ! date (yyyymmdd) 
-
-#ifndef CESMCOUPLED
-      if (istep >= npt+1)  stop_now = 1
-      if (istep == npt .and. dump_last) write_restart = 1 ! last timestep
-#endif
-      if (nyr   /= nyrp)   new_year = .true.
-      if (month /= monthp) new_month = .true.
-      if (mday  /= mdayp)  new_day = .true.
-      if (hour  /= hourp)  new_hour = .true.
-
-
-      do ns = 1, nstreams
-         if (histfreq(ns)=='1' .and. histfreq_n(ns)/=0) then
-             if (mod(istep1, histfreq_n(ns))==0) &
-                write_history(ns)=.true.
-         endif
-      enddo
-
-      if (dumpfreq == '1') then
-         if (mod(istep1, dumpfreq_n)==0) &
-            write_restart = 1
-      endif
-
-      if (istep > 1) then
-
-        do ns = 1, nstreams
-
-           select case (histfreq(ns))
-           case ("y", "Y")
-             if (new_year  .and. histfreq_n(ns)/=0) then
-                if (mod(nyr, histfreq_n(ns))==0) &
-                   write_history(ns) = .true.
-             endif
-           case ("m", "M")
-             if (new_month .and. histfreq_n(ns)/=0) then
-                if (mod(elapsed_months,histfreq_n(ns))==0) &
-                   write_history(ns) = .true.
-             endif
-           case ("d", "D")
-             if (new_day  .and. histfreq_n(ns)/=0) then
-                if (mod(elapsed_days,histfreq_n(ns))==0) &
-                   write_history(ns) = .true.
-             endif
-           case ("h", "H")
-             if (new_hour  .and. histfreq_n(ns)/=0) then
-                if (mod(elapsed_hours,histfreq_n(ns))==0) &
-                   write_history(ns) = .true.
-             endif
-           end select
-
-        enddo ! nstreams
-
-        select case (dumpfreq)
-        case ("y", "Y")
-          if (new_year  .and. mod(nyr, dumpfreq_n)==0) &
-                write_restart = 1
-        case ("m", "M")
-          if (new_month .and. mod(elapsed_months,dumpfreq_n)==0) &
-                write_restart = 1
-        case ("d", "D")
-          if (new_day   .and. mod(elapsed_days, dumpfreq_n)==0) &
-                write_restart = 1
-        case ("h", "H")
-          if (new_hour  .and. mod(elapsed_hours, dumpfreq_n)==0) &
-                write_restart = 1
-        end select
-
-        if (force_restart_now) write_restart = 1
-      
-      endif !  istep > 1
-
-      if (my_task == master_task .and. mod(istep,diagfreq) == 0 &
-                                 .and. stop_now /= 1) then
-        write(nu_diag,*) ' '
-        write(nu_diag,'(a7,i10,4x,a6,i10,4x,a4,i10)') &
-             'istep1:', istep1, 'idate:', idate, 'sec:', sec
-      endif
-
-      end subroutine calendar_old
-#endif
-!=======================================================================
 ! Set the model calendar data for year
 
       subroutine set_calendar(year)
@@ -612,40 +433,9 @@
       integer (kind=int_kind), intent(in) :: year   ! current year
 
       ! Internal variable
-#if (1 == 0)
-      logical (kind=log_kind) :: isleap   ! Leap year logical
-      integer (kind=int_kind) :: n
-#endif
       character(len=*),parameter :: subname='(set_calendar)'
 
       call compute_calendar_data(year,daymo,daycal,dayyr)
-
-#if (1 == 0)
-      if (trim(calendar_type) == trim(ice_calendar_gregorian)) then
-
-         isleap = .false. ! not a leap year
-         if (mod(year,  4) == 0) isleap = .true.
-         if (mod(year,100) == 0) isleap = .false.
-         if (mod(year,400) == 0) isleap = .true.
-
-         if (isleap) then
-            daymo = daymo366
-         else
-            daymo = daymo365
-         endif
-
-      elseif (trim(calendar_type) == trim(ice_calendar_360day)) then
-         daymo = daymo360
-      else
-         daymo = daymo365
-      endif
-
-      daycal(1) = 0
-      do n = 1, months_per_year
-         daycal(n+1) = daycal(n) + daymo(n)
-      enddo
-      dayyr=daycal(months_per_year+1)
-#endif
 
       end subroutine set_calendar
 
@@ -781,63 +571,10 @@
       real (kind=dbl_kind), intent(in) :: ttimesecs   ! seconds since init date
 
       ! Internal variable
-#if (1 == 0)
-      integer (kind=int_kind) :: ndays
-      real (kind=dbl_kind) :: secday, rdays
-#endif
       character(len=*),parameter :: subname='(set_date_from_timesecs)'
 
       timesecs = ttimesecs
       call calendar_time2date(ttimesecs,nyr,month,mday,sec,year_init,month_init,day_init,sec_init)
-
-#if (1 == 0)
-      call icepack_query_parameters(secday_out=secday)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      timesecs = ttimesecs
-
-      nyr = year_init
-      month = 1
-      mday = 1
-      sec = 0
-      call set_calendar(nyr)
-
-      ! first estimate of nyr
-      call set_calendar(nyr)
-      rdays = ttimesecs/secday
-      nyr = nyr + int(rdays)/dayyr
-
-      ! reduce estimate of nyr if ndays > rdays
-      ndays = compute_days_between(year_init,month_init,day_init,nyr,month,mday)
-      if (ndays > int(rdays)) then
-         nyr = nyr - (ndays - int(rdays))/dayyr - 1
-         ndays = compute_days_between(year_init,month_init,day_init,nyr,month,mday)
-      endif
-      call set_calendar(nyr)
-
-      ! compute residiual, switch to integers, advance calendar
-      rdays = ttimesecs/secday
-      mday = int(rdays) - ndays + 1
-
-      do while (mday > daymo(month))
-         mday = mday - daymo(month)
-         month = month + 1
-         do while (month > months_per_year)
-            month = month - months_per_year
-            nyr = nyr + 1
-            call set_calendar(nyr)
-         enddo
-      enddo
-
-      ndays = compute_days_between(year_init,month_init,day_init,nyr,month,mday)
-      sec = int(ttimesecs - real(ndays,kind=dbl_kind)*secday)
-      if (sec > secday) then
-         write(nu_diag,*) trim(subname),' ERROR in seconds, ',nyr,month,mday,sec
-         call abort_ice(subname//'ERROR: in seconds')
-      endif
-#endif
 
       end subroutine set_date_from_timesecs
 
