@@ -135,7 +135,7 @@
         tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-                                 sw_redist, use_smliq_pnd
+                                 sw_redist, use_smliq_pnd, snwgrain
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
@@ -224,9 +224,9 @@
         hp1
 
       namelist /snow_nml/ &
-        snwredist,      use_smliq_pnd,   rsnw_fall,     rsnw_tmax,      &
+        snwredist,      snwgrain,        rsnw_fall,     rsnw_tmax,      &
         rhosnew,        rhosmin,         rhosmax,       snwlvlfac,      &
-        windmin,        drhosdwind
+        windmin,        drhosdwind,      use_smliq_pnd
 
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
@@ -396,7 +396,8 @@
       rfracmin  = 0.15_dbl_kind   ! minimum retained fraction of meltwater
       rfracmax  = 0.85_dbl_kind   ! maximum retained fraction of meltwater
       pndaspect = 0.8_dbl_kind    ! ratio of pond depth to area fraction
-      snwredist  = 'none'         ! type of snow redistribution
+      snwredist = 'none'          ! type of snow redistribution
+      snwgrain  = .false.         ! snow metamorphosis
       use_smliq_pnd = .false.     ! use liquid in snow for ponds
       rsnw_fall = 54.526_dbl_kind ! radius of new snow (10^-6 m)
       rsnw_tmax = 1500.0_dbl_kind ! maximum snow radius (10^-6 m)
@@ -724,6 +725,7 @@
       call broadcast_scalar(rfracmax,           master_task)
       call broadcast_scalar(pndaspect,          master_task)
       call broadcast_scalar(snwredist,          master_task)
+      call broadcast_scalar(snwgrain,           master_task)
       call broadcast_scalar(use_smliq_pnd,      master_task)
       call broadcast_scalar(rsnw_fall,          master_task)
       call broadcast_scalar(rsnw_tmax,          master_task)
@@ -1001,6 +1003,13 @@
          endif
          abort_list = trim(abort_list)//":40"
       endif
+      if (snwgrain .and. .not. tr_snow) then
+         if (my_task == master_task) then
+            write (nu_diag,*) 'ERROR: snwgrain=T but tr_snow=F'
+            write (nu_diag,*) 'ERROR: Use tr_snow=T for snow metamorphosis'
+         endif
+         abort_list = trim(abort_list)//":41"
+      endif
 
       if (tr_iso .and. n_iso==0) then
          if (my_task == master_task) then
@@ -1065,7 +1074,7 @@
          abort_list = trim(abort_list)//":10"
       endif
 
-      if (trim(shortwave) /= 'dEdd' .and. tr_snow) then
+      if (trim(shortwave) /= 'dEdd' .and. snwgrain) then
          if (my_task == master_task) then
             write (nu_diag,*) 'WARNING: snow grain radius activated but'
             write (nu_diag,*) 'WARNING: dEdd shortwave is not.'
@@ -1677,13 +1686,18 @@
                write(nu_diag,1002) ' drhosdwind      = ', drhosdwind, &
                                    ' wind compaction factor (kg s/m^4)'
             endif
-            if (use_smliq_pnd) then
-               write(nu_diag,*) ' Using liquid water in snow for melt ponds'
+            if (.not. snwgrain) then
+               write(nu_diag,*) ' Snow metamorphosis turned off'
+            else
+               write(nu_diag,*) ' Using snow metamorphosis scheme'
+               write(nu_diag,1002) ' rsnw_fall       = ', rsnw_fall, &
+                                   ' radius of new snow (10^-6 m)'
+               write(nu_diag,1002) ' rsnw_tmax       = ', rsnw_tmax, &
+                                   ' maximum snow radius (10^-6 m)'
+               if (use_smliq_pnd) then
+                  write(nu_diag,*) ' Using liquid water in snow for melt ponds'
+               endif
             endif
-            write(nu_diag,1002) ' rsnw_fall       = ', rsnw_fall, &
-                                ' radius of new snow (10^-6 m)'
-            write(nu_diag,1002) ' rsnw_tmax       = ', rsnw_tmax, &
-                                ' maximum snow radius (10^-6 m)'
          endif
 
          write(nu_diag,*) ' '
