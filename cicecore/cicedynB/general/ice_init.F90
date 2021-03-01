@@ -95,7 +95,8 @@
                           bathymetry_file, use_bathymetry, &
                           bathymetry_format, &
                           grid_type, grid_format, &
-                          dxrect, dyrect
+                          dxrect, dyrect, &
+                          pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 kevp_kernel, &
                                 seabed_stress, seabed_stress_method, &
@@ -320,6 +321,7 @@
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       kevp_kernel = 0    ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
+      pgl_global_ext = .false. ! if true, init primary grid lebgths (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -647,6 +649,7 @@
       call broadcast_scalar(ndtd,                 master_task)
       call broadcast_scalar(ndte,                 master_task)
       call broadcast_scalar(kevp_kernel,          master_task)
+      call broadcast_scalar(pgl_global_ext,       master_task)
       call broadcast_scalar(brlx,                 master_task)
       call broadcast_scalar(arlx,                 master_task)
       call broadcast_scalar(revised_evp,          master_task)
@@ -1763,6 +1766,7 @@
       if (kevp_kernel /= 0) then
          if (kevp_kernel == 102) then
             kevp_kernel = 2
+            if (my_task == master_task) pgl_global_ext = .true.
          else
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: kevp_kernel = ',kevp_kernel
             if (kevp_kernel == 2) then

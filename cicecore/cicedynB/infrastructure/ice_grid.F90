@@ -77,6 +77,10 @@
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
+      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
+         G_HTE  , & ! length of eastern edge of T-cell (global ext.)
+         G_HTN      ! length of northern edge of T-cell (global ext.)
+
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          cyp    , & ! 1.5*HTE - 0.5*HTE
          cxp    , & ! 1.5*HTN - 0.5*HTN
@@ -125,7 +129,8 @@
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), public :: &
-         use_bathymetry     ! flag for reading in bathymetry_file
+         use_bathymetry, & ! flag for reading in bathymetry_file
+         pgl_global_ext    ! flag for init primary grid lengths (global ext.)
 
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
@@ -152,6 +157,8 @@
       subroutine alloc_grid
 
       integer (int_kind) :: ierr
+
+      character(len=*), parameter :: subname = '(alloc_grid)'
 
       allocate( &
          dxt      (nx_block,ny_block,max_blocks), & ! width of T-cell through the middle (m)
@@ -203,7 +210,15 @@
          mse  (2,2,nx_block,ny_block,max_blocks), &
          msw  (2,2,nx_block,ny_block,max_blocks), &
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_grid): Out of memory')
+      if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+
+      if (pgl_global_ext) then
+         allocate( &
+            G_HTE(nx_global+2*nghost, ny_global+2*nghost), & ! length of eastern edge of T-cell (global ext.)
+            G_HTN(nx_global+2*nghost, ny_global+2*nghost), & ! length of northern edge of T-cell (global ext.)
+            stat=ierr)
+         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+      endif
 
       end subroutine alloc_grid
 
@@ -1490,6 +1505,9 @@
       enddo
       enddo
       endif
+      if (pgl_global_ext) then
+         call primary_grid_lengths_global_ext(G_HTN, work_g)
+      endif
       call scatter_global(HTN, work_g, master_task, distrb_info, &
                           field_loc_Nface, field_type_scalar)
       call scatter_global(dxu, work_g2, master_task, distrb_info, &
@@ -1563,6 +1581,9 @@
                                        - work_g(i,ny_global-2) ! dyu
             enddo
          endif
+      endif
+      if (pgl_global_ext) then
+         call primary_grid_lengths_global_ext(G_HTE, work_g)
       endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)
@@ -2557,6 +2578,115 @@
 
       end subroutine read_seabedstress_bathy
       
+!=======================================================================
+! Initialize global primary grid lengths array with ghost cells from
+! global primary grid lengths array
+
+      subroutine primary_grid_lengths_global_ext(ARRAY_O, ARRAY_I)
+
+         use ice_constants, only: c0
+
+         real (kind=dbl_kind), dimension(:,:), intent(in) :: &
+            ARRAY_I
+
+         real (kind=dbl_kind), dimension(:,:), intent(out) :: &
+            ARRAY_O
+
+         ! Local variables
+
+         integer (kind=int_kind) :: &
+            ii, io, ji, jo
+
+         character(len=*), parameter :: &
+            subname = '(primary_grid_lengths_global_ext)'
+
+         if ((ns_boundary_type == 'tripole' ) .or. &
+               (ns_boundary_type == 'tripoleT')) then
+            call abort_ice(subname // 'ERROR: ' // &
+               ns_boundary_type // ' bndy type not impl for cfg')
+         endif
+
+         do jo = 1, (ny_global + 2 * nghost)
+            ji = -nghost + jo
+
+            ! Southern ghost cells
+
+            if (ji < 1) then
+               select case (ns_boundary_type)
+               case ('cyclic')
+                  ji = ji + ny_global
+               case ('open')
+                  ji = nghost - jo + 1
+               case ('closed')
+                  ji = 0
+               case default
+                  call abort_ice( &
+                     subname // 'ERROR: unknown n-s bndy type')
+               end select
+            endif
+
+            ! Northern ghost cells
+
+            if (ji > ny_global) then
+               select case (ns_boundary_type)
+               case ('cyclic')
+                  ji = ji - ny_global
+               case ('open')
+                  ji = 2 * ny_global - ji + 1
+               case ('closed')
+                  ji = 0
+               case default
+                  call abort_ice( &
+                     subname // 'ERROR: unknown n-s bndy type')
+               end select
+            endif
+
+            do io = 1, (nx_global + 2 * nghost)
+               ii = -nghost + io
+
+               ! Western ghost cells
+
+               if (ii < 1) then
+                  select case (ew_boundary_type)
+                  case ('cyclic')
+                     ii = ii + nx_global
+                  case ('open')
+                     ii = nghost - io + 1
+                  case ('closed')
+                     ii = 0
+                  case default
+                     call abort_ice( &
+                        subname//'ERROR: unknown e-w bndy type')
+                  end select
+               endif
+
+               ! Eastern ghost cells
+
+               if (ii > nx_global) then
+                  select case (ew_boundary_type)
+                  case ('cyclic')
+                     ii = ii - nx_global
+                  case ('open')
+                     ii = 2 * nx_global - ii + 1
+                  case ('closed')
+                     ii = 0
+                  case default
+                     call abort_ice( &
+                        subname//'ERROR: unknown e-w bndy type')
+                  end select
+               endif
+
+               if ((ii == 0) .or. (ji == 0)) then
+                  ARRAY_O(io, jo) = c0
+               else
+                  ARRAY_O(io, jo) = ARRAY_I(ii, ji)
+               endif
+
+            enddo
+         enddo
+
+      end subroutine primary_grid_lengths_global_ext
+
 !=======================================================================
 
       end module ice_grid
