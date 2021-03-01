@@ -291,7 +291,7 @@
       character(len=*),parameter :: subname='(advance_timestep)'
 
       if (trim(npt_unit) /= '1') then
-         write(nu_diag,*) trim(subname),' ERROR npt_unit should be coverted to timesteps by now ',trim(npt_unit)
+         write(nu_diag,*) trim(subname),' ERROR npt_unit should be converted to timesteps by now ',trim(npt_unit)
          write(nu_diag,*) trim(subname),' ERROR you may need to call calc_timesteps to convert from other units'
          call abort_ice(subname//'ERROR: npt_unit incorrect')
       endif
@@ -322,7 +322,7 @@
 
       integer (kind=int_kind) :: &
          ns                         , & ! loop index
-         nyrp,monthp,mdayp,hourp    , & ! previous year, day, hour
+         nyrp,monthp,mdayp,hourp    , & ! previous year, month, day, hour
          elapsed_days               , & ! since beginning this run
          elapsed_months             , & ! since beginning this run
          elapsed_hours                  ! since beginning this run
