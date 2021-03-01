@@ -531,9 +531,9 @@ parameterization additionally requires the level-ice tracers.
 
 .. _timemanagerplus:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Time Manager and Initialization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The time manager is an important piece of the CICE model.
 
@@ -546,7 +546,7 @@ Time Manager
 The primary prognostic variables in the time manager are ``nyr``, 
 ``month``, ``mday``, and ``sec``.  These are integers and identify
 the current model year, month, day, and second respectively.
-The model timestep is ``dt`` with units of seconds.  See :ref:parameters
+The model timestep is ``dt`` with units of seconds.  See :ref:`parameters`
 for additional information about choosing an appropriate timestep.
 The internal variables ``istep``, ``istep0``, and ``istep1`` keep
 track of the number of timesteps.  ``istep`` is the counter for
@@ -567,7 +567,7 @@ to set the initial model time to the namelist values defined by
 Normally, ``use_restart_time`` is set to false on the initial run
 and then set to true on subsequent restart runs of the same
 case to allow time to advance thereafter.  More information about 
-the restart capability can be found here, :ref:restartfiles.
+the restart capability can be found here, :ref:`restartfiles`.
 
 The time manager was updated in early 2021.  The standalone model
 was modified, and some tests were done in a coupled framework after
