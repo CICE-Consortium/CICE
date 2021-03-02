@@ -1135,7 +1135,6 @@ module ice_dyn_evp_1d
 !----------------------------------------------------------------------------
 
   subroutine evp_copyin_v2(nx,ny,nblk,nx_glob,ny_glob,                                &
-       I_HTE,I_HTN,                                                                   &
 !v1       I_dxhy,I_dyhx,I_cyp,I_cxp,I_cym,I_cxm,I_tinyarea,                              &
 !v1       I_waterx,I_watery,                                                             &
        I_icetmask,I_iceumask,                                                         &
@@ -1149,6 +1148,8 @@ module ice_dyn_evp_1d
     use ice_gather_scatter, only: gather_global_ext
     use ice_domain, only: distrb_info
     use ice_communicate, only: my_task, master_task
+    use ice_grid, only: G_HTE, G_HTN
+    use ice_constants, only: c0
 
     implicit none
 
@@ -1156,7 +1157,6 @@ module ice_dyn_evp_1d
     integer (kind=int_kind),dimension (nx,ny,nblk), intent(in) :: I_icetmask
     logical (kind=log_kind),dimension (nx,ny,nblk), intent(in) :: I_iceumask
     real (kind=dbl_kind), dimension(nx,ny,nblk), intent(in)  ::                       &
-       I_HTE,I_HTN,                                                                   &
 !v1       I_dxhy,I_dyhx,I_cyp,I_cxp,I_cym,I_cxm,I_tinyarea,                              &
 !v1       I_waterx,I_watery,                                                             &
        I_cdn_ocn,I_aiu,I_uocn,I_vocn,I_forcex,I_forcey,I_Tbu,                         &
@@ -1171,7 +1171,6 @@ module ice_dyn_evp_1d
     integer (kind=int_kind),dimension (nx_glob,ny_glob) :: G_icetmask
     logical (kind=log_kind),dimension (nx_glob,ny_glob) :: G_iceumask
     real (kind=dbl_kind), dimension(nx_glob,ny_glob) ::                               &
-       G_HTE,G_HTN,                                                                   &
 !v1       G_dxhy,G_dyhx,G_cyp,G_cxp,G_cym,G_cxm,G_tinyarea,                              &
 !v1       G_waterx,G_watery,                                                             &
        G_cdn_ocn,G_aiu,G_uocn,G_vocn,G_forcex,G_forcey,G_Tbu,                         &
@@ -1186,51 +1185,49 @@ module ice_dyn_evp_1d
     !---------------------------------------
     !-- Gather data into one single block --
 
-    call gather_global_ext(G_icetmask, I_icetmask, master_task, distrb_info)
-    call gather_global_ext(G_iceumask, I_iceumask, master_task, distrb_info)
-    call gather_global_ext(G_HTE, I_HTE, master_task, distrb_info)
-    call gather_global_ext(G_HTN, I_HTN, master_task, distrb_info)
-!v1    call gather_global_ext(G_dxhy, I_dxhy, master_task, distrb_info)
-!v1    call gather_global_ext(G_dyhx, I_dyhx, master_task, distrb_info)
-!v1    call gather_global_ext(G_cyp, I_cyp, master_task, distrb_info)
-!v1    call gather_global_ext(G_cxp, I_cxp, master_task, distrb_info)
-!v1    call gather_global_ext(G_cym, I_cym, master_task, distrb_info)
-!v1    call gather_global_ext(G_cxm, I_cxm, master_task, distrb_info)
-!v1    call gather_global_ext(G_tinyarea, I_tinyarea, master_task, distrb_info)
-!v1    call gather_global_ext(G_waterx, I_waterx, master_task, distrb_info)
-!v1    call gather_global_ext(G_watery, I_watery, master_task, distrb_info)
-    call gather_global_ext(G_cdn_ocn, I_cdn_ocn, master_task, distrb_info)
-    call gather_global_ext(G_aiu, I_aiu, master_task, distrb_info)
-    call gather_global_ext(G_uocn, I_uocn, master_task, distrb_info)
-    call gather_global_ext(G_vocn, I_vocn, master_task, distrb_info)
-    call gather_global_ext(G_forcex, I_forcex, master_task, distrb_info)
-    call gather_global_ext(G_forcey, I_forcey, master_task, distrb_info)
-    call gather_global_ext(G_Tbu, I_Tbu, master_task, distrb_info)
-    call gather_global_ext(G_umassdti, I_umassdti, master_task, distrb_info)
-    call gather_global_ext(G_fm, I_fm, master_task, distrb_info)
-    call gather_global_ext(G_uarear, I_uarear, master_task, distrb_info)
-    call gather_global_ext(G_tarear, I_tarear, master_task, distrb_info)
-    call gather_global_ext(G_strintx, I_strintx, master_task, distrb_info)
-    call gather_global_ext(G_strinty, I_strinty, master_task, distrb_info)
-    call gather_global_ext(G_uvel_init, I_uvel_init, master_task, distrb_info)
-    call gather_global_ext(G_vvel_init, I_vvel_init, master_task, distrb_info)
-    call gather_global_ext(G_strength, I_strength, master_task, distrb_info)
-    call gather_global_ext(G_uvel, I_uvel, master_task, distrb_info)
-    call gather_global_ext(G_vvel, I_vvel, master_task, distrb_info)
-    call gather_global_ext(G_dxt, I_dxt, master_task, distrb_info)
-    call gather_global_ext(G_dyt, I_dyt, master_task, distrb_info)
-    call gather_global_ext(G_stressp_1, I_stressp_1, master_task, distrb_info)
-    call gather_global_ext(G_stressp_2, I_stressp_2, master_task, distrb_info)
-    call gather_global_ext(G_stressp_3, I_stressp_3, master_task, distrb_info)
-    call gather_global_ext(G_stressp_4, I_stressp_4, master_task, distrb_info)
-    call gather_global_ext(G_stressm_1, I_stressm_1, master_task, distrb_info)
-    call gather_global_ext(G_stressm_2, I_stressm_2, master_task, distrb_info)
-    call gather_global_ext(G_stressm_3, I_stressm_3, master_task, distrb_info)
-    call gather_global_ext(G_stressm_4, I_stressm_4, master_task, distrb_info)
-    call gather_global_ext(G_stress12_1, I_stress12_1, master_task, distrb_info)
-    call gather_global_ext(G_stress12_2, I_stress12_2, master_task, distrb_info)
-    call gather_global_ext(G_stress12_3, I_stress12_3, master_task, distrb_info)
-    call gather_global_ext(G_stress12_4, I_stress12_4, master_task, distrb_info)
+    call gather_global_ext(G_icetmask,   I_icetmask,   master_task, distrb_info, 0      )
+    call gather_global_ext(G_iceumask,   I_iceumask,   master_task, distrb_info, .false.)
+!v1 call gather_global_ext(G_dxhy,       I_dxhy,       master_task, distrb_info         )
+!v1 call gather_global_ext(G_dyhx,       I_dyhx,       master_task, distrb_info         )
+!v1 call gather_global_ext(G_cyp,        I_cyp,        master_task, distrb_info         )
+!v1 call gather_global_ext(G_cxp,        I_cxp,        master_task, distrb_info         )
+!v1 call gather_global_ext(G_cym,        I_cym,        master_task, distrb_info         )
+!v1 call gather_global_ext(G_cxm,        I_cxm,        master_task, distrb_info         )
+!v1 call gather_global_ext(G_tinyarea,   I_tinyarea,   master_task, distrb_info         )
+!v1 call gather_global_ext(G_waterx,     I_waterx,     master_task, distrb_info         )
+!v1 call gather_global_ext(G_watery,     I_watery,     master_task, distrb_info         )
+    call gather_global_ext(G_cdn_ocn,    I_cdn_ocn,    master_task, distrb_info         )
+    call gather_global_ext(G_aiu,        I_aiu,        master_task, distrb_info         )
+    call gather_global_ext(G_uocn,       I_uocn,       master_task, distrb_info         )
+    call gather_global_ext(G_vocn,       I_vocn,       master_task, distrb_info         )
+    call gather_global_ext(G_forcex,     I_forcex,     master_task, distrb_info         )
+    call gather_global_ext(G_forcey,     I_forcey,     master_task, distrb_info         )
+    call gather_global_ext(G_Tbu,        I_Tbu,        master_task, distrb_info         )
+    call gather_global_ext(G_umassdti,   I_umassdti,   master_task, distrb_info         )
+    call gather_global_ext(G_fm,         I_fm,         master_task, distrb_info         )
+    call gather_global_ext(G_uarear,     I_uarear,     master_task, distrb_info         )
+    call gather_global_ext(G_tarear,     I_tarear,     master_task, distrb_info         )
+    call gather_global_ext(G_strintx,    I_strintx,    master_task, distrb_info         )
+    call gather_global_ext(G_strinty,    I_strinty,    master_task, distrb_info         )
+    call gather_global_ext(G_uvel_init,  I_uvel_init,  master_task, distrb_info         )
+    call gather_global_ext(G_vvel_init,  I_vvel_init,  master_task, distrb_info         )
+    call gather_global_ext(G_strength,   I_strength,   master_task, distrb_info         )
+    call gather_global_ext(G_uvel,       I_uvel,       master_task, distrb_info, c0     )
+    call gather_global_ext(G_vvel,       I_vvel,       master_task, distrb_info, c0     )
+    call gather_global_ext(G_dxt,        I_dxt,        master_task, distrb_info         )
+    call gather_global_ext(G_dyt,        I_dyt,        master_task, distrb_info         )
+    call gather_global_ext(G_stressp_1,  I_stressp_1,  master_task, distrb_info         )
+    call gather_global_ext(G_stressp_2,  I_stressp_2,  master_task, distrb_info         )
+    call gather_global_ext(G_stressp_3,  I_stressp_3,  master_task, distrb_info         )
+    call gather_global_ext(G_stressp_4,  I_stressp_4,  master_task, distrb_info         )
+    call gather_global_ext(G_stressm_1,  I_stressm_1,  master_task, distrb_info         )
+    call gather_global_ext(G_stressm_2,  I_stressm_2,  master_task, distrb_info         )
+    call gather_global_ext(G_stressm_3,  I_stressm_3,  master_task, distrb_info         )
+    call gather_global_ext(G_stressm_4,  I_stressm_4,  master_task, distrb_info         )
+    call gather_global_ext(G_stress12_1, I_stress12_1, master_task, distrb_info         )
+    call gather_global_ext(G_stress12_2, I_stress12_2, master_task, distrb_info         )
+    call gather_global_ext(G_stress12_3, I_stress12_3, master_task, distrb_info         )
+    call gather_global_ext(G_stress12_4, I_stress12_4, master_task, distrb_info         )
 
     !-- All calculations has to be done on the master-task --
 
