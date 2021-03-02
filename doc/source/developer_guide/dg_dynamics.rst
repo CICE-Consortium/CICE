@@ -92,7 +92,7 @@ Time manager data is module data in **cicecore/shared/ice_calendar.F90**.  Much 
 data is public and operated on during the model timestepping.  The model timestepping actually takes
 place in the **CICE_RunMod.F90** file which is part of the driver code.  
 
-The time manager was updated in early 2021.  Additional information about the time manager can be found here, :ref:`timemangerplus`
+The time manager was updated in early 2021.  Additional information about the time manager can be found here, :ref:`timemanagerplus`
 
 
 
