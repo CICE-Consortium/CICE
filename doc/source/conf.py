@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'CICE'
-copyright = u'2020, Triad National Security, LLC (code) and National Center for Atmospheric Research (documentation)'
+copyright = u'2021, Triad National Security, LLC (code) and National Center for Atmospheric Research (documentation)'
 author = u'CICE-Consortium'
 
 # The version info for the project you're documenting, acts as replacement for
