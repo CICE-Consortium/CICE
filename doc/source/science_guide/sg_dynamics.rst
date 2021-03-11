@@ -240,7 +240,7 @@ CICE includes two options for calculating the seabed stress,
 i.e. the term in the momentum equation that represents the interaction
 between grounded ice keels and the seabed. The seabed stress can be
 activated by setting ``seabed_stress`` to true in the namelist. The seabed stress (or basal
-stress) parameterization of :cite:`Lemieux16` is chosen if ``seabed_stress_method`` = ``LKD`` while the approach based on the probability of contact between the ice and he seabed is used if ``seabed_stress_method`` = ``probabilistic``.
+stress) parameterization of :cite:`Lemieux16` is chosen if ``seabed_stress_method`` = ``LKD`` while the approach based on the probability of contact between the ice and the seabed is used if ``seabed_stress_method`` = ``probabilistic``.
 
 For both parameterizations, the components of the seabed
 stress are expressed as :math:`\tau_{bx}=C_bu` and
