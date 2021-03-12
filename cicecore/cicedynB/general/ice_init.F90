@@ -321,7 +321,7 @@
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       kevp_kernel = 0    ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
-      pgl_global_ext = .false. ! if true, init primary grid lebgths (global ext.)
+      pgl_global_ext = .false. ! if true, init primary grid lengths (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
