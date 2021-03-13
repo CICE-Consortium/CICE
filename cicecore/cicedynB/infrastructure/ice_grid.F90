@@ -19,7 +19,8 @@
 
       use ice_kinds_mod
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate
+      use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate, &
+          primary_grid_lengths_global_ext
       use ice_communicate, only: my_task, master_task
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_domain_size, only: nx_global, ny_global, max_blocks
@@ -1506,7 +1507,8 @@
       enddo
       endif
       if (pgl_global_ext) then
-         call primary_grid_lengths_global_ext(G_HTN, work_g)
+         call primary_grid_lengths_global_ext( &
+            G_HTN, work_g, ew_boundary_type, ns_boundary_type)
       endif
       call scatter_global(HTN, work_g, master_task, distrb_info, &
                           field_loc_Nface, field_type_scalar)
@@ -1583,7 +1585,8 @@
          endif
       endif
       if (pgl_global_ext) then
-         call primary_grid_lengths_global_ext(G_HTE, work_g)
+         call primary_grid_lengths_global_ext( &
+            G_HTE, work_g, ew_boundary_type, ns_boundary_type)
       endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)
@@ -2578,115 +2581,6 @@
 
       end subroutine read_seabedstress_bathy
       
-!=======================================================================
-! Initialize global primary grid lengths array with ghost cells from
-! global primary grid lengths array
-
-      subroutine primary_grid_lengths_global_ext(ARRAY_O, ARRAY_I)
-
-         use ice_constants, only: c0
-
-         real (kind=dbl_kind), dimension(:,:), intent(in) :: &
-            ARRAY_I
-
-         real (kind=dbl_kind), dimension(:,:), intent(out) :: &
-            ARRAY_O
-
-         ! Local variables
-
-         integer (kind=int_kind) :: &
-            ii, io, ji, jo
-
-         character(len=*), parameter :: &
-            subname = '(primary_grid_lengths_global_ext)'
-
-         if ((ns_boundary_type == 'tripole' ) .or. &
-               (ns_boundary_type == 'tripoleT')) then
-            call abort_ice(subname // 'ERROR: ' // &
-               ns_boundary_type // ' bndy type not impl for cfg')
-         endif
-
-         do jo = 1, (ny_global + 2 * nghost)
-            ji = -nghost + jo
-
-            ! Southern ghost cells
-
-            if (ji < 1) then
-               select case (ns_boundary_type)
-               case ('cyclic')
-                  ji = ji + ny_global
-               case ('open')
-                  ji = nghost - jo + 1
-               case ('closed')
-                  ji = 0
-               case default
-                  call abort_ice( &
-                     subname // 'ERROR: unknown n-s bndy type')
-               end select
-            endif
-
-            ! Northern ghost cells
-
-            if (ji > ny_global) then
-               select case (ns_boundary_type)
-               case ('cyclic')
-                  ji = ji - ny_global
-               case ('open')
-                  ji = 2 * ny_global - ji + 1
-               case ('closed')
-                  ji = 0
-               case default
-                  call abort_ice( &
-                     subname // 'ERROR: unknown n-s bndy type')
-               end select
-            endif
-
-            do io = 1, (nx_global + 2 * nghost)
-               ii = -nghost + io
-
-               ! Western ghost cells
-
-               if (ii < 1) then
-                  select case (ew_boundary_type)
-                  case ('cyclic')
-                     ii = ii + nx_global
-                  case ('open')
-                     ii = nghost - io + 1
-                  case ('closed')
-                     ii = 0
-                  case default
-                     call abort_ice( &
-                        subname//'ERROR: unknown e-w bndy type')
-                  end select
-               endif
-
-               ! Eastern ghost cells
-
-               if (ii > nx_global) then
-                  select case (ew_boundary_type)
-                  case ('cyclic')
-                     ii = ii - nx_global
-                  case ('open')
-                     ii = 2 * nx_global - ii + 1
-                  case ('closed')
-                     ii = 0
-                  case default
-                     call abort_ice( &
-                        subname//'ERROR: unknown e-w bndy type')
-                  end select
-               endif
-
-               if ((ii == 0) .or. (ji == 0)) then
-                  ARRAY_O(io, jo) = c0
-               else
-                  ARRAY_O(io, jo) = ARRAY_I(ii, ji)
-               endif
-
-            enddo
-         enddo
-
-      end subroutine primary_grid_lengths_global_ext
-
 !=======================================================================
 
       end module ice_grid
