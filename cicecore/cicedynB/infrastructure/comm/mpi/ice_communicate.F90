@@ -13,18 +13,6 @@
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
-#if defined key_oasis3 || key_oasis3mct
-   use cpl_oasis3
-#endif
-
-#if defined key_oasis4
-   use cpl_oasis4
-#endif
-
-#if defined key_iomput
-   use lib_mpp, only:   mpi_comm_opa      ! MPP library
-#endif
-
    implicit none
    private
 
@@ -83,13 +71,7 @@
    if (present(mpicom)) then
      ice_comm = mpicom
    else
-#if (defined key_oasis3 || defined key_oasis3mct || defined key_oasis4)
-     ice_comm = localComm       ! communicator from NEMO/OASISn 
-#elif defined key_iomput
-     ice_comm = mpi_comm_opa    ! communicator from NEMO/XIOS
-#else
      ice_comm = MPI_COMM_WORLD  ! Global communicator 
-#endif 
    endif
 
    call MPI_INITIALIZED(flag,ierr)

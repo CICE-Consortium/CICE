@@ -818,7 +818,7 @@ module ice_dyn_evp_1d
     real    (kind=dbl_kind) :: tmp_str2_nw,tmp_str3_se,tmp_str4_sw, tmp_strintx
     real    (kind=dbl_kind) :: tmp_str6_se,tmp_str7_nw,tmp_str8_sw, tmp_strinty
     real    (kind=dbl_kind) :: waterx,watery
-    real    (kind=dbl_kind) :: u0 = 5.e-5_dbl_kind    ! residual velocity for basal stress (m/s)
+    real    (kind=dbl_kind) :: u0 = 5.e-5_dbl_kind    ! residual velocity for seabed stress (m/s)
   
     character(len=*), parameter :: subname = '(stepu_iter)'
     !---------------------------------------
@@ -881,7 +881,7 @@ module ice_dyn_evp_1d
 
     use ice_kinds_mod
     use ice_constants, only: c0, c1
-    use ice_dyn_shared, only: brlx, revp, basalstress
+    use ice_dyn_shared, only: brlx, revp, seabed_stress
 
     implicit none
 
@@ -908,7 +908,7 @@ module ice_dyn_evp_1d
     real    (kind=dbl_kind) :: tmp_str2_nw,tmp_str3_se,tmp_str4_sw
     real    (kind=dbl_kind) :: tmp_str6_se,tmp_str7_nw,tmp_str8_sw
     real    (kind=dbl_kind) :: waterx,watery
-    real    (kind=dbl_kind) :: u0 = 5.e-5_dbl_kind    ! residual velocity for basal stress (m/s)
+    real    (kind=dbl_kind) :: u0 = 5.e-5_dbl_kind    ! residual velocity for seabed stress (m/s)
    
     character(len=*), parameter :: subname = '(stepu_last)'
     !---------------------------------------
@@ -954,8 +954,8 @@ module ice_dyn_evp_1d
            + umassdti(iw)*(brlx*vold + revp*vvel_init(iw))
        uvel(iw) = (cca*cc1 + ccb*cc2) / ab2 
        vvel(iw) = (cca*cc2 - ccb*cc1) / ab2
-       ! calculate basal stress component for outputs
-       if ( basalstress ) then
+       ! calculate seabed stress component for outputs
+       if ( seabed_stress ) then
          taubx(iw) = -uvel(iw)*Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
          tauby(iw) = -vvel(iw)*Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
        endif

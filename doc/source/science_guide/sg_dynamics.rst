@@ -236,8 +236,30 @@ pending further testing.
 Seabed stress
 ***************
 
-The parameterization for the seabed stress is described in :cite:`Lemieux16`. The components of the basal seabed stress are 
-:math:`\tau_{bx}=C_bu` and :math:`\tau_{by}=C_bv`, where :math:`C_b` is a coefficient expressed as
+CICE includes two options for calculating the seabed stress,
+i.e. the term in the momentum equation that represents the interaction
+between grounded ice keels and the seabed. The seabed stress can be
+activated by setting ``seabed_stress`` to true in the namelist. The seabed stress (or basal
+stress) parameterization of :cite:`Lemieux16` is chosen if ``seabed_stress_method`` = ``LKD`` while the approach based on the probability of contact between the ice and the seabed is used if ``seabed_stress_method`` = ``probabilistic``.
+
+For both parameterizations, the components of the seabed
+stress are expressed as :math:`\tau_{bx}=C_bu` and
+:math:`\tau_{by}=C_bv`, where :math:`C_b` is a seabed stress
+coefficient.
+
+The two parameterizations differ in their calculation of
+the :math:`C_b` coefficients. 
+
+Note that the user must provide a bathymetry field for using these
+grounding schemes. It is suggested to have a bathymetry field with water depths
+larger than 5 m that represents well shallow water (less than 30 m) regions such as the Laptev Sea
+and the East Siberian Sea.   
+
+Seabed stress based on linear keel draft (LKD)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This parameterization for the seabed stress is described in
+:cite:`Lemieux16`. It assumes that the largest keel draft varies linearly with the mean thickness in a grid cell (i.e. sea ice volume). The :math:`C_b` coefficients are expressed as
 
 .. math::
    C_b= k_2 \max [0,(h_u - h_{cu})]  e^{-\alpha_b * (1 - a_u)} (\sqrt{u^2+v^2}+u_0)^{-1}, \\
@@ -268,16 +290,65 @@ when :math:`h_u > h_{cu}`.
 
 The maximum seabed stress depends on the weight of the ridge 
 above hydrostatic balance and the value of :math:`k_2`. It is, however, the parameter :math:`k_1` that has the most notable impact on the simulated extent of landfast ice. 
-The value of :math:`k_1` can be changed at runtime using the namelist variable ``k1``. The grounding scheme can be turned on or off using the namelist logical basalstress. 
+The value of :math:`k_1` can be changed at runtime using the namelist variable ``k1``. 
 
-Note that the user must provide a bathymetry field for using this grounding 
-scheme. It is suggested to have a bathymetry field with water depths larger than 
-5 m that represents well shallow water regions such as the Laptev Sea and the 
-East Siberian Sea. To prevent unrealistic grounding, :math:`T_b` is set to zero when :math:`h_{wu}` 
+To prevent unrealistic grounding, :math:`T_b` is set to zero when :math:`h_{wu}` 
 is larger than 30 m. This maximum value is chosen based on observations of large 
 keels in the Arctic Ocean :cite:`Amundrud04`.
 
-   
+Seabed stress based on probabilistic approach
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This more sophisticated grounding parameterization computes the seabed stress based
+on the probability of contact between the ice thickness distribution
+(ITD) and the seabed. Multi-thickness category models such as CICE typically use a
+few thickness categories (5-10). This crude representation of the ITD
+does not resolve the tail of the ITD, which is crucial for grounding
+events. 
+
+To represent the tail of the distribution, the simulated ITD is
+converted to a positively skewed probability function :math:`f(x)`
+with :math:`x` the sea ice thickness. The mean and variance are set 
+equal to the ones of the original ITD. A
+log-normal distribution is used for :math:`f(x)`.
+
+It is assumed that the bathymetry :math:`y` (at the 't' point) follows a normal
+distribution :math:`b(y)`. The mean of :math:`b(y)` comes from the user's bathymetry field and the
+standard deviation :math:`\sigma_b` is currently fixed to 2.5 m. Two
+possible improvements would be to specify a distribution based on high
+resolution bathymetry data and to take into account variations of the
+water depth due to changes in the sea surface height. 
+
+Assuming hydrostatic balance and neglecting the impact of snow, the draft of floating ice of thickness
+:math:`x` is :math:`D(x)=\rho_i x / \rho_w` where :math:`\rho_i` is the sea ice density. Hence, the probability of contact (:math:`P_c`) between the
+ITD and the seabed is given by
+
+.. math::
+   P_c=\int_{0}^{\inf} \int_{0}^{D(x)} g(x)b(y) dy dx \label{prob_contact}.
+
+:math:`T_b` is first calculated at the 't' point (referred to as :math:`T_{bt}`). :math:`T_{bt}` depends on the weight of the ridge in excess of hydrostatic balance. The parameterization first calculates
+
+.. math::
+   T_{bt}^*=\mu_s g \int_{0}^{\inf} \int_{0}^{D(x)} (\rho_i x - \rho_w
+   y)g(x)b(y) dy dx, \\
+   :label: Tbt
+
+and then obtains :math:`T_{bt}` by multiplying :math:`T_{bt}^*` by :math:`e^{-\alpha_b * (1 - a_i)}` (similar to what is done for ``seabed_stress_method`` = ``LKD``).
+
+To calculate :math:`T_{bt}^*` in equation :eq:`Tbt`, :math:`f(x)` and :math:`b(y)` are discretized using many small categories (100). :math:`f(x)` is discretized between 0 and 50 m while :math:`b(y)` is truncated at plus and minus three :math:`\sigma_b`. :math:`f(x)` is also modified by setting it to	zero after a certain percentile of the log-normal distribution. This percentile, which is currently set to 99.7%, notably affects the simulation of landfast ice and is used as a tuning parameter. Its impact is similar to the one of the parameter :math:`k_1` for the LKD method.
+
+:math:`T_b` at the 'u' point is calculated from the 't' point values around it according to 
+
+.. math::
+   T_b=\max[T_{bt}(i,j),T_{bt}(i+1,j),T_{bt}(i,j+1),T_{bt}(i+1,j+1)]. \\
+   :label: Tb
+
+Following again the LKD method, the seabed stress coefficients are finally expressed as
+
+.. math::
+   C_b= T_b (\sqrt{u^2+v^2}+u_0)^{-1}, \\
+   :label: Cb2
+
 .. _internal-stress:
 
 ***************
@@ -311,7 +382,11 @@ is therefore simply equal to :math:`-\sigma_1/2`.
 Following the approach of :cite:`Konig10` (see also :cite:`Lemieux16`), the 
 elliptical yield curve can be modified such that the ice has isotropic tensile strength. 
 The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P` 
-where :math:`k_t` should be set to a value between 0 and 1 (this can be changed at runtime with the namelist parameter ``Ktens``).
+where :math:`k_t` should be set to a value between 0 and 1 (this can
+be changed at runtime with the namelist parameter ``Ktens``). The ice
+strength :math:`P` is a function of the ice thickness distribution as
+described in the `Icepack
+Documentation<https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 
 .. _stress-vp:
 
@@ -342,9 +417,7 @@ and :math:`P_R` is a “replacement pressure” (see :cite:`Geiger98`, for
 example), which serves to prevent residual ice motion due to spatial
 variations of :math:`P` when the rates of strain are exactly zero.
 
-The ice strength :math:`P`
-is a function of the ice thickness and concentration
-as described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_. The parameter :math:`e` is the  ratio of the major and minor axes of the elliptical yield curve, also called the ellipse aspect ratio. It can be changed using the namelist parameter ``e_ratio``.
+The parameter :math:`e` is the  ratio of the major and minor axes of the elliptical yield curve, also called the ellipse aspect ratio. It can be changed using the namelist parameter ``e_ratio``.
 
 .. _stress-evp:
 
