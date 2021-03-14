@@ -98,6 +98,7 @@ else if (${grid} == 'tx1') then
     set blckx = 10; set blcky = 10
   endif
 
+# this is for unit testing
 else if (${grid} == 'none') then
   set nxglob = 1
   set nyglob = 1

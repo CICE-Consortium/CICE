@@ -821,7 +821,8 @@ is now a character string corresponding to ``histfreq`` or ‘x’ for none.
 files, no matter what the frequency is.) If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
-discerned from the filenames.
+discerned from the filenames.  Because all history is average output, it's
+not possible to write instananeous output at any frequency except every timestep.
 
 For example, in the namelist:
 
@@ -845,6 +846,14 @@ From an efficiency standpoint, it is best to set unused frequencies in
 as long as for a single frequency. If you only want monthly output, the
 most efficient setting is ``histfreq`` = ’m’,’x’,’x’,’x’,’x’. The code counts
 the number of desired streams (``nstreams``) based on ``histfreq``.
+
+There is no restart capability built into the history implementation.  If the
+model stops in the middle of a history accumulation period, that data is lost
+on restart, and the accumulation is zeroed out at startup.  That means the
+dump frequency (see :ref:`restartfiles`) and history frequency need to be 
+somewhat coordinated.  For
+example, if monthly history files are requested, the dump frequency should be
+set to an integer number of months.
 
 The history variable names must be unique for netCDF, so in cases where
 a variable is written at more than one frequency, the variable name is
