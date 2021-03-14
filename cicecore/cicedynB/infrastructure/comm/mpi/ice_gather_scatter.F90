@@ -1028,7 +1028,7 @@
    if (present(spc_val)) then
       special_value = spc_val
    else
-      special_value = 0   !MHRI NOTE: 0,1,-999,???
+      special_value = 0
    endif
 
    nx = nx_global + 2*nghost
@@ -1351,7 +1351,7 @@
    if (present(spc_val)) then
       special_value = spc_val
    else
-      special_value = .false.   !MHRI NOTE: .true./.false.  ???
+      special_value = .false.
    endif
 
    nx = nx_global + 2*nghost
