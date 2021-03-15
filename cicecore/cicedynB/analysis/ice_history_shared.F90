@@ -253,6 +253,12 @@
            f_mlt_onset = 'm', f_frz_onset  = 'm', &
            f_iage      = 'm', f_FY         = 'm', &
            f_hisnap    = 'm', f_aisnap     = 'm', &
+          f_frachist01 = 'm', f_frachist07 = 'm',&
+          f_frachist02 = 'm', f_frachist08 = 'm',&
+          f_frachist03 = 'm', f_frachist09 = 'm',&
+          f_frachist04 = 'm', f_frachist10 = 'm',&
+          f_frachist05 = 'm', f_frachist11 = 'm',&
+          f_frachist06 = 'm', f_frachist12 = 'm',&
            f_CMIP = 'x'     , &
            f_sithick   = 'x', f_sisnthick  = 'x', &
            f_siage     = 'x', &
@@ -397,6 +403,12 @@
            f_mlt_onset, f_frz_onset, &
            f_iage,      f_FY       , &
            f_hisnap,    f_aisnap   , &
+          f_frachist01, f_frachist07, &
+          f_frachist02, f_frachist08, &
+          f_frachist03, f_frachist09, &
+          f_frachist04, f_frachist10, &
+          f_frachist05, f_frachist11, &
+          f_frachist06, f_frachist12, &
            f_CMIP, &
            f_sithick,   f_sisnthick, &
            f_siage,     &
@@ -558,6 +570,12 @@
            n_dagedtt    , n_dagedtd    , &
            n_mlt_onset  , n_frz_onset  , &
            n_hisnap     , n_aisnap     , &
+           n_frachist01,  n_frachist07 , &
+           n_frachist02,  n_frachist08 , &
+           n_frachist03,  n_frachist09 , &
+           n_frachist04,  n_frachist10 , &
+           n_frachist05,  n_frachist11 , &
+           n_frachist06,  n_frachist12 , &
            n_sithick    , n_sisnthick  , &
            n_siage,       &
            n_sitemptop  , n_sitempsnic , &

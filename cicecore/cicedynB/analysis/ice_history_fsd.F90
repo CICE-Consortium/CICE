@@ -52,7 +52,7 @@
       ! field indices
       !---------------------------------------------------------------
 
-      integer (kind=int_kind), dimension(max_nstrm) :: &
+      integer (kind=int_kind), dimension(max_nstrm), public :: &
            n_afsd      , n_afsdn      , &
            n_dafsd_newi, n_dafsd_latg , &
            n_dafsd_latm, n_dafsd_wave , &
@@ -242,8 +242,8 @@
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
           if (f_frachist(1:1) /= 'x') &
             call define_hist_field(n_frachist,"frachist", "1", tstr3Df, tcstr, &
-               "wave fracture histogram",                 &
-               "Avg over freq period ", c1, c0, ns, f_frachist)
+               "wave fracture histogram snap",                 &
+               "Snapshot ", c1, c0, ns, f_frachist)
          endif ! if (histfreq(ns) /= 'x')
       enddo ! ns
 
@@ -475,9 +475,9 @@
       if (f_dafsd_weld(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
-      if (f_frachist(1:1)/= 'x') &
-             call accum_hist_field(n_frachist-n3Dacum, iblk, nfsd_hist, &
-                                    frachist(:,:,1:nfsd_hist,iblk), a3Df)
+      !if (f_frachist(1:1)/= 'x') &
+      !       call accum_hist_field(n_frachist-n3Dacum, iblk, nfsd_hist, &
+      !                              frachist(:,:,1:nfsd_hist,iblk), a3Df)
       endif ! a3Df allocated
 
       ! 4D floe size, thickness category fields
