@@ -14,7 +14,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_communicate, only: my_task, master_task
-      use ice_calendar, only: dt, istep, sec, mday, month
+      use ice_calendar, only: dt, istep, msec, mday, mmonth
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: restore_bgc, &
          bgc_data_dir, fe_data_type
@@ -163,12 +163,12 @@
     !-------------------------------------------------------------------
 
          midmonth = 15          ! data is given on 15th of every month
-!!!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!!!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
          ! Compute record numbers for surrounding months
          maxrec = 12
-         ixm  = mod(month+maxrec-2,maxrec) + 1
-         ixp  = mod(month,         maxrec) + 1
+         ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+         ixp  = mod(mmonth,         maxrec) + 1
          if (mday >= midmonth) ixm = -99 ! other two points will be used
          if (mday <  midmonth) ixp = -99
 
@@ -184,7 +184,7 @@
          call interp_coeff_monthly (recslot)
 
          readm = .false.
-         if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+         if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
       endif   ! 'clim prep'
 
@@ -194,11 +194,11 @@
     !-------------------------------------------------------------------
     
       if (trim(bgc_data_type)=='clim'  .AND. tr_bgc_Sil) then
-        ! call read_clim_data (readm, 0, ixm, month, ixp, &
+        ! call read_clim_data (readm, 0, ixm, mmonth, ixp, &
         !                      sil_file,  sil_data, &
         !                      field_loc_center, field_type_scalar)
          fieldname = 'silicate'
-         call read_clim_data_nc (readm, 0, ixm, month, ixp, &
+         call read_clim_data_nc (readm, 0, ixm, mmonth, ixp, &
                               sil_file, fieldname, sil_data, &
                               field_loc_center, field_type_scalar)
          call interpolate_data (sil_data, sildat)
@@ -276,11 +276,11 @@
     !-------------------------------------------------------------------
 
       if (trim(bgc_data_type)=='clim' .AND. tr_bgc_Nit) then 
-        ! call read_clim_data (readm, 0, ixm, month, ixp, &
+        ! call read_clim_data (readm, 0, ixm, mmonth, ixp, &
         !                      nit_file, nit_data, &
         !                      field_loc_center, field_type_scalar)
          fieldname = 'nitrate'
-         call read_clim_data_nc (readm, 0, ixm, month, ixp, &
+         call read_clim_data_nc (readm, 0, ixm, mmonth, ixp, &
                               nit_file, fieldname, nit_data, &
                               field_loc_center, field_type_scalar)
          call interpolate_data (nit_data, nitdat)
@@ -584,7 +584,7 @@
 
       subroutine faero_data
 
-      use ice_calendar, only: month, mday, istep, sec
+      use ice_calendar, only: mmonth, mday, istep, msec
       use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block
       use ice_flux_bgc, only: faero_atm
@@ -625,12 +625,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = 99  ! other two points will be used
       if (mday <  midmonth) ixp = 99
 
@@ -647,23 +647,23 @@
 
       ! Read 2 monthly values 
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
 !      aero_file = trim(atm_data_dir)//'faero.nc'   
       aero_file = '/usr/projects/climate/eclare/DATA/gx1v3/faero.nc'   
 
       fieldname='faero_atm001'
-      call read_clim_data_nc (readm, 0,  ixm, month, ixp, &
+      call read_clim_data_nc (readm, 0,  ixm, mmonth, ixp, &
                               aero_file, fieldname, aero1_data, &
                               field_loc_center, field_type_scalar)
 
       fieldname='faero_atm002'
-      call read_clim_data_nc (readm, 0,  ixm, month, ixp, &
+      call read_clim_data_nc (readm, 0,  ixm, mmonth, ixp, &
                               aero_file, fieldname, aero2_data, &
                               field_loc_center, field_type_scalar)
 
       fieldname='faero_atm003'
-      call read_clim_data_nc (readm, 0,  ixm, month, ixp, &
+      call read_clim_data_nc (readm, 0,  ixm, mmonth, ixp, &
                               aero_file, fieldname, aero3_data, &
                               field_loc_center, field_type_scalar)
 
@@ -727,12 +727,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
@@ -749,14 +749,14 @@
 
       ! Read 2 monthly values 
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
 !      aero_file = trim(atm_data_dir)//'faero.nc'   
       ! Cam5 monthly total black carbon deposition on the gx1 grid"
       aero_file = '/usr/projects/climate/njeffery/DATA/CAM/Hailong_Wang/Cam5_bc_monthly_popgrid.nc'   
 
       fieldname='bcd'
-      call read_clim_data_nc (readm, 0,  ixm, month, ixp, &
+      call read_clim_data_nc (readm, 0,  ixm, mmonth, ixp, &
                               aero_file, fieldname, aero_data, &
                               field_loc_center, field_type_scalar)
 

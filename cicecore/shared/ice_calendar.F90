@@ -71,11 +71,11 @@
          istep    , & ! local step counter for current run in time loop
          istep0   , & ! counter, number of steps at start of run
          istep1   , & ! counter, number of steps at current timestep
-         ! basic time variables
-         nyr      , & ! year number
-         month    , & ! month number, 1 to months_per_year
+         ! basic model time variables
+         myear    , & ! year number
+         mmonth   , & ! month number, 1 to months_per_year
          mday     , & ! day of the month
-         sec      , & ! elapsed seconds into date
+         msec     , & ! elapsed seconds into date
          ! initial time
          year_init, & ! initial year
          month_init,& ! initial month
@@ -105,7 +105,6 @@
          dt             , & ! thermodynamics timestep (s)
          dt_dyn         , & ! dynamics/transport/ridging timestep (s)
          timesecs       , & ! total elapsed time (s)
-         rdate_forc     , & ! time of last forcing update (s)
          yday           , & ! day of the year
          nextsw_cday        ! julian day of next shortwave calculation
 
@@ -172,13 +171,13 @@
       endif
 
       istep = 0         ! local timestep number
-      nyr=year_init     ! year
-      month=month_init  ! month
+      myear=year_init   ! year
+      mmonth=month_init ! month
       mday=day_init     ! day of the month
-      sec=sec_init      ! seconds into date
+      msec=sec_init     ! seconds into date
       istep1 = istep0   ! number of steps at current timestep
                         ! real (dumped) or imagined (use to set calendar)
-      idate0 = (nyr)*10000 + month*100 + mday ! date (yyyymmdd) 
+      idate0 = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd) 
       stop_now = 0      ! end program execution if stop_now=1
       dt_dyn = dt/real(ndtd,kind=dbl_kind) ! dynamics et al timestep
       force_restart_now = .false.
@@ -204,7 +203,7 @@
       endif
 #endif
 
-      call set_calendar(nyr)
+      call set_calendar(myear)
       call calendar()
 
       end subroutine init_calendar
@@ -221,7 +220,7 @@
 
       real    (kind=dbl_kind) :: secday           ! seconds per day
       real    (kind=dbl_kind) :: dtimesecs        ! time in seconds of run
-      integer (kind=int_kind) :: nyre,monthe,mdaye,sece  ! time at end of run
+      integer (kind=int_kind) :: yeare,monthe,daye,sece  ! time at end of run
       character(len=*),parameter :: subname='(calc_timesteps)'
 
       call icepack_query_parameters(secday_out=secday)
@@ -229,31 +228,31 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      nyre = nyr
-      monthe = month
-      mdaye = mday
-      sece = sec
+      yeare = myear
+      monthe = mmonth
+      daye = mday
+      sece = msec
       npt0 = npt
       npt0_unit = npt_unit
 
       if (npt_unit == 'y') then
-         call update_date(nyre,monthe,mdaye,sece,dnyr=npt)
-         call calendar_date2time(nyre,monthe,mdaye,sece,dtimesecs,nyr,month,mday,sec)
+         call update_date(yeare,monthe,daye,sece,dyear=npt)
+         call calendar_date2time(yeare,monthe,daye,sece,dtimesecs,myear,mmonth,mday,msec)
       elseif (npt_unit == 'm') then
-         call update_date(nyre,monthe,mdaye,sece,dmon=npt)
-         call calendar_date2time(nyre,monthe,mdaye,sece,dtimesecs,nyr,month,mday,sec)
+         call update_date(yeare,monthe,daye,sece,dmon=npt)
+         call calendar_date2time(yeare,monthe,daye,sece,dtimesecs,myear,mmonth,mday,msec)
       elseif (npt_unit == 'd') then
          dtimesecs = real(npt,kind=dbl_kind)*secday
-         call update_date(nyre,monthe,mdaye,sece,dday=npt)
+         call update_date(yeare,monthe,daye,sece,dday=npt)
       elseif (npt_unit == 'h') then
          dtimesecs = real(npt,kind=dbl_kind)*secday/real(hours_per_day,kind=dbl_kind)
-         call update_date(nyre,monthe,mdaye,sece,dsec=nint(dtimesecs))
+         call update_date(yeare,monthe,daye,sece,dsec=nint(dtimesecs))
       elseif (npt_unit == 's') then
-         call update_date(nyre,monthe,mdaye,sece,dsec=npt)
+         call update_date(yeare,monthe,daye,sece,dsec=npt)
          dtimesecs = real(npt,kind=dbl_kind)
       elseif (npt_unit == '1') then
          dtimesecs = dt*real(npt,kind=dbl_kind)
-         call update_date(nyre,monthe,mdaye,sece,dsec=nint(dtimesecs))
+         call update_date(yeare,monthe,daye,sece,dsec=nint(dtimesecs))
       else
          write(nu_diag,*) trim(subname),' ERROR invalid npt_unit = ',trim(npt_unit)
          call abort_ice(subname//'ERROR: invalid npt_unit')
@@ -266,8 +265,8 @@
          write(nu_diag,*) ' '
          write(nu_diag,'(1x,2a,i9,a,f13.2)') subname,' modified npt from ',npt0,' '//trim(npt0_unit)//' with dt= ',dt
          write(nu_diag,'(1x,2a,i9,a,f13.2)') subname,'                to ',npt ,' '//trim(npt_unit )//' with dt= ',dt
-         write(nu_diag,'(1x,2a,i6.4,a,i2.2,a,i2.2,a,i5.5)') subname,' start time is',nyr,'-',month,'-',mday,':',sec
-         write(nu_diag,'(1x,2a,i6.4,a,i2.2,a,i2.2,a,i5.5)') subname,'   end time is',nyre,'-',monthe,'-',mdaye,':',sece
+         write(nu_diag,'(1x,2a,i6.4,a,i2.2,a,i2.2,a,i5.5)') subname,' start time is',myear,'-',mmonth,'-',mday,':',msec
+         write(nu_diag,'(1x,2a,i6.4,a,i2.2,a,i2.2,a,i5.5)') subname,'   end time is',yeare,'-',monthe,'-',daye,':',sece
          write(nu_diag,*) ' '
       endif
 
@@ -305,7 +304,7 @@
          write(nu_diag,*) trim(subname),' ERROR dt error, needs to be integer number of seconds, dt=',dt
          call abort_ice(subname//'ERROR: improper dt')
       endif
-      sec = sec + idt
+      msec = msec + idt
       call calendar()
 
       end subroutine advance_timestep
@@ -322,15 +321,15 @@
 
       integer (kind=int_kind) :: &
          ns                         , & ! loop index
-         nyrp,monthp,mdayp,hourp    , & ! previous year, month, day, hour
+         yearp,monthp,dayp,hourp    , & ! previous year, month, day, hour
          elapsed_days               , & ! since beginning this run
          elapsed_months             , & ! since beginning this run
          elapsed_hours                  ! since beginning this run
       character(len=*),parameter :: subname='(calendar)'
 
-      nyrp=nyr
-      monthp=month
-      mdayp=mday
+      yearp=myear
+      monthp=mmonth
+      dayp=mday
       hourp=hour
       new_year=.false.
       new_month=.false.
@@ -339,15 +338,15 @@
       write_history(:)=.false.
       write_restart=0
 
-      call update_date(nyr,month,mday,sec)
-      call set_calendar(nyr)
+      call update_date(myear,mmonth,mday,msec)
+      call set_calendar(myear)
 
-      idate = (nyr)*10000 + month*100 + mday ! date (yyyymmdd) 
-      yday = daycal(month) + mday            ! day of the year
-      elapsed_months = (nyr - year_init)*months_per_year + month - month_init
-      elapsed_days = compute_days_between(year_init,month_init,day_init,nyr,month,mday)
+      idate = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd) 
+      yday = daycal(mmonth) + mday            ! day of the year
+      elapsed_months = (myear - year_init)*months_per_year + mmonth - month_init
+      elapsed_days = compute_days_between(year_init,month_init,day_init,myear,mmonth,mday)
       elapsed_hours = elapsed_days * hours_per_day
-      call calendar_date2time(nyr,month,mday,sec,timesecs)
+      call calendar_date2time(myear,mmonth,mday,msec,timesecs)
 
       !--- compute other stuff
 
@@ -355,10 +354,10 @@
       if (istep >= npt+1)  stop_now = 1
       if (istep == npt .and. dump_last) write_restart = 1 ! last timestep
 #endif
-      if (nyr   /= nyrp)   new_year = .true.
-      if (month /= monthp) new_month = .true.
-      if (mday  /= mdayp)  new_day = .true.
-      if (hour  /= hourp)  new_hour = .true.
+      if (myear  /= yearp)  new_year = .true.
+      if (mmonth /= monthp) new_month = .true.
+      if (mday   /= dayp)   new_day = .true.
+      if (hour   /= hourp)  new_hour = .true.
 
       ! History writing flags
 
@@ -367,7 +366,7 @@
          select case (histfreq(ns))
          case ("y", "Y")
             if (new_year  .and. histfreq_n(ns)/=0) then
-               if (mod(nyr, histfreq_n(ns))==0) &
+               if (mod(myear, histfreq_n(ns))==0) &
                    write_history(ns) = .true.
             endif
          case ("m", "M")
@@ -398,7 +397,7 @@
 
       select case (dumpfreq)
       case ("y", "Y")
-         if (new_year  .and. mod(nyr, dumpfreq_n)==0) &
+         if (new_year  .and. mod(myear, dumpfreq_n)==0) &
             write_restart = 1
       case ("m", "M")
          if (new_month .and. mod(elapsed_months,dumpfreq_n)==0) &
@@ -420,7 +419,7 @@
                                  .and. stop_now /= 1) then
         write(nu_diag,*) ' '
         write(nu_diag,'(a7,i10,4x,a6,i10,4x,a4,i10)') &
-             'istep1:', istep1, 'idate:', idate, 'sec:', sec
+             'istep1:', istep1, 'idate:', idate, 'sec:', msec
       endif
 
       end subroutine calendar
@@ -443,10 +442,10 @@
 ! Add and reconcile date
 ! delta time arguments are optional
 
-      subroutine update_date(anyr,amon,aday,asec,dnyr,dmon,dday,dsec)
+      subroutine update_date(ayear,amon,aday,asec,dyear,dmon,dday,dsec)
 
-      integer (kind=int_kind), intent(inout) :: anyr, amon, aday, asec  ! year, month, day, sec
-      integer (kind=int_kind), intent(in), optional :: dnyr, dmon, dday, dsec  ! delta year, month, day, sec
+      integer (kind=int_kind), intent(inout) :: ayear, amon, aday, asec  ! year, month, day, sec
+      integer (kind=int_kind), intent(in), optional :: dyear, dmon, dday, dsec  ! delta year, month, day, sec
 
       ! local variables
       integer (kind=int_kind) :: tdaymo (months_per_year)   ! days per month
@@ -467,7 +466,7 @@
       ! what is the right order?
       ! will add all deltas then reconcile years then months then days then seconds
 
-      if (present(dnyr)) anyr = anyr + dnyr
+      if (present(dyear)) ayear = ayear + dyear
       if (present(dmon)) amon = amon + dmon
       if (present(dday)) aday = aday + dday
       if (present(dsec)) asec = asec + dsec
@@ -476,19 +475,19 @@
       ! reconcile months - years
       do while (amon <= 0)
          delta = int((abs(amon))/months_per_year) + 1
-         anyr = anyr - delta
+         ayear = ayear - delta
          amon = amon + delta*months_per_year
       enddo
-      call compute_calendar_data(anyr,tdaymo,tdaycal,tdayyr)
+      call compute_calendar_data(ayear,tdaymo,tdaycal,tdayyr)
 
       ! reconcile days - months - years
       do while (aday <= 0)
          amon = amon - 1
          do while (amon <= 0)
             delta = int((abs(amon))/months_per_year) + 1
-            anyr = anyr - delta
+            ayear = ayear - delta
             amon = amon + delta*months_per_year
-            call compute_calendar_data(anyr,tdaymo,tdaycal,tdayyr)
+            call compute_calendar_data(ayear,tdaymo,tdaycal,tdayyr)
          enddo
          aday = aday + tdaymo(amon)
       enddo
@@ -503,26 +502,26 @@
          amon = amon - 1
          do while (amon <= 0)
             delta = int((abs(amon))/months_per_year) + 1
-            anyr = anyr - delta
+            ayear = ayear - delta
             amon = amon + delta*months_per_year
-            call compute_calendar_data(anyr,tdaymo,tdaycal,tdayyr)
+            call compute_calendar_data(ayear,tdaymo,tdaycal,tdayyr)
          enddo
          aday = aday + tdaymo(amon)
       enddo
 
       ! check for negative data
-      if (anyr < 0 .or. amon <= 0 .or. aday <= 0 .or. asec < 0) then
-         write(nu_diag,*) trim(subname),' ERROR in dateA, ',anyr,amon,aday,asec
+      if (ayear < 0 .or. amon <= 0 .or. aday <= 0 .or. asec < 0) then
+         write(nu_diag,*) trim(subname),' ERROR in dateA, ',ayear,amon,aday,asec
          call abort_ice(subname//'ERROR: in date')
       endif
 
       ! reconcile months - years
       do while (amon > months_per_year)
          delta = int((amon-1)/months_per_year)
-         anyr = anyr + delta
+         ayear = ayear + delta
          amon = amon - delta*months_per_year
       enddo
-      call compute_calendar_data(anyr,tdaymo,tdaycal,tdayyr)
+      call compute_calendar_data(ayear,tdaymo,tdaycal,tdayyr)
 
       ! reconcile days - months - years
       do while (aday > tdaymo(amon))
@@ -530,9 +529,9 @@
          amon = amon + 1
          do while (amon > months_per_year)
             delta = int((amon-1)/months_per_year)
-            anyr = anyr + delta
+            ayear = ayear + delta
             amon = amon - delta*months_per_year
-            call compute_calendar_data(anyr,tdaymo,tdaycal,tdayyr)
+            call compute_calendar_data(ayear,tdaymo,tdaycal,tdayyr)
          enddo
       enddo
 
@@ -547,15 +546,15 @@
          amon = amon + 1
          do while (amon > months_per_year)
             delta = int((amon-1)/months_per_year)
-            anyr = anyr + delta
+            ayear = ayear + delta
             amon = amon - delta*months_per_year
-            call compute_calendar_data(anyr,tdaymo,tdaycal,tdayyr)
+            call compute_calendar_data(ayear,tdaymo,tdaycal,tdayyr)
          enddo
       enddo
 
       ! check for negative data, just in case
-      if (anyr < 0 .or. amon <= 0 .or. aday <= 0 .or. asec < 0) then
-         write(nu_diag,*) trim(subname),' ERROR in dateB, ',anyr,amon,aday,asec
+      if (ayear < 0 .or. amon <= 0 .or. aday <= 0 .or. asec < 0) then
+         write(nu_diag,*) trim(subname),' ERROR in dateB, ',ayear,amon,aday,asec
          call abort_ice(subname//'ERROR: in date')
       endif
 
@@ -574,7 +573,7 @@
       character(len=*),parameter :: subname='(set_date_from_timesecs)'
 
       timesecs = ttimesecs
-      call calendar_time2date(ttimesecs,nyr,month,mday,sec,year_init,month_init,day_init,sec_init)
+      call calendar_time2date(ttimesecs,myear,mmonth,mday,msec,year_init,month_init,day_init,sec_init)
 
       end subroutine set_date_from_timesecs
 
@@ -723,28 +722,28 @@
 ! relative to year_init, month_init, day_init, sec_init unless _ref values passed in
 ! For santity, must pass all four ref values or none
 
-      subroutine calendar_date2time(anyr,amon,aday,asec,atimesecs,nyr_ref,mon_ref,day_ref,sec_ref)
+      subroutine calendar_date2time(ayear,amon,aday,asec,atimesecs,year_ref,mon_ref,day_ref,sec_ref)
 
       integer(kind=int_kind), intent(in)  :: &
-        anyr,amon,aday,asec                              ! year, month, day, sec of ttimesecs
+        ayear,amon,aday,asec                              ! year, month, day, sec of ttimesecs
       real   (kind=dbl_kind), intent(out) :: atimesecs   ! seconds since init date
       integer(kind=int_kind), intent(in), optional  :: &
-        nyr_ref,mon_ref,day_ref,sec_ref                  ! year, month, day, sec reference time
+        year_ref,mon_ref,day_ref,sec_ref                  ! year, month, day, sec reference time
 
       ! Internal variable
       real    (kind=dbl_kind) :: secday
       integer (kind=int_kind) :: elapsed_days ! since beginning this run
-      integer (kind=int_kind) :: lnyr_ref,lmon_ref,lday_ref,lsec_ref  ! local reference year, month, day, sec
+      integer (kind=int_kind) :: lyear_ref,lmon_ref,lday_ref,lsec_ref  ! local reference year, month, day, sec
       integer (kind=int_kind) :: cnt
       character(len=*),parameter :: subname='(calendar_date2time)'
 
       ! set reference date and check that 0 or 4 optional arguments are passed
       cnt = 0
-      if (present(nyr_ref)) then
-         lnyr_ref = nyr_ref
+      if (present(year_ref)) then
+         lyear_ref = year_ref
          cnt = cnt + 1
       else
-         lnyr_ref = year_init
+         lyear_ref = year_init
       endif
       if (present(mon_ref)) then
          lmon_ref = mon_ref
@@ -774,7 +773,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      elapsed_days = compute_days_between(lnyr_ref,lmon_ref,lday_ref,anyr,amon,aday)
+      elapsed_days = compute_days_between(lyear_ref,lmon_ref,lday_ref,ayear,amon,aday)
       atimesecs = real(elapsed_days,kind=dbl_kind)*secday + &
                   real(asec,kind=dbl_kind) - real(lsec_ref,kind=dbl_kind)
 
@@ -787,22 +786,22 @@
 ! Implemented to minimize accumulating errors and avoid overflows
 ! and perform well.
 
-      subroutine calendar_time2date(atimesecs,anyr,amon,aday,asec,nyr_ref,mon_ref,day_ref,sec_ref)
+      subroutine calendar_time2date(atimesecs,ayear,amon,aday,asec,year_ref,mon_ref,day_ref,sec_ref)
 
       real   (kind=dbl_kind), intent(in)  :: atimesecs            ! seconds since init date
       integer(kind=int_kind), intent(out) :: &
-        anyr,amon,aday,asec              ! year, month, day, sec of timesecs
+        ayear,amon,aday,asec              ! year, month, day, sec of timesecs
       integer(kind=int_kind), intent(in), optional  :: &
-        nyr_ref,mon_ref,day_ref,sec_ref  ! year, month, day, sec reference time
+        year_ref,mon_ref,day_ref,sec_ref  ! year, month, day, sec reference time
 
       ! Internal variable
       integer (kind=int_kind) :: ndays
-      integer (kind=int_kind) :: tnyr, tmon, tday, tsec     ! temporaries
+      integer (kind=int_kind) :: tyear, tmon, tday, tsec     ! temporaries
       integer (kind=int_kind) :: tdaymo (months_per_year)   ! days per month
       integer (kind=int_kind) :: tdaycal(months_per_year+1) ! day count per month
       integer (kind=int_kind) :: tdayyr                     ! days in year
       real (kind=dbl_kind) :: secday, rdays, ltimesecs
-      integer (kind=int_kind) :: lnyr_ref,lmon_ref,lday_ref,lsec_ref  ! local reference year, month, day, sec
+      integer (kind=int_kind) :: lyear_ref,lmon_ref,lday_ref,lsec_ref  ! local reference year, month, day, sec
       integer (kind=int_kind) :: cnt
       character(len=*),parameter :: subname='(calendar_time2date)'
 
@@ -819,11 +818,11 @@
 
       ! set reference date and check that 0 or 4 optional arguments are passed
       cnt = 0
-      if (present(nyr_ref)) then
-         lnyr_ref = nyr_ref
+      if (present(year_ref)) then
+         lyear_ref = year_ref
          cnt = cnt + 1
       else
-         lnyr_ref = year_init
+         lyear_ref = year_init
       endif
       if (present(mon_ref)) then
          lmon_ref = mon_ref
@@ -850,17 +849,17 @@
 
 ! -------------------------------------------------------------------
 ! tcraig, this is risky because atimesecs is real and could be very large
-!      anyr = lnyr_ref
+!      ayear = lyear_ref
 !      amon = lmon_ref
 !      aday = lday_ref
 !      asec = lsec_ref
 !
-!      call update_date(anyr,amon,aday,asec,dsec=nint(atimesecs))
+!      call update_date(ayear,amon,aday,asec,dsec=nint(atimesecs))
 !      return
 ! -------------------------------------------------------------------
 
       ! initial guess
-      tnyr = lnyr_ref
+      tyear = lyear_ref
       tmon = 1
       tday = 1
       tsec = 0
@@ -868,18 +867,18 @@
       ! add initial seconds to timesecs and treat lsec_ref as zero 
       ltimesecs = atimesecs + real(lsec_ref,kind=dbl_kind)
 
-      ! first estimate of tnyr
-      call compute_calendar_data(tnyr,tdaymo,tdaycal,tdayyr)
+      ! first estimate of tyear
+      call compute_calendar_data(tyear,tdaymo,tdaycal,tdayyr)
       rdays = ltimesecs/secday
-      tnyr = tnyr + int(rdays)/tdayyr
+      tyear = tyear + int(rdays)/tdayyr
 
-      ! reduce estimate of tnyr if ndays > rdays
-      ndays = compute_days_between(lnyr_ref,lmon_ref,lday_ref,tnyr,tmon,tday)
+      ! reduce estimate of tyear if ndays > rdays
+      ndays = compute_days_between(lyear_ref,lmon_ref,lday_ref,tyear,tmon,tday)
       if (ndays > int(rdays)) then
-         tnyr = tnyr - (ndays - int(rdays))/tdayyr - 1
-         ndays = compute_days_between(lnyr_ref,lmon_ref,lday_ref,tnyr,tmon,tday)
+         tyear = tyear - (ndays - int(rdays))/tdayyr - 1
+         ndays = compute_days_between(lyear_ref,lmon_ref,lday_ref,tyear,tmon,tday)
       endif
-      call compute_calendar_data(tnyr,tdaymo,tdaycal,tdayyr)
+      call compute_calendar_data(tyear,tdaymo,tdaycal,tdayyr)
 
       ! compute residual days, switch to integers, compute date
       rdays = ltimesecs/secday
@@ -890,19 +889,19 @@
          tmon = tmon + 1
          do while (tmon > months_per_year)
             tmon = tmon - months_per_year
-            tnyr = tnyr + 1
-            call compute_calendar_data(tnyr,tdaymo,tdaycal,tdayyr)
+            tyear = tyear + 1
+            call compute_calendar_data(tyear,tdaymo,tdaycal,tdayyr)
          enddo
       enddo
 
-      ndays = compute_days_between(lnyr_ref,lmon_ref,lday_ref,tnyr,tmon,tday)
+      ndays = compute_days_between(lyear_ref,lmon_ref,lday_ref,tyear,tmon,tday)
       tsec = int(ltimesecs - real(ndays,kind=dbl_kind)*secday)
       if (tsec > secday) then
-         write(nu_diag,*) trim(subname),' ERROR in seconds, ',tnyr,tmon,tday,tsec
+         write(nu_diag,*) trim(subname),' ERROR in seconds, ',tyear,tmon,tday,tsec
          call abort_ice(subname//'ERROR: in seconds')
       endif
 
-      anyr = tnyr
+      ayear = tyear
       amon = tmon
       aday = tday
       asec = tsec

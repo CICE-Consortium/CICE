@@ -1713,7 +1713,7 @@
       use ice_domain_size, only: nfsd
       use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu
       use ice_calendar, only: new_year, write_history, &
-                              write_ic, timesecs, histfreq, nstreams, month, &
+                              write_ic, timesecs, histfreq, nstreams, mmonth, &
                               new_month
       use ice_dyn_eap, only: a11, a12, e11, e12, e22, s11, s12, s22, &
           yieldstress11, yieldstress12, yieldstress22
@@ -4057,7 +4057,7 @@
             enddo
          endif                  ! new_year
 
-         if ( (month .eq. 7) .and. new_month ) then 
+         if ( (mmonth .eq. 7) .and. new_month ) then 
             do j=jlo,jhi
             do i=ilo,ihi
                ! reset SH Jul 1

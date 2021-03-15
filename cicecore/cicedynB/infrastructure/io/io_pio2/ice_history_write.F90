@@ -41,7 +41,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: sec, timesecs, idate, idate0, write_ic, &
+      use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
           histfreq, days_per_year, use_leap_years, dayyr
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c360, spval, spval_dbl
@@ -76,7 +76,6 @@
       character (char_len_long) :: ncfile(max_nstrm)
       integer (kind=int_kind) :: iotype
 
-      integer (kind=int_kind) :: iyear, imonth, iday
       integer (kind=int_kind) :: icategory,ind,i_aice,boundid
 
       character (char_len) :: start_time,current_date,current_time
@@ -870,7 +869,7 @@
         write(title,'(a,i8.8)') 'File written on model date ',idate
         status = pio_put_att(File,pio_global,'comment2',trim(title))
 
-        write(title,'(a,i6)') 'seconds elapsed into model date: ',sec
+        write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
         status = pio_put_att(File,pio_global,'comment3',trim(title))
 
         title = 'CF-1.0'

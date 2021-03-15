@@ -47,9 +47,9 @@
       use ice_arrays_column, only: hin_max, floe_rad_c
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: sec, timesecs, idate, idate0, write_ic, &
+      use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
           histfreq, days_per_year, use_leap_years, dayyr, &
-          year_init, month_init, day_init, nyr, month, mday
+          year_init, month_init, day_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info
       use ice_domain_size, only: nx_global, ny_global, max_nstrm, max_blocks
@@ -1050,7 +1050,7 @@
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: global attribute date1')
 
-        write(title,'(a,i6)') 'seconds elapsed into model date: ',sec
+        write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
         status = nf90_put_att(ncid,nf90_global,'comment3',title)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: global attribute date2')

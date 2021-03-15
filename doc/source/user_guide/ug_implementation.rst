@@ -543,8 +543,8 @@ The time manager is an important piece of the CICE model.
 Time Manager
 ****************************
 
-The primary prognostic variables in the time manager are ``nyr``, 
-``month``, ``mday``, and ``sec``.  These are integers and identify
+The primary prognostic variables in the time manager are ``myear``, 
+``mmonth``, ``mday``, and ``msec``.  These are integers and identify
 the current model year, month, day, and second respectively.
 The model timestep is ``dt`` with units of seconds.  See :ref:`parameters`
 for additional information about choosing an appropriate timestep.
@@ -580,8 +580,8 @@ set the namelist variables  ``year_init``, ``month_init``, ``day_init``,
 ``sec_init``, and ``dt`` in conjuction with ``days_per_year`` and 
 ``use_leap_years`` to initialize the model date, timestep, and calendar.
 To overwrite the default/namelist settings in the coupling layer,
-set the **ice\_calendar.F90** variables ``nyr``, ``month``, ``mday``, 
-``sec`` and ``dt`` after the namelists have been read.  Subroutine
+set the **ice\_calendar.F90** variables ``myear``, ``mmonth``, ``mday``, 
+``msec`` and ``dt`` after the namelists have been read.  Subroutine
 *calendar* should then be called to update all the calendar data.
 Finally, subroutine *advance\_timestep* should be used to advance
 the model time manager.  It advances the step numbers, advances

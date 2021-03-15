@@ -44,7 +44,7 @@
 
       subroutine init_restart_read(ice_ic)
 
-      use ice_calendar, only: istep0, istep1, timesecs, npt, nyr, &
+      use ice_calendar, only: istep0, istep1, timesecs, npt, myear, &
           set_date_from_timesecs
       use ice_communicate, only: my_task, master_task
       use ice_dyn_shared, only: kdyn
@@ -108,7 +108,7 @@
             call ice_open(nu_restart,trim(filename),0)
          endif
          if (use_restart_time) then
-            read (nu_restart) istep0,timesecs,time_forc,nyr
+            read (nu_restart) istep0,timesecs,time_forc,myear
          else
             read (nu_restart) iignore,rignore,rignore ! use namelist values
          endif
@@ -118,7 +118,7 @@
       call broadcast_scalar(istep0,master_task)
       call broadcast_scalar(timesecs,master_task)
       call broadcast_scalar(time_forc,master_task)
-      call broadcast_scalar(nyr,master_task)
+      call broadcast_scalar(myear,master_task)
       call set_date_from_timesecs(timesecs)
       
       istep1 = istep0
@@ -379,7 +379,7 @@
 
       subroutine init_restart_write(filename_spec)
 
-      use ice_calendar, only: sec, month, mday, nyr, istep1, &
+      use ice_calendar, only: msec, mmonth, mday, myear, istep1, &
                               timesecs
       use ice_communicate, only: my_task, master_task
       use ice_dyn_shared, only: kdyn
@@ -420,7 +420,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
       end if
         
       ! write pointer (path/file)
@@ -433,7 +433,7 @@
          else
             call ice_open(nu_dump,filename,0)
          endif
-         write(nu_dump) istep1,timesecs,time_forc,nyr
+         write(nu_dump) istep1,timesecs,time_forc,myear
          write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
       endif
 
@@ -444,7 +444,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.eap.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_eap,filename,0)
@@ -464,7 +464,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.fsd.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_fsd,filename,0)
@@ -484,7 +484,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.FY.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_FY,filename,0)
@@ -504,7 +504,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.iage.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_age,filename,0)
@@ -524,7 +524,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.lvl.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_lvl,filename,0)
@@ -544,7 +544,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.pond_cesm.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_pond,filename,0)
@@ -564,7 +564,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.pond_lvl.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_pond,filename,0)
@@ -584,7 +584,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.pond_topo.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_pond,filename,0)
@@ -604,7 +604,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.brine.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_hbrine,filename,0)
@@ -624,7 +624,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.bgc.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_bgc,filename,0)
@@ -643,7 +643,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.iso.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_iso,filename,0)
@@ -663,7 +663,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.aero.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_aero,filename,0)

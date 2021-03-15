@@ -1026,7 +1026,7 @@
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, &
           gaer_bc_tab, bcenh, swgrid, igrid
       use ice_blocks, only: block, get_block
-      use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, sec
+      use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, msec
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
       use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow
@@ -1145,7 +1145,7 @@
                          calendar_type=calendar_type,                         &
                          days_per_year=days_per_year,                         &
                          nextsw_cday=nextsw_cday, yday=yday,                  &
-                         sec=sec,                                             &
+                         sec=msec,                                             &
                          kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
                          waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
                          gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &

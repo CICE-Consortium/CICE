@@ -23,7 +23,7 @@
       use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
-                              sec, mday, month, nyr, yday, daycal, &
+                              msec, mday, mmonth, myear, yday, daycal, &
                               daymo, days_per_year, hc_jday
       use ice_fileunits, only: nu_diag, nu_forcing
       use ice_exit, only: abort_ice
@@ -237,8 +237,8 @@
       ! Allocate forcing arrays 
       call alloc_forcing()
 
-      modadj      = abs((min(0,nyr-fyear_init)/ycycle+1)*ycycle)
-      fyear       = fyear_init + mod(nyr-fyear_init+modadj,ycycle)
+      modadj      = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
+      fyear       = fyear_init + mod(myear-fyear_init+modadj,ycycle)
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
 
       if (forcing_debug .and. my_task == master_task) then
@@ -434,7 +434,7 @@
          if (my_task == master_task) &
               call ice_open (nu_forcing, sst_file, nbits)
 
-         call ice_read (nu_forcing, month, sst, 'rda8', dbug, &
+         call ice_read (nu_forcing, mmonth, sst, 'rda8', dbug, &
                         field_loc_center, field_type_scalar)
 
          if (my_task == master_task) close(nu_forcing)
@@ -470,7 +470,7 @@
          endif
  
          fieldname='sst'
-         call ice_read_nc(fid,month,fieldname,sst,diag)
+         call ice_read_nc(fid,mmonth,fieldname,sst,diag)
 
          if (my_task == master_task) call ice_close_nc(fid)  
 
@@ -568,8 +568,8 @@
       call ice_timer_start(timer_forcing)
 
       fyear_old = fyear
-      modadj    = abs((min(0,nyr-fyear_init)/ycycle+1)*ycycle)
-      fyear     = fyear_init + mod(nyr-fyear_init+modadj,ycycle)
+      modadj    = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
+      fyear     = fyear_init + mod(myear-fyear_init+modadj,ycycle)
       if (trim(atm_data_type) /= 'default' .and. &
           (istep <= 1 .or. fyear /= fyear_old)) then
          if (my_task == master_task) then
@@ -1295,20 +1295,20 @@
       daymid(0)    = 14._dbl_kind - daymo(12)  ! Dec 15, 0 sec
 
       ! compute days since Jan 1, 00h, yday is the day counter for the year
-      tt = real(yday-1,kind=dbl_kind) + real(sec,kind=dbl_kind)/secday
+      tt = real(yday-1,kind=dbl_kind) + real(msec,kind=dbl_kind)/secday
 
       ! Find neighboring times
 
       if (recslot==2) then      ! first half of month
-        t2 = daycal(month) + daymid(month)   ! midpoint, current month
-        if (month == 1) then
+        t2 = daycal(mmonth) + daymid(mmonth)   ! midpoint, current month
+        if (mmonth == 1) then
           t1 = daymid(0)                 ! Dec 15 (0 sec)
         else
-          t1 = daycal(month-1) + daymid(month-1) ! midpoint, previous month
+          t1 = daycal(mmonth-1) + daymid(mmonth-1) ! midpoint, previous month
         endif
       else                      ! second half of month
-        t1 = daycal(month) + daymid(month)    ! midpoint, current month
-        t2 = daycal(month+1) + daymid(month+1)! day 15 of next month (0 sec)
+        t1 = daycal(mmonth) + daymid(mmonth)    ! midpoint, current month
+        t2 = daycal(mmonth+1) + daymid(mmonth+1)! day 15 of next month (0 sec)
       endif
 
       if (tt < t1 .or. tt > t2) then
@@ -1361,7 +1361,7 @@
          file=__FILE__, line=__LINE__)
 
       ! compute seconds since Jan 1, 00h, yday is the day counter for the year
-      tt = real(yday-1,kind=dbl_kind)*secday + real(sec,kind=dbl_kind)
+      tt = real(yday-1,kind=dbl_kind)*secday + real(msec,kind=dbl_kind)
 
       ! Find neighboring times
       rcnum = real(recnum,kind=dbl_kind)
@@ -1386,7 +1386,7 @@
       c2intp =  c1 - c1intp
 
       if (forcing_debug .and. my_task == master_task) then
-         write(nu_diag,*) subname,'fdbg yday,sec = ',yday,sec
+         write(nu_diag,*) subname,'fdbg yday,sec = ',yday,msec
          write(nu_diag,*) subname,'fdbg tt = ',tt
          write(nu_diag,*) subname,'fdbg c12intp = ',c1intp,c2intp
       endif
@@ -1956,12 +1956,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
@@ -1978,29 +1978,29 @@
 
       ! Read 2 monthly values
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
       if (trim(atm_data_format) == 'bin') then
-         call read_data (readm, 0, fyear, ixm, month, ixp, &
+         call read_data (readm, 0, fyear, ixm, mmonth, ixp, &
                          maxrec, fsw_file, fsw_data, &
                          field_loc_center, field_type_scalar)
-         call read_data (readm, 0, fyear, ixm, month, ixp, &
+         call read_data (readm, 0, fyear, ixm, mmonth, ixp, &
                          maxrec, flw_file, cldf_data, &
                          field_loc_center, field_type_scalar)
-         call read_data (readm, 0, fyear, ixm, month, ixp, &
+         call read_data (readm, 0, fyear, ixm, mmonth, ixp, &
                          maxrec, rain_file, fsnow_data, &
                          field_loc_center, field_type_scalar)
       else
          call abort_ice (error_message=subname//'nonbinary atm_data_format unavailable', &
             file=__FILE__, line=__LINE__)
 !        The routine exists, for example:  
-!         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+!         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
 !                            maxrec, fsw_file, 'fsw', fsw_data, &
 !                            field_loc_center, field_type_scalar)
-!         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+!         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
 !                            maxrec, flw_file, 'cldf',cldf_data, &
 !                            field_loc_center, field_type_scalar)
-!         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+!         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
 !                            maxrec, rain_file,'prec',fsnow_data, &
 !                            field_loc_center, field_type_scalar)
       endif
@@ -2023,7 +2023,7 @@
       maxrec = 1460             ! 365*4
 
       ! current record number
-      recnum = 4*int(yday) - 3 + int(real(sec,kind=dbl_kind)/sec6hr)
+      recnum = 4*int(yday) - 3 + int(real(msec,kind=dbl_kind)/sec6hr)
 
       ! Compute record numbers for surrounding data
 
@@ -2251,12 +2251,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
@@ -2273,11 +2273,11 @@
 
       ! Read 2 monthly values 
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              flw_file, cldf_data, field_loc_center, field_type_scalar)
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              rain_file, fsnow_data, field_loc_center, field_type_scalar)
 
       call interpolate_data (cldf_data, cldf)
@@ -2296,7 +2296,7 @@
       maxrec = 1460             ! 365*4
 
       ! current record number
-      recnum = 4*int(yday) - 3 + int(real(sec,kind=dbl_kind)/sec6hr)
+      recnum = 4*int(yday) - 3 + int(real(msec,kind=dbl_kind)/sec6hr)
 
       ! Compute record numbers for surrounding data (2 on each side)
 
@@ -2500,12 +2500,12 @@
          lfyear = fyear
          call file_year(uwind_file,lfyear)
          if (n1 == 1) then
-            recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr)
+            recnum = 8*int(yday) - 7 + int(real(msec,kind=dbl_kind)/sec3hr)
             if (my_task == master_task .and. (recnum <= 2 .or. recnum >= maxrec-1)) then
                write(nu_diag,*) subname,' reading forcing file 1st ts = ',trim(uwind_file)
             endif
          elseif (n1 == 2) then
-            recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr) + 1
+            recnum = 8*int(yday) - 7 + int(real(msec,kind=dbl_kind)/sec3hr) + 1
             if (recnum > maxrec) then
                lfyear = fyear + 1  ! next year
                if (lfyear > fyear_final) lfyear = fyear_init
@@ -2591,7 +2591,7 @@
 
       ! Compute interpolation coefficients
       eps = 1.0e-6
-      tt = real(mod(sec,nint(sec3hr)),kind=dbl_kind)
+      tt = real(mod(msec,nint(sec3hr)),kind=dbl_kind)
       c2intp = tt / sec3hr
       if (c2intp < c0 .and. c2intp > c0-eps) c2intp = c0
       if (c2intp > c1 .and. c2intp < c1+eps) c2intp = c1
@@ -2754,14 +2754,14 @@
       do n1 = 1,2
 
          if (n1 == 1) then
-            recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr)
+            recnum = 8*int(yday) - 7 + int(real(msec,kind=dbl_kind)/sec3hr)
             if (my_task == master_task .and. (recnum <= 2 .or. recnum >= maxrec-1)) then
                write(nu_diag,*) subname,' reading forcing file 1st ts = ',trim(uwind_file)
             endif
          elseif (n1 == 2) then
-            recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr) + 1
+            recnum = 8*int(yday) - 7 + int(real(msec,kind=dbl_kind)/sec3hr) + 1
             if (recnum > maxrec) then
-               yrp = fyear_init + mod(nyr,ycycle)  ! next year
+               yrp = fyear_init + mod(myear,ycycle)  ! next year
                recnum = 1
                call file_year(uwind_file,yrp)
                if (my_task == master_task) then
@@ -2823,7 +2823,7 @@
 
       ! Compute interpolation coefficients
       eps = 1.0e-6
-      tt = real(mod(sec,nint(sec3hr)),kind=dbl_kind)
+      tt = real(mod(msec,nint(sec3hr)),kind=dbl_kind)
       c2intp = tt / sec3hr
       if (c2intp < c0 .and. c2intp > c0-eps) c2intp = c0
       if (c2intp > c1 .and. c2intp < c1+eps) c2intp = c1
@@ -2963,7 +2963,7 @@
       do j=jlo,jhi
        do i=ilo,ihi
         deg2rad = pi/c180
-!       solar_time = mod(real(sec,kind=dbl_kind),secday)/c3600 &
+!       solar_time = mod(real(msec,kind=dbl_kind),secday)/c3600 &
 !                  + c12*sin(p5*TLON(i,j))
 
 !       Convert longitude to range of -180 to 180 for LST calculation
@@ -2972,7 +2972,7 @@
         if (lontmp .gt. c180) lontmp = lontmp - c360
         if (lontmp .lt. -c180) lontmp = lontmp + c360
 
-        solar_time = mod(real(sec,kind=dbl_kind),secday)/c3600 &
+        solar_time = mod(real(msec,kind=dbl_kind),secday)/c3600 &
                    + lontmp/c15
         if (solar_time .ge. 24._dbl_kind) solar_time = solar_time - 24._dbl_kind
         hour_angle = (c12 - solar_time)*pi/c12
@@ -3278,12 +3278,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
@@ -3300,18 +3300,18 @@
 
       ! Read 2 monthly values
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
       ! -----------------------------------------------------------
       ! Rainfall and snowfall
       ! -----------------------------------------------------------
 
       fieldname='rainfall'
-      call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+      call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, rain_file, fieldname, frain_data, &
                       field_loc_center, field_type_scalar)
       fieldname='snowfall'
-      call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+      call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, snow_file, fieldname, fsnow_data, &
                       field_loc_center, field_type_scalar)
 
@@ -3326,11 +3326,11 @@
          ! --------------------------------------------------------
 
          fieldname='u_10'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, uwind_file, fieldname, uatm_data, &
                       field_loc_center, field_type_vector)
          fieldname='v_10'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, vwind_file, fieldname, vatm_data, &
                       field_loc_center, field_type_vector)
 
@@ -3345,11 +3345,11 @@
          ! --------------------------------------------------------
 
          fieldname='taux'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, strax_file, fieldname, strax_data, &
                       field_loc_center, field_type_vector)
          fieldname='tauy'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, stray_file, fieldname, stray_data, &
                       field_loc_center, field_type_vector)
 
@@ -3364,7 +3364,7 @@
             ! --------------------------------------------------
 
             fieldname='wind_10'
-            call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+            call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, wind_file, fieldname, wind_data, &
                       field_loc_center, field_type_scalar)
 
@@ -3387,23 +3387,23 @@
       if (calc_Tsfc .or. oceanmixed_ice .or. calc_strair) then  
 
          fieldname='SW_incoming'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, fsw_file, fieldname, fsw_data, &
                       field_loc_center, field_type_scalar)
          fieldname='LW_incoming'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, flw_file, fieldname, flw_data, &
                       field_loc_center, field_type_scalar)
          fieldname='t_10'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, tair_file, fieldname, Tair_data, &
                       field_loc_center, field_type_scalar)
          fieldname='rho_10'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, rhoa_file, fieldname, rhoa_data, &
                       field_loc_center, field_type_scalar)
          fieldname='q_10'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, humid_file, fieldname, Qa_data, &
                       field_loc_center, field_type_scalar)
 
@@ -3424,7 +3424,7 @@
          ! ------------------------------------------------------
 
          fieldname='sublim'
-         call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+         call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, sublim_file, fieldname, sublim_data, &
                       field_loc_center, field_type_scalar)
 
@@ -3433,12 +3433,12 @@
 
          do n = 1, ncat
             write(fieldname, '(a,i1)') 'topmeltn',n
-            call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+            call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
               maxrec, topmelt_file(n), fieldname, topmelt_data(:,:,:,:,n), &
               field_loc_center, field_type_scalar)
 
             write(fieldname, '(a,i1)') 'botmeltn',n
-            call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+            call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
               maxrec, botmelt_file(n), fieldname, botmelt_data(:,:,:,:,n), &
               field_loc_center, field_type_scalar)
 
@@ -3575,12 +3575,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
@@ -3597,27 +3597,27 @@
 
       ! Read 2 monthly values 
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              flw_file, cldf_data, &
              field_loc_center, field_type_scalar)
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              rain_file, fsnow_data, &
              field_loc_center, field_type_scalar)
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              tair_file, Tair_data, &
              field_loc_center, field_type_scalar)
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              humid_file, Qa_data, &
              field_loc_center, field_type_scalar)
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              wind_file, wind_data, &
              field_loc_center, field_type_scalar)
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              strax_file, strax_data, &
              field_loc_center, field_type_vector)
-      call read_clim_data (readm, 0, ixm, month, ixp,  &
+      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
              stray_file, stray_data, &
              field_loc_center, field_type_vector)
 
@@ -3915,12 +3915,12 @@
       if (trim(ocn_data_type)=='clim') then
 
          midmonth = 15          ! data is given on 15th of every month
-!!!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!!!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
          ! Compute record numbers for surrounding months
          maxrec = 12
-         ixm  = mod(month+maxrec-2,maxrec) + 1
-         ixp  = mod(month,         maxrec) + 1
+         ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+         ixp  = mod(mmonth,         maxrec) + 1
          if (mday >= midmonth) ixm = -99 ! other two points will be used
          if (mday <  midmonth) ixp = -99
 
@@ -3936,14 +3936,14 @@
          call interp_coeff_monthly (recslot)
 
          readm = .false.
-         if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+         if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
     !-------------------------------------------------------------------
     ! Read two monthly SSS values and interpolate.
     ! Note: SSS is restored instantaneously to data.
     !-------------------------------------------------------------------
 
-         call read_clim_data (readm, 0, ixm, month, ixp, &
+         call read_clim_data (readm, 0, ixm, mmonth, ixp, &
                               sss_file, sss_data, &
                               field_loc_center, field_type_scalar)
          call interpolate_data (sss_data, sss)
@@ -3967,7 +3967,7 @@
     !-------------------------------------------------------------------
 
       if (trim(ocn_data_type)=='clim') then
-         call read_clim_data (readm, 0, ixm, month, ixp, &
+         call read_clim_data (readm, 0, ixm, mmonth, ixp, &
                               sst_file, sst_data, &
                               field_loc_center, field_type_scalar)
          call interpolate_data (sst_data, sstdat)
@@ -4356,12 +4356,12 @@
     !-------------------------------------------------------------------
       
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month),kind=dbl_kind))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth),kind=dbl_kind))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
@@ -4382,9 +4382,9 @@
         ! use sst_data arrays as temporary work space until n=1
         if (ixm /= -99) then  ! first half of month
           sst_data(:,:,1,iblk) = ocn_frc_m(:,:,iblk,n,ixm)
-          sst_data(:,:,2,iblk) = ocn_frc_m(:,:,iblk,n,month)
+          sst_data(:,:,2,iblk) = ocn_frc_m(:,:,iblk,n,mmonth)
         else                 ! second half of month
-          sst_data(:,:,1,iblk) = ocn_frc_m(:,:,iblk,n,month)
+          sst_data(:,:,1,iblk) = ocn_frc_m(:,:,iblk,n,mmonth)
           sst_data(:,:,2,iblk) = ocn_frc_m(:,:,iblk,n,ixp)
         endif
         enddo
@@ -4573,12 +4573,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
@@ -4595,7 +4595,7 @@
 
       ! Read 2 monthly values
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
       if (my_task == master_task .and. istep == 1) then
          write (nu_diag,*) ' '
@@ -4616,7 +4616,7 @@
       ! -----------------------------------------------------------
       sst_file = trim(ocn_data_dir)//'/MONTHLY/sst.1997.nc'
       fieldname='sst'
-      call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+      call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, sst_file, fieldname, sst_data, &
                       field_loc_center, field_type_scalar)
       
@@ -4650,7 +4650,7 @@
 
         filename = trim(ocn_data_dir)//'/MONTHLY/uocn.1997.nc'
         fieldname='uocn'
-        call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+        call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, filename, fieldname, uocn_data, &
                       field_loc_center, field_type_vector)
       
@@ -4659,7 +4659,7 @@
 
         filename = trim(ocn_data_dir)//'/MONTHLY/vocn.1997.nc'
         fieldname='vocn'
-        call read_data_nc (readm, 0, fyear, ixm, month, ixp, &
+        call read_data_nc (readm, 0, fyear, ixm, mmonth, ixp, &
                       maxrec, filename, fieldname, vocn_data, &
                       field_loc_center, field_type_vector)
       
@@ -4847,7 +4847,7 @@
       call icepack_query_parameters(secday_out=secday)
 
       ! current time in HYCOM jday units
-      hcdate = hc_jday(nyr,0,0)+ yday+sec/secday
+      hcdate = hc_jday(myear,0,0)+ yday+msec/secday
 
       ! Init recnum try
       recnum=min(max(oldrecnum,1),Njday_atm-1)
@@ -4870,7 +4870,7 @@
          write (nu_diag,*) &
          'ERROR: CICE: Atm forcing not available at hcdate =',hcdate
          write (nu_diag,*) &
-         'ERROR: CICE: nyr, yday ,sec = ',nyr, yday, sec
+         'ERROR: CICE: myear, yday ,msec = ',myear, yday, msec
          call abort_ice ('ERROR: CICE stopped')
       endif
 
@@ -5313,7 +5313,7 @@
         maxrec = 1460                        ! 366*4
 
       ! current record number
-        recnum4X = 4*int(yday) - 3 + int(real(sec,kind=dbl_kind)/sec1hr)   
+        recnum4X = 4*int(yday) - 3 + int(real(msec,kind=dbl_kind)/sec1hr)   
 
       ! Compute record numbers for surrounding data (2 on each side)
       ixm = mod(recnum4X+maxrec-2,maxrec) + 1

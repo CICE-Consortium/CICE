@@ -42,7 +42,7 @@
 
       subroutine init_restart_read(ice_ic)
 
-      use ice_calendar, only: sec, month, mday, nyr, &
+      use ice_calendar, only: msec, mmonth, mday, myear, &
                              istep0, istep1, npt
       use ice_communicate, only: my_task, master_task
 
@@ -53,7 +53,7 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status
+      integer (kind=int_kind) :: status, status1
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
@@ -79,23 +79,34 @@
             'ERROR: reading restart ncfile '//trim(filename))
       
          if (use_restart_time) then
+            status1 = nf90_noerr
             status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
+            if (status /= nf90_noerr) status1 = status
 !            status = nf90_get_att(ncid, nf90_global, 'time', time)
 !            status = nf90_get_att(ncid, nf90_global, 'time_forc', time_forc)
-            status = nf90_get_att(ncid, nf90_global, 'nyr', nyr)
-            status = nf90_get_att(ncid, nf90_global, 'month', month)
+            status = nf90_get_att(ncid, nf90_global, 'myear', myear)
+            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'nyr', myear)
+            if (status /= nf90_noerr) status1 = status
+            status = nf90_get_att(ncid, nf90_global, 'mmonth', mmonth)
+            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'month', mmonth)
+            if (status /= nf90_noerr) status1 = status
             status = nf90_get_att(ncid, nf90_global, 'mday', mday)
-            status = nf90_get_att(ncid, nf90_global, 'sec', sec)
+            if (status /= nf90_noerr) status1 = status
+            status = nf90_get_att(ncid, nf90_global, 'msec', msec)
+            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'sec', msec)
+            if (status /= nf90_noerr) status1 = status
+            if (status1 /= nf90_noerr) call abort_ice(subname// &
+               'ERROR: reading restart time '//trim(filename))
          endif ! use namelist values if use_restart_time = F
 
       endif
 
       call broadcast_scalar(istep0,master_task)
 !      call broadcast_scalar(time,master_task)
-      call broadcast_scalar(nyr,master_task)
-      call broadcast_scalar(month,master_task)
+      call broadcast_scalar(myear,master_task)
+      call broadcast_scalar(mmonth,master_task)
       call broadcast_scalar(mday,master_task)
-      call broadcast_scalar(sec,master_task)
+      call broadcast_scalar(msec,master_task)
 !      call broadcast_scalar(time_forc,master_task)
 
       istep1 = istep0
@@ -119,7 +130,7 @@
       subroutine init_restart_write(filename_spec)
 
       use ice_blocks, only: nghost
-      use ice_calendar, only: sec, month, mday, nyr, istep1
+      use ice_calendar, only: msec, mmonth, mday, myear, istep1
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
@@ -188,7 +199,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.', &
-              nyr,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
       end if
 
       ! write pointer (path/file)
@@ -207,10 +218,10 @@
          status = nf90_put_att(ncid,nf90_global,'istep1',istep1)
 !         status = nf90_put_att(ncid,nf90_global,'time',time)
 !         status = nf90_put_att(ncid,nf90_global,'time_forc',time_forc)
-         status = nf90_put_att(ncid,nf90_global,'nyr',nyr)
-         status = nf90_put_att(ncid,nf90_global,'month',month)
+         status = nf90_put_att(ncid,nf90_global,'myear',myear)
+         status = nf90_put_att(ncid,nf90_global,'mmonth',mmonth)
          status = nf90_put_att(ncid,nf90_global,'mday',mday)
-         status = nf90_put_att(ncid,nf90_global,'sec',sec)
+         status = nf90_put_att(ncid,nf90_global,'msec',msec)
 
          nx = nx_global
          ny = ny_global
