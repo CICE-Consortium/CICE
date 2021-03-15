@@ -26,7 +26,7 @@
       use ice_domain, only: blocks_ice, nblocks, halo_info, distrb_info, &
           ew_boundary_type, ns_boundary_type, init_domain_distribution
       use ice_fileunits, only: nu_diag, nu_grid, nu_kmt, &
-          get_fileunit, release_fileunit
+          get_fileunit, release_fileunit, flush_fileunit
       use ice_gather_scatter, only: gather_global, scatter_global
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc
@@ -384,11 +384,12 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
+! tcraig, tcx, this is temporary, see https://github.com/CICE-Consortium/CICE/issues/572
       tarea(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -486,7 +487,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     angle_0,angle_w,angle_s,angle_sw)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -642,7 +643,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -785,7 +786,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1104,7 +1105,7 @@
 
      !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,i,j)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1396,7 +1397,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1636,11 +1637,12 @@
       !-----------------------------------------------------------------
 
       bm = c0
+! tcraig, tcx, this is temporary, see https://github.com/CICE-Consortium/CICE/issues/572
       uvm = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1663,8 +1665,15 @@
                            field_loc_center, field_type_scalar)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         ! needs to cover halo OR need a halo update
          do j = 1, ny_block
          do i = 1, nx_block
             tmask(i,j,iblk) = .false.
@@ -1684,11 +1693,14 @@
          tarean(:,:,iblk) = c0
          tareas(:,:,iblk) = c0
 
-         do j = 1, ny_block
-         do i = 1, nx_block
+         do j = jlo,jhi
+         do i = ilo,ihi
 
-            if (ULAT(i,j,iblk) >= -puny) lmask_n(i,j,iblk) = .true. ! N. Hem.
-            if (ULAT(i,j,iblk) <  -puny) lmask_s(i,j,iblk) = .true. ! S. Hem.
+            if (ULAT(i,j,iblk) >= -puny) then
+               lmask_n(i,j,iblk) = .true. ! N. Hem.
+            else
+               lmask_s(i,j,iblk) = .true. ! S. Hem.
+            endif
 
             ! N hemisphere area mask (m^2)
             if (lmask_n(i,j,iblk)) tarean(i,j,iblk) = tarea(i,j,iblk) &
@@ -1743,7 +1755,7 @@
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
       !$OMP                     tx,ty,tz,da)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1915,7 +1927,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2000,7 +2012,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2073,7 +2085,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo

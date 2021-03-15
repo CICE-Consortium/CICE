@@ -13,3 +13,15 @@ restart        gx3     16x2x5x10x20  drakeX2            restart_gx3_4x2x25x29x4_
 restart        gx3     8x2x8x10x20   droundrobin,maskhalo   restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     1x4x25x29x16  droundrobin        restart_gx3_4x2x25x29x4_dslenderX2
 
+smoke        gx3     4x2x25x29x4   debug,run2day,dslenderX2
+smoke        gx3     1x1x25x58x8   debug,run2day,droundrobin,thread smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     20x1x5x116x1  debug,run2day,dslenderX1,thread  smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     6x2x4x29x18   debug,run2day,dspacecurve        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     8x2x10x12x16  debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     6x2x50x58x1   debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     4x2x19x19x10  debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     1x20x5x29x80  debug,run2day,dsectrobin,short   smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     16x2x5x10x20  debug,run2day,drakeX2            smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     8x2x8x10x20   debug,run2day,droundrobin,maskhalo   smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     1x6x25x29x16  debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+
