@@ -5189,6 +5189,11 @@
          call icepack_init_wave(nfreq,                 &
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
+         
+         do k = 1, nfreq
+             wave_spectrum(:,:,k,:) = wave_spectrum_profile(k)
+         end do
+
 
          ! read more realistic data from a file
          if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
