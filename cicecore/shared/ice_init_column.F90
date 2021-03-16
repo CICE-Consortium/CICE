@@ -188,7 +188,7 @@
           swgrid, igrid
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: dt, calendar_type, &
-          days_per_year, nextsw_cday, yday, sec
+          days_per_year, nextsw_cday, yday, msec
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc
       use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: alvdf, alidf, alvdr, alidr, &
@@ -356,7 +356,7 @@
                           calendar_type=calendar_type,                         &
                           days_per_year=days_per_year,                         &
                           nextsw_cday=nextsw_cday, yday=yday,                  &
-                          sec=sec,                                             &
+                          sec=msec,                                             &
                           kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
                           waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
                           gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &

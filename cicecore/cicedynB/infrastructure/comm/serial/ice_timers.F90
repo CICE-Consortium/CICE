@@ -52,6 +52,7 @@
       timer_hist,             &! diagnostics/history
       timer_bound,            &! boundary updates
       timer_bgc,              &! biogeochemistry
+      timer_forcing,          &! forcing
       timer_evp_1d,           &! timer only loop
       timer_evp_2d             ! timer including conversion 1d/2d
 !      timer_tmp               ! for temporary timings
@@ -193,8 +194,9 @@
    call get_ice_timer(timer_hist,     'History  ',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bound,    'Bound',    nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bgc,      'BGC',      nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_evp_1d,   '1d-evp', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_evp_2d,   '2d-evp', nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_forcing,  'Forcing',  nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_evp_1d,   '1d-evp',   nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_evp_2d,   '2d-evp',   nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_tmp,      '         ',nblocks,distrb_info%nprocs)
 
 !-----------------------------------------------------------------------

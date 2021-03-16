@@ -1,0 +1,2 @@
+setenv ICE_DRVOPT     unittest/helloworld
+setenv ICE_TARGET     helloworld

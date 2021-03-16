@@ -43,7 +43,7 @@
 
       subroutine CICE_Run
 
-      use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
+      use ice_calendar, only: istep, istep1, dt, stop_now, advance_timestep
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
@@ -82,11 +82,12 @@
 
          call ice_step
 
-         istep  = istep  + 1    ! update time step counters
-         istep1 = istep1 + 1
-         time = time + dt       ! determine the time and date
-
-         call calendar(time)    ! at the end of the timestep
+! tcraig, use advance_timestep now
+!         istep  = istep  + 1    ! update time step counters
+!         istep1 = istep1 + 1
+!         time = time + dt       ! determine the time and date
+!         call calendar(time)    ! at the end of the timestep
+         call advance_timestep()     ! advance time
 
 #ifndef CICE_IN_NEMO
          if (stop_now >= 1) exit timeLoop
