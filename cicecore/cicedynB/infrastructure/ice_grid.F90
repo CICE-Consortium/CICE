@@ -1196,15 +1196,9 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            ANGLE(i,j,iblk) = c0              ! "square with the world"
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+      hm (:,:,:) = c0
+      kmt(:,:,:) = c0
+      angle(:,:,:) = c0   ! "square with the world"
 
       allocate(work_g1(nx_global,ny_global))
 
