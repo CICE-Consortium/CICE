@@ -384,9 +384,6 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
-! tcraig, tcx, this is temporary, see https://github.com/CICE-Consortium/CICE/issues/572
-      tarea(:,:,:) = c0
-
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
@@ -1637,8 +1634,6 @@
       !-----------------------------------------------------------------
 
       bm = c0
-! tcraig, tcx, this is temporary, see https://github.com/CICE-Consortium/CICE/issues/572
-      uvm = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -1673,11 +1668,11 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         ! needs to cover halo OR need a halo update
-         do j = 1, ny_block
-         do i = 1, nx_block
-            tmask(i,j,iblk) = .false.
-            umask(i,j,iblk) = .false.
+         ! needs to cover halo (no halo update for logicals)
+         tmask(:,:,iblk) = .false.
+         umask(:,:,iblk) = .false.
+         do j = jlo-nghost, jhi+nghost
+         do i = ilo-nghost, ihi+nghost
             if ( hm(i,j,iblk) > p5) tmask(i,j,iblk) = .true.
             if (uvm(i,j,iblk) > p5) umask(i,j,iblk) = .true.
          enddo
