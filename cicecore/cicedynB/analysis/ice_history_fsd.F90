@@ -116,25 +116,6 @@
          call abort_ice(subname//'ERROR: reading icefields_fsd_nml')
       endif
 
-      if (.not. tr_fsd) then
-         f_afsd        = 'x'
-         f_afsdn       = 'x'
-         f_dafsd_newi  = 'x'
-         f_dafsd_latg  = 'x'
-         f_dafsd_latm  = 'x'
-         f_dafsd_wave  = 'x'
-         f_dafsd_weld  = 'x'
-         f_wave_sig_ht = 'x'
-         f_fsdrad      = 'x'
-         f_fsdperim    = 'x'
-         f_frachist    = 'x'
-      endif
-      if ((.not. tr_fsd) .or. (.not. wave_spec)) then
-         f_aice_ww  = 'x'
-         f_diam_ww  = 'x'
-         f_hice_ww  = 'x'
-      endif
-
       call broadcast_scalar (f_afsd, master_task)
       call broadcast_scalar (f_afsdn, master_task)
       call broadcast_scalar (f_dafsd_newi, master_task)
@@ -156,7 +137,7 @@
       do ns = 1, nstreams
 
       if (f_wave_sig_ht(1:1) /= 'x') &
-         call define_hist_field(n_wave_sig_ht,"wave_sig_ht","1",tstr2D, tcstr, &
+         call define_hist_field(n_wave_sig_ht,"wave_sig_ht","m",tstr2D, tcstr, &
              "significant height of wind and swell waves",  &
              "from attenuated spectrum in ice", c1, c0,     &
              ns, f_wave_sig_ht)
@@ -166,7 +147,7 @@
              "for waves", c1, c0,                           &
              ns, f_aice_ww)
       if (f_diam_ww(1:1) /= 'x') &
-         call define_hist_field(n_diam_ww,"diam_ww","1",tstr2D, tcstr, &
+         call define_hist_field(n_diam_ww,"diam_ww","m",tstr2D, tcstr, &
              "Average (number) diameter of floes > Dmin",   &
              "for waves", c1, c0,                           &
              ns, f_diam_ww)
@@ -186,6 +167,24 @@
 
 
       enddo ! nstreams
+
+      else  ! tr_fsd
+
+         f_afsd        = 'x'
+         f_afsdn       = 'x'
+         f_dafsd_newi  = 'x'
+         f_dafsd_latg  = 'x'
+         f_dafsd_latm  = 'x'
+         f_dafsd_wave  = 'x'
+         f_dafsd_weld  = 'x'
+         f_wave_sig_ht = 'x'
+         f_fsdrad      = 'x'
+         f_fsdperim    = 'x'
+         if (.not. wave_spec) then
+            f_aice_ww  = 'x'
+            f_diam_ww  = 'x'
+            f_hice_ww  = 'x'
+         endif
 
       endif ! tr_fsd
 
@@ -217,7 +216,7 @@
          if (histfreq(ns) /= 'x') then
 
          if (f_afsd(1:1) /= 'x') &
-            call define_hist_field(n_afsd,"afsd", "1", tstr3Df, tcstr, &
+            call define_hist_field(n_afsd,"afsd", "1/m", tstr3Df, tcstr, &
                "areal floe size distribution",                 &
                "per unit bin width ", c1, c0, ns, f_afsd)
          if (f_dafsd_newi(1:1) /= 'x') &
@@ -277,7 +276,7 @@
          if (histfreq(ns) /= 'x') then
 
          if (f_afsdn(1:1) /= 'x') &
-            call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, & 
+            call define_hist_field(n_afsdn,"afsdn","1/m",tstr4Df, tcstr, & 
                "areal floe size and thickness distribution",    &
                "per unit bin width", c1, c0, ns, f_afsdn)
 
@@ -435,11 +434,6 @@
          call accum_hist_field(n_fsdperim, iblk, worka, a2D)
       endif
 
-
-
-
-
-
       endif ! a2D allocated
 
       ! 3D category fields
@@ -484,19 +478,20 @@
       if (allocated(a4Df)) then
 
       if (f_afsdn(1:1) /= 'x') then
+         do n = 1, ncat_hist
+         do k = 1, nfsd_hist 
          do j = 1, ny_block
          do i = 1, nx_block
-            do n = 1, ncat_hist
-            do k = 1, nfsd_hist 
-               workd(i,j,k,n) = trcrn(i,j,nt_fsd+k-1,n,iblk) &
-                              * aicen_init(i,j,n,iblk)/floe_binwidth(k)
-            end do
-            end do
+            workd(i,j,k,n) = trcrn(i,j,nt_fsd+k-1,n,iblk) &
+                           * aicen_init(i,j,n,iblk)/floe_binwidth(k)
          end do
          end do
-         call accum_hist_field(n_afsdn-n4Dscum, iblk, &
-                               nfsd_hist, ncat_hist, workd, a4Df)
+         end do
+         end do
+         call accum_hist_field(n_afsdn-n4Dscum, iblk, nfsd_hist, ncat_hist, &
+                               workd(:,:,1:nfsd_hist,1:ncat_hist), a4Df)
       endif
+
       endif ! a4Df allocated
 
       endif ! tr_fsd

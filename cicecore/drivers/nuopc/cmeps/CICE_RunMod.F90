@@ -15,7 +15,7 @@
       module CICE_RunMod
 
       use ice_kinds_mod
-      use perf_mod, only : t_startf, t_stopf, t_barrierf
+      use cice_wrapper_mod, only : t_startf, t_stopf, t_barrierf
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: oceanmixed_ice
       use ice_constants, only: c0, c1
@@ -77,48 +77,22 @@
    ! timestep loop
    !--------------------------------------------------------------------
 
-!      timeLoop: do
+      istep  = istep  + 1    ! update time step counters
+      istep1 = istep1 + 1
+      time = time + dt       ! determine the time and date
 
-!         call ice_step
+      call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-         istep  = istep  + 1    ! update time step counters
-         istep1 = istep1 + 1
-         time = time + dt       ! determine the time and date
+      if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-!         call calendar(time)    ! at the end of the timestep
+      call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
+      call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
-         call ice_timer_start(timer_couple)  ! atm/ocn coupling
+      call calendar(time)    ! at the end of the timestep
 
-#ifndef coupled
-#ifndef CESMCOUPLED
-! for now, wave_spectrum is constant in time
-!         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
-         call get_forcing_atmo     ! atmospheric forcing from data
-         call get_forcing_ocn(dt)  ! ocean forcing from data
+      call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
-         ! isotopes
-         if (tr_iso)     call fiso_default                 ! default values
-         ! aerosols
-         ! if (tr_aero)  call faero_data                   ! data file
-         ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
-         if (tr_aero .or. tr_zaero)  call faero_default    ! default values
-
-         if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
-#endif
-#endif
-         if (z_tracers) call get_atm_bgc                   ! biogeochemistry
-
-         call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
-         call init_flux_ocn  ! initialize ocean fluxes sent to coupler
-
-         call calendar(time)    ! at the end of the timestep
-
-         call ice_timer_stop(timer_couple)    ! atm/ocn coupling
-
-         call ice_step
-
-!         if (stop_now >= 1) exit timeLoop
-!      enddo timeLoop
+      call ice_step
 
    !--------------------------------------------------------------------
    ! end of timestep loop
@@ -207,12 +181,14 @@
          call init_history_bgc
          call ice_timer_stop(timer_diags)   ! diagnostics/history
 
+#ifdef CESMCOUPLED
          if (prescribed_ice) then  ! read prescribed ice
             call t_barrierf('cice_run_presc_BARRIER',MPI_COMM_ICE)
             call t_startf ('cice_run_presc')
             call ice_prescribed_run(idate, sec)
             call t_stopf ('cice_run_presc')
          endif
+#endif
 
          call save_init
 
@@ -370,11 +346,12 @@
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
+          fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
+          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask
@@ -567,7 +544,12 @@
                             evap     (:,:,iblk),                     &
                             Tref     (:,:,iblk), Qref    (:,:,iblk), &
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
-                            fhocn    (:,:,iblk), fswthru (:,:,iblk), &
+                            fhocn    (:,:,iblk),                     &
+                            fswthru  (:,:,iblk),                     &
+                            fswthru_vdr(:,:,iblk),                   &
+                            fswthru_vdf(:,:,iblk),                   &
+                            fswthru_idr(:,:,iblk),                   &
+                            fswthru_idf(:,:,iblk),                   &
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &

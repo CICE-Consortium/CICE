@@ -92,21 +92,19 @@
 
          call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-#ifndef coupled
-#ifndef CESMCOUPLED
+! standalone
 ! for now, wave_spectrum is constant in time
 !         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
-         call get_forcing_atmo     ! atmospheric forcing from data
-         call get_forcing_ocn(dt)  ! ocean forcing from data
+!         call get_forcing_atmo     ! atmospheric forcing from data
+!         call get_forcing_ocn(dt)  ! ocean forcing from data
 
-         ! aerosols
-         ! if (tr_aero)  call faero_data                   ! data file
-         ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
-         if (tr_aero .or. tr_zaero)  call faero_default    ! default values
+!         ! aerosols
+!         ! if (tr_aero)  call faero_data                   ! data file
+!         ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
+!         if (tr_aero .or. tr_zaero)  call faero_default    ! default values
 
-         if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
-#endif
-#endif
+!         if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
+
          if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
          call init_flux_atm     ! initialize atmosphere fluxes sent to coupler
@@ -355,6 +353,7 @@
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
+          fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyt, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           fsurfn_f, flatn_f, scale_fluxes, frzmlt_init, frzmlt
@@ -530,6 +529,10 @@
                             Tref     (:,:,iblk), Qref    (:,:,iblk), &
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
                             fhocn    (:,:,iblk), fswthru (:,:,iblk), &
+                            fswthru_vdr(:,:,iblk),                   &
+                            fswthru_vdf(:,:,iblk),                   &
+                            fswthru_idr(:,:,iblk),                   &
+                            fswthru_idf(:,:,iblk),                   &
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &

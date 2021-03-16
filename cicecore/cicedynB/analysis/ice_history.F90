@@ -30,10 +30,11 @@
       module ice_history
 
       use ice_kinds_mod
+      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, c2, c100, c360, c180, &
           p001, p25, p5, mps_to_cmpdy, kg_to_g, spval
       use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
-          get_fileunit, release_fileunit
+          get_fileunit, release_fileunit, flush_fileunit
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_snow_temperature, icepack_ice_temperature
@@ -62,7 +63,6 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_communicate, only: my_task, master_task
       use ice_calendar, only: yday, days_per_year, histfreq, &
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
@@ -937,12 +937,12 @@
              ns1, f_strinty)
 
          call define_hist_field(n_taubx,"taubx","N/m^2",ustr2D, ucstr,   &
-             "basal (seabed) stress (x)",                                &
+             "seabed (basal) stress (x)",                                &
              "positive is x direction on U grid", c1, c0,                &
              ns1, f_taubx)
 
          call define_hist_field(n_tauby,"tauby","N/m^2",ustr2D, ucstr,   &
-             "basal (seabed) stress (y)",                                &
+             "seabed (basal) stress (y)",                                &
              "positive is y direction on U grid", c1, c0,                &
              ns1, f_tauby)
       
@@ -1642,10 +1642,6 @@
             if (allocated(Tsnz4d)) deallocate(Tsnz4d)
             allocate(Tsnz4d(nx_block,ny_block,nzslyr,ncat_hist))
        endif
-       if (f_Sinz   (1:1) /= 'x') then
-            if (allocated(Sinz4d)) deallocate(Sinz4d)
-            allocate(Sinz4d(nx_block,ny_block,nzilyr,ncat_hist))
-       endif
 
       !-----------------------------------------------------------------
       ! 4D (floe size, thickness categories) variables looped separately
@@ -1688,6 +1684,8 @@
       ntmp(:) = 0
       if (my_task == master_task) then
         write(nu_diag,*) ' '
+        write(nu_diag,*) 'total number of history fields = ',num_avail_hist_fields_tot
+        write(nu_diag,*) 'max number of history fields   = ',max_avail_hist_fields
         write(nu_diag,*) 'The following variables will be ', &
                          'written to the history tape: '
         write(nu_diag,101) 'description','units','variable','frequency','x'
@@ -1759,7 +1757,7 @@
       if (allocated(a3Df)) a3Df(:,:,:,:,:)   = c0
       if (allocated(a4Di)) a4Di(:,:,:,:,:,:) = c0
       if (allocated(a4Ds)) a4Ds(:,:,:,:,:,:) = c0
-      if (allocated(a4Ds)) a4Df(:,:,:,:,:,:) = c0
+      if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
       avgct(:) = c0
       albcnt(:,:,:,:) = c0
 
@@ -3042,7 +3040,7 @@
                enddo
                enddo
             enddo
-            call accum_hist_field(n_Tinz-n3Dacum, iblk, nzilyr, ncat_hist, &
+            call accum_hist_field(n_Tinz-n3Dfcum, iblk, nzilyr, ncat_hist, &
                                   Tinz4d(:,:,1:nzilyr,1:ncat_hist), a4Di)
          endif
          if (f_Sinz   (1:1) /= 'x') then
@@ -3056,7 +3054,7 @@
                enddo
                enddo
             enddo
-            call accum_hist_field(n_Sinz-n3Dacum, iblk, nzilyr, ncat_hist, &
+            call accum_hist_field(n_Sinz-n3Dfcum, iblk, nzilyr, ncat_hist, &
                                   Sinz4d(:,:,1:nzilyr,1:ncat_hist), a4Di)
          endif
          
@@ -3869,7 +3867,7 @@
            enddo                ! n
 
            do n = 1, num_avail_hist_fields_4Di
-              nn = n3Dacum + n
+              nn = n3Dfcum + n
               if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then 
               do k = 1, nzilyr
               do ic = 1, ncat_hist
@@ -4144,7 +4142,7 @@
            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Df(:,:,:,nn,:) = c0
         enddo
         do n = n3Dfcum + 1, n4Dicum
-           nn = n - n3Dacum
+           nn = n - n3Dfcum
            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a4Di(:,:,:,:,nn,:) = c0
         enddo
         do n = n4Dicum + 1, n4Dscum

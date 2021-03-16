@@ -1,15 +1,18 @@
 dt = 3600.0
 runtype = 'initial'
+year_init      = 2005
+use_leap_years = .true.
+use_restart_time = .false.
 ice_ic  = 'ICE_MACHINE_INPUTDATA/CICE_data/ic/gx3/iced_gx3_v5.nc'
 grid_format = 'bin'
 grid_type   = 'displaced_pole'
 grid_file   = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx3/grid_gx3.bin'
 kmt_file    = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx3/kmt_gx3.bin'
 bathymetry_file = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx3/global_gx3.bathy.nc'
-fyear_init      = 1997
-atm_data_format = 'bin'
-atm_data_type   = 'ncar'
-atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx3/NCAR_bulk'
+fyear_init      = 2005
+atm_data_format = 'nc'
+atm_data_type   = 'JRA55_gx3'
+atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx3/JRA55'
+precip_units    = 'mks'
 ocn_data_format = 'bin'
 ocn_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx3/'
-

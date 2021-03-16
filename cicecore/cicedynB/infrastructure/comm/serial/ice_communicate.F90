@@ -27,6 +27,9 @@
       my_task,                  &! MPI task number for this task
       master_task                ! task number of master task
 
+   logical (log_kind), public :: &
+      add_mpi_barriers      = .false. ! turn on mpi barriers for throttling
+
 !***********************************************************************
 
  contains
@@ -43,12 +46,6 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef coupled
-   use mpi   ! MPI Fortran module
-
-   integer (int_kind) :: ierr  ! MPI error flag
-#endif
-
    character(len=*), parameter :: subname = '(init_communicate)'
 
 !-----------------------------------------------------------------------
@@ -58,27 +55,9 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef coupled
-   call MPI_INIT(ierr)
-   call MPI_COMM_RANK  (MPI_COMM_ICE, my_task, ierr)
-#else
    my_task = 0
-#endif
-
    master_task = 0
 
-#ifdef coupled
-!-----------------------------------------------------------------------
-!
-!  On some 64-bit machines where real_kind and dbl_kind are
-!  identical, the MPI implementation uses MPI_REAL for both.
-!  In these cases, set MPI_DBL to MPI_REAL.
-!
-!-----------------------------------------------------------------------
-
-   MPI_DBL = MPI_DOUBLE_PRECISION
-
-#endif
 !-----------------------------------------------------------------------
 
  end subroutine init_communicate
@@ -136,11 +115,6 @@
 !  this routine should be called from init_domain1 when the
 !  domain configuration (e.g. nprocs_btrop) has been determined
 
-#ifdef coupled
-
-   use mpi   ! MPI Fortran module
-
-#endif
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: &
@@ -151,54 +125,8 @@
    integer (int_kind), intent(out) :: &
       new_comm          ! new communicator for this distribution
 
-#ifdef coupled
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-     MPI_GROUP_ICE,         &! group of processors assigned to ice
-     MPI_GROUP_NEW           ! group of processors assigned to new dist
-
-   integer (int_kind) :: &
-     ierr                    ! error flag for MPI comms
-
-   integer (int_kind), dimension(3) :: &
-     range                   ! range of tasks assigned to new dist
-                             !  (assumed 0,num_procs-1)
-
-   character(len=*), parameter :: subname = '(create_communicator)'
-
-!-----------------------------------------------------------------------
-!
-!  determine group of processes assigned to distribution
-!
-!-----------------------------------------------------------------------
-
-   call MPI_COMM_GROUP (MPI_COMM_ICE, MPI_GROUP_ICE, ierr)
-
-   range(1) = 0
-   range(2) = num_procs-1
-   range(3) = 1
-
-!-----------------------------------------------------------------------
-!
-!  create subroup and communicator for new distribution
-!  note: MPI_COMM_CREATE must be called by all procs in MPI_COMM_ICE
-!
-!-----------------------------------------------------------------------
-
-   call MPI_GROUP_RANGE_INCL(MPI_GROUP_ICE, 1, range, &
-                             MPI_GROUP_NEW, ierr)
-
-   call MPI_COMM_CREATE (MPI_COMM_ICE, MPI_GROUP_NEW,  &
-                         new_comm, ierr)
-
-#else
    new_comm = MPI_COMM_ICE
-#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine create_communicator

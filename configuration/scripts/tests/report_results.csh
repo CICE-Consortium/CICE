@@ -25,7 +25,7 @@ set wikirepo = "https://github.com/CICE-Consortium/Test-Results.wiki.git"
 set wikiname = Test-Results.wiki
 
 rm -r -f ${wikiname}
-git clone ${wikirepo} ${wikiname}
+git clone --depth=1 ${wikirepo} ${wikiname}
 if ($status != 0) then
   echo " "
   echo "${0}: ERROR git clone failed"
@@ -49,7 +49,7 @@ set totl = `grep "#totl = " results.log | cut -c 9-`
 set pass = `grep "#pass = " results.log | cut -c 9-`
 set fail = `grep "#fail = " results.log | cut -c 9-`
 set cases = `grep -v "#" results.log | grep ${mach}_ | cut -d " " -f 2 | sort -u`
-set compilers = `grep -v "#" results.log | grep ${mach}_ | cut -d "_" -f 2 | sort -u`
+set envnames = `grep -v "#" results.log | grep ${mach}_ | cut -d "_" -f 2 | sort -u`
 
 #echo "debug ${repo}"
 #echo "debug ${bran}"
@@ -93,12 +93,15 @@ unset noglob
 # Create results table
 #==============================================================
 
-foreach compiler ( ${compilers} )
+foreach envname ( ${envnames} )
+
+  set machinfo = `grep -m 1 "#machinfo = " results.log | cut -d = -f 2`
+  set envinfo = `grep -m 1 "#envinfo ${envname} = " results.log | cut -d = -f 2`
 
   set cnt = 0
   set found = 1
   while ($found == 1)
-    set ofile = "${shhash}.${mach}.${compiler}.${xcdat}.${xctim}.$cnt"
+    set ofile = "${shhash}.${mach}.${envname}.${xcdat}.${xctim}.$cnt"
     set outfile = "${wikiname}/${tsubdir}/${ofile}.md"
     if (-e ${outfile}) then
       @ cnt = $cnt + 1
@@ -126,7 +129,7 @@ EOF
 @ rothr = 0
 
 foreach case ( ${cases} )
-if ( ${case} =~ *_${compiler}_* ) then
+if ( ${case} =~ *_${envname}_* ) then
 
 # check that case results are meaningful
   set fbuild = `grep " ${case} " results.log | grep " build"   | cut -c 1-4`
@@ -292,7 +295,9 @@ cat >! ${outfile} << EOF
 - hash = ${hash}
 - hash created by ${hashuser} ${hashdate}
 - vers = ${vers}
-- tested on ${mach}, ${compiler}, ${user}, ${cdat} ${ctim} UTC
+- tested by ${user}, ${cdat} ${ctim} UTC
+- ${mach} : ${machinfo}
+- ${envname} : ${envinfo}
 - ${ttotl} total tests: ${tpass} pass, ${tfail} fail
 - ${ttotl} total regressions: ${rpass} pass, ${rfail} fail, ${rothr} other
 EOF
@@ -326,9 +331,9 @@ if ($chk == 0) then
 cat >! ${hashfile} << EOF
 #### ${hash}
 
-| machine | compiler | version | date | test fail | comp fail | total |
+| machine | envname | version | date | test fail | comp fail | total |
 | ------ | ------ | ------ | ------  | ------ | ------ | ------ |
-| ${mach} | ${compiler} | ${vers} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) |
+| ${mach} | ${envname} | ${vers} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) |
 
 EOF
 if (-e ${hashfile}.prev) cat ${hashfile}.prev >> ${hashfile}
@@ -336,7 +341,7 @@ if (-e ${hashfile}.prev) cat ${hashfile}.prev >> ${hashfile}
 else
   set oline = `grep -n "#### ${hash}" ${hashfile} | head -1 | cut -d : -f 1`
   @ nline = ${oline} + 3
-  sed -i "$nline a | ${mach} | ${compiler} | ${vers} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${hashfile}
+  sed -i "$nline a | ${mach} | ${envname} | ${vers} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${hashfile}
 endif
 
 #=====================
@@ -350,9 +355,9 @@ if ($chk == 0) then
 cat >! ${machfile} << EOF
 #### ${mach}
 
-| version | hash | compiler | date | test fail | comp fail | total |
+| version | hash | envname | date | test fail | comp fail | total |
 | ------ | ------ | ------ | ------ | ------  | ------ | ------ |
-| ${vers} | ${shhash} | ${compiler} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) |
+| ${vers} | ${shhash} | ${envname} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) |
 
 EOF
 if (-e ${machfile}.prev) cat ${machfile}.prev >> ${machfile}
@@ -360,10 +365,10 @@ if (-e ${machfile}.prev) cat ${machfile}.prev >> ${machfile}
 else
   set oline = `grep -n "#### ${mach}" ${machfile} | head -1 | cut -d : -f 1`
   @ nline = ${oline} + 3
-  sed -i "$nline a | ${vers} | ${shhash} | ${compiler} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${machfile}
+  sed -i "$nline a | ${vers} | ${shhash} | ${envname} | ${cdat} | ${tcolor} ${tfail}, ${tunkn} | ${rcolor} ${rfail}, ${rothr} | [${ttotl}](${ofile}) | " ${machfile}
 endif
 
-#foreach compiler
+#foreach envname
 end
 
 #=====================

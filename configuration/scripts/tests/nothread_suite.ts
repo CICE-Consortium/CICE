@@ -14,7 +14,7 @@ smoke          gx3     16x1       diag24,run1year,medium
 #restart        tx1     160x1      dsectrobin,medium
 
 restart        gx3     16x1       none
-restart        gx3     16x1       iobinary
+restart        gx3     16x1       gx3ncarbulk,iobinary
 
 restart        gx3     12x1       alt01
 restart        gx3     16x1       alt02
@@ -43,11 +43,11 @@ smoke          gbox128 24x1       boxrestore,short,debug
 restart        gbox80  1x1        box2001
 smoke          gbox80  1x1        boxslotcyl
 
-smoke          gx3     16x1        jra55_gx3_2008,medium,run90day
-restart        gx3     12x1        jra55_gx3,short
+smoke          gx3     16x1        medium,run90day,yi2008
+restart        gx3     12x1        short
 #tcraig, hangs nodes intermittently on izumi
-#smoke          gx1     24x1       jra55_gx1_2008,medium,run90day
-#restart        gx1     24x1       jra55_gx1,short
+#smoke          gx1     24x1       medium,run90day,yi2008
+#restart        gx1     24x1       short
 
 smoke          gx3     16x1       bgcz
 smoke          gx3     16x1       bgcz,debug
@@ -56,7 +56,7 @@ smoke          gx3     24x1       bgcskl,debug
 #restart        gx1     128x1      bgcsklclim,medium
 #restart        gx1     256x1      bgczclim,medium
 
-decomp         gx3     8x1x5x29x20
+decomp         gx3     8x1x5x29x20   none
 restart        gx3     1x1x50x58x4   droundrobin        restart_gx3_8x1x25x29x2_dslenderX2
 restart        gx3     4x1x25x116x1  dslenderX1         restart_gx3_8x1x25x29x2_dslenderX2
 restart        gx3     12x1x4x29x9   dspacecurve        restart_gx3_8x1x25x29x2_dslenderX2

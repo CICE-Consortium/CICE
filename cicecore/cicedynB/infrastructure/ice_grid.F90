@@ -1,3 +1,6 @@
+#ifdef ncdf
+#define USE_NETCDF
+#endif
 !=======================================================================
 
 ! Spatial grids, masks, and boundary conditions
@@ -44,7 +47,8 @@
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
-         bathymetry_file, & !  input bathymetry for basalstress
+         bathymetry_file, & !  input bathymetry for seabed stress
+         bathymetry_format, & ! bathymetry file format (default or pop)
          grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
@@ -132,6 +136,10 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
+
+      logical (kind=log_kind), private :: &
+         l_readCenter ! If anglet exist in grid file read it otherwise calculate it
+
 
 !=======================================================================
 
@@ -332,7 +340,7 @@
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, &
          pi, pi2, puny
-!      real (kind=dbl_kind) :: ANGLET_dum
+
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
 
@@ -470,11 +478,10 @@
       !-----------------------------------------------------------------
       ! Compute ANGLE on T-grid
       !-----------------------------------------------------------------
-      ANGLET = c0
-      
       if (trim(grid_type) == 'cpom_grid') then
          ANGLET(:,:,:) = ANGLE(:,:,:)
-      else
+      else if (.not. (l_readCenter)) then
+          ANGLET = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     angle_0,angle_w,angle_s,angle_sw)
@@ -504,7 +511,8 @@
       enddo
       !$OMP END PARALLEL DO
       endif ! cpom_grid
-      if (trim(grid_type) == 'regional') then
+      if (trim(grid_type) == 'regional' .and. &
+          (.not. (l_readCenter))) then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
@@ -531,18 +539,21 @@
       call ice_timer_stop(timer_bound)
 
       call makemask          ! velocity mask, hemisphere masks
-
-      call Tlatlon           ! get lat, lon on the T grid
-
+      if (.not. (l_readCenter)) then
+         call Tlatlon           ! get lat, lon on the T grid
+      endif
       !-----------------------------------------------------------------
       ! bathymetry
       !-----------------------------------------------------------------
 
-#ifdef RASM_MODS
-      call get_bathymetry_popfile
-#else
-      call get_bathymetry
-#endif
+      if (trim(bathymetry_format) == 'default') then
+         call get_bathymetry
+      elseif (trim(bathymetry_format) == 'pop') then
+         call get_bathymetry_popfile
+      else
+         call abort_ice(subname//'ERROR: bathymetry_format value must be default or pop', &
+            file=__FILE__, line=__LINE__)
+      endif
 
       !----------------------------------------------------------------
       ! Corner coordinates for CF compliant history files
@@ -710,12 +721,14 @@
 
       subroutine popgrid_nc
 
-#ifdef ncdf
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
+#ifdef USE_NETCDF
+      use netcdf
+#endif
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -739,9 +752,16 @@
 
       type (block) :: &
          this_block           ! block information for current block
+      
+      integer(kind=int_kind) :: &
+         varid
+      integer (kind=int_kind) :: &
+         status                ! status flag
+
 
       character(len=*), parameter :: subname = '(popgrid_nc)'
 
+#ifdef USE_NETCDF
       call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -751,7 +771,7 @@
       call ice_open_nc(kmt_file,fid_kmt)
 
       diag = .true.       ! write diagnostic info
-
+      l_readCenter = .false.
       !-----------------------------------------------------------------
       ! topography
       !-----------------------------------------------------------------
@@ -806,11 +826,37 @@
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_angle)
-
       ! fix ANGLE: roundoff error due to single precision
       where (ANGLE >  pi) ANGLE =  pi
       where (ANGLE < -pi) ANGLE = -pi
 
+      ! if grid file includes anglet then read instead
+      fieldname='anglet'
+      if (my_task == master_task) then
+         status = nf90_inq_varid(fid_grid, trim(fieldname) , varid)
+         if (status /= nf90_noerr) then
+            write(nu_diag,*) subname//' CICE will calculate angleT, TLON and TLAT'
+         else
+            write(nu_diag,*) subname//' angleT, TLON and TLAT is read from grid file'
+            l_readCenter = .true.
+         endif
+      endif
+      call broadcast_scalar(l_readCenter,master_task)
+      if (l_readCenter) then
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) 
+         call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_angle)
+         where (ANGLET >  pi) ANGLET =  pi
+         where (ANGLET < -pi) ANGLET = -pi
+         fieldname="tlon"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(TLON, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_scalar)
+         fieldname="tlat"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(TLAT, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_scalar)
+      endif
       !-----------------------------------------------------------------
       ! cell dimensions
       ! calculate derived quantities from global arrays to preserve 
@@ -820,7 +866,6 @@
       fieldname='htn'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
       call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
-
       fieldname='hte'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
@@ -831,8 +876,11 @@
          call ice_close_nc(fid_grid)
          call ice_close_nc(fid_kmt)
       endif
-
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
 #endif
+
       end subroutine popgrid_nc
 
 #ifdef CESMCOUPLED
@@ -845,13 +893,14 @@
 
       subroutine latlongrid
 
-#ifdef ncdf
 !     use ice_boundary
       use ice_domain_size
       use ice_scam, only : scmlat, scmlon, single_column
       use ice_constants, only: c0, c1, p5, p25, &
           field_loc_center, field_type_scalar, radius
+#ifdef USE_NETCDF
       use netcdf
+#endif
 
       integer (kind=int_kind) :: &
          i, j, iblk    
@@ -893,6 +942,7 @@
 
       character(len=*), parameter :: subname = '(lonlatgrid)'
 
+#ifdef USE_NETCDF
       !-----------------------------------------------------------------
       ! - kmt file is actually clm fractional land file
       ! - Determine consistency of dimensions
@@ -1105,6 +1155,9 @@
       !$OMP END PARALLEL DO
 
       call makemask
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine latlongrid
@@ -1610,7 +1663,7 @@
                            field_loc_center, field_type_scalar)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
@@ -1737,7 +1790,6 @@
          enddo                  ! j         
       enddo                     ! iblk
       !$OMP END PARALLEL DO
-
       if (trim(grid_type) == 'regional') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -2291,9 +2343,9 @@
       end subroutine gridbox_verts
 
 !=======================================================================
-! ocean bathymetry for grounded sea ice (basalstress) or icebergs
+! ocean bathymetry for grounded sea ice (seabed stress) or icebergs
 ! currently hardwired for 40 levels (gx3, gx1 grids)
-! should be read from a file instead (see subroutine read_basalstress_bathy)
+! should be read from a file instead (see subroutine read_seabedstress_bathy)
 
       subroutine get_bathymetry
 
@@ -2335,7 +2387,7 @@
 
       if (use_bathymetry) then
 
-         call read_basalstress_bathy
+         call read_seabedstress_bathy
 
       else
 
@@ -2411,7 +2463,7 @@
          ! create thickness profile
          k1 = min(5,nlevel)
          do k = 1,k1
-            thick(k) = max(10000._dbl_kind/float(nlevel),500.)
+            thick(k) = max(10000._dbl_kind/float(nlevel),500._dbl_kind)
          enddo
          do k = k1+1,nlevel
             thick(k) = min(thick(k-1)*1.2_dbl_kind,20000._dbl_kind)
@@ -2452,18 +2504,17 @@
 
 !=======================================================================
 
-! Read bathymetry data for basal stress calculation (grounding scheme for 
+! Read bathymetry data for seabed stress calculation (grounding scheme for 
 ! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode 
 ! (e.g. CICE-NEMO), hwater should be uptated at each time level so that 
 ! it varies with ocean dynamics.
 !
 ! author: Fred Dupont, CMC
       
-      subroutine read_basalstress_bathy
+      subroutine read_seabedstress_bathy
 
       ! use module
       use ice_read_write
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_type_scalar
 
       ! local variables
@@ -2475,14 +2526,12 @@
 
       logical (kind=log_kind) :: diag=.true.
 
-      character(len=*), parameter :: subname = '(read_basalstress_bathy)'
+      character(len=*), parameter :: subname = '(read_seabedstress_bathy)'
 
       if (my_task == master_task) then
-
           write (nu_diag,*) ' '
           write (nu_diag,*) 'Bathymetry file: ', trim(bathymetry_file)
           call icepack_warnings_flush(nu_diag)
-
       endif
 
       call ice_open_nc(bathymetry_file,fid_init)
@@ -2491,7 +2540,6 @@
 
       if (my_task == master_task) then
          write(nu_diag,*) 'reading ',TRIM(fieldname)
-         write(*,*) 'reading ',TRIM(fieldname)
          call icepack_warnings_flush(nu_diag)
       endif
       call ice_read_nc(fid_init,1,fieldname,bathymetry,diag, &
@@ -2505,7 +2553,7 @@
          call icepack_warnings_flush(nu_diag)
       endif
 
-      end subroutine read_basalstress_bathy
+      end subroutine read_seabedstress_bathy
       
 !=======================================================================
 

@@ -65,9 +65,7 @@
    ! quit MPI
    !-------------------------------------------------------------------
 
-#ifndef coupled
       call end_run       ! quit MPI
-#endif
 
       end subroutine CICE_Finalize
 
