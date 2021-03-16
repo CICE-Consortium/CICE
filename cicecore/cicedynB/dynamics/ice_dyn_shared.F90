@@ -40,13 +40,11 @@
          ssh_stress     ! 'geostrophic' or 'coupled'
 
       logical (kind=log_kind), public :: &
-         revised_evp ! if true, use revised evp procedure
+         revised_evp    ! if true, use revised evp procedure
 
-      integer (kind=int_kind), public :: &
-         kevp_kernel ! 0 = 2D org version
-                     ! 1 = 1D representation raw (not implemented)
-                     ! 2 = 1D + calculate distances inline (implemented)
-                     ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
+      character (len=char_len), public :: &
+         evp_algorithm  ! standard_2d = 2D org version (standard)
+                        ! shared_mem_1d = 1d without mpi call and refactorization to 1d 
       ! other EVP parameters
 
       character (len=char_len), public :: & 

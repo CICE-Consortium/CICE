@@ -95,7 +95,7 @@
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
-      use ice_dyn_shared, only: kevp_kernel, stack_velocity_field, unstack_velocity_field
+      use ice_dyn_shared, only: evp_algorithm, stack_velocity_field, unstack_velocity_field
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -355,19 +355,17 @@
        !$OMP END PARALLEL DO
       endif
       call ice_timer_start(timer_evp_2d)
-      if (kevp_kernel > 0) then
+      if (evp_algorithm == "shared_mem_1d" ) then
         if (first_time .and. my_task == 0) then
-          write(nu_diag,'(2a,i6)') subname,' Entering kevp_kernel version ',kevp_kernel
+          write(nu_diag,'(3a)') subname,' Entering evp_algorithm version ',evp_algorithm
           first_time = .false.
         endif
         if (trim(grid_type) == 'tripole') then
           call abort_ice(trim(subname)//' &
-             & Kernel not tested on tripole grid. Set kevp_kernel=0')
+             & Kernel not tested on tripole grid. Set evp_algorithm=standard_2d')
         endif
         call ice_dyn_evp_1d_copyin(                                                &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
-!v1          dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,                           &
-!v1          waterx,watery,                                                &
           icetmask, iceumask,                                           &
           cdn_ocn,aiu,uocn,vocn,forcex,forcey,Tbu,        &
           umassdti,fm,uarear,tarear,strintx,strinty,uvel_init,vvel_init,&
@@ -375,17 +373,10 @@
           stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
           stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
           stress12_1,stress12_2,stress12_3,stress12_4                   )
-        if (kevp_kernel == 2) then
           call ice_timer_start(timer_evp_1d)
           call ice_dyn_evp_1d_kernel()
           call ice_timer_stop(timer_evp_1d)
-!v1        else if (kevp_kernel == 1) then
-!v1          call evp_kernel_v1()
-        else
-          if (my_task == 0) write(nu_diag,*) subname,' ERROR: kevp_kernel = ',kevp_kernel
-          call abort_ice(subname//' kevp_kernel not supported.')
-        endif
-        call ice_dyn_evp_1d_copyout(                                               &
+          call ice_dyn_evp_1d_copyout(                                      &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
 !strocn          uvel,vvel, strocnx,strocny, strintx,strinty,                  &
           uvel,vvel, strintx,strinty,                                   &
@@ -394,7 +385,7 @@
           stress12_1,stress12_2,stress12_3,stress12_4,                  &
           divu,rdg_conv,rdg_shear,shear,taubx,tauby                     )
 
-      else ! kevp_kernel == 0 (Standard CICE)
+      else ! evp_algorithm == standard_2d (Standard CICE)
 
       do ksub = 1,ndte        ! subcycling
 
@@ -462,7 +453,7 @@
          call unstack_velocity_field(fld2, uvel, vvel)
          
       enddo                     ! subcycling
-      endif  ! kevp_kernel
+      endif  ! evp_algorithm
       call ice_timer_stop(timer_evp_2d)
 
       deallocate(fld2)
