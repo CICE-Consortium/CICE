@@ -3726,7 +3726,7 @@
 !              call ice_read_nc(fid, m, vname(n), work1, dbug, &
 !                               field_loc_NEcorner, field_type_vector)
 !           else
-               call ice_read_nc(fid, m, vname(n), work1, .true., &
+               call ice_read_nc(fid, m, vname(n), work1, dbug, &
                                 field_loc_center, field_type_scalar)
 !           endif
 
@@ -4071,7 +4071,6 @@
         !$OMP END PARALLEL DO
       endif
 
-      dbug = .true.
       if (dbug) then
          if (my_task == master_task)  &
                write (nu_diag,*) 'ocn_data_ncar'
