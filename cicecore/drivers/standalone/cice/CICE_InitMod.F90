@@ -158,7 +158,6 @@
 
 !     call calendar(time)       ! determine the initial date
 
-      call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
@@ -201,6 +200,7 @@
    !--------------------------------------------------------------------
 
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
+      call init_forcing_ocn(dt) ! initialize sss and sst from data
 
       if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
       call get_forcing_atmo     ! atmospheric forcing from data

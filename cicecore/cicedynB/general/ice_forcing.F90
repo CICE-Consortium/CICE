@@ -469,8 +469,8 @@
       endif                        ! ocn_data_type
 
       if (trim(ocn_data_type) == 'ncar') then
-!         call ocn_data_ncar_init
-         call ocn_data_ncar_init_3D
+         call ocn_data_ncar_init
+!        call ocn_data_ncar_init_3D
       endif
 
       if (trim(ocn_data_type) == 'hycom') then
@@ -3722,13 +3722,14 @@
           do m=1,12
                 
             ! Note: netCDF does single to double conversion if necessary
-            if (n >= 4 .and. n <= 7) then
-               call ice_read_nc(fid, m, vname(n), work1, dbug, &
-                                field_loc_NEcorner, field_type_vector)
-            else
-               call ice_read_nc(fid, m, vname(n), work1, dbug, &
+!           if (n >= 4 .and. n <= 7) then
+!              call ice_read_nc(fid, m, vname(n), work1, dbug, &
+!                               field_loc_NEcorner, field_type_vector)
+!           else
+               call ice_read_nc(fid, m, vname(n), work1, .true., &
                                 field_loc_center, field_type_scalar)
-            endif
+!           endif
+
             ocn_frc_m(:,:,:,n,m) = work1(:,:,:)
 
           enddo               ! month loop
@@ -3764,8 +3765,8 @@
       endif
 
 !echmod - currents cause Fram outflow to be too large
-              ocn_frc_m(:,:,:,4,:) = c0
-              ocn_frc_m(:,:,:,5,:) = c0
+!             ocn_frc_m(:,:,:,4,:) = c0
+!             ocn_frc_m(:,:,:,5,:) = c0
 !echmod
 
       end subroutine ocn_data_ncar_init
@@ -3995,8 +3996,8 @@
       ! Find interpolation coefficients
       call interp_coeff_monthly (recslot)
 
+      sst_data(:,:,:,:) = c0
       do n = nfld, 1, -1
-        !$OMP PARALLEL DO PRIVATE(iblk,i,j)
         do iblk = 1, nblocks
         ! use sst_data arrays as temporary work space until n=1
         if (ixm /= -99) then  ! first half of month
@@ -4007,7 +4008,6 @@
           sst_data(:,:,2,iblk) = ocn_frc_m(:,:,iblk,n,ixp)
         endif
         enddo
-        !$OMP END PARALLEL DO
 
         call interpolate_data (sst_data,work1)
         ! masking by hm is necessary due to NaNs in the data file
@@ -4071,6 +4071,7 @@
         !$OMP END PARALLEL DO
       endif
 
+      dbug = .true.
       if (dbug) then
          if (my_task == master_task)  &
                write (nu_diag,*) 'ocn_data_ncar'
