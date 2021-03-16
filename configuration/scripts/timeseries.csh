@@ -13,9 +13,9 @@ endif
 set basename = `echo $1 | sed -e 's#/$##' | sed -e 's/^\.\///'`
 
 # Set x-axis limits
-  # Manuallyl set x-axis limits
+  # Manually set x-axis limits
 #set xrange = 'set xrange ["19980101":"19981231"]'
-  # Let gnuplot determine x-alis limits
+  # Let gnuplot determine x-axis limits
 set xrange = ''
 
 # Determine if BASELINE dataset exists
@@ -59,8 +59,10 @@ endif
 
 # Loop through each field and create the plot
 foreach field ($fieldlist:q)
+  # Add backslashes before (, ), and ^ for grep searches
+  set search_name = "`echo '$field' | sed 's/(/\\(/' | sed 's/)/\\)/' | sed 's/\^/\\^/'`"
   set fieldname = `echo "$field" | sed -e 's/([^()]*)//g'`
-  set search = "'$fieldname'\|istep1"
+  set search = "'$search_name'\|istep1"
   rm -f data.txt
   foreach line ("`egrep $search $logfile`")
     if ("$line" =~ *"istep1"*) then

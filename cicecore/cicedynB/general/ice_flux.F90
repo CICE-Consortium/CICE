@@ -46,7 +46,7 @@
          vocn    , & ! ocean current, y-direction (m/s)
          ss_tltx , & ! sea surface slope, x-direction (m/m)
          ss_tlty , & ! sea surface slope, y-direction
-         hwater  , & ! water depth for basal stress calc (landfast ice) 
+         hwater  , & ! water depth for seabed stress calc (landfast ice) 
 
        ! out to atmosphere
          strairxT, & ! stress on ice by air, x-direction
@@ -63,8 +63,8 @@
          sig1    , & ! normalized principal stress component
          sig2    , & ! normalized principal stress component
          sigP    , & ! internal ice pressure (N/m)
-         taubx   , & ! basal stress (x) (N/m^2)
-         tauby   , & ! basal stress (y) (N/m^2)
+         taubx   , & ! seabed stress (x) (N/m^2)
+         tauby   , & ! seabed stress (y) (N/m^2)
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
          strocnx , & ! ice-ocean stress, x-direction
@@ -112,7 +112,7 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu          ! coefficient for basal stress (N/m^2)
+         Tbu          ! factor for seabed stress (N/m^2)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -217,7 +217,11 @@
          fresh   , & ! fresh water flux to ocean (kg/m^2/s)
          fsalt   , & ! salt flux to ocean (kg/m^2/s)
          fhocn   , & ! net heat flux to ocean (W/m^2)
-         fswthru     ! shortwave penetrating to ocean (W/m^2)
+         fswthru , & ! shortwave penetrating to ocean (W/m^2)
+         fswthru_vdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_vdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
+         fswthru_idr , & ! nir dir shortwave penetrating to ocean (W/m^2)
+         fswthru_idf     ! nir dif shortwave penetrating to ocean (W/m^2)
 
        ! internal
 
@@ -307,6 +311,11 @@
          fresh_da, & ! fresh water flux to ocean due to data assim (kg/m^2/s)
          fsalt_da    ! salt flux to ocean due to data assimilation(kg/m^2/s)
 
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+         fswthrun_ai  ! per-category fswthru * ai (W/m^2)
+ 
+      logical (kind=log_kind), public :: send_i2x_per_cat = .false.
+
       !-----------------------------------------------------------------
       ! internal
       !-----------------------------------------------------------------
@@ -342,7 +351,7 @@
          vocn       (nx_block,ny_block,max_blocks), & ! ocean current, y-direction (m/s)
          ss_tltx    (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
          ss_tlty    (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction
-         hwater     (nx_block,ny_block,max_blocks), & ! water depth for basal stress calc (landfast ice) 
+         hwater     (nx_block,ny_block,max_blocks), & ! water depth for seabed stress calc (landfast ice) 
          strairxT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
          strairyT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
          strocnxT   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
@@ -350,8 +359,8 @@
          sig1       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sig2       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sigP       (nx_block,ny_block,max_blocks), & ! internal ice pressure (N/m)
-         taubx      (nx_block,ny_block,max_blocks), & ! basal stress (x) (N/m^2)
-         tauby      (nx_block,ny_block,max_blocks), & ! basal stress (y) (N/m^2)
+         taubx      (nx_block,ny_block,max_blocks), & ! seabed stress (x) (N/m^2)
+         tauby      (nx_block,ny_block,max_blocks), & ! seabed stress (y) (N/m^2)
          strairx    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
          strairy    (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
          strocnx    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
@@ -381,7 +390,7 @@
          stress12_4 (nx_block,ny_block,max_blocks), & ! sigma12
          iceumask   (nx_block,ny_block,max_blocks), & ! ice extent mask (U-cell)
          fm         (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu        (nx_block,ny_block,max_blocks), & ! coefficient for basal stress (landfast ice)
+         Tbu        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
          zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
          vatm       (nx_block,ny_block,max_blocks), &
@@ -438,6 +447,10 @@
          fsalt      (nx_block,ny_block,max_blocks), & ! salt flux to ocean (kg/m^2/s)
          fhocn      (nx_block,ny_block,max_blocks), & ! net heat flux to ocean (W/m^2)
          fswthru    (nx_block,ny_block,max_blocks), & ! shortwave penetrating to ocean (W/m^2)
+         fswthru_vdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_vdf (nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
+         fswthru_idr (nx_block,ny_block,max_blocks), & ! nir dir shortwave penetrating to ocean (W/m^2)
+         fswthru_idf (nx_block,ny_block,max_blocks), & ! nir dif shortwave penetrating to ocean (W/m^2)
          scale_factor (nx_block,ny_block,max_blocks), & ! scaling factor for shortwave components
          strairx_ocn(nx_block,ny_block,max_blocks), & ! stress on ocean by air, x-direction
          strairy_ocn(nx_block,ny_block,max_blocks), & ! stress on ocean by air, y-direction
@@ -684,6 +697,10 @@
       fpond   (:,:,:) = c0
       fhocn   (:,:,:) = c0
       fswthru (:,:,:) = c0
+      fswthru_vdr (:,:,:) = c0
+      fswthru_vdf (:,:,:) = c0
+      fswthru_idr (:,:,:) = c0
+      fswthru_idf (:,:,:) = c0
       fresh_da(:,:,:) = c0    ! data assimilation
       fsalt_da(:,:,:) = c0
       flux_bio (:,:,:,:) = c0 ! bgc
@@ -701,6 +718,11 @@
       ffep   (:,:,:,:)= c0
       ffed   (:,:,:,:)= c0
       
+      if (send_i2x_per_cat) then
+         allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
+         fswthrun_ai(:,:,:,:) = c0
+      endif
+
       !-----------------------------------------------------------------
       ! derived or computed fields
       !-----------------------------------------------------------------
@@ -783,12 +805,20 @@
       fpond    (:,:,:)   = c0
       fhocn    (:,:,:)   = c0
       fswthru  (:,:,:)   = c0
+      fswthru_vdr  (:,:,:)   = c0
+      fswthru_vdf  (:,:,:)   = c0
+      fswthru_idr  (:,:,:)   = c0
+      fswthru_idf  (:,:,:)   = c0
 
       faero_ocn (:,:,:,:) = c0
       fiso_ocn  (:,:,:,:) = c0
       HDO_ocn     (:,:,:) = c0
       H2_16O_ocn  (:,:,:) = c0
       H2_18O_ocn  (:,:,:) = c0
+
+      if (send_i2x_per_cat) then
+         fswthrun_ai(:,:,:,:) = c0
+      endif
 
       end subroutine init_flux_ocn
 
@@ -978,6 +1008,8 @@
                                Tref,     Qref,     &
                                fresh,    fsalt,    &
                                fhocn,    fswthru,  &
+                               fswthru_vdr, fswthru_vdf, &
+                               fswthru_idr, fswthru_idf, &
                                faero_ocn,          &
                                alvdr,    alidr,    &
                                alvdf,    alidf,    &
@@ -1022,6 +1054,10 @@
           fsalt   , & ! salt flux to ocean              (kg/m2/s)
           fhocn   , & ! actual ocn/ice heat flx         (W/m**2)
           fswthru , & ! sw radiation through ice bot    (W/m**2)
+          fswthru_vdr , & ! vis dir sw radiation through ice bot    (W/m**2)
+          fswthru_vdf , & ! vis dif sw radiation through ice bot    (W/m**2)
+          fswthru_idr , & ! nir dir sw radiation through ice bot    (W/m**2)
+          fswthru_idf , & ! nir dif sw radiation through ice bot    (W/m**2)
           alvdr   , & ! visible, direct   (fraction)
           alidr   , & ! near-ir, direct   (fraction)
           alvdf   , & ! visible, diffuse  (fraction)
@@ -1071,9 +1107,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
       do j = 1, ny_block
       do i = 1, nx_block
          if (tmask(i,j) .and. aice(i,j) > c0) then
@@ -1093,6 +1126,10 @@
             fsalt   (i,j) = fsalt   (i,j) * ar
             fhocn   (i,j) = fhocn   (i,j) * ar
             fswthru (i,j) = fswthru (i,j) * ar
+            fswthru_vdr (i,j) = fswthru_vdr (i,j) * ar
+            fswthru_vdf (i,j) = fswthru_vdf (i,j) * ar
+            fswthru_idr (i,j) = fswthru_idr (i,j) * ar
+            fswthru_idf (i,j) = fswthru_idf (i,j) * ar
             alvdr   (i,j) = alvdr   (i,j) * ar
             alidr   (i,j) = alidr   (i,j) * ar
             alvdf   (i,j) = alvdf   (i,j) * ar
@@ -1121,6 +1158,10 @@
             fsalt   (i,j) = c0
             fhocn   (i,j) = c0
             fswthru (i,j) = c0
+            fswthru_vdr (i,j) = c0
+            fswthru_vdf (i,j) = c0
+            fswthru_idr (i,j) = c0
+            fswthru_idf (i,j) = c0
             alvdr   (i,j) = c0  ! zero out albedo where ice is absent
             alidr   (i,j) = c0
             alvdf   (i,j) = c0 
@@ -1139,9 +1180,6 @@
       ! Scale fluxes for history output
       if (present(fsurf) .and. present(fcondtop) ) then 
      
-!DIR$ CONCURRENT !Cray
-!cdir nodep      !NEC
-!ocl novrec      !Fujitsu
         do j = 1, ny_block
         do i = 1, nx_block
            if (tmask(i,j) .and. aice(i,j) > c0) then

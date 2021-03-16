@@ -3,7 +3,6 @@ npt = 240
 ice_ic = 'default'
 restart = .false.
 restart_ext = .true.
-restart_format = 'bin'
 histfreq       = 'd','x','x','x','x'
 grid_type    = 'rectangular'
 dxrect         = 16.e5

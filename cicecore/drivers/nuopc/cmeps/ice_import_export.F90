@@ -3,10 +3,7 @@ module ice_import_export
   use ESMF
   use NUOPC
   use NUOPC_Model
-  use shr_sys_mod        , only : shr_sys_abort, shr_sys_flush
-  use shr_frz_mod        , only : shr_frz_freezetemp
-  use shr_kind_mod       , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs 
-  use ice_kinds_mod      , only : int_kind, dbl_kind, char_len_long, log_kind
+  use ice_kinds_mod      , only : int_kind, dbl_kind, char_len, log_kind
   use ice_constants      , only : c0, c1, spval_dbl
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
   use ice_blocks         , only : block, get_block, nx_block, ny_block
@@ -16,30 +13,31 @@ module ice_import_export
   use ice_flux           , only : strairxt, strairyt, strocnxt, strocnyt
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
-#if (defined NEWCODE)
-  use ice_flux           , only : fswthruvdr, fswthruvdf, fswthruidr, fswthruidf
+  use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
-#endif
+  use ice_flux_bgc       , only : faero_atm, faero_ocn
+  use ice_flux_bgc       , only : fiso_atm, fiso_ocn, fiso_evap
+  use ice_flux_bgc       , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
   use ice_flux           , only : fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
   use ice_flux           , only : rhoa, swvdr, swvdf, swidr, swidf, flw, frain
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
-  use ice_flux           , only : sss, tf, wind, fsw
-#if (defined NEWCODE)
-  use ice_flux           , only : faero_atm, faero_ocn
-  use ice_flux           , only : fiso_atm, fiso_ocn, fiso_rain, fiso_evap
-  use ice_flux           , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
-#endif
+  use ice_flux           , only : sss, Tf, wind, fsw
   use ice_state          , only : vice, vsno, aice, aicen_init, trcr
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm, ocn_gridcell_frac
   use ice_grid           , only : grid_type, t2ugrid_vector
   use ice_boundary       , only : ice_HaloUpdate
-  use ice_fileunits      , only : nu_diag
+  use ice_fileunits      , only : nu_diag, flush_fileunit
   use ice_communicate    , only : my_task, master_task, MPI_COMM_ICE
   use ice_prescribed_mod , only : prescribed_ice
   use ice_shr_methods    , only : chkerr, state_reset
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
-  use perf_mod           , only : t_startf, t_stopf, t_barrierf
+  use icepack_intfc      , only : icepack_liquidus_temperature
+  use icepack_intfc      , only : icepack_sea_freezing_temperature
+  use cice_wrapper_mod    , only : t_startf, t_stopf, t_barrierf
+#ifdef CESMCOUPLED
+  use shr_frz_mod        , only : shr_frz_freezetemp
+#endif
 
   implicit none
   public
@@ -88,7 +86,7 @@ module ice_import_export
   type (fld_list_type)     :: fldsFrIce(fldsMax)
   type(ESMF_GeomType_Flag) :: geomtype
 
-  integer     , parameter  :: dbug = 10        ! i/o debug messages
+  integer     , parameter  :: io_dbug = 10        ! i/o debug messages
   character(*), parameter  :: u_FILE_u = &
        __FILE__
 
@@ -106,28 +104,34 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    integer       :: n
-    character(CS) :: stdname
-    character(CS) :: cvalue
-    logical       :: flds_wiso         ! use case
-    logical       :: flds_i2o_per_cat  ! .true. => select per ice thickness category
+    integer             :: n
+    character(char_len) :: stdname
+    character(char_len) :: cvalue
+    logical             :: flds_wiso         ! use case
+    logical             :: flds_i2o_per_cat  ! .true. => select per ice thickness category
+    logical             :: isPresent, isSet
     character(len=*), parameter :: subname='(ice_import_export:ice_advertise_fields)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
-    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, rc=rc)
+    ! Determine if the following attributes are sent by the driver and if so read them in
+    flds_wiso = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) flds_wiso
-    call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flds_wiso
+       call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    end if
 
-#if (defined NEWCODE)
-    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
+    flds_i2o_per_cat = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) send_i2x_per_cat
-    call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
-#endif
+    if (isPresent .and. isSet) then
+       read(cvalue,*) send_i2x_per_cat
+       call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    end if
 
     !-----------------
     ! advertise import fields
@@ -142,7 +146,7 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 's_surf'                  )
     call fldlist_add(fldsToIce_num, fldsToIce, 'ocn_current_zonal'       )
     call fldlist_add(fldsToIce_num, fldsToIce, 'ocn_current_merid'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'freezing_melting_potential'                  )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'freezing_melting_potential')
     if (flds_wiso) then
        call fldlist_add(fldsToIce_num, fldsToIce, 'So_roce_wiso', ungridded_lbound=1, ungridded_ubound=3)
     end if
@@ -153,8 +157,7 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 'inst_merid_wind_height_lowest' )
     call fldlist_add(fldsToIce_num, fldsToIce, 'inst_spec_humid_height_lowest' )
     call fldlist_add(fldsToIce_num, fldsToIce, 'inst_temp_height_lowest'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_ptem'                       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'air_density_height_lowest'                       )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'inst_pres_height_lowest'       )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_vis_dir_flx'      )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_ir_dir_flx'       )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_vis_dif_flx'      )
@@ -162,13 +165,15 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_lw_flx'              )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_prec_rate'                )
     call fldlist_add(fldsToIce_num, fldsToIce, 'mean_fprec_rate'               )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_ptem'                       ) !cesm
+    call fldlist_add(fldsToIce_num, fldsToIce, 'air_density_height_lowest'     ) !cesm
 
+    ! the following are advertised but might not be connected if they are not present
+    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     ! from atm - black carbon deposition fluxes (3)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_bcph',  ungridded_lbound=1, ungridded_ubound=3)
-
     ! from atm - wet dust deposition frluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
-
     ! from - atm dry dust deposition frluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
 
@@ -185,25 +190,26 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, trim(flds_scalar_name))
 
     ! ice states
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_mask'                )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction'            )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'sea_ice_temperature'     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_ice_volume'         )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_snow_volume'        )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_tref'                 )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'                 )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'                )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'                  )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dir_albedo' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'  )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'  )
-#if (defined NEWCODE)
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_mask'                    )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction'                )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'sea_ice_surface_temperature' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_ice_volume'             )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_snow_volume'            )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_tref'                     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'                     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'                    )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'                      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dir_albedo'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'      )
+
+    ! the following are advertised but might not be connected if they are not present
+    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
-#endif
 
     ! ice/atm fluxes computed by ice
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'stress_on_air_ice_zonal'          )
@@ -221,19 +227,22 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_vis_dif_flx' )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dir_flx'  )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dif_flx'  )
-#if (defined NEWCODE)
+
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ifrac_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
-#endif
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_fresh_water_to_ocean_rate' )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_salt_rate'                 )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_zonal'        )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_merid'        )
+
+    ! the following are advertised but might not be connected if they are not present
+    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcpho'                     )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcphi'                     )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_flxdst'                    )
+
     if (flds_wiso) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_fresh_water_to_ocean_rate_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
@@ -249,7 +258,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     enddo
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ice_advertise_fields
 
@@ -337,7 +346,7 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    integer,parameter                :: nflds=15
+    integer,parameter                :: nflds=16
     integer,parameter                :: nfldv=6
     integer                          :: i, j, iblk, n
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
@@ -345,11 +354,22 @@ contains
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
     real (kind=dbl_kind)             :: workx, worky
     real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
-    real (kind=dbl_kind)             :: tffresh
+    real (kind=dbl_kind)             :: Tffresh
+    real (kind=dbl_kind)             :: inst_pres_height_lowest  
+    character(len=char_len)          :: tfrz_option
+    integer(int_kind)                :: ktherm
     character(len=*),   parameter    :: subname = 'ice_import'
+    character(len=1024)              :: msgString
     !-----------------------------------------------------
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
+    call icepack_query_parameters(tfrz_option_out=tfrz_option)
+    call icepack_query_parameters(ktherm_out=ktherm)
+    if (io_dbug > 5) then 
+     write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
+       // trim(tfrz_option)//', ktherm = ',ktherm
+     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+    end if
 !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
 !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
 !       Tffresh_out=Tffresh)
@@ -383,49 +403,56 @@ contains
     call state_getimport(importState, 's_surf', output=aflds, index=2, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! import ocean states
+    ! import atm states
 
     call state_getimport(importState, 'inst_height_lowest', output=aflds, index=3, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'Sa_ptem', output=aflds, index=4, rc=rc)
+    if (State_FldChk(importState, 'Sa_ptem') .and. State_fldchk(importState, 'air_density_height_lowest')) then
+       call state_getimport(importState, 'Sa_ptem', output=aflds, index=4, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getimport(importState, 'air_density_height_lowest', output=aflds, index=5, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (State_FldChk(importState, 'inst_pres_height_lowest')) then
+       call state_getimport(importState, 'inst_pres_height_lowest', output=aflds, index=6, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call abort_ice(trim(subname)//&
+            ": ERROR either Sa_ptem and air_density_height_lowest OR inst_pres_height_lowest must be in import state")
+    end if
+
+    call state_getimport(importState, 'inst_temp_height_lowest', output=aflds, index=7, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'inst_temp_height_lowest', output=aflds, index=5, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call state_getimport(importState, 'inst_spec_humid_height_lowest', output=aflds, index=6, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call state_getimport(importState, 'air_density_height_lowest', output=aflds, index=7, rc=rc)
+    call state_getimport(importState, 'inst_spec_humid_height_lowest', output=aflds, index=8, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! import ocn/ice fluxes
 
-    call state_getimport(importState, 'freezing_melting_potential', output=aflds, index=8, rc=rc)
+    call state_getimport(importState, 'freezing_melting_potential', output=aflds, index=9, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! import atm fluxes
 
-    call state_getimport(importState, 'mean_down_sw_vis_dir_flx', output=aflds, index=9, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_vis_dir_flx', output=aflds, index=10, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_ir_dir_flx', output=aflds, index=10, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_ir_dir_flx', output=aflds, index=11, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_vis_dif_flx', output=aflds, index=11, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_vis_dif_flx', output=aflds, index=12, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_ir_dif_flx', output=aflds, index=12, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_ir_dif_flx', output=aflds, index=13, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_lw_flx', output=aflds, index=13, rc=rc)
+    call state_getimport(importState, 'mean_down_lw_flx', output=aflds, index=14, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_prec_rate', output=aflds, index=14, rc=rc)
+    call state_getimport(importState, 'mean_prec_rate', output=aflds, index=15, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_fprec_rate', output=aflds, index=15, rc=rc)
+    call state_getimport(importState, 'mean_fprec_rate', output=aflds, index=16, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! perform a halo update
@@ -442,25 +469,58 @@ contains
     do iblk = 1, nblocks
        do j = 1,ny_block
           do i = 1,nx_block
-             sst  (i,j,iblk)   = aflds(i,j, 1,iblk)
-             sss  (i,j,iblk)   = aflds(i,j, 2,iblk)
-             zlvl (i,j,iblk)   = aflds(i,j, 3,iblk)
-             potT (i,j,iblk)   = aflds(i,j, 4,iblk)
-             Tair (i,j,iblk)   = aflds(i,j, 5,iblk)
-             Qa   (i,j,iblk)   = aflds(i,j, 6,iblk)
-             rhoa (i,j,iblk)   = aflds(i,j, 7,iblk)
-             frzmlt (i,j,iblk) = aflds(i,j, 8,iblk)
-             swvdr(i,j,iblk)   = aflds(i,j, 9,iblk)
-             swidr(i,j,iblk)   = aflds(i,j,10,iblk)
-             swvdf(i,j,iblk)   = aflds(i,j,11,iblk)
-             swidf(i,j,iblk)   = aflds(i,j,12,iblk)
-             flw  (i,j,iblk)   = aflds(i,j,13,iblk)
-             frain(i,j,iblk)   = aflds(i,j,14,iblk)
-             fsnow(i,j,iblk)   = aflds(i,j,15,iblk)
-          enddo    !i
-       enddo    !j
-    enddo        !iblk
+             sst  (i,j,iblk)         = aflds(i,j, 1,iblk)
+             sss  (i,j,iblk)         = aflds(i,j, 2,iblk)
+             zlvl (i,j,iblk)         = aflds(i,j, 3,iblk)
+             ! see below for 4,5,6
+             Tair (i,j,iblk)         = aflds(i,j, 7,iblk)
+             Qa   (i,j,iblk)         = aflds(i,j, 8,iblk)
+             frzmlt (i,j,iblk)       = aflds(i,j, 9,iblk)
+             swvdr(i,j,iblk)         = aflds(i,j,10,iblk)
+             swidr(i,j,iblk)         = aflds(i,j,11,iblk)
+             swvdf(i,j,iblk)         = aflds(i,j,12,iblk)
+             swidf(i,j,iblk)         = aflds(i,j,13,iblk)
+             flw  (i,j,iblk)         = aflds(i,j,14,iblk)
+             frain(i,j,iblk)         = aflds(i,j,15,iblk)
+             fsnow(i,j,iblk)         = aflds(i,j,16,iblk)
+          end do
+       end do
+    end do
     !$OMP END PARALLEL DO
+
+    if ( State_fldChk(importState, 'Sa_ptem') .and. State_fldchk(importState,'air_density_height_lowest')) then 
+       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+       do iblk = 1, nblocks
+          do j = 1,ny_block
+             do i = 1,nx_block
+                potT (i,j,iblk) = aflds(i,j, 4,iblk)
+                rhoa (i,j,iblk) = aflds(i,j, 5,iblk)
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    else if (State_fldChk(importState, 'inst_pres_height_lowest')) then
+       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+       do iblk = 1, nblocks
+          do j = 1,ny_block
+             do i = 1,nx_block
+                inst_pres_height_lowest = aflds(i,j,6,iblk)
+                if (inst_pres_height_lowest > 0.0_ESMF_KIND_R8) then
+                   potT (i,j,iblk) = Tair(i,j,iblk) * (100000._ESMF_KIND_R8/inst_pres_height_lowest)**0.286_ESMF_KIND_R8
+                else
+                   potT (i,j,iblk) = 0.0_ESMF_KIND_R8
+                end if
+                if (Tair(i,j,iblk) /= 0._ESMF_KIND_R8) then
+                   rhoa(i,j,iblk) = inst_pres_height_lowest / &
+                        (287.058_ESMF_KIND_R8*(1._ESMF_KIND_R8+0.608_ESMF_KIND_R8*Qa(i,j,iblk))*Tair(i,j,iblk))
+                else
+                   rhoa(i,j,iblk) = 0._ESMF_KIND_R8
+                endif
+             end do !i
+          end do !j
+       end do !iblk   
+       !$OMP END PARALLEL DO
+    end if
 
     deallocate(aflds)
     allocate(aflds(nx_block,ny_block,nfldv,nblocks))
@@ -511,7 +571,6 @@ contains
     ! Get aerosols from mediator
     !-------------------------------------------------------
 
-#if (defined NEWCODE)
     if (State_FldChk(importState, 'Faxa_bcph')) then
        ! the following indices are based on what the atmosphere is sending
        ! bcphidry  ungridded_index=1
@@ -547,7 +606,6 @@ contains
        call state_getimport(importState, 'Faxa_dstdry', output=faero_atm,  index=3, do_sum=.true., ungridded_index=4, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-#endif
 
     !-------------------------------------------------------
     ! Water isotopes from the mediator
@@ -557,7 +615,6 @@ contains
     ! 18O => ungridded_index=2
     ! HDO => ungridded_index=3
 
-#if (defined NEWCODE)
     if (State_FldChk(importState, 'shum_wiso')) then
        call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=1, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -566,12 +623,12 @@ contains
        call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=3, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=1, ungridded_index=3, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=2, ungridded_index=1, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=3, ungridded_index=2, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=1, ungridded_index=3, rc=rc)
+!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=2, ungridded_index=1, rc=rc)
+!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=3, ungridded_index=2, rc=rc)
+!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call state_getimport(importState, 'mean_fprec_rate_wiso', output=fiso_atm, index=1, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -587,7 +644,6 @@ contains
        call state_getimport(importState, 'So_roce_wiso', output=H2_18O_ocn, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-#endif
 
     !-----------------------------------------------------------------
     ! rotate zonal/meridional vectors to local coordinates
@@ -601,6 +657,7 @@ contains
     ! use ANGLET which is on the T grid !
 
     call t_startf ('cice_imp_ocn')
+
     !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
     do iblk = 1, nblocks
 
@@ -609,14 +666,16 @@ contains
              ! ocean
              workx      = uocn  (i,j,iblk) ! currents, m/s
              worky      = vocn  (i,j,iblk)
-             uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
+
+             uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! rotate to align with model i,j
                             + worky*sin(ANGLET(i,j,iblk))
              vocn(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
                             - workx*sin(ANGLET(i,j,iblk))
 
              workx      = ss_tltx  (i,j,iblk)           ! sea sfc tilt, m/m
              worky      = ss_tlty  (i,j,iblk)
-             ss_tltx(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
+
+             ss_tltx(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! rotate to align with model i,j
                                + worky*sin(ANGLET(i,j,iblk))
              ss_tlty(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
                                - workx*sin(ANGLET(i,j,iblk))
@@ -624,14 +683,26 @@ contains
              sst(i,j,iblk) = sst(i,j,iblk) - Tffresh       ! sea sfc temp (C)
 
              sss(i,j,iblk) = max(sss(i,j,iblk),c0)
+
           enddo
        enddo
+    end do
 
-       ! Use shr_frz_mod for this
-       Tf(:,:,iblk) = shr_frz_freezetemp(sss(:,:,iblk))
-
-    enddo
+#ifdef CESMCOUPLED
+    ! Use shr_frz_mod for this
+    Tf(:,:,iblk) = shr_frz_freezetemp(sss(:,:,iblk))
+#else       
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
+    do iblk = 1, nblocks
+       do j = 1,ny_block
+          do i = 1,nx_block
+            Tf(i,j,iblk) = icepack_sea_freezing_temperature(sss(i,j,iblk))
+          end do
+       end do
+    end do
     !$OMP END PARALLEL DO
+#endif
+
     call t_stopf ('cice_imp_ocn')
 
     ! Interpolate ocean dynamics variables from T-cell centers to
@@ -700,12 +771,12 @@ contains
     real    (kind=dbl_kind) :: tauyo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
-    real    (kind=dbl_kind) :: tffresh
+    real    (kind=dbl_kind) :: Tffresh
     character(len=*),parameter :: subname = 'ice_export'
     !-----------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
 !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
@@ -787,7 +858,7 @@ contains
                 if (tmask(i,j,iblk) .and. ailohi(i,j,iblk) < c0 ) then
                    write(nu_diag,*) &
                         ' (ice) send: ERROR ailohi < 0.0 ',i,j,ailohi(i,j,iblk)
-                   call shr_sys_flush(nu_diag)
+                   call flush_fileunit(nu_diag)
                 endif
              end do
           end do
@@ -834,7 +905,7 @@ contains
     ! ----
 
     ! surface temperature of ice covered portion (degK)
-    call state_setexport(exportState, 'sea_ice_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'sea_ice_surface_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! albedo vis dir
@@ -931,23 +1002,21 @@ contains
     call state_setexport(exportState, 'mean_sw_pen_to_ocn' , input=fswthru, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-#if (defined NEWCODE)
     ! flux of vis dir shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dir_flx' , input=fswthruvdr, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dir_flx' , input=fswthru_vdr, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of vis dif shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dif_flx' , input=fswthruvdf, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dif_flx' , input=fswthru_vdf, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of ir dir shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dir_flx' , input=fswthruidr, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dir_flx' , input=fswthru_idr, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of ir dif shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dif_flx' , input=fswthruidf, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dif_flx' , input=fswthru_idf, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
 
     ! heat exchange with ocean
     call state_setexport(exportState, 'net_heat_flx_to_ocn' , input=fhocn, lmask=tmask, ifrac=ailohi, rc=rc)
@@ -969,7 +1038,6 @@ contains
     call state_setexport(exportState, 'stress_on_ocn_ice_merid' , input=tauyo, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-#if (defined NEWCODE)
     ! ------
     ! optional aerosol fluxes to ocean
     ! ------
@@ -1039,7 +1107,6 @@ contains
             lmask=tmask, ifrac=ailohi, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
-#endif
 
     ! ------
     ! optional short wave penetration to ocean ice category
@@ -1056,7 +1123,7 @@ contains
           ! penetrative shortwave by category
           ! Note: no need zero out pass-through fields over land for benefit of x2oacc fields in cpl hist files since
           ! the export state has been zeroed out at the beginning
-          call state_setexport(exportState, 'mean_sw_pen_to_ocn_ifrac_n', input=aicen_init, index=n, &
+          call state_setexport(exportState, 'mean_sw_pen_to_ocn_ifrac_n', input=fswthrun_ai, index=n, &
                lmask=tmask, ifrac=ailohi, ungridded_index=n, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
@@ -1083,7 +1150,7 @@ contains
 
     num = num + 1
     if (num > fldsMax) then
-       call shr_sys_abort(trim(subname)//": ERROR num > fldsMax "//trim(stdname))
+       call abort_ice(trim(subname)//": ERROR num > fldsMax "//trim(stdname))
     endif
     fldlist(num)%stdname = trim(stdname)
 
@@ -1270,6 +1337,9 @@ contains
 
     rc = ESMF_SUCCESS
 
+    ! check that fieldname exists
+    if (.not. State_FldChk(state, trim(fldname))) return
+
     if (geomtype == ESMF_GEOMTYPE_MESH) then
 
        ! get field pointer
@@ -1381,6 +1451,9 @@ contains
 
     rc = ESMF_SUCCESS
 
+    ! check that fieldname exists
+    if (.not. State_FldChk(state, trim(fldname))) return
+
     if (geomtype == ESMF_GEOMTYPE_MESH) then
 
        ! get field pointer
@@ -1486,11 +1559,10 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (geomtype == ESMF_GEOMTYPE_MESH) then
+    ! check that fieldname exists
+    if (.not. State_FldChk(state, trim(fldname))) return
 
-       if (present(ungridded_index)) then
-          write(6,*)'DEBUG: fldname = ',trim(fldname),' has ungridded index= ',ungridded_index
-       end if
+    if (geomtype == ESMF_GEOMTYPE_MESH) then
 
        ! get field pointer
        if (present(ungridded_index)) then
@@ -1603,6 +1675,9 @@ contains
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
+
+    ! check that fieldname exists
+    if (.not. State_FldChk(state, trim(fldname))) return
 
     if (geomtype == ESMF_GEOMTYPE_MESH) then
 

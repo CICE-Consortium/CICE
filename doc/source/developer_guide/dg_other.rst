@@ -6,6 +6,27 @@ Other things
 =============
 
 
+.. _debugger:
+
+Running with a Debugger
+-------------------------
+
+Availability and usage of interactive debuggers varies across machines.  Contact your 
+system administrator for additional information about what’s available on your system.  
+To run with an interactive debugger, the following general steps should be taken.
+
+- Setup a case
+- Modify the env file and Macros file to add appropriate modules and compiler/ linker flags
+- Build the model
+- Get interactive hardware resources as needed
+- Open a csh shell
+- Source the env.${machine} file
+- Source cice.settings
+- Change directories to the run directory
+- Manually launch the executable thru the debugger
+
+
+
 Reproducible Sums
 ----------------------
 
@@ -78,6 +99,7 @@ A use `ice\_timers` statement may need to be added to the subroutine being
 modified. Be careful not to have one command outside of a loop and the
 other command inside. Timers can be run for individual blocks, if
 desired, by including the block ID in the timer calls.
+
 
 .. _addhist:
 
@@ -155,14 +177,14 @@ the tracer dependencies (weights), which are tracked using the arrays
 ``trcr_base`` (a dependency mask), ``n_trcr_strata`` (the number of
 underlying tracer layers), and ``nt_strata`` (indices of underlying layers). 
 Additional information about tracers can be found in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/index.html>`_.
+`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/index.html>`__.
 
 To add a tracer, follow these steps using one of the existing tracers as
 a pattern.
 
   1)  **icepack\_tracers.F90** and **icepack\_[tracer].F90**: declare tracers,
       add flags and indices, and create physics routines as described in the
-      `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/dg_adding_tracers.html>`_
+      `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/dg_adding_tracers.html>`__
 
   2)  **ice_arrays_column.F90**: declare arrays
 
@@ -211,6 +233,6 @@ a pattern.
        configuration in **configuration/scripts/options**.
 
   12)  If strict conservation is necessary, add diagnostics as noted for
-       topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+       topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`__.
 
   13)  Update documentation, including **cice_index.rst** and **ug_case_settings.rst**

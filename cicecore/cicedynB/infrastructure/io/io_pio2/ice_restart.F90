@@ -11,7 +11,8 @@
       use ice_kinds_mod
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr
+          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr, &
+          restart_coszen
       use ice_pio
       use pio
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -55,6 +56,8 @@
 
       integer (kind=int_kind) :: status
 
+      integer (kind=int_kind) :: iotype
+
       character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then 
@@ -74,9 +77,11 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
       end if
 
-      if (restart_format == 'pio') then
+!     if (restart_format(1:3) == 'pio') then
+         iotype = PIO_IOTYPE_NETCDF
+         if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
-         call ice_pio_init(mode='read', filename=trim(filename), File=File)
+         call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
       
          call ice_pio_initdecomp(iodesc=iodesc2d)
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true.)
@@ -94,7 +99,7 @@
             status = pio_get_att(File, pio_global, 'sec', sec)
          endif
          endif ! use namelist values if use_restart_time = F
-      endif
+!     endif
 
       if (my_task == master_task) then
          write(nu_diag,*) 'Restart read at istep=',istep0,time,time_forc
@@ -126,7 +131,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
-                                 n_dic, n_don, n_fed, n_fep
+                                 n_dic, n_don, n_fed, n_fep, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_arrays_column, only: oceanmixed_ice
 
@@ -138,10 +143,10 @@
           tr_pond_topo, tr_pond_lvl, tr_brine, &
           tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
           tr_bgc_Sil, tr_bgc_DMS, &
-          tr_bgc_chl,  tr_bgc_Am, &
+          tr_bgc_chl, tr_bgc_Am,  &
           tr_bgc_PON, tr_bgc_DON, &
-          tr_zaero,    tr_bgc_Fe, &
-          tr_bgc_hum
+          tr_zaero,   tr_bgc_Fe,  &
+          tr_bgc_hum, tr_fsd
 
       integer (kind=int_kind) :: &
           nbtrcr
@@ -159,6 +164,8 @@
                                  dimid_nilyr, dimid_nslyr, dimid_naero
 
       integer (kind=int_kind), allocatable :: dims(:)
+
+      integer (kind=int_kind) :: iotype
 
       integer (kind=int_kind) :: &
         k,    n,    & ! loop index
@@ -178,7 +185,7 @@
           tr_bgc_chl_out=tr_bgc_chl,  tr_bgc_Am_out=tr_bgc_Am, &
           tr_bgc_PON_out=tr_bgc_PON, tr_bgc_DON_out=tr_bgc_DON, &
           tr_zaero_out=tr_zaero,    tr_bgc_Fe_out=tr_bgc_Fe, &
-          tr_bgc_hum_out=tr_bgc_hum)
+          tr_bgc_hum_out=tr_bgc_hum, tr_fsd_out=tr_fsd)
       call icepack_query_parameters(solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, &
           z_tracers_out=z_tracers)
       call icepack_warnings_flush(nu_diag)
@@ -199,7 +206,7 @@
               iyear,'-',month,'-',mday,'-',sec
       end if
         
-      if (restart_format /= 'bin') filename = trim(filename) // '.nc'
+      if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
 
       ! write pointer (path/file)
       if (my_task == master_task) then
@@ -208,11 +215,13 @@
          close(nu_rst_pointer)
       endif
 
-      if (restart_format == 'pio') then
+!     if (restart_format(1:3) == 'pio') then
       
+         iotype = PIO_IOTYPE_NETCDF
+         if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
          call ice_pio_init(mode='write',filename=trim(filename), File=File, &
-              clobber=.true., cdf64=lcdf64 )
+              clobber=.true., cdf64=lcdf64, iotype=iotype)
 
          status = pio_put_att(File,pio_global,'istep1',istep1)
          status = pio_put_att(File,pio_global,'time',time)
@@ -237,10 +246,7 @@
 
          call define_rest_field(File,'uvel',dims)
          call define_rest_field(File,'vvel',dims)
-
-#ifdef CESMCOUPLED
-         call define_rest_field(File,'coszen',dims)
-#endif
+         if (restart_coszen) call define_rest_field(File,'coszen',dims)
          call define_rest_field(File,'scale_factor',dims)
          call define_rest_field(File,'swvdr',dims)
          call define_rest_field(File,'swvdf',dims)
@@ -473,6 +479,13 @@
             call define_rest_field(File,'qsno'//trim(nchar),dims)
          enddo
 
+         if (tr_fsd) then
+            do k=1,nfsd
+               write(nchar,'(i3.3)') k
+               call define_rest_field(File,'fsd'//trim(nchar),dims)
+            enddo
+         endif
+
          if (tr_iso) then
             do k=1,n_iso
                write(nchar,'(i3.3)') k
@@ -624,7 +637,7 @@
          call ice_pio_initdecomp(iodesc=iodesc2d)
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat, remap=.true.)
 
-      endif
+!     endif  ! restart_format
 
       if (my_task == master_task) then
          write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
@@ -649,7 +662,7 @@
       use ice_global_reductions, only: global_minval, global_maxval, global_sum
 
       integer (kind=int_kind), intent(in) :: &
-           nu            , & ! unit number (not used for netcdf)
+           nu            , & ! unit number
            ndim3         , & ! third dimension
            nrec              ! record number (0 for sequential access)
 
@@ -681,7 +694,7 @@
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
-      if (restart_format == "pio") then
+!     if (restart_format(1:3) == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file read: ',vname
 
@@ -740,9 +753,9 @@
             endif
          
          endif
-      else
-         call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
-      endif
+!     else
+!        call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
+!     endif  ! restart_format
 
       end subroutine read_restart_field
       
@@ -789,7 +802,7 @@
 
       character(len=*), parameter :: subname = '(write_restart_field)'
 
-      if (restart_format == "pio") then
+!      if (restart_format(1:3) == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file write: ',vname
 
@@ -828,9 +841,9 @@
                endif
             endif
          endif
-      else
-         call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
-      endif
+!     else
+!        call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
+!     endif
 
       end subroutine write_restart_field
 
@@ -846,11 +859,9 @@
 
       character(len=*), parameter :: subname = '(final_restart)'
 
-      if (restart_format == 'pio') then
-         call PIO_freeDecomp(File,iodesc2d)
-         call PIO_freeDecomp(File,iodesc3d_ncat)
-         call pio_closefile(File)
-      endif
+      call PIO_freeDecomp(File,iodesc2d)
+      call PIO_freeDecomp(File,iodesc3d_ncat)
+      call pio_closefile(File)
 
       if (my_task == master_task) &
          write(nu_diag,*) 'Restart read/written ',istep1,time,time_forc

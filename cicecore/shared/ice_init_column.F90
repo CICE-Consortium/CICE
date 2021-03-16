@@ -181,7 +181,8 @@
       subroutine init_shortwave
 
       use ice_arrays_column, only: fswpenln, Iswabsn, Sswabsn, albicen, &
-          albsnon, alvdrn, alidrn, alvdfn, alidfn, fswsfcn, fswthrun, &
+          albsnon, alvdrn, alidrn, alvdfn, alidfn, fswsfcn, &
+          fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, gaer_bc_tab, bcenh, &
           swgrid, igrid
@@ -304,6 +305,10 @@
                fswsfcn(i,j,n,iblk) = c0
                fswintn(i,j,n,iblk) = c0
                fswthrun(i,j,n,iblk) = c0
+               fswthrun_vdr(i,j,n,iblk) = c0
+               fswthrun_vdf(i,j,n,iblk) = c0
+               fswthrun_idr(i,j,n,iblk) = c0
+               fswthrun_idf(i,j,n,iblk) = c0
             enddo   ! ncat
 
          enddo
@@ -363,7 +368,12 @@
                           alvdrn=alvdrn(i,j,:,iblk),     alvdfn=alvdfn(i,j,:,iblk), &
                           alidrn=alidrn(i,j,:,iblk),     alidfn=alidfn(i,j,:,iblk), &
                           fswsfcn=fswsfcn(i,j,:,iblk),   fswintn=fswintn(i,j,:,iblk), &
-                          fswthrun=fswthrun(i,j,:,iblk), fswpenln=fswpenln(i,j,:,:,iblk), &
+                          fswthrun=fswthrun(i,j,:,iblk),                       &
+                          fswthrun_vdr=fswthrun_vdr(i,j,:,iblk),               &
+                          fswthrun_vdf=fswthrun_vdf(i,j,:,iblk),               &
+                          fswthrun_idr=fswthrun_idr(i,j,:,iblk),               &
+                          fswthrun_idf=fswthrun_idf(i,j,:,iblk),               &
+                          fswpenln=fswpenln(i,j,:,:,iblk),                     &
                           Sswabsn=Sswabsn(i,j,:,:,iblk), Iswabsn=Iswabsn(i,j,:,:,iblk), &
                           albicen=albicen(i,j,:,iblk),   albsnon=albsnon(i,j,:,iblk), &
                           albpndn=albpndn(i,j,:,iblk),   apeffn=apeffn(i,j,:,iblk), &
@@ -785,7 +795,7 @@
       
       if (solve_zsal) then  ! default values 
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,trcrn_bgc)
          do iblk = 1, nblocks
 
             this_block = get_block(blocks_ice(iblk),iblk)         
@@ -816,6 +826,7 @@
             enddo      ! i
             enddo      ! j  
          enddo         ! iblk
+         !$OMP END PARALLEL DO
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
@@ -855,6 +866,7 @@
             enddo  ! j
 
          enddo     ! iblk
+         !$OMP END PARALLEL DO
 
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -877,15 +889,6 @@
          do j = jlo, jhi
          do i = ilo, ihi  
 
-            do n = 1, ncat
-            do k = 1, nilyr
-               sicen(k,n) = trcrn(i,j,nt_sice+k-1,n,iblk)
-            enddo
-            do k = ntrcr_o+1, ntrcr
-               trcrn_bgc(k-ntrcr_o,n) = trcrn(i,j,k,n,iblk)
-            enddo
-            enddo
-
             call icepack_load_ocean_bio_array(max_nbtrcr=icepack_max_nbtrcr,     &
                          max_algae=icepack_max_algae, max_don=icepack_max_don,   &
                          max_doc=icepack_max_doc,     max_fe=icepack_max_fe,     &
@@ -900,13 +903,14 @@
          enddo  ! j
 
       enddo     ! iblk
+      !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       if (.not. restart_bgc) then       
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,sicen,trcrn_bgc)
          do iblk = 1, nblocks
 
             this_block = get_block(blocks_ice(iblk),iblk)         
@@ -917,7 +921,14 @@
 
             do j = jlo, jhi
             do i = ilo, ihi  
-
+                do n = 1, ncat
+                do k = 1, nilyr
+                   sicen(k,n) = trcrn(i,j,nt_sice+k-1,n,iblk)
+                enddo
+                do k = ntrcr_o+1, ntrcr
+                   trcrn_bgc(k-ntrcr_o,n) = trcrn(i,j,k,n,iblk)
+                enddo
+                enddo
             call icepack_init_bgc(ncat=ncat, nblyr=nblyr, nilyr=nilyr, ntrcr_o=ntrcr_o,  &
                          cgrid=cgrid, igrid=igrid, ntrcr=ntrcr, nbtrcr=nbtrcr,           &
                          sicen=sicen(:,:), trcrn=trcrn_bgc(:,:), sss=sss(i,j, iblk), &
@@ -925,6 +936,7 @@
             enddo  ! i
             enddo  ! j
          enddo     ! iblk
+         !$OMP END PARALLEL DO
 
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -1937,6 +1949,7 @@
 
       nbtrcr = 0
       nbtrcr_sw = 0
+      nt_zbgc_frac = 0
 
       ! vectors of size icepack_max_algae
       nlt_bgc_N(:) = 0
@@ -2184,7 +2197,6 @@
             enddo   ! mm
          endif      ! tr_zaero
 
-         nt_zbgc_frac = 0
          if (nbtrcr > 0) then
             nt_zbgc_frac = ntrcr + 1
             ntrcr = ntrcr + nbtrcr

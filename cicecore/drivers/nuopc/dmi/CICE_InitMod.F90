@@ -76,7 +76,7 @@
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
-      use ice_dyn_shared, only: kdyn, init_evp, alloc_dyn_shared
+      use ice_dyn_shared, only: kdyn, init_dyn, alloc_dyn_shared
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -92,9 +92,6 @@
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-#ifdef popcice
-      use drv_forcing, only: sst_sss
-#endif
 
       integer (kind=int_kind), optional, intent(in) :: &
          mpi_comm ! communicator for sequential ccsm
@@ -137,18 +134,16 @@
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
 
+      call init_dyn (dt_dyn)    ! define dynamics parameters, variables
       if (kdyn == 2) then
          call alloc_dyn_eap     ! allocate dyn_eap arrays
-         call init_eap (dt_dyn) ! define eap dynamics parameters, variables
-      else                      ! for both kdyn = 0 or 1
-         call init_evp (dt_dyn) ! define evp dynamics parameters, variables
+         call init_eap          ! define eap dynamics parameters, variables
+      else if (kdyn == 3) then
+         call init_vp           ! define vp dynamics parameters, variables
       endif
 
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
 
-#ifdef popcice
-      call sst_sss              ! POP data for CICE initialization
-#endif 
       call init_thermo_vertical ! initialize vertical thermodynamics
 
       call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
@@ -171,10 +166,12 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
-
-!     call calendar(time)       ! determine the initial date
-
+#ifndef CICE_DMI
+      call calendar(time)       ! determine the initial date
+#endif
+#ifndef CICE_IN_NEMO
       call init_forcing_ocn(dt) ! initialize sss and sst from data
+#endif
       call init_state           ! initialize the ice state
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
@@ -216,7 +213,9 @@
    ! coupler communication or forcing data initialization
    !--------------------------------------------------------------------
 
+#ifndef CICE_IN_NEMO
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
+#endif
 
 #ifndef coupled
 #ifndef CESMCOUPLED

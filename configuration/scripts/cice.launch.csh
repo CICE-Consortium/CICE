@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 #echo ${0}
 echo "running cice.launch.csh"
@@ -46,19 +46,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ thunder*) then
-if (${ICE_COMMDIR} =~ serial*) then
-cat >> ${jobfile} << EOFR
-./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-else
-cat >> ${jobfile} << EOFR
-mpiexec_mpt -np ${ntasks} omplace ./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-endif
-
-#=======
-else if (${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
+else if (${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr* || ${ICE_MACHINE} =~ mustang*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -106,17 +94,6 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ loft*) then
-if (${ICE_COMMDIR} =~ serial*) then
-cat >> ${jobfile} << EOFR
-./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-else
-cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-endif
-#=======
 else if (${ICE_MACHINE} =~ fram*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
@@ -153,7 +130,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ brooks*) then
+else if (${ICE_MACHINE} =~ daley* || ${ICE_MACHINE} =~ banting*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -165,21 +142,31 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ theia*) then
+else if (${ICE_MACHINE} =~ freya*) then
+if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
-#mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
-srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
-#./cice >&! \$ICE_RUNLOG_FILE
+aprun -n 1 -N 1 -d 1 ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
-#=======
-else if (${ICE_MACHINE} =~ high_Sierra*) then
+else
 cat >> ${jobfile} << EOFR
-mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
-#./cice >&! \$ICE_RUNLOG_FILE
+aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#=======
+else if (${ICE_MACHINE} =~ hera*) then
+cat >> ${jobfile} << EOFR
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ phase2*) then
+else if (${ICE_MACHINE} =~ orion*) then
+cat >> ${jobfile} << EOFR
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
+#=======
+else if (${ICE_MACHINE} =~ high_Sierra*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 #./cice >&! \$ICE_RUNLOG_FILE
@@ -191,6 +178,7 @@ cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 #./cice >&! \$ICE_RUNLOG_FILE
 EOFR
+
 #=======
 else if (${ICE_MACHINE} =~ testmachine*) then
 cat >> ${jobfile} << EOFR

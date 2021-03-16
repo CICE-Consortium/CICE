@@ -40,10 +40,3 @@ LIB_MPI := $(IMPILIBDIR)
 
 SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L/usr/lib64 -llapack -mkl=cluster
 
-## if using parallel I/O, load all 3 libraries.  PIO must be first!
-ifeq ($(ICE_IOTYPE), pio)
-   PIO_PATH:=
-   INCLDIR += -I
-   SLIBS   := $(SLIB) -L$(PIO_PATH) -lpiofS
-endif
-

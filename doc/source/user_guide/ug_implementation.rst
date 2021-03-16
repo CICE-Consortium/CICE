@@ -181,6 +181,12 @@ that prints out the variable ``blkmask`` to the history file and
 which labels the blocks in the grid decomposition according to ``blkmask =
 my_task + iblk/100``.
 
+The namelist ``add_mpi_barriers`` can be set to ``.true.`` to help 
+throttle communication for communication intensive configurations.  This
+may slow the code down a bit.  These barriers have been added to
+a few select locations, but it's possible others may be needed.  As a general
+rule, ``add_mpi_barriers`` should be ``.false.``.
+
 *************
 Tripole grids
 *************
@@ -569,6 +575,10 @@ An additional namelist option, ``restart_ext`` specifies whether halo cells
 are included in the restart files. This option is useful for tripole and
 regional grids, but can not be used with PIO.
 
+An additional namelist option, ``restart_coszen`` specifies whether the
+cosine of the zenith angle is included in the restart files. This is mainly
+used in coupled models.
+
 MPI is initialized in *init\_communicate* for both coupled and
 stand-alone MPI runs. The ice component communicates with a flux coupler
 or other climate components via external routines that handle the
@@ -701,6 +711,15 @@ Model output
 History files
 *************
 
+CICE provides history data in binary unformatted or netCDF formats via
+separate implementations of binary, netcdf, and pio source code under the 
+directory **infrastructure/io**.  ``ICE_IOTYPE`` defined in cice.settings
+specifies the IO type and defines which source code directory is compiled.
+At the present time, binary, netcdf, and PIO are exclusive formats
+for history and restart files, and history and restart file must use the same 
+io package.  The namelist variable ``history_format`` further refines the
+format approach or style for some io packages.
+
 Model output data is averaged over the period(s) given by ``histfreq`` and
 ``histfreq_n``, and written to binary or netCDF files prepended by ``history_file``
 in **ice_in**. These settings for history files are set in the 
@@ -711,7 +730,7 @@ depending on the output file format chosen in **cice.settings** (set
 ``ICE_IOTYPE``). The netCDF history files are CF-compliant; header information for
 data contained in the netCDF files is displayed with the command ``ncdump -h
 filename.nc``. Parallel netCDF output is available using the PIO library; the
-attribute ``io_flavor`` distinguishes output files written with PIO from
+output file attribute ``io_flavor`` distinguishes output files written with PIO from
 those written with standard netCDF. With binary files, a separate header
 file is written with equivalent information. Standard fields are output
 according to settings in the **icefields\_nml** section of **ice\_in** 
@@ -807,6 +826,9 @@ Additionally, a new history output variable, ``f_CMIP``, has been added. When ``
 is added to the **icefields\_nml** section of **ice\_in** then all SIMIP variables
 will be turned on for output at the frequency specified by ``f_CMIP``. 
 
+It may also be helpful for debugging to increase the precision of the history file
+output from 4 bytes to 8 bytes. This is changed through the ``history_precision``
+namelist flag.
 
 ****************
 Diagnostic files
@@ -890,11 +912,14 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
 Restart files
 *************
 
-CICE provides restart data in binary unformatted or netCDF formats, via
-the ``ICE_IOTYPE`` flag in **cice.settings** and namelist variable
-``restart_format``. Restart and history files must use the same format. As
-with the history output, there is also an option for writing parallel netCDF
-restart files using PIO.
+CICE provides restart data in binary unformatted or netCDF formats via
+separate implementations of binary, netcdf, and pio source code under the 
+directory **infrastructure/io**.  ``ICE_IOTYPE`` defined in cice.settings
+specifies the IO type and defines which source code directory is compiled.
+At the present time, binary, netcdf, and PIO are exclusive formats
+for history and restart files, and history and restart file must use the same 
+io package.  The namelist variable ``restart_format`` further refines the
+format approach or style for some io packages.
 
 The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string

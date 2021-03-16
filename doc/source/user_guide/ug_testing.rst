@@ -56,6 +56,8 @@ For individual tests, the following command line options can be set
 
 ``--set`` SET1,SET2,SET3 (see :ref:`case_options`)
 
+``--ignore-user-set`` (see :ref:`case_options`)
+
 ``--acct`` ACCOUNT (see :ref:`case_options`)
 
 ``--grid`` GRID (see :ref:`case_options`)
@@ -226,7 +228,7 @@ boundary around the entire domain.  It includes the following namelist modificat
 - ``dxrect``: ``16.e5`` cm
 - ``dyrect``: ``16.e5`` cm
 - ``ktherm``: ``-1`` (disables thermodynamics)
-- ``coriolis``: ``zero`` (zero coriolis force)
+- ``coriolis``: ``constant`` (``f=1.46e-4`` s\ :math:`^{-1}`)
 - ``ice_data_type`` : ``box2001`` (special ice concentration initialization)
 - ``atm_data_type`` : ``box2001`` (special atmospheric and ocean forcing)
 
@@ -312,7 +314,7 @@ If a user adds ``--set`` to the suite, all tests in that suite will add that opt
 
   ./cice.setup --suite base_suite,decomp_suite --mach wolf --env gnu --testid myid -s debug
 
-The option settings defined in the suite have precendent over the command line
+The option settings defined in the suite have precendence over the command line
 values if there are conflicts.
 
 The predefined test suites are defined under **configuration/scripts/tests** and 
@@ -380,8 +382,8 @@ following options are valid for suites,
 ``--report``
   This is only used by ``--suite`` and when set, invokes a script that sends the test results to the results page when all tests are complete.  Please see :ref:`testreporting` for more information.
 
-``--codecov``
-  When invoked, code coverage diagnostics are generated.  This will modify the build and reduce optimization.  The results will be uploaded to the **codecov.io** website via the **report_codecov.csh** script.  General use is not recommended, this is mainly used as a diagnostic to periodically assess test coverage.  Please see :ref:`codecoverage` for more information.
+``--coverage``
+  When invoked, code coverage diagnostics are generated.  This will modify the build and reduce optimization and generate coverage reports using lcov or codecov tools.  General use is not recommended, this is mainly used as a diagnostic to periodically assess test coverage.  Please see :ref:`codecoverage` for more information.
 
 ``--setup-only``
   This is only used by ``--suite`` and when set, just creates the suite testcases.  It does not build or submit them to run.  By default, the suites do ``--setup-build-submit``.
@@ -459,7 +461,7 @@ Test Suite Examples
       ./results.csh
 
     If there are conflicts between the ``--set`` options in the suite and on the command line,
-    the suite will take precedent.
+    the suite will take precedence.
 
  5) **Multiple test suites from a single command line**
 
@@ -665,42 +667,65 @@ wait for all runs to be complete, and run the results and report_results scripts
 Code Coverage Testing
 ------------------------------
 
-The ``--codecov`` feature in **cice.setup** provides a method to diagnose code coverage.
+The ``--coverage`` feature in **cice.setup** provides a method to diagnose code coverage.
 This argument turns on special compiler flags including reduced optimization and then
-invokes the gcov tool.
+invokes the gcov tool.  Once runs are complete, either lcov or codecov can be used
+to analyze the results.
 This option is currently only available with the gnu compiler and on a few systems
 with modified Macros files.
 
-Because codecov.io does not support git submodule analysis right now, a customized
-repository has to be created to test CICE with Icepack integrated directly.  The repository 
-https://github.com/apcraig/Test_CICE_Icepack serves as the current default test repository.
-In general, to setup the code coverage test in CICE, the current CICE master has
-to be copied into the Test_CICE_Icepack repository, then the full test suite
-can be run with the gnu compiler with the ``--codecov`` argument.
+At the present time, the ``--coverage`` flag invokes the lcov analysis automatically
+by running the **report_lcov.csh** script in the test suite directory.  The output 
+will show up at the `CICE lcov website <https://apcraig.github.io>`__.  To
+use the tool, you should have write permission for that repository.  The lcov tool
+should be run on a full multi-suite test suite, and it can 
+take several hours to process the data once the test runs are complete.  A typical
+instantiation would be
+::
 
-The test suite will run and then a report will be generated and uploaded to 
-the `codecov.io site <https://codecov.io/gh/apcraig/Test_CICE_Icepack>`_ by the 
-**report_codecov.csh** script.  The env variable CODECOV_TOKEN needs to be defined
-either in the environment or in a file named **~/.codecov_cice_token**.  That
-token provides write permission to the Test_CICE_Icepack codecov.io site and is available
-by contacting the Consortium team directly.
+  ./cice.setup --suite first_suite,base_suite,travis_suite,decomp_suite,reprosum_suite,io_suite,quick_suite --mach cheyenne --env gnu --testid cc01 --coverage
 
-A script that carries out the end-to-end testing can be found in 
-**configuration/scripts/tests/cice_test_codecov.csh**
+Alternatively, codecov analysis can be carried out by manually running the **report_codecov.csh**
+script from the test suite directory, but there are several ongoing problems with this approach and
+it is not generally recommended.  A script that summarizes the end-to-end process for codecov
+analysis can be found in ..**configuration/scripts/tests/cice_test_codecov.csh**.  The codecov
+analysis is largely identical to the analysis performed by lcov, codecov just provides a nicer 
+web experience to view the output.
 
-This is a special diagnostic test and does not constitute proper model testing.
-General use is not recommended, this is mainly used as a diagnostic to periodically 
-assess test coverage.  The interaction with codecov.io is not always robust and
-can be tricky to manage.  Some constraints are that the output generated at runtime
-is copied into the directory where compilation took place.  That means each
-test should be compiled separately.  Tests that invoke multiple runs
-(such as exact restart and the decomp test) will only save coverage information
-for the last run, so some coverage information may be lost.  The gcov tool can
-be a little slow to run on large test suites, and the codecov.io bash uploader
-(that runs gcov and uploads the data to codecov.io) is constantly evolving.
-Finally, gcov requires that the diagnostic output be copied into the git sandbox for
-analysis.  These constraints are handled by the current scripts, but may change
-in the future.
+This is a special diagnostic test and is not part of the standard model testing.
+General use is not recommended, this is mainly used as a diagnostic to periodically
+assess test coverage.  
+
+..Because codecov.io does not support git submodule analysis right now, a customized
+..repository has to be created to test CICE with Icepack integrated directly.  The repository 
+..https://github.com/apcraig/Test_CICE_Icepack serves as the current default test repository.
+..In general, to setup the code coverage test in CICE, the current CICE master has
+..to be copied into the Test_CICE_Icepack repository, then the full test suite
+..can be run with the gnu compiler with the ``--coverage`` argument.
+
+..The test suite will run and then a report will be generated and uploaded to 
+..the `codecov.io site <https://codecov.io/gh/apcraig/Test_CICE_Icepack>`_ by the 
+..**report_codecov.csh** script.  The env variable CODECOV_TOKEN needs to be defined
+..either in the environment or in a file named **~/.codecov_cice_token**.  That
+..token provides write permission to the Test_CICE_Icepack codecov.io site and is available
+..by contacting the Consortium team directly.
+
+..A script that carries out the end-to-end testing can be found in 
+..**configuration/scripts/tests/cice_test_codecov.csh**
+
+..This is a special diagnostic test and does not constitute proper model testing.
+..General use is not recommended, this is mainly used as a diagnostic to periodically 
+..assess test coverage.  The interaction with codecov.io is not always robust and
+..can be tricky to manage.  Some constraints are that the output generated at runtime
+..is copied into the directory where compilation took place.  That means each
+..test should be compiled separately.  Tests that invoke multiple runs
+..(such as exact restart and the decomp test) will only save coverage information
+..for the last run, so some coverage information may be lost.  The gcov tool can
+..be a little slow to run on large test suites, and the codecov.io bash uploader
+..(that runs gcov and uploads the data to codecov.io) is constantly evolving.
+..Finally, gcov requires that the diagnostic output be copied into the git sandbox for
+..analysis.  These constraints are handled by the current scripts, but may change
+..in the future.
 
 
 .. _compliance:
@@ -929,6 +954,10 @@ In order to run the script, the following requirements must be met:
 * matplotlib Python package (optional)
 * basemap Python package (optional)
 
+QC testing should be carried out using configurations (ie. namelist settings) that 
+exercise the active code modifications.  Multiple configurations may need to be tested 
+in some cases.  Developers can contact the Consortium for guidance or if there are questions.
+
 In order to generate the files necessary for the compliance test, test cases should be
 created with the ``qc`` option (i.e., ``--set qc``) when running cice.setup.  This 
 option results in daily, non-averaged history files being written for a 5 year simulation.
@@ -984,6 +1013,7 @@ Below is an example of a step-by-step procedure for testing a code change that m
   # Run a full regression test to verify bit-for-bit
 
   # Create a baseline dataset (only necessary if no baseline exists on the system)
+  # if you want to replace an existing baseline, you should first delete the directory cice.my.baseline in ${ICE_BASELINE}.
   # git clone the baseline code
 
   ./cice.setup -m onyx -e intel --suite base_suite --testid base0 --bgen cice.my.baseline
@@ -1010,6 +1040,7 @@ If the regression comparisons fail, then you may want to run the QC test,
 
   # Create a QC baseline
   # From the baseline sandbox
+  # Generate the test case(s) using options or namelist changes to activate new code modifications
 
   ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_base -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_base
@@ -1018,7 +1049,8 @@ If the regression comparisons fail, then you may want to run the QC test,
   ./cice.submit
 
   # Create the t-test testing data
-  # From the update sandbox
+  # From the updated sandbox
+  # Generate the same test case(s) as the baseline using options or namelist changes to activate new code modifications
 
   ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
@@ -1040,5 +1072,4 @@ If the regression comparisons fail, then you may want to run the QC test,
   INFO:__main__:Quadratic Skill Test Passed for Southern Hemisphere
   INFO:__main__:
   INFO:__main__:Quality Control Test PASSED
-
 

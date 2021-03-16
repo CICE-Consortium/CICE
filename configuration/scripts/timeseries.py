@@ -53,7 +53,7 @@ def get_data(logfile,field):
     # Build the regular expression to extract the data
     field_regex = field.replace('(','\(').replace('^','\^').replace(')','\)')
     number_regex = '[-+]?\d+\.?\d+([eE][-+]?\d+)?'
-    my_regex = '{}\s+=\s+({})\s+({})'.format(field_regex,number_regex,number_regex)
+    my_regex = '^{}\s+=\s+({})\s+({})'.format(field_regex,number_regex,number_regex)
 
     dtg = []
     arctic = []
@@ -95,9 +95,10 @@ def plot_timeseries(log, field, dtg, arctic, antarctic, expon, dtg_base=None, ar
     Plot the timeseries data from the CICE log file
     '''
 
-    casename = os.path.abspath(log).rstrip('/').rstrip('/logs').split('/')[-1]
+    import re
+    casename = re.sub(r"/logs", "", os.path.abspath(log).rstrip('/')).split('/')[-1]
     if base_dir:
-        base_casename = os.path.abspath(base_dir).rstrip('/').rstrip('/logs').split('/')[-1]
+        base_casename = re.sub(r"/logs", "", os.path.abspath(base_dir).rstrip('/')).split('/')[-1]
 
     # Load the plotting libraries, but set the logging level for matplotlib
     # to WARNING so that matplotlib debugging info is not printed when running

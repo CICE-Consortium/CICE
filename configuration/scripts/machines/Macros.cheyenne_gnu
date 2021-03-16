@@ -1,0 +1,78 @@
+#==============================================================================
+# Makefile macros for NCAR cheyenne, gnu compiler
+#==============================================================================
+
+CPP        := ftn -E
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c 
+
+FIXEDFLAGS := -ffixed-line-length-132
+FREEFLAGS  := -ffree-form
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS   += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+  CFLAGS   += -O0
+endif
+
+ifeq ($(ICE_COVERAGE), true)
+  FFLAGS   += -O0 -g -fprofile-arcs -ftest-coverage
+  CFLAGS   += -O0 -g -coverage
+  LDFLAGS  += -g -ftest-coverage -fprofile-arcs
+endif
+
+ifneq ($(ICE_BLDDEBUG), true)
+ifneq ($(ICE_COVERAGE), true)
+  FFLAGS   += -O2
+  CFLAGS   += -O2
+endif
+endif
+
+SCC   := gcc 
+SFC   := gfortran
+MPICC := mpicc
+MPIFC := mpif90
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+NETCDF_PATH := $(NETCDF)
+
+PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+
+#PNETCDF_PATH := $(PNETCDF)
+#PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
+
+INCLDIR := $(INCLDIR)
+
+LIB_NETCDF := $(NETCDF_PATH)/lib
+#LIB_PNETCDF := $(PNETCDF_PATH)/lib
+LIB_MPI := $(IMPILIBDIR)
+
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp 
+   CFLAGS += -fopenmp 
+   FFLAGS += -fopenmp 
+endif
+
+ifeq ($(ICE_IOTYPE), pio1)
+   LIB_PIO := $(PIO_LIBDIR)
+   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+   CPPDEFS := $(CPPDEFS) -DGPTL
+   LIB_PIO := $(PIO_LIBDIR)
+   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc -lgptl
+endif
+
