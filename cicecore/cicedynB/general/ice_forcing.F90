@@ -235,7 +235,7 @@
       if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       modadj      = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
-      fyear       = fyear_init + mod(nyr-1,ycycle) ! current year
+      fyear = fyear_init + mod(myear-fyear_init+modadj,ycycle)
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
 
       if (forcing_debug .and. my_task == master_task) then
@@ -567,7 +567,6 @@
       call ice_timer_start(timer_forcing)
 
       fyear_old = fyear
-      modadj    = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
       fyear     = fyear_init + mod(myear-fyear_init+modadj,ycycle)
       if (trim(atm_data_type) /= 'default' .and. &
           (istep <= 1 .or. fyear /= fyear_old)) then
