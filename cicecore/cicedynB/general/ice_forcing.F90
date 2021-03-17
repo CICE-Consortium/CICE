@@ -567,6 +567,7 @@
       call ice_timer_start(timer_forcing)
 
       fyear_old = fyear
+      modadj    = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
       fyear     = fyear_init + mod(myear-fyear_init+modadj,ycycle)
       if (trim(atm_data_type) /= 'default' .and. &
           (istep <= 1 .or. fyear /= fyear_old)) then
