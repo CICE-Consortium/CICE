@@ -232,9 +232,9 @@
       integer (kind=int_kind) :: modadj   ! adjustment for mod function
       character(len=*), parameter :: subname = '(init_forcing_atmo)'
 
-      ! Allocate forcing arrays 
-      call alloc_forcing()
+      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
+      modadj      = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
       fyear       = fyear_init + mod(nyr-1,ycycle) ! current year
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
 
