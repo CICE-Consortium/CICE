@@ -235,7 +235,7 @@
       if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       modadj      = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
-      fyear = fyear_init + mod(myear-fyear_init+modadj,ycycle)
+      fyear       = fyear_init + mod(myear-fyear_init+modadj,ycycle)
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
 
       if (forcing_debug .and. my_task == master_task) then
