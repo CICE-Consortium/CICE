@@ -4,6 +4,7 @@
     year_init      = 1997
     istep0         = 0
     dt             = 3600.0
+    npt_unit       = '1'
     npt            = 24
     ndtd           = 1
     runtype        = 'initial'
