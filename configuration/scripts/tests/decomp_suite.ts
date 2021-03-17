@@ -15,6 +15,9 @@ restart        gx3     8x2x8x10x20   droundrobin,maskhalo   restart_gx3_4x2x25x2
 restart        gx3     1x4x25x29x16  droundrobin        restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     1x8x30x20x32  droundrobin        restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     1x1x120x125x1 droundrobin,thread restart_gx3_4x2x25x29x4_dslenderX2
+restart        gx3     16x2x1x1x800  droundrobin        restart_gx3_4x2x25x29x4_dslenderX2
+restart        gx3     16x2x2x2x200  droundrobin        restart_gx3_4x2x25x29x4_dslenderX2
+restart        gx3     16x2x3x3x100  droundrobin        restart_gx3_4x2x25x29x4_dslenderX2
 
 smoke        gx3     4x2x25x29x4   debug,run2day,dslenderX2
 smoke        gx3     1x1x25x58x8   debug,run2day,droundrobin,thread smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
@@ -30,4 +33,7 @@ smoke        gx3     8x2x8x10x20   debug,run2day,droundrobin,maskhalo   smoke_gx
 smoke        gx3     1x6x25x29x16  debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 smoke        gx3     1x8x30x20x32  debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 smoke        gx3     1x1x120x125x1 debug,run2day,droundrobin,thread smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     16x2x1x1x800  debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     16x2x2x2x200  debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     16x2x3x3x100  debug,run2day,droundrobin        smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 
