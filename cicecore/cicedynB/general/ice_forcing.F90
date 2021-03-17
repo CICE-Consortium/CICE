@@ -223,9 +223,6 @@
 
       character(len=*), parameter :: subname = '(init_forcing_atmo)'
 
-      ! Allocate forcing arrays 
-      call alloc_forcing()
-
       fyear       = fyear_init + mod(nyr-1,ycycle) ! current year
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
 
@@ -332,10 +329,12 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-!     sst_data(:,:,:,:) = c0
-!     sss_data(:,:,:,:) = c0
-!     uocn_data(:,:,:,:) = c0
-!     vocn_data(:,:,:,:) = c0
+      call alloc_forcing()
+
+      sst_data(:,:,:,:) = c0
+      sss_data(:,:,:,:) = c0
+      uocn_data(:,:,:,:) = c0
+      vocn_data(:,:,:,:) = c0
 
       nbits = 64              ! double precision data
 
