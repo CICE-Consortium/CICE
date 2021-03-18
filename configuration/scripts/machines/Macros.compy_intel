@@ -1,0 +1,44 @@
+#==============================================================================
+# Makefile macro for PNNL compy, intel compiler
+#==============================================================================
+
+CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise   -xHost
+
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+else
+  FFLAGS     += -O2
+endif
+
+SCC := icc
+SFC := ifort
+MPICC := mpiicc
+MPIFC := mpiifort
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD := $(FC)
+
+INC_NETCDF := $(NETCDF_PATH)/include
+LIB_NETCDF := $(NETCDF_PATH)/lib
+
+INCLDIR := $(INCLDIR) -I$(INC_NETCDF)
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -qopenmp 
+   CFLAGS += -qopenmp 
+   FFLAGS += -qopenmp 
+endif
+
