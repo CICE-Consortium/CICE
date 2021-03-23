@@ -6,10 +6,9 @@ Dynamics
 ========
 
 There are different approaches in the CICE code for representing sea ice
-rheology and for solving the sea ice momentum equation. The
-elastic-viscous-plastic (EVP) model represents a modification of the
-standard viscous-plastic (VP) model for sea ice dynamics
-:cite:`Hibler79`. The elastic-anisotropic-plastic (EAP) model,
+rheology and for solving the sea ice momentum equation. The viscous-plastic (VP) originally developed by :cite:`Hibler79`,
+the elastic-viscous-plastic (EVP) :cite:`Hunke97` model represents a modification of the
+standard viscous-plastic (VP) model for sea ice dynamics. The elastic-anisotropic-plastic (EAP) model,
 on the other hand, explicitly accounts for the observed sub-continuum
 anisotropy of the sea ice cover :cite:`Wilchinsky06,Weiss09`. If
 ``kdyn`` = 1 in the namelist then the EVP model is used (module
@@ -256,7 +255,7 @@ larger than 5 m that represents well shallow water (less than 30 m) regions such
 and the East Siberian Sea.   
 
 Seabed stress based on linear keel draft (LKD)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This parameterization for the seabed stress is described in
 :cite:`Lemieux16`. It assumes that the largest keel draft varies linearly with the mean thickness in a grid cell (i.e. sea ice volume). The :math:`C_b` coefficients are expressed as
@@ -734,3 +733,13 @@ Finally, as with the classic EVP approach, the stresses are initialized using th
 The revised EVP is activated by setting the namelist parameter ``revised_evp = true``. 
 In the code :math:`\alpha` is ``arlx`` and :math:`\beta` is ``brlx``. The values of ``arlx`` and ``brlx`` can be set in the namelist. 
 It is recommended to use large values of these parameters and to set :math:`\alpha=\beta` :cite:`Kimmritz15`.
+
+.. _evp1d:
+
+****************
+1d EVP solver
+****************
+
+The standard EVP solver iterates hundreds of times, where each iteration includes a communication through MPI and a limited number of calculations. This limits how much the solver can be optimized as the speed is primarily determined by the communication. The 1d EVP solver circumveines the communication by utilzing shared memory, which removes the requirement for calls to the mpi communicator. As a consequence of this the potential scalability of the code is improved. The performance is best on shared memory but the solver is also functional on MPI and hybrid MPI/OpenMP setups as it will run on the master processor alone.
+
+The scalability of geophysical models is in general terms limited by the memory usage. In order to optimize this the 1d EVP solver solves the same equations that are outlined in the section :ref:`stress-evp` but it transforms all matrices to vectors (1d matrices) as this complies better with the computer hardware. The vectorization and the contiguous placement of arrays in the memory makes it easier for the compiler to optimize the code and pass pointers instead of copying the vectors. The 1d solver is not supported for tripole grids and the code will abort if this combination is attempted.
