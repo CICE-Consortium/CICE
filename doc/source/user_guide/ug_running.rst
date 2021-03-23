@@ -36,12 +36,19 @@ The Consortium has tested the following compilers at some point,
 - Intel 17.0.2.174
 - Intel 17.0.5.239
 - Intel 18.0.1.163
+- Intel 18.0.5
 - Intel 19.0.2
 - Intel 19.0.3.199
+- Intel 19.1.0.166
+- Intel 19.1.1.217
 - PGI 16.10.0
+- PGI 19.9-0
+- PGI 20.1-0
 - GNU 6.3.0
 - GNU 7.2.0
 - GNU 7.3.0
+- GNU 8.3.0
+- GNU 9.3.0
 - Cray 8.5.8
 - Cray 8.6.4
 - NAG 6.2
@@ -54,22 +61,33 @@ The Consortium has tested the following mpi versions,
 - MPICH 7.6.3
 - MPICH 7.7.6
 - Intel MPI 18.0.1
+- Intel MPI 18.0.4
+- Intel MPI 2019 Update 6
 - MPT 2.14
 - MPT 2.17
 - MPT 2.18
 - MPT 2.19
+- MPT 2.20
+- MPT 2.21
+- mvapich2-2.3.3
 - OpenMPI 1.6.5
+- OpenMPI 4.0.2
 
 The NetCDF implementation is relatively general and should work with any version of NetCDF 3 or 4.  The Consortium has tested
 
 - NetCDF 4.3.0
 - NetCDF 4.3.2
 - NetCDF 4.4.0
-- NetCDF 4.4.1.1.32
+- NetCDF 4.4.1.1.3
 - NetCDF 4.4.1.1
 - NetCDF 4.4.2
 - NetCDF 4.5.0
+- NetCDF 4.5.2
 - NetCDF 4.6.1.3
+- NetCDF 4.6.3
+- NetCDF 4.6.3.2
+- NetCDF 4.7.2
+- NetCDF 4.7.4
 
 Please email the Consortium if this list can be extended.
 
@@ -772,7 +790,7 @@ A few notes about the conda configuration:
   
 - It is not recommeded to run other test suites than ``quick_suite`` or ``travis_suite`` on a personal computer.
 - The conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts in the case directory. These scripts source the file ``env.conda_{linux.macos}``, which calls ``conda activate cice``.
-- To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control scripts (see :ref:`CodeCompliance`), you must manually activate the environment:
+- To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control (QC) scripts (see :ref:`CodeValidation`), you must manually activate the environment:
 
   .. code-block:: bash
   
@@ -897,7 +915,7 @@ To use the ``timeseries.py`` script, the following requirements must be met:
 * matplotlib Python package
 * datetime Python package
 
-See :ref:`CodeCompliance` for additional information about how to setup the Python 
+See :ref:`CodeValidation` for additional information about how to setup the Python 
 environment, but we recommend using ``pip`` as follows: ::
 
   pip install --user numpy
