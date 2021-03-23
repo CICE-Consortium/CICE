@@ -20,7 +20,6 @@ module ice_dyn_evp_1d
    public :: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_copyout, &
       ice_dyn_evp_1d_kernel
 
-   integer, parameter :: JPIM = selected_int_kind(9)
    integer(kind=int_kind) :: NA_len, NAVEL_len, domp_iam, domp_nt
 #if defined (_OPENMP)
    real(kind=dbl_kind) :: rdomp_iam, rdomp_nt
@@ -37,6 +36,7 @@ module ice_dyn_evp_1d
       stress12_3, stress12_4, divu, rdg_conv, rdg_shear, shear, taubx, &
       tauby, str1, str2, str3, str4, str5, str6, str7, str8, HTE, HTN, &
       HTEm1, HTNm1
+   integer, parameter :: JPIM = selected_int_kind(9)
 
    interface evp1d_stress
       module procedure stress_iter
@@ -126,8 +126,8 @@ contains
    subroutine stress_iter(NA_len, ee, ne, se, lb, ub, uvel, vvel, dxt, &
       dyt, hte, htn, htem1, htnm1, strength, stressp_1, stressp_2, &
       stressp_3, stressp_4, stressm_1, stressm_2, stressm_3, &
-      stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, &
-      str1, str2, str3, str4, str5, str6, str7, str8)
+      stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, str1, &
+      str2, str3, str4, str5, str6, str7, str8)
 
       use ice_kinds_mod
       use ice_constants, only : p027, p055, p111, p166, p222, p25, &
@@ -200,50 +200,49 @@ contains
          ! NOTE: these are actually strain rates * area (m^2/s)
          !--------------------------------------------------------------
 
-         tmp_uvel_ee = uvel(ee(iw))
-         tmp_vvel_ee = vvel(ee(iw))
-
-         tmp_vvel_se = vvel(se(iw))
-         tmp_uvel_se = uvel(se(iw))
-
-         ! ne
-         divune    =  cyp * uvel(iw) - dyt(iw) * tmp_uvel_ee &
-                   +  cxp * vvel(iw) - dxt(iw) * tmp_vvel_se
-         tensionne = -cym * uvel(iw) - dyt(iw) * tmp_uvel_ee &
-                   +  cxm * vvel(iw) + dxt(iw) * tmp_vvel_se
-         shearne   = -cym * vvel(iw) - dyt(iw) * tmp_vvel_ee &
-                   -  cxm * uvel(iw) - dxt(iw) * tmp_uvel_se
-         Deltane   = sqrt(divune**2 + ecci * (tensionne**2 + shearne**2))
-
          tmp_uvel_ne = uvel(ne(iw))
+         tmp_uvel_se = uvel(se(iw))
+         tmp_uvel_ee = uvel(ee(iw))
+
+         tmp_vvel_ee = vvel(ee(iw))
+         tmp_vvel_se = vvel(se(iw))
          tmp_vvel_ne = vvel(ne(iw))
 
-         ! nw
-         divunw    =  cym * tmp_uvel_ee + dyt(iw) * uvel(iw) &
-                   +  cxp * tmp_vvel_ee - dxt(iw) * tmp_vvel_ne
+         ! divergence = e_11 + e_22
+         divune = cyp * uvel(iw)    - dyt(iw) * tmp_uvel_ee &
+                + cxp * vvel(iw)    - dxt(iw) * tmp_vvel_se
+         divunw = cym * tmp_uvel_ee + dyt(iw) * uvel(iw) &
+                + cxp * tmp_vvel_ee - dxt(iw) * tmp_vvel_ne
+         divusw = cym * tmp_uvel_ne + dyt(iw) * tmp_uvel_se &
+                + cxm * tmp_vvel_ne + dxt(iw) * tmp_vvel_ee
+         divuse = cyp * tmp_uvel_se - dyt(iw) * tmp_uvel_ne &
+                + cxm * tmp_vvel_se + dxt(iw) * vvel(iw)
+
+         ! tension strain rate = e_11 - e_22
+         tensionne = -cym * uvel(iw)    - dyt(iw) * tmp_uvel_ee &
+                   +  cxm * vvel(iw)    + dxt(iw) * tmp_vvel_se
          tensionnw = -cyp * tmp_uvel_ee + dyt(iw) * uvel(iw) &
                    +  cxm * tmp_vvel_ee + dxt(iw) * tmp_vvel_ne
-         shearnw   = -cyp * tmp_vvel_ee + dyt(iw) * vvel(iw) &
-                   -  cxm * tmp_uvel_ee - dxt(iw) * tmp_uvel_ne
-         Deltanw   = sqrt(divunw**2 + ecci * (tensionnw**2 + shearnw**2))
-
-         ! sw
-         divusw    =  cym * tmp_uvel_ne + dyt(iw) * tmp_uvel_se &
-                   +  cxm * tmp_vvel_ne + dxt(iw) * tmp_vvel_ee
          tensionsw = -cyp * tmp_uvel_ne + dyt(iw) * tmp_uvel_se &
                    +  cxp * tmp_vvel_ne - dxt(iw) * tmp_vvel_ee
-         shearsw   = -cyp * tmp_vvel_ne + dyt(iw) * tmp_vvel_se &
-                   -  cxp * tmp_uvel_ne + dxt(iw) * tmp_uvel_ee
-         Deltasw   = sqrt(divusw**2 + ecci * (tensionsw**2 + shearsw**2))
-
-         ! se
-         divuse    =  cyp * tmp_uvel_se - dyt(iw) * tmp_uvel_ne &
-                   +  cxm * tmp_vvel_se + dxt(iw) * vvel(iw)
          tensionse = -cym * tmp_uvel_se - dyt(iw) * tmp_uvel_ne &
                    +  cxp * tmp_vvel_se - dxt(iw) * vvel(iw)
-         shearse   = -cym * tmp_vvel_se - dyt(iw) * tmp_vvel_ne &
-                   -  cxp * tmp_uvel_se + dxt(iw) * uvel(iw)
-         Deltase   = sqrt(divuse**2 + ecci * (tensionse**2 + shearse**2))
+
+         ! shearing strain rate = 2 * e_12
+         shearne = -cym * vvel(iw)    - dyt(iw) * tmp_vvel_ee &
+                 -  cxm * uvel(iw)    - dxt(iw) * tmp_uvel_se
+         shearnw = -cyp * tmp_vvel_ee + dyt(iw) * vvel(iw) &
+                 -  cxm * tmp_uvel_ee - dxt(iw) * tmp_uvel_ne
+         shearsw = -cyp * tmp_vvel_ne + dyt(iw) * tmp_vvel_se &
+                 -  cxp * tmp_uvel_ne + dxt(iw) * tmp_uvel_ee
+         shearse = -cym * tmp_vvel_se - dyt(iw) * tmp_vvel_ne &
+                 -  cxp * tmp_uvel_se + dxt(iw) * uvel(iw)
+
+         ! Delta (in the denominator of zeta and eta)
+         Deltane = sqrt(divune**2 + ecci * (tensionne**2 + shearne**2))
+         Deltanw = sqrt(divunw**2 + ecci * (tensionnw**2 + shearnw**2))
+         Deltasw = sqrt(divusw**2 + ecci * (tensionsw**2 + shearsw**2))
+         Deltase = sqrt(divuse**2 + ecci * (tensionse**2 + shearse**2))
 
          !--------------------------------------------------------------
          ! replacement pressure/Delta (kg/s)
@@ -271,13 +270,13 @@ contains
          !--------------------------------------------------------------
 
          stressp_1(iw) = (stressp_1(iw) * (c1 - arlx1i * revp) &
-            + c1ne * (divune * (c1 + Ktens) - Deltane * (c1 - Ktens))) * denom1
+                       + c1ne * (divune * (c1 + Ktens) - Deltane * (c1 - Ktens))) * denom1
          stressp_2(iw) = (stressp_2(iw) * (c1 - arlx1i * revp) &
-            + c1nw * (divunw * (c1 + Ktens) - Deltanw * (c1 - Ktens))) * denom1
+                       + c1nw * (divunw * (c1 + Ktens) - Deltanw * (c1 - Ktens))) * denom1
          stressp_3(iw) = (stressp_3(iw) * (c1 - arlx1i * revp) &
-            + c1sw * (divusw * (c1 + Ktens) - Deltasw * (c1 - Ktens))) * denom1
+                       + c1sw * (divusw * (c1 + Ktens) - Deltasw * (c1 - Ktens))) * denom1
          stressp_4(iw) = (stressp_4(iw) * (c1 - arlx1i * revp) &
-            + c1se * (divuse * (c1 + Ktens) - Deltase * (c1 - Ktens))) * denom1
+                       + c1se * (divuse * (c1 + Ktens) - Deltase * (c1 - Ktens))) * denom1
 
          stressm_1(iw) = (stressm_1(iw) * (c1 - arlx1i * revp) + c0ne * tensionne * (c1 + Ktens)) * denom1
          stressm_2(iw) = (stressm_2(iw) * (c1 - arlx1i * revp) + c0nw * tensionnw * (c1 + Ktens)) * denom1
@@ -342,7 +341,7 @@ contains
          strp_tmp = p25 * dyt(iw) * (p333 * ssigpn + p166 * ssigps)
          strm_tmp = p25 * dyt(iw) * (p333 * ssigmn + p166 * ssigms)
 
-         ! northeast (i, j)
+         ! northeast (i,j)
          str1(iw) = -strp_tmp - strm_tmp - str12ew &
                   + dxhy * (-csigpne + csigmne) + dyhx * csig12ne
 
@@ -396,16 +395,16 @@ contains
 
 !=======================================================================
 
-   subroutine stress_last(NA_len, tarear, ee, ne, se, lb, ub, uvel, &
-      vvel, dxt, dyt, hte, htn, htem1, htnm1, strength, stressp_1, &
-      stressp_2, stressp_3, stressp_4, stressm_1, stressm_2, &
-      stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, &
-      stress12_4, divu, rdg_conv, rdg_shear, shear, str1, str2, str3, &
-      str4, str5, str6, str7, str8)
+   subroutine stress_last(NA_len, ee, ne, se, lb, ub, uvel, vvel, dxt, &
+      dyt, hte, htn, htem1, htnm1, strength, stressp_1, stressp_2, &
+      stressp_3, stressp_4, stressm_1, stressm_2, stressm_3, &
+      stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, str1, &
+      str2, str3, str4, str5, str6, str7, str8, tarear, divu, &
+      rdg_conv, rdg_shear, shear)
 
       use ice_kinds_mod
       use ice_constants, only : p027, p055, p111, p166, p222, p25, &
-          p333, p5, c1p5, c0, c1
+          p333, p5, c1p5, c1, c0
       use ice_dyn_shared, only : ecci, denom1, arlx1i, Ktens, revp
 
       implicit none
@@ -414,7 +413,7 @@ contains
       integer(kind=int_kind), dimension(:), intent(in), contiguous :: &
          ee, ne, se
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
-         strength, uvel, vvel, dxt, dyt, tarear, hte, htn, htem1, htnm1
+         strength, uvel, vvel, dxt, dyt, hte, htn, htem1, htnm1, tarear
       real(kind=dbl_kind), dimension(:), intent(inout), contiguous :: &
          stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
          stressm_2, stressm_3, stressm_4, stress12_1, stress12_2, &
@@ -450,18 +449,19 @@ contains
 
 #ifdef _OPENACC
       !$acc parallel &
-      !$acc present(ee, ne, se, strength, uvel, vvel, dxt, dyt, &
-      !$acc    tarear, hte, htn, htem1, htnm1, str1, str2, str3, str4, &
-      !$acc    str5, str6, str7, str8, stressp_1, stressp_2, &
-      !$acc    stressp_3, stressp_4, stressm_1, stressm_2, stressm_3, &
-      !$acc    stressm_4, stress12_1, stress12_2, stress12_3, &
-      !$acc    stress12_4, divu, rdg_conv, rdg_shear, shear)
+      !$acc present(ee, ne, se, strength, uvel, vvel, dxt, dyt, hte, &
+      !$acc    htn, htem1, htnm1, str1, str2, str3, str4, str5, str6, &
+      !$acc    str7, str8, stressp_1, stressp_2, stressp_3, stressp_4, &
+      !$acc    stressm_1, stressm_2, stressm_3, stressm_4, stress12_1, &
+      !$acc    stress12_2, stress12_3, stress12_4, tarear, divu, &
+      !$acc    rdg_conv, rdg_shear, shear)
       !$acc loop
       do iw = 1, NA_len
 #else
       call domp_get_domain(lb, ub, il, iu)
       do iw = il, iu
 #endif
+
          tinyarea = puny * dxt(iw) * dyt(iw)
          dxhy     = p5 * (hte(iw) - htem1(iw))
          dyhx     = p5 * (htn(iw) - htnm1(iw))
@@ -475,13 +475,15 @@ contains
          ! NOTE: these are actually strain rates * area (m^2/s)
          !--------------------------------------------------------------
 
+         tmp_uvel_ne = uvel(ne(iw))
+         tmp_uvel_se = uvel(se(iw))
          tmp_uvel_ee = uvel(ee(iw))
+
          tmp_vvel_ee = vvel(ee(iw))
          tmp_vvel_se = vvel(se(iw))
          tmp_vvel_ne = vvel(ne(iw))
-         tmp_uvel_ne = uvel(ne(iw))
-         tmp_uvel_se = uvel(se(iw))
 
+         ! divergence = e_11 + e_22
          divune = cyp * uvel(iw)    - dyt(iw) * tmp_uvel_ee &
                 + cxp * vvel(iw)    - dxt(iw) * tmp_vvel_se
          divunw = cym * tmp_uvel_ee + dyt(iw) * uvel(iw) &
@@ -514,8 +516,8 @@ contains
          ! Delta (in the denominator of zeta and eta)
          Deltane = sqrt(divune**2 + ecci * (tensionne**2 + shearne**2))
          Deltanw = sqrt(divunw**2 + ecci * (tensionnw**2 + shearnw**2))
-         Deltase = sqrt(divuse**2 + ecci * (tensionse**2 + shearse**2))
          Deltasw = sqrt(divusw**2 + ecci * (tensionsw**2 + shearsw**2))
+         Deltase = sqrt(divuse**2 + ecci * (tensionse**2 + shearse**2))
 
          !--------------------------------------------------------------
          ! on last subcycle, save quantities for mechanical
@@ -556,14 +558,14 @@ contains
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !--------------------------------------------------------------
 
-         stressp_1(iw) = (stressp_1(iw) &
-                          * (c1 - arlx1i * revp) + c1ne * (divune * (c1 + Ktens) - Deltane * (c1 - Ktens))) * denom1
-         stressp_2(iw) = (stressp_2(iw) &
-                          * (c1 - arlx1i * revp) + c1nw * (divunw * (c1 + Ktens) - Deltanw * (c1 - Ktens))) * denom1
-         stressp_3(iw) = (stressp_3(iw) &
-                          * (c1 - arlx1i * revp) + c1sw * (divusw * (c1 + Ktens) - Deltasw * (c1 - Ktens))) * denom1
-         stressp_4(iw) = (stressp_4(iw) &
-                          * (c1 - arlx1i * revp) + c1se * (divuse * (c1 + Ktens) - Deltase * (c1 - Ktens))) * denom1
+         stressp_1(iw) = (stressp_1(iw) * (c1 - arlx1i * revp) &
+                       + c1ne * (divune * (c1 + Ktens) - Deltane * (c1 - Ktens))) * denom1
+         stressp_2(iw) = (stressp_2(iw) * (c1 - arlx1i * revp) &
+                       + c1nw * (divunw * (c1 + Ktens) - Deltanw * (c1 - Ktens))) * denom1
+         stressp_3(iw) = (stressp_3(iw) * (c1 - arlx1i * revp) &
+                       + c1sw * (divusw * (c1 + Ktens) - Deltasw * (c1 - Ktens))) * denom1
+         stressp_4(iw) = (stressp_4(iw) * (c1 - arlx1i * revp) &
+                       + c1se * (divuse * (c1 + Ktens) - Deltase * (c1 - Ktens))) * denom1
 
          stressm_1(iw) = (stressm_1(iw) * (c1 - arlx1i * revp) + c0ne * tensionne * (c1 + Ktens)) * denom1
          stressm_2(iw) = (stressm_2(iw) * (c1 - arlx1i * revp) + c0nw * tensionnw * (c1 + Ktens)) * denom1
@@ -689,7 +691,7 @@ contains
 
       use ice_kinds_mod
       use ice_constants, only : c0, c1
-      use ice_dyn_shared, only : brlx, revp
+      use ice_dyn_shared, only : brlx, revp, u0, cosw, sinw
 
       implicit none
 
@@ -710,12 +712,8 @@ contains
       integer(kind=int_kind) :: iw, il, iu
       real(kind=dbl_kind) :: uold, vold, vrel, cca, ccb, ab2, cc1, &
          cc2, taux, tauy, Cb, tmp_str2_nw, tmp_str3_se, tmp_str4_sw, &
-         tmp_strintx, tmp_str6_se, tmp_str7_nw, tmp_str8_sw, &
-         tmp_strinty, waterx, watery
-      ! residual velocity for seabed stress (m/s)
-      real(kind=dbl_kind) :: u0 = 5.e-5_dbl_kind
-      ! ocean turning angle = 0
-      real(kind=dbl_kind), parameter :: cosw = c1, sinw = c0
+         tmp_str6_se, tmp_str7_nw, tmp_str8_sw, waterx, watery, &
+         tmp_strintx, tmp_strinty
 
       character(len=*), parameter :: subname = '(stepu_iter)'
 
@@ -780,13 +778,14 @@ contains
 !=======================================================================
 
    subroutine stepu_last(NA_len, rhow, lb, ub, Cw, aiu, uocn, vocn, &
-      forcex, forcey, umassdti, fm, uarear, Tbu, strintx, strinty, &
-      taubx, tauby, uvel_init, vvel_init, uvel, vvel, str1, str2, &
-      str3, str4, str5, str6, str7, str8, nw, sw, se, skipme)
+      forcex, forcey, umassdti, fm, uarear, Tbu, uvel_init, vvel_init, &
+      uvel, vvel, str1, str2, str3, str4, str5, str6, str7, str8, nw, &
+      sw, se, skipme, strintx, strinty, taubx, tauby)
 
       use ice_kinds_mod
       use ice_constants, only : c0, c1
-      use ice_dyn_shared, only : brlx, revp, seabed_stress
+      use ice_dyn_shared, only : brlx, revp, u0, cosw, sinw, &
+          seabed_stress
 
       implicit none
 
@@ -808,19 +807,15 @@ contains
       real(kind=dbl_kind) :: uold, vold, vrel, cca, ccb, ab2, cc1, &
          cc2, taux, tauy, Cb, tmp_str2_nw, tmp_str3_se, tmp_str4_sw, &
          tmp_str6_se, tmp_str7_nw, tmp_str8_sw, waterx, watery
-      ! residual velocity for seabed stress (m/s)
-      real(kind=dbl_kind) :: u0 = 5.e-5_dbl_kind
-      ! ocean turning angle = 0
-      real(kind=dbl_kind), parameter :: cosw = c1, sinw = c0
 
       character(len=*), parameter :: subname = '(stepu_last)'
 
 #ifdef _OPENACC
       !$acc parallel &
       !$acc present(Cw, aiu, uocn, vocn, forcex, forcey, umassdti, fm, &
-      !$acc    uarear, Tbu, strintx, strinty, taubx, tauby, uvel_init, &
-      !$acc    vvel_init, nw, sw, se, skipme, str1, str2, str3, str4, &
-      !$acc    str5, str6, str7, str8, uvel, vvel)
+      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, se, skipme, &
+      !$acc    str1, str2, str3, str4, str5, str6, str7, str8, uvel, &
+      !$acc    vvel, strintx, strinty, taubx, tauby)
       !$acc loop
       do iw = 1, NA_len
 #else
@@ -888,7 +883,7 @@ contains
 
       implicit none
 
-      integer(kind=int_kind), intent(in) :: NAVEL_len,lb, ub
+      integer(kind=int_kind), intent(in) :: NAVEL_len, lb, ub
       integer(kind=int_kind), dimension(:), intent(in), contiguous :: &
          halo_parent
       real(kind=dbl_kind), dimension(:), intent(inout), contiguous :: &
@@ -910,7 +905,7 @@ contains
       do iw = il, iu
 #endif
 
-         if (halo_parent(iw)==0) cycle
+         if (halo_parent(iw) == 0) cycle
 
          uvel(iw) = uvel(halo_parent(iw))
          vvel(iw) = vvel(halo_parent(iw))
@@ -1113,9 +1108,11 @@ contains
          call calc_2d_indices(nx_glob, ny_glob, NA_len, G_icetmask, G_iceumask)
          call calc_navel(nx_glob, ny_glob, NA_len, NAVEL_len)
          call alloc1d_navel(NAVEL_len)
-         !MHRI  !$OMP PARALLEL DEFAULT(shared)
+         ! initialize OpenMP. FIXME: ought to be called from main
+         call domp_init()
+         !$OMP PARALLEL DEFAULT(shared)
          call numainit(1, NA_len, NAVEL_len)
-         !MHRI  !$OMP END PARALLEL
+         !$OMP END PARALLEL
          ! map 2D arrays to 1D arrays
          call convert_2d_1d(nx_glob, ny_glob, NA_len, NAVEL_len, &
             G_HTE, G_HTN, G_cdn_ocn, G_aiu, G_uocn, G_vocn, G_forcex, &
@@ -1288,21 +1285,9 @@ contains
          call icepack_query_parameters(rhow_out = rhow)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) then
-            call abort_ice(error_message = subname, file = __FILE__, &
-               line = __LINE__)
+            call abort_ice(error_message=subname, file=__FILE__, &
+               line=__LINE__)
          end if
-
-         ! initialize OpenMP. FIXME: ought to be called from main
-         call domp_init()
-
-         str1 = c0
-         str2 = c0
-         str3 = c0
-         str4 = c0
-         str5 = c0
-         str6 = c0
-         str7 = c0
-         str8 = c0
 
          if (ndte < 2) call abort_ice(subname &
             // ' ERROR: ndte must be 2 or higher for this kernel')
@@ -1325,21 +1310,20 @@ contains
                halo_parent)
             !$OMP BARRIER
          end do
-
-         call evp1d_stress(NA_len, tarear, ee, ne, se, 1, NA_len, &
-            uvel, vvel, dxt, dyt, hte, htn, htem1, htnm1, strength, &
-            stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
-            stressm_2, stressm_3, stressm_4, stress12_1, stress12_2, &
-            stress12_3, stress12_4, divu, rdg_conv, rdg_shear, shear, &
-            str1, str2, str3, str4, str5, str6, str7, str8)
+         call evp1d_stress(NA_len, ee, ne, se, 1, NA_len, uvel, vvel, &
+            dxt, dyt, hte, htn, htem1, htnm1, strength, stressp_1, &
+            stressp_2, stressp_3, stressp_4, stressm_1, stressm_2, &
+            stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, &
+            stress12_4, str1, str2, str3, str4, str5, str6, str7, &
+            str8, tarear, divu, rdg_conv, rdg_shear, shear)
          !$OMP BARRIER
          call evp1d_stepu(NA_len, rhow, 1, NA_len, cdn_ocn, aiu, uocn, &
-            vocn, forcex, forcey, umassdti, fm, uarear, Tbu, strintx, &
-            strinty, taubx, tauby, uvel_init, vvel_init, uvel, vvel, &
-            str1, str2, str3, str4, str5, str6, str7, str8, nw, sw, &
-            sse, skipucell)
+            vocn, forcex, forcey, umassdti, fm, uarear, Tbu, &
+            uvel_init, vvel_init, uvel, vvel, str1, str2, str3, str4, &
+            str5, str6, str7, str8, nw, sw, sse, skipucell, strintx, &
+            strinty, taubx, tauby)
          !$OMP BARRIER
-         call evp1d_halo_update(NA_len, 1, NAVEL_len, uvel, vvel, &
+         call evp1d_halo_update(NAVEL_len, 1, NAVEL_len, uvel, vvel, &
             halo_parent)
          !$OMP END PARALLEL
 
