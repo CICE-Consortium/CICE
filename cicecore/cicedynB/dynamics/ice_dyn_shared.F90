@@ -53,12 +53,12 @@
                               ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. in prep.  
                                                                       
       real (kind=dbl_kind), parameter, public :: &
-         eyc = 0.36_dbl_kind, &
-                         ! coefficient for calculating the parameter E
-         cosw = c1   , & ! cos(ocean turning angle)  ! turning angle = 0
-         sinw = c0   , & ! sin(ocean turning angle)  ! turning angle = 0
-         a_min = p001, & ! minimum ice area
-         m_min = p01     ! minimum ice mass (kg/m^2)
+         eyc   = 0.36_dbl_kind, & ! coefficient for calculating the parameter E
+         u0    = 5e-5_dbl_kind, & ! residual velocity for seabed stress (m/s)
+         cosw  = c1           , & ! cos(ocean turning angle)  ! turning angle = 0
+         sinw  = c0           , & ! sin(ocean turning angle)  ! turning angle = 0
+         a_min = p001         , & ! minimum ice area
+         m_min = p01              ! minimum ice mass (kg/m^2)
 
       real (kind=dbl_kind), public :: &
          revp     , & ! 0 for classic EVP, 1 for revised EVP
@@ -89,12 +89,11 @@
          seabed_stress ! if true, seabed stress for landfast on
 
       real (kind=dbl_kind), public :: &
-         k1, &        ! 1st free parameter for seabed1 grounding parameterization
-         k2, &        ! second free parameter (N/m^3) for seabed1 grounding parametrization 
-         alphab, &    ! alphab=Cb factor in Lemieux et al 2015
-         threshold_hw, & ! max water depth for grounding 
+         k1          , & ! 1st free parameter for seabed1 grounding parameterization
+         k2          , & ! second free parameter (N/m^3) for seabed1 grounding parametrization
+         alphab      , & ! alphab=Cb factor in Lemieux et al 2015
+         threshold_hw    ! max water depth for grounding
                          ! see keel data from Amundrud et al. 2004 (JGR)
-         u0 = 5e-5_dbl_kind ! residual velocity for seabed stress (m/s)
 
 !=======================================================================
 
