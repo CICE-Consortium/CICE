@@ -58,13 +58,13 @@ Raw JRA55 forcing data
 *************************
 
 The raw JRA55 forcing data is obtained from the UCAR/NCAR Research Data Archive,
-https://rda.ucar.edu/.  You must first register (free) and then signin.  The
+https://rda.ucar.edu/.  You must first register (free) and then sign in.  The
 "JRA-55 Reanalysis Daily 3-Hourly and 6-Hourly Data" is ds628.0 and can be found here,
 https://rda.ucar.edu/datasets/ds628.0.  
 
 The "Data access" tabs will provide a list of product categories.
 The JRA55 data of interest are located in 2 separate products. Winds, air 
-temperature, and specific humidity on the model grid are included in "JRA-55 
+temperature, and specific humidity fields are included in "JRA-55 
 3-Hourly Model Resolution 2-Dimensional Instantaneous Diagnostic Fields". 
 Precipitation and downward radiation fluxes are found in "JRA-55 3-Hourly 
 Model Resolution 2-Dimensional Average Diagnostic Fields".  (Note the 
@@ -97,12 +97,12 @@ one field.
 Data conversion
 *************************
 
-**configuration/tools/jra55_datasets/interp_jra55_ncdf_bilinear.py** is run to 
-convert the raw data to CICE input files.
+The script, **configuration/tools/jra55_datasets/interp_jra55_ncdf_bilinear.py**, 
+converts the raw data to CICE input files.
 
 The script uses a bilinear regridding algorithm to regrid from the JRA55 grid to 
 the CICE grid. The scripts use the Python package ‘xesmf’ to generate bilinear 
-regridding weight, and these regridding weights are written to the file defined by
+regridding weights, and these regridding weights are written to the file defined by
 the variable "blin_grid_name" in **interp_jra55_ncdf_bilinear.py**. This filename
 can be modified by editing **interp_jra55_ncdf_bilinear.py**.
 The weights file can be re-used if interpolating different data on the same grid. 
@@ -148,4 +148,5 @@ NOTES
 - All files should be placed in a common directory.  This includes the raw JRA55 input files, the CICE grid file, and **interp_jra55_ncdf_bilinear.py**.  The output files will be written to the same directory.
 - The script **configuration/tools/jra55_datasets/make_forcing.csh** was used on the NCAR cheyenne machine in March, 2021 to generate CICE forcing data.  It assumes the raw JRA55 is downloaded, but then sets up the python environment, links all the data in a common directory, runs **interp_jra55_ncdf_bilinear.py** and then aggregates the quarterly data using NCO.
 - The new forcing files can then be defined in the **ice_in** namelist file using the input variables, ``atm_data_type``, ``atm_data_format``, ``atm_data_dir``, ``fyear_init``, and ``ycycle``.  See :ref:`forcing` for more information.
+- The total precipitation field is mm/day in JRA55.  This field is treated as snow in CICE without regard to season or air temperature.
 
