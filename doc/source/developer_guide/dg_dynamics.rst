@@ -30,21 +30,12 @@ Dynamical Solvers
 --------------------
 
 The dynamics solvers are found in **cicecore/cicedynB/dynamics/**.  A couple of different solvers are
-available including EVP, revised EVP, EAP and VP.  The dynamics solver is specified in namelist with the
-``kdyn`` variable.  ``kdyn=1`` is evp, ``kdyn=2`` is eap, ``kdyn=3`` is VP and revised EVP requires 
-the ``revised_evp`` namelist flag be set to true.
+available including EVP, EAP and VP.  The dynamics solver is specified in namelist with the
+``kdyn`` variable.  ``kdyn=1`` is evp, ``kdyn=2`` is eap, ``kdyn=3`` is VP.
 
-Multiple EVP solvers are supported thru the namelist flag ``kevp_kernel``.  The standard implementation
-and current default is ``kevp_kernel=0``.  In this case, the stress is solved on the regular decomposition
-via subcycling and calls to subroutine ``stress`` and subroutine ``stepu`` with MPI global sums required in each
-subcycling call.  With ``kevp_kernel=2``, the data required to compute the stress is gathered to the root
-MPI process and the stress calculation is performed on the root task without any MPI global sums.  OpenMP
-parallelism is supported in ``kevp_kernel=2``.  The solutions with ``kevp_kernel`` set to 0 or 2 will 
-not be bit-for-bit
-identical but should be the same to roundoff and produce the same climate.  ``kevp_kernel=2`` may perform
-better for some configurations, some machines, and some pe counts.  ``kevp_kernel=2`` is not supported
-with the tripole grid and is still being validated.  Until ``kevp_kernel=2`` is fully validated, it will
-abort if set.  To override the abort, use value 102 for testing.
+Two alternative implemtations of EVP are included. The first alternative is the Revised EVP triggered when the ``revised_evp`` is set to true. The second alternative is the 1d EVP solver triggered by the  ``evp_algorithm`` set to shared_mem_1d as oppose to the default setting ``evp_standard_2d``. The solutions with ``evp_algorithm`` set to standard_2d or shared_mem_1d will 
+not be bit-for-bit identical when compared to eachother. The reason for this is floating point round off errors that occur unless strict compiler flags are used. ``evp_algorithm=shared_mem_1d`` is primarily build for OpenMP. If MPI domain splitting is used then the solver will only run on the master processor.  ``evp_algorithm=shared_mem_1d`` is not supported
+with the tripole grid.
 
 
 Transport

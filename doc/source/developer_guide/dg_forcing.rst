@@ -180,7 +180,7 @@ constant thereafter.  Different conditions can be specified thru the
 .. _box2001forcing:
 
 Box2001 Atmosphere Forcing
--------------------------
+---------------------------
 
 The box2001 forcing dataset in generated internally.  No files are read.  The
 dataset is used to test an idealized box case as defined in :cite:`Hunke01`.
