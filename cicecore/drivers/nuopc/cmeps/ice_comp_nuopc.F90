@@ -501,6 +501,7 @@ contains
     endif
 
     ! Flux convergence tolerance
+    ! TODO: these need to be consistent - but for now use namelist value
     call NUOPC_CompAttributeGet(gcomp, name="flux_convergence", value=cvalue, &
          isPresent=isPresent, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -513,7 +514,9 @@ contains
     if (atmiter_conv_driver  /= atmiter_conv) then
        write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'error: atmiter_ from driver ',&
             atmiter_conv_driver,' must be the same as atmiter_conv from cice namelist ',atmiter_conv
-       call abort_ice(trim(errmsg))
+       write(nu_diag,*) trim(errmsg)
+       call icepack_warnings_flush(nu_diag)
+       !call abort_ice(trim(errmsg))
     endif
 
     ! Number of iterations for boundary layer calculations
