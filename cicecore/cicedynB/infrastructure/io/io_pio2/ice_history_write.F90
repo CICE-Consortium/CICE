@@ -41,8 +41,8 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: time, sec, idate, idate0, write_ic, &
-          histfreq, dayyr, days_per_year, use_leap_years
+      use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
+          histfreq, days_per_year, use_leap_years, dayyr
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c360, spval, spval_dbl
       use ice_domain, only: distrb_info, nblocks
@@ -76,7 +76,6 @@
       character (char_len_long) :: ncfile(max_nstrm)
       integer (kind=int_kind) :: iotype
 
-      integer (kind=int_kind) :: iyear, imonth, iday
       integer (kind=int_kind) :: icategory,ind,i_aice,boundid
 
       character (char_len) :: start_time,current_date,current_time
@@ -176,8 +175,8 @@
       call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds)
       call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df)
 
-      ltime2 = time/int(secday)
-      ltime  = real(time/int(secday),kind=real_kind)
+      ltime2 = timesecs/secday
+      ltime  = real(timesecs/secday,kind=real_kind)
 
       ! option of turning on double precision history files
       lprecision = pio_real
@@ -861,16 +860,16 @@
         status = pio_put_att(File,pio_global,'source',trim(title))
 
         if (use_leap_years) then
-          write(title,'(a,i3,a)') 'This year has ',int(dayyr),' days'
+          write(title,'(a,i3,a)') 'This year has ',dayyr,' days'
         else
-          write(title,'(a,i3,a)') 'All years have exactly ',int(dayyr),' days'
+          write(title,'(a,i3,a)') 'All years have exactly ',dayyr,' days'
         endif
         status = pio_put_att(File,pio_global,'comment',trim(title))
 
         write(title,'(a,i8.8)') 'File written on model date ',idate
         status = pio_put_att(File,pio_global,'comment2',trim(title))
 
-        write(title,'(a,i6)') 'seconds elapsed into model date: ',sec
+        write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
         status = pio_put_att(File,pio_global,'comment3',trim(title))
 
         title = 'CF-1.0'

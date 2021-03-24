@@ -1094,7 +1094,7 @@ cd ${testname_base}
 source ./cice.settings
 if (\${dobuild} == true) then
    if (\${doreuse} == true) then
-     set ciceexe = "../ciceexe.\${ICE_ENVNAME}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
+     set ciceexe = "../ciceexe.\${ICE_TARGET}.\${ICE_ENVNAME}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
      ./cice.build --exe \${ciceexe}
      if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
    else

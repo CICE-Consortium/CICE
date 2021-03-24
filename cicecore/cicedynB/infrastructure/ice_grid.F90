@@ -2424,7 +2424,7 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               k = kmt(i,j,iblk)
+               k = min(nint(kmt(i,j,iblk)),nlevel)
                if (k > puny) bathymetry(i,j,iblk) = depth(k)
             enddo
             enddo
