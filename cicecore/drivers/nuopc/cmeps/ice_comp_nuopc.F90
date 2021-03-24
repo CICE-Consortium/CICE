@@ -15,7 +15,7 @@ module ice_comp_nuopc
   use NUOPC_Model        , only : model_label_SetRunClock    => label_SetRunClock
   use NUOPC_Model        , only : model_label_Finalize       => label_Finalize
   use NUOPC_Model        , only : NUOPC_ModelGet, SetVM
-  use ice_constants      , only : ice_init_constants
+  use ice_constants      , only : ice_init_constants, c0
   use ice_shr_methods    , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
   use ice_shr_methods    , only : set_component_logging, get_component_instance, state_flddebug
   use ice_import_export  , only : ice_import, ice_export, ice_advertise_fields, ice_realize_fields
@@ -179,7 +179,12 @@ contains
     logical                      :: isPresent, isSet
     real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
     type(ESMF_DistGrid)          :: ice_distGrid
-    character(len=char_len)      :: tfrz_option
+    real(kind=dbl_kind)          :: atmiter_conv
+    real(kind=dbl_kind)          :: atmiter_conv_driver
+    integer (kind=int_kind)      :: natmiter
+    integer (kind=int_kind)      :: natmiter_driver
+    character(len=char_len)      :: tfrz_option_driver       ! tfrz_option from driver attributes 
+    character(len=char_len)      :: tfrz_option    ! tfrz_option from cice namelist
     integer(int_kind)            :: ktherm
     integer                      :: localPet
     integer                      :: npes
@@ -316,6 +321,8 @@ contains
 #ifdef CESMCOUPLED
     call ice_init_constants(omega_in=SHR_CONST_OMEGA, radius_in=SHR_CONST_REARTH, &
        spval_dbl_in=SHR_CONST_SPVAL)
+
+    ! TODO: get tfrz_option from driver
 
     call icepack_init_parameters( &
        secday_in           = SHR_CONST_CDAY,                  &
@@ -470,9 +477,64 @@ contains
     ! First cice initialization phase - before initializing grid info
     !----------------------------------------------------------------------------
 
+    ! Read the cice namelist as part of the call to cice_init1
     call t_startf ('cice_init1')
     call cice_init1
     call t_stopf ('cice_init1')
+
+    ! Form of ocean freezing temperature
+    ! 'minus1p8' = -1.8 C
+    ! 'linear_salt' = -depressT * sss
+    ! 'mushy' conforms with ktherm=2
+    call NUOPC_CompAttributeGet(gcomp, name="tfreeze_option", value=tfrz_option_driver, &
+         isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (.not. isPresent) then
+       tfrz_option_driver = 'linear_salt'
+    end if
+    call icepack_query_parameters( tfrz_option_out=tfrz_option)
+    if (tfrz_option_driver  /= tfrz_option) then
+       if (master_task) then
+          write(nu_diag,*) trim(subname)//'error: tfrz_option from driver '//trim(tfrz_option_driver)//&
+            ' must be the same as tfrz_option from cice namelist '//trim(tfrz_option)
+       end if
+       call abort_ice(trim(subname))
+    endif
+
+    ! Flux convergence tolerance
+    call NUOPC_CompAttributeGet(gcomp, name="flux_convergence", value=cvalue, &
+         isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       read(cvalue,*) atmiter_conv_driver
+    else
+       atmiter_conv_driver = c0
+    end if
+    call icepack_query_parameters( atmiter_conv_out=atmiter_conv)
+    if (atmiter_conv_driver  /= atmiter_conv) then
+       if (master_task) then
+          write(nu_diag,'(a,d13.5,a,d13.5)') trim(subname)//'error: atmiter_ from driver ',&
+               atmiter_conv_driver,' must be the same as atmiter_conv from cice namelist ',atmiter_conv
+       end if
+       call abort_ice(trim(subname))
+    endif
+
+    ! Number of iterations for boundary layer calculations
+    call NUOPC_CompAttributeGet(gcomp, name="flux_max_iteration", value=cvalue, isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       read(cvalue,*) natmiter_driver
+    else
+       natmiter_driver = 5
+    end if
+    call icepack_query_parameters( natmiter_out=natmiter)
+    if (natmiter_driver  /= natmiter) then
+       if (master_task) then
+          write(nu_diag,'(a,i8,a,i8)') trim(subname)//'error: natmiter_driver ',natmiter_driver, &
+            ' must be the same as natmiter from cice namelist ',natmiter
+       end if
+       call abort_ice(trim(subname))
+    endif
 
     !----------------------------------------------------------------------------
     ! Initialize grid info
@@ -510,6 +572,8 @@ contains
 
     ! Note that cice_init2 also sets time manager info as well as mpi communicator info,
     ! including master_task and my_task
+    ! Note that cice_init2 calls ice_init() which in turn calls icepack_init_parameters
+    ! which sets the tfrz_option 
     call t_startf ('cice_init2')
     call cice_init2()
     call t_stopf ('cice_init2')

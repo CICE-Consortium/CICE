@@ -38,6 +38,7 @@ module ice_import_export
   use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
 #ifdef CESMCOUPLED
   use shr_frz_mod        , only : shr_frz_freezetemp
+  use shr_mpi_mod        , only : shr_mpi_min, shr_mpi_max
 #endif
 
   implicit none
@@ -291,7 +292,14 @@ contains
     real(dbl_kind), allocatable :: mesh_areas(:)
     real(dbl_kind), allocatable :: model_areas(:)
     real(dbl_kind), pointer     :: dataptr(:)
-    integer                     :: num_ice
+    real(dbl_kind)              :: max_mod2med_areacor
+    real(dbl_kind)              :: max_med2mod_areacor
+    real(dbl_kind)              :: min_mod2med_areacor
+    real(dbl_kind)              :: min_med2mod_areacor
+    real(dbl_kind)              :: max_mod2med_areacor_glob
+    real(dbl_kind)              :: max_med2mod_areacor_glob
+    real(dbl_kind)              :: min_mod2med_areacor_glob
+    real(dbl_kind)              :: min_med2mod_areacor_glob
     character(len=*), parameter :: subname='(ice_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
@@ -320,17 +328,12 @@ contains
          mesh=mesh, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine areas for regridding
-    call ESMF_MeshGet(mesh, numOwnedElements=numOwnedElements, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate (mod2med_areacor(numOwnedElements))
-    allocate (med2mod_areacor(numOwnedElements))
-    mod2med_areacor(:) = c1
-    med2mod_areacor(:) = c1
-
 #ifdef CESMCOUPLED
     ! Get mesh areas from second field - using second field since the
     ! first field is the scalar field
+
+    call ESMF_MeshGet(mesh, numOwnedElements=numOwnedElements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_StateGet(exportState, itemName=trim(fldsFrIce(2)%stdname), field=lfield, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegridGetArea(lfield, rc=rc)
@@ -340,8 +343,12 @@ contains
     allocate(mesh_areas(numOwnedElements))
     mesh_areas(:) = dataptr(:)
 
-    ! Determine model areas
+    ! Determine flux correction factors (module variables)
     allocate(model_areas(numOwnedElements))
+    allocate(mod2med_areacor(numOwnedElements))
+    allocate(med2mod_areacor(numOwnedElements))
+    mod2med_areacor(:) = 1._dbl_kind
+    med2mod_areacor(:) = 1._dbl_kind
     n = 0
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
@@ -353,27 +360,29 @@ contains
           do i = ilo, ihi
              n = n+1
              model_areas(n) = tarea(i,j,iblk)/(radius*radius)
+             mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
+             med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
           enddo
        enddo
     enddo
-    num_ice = n
-
-    ! Determine flux correction factors (module variables)
-    do n = 1,num_ice
-       if (model_areas(n) == mesh_areas(n)) then
-          mod2med_areacor(n) = c1
-          med2mod_areacor(n) = c1
-       else
-          mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
-          med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
-          if (abs(mod2med_areacor(n) - 1._dbl_kind) > 1.e-13) then
-             write(6,'(a,i8,2x,d21.14,2x)')' AREACOR cice6: n, abs(mod2med_areacor(n)-1)', &
-                  n, abs(mod2med_areacor(n) - 1._dbl_kind)
-          end if
-       end if
-    end do
     deallocate(model_areas)
     deallocate(mesh_areas)
+
+    min_mod2med_areacor = minval(mod2med_areacor)
+    max_mod2med_areacor = maxval(mod2med_areacor)
+    min_med2mod_areacor = minval(med2mod_areacor)
+    max_med2mod_areacor = maxval(med2mod_areacor)
+    call shr_mpi_max(max_mod2med_areacor, max_mod2med_areacor_glob, mpi_comm_ice)
+    call shr_mpi_min(min_mod2med_areacor, min_mod2med_areacor_glob, mpi_comm_ice)
+    call shr_mpi_max(max_med2mod_areacor, max_med2mod_areacor_glob, mpi_comm_ice)
+    call shr_mpi_min(min_med2mod_areacor, min_med2mod_areacor_glob, mpi_comm_ice)
+
+    if (my_task == master_task) then
+       write(nu_diag,'(2A,2g23.15,A )') trim(subname),' :  min_mod2med_areacor, max_mod2med_areacor ',&
+            min_mod2med_areacor_glob, max_mod2med_areacor_glob, 'CICE6'
+       write(nu_diag,'(2A,2g23.15,A )') trim(subname),' :  min_med2mod_areacor, max_med2mod_areacor ',&
+            min_med2mod_areacor_glob, max_med2mod_areacor_glob, 'CICE6'
+    end if
 #endif
 
   end subroutine ice_realize_fields
