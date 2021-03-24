@@ -625,6 +625,49 @@ Test Suite Examples
     The setenv syntax is for csh/tcsh.  In bash, the syntax would be SUITE_BUILD=true.
 
 
+.. _unittesting:
+
+Unit Testing
+---------------
+
+Unit testing is supported in the CICE scripts.  Unit tests are implemented
+via a distinct top level driver that tests CICE model features explicitly.
+These drivers can be found in **cicecore/drivers/unittest/**.  In addition,
+there are some script files that also support the unit testing.
+
+The unit tests build and run very much like the standard CICE model.
+A case is created and model output is saved to the case logs directory.
+Unit tests can be run as part of a test suite and the output is 
+compared against an earlier set of output using a simple diff of the
+log files.
+
+For example, to run the existing calendar unit test as a case,
+
+.. code-block:: bash
+
+  ./cice.setup -m onyx -e intel --case calchk01 -p 1x1 -s calchk
+  cd calchk01
+  ./cice.build
+  ./cice.submit
+
+Or to run the existing calendar unit test as a test,
+
+.. code-block:: bash
+
+  ./cice.setup -m onyx -e intel --test unittest -p 1x1 --testid cc01 -s calchk --bgen cice.cc01
+  cd onyx_intel_unittest_gx3_1x1_calchk.cc01/
+  ./cice.build
+  ./cice.submit
+
+To create a new unit test, add a new driver in **cicecore/driver/unittest**.
+The directory name should be the name of the test.
+Then create the appropriate set_nml or set_env files for the new unittest name
+in **configuration/scripts/options**.  In particular, **ICE_DRVOPT** and
+**ICE_TARGET** need to be defined in a set_env file.  Finally, edit
+**configuration/scripts/Makefile** and create a target for the unit test.
+The unit tests calchk or helloworld can be used as examples.
+
+
 .. _testreporting:
 
 Test Reporting

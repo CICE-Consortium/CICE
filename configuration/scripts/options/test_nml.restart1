@@ -1,4 +1,5 @@
-npt            = 240
+npt            = 10
+npt_unit       = 'd'
 dumpfreq       = 'd'
 dumpfreq_n     = 5
 runtype        = 'initial'

@@ -449,7 +449,6 @@
       if (my_task == master_task) then
          ! cannot use ice_read_write due to circular dependency
 #ifdef USE_NETCDF
-         write(nu_diag,*) 'read ',trim(distribution_wght_file),minval(wght),maxval(wght)
          status = nf90_open(distribution_wght_file, NF90_NOWRITE, fid)
          if (status /= nf90_noerr) then
             call abort_ice (subname//'ERROR: Cannot open '//trim(distribution_wght_file))
@@ -457,6 +456,7 @@
          status = nf90_inq_varid(fid, 'wght', varid)
          status = nf90_get_var(fid, varid, wght)
          status = nf90_close(fid)
+         write(nu_diag,*) 'read ',trim(distribution_wght_file),minval(wght),maxval(wght)
 #else
          call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
              file=__FILE__, line=__LINE__)

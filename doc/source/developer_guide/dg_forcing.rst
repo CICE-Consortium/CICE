@@ -120,8 +120,8 @@ Time interpolation coefficients are computed in the **JRA55_data** subroutine.
 The forcing data is converted to model inputs in the subroutine **prepare_forcing**
 called in **get_forcing_atmo**.  To clarify, the JRA55 input data includes
 
-- uatm    = model grid i-direction wind velocity component (m/s)
-- vatm    = model grid j-direction wind velocity component (m/s)
+- uatm    = T-cell centered, model grid i-direction wind velocity component (m/s)
+- vatm    = T-cell-centered, model grid j-direction wind velocity component (m/s)
 - Tair    = air temperature  (K)
 - Qa      = specific humidity (kg/kg)
 - flw     = incoming longwave radiation (W/m^2)
