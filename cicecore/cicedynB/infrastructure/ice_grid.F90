@@ -2401,7 +2401,8 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               k = min(nint(kmt(i,j,iblk)),nlevel)
+               k = nint(kmt(i,j,iblk))
+               if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
                if (k > puny) bathymetry(i,j,iblk) = depth(k)
             enddo
             enddo
@@ -2492,8 +2493,8 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            k = kmt(i,j,iblk)
-            if (k > nlevel) call abort_ice(subname//' kmt/nlevel error')
+            k = nint(kmt(i,j,iblk))
+            if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
             if (k > 0) bathymetry(i,j,iblk) = depth(k)
          enddo
          enddo
