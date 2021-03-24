@@ -176,6 +176,7 @@ contains
     ! Local variables
     character(len=char_len_long) :: cvalue
     character(len=char_len_long) :: ice_meshfile
+    character(len=char_len_long) :: errmsg
     logical                      :: isPresent, isSet
     real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
     type(ESMF_DistGrid)          :: ice_distGrid
@@ -494,11 +495,9 @@ contains
     end if
     call icepack_query_parameters( tfrz_option_out=tfrz_option)
     if (tfrz_option_driver  /= tfrz_option) then
-       if (master_task) then
-          write(nu_diag,*) trim(subname)//'error: tfrz_option from driver '//trim(tfrz_option_driver)//&
+       write(errmsg,'(a)') trim(subname)//'error: tfrz_option from driver '//trim(tfrz_option_driver)//&
             ' must be the same as tfrz_option from cice namelist '//trim(tfrz_option)
-       end if
-       call abort_ice(trim(subname))
+       call abort_ice(trim(errmsg))
     endif
 
     ! Flux convergence tolerance
@@ -512,11 +511,9 @@ contains
     end if
     call icepack_query_parameters( atmiter_conv_out=atmiter_conv)
     if (atmiter_conv_driver  /= atmiter_conv) then
-       if (master_task) then
-          write(nu_diag,'(a,d13.5,a,d13.5)') trim(subname)//'error: atmiter_ from driver ',&
-               atmiter_conv_driver,' must be the same as atmiter_conv from cice namelist ',atmiter_conv
-       end if
-       call abort_ice(trim(subname))
+       write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'error: atmiter_ from driver ',&
+            atmiter_conv_driver,' must be the same as atmiter_conv from cice namelist ',atmiter_conv
+       call abort_ice(trim(errmsg))
     endif
 
     ! Number of iterations for boundary layer calculations
@@ -529,11 +526,9 @@ contains
     end if
     call icepack_query_parameters( natmiter_out=natmiter)
     if (natmiter_driver  /= natmiter) then
-       if (master_task) then
-          write(nu_diag,'(a,i8,a,i8)') trim(subname)//'error: natmiter_driver ',natmiter_driver, &
+       write(errmsg,'(a,i8,a,i8)') trim(subname)//'error: natmiter_driver ',natmiter_driver, &
             ' must be the same as natmiter from cice namelist ',natmiter
-       end if
-       call abort_ice(trim(subname))
+       call abort_ice(trim(errmsg))
     endif
 
     !----------------------------------------------------------------------------
