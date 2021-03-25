@@ -2403,7 +2403,7 @@
             do i = 1, nx_block
                k = nint(kmt(i,j,iblk))
                if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
-               if (k > puny) bathymetry(i,j,iblk) = depth(k)
+               if (k > 0) bathymetry(i,j,iblk) = depth(k)
             enddo
             enddo
          enddo
