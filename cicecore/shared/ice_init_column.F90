@@ -408,7 +408,7 @@
          do i = ilo, ihi
 
                if (aicen(i,j,n,iblk) > puny) then
-                  
+
                   alvdf(i,j,iblk) = alvdf(i,j,iblk) &
                        + alvdfn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   alidf(i,j,iblk) = alidf(i,j,iblk) &
@@ -417,7 +417,7 @@
                        + alvdrn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   alidr(i,j,iblk) = alidr(i,j,iblk) &
                        + alidrn(i,j,n,iblk)*aicen(i,j,n,iblk)
-                  
+
                   netsw = swvdr(i,j,iblk) + swidr(i,j,iblk) &
                         + swvdf(i,j,iblk) + swidf(i,j,iblk)
                   if (netsw > puny) then ! sun above horizon
@@ -428,12 +428,12 @@
                      albpnd(i,j,iblk) = albpnd(i,j,iblk) &
                           + albpndn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   endif
-                  
+
                   apeff_ai(i,j,iblk) = apeff_ai(i,j,iblk) &
                        + apeffn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   snowfrac(i,j,iblk) = snowfrac(i,j,iblk) &
                        + snowfracn(i,j,n,iblk)*aicen(i,j,n,iblk)
-               
+
                endif ! aicen > puny
 
          enddo ! i
