@@ -46,8 +46,6 @@ versions were used when the script was recently run.
 - netCDF4 (1.5.5)
 - ESMPy (8.0.0)
 - xesmf (0.3.0)
-- argparse
-- datetime
 
 NCO is required for aggregating the output files into yearly files.
 
@@ -148,5 +146,5 @@ NOTES
 - All files should be placed in a common directory.  This includes the raw JRA55 input files, the CICE grid file, and **interp_jra55_ncdf_bilinear.py**.  The output files will be written to the same directory.
 - The script **configuration/tools/jra55_datasets/make_forcing.csh** was used on the NCAR cheyenne machine in March, 2021 to generate CICE forcing data.  It assumes the raw JRA55 is downloaded, but then sets up the python environment, links all the data in a common directory, runs **interp_jra55_ncdf_bilinear.py** and then aggregates the quarterly data using NCO.
 - The new forcing files can then be defined in the **ice_in** namelist file using the input variables, ``atm_data_type``, ``atm_data_format``, ``atm_data_dir``, ``fyear_init``, and ``ycycle``.  See :ref:`forcing` for more information.
-- The total precipitation field is mm/day in JRA55.  This field is treated as snow in CICE without regard to season or air temperature.
+- The total precipitation field is mm/day in JRA55.  This field is initially read in as snow, but prepare_forcing in **ice_forcing.F90** splits that into rain or snow forcing depending on the air temperature.
 
