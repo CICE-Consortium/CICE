@@ -525,7 +525,7 @@ Test Suite Examples
     This will compare to results saved in the baseline [bdir] directory under
     the subdirectory cice.v01a. With the ``--bcmp`` option, the results will be tested
     against prior baselines to verify bit-for-bit, which is an important step prior 
-    to approval of many (not all, see :ref:`compliance`) Pull Requests to incorporate code into 
+    to approval of many (not all, see :ref:`validation`) Pull Requests to incorporate code into 
     the CICE Consortium master code. You can use other regression options as well.
     (``--bdir`` and ``--bgen``)
 
@@ -771,9 +771,9 @@ assess test coverage.
 ..in the future.
 
 
-.. _compliance:
+.. _validation:
 
-Code Compliance Test (non bit-for-bit validation)
+Code Validation Test (non bit-for-bit validation)
 ----------------------------------------------------
 
 A core tenet of CICE dycore and CICE innovations is that they must not change 
@@ -898,7 +898,7 @@ autocorrelation :math:`r_1`.
 .. _quadratic:
 
 
-Quadratic Skill Compliance Test
+Quadratic Skill Validation Test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the two-stage test of mean sea ice thickness, we also
@@ -982,12 +982,12 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke18`.
 
-.. _CodeCompliance:
+.. _CodeValidation:
 
-Code Compliance Testing Procedure
+Code Validation Testing Procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The CICE code compliance test is performed by running a python script 
+The CICE code validation (QC) test is performed by running a python script 
 (**configurations/scripts/tests/QC/cice.t-test.py**).
 In order to run the script, the following requirements must be met:
 
@@ -1001,7 +1001,7 @@ QC testing should be carried out using configurations (ie. namelist settings) th
 exercise the active code modifications.  Multiple configurations may need to be tested 
 in some cases.  Developers can contact the Consortium for guidance or if there are questions.
 
-In order to generate the files necessary for the compliance test, test cases should be
+In order to generate the files necessary for the validation test, test cases should be
 created with the ``qc`` option (i.e., ``--set qc``) when running cice.setup.  This 
 option results in daily, non-averaged history files being written for a 5 year simulation.
 
@@ -1013,7 +1013,7 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user numpy
   pip install --user matplotlib
 
-To run the compliance test, setup a baseline run with the original baseline model and then 
+To run the validation test, setup a baseline run with the original baseline model and then 
 a perturbation run based on recent model changes.  Use ``--set qc`` in both runs in addition
 to other settings needed.  Then use the QC script to compare history output,
 
