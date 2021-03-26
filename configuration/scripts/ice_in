@@ -2,6 +2,9 @@
     days_per_year  = 365
     use_leap_years = .false.
     year_init      = 1997
+    month_init     = 1
+    day_init       = 1
+    sec_init       = 0
     istep0         = 0
     dt             = 3600.0
     npt_unit       = '1'
