@@ -39,6 +39,7 @@ restart        gx1     8x1        bgczclim,medium
 smoke          gx1    24x1        medium,run90day,yi2008
 smoke          gx3     8x1        medium,run90day,yi2008
 restart        gx1    24x1        short
+restart        gx1    16x2        seabedLKD,gx1apr,medium,debug
 restart        gx1    16x2        seabedLKD,gx1apr,medium
 restart        gx1    15x2        seabedprob,medium
 restart        gx1    32x1        gx1prod,medium
