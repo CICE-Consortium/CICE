@@ -782,7 +782,8 @@ for history and restart files, and history and restart file must use the same
 io package.  The namelist variable ``history_format`` further refines the
 format approach or style for some io packages.
 
-Model output data is averaged over the period(s) given by ``histfreq`` and
+Model output data can be written as instantaneous or average data as specified
+by the ``hist_avg`` namelist flag.  The data is written at the period(s) given by ``histfreq`` and
 ``histfreq_n``, and written to binary or netCDF files prepended by ``history_file``
 in **ice_in**. These settings for history files are set in the 
 **setup_nml** section of **ice_in** (see :ref:`tabnamelist`). 
@@ -821,8 +822,8 @@ is now a character string corresponding to ``histfreq`` or ‘x’ for none.
 files, no matter what the frequency is.) If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
-discerned from the filenames.  Because all history is average output, it's
-not possible to write instananeous output at any frequency except every timestep.
+discerned from the filenames.  All history streams will be either instantaneous
+or averaged as specified by the ``hist_avg`` namelist setting.
 
 For example, in the namelist:
 
@@ -830,6 +831,7 @@ For example, in the namelist:
 
   ``histfreq`` = ’1’, ’h’, ’d’, ’m’, ’y’
   ``histfreq_n`` = 1, 6, 0, 1, 1
+  ``hist_avg`` = .true.
   ``f_hi`` = ’1’
   ``f_hs`` = ’h’
   ``f_Tsfc`` = ’d’
@@ -870,7 +872,7 @@ every 3 months, for example.
 If ``write_ic`` is set to true in **ice\_in**, a snapshot of the same set
 of history fields at the start of the run will be written to the history
 directory in **iceh\_ic.[timeID].nc(da)**. Several history variables are
-hard-coded for instantaneous output regardless of the averaging flag, at
+hard-coded for instantaneous output regardless of the ``hist_avg`` averaging flag, at
 the frequency given by their namelist flag.
 
 The normalized principal components of internal ice stress are computed

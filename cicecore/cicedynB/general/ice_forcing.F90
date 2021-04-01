@@ -169,6 +169,9 @@
 
       ! PRIVATE:
 
+      real (dbl_kind), parameter :: &
+         mixed_layer_depth_default = c20  ! default mixed layer depth in m
+
       logical (kind=log_kind), parameter :: &
          forcing_debug = .false.   ! local debug flag
 
@@ -4153,7 +4156,7 @@
         do j = 1, ny_block 
           do i = 1, nx_block 
             if (n == 2) sss    (i,j,:) = c0
-            if (n == 3) hmix   (i,j,:) = c20
+            if (n == 3) hmix   (i,j,:) = mixed_layer_depth_default
             if (n == 4) uocn   (i,j,:) = c0
             if (n == 5) vocn   (i,j,:) = c0
             if (n == 6) ss_tltx(i,j,:) = c0
@@ -4162,7 +4165,7 @@
             do iblk = 1, nblocks
               if (hm(i,j,iblk) == c1) then
                 if (n == 2) sss    (i,j,iblk) = work1(i,j,iblk)
-                if (n == 3) hmix   (i,j,iblk) = max(c20,work1(i,j,iblk))
+                if (n == 3) hmix   (i,j,iblk) = max(mixed_layer_depth_default,work1(i,j,iblk))
                 if (n == 4) uocn   (i,j,iblk) = work1(i,j,iblk)
                 if (n == 5) vocn   (i,j,iblk) = work1(i,j,iblk)
                 if (n == 6) ss_tltx(i,j,iblk) = work1(i,j,iblk)
@@ -4277,7 +4280,7 @@
       ss_tlty(:,:,:) = c0
       frzmlt (:,:,:) = c0              ! freezing/melting potential (W/m^2)
       qdp    (:,:,:) = c0              ! deep ocean heat flux (W/m^2)
-      hmix   (:,:,:) = c20             ! ocean mixed layer depth
+      hmix   (:,:,:) = mixed_layer_depth_default   ! ocean mixed layer depth
 
       end subroutine ocn_data_oned
 

@@ -62,6 +62,7 @@
 
       integer (kind=int_kind), public :: &
          seconds_per_day       , & ! seconds per day
+         seconds_per_hour      , & ! seconds per hour
          days_per_year         , & ! number of days in one year
          daymo(months_per_year), & ! number of days in each month
          daycal(months_per_year+1) ! accumulated days in year to end of prior month
@@ -169,12 +170,18 @@
          write(nu_diag,*) trim(subname),' ERROR secday should basically be an integer',secday
          call abort_ice(subname//'ERROR: improper secday')
       endif
+      seconds_per_hour = nint(secday/real(hours_per_day,kind=dbl_kind))
+      if (abs(seconds_per_hour*hours_per_day - seconds_per_day) > 0) then
+         write(nu_diag,*) trim(subname),' ERROR seconds per day and hours per day inconsistent'
+         call abort_ice(subname//'ERROR: improper seconds_per_hour')
+      endif
 
       istep = 0         ! local timestep number
       myear=year_init   ! year
       mmonth=month_init ! month
       mday=day_init     ! day of the month
       msec=sec_init     ! seconds into date
+      hour=0            ! computed in calendar, but needs some reasonable initial value
       istep1 = istep0   ! number of steps at current timestep
                         ! real (dumped) or imagined (use to set calendar)
       idate0 = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd) 
@@ -343,6 +350,7 @@
 
       idate = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd) 
       yday = daycal(mmonth) + mday            ! day of the year
+      hour = (msec+1)/(seconds_per_hour)
       elapsed_months = (myear - year_init)*months_per_year + mmonth - month_init
       elapsed_days = compute_days_between(year_init,month_init,day_init,myear,mmonth,mday)
       elapsed_hours = elapsed_days * hours_per_day

@@ -1,4 +1,5 @@
 year_init = 2005
+use_leap_years = .true.
 npt_unit = 'y'
 npt = 1
 dumpfreq = 'm'
@@ -10,7 +11,8 @@ seabed_stress   = .true.
 seabed_stress_method = 'LKD'
 ocn_data_type   = 'ncar'
 ocn_data_format = 'nc'
-oceanmixed_file = 'ocean_forcing_clim_2D_gx1.nc'
+oceanmixed_ice = .true.
+oceanmixed_file = 'ocean_forcing_clim_2D_gx1.20210330.nc'
 tr_brine        = .true.
 f_taubx        = 'm'
 f_tauby        = 'm'
