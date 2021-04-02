@@ -163,18 +163,20 @@ information to the log file, and if the block size or max blocks is
 inconsistent with the task and thread size, the model will abort.  The 
 code will also print a warning if the maximum number of blocks is too large. 
 Although this is not fatal, it does use extra memory.  If ``max_blocks`` is
-set to -1, the code will compute a ``max_blocks`` on the fly.
+set to -1, the code will compute a tentative ``max_blocks`` on the fly.
 
 A loop at the end of routine *create\_blocks* in module
 **ice\_blocks.F90** will print the locations for all of the blocks on
-the global grid if dbug is set to be true. Likewise, a similar loop at
+the global grid if the namelist variable ``debug_blocks`` is set to be true. Likewise, a similar loop at
 the end of routine *create\_local\_block\_ids* in module
 **ice\_distribution.F90** will print the processor and local block
 number for each block. With this information, the grid decomposition
-into processors and blocks can be ascertained. The dbug flag must be
-manually set in the code in each case (independently of the dbug flag in
-**ice\_in**), as there may be hundreds or thousands of blocks to print
-and this information should be needed only rarely. This information is
+into processors and blocks can be ascertained. This ``debug_blocks`` variable 
+is independent of the ``dbug`` variable in
+**ice\_in**, as there may be hundreds or thousands of blocks to print
+and this information should be needed only rarely. ``debug_blocks`` 
+can be set to true using the
+``debugblocks`` option with **cice.setup**. This information is
 much easier to look at using a debugger such as Totalview.  There is also
 an output field that can be activated in `icefields\_nml`, ``f_blkmask``, 
 that prints out the variable ``blkmask`` to the history file and 

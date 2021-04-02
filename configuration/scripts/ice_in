@@ -243,6 +243,7 @@
     maskhalo_remap    = .false.
     maskhalo_bound    = .false.
     add_mpi_barriers  = .false.
+    debug_blocks      = .false.
 /
 
 &zbgc_nml
