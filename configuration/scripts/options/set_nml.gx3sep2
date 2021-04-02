@@ -3,4 +3,4 @@ month_init    = 9
 day_init      = 2
 sec_init      = 7200
 use_leap_years = .true.
-ice_ic  = 'ICE_MACHINE_INPUTDATA/CICE_data/ic/gx3/iced.2005-09-01-00000.nc'
+ice_ic  = 'ICE_MACHINE_INPUTDATA/CICE_data/ic/gx3/iced_gx3_v6.2005-09-01.nc'
