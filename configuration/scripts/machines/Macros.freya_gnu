@@ -1,0 +1,40 @@
+#==============================================================================
+# Makefile macros for DMI freya
+#==============================================================================
+# For use with GNU compiler
+#==============================================================================
+
+#INCLDIR := -I. -I/usr/include
+#SLIBS   :=
+
+#--- Compiler/preprocessor ---
+FC         := ftn 
+CC         := cc
+CXX        := CC
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional  # ALLOW fortran double backslash "\\"
+SCC   := gcc
+SFC   := ftn
+
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 
+#-xHost
+
+FREEFLAGS  := -ffree-form
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
+#-xHost
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow 
+else
+  FFLAGS     += -O2 #FROM BANTING
+  #FFLAGS     := -O2 -ffloat-store -march=native -ffree-line-length-non # DMI BUILD
+endif
+LD:= $(FC)
+LDFLAGS    := $(FFLAGS) -v
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp 
+   CFLAGS += -fopenmp 
+   FFLAGS += -fopenmp 
+endif

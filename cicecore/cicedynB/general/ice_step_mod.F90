@@ -550,22 +550,23 @@
 
       logical (kind=log_kind) :: &
          tr_fsd,          & ! floe size distribution tracers
-         z_tracers
+         z_tracers,       & ! vertical biogeochemistry
+         solve_zsal         ! zsalinity
 
       type (block) :: &
          this_block         ! block information for current block
 
       character(len=*), parameter :: subname = '(step_therm2)'
 
-      call icepack_query_parameters(z_tracers_out=z_tracers)
+      call icepack_query_parameters(z_tracers_out=z_tracers,solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      ! tcraig, nltrcr used to be the number of zbgc tracers, but it's used as a zbgc flag in icepack
-      if (z_tracers) then
+      ! nltrcr is only used as a zbgc flag in icepack (number of zbgc tracers > 0)
+      if (z_tracers .or. solve_zsal) then
          nltrcr = 1
       else
          nltrcr = 0
@@ -851,10 +852,9 @@
       use ice_dyn_evp, only: evp
       use ice_dyn_eap, only: eap
       use ice_dyn_vp, only: implicit_solver
-      use ice_dyn_shared, only: kdyn, ktransport
+      use ice_dyn_shared, only: kdyn
       use ice_flux, only: init_history_dyn
-!deprecate upwind      use ice_transport_driver, only: advection, transport_upwind, transport_remap
-      use ice_transport_driver, only: advection, transport_remap
+      use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! dynamics time step
@@ -875,13 +875,10 @@
       ! Horizontal ice transport
       !-----------------------------------------------------------------
 
-!deprecate upwind      if (ktransport > 0) then
-      if (ktransport > 0 .and. advection == 'remap') then
-!deprecate upwind      if (advection == 'upwind') then
-!deprecate upwind         call transport_upwind (dt)    ! upwind
-!deprecate upwind      else
+      if (advection == 'upwind') then
+         call transport_upwind (dt)    ! upwind
+      elseif (advection == 'remap') then
          call transport_remap (dt)     ! incremental remapping
-!deprecate upwind      endif
       endif
 
       end subroutine step_dyn_horiz

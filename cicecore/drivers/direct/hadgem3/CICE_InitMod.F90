@@ -71,7 +71,7 @@
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
-      use ice_dyn_shared, only: kdyn, init_dyn, basalstress, alloc_dyn_shared
+      use ice_dyn_shared, only: kdyn, init_dyn, alloc_dyn_shared
       use ice_dyn_vp, only: init_vp
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux

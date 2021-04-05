@@ -47,7 +47,7 @@
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
-         bathymetry_file, & !  input bathymetry for basalstress
+         bathymetry_file, & !  input bathymetry for seabed stress
          bathymetry_format, & ! bathymetry file format (default or pop)
          grid_spacing , & !  default of 30.e3m or set by user in namelist 
          grid_type        !  current options are rectangular (default),
@@ -1663,7 +1663,7 @@
                            field_loc_center, field_type_scalar)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
@@ -2343,9 +2343,9 @@
       end subroutine gridbox_verts
 
 !=======================================================================
-! ocean bathymetry for grounded sea ice (basalstress) or icebergs
+! ocean bathymetry for grounded sea ice (seabed stress) or icebergs
 ! currently hardwired for 40 levels (gx3, gx1 grids)
-! should be read from a file instead (see subroutine read_basalstress_bathy)
+! should be read from a file instead (see subroutine read_seabedstress_bathy)
 
       subroutine get_bathymetry
 
@@ -2387,7 +2387,7 @@
 
       if (use_bathymetry) then
 
-         call read_basalstress_bathy
+         call read_seabedstress_bathy
 
       else
 
@@ -2504,14 +2504,14 @@
 
 !=======================================================================
 
-! Read bathymetry data for basal stress calculation (grounding scheme for 
+! Read bathymetry data for seabed stress calculation (grounding scheme for 
 ! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode 
 ! (e.g. CICE-NEMO), hwater should be uptated at each time level so that 
 ! it varies with ocean dynamics.
 !
 ! author: Fred Dupont, CMC
       
-      subroutine read_basalstress_bathy
+      subroutine read_seabedstress_bathy
 
       ! use module
       use ice_read_write
@@ -2526,7 +2526,7 @@
 
       logical (kind=log_kind) :: diag=.true.
 
-      character(len=*), parameter :: subname = '(read_basalstress_bathy)'
+      character(len=*), parameter :: subname = '(read_seabedstress_bathy)'
 
       if (my_task == master_task) then
           write (nu_diag,*) ' '
@@ -2553,7 +2553,7 @@
          call icepack_warnings_flush(nu_diag)
       endif
 
-      end subroutine read_basalstress_bathy
+      end subroutine read_seabedstress_bathy
       
 !=======================================================================
 

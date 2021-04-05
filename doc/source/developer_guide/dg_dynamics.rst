@@ -50,9 +50,9 @@ abort if set.  To override the abort, use value 102 for testing.
 Transport
 -----------------
 
-The transport (advection) methods are found in **cicecore/cicedynB/dynamics/**.  Only the incremental
-remapping method is supported at this time, and is set in namelist via the ``advection`` variable.
-Transport can be turned off by setting ``advection = none`` or ``ktransport = -1``.
+The transport (advection) methods are found in **cicecore/cicedynB/dynamics/**.  Two methods are supported, 
+upwind and remap.  These are set in namelist via the ``advection`` variable.  
+Transport can be disabled with the ``ktransport`` namelist variable.
 
 
 Infrastructure

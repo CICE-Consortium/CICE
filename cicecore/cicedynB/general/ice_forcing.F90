@@ -533,17 +533,21 @@
       integer (kind=int_kind) :: &
          iblk, &              ! block index
          ilo,ihi,jlo,jhi, &   ! beginning and end of physical domain
+         fyear_old, &         ! prior fyear value
          nt_Tsfc
 
       type (block) :: &
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(get_forcing_atmo)'
-      
+
+      fyear_old = fyear
       fyear = fyear_init + mod(nyr-1,ycycle)  ! current year
-      if (trim(atm_data_type) /= 'default' .and. istep <= 1 &
-                   .and. my_task == master_task) then
-         write (nu_diag,*) ' Current forcing data year = ',fyear
+      if (trim(atm_data_type) /= 'default' .and. &
+          (istep <= 1 .or. fyear /= fyear_old)) then
+         if (my_task == master_task) then
+            write (nu_diag,*) ' Current forcing data year = ',fyear
+         endif
       endif
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc)
@@ -2322,35 +2326,31 @@
       use ice_state, only: aice
       use ice_calendar, only: days_per_year, use_leap_years
 
+      integer (kind=int_kind), intent(in) :: &
+          yr              ! current forcing year
+
       integer (kind=int_kind) :: & 
           ncid        , & ! netcdf file id
-	  i, j        , &
-          ixm,ixx,ixp , & ! record numbers for neighboring months
+          i, j, n1, iblk, &
+          yrp         , & ! year after yr in forcing cycle
           recnum      , & ! record number
           maxrec      , & ! maximum record number
           recslot     , & ! spline slot for current record
-          midmonth    , & ! middle day of month
-          dataloc     , & ! = 1 for data located in middle of time interval
+          dataloc         ! = 1 for data located in middle of time interval
                           ! = 2 for date located at end of time interval
-          iblk        , & ! block index
-          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-          yr              ! current forcing year
 
       real (kind=dbl_kind) :: &
           sec3hr          , & ! number of seconds in 3 hours
           secday          , & ! number of seconds in day
+          eps, tt         , & ! interpolation coeff calc
           Tffresh         , &
           vmin, vmax
 
-      logical (kind=log_kind) :: readm, read6,debug_n_d
+      logical (kind=log_kind) :: debug_n_d = .false.
 
-      type (block) :: &
-         this_block           ! block information for current block
-
+      character (char_len_long) :: uwind_file_old
       character(len=64) :: fieldname !netcdf field name
       character(len=*), parameter :: subname = '(JRA55_data)'
-
-      debug_n_d = .false.  !usually false
 
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
@@ -2358,126 +2358,142 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-    !-------------------------------------------------------------------
-    ! 3-hourly data
-    ! 
-    ! Assume that the 3-hourly value is located at the end of the
-    !  3-hour period.  This is the convention for NCEP reanalysis data.
-    !  E.g. record 1 gives conditions at 3 am GMT on 1 January.
-    !-------------------------------------------------------------------
-
-      dataloc = 2               ! data located at end of interval
       sec3hr = secday/c8        ! seconds in 3 hours
-      !maxrec = 2920            ! 365*8; for leap years = 366*8
-
-      if (use_leap_years) days_per_year = 366 !overrides setting of 365 in ice_calendar
       maxrec = days_per_year*8
 
-      if(days_per_year == 365 .and. (mod(yr,  4) == 0)) then
-      call abort_ice('days_per_year should be set to 366 for leap years')
-      end if
+      if (debug_n_d .and. my_task == master_task) then
+         write (nu_diag,*) subname,'recnum',recnum
+         write (nu_diag,*) subname,'maxrec',maxrec
+         write (nu_diag,*) subname,'days_per_year', days_per_year
+      endif
 
-      ! current record number
-      recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr)
+      !-------------------------------------------------------------------
+      ! 3-hourly data
+      ! states are instantaneous, 1st record is 00z Jan 1
+      ! fluxes are 3 hour averages, 1st record is 00z-03z Jan 1
+      ! Both states and fluxes have 1st record defined as 00z Jan 1
+      ! interpolate states, do not interpolate fluxes
+      ! fluxes are held constant from [init period, end period)
+      !-------------------------------------------------------------------
+      ! File is NETCDF with winds in NORTH and EAST direction
+      ! file variable names are:
+      ! glbrad   (shortwave W/m^2)
+      ! dlwsfc   (longwave W/m^2)
+      ! wndewd   (eastward wind m/s)
+      ! wndnwd   (northward wind m/s)
+      ! airtmp   (air temperature K)
+      ! spchmd   (specific humidity kg/kg)
+      ! ttlpcp   (precipitation kg/m s-1)
+      !-------------------------------------------------------------------
 
-      ! Compute record numbers for surrounding data (2 on each side)
+      uwind_file_old = uwind_file
+      call file_year(uwind_file,yr)
+      if (uwind_file /= uwind_file_old .and. my_task == master_task) then
+         write(nu_diag,*) subname,' reading forcing file = ',trim(uwind_file)
+      endif
 
-      ixm = mod(recnum+maxrec-2,maxrec) + 1
-      ixx = mod(recnum-1,       maxrec) + 1
+      call ice_open_nc(uwind_file,ncid)
+
+      do n1 = 1,2
+
+         if (n1 == 1) then
+            recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr)
+            if (my_task == master_task .and. (recnum <= 2 .or. recnum >= maxrec-1)) then
+               write(nu_diag,*) subname,' reading forcing file 1st ts = ',trim(uwind_file)
+            endif
+         elseif (n1 == 2) then
+            recnum = 8*int(yday) - 7 + int(real(sec,kind=dbl_kind)/sec3hr) + 1
+            if (recnum > maxrec) then
+               yrp = fyear_init + mod(nyr,ycycle)  ! next year
+               recnum = 1
+               call file_year(uwind_file,yrp)
+               if (my_task == master_task) then
+                  write(nu_diag,*) subname,' reading forcing file 2nd ts = ',trim(uwind_file)
+               endif
+               call ice_close_nc(ncid)
+               call ice_open_nc(uwind_file,ncid)
+            endif
+         endif
+
+         if (debug_n_d .and. my_task == master_task) then
+            write(nu_diag,*) subname,' read recnum = ',recnum,n1
+         endif
+
+         fieldname = 'airtmp'
+         call ice_read_nc(ncid,recnum,fieldname,Tair_data(:,:,n1,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+
+         fieldname = 'wndewd'
+         call ice_read_nc(ncid,recnum,fieldname,uatm_data(:,:,n1,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+
+         fieldname = 'wndnwd'
+         call ice_read_nc(ncid,recnum,fieldname,vatm_data(:,:,n1,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+
+         fieldname = 'spchmd'
+         call ice_read_nc(ncid,recnum,fieldname,Qa_data(:,:,n1,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+
+       ! only read one timestep for fluxes, 3 hr average, no interpolation
+       if (n1 == 1) then
+         fieldname = 'glbrad'
+         call ice_read_nc(ncid,recnum,fieldname,fsw_data(:,:,n1,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+
+         fieldname = 'dlwsfc'
+         call ice_read_nc(ncid,recnum,fieldname,flw_data(:,:,n1,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+
+         fieldname = 'ttlpcp'
+         call ice_read_nc(ncid,recnum,fieldname,fsnow_data(:,:,n1,:),debug_n_d, &
+              field_loc=field_loc_center, &
+              field_type=field_type_scalar)
+       endif
+
+      enddo
+
+      call ice_close_nc(ncid)
+
+      ! reset uwind_file to original year
+      call file_year(uwind_file,yr)
 
       ! Compute interpolation coefficients
-      ! If data is located at the end of the time interval, then the
-      !  data value for the current record goes in slot 2
-
-      recslot = 2
-      ixp = -99
-      call interp_coeff (recnum, recslot, sec3hr, dataloc)
-
-      ! Read
-      read6 = .false.
-      if (istep==1 .or. oldrecnum .ne. recnum) read6 = .true.
-         !-------------------------------------------------------------------
-         ! File is NETCDF with winds in NORTH and EAST direction
-         ! file variable names are:
-         ! glbrad   (shortwave W/m^2)
-         ! dlwsfc   (longwave W/m^2)
-         ! wndewd   (eastward wind m/s)
-         ! wndnwd   (northward wind m/s)
-         ! airtmp   (air temperature K)
-         ! spchmd   (specific humidity kg/kg)
-         ! ttlpcp   (precipitation kg/m s-1)
-         !-------------------------------------------------------------------
-         call ice_open_nc(uwind_file,ncid)
-
-	 fieldname = 'airtmp'
-         call ice_read_nc(ncid,recnum,fieldname,Tair_data(:,:,1,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-         call ice_read_nc(ncid,recnum,fieldname,Tair_data(:,:,2,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-
-	 fieldname = 'wndewd'
-         call ice_read_nc(ncid,recnum,fieldname,uatm_data(:,:,1,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-         call ice_read_nc(ncid,recnum,fieldname,uatm_data(:,:,2,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-
-	 fieldname = 'wndnwd'
-         call ice_read_nc(ncid,recnum,fieldname,vatm_data(:,:,1,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-         call ice_read_nc(ncid,recnum,fieldname,vatm_data(:,:,2,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-
-	 fieldname = 'spchmd'
-         call ice_read_nc(ncid,recnum,fieldname,Qa_data(:,:,1,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-         call ice_read_nc(ncid,recnum,fieldname,Qa_data(:,:,2,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-
-	 fieldname = 'glbrad'
-         call ice_read_nc(ncid,recnum,fieldname,fsw_data(:,:,1,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-         call ice_read_nc(ncid,recnum,fieldname,fsw_data(:,:,2,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-
-	 fieldname = 'dlwsfc'
-         call ice_read_nc(ncid,recnum,fieldname,flw_data(:,:,1,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-         call ice_read_nc(ncid,recnum,fieldname,flw_data(:,:,2,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-
-	 fieldname = 'ttlpcp'
-         call ice_read_nc(ncid,recnum,fieldname,fsnow_data(:,:,1,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-         call ice_read_nc(ncid,recnum,fieldname,fsnow_data(:,:,2,:),debug_n_d, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-
-	 call ice_close_nc(ncid)
-
+      eps = 1.0e-6
+      tt = real(mod(sec,nint(sec3hr)),kind=dbl_kind)
+      c2intp = tt / sec3hr
+      if (c2intp < c0 .and. c2intp > c0-eps) c2intp = c0
+      if (c2intp > c1 .and. c2intp < c1+eps) c2intp = c1
+      c1intp = 1.0_dbl_kind - c2intp
+      if (c2intp < c0 .or. c2intp > c1) then
+         write(nu_diag,*) subname,' ERROR: c2intp = ',c2intp
+         call abort_ice (error_message=subname//' ERROR: c2intp out of range', &
+            file=__FILE__, line=__LINE__)
+      endif
+      if (debug_n_d .and. my_task == master_task) then
+         write(nu_diag,*) subname,' c12intp = ',c1intp,c2intp
+      endif
 
       ! Interpolate
       call interpolate_data (Tair_data, Tair)
       call interpolate_data (uatm_data, uatm)
       call interpolate_data (vatm_data, vatm)
       call interpolate_data (Qa_data, Qa)
-      call interpolate_data (fsw_data, fsw)
-      call interpolate_data (flw_data, flw)
-      call interpolate_data (fsnow_data, fsnow)
+      ! use 3 hr average for heat flux and precip fields
+      ! call interpolate_data (fsw_data, fsw)
+      ! call interpolate_data (flw_data, flw)
+      ! call interpolate_data (fsnow_data, fsnow)
+      fsw(:,:,:) = fsw_data(:,:,1,:)
+      flw(:,:,:) = flw_data(:,:,1,:)
+      fsnow(:,:,:) = fsnow_data(:,:,1,:)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
         ! limit summer Tair values where ice is present
         do j = 1, ny_block
@@ -2501,43 +2517,37 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
-      ! Save record number
-      oldrecnum = recnum
-
-         if (dbug) then
-           if (my_task == master_task) write (nu_diag,*) 'JRA55_bulk_data'
+         if (debug_n_d .or. dbug) then
+           if (my_task.eq.master_task) &
+               write (nu_diag,*) subname,'JRA55_bulk_data'
            vmin = global_minval(fsw,distrb_info,tmask)
-                               
            vmax = global_maxval(fsw,distrb_info,tmask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'fsw',vmin,vmax 
+           if (my_task.eq.master_task) &
+               write (nu_diag,*) subname,'fsw',vmin,vmax 
            vmin = global_minval(flw,distrb_info,tmask)
            vmax = global_maxval(flw,distrb_info,tmask)
            if (my_task.eq.master_task) & 
-               write (nu_diag,*) 'flw',vmin,vmax
+               write (nu_diag,*) subname,'flw',vmin,vmax
            vmin =global_minval(fsnow,distrb_info,tmask)
            vmax =global_maxval(fsnow,distrb_info,tmask)
            if (my_task.eq.master_task) & 
-               write (nu_diag,*) 'fsnow',vmin,vmax
+               write (nu_diag,*) subname,'fsnow',vmin,vmax
            vmin = global_minval(Tair,distrb_info,tmask)
            vmax = global_maxval(Tair,distrb_info,tmask)
            if (my_task.eq.master_task) & 
-               write (nu_diag,*) 'Tair',vmin,vmax
+               write (nu_diag,*) subname,'Tair',vmin,vmax
            vmin = global_minval(uatm,distrb_info,umask)
            vmax = global_maxval(uatm,distrb_info,umask)
            if (my_task.eq.master_task) & 
-               write (nu_diag,*) 'uatm',vmin,vmax
+               write (nu_diag,*) subname,'uatm',vmin,vmax
            vmin = global_minval(vatm,distrb_info,umask)
            vmax = global_maxval(vatm,distrb_info,umask)
            if (my_task.eq.master_task) & 
-               write (nu_diag,*) 'vatm',vmin,vmax
+               write (nu_diag,*) subname,'vatm',vmin,vmax
            vmin = global_minval(Qa,distrb_info,tmask)
            vmax = global_maxval(Qa,distrb_info,tmask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'Qa',vmin,vmax
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'maxrec',maxrec
-               write (nu_diag,*) 'days_per_year', days_per_year
+           if (my_task.eq.master_task) &
+               write (nu_diag,*) subname,'Qa',vmin,vmax
 
         endif                   ! dbug
 
