@@ -94,8 +94,6 @@
 
          call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-#ifndef coupled
-#ifndef CESMCOUPLED
          if (tr_fsd .and. wave_spec) call wave_spec_data ! wave spectrum in ice
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
