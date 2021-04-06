@@ -172,7 +172,6 @@ contains
          call abort_ice(error_message=subname, file=__FILE__, &
             line=__LINE__)
       end if
-
 #ifdef _OPENACC
       !$acc parallel &
       !$acc present(ee, ne, se, strength, uvel, vvel, dxt, dyt, hte, &
@@ -207,7 +206,6 @@ contains
          tmp_vvel_ee = vvel(ee(iw))
          tmp_vvel_se = vvel(se(iw))
          tmp_vvel_ne = vvel(ne(iw))
-
          ! divergence = e_11 + e_22
          divune = cyp * uvel(iw)    - dyt(iw) * tmp_uvel_ee &
                 + cxp * vvel(iw)    - dxt(iw) * tmp_vvel_se
@@ -344,7 +342,6 @@ contains
          ! northeast (i,j)
          str1(iw) = -strp_tmp - strm_tmp - str12ew &
                   + dxhy * (-csigpne + csigmne) + dyhx * csig12ne
-
          ! northwest (i+1,j)
          str2(iw) = strp_tmp + strm_tmp - str12we &
                   + dxhy * (-csigpnw + csigmnw) + dyhx * csig12nw
@@ -633,7 +630,6 @@ contains
          ! northeast (i,j)
          str1(iw) = -strp_tmp - strm_tmp - str12ew &
                   + dxhy * (-csigpne + csigmne) + dyhx * csig12ne
-
          ! northwest (i+1,j)
          str2(iw) = strp_tmp + strm_tmp - str12we &
                   + dxhy * (-csigpnw + csigmnw) + dyhx * csig12nw
@@ -687,7 +683,7 @@ contains
    subroutine stepu_iter(NA_len, rhow, lb, ub, Cw, aiu, uocn, vocn, &
       forcex, forcey, umassdti, fm, uarear, Tbu, uvel_init, vvel_init, &
       uvel, vvel, str1, str2, str3, str4, str5, str6, str7, str8, nw, &
-      sw, se, skipme)
+      sw, sse, skipme)
 
       use ice_kinds_mod
       use ice_constants, only : c0, c1
@@ -699,7 +695,7 @@ contains
       real(kind=dbl_kind), intent(in) :: rhow
       logical(kind=log_kind), intent(in), dimension(:) :: skipme
       integer(kind=int_kind), dimension(:), intent(in), contiguous :: &
-         nw, sw, se
+         nw, sw, sse
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
          uvel_init, vvel_init, aiu, forcex, forcey, umassdti, Tbu, &
          uocn, vocn, fm, uarear, Cw, str1, str2, str3, str4, str5, &
@@ -711,8 +707,8 @@ contains
 
       integer(kind=int_kind) :: iw, il, iu
       real(kind=dbl_kind) :: uold, vold, vrel, cca, ccb, ab2, cc1, &
-         cc2, taux, tauy, Cb, tmp_str2_nw, tmp_str3_se, tmp_str4_sw, &
-         tmp_str6_se, tmp_str7_nw, tmp_str8_sw, waterx, watery, &
+         cc2, taux, tauy, Cb, tmp_str2_nw, tmp_str3_sse, tmp_str4_sw, &
+         tmp_str6_sse, tmp_str7_nw, tmp_str8_sw, waterx, watery, &
          tmp_strintx, tmp_strinty
 
       character(len=*), parameter :: subname = '(stepu_iter)'
@@ -720,7 +716,7 @@ contains
 #ifdef _OPENACC
       !$acc parallel &
       !$acc present(Cw, aiu, uocn, vocn, forcex, forcey, umassdti, fm, &
-      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, se, skipme, &
+      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, sse, skipme, &
       !$acc    str1, str2, str3, str4, str5, str6, str7, str8, uvel, &
       !$acc    vvel)
       !$acc loop
@@ -751,14 +747,14 @@ contains
          ab2 = cca**2 + ccb**2
 
          tmp_str2_nw = str2(nw(iw))
-         tmp_str3_se = str3(se(iw))
+         tmp_str3_sse = str3(sse(iw))
          tmp_str4_sw = str4(sw(iw))
-         tmp_str6_se = str6(se(iw))
+         tmp_str6_sse = str6(sse(iw))
          tmp_str7_nw = str7(nw(iw))
          tmp_str8_sw = str8(sw(iw))
 
-         tmp_strintx = uarear(iw) * (str1(iw) + tmp_str2_nw + tmp_str3_se + tmp_str4_sw)
-         tmp_strinty = uarear(iw) * (str5(iw) + tmp_str6_se + tmp_str7_nw + tmp_str8_sw)
+         tmp_strintx = uarear(iw) * (str1(iw) + tmp_str2_nw + tmp_str3_sse + tmp_str4_sw)
+         tmp_strinty = uarear(iw) * (str5(iw) + tmp_str6_sse + tmp_str7_nw + tmp_str8_sw)
 
          cc1 = tmp_strintx + forcex(iw) + taux &
              + umassdti(iw) * (brlx * uold + revp * uvel_init(iw))
@@ -767,7 +763,6 @@ contains
 
          uvel(iw) = (cca * cc1 + ccb * cc2) / ab2
          vvel(iw) = (cca * cc2 - ccb * cc1) / ab2
-
       end do
 #ifdef _OPENACC
       !$acc end parallel
@@ -780,7 +775,7 @@ contains
    subroutine stepu_last(NA_len, rhow, lb, ub, Cw, aiu, uocn, vocn, &
       forcex, forcey, umassdti, fm, uarear, Tbu, uvel_init, vvel_init, &
       uvel, vvel, str1, str2, str3, str4, str5, str6, str7, str8, nw, &
-      sw, se, skipme, strintx, strinty, taubx, tauby)
+      sw, sse, skipme, strintx, strinty, taubx, tauby)
 
       use ice_kinds_mod
       use ice_constants, only : c0, c1
@@ -793,7 +788,7 @@ contains
       real(kind=dbl_kind), intent(in) :: rhow
       logical(kind=log_kind), intent(in), dimension(:) :: skipme
       integer(kind=int_kind), dimension(:), intent(in), contiguous :: &
-         nw, sw, se
+         nw, sw, sse
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
          uvel_init, vvel_init, aiu, forcex, forcey, umassdti, Tbu, &
          uocn, vocn, fm, uarear, Cw, str1, str2, str3, str4, str5, &
@@ -805,15 +800,15 @@ contains
 
       integer(kind=int_kind) :: iw, il, iu
       real(kind=dbl_kind) :: uold, vold, vrel, cca, ccb, ab2, cc1, &
-         cc2, taux, tauy, Cb, tmp_str2_nw, tmp_str3_se, tmp_str4_sw, &
-         tmp_str6_se, tmp_str7_nw, tmp_str8_sw, waterx, watery
+         cc2, taux, tauy, Cb, tmp_str2_nw, tmp_str3_sse, tmp_str4_sw, &
+         tmp_str6_sse, tmp_str7_nw, tmp_str8_sw, waterx, watery
 
       character(len=*), parameter :: subname = '(stepu_last)'
 
 #ifdef _OPENACC
       !$acc parallel &
       !$acc present(Cw, aiu, uocn, vocn, forcex, forcey, umassdti, fm, &
-      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, se, skipme, &
+      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, sse, skipme, &
       !$acc    str1, str2, str3, str4, str5, str6, str7, str8, uvel, &
       !$acc    vvel, strintx, strinty, taubx, tauby)
       !$acc loop
@@ -844,14 +839,14 @@ contains
          ab2 = cca**2 + ccb**2
 
          tmp_str2_nw = str2(nw(iw))
-         tmp_str3_se = str3(se(iw))
+         tmp_str3_sse = str3(sse(iw))
          tmp_str4_sw = str4(sw(iw))
-         tmp_str6_se = str6(se(iw))
+         tmp_str6_sse = str6(sse(iw))
          tmp_str7_nw = str7(nw(iw))
          tmp_str8_sw = str8(sw(iw))
 
-         strintx(iw) = uarear(iw) * (str1(iw) + tmp_str2_nw + tmp_str3_se + tmp_str4_sw)
-         strinty(iw) = uarear(iw) * (str5(iw) + tmp_str6_se + tmp_str7_nw + tmp_str8_sw)
+         strintx(iw) = uarear(iw) * (str1(iw) + tmp_str2_nw + tmp_str3_sse + tmp_str4_sw)
+         strinty(iw) = uarear(iw) * (str5(iw) + tmp_str6_sse + tmp_str7_nw + tmp_str8_sw)
 
          cc1 = strintx(iw) + forcex(iw) + taux &
              + umassdti(iw) * (brlx * uold + revp * uvel_init(iw))
@@ -1049,7 +1044,6 @@ contains
          I_stress12_1, I_stress12_2, I_stress12_3, I_stress12_4
 
       ! local variables
-
       logical(kind=log_kind), dimension(nx_glob, ny_glob) :: &
          G_iceumask
       integer(kind=int_kind), dimension(nx_glob, ny_glob) :: &
@@ -1189,7 +1183,6 @@ contains
          G_shear      = c0
          G_taubx      = c0
          G_tauby      = c0
-
          !$OMP PARALLEL PRIVATE(iw, i, j)
          do iw = 1, NAVEL_len
             ! get 2D indices
@@ -1291,7 +1284,6 @@ contains
 
          if (ndte < 2) call abort_ice(subname &
             // ' ERROR: ndte must be 2 or higher for this kernel')
-
          !$OMP PARALLEL PRIVATE(i)
          do i = 1, ndte - 1
             call evp1d_stress(NA_len, ee, ne, se, 1, NA_len, uvel, &
@@ -1491,6 +1483,7 @@ contains
          Inw(iw)  = i + 1 + (j - 1) * nx  ! (+1, 0)
          Isw(iw)  = i + 1 + (j - 0) * nx  ! (+1,+1)
          Isse(iw) = i     + (j - 0) * nx  ! ( 0,+1)
+
       end do
 
       ! find number of points needed for finite difference calculations
