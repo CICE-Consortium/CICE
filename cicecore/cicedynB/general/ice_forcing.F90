@@ -4156,7 +4156,7 @@
         do j = 1, ny_block 
           do i = 1, nx_block 
             if (n == 2) sss    (i,j,:) = c0
-            if (n == 3) hmix   (i,j,:) = mixed_layer_depth_default
+            if (n == 3) hmix   (i,j,:) = c0
             if (n == 4) uocn   (i,j,:) = c0
             if (n == 5) vocn   (i,j,:) = c0
             if (n == 6) ss_tltx(i,j,:) = c0
