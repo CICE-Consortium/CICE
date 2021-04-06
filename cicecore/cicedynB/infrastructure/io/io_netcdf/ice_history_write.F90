@@ -47,9 +47,8 @@
       use ice_arrays_column, only: hin_max, floe_rad_c
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
-          histfreq, days_per_year, use_leap_years, dayyr, &
-          year_init, month_init, day_init
+      use ice_calendar, only: time, sec, idate, idate0, write_ic, &
+          histfreq, dayyr, days_per_year, use_leap_years
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info
       use ice_domain_size, only: nx_global, ny_global, max_nstrm, max_blocks
@@ -81,6 +80,7 @@
       integer (kind=int_kind), dimension(5) :: dimidcz
       integer (kind=int_kind), dimension(3) :: dimid_nverts
       integer (kind=int_kind), dimension(6) :: dimidex
+!     real (kind=real_kind) :: ltime
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title
       character (char_len_long) :: ncfile(max_nstrm)
@@ -133,7 +133,8 @@
 
       if (my_task == master_task) then
 
-        ltime2 = timesecs/secday
+!       ltime=time/int(secday)
+        ltime2=time/int(secday)
 
         call construct_filename(ncfile(ns),'nc',ns)
 
@@ -1037,9 +1038,9 @@
                       'ERROR: global attribute source')
 
         if (use_leap_years) then
-          write(title,'(a,i3,a)') 'This year has ',dayyr,' days'
+          write(title,'(a,i3,a)') 'This year has ',int(dayyr),' days'
         else
-          write(title,'(a,i3,a)') 'All years have exactly ',dayyr,' days'
+          write(title,'(a,i3,a)') 'All years have exactly ',int(dayyr),' days'
         endif
         status = nf90_put_att(ncid,nf90_global,'comment',title)
         if (status /= nf90_noerr) call abort_ice(subname// &
@@ -1050,7 +1051,7 @@
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: global attribute date1')
 
-        write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
+        write(title,'(a,i6)') 'seconds elapsed into model date: ',sec
         status = nf90_put_att(ncid,nf90_global,'comment3',title)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: global attribute date2')
@@ -1090,6 +1091,7 @@
         status = nf90_inq_varid(ncid,'time',varid)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: getting time varid')
+!sgl        status = nf90_put_var(ncid,varid,ltime)
         status = nf90_put_var(ncid,varid,ltime2)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: writing time variable')

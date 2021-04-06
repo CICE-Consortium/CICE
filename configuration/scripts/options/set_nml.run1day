@@ -1,5 +1,4 @@
-npt_unit       = 'd'
-npt            = 1
+npt            = 24
 dumpfreq       = 'd'
 dumpfreq_n     = 1
 diag_type      = 'stdout'

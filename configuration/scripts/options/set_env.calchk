@@ -1,2 +1,0 @@
-setenv ICE_DRVOPT     unittest/calchk
-setenv ICE_TARGET     calchk

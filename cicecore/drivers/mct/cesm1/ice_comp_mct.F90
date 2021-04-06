@@ -47,9 +47,10 @@ module ice_comp_mct
   use ice_constants,   only : ice_init_constants
   use ice_communicate, only : my_task, master_task, MPI_COMM_ICE
   use ice_calendar,    only : istep, istep1, force_restart_now, write_ic,&
-                              idate, idate0, mday, month, nyr,           &
+                              idate, idate0, mday, time, month, daycal,  &
                               sec, dt, dt_dyn, calendar,                 &
-                              calendar_type, nextsw_cday, days_per_year
+                              calendar_type, nextsw_cday, days_per_year, &
+                              nyr, new_year, time2sec, year_init
   use ice_timers
 
   use ice_kinds_mod,   only : int_kind, dbl_kind, char_len_long, log_kind
@@ -150,11 +151,13 @@ contains
     integer            :: curr_tod           ! Current time of day (s)
     integer            :: ref_ymd            ! Reference date (YYYYMMDD)
     integer            :: ref_tod            ! reference time of day (s)
+    integer            :: iyear              ! yyyy
     integer            :: nyrp               ! yyyy
     integer            :: dtime              ! time step
     integer            :: shrlogunit,shrloglev ! old values
     integer            :: iam,ierr
     integer            :: lbnum
+    integer            :: daycal(13)  !number of cumulative days per month
     integer            :: nleaps      ! number of leap days before current year
     integer            :: mpicom_loc  ! temporary mpicom
     logical (kind=log_kind) :: atm_aero, tr_aero, tr_zaero
@@ -299,9 +302,10 @@ contains
     ! - on restart run 
     !   - istep0, time and time_forc are read from restart file
     !   - istep1 is set to istep0
-    !   - date information is determined from restart
+    !   - idate is determined from time via the call to calendar (see below)
     ! - on initial run 
-    !   - nyr, month, mday, sec obtained from sync clock
+    !   - iyear, month and mday obtained from sync clock
+    !   - time determined from iyear, month and mday
     !   - istep0 and istep1 are set to 0 
 
     call seq_timemgr_EClockGetData(EClock,               &
@@ -331,26 +335,37 @@ contains
        idate0 = curr_ymd
        idate = curr_ymd
 
+!       idate0 = curr_ymd - (year_init*10000)
+!       idate = curr_ymd - (year_init*10000)
+
        if (idate < 0) then
-          write(nu_diag,*) trim(subname),' ERROR curr_ymd =',curr_ymd
+          write(nu_diag,*) trim(subname),' ERROR curr_ymd,year_init =',curr_ymd,year_init
           write(nu_diag,*) trim(subname),' ERROR idate lt zero',idate
           call shr_sys_abort(subname//' :: ERROR idate lt zero')
        endif
-       nyr   = (idate/10000)                     ! integer year of basedate
-       month = (idate-nyr*10000)/100             ! integer month of basedate
-       mday  =  idate-nyr*10000-month*100        ! day of month of basedate
-       sec   = start_tod                         ! seconds
+       iyear = (idate/10000)                     ! integer year of basedate
+       month = (idate-iyear*10000)/100           ! integer month of basedate
+       mday  =  idate-iyear*10000-month*100      ! day of month of basedate
 
        if (my_task == master_task) then
           write(nu_diag,*) trim(subname),' curr_ymd = ',curr_ymd
+          write(nu_diag,*) trim(subname),' cice year_init = ',year_init
           write(nu_diag,*) trim(subname),' cice start date = ',idate
-          write(nu_diag,*) trim(subname),' cice start ymds = ',nyr,month,mday,start_tod
+          write(nu_diag,*) trim(subname),' cice start ymds = ',iyear,month,mday,start_tod
        endif
+
+       if (calendar_type /= "GREGORIAN") then
+          call time2sec(iyear-year_init,month,mday,time)
+       else
+          call time2sec(iyear-(year_init-1),month,mday,time)
+       endif
+
+       time = time+start_tod
 
        call shr_sys_flush(nu_diag)
     end if
 
-    call calendar         ! update calendar info
+    call calendar(time)     ! update calendar info
     if (write_ic) call accum_hist(dt) ! write initial conditions
  
     !---------------------------------------------------------------------------

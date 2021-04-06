@@ -197,7 +197,7 @@
 
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_blocks, only: nghost, nx_block, ny_block
-      use ice_calendar, only: istep0, npt, calendar
+      use ice_calendar, only: istep0, npt
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
@@ -244,7 +244,6 @@
          file=__FILE__, line=__LINE__)
 
       call init_restart_read(ice_ic)
-      call calendar()
 
       diag = .true.
 
@@ -530,8 +529,7 @@
 
       use ice_broadcast, only: broadcast_scalar
       use ice_blocks, only: nghost, nx_block, ny_block
-      use ice_calendar, only: istep0, istep1, timesecs, calendar, npt, &
-          set_date_from_timesecs
+      use ice_calendar, only: istep0, istep1, time, time_forc, calendar, npt
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
@@ -573,9 +571,6 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1, work_g2
 
-      real (kind=dbl_kind) :: &
-         time_forc      ! historic, now local
-
       character(len=*), parameter :: subname = '(restartfile_v4)'
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
@@ -607,15 +602,14 @@
       if (use_restart_time) then
 
          if (my_task == master_task) then
-            read (nu_restart) istep0,timesecs,time_forc
-            write(nu_diag,*) 'Restart read at istep=',istep0,timesecs
+            read (nu_restart) istep0,time,time_forc
+            write(nu_diag,*) 'Restart read at istep=',istep0,time,time_forc
          endif
          call broadcast_scalar(istep0,master_task)
          istep1 = istep0
-         call broadcast_scalar(timesecs,master_task)
-!         call broadcast_scalar(time_forc,master_task)
-         call set_date_from_timesecs(timesecs)
-         call calendar()
+         call broadcast_scalar(time,master_task)
+         call broadcast_scalar(time_forc,master_task)
+         call calendar(time)
 
       else
 

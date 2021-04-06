@@ -1,5 +1,4 @@
-npt            = 5
-npt_unit       = 'd'
+npt            = 120
 dumpfreq       = 'd'
 dumpfreq_n     = 5
 runtype        = 'continue'

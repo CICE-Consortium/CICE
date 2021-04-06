@@ -44,7 +44,7 @@
 
       subroutine CICE_Run
 
-      use ice_calendar, only: istep, istep1, dt, stop_now, calendar, advance_timestep
+      use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
@@ -81,13 +81,11 @@
 
 !         call ice_step
 
-!         istep  = istep  + 1    ! update time step counters
-!         istep1 = istep1 + 1
-!         time = time + dt       ! determine the time and date
+         istep  = istep  + 1    ! update time step counters
+         istep1 = istep1 + 1
+         time = time + dt       ! determine the time and date
 
 !         call calendar(time)    ! at the end of the timestep
-
-         call advance_timestep()  ! advance timestep and update calendar data
 
          call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
@@ -110,7 +108,7 @@
          call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
          call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
-!         call calendar(time)    ! at the end of the timestep
+         call calendar(time)    ! at the end of the timestep
 
          call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 

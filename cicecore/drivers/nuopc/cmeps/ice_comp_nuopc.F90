@@ -29,7 +29,7 @@ module ice_comp_nuopc
   use ice_grid           , only : tlon, tlat, hm, tarea, ULON, ULAT
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
-  use ice_calendar       , only : idate, mday, time, month, time2sec, year_init
+  use ice_calendar       , only : idate, mday, time, month, daycal, time2sec, year_init
   use ice_calendar       , only : sec, dt, calendar, calendar_type, nextsw_cday, istep
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_scam           , only : scmlat, scmlon, single_column

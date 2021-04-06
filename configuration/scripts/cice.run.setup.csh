@@ -95,15 +95,9 @@ if ( \$status == 0 ) then
   echo "CICE run completed successfully"
   echo "\`date\` \${0}: CICE run completed successfully"  >> \${ICE_CASEDIR}/README.case
 else
-  grep 'COMPLETED SUCCESSFULLY' \${checkfile}
-  if ( \$status == 0 ) then
-    echo "Run completed successfully"
-    echo "\`date\` \${0}: Run completed successfully"  >> \${ICE_CASEDIR}/README.case
-  else
-    echo "CICE run did NOT complete"
-    echo "\`date\` \${0}: CICE run did NOT complete"  >> \${ICE_CASEDIR}/README.case
-    exit -1
-  endif
+  echo "CICE run did NOT complete"
+  echo "\`date\` \${0}: CICE run did NOT complete"  >> \${ICE_CASEDIR}/README.case
+  exit -1
 endif
 
 if ( \${diagtype} == 0) then
