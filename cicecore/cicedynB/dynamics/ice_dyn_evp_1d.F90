@@ -903,13 +903,16 @@ contains
 #else
       call domp_get_domain(lb, ub, il, iu)
       do iw = il, iu
-#endif
-
          if (halo_parent(iw) == 0) cycle
-
          uvel(iw) = uvel(halo_parent(iw))
          vvel(iw) = vvel(halo_parent(iw))
-
+      end do
+      call domp_get_domain(ub + 1, NAVEL_len, il, iu)
+      do iw = il, iu
+#endif
+         if (halo_parent(iw) == 0) cycle
+         uvel(iw) = uvel(halo_parent(iw))
+         vvel(iw) = vvel(halo_parent(iw))
       end do
 #ifdef _OPENACC
       !$acc end parallel
@@ -1153,7 +1156,7 @@ contains
 
       ! local variables
 
-      integer(int_kind) :: i, j, iw
+      integer(int_kind) :: iw, lo, up, j, i
       real(dbl_kind), dimension(nx_glob, ny_glob) :: G_uvel, G_vvel, &
          G_strintx, G_strinty, G_stressp_1, G_stressp_2, G_stressp_3, &
          G_stressp_4, G_stressm_1, G_stressm_2, G_stressm_3, &
@@ -1190,19 +1193,9 @@ contains
          G_taubx      = c0
          G_tauby      = c0
 
-         !$OMP PARALLEL PRIVATE(iw, i, j)
-         do iw = 1, NAVEL_len
-            ! get 2D indices
-            j = int((indij(iw) - 1) / (nx_glob)) + 1
-            i = indij(iw) - (j - 1) * nx_glob
-            ! remap
-            G_uvel(i, j) = uvel(iw)
-            G_vvel(i, j) = vvel(iw)
-         end do
-         !$OMP END PARALLEL
-
-         !$OMP PARALLEL PRIVATE(iw, i, j)
-         do iw = 1, NA_len
+         !$OMP PARALLEL PRIVATE(iw, lo, up, j, i)
+         call domp_get_domain(1, NA_len, lo, up)
+         do iw = lo, up
             ! get 2D indices
             i = indi(iw)
             j = indj(iw)
@@ -1227,6 +1220,17 @@ contains
             G_shear(i, j)      = shear(iw)
             G_taubx(i, j)      = taubx(iw)
             G_tauby(i, j)      = tauby(iw)
+            G_uvel(i, j) = uvel(iw)
+            G_vvel(i, j) = vvel(iw)
+         end do
+         call domp_get_domain(NA_len + 1, NAVEL_len, lo, up)
+         do iw = lo, up
+            ! get 2D indices
+            j = int((indij(iw) - 1) / (nx_glob)) + 1
+            i = indij(iw) - (j - 1) * nx_glob
+            ! remap
+            G_uvel(i, j) = uvel(iw)
+            G_vvel(i, j) = vvel(iw)
          end do
          !$OMP END PARALLEL
 
@@ -1306,7 +1310,7 @@ contains
                uvel_init, vvel_init, uvel, vvel, str1, str2, str3, &
                str4, str5, str6, str7, str8, nw, sw, sse, skipucell)
             !$OMP BARRIER
-            call evp1d_halo_update(NA_len, 1, NAVEL_len, uvel, vvel, &
+            call evp1d_halo_update(NAVEL_len, 1, NA_len, uvel, vvel, &
                halo_parent)
             !$OMP BARRIER
          end do
@@ -1323,7 +1327,7 @@ contains
             str5, str6, str7, str8, nw, sw, sse, skipucell, strintx, &
             strinty, taubx, tauby)
          !$OMP BARRIER
-         call evp1d_halo_update(NAVEL_len, 1, NAVEL_len, uvel, vvel, &
+         call evp1d_halo_update(NAVEL_len, 1, NA_len, uvel, vvel, &
             halo_parent)
          !$OMP END PARALLEL
 
@@ -1471,7 +1475,7 @@ contains
 
       ! local variables
 
-      integer(kind=int_kind) :: iw, i, j, nachk
+      integer(kind=int_kind) :: iw, lo, up, j, i, nachk
       integer(kind=int_kind), dimension(1:na) :: Iin, Iee, Ine, Ise, &
          Inw, Isw, Isse
       integer(kind=int_kind), dimension(1:7 * na) :: util1, util2
@@ -1520,21 +1524,10 @@ contains
       call findXinY(Isw,  indij, na, navel, sw)
       call findXinY(Isse, indij, na, navel, sse)
 
-      ! write 1D arrays from 2D arrays (additional points)
-      !$OMP PARALLEL DO PRIVATE(iw, i, j)
-      do iw = na + 1, navel
-         ! get 2D indices
-         j = int((indij(iw) - 1) / (nx)) + 1
-         i = indij(iw) - (j - 1) * nx
-         ! map
-         uvel(iw) = I_uvel(i, j)
-         vvel(iw) = I_vvel(i, j)
-      end do
-      !$OMP END PARALLEL DO
-
+      !$OMP PARALLEL PRIVATE(iw, lo, up, j, i)
       ! write 1D arrays from 2D arrays (target points)
-      !$OMP PARALLEL DO PRIVATE(iw, i, j)
-      do iw = 1, na
+      call domp_get_domain(1, na, lo, up)
+      do iw = lo, up
          ! get 2D indices
          i = indi(iw)
          j = indj(iw)
@@ -1576,7 +1569,17 @@ contains
          HTEm1(iw)      = I_HTE(i - 1, j)
          HTNm1(iw)      = I_HTN(i, j - 1)
       end do
-      !$OMP END PARALLEL DO
+      ! write 1D arrays from 2D arrays (additional points)
+      call domp_get_domain(na + 1, navel, lo, up)
+      do iw = lo, up
+         ! get 2D indices
+         j = int((indij(iw) - 1) / (nx)) + 1
+         i = indij(iw) - (j - 1) * nx
+         ! map
+         uvel(iw) = I_uvel(i, j)
+         vvel(iw) = I_vvel(i, j)
+      end do
+      !$OMP END PARALLEL
 
    end subroutine convert_2d_1d
 
@@ -1609,7 +1612,6 @@ contains
       Ihalo(:) = 0
       halo_parent(:) = 0
 
-      !$OMP PARALLEL DO PRIVATE(iw, i, j)
       do iw = 1, navel
          j = int((indij(iw) - 1) / (nx)) + 1
          i = indij(iw) - (j - 1) * nx
@@ -1619,7 +1621,6 @@ contains
          if (j == ny .and. I_icetmask(i, 2)      == 1) Ihalo(iw) = i + nx
          if (j == 1  .and. I_icetmask(i, ny - 1) == 1) Ihalo(iw) = i + (ny - 2) * nx
       end do
-      !$OMP END PARALLEL DO
 
       ! relate halo indices to indij vector
       call findXinY_halo(Ihalo, indij, navel, navel, halo_parent)
