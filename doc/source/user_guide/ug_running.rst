@@ -731,7 +731,14 @@ Next, create the "cice" conda environment from the ``environment.yml`` file in t
 
   conda env create -f configuration/scripts/machines/environment.yml
 
-This step needs to be done only once.
+This step needs to be done only once and will maintain a static conda environment.  To update the conda environment later, use
+
+.. code-block:: bash
+
+  conda env create -f configuration/scripts/machines/environment.yml --force
+
+This will update the conda environment to the latest software versions.
+
 
 .. _using_conda_env:
 
