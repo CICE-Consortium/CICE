@@ -29,8 +29,8 @@ module ice_comp_nuopc
   use ice_grid           , only : tlon, tlat, hm, tarea, ULON, ULAT
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
-  use ice_calendar       , only : idate, mday, time, month, time2sec, year_init
-  use ice_calendar       , only : sec, dt, calendar, calendar_type, nextsw_cday, istep
+  use ice_calendar       , only : idate, mday, time, mmonth, time2sec, year_init
+  use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_scam           , only : scmlat, scmlon, single_column
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
@@ -600,14 +600,14 @@ contains
           call abort_ice(subname//' :: ERROR idate lt zero')
        endif
        iyear = (idate/10000)                     ! integer year of basedate
-       month = (idate-iyear*10000)/100           ! integer month of basedate
-       mday  =  idate-iyear*10000-month*100      ! day of month of basedate
+       mmonth= (idate-iyear*10000)/100           ! integer month of basedate
+       mday  =  idate-iyear*10000-mmonth*100     ! day of month of basedate
 
        if (my_task == master_task) then
           write(nu_diag,*) trim(subname),' curr_ymd = ',curr_ymd
           write(nu_diag,*) trim(subname),' cice year_init = ',year_init
           write(nu_diag,*) trim(subname),' cice start date = ',idate
-          write(nu_diag,*) trim(subname),' cice start ymds = ',iyear,month,mday,start_tod
+          write(nu_diag,*) trim(subname),' cice start ymds = ',iyear,mmonth,mday,start_tod
           write(nu_diag,*) trim(subname),' cice calendar_type = ',trim(calendar_type)
        endif
 
@@ -615,9 +615,9 @@ contains
        if (calendar_type == "GREGORIAN" .or. &
            calendar_type == "Gregorian" .or. &
            calendar_type == "gregorian") then
-          call time2sec(iyear-(year_init-1),month,mday,time)
+          call time2sec(iyear-(year_init-1),mmonth,mday,time)
        else
-          call time2sec(iyear-year_init,month,mday,time)
+          call time2sec(iyear-year_init,mmonth,mday,time)
        endif
 #endif
        time = time+start_tod
@@ -878,7 +878,7 @@ contains
     ! TODO (mvertens, 2018-12-21): fill in iceberg_prognostic as .false.
     if (debug_export > 0 .and. my_task==master_task) then
        call State_fldDebug(exportState, flds_scalar_name, 'cice_export:', &
-            idate, sec, nu_diag, rc=rc)
+            idate, msec, nu_diag, rc=rc)
     end if
 
     !--------------------------------
@@ -1019,7 +1019,7 @@ contains
     !--------------------------------
 
     ! cice clock
-    tod = sec
+    tod = msec
     ymd = idate
 
     ! model clock
@@ -1080,7 +1080,7 @@ contains
     ! write Debug output
     if (debug_import  > 0 .and. my_task==master_task) then
        call State_fldDebug(importState, flds_scalar_name, 'cice_import:', &
-            idate, sec, nu_diag, rc=rc)
+            idate, msec, nu_diag, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if (dbug > 0) then
@@ -1107,7 +1107,7 @@ contains
     ! write Debug output
     if (debug_export > 0 .and. my_task==master_task) then
        call State_fldDebug(exportState, flds_scalar_name, 'cice_export:', &
-            idate, sec, nu_diag, rc=rc)
+            idate, msec, nu_diag, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if (dbug > 0) then
