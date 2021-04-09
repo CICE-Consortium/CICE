@@ -2401,7 +2401,7 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               k = nint(kmt(i,j,iblk))
+               k = min(nint(kmt(i,j,iblk)),nlevel)
                if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
                if (k > 0) bathymetry(i,j,iblk) = depth(k)
             enddo
@@ -2433,7 +2433,7 @@
 
       character(len=*), parameter :: subname = '(get_bathymetry_popfile)'
 
-      ntmp = maxval(KMT)
+      ntmp = maxval(nint(KMT))
       nlevel = global_maxval(ntmp,distrb_info)
 
       if (my_task==master_task) then

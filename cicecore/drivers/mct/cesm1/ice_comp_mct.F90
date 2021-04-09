@@ -47,8 +47,8 @@ module ice_comp_mct
   use ice_constants,   only : ice_init_constants
   use ice_communicate, only : my_task, master_task, MPI_COMM_ICE
   use ice_calendar,    only : istep, istep1, force_restart_now, write_ic,&
-                              idate, idate0, mday, month, nyr,           &
-                              sec, dt, dt_dyn, calendar,                 &
+                              idate, idate0, mday, mmonth, myear,           &
+                              msec, dt, dt_dyn, calendar,                 &
                               calendar_type, nextsw_cday, days_per_year
   use ice_timers
 
@@ -150,7 +150,7 @@ contains
     integer            :: curr_tod           ! Current time of day (s)
     integer            :: ref_ymd            ! Reference date (YYYYMMDD)
     integer            :: ref_tod            ! reference time of day (s)
-    integer            :: nyrp               ! yyyy
+    integer            :: myearp             ! yyyy
     integer            :: dtime              ! time step
     integer            :: shrlogunit,shrloglev ! old values
     integer            :: iam,ierr
@@ -301,7 +301,7 @@ contains
     !   - istep1 is set to istep0
     !   - date information is determined from restart
     ! - on initial run 
-    !   - nyr, month, mday, sec obtained from sync clock
+    !   - myear, mmonth, mday, msec obtained from sync clock
     !   - istep0 and istep1 are set to 0 
 
     call seq_timemgr_EClockGetData(EClock,               &
@@ -336,15 +336,15 @@ contains
           write(nu_diag,*) trim(subname),' ERROR idate lt zero',idate
           call shr_sys_abort(subname//' :: ERROR idate lt zero')
        endif
-       nyr   = (idate/10000)                     ! integer year of basedate
-       month = (idate-nyr*10000)/100             ! integer month of basedate
-       mday  =  idate-nyr*10000-month*100        ! day of month of basedate
-       sec   = start_tod                         ! seconds
+       myear = (idate/10000)                     ! integer year of basedate
+       mmonth= (idate-myear*10000)/100           ! integer month of basedate
+       mday  =  idate-myear*10000-mmonth*100     ! day of month of basedate
+       msec  = start_tod                         ! seconds
 
        if (my_task == master_task) then
           write(nu_diag,*) trim(subname),' curr_ymd = ',curr_ymd
           write(nu_diag,*) trim(subname),' cice start date = ',idate
-          write(nu_diag,*) trim(subname),' cice start ymds = ',nyr,month,mday,start_tod
+          write(nu_diag,*) trim(subname),' cice start ymds = ',myear,mmonth,mday,start_tod
        endif
 
        call shr_sys_flush(nu_diag)
@@ -512,7 +512,7 @@ contains
     integer :: curr_tod           ! Current time of day (s)
     integer :: shrlogunit,shrloglev ! old values
     integer :: lbnum
-    integer :: n, nyrp
+    integer :: n, myearp
     type(mct_gGrid)        , pointer :: dom_i
     type(seq_infodata_type), pointer :: infodata   
     type(mct_gsMap)        , pointer :: gsMap_i
@@ -565,9 +565,9 @@ contains
     force_restart_now = seq_timemgr_RestartAlarmIsOn(EClock)
 
 !    if (calendar_type .eq. "GREGORIAN") then
-!       nyrp = nyr
-!       nyr = (curr_ymd/10000)+1           ! integer year of basedate
-!       if (nyr /= nyrp) then
+!       myearp = myear
+!       myear = (curr_ymd/10000)+1           ! integer year of basedate
+!       if (myear /= myearp) then
 !          new_year = .true.
 !       else
 !          new_year = .false.
@@ -617,7 +617,7 @@ contains
     ! check that internal clock is in sync with master clock
     !--------------------------------------------------------------------
 
-    tod = sec
+    tod = msec
     ymd = idate
     if (.not. seq_timemgr_EClockDateInSync( EClock, ymd, tod )) then
        call seq_timemgr_EClockGetData( EClock, curr_ymd=ymd_sync, &

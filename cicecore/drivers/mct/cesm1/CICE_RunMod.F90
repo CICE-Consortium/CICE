@@ -138,7 +138,7 @@
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
-      use ice_calendar, only: idate, sec
+      use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
@@ -209,7 +209,7 @@
          if (prescribed_ice) then  ! read prescribed ice
             call t_barrierf('cice_run_presc_BARRIER',MPI_COMM_ICE)
             call t_startf ('cice_run_presc')
-            call ice_prescribed_run(idate, sec)
+            call ice_prescribed_run(idate, msec)
             call t_stopf ('cice_run_presc')
          endif
 
