@@ -64,10 +64,11 @@
                                  n_iso, n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
                                  max_nstrm
-      use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
+      use ice_calendar, only: year_init, month_init, day_init, sec_init, &
+                              istep0, histfreq, histfreq_n, &
                               dumpfreq, dumpfreq_n, diagfreq, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
-                              write_ic, dump_last
+                              write_ic, dump_last, npt_unit
       use ice_arrays_column, only: oceanmixed_ice
       use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
           restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
@@ -97,7 +98,8 @@
                           dxrect, dyrect
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 kevp_kernel, &
-                                basalstress, k1, k2, alphab, threshold_hw, &
+                                seabed_stress, seabed_stress_method, &
+                                k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
                                 kridge, brlx, arlx
       use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
@@ -153,7 +155,7 @@
       !-----------------------------------------------------------------
 
       namelist /setup_nml/ &
-        days_per_year,  use_leap_years, year_init,       istep0,        &
+        days_per_year,  use_leap_years, istep0,          npt_unit,      &
         dt,             npt,            ndtd,            numin,         &
         runtype,        runid,          bfbflag,         numax,         &
         ice_ic,         restart,        restart_dir,     restart_file,  &
@@ -164,6 +166,7 @@
         dbug,           histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
         conserv_check,                                                  &
+        year_init,      month_init,     day_init,        sec_init,      &
         write_ic,       incond_dir,     incond_file,     version_name
 
       namelist /grid_nml/ &
@@ -198,7 +201,7 @@
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_ratio,        Ktens,          Cf,             basalstress,    &
+        e_ratio,        Ktens,          Cf,             seabed_stress,  &
         k1,             maxits_nonlin,  precond,        dim_fgmres,     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
@@ -206,7 +209,7 @@
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
         ortho_type,                                                     &
         k2,             alphab,         threshold_hw,                   &
-        Pstar,          Cstar
+        seabed_stress_method,           Pstar,          Cstar
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
@@ -249,6 +252,9 @@
       days_per_year = 365    ! number of days in a year
       use_leap_years= .false.! if true, use leap years (Feb 29)
       year_init = 0          ! initial year
+      month_init = 1         ! initial month
+      day_init = 1           ! initial day
+      sec_init = 0           ! initial second
       istep0 = 0             ! no. of steps taken in previous integrations,
                              ! real (dumped) or imagined (to set calendar)
 #ifndef CESMCOUPLED
@@ -257,6 +263,7 @@
       numin = 11             ! min allowed unit number
       numax = 99             ! max allowed unit number
       npt = 99999            ! total number of time steps (dt) 
+      npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
@@ -309,7 +316,7 @@
 
       kitd = 1           ! type of itd conversions (0 = delta, 1 = linear)
       kcatbound = 1      ! category boundary formula (0 = old, 1 = new, etc)
-      kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap)
+      kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap, 3 = vp)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       kevp_kernel = 0    ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
@@ -328,9 +335,10 @@
       dxrect = 0.0_dbl_kind  ! user defined grid spacing in cm in x direction
       dyrect = 0.0_dbl_kind  ! user defined grid spacing in cm in y direction
       close_boundaries = .false.   ! true = set land on edges of grid
-      basalstress= .false.   ! if true, basal stress for landfast is on
-      k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
-      k2 = 15.0_dbl_kind     ! dah: second free parameter (N/m^3) for landfast parametrization
+      seabed_stress= .false.   ! if true, seabed stress for landfast is on
+      seabed_stress_method  = 'LKD' ! LKD = Lemieux et al 2015, probabilistic = Dupont et al. in prep
+      k1 = 7.5_dbl_kind      ! 1st free parameter for landfast parameterization
+      k2 = 15.0_dbl_kind     ! 2nd free parameter (N/m^3) for landfast parametrization
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
@@ -577,220 +585,225 @@
       ! broadcast namelist settings
       !-----------------------------------------------------------------
 
-      call broadcast_scalar(numin,              master_task)
-      call broadcast_scalar(numax,              master_task)
-      call broadcast_scalar(days_per_year,      master_task)
-      call broadcast_scalar(use_leap_years,     master_task)
-      call broadcast_scalar(year_init,          master_task)
-      call broadcast_scalar(istep0,             master_task)
-      call broadcast_scalar(dt,                 master_task)
-      call broadcast_scalar(npt,                master_task)
-      call broadcast_scalar(diagfreq,           master_task)
-      call broadcast_scalar(print_points,       master_task)
-      call broadcast_scalar(print_global,       master_task)
-      call broadcast_scalar(bfbflag,            master_task)
-      call broadcast_scalar(diag_type,          master_task)
-      call broadcast_scalar(diag_file,          master_task)
+      call broadcast_scalar(numin,                master_task)
+      call broadcast_scalar(numax,                master_task)
+      call broadcast_scalar(days_per_year,        master_task)
+      call broadcast_scalar(use_leap_years,       master_task)
+      call broadcast_scalar(year_init,            master_task)
+      call broadcast_scalar(month_init,           master_task)
+      call broadcast_scalar(day_init,             master_task)
+      call broadcast_scalar(sec_init,             master_task)
+      call broadcast_scalar(istep0,               master_task)
+      call broadcast_scalar(dt,                   master_task)
+      call broadcast_scalar(npt,                  master_task)
+      call broadcast_scalar(npt_unit,             master_task)
+      call broadcast_scalar(diagfreq,             master_task)
+      call broadcast_scalar(print_points,         master_task)
+      call broadcast_scalar(print_global,         master_task)
+      call broadcast_scalar(bfbflag,              master_task)
+      call broadcast_scalar(diag_type,            master_task)
+      call broadcast_scalar(diag_file,            master_task)
       do n = 1, max_nstrm
-         call broadcast_scalar(histfreq(n),     master_task)
+         call broadcast_scalar(histfreq(n),       master_task)
       enddo  
-      call broadcast_array(histfreq_n,          master_task)
-      call broadcast_scalar(hist_avg,           master_task)
-      call broadcast_scalar(history_dir,        master_task)
-      call broadcast_scalar(history_file,       master_task)
-      call broadcast_scalar(history_precision,  master_task)
-      call broadcast_scalar(history_format,     master_task)
-      call broadcast_scalar(write_ic,           master_task)
-      call broadcast_scalar(cpl_bgc,            master_task)
-      call broadcast_scalar(incond_dir,         master_task)
-      call broadcast_scalar(incond_file,        master_task)
-      call broadcast_scalar(dumpfreq,           master_task)
-      call broadcast_scalar(dumpfreq_n,         master_task)
-      call broadcast_scalar(dump_last,          master_task)
-      call broadcast_scalar(restart_file,       master_task)
-      call broadcast_scalar(restart,            master_task)
-      call broadcast_scalar(restart_dir,        master_task)
-      call broadcast_scalar(restart_ext,        master_task)
-      call broadcast_scalar(restart_coszen,     master_task)
-      call broadcast_scalar(use_restart_time,   master_task)
-      call broadcast_scalar(restart_format,     master_task)
-      call broadcast_scalar(lcdf64,             master_task)
-      call broadcast_scalar(pointer_file,       master_task)
-      call broadcast_scalar(ice_ic,             master_task)
-      call broadcast_scalar(grid_format,        master_task)
-      call broadcast_scalar(dxrect,             master_task)
-      call broadcast_scalar(dyrect,             master_task)
-      call broadcast_scalar(close_boundaries,   master_task)
-      call broadcast_scalar(grid_type,          master_task)
-      call broadcast_scalar(grid_file,          master_task)
-      call broadcast_scalar(gridcpl_file,       master_task)
-      call broadcast_scalar(orca_halogrid,      master_task)
-      call broadcast_scalar(bathymetry_file,    master_task)
-      call broadcast_scalar(bathymetry_format,  master_task)
-      call broadcast_scalar(use_bathymetry,     master_task)
-      call broadcast_scalar(kmt_file,           master_task)
-      call broadcast_scalar(kitd,               master_task)
-      call broadcast_scalar(kcatbound,          master_task)
-      call broadcast_scalar(kdyn,               master_task)
-      call broadcast_scalar(ndtd,               master_task)
-      call broadcast_scalar(ndte,               master_task)
-      call broadcast_scalar(kevp_kernel,        master_task)
-      call broadcast_scalar(brlx,               master_task)
-      call broadcast_scalar(arlx,               master_task)
-      call broadcast_scalar(revised_evp,        master_task)
-      call broadcast_scalar(yield_curve,        master_task)
-      call broadcast_scalar(kstrength,          master_task)
-      call broadcast_scalar(Pstar,              master_task)
-      call broadcast_scalar(Cstar,              master_task)
-      call broadcast_scalar(krdg_partic,        master_task)
-      call broadcast_scalar(krdg_redist,        master_task)
-      call broadcast_scalar(mu_rdg,             master_task)
-      call broadcast_scalar(Cf,                 master_task)
-      call broadcast_scalar(ksno,               master_task)
-      call broadcast_scalar(basalstress,        master_task)
-      call broadcast_scalar(k1,                 master_task)
-      call broadcast_scalar(k2,                 master_task)
-      call broadcast_scalar(alphab,             master_task)
-      call broadcast_scalar(threshold_hw,       master_task)
-      call broadcast_scalar(Ktens,              master_task)
-      call broadcast_scalar(e_ratio,            master_task)
-      call broadcast_scalar(advection,          master_task)
-      call broadcast_scalar(conserv_check,      master_task)
-      call broadcast_scalar(shortwave,          master_task)
-      call broadcast_scalar(albedo_type,        master_task)
-      call broadcast_scalar(ktherm,             master_task)
-      call broadcast_scalar(coriolis,           master_task)
-      call broadcast_scalar(ssh_stress,         master_task)
-      call broadcast_scalar(kridge,             master_task)
-      call broadcast_scalar(ktransport,         master_task)
-      call broadcast_scalar(maxits_nonlin,      master_task)
-      call broadcast_scalar(precond,            master_task)
-      call broadcast_scalar(dim_fgmres,         master_task)
-      call broadcast_scalar(dim_pgmres,         master_task)
-      call broadcast_scalar(maxits_fgmres,      master_task)
-      call broadcast_scalar(maxits_pgmres,      master_task)
-      call broadcast_scalar(monitor_nonlin,     master_task)
-      call broadcast_scalar(monitor_fgmres,     master_task)
-      call broadcast_scalar(monitor_pgmres,     master_task)
-      call broadcast_scalar(ortho_type,         master_task)
-      call broadcast_scalar(reltol_nonlin,      master_task)
-      call broadcast_scalar(reltol_fgmres,      master_task)
-      call broadcast_scalar(reltol_pgmres,      master_task)
-      call broadcast_scalar(algo_nonlin,        master_task)
-      call broadcast_scalar(fpfunc_andacc,      master_task)
-      call broadcast_scalar(dim_andacc,         master_task)
-      call broadcast_scalar(reltol_andacc,      master_task)
-      call broadcast_scalar(damping_andacc,     master_task)
-      call broadcast_scalar(start_andacc,       master_task)
-      call broadcast_scalar(use_mean_vrel,      master_task)
-      call broadcast_scalar(conduct,            master_task)
-      call broadcast_scalar(R_ice,              master_task)
-      call broadcast_scalar(R_pnd,              master_task)
-      call broadcast_scalar(R_snw,              master_task)
-      call broadcast_scalar(dT_mlt,             master_task)
-      call broadcast_scalar(rsnw_mlt,           master_task)
-      call broadcast_scalar(kalg,               master_task)
-      call broadcast_scalar(hp1,                master_task)
-      call broadcast_scalar(hs0,                master_task)
-      call broadcast_scalar(hs1,                master_task)
-      call broadcast_scalar(dpscale,            master_task)
-      call broadcast_scalar(frzpnd,             master_task)
-      call broadcast_scalar(rfracmin,           master_task)
-      call broadcast_scalar(rfracmax,           master_task)
-      call broadcast_scalar(pndaspect,          master_task)
-      call broadcast_scalar(albicev,            master_task)
-      call broadcast_scalar(albicei,            master_task)
-      call broadcast_scalar(albsnowv,           master_task)
-      call broadcast_scalar(albsnowi,           master_task)
-      call broadcast_scalar(ahmax,              master_task)
-      call broadcast_scalar(atmbndy,            master_task)
-      call broadcast_scalar(fyear_init,         master_task)
-      call broadcast_scalar(ycycle,             master_task)
-      call broadcast_scalar(atm_data_format,    master_task)
-      call broadcast_scalar(atm_data_type,      master_task)
-      call broadcast_scalar(atm_data_dir,       master_task)
-      call broadcast_scalar(rotate_wind,        master_task)
-      call broadcast_scalar(calc_strair,        master_task)
-      call broadcast_scalar(calc_Tsfc,          master_task)
-      call broadcast_scalar(formdrag,           master_task)
-      call broadcast_scalar(highfreq,           master_task)
-      call broadcast_scalar(natmiter,           master_task)
-      call broadcast_scalar(atmiter_conv,       master_task)
-      call broadcast_scalar(update_ocn_f,       master_task)
-      call broadcast_scalar(l_mpond_fresh,      master_task)
-      call broadcast_scalar(ustar_min,          master_task)
-      call broadcast_scalar(emissivity,         master_task)
-      call broadcast_scalar(fbot_xfer_type,     master_task)
-      call broadcast_scalar(precip_units,       master_task)
-      call broadcast_scalar(oceanmixed_ice,     master_task)
-      call broadcast_scalar(wave_spec_type,     master_task)
-      call broadcast_scalar(wave_spec_file,     master_task)
-      call broadcast_scalar(nfreq,              master_task)
-      call broadcast_scalar(tfrz_option,        master_task)
-      call broadcast_scalar(ocn_data_format,    master_task)
-      call broadcast_scalar(bgc_data_type,      master_task)
-      call broadcast_scalar(fe_data_type,       master_task)
-      call broadcast_scalar(ice_data_type,      master_task)
-      call broadcast_scalar(bgc_data_dir,       master_task)
-      call broadcast_scalar(ocn_data_type,      master_task)
-      call broadcast_scalar(ocn_data_dir,       master_task)
-      call broadcast_scalar(oceanmixed_file,    master_task)
-      call broadcast_scalar(restore_ocn,        master_task)
-      call broadcast_scalar(trestore,           master_task)
-      call broadcast_scalar(restore_ice,        master_task)
-      call broadcast_scalar(dbug,               master_task)
-      call broadcast_array (latpnt(1:2),        master_task)
-      call broadcast_array (lonpnt(1:2),        master_task)
-      call broadcast_scalar(runid,              master_task)
-      call broadcast_scalar(runtype,            master_task)
+      call broadcast_array(histfreq_n,            master_task)
+      call broadcast_scalar(hist_avg,             master_task)
+      call broadcast_scalar(history_dir,          master_task)
+      call broadcast_scalar(history_file,         master_task)
+      call broadcast_scalar(history_precision,    master_task)
+      call broadcast_scalar(history_format,       master_task)
+      call broadcast_scalar(write_ic,             master_task)
+      call broadcast_scalar(cpl_bgc,              master_task)
+      call broadcast_scalar(incond_dir,           master_task)
+      call broadcast_scalar(incond_file,          master_task)
+      call broadcast_scalar(dumpfreq,             master_task)
+      call broadcast_scalar(dumpfreq_n,           master_task)
+      call broadcast_scalar(dump_last,            master_task)
+      call broadcast_scalar(restart_file,         master_task)
+      call broadcast_scalar(restart,              master_task)
+      call broadcast_scalar(restart_dir,          master_task)
+      call broadcast_scalar(restart_ext,          master_task)
+      call broadcast_scalar(restart_coszen,       master_task)
+      call broadcast_scalar(use_restart_time,     master_task)
+      call broadcast_scalar(restart_format,       master_task)
+      call broadcast_scalar(lcdf64,               master_task)
+      call broadcast_scalar(pointer_file,         master_task)
+      call broadcast_scalar(ice_ic,               master_task)
+      call broadcast_scalar(grid_format,          master_task)
+      call broadcast_scalar(dxrect,               master_task)
+      call broadcast_scalar(dyrect,               master_task)
+      call broadcast_scalar(close_boundaries,     master_task)
+      call broadcast_scalar(grid_type,            master_task)
+      call broadcast_scalar(grid_file,            master_task)
+      call broadcast_scalar(gridcpl_file,         master_task)
+      call broadcast_scalar(orca_halogrid,        master_task)
+      call broadcast_scalar(bathymetry_file,      master_task)
+      call broadcast_scalar(bathymetry_format,    master_task)
+      call broadcast_scalar(use_bathymetry,       master_task)
+      call broadcast_scalar(kmt_file,             master_task)
+      call broadcast_scalar(kitd,                 master_task)
+      call broadcast_scalar(kcatbound,            master_task)
+      call broadcast_scalar(kdyn,                 master_task)
+      call broadcast_scalar(ndtd,                 master_task)
+      call broadcast_scalar(ndte,                 master_task)
+      call broadcast_scalar(kevp_kernel,          master_task)
+      call broadcast_scalar(brlx,                 master_task)
+      call broadcast_scalar(arlx,                 master_task)
+      call broadcast_scalar(revised_evp,          master_task)
+      call broadcast_scalar(yield_curve,          master_task)
+      call broadcast_scalar(kstrength,            master_task)
+      call broadcast_scalar(Pstar,                master_task)
+      call broadcast_scalar(Cstar,                master_task)
+      call broadcast_scalar(krdg_partic,          master_task)
+      call broadcast_scalar(krdg_redist,          master_task)
+      call broadcast_scalar(mu_rdg,               master_task)
+      call broadcast_scalar(Cf,                   master_task)
+      call broadcast_scalar(ksno,                 master_task)
+      call broadcast_scalar(seabed_stress,        master_task)
+      call broadcast_scalar(seabed_stress_method, master_task)
+      call broadcast_scalar(k1,                   master_task)
+      call broadcast_scalar(k2,                   master_task)
+      call broadcast_scalar(alphab,               master_task)
+      call broadcast_scalar(threshold_hw,         master_task)
+      call broadcast_scalar(Ktens,                master_task)
+      call broadcast_scalar(e_ratio,              master_task)
+      call broadcast_scalar(advection,            master_task)
+      call broadcast_scalar(conserv_check,        master_task)
+      call broadcast_scalar(shortwave,            master_task)
+      call broadcast_scalar(albedo_type,          master_task)
+      call broadcast_scalar(ktherm,               master_task)
+      call broadcast_scalar(coriolis,             master_task)
+      call broadcast_scalar(ssh_stress,           master_task)
+      call broadcast_scalar(kridge,               master_task)
+      call broadcast_scalar(ktransport,           master_task)
+      call broadcast_scalar(maxits_nonlin,        master_task)
+      call broadcast_scalar(precond,              master_task)
+      call broadcast_scalar(dim_fgmres,           master_task)
+      call broadcast_scalar(dim_pgmres,           master_task)
+      call broadcast_scalar(maxits_fgmres,        master_task)
+      call broadcast_scalar(maxits_pgmres,        master_task)
+      call broadcast_scalar(monitor_nonlin,       master_task)
+      call broadcast_scalar(monitor_fgmres,       master_task)
+      call broadcast_scalar(monitor_pgmres,       master_task)
+      call broadcast_scalar(ortho_type,           master_task)
+      call broadcast_scalar(reltol_nonlin,        master_task)
+      call broadcast_scalar(reltol_fgmres,        master_task)
+      call broadcast_scalar(reltol_pgmres,        master_task)
+      call broadcast_scalar(algo_nonlin,          master_task)
+      call broadcast_scalar(fpfunc_andacc,        master_task)
+      call broadcast_scalar(dim_andacc,           master_task)
+      call broadcast_scalar(reltol_andacc,        master_task)
+      call broadcast_scalar(damping_andacc,       master_task)
+      call broadcast_scalar(start_andacc,         master_task)
+      call broadcast_scalar(use_mean_vrel,        master_task)
+      call broadcast_scalar(conduct,              master_task)
+      call broadcast_scalar(R_ice,                master_task)
+      call broadcast_scalar(R_pnd,                master_task)
+      call broadcast_scalar(R_snw,                master_task)
+      call broadcast_scalar(dT_mlt,               master_task)
+      call broadcast_scalar(rsnw_mlt,             master_task)
+      call broadcast_scalar(kalg,                 master_task)
+      call broadcast_scalar(hp1,                  master_task)
+      call broadcast_scalar(hs0,                  master_task)
+      call broadcast_scalar(hs1,                  master_task)
+      call broadcast_scalar(dpscale,              master_task)
+      call broadcast_scalar(frzpnd,               master_task)
+      call broadcast_scalar(rfracmin,             master_task)
+      call broadcast_scalar(rfracmax,             master_task)
+      call broadcast_scalar(pndaspect,            master_task)
+      call broadcast_scalar(albicev,              master_task)
+      call broadcast_scalar(albicei,              master_task)
+      call broadcast_scalar(albsnowv,             master_task)
+      call broadcast_scalar(albsnowi,             master_task)
+      call broadcast_scalar(ahmax,                master_task)
+      call broadcast_scalar(atmbndy,              master_task)
+      call broadcast_scalar(fyear_init,           master_task)
+      call broadcast_scalar(ycycle,               master_task)
+      call broadcast_scalar(atm_data_format,      master_task)
+      call broadcast_scalar(atm_data_type,        master_task)
+      call broadcast_scalar(atm_data_dir,         master_task)
+      call broadcast_scalar(rotate_wind,          master_task)
+      call broadcast_scalar(calc_strair,          master_task)
+      call broadcast_scalar(calc_Tsfc,            master_task)
+      call broadcast_scalar(formdrag,             master_task)
+      call broadcast_scalar(highfreq,             master_task)
+      call broadcast_scalar(natmiter,             master_task)
+      call broadcast_scalar(atmiter_conv,         master_task)
+      call broadcast_scalar(update_ocn_f,         master_task)
+      call broadcast_scalar(l_mpond_fresh,        master_task)
+      call broadcast_scalar(ustar_min,            master_task)
+      call broadcast_scalar(emissivity,           master_task)
+      call broadcast_scalar(fbot_xfer_type,       master_task)
+      call broadcast_scalar(precip_units,         master_task)
+      call broadcast_scalar(oceanmixed_ice,       master_task)
+      call broadcast_scalar(wave_spec_type,       master_task)
+      call broadcast_scalar(wave_spec_file,       master_task)
+      call broadcast_scalar(nfreq,                master_task)
+      call broadcast_scalar(tfrz_option,          master_task)
+      call broadcast_scalar(ocn_data_format,      master_task)
+      call broadcast_scalar(bgc_data_type,        master_task)
+      call broadcast_scalar(fe_data_type,         master_task)
+      call broadcast_scalar(ice_data_type,        master_task)
+      call broadcast_scalar(bgc_data_dir,         master_task)
+      call broadcast_scalar(ocn_data_type,        master_task)
+      call broadcast_scalar(ocn_data_dir,         master_task)
+      call broadcast_scalar(oceanmixed_file,      master_task)
+      call broadcast_scalar(restore_ocn,          master_task)
+      call broadcast_scalar(trestore,             master_task)
+      call broadcast_scalar(restore_ice,          master_task)
+      call broadcast_scalar(dbug,                 master_task)
+      call broadcast_array (latpnt(1:2),          master_task)
+      call broadcast_array (lonpnt(1:2),          master_task)
+      call broadcast_scalar(runid,                master_task)
+      call broadcast_scalar(runtype,              master_task)
 
       if (dbug) & ! else only master_task writes to file
-      call broadcast_scalar(nu_diag,            master_task)
+      call broadcast_scalar(nu_diag,              master_task)
 
       ! tracers
-      call broadcast_scalar(tr_iage,            master_task)
-      call broadcast_scalar(restart_age,        master_task)
-      call broadcast_scalar(tr_FY,              master_task)
-      call broadcast_scalar(restart_FY,         master_task)
-      call broadcast_scalar(tr_lvl,             master_task)
-      call broadcast_scalar(restart_lvl,        master_task)
-      call broadcast_scalar(tr_pond_cesm,       master_task)
-      call broadcast_scalar(restart_pond_cesm,  master_task)
-      call broadcast_scalar(tr_pond_lvl,        master_task)
-      call broadcast_scalar(restart_pond_lvl,   master_task)
-      call broadcast_scalar(tr_pond_topo,       master_task)
-      call broadcast_scalar(restart_pond_topo,  master_task)
-      call broadcast_scalar(tr_iso,             master_task)
-      call broadcast_scalar(restart_iso,        master_task)
-      call broadcast_scalar(tr_aero,            master_task)
-      call broadcast_scalar(restart_aero,       master_task)
-      call broadcast_scalar(tr_fsd,             master_task)
-      call broadcast_scalar(restart_fsd,        master_task)
-      call broadcast_scalar(ncat,               master_task)
-      call broadcast_scalar(nfsd,               master_task)
-      call broadcast_scalar(nilyr,              master_task)
-      call broadcast_scalar(nslyr,              master_task)
-      call broadcast_scalar(nblyr,              master_task)
-      call broadcast_scalar(n_iso,              master_task)
-      call broadcast_scalar(n_aero,             master_task)
-      call broadcast_scalar(n_zaero,            master_task)
-      call broadcast_scalar(n_algae,            master_task)
-      call broadcast_scalar(n_doc,              master_task)
-      call broadcast_scalar(n_dic,              master_task)
-      call broadcast_scalar(n_don,              master_task)
-      call broadcast_scalar(n_fed,              master_task)
-      call broadcast_scalar(n_fep,              master_task)
-      call broadcast_scalar(a_rapid_mode,       master_task)
-      call broadcast_scalar(floediam,           master_task)
-      call broadcast_scalar(hfrazilmin,         master_task)
-      call broadcast_scalar(Rac_rapid_mode,     master_task)
-      call broadcast_scalar(aspect_rapid_mode,  master_task)
-      call broadcast_scalar(dSdt_slow_mode,     master_task)
-      call broadcast_scalar(phi_c_slow_mode,    master_task)
-      call broadcast_scalar(phi_i_mushy,        master_task)
-      call broadcast_scalar(sw_redist,          master_task)
-      call broadcast_scalar(sw_frac,            master_task)
-      call broadcast_scalar(sw_dtemp,           master_task)
+      call broadcast_scalar(tr_iage,              master_task)
+      call broadcast_scalar(restart_age,          master_task)
+      call broadcast_scalar(tr_FY,                master_task)
+      call broadcast_scalar(restart_FY,           master_task)
+      call broadcast_scalar(tr_lvl,               master_task)
+      call broadcast_scalar(restart_lvl,          master_task)
+      call broadcast_scalar(tr_pond_cesm,         master_task)
+      call broadcast_scalar(restart_pond_cesm,    master_task)
+      call broadcast_scalar(tr_pond_lvl,          master_task)
+      call broadcast_scalar(restart_pond_lvl,     master_task)
+      call broadcast_scalar(tr_pond_topo,         master_task)
+      call broadcast_scalar(restart_pond_topo,    master_task)
+      call broadcast_scalar(tr_iso,               master_task)
+      call broadcast_scalar(restart_iso,          master_task)
+      call broadcast_scalar(tr_aero,              master_task)
+      call broadcast_scalar(restart_aero,         master_task)
+      call broadcast_scalar(tr_fsd,               master_task)
+      call broadcast_scalar(restart_fsd,          master_task)
+      call broadcast_scalar(ncat,                 master_task)
+      call broadcast_scalar(nfsd,                 master_task)
+      call broadcast_scalar(nilyr,                master_task)
+      call broadcast_scalar(nslyr,                master_task)
+      call broadcast_scalar(nblyr,                master_task)
+      call broadcast_scalar(n_iso,                master_task)
+      call broadcast_scalar(n_aero,               master_task)
+      call broadcast_scalar(n_zaero,              master_task)
+      call broadcast_scalar(n_algae,              master_task)
+      call broadcast_scalar(n_doc,                master_task)
+      call broadcast_scalar(n_dic,                master_task)
+      call broadcast_scalar(n_don,                master_task)
+      call broadcast_scalar(n_fed,                master_task)
+      call broadcast_scalar(n_fep,                master_task)
+      call broadcast_scalar(a_rapid_mode,         master_task)
+      call broadcast_scalar(floediam,             master_task)
+      call broadcast_scalar(hfrazilmin,           master_task)
+      call broadcast_scalar(Rac_rapid_mode,       master_task)
+      call broadcast_scalar(aspect_rapid_mode,    master_task)
+      call broadcast_scalar(dSdt_slow_mode,       master_task)
+      call broadcast_scalar(phi_c_slow_mode,      master_task)
+      call broadcast_scalar(phi_i_mushy,          master_task)
+      call broadcast_scalar(sw_redist,            master_task)
+      call broadcast_scalar(sw_frac,              master_task)
+      call broadcast_scalar(sw_dtemp,             master_task)
 
 #ifdef CESMCOUPLED
       pointer_file = trim(pointer_file) // trim(inst_suffix)
@@ -889,6 +902,16 @@
             write(nu_diag,*) subname//' WARNING: kdyn out of range'
          endif
          abort_list = trim(abort_list)//":33"
+      endif
+
+      if (seabed_stress) then
+         if (seabed_stress_method /= 'LKD' .and. seabed_stress_method /= 'probabilistic') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: invalid seabed stress method'
+               write(nu_diag,*) subname//' ERROR: seabed_stress_method should be LKD or probabilistic'
+            endif
+            abort_list = trim(abort_list)//":34"
+         endif
       endif
 
       rpcesm = 0
@@ -1286,17 +1309,22 @@
             endif
             write(nu_diag,1030) ' advection        = ', trim(advection),trim(tmpstr2)
 
-            if (basalstress) then
-               tmpstr2 = ' : use basal stress parameterization for landfast ice'
+            if (seabed_stress) then
+               tmpstr2 = ' : use seabed stress parameterization for landfast ice'
             else
-               tmpstr2 = ' : no basal stress parameterization'
+               tmpstr2 = ' : no seabed stress parameterization'
             endif
-            write(nu_diag,1010) ' basalstress      = ', basalstress,trim(tmpstr2)
-            if (basalstress) then
-               write(nu_diag,1002) ' k1               = ', k1, ' : free parameter for landfast ice'
-               write(nu_diag,1002) ' k2               = ', k2, ' : free parameter for landfast ice'
-               write(nu_diag,1002) ' alphab           = ', alphab, ' : factor for landfast ice'
-               write(nu_diag,1002) ' threshold_hw     = ', threshold_hw, ' : max water depth for grounding ice'
+            write(nu_diag,1010) ' seabed_stress    = ', seabed_stress,trim(tmpstr2)
+            if (seabed_stress) then 
+               write(nu_diag,1030) ' seabed method    = ',trim(seabed_stress_method)
+               if (seabed_stress_method == 'LKD') then
+                  write(nu_diag,1002) ' k1               = ', k1, ' : free parameter for landfast ice'
+                  write(nu_diag,1002) ' k2               = ', k2, ' : free parameter for landfast ice'
+                  write(nu_diag,1002) ' alphab           = ', alphab, ' : factor for landfast ice'
+                  write(nu_diag,1002) ' threshold_hw     = ', threshold_hw, ' : max water depth for grounding ice'
+               elseif (seabed_stress_method == 'probabilistic') then
+                  write(nu_diag,1002) ' alphab           = ', alphab, ' : factor for landfast ice'
+               endif
             endif
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
 
@@ -1603,7 +1631,11 @@
          write(nu_diag,1031) ' runid            = ', trim(runid)
          write(nu_diag,1031) ' runtype          = ', trim(runtype)
          write(nu_diag,1021) ' year_init        = ', year_init
+         write(nu_diag,1021) ' month_init       = ', month_init
+         write(nu_diag,1021) ' day_init         = ', day_init
+         write(nu_diag,1021) ' sec_init         = ', sec_init
          write(nu_diag,1021) ' istep0           = ', istep0
+         write(nu_diag,1031) ' npt_unit         = ', trim(npt_unit)
          write(nu_diag,1021) ' npt              = ', npt
          write(nu_diag,1021) ' diagfreq         = ', diagfreq
          write(nu_diag,1011) ' print_global     = ', print_global

@@ -17,7 +17,7 @@ on:
 
 defaults:
   run:
-    shell: /bin/csh {0}
+    shell: /bin/csh -e {0}
 
 jobs:
   build:
@@ -104,9 +104,9 @@ jobs:
       - name: download input data
         run: |
           cd $HOME/cice-dirs/input
-          wget https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz && tar xvfz CICE_data_gx3_grid_ic-20200320.tar.gz
-          wget https://zenodo.org/record/3728362/files/CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz && tar xvfz CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz
-          wget https://zenodo.org/record/3728364/files/CICE_data_gx3_forcing_JRA55-20200320.tar.gz && tar xvfz CICE_data_gx3_forcing_JRA55-20200320.tar.gz
+          wget --progress=dot:giga https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz && tar xvfz CICE_data_gx3_grid_ic-20200320.tar.gz
+          wget --progress=dot:giga https://zenodo.org/record/3728362/files/CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz && tar xvfz CICE_data_gx3_forcing_NCAR_bulk-20200320.tar.gz
+          wget --progress=dot:giga https://zenodo.org/record/3728364/files/CICE_data_gx3_forcing_JRA55-20200320.tar.gz && tar xvfz CICE_data_gx3_forcing_JRA55-20200320.tar.gz
           pwd
           ls -alR
 #      - name: run case

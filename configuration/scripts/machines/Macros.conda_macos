@@ -45,6 +45,7 @@ ifeq ($(strip $(SDKPATH)),)
   CFLAGS_HOST := 
 else
   CFLAGS_HOST = -isysroot $(SDKPATH)
+  LD += -L$(SDKPATH)/usr/lib
 endif
 
 # Libraries to be passed to the linker

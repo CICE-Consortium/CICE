@@ -1,4 +1,5 @@
 days_per_year = 360
+use_leap_years = .false.
 npt = 240
 ice_ic = 'default'
 restart = .false.

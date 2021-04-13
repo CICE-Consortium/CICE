@@ -41,8 +41,8 @@
 
       subroutine init_restart_read(ice_ic)
 
-      use ice_calendar, only: istep0, istep1, time, time_forc, nyr, month, &
-                              mday, sec, npt
+      use ice_calendar, only: istep0, istep1, myear, mmonth, &
+                              mday, msec, npt
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: ncat
       use ice_read_write, only: ice_open
@@ -54,7 +54,7 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status
+      integer (kind=int_kind) :: status, status1
 
       integer (kind=int_kind) :: iotype
 
@@ -87,28 +87,40 @@
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true.)
 
          if (use_restart_time) then
-         status = pio_get_att(File, pio_global, 'istep1', istep0)
-         status = pio_get_att(File, pio_global, 'time', time)
-         status = pio_get_att(File, pio_global, 'time_forc', time_forc)
-         call pio_seterrorhandling(File, PIO_BCAST_ERROR)
-         status = pio_get_att(File, pio_global, 'nyr', nyr)
-         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
-         if (status == PIO_noerr) then
-            status = pio_get_att(File, pio_global, 'month', month)
+            status1 = PIO_noerr
+            status = pio_get_att(File, pio_global, 'istep1', istep0)
+!            status = pio_get_att(File, pio_global, 'time', time)
+!            status = pio_get_att(File, pio_global, 'time_forc', time_forc)
+            call pio_seterrorhandling(File, PIO_BCAST_ERROR)
+            status = pio_get_att(File, pio_global, 'myear', myear)
+            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'nyr', myear)
+            if (status /= PIO_noerr) status1 = status
+            status = pio_get_att(File, pio_global, 'mmonth', mmonth)
+            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'month', mmonth)
+            if (status /= PIO_noerr) status1 = status
             status = pio_get_att(File, pio_global, 'mday', mday)
-            status = pio_get_att(File, pio_global, 'sec', sec)
-         endif
+            if (status /= PIO_noerr) status1 = status
+            status = pio_get_att(File, pio_global, 'msec', msec)
+            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'sec', msec)
+            if (status /= PIO_noerr) status1 = status
+            if (status1 /= PIO_noerr) &
+               call abort_ice(subname//"ERROR: reading restart time ")
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
          endif ! use namelist values if use_restart_time = F
 !     endif
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'Restart read at istep=',istep0,time,time_forc
+         write(nu_diag,*) 'Restart read at istep=',istep0,myear,mmonth,mday,msec
       endif
 
       call broadcast_scalar(istep0,master_task)
-      call broadcast_scalar(time,master_task)
-      call broadcast_scalar(time_forc,master_task)
-      call broadcast_scalar(nyr,master_task)
+      call broadcast_scalar(myear,master_task)
+      call broadcast_scalar(mmonth,master_task)
+      call broadcast_scalar(mday,master_task)
+      call broadcast_scalar(msec,master_task)
+!      call broadcast_scalar(time,master_task)
+!      call broadcast_scalar(time_forc,master_task)
+      call broadcast_scalar(myear,master_task)
       
       istep1 = istep0
 
@@ -126,8 +138,7 @@
 
       subroutine init_restart_write(filename_spec)
 
-      use ice_calendar, only: sec, month, mday, nyr, istep1, &
-                              time, time_forc, year_init
+      use ice_calendar, only: msec, mmonth, mday, myear, istep1
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
@@ -154,9 +165,6 @@
       character(len=char_len_long), intent(in), optional :: filename_spec
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-          iyear, imonth, iday     ! year, month, day
 
       character(len=char_len_long) :: filename
 
@@ -196,14 +204,10 @@
       if (present(filename_spec)) then
          filename = trim(filename_spec)
       else
-         iyear = nyr + year_init - 1
-         imonth = month
-         iday = mday
-      
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.', &
-              iyear,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
       end if
         
       if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
@@ -224,12 +228,12 @@
               clobber=.true., cdf64=lcdf64, iotype=iotype)
 
          status = pio_put_att(File,pio_global,'istep1',istep1)
-         status = pio_put_att(File,pio_global,'time',time)
-         status = pio_put_att(File,pio_global,'time_forc',time_forc)
-         status = pio_put_att(File,pio_global,'nyr',nyr)
-         status = pio_put_att(File,pio_global,'month',month)
+!         status = pio_put_att(File,pio_global,'time',time)
+!         status = pio_put_att(File,pio_global,'time_forc',time_forc)
+         status = pio_put_att(File,pio_global,'myear',myear)
+         status = pio_put_att(File,pio_global,'mmonth',mmonth)
          status = pio_put_att(File,pio_global,'mday',mday)
-         status = pio_put_att(File,pio_global,'sec',sec)
+         status = pio_put_att(File,pio_global,'msec',msec)
 
          status = pio_def_dim(File,'ni',nx_global,dimid_ni)
          status = pio_def_dim(File,'nj',ny_global,dimid_nj)
@@ -702,7 +706,7 @@
 
          status = pio_inq_varid(File,trim(vname),vardesc)
 
-         if (status /= 0) then
+         if (status /= PIO_noerr) then
             call abort_ice(subname//"ERROR: CICE restart? Missing variable: "//trim(vname))
          endif
 
@@ -854,7 +858,7 @@
 
       subroutine final_restart()
 
-      use ice_calendar, only: istep1, time, time_forc
+      use ice_calendar, only: istep1, idate, msec
       use ice_communicate, only: my_task, master_task
 
       character(len=*), parameter :: subname = '(final_restart)'
@@ -864,7 +868,7 @@
       call pio_closefile(File)
 
       if (my_task == master_task) &
-         write(nu_diag,*) 'Restart read/written ',istep1,time,time_forc
+         write(nu_diag,*) 'Restart read/written ',istep1,idate,msec
 
       end subroutine final_restart
 
