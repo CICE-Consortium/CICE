@@ -1,4 +1,5 @@
-npt            = 240
+npt_unit       = 'd'
+npt            = 10
 dumpfreq       = 'd'
 dumpfreq_n     = 10
 histfreq       = 'd','x','x','x','x'

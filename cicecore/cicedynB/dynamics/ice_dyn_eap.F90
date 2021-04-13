@@ -122,7 +122,8 @@
       use ice_dyn_shared, only: fcor_blk, ndte, dtei, &
           denom1, uvel_init, vvel_init, arlx1i, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
-          basal_stress_coeff, basalstress, &
+          seabed_stress_factor_LKD, seabed_stress_factor_prob, &
+          seabed_stress_method, seabed_stress, &
           stack_velocity_field, unstack_velocity_field
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
@@ -383,17 +384,31 @@
       endif
 
       !-----------------------------------------------------------------
-      ! basal stress coefficients (landfast ice)
+      ! seabed stress factor Tbu (Tbu is part of Cb coefficient)  
       !-----------------------------------------------------------------
       
-      if (basalstress) then
+      if (seabed_stress) then
+
        !$OMP PARALLEL DO PRIVATE(iblk)
        do iblk = 1, nblocks
-         call basal_stress_coeff (nx_block,         ny_block,       &
-                                  icellu  (iblk),                   &
-                                  indxui(:,iblk),   indxuj(:,iblk), &
-                                  vice(:,:,iblk),   aice(:,:,iblk), &
-                                  hwater(:,:,iblk), Tbu(:,:,iblk))
+          
+          if ( seabed_stress_method == 'LKD' ) then
+             
+             call seabed_stress_factor_LKD (nx_block,         ny_block,       &
+                                            icellu  (iblk),                   &
+                                            indxui(:,iblk),   indxuj(:,iblk), &
+                                            vice(:,:,iblk),   aice(:,:,iblk), &
+                                            hwater(:,:,iblk), Tbu(:,:,iblk))
+
+          elseif ( seabed_stress_method == 'probabilistic' ) then
+             
+             call seabed_stress_factor_prob (nx_block,         ny_block,                   &
+                                             icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                             icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
+                                             aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
+                                             hwater(:,:,iblk), Tbu(:,:,iblk))
+          endif
+
        enddo
        !$OMP END PARALLEL DO 
       endif

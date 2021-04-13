@@ -1245,10 +1245,10 @@ contains
       integer (int_kind) :: i
       character(len=*),parameter :: subname='(PrintFactor)'
 
-      write(*,*) subname,' '
-      write(*,*) subname,'msg = ',trim(msg)
-      write(*,*) subname,(fac%factors(i),i=1,fac%numfact)
-      write(*,*) subname,(fac%used(i),i=1,fac%numfact)
+      write(nu_diag,*) subname,' '
+      write(nu_diag,*) subname,'msg = ',trim(msg)
+      write(nu_diag,*) subname,(fac%factors(i),i=1,fac%numfact)
+      write(nu_diag,*) subname,(fac%used(i),i=1,fac%numfact)
 
 
    end subroutine PrintFactor
@@ -1448,6 +1448,9 @@ contains
    maxdim=d
    vcnt=0
 
+   ! tcx, if l is 0, then fact has no factors, just return
+   if (l == 0) return
+
    type = fact%factors(l)
    ierr = GenCurve(l,type,0,1,0,1)
 
@@ -1492,113 +1495,113 @@ contains
 
      gridsize = SIZE(Mesh,dim=1)
 
-     write(*,*) subname,":"
+     write(nu_diag,*) subname,":"
 
      if(gridsize == 2) then
-        write (*,*) "A Level 1 Hilbert Curve:"
-        write (*,*) "------------------------"
+        write (nu_diag,*) "A Level 1 Hilbert Curve:"
+        write (nu_diag,*) "------------------------"
         do i=1,gridsize
-           write(*,2) Mesh(1,i),Mesh(2,i)
+           write(nu_diag,2) Mesh(1,i),Mesh(2,i)
         enddo
      else if(gridsize == 3) then
-        write (*,*) "A Level 1 Peano Meandering Curve:"
-        write (*,*) "---------------------------------"
+        write (nu_diag,*) "A Level 1 Peano Meandering Curve:"
+        write (nu_diag,*) "---------------------------------"
         do i=1,gridsize
-           write(*,3) Mesh(1,i),Mesh(2,i),Mesh(3,i)
+           write(nu_diag,3) Mesh(1,i),Mesh(2,i),Mesh(3,i)
         enddo
      else if(gridsize == 4) then
-        write (*,*) "A Level 2 Hilbert Curve:"
-        write (*,*) "------------------------"
+        write (nu_diag,*) "A Level 2 Hilbert Curve:"
+        write (nu_diag,*) "------------------------"
         do i=1,gridsize
-           write(*,4) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i)
+           write(nu_diag,4) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i)
         enddo
      else if(gridsize == 5) then
-        write (*,*) "A Level 1 Cinco Curve:"
-        write (*,*) "------------------------"
+        write (nu_diag,*) "A Level 1 Cinco Curve:"
+        write (nu_diag,*) "------------------------"
         do i=1,gridsize
-           write(*,5) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i),Mesh(5,i)
+           write(nu_diag,5) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i),Mesh(5,i)
         enddo
      else if(gridsize == 6) then
-        write (*,*) "A Level 1 Hilbert and Level 1 Peano Curve:"
-        write (*,*) "------------------------------------------"
+        write (nu_diag,*) "A Level 1 Hilbert and Level 1 Peano Curve:"
+        write (nu_diag,*) "------------------------------------------"
         do i=1,gridsize
-           write(*,6) Mesh(1,i),Mesh(2,i),Mesh(3,i), &
+           write(nu_diag,6) Mesh(1,i),Mesh(2,i),Mesh(3,i), &
                       Mesh(4,i),Mesh(5,i),Mesh(6,i)
         enddo
      else if(gridsize == 8) then
-        write (*,*) "A Level 3 Hilbert Curve:"
-        write (*,*) "------------------------"
+        write (nu_diag,*) "A Level 3 Hilbert Curve:"
+        write (nu_diag,*) "------------------------"
         do i=1,gridsize
-           write(*,8) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
+           write(nu_diag,8) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
                       Mesh(5,i),Mesh(6,i),Mesh(7,i),Mesh(8,i)
          enddo
      else if(gridsize == 9) then
-        write (*,*) "A Level 2 Peano Meandering Curve:"
-        write (*,*) "---------------------------------"
+        write (nu_diag,*) "A Level 2 Peano Meandering Curve:"
+        write (nu_diag,*) "---------------------------------"
         do i=1,gridsize
-           write(*,9) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
+           write(nu_diag,9) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
                       Mesh(5,i),Mesh(6,i),Mesh(7,i),Mesh(8,i), &
                       Mesh(9,i)
          enddo
      else if(gridsize == 10) then
-        write (*,*) "A Level 1 Hilbert and Level 1 Cinco Curve:"
-        write (*,*) "---------------------------------"
+        write (nu_diag,*) "A Level 1 Hilbert and Level 1 Cinco Curve:"
+        write (nu_diag,*) "---------------------------------"
         do i=1,gridsize
-           write(*,10) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
+           write(nu_diag,10) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
                       Mesh(5,i),Mesh(6,i),Mesh(7,i),Mesh(8,i), &
                       Mesh(9,i),Mesh(10,i)
          enddo
      else if(gridsize == 12) then
-        write (*,*) "A Level 2 Hilbert and Level 1 Peano Curve:"
-        write (*,*) "------------------------------------------"
+        write (nu_diag,*) "A Level 2 Hilbert and Level 1 Peano Curve:"
+        write (nu_diag,*) "------------------------------------------"
         do i=1,gridsize
-           write(*,12) Mesh(1,i),Mesh(2,i), Mesh(3,i), Mesh(4,i), &
+           write(nu_diag,12) Mesh(1,i),Mesh(2,i), Mesh(3,i), Mesh(4,i), &
                        Mesh(5,i),Mesh(6,i), Mesh(7,i), Mesh(8,i), &
                        Mesh(9,i),Mesh(10,i),Mesh(11,i),Mesh(12,i)
         enddo
      else if(gridsize == 15) then
-        write (*,*) "A Level 1 Peano and Level 1 Cinco Curve:"
-        write (*,*) "------------------------"
+        write (nu_diag,*) "A Level 1 Peano and Level 1 Cinco Curve:"
+        write (nu_diag,*) "------------------------"
         do i=1,gridsize
-           write(*,15) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
+           write(nu_diag,15) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
                        Mesh(5,i),Mesh(6,i),Mesh(7,i),Mesh(8,i), &
                        Mesh(9,i),Mesh(10,i),Mesh(11,i),Mesh(12,i), &
                        Mesh(13,i),Mesh(14,i),Mesh(15,i)
         enddo
      else if(gridsize == 16) then
-        write (*,*) "A Level 4 Hilbert Curve:"
-        write (*,*) "------------------------"
+        write (nu_diag,*) "A Level 4 Hilbert Curve:"
+        write (nu_diag,*) "------------------------"
         do i=1,gridsize
-           write(*,16) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
+           write(nu_diag,16) Mesh(1,i),Mesh(2,i),Mesh(3,i),Mesh(4,i), &
                        Mesh(5,i),Mesh(6,i),Mesh(7,i),Mesh(8,i), &
                        Mesh(9,i),Mesh(10,i),Mesh(11,i),Mesh(12,i), &
                        Mesh(13,i),Mesh(14,i),Mesh(15,i),Mesh(16,i)
         enddo
      else if(gridsize == 18) then
-        write (*,*) "A Level 1 Hilbert and Level 2 Peano Curve:"
-        write (*,*) "------------------------------------------"
+        write (nu_diag,*) "A Level 1 Hilbert and Level 2 Peano Curve:"
+        write (nu_diag,*) "------------------------------------------"
         do i=1,gridsize
-           write(*,18) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
+           write(nu_diag,18) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
                        Mesh(5,i), Mesh(6,i), Mesh(7,i), Mesh(8,i), &
                        Mesh(9,i), Mesh(10,i),Mesh(11,i),Mesh(12,i), &
                        Mesh(13,i),Mesh(14,i),Mesh(15,i),Mesh(16,i), &
                        Mesh(17,i),Mesh(18,i)
         enddo
      else if(gridsize == 20) then
-        write (*,*) "A Level 2 Hilbert and Level 1 Cinco Curve:"
-        write (*,*) "------------------------------------------"
+        write (nu_diag,*) "A Level 2 Hilbert and Level 1 Cinco Curve:"
+        write (nu_diag,*) "------------------------------------------"
         do i=1,gridsize
-           write(*,20) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
+           write(nu_diag,20) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
                        Mesh(5,i), Mesh(6,i), Mesh(7,i), Mesh(8,i), &
                        Mesh(9,i), Mesh(10,i),Mesh(11,i),Mesh(12,i), &
                        Mesh(13,i),Mesh(14,i),Mesh(15,i),Mesh(16,i), &
                        Mesh(17,i),Mesh(18,i),Mesh(19,i),Mesh(20,i)
         enddo
      else if(gridsize == 24) then
-        write (*,*) "A Level 3 Hilbert and Level 1 Peano Curve:"
-        write (*,*) "------------------------------------------"
+        write (nu_diag,*) "A Level 3 Hilbert and Level 1 Peano Curve:"
+        write (nu_diag,*) "------------------------------------------"
         do i=1,gridsize
-           write(*,24) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
+           write(nu_diag,24) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
                        Mesh(5,i), Mesh(6,i), Mesh(7,i), Mesh(8,i), &
                        Mesh(9,i), Mesh(10,i),Mesh(11,i),Mesh(12,i), &
                        Mesh(13,i),Mesh(14,i),Mesh(15,i),Mesh(16,i), &
@@ -1606,10 +1609,10 @@ contains
                        Mesh(21,i),Mesh(22,i),Mesh(23,i),Mesh(24,i)
         enddo
      else if(gridsize == 25) then
-        write (*,*) "A Level 2 Cinco Curve:"
-        write (*,*) "------------------------------------------"
+        write (nu_diag,*) "A Level 2 Cinco Curve:"
+        write (nu_diag,*) "------------------------------------------"
         do i=1,gridsize
-           write(*,25) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
+           write(nu_diag,25) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
                        Mesh(5,i), Mesh(6,i), Mesh(7,i), Mesh(8,i), &
                        Mesh(9,i), Mesh(10,i),Mesh(11,i),Mesh(12,i), &
                        Mesh(13,i),Mesh(14,i),Mesh(15,i),Mesh(16,i), &
@@ -1618,10 +1621,10 @@ contains
                        Mesh(25,i)
         enddo
      else if(gridsize == 27) then
-        write (*,*) "A Level 3 Peano Meandering Curve:"
-        write (*,*) "---------------------------------"
+        write (nu_diag,*) "A Level 3 Peano Meandering Curve:"
+        write (nu_diag,*) "---------------------------------"
         do i=1,gridsize
-           write(*,27) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
+           write(nu_diag,27) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i), &
                        Mesh(5,i), Mesh(6,i), Mesh(7,i), Mesh(8,i), &
                        Mesh(9,i), Mesh(10,i),Mesh(11,i),Mesh(12,i), &
                        Mesh(13,i),Mesh(14,i),Mesh(15,i),Mesh(16,i), &
@@ -1630,10 +1633,10 @@ contains
                        Mesh(25,i),Mesh(26,i),Mesh(27,i)
         enddo
      else if(gridsize == 32) then
-        write (*,*) "A Level 5 Hilbert Curve:"
-        write (*,*) "------------------------"
+        write (nu_diag,*) "A Level 5 Hilbert Curve:"
+        write (nu_diag,*) "------------------------"
         do i=1,gridsize
-           write(*,32) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i),  &
+           write(nu_diag,32) Mesh(1,i), Mesh(2,i), Mesh(3,i), Mesh(4,i),  &
                        Mesh(5,i), Mesh(6,i), Mesh(7,i), Mesh(8,i),  &
                        Mesh(9,i), Mesh(10,i),Mesh(11,i),Mesh(12,i), &
                        Mesh(13,i),Mesh(14,i),Mesh(15,i),Mesh(16,i), &
@@ -1711,7 +1714,13 @@ contains
    fact     = factor(gridsize)
    level    = fact%numfact
 
-   if(verbose) print *,'GenSpacecurve: level is ',level
+   if (verbose) then
+      write(nu_diag,*) subname,'chk1',dim,gridsize
+      write(nu_diag,*) subname,'chk2',level
+      call printfactor(subname//' chk3 ',fact)
+      call flush_fileunit(nu_diag)
+   endif
+
    allocate(ordered(gridsize,gridsize))
 
    !--------------------------------------------

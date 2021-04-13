@@ -188,7 +188,7 @@
           swgrid, igrid
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: dt, calendar_type, &
-          days_per_year, nextsw_cday, yday, sec
+          days_per_year, nextsw_cday, yday, msec
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc
       use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: alvdf, alidf, alvdr, alidr, &
@@ -356,7 +356,7 @@
                           calendar_type=calendar_type,                         &
                           days_per_year=days_per_year,                         &
                           nextsw_cday=nextsw_cday, yday=yday,                  &
-                          sec=sec,                                             &
+                          sec=msec,                                             &
                           kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
                           waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
                           gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &
@@ -408,7 +408,7 @@
          do i = ilo, ihi
 
                if (aicen(i,j,n,iblk) > puny) then
-                  
+
                   alvdf(i,j,iblk) = alvdf(i,j,iblk) &
                        + alvdfn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   alidf(i,j,iblk) = alidf(i,j,iblk) &
@@ -417,7 +417,7 @@
                        + alvdrn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   alidr(i,j,iblk) = alidr(i,j,iblk) &
                        + alidrn(i,j,n,iblk)*aicen(i,j,n,iblk)
-                  
+
                   netsw = swvdr(i,j,iblk) + swidr(i,j,iblk) &
                         + swvdf(i,j,iblk) + swidf(i,j,iblk)
                   if (netsw > puny) then ! sun above horizon
@@ -428,12 +428,12 @@
                      albpnd(i,j,iblk) = albpnd(i,j,iblk) &
                           + albpndn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   endif
-                  
+
                   apeff_ai(i,j,iblk) = apeff_ai(i,j,iblk) &
                        + apeffn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   snowfrac(i,j,iblk) = snowfrac(i,j,iblk) &
                        + snowfracn(i,j,n,iblk)*aicen(i,j,n,iblk)
-               
+
                endif ! aicen > puny
 
          enddo ! i

@@ -1,0 +1,6 @@
+use_bathymetry = .true.
+seabed_stress   = .true.
+seabed_stress_method = 'probabilistic'
+histfreq       = 'm','d','x','x','x'
+f_taubx        = 'md'
+f_tauby        = 'md'

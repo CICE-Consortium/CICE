@@ -21,6 +21,7 @@ restart        gx3     8x2        alt02,debug,short
 restart        gx3     4x2        alt03,debug,short
 smoke          gx3     4x4        alt04,debug,short
 smoke          gx3     4x4        alt05,debug,short
+smoke          gx3     10x2       debug,diag1,run5day,gx3sep2
 restart        gbox128 4x2        short
 restart        gbox128 4x2        boxdyn,short
 restart        gbox128 4x2        boxdyn,short,debug
@@ -39,7 +40,9 @@ restart        gx1     8x1        bgczclim,medium
 smoke          gx1    24x1        medium,run90day,yi2008
 smoke          gx3     8x1        medium,run90day,yi2008
 restart        gx1    24x1        short
-restart        gx3     8x1        short
+restart        gx1    16x2        seabedLKD,gx1apr,medium,debug
+restart        gx1    15x2        seabedprob,medium
+restart        gx1    32x1        gx1prod,medium
 smoke          gx3     4x2        fsd1,diag24,run5day,debug
 smoke          gx3     8x2        fsd12,diag24,run5day,short
 restart        gx3     4x2        fsd12,debug,short

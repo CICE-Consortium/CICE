@@ -1,9 +1,13 @@
 &setup_nml
     days_per_year  = 365
-    use_leap_years = .false.
-    year_init      = 1997
+    use_leap_years = .true.
+    year_init      = 2005
+    month_init     = 1
+    day_init       = 1
+    sec_init       = 0
     istep0         = 0
     dt             = 3600.0
+    npt_unit       = '1'
     npt            = 24
     ndtd           = 1
     runtype        = 'initial'
@@ -131,8 +135,9 @@
     Cf              = 17.
     Ktens           = 0.
     e_ratio         = 2.
-    basalstress     = .false.
-    k1              = 8.
+    seabed_stress   = .false.
+    seabed_stress_method = 'LKD'
+    k1              = 7.5
     k2              = 15.
     alphab          = 20.
     threshold_hw    = 30.
@@ -231,7 +236,7 @@
     bgc_data_type   = 'default'
     fe_data_type    = 'default'
     ice_data_type   = 'default'
-    fyear_init      = 1997
+    fyear_init      = 2005
     ycycle          = 1
     atm_data_format = 'bin'
     atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
@@ -257,6 +262,7 @@
     maskhalo_remap    = .false.
     maskhalo_bound    = .false.
     add_mpi_barriers  = .false.
+    debug_blocks      = .false.
 /
 
 &zbgc_nml
