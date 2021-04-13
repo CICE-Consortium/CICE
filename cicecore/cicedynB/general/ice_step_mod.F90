@@ -172,7 +172,7 @@
       use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, fside, &
           wind, rhoa, potT, Qa, zlvl, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
-          flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, &
+          flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, fsloss, &
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
           flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
           fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
@@ -394,6 +394,7 @@
                       fsnow        = fsnow       (i,j,  iblk), &
                       frain        = frain       (i,j,  iblk), &
                       fpond        = fpond       (i,j,  iblk), &
+                      fsloss       = fsloss      (i,j,  iblk), &
                       fsurf        = fsurf       (i,j,  iblk), &
                       fsurfn       = fsurfn      (i,j,:,iblk), &
                       fcondtop     = fcondtop    (i,j,  iblk), &

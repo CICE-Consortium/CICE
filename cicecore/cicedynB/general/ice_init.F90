@@ -981,9 +981,9 @@
          endif
          abort_list = trim(abort_list)//":37"
       endif
-      if (snwredist(1:9) == '30percent' .and. .not. tr_lvl) then
+      if (snwredist(1:4) == 'bulk' .and. .not. tr_lvl) then
          if (my_task == master_task) then
-            write (nu_diag,*) 'ERROR: snwredist=30percent but tr_lvl=F'
+            write (nu_diag,*) 'ERROR: snwredist=bulk but tr_lvl=F'
             write (nu_diag,*) 'ERROR: Use tr_lvl=T for snow redistribution'
          endif
          abort_list = trim(abort_list)//":38"
@@ -995,20 +995,28 @@
          endif
          abort_list = trim(abort_list)//":39"
       endif
+      if (use_smliq_pnd .and. .not. snwgrain) then
+         if (my_task == master_task) then
+            write (nu_diag,*) 'ERROR: use_smliq_pnd = T but'
+            write (nu_diag,*) 'ERROR: snow metamorphosis not used'
+            write (nu_diag,*) 'ERROR: Use snwgrain=T with smliq for ponds'
+         endif
+         abort_list = trim(abort_list)//":40"
+      endif
       if (use_smliq_pnd .and. .not. tr_snow) then
          if (my_task == master_task) then
             write (nu_diag,*) 'ERROR: use_smliq_pnd = T but'
             write (nu_diag,*) 'ERROR: snow tracers are not active'
             write (nu_diag,*) 'ERROR: Use tr_snow=T with smliq for ponds'
          endif
-         abort_list = trim(abort_list)//":40"
+         abort_list = trim(abort_list)//":41"
       endif
       if (snwgrain .and. .not. tr_snow) then
          if (my_task == master_task) then
             write (nu_diag,*) 'ERROR: snwgrain=T but tr_snow=F'
             write (nu_diag,*) 'ERROR: Use tr_snow=T for snow metamorphosis'
          endif
-         abort_list = trim(abort_list)//":41"
+         abort_list = trim(abort_list)//":42"
       endif
 
       if (tr_iso .and. n_iso==0) then
@@ -2297,7 +2305,7 @@
          indxi, indxj    ! compressed indices for cells with aicen > puny
 
       real (kind=dbl_kind) :: &
-         Tsfc, sum, hbar, puny, rhos, Lfresh, rad_to_deg
+         Tsfc, sum, hbar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -2313,22 +2321,26 @@
          edge_init_nh =  70._dbl_kind, & ! initial ice edge, N.Hem. (deg) 
          edge_init_sh = -60._dbl_kind    ! initial ice edge, S.Hem. (deg)
 
-      logical (kind=log_kind) :: tr_brine, tr_lvl
+      logical (kind=log_kind) :: tr_brine, tr_lvl, tr_snow
       integer (kind=int_kind) :: ntrcr
       integer (kind=int_kind) :: nt_Tsfc, nt_qice, nt_qsno, nt_sice
       integer (kind=int_kind) :: nt_fbri, nt_alvl, nt_vlvl
+      integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw
 
       character(len=*), parameter :: subname='(set_state_var)'
 
       !-----------------------------------------------------------------
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
-      call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_lvl_out=tr_lvl)
+      call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_lvl_out=tr_lvl, &
+        tr_snow_out=tr_snow)
       call icepack_query_tracer_indices( nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
         nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, &
-        nt_fbri_out=nt_fbri, nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+        nt_fbri_out=nt_fbri, nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
+        nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
+        nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw)
       call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
-        rad_to_deg_out=rad_to_deg)
+        rad_to_deg_out=rad_to_deg, rsnw_fall_out=rsnw_fall)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -2360,6 +2372,14 @@
             do k = 1, nslyr
                trcrn(i,j,nt_qsno+k-1,n) = -rhos * Lfresh
             enddo
+            if (tr_snow) then
+               do k = 1, nslyr
+                  trcrn(i,j,nt_rsnw +k-1,n) = rsnw_fall
+                  trcrn(i,j,nt_rhos +k-1,n) = rhos
+                  trcrn(i,j,nt_smice+k-1,n) = rhos
+                  trcrn(i,j,nt_smliq+k-1,n) = c0
+               enddo               ! nslyr
+            endif
          enddo
          enddo
       enddo

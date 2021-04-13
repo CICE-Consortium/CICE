@@ -188,8 +188,9 @@
 /
 
 &snow_nml
-    snwredist       = 'none'
-    use_smliq_pnd   = .false.
+    snwredist       = 'ITDrdg'
+    snwgrain        = .true.
+    use_smliq_pnd   = .true.
     rsnw_fall       = 54.526
     rsnw_tmax       = 1500.0
     rhosnew         =  100.0
