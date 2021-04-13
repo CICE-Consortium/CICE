@@ -36,7 +36,6 @@
       public :: set_date_from_timesecs ! set model date from time in seconds
                                        ! (relative to init date)
                                        ! needed for binary restarts
-      public :: hc_jday  ! converts "calendar" date to HYCOM julian day
 
       ! semi-private, only used directly by unit tester
       public :: compute_elapsed_days ! compute elapsed days since 0000-01-01
@@ -915,53 +914,6 @@
       asec = tsec
 
       end subroutine calendar_time2date
-
-!=======================================================================
-
-      real(kind=dbl_kind) function hc_jday(iyear,imm,idd,ihour)
-!--------------------------------------------------------------------
-! converts "calendar" date to HYCOM julian day:
-!   1) year,month,day,hour  (4 arguments)
-!   2) year,doy,hour        (3 arguments)
-!
-! HYCOM model day is calendar days since 31/12/1900
-!--------------------------------------------------------------------
-        real(kind=dbl_kind)     :: dtime
-        integer(kind=int_kind)  :: iyear,iyr,imm,idd,idoy,ihr
-        integer(kind=int_kind), optional :: ihour
-        integer (kind=int_kind) :: n
-
-        if (present(ihour)) then
-          !-----------------
-          ! yyyy mm dd HH
-          !-----------------
-          iyr=iyear-1901
-          dtime = floor(365.25_dbl_kind*iyr)*c1 + idd*c1 + ihour/24._dbl_kind
-          if (mod(iyr,4)==3) then
-            do n = 1,imm-1
-               dtime = dtime + daymo366(n)
-            enddo
-          else
-            do n = 1,imm-1
-               dtime = dtime + daymo365(n)
-            enddo
-          endif
-
-        else
-          !-----------------
-          ! yyyy DOY HH
-          !-----------------
-          ihr   = idd   ! redefine input
-          idoy  = imm   ! redefine input
-          iyr   = iyear - 1901
-          dtime = floor(365.25_dbl_kind*iyr)*c1 + idoy*c1 + ihr/24._dbl_kind
-
-        endif
-
-        hc_jday=dtime
-
-        return
-      end function hc_jday
 
 !=======================================================================
 
