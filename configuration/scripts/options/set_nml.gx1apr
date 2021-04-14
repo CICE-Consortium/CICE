@@ -1,0 +1,5 @@
+year_init   = 2005
+month_init  = 4
+day_init    = 1
+sec_init    = 0
+ice_ic  = 'ICE_MACHINE_INPUTDATA/CICE_data/ic/gx1/iced_gx1_v6.2005-04-01.nc'

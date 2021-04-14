@@ -60,6 +60,7 @@
 #endif
       timer_bound,            &! boundary updates
       timer_bgc,              &! biogeochemistry
+      timer_forcing,          &! forcing
       timer_evp_1d,           &! timer only loop
       timer_evp_2d             ! timer including conversion 1d/2d
 !      timer_tmp               ! for temporary timings
@@ -179,6 +180,7 @@
    call get_ice_timer(timer_hist,     'History  ',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bound,    'Bound',    nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bgc,      'BGC',      nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_forcing,  'Forcing',  nblocks,distrb_info%nprocs)
 #if (defined CESMCOUPLED)
    call get_ice_timer(timer_cplrecv,  'Cpl-recv', nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_rcvsnd,   'Rcv->Snd', nblocks,distrb_info%nprocs)

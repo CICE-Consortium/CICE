@@ -64,10 +64,11 @@
                                  n_iso, n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
                                  max_nstrm
-      use ice_calendar, only: year_init, istep0, histfreq, histfreq_n, &
+      use ice_calendar, only: year_init, month_init, day_init, sec_init, &
+                              istep0, histfreq, histfreq_n, &
                               dumpfreq, dumpfreq_n, diagfreq, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
-                              write_ic, dump_last
+                              write_ic, dump_last, npt_unit
       use ice_arrays_column, only: oceanmixed_ice
       use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
           restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
@@ -154,7 +155,7 @@
       !-----------------------------------------------------------------
 
       namelist /setup_nml/ &
-        days_per_year,  use_leap_years, year_init,       istep0,        &
+        days_per_year,  use_leap_years, istep0,          npt_unit,      &
         dt,             npt,            ndtd,            numin,         &
         runtype,        runid,          bfbflag,         numax,         &
         ice_ic,         restart,        restart_dir,     restart_file,  &
@@ -165,6 +166,7 @@
         dbug,           histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
         conserv_check,                                                  &
+        year_init,      month_init,     day_init,        sec_init,      &
         write_ic,       incond_dir,     incond_file,     version_name
 
       namelist /grid_nml/ &
@@ -250,6 +252,9 @@
       days_per_year = 365    ! number of days in a year
       use_leap_years= .false.! if true, use leap years (Feb 29)
       year_init = 0          ! initial year
+      month_init = 1         ! initial month
+      day_init = 1           ! initial day
+      sec_init = 0           ! initial second
       istep0 = 0             ! no. of steps taken in previous integrations,
                              ! real (dumped) or imagined (to set calendar)
 #ifndef CESMCOUPLED
@@ -258,6 +263,7 @@
       numin = 11             ! min allowed unit number
       numax = 99             ! max allowed unit number
       npt = 99999            ! total number of time steps (dt) 
+      npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
@@ -331,7 +337,7 @@
       close_boundaries = .false.   ! true = set land on edges of grid
       seabed_stress= .false.   ! if true, seabed stress for landfast is on
       seabed_stress_method  = 'LKD' ! LKD = Lemieux et al 2015, probabilistic = Dupont et al. in prep
-      k1 = 8.0_dbl_kind      ! 1st free parameter for landfast parameterization
+      k1 = 7.5_dbl_kind      ! 1st free parameter for landfast parameterization
       k2 = 15.0_dbl_kind     ! 2nd free parameter (N/m^3) for landfast parametrization
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
@@ -584,9 +590,13 @@
       call broadcast_scalar(days_per_year,        master_task)
       call broadcast_scalar(use_leap_years,       master_task)
       call broadcast_scalar(year_init,            master_task)
+      call broadcast_scalar(month_init,           master_task)
+      call broadcast_scalar(day_init,             master_task)
+      call broadcast_scalar(sec_init,             master_task)
       call broadcast_scalar(istep0,               master_task)
       call broadcast_scalar(dt,                   master_task)
       call broadcast_scalar(npt,                  master_task)
+      call broadcast_scalar(npt_unit,             master_task)
       call broadcast_scalar(diagfreq,             master_task)
       call broadcast_scalar(print_points,         master_task)
       call broadcast_scalar(print_global,         master_task)
@@ -1621,7 +1631,11 @@
          write(nu_diag,1031) ' runid            = ', trim(runid)
          write(nu_diag,1031) ' runtype          = ', trim(runtype)
          write(nu_diag,1021) ' year_init        = ', year_init
+         write(nu_diag,1021) ' month_init       = ', month_init
+         write(nu_diag,1021) ' day_init         = ', day_init
+         write(nu_diag,1021) ' sec_init         = ', sec_init
          write(nu_diag,1021) ' istep0           = ', istep0
+         write(nu_diag,1031) ' npt_unit         = ', trim(npt_unit)
          write(nu_diag,1021) ' npt              = ', npt
          write(nu_diag,1021) ' diagfreq         = ', diagfreq
          write(nu_diag,1011) ' print_global     = ', print_global

@@ -42,8 +42,8 @@
 
       subroutine init_restart_read(ice_ic)
 
-      use ice_calendar, only: sec, month, mday, nyr, istep0, istep1, &
-                              time, time_forc, npt
+      use ice_calendar, only: msec, mmonth, mday, myear, &
+                             istep0, istep1, npt
       use ice_communicate, only: my_task, master_task
 
       character(len=char_len_long), intent(in), optional :: ice_ic
@@ -53,7 +53,7 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status
+      integer (kind=int_kind) :: status, status1
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
@@ -79,24 +79,36 @@
             'ERROR: reading restart ncfile '//trim(filename))
       
          if (use_restart_time) then
-         status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
-         status = nf90_get_att(ncid, nf90_global, 'time', time)
-         status = nf90_get_att(ncid, nf90_global, 'time_forc', time_forc)
-         status = nf90_get_att(ncid, nf90_global, 'nyr', nyr)
-         if (status == nf90_noerr) then
-            status = nf90_get_att(ncid, nf90_global, 'month', month)
+            status1 = nf90_noerr
+            status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
+            if (status /= nf90_noerr) status1 = status
+!            status = nf90_get_att(ncid, nf90_global, 'time', time)
+!            status = nf90_get_att(ncid, nf90_global, 'time_forc', time_forc)
+            status = nf90_get_att(ncid, nf90_global, 'myear', myear)
+            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'nyr', myear)
+            if (status /= nf90_noerr) status1 = status
+            status = nf90_get_att(ncid, nf90_global, 'mmonth', mmonth)
+            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'month', mmonth)
+            if (status /= nf90_noerr) status1 = status
             status = nf90_get_att(ncid, nf90_global, 'mday', mday)
-            status = nf90_get_att(ncid, nf90_global, 'sec', sec)
-         endif
+            if (status /= nf90_noerr) status1 = status
+            status = nf90_get_att(ncid, nf90_global, 'msec', msec)
+            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'sec', msec)
+            if (status /= nf90_noerr) status1 = status
+            if (status1 /= nf90_noerr) call abort_ice(subname// &
+               'ERROR: reading restart time '//trim(filename))
          endif ! use namelist values if use_restart_time = F
 
       endif
 
       call broadcast_scalar(istep0,master_task)
-      call broadcast_scalar(time,master_task)
-      call broadcast_scalar(time_forc,master_task)
-      call broadcast_scalar(nyr,master_task)
-      
+!      call broadcast_scalar(time,master_task)
+      call broadcast_scalar(myear,master_task)
+      call broadcast_scalar(mmonth,master_task)
+      call broadcast_scalar(mday,master_task)
+      call broadcast_scalar(msec,master_task)
+!      call broadcast_scalar(time_forc,master_task)
+
       istep1 = istep0
 
       ! if runid is bering then need to correct npt for istep0
@@ -118,8 +130,7 @@
       subroutine init_restart_write(filename_spec)
 
       use ice_blocks, only: nghost
-      use ice_calendar, only: sec, month, mday, nyr, istep1, &
-                              time, time_forc, year_init
+      use ice_calendar, only: msec, mmonth, mday, myear, istep1
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
@@ -145,7 +156,6 @@
       integer (kind=int_kind) :: &
          k, n,                 & ! index
          nx, ny,               & ! global array size
-         iyear,                & ! year
          nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
@@ -186,12 +196,10 @@
       if (present(filename_spec)) then
          filename = trim(filename_spec)
       else
-         iyear = nyr + year_init - 1
-      
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.', &
-              iyear,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
       end if
 
       ! write pointer (path/file)
@@ -208,12 +216,12 @@
             'ERROR: creating restart ncfile '//trim(filename))
 
          status = nf90_put_att(ncid,nf90_global,'istep1',istep1)
-         status = nf90_put_att(ncid,nf90_global,'time',time)
-         status = nf90_put_att(ncid,nf90_global,'time_forc',time_forc)
-         status = nf90_put_att(ncid,nf90_global,'nyr',nyr)
-         status = nf90_put_att(ncid,nf90_global,'month',month)
+!         status = nf90_put_att(ncid,nf90_global,'time',time)
+!         status = nf90_put_att(ncid,nf90_global,'time_forc',time_forc)
+         status = nf90_put_att(ncid,nf90_global,'myear',myear)
+         status = nf90_put_att(ncid,nf90_global,'mmonth',mmonth)
          status = nf90_put_att(ncid,nf90_global,'mday',mday)
-         status = nf90_put_att(ncid,nf90_global,'sec',sec)
+         status = nf90_put_att(ncid,nf90_global,'msec',msec)
 
          nx = nx_global
          ny = ny_global
@@ -795,7 +803,7 @@
 
       subroutine final_restart()
 
-      use ice_calendar, only: istep1, time, time_forc
+      use ice_calendar, only: istep1, idate
       use ice_communicate, only: my_task, master_task
 
       integer (kind=int_kind) :: status
@@ -806,7 +814,7 @@
       status = nf90_close(ncid)
 
       if (my_task == master_task) &
-         write(nu_diag,*) 'Restart read/written ',istep1,time,time_forc
+         write(nu_diag,*) 'Restart read/written ',istep1,idate
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &

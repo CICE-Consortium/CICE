@@ -47,10 +47,9 @@ module ice_comp_mct
   use ice_constants,   only : ice_init_constants
   use ice_communicate, only : my_task, master_task, MPI_COMM_ICE
   use ice_calendar,    only : istep, istep1, force_restart_now, write_ic,&
-                              idate, idate0, mday, time, month, daycal,  &
-                              sec, dt, dt_dyn, calendar,                 &
-                              calendar_type, nextsw_cday, days_per_year, &
-                              nyr, new_year, time2sec, year_init
+                              idate, idate0, mday, mmonth, myear,           &
+                              msec, dt, dt_dyn, calendar,                 &
+                              calendar_type, nextsw_cday, days_per_year
   use ice_timers
 
   use ice_kinds_mod,   only : int_kind, dbl_kind, char_len_long, log_kind
@@ -151,13 +150,11 @@ contains
     integer            :: curr_tod           ! Current time of day (s)
     integer            :: ref_ymd            ! Reference date (YYYYMMDD)
     integer            :: ref_tod            ! reference time of day (s)
-    integer            :: iyear              ! yyyy
-    integer            :: nyrp               ! yyyy
+    integer            :: myearp             ! yyyy
     integer            :: dtime              ! time step
     integer            :: shrlogunit,shrloglev ! old values
     integer            :: iam,ierr
     integer            :: lbnum
-    integer            :: daycal(13)  !number of cumulative days per month
     integer            :: nleaps      ! number of leap days before current year
     integer            :: mpicom_loc  ! temporary mpicom
     logical (kind=log_kind) :: atm_aero, tr_aero, tr_zaero
@@ -302,10 +299,9 @@ contains
     ! - on restart run 
     !   - istep0, time and time_forc are read from restart file
     !   - istep1 is set to istep0
-    !   - idate is determined from time via the call to calendar (see below)
+    !   - date information is determined from restart
     ! - on initial run 
-    !   - iyear, month and mday obtained from sync clock
-    !   - time determined from iyear, month and mday
+    !   - myear, mmonth, mday, msec obtained from sync clock
     !   - istep0 and istep1 are set to 0 
 
     call seq_timemgr_EClockGetData(EClock,               &
@@ -335,37 +331,26 @@ contains
        idate0 = curr_ymd
        idate = curr_ymd
 
-!       idate0 = curr_ymd - (year_init*10000)
-!       idate = curr_ymd - (year_init*10000)
-
        if (idate < 0) then
-          write(nu_diag,*) trim(subname),' ERROR curr_ymd,year_init =',curr_ymd,year_init
+          write(nu_diag,*) trim(subname),' ERROR curr_ymd =',curr_ymd
           write(nu_diag,*) trim(subname),' ERROR idate lt zero',idate
           call shr_sys_abort(subname//' :: ERROR idate lt zero')
        endif
-       iyear = (idate/10000)                     ! integer year of basedate
-       month = (idate-iyear*10000)/100           ! integer month of basedate
-       mday  =  idate-iyear*10000-month*100      ! day of month of basedate
+       myear = (idate/10000)                     ! integer year of basedate
+       mmonth= (idate-myear*10000)/100           ! integer month of basedate
+       mday  =  idate-myear*10000-mmonth*100     ! day of month of basedate
+       msec  = start_tod                         ! seconds
 
        if (my_task == master_task) then
           write(nu_diag,*) trim(subname),' curr_ymd = ',curr_ymd
-          write(nu_diag,*) trim(subname),' cice year_init = ',year_init
           write(nu_diag,*) trim(subname),' cice start date = ',idate
-          write(nu_diag,*) trim(subname),' cice start ymds = ',iyear,month,mday,start_tod
+          write(nu_diag,*) trim(subname),' cice start ymds = ',myear,mmonth,mday,start_tod
        endif
-
-       if (calendar_type /= "GREGORIAN") then
-          call time2sec(iyear-year_init,month,mday,time)
-       else
-          call time2sec(iyear-(year_init-1),month,mday,time)
-       endif
-
-       time = time+start_tod
 
        call shr_sys_flush(nu_diag)
     end if
 
-    call calendar(time)     ! update calendar info
+    call calendar         ! update calendar info
     if (write_ic) call accum_hist(dt) ! write initial conditions
  
     !---------------------------------------------------------------------------
@@ -527,7 +512,7 @@ contains
     integer :: curr_tod           ! Current time of day (s)
     integer :: shrlogunit,shrloglev ! old values
     integer :: lbnum
-    integer :: n, nyrp
+    integer :: n, myearp
     type(mct_gGrid)        , pointer :: dom_i
     type(seq_infodata_type), pointer :: infodata   
     type(mct_gsMap)        , pointer :: gsMap_i
@@ -580,9 +565,9 @@ contains
     force_restart_now = seq_timemgr_RestartAlarmIsOn(EClock)
 
 !    if (calendar_type .eq. "GREGORIAN") then
-!       nyrp = nyr
-!       nyr = (curr_ymd/10000)+1           ! integer year of basedate
-!       if (nyr /= nyrp) then
+!       myearp = myear
+!       myear = (curr_ymd/10000)+1           ! integer year of basedate
+!       if (myear /= myearp) then
 !          new_year = .true.
 !       else
 !          new_year = .false.
@@ -632,7 +617,7 @@ contains
     ! check that internal clock is in sync with master clock
     !--------------------------------------------------------------------
 
-    tod = sec
+    tod = msec
     ymd = idate
     if (.not. seq_timemgr_EClockDateInSync( EClock, ymd, tod )) then
        call seq_timemgr_EClockGetData( EClock, curr_ymd=ymd_sync, &

@@ -240,9 +240,7 @@ CICE includes two options for calculating the seabed stress,
 i.e. the term in the momentum equation that represents the interaction
 between grounded ice keels and the seabed. The seabed stress can be
 activated by setting ``seabed_stress`` to true in the namelist. The seabed stress (or basal
-stress) parameterization of :cite:`Lemieux16` is chosen if ``seabed_stress_method``
-= ``LKD`` while the new probabilistic approach is used if ``seabed_stress_method``
-= ``probabilistic``. 
+stress) parameterization of :cite:`Lemieux16` is chosen if ``seabed_stress_method`` = ``LKD`` while the approach based on the probability of contact between the ice and the seabed is used if ``seabed_stress_method`` = ``probabilistic``.
 
 For both parameterizations, the components of the seabed
 stress are expressed as :math:`\tau_{bx}=C_bu` and
@@ -301,7 +299,7 @@ keels in the Arctic Ocean :cite:`Amundrud04`.
 Seabed stress based on probabilistic approach
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This new and more sophisticated grounding parameterization computes the seabed stress based
+This more sophisticated grounding parameterization computes the seabed stress based
 on the probability of contact between the ice thickness distribution
 (ITD) and the seabed. Multi-thickness category models such as CICE typically use a
 few thickness categories (5-10). This crude representation of the ITD
@@ -335,8 +333,7 @@ ITD and the seabed is given by
    y)g(x)b(y) dy dx, \\
    :label: Tbt
 
-and then obtains :math:`T_{bt}` by multiplying :math:`T_{bt}^*` by :math:`e^{-\alpha_b * (1 - a_i)}` (similar to what is done for
-``kseabed`` = 1). 
+and then obtains :math:`T_{bt}` by multiplying :math:`T_{bt}^*` by :math:`e^{-\alpha_b * (1 - a_i)}` (similar to what is done for ``seabed_stress_method`` = ``LKD``).
 
 To calculate :math:`T_{bt}^*` in equation :eq:`Tbt`, :math:`f(x)` and :math:`b(y)` are discretized using many small categories (100). :math:`f(x)` is discretized between 0 and 50 m while :math:`b(y)` is truncated at plus and minus three :math:`\sigma_b`. :math:`f(x)` is also modified by setting it to	zero after a certain percentile of the log-normal distribution. This percentile, which is currently set to 99.7%, notably affects the simulation of landfast ice and is used as a tuning parameter. Its impact is similar to the one of the parameter :math:`k_1` for the LKD method.
 
@@ -346,7 +343,7 @@ To calculate :math:`T_{bt}^*` in equation :eq:`Tbt`, :math:`f(x)` and :math:`b(y
    T_b=\max[T_{bt}(i,j),T_{bt}(i+1,j),T_{bt}(i,j+1),T_{bt}(i+1,j+1)]. \\
    :label: Tb
 
-Following again the approach of ``kseabed`` = 1, the seabed stress coefficients are finally expressed as
+Following again the LKD method, the seabed stress coefficients are finally expressed as
 
 .. math::
    C_b= T_b (\sqrt{u^2+v^2}+u_0)^{-1}, \\
@@ -385,7 +382,11 @@ is therefore simply equal to :math:`-\sigma_1/2`.
 Following the approach of :cite:`Konig10` (see also :cite:`Lemieux16`), the 
 elliptical yield curve can be modified such that the ice has isotropic tensile strength. 
 The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P` 
-where :math:`k_t` should be set to a value between 0 and 1 (this can be changed at runtime with the namelist parameter ``Ktens``).
+where :math:`k_t` should be set to a value between 0 and 1 (this can
+be changed at runtime with the namelist parameter ``Ktens``). The ice
+strength :math:`P` is a function of the ice thickness distribution as
+described in the `Icepack
+Documentation<https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 
 .. _stress-vp:
 
@@ -416,9 +417,7 @@ and :math:`P_R` is a “replacement pressure” (see :cite:`Geiger98`, for
 example), which serves to prevent residual ice motion due to spatial
 variations of :math:`P` when the rates of strain are exactly zero.
 
-The ice strength :math:`P`
-is a function of the ice thickness and concentration
-as described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_. The parameter :math:`e` is the  ratio of the major and minor axes of the elliptical yield curve, also called the ellipse aspect ratio. It can be changed using the namelist parameter ``e_ratio``.
+The parameter :math:`e` is the  ratio of the major and minor axes of the elliptical yield curve, also called the ellipse aspect ratio. It can be changed using the namelist parameter ``e_ratio``.
 
 .. _stress-evp:
 
