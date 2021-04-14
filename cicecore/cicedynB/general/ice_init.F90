@@ -134,7 +134,7 @@
         kitd, kcatbound, ktransport
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist
+        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
                                  sw_redist, use_smliq_pnd, snwgrain
@@ -229,7 +229,7 @@
       namelist /snow_nml/ &
         snwredist,      snwgrain,        rsnw_fall,     rsnw_tmax,      &
         rhosnew,        rhosmin,         rhosmax,       snwlvlfac,      &
-        windmin,        drhosdwind,      use_smliq_pnd
+        windmin,        drhosdwind,      use_smliq_pnd, snw_aging_table
 
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
@@ -405,6 +405,7 @@
       rfracmax  = 0.85_dbl_kind   ! maximum retained fraction of meltwater
       pndaspect = 0.8_dbl_kind    ! ratio of pond depth to area fraction
       snwredist = 'none'          ! type of snow redistribution
+      snw_aging_table = 'test'    ! snow aging lookup table
       snwgrain  = .false.         ! snow metamorphosis
       use_smliq_pnd = .false.     ! use liquid in snow for ponds
       rsnw_fall = 54.526_dbl_kind ! radius of new snow (10^-6 m)
@@ -738,6 +739,7 @@
       call broadcast_scalar(rfracmax,             master_task)
       call broadcast_scalar(pndaspect,            master_task)
       call broadcast_scalar(snwredist,            master_task)
+      call broadcast_scalar(snw_aging_table,      master_task)
       call broadcast_scalar(snwgrain,             master_task)
       call broadcast_scalar(use_smliq_pnd,        master_task)
       call broadcast_scalar(rsnw_fall,            master_task)
@@ -1039,6 +1041,13 @@
             write (nu_diag,*) 'ERROR: Use tr_snow=T for snow metamorphosis'
          endif
          abort_list = trim(abort_list)//":42"
+      endif
+      if (trim(snw_aging_table) /= 'test') then
+         if (my_task == master_task) then
+            write (nu_diag,*) 'ERROR: snw_aging_table /= test'
+            write (nu_diag,*) 'ERROR: other options not yet implemented'
+         endif
+         abort_list = trim(abort_list)//":43"
       endif
 
       if (tr_iso .and. n_iso==0) then
@@ -1732,6 +1741,7 @@
                if (use_smliq_pnd) then
                   write(nu_diag,*) ' Using liquid water in snow for melt ponds'
                endif
+               write(nu_diag,1031) ' snw_aging_table = ', trim(snw_aging_table)
             endif
          endif
 

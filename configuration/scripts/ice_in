@@ -204,6 +204,7 @@
     windmin         =   10.0
     drhosdwind      =   27.3
     snwlvlfac       =    0.3
+    snw_aging_table = 'test'
 /
 
 &forcing_nml
