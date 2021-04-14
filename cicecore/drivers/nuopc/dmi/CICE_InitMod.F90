@@ -46,9 +46,9 @@
 
       integer (kind=int_kind), optional, intent(in) :: mpi_comm ! communicator from nuopc
       character(len=*), parameter :: subname='(CICE_Initialize)'
-   !--------------------------------------------------------------------
-   ! model initialization
-   !--------------------------------------------------------------------
+      !--------------------------------------------------------------------
+      ! model initialization
+      !--------------------------------------------------------------------
 
       if (present(mpi_comm)) then
           call cice_init(mpi_comm)
@@ -69,14 +69,15 @@
           floe_binwidth, c_fsd_range
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
-      use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
-          init_calendar, calendar
+      use ice_calendar, only: dt, dt_dyn, istep, istep1, write_ic, &
+          init_calendar, advance_timestep, calc_timesteps
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
       use ice_dyn_shared, only: kdyn, init_dyn, alloc_dyn_shared
+      use ice_dyn_vp, only: init_vp
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -87,7 +88,8 @@
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runtype
       use ice_init, only: input_data, init_state
-      use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
+      use ice_init_column, only: init_thermo_vertical, init_shortwave, &
+          init_zbgc, input_zbgc, count_tracers
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
@@ -166,9 +168,6 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
-#ifndef CICE_DMI
-      call calendar(time)       ! determine the initial date
-#endif
 #ifndef CICE_IN_NEMO
       call init_forcing_ocn(dt) ! initialize sss and sst from data
 #endif
@@ -188,6 +187,7 @@
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
+      call calc_timesteps       ! update timestep counter if not using npt_unit="1"
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_query_tracer_flags(tr_iso_out=tr_iso)
@@ -204,10 +204,7 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
-      istep  = istep  + 1    ! update time step counters
-      istep1 = istep1 + 1
-      time = time + dt       ! determine the time and date
-      call calendar(time)    ! at the end of the first timestep
+      call advance_timestep()
 
    !--------------------------------------------------------------------
    ! coupler communication or forcing data initialization
@@ -252,7 +249,7 @@
 
       use ice_arrays_column, only: dhsn
       use ice_blocks, only: nx_block, ny_block
-      use ice_calendar, only: time, calendar
+      use ice_calendar, only: calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
       use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
@@ -314,7 +311,7 @@
       if (trim(runtype) == 'continue') then 
          ! start from core restart file
          call restartfile()           ! given by pointer in ice_in
-         call calendar(time)          ! update time parameters
+         call calendar()              ! update time parameters
          if (kdyn == 2) call read_restart_eap ! EAP
       else if (restart) then          ! ice_ic = core restart file
          call restartfile (ice_ic)    !  or 'default' or 'none'
