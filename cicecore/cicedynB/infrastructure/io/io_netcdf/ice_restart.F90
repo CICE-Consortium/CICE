@@ -402,13 +402,6 @@
             call define_rest_field(ncid,'ffrac',dims)
          end if
 
-         if (tr_snow) then
-            call define_rest_field(ncid,'smice',dims)
-            call define_rest_field(ncid,'smliq',dims)
-            call define_rest_field(ncid,'rhos' ,dims)
-            call define_rest_field(ncid,'rsnw' ,dims)
-         endif
-
          if (tr_brine) then
             call define_rest_field(ncid,'fbrn',dims)
             call define_rest_field(ncid,'first_ice',dims)
@@ -487,6 +480,16 @@
             write(nchar,'(i3.3)') k
             call define_rest_field(ncid,'qsno'//trim(nchar),dims)
          enddo
+
+         if (tr_snow) then
+            do k=1,nslyr
+               write(nchar,'(i3.3)') k
+               call define_rest_field(ncid,'smice'//trim(nchar),dims)
+               call define_rest_field(ncid,'smliq'//trim(nchar),dims)
+               call define_rest_field(ncid, 'rhos'//trim(nchar),dims)
+               call define_rest_field(ncid, 'rsnw'//trim(nchar),dims)
+            enddo
+         endif
 
          if (tr_fsd) then
             do k=1,nfsd
