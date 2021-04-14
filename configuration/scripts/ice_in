@@ -588,6 +588,19 @@
     f_apeff_ai     = 'm'
 /
 
+&icefields_snow_nml
+    f_smicen       = 'x'
+    f_smliqn       = 'x'
+    f_rhosn        = 'x'
+    f_rsnwn        = 'x'
+    f_smice        = 'm'
+    f_smliq        = 'm'
+    f_rhos         = 'm'
+    f_rsnw         = 'm'
+    f_meltsliq     = 'm'
+    f_fsloss       = 'm'
+/
+
 &icefields_bgc_nml
     f_fiso_atm     = 'x'
     f_fiso_ocn     = 'x'

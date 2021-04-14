@@ -477,8 +477,8 @@
       restart_pond_lvl  = .false. ! melt ponds restart
       tr_pond_topo = .false. ! explicit melt ponds (topographic)
       restart_pond_topo = .false. ! melt ponds restart
-      tr_snow      = .false. ! snow redistribution/metamorphism tracers
-      restart_snow = .false. ! snow redistribution/metamorphism restart
+      tr_snow      = .false. ! advanced snow physics
+      restart_snow = .false. ! advanced snow physics restart
       tr_iso       = .false. ! isotopes
       restart_iso  = .false. ! isotopes restart
       tr_aero      = .false. ! aerosols
@@ -1708,7 +1708,7 @@
          write(nu_diag,*) '-----------------------------------------'
          if (tr_snow) then
             write(nu_diag,1010) ' tr_snow         = ', tr_snow, &
-                                ' : snow redistribution/metamorphism'
+                                ' : advanced snow physics'
             if (snwredist(1:4) == 'none') then
                write(nu_diag,*) ' Snow redistribution scheme turned off'
             else
@@ -1765,7 +1765,7 @@
          if (tr_pond_lvl)  write(nu_diag,1010) ' tr_pond_lvl      = ', tr_pond_lvl,' : level-ice pond formulation'
          if (tr_pond_topo) write(nu_diag,1010) ' tr_pond_topo     = ', tr_pond_topo,' : topo pond formulation'
          if (tr_pond_cesm) write(nu_diag,1010) ' tr_pond_cesm     = ', tr_pond_cesm,' : CESM pond formulation'
-         if (tr_snow)      write(nu_diag,1010) ' tr_snow          = ', tr_snow,' : snow redistribution/metamorphism'
+         if (tr_snow)      write(nu_diag,1010) ' tr_snow          = ', tr_snow,' : advanced snow physics'
          if (tr_iage)      write(nu_diag,1010) ' tr_iage          = ', tr_iage,' : chronological ice age'
          if (tr_FY)        write(nu_diag,1010) ' tr_FY            = ', tr_FY,' : first-year ice area'
          if (tr_iso)       write(nu_diag,1010) ' tr_iso           = ', tr_iso,' : diagnostic isotope tracers'
@@ -2116,7 +2116,7 @@
                    trcr_depend(nt_hpnd)  = 2+nt_apnd   ! melt pond depth
                    trcr_depend(nt_ipnd)  = 2+nt_apnd   ! refrozen pond lid
       endif
-      if (tr_snow) then                                ! snow-volume-weighted tracers
+      if (tr_snow) then                                ! snow-volume-weighted snow tracers
          do k = 1, nslyr
             trcr_depend(nt_smice + k - 1) = 2          ! ice mass in snow
             trcr_depend(nt_smliq + k - 1) = 2          ! liquid mass in snow
