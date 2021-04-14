@@ -391,7 +391,7 @@
       endif
 
       ! snow redistribution/metamorphism
-      if (tr_iso) then
+      if (tr_snow) then
          if (trim(runtype) == 'continue') restart_snow = .true.
          if (restart_snow) then
             call read_restart_snow

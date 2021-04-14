@@ -1708,7 +1708,7 @@
          write(nu_diag,*) '-----------------------------------------'
          if (tr_snow) then
             write(nu_diag,1010) ' tr_snow         = ', tr_snow, &
-                                ' snow redistribution/metamorphism'
+                                ' : snow redistribution/metamorphism'
             if (snwredist(1:4) == 'none') then
                write(nu_diag,*) ' Snow redistribution scheme turned off'
             else
@@ -1720,28 +1720,35 @@
                   write(nu_diag,*) ' Using ridging based snow redistribution scheme'
                endif
                write(nu_diag,1002) ' rhosnew         = ', rhosnew, &
-                                   ' new snow density (kg/m^3)'
+                                   ' : new snow density (kg/m^3)'
                write(nu_diag,1002) ' rhosmin         = ', rhosmin, &
-                                   ' minimum snow density (kg/m^3)'
+                                   ' : minimum snow density (kg/m^3)'
                write(nu_diag,1002) ' rhosmax         = ', rhosmax, &
-                                   ' maximum snow density (kg/m^3)'
+                                   ' : maximum snow density (kg/m^3)'
                write(nu_diag,1002) ' windmin         = ', windmin, &
-                                   ' minimum wind speed to compact snow (m/s)'
+                                   ' : minimum wind speed to compact snow (m/s)'
                write(nu_diag,1002) ' drhosdwind      = ', drhosdwind, &
-                                   ' wind compaction factor (kg s/m^4)'
+                                   ' : wind compaction factor (kg s/m^4)'
             endif
             if (.not. snwgrain) then
                write(nu_diag,*) ' Snow metamorphosis turned off'
             else
                write(nu_diag,*) ' Using snow metamorphosis scheme'
                write(nu_diag,1002) ' rsnw_fall       = ', rsnw_fall, &
-                                   ' radius of new snow (10^-6 m)'
+                                   ' : radius of new snow (10^-6 m)'
                write(nu_diag,1002) ' rsnw_tmax       = ', rsnw_tmax, &
-                                   ' maximum snow radius (10^-6 m)'
+                                   ' : maximum snow radius (10^-6 m)'
                if (use_smliq_pnd) then
                   write(nu_diag,*) ' Using liquid water in snow for melt ponds'
                endif
-               write(nu_diag,1031) ' snw_aging_table = ', trim(snw_aging_table)
+               if (snw_aging_table(1:4) == 'test') then
+                  write(nu_diag,*) ' Using 5x5 test matrix of snow aging parameters'
+               elseif (snw_aging_table(1:5) == 'snicar') then
+                  write(nu_diag,*) ' Using snow aging parameters from SNICAR'
+               else
+                  tmpstr2 = ' snow aging parameters'
+                  write(nu_diag,1030) ' snw_aging_table  = ', trim(snw_aging_table),trim(tmpstr2)
+               endif
             endif
          endif
 
@@ -1872,7 +1879,7 @@
          write(nu_diag,1011) ' restart_pond_cesm= ', restart_pond_cesm
          write(nu_diag,1011) ' restart_pond_lvl = ', restart_pond_lvl
          write(nu_diag,1011) ' restart_pond_topo= ', restart_pond_topo
-         write(nu_diag,1010) ' restart_snow     = ', restart_snow
+         write(nu_diag,1011) ' restart_snow     = ', restart_snow
          write(nu_diag,1011) ' restart_iso      = ', restart_iso
          write(nu_diag,1011) ' restart_aero     = ', restart_aero
          write(nu_diag,1011) ' restart_fsd      = ', restart_fsd
@@ -1946,6 +1953,7 @@
          Pstar_in=Pstar, Cstar_in=Cstar, windmin_in=windmin, drhosdwind_in=drhosdwind, &
          rsnw_fall_in=rsnw_fall, rsnw_tmax_in=rsnw_tmax, rhosnew_in=rhosnew, &
          snwlvlfac_in=snwlvlfac, rhosmin_in=rhosmin, rhosmax_in=rhosmax, &
+         snwredist_in=snwredist, snwgrain_in=snwgrain, &
          sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
