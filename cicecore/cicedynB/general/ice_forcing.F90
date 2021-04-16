@@ -24,8 +24,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
                               msec, mday, mmonth, myear, yday, daycal, &
-                              daymo, days_per_year, compute_days_between, &
-                              year_init, month_init, day_init, sec_init
+                              daymo, days_per_year, compute_days_between
       use ice_fileunits, only: nu_diag, nu_forcing
       use ice_exit, only: abort_ice
       use ice_read_write, only: ice_open, ice_read, &
