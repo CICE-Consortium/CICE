@@ -93,6 +93,8 @@
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
     restart_pond_lvl  = .false.
+    tr_snow      = .false.
+    restart_snow = .false.
     tr_iso       = .false.
     restart_iso  = .false.
     tr_aero      = .false.
@@ -188,6 +190,21 @@
     rfracmin        = 0.15
     rfracmax        = 1.
     pndaspect       = 0.8
+/
+
+&snow_nml
+    snwredist       = 'ITDrdg'
+    snwgrain        = .true.
+    use_smliq_pnd   = .true.
+    rsnw_fall       = 54.526
+    rsnw_tmax       = 1500.0
+    rhosnew         =  100.0
+    rhosmin         =  100.0
+    rhosmax         =  450.0
+    windmin         =   10.0
+    drhosdwind      =   27.3
+    snwlvlfac       =    0.3
+    snw_aging_table = 'test'
 /
 
 &forcing_nml
@@ -569,6 +586,19 @@
     f_hpond_ai     = 'm'
     f_ipond_ai     = 'm'
     f_apeff_ai     = 'm'
+/
+
+&icefields_snow_nml
+    f_smicen       = 'x'
+    f_smliqn       = 'x'
+    f_rhosn        = 'x'
+    f_rsnwn        = 'x'
+    f_smice        = 'm'
+    f_smliq        = 'm'
+    f_rhos         = 'm'
+    f_rsnw         = 'm'
+    f_meltsliq     = 'm'
+    f_fsloss       = 'm'
 /
 
 &icefields_bgc_nml
