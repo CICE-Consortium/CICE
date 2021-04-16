@@ -4608,12 +4608,8 @@
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
 
-      ! current time in HYCOM jday units (HYCOM ref year: 1900,12,31,00,00) 
-      hcdate = real(compute_days_between(1900,12,31, &
-                        myear +year_init -1,         &
-                        mmonth+month_init-1,         &
-                        mday  +day_init  -1)         &
-                   ) + (msec  +sec_init)/secday
+      ! current time in HYCOM jday units (HYCOM ref year: 1900,12,31,000000) 
+      hcdate = real(compute_days_between(1900,12,31,myear,mmonth,mday)) + msec/secday
 
       ! Init recnum try
       recnum=min(max(oldrecnum,1),Njday_atm-1)
