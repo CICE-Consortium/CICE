@@ -215,7 +215,7 @@
 
       logical (kind=log_kind) :: &
          tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, tr_pond_cesm, &
-         tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq
+         tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq, tr_snow
 
       real (kind=dbl_kind) :: &
          uvel_center, &     ! cell-centered velocity, x component (m/s)
@@ -227,6 +227,9 @@
 
       real (kind=dbl_kind), dimension(n_iso,ncat) :: &
          isosno,  isoice    ! kg/m^2
+
+      real (kind=dbl_kind), dimension(nslyr,ncat) :: &
+         rsnwn, smicen, smliqn
 
       type (block) :: &
          this_block         ! block information for current block
@@ -240,7 +243,8 @@
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_iso_out=tr_iso, &
          tr_aero_out=tr_aero, tr_pond_out=tr_pond, tr_pond_cesm_out=tr_pond_cesm, &
-         tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+         tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
+         tr_snow_out=tr_snow)
       call icepack_query_tracer_indices( &
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
          nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_Tsfc_out=nt_Tsfc, &
@@ -257,7 +261,9 @@
       prescribed_ice = .false.
 #endif
 
-      isosno (:,:)   = c0
+      rsnwn  (:,:)   = c0
+      smicen (:,:)   = c0
+      smliqn (:,:)   = c0
       isoice (:,:)   = c0
       aerosno(:,:,:) = c0
       aeroice(:,:,:) = c0
@@ -302,6 +308,16 @@
             uvel_center = c0 ! not used
             vvel_center = c0
          endif ! highfreq
+
+         if (tr_snow) then
+            do n = 1, ncat
+               do k = 1, nslyr
+                  rsnwn (k,n) = trcrn(i,j,nt_rsnw +k-1,n,iblk)
+                  smicen(k,n) = trcrn(i,j,nt_smice+k-1,n,iblk)
+                  smliqn(k,n) = trcrn(i,j,nt_smliq+k-1,n,iblk)
+               enddo
+            enddo
+         endif ! tr_iso
 
          if (tr_iso) then ! trcrn(nt_iso*) has units kg/m^3
             do n=1,ncat
@@ -351,9 +367,9 @@
                       ipnd         = trcrn       (i,j,nt_ipnd,:,iblk),                   & 
                       iage         = trcrn       (i,j,nt_iage,:,iblk),                   &
                       FY           = trcrn       (i,j,nt_FY  ,:,iblk),                   & 
-                      rsnwn        = trcrn       (i,j,nt_rsnw :nt_rsnw +nslyr-1,:,iblk), &
-                      smicen       = trcrn       (i,j,nt_smice:nt_smice+nslyr-1,:,iblk), &
-                      smliqn       = trcrn       (i,j,nt_smliq:nt_smliq+nslyr-1,:,iblk), &
+                      rsnwn        = rsnwn       (:,:),        &
+                      smicen       = smicen      (:,:),        &
+                      smliqn       = smliqn      (:,:),        &
                       aerosno      = aerosno     (:,:,:),      &
                       aeroice      = aeroice     (:,:,:),      &
                       isosno       = isosno      (:,:),        &
@@ -400,7 +416,7 @@
                       strocnyT     = strocnyT    (i,j,  iblk), &
                       fbot         = fbot        (i,j,  iblk), &
                       Tbot         = Tbot        (i,j,  iblk), &
-                      Tsnice       = Tsnice       (i,j, iblk), &
+                      Tsnice       = Tsnice      (i,j,  iblk), &
                       frzmlt       = frzmlt      (i,j,  iblk), &
                       rside        = rside       (i,j,  iblk), &
                       fside        = fside       (i,j,  iblk), &
@@ -437,10 +453,10 @@
                       fsalt        = fsalt       (i,j,  iblk), &
                       fhocn        = fhocn       (i,j,  iblk), &
                       fswthru      = fswthru     (i,j,  iblk), &
-                      fswthru_vdr  = fswthru_vdr  (i,j,  iblk),&
-                      fswthru_vdf  = fswthru_vdf  (i,j,  iblk),&
-                      fswthru_idr  = fswthru_idr  (i,j,  iblk),&
-                      fswthru_idf  = fswthru_idf  (i,j,  iblk),&
+                      fswthru_vdr  = fswthru_vdr (i,j,  iblk), &
+                      fswthru_vdf  = fswthru_vdf (i,j,  iblk), &
+                      fswthru_idr  = fswthru_idr (i,j,  iblk), &
+                      fswthru_idf  = fswthru_idf (i,j,  iblk), &
                       flatn_f      = flatn_f     (i,j,:,iblk), &
                       fsensn_f     = fsensn_f    (i,j,:,iblk), &
                       fsurfn_f     = fsurfn_f    (i,j,:,iblk), &
@@ -488,6 +504,16 @@
          endif
 
          endif
+
+         if (tr_snow) then
+            do n = 1, ncat
+               do k = 1, nslyr
+                  trcrn(i,j,nt_rsnw +k-1,n,iblk) = rsnwn (k,n)
+                  trcrn(i,j,nt_smice+k-1,n,iblk) = smicen(k,n)
+                  trcrn(i,j,nt_smliq+k-1,n,iblk) = smliqn(k,n)
+               enddo
+            enddo
+         endif ! tr_iso
 
          if (tr_iso) then
             do n = 1, ncat
