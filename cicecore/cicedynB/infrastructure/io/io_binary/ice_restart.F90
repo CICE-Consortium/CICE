@@ -627,7 +627,7 @@
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.snow.', &
-              iyear,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
 
          if (restart_ext) then
             call ice_open_ext(nu_dump_snow,filename,0)
@@ -636,7 +636,7 @@
          endif
 
          if (my_task == master_task) then
-           write(nu_dump_snow) istep1,time,time_forc
+           write(nu_dump_snow) istep1,timesecs,time_forc
            write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
          endif
 

@@ -487,10 +487,10 @@
          if (tr_snow) then
             do k=1,nslyr
                write(nchar,'(i3.3)') k
-               call define_rest_field(ncid,'smice'//trim(nchar),dims)
-               call define_rest_field(ncid,'smliq'//trim(nchar),dims)
-               call define_rest_field(ncid, 'rhos'//trim(nchar),dims)
-               call define_rest_field(ncid, 'rsnw'//trim(nchar),dims)
+               call define_rest_field(File,'smice'//trim(nchar),dims)
+               call define_rest_field(File,'smliq'//trim(nchar),dims)
+               call define_rest_field(File, 'rhos'//trim(nchar),dims)
+               call define_rest_field(File, 'rsnw'//trim(nchar),dims)
             enddo
          endif
 
