@@ -519,6 +519,7 @@ forcing_nml
    "``ice_data_type``", "``boxslotcyl``", "initialize ice concentration and velocity for :ref:`boxslotcyl` test (:cite:`Zalesak79`)", "``default``"
    "", "``box2001``", "initialize ice concentration for :ref:`box2001` test (:cite:`Hunke01`)", ""
    "", "``default``", "no special initialization", ""
+   "``iceruf``", "real", "ice surface roughness at atmosphere interface", "0.0005"
    "``l_mpond_fresh``", "``.false.``", "release pond water immediately to ocean", "``.false.``"
    "", "``true``", "retain (topo) pond water until ponds drain", ""
    "``natmiter``", "integer", "number of atmo boundary layer iterations", "5"

@@ -314,7 +314,7 @@ either Celsius or Kelvin units).
    "ice_stderr", "unit number for standard error output", ""
    "ice_ref_salinity", "reference salinity for ice–ocean exchanges", "4. ppt"
    "icells", "number of grid cells with specified property (for vectorization)", ""
-   "iceruf", "ice surface roughness", "5.\ :math:`\times`\ 10\ :math:`^{-4}` m"
+   "iceruf", ":math:`\bullet` ice surface roughness at atmosphere interface", "5.\ :math:`\times`\ 10\ :math:`^{-4}` m"
    "icetmask", "ice extent mask (T-cell)", "" 
    "iceumask", "ice extent mask (U-cell)", ""
    "idate", "the date at the end of the current time step (yyyymmdd)", ""
