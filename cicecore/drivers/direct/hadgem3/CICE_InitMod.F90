@@ -64,8 +64,8 @@
           ocean_bio_all, ice_bio_net, snow_bio_net, alloc_arrays_column
       use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
           floe_binwidth, c_fsd_range
-      use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
-          init_calendar, calendar
+      use ice_calendar, only: dt, dt_dyn, write_ic, &
+          init_calendar, advance_timestep, calc_timesteps
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
@@ -153,8 +153,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call calendar(time)       ! determine the initial date
-
 #ifndef CICE_IN_NEMO
       call init_forcing_ocn(dt) ! initialize sss and sst from data
 #endif
@@ -170,6 +168,7 @@
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
+      call calc_timesteps       ! update timestep counter if not using npt_unit="1"
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_warnings_flush(nu_diag)
@@ -185,10 +184,8 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
-      istep  = istep  + 1    ! update time step counters
-      istep1 = istep1 + 1
-      time = time + dt       ! determine the time and date
-      call calendar(time)    ! at the end of the first timestep
+      ! determine the time and date at the end of the first timestep
+      call advance_timestep()
 
    !--------------------------------------------------------------------
    ! coupler communication or forcing data initialization
@@ -227,7 +224,7 @@
 
       use ice_arrays_column, only: dhsn
       use ice_blocks, only: nx_block, ny_block
-      use ice_calendar, only: time, calendar
+      use ice_calendar, only: calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
       use ice_domain_size, only: ncat, n_aero, nfsd
@@ -288,7 +285,7 @@
       if (trim(runtype) == 'continue') then 
          ! start from core restart file
          call restartfile()           ! given by pointer in ice_in
-         call calendar(time)          ! update time parameters
+         call calendar()              ! update time parameters
          if (kdyn == 2) call read_restart_eap ! EAP
       else if (restart) then          ! ice_ic = core restart file
          call restartfile (ice_ic)    !  or 'default' or 'none'
