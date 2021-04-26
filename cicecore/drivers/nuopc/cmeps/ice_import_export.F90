@@ -129,6 +129,9 @@ contains
     if (my_task == master_task) then
        write(nu_diag,*)'send_i2x_per_cat = ',send_i2x_per_cat
     end if
+    if (.not.send_i2x_per_cat) then
+       deallocate(fswthrun_ai)
+    end if
 
     ! Determine if the following attributes are sent by the driver and if so read them in
     flds_wiso = .false.
@@ -850,8 +853,10 @@ contains
     real    (kind=dbl_kind) :: tauxo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: tauyo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
-    real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
     real    (kind=dbl_kind) :: Tffresh
+    real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
+    real    (kind=dbl_kind), pointer :: dataptr_ifrac_n(:,:)
+    real    (kind=dbl_kind), pointer :: dataptr_swpen_n(:,:)
     character(len=*),parameter :: subname = 'ice_export'
     !-----------------------------------------------------
 
@@ -1583,7 +1588,7 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! indices
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    integer                      :: num_ice
+    integer                      :: ice_num
     character(len=*), parameter  :: subname='(ice_import_export:state_setexport_4d)'
     ! ----------------------------------------------
 
@@ -1596,48 +1601,68 @@ contains
     if (present(ungridded_index)) then
        call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ungridded_index == 1) then
+          dataptr2d(:,:) = c0
+       end if
+       n = 0
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          if (present(lmask) .and. present(ifrac)) then
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
+                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
+                      dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
+                   else
+                      dataPtr2d(ungridded_index,n) = c0
+                   end if
+                end do
+             end do
+          else
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
+                   dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
+                end do
+             end do
+          end if
+       end do
+       ice_num = n
+       if (present(areacor)) then
+          do n = 1,ice_num
+             dataPtr2d(ungridded_index,n) = dataPtr2d(ungridded_index,n) * areacor(n)
+          end do
+       end if
     else
        call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    ! set values of field pointer
-    n = 0
-    do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)
-       ilo = this_block%ilo
-       ihi = this_block%ihi
-       jlo = this_block%jlo
-       jhi = this_block%jhi
-       do j = jlo, jhi
-          do i = ilo, ihi
-             n = n+1
-             if (present(lmask) .and. present(ifrac)) then
-                if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
-                   if (present(ungridded_index)) then
-                      dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
-                   else
+       dataptr1d(:) = c0
+       n = 0
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          if (present(lmask) .and. present(ifrac)) then
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
+                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
                       dataPtr1d(n) = input(i,j,index,iblk)
                    end if
-                end if
-             else
-                if (present(ungridded_index)) then
-                   dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
-                else
-                   dataPtr1d(n) = input(i,j,index,iblk)
-                end if
-             end if
-          end do
+                end do
+             end do
+          else
+             do i = ilo, ihi
+                n = n+1
+                dataPtr1d(n) = input(i,j,index,iblk)
+             end do
+          end if
        end do
-    end do
-    if (present(areacor)) then
-       num_ice = n
-       if (present(ungridded_index)) then
-          do n = 1,num_ice
-             dataPtr2d(:,n) = dataPtr2d(:,n) * areacor(n)
-          end do
-       else
-          do n = 1,num_ice
+       ice_num = n
+       if (present(areacor)) then
+          do n = 1,ice_num
              dataPtr1d(n) = dataPtr1d(n) * areacor(n)
           end do
        end if
