@@ -88,12 +88,13 @@
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
+      use lib_mpp, only:   mpi_comm_opa      ! NEMO MPI communicator
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_fsd, wave_spec
       character(len=*),parameter :: subname = '(cice_init)'
 
-      call init_communicate     ! initial setup for message passing
+      call init_communicate(mpi_comm_opa) ! initial setup for message passing
       call init_fileunits       ! unit numbers
 
       call icepack_configure()  ! initialize icepack
