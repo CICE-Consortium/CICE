@@ -24,7 +24,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
                               msec, mday, mmonth, myear, yday, daycal, &
-                              daymo, days_per_year, hc_jday
+                              daymo, days_per_year, compute_days_between
       use ice_fileunits, only: nu_diag, nu_forcing
       use ice_exit, only: abort_ice
       use ice_read_write, only: ice_open, ice_read, &
@@ -4607,8 +4607,8 @@
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
 
-      ! current time in HYCOM jday units
-      hcdate = hc_jday(myear,0,0)+ yday+msec/secday
+      ! current time in HYCOM jday units (HYCOM ref year: 1900,12,31,000000) 
+      hcdate = real(compute_days_between(1900,12,31,myear,mmonth,mday)) + msec/secday
 
       ! Init recnum try
       recnum=min(max(oldrecnum,1),Njday_atm-1)
