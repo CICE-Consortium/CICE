@@ -24,8 +24,9 @@ module ice_import_export
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
   use ice_state          , only : vice, vsno, aice, aicen_init, trcr
-  use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm, ocn_gridcell_frac
+  use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm
   use ice_grid           , only : grid_type, t2ugrid_vector
+  use ice_mesh_mod       , only : ocn_gridcell_frac
   use ice_boundary       , only : ice_HaloUpdate
   use ice_fileunits      , only : nu_diag, flush_fileunit
   use ice_communicate    , only : my_task, master_task, MPI_COMM_ICE
@@ -423,9 +424,9 @@ contains
     call icepack_query_parameters(ktherm_out=ktherm)
 
     if (io_dbug > 5) then
-     write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
-       // trim(tfrz_option)//', ktherm = ',ktherm
-     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
+            // trim(tfrz_option)//', ktherm = ',ktherm
+       call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
     end if
 
     !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
@@ -774,9 +775,11 @@ contains
 
 #ifdef CESMCOUPLED
     ! Use shr_frz_mod for this
-    Tf(:,:,iblk) = shr_frz_freezetemp(sss(:,:,iblk))
+    do iblk = 1, nblocks
+       Tf(:,:,iblk) = shr_frz_freezetemp(sss(:,:,iblk))
+    end do
 #else
-    !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j)
     do iblk = 1, nblocks
        do j = 1,ny_block
           do i = 1,nx_block
@@ -966,7 +969,7 @@ contains
     call state_setexport(exportState, 'ice_fraction', input=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (trim(grid_type) == 'latlon') then
+    if (trim(grid_type) == 'setmask') then
        call state_setexport(exportState, 'ice_mask', input=ocn_gridcell_frac, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
