@@ -618,7 +618,7 @@ contains
              ! error check differences between internally generated lons and those read in
              diff_lon = abs(lonMesh(n) - lon(n))
              if ( (diff_lon > 1.e2  .and. abs(diff_lon - 360.) > 1.e-1) .or.&
-                  (diff_lon > 1.e-3 .and. diff_lon < c1) ) then
+                  (diff_lon > 1.e-1 .and. diff_lon < c1) ) then
                 write(6,100)n,lonMesh(n),lon(n), diff_lon
                 call abort_ice(error_message=subname, &
                      file=__FILE__, line=__LINE__)
