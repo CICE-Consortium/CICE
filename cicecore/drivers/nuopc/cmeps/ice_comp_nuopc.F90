@@ -26,7 +26,6 @@ module ice_comp_nuopc
   use ice_calendar       , only : idate, mday, time, month, daycal, time2sec, year_init
   use ice_calendar       , only : sec, dt, calendar, calendar_type, nextsw_cday, istep
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
-  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj, scol_valid, single_column
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
   use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file
@@ -40,6 +39,7 @@ module ice_comp_nuopc
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
+  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj, scol_valid, single_column
 #endif
   use ice_timers
   use CICE_InitMod       , only : cice_init1, cice_init2
@@ -515,24 +515,21 @@ contains
        call abort_ice(trim(errmsg))
     endif
 
-    ! Flux convergence tolerance
-    ! TODO: these need to be consistent - but for now use namelist value
+    ! Flux convergence tolerance - always use the driver attribute value
     call NUOPC_CompAttributeGet(gcomp, name="flux_convergence", value=cvalue, &
          isPresent=isPresent, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
        read(cvalue,*) atmiter_conv_driver
-    else
-       atmiter_conv_driver = c0
+       call icepack_query_parameters( atmiter_conv_out=atmiter_conv)
+       if (atmiter_conv_driver /= atmiter_conv) then
+          write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'warning: atmiter_ from driver ',&
+               atmiter_conv_driver,' is overwritting atmiter_conv from cice namelist ',atmiter_conv
+          write(nu_diag,*) trim(errmsg)
+          call icepack_warnings_flush(nu_diag)
+          call icepack_init_parameters(atmiter_conv_in=atmiter_conv_driver)
+       end if
     end if
-    call icepack_query_parameters( atmiter_conv_out=atmiter_conv)
-    if (atmiter_conv_driver  /= atmiter_conv) then
-       write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'error: atmiter_ from driver ',&
-            atmiter_conv_driver,' must be the same as atmiter_conv from cice namelist ',atmiter_conv
-       write(nu_diag,*) trim(errmsg)
-       call icepack_warnings_flush(nu_diag)
-       !call abort_ice(trim(errmsg))
-    endif
 
     ! Number of iterations for boundary layer calculations
     call NUOPC_CompAttributeGet(gcomp, name="flux_max_iteration", value=cvalue, isPresent=isPresent, rc=rc)
