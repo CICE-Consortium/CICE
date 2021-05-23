@@ -172,8 +172,7 @@ the end of routine *create\_local\_block\_ids* in module
 **ice\_distribution.F90** will print the processor and local block
 number for each block. With this information, the grid decomposition
 into processors and blocks can be ascertained. This ``debug_blocks`` variable 
-is independent of the ``dbug`` variable in
-**ice\_in**, as there may be hundreds or thousands of blocks to print
+should be used carefully as there may be hundreds or thousands of blocks to print
 and this information should be needed only rarely. ``debug_blocks`` 
 can be set to true using the
 ``debugblocks`` option with **cice.setup**. This information is
@@ -270,8 +269,11 @@ routines, is adopted from POP. The boundary routines perform boundary
 communications among processors when MPI is in use and among blocks
 whenever there is more than one block per processor.
 
-Open/cyclic boundary conditions are the default in CICE; the physical
-domain can still be closed using the land mask. In our bipolar,
+Open/cyclic boundary conditions are the default in CICE.  Closed boundary
+conditions are not supported currently.  The physical
+domain can still be closed using the land mask and this can be done in
+namelist with the ``close_boundaries`` namelist which forces the mask
+on the boundary to land for a two gridcell depth. In our bipolar,
 displaced-pole grids, one row of grid cells along the north and south
 boundaries is located on land, and along east/west domain boundaries not
 masked by land, periodic conditions wrap the domain around the globe.

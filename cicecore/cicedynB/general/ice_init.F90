@@ -58,7 +58,8 @@
       subroutine input_data
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
+      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt, &
+                                 debug_model, debug_model_step
       use ice_domain, only: close_boundaries, orca_halogrid
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
                                  n_iso, n_aero, n_zaero, n_algae, &
@@ -83,7 +84,7 @@
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
-          ycycle,          fyear_init,    dbug, &
+          ycycle,          fyear_init,    forcing_diag, &
           atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
@@ -163,9 +164,9 @@
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
-        dbug,           histfreq,       histfreq_n,      hist_avg,      &
+        forcing_diag,   histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
-        conserv_check,                                                  &
+        conserv_check,  debug_model,    debug_model_step,               &
         year_init,      month_init,     day_init,        sec_init,      &
         write_ic,       incond_dir,     incond_file,     version_name
 
@@ -265,6 +266,8 @@
       npt = 99999            ! total number of time steps (dt) 
       npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
+      debug_model  = .false. ! debug output
+      debug_model_step = 999999999  ! debug model after this step number
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
       bfbflag = 'off'        ! off = optimized
@@ -433,7 +436,7 @@
       restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
       restore_ice     = .false.   ! restore ice state on grid edges if true
-      dbug      = .false.         ! true writes diagnostics for input forcing
+      forcing_diag    = .false.   ! true writes diagnostics for input forcing
 
       latpnt(1) =  90._dbl_kind   ! latitude of diagnostic point 1 (deg)
       lonpnt(1) =   0._dbl_kind   ! longitude of point 1 (deg)
@@ -599,6 +602,8 @@
       call broadcast_scalar(npt,                  master_task)
       call broadcast_scalar(npt_unit,             master_task)
       call broadcast_scalar(diagfreq,             master_task)
+      call broadcast_scalar(debug_model,          master_task)
+      call broadcast_scalar(debug_model_step,     master_task)
       call broadcast_scalar(print_points,         master_task)
       call broadcast_scalar(print_global,         master_task)
       call broadcast_scalar(bfbflag,              master_task)
@@ -753,14 +758,12 @@
       call broadcast_scalar(restore_ocn,          master_task)
       call broadcast_scalar(trestore,             master_task)
       call broadcast_scalar(restore_ice,          master_task)
-      call broadcast_scalar(dbug,                 master_task)
+      call broadcast_scalar(forcing_diag,         master_task)
       call broadcast_array (latpnt(1:2),          master_task)
       call broadcast_array (lonpnt(1:2),          master_task)
       call broadcast_scalar(runid,                master_task)
       call broadcast_scalar(runtype,              master_task)
-
-      if (dbug) & ! else only master_task writes to file
-      call broadcast_scalar(nu_diag,              master_task)
+      !call broadcast_scalar(nu_diag,              master_task)
 
       ! tracers
       call broadcast_scalar(tr_iage,              master_task)
@@ -1455,6 +1458,7 @@
                   tmpstr2 = ' : four constant albedos'
                else
                   tmpstr2 = ' : unknown value'
+                  abort_list = trim(abort_list)//":23"
                endif
                write(nu_diag,1030) ' albedo_type     = ', trim(albedo_type),trim(tmpstr2)
                if (trim(albedo_type) == 'ccsm3') then
@@ -1643,6 +1647,8 @@
          write(nu_diag,1021) ' diagfreq         = ', diagfreq
          write(nu_diag,1011) ' print_global     = ', print_global
          write(nu_diag,1011) ' print_points     = ', print_points
+         write(nu_diag,1011) ' debug_model      = ', debug_model
+         write(nu_diag,1022) ' debug_model_step = ', debug_model_step
          write(nu_diag,1031) ' bfbflag          = ', trim(bfbflag)
          write(nu_diag,1021) ' numin            = ', numin
          write(nu_diag,1021) ' numax            = ', numax
@@ -1823,6 +1829,7 @@
  1011    format (a20,1x,l6)
  1020    format (a20,8x,i6,1x,a)  ! integer
  1021    format (a20,1x,i6)
+ 1022    format (a20,1x,i12)
  1023    format (a20,1x,6i6)
  1030    format (a20,a14,1x,a)    ! character
  1031    format (a20,1x,a,a)
