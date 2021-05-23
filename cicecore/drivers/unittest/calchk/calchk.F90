@@ -55,8 +55,8 @@
       ndtd = 1
 
       ! test yearmax years from year 0
-      yearmax = 1000
-!      yearmax = 100000
+!      yearmax = 1000
+      yearmax = 100000
 
    ! test 3 calendars
    do n = 1,3

@@ -50,8 +50,7 @@ module ice_spacecurve
               GenCurve
 
    private :: FirstFactor,      &
-              FindandMark,      &
-              IsLoadBalanced
+              FindandMark
 
    integer(int_kind), dimension(:,:), allocatable ::  &
         dir,      &! direction to move along each level
@@ -1043,6 +1042,7 @@ contains
    end function log2
 
 !***********************************************************************
+#ifdef UNDEPRECATE_IsLoadBalanced
 !BOP
 ! !IROUTINE: IsLoadBalanced
 ! !INTERFACE:
@@ -1090,7 +1090,7 @@ contains
 !-----------------------------------------------------------------------
 
    end function IsLoadBalanced
-
+#endif
 !***********************************************************************
 !BOP
 ! !IROUTINE: GenCurve

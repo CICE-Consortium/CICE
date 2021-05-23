@@ -1716,7 +1716,7 @@
       end subroutine print_state
 
 !=======================================================================
-#ifdef DEPRECATE_print_points_state
+#ifdef UNDEPRECATE_print_points_state
 
 ! This routine is useful for debugging.
 

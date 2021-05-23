@@ -11,7 +11,7 @@ restart        gx3     8x2x8x10x20   droundrobin            restart_gx3_4x2x25x2
 restart        gx3     6x2x50x58x1   droundrobin            restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     5x2x33x23x4   droundrobin            restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     4x2x19x19x10  droundrobin            restart_gx3_4x2x25x29x4_dslenderX2
-restart        gx3     1x20x5x29x80  dsectrobin,short       restart_gx3_4x2x25x29x4_dslenderX2
+restart        gx3     20x2x5x4x30   dsectrobin,short       restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     16x2x5x10x20  drakeX2                restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     8x2x8x10x20   droundrobin,maskhalo   restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     1x4x25x29x16  droundrobin            restart_gx3_4x2x25x29x4_dslenderX2
@@ -35,7 +35,7 @@ smoke        gx3     8x2x10x12x16  debug,run2day,droundrobin            smoke_gx
 smoke        gx3     6x2x50x58x1   debug,run2day,droundrobin            smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 smoke        gx3     5x2x33x23x4   debug,run2day,droundrobin            smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 smoke        gx3     4x2x19x19x10  debug,run2day,droundrobin            smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
-smoke        gx3     1x20x5x29x80  debug,run2day,dsectrobin,short       smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
+smoke        gx3     20x2x5x4x30   debug,run2day,dsectrobin,short       smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 smoke        gx3     16x2x5x10x20  debug,run2day,drakeX2                smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 smoke        gx3     8x2x8x10x20   debug,run2day,droundrobin,maskhalo   smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 smoke        gx3     1x6x25x29x16  debug,run2day,droundrobin            smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
