@@ -1,0 +1,3 @@
+ distribution_type = 'wghtfile'
+ distribution_wght = 'file'
+ distribution_wght_file = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx1/cice62_gx1_wghtmask.nc'

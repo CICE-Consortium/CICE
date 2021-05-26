@@ -29,6 +29,9 @@
     diagfreq       = 24
     diag_type      = 'stdout'
     diag_file      = 'ice_diag.d'
+    debug_model    = .false.
+    debug_model_step = 999999999
+    forcing_diag   = .false.
     print_global   = .true.
     print_points   = .true.
     conserv_check  = .false.
@@ -36,7 +39,6 @@
     lonpnt(1)      =  0.
     latpnt(2)      = -65.
     lonpnt(2)      = -45.
-    dbug           = .false.
     histfreq       = 'm','x','x','x','x'
     histfreq_n     =  1 , 1 , 1 , 1 , 1
     hist_avg       = .true.
@@ -241,6 +243,7 @@
     processor_shape   = 'slenderX2'
     distribution_type = 'cartesian'
     distribution_wght = 'latitude'
+    distribution_wght_file = 'unknown'
     ew_boundary_type  = 'cyclic'
     ns_boundary_type  = 'open'
     maskhalo_dyn      = .false.
