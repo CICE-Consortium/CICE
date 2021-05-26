@@ -18,22 +18,24 @@ for file in $filelist; do
   # and include backslashes (-r)
   IFS=''
   contblock=0
-  cat $ofile | while read -r line || [[ -n $oline ]]; do
+  cat $ofile | while read -r line || [[ -n $line ]]; do
 
     if [[ $contblock == 1 ]]; then
+        # in a continuation block
         if [[ $line =~ ^.*"&".*$ ]]; then
-#            echo ${line} ${LCOV_EXCL}
+            # found another continuation line, add exclude string and write out line
             echo ${line} ${LCOV_EXCL} >> ${nfile}
         else
+            # continuation block ends, write out line
             contblock=0
-#            echo ${line}
             echo ${line} >> ${nfile}
         fi
     else
+        # not in a continuation block, write out line
         echo ${line} >> ${nfile}
         if [[ $line =~ ^\s*.*"&".*$ && ! $line =~ ^\s*( if ).*$ ]]; then
+            # new continuation block found
             contblock=1
-#            echo ${line}
         fi
     fi
 
