@@ -121,7 +121,8 @@
        ! in from atmosphere (if calc_Tsfc)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         zlvl    , & ! atm level height (m)
+         zlvl    , & ! atm level height (momentum) (m)
+         zlvs    , & ! atm level height (scalar quantities) (m)
          uatm    , & ! wind velocity components (m/s)
          vatm    , &
          wind    , & ! wind speed (m/s)
@@ -391,7 +392,8 @@
          iceumask   (nx_block,ny_block,max_blocks), & ! ice extent mask (U-cell)
          fm         (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
          Tbu        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
-         zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (m)
+         zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (momentum) (m)
+         zlvs       (nx_block,ny_block,max_blocks), & ! atm level height (scalar quantities) (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
          vatm       (nx_block,ny_block,max_blocks), &
          wind       (nx_block,ny_block,max_blocks), & ! wind speed (m/s)
@@ -570,7 +572,8 @@
       !-----------------------------------------------------------------
       ! fluxes received from atmosphere
       !-----------------------------------------------------------------
-      zlvl  (:,:,:) = c10             ! atm level height (m)
+      zlvl  (:,:,:) = c10             ! atm level height (momentum) (m)
+      zlvs  (:,:,:) = c10             ! atm level height (scalar quantities) (m)
       rhoa  (:,:,:) = 1.3_dbl_kind    ! air density (kg/m^3)
       uatm  (:,:,:) = c5              ! wind velocity    (m/s)
       vatm  (:,:,:) = c5
