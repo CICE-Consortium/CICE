@@ -525,7 +525,7 @@ Test Suite Examples
     This will compare to results saved in the baseline [bdir] directory under
     the subdirectory cice.v01a. With the ``--bcmp`` option, the results will be tested
     against prior baselines to verify bit-for-bit, which is an important step prior 
-    to approval of many (not all, see :ref:`compliance`) Pull Requests to incorporate code into 
+    to approval of many (not all, see :ref:`validation`) Pull Requests to incorporate code into 
     the CICE Consortium master code. You can use other regression options as well.
     (``--bdir`` and ``--bgen``)
 
@@ -625,6 +625,49 @@ Test Suite Examples
     The setenv syntax is for csh/tcsh.  In bash, the syntax would be SUITE_BUILD=true.
 
 
+.. _unittesting:
+
+Unit Testing
+---------------
+
+Unit testing is supported in the CICE scripts.  Unit tests are implemented
+via a distinct top level driver that tests CICE model features explicitly.
+These drivers can be found in **cicecore/drivers/unittest/**.  In addition,
+there are some script files that also support the unit testing.
+
+The unit tests build and run very much like the standard CICE model.
+A case is created and model output is saved to the case logs directory.
+Unit tests can be run as part of a test suite and the output is 
+compared against an earlier set of output using a simple diff of the
+log files.
+
+For example, to run the existing calendar unit test as a case,
+
+.. code-block:: bash
+
+  ./cice.setup -m onyx -e intel --case calchk01 -p 1x1 -s calchk
+  cd calchk01
+  ./cice.build
+  ./cice.submit
+
+Or to run the existing calendar unit test as a test,
+
+.. code-block:: bash
+
+  ./cice.setup -m onyx -e intel --test unittest -p 1x1 --testid cc01 -s calchk --bgen cice.cc01
+  cd onyx_intel_unittest_gx3_1x1_calchk.cc01/
+  ./cice.build
+  ./cice.submit
+
+To create a new unit test, add a new driver in **cicecore/driver/unittest**.
+The directory name should be the name of the test.
+Then create the appropriate set_nml or set_env files for the new unittest name
+in **configuration/scripts/options**.  In particular, **ICE_DRVOPT** and
+**ICE_TARGET** need to be defined in a set_env file.  Finally, edit
+**configuration/scripts/Makefile** and create a target for the unit test.
+The unit tests calchk or helloworld can be used as examples.
+
+
 .. _testreporting:
 
 Test Reporting
@@ -672,7 +715,10 @@ This argument turns on special compiler flags including reduced optimization and
 invokes the gcov tool.  Once runs are complete, either lcov or codecov can be used
 to analyze the results.
 This option is currently only available with the gnu compiler and on a few systems
-with modified Macros files.
+with modified Macros files.  In the current implementation, when ``--coverage`` is 
+invoked, the sandbox is copied to a new sandbox called something like cice_lcov_yymmdd-hhmmss.
+The source code in the new sandbox is modified slightly to improve coverage statistics
+and the full coverage suite is run there.
 
 At the present time, the ``--coverage`` flag invokes the lcov analysis automatically
 by running the **report_lcov.csh** script in the test suite directory.  The output 
@@ -728,9 +774,9 @@ assess test coverage.
 ..in the future.
 
 
-.. _compliance:
+.. _validation:
 
-Code Compliance Test (non bit-for-bit validation)
+Code Validation Test (non bit-for-bit validation)
 ----------------------------------------------------
 
 A core tenet of CICE dycore and CICE innovations is that they must not change 
@@ -855,7 +901,7 @@ autocorrelation :math:`r_1`.
 .. _quadratic:
 
 
-Quadratic Skill Compliance Test
+Quadratic Skill Validation Test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the two-stage test of mean sea ice thickness, we also
@@ -939,12 +985,12 @@ hemispheres, and must exceed a critical value nominally set to
 test and the Two-Stage test described in the previous section are
 provided in :cite:`Hunke18`.
 
-.. _CodeCompliance:
+.. _CodeValidation:
 
-Code Compliance Testing Procedure
+Code Validation Testing Procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The CICE code compliance test is performed by running a python script 
+The CICE code validation (QC) test is performed by running a python script 
 (**configurations/scripts/tests/QC/cice.t-test.py**).
 In order to run the script, the following requirements must be met:
 
@@ -958,7 +1004,7 @@ QC testing should be carried out using configurations (ie. namelist settings) th
 exercise the active code modifications.  Multiple configurations may need to be tested 
 in some cases.  Developers can contact the Consortium for guidance or if there are questions.
 
-In order to generate the files necessary for the compliance test, test cases should be
+In order to generate the files necessary for the validation test, test cases should be
 created with the ``qc`` option (i.e., ``--set qc``) when running cice.setup.  This 
 option results in daily, non-averaged history files being written for a 5 year simulation.
 
@@ -970,7 +1016,7 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user numpy
   pip install --user matplotlib
 
-To run the compliance test, setup a baseline run with the original baseline model and then 
+To run the validation test, setup a baseline run with the original baseline model and then 
 a perturbation run based on recent model changes.  Use ``--set qc`` in both runs in addition
 to other settings needed.  Then use the QC script to compare history output,
 

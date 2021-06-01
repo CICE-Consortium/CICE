@@ -82,11 +82,11 @@ if ("${shrepo}" !~ "*cice-consortium*") then
 endif
 
 set noglob
-set green  = "\![#00C000](https://placehold.it/15/00C000/000000?text=+)"
-set red    = "\![#F00000](https://placehold.it/15/F00000/000000?text=+)"
-set orange = "\![#FFA500](https://placehold.it/15/FFA500/000000?text=+)"
-set yellow = "\![#FFE600](https://placehold.it/15/FFE600/000000?text=+)"
-set gray   = "\![#AAAAAA](https://placehold.it/15/AAAAAA/000000?text=+)"
+set green  = "\![#00C000](images/00C000.png)"
+set red    = "\![#F00000](images/F00000.png)"
+set orange = "\![#FFA500](images/FFA500.png)"
+set yellow = "\![#FFE600](images/FFE600.png)"
+set gray   = "\![#AAAAAA](images/AAAAAA.png)"
 unset noglob
 
 #==============================================================

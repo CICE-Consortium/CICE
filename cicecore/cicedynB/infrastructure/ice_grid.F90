@@ -26,7 +26,7 @@
       use ice_domain, only: blocks_ice, nblocks, halo_info, distrb_info, &
           ew_boundary_type, ns_boundary_type, init_domain_distribution
       use ice_fileunits, only: nu_diag, nu_grid, nu_kmt, &
-          get_fileunit, release_fileunit
+          get_fileunit, release_fileunit, flush_fileunit
       use ice_gather_scatter, only: gather_global, scatter_global
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc
@@ -384,11 +384,9 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
-!     tarea(:,:,:) = c0
-
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -486,7 +484,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     angle_0,angle_w,angle_s,angle_sw)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -642,7 +640,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -785,7 +783,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1104,7 +1102,7 @@
 
      !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,i,j)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1198,15 +1196,9 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            ANGLE(i,j,iblk) = c0              ! "square with the world"
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+      hm (:,:,:) = c0
+      kmt(:,:,:) = c0
+      angle(:,:,:) = c0   ! "square with the world"
 
       allocate(work_g1(nx_global,ny_global))
 
@@ -1396,7 +1388,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1636,11 +1628,10 @@
       !-----------------------------------------------------------------
 
       bm = c0
-!     uvm = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1663,12 +1654,19 @@
                            field_loc_center, field_type_scalar)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            tmask(i,j,iblk) = .false.
-            umask(i,j,iblk) = .false.
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         ! needs to cover halo (no halo update for logicals)
+         tmask(:,:,iblk) = .false.
+         umask(:,:,iblk) = .false.
+         do j = jlo-nghost, jhi+nghost
+         do i = ilo-nghost, ihi+nghost
             if ( hm(i,j,iblk) > p5) tmask(i,j,iblk) = .true.
             if (uvm(i,j,iblk) > p5) umask(i,j,iblk) = .true.
          enddo
@@ -1684,11 +1682,14 @@
          tarean(:,:,iblk) = c0
          tareas(:,:,iblk) = c0
 
-         do j = 1, ny_block
-         do i = 1, nx_block
+         do j = jlo,jhi
+         do i = ilo,ihi
 
-            if (ULAT(i,j,iblk) >= -puny) lmask_n(i,j,iblk) = .true. ! N. Hem.
-            if (ULAT(i,j,iblk) <  -puny) lmask_s(i,j,iblk) = .true. ! S. Hem.
+            if (ULAT(i,j,iblk) >= -puny) then
+               lmask_n(i,j,iblk) = .true. ! N. Hem.
+            else
+               lmask_s(i,j,iblk) = .true. ! S. Hem.
+            endif
 
             ! N hemisphere area mask (m^2)
             if (lmask_n(i,j,iblk)) tarean(i,j,iblk) = tarea(i,j,iblk) &
@@ -1743,7 +1744,7 @@
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
       !$OMP                     tx,ty,tz,da)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1915,7 +1916,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2000,7 +2001,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2073,7 +2074,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2400,8 +2401,9 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               k = kmt(i,j,iblk)
-               if (k > puny) bathymetry(i,j,iblk) = depth(k)
+               k = min(nint(kmt(i,j,iblk)),nlevel)
+               if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
+               if (k > 0) bathymetry(i,j,iblk) = depth(k)
             enddo
             enddo
          enddo
@@ -2431,7 +2433,7 @@
 
       character(len=*), parameter :: subname = '(get_bathymetry_popfile)'
 
-      ntmp = maxval(KMT)
+      ntmp = maxval(nint(KMT))
       nlevel = global_maxval(ntmp,distrb_info)
 
       if (my_task==master_task) then
@@ -2491,8 +2493,8 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            k = kmt(i,j,iblk)
-            if (k > nlevel) call abort_ice(subname//' kmt/nlevel error')
+            k = nint(kmt(i,j,iblk))
+            if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
             if (k > 0) bathymetry(i,j,iblk) = depth(k)
          enddo
          enddo

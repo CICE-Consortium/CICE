@@ -390,6 +390,18 @@ if ((${dosuite} == 1 || ${dotest} == 1) && ${testid} == ${spval}) then
   exit -1
 endif
 
+# This creates a new sandbox and modifies the source code for "improved" lcov analysis
+# Turn this if block off if you don't want coverage to do that
+if ($coverage == 1) then
+  set sandbox_lcov = ${ICE_SANDBOX}/../cice_lcov_${sdate}-${stime}
+  cp -p -r ${ICE_SANDBOX} ${sandbox_lcov}
+  echo "shifting to sandbox = ${sandbox_lcov}"
+  set ICE_SANDBOX = ${sandbox_lcov}
+  set ICE_SCRIPTS = "${ICE_SANDBOX}/configuration/scripts"
+  cd ${ICE_SANDBOX}
+  ${ICE_SCRIPTS}/tests/lcov_modify_source.sh
+endif
+
 #---------------------------------------------------------------------
 # Setup tsfile and test suite support stuff
 
@@ -1094,7 +1106,7 @@ cd ${testname_base}
 source ./cice.settings
 if (\${dobuild} == true) then
    if (\${doreuse} == true) then
-     set ciceexe = "../ciceexe.\${ICE_ENVNAME}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
+     set ciceexe = "../ciceexe.\${ICE_TARGET}.\${ICE_ENVNAME}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
      ./cice.build --exe \${ciceexe}
      if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
    else

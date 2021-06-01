@@ -12,7 +12,7 @@
       module ice_step_mod
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, c1000, c4
+      use ice_constants, only: c0, c1, c1000, c4, p25
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -189,18 +189,18 @@
       use ice_prescribed_mod, only: prescribed_ice
 #else
       logical (kind=log_kind) :: & 
-         prescribed_ice ! if .true., use prescribed ice instead of computed
+         prescribed_ice     ! if .true., use prescribed ice instead of computed
 #endif
       real (kind=dbl_kind), intent(in) :: &
-         dt      ! time step
+         dt                 ! time step (s)
 
       integer (kind=int_kind), intent(in) :: &
-         iblk    ! block index
+         iblk               ! block index
 
       ! local variables
 #ifdef CICE_IN_NEMO
       real (kind=dbl_kind)    :: & 
-         raice              ! temporary reverse ice concentration
+         raice              ! reciprocal of ice concentration
 #endif
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
@@ -215,24 +215,27 @@
 
       logical (kind=log_kind) :: &
          tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, tr_pond_cesm, &
-         tr_pond_lvl, tr_pond_topo, calc_Tsfc
+         tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq
 
       real (kind=dbl_kind) :: &
-         puny
+         uvel_center, &     ! cell-centered velocity, x component (m/s)
+         vvel_center, &     ! cell-centered velocity, y component (m/s)
+         puny               ! a very small number
 
       real (kind=dbl_kind), dimension(n_aero,2,ncat) :: &
-         aerosno,  aeroice    ! kg/m^2
+         aerosno,  aeroice  ! kg/m^2
 
       real (kind=dbl_kind), dimension(n_iso,ncat) :: &
-         isosno,  isoice      ! kg/m^2
+         isosno,  isoice    ! kg/m^2
 
       type (block) :: &
-         this_block      ! block information for current block
+         this_block         ! block information for current block
 
       character(len=*), parameter :: subname = '(step_therm1)'
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
+      call icepack_query_parameters(highfreq_out=highfreq)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_iso_out=tr_iso, &
@@ -289,6 +292,16 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
+         if (highfreq) then ! include ice velocity in calculation of wind stress
+            uvel_center = p25*(uvel(i,j  ,iblk) + uvel(i-1,j  ,iblk) & ! cell-centered velocity
+                             + uvel(i,j-1,iblk) + uvel(i-1,j-1,iblk))  ! assumes wind components
+            vvel_center = p25*(vvel(i,j  ,iblk) + vvel(i-1,j  ,iblk) & ! are also cell-centered
+                             + vvel(i,j-1,iblk) + vvel(i-1,j-1,iblk))
+         else
+            uvel_center = c0 ! not used
+            vvel_center = c0
+         endif ! highfreq
+
          if (tr_iso) then ! trcrn(nt_iso*) has units kg/m^3
             do n=1,ncat
                do k=1,n_iso
@@ -324,8 +337,8 @@
                       vicen        = vicen       (i,j,:,iblk), &
                       vsno         = vsno        (i,j,  iblk), &
                       vsnon        = vsnon       (i,j,:,iblk), &
-                      uvel         = uvel        (i,j,  iblk), &
-                      vvel         = vvel        (i,j,  iblk), &
+                      uvel         = uvel_center             , &
+                      vvel         = vvel_center             , &
                       Tsfc         = trcrn       (i,j,nt_Tsfc,:,iblk),                   &
                       zqsn         = trcrn       (i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk),   & 
                       zqin         = trcrn       (i,j,nt_qice:nt_qice+nilyr-1,:,iblk),   & 
@@ -1026,7 +1039,7 @@
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, &
           gaer_bc_tab, bcenh, swgrid, igrid
       use ice_blocks, only: block, get_block
-      use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, sec
+      use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, msec
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
       use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow
@@ -1145,7 +1158,7 @@
                          calendar_type=calendar_type,                         &
                          days_per_year=days_per_year,                         &
                          nextsw_cday=nextsw_cday, yday=yday,                  &
-                         sec=sec,                                             &
+                         sec=msec,                                             &
                          kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
                          waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
                          gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &
