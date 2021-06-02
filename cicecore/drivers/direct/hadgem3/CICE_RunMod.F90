@@ -351,7 +351,8 @@
 
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
           albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
-      use ice_blocks, only: block, nx_block, ny_block
+      use ice_blocks, only: nx_block, ny_block, get_block, block
+      use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
       use ice_domain_size, only: ncat
       use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
@@ -375,10 +376,14 @@
       ! local variables
 
       integer (kind=int_kind) :: & 
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          n           , & ! thickness category index
          i,j         , & ! horizontal indices
          k           , & ! tracer index
          nbtrcr          !
+
+      type (block) :: &
+         this_block         ! block information for current block
 
       logical (kind=log_kind) :: &
          calc_Tsfc       !
@@ -440,9 +445,16 @@
             enddo
          enddo
          enddo
+
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
          do n = 1, ncat
-         do j = 1, ny_block
-         do i = 1, nx_block
+         do j = jlo, jhi
+         do i = ilo, ihi
             if (aicen(i,j,n,iblk) > puny) then
                   
             alvdf(i,j,iblk) = alvdf(i,j,iblk) &
