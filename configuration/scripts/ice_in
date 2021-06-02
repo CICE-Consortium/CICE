@@ -30,8 +30,12 @@
     diag_type      = 'stdout'
     diag_file      = 'ice_diag.d'
     debug_model    = .false.
-    debug_model_step = 999999999
-    forcing_diag   = .false.
+    debug_model_step = 0
+    debug_model_i  = -1
+    debug_model_j  = -1
+    debug_model_iblk = -1
+    debug_model_task = -1
+    debug_forcing  = .false.
     print_global   = .true.
     print_points   = .true.
     conserv_check  = .false.
@@ -258,6 +262,7 @@
     restart_hbrine  = .false.
     tr_zaero        = .false.
     modal_aero      = .false.
+    optics_file     = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/snicar_optics_5bnd_snow_and_aerosols.nc'
     skl_bgc         = .false.
     z_tracers       = .false.
     dEdd_algae      = .false.

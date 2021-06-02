@@ -158,7 +158,7 @@
          trest                       ! restoring time scale (sec)
 
       logical (kind=log_kind), public :: &
-         forcing_diag                ! prints forcing debugging output if true
+         debug_forcing               ! prints forcing debugging output if true
 
       real (dbl_kind), dimension(:), allocatable, public :: &
          jday_atm  ! jday time vector from atm forcing files
@@ -173,7 +173,7 @@
          mixed_layer_depth_default = c20  ! default mixed layer depth in m
 
       logical (kind=log_kind), parameter :: &
-         forcing_debug = .false.   ! local debug flag
+         local_debug = .false.   ! local debug flag
 
 !=======================================================================
 
@@ -187,7 +187,7 @@
       integer (int_kind) :: ierr
       character(len=*), parameter :: subname = '(alloc_forcing)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       allocate ( &
                  cldf(nx_block,ny_block, max_blocks), & ! cloud fraction
@@ -235,13 +235,13 @@
       integer (kind=int_kind) :: modadj   ! adjustment for mod function
       character(len=*), parameter :: subname = '(init_forcing_atmo)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       modadj      = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
       fyear       = fyear_init + mod(myear-fyear_init+modadj,ycycle)
       fyear_final = fyear_init + ycycle - 1 ! last year in forcing cycle
 
-      if (forcing_debug .and. my_task == master_task) then
+      if (local_debug .and. my_task == master_task) then
          write(nu_diag,*) subname,'fdbg fyear = ',fyear,fyear_init,fyear_final
          write(nu_diag,*) subname,'fdbg atm_data_type = ',trim(atm_data_type)
       endif
@@ -344,7 +344,7 @@
 
       character(len=*), parameter :: subname = '(init_forcing_ocn)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
@@ -389,7 +389,7 @@
          sss(:,:,:) = c0
 
          do k = 1,12            ! loop over 12 months
-            call ice_read (nu_forcing, k, work1, 'rda8', forcing_diag, &
+            call ice_read (nu_forcing, k, work1, 'rda8', debug_forcing, &
                            field_loc_center, field_type_scalar)
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
@@ -436,7 +436,7 @@
          if (my_task == master_task) &
               call ice_open (nu_forcing, sst_file, nbits)
 
-         call ice_read (nu_forcing, mmonth, sst, 'rda8', forcing_diag, &
+         call ice_read (nu_forcing, mmonth, sst, 'rda8', debug_forcing, &
                         field_loc_center, field_type_scalar)
 
          if (my_task == master_task) close(nu_forcing)
@@ -520,7 +520,7 @@
 
       character(len=*), parameter :: subname = '(ocn_freezing_temperature)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
@@ -565,7 +565,7 @@
 
       character(len=*), parameter :: subname = '(get_forcing_atmo)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_forcing)
 
@@ -588,7 +588,7 @@
       ! Read and interpolate atmospheric data
       !-------------------------------------------------------------------
 
-      if (forcing_debug .and. my_task == master_task) then
+      if (local_debug .and. my_task == master_task) then
          write(nu_diag,*) subname,'fdbg fyear = ',fyear
          write(nu_diag,*) subname,'fdbg atm_data_type = ',trim(atm_data_type)
       endif
@@ -688,11 +688,11 @@
 
       character(len=*), parameter :: subname = '(get_forcing_ocn)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_forcing)
 
-      if (forcing_debug .and. my_task == master_task) then
+      if (local_debug .and. my_task == master_task) then
          write(nu_diag,*) subname,'fdbg fyear = ',fyear
          write(nu_diag,*) subname,'fdbg ocn_data_type = ',trim(ocn_data_type)
       endif
@@ -770,15 +770,15 @@
 
       character(len=*), parameter :: subname = '(read_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
       nbits = 64              ! double precision data
 
-      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
+      if (istep1 > debug_model_step) debug_forcing = .true.  !! debugging
 
-      if (my_task==master_task .and. (forcing_diag)) then
+      if (my_task==master_task .and. (debug_forcing)) then
          write(nu_diag,*) '  ', trim(data_file)
       endif
 
@@ -816,7 +816,7 @@
             arg = 1
             nrec = recd + n2
             call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                           'rda8', forcing_diag, field_loc, field_type)
+                           'rda8', debug_forcing, field_loc, field_type)
 
             if (ixx==1 .and. my_task == master_task) close(nu_forcing)
          endif                  ! ixm ne -99
@@ -828,7 +828,7 @@
          arg = arg + 1
          nrec = recd + ixx
          call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                        'rda8', forcing_diag, field_loc, field_type)
+                        'rda8', debug_forcing, field_loc, field_type)
 
          if (ixp /= -99) then
          ! currently in latter half of data interval
@@ -853,7 +853,7 @@
             arg = arg + 1
             nrec = recd + n4
             call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                           'rda8', forcing_diag, field_loc, field_type)
+                           'rda8', debug_forcing, field_loc, field_type)
          endif                  ! ixp /= -99
 
          if (my_task == master_task) close(nu_forcing)
@@ -923,13 +923,13 @@
 
       character(len=*), parameter :: subname = '(read_data_nc)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
-      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
+      if (istep1 > debug_model_step) debug_forcing = .true.  !! debugging
 
-      if (my_task==master_task .and. (forcing_diag)) then
+      if (my_task==master_task .and. (debug_forcing)) then
          write(nu_diag,*) '  ', trim(data_file)
       endif
 
@@ -968,7 +968,7 @@
             nrec = recd + n2
 
             call ice_read_nc & 
-                 (fid, nrec, fieldname, field_data(:,:,arg,:), forcing_diag, &
+                 (fid, nrec, fieldname, field_data(:,:,arg,:), debug_forcing, &
                   field_loc, field_type)
 
             if (ixx==1) call ice_close_nc(fid)
@@ -982,7 +982,7 @@
          nrec = recd + ixx
 
          call ice_read_nc & 
-              (fid, nrec, fieldname, field_data(:,:,arg,:), forcing_diag, &
+              (fid, nrec, fieldname, field_data(:,:,arg,:), debug_forcing, &
                field_loc, field_type)
 
          if (ixp /= -99) then
@@ -1008,7 +1008,7 @@
             nrec = recd + n4
 
             call ice_read_nc & 
-                 (fid, nrec, fieldname, field_data(:,:,arg,:), forcing_diag, &
+                 (fid, nrec, fieldname, field_data(:,:,arg,:), debug_forcing, &
                   field_loc, field_type)
          endif                  ! ixp /= -99
 
@@ -1061,13 +1061,13 @@
 
       character(len=*), parameter :: subname = '(read_data_nc_hycom)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
-      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
+      if (istep1 > debug_model_step) debug_forcing = .true.  !! debugging
 
-      if (my_task==master_task .and. (forcing_diag)) then
+      if (my_task==master_task .and. (debug_forcing)) then
          write(nu_diag,*) '  ', trim(data_file)
       endif
 
@@ -1078,11 +1078,11 @@
       ! read data
       !-----------------------------------------------------------------
          call ice_read_nc &
-               (fid, recd , fieldname, field_data(:,:,1,:), forcing_diag, &
+               (fid, recd , fieldname, field_data(:,:,1,:), debug_forcing, &
                 field_loc, field_type)
 
          call ice_read_nc &
-              (fid, recd+1, fieldname, field_data(:,:,2,:), forcing_diag, &
+              (fid, recd+1, fieldname, field_data(:,:,2,:), debug_forcing, &
                field_loc, field_type)
 
          call ice_close_nc(fid)
@@ -1131,15 +1131,15 @@
 
       character(len=*), parameter :: subname = '(read_clim_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
       nbits = 64                ! double precision data
 
-      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
+      if (istep1 > debug_model_step) debug_forcing = .true.  !! debugging
 
-      if (my_task==master_task .and. (forcing_diag)) &
+      if (my_task==master_task .and. (debug_forcing)) &
         write(nu_diag,*) '  ', trim(data_file)
 
       if (readflag) then
@@ -1155,19 +1155,19 @@
             arg = 1
             nrec = recd + ixm
             call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                           'rda8', forcing_diag, field_loc, field_type)
+                           'rda8', debug_forcing, field_loc, field_type)
          endif
 
          arg = arg + 1
          nrec = recd + ixx
          call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                        'rda8', forcing_diag, field_loc, field_type)
+                        'rda8', debug_forcing, field_loc, field_type)
 
          if (ixp /= -99) then
             arg = arg + 1
             nrec = recd + ixp
             call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                           'rda8', forcing_diag, field_loc, field_type)
+                           'rda8', debug_forcing, field_loc, field_type)
          endif
 
          if (my_task == master_task) close (nu_forcing)
@@ -1218,13 +1218,13 @@
 
       character(len=*), parameter :: subname = '(read_clim_data_nc)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
-      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
+      if (istep1 > debug_model_step) debug_forcing = .true.  !! debugging
 
-      if (my_task==master_task .and. (forcing_diag)) &
+      if (my_task==master_task .and. (debug_forcing)) &
         write(nu_diag,*) '  ', trim(data_file)
 
       if (readflag) then
@@ -1241,21 +1241,21 @@
             nrec = recd + ixm
             call ice_read_nc & 
                  (fid, nrec, fieldname, field_data(:,:,arg,:), &
-                  forcing_diag, field_loc, field_type)
+                  debug_forcing, field_loc, field_type)
          endif
 
          arg = arg + 1
          nrec = recd + ixx
          call ice_read_nc & 
                  (fid, nrec, fieldname, field_data(:,:,arg,:), &
-                  forcing_diag, field_loc, field_type)
+                  debug_forcing, field_loc, field_type)
 
          if (ixp /= -99) then
             arg = arg + 1
             nrec = recd + ixp
             call ice_read_nc & 
                  (fid, nrec, fieldname, field_data(:,:,arg,:), &
-                  forcing_diag, field_loc, field_type)
+                  debug_forcing, field_loc, field_type)
          endif
 
          if (my_task == master_task) call ice_close_nc (fid)
@@ -1286,7 +1286,7 @@
 
       character(len=*), parameter :: subname = '(interp_coeff_monthly)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
@@ -1355,7 +1355,7 @@
 
       character(len=*), parameter :: subname = '(interp_coeff)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
@@ -1387,7 +1387,7 @@
       c1intp =  abs((t2 - tt) / (t2 - t1))
       c2intp =  c1 - c1intp
 
-      if (forcing_debug .and. my_task == master_task) then
+      if (local_debug .and. my_task == master_task) then
          write(nu_diag,*) subname,'fdbg yday,sec = ',yday,msec
          write(nu_diag,*) subname,'fdbg tt = ',tt
          write(nu_diag,*) subname,'fdbg c12intp = ',c1intp,c2intp
@@ -1408,7 +1408,7 @@
           t1, t2       ! first+last decimal daynumber
       character(len=*), parameter :: subname = '(interp_coeff2)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       ! Compute coefficients
       c1intp =  abs((t2 - tt) / (t2 - t1))
@@ -1438,7 +1438,7 @@
 
       character(len=*), parameter :: subname = '(interpolate data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
@@ -1471,7 +1471,7 @@
 
       character(len=*), parameter :: subname = '(file_year)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       if (trim(atm_data_type) == 'hadgem') then ! netcdf
          i = index(data_file,'.nc') - 5
@@ -1559,7 +1559,7 @@
 
       character(len=*), parameter :: subname = '(prepare_forcing)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(Tffresh_out=Tffresh, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
@@ -1779,7 +1779,7 @@
 
       character(len=*), parameter :: subname = '(longwave_parkinson_washington)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(Tffresh_out=Tffresh, &
            stefan_boltzmann_out=stefan_boltzmann)
@@ -1831,7 +1831,7 @@
 
       character(len=*), parameter :: subname = '(longwave_rosati_miyakoda)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(Tffresh_out=Tffresh, &
            stefan_boltzmann_out=stefan_boltzmann, &
@@ -1870,7 +1870,7 @@
 
       character(len=*), parameter :: subname = '(ncar_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       fsw_file = &
            trim(atm_data_dir)//'/MONTHLY/swdn.1996.dat'
@@ -1943,7 +1943,7 @@
 
       character(len=*), parameter :: subname = '(ncar_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
@@ -2097,7 +2097,7 @@
 
       character(len=*), parameter :: subname = '(LY_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       flw_file = &
            trim(atm_data_dir)//'/MONTHLY/cldf.omip.dat'
@@ -2144,7 +2144,7 @@
 
       character(len=*), parameter :: subname = '(JRA55_gx1_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       uwind_file = &
            trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_2005.nc'
@@ -2165,7 +2165,7 @@
 
       character(len=*), parameter :: subname = '(JRA55_tx1_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       uwind_file = &
            trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_tx1_2005.nc'
@@ -2186,7 +2186,7 @@
 
       character(len=*), parameter :: subname = '(JRA55_gx3_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       uwind_file = &
            trim(atm_data_dir)//'/8XDAILY/JRA55_gx3_03hr_forcing_2005.nc'
@@ -2237,7 +2237,7 @@
 
       character(len=*), parameter :: subname = '(LY_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
@@ -2386,7 +2386,7 @@
       ! Save record number
       oldrecnum = recnum
 
-         if (forcing_diag) then
+         if (debug_forcing) then
            if (my_task == master_task) write (nu_diag,*) 'LY_bulk_data'
            vmin = global_minval(fsw,distrb_info,tmask)
                                
@@ -2418,7 +2418,7 @@
            if (my_task.eq.master_task)  &
                write (nu_diag,*) 'Qa',vmin,vmax
 
-        endif                   ! forcing_diag
+        endif                   ! debug_forcing
 
       end subroutine LY_data
 
@@ -2458,7 +2458,7 @@
       character (char_len_long) :: uwind_file_old
       character(len=*), parameter :: subname = '(JRA55_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
@@ -2469,7 +2469,7 @@
       sec3hr = secday/c8        ! seconds in 3 hours
       maxrec = days_per_year * 8
 
-      if (forcing_debug .and. my_task == master_task) then
+      if (local_debug .and. my_task == master_task) then
          write(nu_diag,*) subname,'fdbg dpy, maxrec = ',days_per_year,maxrec
       endif
 
@@ -2521,7 +2521,7 @@
             endif
          endif
 
-         if (forcing_debug .and. my_task == master_task) then
+         if (local_debug .and. my_task == master_task) then
             write(nu_diag,*) subname,'fdbg read recnum = ',recnum,n1
          endif
 
@@ -2545,37 +2545,37 @@
             else
 
                fieldname = 'airtmp'
-               call ice_read_nc(ncid,recnum,fieldname,Tair_data(:,:,n1,:),forcing_debug, &
+               call ice_read_nc(ncid,recnum,fieldname,Tair_data(:,:,n1,:),local_debug, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
                fieldname = 'wndewd'
-               call ice_read_nc(ncid,recnum,fieldname,uatm_data(:,:,n1,:),forcing_debug, &
+               call ice_read_nc(ncid,recnum,fieldname,uatm_data(:,:,n1,:),local_debug, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
                fieldname = 'wndnwd'
-               call ice_read_nc(ncid,recnum,fieldname,vatm_data(:,:,n1,:),forcing_debug, &
+               call ice_read_nc(ncid,recnum,fieldname,vatm_data(:,:,n1,:),local_debug, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
                fieldname = 'spchmd'
-               call ice_read_nc(ncid,recnum,fieldname,Qa_data(:,:,n1,:),forcing_debug, &
+               call ice_read_nc(ncid,recnum,fieldname,Qa_data(:,:,n1,:),local_debug, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
                fieldname = 'glbrad'
-               call ice_read_nc(ncid,recnum,fieldname,fsw_data(:,:,n1,:),forcing_debug, &
+               call ice_read_nc(ncid,recnum,fieldname,fsw_data(:,:,n1,:),local_debug, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
                fieldname = 'dlwsfc'
-               call ice_read_nc(ncid,recnum,fieldname,flw_data(:,:,n1,:),forcing_debug, &
+               call ice_read_nc(ncid,recnum,fieldname,flw_data(:,:,n1,:),local_debug, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
                fieldname = 'ttlpcp'
-               call ice_read_nc(ncid,recnum,fieldname,fsnow_data(:,:,n1,:),forcing_debug, &
+               call ice_read_nc(ncid,recnum,fieldname,fsnow_data(:,:,n1,:),local_debug, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
             endif  ! copy data from n1=2 from last timestep to n1=1
@@ -2603,7 +2603,7 @@
          call abort_ice (error_message=subname//' ERROR: c2intp out of range', &
             file=__FILE__, line=__LINE__)
       endif
-      if (forcing_debug .and. my_task == master_task) then
+      if (local_debug .and. my_task == master_task) then
          write(nu_diag,*) subname,'fdbg c12intp = ',c1intp,c2intp
       endif
 
@@ -2644,7 +2644,7 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
-      if (forcing_diag .or. forcing_debug) then
+      if (debug_forcing .or. local_debug) then
          if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg JRA55_bulk_data'
          vmin = global_minval(fsw,distrb_info,tmask)
          vmax = global_maxval(fsw,distrb_info,tmask)
@@ -2667,7 +2667,7 @@
          vmin = global_minval(Qa,distrb_info,tmask)
          vmax = global_maxval(Qa,distrb_info,tmask)
          if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg Qa',vmin,vmax
-      endif                   ! forcing_diag
+      endif                   ! debug_forcing
 
       end subroutine JRA55_data
 
@@ -2714,7 +2714,7 @@
 
       character(len=*), parameter :: subname = '(compute_shortwave)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(secday_out=secday, pi_out=pi)
       call icepack_warnings_flush(nu_diag)
@@ -2778,7 +2778,7 @@
 
       character(len=*), parameter :: subname = '(Qa_fixLY)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(Tffresh_out=Tffresh, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
@@ -2822,7 +2822,7 @@
 
       character(len=*), parameter :: subname = '(hadgem_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(calc_strair_out=calc_strair, &
            calc_Tsfc_out=calc_Tsfc)
@@ -3022,7 +3022,7 @@
 
       character(len=*), parameter :: subname = '(hadgem_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(Lsub_out=Lsub)
       call icepack_query_parameters(calc_strair_out=calc_strair, &
@@ -3253,7 +3253,7 @@
 
       character(len=*), parameter :: subname = '(monthly_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       flw_file = &
            trim(atm_data_dir)//'/MONTHLY/cldf.omip.dat'
@@ -3326,7 +3326,7 @@
       
       character(len=*), parameter :: subname = '(monthly_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -3425,7 +3425,7 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
-         if (forcing_diag) then
+         if (debug_forcing) then
            if (my_task == master_task) write (nu_diag,*) 'LY_bulk_data'
            vmin = global_minval(fsw,distrb_info,tmask)
            vmax = global_maxval(fsw,distrb_info,tmask)
@@ -3460,7 +3460,7 @@
            if (my_task.eq.master_task)  &
                write (nu_diag,*) 'Qa',vmin,vmax
 
-        endif                   ! forcing_diag
+        endif                   ! debug_forcing
 
       end subroutine monthly_data
 
@@ -3507,7 +3507,7 @@
        
       character(len=*), parameter :: subname = '(oned_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       diag = .false.   ! write diagnostic information 
    
@@ -3584,7 +3584,7 @@
 
       character(len=*), parameter :: subname = '(oned_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       fsw_file = &
            trim(atm_data_dir)//'/hourlysolar_brw1989_5yr.nc'
@@ -3651,7 +3651,7 @@
 
       character(len=*), parameter :: subname = '(ocn_data_clim)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       if (my_task == master_task .and. istep == 1) then
          if (trim(ocn_data_type)=='clim') then
@@ -3809,7 +3809,7 @@
 
       character(len=*), parameter :: subname = '(ocn_data_ncar_init)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       if (my_task == master_task) then
 
@@ -3861,10 +3861,10 @@
                 
             ! Note: netCDF does single to double conversion if necessary
 !           if (n >= 4 .and. n <= 7) then
-!              call ice_read_nc(fid, m, vname(n), work1, forcing_diag, &
+!              call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
 !                               field_loc_NEcorner, field_type_vector)
 !           else
-               call ice_read_nc(fid, m, vname(n), work1, forcing_diag, &
+               call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
                                 field_loc_center, field_type_scalar)
 !           endif
 
@@ -3889,10 +3889,10 @@
            do m=1,12
               nrec = nrec + 1
               if (n >= 4 .and. n <= 7) then
-                call ice_read (nu_forcing, nrec, work1, 'rda8', forcing_diag, &
+                call ice_read (nu_forcing, nrec, work1, 'rda8', debug_forcing, &
                                field_loc_NEcorner, field_type_vector)
               else
-                call ice_read (nu_forcing, nrec, work1, 'rda8', forcing_diag, &
+                call ice_read (nu_forcing, nrec, work1, 'rda8', debug_forcing, &
                                field_loc_center, field_type_scalar)
               endif
               ocn_frc_m(:,:,:,n,m) = work1(:,:,:)
@@ -3969,7 +3969,7 @@
 
       character(len=*), parameter :: subname = '(ocn_data_ncar_init_3D)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       if (my_task == master_task) then
 
@@ -4023,10 +4023,10 @@
             ! Note: netCDF does single to double conversion if necessary
             if (n == 4 .or. n == 5) then ! 3D currents
                nzlev = 1                 ! surface currents
-               call ice_read_nc_uv(fid, m, nzlev, vname(n), work1, forcing_diag, &
+               call ice_read_nc_uv(fid, m, nzlev, vname(n), work1, debug_forcing, &
                                 field_loc_center, field_type_scalar)
             else
-               call ice_read_nc(fid, m, vname(n), work1, forcing_diag, &
+               call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
                                 field_loc_center, field_type_scalar)
             endif
 
@@ -4108,7 +4108,7 @@
 
       character(len=*), parameter :: subname = '(ocn_data_ncar)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
     !-------------------------------------------------------------------
     ! monthly data 
@@ -4213,7 +4213,7 @@
         !$OMP END PARALLEL DO
       endif
 
-      if (forcing_diag) then
+      if (debug_forcing) then
          if (my_task == master_task)  &
                write (nu_diag,*) 'ocn_data_ncar'
            vmin = global_minval(Tf,distrb_info,tmask)
@@ -4267,7 +4267,7 @@
 
       character(len=*), parameter :: subname = '(ocn_data_oned)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       sss    (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
 
@@ -4324,7 +4324,7 @@
 
       character(len=*), parameter :: subname = '(ocn_data_hadgem)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
     !-------------------------------------------------------------------
     ! monthly data
@@ -4482,7 +4482,7 @@
 
         character(len=*), parameter :: subname = '(ocn_data_hycom_init)'
 
-        if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+        if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
         if (trim(ocn_data_type) == 'hycom') then
            sss_file = trim(ocn_data_dir)//'ice.restart.surf.nc'
@@ -4494,7 +4494,7 @@
 
            fieldname = 'sss'
            call ice_open_nc (sss_file, fid)
-           call ice_read_nc (fid, 1 , fieldname, sss, forcing_diag, &
+           call ice_read_nc (fid, 1 , fieldname, sss, debug_forcing, &
                              field_loc_center, field_type_scalar)
            call ice_close_nc(fid)
 
@@ -4509,7 +4509,7 @@
 
            fieldname = 'sst'
            call ice_open_nc (sst_file, fid)
-           call ice_read_nc (fid, 1 , fieldname, sst, forcing_diag, &
+           call ice_read_nc (fid, 1 , fieldname, sst, debug_forcing, &
                                 field_loc_center, field_type_scalar)
            call ice_close_nc(fid)
 
@@ -4539,7 +4539,7 @@
             varname      ! variable name in netcdf file
       character(len=*), parameter :: subname = '(hycom_atm_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       fsw_file   = trim(atm_data_dir)//'/forcing.shwflx.nc'
       flw_file   = trim(atm_data_dir)//'/forcing.radflx.nc'
@@ -4602,7 +4602,7 @@
 
       character(len=*), parameter :: subname = '(hycom_atm_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
@@ -4682,7 +4682,7 @@
       endif
 
       ! Interpolate
-      if (forcing_diag) then
+      if (debug_forcing) then
         if (my_task == master_task) then
            write(nu_diag,*)'CICE: Atm. interpolate: = ',&
                                   hcdate,c1intp,c2intp
@@ -4768,15 +4768,15 @@
 
       character(len=*), parameter :: subname = '(read_data_nc_point)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
       field_data = c0 ! to satisfy intent(out) attribute
 
-      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
+      if (istep1 > debug_model_step) debug_forcing = .true.  !! debugging
 
-      if (my_task==master_task .and. (forcing_diag)) then
+      if (my_task==master_task .and. (debug_forcing)) then
          write(nu_diag,*) '  ', trim(data_file)
       endif
 
@@ -4823,7 +4823,7 @@
             nrec = recd + n2
 
             call ice_read_nc & 
-                 (fid, nrec, fieldname, field_data(arg), forcing_diag, &
+                 (fid, nrec, fieldname, field_data(arg), debug_forcing, &
                   field_loc, field_type)
 
             !if (ixx==1) call ice_close_nc(fid)
@@ -4838,7 +4838,7 @@
          nrec = recd + ixx
 
          call ice_read_nc & 
-              (fid, nrec, fieldname, field_data(arg), forcing_diag, &
+              (fid, nrec, fieldname, field_data(arg), debug_forcing, &
                field_loc, field_type)
 
          if (ixp /= -99) then
@@ -4864,7 +4864,7 @@
             nrec = recd + n4
 
             call ice_read_nc & 
-                 (fid, nrec, fieldname, field_data(arg), forcing_diag, &
+                 (fid, nrec, fieldname, field_data(arg), debug_forcing, &
                   field_loc, field_type)
          endif                  ! ixp /= -99
 
@@ -4882,7 +4882,7 @@
 
       character(len=*), parameter :: subname = '(ISPOL_files)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       fsw_file = &
            trim(atm_data_dir)//'/fsw_sfc_4Xdaily.nc' 
@@ -4975,7 +4975,7 @@
 
       character(len=*), parameter :: subname = '(ISPOL_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
@@ -5175,7 +5175,7 @@
 
       character(len=*), parameter :: subname = '(ocn_data_ispol_init)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       if (my_task == master_task) then
 
@@ -5202,10 +5202,10 @@
           do m=1,12                
             ! Note: netCDF does single to double conversion if necessary
             if (n >= 4 .and. n <= 7) then
-               call ice_read_nc(fid, m, vname(n), work, forcing_diag, &
+               call ice_read_nc(fid, m, vname(n), work, debug_forcing, &
                                 field_loc_NEcorner, field_type_vector)
             else
-               call ice_read_nc(fid, m, vname(n), work, forcing_diag, &
+               call ice_read_nc(fid, m, vname(n), work, debug_forcing, &
                                 field_loc_center, field_type_scalar)             
             endif
             ocn_frc_m(:,:,:,n,m) = work
@@ -5255,7 +5255,7 @@
 
       character(len=*), parameter :: subname = '(box2001_data)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
@@ -5348,7 +5348,7 @@
       logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(get_wave_spec)'
 
-      if (forcing_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call ice_timer_start(timer_fsd)
 
@@ -5361,7 +5361,7 @@
       ! if no wave data is provided, wave_spectrum is zero everywhere
       wave_spectrum(:,:,:,:) = c0
       wave_spec_dir = ocn_data_dir
-      forcing_diag = .false.
+      debug_forcing = .false.
 
       ! wave spectrum and frequencies
       if (wave_spec) then
@@ -5379,7 +5379,7 @@
             else
 #ifdef USE_NETCDF
                call ice_open_nc(wave_spec_file,fid)
-               call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), forcing_diag, &
+               call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), debug_forcing, &
                                      field_loc_center, field_type_scalar)
                call ice_close_nc(fid)
 #else
