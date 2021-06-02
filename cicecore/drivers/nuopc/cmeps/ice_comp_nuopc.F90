@@ -15,7 +15,7 @@ module ice_comp_nuopc
   use NUOPC_Model        , only : model_label_SetRunClock    => label_SetRunClock
   use NUOPC_Model        , only : model_label_Finalize       => label_Finalize
   use NUOPC_Model        , only : NUOPC_ModelGet, SetVM
-  use ice_constants      , only : ice_init_constants
+  use ice_constants      , only : ice_init_constants, c0
   use ice_shr_methods    , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
   use ice_shr_methods    , only : set_component_logging, get_component_instance, state_flddebug
   use ice_import_export  , only : ice_import, ice_export, ice_advertise_fields, ice_realize_fields
@@ -39,11 +39,13 @@ module ice_comp_nuopc
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
+  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj, scol_valid, single_column
 #endif
   use ice_timers
   use CICE_InitMod       , only : cice_init1, cice_init2
   use CICE_RunMod        , only : cice_run
   use ice_mesh_mod       , only : ice_mesh_set_distgrid, ice_mesh_setmask_from_maskfile, ice_mesh_check
+  use ice_mesh_mod       , only : ice_mesh_init_tlon_tlat_area_hm, ice_mesh_create_scolumn
   use ice_prescribed_mod , only : ice_prescribed_init
 
   implicit none
@@ -81,6 +83,8 @@ module ice_comp_nuopc
   character(len=*),parameter   :: shr_cal_gregorian = 'GREGORIAN'
 
   type(ESMF_Mesh)              :: ice_mesh
+
+  integer                      :: nthrds   ! Number of threads to use in this component
 
   integer                      :: dbug = 0
   integer     , parameter      :: debug_import = 0 ! internal debug level
@@ -176,10 +180,17 @@ contains
     ! Local variables
     character(len=char_len_long) :: cvalue
     character(len=char_len_long) :: ice_meshfile
+    character(len=char_len_long) :: ice_maskfile
+    character(len=char_len_long) :: errmsg
     logical                      :: isPresent, isSet
     real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
     type(ESMF_DistGrid)          :: ice_distGrid
-    character(len=char_len)      :: tfrz_option
+    real(kind=dbl_kind)          :: atmiter_conv
+    real(kind=dbl_kind)          :: atmiter_conv_driver
+    integer (kind=int_kind)      :: natmiter
+    integer (kind=int_kind)      :: natmiter_driver
+    character(len=char_len)      :: tfrz_option_driver       ! tfrz_option from driver attributes
+    character(len=char_len)      :: tfrz_option    ! tfrz_option from cice namelist
     integer(int_kind)            :: ktherm
     integer                      :: localPet
     integer                      :: npes
@@ -282,9 +293,19 @@ contains
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=localPet, PetCount=npes, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+#ifdef CESMCOUPLED
+    call ESMF_VMGet(vm, pet=localPet, peCount=nthrds, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (nthrds==1) then
+       call NUOPC_CompAttributeGet(gcomp, "nthreads", value=cvalue, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+       read(cvalue,*) nthrds
+    endif
+!$  call omp_set_num_threads(nthrds)
+#endif
 
     !----------------------------------------------------------------------------
     ! Initialize cice communicators
@@ -316,6 +337,8 @@ contains
 #ifdef CESMCOUPLED
     call ice_init_constants(omega_in=SHR_CONST_OMEGA, radius_in=SHR_CONST_REARTH, &
        spval_dbl_in=SHR_CONST_SPVAL)
+
+    ! TODO: get tfrz_option from driver
 
     call icepack_init_parameters( &
        secday_in           = SHR_CONST_CDAY,                  &
@@ -470,38 +493,108 @@ contains
     ! First cice initialization phase - before initializing grid info
     !----------------------------------------------------------------------------
 
+    ! Read the cice namelist as part of the call to cice_init1
     call t_startf ('cice_init1')
     call cice_init1
     call t_stopf ('cice_init1')
+
+    ! Form of ocean freezing temperature
+    ! 'minus1p8' = -1.8 C
+    ! 'linear_salt' = -depressT * sss
+    ! 'mushy' conforms with ktherm=2
+    call NUOPC_CompAttributeGet(gcomp, name="tfreeze_option", value=tfrz_option_driver, &
+         isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (.not. isPresent) then
+       tfrz_option_driver = 'linear_salt'
+    end if
+    call icepack_query_parameters( tfrz_option_out=tfrz_option)
+    if (tfrz_option_driver  /= tfrz_option) then
+       write(errmsg,'(a)') trim(subname)//'error: tfrz_option from driver '//trim(tfrz_option_driver)//&
+            ' must be the same as tfrz_option from cice namelist '//trim(tfrz_option)
+       call abort_ice(trim(errmsg))
+    endif
+
+    ! Flux convergence tolerance - always use the driver attribute value
+    call NUOPC_CompAttributeGet(gcomp, name="flux_convergence", value=cvalue, &
+         isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       read(cvalue,*) atmiter_conv_driver
+       call icepack_query_parameters( atmiter_conv_out=atmiter_conv)
+       if (atmiter_conv_driver /= atmiter_conv) then
+          write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'warning: atmiter_ from driver ',&
+               atmiter_conv_driver,' is overwritting atmiter_conv from cice namelist ',atmiter_conv
+          write(nu_diag,*) trim(errmsg)
+          call icepack_warnings_flush(nu_diag)
+          call icepack_init_parameters(atmiter_conv_in=atmiter_conv_driver)
+       end if
+    end if
+
+    ! Number of iterations for boundary layer calculations
+    call NUOPC_CompAttributeGet(gcomp, name="flux_max_iteration", value=cvalue, isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       read(cvalue,*) natmiter_driver
+    else
+       natmiter_driver = 5
+    end if
+    call icepack_query_parameters( natmiter_out=natmiter)
+    if (natmiter_driver  /= natmiter) then
+       write(errmsg,'(a,i8,a,i8)') trim(subname)//'error: natmiter_driver ',natmiter_driver, &
+            ' must be the same as natmiter from cice namelist ',natmiter
+       call abort_ice(trim(errmsg))
+    endif
 
     !----------------------------------------------------------------------------
     ! Initialize grid info
     !----------------------------------------------------------------------------
 
-    ! Determine the model distgrid using the decomposition obtained in
-    ! call to init_grid1 called from cice_init1
-    call ice_mesh_set_distgrid(localpet, npes, ice_distgrid, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! Initialize cice mesh and mask if appropriate
 
-    ! Read in the ice mesh on the cice distribution
-    call NUOPC_CompAttributeGet(gcomp, name='mesh_ice', value=ice_meshfile, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (my_task == master_task) then
-       write(nu_diag,*)'mesh file for cice domain is ',trim(ice_meshfile)
-    end if
-    ice_mesh = ESMF_MeshCreate(filename=trim(ice_meshfile), &
-         fileformat=ESMF_FILEFORMAT_ESMFMESH, elementDistGrid=ice_distgrid, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Initialize the cice mesh and the cice mask
-    if (trim(grid_type) == 'setmask') then
-       call ice_mesh_setmask_from_maskfile(gcomp, ice_mesh, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (single_column .and. scol_valid) then
+       call ice_mesh_init_tlon_tlat_area_hm()
     else
-       ! In this case init_grid2 will initialize tlon, tlat, area and hm
-       call init_grid2()  
-       call ice_mesh_check(ice_mesh, rc=rc)
+       ! Determine mesh input file
+       call NUOPC_CompAttributeGet(gcomp, name='mesh_ice', value=ice_meshfile, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Determine mask input file
+       call NUOPC_CompAttributeGet(gcomp, name='mesh_mask', value=cvalue, isPresent=isPresent, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          ice_maskfile = trim(cvalue)
+       else
+          ice_maskfile = ice_meshfile
+       end if
+       if (my_task == master_task) then
+          write(nu_diag,*)'mesh file for cice domain is ',trim(ice_meshfile)
+          write(nu_diag,*)'mask file for cice domain is ',trim(ice_maskfile)
+       end if
+
+       ! Determine the model distgrid using the decomposition obtained in
+       ! call to init_grid1 called from cice_init1
+       call ice_mesh_set_distgrid(localpet, npes, ice_distgrid, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Read in the ice mesh on the cice distribution
+       ice_mesh = ESMF_MeshCreate(filename=trim(ice_meshfile), fileformat=ESMF_FILEFORMAT_ESMFMESH, &
+            elementDistGrid=ice_distgrid, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Initialize the cice mesh and the cice mask
+       if (trim(grid_type) == 'setmask') then
+          ! In this case cap code determines the mask file
+          call ice_mesh_setmask_from_maskfile(ice_maskfile, ice_mesh, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ice_mesh_init_tlon_tlat_area_hm()
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else
+          ! In this case init_grid2 will initialize tlon, tlat, area and hm
+          call init_grid2()
+          call ice_mesh_check(ice_mesh, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
     end if
 
     !----------------------------------------------------------------------------
@@ -510,6 +603,8 @@ contains
 
     ! Note that cice_init2 also sets time manager info as well as mpi communicator info,
     ! including master_task and my_task
+    ! Note that cice_init2 calls ice_init() which in turn calls icepack_init_parameters
+    ! which sets the tfrz_option
     call t_startf ('cice_init2')
     call cice_init2()
     call t_stopf ('cice_init2')
@@ -633,11 +728,105 @@ contains
     integer, intent(out) :: rc
 
     ! Local variables
-    character(len=*), parameter  :: subname=trim(modName)//':(InitializeRealize) '
+    integer                                :: n
+    integer                                :: fieldcount
+    type(ESMF_Field)                       :: lfield
+    character(len=char_len_long)           :: cvalue
+    real(dbl_kind)                         :: scol_lon
+    real(dbl_kind)                         :: scol_lat
+    real(dbl_kind)                         :: scol_spval
+    real(dbl_kind), pointer                :: fldptr1d(:)
+    real(dbl_kind), pointer                :: fldptr2d(:,:)
+    integer                                :: rank
+    character(len=char_len_long)           :: single_column_lnd_domainfile
+    character(len=char_len_long) , pointer :: lfieldnamelist(:) => null()
+    character(len=*), parameter            :: subname=trim(modName)//':(InitializeRealize) '
     !--------------------------------
 
     rc = ESMF_SUCCESS
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
+#ifdef CESMCOUPLED
+    call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) scmlon
+    call NUOPC_CompAttributeGet(gcomp, name='scol_lat', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) scmlat
+    call NUOPC_CompAttributeGet(gcomp, name='scol_spval', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) scol_spval
+
+    if (scmlon > scol_spval .and. scmlat > scol_spval) then
+       call NUOPC_CompAttributeGet(gcomp, name='single_column_lnd_domainfile', &
+            value=single_column_lnd_domainfile, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (trim(single_column_lnd_domainfile) /= 'UNSET') then
+          single_column = .true.
+       else
+          call abort_ice('single_column_domainfile cannot be null for single column mode')
+       end if
+       call NUOPC_CompAttributeGet(gcomp, name='scol_ocnmask', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_mask
+       call NUOPC_CompAttributeGet(gcomp, name='scol_ocnfrac', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_frac
+       call NUOPC_CompAttributeGet(gcomp, name='scol_ni', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_ni
+       call NUOPC_CompAttributeGet(gcomp, name='scol_nj', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_nj
+
+       call ice_mesh_create_scolumn(scmlon, scmlat, ice_mesh, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       scol_valid = (scol_mask == 1)
+       if (.not. scol_valid) then
+          ! if single column is not valid - set all export state fields to zero and return
+          write(nu_diag,'(a)')' (ice_comp_nuopc) single column mode point does not contain any ocn/ice '&
+               //' - setting all export data to 0'
+          call ice_realize_fields(gcomp, mesh=ice_mesh, &
+               flds_scalar_name=flds_scalar_name, flds_scalar_num=flds_scalar_num, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          allocate(lfieldnamelist(fieldCount))
+          call ESMF_StateGet(exportState, itemNameList=lfieldnamelist, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          do n = 1, fieldCount
+             if (trim(lfieldnamelist(n)) /= flds_scalar_name) then
+                call ESMF_StateGet(exportState, itemName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(lfield, rank=rank, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                if (rank == 2) then
+                   call ESMF_FieldGet(lfield, farrayPtr=fldptr2d, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   fldptr2d(:,:) = 0._dbl_kind
+                else
+                   call ESMF_FieldGet(lfield, farrayPtr=fldptr1d, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   fldptr1d(:) = 0._dbl_kind
+                end if
+             end if
+          enddo
+          deallocate(lfieldnamelist)
+          ! *******************
+          ! *** RETURN HERE ***
+          ! *******************
+          RETURN
+       else
+          write(nu_diag,'(a,3(f10.5,2x))')' (ice_comp_nuopc) single column mode lon/lat/frac is ',&
+               scmlon,scmlat,scol_frac
+       end if
+    else
+       single_column = .false.
+    end if
+#else    
+    single_column = .false.
+#endif
 
     !-----------------------------------------------------------------
     ! Realize the actively coupled fields
