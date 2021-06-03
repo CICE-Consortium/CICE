@@ -572,7 +572,6 @@ contains
 
     rc = ESMF_SUCCESS
 
-
     mesh_mask = ESMF_MeshCreate(trim(ice_maskfile), fileformat=ESMF_FILEFORMAT_ESMFMESH, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -654,7 +653,7 @@ contains
     ! Check CICE mesh
 
     use ice_constants, only : c1,c0,c360
-    use ice_grid, only : tlon, tlat
+    use ice_grid     , only : tlon, tlat
 
     ! input/output parameters
     type(ESMF_GridComp) , intent(inout) :: gcomp
