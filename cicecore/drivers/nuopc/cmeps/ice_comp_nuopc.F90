@@ -500,7 +500,7 @@ contains
     else
        ! In this case init_grid2 will initialize tlon, tlat, area and hm
        call init_grid2()  
-       call ice_mesh_check(ice_mesh, rc=rc)
+       call ice_mesh_check(gcomp, ice_mesh, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
