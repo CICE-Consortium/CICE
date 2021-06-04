@@ -1,5 +1,3 @@
 [submodule "icepack"]
 	path = icepack
-	#url = https://github.com/NOAA-EMC/Icepack
-	url = https://github.com/DeniseWorthen/Icepack
-        branch = feature/icepack_noabort
+	url = https://github.com/NOAA-EMC/Icepack
