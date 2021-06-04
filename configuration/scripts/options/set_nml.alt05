@@ -8,6 +8,3 @@ tr_pond_topo = .false.
 tr_pond_lvl  = .false.
 tr_aero      = .false.
 shortwave = 'dEdd'
-albedo_type = 'default'
-
-

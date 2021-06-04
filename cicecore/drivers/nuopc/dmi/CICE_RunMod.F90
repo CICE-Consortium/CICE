@@ -43,7 +43,7 @@
 
       subroutine CICE_Run
 
-      use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
+      use ice_calendar, only: istep, istep1, dt, stop_now, advance_timestep
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
@@ -73,20 +73,16 @@
          file=__FILE__, line=__LINE__)
 
 #ifndef CICE_IN_NEMO
-   !--------------------------------------------------------------------
-   ! timestep loop
-   !--------------------------------------------------------------------
+      !--------------------------------------------------------------------
+      ! timestep loop
+      !--------------------------------------------------------------------
 #ifndef CICE_DMI
-    timeLoop: do
+      timeLoop: do
 #endif
 #endif
          call ice_step
 
-         istep  = istep  + 1    ! update time step counters
-         istep1 = istep1 + 1
-         time = time + dt       ! determine the time and date
-
-         call calendar(time)    ! at the end of the timestep
+         call advance_timestep()     ! advance time
 
 #ifndef CICE_IN_NEMO
 #ifndef CICE_DMI
@@ -361,8 +357,8 @@
           albpnd, albcnt, apeff_ai, fpond, fresh, l_mpond_fresh, &
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
-          fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
-          fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
+          fswthru_ai, fhocn, scale_factor, snowfrac, &
+          fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt
@@ -556,11 +552,12 @@
                             evap     (:,:,iblk),                     &
                             Tref     (:,:,iblk), Qref    (:,:,iblk), &
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
-                            fhocn    (:,:,iblk), fswthru (:,:,iblk), &
-                            fswthru_vdr(:,:,iblk),                   &
-                            fswthru_vdf(:,:,iblk),                   &
-                            fswthru_idr(:,:,iblk),                   &
-                            fswthru_idf(:,:,iblk),                   &
+                            fhocn    (:,:,iblk),                     &
+                            fswthru  (:,:,iblk),                     &
+                            fswthru_vdr (:,:,iblk),                  &
+                            fswthru_vdf (:,:,iblk),                  &
+                            fswthru_idr (:,:,iblk),                  &
+                            fswthru_idf (:,:,iblk),                  &
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
@@ -635,11 +632,12 @@
       
       real (kind=dbl_kind)    :: &
           puny, &          !
+          Lsub, &          !
           rLsub            ! 1/Lsub
 
       character(len=*), parameter :: subname = '(sfcflux_to_ocn)'
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny, Lsub_out=Lsub)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)

@@ -161,25 +161,25 @@ To add a new test (for example newtest), several files may be needed,
 Generating a new test, particularly the **test_newtest.script** usually takes some iteration before
 it's working properly.
 
-.. _dev_compliance:
+.. _dev_validation:
 
-Code Compliance Script
+Code Validation Script
 ----------------------
 
-The code compliance test validates non bit-for-bit model changes.  The directory 
-**configuration/scripts/tests/QC** contains scripts related to the compliance testing,
-and this process is described in :ref:`compliance`.  This section will describe a set
-of scripts that test and validate the code compliance process.  This should be done 
-when the compliance test or compliance test scripts (i.e., ``cice.t-test.py``) are modified.  
-Again, this section **documents a validation process for the compliance scripts**; it does not
-describe to how run the compliance test itself.  
+The code validation (aka QC or quality control) test validates non bit-for-bit model changes.  The directory 
+**configuration/scripts/tests/QC** contains scripts related to the validation testing,
+and this process is described in :ref:`validation`.  This section will describe a set
+of scripts that test and validate the QC process.  This should be done 
+when the QC test or QC test scripts (i.e., ``cice.t-test.py``) are modified.  
+Again, this section **documents a validation process for the QC scripts**; it does not
+describe to how run the validation test itself.  
 
-Two scripts have been created to automatically validate the code compliance script.  
+Two scripts have been created to automatically validate the QC script.  
 These scripts are:
 
 * ``gen_qc_cases.csh``, which creates the 4 test cases required for validation,
   builds the executable, and submits to the queue.
-* ``compare_qc_cases.csh``, which runs the code compliance script on three combinations
+* ``compare_qc_cases.csh``, which runs the QC script on three combinations
   of the 4 test cases and outputs whether or not the correct response was received.
 
 The ``gen_qc_cases.csh`` script allows users to pass some arguments similar
@@ -216,7 +216,7 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
 check to see if there is any Python module (``module avail python``) that you might need
 to load prior to using ``pip``.
 
-To perform the validation, execute the following commands.
+To perform the QC validation, execute the following commands.
 
 .. code-block:: bash
 

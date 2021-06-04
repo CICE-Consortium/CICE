@@ -142,6 +142,10 @@ if !($?ICE_MACHINE_BLDTHRDS) then
   set ICE_MACHINE_BLDTHRDS = 1
 endif
 
+if (${directmake} == 0) then
+  set target = ${ICE_TARGET}
+endif
+
 if (${directmake} == 1) then
   echo "make ${target}"
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
@@ -185,12 +189,12 @@ if (${quiet} == "true") then
   echo "  quiet mode on... patience"
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
       -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} \
-      DEPFILE=${ICE_CASEDIR}/makdep.c cice >& ${ICE_BLDLOG_FILE} 
+      DEPFILE=${ICE_CASEDIR}/makdep.c ${target} >& ${ICE_BLDLOG_FILE}
   set bldstat = ${status}
 else
   ${ICE_MACHINE_MAKE} -j ${ICE_MACHINE_BLDTHRDS} VPFILE=Filepath EXEC=${ICE_RUNDIR}/cice \
       -f  ${ICE_CASEDIR}/Makefile MACFILE=${ICE_CASEDIR}/Macros.${ICE_MACHCOMP} \
-      DEPFILE=${ICE_CASEDIR}/makdep.c cice |& tee ${ICE_BLDLOG_FILE} 
+      DEPFILE=${ICE_CASEDIR}/makdep.c ${target} |& tee ${ICE_BLDLOG_FILE}
   set bldstat = ${status}
 endif
 

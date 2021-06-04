@@ -18,4 +18,6 @@ kdyn  =  2
 kstrength = 0
 krdg_partic = 0
 krdg_redist = 0
+shortwave = 'ccsm3'
+albedo_type = 'constant'
 

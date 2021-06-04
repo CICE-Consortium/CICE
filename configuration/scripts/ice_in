@@ -1,9 +1,13 @@
 &setup_nml
     days_per_year  = 365
-    use_leap_years = .false.
-    year_init      = 1997
+    use_leap_years = .true.
+    year_init      = 2005
+    month_init     = 1
+    day_init       = 1
+    sec_init       = 0
     istep0         = 0
     dt             = 3600.0
+    npt_unit       = '1'
     npt            = 24
     ndtd           = 1
     runtype        = 'initial'
@@ -25,6 +29,9 @@
     diagfreq       = 24
     diag_type      = 'stdout'
     diag_file      = 'ice_diag.d'
+    debug_model    = .false.
+    debug_model_step = 999999999
+    forcing_diag   = .false.
     print_global   = .true.
     print_points   = .true.
     conserv_check  = .false.
@@ -32,7 +39,6 @@
     lonpnt(1)      =  0.
     latpnt(2)      = -65.
     lonpnt(2)      = -45.
-    dbug           = .false.
     histfreq       = 'm','x','x','x','x'
     histfreq_n     =  1 , 1 , 1 , 1 , 1
     hist_avg       = .true.
@@ -196,6 +202,7 @@
     natmiter        = 5
     atmiter_conv    = 0.0d0
     ustar_min       = 0.0005
+    iceruf          = 0.0005
     emissivity      = 0.985
     fbot_xfer_type  = 'constant'
     update_ocn_f    = .false.
@@ -216,7 +223,7 @@
     bgc_data_type   = 'default'
     fe_data_type    = 'default'
     ice_data_type   = 'default'
-    fyear_init      = 1997
+    fyear_init      = 2005
     ycycle          = 1
     atm_data_format = 'bin'
     atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
@@ -236,12 +243,14 @@
     processor_shape   = 'slenderX2'
     distribution_type = 'cartesian'
     distribution_wght = 'latitude'
+    distribution_wght_file = 'unknown'
     ew_boundary_type  = 'cyclic'
     ns_boundary_type  = 'open'
     maskhalo_dyn      = .false.
     maskhalo_remap    = .false.
     maskhalo_bound    = .false.
     add_mpi_barriers  = .false.
+    debug_blocks      = .false.
 /
 
 &zbgc_nml

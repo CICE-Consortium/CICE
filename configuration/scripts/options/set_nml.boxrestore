@@ -26,3 +26,5 @@ krdg_partic = 0
 krdg_redist = 0
 seabed_stress    = .true.
 restore_ice = .true.
+shortwave = 'ccsm3'
+albedo_type = 'constant'

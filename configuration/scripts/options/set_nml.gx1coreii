@@ -1,6 +1,7 @@
 year_init      = 1997
 use_leap_years = .false.
 use_restart_time = .true.
+ice_ic          = 'ICE_MACHINE_INPUTDATA/CICE_data/ic/gx1/iced_gx1_v5.nc'
 fyear_init      = 2005
 ycycle          = 1
 atm_data_format = 'bin'
