@@ -250,6 +250,9 @@ contains
     end if
 
     ! Fill in module ice_cov array
+    if (.not. allocated(ice_cov)) then
+       allocate(ice_cov(nx_block,ny_block,max_blocks))
+    end if
     ice_cov(:,:,:) = c0  ! This initializes ghost cells as well
     n = 0
     do iblk = 1, nblocks
