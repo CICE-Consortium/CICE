@@ -83,6 +83,9 @@
       nblocks_x        ,&! tot num blocks in i direction
       nblocks_y          ! tot num blocks in j direction
 
+   logical (kind=log_kind), public :: &
+      debug_blocks       ! print verbose block information
+
 !-----------------------------------------------------------------------
 !
 !  module private data
@@ -132,8 +135,6 @@ contains
       i, j, n              ,&! loop indices
       iblock, jblock       ,&! block loop indices
       is, ie, js, je         ! temp start, end indices
-
-   logical (log_kind) :: dbug
 
    character(len=*), parameter :: subname = '(create_blocks)'
 
@@ -252,8 +253,8 @@ contains
             !*** set last physical point if padded domain
 
             else if (j_global(j,n) == ny_global .and. &
-                     j > all_blocks(n)%jlo      .and. &
-                     j < all_blocks(n)%jhi) then
+                     j >= all_blocks(n)%jlo      .and. &
+                     j <  all_blocks(n)%jhi) then
                all_blocks(n)%jhi = j   ! last physical point in padded domain
             endif
          end do
@@ -300,8 +301,8 @@ contains
             !*** last physical point in padded domain
 
             else if (i_global(i,n) == nx_global .and. &
-                     i > all_blocks(n)%ilo      .and. &
-                     i < all_blocks(n)%ihi) then
+                     i >= all_blocks(n)%ilo      .and. &
+                     i <  all_blocks(n)%ihi) then
                all_blocks(n)%ihi = i
             endif
          end do
@@ -311,9 +312,7 @@ contains
       end do
    end do
 
-!   dbug = .true.
-   dbug = .false.
-   if (dbug) then
+   if (debug_blocks) then
       if (my_task == master_task) then
       write(nu_diag,*) 'block i,j locations'
       do n = 1, nblocks_tot

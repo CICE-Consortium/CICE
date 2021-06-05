@@ -361,8 +361,7 @@
           first_time = .false.
         endif
         if (trim(grid_type) == 'tripole') then
-          call abort_ice(trim(subname)//' &
-             & Kernel not tested on tripole grid. Set kevp_kernel=0')
+          call abort_ice(trim(subname)//' Kernel not tested on tripole grid. Set kevp_kernel=0')
         endif
         call ice_dyn_evp_1d_copyin(                                                &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &

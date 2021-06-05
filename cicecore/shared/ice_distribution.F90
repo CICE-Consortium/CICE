@@ -12,7 +12,7 @@
    use ice_kinds_mod
    use ice_domain_size, only: max_blocks
    use ice_communicate, only: my_task, master_task, create_communicator
-   use ice_blocks, only: nblocks_x, nblocks_y, nblocks_tot
+   use ice_blocks, only: nblocks_x, nblocks_y, nblocks_tot, debug_blocks
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_diag
 
@@ -154,8 +154,6 @@
    integer (int_kind) :: &
       n, bcount              ! dummy counters
 
-   logical (log_kind) :: dbug
-
    character(len=*),parameter :: subname='(create_local_block_ids)'
 
 !-----------------------------------------------------------------------
@@ -178,15 +176,14 @@
 !
 !-----------------------------------------------------------------------
 
-!   dbug = .true.
-   dbug = .false.
    if (bcount > 0) then
       do n=1,size(distribution%blockLocation)
          if (distribution%blockLocation(n) == my_task+1) then
             block_ids(distribution%blockLocalID(n)) = n
 
-            if (dbug) then
-            write(nu_diag,*) subname,'block id, proc, local_block: ', &
+            if (debug_blocks .and. my_task == master_task) then
+               write(nu_diag,'(2a,3i8)') &
+                             subname,' block id, proc, local_block: ', &
                              block_ids(distribution%blockLocalID(n)), &
                              distribution%blockLocation(n), &
                              distribution%blockLocalID(n)
@@ -402,7 +399,7 @@
          numLocalBlocks      ! number of blocks distributed to this
                              !   local processor
 
-      integer (int_kind), dimension(:), pointer, optional :: &
+      integer (int_kind), dimension(:), optional :: &
          blockLocation     ,&! processor location for all blocks
          blockLocalID      ,&! local  block id for all blocks
          blockGlobalID       ! global block id for each local block
@@ -422,7 +419,7 @@
 
    if (present(blockLocation)) then
       if (associated(distribution%blockLocation)) then
-         blockLocation => distribution%blockLocation
+         blockLocation = distribution%blockLocation
       else
          call abort_ice(subname//'ERROR: blockLocation not allocated')
          return
@@ -575,7 +572,11 @@
       nprocsX,             &! num of procs in x for global domain
       nprocsY,             &! num of procs in y for global domain
       numBlocksXPerProc,     &! num of blocks per processor in x
-      numBlocksYPerProc       ! num of blocks per processor in y
+      numBlocksYPerProc,     &! num of blocks per processor in y
+      numBlocksPerProc        ! required number of blocks per processor
+
+   character(len=char_len) :: &
+      numBlocksPerProc_str    ! required number of blocks per processor (as string)
 
    character(len=*),parameter :: subname='(create_distrb_cart)'
 
@@ -627,6 +628,14 @@
 
    numBlocksXPerProc = (nblocks_x-1)/nprocsX + 1
    numBlocksYPerProc = (nblocks_y-1)/nprocsY + 1
+
+   ! Check if max_blocks is too small
+   numBlocksPerProc = numBlocksXPerProc * numBlocksYPerProc
+   if (numBlocksPerProc > max_blocks) then
+      write(numBlocksPerProc_str, '(i2)') numBlocksPerProc
+      call abort_ice(subname//'ERROR: max_blocks too small (need at least '//trim(numBlocksPerProc_str)//')')
+      return
+   endif
 
    do j=1,nprocsY
    do i=1,nprocsX
@@ -786,6 +795,8 @@
    maxWork = maxval(workPerBlock)
 
    if (numOcnBlocks <= 2*nprocs) then
+      if (my_task == master_task) &
+         write(nu_diag,*) subname,' 1d rake on entire distribution'
 
       allocate(priority(nblocks_tot), stat=istat)
       if (istat > 0) then
@@ -807,7 +818,7 @@
       end do
       end do
 
-      allocate(workTmp(nblocks_tot), procTmp(nblocks_tot), stat=istat)
+      allocate(workTmp(nprocs), procTmp(nprocs), stat=istat)
       if (istat > 0) then
          call abort_ice( &
             'create_distrb_rake: error allocating procTmp')
@@ -841,6 +852,8 @@
 !----------------------------------------------------------------------
 
    else
+      if (my_task == master_task) &
+         write(nu_diag,*) subname,' rake in each direction'
 
       call proc_decomposition(dist%nprocs, nprocsX, nprocsY)
 
@@ -996,6 +1009,10 @@
 
       if (pid > 0) then
          procTmp(pid) = procTmp(pid) + 1
+         if (procTmp(pid) > max_blocks) then
+            call abort_ice(subname//'ERROR: max_blocks too small')
+            return
+         endif
          newDistrb%blockLocalID (n) = procTmp(pid)
          newDistrb%blockIndex(pid,procTmp(pid)) = n
       else
@@ -1413,7 +1430,7 @@
  function create_distrb_wghtfile(nprocs, workPerBlock) result(newDistrb)
 
 !  This function creates a distribution of blocks across processors
-!  using a simple wghtfile algorithm. Mean for prescribed ice or
+!  using a simple wghtfile algorithm. Meant for prescribed ice or
 !  standalone CAM mode.
 
    integer (int_kind), intent(in) :: &
@@ -2094,8 +2111,6 @@
         ii,extra,tmp1,    &! loop tempories used for
         s1,ig              ! partitioning curve
 
-   logical, parameter :: Debug = .FALSE.
-
    type (factor_t) :: xdim,ydim
 
    integer (int_kind) :: it,jj,i2,j2
@@ -2189,9 +2204,9 @@
 
    call GenSpaceCurve(Mesh)
    Mesh = Mesh + 1 ! make it 1-based indexing
-   if(Debug) then
-     if(my_task ==0) call PrintCurve(Mesh)
-   endif
+!   if (debug_blocks) then
+!     if (my_task == master_task) call PrintCurve(Mesh)
+!   endif
 
    !-----------------------------------------------
    ! Reindex the SFC to address internal sub-blocks
@@ -2238,8 +2253,8 @@
       endif
    enddo
    nblocks=ii
-   if(Debug) then
-     if(my_task==0) call PrintCurve(Mesh3)
+   if (debug_blocks) then
+     if (my_task == master_task) call PrintCurve(Mesh3)
    endif
 
    !----------------------------------------------------
@@ -2258,8 +2273,8 @@
    !
    ! First region gets nblocksL+1 blocks per partition
    ! Second region gets nblocksL blocks per partition
-   if(Debug) print *,'nprocs,extra,nblocks,nblocksL,s1: ', &
-                nprocs,extra,nblocks,nblocksL,s1
+!   if(debug_blocks) write(nu_diag,*) 'nprocs,extra,nblocks,nblocksL,s1: ', &
+!                nprocs,extra,nblocks,nblocksL,s1
 
    !-----------------------------------------------------------
    ! Use the SFC to partition the blocks across processors
@@ -2304,6 +2319,10 @@
 
       if(pid>0) then
         proc_tmp(pid) = proc_tmp(pid) + 1
+        if (proc_tmp(pid) > max_blocks) then
+            call abort_ice(subname//'ERROR: max_blocks too small')
+            return
+         endif
         dist%blockLocalID(n) = proc_tmp(pid)
         dist%blockIndex(pid,proc_tmp(pid)) = n
       else
@@ -2326,11 +2345,11 @@
       endif
    enddo
 
-   if(Debug) then
-      if(my_task==0) print *,'dist%blockLocation:= ',dist%blockLocation
-      print *,'IAM: ',my_task,' SpaceCurve: Number of blocks {total,local} :=', &
-                nblocks_tot,nblocks,proc_tmp(my_task+1)
-   endif
+!   if (debug_blocks) then
+!      if (my_task == master_task) write(nu_diag,*) 'dist%blockLocation:= ',dist%blockLocation
+!      write(nu_diag,*) 'IAM: ',my_task,' SpaceCurve: Number of blocks {total,local} :=', &
+!                nblocks_tot,nblocks,proc_tmp(my_task+1)
+!   endif
    !---------------------------------
    ! Deallocate temporary arrays
    !---------------------------------

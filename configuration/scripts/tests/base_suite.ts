@@ -5,6 +5,7 @@ smoke          gx3     1x4        debug,diag1,run2day
 smoke          gx3     4x1        debug,diag1,run5day
 restart        gx3     8x2        debug
 smoke          gx3     8x2        diag24,run1year,medium
+smoke          gx3     7x2        diag1,bigdiag,run1day
 decomp         gx3     4x2x25x29x5  none
 smoke          gx3     4x2        diag1,run5day             smoke_gx3_8x2_diag1_run5day
 smoke          gx3     4x1        diag1,run5day,thread      smoke_gx3_8x2_diag1_run5day
@@ -16,14 +17,18 @@ restart        gx3     8x2        alt02
 restart        gx3     4x2        alt03
 restart        gx3     4x4        alt04
 restart        gx3     4x4        alt05
+restart        gx3     8x2        alt06
 restart        gx3     6x2        alt01,debug,short
 restart        gx3     8x2        alt02,debug,short
 restart        gx3     4x2        alt03,debug,short
 smoke          gx3     4x4        alt04,debug,short
 smoke          gx3     4x4        alt05,debug,short
+smoke          gx3     8x2        alt06,debug,short
+smoke          gx3     10x2       debug,diag1,run5day,gx3sep2
+smoke          gx3     7x2        diag1,bigdiag,run1day
 restart        gbox128 4x2        short
-restart        gbox128 4x2        boxdyn,short
-restart        gbox128 4x2        boxdyn,short,debug
+restart        gbox128 4x2        boxnodyn,short
+restart        gbox128 4x2        boxnodyn,short,debug
 restart        gbox128 2x2        boxadv,short
 smoke          gbox128 2x2        boxadv,short,debug
 restart        gbox128 4x4        boxrestore,short
@@ -39,7 +44,9 @@ restart        gx1     8x1        bgczclim,medium
 smoke          gx1    24x1        medium,run90day,yi2008
 smoke          gx3     8x1        medium,run90day,yi2008
 restart        gx1    24x1        short
-restart        gx3     8x1        short
+restart        gx1    16x2        seabedLKD,gx1apr,medium,debug
+restart        gx1    15x2        seabedprob,medium
+restart        gx1    32x1        gx1prod,medium
 smoke          gx3     4x2        fsd1,diag24,run5day,debug
 smoke          gx3     8x2        fsd12,diag24,run5day,short
 restart        gx3     4x2        fsd12,debug,short

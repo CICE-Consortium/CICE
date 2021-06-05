@@ -272,7 +272,7 @@
          trmask           ! = 1. if tracer is present, = 0. otherwise
 
       logical (kind=log_kind) ::     &
-         l_stop           ! if true, abort the model
+         ckflag           ! if true, abort the model
 
       integer (kind=int_kind) ::     &
          istop, jstop     ! indices of grid cell where model aborts 
@@ -327,7 +327,7 @@
 !---! Initialize, update ghost cells, fill tracer arrays.
 !---!-------------------------------------------------------------------
 
-      l_stop = .false.
+      ckflag = .false.
       istop = 0
       jstop = 0
 
@@ -605,10 +605,10 @@
 
          if (my_task == master_task) then
             fieldid = subname//':000'
-            call global_conservation (l_stop, fieldid,     &
+            call global_conservation (ckflag, fieldid,     &
                                       asum_init(0), asum_final(0))
 
-            if (l_stop) then
+            if (ckflag) then
                write (nu_diag,*) 'istep1, my_task =',     &
                                   istep1, my_task
                write (nu_diag,*) 'transport: conservation error, cat 0'
@@ -618,11 +618,11 @@
             do n = 1, ncat
                write(fieldid,'(a,i3.3)') subname,n
                call global_conservation                                 &
-                                     (l_stop, fieldid,                  &
+                                     (ckflag, fieldid,                  &
                                       asum_init(n),    asum_final(n),   &
                                       atsum_init(:,n), atsum_final(:,n))
 
-               if (l_stop) then
+               if (ckflag) then
                   write (nu_diag,*) 'istep1, my_task, cat =',     &
                                      istep1, my_task, n
                   write (nu_diag,*) 'transport: conservation error, cat ',n
@@ -639,7 +639,7 @@
     !-------------------------------------------------------------------
 
       if (l_monotonicity_check) then
-         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,l_stop,istop,jstop)
+         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,ckflag,istop,jstop)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)         
             ilo = this_block%ilo
@@ -647,7 +647,7 @@
             jlo = this_block%jlo
             jhi = this_block%jhi
 
-            l_stop = .false.
+            ckflag = .false.
             istop = 0
             jstop = 0
 
@@ -657,10 +657,10 @@
                                 ilo, ihi, jlo, jhi,     &
                                 tmin(:,:,:,n,iblk), tmax(:,:,:,n,iblk),  &
                                 aim (:,:,  n,iblk), trm (:,:,:,n,iblk),  &
-                                l_stop,     &
+                                ckflag,     &
                                 istop,              jstop)
 
-               if (l_stop) then
+               if (ckflag) then
                   write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
                                      istep1, my_task, iblk, n
                   call abort_ice(subname//'ERROR: monotonicity error')
@@ -1083,7 +1083,7 @@
 !
 ! author William H. Lipscomb, LANL
 
-      subroutine global_conservation (l_stop, fieldid,            &
+      subroutine global_conservation (ckflag, fieldid,            &
                                       asum_init,  asum_final,     &
                                       atsum_init, atsum_final)
 
@@ -1099,7 +1099,7 @@
          atsum_final   ! final global ice area*tracer
 
       logical (kind=log_kind), intent(inout) ::     &
-         l_stop    ! if true, abort on return
+         ckflag    ! if true, abort on return
 
       ! local variables
 
@@ -1120,7 +1120,7 @@
       if (asum_init > puny) then
          diff = asum_final - asum_init
          if (abs(diff/asum_init) > puny) then
-            l_stop = .true.
+            ckflag = .true.
             write (nu_diag,*)
             write (nu_diag,*) subname,'Ice area conserv error ', trim(fieldid)
             write (nu_diag,*) subname,'  Initial global area  =', asum_init
@@ -1135,7 +1135,7 @@
          if (abs(atsum_init(nt)) > puny) then
             diff = atsum_final(nt) - atsum_init(nt)
             if (abs(diff/atsum_init(nt)) > puny) then
-               l_stop = .true.
+               ckflag = .true.
                write (nu_diag,*)
                write (nu_diag,*) subname,'Ice area*tracer conserv error ', trim(fieldid),nt
                write (nu_diag,*) subname,'  Tracer index               =', nt
@@ -1323,7 +1323,7 @@
                                      ilo, ihi, jlo, jhi,     &
                                      tmin,     tmax,         &
                                      aim,      trm,          &
-                                     l_stop,                 &
+                                     ckflag,                 &
                                      istop,    jstop)
 
       integer (kind=int_kind), intent(in) ::     &
@@ -1341,7 +1341,7 @@
            tmax           ! local max tracer
 
       logical (kind=log_kind), intent(inout) ::     &
-         l_stop    ! if true, abort on return
+         ckflag    ! if true, abort on return
 
       integer (kind=int_kind), intent(inout) ::     &
          istop, jstop     ! indices of grid cell where model aborts 
@@ -1425,7 +1425,7 @@
                w1 = max(c1, abs(tmin(i,j,nt)))
                w2 = max(c1, abs(tmax(i,j,nt)))
                if (trm(i,j,nt) < tmin(i,j,nt)-w1*puny) then
-                  l_stop = .true.
+                  ckflag = .true.
                   istop = i
                   jstop = j
                   write (nu_diag,*) ' '
@@ -1435,7 +1435,7 @@
                   write (nu_diag,*) 'tmin ='      , tmin(i,j,nt)
                   write (nu_diag,*) 'ice area ='  , aim(i,j)
                elseif (trm(i,j,nt) > tmax(i,j,nt)+w2*puny) then
-                  l_stop = .true.
+                  ckflag = .true.
                   istop = i
                   jstop = j
                   write (nu_diag,*) ' '

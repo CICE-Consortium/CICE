@@ -1,0 +1,8 @@
+forcing_diag = .true.
+debug_model  = .true.
+debug_model_step = 4
+print_global = .true.
+print_points = .true.
+debug_blocks = .true.
+latpnt(1)      =  85.
+lonpnt(1)      =  -150.

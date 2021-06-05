@@ -98,6 +98,11 @@
              vsnon_rest(nx_block,ny_block,ncat,max_blocks), &
              trcrn_rest(nx_block,ny_block,ntrcr,ncat,max_blocks))
 
+   aicen_rest(:,:,:,:) = c0
+   vicen_rest(:,:,:,:) = c0
+   vsnon_rest(:,:,:,:) = c0
+   trcrn_rest(:,:,:,:,:) = c0
+
 !-----------------------------------------------------------------------
 ! initialize
 ! halo cells have to be filled manually at this stage

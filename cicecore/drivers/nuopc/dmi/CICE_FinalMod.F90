@@ -35,9 +35,9 @@
 
       character(len=*), parameter :: subname = '(CICE_Finalize)'
 
-   !-------------------------------------------------------------------
-   ! stop timers and print timer info
-   !-------------------------------------------------------------------
+      !-------------------------------------------------------------------
+      ! stop timers and print timer info
+      !-------------------------------------------------------------------
 
       call ice_timer_stop(timer_total)        ! stop timing entire run
       call ice_timer_print_all(stats=.false.) ! print timing information
@@ -55,15 +55,9 @@
 !echmod      if (nu_diag /= 6) close (nu_diag) ! diagnostic output
       call release_all_fileunits
 
-   !-------------------------------------------------------------------
-   ! write 'finished' file if needed
-   !-------------------------------------------------------------------
-
-      if (runid == 'bering') call writeout_finished_file()
-
-   !-------------------------------------------------------------------
-   ! quit MPI
-   !-------------------------------------------------------------------
+      !-------------------------------------------------------------------
+      ! quit MPI
+      !-------------------------------------------------------------------
 
 #ifndef coupled
 #ifndef CICE_DMI
@@ -71,31 +65,6 @@
 #endif
 #endif
       end subroutine CICE_Finalize
-
-!=======================================================================
-!
-! Write a file indicating that this run finished cleanly.  This is
-! needed only for runs on machine 'bering' (set using runid = 'bering').
-!
-!  author: Adrian Turner, LANL
-
-      subroutine writeout_finished_file()
-      
-      use ice_restart_shared, only: restart_dir
-
-      character(len=char_len_long) :: filename
-      character(len=*), parameter :: subname = '(writeout_finished_file)'
-
-      if (my_task == master_task) then
-           
-         filename = trim(restart_dir)//"finished"
-         open(11,file=filename)
-         write(11,*) "finished"
-         close(11)
-
-      endif
-
-      end subroutine writeout_finished_file
 
 !=======================================================================
 
