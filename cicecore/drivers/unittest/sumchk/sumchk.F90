@@ -157,6 +157,23 @@
 
       ! correct results for relative digits check in sum
       allocate(reldigchk(nbflags,nscale))
+#ifdef NO_R16
+      ! lsum16 will revert to a double precision calc like lsum8
+      reldigchk(:,:) = 15.7
+      reldigchk(1:3,1) = 14.
+      reldigchk(4,1) = 3.9
+      reldigchk(1:3,2) = 9.
+      reldigchk(4,2) = 1.
+      reldigchk(1:3,3) = 1.
+      reldigchk(4,3) = 0.
+      reldigchk(1:3,4) = 0.
+      reldigchk(4,4) = 0.
+      reldigchk(5,4) = 15.
+      if (nx_global == 360 .and. ny_global == 240) then
+         reldigchk(1:3,1) = 13.
+         reldigchk(5,4) = 14.
+      endif
+#else
       reldigchk(:,:) = 15.7
       reldigchk(1:2,1) = 14.
       reldigchk(4,1) = 3.9
@@ -172,6 +189,7 @@
          reldigchk(1:2,1) = 13.
          reldigchk(5,4) = 14.
       endif
+#endif
 
       ! test list
       n = 1    ; stringflag1(n) = 'dble sum easy'
