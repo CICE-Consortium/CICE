@@ -130,9 +130,6 @@ contains
     if (my_task == master_task) then
        write(nu_diag,*)'send_i2x_per_cat = ',send_i2x_per_cat
     end if
-    if (.not.send_i2x_per_cat) then
-       deallocate(fswthrun_ai)
-    end if
 
     ! Determine if the following attributes are sent by the driver and if so read them in
     flds_wiso = .false.

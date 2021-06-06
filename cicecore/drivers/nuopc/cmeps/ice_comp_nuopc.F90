@@ -499,6 +499,7 @@ contains
     call cice_init1
     call t_stopf ('cice_init1')
 
+#ifdef CESMCOUPLED
     ! Form of ocean freezing temperature
     ! 'minus1p8' = -1.8 C
     ! 'linear_salt' = -depressT * sss
@@ -546,7 +547,7 @@ contains
             ' must be the same as natmiter from cice namelist ',natmiter
        call abort_ice(trim(errmsg))
     endif
-
+#endif
     !----------------------------------------------------------------------------
     ! Initialize grid info
     !----------------------------------------------------------------------------
