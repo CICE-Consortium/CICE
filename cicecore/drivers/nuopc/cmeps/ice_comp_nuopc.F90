@@ -826,9 +826,6 @@ contains
     else
        single_column = .false.
     end if
-#else    
-    scol_valid = .false.
-    single_column = .false.
 #endif
 
     !-----------------------------------------------------------------
