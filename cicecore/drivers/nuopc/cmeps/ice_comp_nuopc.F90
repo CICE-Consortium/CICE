@@ -39,7 +39,7 @@ module ice_comp_nuopc
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
-  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj, scol_valid, single_column
+  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj
 #endif
   use ice_timers
   use CICE_InitMod       , only : cice_init1, cice_init2
@@ -47,6 +47,7 @@ module ice_comp_nuopc
   use ice_mesh_mod       , only : ice_mesh_set_distgrid, ice_mesh_setmask_from_maskfile, ice_mesh_check
   use ice_mesh_mod       , only : ice_mesh_init_tlon_tlat_area_hm, ice_mesh_create_scolumn
   use ice_prescribed_mod , only : ice_prescribed_init
+  use ice_scam           , only : scol_valid, single_column
 
   implicit none
   private
@@ -592,7 +593,7 @@ contains
        else
           ! In this case init_grid2 will initialize tlon, tlat, area and hm
           call init_grid2()
-          call ice_mesh_check(ice_mesh, rc=rc)
+          call ice_mesh_check(gcomp,ice_mesh, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     end if
@@ -825,6 +826,7 @@ contains
        single_column = .false.
     end if
 #else    
+    scol_valid = .false.
     single_column = .false.
 #endif
 
