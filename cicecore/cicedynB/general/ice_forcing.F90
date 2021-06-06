@@ -24,7 +24,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
                               msec, mday, mmonth, myear, yday, daycal, &
-                              daymo, days_per_year, hc_jday
+                              daymo, days_per_year, compute_days_between
       use ice_fileunits, only: nu_diag, nu_forcing
       use ice_exit, only: abort_ice
       use ice_read_write, only: ice_open, ice_read, &
@@ -158,7 +158,7 @@
          trest                       ! restoring time scale (sec)
 
       logical (kind=log_kind), public :: &
-         dbug             ! prints debugging output if true
+         forcing_diag                ! prints forcing debugging output if true
 
       real (dbl_kind), dimension(:), allocatable, public :: &
          jday_atm  ! jday time vector from atm forcing files
@@ -389,7 +389,7 @@
          sss(:,:,:) = c0
 
          do k = 1,12            ! loop over 12 months
-            call ice_read (nu_forcing, k, work1, 'rda8', dbug, &
+            call ice_read (nu_forcing, k, work1, 'rda8', forcing_diag, &
                            field_loc_center, field_type_scalar)
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
@@ -436,7 +436,7 @@
          if (my_task == master_task) &
               call ice_open (nu_forcing, sst_file, nbits)
 
-         call ice_read (nu_forcing, mmonth, sst, 'rda8', dbug, &
+         call ice_read (nu_forcing, mmonth, sst, 'rda8', forcing_diag, &
                         field_loc_center, field_type_scalar)
 
          if (my_task == master_task) close(nu_forcing)
@@ -738,7 +738,7 @@
 !   data is missing, and we assume periodicity when monthly data
 !   is missing.
 
-      use ice_diagnostics, only: check_step
+      use ice_diagnostics, only: debug_model_step
 
       logical (kind=log_kind), intent(in) :: flag
 
@@ -776,9 +776,9 @@
 
       nbits = 64              ! double precision data
 
-      if (istep1 > check_step) dbug = .true.  !! debugging
+      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
 
-      if (my_task==master_task .and. (dbug)) then
+      if (my_task==master_task .and. (forcing_diag)) then
          write(nu_diag,*) '  ', trim(data_file)
       endif
 
@@ -816,7 +816,7 @@
             arg = 1
             nrec = recd + n2
             call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                           'rda8', dbug, field_loc, field_type)
+                           'rda8', forcing_diag, field_loc, field_type)
 
             if (ixx==1 .and. my_task == master_task) close(nu_forcing)
          endif                  ! ixm ne -99
@@ -828,7 +828,7 @@
          arg = arg + 1
          nrec = recd + ixx
          call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                        'rda8', dbug, field_loc, field_type)
+                        'rda8', forcing_diag, field_loc, field_type)
 
          if (ixp /= -99) then
          ! currently in latter half of data interval
@@ -853,7 +853,7 @@
             arg = arg + 1
             nrec = recd + n4
             call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                           'rda8', dbug, field_loc, field_type)
+                           'rda8', forcing_diag, field_loc, field_type)
          endif                  ! ixp /= -99
 
          if (my_task == master_task) close(nu_forcing)
@@ -888,7 +888,7 @@
 !
 ! Adapted by Alison McLaren, Met Office from read_data
 
-      use ice_diagnostics, only: check_step
+      use ice_diagnostics, only: debug_model_step
 
       logical (kind=log_kind), intent(in) :: flag
 
@@ -927,9 +927,9 @@
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
-      if (istep1 > check_step) dbug = .true.  !! debugging
+      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
 
-      if (my_task==master_task .and. (dbug)) then
+      if (my_task==master_task .and. (forcing_diag)) then
          write(nu_diag,*) '  ', trim(data_file)
       endif
 
@@ -968,7 +968,7 @@
             nrec = recd + n2
 
             call ice_read_nc & 
-                 (fid, nrec, fieldname, field_data(:,:,arg,:), dbug, &
+                 (fid, nrec, fieldname, field_data(:,:,arg,:), forcing_diag, &
                   field_loc, field_type)
 
             if (ixx==1) call ice_close_nc(fid)
@@ -982,7 +982,7 @@
          nrec = recd + ixx
 
          call ice_read_nc & 
-              (fid, nrec, fieldname, field_data(:,:,arg,:), dbug, &
+              (fid, nrec, fieldname, field_data(:,:,arg,:), forcing_diag, &
                field_loc, field_type)
 
          if (ixp /= -99) then
@@ -1008,7 +1008,7 @@
             nrec = recd + n4
 
             call ice_read_nc & 
-                 (fid, nrec, fieldname, field_data(:,:,arg,:), dbug, &
+                 (fid, nrec, fieldname, field_data(:,:,arg,:), forcing_diag, &
                   field_loc, field_type)
          endif                  ! ixp /= -99
 
@@ -1034,7 +1034,7 @@
 !
 ! Adapted by Mads Hvid Ribergaard, DMI from read_data_nc
 
-      use ice_diagnostics, only: check_step
+      use ice_diagnostics, only: debug_model_step
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
       logical (kind=log_kind), intent(in) :: flag
@@ -1065,9 +1065,9 @@
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
-      if (istep1 > check_step) dbug = .true.  !! debugging
+      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
 
-      if (my_task==master_task .and. (dbug)) then
+      if (my_task==master_task .and. (forcing_diag)) then
          write(nu_diag,*) '  ', trim(data_file)
       endif
 
@@ -1078,11 +1078,11 @@
       ! read data
       !-----------------------------------------------------------------
          call ice_read_nc &
-               (fid, recd , fieldname, field_data(:,:,1,:), dbug, &
+               (fid, recd , fieldname, field_data(:,:,1,:), forcing_diag, &
                 field_loc, field_type)
 
          call ice_read_nc &
-              (fid, recd+1, fieldname, field_data(:,:,2,:), dbug, &
+              (fid, recd+1, fieldname, field_data(:,:,2,:), forcing_diag, &
                field_loc, field_type)
 
          call ice_close_nc(fid)
@@ -1104,7 +1104,7 @@
 !  no need to get data from other years or to extrapolate data beyond
 !  the forcing time period.
 
-      use ice_diagnostics, only: check_step
+      use ice_diagnostics, only: debug_model_step
 
       logical (kind=log_kind),intent(in) :: readflag
 
@@ -1137,9 +1137,9 @@
 
       nbits = 64                ! double precision data
 
-      if (istep1 > check_step) dbug = .true.  !! debugging
+      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
 
-      if (my_task==master_task .and. (dbug)) &
+      if (my_task==master_task .and. (forcing_diag)) &
         write(nu_diag,*) '  ', trim(data_file)
 
       if (readflag) then
@@ -1155,19 +1155,19 @@
             arg = 1
             nrec = recd + ixm
             call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                           'rda8', dbug, field_loc, field_type)
+                           'rda8', forcing_diag, field_loc, field_type)
          endif
 
          arg = arg + 1
          nrec = recd + ixx
          call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                        'rda8', dbug, field_loc, field_type)
+                        'rda8', forcing_diag, field_loc, field_type)
 
          if (ixp /= -99) then
             arg = arg + 1
             nrec = recd + ixp
             call ice_read (nu_forcing, nrec, field_data(:,:,arg,:), &
-                           'rda8', dbug, field_loc, field_type)
+                           'rda8', forcing_diag, field_loc, field_type)
          endif
 
          if (my_task == master_task) close (nu_forcing)
@@ -1188,7 +1188,7 @@
 !  no need to get data from other years or to extrapolate data beyond
 !  the forcing time period.
 
-      use ice_diagnostics, only: check_step
+      use ice_diagnostics, only: debug_model_step
 
       logical (kind=log_kind),intent(in) :: readflag
 
@@ -1222,9 +1222,9 @@
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
-      if (istep1 > check_step) dbug = .true.  !! debugging
+      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
 
-      if (my_task==master_task .and. (dbug)) &
+      if (my_task==master_task .and. (forcing_diag)) &
         write(nu_diag,*) '  ', trim(data_file)
 
       if (readflag) then
@@ -1241,21 +1241,21 @@
             nrec = recd + ixm
             call ice_read_nc & 
                  (fid, nrec, fieldname, field_data(:,:,arg,:), &
-                  dbug, field_loc, field_type)
+                  forcing_diag, field_loc, field_type)
          endif
 
          arg = arg + 1
          nrec = recd + ixx
          call ice_read_nc & 
                  (fid, nrec, fieldname, field_data(:,:,arg,:), &
-                  dbug, field_loc, field_type)
+                  forcing_diag, field_loc, field_type)
 
          if (ixp /= -99) then
             arg = arg + 1
             nrec = recd + ixp
             call ice_read_nc & 
                  (fid, nrec, fieldname, field_data(:,:,arg,:), &
-                  dbug, field_loc, field_type)
+                  forcing_diag, field_loc, field_type)
          endif
 
          if (my_task == master_task) call ice_close_nc (fid)
@@ -2386,7 +2386,7 @@
       ! Save record number
       oldrecnum = recnum
 
-         if (dbug) then
+         if (forcing_diag) then
            if (my_task == master_task) write (nu_diag,*) 'LY_bulk_data'
            vmin = global_minval(fsw,distrb_info,tmask)
                                
@@ -2418,7 +2418,7 @@
            if (my_task.eq.master_task)  &
                write (nu_diag,*) 'Qa',vmin,vmax
 
-        endif                   ! dbug
+        endif                   ! forcing_diag
 
       end subroutine LY_data
 
@@ -2644,7 +2644,7 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
-      if (dbug .or. forcing_debug) then
+      if (forcing_diag .or. forcing_debug) then
          if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg JRA55_bulk_data'
          vmin = global_minval(fsw,distrb_info,tmask)
          vmax = global_maxval(fsw,distrb_info,tmask)
@@ -2667,7 +2667,7 @@
          vmin = global_minval(Qa,distrb_info,tmask)
          vmax = global_maxval(Qa,distrb_info,tmask)
          if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg Qa',vmin,vmax
-      endif                   ! dbug
+      endif                   ! forcing_diag
 
       end subroutine JRA55_data
 
@@ -3425,7 +3425,7 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
-         if (dbug) then
+         if (forcing_diag) then
            if (my_task == master_task) write (nu_diag,*) 'LY_bulk_data'
            vmin = global_minval(fsw,distrb_info,tmask)
            vmax = global_maxval(fsw,distrb_info,tmask)
@@ -3460,7 +3460,7 @@
            if (my_task.eq.master_task)  &
                write (nu_diag,*) 'Qa',vmin,vmax
 
-        endif                   ! dbug
+        endif                   ! forcing_diag
 
       end subroutine monthly_data
 
@@ -3861,10 +3861,10 @@
                 
             ! Note: netCDF does single to double conversion if necessary
 !           if (n >= 4 .and. n <= 7) then
-!              call ice_read_nc(fid, m, vname(n), work1, dbug, &
+!              call ice_read_nc(fid, m, vname(n), work1, forcing_diag, &
 !                               field_loc_NEcorner, field_type_vector)
 !           else
-               call ice_read_nc(fid, m, vname(n), work1, dbug, &
+               call ice_read_nc(fid, m, vname(n), work1, forcing_diag, &
                                 field_loc_center, field_type_scalar)
 !           endif
 
@@ -3889,10 +3889,10 @@
            do m=1,12
               nrec = nrec + 1
               if (n >= 4 .and. n <= 7) then
-                call ice_read (nu_forcing, nrec, work1, 'rda8', dbug, &
+                call ice_read (nu_forcing, nrec, work1, 'rda8', forcing_diag, &
                                field_loc_NEcorner, field_type_vector)
               else
-                call ice_read (nu_forcing, nrec, work1, 'rda8', dbug, &
+                call ice_read (nu_forcing, nrec, work1, 'rda8', forcing_diag, &
                                field_loc_center, field_type_scalar)
               endif
               ocn_frc_m(:,:,:,n,m) = work1(:,:,:)
@@ -4023,10 +4023,10 @@
             ! Note: netCDF does single to double conversion if necessary
             if (n == 4 .or. n == 5) then ! 3D currents
                nzlev = 1                 ! surface currents
-               call ice_read_nc_uv(fid, m, nzlev, vname(n), work1, dbug, &
+               call ice_read_nc_uv(fid, m, nzlev, vname(n), work1, forcing_diag, &
                                 field_loc_center, field_type_scalar)
             else
-               call ice_read_nc(fid, m, vname(n), work1, dbug, &
+               call ice_read_nc(fid, m, vname(n), work1, forcing_diag, &
                                 field_loc_center, field_type_scalar)
             endif
 
@@ -4213,7 +4213,7 @@
         !$OMP END PARALLEL DO
       endif
 
-      if (dbug) then
+      if (forcing_diag) then
          if (my_task == master_task)  &
                write (nu_diag,*) 'ocn_data_ncar'
            vmin = global_minval(Tf,distrb_info,tmask)
@@ -4494,7 +4494,7 @@
 
            fieldname = 'sss'
            call ice_open_nc (sss_file, fid)
-           call ice_read_nc (fid, 1 , fieldname, sss, dbug, &
+           call ice_read_nc (fid, 1 , fieldname, sss, forcing_diag, &
                              field_loc_center, field_type_scalar)
            call ice_close_nc(fid)
 
@@ -4509,7 +4509,7 @@
 
            fieldname = 'sst'
            call ice_open_nc (sst_file, fid)
-           call ice_read_nc (fid, 1 , fieldname, sst, dbug, &
+           call ice_read_nc (fid, 1 , fieldname, sst, forcing_diag, &
                                 field_loc_center, field_type_scalar)
            call ice_close_nc(fid)
 
@@ -4607,8 +4607,8 @@
       call icepack_query_parameters(Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday)
 
-      ! current time in HYCOM jday units
-      hcdate = hc_jday(myear,0,0)+ yday+msec/secday
+      ! current time in HYCOM jday units (HYCOM ref year: 1900,12,31,000000) 
+      hcdate = real(compute_days_between(1900,12,31,myear,mmonth,mday)) + msec/secday
 
       ! Init recnum try
       recnum=min(max(oldrecnum,1),Njday_atm-1)
@@ -4682,7 +4682,7 @@
       endif
 
       ! Interpolate
-      if (dbug) then
+      if (forcing_diag) then
         if (my_task == master_task) then
            write(nu_diag,*)'CICE: Atm. interpolate: = ',&
                                   hcdate,c1intp,c2intp
@@ -4735,7 +4735,7 @@
 !   data is missing, and we assume periodicity when monthly data
 !   is missing.
 !
-      use ice_diagnostics, only: check_step
+      use ice_diagnostics, only: debug_model_step
 
       logical (kind=log_kind), intent(in) :: flag
 
@@ -4774,9 +4774,9 @@
 
       field_data = c0 ! to satisfy intent(out) attribute
 
-      if (istep1 > check_step) dbug = .true.  !! debugging
+      if (istep1 > debug_model_step) forcing_diag = .true.  !! debugging
 
-      if (my_task==master_task .and. (dbug)) then
+      if (my_task==master_task .and. (forcing_diag)) then
          write(nu_diag,*) '  ', trim(data_file)
       endif
 
@@ -4823,7 +4823,7 @@
             nrec = recd + n2
 
             call ice_read_nc & 
-                 (fid, nrec, fieldname, field_data(arg), dbug, &
+                 (fid, nrec, fieldname, field_data(arg), forcing_diag, &
                   field_loc, field_type)
 
             !if (ixx==1) call ice_close_nc(fid)
@@ -4838,7 +4838,7 @@
          nrec = recd + ixx
 
          call ice_read_nc & 
-              (fid, nrec, fieldname, field_data(arg), dbug, &
+              (fid, nrec, fieldname, field_data(arg), forcing_diag, &
                field_loc, field_type)
 
          if (ixp /= -99) then
@@ -4864,7 +4864,7 @@
             nrec = recd + n4
 
             call ice_read_nc & 
-                 (fid, nrec, fieldname, field_data(arg), dbug, &
+                 (fid, nrec, fieldname, field_data(arg), forcing_diag, &
                   field_loc, field_type)
          endif                  ! ixp /= -99
 
@@ -5202,10 +5202,10 @@
           do m=1,12                
             ! Note: netCDF does single to double conversion if necessary
             if (n >= 4 .and. n <= 7) then
-               call ice_read_nc(fid, m, vname(n), work, dbug, &
+               call ice_read_nc(fid, m, vname(n), work, forcing_diag, &
                                 field_loc_NEcorner, field_type_vector)
             else
-               call ice_read_nc(fid, m, vname(n), work, dbug, &
+               call ice_read_nc(fid, m, vname(n), work, forcing_diag, &
                                 field_loc_center, field_type_scalar)             
             endif
             ocn_frc_m(:,:,:,n,m) = work
@@ -5361,7 +5361,7 @@
       ! if no wave data is provided, wave_spectrum is zero everywhere
       wave_spectrum(:,:,:,:) = c0
       wave_spec_dir = ocn_data_dir
-      dbug = .false.
+      forcing_diag = .false.
 
       ! wave spectrum and frequencies
       if (wave_spec) then
@@ -5379,7 +5379,7 @@
             else
 #ifdef USE_NETCDF
                call ice_open_nc(wave_spec_file,fid)
-               call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), dbug, &
+               call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), forcing_diag, &
                                      field_loc_center, field_type_scalar)
                call ice_close_nc(fid)
 #else

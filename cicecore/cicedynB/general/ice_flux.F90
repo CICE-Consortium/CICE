@@ -121,7 +121,8 @@
        ! in from atmosphere (if calc_Tsfc)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         zlvl    , & ! atm level height (m)
+         zlvl    , & ! atm level height (momentum) (m)
+         zlvs    , & ! atm level height (scalar quantities) (m)
          uatm    , & ! wind velocity components (m/s)
          vatm    , &
          wind    , & ! wind speed (m/s)
@@ -391,7 +392,8 @@
          iceumask   (nx_block,ny_block,max_blocks), & ! ice extent mask (U-cell)
          fm         (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
          Tbu        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
-         zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (m)
+         zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (momentum) (m)
+         zlvs       (nx_block,ny_block,max_blocks), & ! atm level height (scalar quantities) (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
          vatm       (nx_block,ny_block,max_blocks), &
          wind       (nx_block,ny_block,max_blocks), & ! wind speed (m/s)
@@ -547,7 +549,8 @@
 
       integer (kind=int_kind) :: n
 
-      real (kind=dbl_kind) :: fcondtopn_d(6), fsurfn_d(6)
+      integer (kind=int_kind), parameter :: max_d = 6
+      real (kind=dbl_kind) :: fcondtopn_d(max_d), fsurfn_d(max_d)
       real (kind=dbl_kind) :: stefan_boltzmann, Tffresh
       real (kind=dbl_kind) :: vonkar, zref, iceruf
 
@@ -569,7 +572,8 @@
       !-----------------------------------------------------------------
       ! fluxes received from atmosphere
       !-----------------------------------------------------------------
-      zlvl  (:,:,:) = c10             ! atm level height (m)
+      zlvl  (:,:,:) = c10             ! atm level height (momentum) (m)
+      zlvs  (:,:,:) = c10             ! atm level height (scalar quantities) (m)
       rhoa  (:,:,:) = 1.3_dbl_kind    ! air density (kg/m^3)
       uatm  (:,:,:) = c5              ! wind velocity    (m/s)
       vatm  (:,:,:) = c5
@@ -589,7 +593,7 @@
          flw   (:,:,:) = c180            ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat              ! conductive heat flux (W/m^2)
-            fcondtopn_f(:,:,n,:) = fcondtopn_d(n)
+            fcondtopn_f(:,:,n,:) = fcondtopn_d(min(n,max_d))
          enddo
          fsurfn_f = fcondtopn_f      ! surface heat flux (W/m^2)
          flatn_f (:,:,:,:) = c0          ! latent heat flux (kg/m2/s)
@@ -606,7 +610,7 @@
          flw   (:,:,:) = 280.0_dbl_kind  ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat                   ! surface heat flux (W/m^2)
-            fsurfn_f(:,:,n,:) = fsurfn_d(n)
+            fsurfn_f(:,:,n,:) = fsurfn_d(min(n,max_d))
          enddo
          fcondtopn_f(:,:,:,:) =  0.0_dbl_kind ! conductive heat flux (W/m^2)
          flatn_f    (:,:,:,:) = -2.0_dbl_kind ! latent heat flux (W/m^2)
@@ -623,7 +627,7 @@
          flw   (:,:,:) = 230.0_dbl_kind  ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat                   ! surface heat flux (W/m^2)
-            fsurfn_f(:,:,n,:) = fsurfn_d(n)
+            fsurfn_f(:,:,n,:) = fsurfn_d(min(n,max_d))
          enddo
          fcondtopn_f(:,:,:,:) =  c0           ! conductive heat flux (W/m^2)
          flatn_f    (:,:,:,:) = -1.0_dbl_kind ! latent heat flux (W/m^2)

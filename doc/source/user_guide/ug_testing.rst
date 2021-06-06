@@ -715,7 +715,10 @@ This argument turns on special compiler flags including reduced optimization and
 invokes the gcov tool.  Once runs are complete, either lcov or codecov can be used
 to analyze the results.
 This option is currently only available with the gnu compiler and on a few systems
-with modified Macros files.
+with modified Macros files.  In the current implementation, when ``--coverage`` is 
+invoked, the sandbox is copied to a new sandbox called something like cice_lcov_yymmdd-hhmmss.
+The source code in the new sandbox is modified slightly to improve coverage statistics
+and the full coverage suite is run there.
 
 At the present time, the ``--coverage`` flag invokes the lcov analysis automatically
 by running the **report_lcov.csh** script in the test suite directory.  The output 
