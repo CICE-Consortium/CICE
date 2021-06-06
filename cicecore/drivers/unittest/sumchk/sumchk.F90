@@ -224,7 +224,7 @@
          if (my_task == master_task) then
             write(6,*) ' '
             write(6,*) 'test ',l
-            write(6,'(a,e10.4)') 'lscale = ',lscale
+            write(6,'(a,e11.4)') 'lscale = ',lscale
             write(6,'(6x,a,28x,a,8x,a,10x,a)') 'test','bfbflag','sum','digits of precision (max is 16)'
          endif
          do iblock = 1,numBlocks

@@ -2294,7 +2294,7 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
 ! lsum16 = local sum with real*16 and scalar mpi allreduce, likely to be bfb
 !    WARNING: this does not work in several compilers and mpi
 !    implementations due to support for quad precision and consistency
-!    between underlying datatype in fortran and c.  The source code
+!    between underlying datatypes in fortran and c.  The source code
 !    can be turned off with a cpp NO_R16.  Otherwise, it is recommended
 !    that the results be validated on any platform where it might be used.
 ! reprosum = fixed point method based on ordered double integer sums.
@@ -2328,10 +2328,9 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
    real (real_kind), allocatable :: psums4(:)
    real (real_kind), allocatable :: sums4(:)
    real (dbl_kind) , allocatable :: psums8(:)
-#ifndef NO_R16
+   ! if r16 is not available (NO_R16), then r16 reverts to double precision (r8)
    real (r16_kind) , allocatable :: psums16(:)
    real (r16_kind) , allocatable :: sums16(:)
-#endif
 
    integer (int_kind) :: ns,nf,i,j, ierr
 
@@ -2363,7 +2362,7 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
 
       deallocate(psums8)
 
-#ifndef NO_R16
+   ! if no_r16 is set, this will revert to a double precision calculation like lsum8
    elseif (bfbflag == 'lsum16') then
       allocate(psums16(nf))
       psums16(:) = 0._r16_kind
@@ -2386,7 +2385,6 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
       sums8 = real(sums16,dbl_kind)
 
       deallocate(psums16,sums16)
-#endif
 
    elseif (bfbflag == 'lsum4') then
       allocate(psums4(nf))
