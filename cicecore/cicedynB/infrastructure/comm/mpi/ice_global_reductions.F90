@@ -74,7 +74,8 @@
                       global_maxval_int,           &
                       global_maxval_scalar_dbl,    &
                       global_maxval_scalar_real,   &
-                      global_maxval_scalar_int
+                      global_maxval_scalar_int,    &
+                      global_maxval_scalar_int_nodist
    end interface
 
    interface global_minval
@@ -83,7 +84,8 @@
                       global_minval_int,           &
                       global_minval_scalar_dbl,    &
                       global_minval_scalar_real,   &
-                      global_minval_scalar_int
+                      global_minval_scalar_int,    &
+                      global_minval_scalar_int_nodist
    end interface
 
 !***********************************************************************
@@ -1685,6 +1687,56 @@
 
 !***********************************************************************
 
+ function global_maxval_scalar_int_nodist (scalar, communicator) &
+          result(globalMaxval)
+
+!  Computes the global maximum value of a scalar value across
+!  a distributed machine.
+!
+!  This is actually the specific interface for the generic global_maxval
+!  function corresponding to single precision scalars.  
+
+   integer (int_kind), intent(in) :: &
+      scalar               ! scalar for which max value needed
+
+   integer (int_kind), intent(in) :: &
+      communicator         ! mpi communicator
+
+   integer (int_kind) :: &
+      globalMaxval         ! resulting maximum value
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr             ! mpi error flag
+
+   character(len=*), parameter :: subname = '(global_maxval_scalar_int_nodist)'
+
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local maxval to global maxval
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalMaxval = scalar
+#else
+   call MPI_ALLREDUCE(scalar, globalMaxval, 1, &
+                      MPI_INTEGER, MPI_MAX, communicator, ierr)
+#endif
+
+!-----------------------------------------------------------------------
+
+ end function global_maxval_scalar_int_nodist
+
+!***********************************************************************
+
  function global_minval_dbl (array, dist, lMask) &
           result(globalMinval)
 
@@ -2179,6 +2231,55 @@
  end function global_minval_scalar_int
 
 !***********************************************************************
+
+ function global_minval_scalar_int_nodist (scalar, communicator) &
+          result(globalMinval)
+
+!  Computes the global minimum value of a scalar value across
+!  a distributed machine.
+!
+!  This is actually the specific interface for the generic global_minval
+!  function corresponding to single precision scalars.  
+
+   integer (int_kind), intent(in) :: &
+      scalar               ! scalar for which min value needed
+
+   integer(int_kind), intent(in) :: &
+      communicator         ! mpi communicator
+
+   integer (int_kind) :: &
+      globalMinval         ! resulting minimum value
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ierr             ! mpi error flag
+
+   character(len=*), parameter :: subname = '(global_minval_scalar_int_nodist)'
+
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local minval to global minval
+!
+!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   globalMinval = scalar
+#else
+   call MPI_ALLREDUCE(scalar, globalMinval, 1, &
+                      MPI_INTEGER, MPI_MIN, communicator, ierr)
+#endif
+
+!-----------------------------------------------------------------------
+
+ end function global_minval_scalar_int_nodist
+
 !***********************************************************************
 
 subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)

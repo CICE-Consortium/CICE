@@ -316,10 +316,11 @@ contains
       if (my_task == master_task) then
       write(nu_diag,*) 'block i,j locations'
       do n = 1, nblocks_tot
-         write(nu_diag,*) 'block id, iblock, jblock:', &
+         write(nu_diag,*) 'block id, iblock, jblock, tripole:', &
          all_blocks(n)%block_id, &
          all_blocks(n)%iblock,   & 
-         all_blocks(n)%jblock
+         all_blocks(n)%jblock,   &
+         all_blocks(n)%tripole
       enddo
       endif
    endif
