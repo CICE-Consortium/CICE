@@ -40,7 +40,7 @@
       private
       public :: init_grid1, init_grid2, &
                 t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid, alloc_grid
+                to_ugrid, to_tgrid, alloc_grid, makemask
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
@@ -369,11 +369,6 @@
          else
             call popgrid        ! read POP grid lengths directly
          endif 
-#ifdef CESMCOUPLED
-      elseif (trim(grid_type) == 'latlon') then
-         call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
-         return
-#endif
       elseif (trim(grid_type) == 'cpom_grid') then
          call cpomgrid          ! cpom model orca1 type grid
       else
@@ -1160,7 +1155,6 @@
 
       end subroutine latlongrid
 #endif
-
 !=======================================================================
 
 ! Regular rectangular grid and mask
