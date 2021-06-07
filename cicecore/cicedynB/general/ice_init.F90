@@ -127,7 +127,7 @@
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
-        sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf
+        sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf, &
         rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, &
         windmin, drhosdwind, snwlvlfac
 
