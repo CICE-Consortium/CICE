@@ -464,6 +464,8 @@ either Celsius or Kelvin units).
    "ocn_data_type", ":math:`\bullet` source of surface temperature, salinity data", ""
    "omega", "angular velocity of Earth", "7.292\ :math:`\times`\ 10\ :math:`^{-5}` rad/s"
    "opening", "rate of ice opening due to divergence and shear", "1/s"
+   "optics_file", "optics filename associated with modal aerosols", ""
+   "optics_file_fieldname", "optics file fieldname that is read", ""
    "**P**", "", ""
    "p001", "1/1000", ""
    "p01", "1/100", ""

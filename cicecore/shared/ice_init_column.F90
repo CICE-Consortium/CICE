@@ -1004,7 +1004,7 @@
 
       subroutine input_zbgc
 
-      use ice_arrays_column, only: restore_bgc, optics_file
+      use ice_arrays_column, only: restore_bgc, optics_file, optics_file_fieldname
       use ice_broadcast, only: broadcast_scalar
       use ice_restart_column, only: restart_bgc, restart_zsal, &
           restart_hbrine
@@ -1047,7 +1047,7 @@
         restore_bgc, restart_bgc, scale_bgc, solve_zsal, restart_zsal, &
         tr_bgc_Nit, tr_bgc_C, tr_bgc_chl, tr_bgc_Am, tr_bgc_Sil, &
         tr_bgc_DMS, tr_bgc_PON, tr_bgc_hum, tr_bgc_DON, tr_bgc_Fe, &
-        grid_o, grid_o_t, l_sk, grid_oS, optics_file, &   
+        grid_o, grid_o_t, l_sk, grid_oS, optics_file, optics_file_fieldname, &   
         l_skS, phi_snow,  initbio_frac, frazil_scav, &
         ratio_Si2N_diatoms , ratio_Si2N_sp      , ratio_Si2N_phaeo   ,  &
         ratio_S2N_diatoms  , ratio_S2N_sp       , ratio_S2N_phaeo    ,  &
@@ -1105,6 +1105,7 @@
       tr_zaero        = .false.  ! z aerosol tracers
       modal_aero      = .false.  ! use modal aerosol treatment of aerosols
       optics_file     = 'unknown_optics_file' ! modal aerosol optics file
+      optics_file_fieldname = 'unknown_optics_fieldname' ! modal aerosol optics file fieldname
       restore_bgc     = .false.  ! restore bgc if true
       solve_zsal      = .false.  ! update salinity tracer profile from solve_S_dt
       restart_bgc     = .false.  ! biogeochemistry restart
@@ -1322,6 +1323,7 @@
       call broadcast_scalar(dEdd_algae,         master_task) 
       call broadcast_scalar(modal_aero,         master_task)
       call broadcast_scalar(optics_file,        master_task)
+      call broadcast_scalar(optics_file_fieldname, master_task)
       call broadcast_scalar(grid_o,             master_task)
       call broadcast_scalar(grid_o_t,           master_task)
       call broadcast_scalar(l_sk,               master_task)
@@ -1692,6 +1694,7 @@
          write(nu_diag,1010) ' tr_zaero                  = ', tr_zaero
          write(nu_diag,1020) ' number of aerosols        = ', n_zaero
          write(nu_diag,1031) ' optics_file               = ', trim(optics_file)
+         write(nu_diag,1031) ' optics_file_fieldname     = ', trim(optics_file_fieldname)
          ! bio parameters
          write(nu_diag,1000) ' grid_o                    = ', grid_o
          write(nu_diag,1000) ' grid_o_t                  = ', grid_o_t

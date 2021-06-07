@@ -268,7 +268,8 @@
          bgc_data_dir   ! directory for biogeochemistry data
 
       character(char_len_long), public :: &
-         optics_file    ! modal aero optics file
+         optics_file, &        ! modal aero optics file
+         optics_file_fieldname ! modal aero optics file fieldname
 
       real (kind=dbl_kind), dimension(:), allocatable, public :: &  
          R_C2N_DON      ! carbon to nitrogen mole ratio of DON pool

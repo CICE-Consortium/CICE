@@ -263,6 +263,7 @@
     tr_zaero        = .false.
     modal_aero      = .false.
     optics_file     = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/snicar_optics_5bnd_snow_and_aerosols.nc'
+    optics_file_fieldname = 'modalBCabsorptionParameter5band'
     skl_bgc         = .false.
     z_tracers       = .false.
     dEdd_algae      = .false.

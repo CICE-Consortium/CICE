@@ -1,6 +1,16 @@
 
       program sumchk
 
+      ! This tests the CICE ice_global_reductions infrastructure by 
+      ! using CICE_InitMod (from the standalone model) to read/initialize
+      ! a CICE grid/configuration.  Then methods in ice_global_reductions
+      ! are verified using hardwired inputs with known outputs.
+      ! A grid needs to be initialized because most of the global reduction
+      ! infrastructure assumes haloed and distributed arrays are passed
+      ! possibly with a tripole seam.  These interfaces are more than just
+      ! layers on top of MPI.  They have the CICE grid/decomposition
+      ! infrastructure built-in.
+
       use CICE_InitMod
       use CICE_FinalMod
       use ice_kinds_mod, only: int_kind, dbl_kind, real_kind
@@ -10,14 +20,14 @@
       use ice_domain, only: distrb_info
       use ice_blocks, only: block, get_block, nx_block, ny_block, nblocks_tot
       use ice_distribution, only: ice_distributionGetBlockID, ice_distributionGet
-      use ice_constants, only: field_loc_Nface
+      use ice_constants, only: field_loc_center, field_loc_Nface
       use ice_fileunits, only: bfbflag
       use ice_global_reductions
       use ice_exit, only: abort_ice
 
       implicit none
 
-      integer(int_kind) :: i, j, k, l, n, nscale, iblock, ib, ie, jb, je
+      integer(int_kind) :: i, j, k, l, m, n, iblock, ib, ie, jb, je
       integer(int_kind) :: blockID, numBlocks
       type (block) :: this_block  
 
@@ -35,7 +45,6 @@
       real(dbl_kind)    :: locval8, sumval8, minval8, maxval8
       real(real_kind)   :: locval4, sumval4, minval4, maxval4
       integer(int_kind) :: iocval, locvali, sumvali, corvali, minvali, maxvali
-      real(dbl_kind)    :: lscale
       real(dbl_kind)    :: reldig,reldigchk_now
       real(dbl_kind) ,allocatable :: reldigchk(:,:)
 
@@ -56,8 +65,22 @@
 
       integer(int_kind) :: npes, ierr, ntask
 
+
+      integer(int_kind), parameter :: mfld_loc = 2
+      integer(int_kind), parameter :: field_loc(mfld_loc) = &
+         (/ field_loc_center, field_loc_Nface /)
+      character(len=16), parameter :: field_loc_string(mfld_loc) = &
+         (/ 'field_loc_center', 'field_loc_Nface ' /)
+
+      integer(int_kind), parameter :: nscale = 4
+      real(dbl_kind), parameter    :: lscale(nscale) = &
+         (/ 1.0_dbl_kind, &
+            1.0e8_dbl_kind, &
+            1.0e16_dbl_kind, &
+            1.0e32_dbl_kind /)
+
       integer(int_kind), parameter :: nbflags = 6
-      character(len=8), parameter ::  bflags(1:nbflags) = &
+      character(len=8), parameter  :: bflags(1:nbflags) = &
          (/ 'off     ','lsum8   ','lsum16  ','lsum4   ','ddpdd   ','reprosum' /)
       character(len=*), parameter ::  &
          passflag = 'PASS', &
@@ -130,30 +153,7 @@
       allocate(mmaski (nx_block,ny_block,max_blocks))
       allocate(lmask  (nx_block,ny_block,max_blocks))
 
-      ! set corval to something a little interesting (not 1.0 for instance which gives atypical results)
-
-      corval = 4.0_dbl_kind/3.0_dbl_kind
-      iocval = 8
-      if (nx_global == 360 .and. ny_global == 240) then
-         locval = corval / real((nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2),dbl_kind)
-         corvali = (nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2)*iocval
-      elseif (nx_global == 100 .and. ny_global == 116) then
-         locval = corval / real(nblocks_tot*(block_size_x*block_size_y-2),dbl_kind)
-         corvali = nblocks_tot*(block_size_x*block_size_y-2)*iocval
-      else
-         call abort_ice(subname//' ERROR not set for this grid ')
-      endif
-
-      if (my_task == master_task) then
-          write(6,*) ' local array value = ',locval
-          write(6,*) ' correct value     = ',corval
-          write(6,*) ' correct value int = ',corvali
-         write(6,*) ' '
-      endif
-
       call ice_distributionGet(distrb_info, numLocalBlocks = numBlocks)
-
-      nscale = 4
 
       ! correct results for relative digits check in sum
       allocate(reldigchk(nbflags,nscale))
@@ -212,21 +212,44 @@
       n = n + 1; stringflag1(n) = 'real prod sum + logical mask'
       n = n + 1; stringflag1(n) = 'intg prod sum + logical mask'
 
+      do m = 1, mfld_loc
+
+         ! set corval to something a little interesting (not 1.0 for instance which gives atypical results)
+         corval = 4.0_dbl_kind/3.0_dbl_kind
+         iocval = 8
+         ! tuned for gx3 and tx1 only
+         if ((nx_global == 100 .and. ny_global == 116) .or. &
+             (nx_global == 360 .and. ny_global == 240)) then
+            if (field_loc(m) == field_loc_Nface .and. nx_global == 360 .and. ny_global == 240) then
+               ! tx1 tripole face, need to adjust local value to remove half of row at ny_global
+               ! or modify corval to account for different sum
+               locval = corval / real((nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2),dbl_kind)
+               corvali = (nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2)*iocval
+            else
+               locval = corval / real(nblocks_tot*(block_size_x*block_size_y-2),dbl_kind)
+               corvali = nblocks_tot*(block_size_x*block_size_y-2)*iocval
+            endif
+         else
+            call abort_ice(subname//' ERROR not set for this grid ')
+         endif
+
       do l = 1, nscale
+         if (my_task == master_task) then
+            write(6,*) ' '
+            write(6,'(a,i4,a,i4)') 'test: m = ',m,': l = ', l
+            write(6,'(a,a    )') 'field_loc = ',trim(field_loc_string(m))
+            write(6,'(a,e11.4)') 'lscale    = ',lscale(l)
+            write(6,*) 'local array value = ',locval
+            write(6,*) 'correct value     = ',corval
+            write(6,*) 'correct value int = ',corvali
+            write(6,*) ' '
+            write(6,'(6x,a,26x,a,10x,a,10x,a)') 'test','bfbflag','sum','digits of precision (max is 16)'
+         endif
+
          arrayA(:,:,:) = locval
          arrayB(:,:,:) = locval
          arrayC(:,:,:) = locval
          lmask(:,:,:) = .true.
-         lscale = 1.0_dbl_kind
-         if (l == 2) lscale = 1.0e8_dbl_kind
-         if (l == 3) lscale = 1.0e16_dbl_kind
-         if (l == 4) lscale = 1.0e32_dbl_kind
-         if (my_task == master_task) then
-            write(6,*) ' '
-            write(6,*) 'test ',l
-            write(6,'(a,e11.4)') 'lscale = ',lscale
-            write(6,'(6x,a,28x,a,8x,a,10x,a)') 'test','bfbflag','sum','digits of precision (max is 16)'
-         endif
          do iblock = 1,numBlocks
             call ice_distributionGetBlockID(distrb_info, iblock, blockID)
             this_block = get_block(blockID, blockID)
@@ -237,11 +260,11 @@
 
             lmask(ie,je-1,iblock)   = .false.
             lmask(ie,je-2,iblock) = .false.
-            arrayA(ie,je-1,iblock)   = locval * lscale
+            arrayA(ie,je-1,iblock)   = locval * lscale(l)
             arrayA(ie,je-2,iblock) = -arrayA(ie,je-1,iblock)
-            arrayB(ie,je-1,iblock)   = locval * lscale
+            arrayB(ie,je-1,iblock)   = locval * lscale(l)
             arrayB(ie,je-2,iblock) =  arrayB(ie,je-1,iblock)
-            arrayC(ib,jb,iblock)   = locval * lscale
+            arrayC(ib,jb,iblock)   = locval * lscale(l)
             arrayC(ib+1,jb,iblock) = -arrayC(ib,jb,iblock)
             arrayiA(:,:,iblock) = iocval
             arrayiB(:,:,iblock) = iocval
@@ -258,82 +281,82 @@
 
             if (k == 1) then
                array8(:,:,:) = arrayC(:,:,:)
-               sumval8 = global_sum(array8, distrb_info, field_loc_Nface)
+               sumval8 = global_sum(array8, distrb_info, field_loc(m))
             elseif (k == 2) then
                array8(:,:,:) = arrayA(:,:,:)
-               sumval8 = global_sum(array8, distrb_info, field_loc_Nface)
+               sumval8 = global_sum(array8, distrb_info, field_loc(m))
             elseif (k == 3) then
                array4(:,:,:) = arrayA(:,:,:)
-               sumval4 = global_sum(array4, distrb_info, field_loc_Nface)
+               sumval4 = global_sum(array4, distrb_info, field_loc(m))
                sumval8 = sumval4
             elseif (k == 4) then
                arrayi1 = arrayiA
-               sumvali = global_sum(arrayi1, distrb_info, field_loc_Nface)
+               sumvali = global_sum(arrayi1, distrb_info, field_loc(m))
             elseif (k == 5) then
                mmask8(:,:,:) = 6.0_dbl_kind
                array8(:,:,:) = arrayA(:,:,:)/mmask8(:,:,:)
-               sumval8 = global_sum(array8, distrb_info, field_loc_Nface, mmask=mmask8)
+               sumval8 = global_sum(array8, distrb_info, field_loc(m), mmask=mmask8)
             elseif (k == 6) then
                mmask4(:,:,:) = 6.0_real_kind
                array4(:,:,:) = arrayA(:,:,:)/mmask4(:,:,:)
-               sumval4 = global_sum(array4, distrb_info, field_loc_Nface, mmask=mmask4)
+               sumval4 = global_sum(array4, distrb_info, field_loc(m), mmask=mmask4)
                sumval8 = sumval4
             elseif (k == 7) then
                mmaski(:,:,:) = 2
                arrayi1(:,:,:) = arrayiA(:,:,:)/mmaski(:,:,:)
-               sumvali = global_sum(arrayi1, distrb_info, field_loc_Nface, mmask=mmaski)
+               sumvali = global_sum(arrayi1, distrb_info, field_loc(m), mmask=mmaski)
             elseif (k == 8) then
                array8(:,:,:) = arrayB(:,:,:)
-               sumval8 = global_sum(array8, distrb_info, field_loc_Nface, lmask=lmask)
+               sumval8 = global_sum(array8, distrb_info, field_loc(m), lmask=lmask)
             elseif (k == 9) then
                array4(:,:,:) = arrayB(:,:,:)
-               sumval4 = global_sum(array4, distrb_info, field_loc_Nface, lmask=lmask)
+               sumval4 = global_sum(array4, distrb_info, field_loc(m), lmask=lmask)
                sumval8 = sumval4
             elseif (k == 10) then
                arrayi1(:,:,:) = arrayiB(:,:,:)
-               sumvali = global_sum(arrayi1, distrb_info, field_loc_Nface, lmask=lmask)
+               sumvali = global_sum(arrayi1, distrb_info, field_loc(m), lmask=lmask)
             elseif (k == 11) then
                array82(:,:,:) = 7.0_dbl_kind
                array8(:,:,:) = arrayA(:,:,:)/array82(:,:,:)
-               sumval8 = global_sum_prod(array8, array82, distrb_info, field_loc_Nface)
+               sumval8 = global_sum_prod(array8, array82, distrb_info, field_loc(m))
             elseif (k == 12) then
                array42(:,:,:) = 7.0_real_kind
                array4(:,:,:) = arrayA(:,:,:)/array42(:,:,:)
-               sumval4 = global_sum_prod(array4, array42, distrb_info, field_loc_Nface)
+               sumval4 = global_sum_prod(array4, array42, distrb_info, field_loc(m))
                sumval8 = sumval4
             elseif (k == 13) then
                arrayi2(:,:,:) = 4
                arrayi1(:,:,:) = arrayiA(:,:,:)/arrayi2(:,:,:)
-               sumvali = global_sum_prod(arrayi1, arrayi2, distrb_info, field_loc_Nface)
+               sumvali = global_sum_prod(arrayi1, arrayi2, distrb_info, field_loc(m))
             elseif (k == 14) then
                array82(:,:,:) = 7.0_dbl_kind
                mmask8(:,:,:) = 6.0_dbl_kind
                array8(:,:,:) = arrayA(:,:,:)/(mmask8(:,:,:)*array82(:,:,:))
-               sumval8 = global_sum_prod(array8, array82, distrb_info, field_loc_Nface, mmask=mmask8)
+               sumval8 = global_sum_prod(array8, array82, distrb_info, field_loc(m), mmask=mmask8)
             elseif (k == 15) then
                array42(:,:,:) = 7.0_real_kind
                mmask4(:,:,:) = 6.0_real_kind
                array4(:,:,:) = arrayA(:,:,:)/(mmask4(:,:,:)*array42(:,:,:))
-               sumval4 = global_sum_prod(array4, array42, distrb_info, field_loc_Nface, mmask=mmask4)
+               sumval4 = global_sum_prod(array4, array42, distrb_info, field_loc(m), mmask=mmask4)
                sumval8 = sumval4
             elseif (k == 16) then
                arrayi2(:,:,:) = 2
                mmaski(:,:,:) = 2
                arrayi1(:,:,:) = arrayiA(:,:,:)/(arrayi2(:,:,:)*mmaski(:,:,:))
-               sumvali = global_sum_prod(arrayi1, arrayi2, distrb_info, field_loc_Nface, mmask=mmaski)
+               sumvali = global_sum_prod(arrayi1, arrayi2, distrb_info, field_loc(m), mmask=mmaski)
             elseif (k == 17) then
                array82(:,:,:) = 7.0_dbl_kind
                array8(:,:,:) = arrayB(:,:,:)/array82(:,:,:)
-               sumval8 = global_sum_prod(array8, array82, distrb_info, field_loc_Nface, lmask=lmask)
+               sumval8 = global_sum_prod(array8, array82, distrb_info, field_loc(m), lmask=lmask)
             elseif (k == 18) then
                array42(:,:,:) = 7.0_real_kind
                array4(:,:,:) = arrayB(:,:,:)/array42(:,:,:)
-               sumval4 = global_sum_prod(array4, array42, distrb_info, field_loc_Nface, lmask=lmask)
+               sumval4 = global_sum_prod(array4, array42, distrb_info, field_loc(m), lmask=lmask)
                sumval8 = sumval4
             elseif (k == 19) then
                arrayi2(:,:,:) = 4
                arrayi1(:,:,:) = arrayiB(:,:,:)/(arrayi2(:,:,:))
-               sumvali = global_sum_prod(arrayi1, arrayi2, distrb_info, field_loc_Nface, lmask=lmask)
+               sumvali = global_sum_prod(arrayi1, arrayi2, distrb_info, field_loc(m), lmask=lmask)
             else
                call abort_ice(subname//' illegal k sum',file=__FILE__,line=__LINE__)
             endif
@@ -374,9 +397,10 @@
                   endif
                endif
             endif
-         enddo ! l
-      enddo  ! n
-      enddo  ! k
+         enddo  ! n
+         enddo  ! k
+      enddo ! l
+      enddo ! m
 
       ! ---------------------------
       ! Test Global Min/Max

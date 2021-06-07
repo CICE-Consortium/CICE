@@ -1692,7 +1692,7 @@
           result(globalMaxval)
 
 !  Computes the global maximum value of a scalar value across
-!  a distributed machine.
+!  a communicator.  This method supports testing.
 !
 !  This is actually the specific interface for the generic global_maxval
 !  function corresponding to single precision scalars.  
@@ -2237,7 +2237,7 @@
           result(globalMinval)
 
 !  Computes the global minimum value of a scalar value across
-!  a distributed machine.
+!  a communicator.  This method supports testing.
 !
 !  This is actually the specific interface for the generic global_minval
 !  function corresponding to single precision scalars.  

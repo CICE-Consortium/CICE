@@ -17,7 +17,7 @@
       use ice_calendar, only: dt, istep, msec, mday, mmonth
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: restore_bgc, &
-         bgc_data_dir, fe_data_type, optics_file
+         bgc_data_dir, fe_data_type, optics_file, optics_file_fieldname
       use ice_constants, only: c0, p1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
@@ -966,10 +966,10 @@
            write (nu_diag,*) ' '
            write (nu_diag,*) 'Read optics for modal aerosol treament in'
            write (nu_diag,*) trim(optics_file)
+           write (nu_diag,*) 'Read optics file field name = ',trim(optics_file_fieldname)
            call ice_open_nc(optics_file,fid)
 
-!           fieldname='bcint_enh_mam_cice'
-           fieldname='modalBCabsorptionParameter5band'
+           fieldname=optics_file_fieldname
 
            status = nf90_inq_varid(fid, trim(fieldname), varid)
  

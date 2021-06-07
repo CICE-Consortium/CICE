@@ -1,6 +1,10 @@
 
       program bcstchk
 
+      ! This tests the CICE ice_broadcast infrastructure by calling the
+      ! methods with hardwired input and known outputs and verifying the
+      ! results.
+
       use ice_kinds_mod, only: int_kind, dbl_kind, real_kind, log_kind
       use ice_communicate, only: my_task, master_task, get_num_procs, get_rank, MPI_COMM_ICE
       use ice_communicate, only: init_communicate, get_num_procs, ice_barrier
