@@ -1703,7 +1703,7 @@
             if (snwredist(1:4) == 'none') then
                write(nu_diag,*) ' Snow redistribution scheme turned off'
             else
-               if (snwredist(1:9) == 'bulk') then
+               if (snwredist(1:4) == 'bulk') then
                   write(nu_diag,*) ' Using bulk snow redistribution scheme'
                   write(nu_diag,1002) ' snwlvlfac       = ', snwlvlfac, &
                                    ' fractional increase in snow depth for bulk redistribution'
