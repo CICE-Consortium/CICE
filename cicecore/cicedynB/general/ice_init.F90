@@ -135,7 +135,7 @@
         kitd, kcatbound, ktransport
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist
+        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
                                  sw_redist, use_smliq_pnd, snwgrain
@@ -230,7 +230,7 @@
       namelist /snow_nml/ &
         snwredist,      snwgrain,        rsnw_fall,     rsnw_tmax,      &
         rhosnew,        rhosmin,         rhosmax,       snwlvlfac,      &
-        windmin,        drhosdwind,      use_smliq_pnd
+        windmin,        drhosdwind,      use_smliq_pnd, snw_aging_table
 
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
@@ -409,6 +409,7 @@
       rfracmax  = 0.85_dbl_kind   ! maximum retained fraction of meltwater
       pndaspect = 0.8_dbl_kind    ! ratio of pond depth to area fraction
       snwredist = 'none'          ! type of snow redistribution
+      snw_aging_table = 'test'    ! snow aging lookup table
       snwgrain  = .false.         ! snow metamorphosis
       use_smliq_pnd = .false.     ! use liquid in snow for ponds
       rsnw_fall = 54.526_dbl_kind ! radius of new snow (10^-6 m)
@@ -480,8 +481,8 @@
       restart_pond_lvl  = .false. ! melt ponds restart
       tr_pond_topo = .false. ! explicit melt ponds (topographic)
       restart_pond_topo = .false. ! melt ponds restart
-      tr_snow      = .false. ! snow redistribution/metamorphism tracers
-      restart_snow = .false. ! snow redistribution/metamorphism restart
+      tr_snow      = .false. ! advanced snow physics
+      restart_snow = .false. ! advanced snow physics restart
       tr_iso       = .false. ! isotopes
       restart_iso  = .false. ! isotopes restart
       tr_aero      = .false. ! aerosols
@@ -744,6 +745,7 @@
       call broadcast_scalar(rfracmax,             master_task)
       call broadcast_scalar(pndaspect,            master_task)
       call broadcast_scalar(snwredist,            master_task)
+      call broadcast_scalar(snw_aging_table,      master_task)
       call broadcast_scalar(snwgrain,             master_task)
       call broadcast_scalar(use_smliq_pnd,        master_task)
       call broadcast_scalar(rsnw_fall,            master_task)
@@ -1045,6 +1047,13 @@
             write (nu_diag,*) 'ERROR: Use tr_snow=T for snow metamorphosis'
          endif
          abort_list = trim(abort_list)//":42"
+      endif
+      if (trim(snw_aging_table) /= 'test') then
+         if (my_task == master_task) then
+            write (nu_diag,*) 'ERROR: snw_aging_table /= test'
+            write (nu_diag,*) 'ERROR: other options not yet implemented'
+         endif
+         abort_list = trim(abort_list)//":43"
       endif
 
       if (tr_iso .and. n_iso==0) then
@@ -1707,7 +1716,7 @@
          write(nu_diag,*) '-----------------------------------------'
          if (tr_snow) then
             write(nu_diag,1010) ' tr_snow         = ', tr_snow, &
-                                ' snow redistribution/metamorphism'
+                                ' : advanced snow physics'
             if (snwredist(1:4) == 'none') then
                write(nu_diag,*) ' Snow redistribution scheme turned off'
             else
@@ -1719,26 +1728,34 @@
                   write(nu_diag,*) ' Using ridging based snow redistribution scheme'
                endif
                write(nu_diag,1002) ' rhosnew         = ', rhosnew, &
-                                   ' new snow density (kg/m^3)'
+                                   ' : new snow density (kg/m^3)'
                write(nu_diag,1002) ' rhosmin         = ', rhosmin, &
-                                   ' minimum snow density (kg/m^3)'
+                                   ' : minimum snow density (kg/m^3)'
                write(nu_diag,1002) ' rhosmax         = ', rhosmax, &
-                                   ' maximum snow density (kg/m^3)'
+                                   ' : maximum snow density (kg/m^3)'
                write(nu_diag,1002) ' windmin         = ', windmin, &
-                                   ' minimum wind speed to compact snow (m/s)'
+                                   ' : minimum wind speed to compact snow (m/s)'
                write(nu_diag,1002) ' drhosdwind      = ', drhosdwind, &
-                                   ' wind compaction factor (kg s/m^4)'
+                                   ' : wind compaction factor (kg s/m^4)'
             endif
             if (.not. snwgrain) then
                write(nu_diag,*) ' Snow metamorphosis turned off'
             else
                write(nu_diag,*) ' Using snow metamorphosis scheme'
                write(nu_diag,1002) ' rsnw_fall       = ', rsnw_fall, &
-                                   ' radius of new snow (10^-6 m)'
+                                   ' : radius of new snow (10^-6 m)'
                write(nu_diag,1002) ' rsnw_tmax       = ', rsnw_tmax, &
-                                   ' maximum snow radius (10^-6 m)'
+                                   ' : maximum snow radius (10^-6 m)'
                if (use_smliq_pnd) then
                   write(nu_diag,*) ' Using liquid water in snow for melt ponds'
+               endif
+               if (snw_aging_table(1:4) == 'test') then
+                  write(nu_diag,*) ' Using 5x5 test matrix of snow aging parameters'
+               elseif (snw_aging_table(1:5) == 'snicar') then
+                  write(nu_diag,*) ' Using snow aging parameters from SNICAR'
+               else
+                  tmpstr2 = ' snow aging parameters'
+                  write(nu_diag,1030) ' snw_aging_table  = ', trim(snw_aging_table),trim(tmpstr2)
                endif
             endif
          endif
@@ -1756,7 +1773,7 @@
          if (tr_pond_lvl)  write(nu_diag,1010) ' tr_pond_lvl      = ', tr_pond_lvl,' : level-ice pond formulation'
          if (tr_pond_topo) write(nu_diag,1010) ' tr_pond_topo     = ', tr_pond_topo,' : topo pond formulation'
          if (tr_pond_cesm) write(nu_diag,1010) ' tr_pond_cesm     = ', tr_pond_cesm,' : CESM pond formulation'
-         if (tr_snow)      write(nu_diag,1010) ' tr_snow          = ', tr_snow,' : snow redistribution/metamorphism'
+         if (tr_snow)      write(nu_diag,1010) ' tr_snow          = ', tr_snow,' : advanced snow physics'
          if (tr_iage)      write(nu_diag,1010) ' tr_iage          = ', tr_iage,' : chronological ice age'
          if (tr_FY)        write(nu_diag,1010) ' tr_FY            = ', tr_FY,' : first-year ice area'
          if (tr_iso)       write(nu_diag,1010) ' tr_iso           = ', tr_iso,' : diagnostic isotope tracers'
@@ -1872,7 +1889,7 @@
          write(nu_diag,1011) ' restart_pond_cesm= ', restart_pond_cesm
          write(nu_diag,1011) ' restart_pond_lvl = ', restart_pond_lvl
          write(nu_diag,1011) ' restart_pond_topo= ', restart_pond_topo
-         write(nu_diag,1010) ' restart_snow     = ', restart_snow
+         write(nu_diag,1011) ' restart_snow     = ', restart_snow
          write(nu_diag,1011) ' restart_iso      = ', restart_iso
          write(nu_diag,1011) ' restart_aero     = ', restart_aero
          write(nu_diag,1011) ' restart_fsd      = ', restart_fsd
@@ -1947,6 +1964,7 @@
          windmin_in=windmin, drhosdwind_in=drhosdwind, &
          rsnw_fall_in=rsnw_fall, rsnw_tmax_in=rsnw_tmax, rhosnew_in=rhosnew, &
          snwlvlfac_in=snwlvlfac, rhosmin_in=rhosmin, rhosmax_in=rhosmax, &
+         snwredist_in=snwredist, snwgrain_in=snwgrain, &
          sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
@@ -2110,7 +2128,7 @@
                    trcr_depend(nt_hpnd)  = 2+nt_apnd   ! melt pond depth
                    trcr_depend(nt_ipnd)  = 2+nt_apnd   ! refrozen pond lid
       endif
-      if (tr_snow) then                                ! snow-volume-weighted tracers
+      if (tr_snow) then                                ! snow-volume-weighted snow tracers
          do k = 1, nslyr
             trcr_depend(nt_smice + k - 1) = 2          ! ice mass in snow
             trcr_depend(nt_smliq + k - 1) = 2          ! liquid mass in snow

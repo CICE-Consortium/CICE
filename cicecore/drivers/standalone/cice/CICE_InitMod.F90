@@ -18,6 +18,7 @@
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
+      use icepack_intfc, only: icepack_init_snow
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
@@ -90,7 +91,7 @@
       use ice_transport_driver, only: init_transport
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
-         tr_iso, tr_fsd, wave_spec
+         tr_iso, tr_fsd, wave_spec, tr_snow
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -176,7 +177,7 @@
       call calc_timesteps       ! update timestep counter if not using npt_unit="1"
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
-      call icepack_query_tracer_flags(tr_iso_out=tr_iso)
+      call icepack_query_tracer_flags(tr_iso_out=tr_iso, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -207,6 +208,8 @@
       call get_forcing_atmo     ! atmospheric forcing from data
       call get_forcing_ocn(dt)  ! ocean forcing from data
 
+      ! snow
+      if (tr_snow)    call icepack_init_snow            ! snow aging lookup table
       ! isotopes
       if (tr_iso)     call fiso_default                 ! default values
       ! aerosols
@@ -388,7 +391,7 @@
       endif
 
       ! snow redistribution/metamorphism
-      if (tr_iso) then
+      if (tr_snow) then
          if (trim(runtype) == 'continue') restart_snow = .true.
          if (restart_snow) then
             call read_restart_snow

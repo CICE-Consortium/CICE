@@ -151,7 +151,8 @@
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
           write_restart_lvl, write_restart_pond_cesm, write_restart_pond_lvl, &
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
-          write_restart_iso, write_restart_bgc, write_restart_hbrine
+          write_restart_iso, write_restart_bgc, write_restart_hbrine, &
+          write_restart_snow
       use ice_restart_driver, only: dumpfile
       use ice_restoring, only: restore_ice, ice_HaloRestore
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
@@ -394,6 +395,7 @@
             if (tr_pond_cesm) call write_restart_pond_cesm
             if (tr_pond_lvl)  call write_restart_pond_lvl
             if (tr_pond_topo) call write_restart_pond_topo
+            if (tr_snow)      call write_restart_snow
             if (tr_fsd)       call write_restart_fsd
             if (tr_iso)       call write_restart_iso
             if (tr_aero)      call write_restart_aero
