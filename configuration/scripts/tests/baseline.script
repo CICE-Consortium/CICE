@@ -69,21 +69,26 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
       echo "base_file: ${base_file}"
       echo "test_file: ${test_file}"
 
-      ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
-      set logstatus = $status
-
-      if ( ${logstatus} == 0 ) then
-        echo "PASS ${ICE_TESTNAME} complog ${ICE_BASECOM}" >> ${ICE_CASEDIR}/test_output
-        echo "Regression baseline and test dataset may be the same"
-      else if ( ${logstatus} == 1 ) then
-        echo "FAIL ${ICE_TESTNAME} complog ${ICE_BASECOM} different-data" >> ${ICE_CASEDIR}/test_output
-        echo "Regression baseline and test dataset are not the same"
-      else if ( ${logstatus} == 2 ) then
+      if ("${base_file}" == "" || "${test_file}" == "" ) then
         echo "MISS ${ICE_TESTNAME} complog ${ICE_BASECOM} missing-data" >> ${ICE_CASEDIR}/test_output
         echo "Missing data"
       else
-        echo "FAIL ${ICE_TESTNAME} complog ${ICE_BASECOM} usage-error" >> ${ICE_CASEDIR}/test_output
-        echo "Regression baseline and test dataset error in usage"
+        ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
+        set logstatus = $status
+
+        if ( ${logstatus} == 0 ) then
+          echo "PASS ${ICE_TESTNAME} complog ${ICE_BASECOM}" >> ${ICE_CASEDIR}/test_output
+          echo "Regression baseline and test dataset may be the same"
+        else if ( ${logstatus} == 1 ) then
+          echo "FAIL ${ICE_TESTNAME} complog ${ICE_BASECOM} different-data" >> ${ICE_CASEDIR}/test_output
+          echo "Regression baseline and test dataset are not the same"
+        else if ( ${logstatus} == 2 ) then
+          echo "MISS ${ICE_TESTNAME} complog ${ICE_BASECOM} missing-data" >> ${ICE_CASEDIR}/test_output
+          echo "Missing data"
+        else
+          echo "FAIL ${ICE_TESTNAME} complog ${ICE_BASECOM} usage-error" >> ${ICE_CASEDIR}/test_output
+          echo "Regression baseline and test dataset error in usage"
+        endif
       endif
 
     endif

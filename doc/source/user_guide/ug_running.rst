@@ -275,7 +275,7 @@ Some of the options are
 
 ``bgcISPOL`` and ``bgcNICE`` specify bgc options
 
-``boxadv``, ``boxdyn``, and ``boxrestore`` are simple box configurations
+``boxadv``, ``boxnodyn``, and ``boxrestore`` are simple box configurations
 
 ``alt*`` which turns on various combinations of dynamics and physics options for testing
 

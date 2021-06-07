@@ -25,9 +25,8 @@
 
       implicit none
       private
-      public :: runtime_diags, init_mass_diags, init_diags, &
-                print_state, print_points_state, diagnostic_abort
-
+      public :: runtime_diags, init_mass_diags, init_diags, debug_ice, &
+                print_state, diagnostic_abort
 
       ! diagnostic output file
       character (len=char_len), public :: diag_file
@@ -35,8 +34,12 @@
       ! point print data
 
       logical (kind=log_kind), public :: &
+         debug_model      , & ! if true, debug model at high level
          print_points     , & ! if true, print point data
          print_global         ! if true, print global data
+
+      integer (kind=int_kind), public :: &
+         debug_model_step = 999999999  ! begin printing at istep1=debug_model_step
 
       integer (kind=int_kind), parameter, public :: &
          npnt = 2             ! total number of points to be printed
@@ -86,16 +89,6 @@
       real (kind=dbl_kind), dimension(icepack_max_aero) :: &
          totaeron         , & ! total aerosol mass
          totaeros             ! total aerosol mass
-
-      ! printing info for routine print_state
-      ! iblkp, ip, jp, mtask identify the grid cell to print
-!     character (char_len) :: plabel
-      integer (kind=int_kind), parameter, public :: &
-         check_step = 999999999, & ! begin printing at istep1=check_step
-         iblkp = 1, &      ! block number 
-         ip = 72, &        ! i index
-         jp = 11, &        ! j index
-         mtask = 0         ! my_task
 
 !=======================================================================
 
@@ -1525,20 +1518,39 @@
 
 !=======================================================================
 
+! This routine is useful for debugging
+! author Elizabeth C. Hunke, LANL
+
+      subroutine debug_ice(iblk, plabeld)
+
+      use ice_kinds_mod
+      use ice_calendar, only: istep1
+      use ice_communicate, only: my_task
+      use ice_blocks, only: nx_block, ny_block
+
+      character (char_len), intent(in) :: plabeld
+      integer (kind=int_kind), intent(in) :: iblk
+
+      ! local 
+      integer (kind=int_kind) :: i, j, m
+      character(len=*), parameter :: subname='(debug_ice)'
+
+!     tcraig, do this only on one point, the first point
+!      do m = 1, npnt
+      m = 1
+         if (istep1 >= debug_model_step .and. &
+             iblk == pbloc(m) .and. my_task == pmloc(m)) then
+            i = piloc(m)
+            j = pjloc(m)
+            call print_state(plabeld,i,j,iblk)
+         endif
+!      enddo
+
+      end subroutine debug_ice
+
+!=======================================================================
+
 ! This routine is useful for debugging.
-! Calls to it should be inserted in the form (after thermo, for example)
-!      do iblk = 1, nblocks
-!      do j=jlo,jhi
-!      do i=ilo,ihi
-!         plabel = 'post thermo'
-!         if (istep1 >= check_step .and. iblk==iblkp .and i==ip &
-!             .and. j==jp .and. my_task == mtask) &
-!         call print_state(plabel,i,j,iblk)
-!      enddo
-!      enddo
-!      enddo
-!
-! 'use ice_diagnostics' may need to be inserted also
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine print_state(plabel,i,j,iblk)
@@ -1587,7 +1599,7 @@
 
       this_block = get_block(blocks_ice(iblk),iblk)         
 
-      write(nu_diag,*) plabel
+      write(nu_diag,*) subname,plabel
       write(nu_diag,*) 'istep1, my_task, i, j, iblk:', &
                         istep1, my_task, i, j, iblk
       write(nu_diag,*) 'Global i and j:', &
@@ -1699,16 +1711,14 @@
       write(nu_diag,*) '            evap    = ',evap  (i,j,iblk)
       write(nu_diag,*) '            flwout  = ',flwout(i,j,iblk)
       write(nu_diag,*) ' '
+      call flush_fileunit(nu_diag)
 
       end subroutine print_state
 
 !=======================================================================
+#ifdef UNDEPRECATE_print_points_state
 
 ! This routine is useful for debugging.
-! Calls can be inserted anywhere and it will print info on print_points points
-!      call print_points_state(plabel)
-!
-! 'use ice_diagnostics' may need to be inserted also
 
       subroutine print_points_state(plabel,ilabel)
 
@@ -1764,6 +1774,7 @@
             write(llabel,'(a)') 'pps:'//trim(llabel)
          endif
 
+         write(nu_diag,*) subname
          write(nu_diag,*) trim(llabel),'istep1, my_task, i, j, iblk=', &
                            istep1, my_task, i, j, iblk
          write(nu_diag,*) trim(llabel),'Global i and j=', &
@@ -1842,12 +1853,13 @@
       write(nu_diag,*) '            evap    = ',evap  (i,j,iblk)
       write(nu_diag,*) '            flwout  = ',flwout(i,j,iblk)
       write(nu_diag,*) ' '
+      call flush_fileunit(nu_diag)
 
       endif   ! my_task
       enddo   ! ncnt
 
       end subroutine print_points_state
-
+#endif
 !=======================================================================
 
 ! prints error information prior to aborting

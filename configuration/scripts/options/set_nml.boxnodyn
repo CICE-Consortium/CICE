@@ -26,3 +26,5 @@ revised_evp = .false.
 kstrength = 0
 krdg_partic = 1
 krdg_redist = 1
+shortwave = 'ccsm3'
+albedo_type = 'constant'

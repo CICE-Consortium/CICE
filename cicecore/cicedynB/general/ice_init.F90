@@ -58,7 +58,8 @@
       subroutine input_data
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
+      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt, &
+                                 debug_model, debug_model_step
       use ice_domain, only: close_boundaries, orca_halogrid
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
                                  n_iso, n_aero, n_zaero, n_algae, &
@@ -83,7 +84,7 @@
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
-          ycycle,          fyear_init,    dbug, &
+          ycycle,          fyear_init,    forcing_diag, &
           atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
@@ -126,7 +127,7 @@
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
-        sw_frac, sw_dtemp, floediam, hfrazilmin, &
+        sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf
         rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, &
         windmin, drhosdwind, snwlvlfac
 
@@ -165,9 +166,9 @@
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
-        dbug,           histfreq,       histfreq_n,      hist_avg,      &
+        forcing_diag,   histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
-        conserv_check,                                                  &
+        conserv_check,  debug_model,    debug_model_step,               &
         year_init,      month_init,     day_init,        sec_init,      &
         write_ic,       incond_dir,     incond_file,     version_name
 
@@ -234,7 +235,7 @@
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
         highfreq,       natmiter,        atmiter_conv,                  &
-        ustar_min,      emissivity,                                     &
+        ustar_min,      emissivity,      iceruf,                        &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
@@ -273,6 +274,8 @@
       npt = 99999            ! total number of time steps (dt) 
       npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
+      debug_model  = .false. ! debug output
+      debug_model_step = 999999999  ! debug model after this step number
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
       bfbflag = 'off'        ! off = optimized
@@ -384,6 +387,7 @@
       calc_Tsfc = .true.     ! calculate surface temperature
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
+      iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
       emissivity = 0.985     ! emissivity of snow and ice
       l_mpond_fresh = .false.     ! logical switch for including meltpond freshwater
                                   ! flux feedback to ocean model
@@ -451,7 +455,7 @@
       restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
       restore_ice     = .false.   ! restore ice state on grid edges if true
-      dbug      = .false.         ! true writes diagnostics for input forcing
+      forcing_diag    = .false.   ! true writes diagnostics for input forcing
 
       latpnt(1) =  90._dbl_kind   ! latitude of diagnostic point 1 (deg)
       lonpnt(1) =   0._dbl_kind   ! longitude of point 1 (deg)
@@ -624,6 +628,8 @@
       call broadcast_scalar(npt,                  master_task)
       call broadcast_scalar(npt_unit,             master_task)
       call broadcast_scalar(diagfreq,             master_task)
+      call broadcast_scalar(debug_model,          master_task)
+      call broadcast_scalar(debug_model_step,     master_task)
       call broadcast_scalar(print_points,         master_task)
       call broadcast_scalar(print_global,         master_task)
       call broadcast_scalar(bfbflag,              master_task)
@@ -769,6 +775,7 @@
       call broadcast_scalar(update_ocn_f,         master_task)
       call broadcast_scalar(l_mpond_fresh,        master_task)
       call broadcast_scalar(ustar_min,            master_task)
+      call broadcast_scalar(iceruf,               master_task)
       call broadcast_scalar(emissivity,           master_task)
       call broadcast_scalar(fbot_xfer_type,       master_task)
       call broadcast_scalar(precip_units,         master_task)
@@ -788,13 +795,12 @@
       call broadcast_scalar(restore_ocn,          master_task)
       call broadcast_scalar(trestore,             master_task)
       call broadcast_scalar(restore_ice,          master_task)
-      call broadcast_scalar(dbug,                 master_task)
+      call broadcast_scalar(forcing_diag,         master_task)
       call broadcast_array (latpnt(1:2),          master_task)
       call broadcast_array (lonpnt(1:2),          master_task)
       call broadcast_scalar(runid,                master_task)
       call broadcast_scalar(runtype,              master_task)
-      if (dbug) & ! else only master_task writes to file
-      call broadcast_scalar(nu_diag,              master_task)
+      !call broadcast_scalar(nu_diag,              master_task)
 
       ! tracers
       call broadcast_scalar(tr_iage,              master_task)
@@ -1544,6 +1550,7 @@
                   tmpstr2 = ' : four constant albedos'
                else
                   tmpstr2 = ' : unknown value'
+                  abort_list = trim(abort_list)//":23"
                endif
                write(nu_diag,1030) ' albedo_type     = ', trim(albedo_type),trim(tmpstr2)
                if (trim(albedo_type) == 'ccsm3') then
@@ -1570,6 +1577,7 @@
          write(nu_diag,1010) ' calc_strair      = ', calc_strair,' : calculate wind stress and speed'
          write(nu_diag,1010) ' rotate_wind      = ', rotate_wind,' : rotate wind/stress to computational grid'
          write(nu_diag,1010) ' formdrag         = ', formdrag,' : use form drag parameterization'
+         write(nu_diag,1000) ' iceruf           = ', iceruf, ' : ice surface roughness at atmosphere interface (m)'
          if (trim(atmbndy) == 'default') then
             tmpstr2 = ' : stability-based boundary layer'
             write(nu_diag,1010) ' highfreq         = ', highfreq,' : high-frequency atmospheric coupling'
@@ -1773,6 +1781,8 @@
          write(nu_diag,1021) ' diagfreq         = ', diagfreq
          write(nu_diag,1011) ' print_global     = ', print_global
          write(nu_diag,1011) ' print_points     = ', print_points
+         write(nu_diag,1011) ' debug_model      = ', debug_model
+         write(nu_diag,1022) ' debug_model_step = ', debug_model_step
          write(nu_diag,1031) ' bfbflag          = ', trim(bfbflag)
          write(nu_diag,1021) ' numin            = ', numin
          write(nu_diag,1021) ' numax            = ', numax
@@ -1933,7 +1943,8 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
-         Pstar_in=Pstar, Cstar_in=Cstar, windmin_in=windmin, drhosdwind_in=drhosdwind, &
+         Pstar_in=Pstar, Cstar_in=Cstar, iceruf_in=iceruf, &
+         windmin_in=windmin, drhosdwind_in=drhosdwind, &
          rsnw_fall_in=rsnw_fall, rsnw_tmax_in=rsnw_tmax, rhosnew_in=rhosnew, &
          snwlvlfac_in=snwlvlfac, rhosmin_in=rhosmin, rhosmax_in=rhosmax, &
          sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
@@ -1956,6 +1967,7 @@
  1011    format (a20,1x,l6)
  1020    format (a20,8x,i6,1x,a)  ! integer
  1021    format (a20,1x,i6)
+ 1022    format (a20,1x,i12)
  1023    format (a20,1x,6i6)
  1030    format (a20,a14,1x,a)    ! character
  1031    format (a20,1x,a,a)

@@ -119,17 +119,24 @@ Several utilities are available that can be helpful when debugging the
 code. Not all of these will work everywhere in the code, due to possible
 conflicts in module dependencies.
 
-*debug\_ice* (**CICE.F90**)
+*debug\_ice* (**ice\_diagnostics.F90**)
     A wrapper for *print\_state* that is easily called from numerous
-    points during the timestepping loop (see
-    **CICE\_RunMod.F90\_debug**, which can be substituted for
-    **CICE\_RunMod.F90**).
+    points during the timestepping loop.
 
 *print\_state* (**ice\_diagnostics.F90**)
     Print the ice state and forcing fields for a given grid cell.
 
-`dbug` = true (**ice\_in**)
-    Print numerous diagnostic quantities.
+`forcing\_diag` = true (**ice\_in**)
+    Print numerous diagnostic quantities associated with input forcing.
+
+`debug\_blocks` = true (**ice\_in**)
+    Print diagnostics during block decomposition and distribution.
+
+`debug\_model` = true (**ice\_in**)
+    Print extended diagnostics for the first point associated with `print\_points`.
+
+`debug\_model\_step` = true (**ice\_in**)
+    Timestep to starting printing diagnostics associated with `debug\_model`.
 
 `print\_global` (**ice\_in**)
     If true, compute and print numerous global sums for energy and mass
@@ -138,11 +145,11 @@ conflicts in module dependencies.
 
 `print\_points` (**ice\_in**)
     If true, print numerous diagnostic quantities for two grid cells,
-    one near the north pole and one in the Weddell Sea. This utility
+    defined by `lonpnt` and `latpnt` in the namelist file.
+    This utility
     also provides the local grid indices and block and processor numbers
     (`ip`, `jp`, `iblkp`, `mtask`) for these points, which can be used in
-    conjunction with `check\_step`, to call *print\_state*. These flags
-    are set in **ice\_diagnostics.F90**. This option can be fairly slow,
+    to call *print\_state*. This option can be fairly slow,
     due to gathering data from processors.
 
 `conserv\_check` = true (**ice\_in**)
