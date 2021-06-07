@@ -64,14 +64,15 @@
           floe_binwidth, c_fsd_range
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
-      use ice_calendar, only: dt, dt_dyn, time, istep, istep1, write_ic, &
+      use ice_calendar, only: dt, dt_dyn, istep, istep1, write_ic, &
           init_calendar, calendar
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
-      use ice_dyn_shared, only: kdyn, init_evp, alloc_dyn_shared
+      use ice_dyn_shared, only: kdyn, init_dyn, alloc_dyn_shared
+      use ice_dyn_vp, only: init_vp
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -122,11 +123,12 @@
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
 
+      call init_dyn (dt_dyn)    ! define dynamics parameters, variables
       if (kdyn == 2) then
          call alloc_dyn_eap     ! allocate dyn_eap arrays
-         call init_eap (dt_dyn) ! define eap dynamics parameters, variables
-      else                      ! for both kdyn = 0 or 1
-         call init_evp (dt_dyn) ! define evp dynamics parameters, variables
+         call init_eap          ! define eap dynamics parameters, variables
+      else if (kdyn == 3) then
+         call init_vp           ! define vp dynamics parameters, variables
       endif
 
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
@@ -154,7 +156,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call calendar(time)       ! determine the initial date
+      call calendar             ! determine the initial date
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
@@ -231,7 +233,7 @@
 
       use ice_arrays_column, only: dhsn
       use ice_blocks, only: nx_block, ny_block
-      use ice_calendar, only: time, calendar
+      use ice_calendar, only: calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
       use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
@@ -293,7 +295,7 @@
       if (trim(runtype) == 'continue') then 
          ! start from core restart file
          call restartfile()           ! given by pointer in ice_in
-         call calendar(time)          ! update time parameters
+         call calendar                ! update time parameters
          if (kdyn == 2) call read_restart_eap ! EAP
       else if (restart) then          ! ice_ic = core restart file
          call restartfile (ice_ic)    !  or 'default' or 'none'

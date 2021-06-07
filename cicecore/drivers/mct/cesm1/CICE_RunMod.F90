@@ -44,7 +44,7 @@
 
       subroutine CICE_Run
 
-      use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
+      use ice_calendar, only: istep, istep1, dt, stop_now, calendar, advance_timestep
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
@@ -81,11 +81,13 @@
 
 !         call ice_step
 
-         istep  = istep  + 1    ! update time step counters
-         istep1 = istep1 + 1
-         time = time + dt       ! determine the time and date
+!         istep  = istep  + 1    ! update time step counters
+!         istep1 = istep1 + 1
+!         time = time + dt       ! determine the time and date
 
 !         call calendar(time)    ! at the end of the timestep
+
+         call advance_timestep()  ! advance timestep and update calendar data
 
          call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
@@ -108,7 +110,7 @@
          call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
          call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
-         call calendar(time)    ! at the end of the timestep
+!         call calendar(time)    ! at the end of the timestep
 
          call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
@@ -136,7 +138,7 @@
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
-      use ice_calendar, only: idate, sec
+      use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
@@ -207,7 +209,7 @@
          if (prescribed_ice) then  ! read prescribed ice
             call t_barrierf('cice_run_presc_BARRIER',MPI_COMM_ICE)
             call t_startf ('cice_run_presc')
-            call ice_prescribed_run(idate, sec)
+            call ice_prescribed_run(idate, msec)
             call t_stopf ('cice_run_presc')
          endif
 
@@ -367,6 +369,7 @@
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
+          fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
@@ -565,6 +568,10 @@
                             Tref     (:,:,iblk), Qref    (:,:,iblk), &
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
                             fhocn    (:,:,iblk), fswthru (:,:,iblk), &
+                            fswthru_vdr(:,:,iblk),                   &
+                            fswthru_vdf(:,:,iblk),                   &
+                            fswthru_idr(:,:,iblk),                   &
+                            fswthru_idf(:,:,iblk),                   &
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &

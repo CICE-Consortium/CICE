@@ -1,8 +1,8 @@
 !=======================================================================
-! Copyright (c) 2020, Triad National Security, LLC 
+! Copyright (c) 2021, Triad National Security, LLC
 ! All rights reserved.
 !                
-! Copyright 2020. Triad National Security, LLC. This software was 
+! Copyright 2021. Triad National Security, LLC. This software was
 ! produced under U.S. Government contract DE-AC52-06NA25396 for Los 
 ! Alamos National Laboratory (LANL), which is operated by Triad
 ! National Security, LLC for the U.S. Department of Energy. The U.S.  
@@ -54,42 +54,5 @@
       call CICE_Finalize
 
       end program icemodel
-
-!=======================================================================
-!
-! Wrapper for the print_state debugging routine.
-! Useful for debugging in the main driver (see ice.F_debug)
-! ip, jp, mtask are set in ice_diagnostics.F
-!
-! author Elizabeth C. Hunke, LANL
-!
-      subroutine debug_ice(plabeld)
-
-      use ice_kinds_mod
-      use ice_calendar, only: istep1
-      use ice_communicate, only: my_task
-      use ice_diagnostics, only: check_step, iblkp, ip, jp, mtask, print_state
-      use ice_domain, only: nblocks
-      use ice_blocks, only: nx_block, ny_block
-
-      character (char_len), intent(in) :: plabeld
-
-      ! local 
-      integer (kind=int_kind) :: i, j, iblk
-
-      if (istep1 >= check_step) then
-
-      do iblk = 1, nblocks
-      do j = 1, ny_block
-      do i = 1, nx_block
-         if (iblk==iblkp .and. i==ip .and. j==jp .and. my_task==mtask) &
-              call print_state(plabeld,i,j,iblk)
-      enddo
-      enddo
-      enddo
-
-      endif
-
-      end subroutine debug_ice
 
 !=======================================================================

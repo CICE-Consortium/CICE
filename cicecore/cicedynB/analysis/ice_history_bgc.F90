@@ -267,7 +267,7 @@
       subroutine init_hist_bgc_2D
 
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: nstreams
+      use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field, &
           f_fsalt, f_fsalt_ai, f_sice
@@ -781,6 +781,7 @@
     if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
 
     do ns = 1, nstreams
+       if (histfreq(ns) /= 'x') then
 
       if (f_iso(1:1) /= 'x') then
          do n=1,n_iso
@@ -1780,6 +1781,7 @@
              "distance from ice bottom to brine surface", c1, c0,       &
              ns, f_hbri)
 
+       endif ! histfreq(ns) /= 'x'
     enddo ! nstreams
 
     endif ! tr_aero, etc 
@@ -1790,7 +1792,7 @@
 
       subroutine init_hist_bgc_3Dc
 
-      use ice_calendar, only: nstreams
+      use ice_calendar, only: nstreams, histfreq
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -1802,18 +1804,19 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-    if (tr_brine) then
+      if (tr_brine) then
 
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-        if (f_fbri(1:1) /= 'x') &
-         call define_hist_field(n_fbri,"fbrine","1",tstr3Dc, tcstr, &
+         if (histfreq(ns) /= 'x') then
+           if (f_fbri(1:1) /= 'x') &
+           call define_hist_field(n_fbri,"fbrine","1",tstr3Dc, tcstr, &
              "brine tracer fraction of ice volume, cat",             &
-             "none", c1, c0,       &
-             ns, f_fbri)
+             "none", c1, c0, ns, f_fbri)
+         endif ! histfreq /= 'x'
       enddo ! ns
 
-    endif
+      endif ! tr_brine
 
       end subroutine init_hist_bgc_3Dc
 
@@ -1821,7 +1824,7 @@
 
       subroutine init_hist_bgc_3Db
 
-      use ice_calendar, only: nstreams
+      use ice_calendar, only: nstreams,histfreq
       use ice_history_shared, only: tstr3Db, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -1841,6 +1844,7 @@
     if (z_tracers .or. solve_zsal) then
 
       do ns = 1, nstreams
+         if (histfreq(ns) /= 'x') then
  
          if (f_bTin(1:1) /= 'x') &
             call define_hist_field(n_bTin,"bTizn","C",tstr3Db, tcstr, &
@@ -1873,6 +1877,7 @@
                 "internal ice PAR", "on bio interface grid", c1, c0, &
                 ns, f_zfswin)
     
+         endif ! histfreq(ns) /= 'x'
       enddo  ! ns
 
     endif  ! z_tracers or solve_zsal
@@ -2012,9 +2017,10 @@
       ! increment field
       !---------------------------------------------------------------
 
-    if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
-      ! 2d bgc fields
+    ! 2d bgc fields
+    if (allocated(a2D)) then
 
+    if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
 
       ! zsalinity
       if (f_fzsal  (1:1) /= 'x') &  
@@ -2635,11 +2641,12 @@
          call accum_hist_field(n_hbri,     iblk, &
                         hbri(:,:,iblk), a2D)
 
-    endif  ! 2d bgc tracers, tr_aero, tr_brine, solve_zsal, skl_bgc
-
+    endif ! 2d bgc tracers, tr_aero, tr_brine, solve_zsal, skl_bgc
+    endif ! allocated(a2D)
 
       ! 3D category fields
 
+    if (allocated(a3Dc)) then
     if (tr_brine) then
       ! 3Dc bgc category fields
 
@@ -2647,7 +2654,9 @@
          call accum_hist_field(n_fbri-n2D, iblk, ncat_hist, &
                                trcrn(:,:,nt_fbri,1:ncat_hist,iblk), a3Dc)
     endif
+    endif ! allocated(a3Dc)
 
+    if (allocated(a3Db)) then
     if (z_tracers .or. solve_zsal) then
       ! 3Db category fields
 
@@ -2754,8 +2763,10 @@
                                   workz(:,:,1:nzblyr), a3Db)
       endif
 
-    endif  ! 3Db fields
+    endif ! 3Db fields
+    endif ! allocated(a3Db)
 
+    if (allocated(a3Da)) then
     if (z_tracers) then
       ! 3Da category fields
 
@@ -3189,7 +3200,8 @@
                                   workz2(:,:,1:nzalyr), a3Da)
       endif
 
-    endif   ! z_tracers, 3Da tracers
+      endif ! z_tracers, 3Da tracers
+      endif ! allocated(a3Da)
 
       end subroutine accum_hist_bgc
 
@@ -3197,7 +3209,7 @@
 
       subroutine init_hist_bgc_3Da
 
-      use ice_calendar, only: nstreams
+      use ice_calendar, only: nstreams, histfreq
       use ice_history_shared, only: tstr3Da, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns, n
@@ -3216,6 +3228,7 @@
     if (z_tracers) then
 
     do ns = 1, nstreams
+       if (histfreq(ns) /= 'x') then
  
 !----------------------------------------------------------------------------
 ! snow+bio grid ==>
@@ -3439,6 +3452,7 @@
                 "other bulk nitrogen pool in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_PON_cat1)
     
+       endif ! histfreq(ns) /= 'x'
     enddo  !ns
 
     endif ! z_tracers

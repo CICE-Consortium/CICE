@@ -46,7 +46,7 @@
          vocn    , & ! ocean current, y-direction (m/s)
          ss_tltx , & ! sea surface slope, x-direction (m/m)
          ss_tlty , & ! sea surface slope, y-direction
-         hwater  , & ! water depth for basal stress calc (landfast ice) 
+         hwater  , & ! water depth for seabed stress calc (landfast ice) 
 
        ! out to atmosphere
          strairxT, & ! stress on ice by air, x-direction
@@ -63,8 +63,8 @@
          sig1    , & ! normalized principal stress component
          sig2    , & ! normalized principal stress component
          sigP    , & ! internal ice pressure (N/m)
-         taubx   , & ! basal stress (x) (N/m^2)
-         tauby   , & ! basal stress (y) (N/m^2)
+         taubx   , & ! seabed stress (x) (N/m^2)
+         tauby   , & ! seabed stress (y) (N/m^2)
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
          strocnx , & ! ice-ocean stress, x-direction
@@ -112,7 +112,7 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu          ! coefficient for basal stress (N/m^2)
+         Tbu          ! factor for seabed stress (N/m^2)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -121,7 +121,8 @@
        ! in from atmosphere (if calc_Tsfc)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         zlvl    , & ! atm level height (m)
+         zlvl    , & ! atm level height (momentum) (m)
+         zlvs    , & ! atm level height (scalar quantities) (m)
          uatm    , & ! wind velocity components (m/s)
          vatm    , &
          wind    , & ! wind speed (m/s)
@@ -351,7 +352,7 @@
          vocn       (nx_block,ny_block,max_blocks), & ! ocean current, y-direction (m/s)
          ss_tltx    (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
          ss_tlty    (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction
-         hwater     (nx_block,ny_block,max_blocks), & ! water depth for basal stress calc (landfast ice) 
+         hwater     (nx_block,ny_block,max_blocks), & ! water depth for seabed stress calc (landfast ice) 
          strairxT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
          strairyT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
          strocnxT   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
@@ -359,8 +360,8 @@
          sig1       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sig2       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sigP       (nx_block,ny_block,max_blocks), & ! internal ice pressure (N/m)
-         taubx      (nx_block,ny_block,max_blocks), & ! basal stress (x) (N/m^2)
-         tauby      (nx_block,ny_block,max_blocks), & ! basal stress (y) (N/m^2)
+         taubx      (nx_block,ny_block,max_blocks), & ! seabed stress (x) (N/m^2)
+         tauby      (nx_block,ny_block,max_blocks), & ! seabed stress (y) (N/m^2)
          strairx    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
          strairy    (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
          strocnx    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
@@ -390,8 +391,9 @@
          stress12_4 (nx_block,ny_block,max_blocks), & ! sigma12
          iceumask   (nx_block,ny_block,max_blocks), & ! ice extent mask (U-cell)
          fm         (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu        (nx_block,ny_block,max_blocks), & ! coefficient for basal stress (landfast ice)
-         zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (m)
+         Tbu        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
+         zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (momentum) (m)
+         zlvs       (nx_block,ny_block,max_blocks), & ! atm level height (scalar quantities) (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
          vatm       (nx_block,ny_block,max_blocks), &
          wind       (nx_block,ny_block,max_blocks), & ! wind speed (m/s)
@@ -547,7 +549,8 @@
 
       integer (kind=int_kind) :: n
 
-      real (kind=dbl_kind) :: fcondtopn_d(6), fsurfn_d(6)
+      integer (kind=int_kind), parameter :: max_d = 6
+      real (kind=dbl_kind) :: fcondtopn_d(max_d), fsurfn_d(max_d)
       real (kind=dbl_kind) :: stefan_boltzmann, Tffresh
       real (kind=dbl_kind) :: vonkar, zref, iceruf
 
@@ -569,7 +572,8 @@
       !-----------------------------------------------------------------
       ! fluxes received from atmosphere
       !-----------------------------------------------------------------
-      zlvl  (:,:,:) = c10             ! atm level height (m)
+      zlvl  (:,:,:) = c10             ! atm level height (momentum) (m)
+      zlvs  (:,:,:) = c10             ! atm level height (scalar quantities) (m)
       rhoa  (:,:,:) = 1.3_dbl_kind    ! air density (kg/m^3)
       uatm  (:,:,:) = c5              ! wind velocity    (m/s)
       vatm  (:,:,:) = c5
@@ -589,7 +593,7 @@
          flw   (:,:,:) = c180            ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat              ! conductive heat flux (W/m^2)
-            fcondtopn_f(:,:,n,:) = fcondtopn_d(n)
+            fcondtopn_f(:,:,n,:) = fcondtopn_d(min(n,max_d))
          enddo
          fsurfn_f = fcondtopn_f      ! surface heat flux (W/m^2)
          flatn_f (:,:,:,:) = c0          ! latent heat flux (kg/m2/s)
@@ -606,7 +610,7 @@
          flw   (:,:,:) = 280.0_dbl_kind  ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat                   ! surface heat flux (W/m^2)
-            fsurfn_f(:,:,n,:) = fsurfn_d(n)
+            fsurfn_f(:,:,n,:) = fsurfn_d(min(n,max_d))
          enddo
          fcondtopn_f(:,:,:,:) =  0.0_dbl_kind ! conductive heat flux (W/m^2)
          flatn_f    (:,:,:,:) = -2.0_dbl_kind ! latent heat flux (W/m^2)
@@ -623,7 +627,7 @@
          flw   (:,:,:) = 230.0_dbl_kind  ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat                   ! surface heat flux (W/m^2)
-            fsurfn_f(:,:,n,:) = fsurfn_d(n)
+            fsurfn_f(:,:,n,:) = fsurfn_d(min(n,max_d))
          enddo
          fcondtopn_f(:,:,:,:) =  c0           ! conductive heat flux (W/m^2)
          flatn_f    (:,:,:,:) = -1.0_dbl_kind ! latent heat flux (W/m^2)
@@ -654,9 +658,7 @@
       enddo
       enddo
 
-#ifndef CICE_IN_NEMO
       sst   (:,:,:) = Tf(:,:,:)       ! sea surface temp (C)
-#endif
       qdp   (:,:,:) = c0              ! deep ocean heat flux (W/m^2)
       hmix  (:,:,:) = c20             ! ocean mixed layer depth (m)
       hwater(:,:,:) = bathymetry(:,:,:) ! ocean water depth (m)

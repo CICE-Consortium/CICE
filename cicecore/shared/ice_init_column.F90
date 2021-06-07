@@ -188,7 +188,7 @@
           swgrid, igrid
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: dt, calendar_type, &
-          days_per_year, nextsw_cday, yday, sec
+          days_per_year, nextsw_cday, yday, msec
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc
       use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: alvdf, alidf, alvdr, alidr, &
@@ -356,7 +356,7 @@
                           calendar_type=calendar_type,                         &
                           days_per_year=days_per_year,                         &
                           nextsw_cday=nextsw_cday, yday=yday,                  &
-                          sec=sec,                                             &
+                          sec=msec,                                             &
                           kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
                           waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
                           gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &
@@ -408,7 +408,7 @@
          do i = ilo, ihi
 
                if (aicen(i,j,n,iblk) > puny) then
-                  
+
                   alvdf(i,j,iblk) = alvdf(i,j,iblk) &
                        + alvdfn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   alidf(i,j,iblk) = alidf(i,j,iblk) &
@@ -417,7 +417,7 @@
                        + alvdrn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   alidr(i,j,iblk) = alidr(i,j,iblk) &
                        + alidrn(i,j,n,iblk)*aicen(i,j,n,iblk)
-                  
+
                   netsw = swvdr(i,j,iblk) + swidr(i,j,iblk) &
                         + swvdf(i,j,iblk) + swidf(i,j,iblk)
                   if (netsw > puny) then ! sun above horizon
@@ -428,12 +428,12 @@
                      albpnd(i,j,iblk) = albpnd(i,j,iblk) &
                           + albpndn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   endif
-                  
+
                   apeff_ai(i,j,iblk) = apeff_ai(i,j,iblk) &
                        + apeffn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   snowfrac(i,j,iblk) = snowfrac(i,j,iblk) &
                        + snowfracn(i,j,n,iblk)*aicen(i,j,n,iblk)
-               
+
                endif ! aicen > puny
 
          enddo ! i
@@ -877,7 +877,7 @@
 
       endif     ! .not. restart
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,sicen,trcrn_bgc)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
          this_block = get_block(blocks_ice(iblk),iblk)         
@@ -888,15 +888,6 @@
 
          do j = jlo, jhi
          do i = ilo, ihi  
-
-            do n = 1, ncat
-            do k = 1, nilyr
-               sicen(k,n) = trcrn(i,j,nt_sice+k-1,n,iblk)
-            enddo
-            do k = ntrcr_o+1, ntrcr
-               trcrn_bgc(k-ntrcr_o,n) = trcrn(i,j,k,n,iblk)
-            enddo
-            enddo
 
             call icepack_load_ocean_bio_array(max_nbtrcr=icepack_max_nbtrcr,     &
                          max_algae=icepack_max_algae, max_don=icepack_max_don,   &
@@ -919,7 +910,7 @@
          file=__FILE__, line=__LINE__)
 
       if (.not. restart_bgc) then       
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,sicen,trcrn_bgc)
          do iblk = 1, nblocks
 
             this_block = get_block(blocks_ice(iblk),iblk)         
@@ -930,7 +921,14 @@
 
             do j = jlo, jhi
             do i = ilo, ihi  
-
+                do n = 1, ncat
+                do k = 1, nilyr
+                   sicen(k,n) = trcrn(i,j,nt_sice+k-1,n,iblk)
+                enddo
+                do k = ntrcr_o+1, ntrcr
+                   trcrn_bgc(k-ntrcr_o,n) = trcrn(i,j,k,n,iblk)
+                enddo
+                enddo
             call icepack_init_bgc(ncat=ncat, nblyr=nblyr, nilyr=nilyr, ntrcr_o=ntrcr_o,  &
                          cgrid=cgrid, igrid=igrid, ntrcr=ntrcr, nbtrcr=nbtrcr,           &
                          sicen=sicen(:,:), trcrn=trcrn_bgc(:,:), sss=sss(i,j, iblk), &

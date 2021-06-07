@@ -45,10 +45,11 @@ ifeq ($(strip $(SDKPATH)),)
   CFLAGS_HOST := 
 else
   CFLAGS_HOST = -isysroot $(SDKPATH)
+  LD += -L$(SDKPATH)/usr/lib
 endif
 
 # Libraries to be passed to the linker
-SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff
+SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff -llapack
 
 # Necessary flag to compile with OpenMP support
 ifeq ($(ICE_THREADED), true)

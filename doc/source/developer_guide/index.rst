@@ -14,7 +14,9 @@ Developer Guide
    dg_about.rst
    dg_dynamics.rst
    dg_driver.rst
+   dg_forcing.rst
    dg_icepack.rst
    dg_scripts.rst
+   dg_tools.rst
    dg_other.rst
 

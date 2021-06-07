@@ -36,12 +36,19 @@ The Consortium has tested the following compilers at some point,
 - Intel 17.0.2.174
 - Intel 17.0.5.239
 - Intel 18.0.1.163
+- Intel 18.0.5
 - Intel 19.0.2
 - Intel 19.0.3.199
+- Intel 19.1.0.166
+- Intel 19.1.1.217
 - PGI 16.10.0
+- PGI 19.9-0
+- PGI 20.1-0
 - GNU 6.3.0
 - GNU 7.2.0
 - GNU 7.3.0
+- GNU 8.3.0
+- GNU 9.3.0
 - Cray 8.5.8
 - Cray 8.6.4
 - NAG 6.2
@@ -54,22 +61,33 @@ The Consortium has tested the following mpi versions,
 - MPICH 7.6.3
 - MPICH 7.7.6
 - Intel MPI 18.0.1
+- Intel MPI 18.0.4
+- Intel MPI 2019 Update 6
 - MPT 2.14
 - MPT 2.17
 - MPT 2.18
 - MPT 2.19
+- MPT 2.20
+- MPT 2.21
+- mvapich2-2.3.3
 - OpenMPI 1.6.5
+- OpenMPI 4.0.2
 
 The NetCDF implementation is relatively general and should work with any version of NetCDF 3 or 4.  The Consortium has tested
 
 - NetCDF 4.3.0
 - NetCDF 4.3.2
 - NetCDF 4.4.0
-- NetCDF 4.4.1.1.32
+- NetCDF 4.4.1.1.3
 - NetCDF 4.4.1.1
 - NetCDF 4.4.2
 - NetCDF 4.5.0
+- NetCDF 4.5.2
 - NetCDF 4.6.1.3
+- NetCDF 4.6.3
+- NetCDF 4.6.3.2
+- NetCDF 4.7.2
+- NetCDF 4.7.4
 
 Please email the Consortium if this list can be extended.
 
@@ -143,11 +161,8 @@ Some hints:
 
 - To change namelist, manually edit the **ice_in** file
 - To change batch settings, manually edit the top of the **cice.run** or **cice.test** (if running a test) file
-- When the run scripts are submitted, the current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from the case directory into the run directory.  Users should generally not edit files in the run directory as these are overwritten when following the standard workflow.  **cice.settings** can be sourced to establish the case values in the login shell.  An alias like the following can be established to quickly switch between case and run directories::
-
-    alias  cdrun 'cd `\grep "setenv ICE_RUNDIR"  cice.settings | awk "{print "\$"NF}"`'
-    alias cdcase 'cd `\grep "setenv ICE_CASEDIR" cice.settings | awk "{print "\$"NF}"`'
-
+- When the run scripts are submitted, the current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from the case directory into the run directory.  Users should generally not edit files in the run directory as these are overwritten when following the standard workflow.  **cice.settings** can be sourced to establish the case values in the login shell.
+- Some useful aliases can be found in the :ref:`aliases` section
 - To turn on the debug compiler flags, set ``ICE_BLDDEBUG`` in **cice.setttings** to true.  It is also possible to use the ``debug`` option  (``-s debug``) when creating the case with **cice.setup** to set this option automatically.
 - To change compiler options, manually edit the Macros file. To add user defined preprocessor macros, modify ``ICE_CPPDEFS`` in **cice.settings** using the syntax ``-DCICE_MACRO``.
 - To clean the build before each compile, set ``ICE_CLEANBUILD`` in **cice.settings** to true (this is the default value), or use the ``buildclean`` option (``-s buildclean``)  when creating the case with **cice.setup**.  To not clean before the build, set ``ICE_CLEANBUILD`` in **cice.settings** to false, or use the ``buildincremental`` option  (``-s buildincremental``) when creating the case with **cice.setup**.  It is recommended that the ``ICE_CLEANBUILD`` be set to true if there are any questions about whether the build is proceeding properly.
@@ -260,7 +275,7 @@ Some of the options are
 
 ``bgcISPOL`` and ``bgcNICE`` specify bgc options
 
-``boxadv``, ``boxdyn``, and ``boxrestore`` are simple box configurations
+``boxadv``, ``boxnodyn``, and ``boxrestore`` are simple box configurations
 
 ``alt*`` which turns on various combinations of dynamics and physics options for testing
 
@@ -496,8 +511,9 @@ in the **env.[machine]** file.  This can also be manually changed in the **cice.
 
 .. _laptops:
 
-Porting to Laptop or Personal Computers
+Porting to Laptops or Personal Computers
 -----------------------------------------
+
 To get the required software necessary to build and run CICE, and use the plotting and quality control scripts included in the repository, a `conda <https://docs.conda.io/en/latest/>`_ environment file is available at :
 
 ``configuration/scripts/machines/environment.yml``.
@@ -715,7 +731,14 @@ Next, create the "cice" conda environment from the ``environment.yml`` file in t
 
   conda env create -f configuration/scripts/machines/environment.yml
 
-This step needs to be done only once.
+This step needs to be done only once and will maintain a static conda environment.  To update the conda environment later, use
+
+.. code-block:: bash
+
+  conda env create -f configuration/scripts/machines/environment.yml --force
+
+This will update the conda environment to the latest software versions.
+
 
 .. _using_conda_env:
 
@@ -774,7 +797,7 @@ A few notes about the conda configuration:
   
 - It is not recommeded to run other test suites than ``quick_suite`` or ``travis_suite`` on a personal computer.
 - The conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts in the case directory. These scripts source the file ``env.conda_{linux.macos}``, which calls ``conda activate cice``.
-- To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control scripts (see :ref:`CodeCompliance`), you must manually activate the environment:
+- To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control (QC) scripts (see :ref:`CodeValidation`), you must manually activate the environment:
 
   .. code-block:: bash
   
@@ -837,6 +860,50 @@ modify the scripts and input settings in the case directory, NOT the run directo
 In general, files in the run directory are overwritten by versions in the case
 directory when the model is built, submitted, and run.
 
+.. _aliases:
+
+Use of Shell Aliases
+-------------------------
+
+This section provides a list of some potentially useful shell aliases that leverage the CICE 
+scripts.  These are not defined by CICE and are not required for using CICE.  They
+are provided as an example of what can be done by users.
+The current **ice_in**, **cice.settings**, and **env.[machine]** files are copied from 
+the case directory into the run directory when the model is run.  Users can create aliases 
+leveraging the variables in these files.  Aliases like the following can be established 
+in shell startup files or otherwise at users discretion:
+
+.. code-block:: bash
+
+  #!/bin/tcsh
+  # From a case or run directory, source the necessary environment files to run CICE
+  alias cice_env 'source env.*; source cice.settings'
+  # Go from case directory to run directory and back (see https://stackoverflow.com/a/34874698/)
+  alias cdrun  'set rundir=`\grep "setenv ICE_RUNDIR" cice.settings | awk "{print "\$"NF}"` && cd $rundir'
+  alias cdcase 'set casedir=`\grep "setenv ICE_CASEDIR" cice.settings | awk "{print "\$"NF}"` && cd $casedir'
+
+  #!/bin/bash
+  # From case/test directory, go to run directory
+  alias cdrun='cd $(cice_var ICE_RUNDIR)'
+  # From run directory, go to case/test directory
+  alias cdcase='cd $(cice_var ICE_CASEDIR)'
+  # monitor current cice run (from ICE_RUNDIR directory)
+  alias cice_tail='tail -f $(ls -1t cice.runlog.* |head -1)'
+  # open log from last CICE run (from ICE_CASEDIR directory)
+  alias cice_lastrun='$EDITOR $(ls -1t logs/cice.runlog.* |head -1)'
+  # open log from last CICE build (from ICE_CASEDIR directory)
+  alias cice_lastbuild='$EDITOR $(ls -1t logs/cice.bldlog.* |head -1)'
+  # show CICE run directory when run in the case directory
+  alias cice_rundir='cice_var ICE_RUNDIR'
+  # open a tcsh shell and source env.* and cice.settings (useful for launching CICE in a debugger)
+  alias cice_shell='tcsh -c "cice_env; tcsh"'
+
+  ## Functions
+  # Print the value of a CICE variable ($1) from cice.settings
+  cice_var() {
+  \grep "setenv $1" cice.settings | awk "{print "\$"3}"
+  }
+
 .. _timeseries:
 
 Timeseries Plotting
@@ -855,7 +922,7 @@ To use the ``timeseries.py`` script, the following requirements must be met:
 * matplotlib Python package
 * datetime Python package
 
-See :ref:`CodeCompliance` for additional information about how to setup the Python 
+See :ref:`CodeValidation` for additional information about how to setup the Python 
 environment, but we recommend using ``pip`` as follows: ::
 
   pip install --user numpy

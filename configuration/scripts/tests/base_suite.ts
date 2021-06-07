@@ -5,9 +5,10 @@ smoke          gx3     1x4        debug,diag1,run2day
 smoke          gx3     4x1        debug,diag1,run5day
 restart        gx3     8x2        debug
 smoke          gx3     8x2        diag24,run1year,medium
-decomp         gx3     4x2x25x29x5
-smoke          gx3     4x2        diag1,run5day          smoke_gx3_8x2_diag1_run5day
-smoke          gx3     4x1        diag1,run5day,thread   smoke_gx3_8x2_diag1_run5day
+smoke          gx3     7x2        diag1,bigdiag,run1day
+decomp         gx3     4x2x25x29x5  none
+smoke          gx3     4x2        diag1,run5day             smoke_gx3_8x2_diag1_run5day
+smoke          gx3     4x1        diag1,run5day,thread      smoke_gx3_8x2_diag1_run5day
 restart        gx1    40x4        droundrobin,medium
 restart        tx1    40x4        dsectrobin,medium
 restart        gx3     4x4        none
@@ -16,14 +17,18 @@ restart        gx3     8x2        alt02
 restart        gx3     4x2        alt03
 restart        gx3     4x4        alt04
 restart        gx3     4x4        alt05
+restart        gx3     8x2        alt06
 restart        gx3     6x2        alt01,debug,short
 restart        gx3     8x2        alt02,debug,short
 restart        gx3     4x2        alt03,debug,short
 smoke          gx3     4x4        alt04,debug,short
 smoke          gx3     4x4        alt05,debug,short
+smoke          gx3     8x2        alt06,debug,short
+smoke          gx3     10x2       debug,diag1,run5day,gx3sep2
+smoke          gx3     7x2        diag1,bigdiag,run1day
 restart        gbox128 4x2        short
-restart        gbox128 4x2        boxdyn,short
-restart        gbox128 4x2        boxdyn,short,debug
+restart        gbox128 4x2        boxnodyn,short
+restart        gbox128 4x2        boxnodyn,short,debug
 restart        gbox128 2x2        boxadv,short
 smoke          gbox128 2x2        boxadv,short,debug
 restart        gbox128 4x4        boxrestore,short
@@ -33,20 +38,28 @@ smoke          gbox80  1x1        boxslotcyl
 smoke          gx3     8x2        bgcz
 smoke          gx3     8x2        bgcz,debug
 smoke          gx3     8x1        bgcskl,debug
-#smoke          gx3     4x1        bgcz,thread        smoke_gx3_8x2_bgcz
+#smoke          gx3     4x1       bgcz,thread        smoke_gx3_8x2_bgcz
 restart        gx1     4x2        bgcsklclim,medium
 restart        gx1     8x1        bgczclim,medium
-smoke          gx1    24x1        jra55_gx1_2008,medium,run90day
-smoke          gx3     8x1        jra55_gx3_2008,medium,run90day
-restart        gx1    24x1        jra55_gx1,short
-restart        gx3     8x1        jra55_gx3,short
+smoke          gx1    24x1        medium,run90day,yi2008
+smoke          gx3     8x1        medium,run90day,yi2008
+restart        gx1    24x1        short
+restart        gx1    16x2        seabedLKD,gx1apr,medium,debug
+restart        gx1    15x2        seabedprob,medium
+restart        gx1    32x1        gx1prod,medium
 smoke          gx3     4x2        fsd1,diag24,run5day,debug
 smoke          gx3     8x2        fsd12,diag24,run5day,short
 restart        gx3     4x2        fsd12,debug,short
 smoke          gx3     8x2        fsd12ww3,diag24,run1day,medium
 smoke          gx3     4x1        isotope,debug
 restart        gx3     8x2        isotope
-restart        gx3     4x4        iobinary
+restart        gx3     4x4        gx3ncarbulk,iobinary
 restart        gx3     4x4        histall,precision8,cdf64
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
+smoke          gx3     4x1        dynpicard,medium
+smoke          gx3     8x2        diag24,run5day,zsal,debug
+restart        gx3     8x2        zsal
+restart        gx3     8x2        gx3ncarbulk,debug
+restart        gx3     4x4        gx3ncarbulk,diag1
+restart        gx1    24x1        gx1coreii,short
