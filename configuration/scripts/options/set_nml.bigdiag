@@ -1,4 +1,4 @@
-forcing_diag = .true.
+debug_forcing = .true.
 debug_model  = .true.
 debug_model_step = 4
 print_global = .true.

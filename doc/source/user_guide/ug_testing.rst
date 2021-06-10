@@ -667,6 +667,20 @@ in **configuration/scripts/options**.  In particular, **ICE_DRVOPT** and
 **configuration/scripts/Makefile** and create a target for the unit test.
 The unit tests calchk or helloworld can be used as examples.
 
+The following are brief descriptions of some of the current unit tests,
+
+ - **bcstchk** is a unit test that exercises the methods in ice_broadcast.F90.  This test does not
+   depend on the CICE grid to carry out the testing.  By testing with a serial and mpi configuration,
+   both sets of software are tested independently and correctness is verified.
+ - **calchk** is a unit test that exercises the CICE calendar over 100,000 years and verifies correctness.
+   This test does not depend on the CICE initialization.
+ - **helloworld** is a simple test that writes out helloworld and uses no CICE infrastructure.
+   This tests exists to demonstrate how to build a unit test by specifying the object files directly
+   in the Makefile
+ - **sumchk** is a unit test that exercises the methods in ice_global_reductions.F90.  This test requires
+   that a CICE grid and decomposition be initialized, so CICE_InitMod.F90 is leveraged to initialize
+   the model prior to running a suite of unit validation tests to verify correctness.
+
 
 .. _testreporting:
 
