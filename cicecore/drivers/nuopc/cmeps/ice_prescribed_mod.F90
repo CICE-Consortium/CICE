@@ -110,7 +110,7 @@ contains
          stream_mapalgo,                &
          stream_yearalign,              &
          stream_yearfirst ,             &
-         stream_yearlast                
+         stream_yearlast
 
     rc = ESMF_SUCCESS
 
@@ -184,7 +184,7 @@ contains
             model_clock         = clock,                     &
             model_mesh          = mesh,                      &
             stream_meshfile     = stream_meshfile,           &
-            stream_lev_dimname  = 'null',                    & 
+            stream_lev_dimname  = 'null',                    &
             stream_mapalgo      = trim(stream_mapalgo),      &
             stream_filenames    = stream_datafiles(1:nfile), &
             stream_fldlistFile  = (/'ice_cov'/),             &
@@ -244,7 +244,7 @@ contains
     end if
 
     ! Get pointer for stream data that is time and spatially interpolate to model time and grid
-    call dshr_fldbun_getFldPtr(sdat%pstrm(1)%fldbun_model, 'ice_cov', dataptr,  rc=rc)
+    call dshr_fldbun_getFldPtr(sdat%pstrm(1)%fldbun_model, 'ice_cov', dataptr, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) then
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if

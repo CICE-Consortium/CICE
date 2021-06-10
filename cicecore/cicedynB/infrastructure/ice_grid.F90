@@ -379,11 +379,6 @@
          else
             call popgrid        ! read POP grid lengths directly
          endif 
-#ifdef CESMCOUPLED
-      elseif (trim(grid_type) == 'latlon') then
-         call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
-         return
-#endif
       elseif (trim(grid_type) == 'cpom_grid') then
          call cpomgrid          ! cpom model orca1 type grid
       else

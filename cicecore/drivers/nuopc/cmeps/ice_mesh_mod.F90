@@ -390,13 +390,13 @@ contains
     ! or for a regional grid
 
     ! input/output variables
-    real(dbl_kind)  , intent(in)    :: scol_lon 
+    real(dbl_kind)  , intent(in)    :: scol_lon
     real(dbl_kind)  , intent(in)    :: scol_lat
     type(ESMF_Mesh) , intent(inout) :: ice_mesh
     integer         , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_Grid) :: lgrid 
+    type(ESMF_Grid) :: lgrid
     integer         :: maxIndex(2)
     real(dbl_kind)  :: mincornerCoord(2)
     real(dbl_kind)  :: maxcornerCoord(2)
