@@ -77,7 +77,7 @@
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn, get_wave_spec
+          get_forcing_atmo, get_forcing_ocn, get_wave_spec, init_snowtable
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default, faero_optics, alloc_forcing_bgc, fiso_default
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
@@ -92,6 +92,7 @@
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_iso, tr_fsd, wave_spec, tr_snow
+      character(len=char_len) :: snw_aging_table
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -163,7 +164,7 @@
       call ice_HaloRestore_init ! restored boundary conditions
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
-          wave_spec_out=wave_spec)
+          wave_spec_out=wave_spec, snw_aging_table_out=snw_aging_table)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -208,10 +209,20 @@
       call get_forcing_atmo     ! atmospheric forcing from data
       call get_forcing_ocn(dt)  ! ocean forcing from data
 
-      ! snow
-      if (tr_snow)    call icepack_init_snow            ! snow aging lookup table
+      ! snow aging lookup table initialization
+      if (tr_snow) then
+         call icepack_init_snow()
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
+         if (snw_aging_table(1:4) /= 'test') then
+            call init_snowtable()
+         endif
+      endif
+
       ! isotopes
       if (tr_iso)     call fiso_default                 ! default values
+
       ! aerosols
       ! if (tr_aero)  call faero_data                   ! data file
       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)

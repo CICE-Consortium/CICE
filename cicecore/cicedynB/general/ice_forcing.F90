@@ -41,7 +41,7 @@
                                field_type_vector, field_loc_NEcorner
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_sea_freezing_temperature
-      use icepack_intfc, only: icepack_init_wave
+      use icepack_intfc, only: icepack_init_wave, icepack_init_parameters
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_parameters
 
       implicit none
@@ -50,7 +50,8 @@
                 get_forcing_atmo, get_forcing_ocn, get_wave_spec, &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
-                read_data_nc_point, interp_coeff
+                read_data_nc_point, interp_coeff, &
+                init_snowtable
 
       integer (kind=int_kind), public :: &
          ycycle          , & ! number of years in forcing cycle, set by namelist
@@ -166,6 +167,16 @@
       integer (kind=int_kind), public :: &
          Njday_atm ! Number of atm forcing timesteps
 
+      character (len=char_len_long), public :: &
+         snw_filename        ! filename for snow lookup table
+
+      character (char_len), public :: &
+         snw_rhos_fname , &  ! snow table 1d rhos field name
+         snw_Tgrd_fname , &  ! snow table 1d Tgrd field name
+         snw_T_fname    , &  ! snow table 1d T field name
+         snw_tau_fname  , &  ! snow table 3d tau field name
+         snw_kappa_fname, &  ! snow table 3d kappa field name
+         snw_drdt0_fname     ! snow table 3d drdt0 field name
 
       ! PRIVATE:
 
@@ -5398,7 +5409,199 @@
 
 !=======================================================================
 
-      end module ice_forcing
+! initial snow aging lookup table
+!
+! Dry snow metamorphism table
+! snicar_drdt_bst_fit_60_c070416.nc
+! Flanner (file metadata units mislabelled)
+! drdsdt0 (10^-6 m/hr) tau (10^-6 m)
+!
+     subroutine init_snowtable
+
+      use ice_broadcast, only: broadcast_array, broadcast_scalar
+      integer (kind=int_kind) :: &
+          idx_T_max   , &  ! Table dimensions
+          idx_rhos_max, &
+          idx_Tgrd_max
+      real (kind=dbl_kind), allocatable :: &
+          snowage_rhos (:), &
+          snowage_Tgrd (:), &
+          snowage_T    (:), &
+          snowage_tau  (:,:,:), &
+          snowage_kappa(:,:,:), &
+          snowage_drdt0(:,:,:)
+
+      ! local variables
+
+      logical (kind=log_kind) :: diag = .false.
+
+      integer (kind=int_kind) :: &
+         fid                  ! file id for netCDF file
+
+      character (char_len) :: &
+         snw_aging_table, &   ! aging table setting
+         fieldname            ! field name in netcdf file
+
+      integer (kind=int_kind) :: &
+         j, k                 ! indices
+
+      character(len=*), parameter :: subname = '(init_snowtable)'
+
+      !-----------------------------------------------------------------
+      ! read table of snow aging parameters
+      !-----------------------------------------------------------------
+
+      call icepack_query_parameters(snw_aging_table_out=snw_aging_table, &
+         isnw_rhos_out=idx_rhos_max, isnw_Tgrd_out=idx_Tgrd_max, isnw_T_out=idx_T_max)
+
+      if (my_task == master_task) then
+         write (nu_diag,*) ' '
+         write (nu_diag,*) 'Snow aging file:', trim(snw_filename)
+      endif
+
+      if (snw_aging_table == 'snicar') then
+         ! just read the 3d data and pass it in
+
+         call ice_open_nc(snw_filename,fid)
+
+         allocate(snowage_tau  (idx_rhos_max, idx_Tgrd_max, idx_T_max))
+         allocate(snowage_kappa(idx_rhos_max, idx_Tgrd_max, idx_T_max))
+         allocate(snowage_drdt0(idx_rhos_max, idx_Tgrd_max, idx_T_max))
+
+         fieldname = trim(snw_tau_fname)
+         call ice_read_nc(fid,fieldname,snowage_tau,  diag, &
+                          idx_rhos_max,idx_Tgrd_max,idx_T_max)
+         fieldname = trim(snw_kappa_fname)
+         call ice_read_nc(fid,fieldname,snowage_kappa,diag, &
+                          idx_rhos_max,idx_Tgrd_max,idx_T_max)
+         fieldname = trim(snw_drdt0_fname)
+         call ice_read_nc(fid,fieldname,snowage_drdt0,diag, &
+                          idx_rhos_max,idx_Tgrd_max,idx_T_max)
+
+         call ice_close_nc(fid)
+
+         call broadcast_array(snowage_tau  , master_task)
+         call broadcast_array(snowage_kappa, master_task)
+         call broadcast_array(snowage_drdt0, master_task)
+
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,'  '
+            write(nu_diag,*) subname,' Successfully read snow aging properties:'
+            write(nu_diag,*) subname,' snw_aging_table = ',trim(snw_aging_table)
+            write(nu_diag,*) subname,' idx_rhos_max = ',idx_rhos_max
+            write(nu_diag,*) subname,' idx_Tgrd_max = ',idx_Tgrd_max
+            write(nu_diag,*) subname,' idx_T_max    = ',idx_T_max
+            write(nu_diag,*) subname,' Data at rhos, Tgrd, T at first index '
+            write(nu_diag,*) subname,' snoage_tau (1,1,1)         = ',snowage_tau  (1,1,1)
+            write(nu_diag,*) subname,' snoage_kappa (1,1,1)       = ',snowage_kappa(1,1,1)
+            write(nu_diag,*) subname,' snoage_drdt0 (1,1,1)       = ',snowage_drdt0(1,1,1)
+            write(nu_diag,*) subname,' Data at rhos, Tgrd, T at max index'
+            write(nu_diag,*) subname,' snoage_tau (max,max,max)   = ',snowage_tau  (idx_rhos_max, idx_Tgrd_max, idx_T_max)
+            write(nu_diag,*) subname,' snoage_kappa (max,max,max) = ',snowage_kappa(idx_rhos_max, idx_Tgrd_max, idx_T_max)
+            write(nu_diag,*) subname,' snoage_drdt0 (max,max,max) = ',snowage_drdt0(idx_rhos_max, idx_Tgrd_max, idx_T_max)
+         endif
+
+         call icepack_init_parameters(        &
+            snowage_tau_in   = snowage_tau,   &
+            snowage_kappa_in = snowage_kappa, &
+            snowage_drdt0_in = snowage_drdt0 )
+
+         deallocate(snowage_tau)
+         deallocate(snowage_kappa)
+         deallocate(snowage_drdt0)
+
+      else
+         ! read everything and pass it in
+
+         call ice_open_nc(snw_filename,fid)
+
+         fieldname = trim(snw_rhos_fname)
+         call ice_get_ncvarsize(fid,fieldname,idx_rhos_max)
+         fieldname = trim(snw_Tgrd_fname)
+         call ice_get_ncvarsize(fid,fieldname,idx_Tgrd_max)
+         fieldname = trim(snw_T_fname)
+         call ice_get_ncvarsize(fid,fieldname,idx_T_max)
+
+         call broadcast_scalar(idx_rhos_max, master_task)
+         call broadcast_scalar(idx_Tgrd_max, master_task)
+         call broadcast_scalar(idx_T_max   , master_task)
+
+         allocate(snowage_rhos (idx_rhos_max))
+         allocate(snowage_Tgrd (idx_Tgrd_max))
+         allocate(snowage_T    (idx_T_max))
+         allocate(snowage_tau  (idx_rhos_max, idx_Tgrd_max, idx_T_max))
+         allocate(snowage_kappa(idx_rhos_max, idx_Tgrd_max, idx_T_max))
+         allocate(snowage_drdt0(idx_rhos_max, idx_Tgrd_max, idx_T_max))
+
+         fieldname = trim(snw_rhos_fname)
+         call ice_read_nc(fid,fieldname,snowage_rhos,  diag, &
+                          idx_rhos_max)
+         fieldname = trim(snw_Tgrd_fname)
+         call ice_read_nc(fid,fieldname,snowage_Tgrd,  diag, &
+                          idx_Tgrd_max)
+         fieldname = trim(snw_T_fname)
+         call ice_read_nc(fid,fieldname,snowage_T,  diag, &
+                          idx_T_max)
+
+         fieldname = trim(snw_tau_fname)
+         call ice_read_nc(fid,fieldname,snowage_tau,  diag, &
+                          idx_rhos_max,idx_Tgrd_max,idx_T_max)
+         fieldname = trim(snw_kappa_fname)
+         call ice_read_nc(fid,fieldname,snowage_kappa,diag, &
+                          idx_rhos_max,idx_Tgrd_max,idx_T_max)
+         fieldname = trim(snw_drdt0_fname)
+         call ice_read_nc(fid,fieldname,snowage_drdt0,diag, &
+                          idx_rhos_max,idx_Tgrd_max,idx_T_max)
+
+         call ice_close_nc(fid)
+
+         call broadcast_array(snowage_rhos , master_task)
+         call broadcast_array(snowage_Tgrd , master_task)
+         call broadcast_array(snowage_T    , master_task)
+         call broadcast_array(snowage_tau  , master_task)
+         call broadcast_array(snowage_kappa, master_task)
+         call broadcast_array(snowage_drdt0, master_task)
+
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,'  '
+            write(nu_diag,*) subname,' Successfully read snow aging properties:'
+            write(nu_diag,*) subname,' idx_rhos_max = ',idx_rhos_max
+            write(nu_diag,*) subname,' idx_Tgrd_max = ',idx_Tgrd_max
+            write(nu_diag,*) subname,' idx_T_max    = ',idx_T_max
+            write(nu_diag,*) subname,' Data at rhos, Tgrd, T = ',snowage_rhos(1),snowage_Tgrd(1),snowage_T(1)
+            write(nu_diag,*) subname,' snoage_tau (1,1,1)         = ',snowage_tau  (1,1,1)
+            write(nu_diag,*) subname,' snoage_kappa (1,1,1)       = ',snowage_kappa(1,1,1)
+            write(nu_diag,*) subname,' snoage_drdt0 (1,1,1)       = ',snowage_drdt0(1,1,1)
+            write(nu_diag,*) subname,' Data at rhos, Tgrd, T = ',snowage_rhos(idx_rhos_max),snowage_Tgrd(idx_Tgrd_max),snowage_T(idx_T_max)
+            write(nu_diag,*) subname,' snoage_tau (max,max,max)   = ',snowage_tau  (idx_rhos_max, idx_Tgrd_max, idx_T_max)
+            write(nu_diag,*) subname,' snoage_kappa (max,max,max) = ',snowage_kappa(idx_rhos_max, idx_Tgrd_max, idx_T_max)
+            write(nu_diag,*) subname,' snoage_drdt0 (max,max,max) = ',snowage_drdt0(idx_rhos_max, idx_Tgrd_max, idx_T_max)
+         endif
+
+         call icepack_init_parameters(        &
+            isnw_t_in        = idx_T_max,     &
+            isnw_Tgrd_in     = idx_Tgrd_max,  &
+            isnw_rhos_in     = idx_rhos_max,  &
+            snowage_rhos_in  = snowage_rhos,  &
+            snowage_Tgrd_in  = snowage_Tgrd,  &
+            snowage_T_in     = snowage_T,     &
+            snowage_tau_in   = snowage_tau,   &
+            snowage_kappa_in = snowage_kappa, &
+            snowage_drdt0_in = snowage_drdt0 )
+
+         deallocate(snowage_rhos)
+         deallocate(snowage_Tgrd)
+         deallocate(snowage_T)
+         deallocate(snowage_tau)
+         deallocate(snowage_kappa)
+         deallocate(snowage_drdt0)
+
+      endif
+
+      end subroutine init_snowtable
 
 !=======================================================================
 
+      end module ice_forcing
+
+!=======================================================================
