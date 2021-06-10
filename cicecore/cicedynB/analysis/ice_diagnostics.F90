@@ -39,7 +39,7 @@
          print_global         ! if true, print global data
 
       integer (kind=int_kind), public :: &
-         debug_model_step = 999999999  ! begin printing at istep1=debug_model_step
+         debug_model_step = 0 ! begin printing at istep1=debug_model_step
 
       integer (kind=int_kind), parameter, public :: &
          npnt = 2             ! total number of points to be printed
@@ -72,6 +72,12 @@
 
       integer (kind=int_kind), dimension(npnt), public :: &
          piloc, pjloc, pbloc, pmloc  ! location of diagnostic points
+
+      integer (kind=int_kind), public :: &
+         debug_model_i = -1,    &  ! location of debug_model point, local i index
+         debug_model_j = -1,    &  ! location of debug_model point, local j index
+         debug_model_iblk = -1, &  ! location of debug_model point, local block number
+         debug_model_task = -1   ! location of debug_model point, local task number
 
       ! for hemispheric water and heat budgets
       real (kind=dbl_kind) :: &
@@ -1432,9 +1438,9 @@
             write(nu_diag,*) ' Find indices of diagnostic points '
          endif
 
-         piloc(:) = 0
-         pjloc(:) = 0
-         pbloc(:) = 0
+         piloc(:) = -1
+         pjloc(:) = -1
+         pbloc(:) = -1
          pmloc(:) = -999
          plat(:)  = -999._dbl_kind
          plon(:)  = -999._dbl_kind
@@ -1535,16 +1541,29 @@
       integer (kind=int_kind) :: i, j, m
       character(len=*), parameter :: subname='(debug_ice)'
 
-!     tcraig, do this only on one point, the first point
-!      do m = 1, npnt
-      m = 1
-         if (istep1 >= debug_model_step .and. &
-             iblk == pbloc(m) .and. my_task == pmloc(m)) then
-            i = piloc(m)
-            j = pjloc(m)
-            call print_state(plabeld,i,j,iblk)
+      if (istep1 >= debug_model_step) then
+
+         ! set debug point to 1st global point if not set as local values
+         if (debug_model_i < 0 .and. debug_model_j < 0 .and. &
+             debug_model_iblk < 0 .and. debug_model_task < 0) then
+            debug_model_i    = piloc(1)
+            debug_model_j    = pjloc(1)
+            debug_model_task = pmloc(1)
+            debug_model_iblk = pbloc(1)
          endif
-!      enddo
+
+         ! if debug point is messed up, abort
+         if (debug_model_i < 0 .or. debug_model_j < 0 .or. &
+             debug_model_iblk < 0 .or. debug_model_task < 0) then
+            call abort_ice (subname//'ERROR: debug_model_[i,j,iblk,mytask] not set correctly')
+         endif
+
+         ! write out debug info
+         if (debug_model_iblk == iblk .and. debug_model_task == my_task) then
+            call print_state(plabeld,debug_model_i,debug_model_j,debug_model_iblk)
+         endif
+
+      endif
 
       end subroutine debug_ice
 
