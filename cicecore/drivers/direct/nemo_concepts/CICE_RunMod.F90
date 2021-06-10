@@ -534,9 +534,11 @@
       !  - also needed for global budget in diagnostics
       !-----------------------------------------------------------------
 
+! RM and froy
+! Now use aice_init, more consistent, see merge_fluxes
          call scale_fluxes (nx_block,            ny_block,           &
                             tmask    (:,:,iblk), nbtrcr, icepack_max_aero,   &
-                            aice     (:,:,iblk), Tf      (:,:,iblk), &
+                            aice_init(:,:,iblk), Tf      (:,:,iblk), &
                             Tair     (:,:,iblk), Qa      (:,:,iblk), &
                             strairxT (:,:,iblk), strairyT(:,:,iblk), &
                             fsens    (:,:,iblk), flat    (:,:,iblk), &
