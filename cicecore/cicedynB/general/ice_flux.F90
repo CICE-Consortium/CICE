@@ -721,8 +721,8 @@
       ffed   (:,:,:,:)= c0
       
       if (send_i2x_per_cat) then
-      allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
-      fswthrun_ai(:,:,:,:) = c0
+         allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
+         fswthrun_ai(:,:,:,:) = c0
       endif
 
       !-----------------------------------------------------------------

@@ -11,8 +11,8 @@ module ice_shr_methods
   use ESMF         , only : ESMF_GeomType_Flag, ESMF_FieldStatus_Flag
   use ESMF         , only : ESMF_Mesh, ESMF_MeshGet
   use ESMF         , only : ESMF_GEOMTYPE_MESH, ESMF_GEOMTYPE_GRID, ESMF_FIELDSTATUS_COMPLETE
-  use ESMF         , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet 
-  use ESMF         , only : ESMF_ClockPrint, ESMF_ClockAdvance 
+  use ESMF         , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
+  use ESMF         , only : ESMF_ClockPrint, ESMF_ClockAdvance
   use ESMF         , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmGet, ESMF_AlarmSet
   use ESMF         , only : ESMF_Calendar, ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
   use ESMF         , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
@@ -38,7 +38,7 @@ module ice_shr_methods
   public  :: state_reset
   public  :: state_flddebug
   public  :: state_diagnose
-  public  :: alarmInit  
+  public  :: alarmInit
   public  :: chkerr
 
   private :: timeInit
@@ -65,7 +65,7 @@ module ice_shr_methods
        optMonthly        = "monthly"   , &
        optYearly         = "yearly"    , &
        optDate           = "date"      , &
-       optIfdays0        = "ifdays0"   
+       optIfdays0        = "ifdays0"
 
   ! Module data
   integer, parameter  :: SecPerDay = 86400 ! Seconds per day
@@ -588,7 +588,7 @@ contains
           call ESMF_MeshGet(lmesh, numOwnedNodes=nnodes, numOwnedElements=nelements, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           if (nnodes == 0 .and. nelements == 0) lrank = 0
-       else  
+       else
           call ESMF_LogWrite(trim(subname)//": ERROR geomtype not supported ", &
                ESMF_LOGMSG_INFO, rc=rc)
           rc = ESMF_FAILURE
@@ -949,7 +949,7 @@ contains
 
   subroutine timeInit( Time, ymd, cal, tod, rc)
 
-    ! Create the ESMF_Time object corresponding to the given input time, 
+    ! Create the ESMF_Time object corresponding to the given input time,
     ! given in YMD (Year Month Day) and TOD (Time-of-day) format.
     ! Set the time by an integer as YYYYMMDD and integer seconds in the day
 
