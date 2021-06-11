@@ -68,6 +68,9 @@
                          ice_read_nc_xyz, &
                          !ice_read_nc_xyf, &
                          ice_read_nc_point, &
+                         ice_read_nc_1D,  &
+                         ice_read_nc_2D,  &
+                         ice_read_nc_3D,  &
                          ice_read_nc_z
       end interface
 
@@ -1120,7 +1123,7 @@
          amin, amax, asum   ! min, max values and sum of input array
 
 !     character (char_len) :: &
-!        dimname            ! dimension name            
+!        dimname            ! dimension name
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1293,7 +1296,7 @@
          amin, amax, asum   ! min, max values and sum of input array
 
 !     character (char_len) :: &
-!        dimname            ! dimension name            
+!        dimname            ! dimension name
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -1472,7 +1475,7 @@
          amin, amax, asum   ! min, max values and sum of input array
 
       character (char_len) :: &
-         dimname            ! dimension name            
+         dimname            ! dimension name
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -1646,7 +1649,7 @@
          workg              ! temporary work variable
 
       character (char_len) :: &
-         dimname            ! dimension name            
+         dimname            ! dimension name
 
      if (my_task == master_task) then
 
@@ -1700,6 +1703,277 @@
 
 !=======================================================================
 
+! Written by T. Craig
+
+      subroutine ice_read_nc_1D(fid,  varname, work, diag, &
+                                xdim)
+
+      use ice_fileunits, only: nu_diag
+
+      integer (kind=int_kind), intent(in) :: &
+           fid           , & ! file id
+           xdim              ! field dimensions
+
+      logical (kind=log_kind), intent(in) :: &
+           diag              ! if true, write diagnostic output
+
+      character (char_len), intent(in) :: &
+           varname           ! field name in netcdf file
+
+      real (kind=dbl_kind), dimension(:), intent(out) :: &
+           work              ! output array
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(ice_read_nc_1D)'
+
+#ifdef USE_NETCDF
+! netCDF file diagnostics:
+      integer (kind=int_kind) :: &
+         varid,           & ! netcdf id for field
+         status,          & ! status output from netcdf routines
+         ndim, nvar,      & ! sizes of netcdf file
+         dimlen             ! size of dimension
+
+      character (char_len) :: &
+         dimname            ! dimension name
+
+      real (kind=dbl_kind), dimension(xdim) :: &
+         workg              ! output array (real, 8-byte)
+
+      !--------------------------------------------------------------
+
+      if (my_task == master_task) then
+
+         if (size(work,dim=1) < xdim) then
+            write(nu_diag,*) subname,' work, dim=1 ',size(work,dim=1),xdim
+            call abort_ice (subname//' ERROR: work array wrong size '//trim(varname), &
+                            file=__FILE__, line=__LINE__ )
+         endif
+         !-------------------------------------------------------------
+         ! Find out ID of required variable
+         !-------------------------------------------------------------
+
+         status = nf90_inq_varid(fid, trim(varname), varid)
+
+         if (status /= nf90_noerr) then
+            call abort_ice (subname//' ERROR: Cannot find variable '//trim(varname), &
+                            file=__FILE__, line=__LINE__ )
+         endif
+
+         !--------------------------------------------------------------
+         ! Read  array
+         !--------------------------------------------------------------
+         status = nf90_get_var( fid, varid, workg, &
+               start=(/1/), &
+               count=(/xdim/) )
+         work(1:xdim) = workg(1:xdim)
+
+         !-------------------------------------------------------------------
+         ! optional diagnostics
+         !-------------------------------------------------------------------
+
+         if (diag) then
+            write(nu_diag,*) subname, &
+              ' fid= ',fid, ', xdim = ',xdim, &
+              ' varname = ',trim(varname)
+            status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+            write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+         endif
+      endif
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+                     file=__FILE__, line=__LINE__)
+      work = c0 ! to satisfy intent(out) attribute
+#endif
+
+      end subroutine ice_read_nc_1D
+
+!=======================================================================
+
+! Written by T. Craig
+
+      subroutine ice_read_nc_2D(fid,  varname, work, diag, &
+                                xdim, ydim)
+
+      use ice_fileunits, only: nu_diag
+
+      integer (kind=int_kind), intent(in) :: &
+           fid           , & ! file id
+           xdim, ydim        ! field dimensions
+
+      logical (kind=log_kind), intent(in) :: &
+           diag              ! if true, write diagnostic output
+
+      character (char_len), intent(in) :: &
+           varname           ! field name in netcdf file
+
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: &
+           work              ! output array
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(ice_read_nc_2D)'
+
+#ifdef USE_NETCDF
+! netCDF file diagnostics:
+      integer (kind=int_kind) :: &
+         varid,           & ! netcdf id for field
+         status,          & ! status output from netcdf routines
+         ndim, nvar,      & ! sizes of netcdf file
+         dimlen             ! size of dimension
+
+      character (char_len) :: &
+         dimname            ! dimension name
+
+      real (kind=dbl_kind), dimension(xdim,ydim) :: &
+         workg              ! output array (real, 8-byte)
+
+      !--------------------------------------------------------------
+
+      if (my_task == master_task) then
+
+         if (size(work,dim=1) < xdim .or. &
+             size(work,dim=2) < ydim) then
+            write(nu_diag,*) subname,' work, dim=1 ',size(work,dim=1),xdim
+            write(nu_diag,*) subname,' work, dim=2 ',size(work,dim=2),ydim
+            call abort_ice (subname//' ERROR: work array wrong size '//trim(varname), &
+                            file=__FILE__, line=__LINE__ )
+         endif
+         !-------------------------------------------------------------
+         ! Find out ID of required variable
+         !-------------------------------------------------------------
+
+         status = nf90_inq_varid(fid, trim(varname), varid)
+
+         if (status /= nf90_noerr) then
+            call abort_ice (subname//' ERROR: Cannot find variable '//trim(varname), &
+                            file=__FILE__, line=__LINE__ )
+         endif
+
+         !--------------------------------------------------------------
+         ! Read  array
+         !--------------------------------------------------------------
+         status = nf90_get_var( fid, varid, workg, &
+               start=(/1,1/), &
+               count=(/xdim,ydim/) )
+         work(1:xdim,1:ydim) = workg(1:xdim, 1:ydim)
+
+         !-------------------------------------------------------------------
+         ! optional diagnostics
+         !-------------------------------------------------------------------
+
+         if (diag) then
+            write(nu_diag,*) subname, &
+              ' fid= ',fid, ', xdim = ',xdim, &
+              ' ydim= ', ydim, ' varname = ',trim(varname)
+            status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+            write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+         endif
+      endif
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+                     file=__FILE__, line=__LINE__)
+      work = c0 ! to satisfy intent(out) attribute
+#endif
+
+      end subroutine ice_read_nc_2D
+
+!=======================================================================
+!=======================================================================
+
+! Written by T. Craig
+
+      subroutine ice_read_nc_3D(fid,  varname, work, diag, &
+                                xdim, ydim, zdim)
+
+      use ice_fileunits, only: nu_diag
+
+      integer (kind=int_kind), intent(in) :: &
+           fid           , & ! file id
+           xdim, ydim,zdim   ! field dimensions
+
+      logical (kind=log_kind), intent(in) :: &
+           diag              ! if true, write diagnostic output
+
+      character (char_len), intent(in) :: &
+           varname           ! field name in netcdf file
+
+      real (kind=dbl_kind), dimension(:,:,:), intent(out) :: &
+           work              ! output array
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(ice_read_nc_3D)'
+
+#ifdef USE_NETCDF
+! netCDF file diagnostics:
+      integer (kind=int_kind) :: &
+         varid,           & ! netcdf id for field
+         status,          & ! status output from netcdf routines
+         ndim, nvar,      & ! sizes of netcdf file
+         dimlen             ! size of dimension
+
+      character (char_len) :: &
+         dimname            ! dimension name
+
+      real (kind=dbl_kind), dimension(xdim,ydim,zdim) :: &
+         workg              ! output array (real, 8-byte)
+
+      !--------------------------------------------------------------
+
+      if (my_task == master_task) then
+
+         if (size(work,dim=1) < xdim .or. &
+             size(work,dim=2) < ydim .or. &
+             size(work,dim=3) < zdim ) then
+            write(nu_diag,*) subname,' work, dim=1 ',size(work,dim=1),xdim
+            write(nu_diag,*) subname,' work, dim=2 ',size(work,dim=2),ydim
+            write(nu_diag,*) subname,' work, dim=3 ',size(work,dim=3),zdim
+            call abort_ice (subname//' ERROR: work array wrong size '//trim(varname), &
+                            file=__FILE__, line=__LINE__ )
+         endif
+         !-------------------------------------------------------------
+         ! Find out ID of required variable
+         !-------------------------------------------------------------
+
+         status = nf90_inq_varid(fid, trim(varname), varid)
+
+         if (status /= nf90_noerr) then
+            call abort_ice (subname//' ERROR: Cannot find variable '//trim(varname), &
+                            file=__FILE__, line=__LINE__ )
+         endif
+
+         !--------------------------------------------------------------
+         ! Read  array
+         !--------------------------------------------------------------
+         status = nf90_get_var( fid, varid, workg, &
+               start=(/1,1,1/), &
+               count=(/xdim,ydim,zdim/) )
+         work(1:xdim,1:ydim,1:zdim) = workg(1:xdim, 1:ydim, 1:zdim)
+
+         !-------------------------------------------------------------------
+         ! optional diagnostics
+         !-------------------------------------------------------------------
+
+         if (diag) then
+            write(nu_diag,*) subname, &
+              ' fid= ',fid, ', xdim = ',xdim, &
+              ' ydim= ', ydim,' zdim = ',zdim, ' varname = ',trim(varname)
+            status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+            write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+         endif
+      endif
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+                     file=__FILE__, line=__LINE__)
+      work = c0 ! to satisfy intent(out) attribute
+#endif
+
+      end subroutine ice_read_nc_3D
+
+!=======================================================================
+
 ! Adapted by Nicole Jeffery, LANL
 
       subroutine ice_read_nc_z(fid,  nrec,  varname, work,  diag, &
@@ -1739,7 +2013,7 @@
          dimlen             ! size of dimension
 
       character (char_len) :: &
-         dimname            ! dimension name            
+         dimname            ! dimension name
 #endif
 
       character(len=*), parameter :: subname = '(ice_read_nc_z)'
@@ -1791,7 +2065,7 @@
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+                     file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_z
@@ -1841,7 +2115,7 @@
 
       character (char_len) :: &
          lvarname           ! variable name
-!        dimname            ! dimension name            
+!        dimname            ! dimension name
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1914,7 +2188,7 @@
       
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+                     file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_nc_xy
@@ -1965,7 +2239,7 @@
 
       character (char_len) :: &
          lvarname           ! variable name
-!        dimname            ! dimension name            
+!        dimname            ! dimension name
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -2048,7 +2322,7 @@
       
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+                     file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_nc_xyz
@@ -2094,7 +2368,7 @@
          amin, amax, asum   ! min, max values and sum of input array
 
 !    character (char_len) :: &
-!        dimname            ! dimension name            
+!        dimname            ! dimension name
 !
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g3
@@ -2162,7 +2436,7 @@
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+                     file=__FILE__, line=__LINE__)
       work_g = c0 ! to satisfy intent(out) attribute
 #endif
 
@@ -2191,7 +2465,7 @@
       endif
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+                     file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_close_nc
@@ -2249,7 +2523,7 @@
          amin, amax, asum   ! min, max values and sum of input array
 
 !     character (char_len) :: &
-!        dimname            ! dimension name            
+!        dimname            ! dimension name
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -2328,7 +2602,7 @@
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+                     file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
 
@@ -2406,7 +2680,7 @@
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+                     file=__FILE__, line=__LINE__)
       work_g = c0 ! to satisfy intent(out) attribute
 #endif
 
@@ -2452,7 +2726,7 @@
       endif
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+                     file=__FILE__, line=__LINE__)
       recsize = 0 ! to satisfy intent(out) attribute
 #endif
 

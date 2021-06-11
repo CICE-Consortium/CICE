@@ -90,7 +90,10 @@
           bgc_data_type, &
           ocn_data_type, ocn_data_dir,    wave_spec_file,  &
           oceanmixed_file, restore_ocn,   trestore, & 
-          ice_data_type
+          ice_data_type, &
+          snw_filename, &
+          snw_tau_fname, snw_kappa_fname, snw_drdt0_fname, &
+          snw_rhos_fname, snw_Tgrd_fname, snw_T_fname
       use ice_arrays_column, only: bgc_data_dir, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
@@ -230,7 +233,9 @@
       namelist /snow_nml/ &
         snwredist,      snwgrain,        rsnw_fall,     rsnw_tmax,      &
         rhosnew,        rhosmin,         rhosmax,       snwlvlfac,      &
-        windmin,        drhosdwind,      use_smliq_pnd, snw_aging_table
+        windmin,        drhosdwind,      use_smliq_pnd, snw_aging_table,&
+        snw_filename,   snw_rhos_fname,  snw_Tgrd_fname,snw_T_fname,    &
+        snw_tau_fname,  snw_kappa_fname, snw_drdt0_fname
 
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
@@ -410,6 +415,13 @@
       pndaspect = 0.8_dbl_kind    ! ratio of pond depth to area fraction
       snwredist = 'none'          ! type of snow redistribution
       snw_aging_table = 'test'    ! snow aging lookup table
+      snw_filename    = 'unknown' ! snowtable filename
+      snw_tau_fname   = 'unknown' ! snowtable file tau fieldname
+      snw_kappa_fname = 'unknown' ! snowtable file kappa fieldname
+      snw_drdt0_fname = 'unknown' ! snowtable file drdt0 fieldname
+      snw_rhos_fname  = 'unknown' ! snowtable file rhos fieldname
+      snw_Tgrd_fname  = 'unknown' ! snowtable file Tgrd fieldname
+      snw_T_fname     = 'unknown' ! snowtable file T fieldname
       snwgrain  = .false.         ! snow metamorphosis
       use_smliq_pnd = .false.     ! use liquid in snow for ponds
       rsnw_fall = 54.526_dbl_kind ! radius of new snow (10^-6 m)
@@ -556,11 +568,9 @@
             print*,'Reading ponds_nml'
                read(nu_nml, nml=ponds_nml,iostat=nml_error)
                if (nml_error /= 0) exit
-            if (tr_snow) then
-               print*,'Reading snow_nml'
+            print*,'Reading snow_nml'
                read(nu_nml, nml=snow_nml,iostat=nml_error)
                if (nml_error /= 0) exit
-            endif
             print*,'Reading forcing_nml'
                read(nu_nml, nml=forcing_nml,iostat=nml_error)
                if (nml_error /= 0) exit
@@ -746,6 +756,13 @@
       call broadcast_scalar(pndaspect,            master_task)
       call broadcast_scalar(snwredist,            master_task)
       call broadcast_scalar(snw_aging_table,      master_task)
+      call broadcast_scalar(snw_filename,         master_task)
+      call broadcast_scalar(snw_tau_fname,        master_task)
+      call broadcast_scalar(snw_kappa_fname,      master_task)
+      call broadcast_scalar(snw_drdt0_fname,      master_task)
+      call broadcast_scalar(snw_rhos_fname,       master_task)
+      call broadcast_scalar(snw_Tgrd_fname,       master_task)
+      call broadcast_scalar(snw_T_fname,          master_task)
       call broadcast_scalar(snwgrain,             master_task)
       call broadcast_scalar(use_smliq_pnd,        master_task)
       call broadcast_scalar(rsnw_fall,            master_task)
@@ -1048,10 +1065,11 @@
          endif
          abort_list = trim(abort_list)//":42"
       endif
-      if (trim(snw_aging_table) /= 'test') then
+      if (trim(snw_aging_table) /= 'test' .and. &
+          trim(snw_aging_table) /= 'snicar' .and. &
+          trim(snw_aging_table) /= 'file') then
          if (my_task == master_task) then
-            write (nu_diag,*) 'ERROR: snw_aging_table /= test'
-            write (nu_diag,*) 'ERROR: other options not yet implemented'
+            write (nu_diag,*) 'ERROR: unknown snw_aging_table = '//trim(snw_aging_table)
          endif
          abort_list = trim(abort_list)//":43"
       endif
@@ -1715,47 +1733,68 @@
          write(nu_diag,*) ' Snow redistribution/metamorphism tracers'
          write(nu_diag,*) '-----------------------------------------'
          if (tr_snow) then
-            write(nu_diag,1010) ' tr_snow         = ', tr_snow, &
+            write(nu_diag,1010) ' tr_snow          = ', tr_snow, &
                                 ' : advanced snow physics'
             if (snwredist(1:4) == 'none') then
-               write(nu_diag,*) ' Snow redistribution scheme turned off'
+               write(nu_diag,1030) ' snwredist        = ', trim(snwredist), &
+                                   ' : Snow redistribution scheme turned off'
             else
                if (snwredist(1:4) == 'bulk') then
-                  write(nu_diag,*) ' Using bulk snow redistribution scheme'
-                  write(nu_diag,1002) ' snwlvlfac       = ', snwlvlfac, &
-                                   ' fractional increase in snow depth for bulk redistribution'
+                  write(nu_diag,1030) ' snwredist        = ', trim(snwredist), &
+                                      ' : Using bulk snow redistribution scheme'
+                  write(nu_diag,1002) ' snwlvlfac        = ', snwlvlfac, &
+                                      ' : fractional increase in snow depth for bulk redistribution'
                elseif (snwredist(1:6) == 'ITDrdg') then
-                  write(nu_diag,*) ' Using ridging based snow redistribution scheme'
+                  write(nu_diag,1030) ' snwredist        = ', trim(snwredist), &
+                                      ' : Using ridging based snow redistribution scheme'
                endif
-               write(nu_diag,1002) ' rhosnew         = ', rhosnew, &
+               write(nu_diag,1002) ' rhosnew          = ', rhosnew, &
                                    ' : new snow density (kg/m^3)'
-               write(nu_diag,1002) ' rhosmin         = ', rhosmin, &
+               write(nu_diag,1002) ' rhosmin          = ', rhosmin, &
                                    ' : minimum snow density (kg/m^3)'
-               write(nu_diag,1002) ' rhosmax         = ', rhosmax, &
+               write(nu_diag,1002) ' rhosmax          = ', rhosmax, &
                                    ' : maximum snow density (kg/m^3)'
-               write(nu_diag,1002) ' windmin         = ', windmin, &
+               write(nu_diag,1002) ' windmin          = ', windmin, &
                                    ' : minimum wind speed to compact snow (m/s)'
-               write(nu_diag,1002) ' drhosdwind      = ', drhosdwind, &
+               write(nu_diag,1002) ' drhosdwind       = ', drhosdwind, &
                                    ' : wind compaction factor (kg s/m^4)'
             endif
             if (.not. snwgrain) then
-               write(nu_diag,*) ' Snow metamorphosis turned off'
+               write(nu_diag,1010) ' snwgrain         = ', snwgrain, &
+                                   ' : Snow metamorphosis turned off'
             else
-               write(nu_diag,*) ' Using snow metamorphosis scheme'
-               write(nu_diag,1002) ' rsnw_fall       = ', rsnw_fall, &
+               write(nu_diag,1010) ' snwgrain         = ', snwgrain, &
+                                   ' : Using snow metamorphosis scheme'
+               write(nu_diag,1002) ' rsnw_fall        = ', rsnw_fall, &
                                    ' : radius of new snow (10^-6 m)'
-               write(nu_diag,1002) ' rsnw_tmax       = ', rsnw_tmax, &
+               write(nu_diag,1002) ' rsnw_tmax        = ', rsnw_tmax, &
                                    ' : maximum snow radius (10^-6 m)'
                if (use_smliq_pnd) then
-                  write(nu_diag,*) ' Using liquid water in snow for melt ponds'
-               endif
-               if (snw_aging_table(1:4) == 'test') then
-                  write(nu_diag,*) ' Using 5x5 test matrix of snow aging parameters'
-               elseif (snw_aging_table(1:5) == 'snicar') then
-                  write(nu_diag,*) ' Using snow aging parameters from SNICAR'
+                  tmpstr2 = ' : Using liquid water in snow for melt ponds'
                else
-                  tmpstr2 = ' snow aging parameters'
+                  tmpstr2 = ' : NOT using liquid water in snow for melt ponds'
+               endif
+                  write(nu_diag,1010) ' use_smliq_pnd    = ', use_smliq_pnd, trim(tmpstr2)
+               if (snw_aging_table == 'test') then
+                  tmpstr2 = ' : Using 5x5x1 test matrix of internallly defined snow aging parameters'
                   write(nu_diag,1030) ' snw_aging_table  = ', trim(snw_aging_table),trim(tmpstr2)
+               elseif (snw_aging_table == 'snicar') then
+                  tmpstr2 = ' : Reading 3D snow aging parameters from SNICAR file'
+                  write(nu_diag,1030) ' snw_aging_table  = ', trim(snw_aging_table),trim(tmpstr2)
+                  write(nu_diag,1031) ' snw_filename     = ',trim(snw_filename)
+                  write(nu_diag,1031) ' snw_tau_fname    = ',trim(snw_tau_fname)
+                  write(nu_diag,1031) ' snw_kappa_fname  = ',trim(snw_kappa_fname)
+                  write(nu_diag,1031) ' snw_drdt0_fname  = ',trim(snw_drdt0_fname)
+               elseif (snw_aging_table == 'file') then
+                  tmpstr2 = ' : Reading 1D and 3D snow aging dimensions and parameters from external file'
+                  write(nu_diag,1030) ' snw_aging_table  = ', trim(snw_aging_table),trim(tmpstr2)
+                  write(nu_diag,1031) ' snw_filename     = ',trim(snw_filename)
+                  write(nu_diag,1031) ' snw_rhos_fname   = ',trim(snw_rhos_fname)
+                  write(nu_diag,1031) ' snw_Tgrd_fname   = ',trim(snw_Tgrd_fname)
+                  write(nu_diag,1031) ' snw_T_fname      = ',trim(snw_T_fname)
+                  write(nu_diag,1031) ' snw_tau_fname    = ',trim(snw_tau_fname)
+                  write(nu_diag,1031) ' snw_kappa_fname  = ',trim(snw_kappa_fname)
+                  write(nu_diag,1031) ' snw_drdt0_fname  = ',trim(snw_drdt0_fname)
                endif
             endif
          endif
@@ -1964,7 +2003,7 @@
          windmin_in=windmin, drhosdwind_in=drhosdwind, &
          rsnw_fall_in=rsnw_fall, rsnw_tmax_in=rsnw_tmax, rhosnew_in=rhosnew, &
          snwlvlfac_in=snwlvlfac, rhosmin_in=rhosmin, rhosmax_in=rhosmax, &
-         snwredist_in=snwredist, snwgrain_in=snwgrain, &
+         snwredist_in=snwredist, snwgrain_in=snwgrain, snw_aging_table_in=trim(snw_aging_table), &
          sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
