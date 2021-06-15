@@ -1775,6 +1775,7 @@
           grid_type  /=  'rectangular'    .and. &
           grid_type  /=  'cpom_grid'      .and. &
           grid_type  /=  'regional'       .and. &
+          grid_type  /=  'latlon'         .and. &
           grid_type  /=  'setmask' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
          abort_list = trim(abort_list)//":20"
