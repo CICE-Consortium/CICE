@@ -86,8 +86,6 @@
       call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
       call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
-      call calendar()       ! at the end of the timestep
-
       call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
       call ice_step
