@@ -1,5 +1,5 @@
 #==============================================================================
-# Makefile macros for NOAA hera, intel compiler
+# Makefile macros for TACC stampede, intel compiler
 #==============================================================================
 
 CPP        := fpp
@@ -31,7 +31,7 @@ else
 endif
 LD:= $(FC)
 
-NETCDF_PATH := $(NETCDF)
+NETCDF_PATH := $(NETCDF_ROOT)
 
 PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 

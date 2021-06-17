@@ -40,7 +40,7 @@
       private
       public :: init_grid1, init_grid2, &
                 t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid, alloc_grid
+                to_ugrid, to_tgrid, alloc_grid, makemask
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
