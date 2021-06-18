@@ -43,7 +43,7 @@
 
       subroutine CICE_Run
 
-      use ice_calendar, only: istep, istep1, time, dt, stop_now, calendar
+      use ice_calendar, only: stop_now, advance_timestep
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, & 
@@ -53,6 +53,8 @@
           timer_couple, timer_step
       logical (kind=log_kind) :: &
           tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
+      
+      character(len=*), parameter :: subname = '(CICE_Run)'
 
    !--------------------------------------------------------------------
    !  initialize error code and step timer
@@ -67,7 +69,7 @@
                                       tr_zaero_out=tr_zaero, &
                                       tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 #ifndef CICE_IN_NEMO
@@ -80,11 +82,7 @@
 
          call ice_step
 
-         istep  = istep  + 1    ! update time step counters
-         istep1 = istep1 + 1
-         time = time + dt       ! determine the time and date
-
-         call calendar(time)    ! at the end of the timestep
+         call advance_timestep()     ! advance time
 
 #ifndef CICE_IN_NEMO
          if (stop_now >= 1) exit timeLoop
@@ -173,6 +171,8 @@
           tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero, &
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
+      character(len=*), parameter :: subname = '(ice_step)'
+
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
            solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
            wave_spec_out=wave_spec)
@@ -181,7 +181,7 @@
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
            tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 #ifdef ICE_DA
@@ -198,7 +198,7 @@
          if (restore_ice) call ice_HaloRestore
 
       !-----------------------------------------------------------------
-      ! initialize diagnostics
+      ! initialize diagnostics and save initial state values
       !-----------------------------------------------------------------
 
          call ice_timer_start(timer_diags)  ! diagnostics/history
@@ -210,6 +210,8 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
+         call save_init
+
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
@@ -219,7 +221,7 @@
       ! Scale radiation fields
       !-----------------------------------------------------------------
 
-               if (calc_Tsfc) call prep_radiation (dt, iblk)
+               if (calc_Tsfc) call prep_radiation (iblk)
 
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
@@ -248,7 +250,7 @@
          ! wave fracture of the floe size distribution
          ! note this is called outside of the dynamics subcycling loop
          if (tr_fsd .and. wave_spec) call step_dyn_wave(dt)
-+
+
          do k = 1, ndtd
 
             ! momentum, stress, transport
@@ -303,9 +305,9 @@
          call ice_timer_start(timer_diags)  ! diagnostics
          if (mod(istep,diagfreq) == 0) then
             call runtime_diags(dt)          ! log file
-            if (solve_zsal) call zsal_diags(dt)  
-            if (skl_bgc .or. z_tracers)  call bgc_diags (dt)
-            if (tr_brine) call hbrine_diags(dt)
+            if (solve_zsal) call zsal_diags
+            if (skl_bgc .or. z_tracers)  call bgc_diags
+            if (tr_brine) call hbrine_diags
          endif
          call ice_timer_stop(timer_diags)   ! diagnostics
 
@@ -345,7 +347,8 @@
 
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
           albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
-      use ice_blocks, only: block, nx_block, ny_block
+      use ice_blocks, only: nx_block, ny_block, get_block, block
+      use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
       use ice_domain_size, only: ncat
       use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
@@ -369,10 +372,14 @@
       ! local variables
 
       integer (kind=int_kind) :: & 
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          n           , & ! thickness category index
          i,j         , & ! horizontal indices
          k           , & ! tracer index
          nbtrcr          !
+
+      type (block) :: &
+         this_block         ! block information for current block
 
       logical (kind=log_kind) :: &
          calc_Tsfc       !
@@ -383,11 +390,13 @@
          rhofresh    , & !
          netsw           ! flag for shortwave radiation presence
 
+      character(len=*), parameter :: subname = '(coupling_prep)'
+
          call icepack_query_parameters(puny_out=puny, rhofresh_out=rhofresh)
          call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
          call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
          call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
@@ -432,9 +441,16 @@
             enddo
          enddo
          enddo
+
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
          do n = 1, ncat
-         do j = 1, ny_block
-         do i = 1, nx_block
+         do j = jlo, jhi
+         do i = ilo, ihi
             if (aicen(i,j,n,iblk) > puny) then
                   
             alvdf(i,j,iblk) = alvdf(i,j,iblk) &
@@ -602,11 +618,14 @@
       
       real (kind=dbl_kind)    :: &
           puny, &          !
+          Lsub, &          !
           rLsub            ! 1/Lsub
 
-      call icepack_query_parameters(puny_out=puny)
+      character(len=*), parameter :: subname = '(sfcflux_to_ocn)'
+
+      call icepack_query_parameters(puny_out=puny, Lsub_out=Lsub)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message="subname", &
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
       rLsub = c1 / Lsub
 
@@ -626,288 +645,6 @@
 #endif 
 
       end subroutine sfcflux_to_ocn
-
-!=======================================================================
-!
-! Update the ice state variables using the ice concentration increment rate 
-! calculated in the NEMO data assimilation (DA) scheme.
-! Ice area is added by adding ADDITIONAL ice with thickness hi_da_new.
-! This implies the ADDITIONAL volume added is hi_da_new*daice, where
-! daice is the change in ice area due to DA.  
-! Ice area is subtracted by removing ice area with the current category 
-! thickness. Ice area is first removed from the lowest category, and then 
-! removed from higher categories as needed.
-!
-! authors: D. Peterson, Met Office
-!          A. McLaren,  Met Office
-
-      subroutine da_state_update
-
-      use ice_constants, only: c1, puny
-
-#ifdef ICE_DA
-
-      integer (kind=int_kind) :: &
-         i, j, ij       , & ! horizontal indices
-         iblk           , & ! block index
-         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-         n                  ! thickness category index
-
-      integer (kind=int_kind) :: & 
-         nelevate        ! number of elevations of increments to higher 
-                         ! category (diagnostic)
-
-      integer (kind=int_kind) :: &
-         icells          ! number of ocean cells 
-
-      integer (kind=int_kind), dimension(nx_block*ny_block) :: &
-         indxi, indxj    ! indirect indices for cells with aicen > puny
-
-      type (block) :: &
-         this_block      ! block information for current block
-
-      real (kind=dbl_kind) :: & 
-         hi_da_new    , & ! specified ice thickness for new ice created by DA
-         hicen        , & ! ice thickness
-         hsnon        , & ! snow thickness
-         daice        , & ! change in ice concentration (for first category)
-         dvice        , & ! change in ice volume
-         dvsno            ! change in snow volume
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-         vsno_init    , & ! initial snow volume
-         vice_init        ! initial ice volume
-
-     !----------------------------------------------------------------
-     ! This routine will only work under certain circumstances!!
-     ! Note, if any optional tracers are used in the run, they will not
-     ! be conserved here.
-     !----------------------------------------------------------------
-
-     if (nilyr /= 1 .or. nslyr /= 1 .or. ntrcr /= 1) &
-        call abort_ice("subname"// & 
-         'ERROR: da_state_update: only works for 1 cat, 1 layer, 1 tracer runs')
-
-     !------------------------------------------------------------------
-     ! Set thickness for new ice
-     ! (Currently using value of 0.5m, which was value thin ice was 
-     !  incremented toward in LIM ice model).
-     !-----------------------------------------------------------------
-
-     hi_da_new =  0.50_dbl_kind    ! if ncat>1, this has to be less than
-                                   ! the 1st category thickness limit
-
-     ! Initialise various fields
-     vsno_init(:,:,:) = c0 
-     vice_init(:,:,:) = c0
-     fresh_da(:,:,:)  = c0
-     fsalt_da(:,:,:)  = c0
-
-     !----------------------------------------------------------------
-     ! Update category state variables
-     !----------------------------------------------------------------
-
-     do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk), iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         !----------------------------------------------------------------
-         ! Find ocean points where data assimilation abs(increment) > puny
-         ! (Note, daice_da is the RATE of change of ice concentration due
-         !  to DA)
-         !----------------------------------------------------------------
-
-         icells = 0
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (tmask(i,j,iblk) .and. abs(daice_da(i,j,iblk)*dt) > puny) then
-               icells = icells + 1
-               indxi(icells) = i
-               indxj(icells) = j
-            endif
-
-            vsno_init(i,j,iblk) = vsno(i,j,iblk)  ! used for salinity changes
-            vice_init(i,j,iblk) = vice(i,j,iblk)  ! used for salinity changes
-
-         enddo               ! i
-         enddo               ! j
-
-         if (icells > 0) then
-            
-            n = 1                ! only ever add increment to 1st category
-              do ij = 1, icells
-                 i = indxi(ij)
-                 j = indxj(ij)
-
-               !---------------------------------------------------
-               ! Apply concentration increment and associated
-               ! volume change
-               !---------------------------------------------------
-
-                 if (aicen(i,j,n,iblk) > puny) then
-                    ! if decreasing concentration, subtract ice volume at 
-                    ! current thickness
-                    hicen             = vicen(i,j,n,iblk) / aicen(i,j,n,iblk)
-
-                    ! if increasing concentration, add ice volume at hi_da_new 
-                    ! thickness
-                    if ( daice_da(i,j,iblk)*dt > puny) hicen = hi_da_new
-
-                    ! whether in/decreasing concentration, add/subtract snow 
-                    ! volume at current thickness
-                    hsnon             = vsnon(i,j,n,iblk) / aicen(i,j,n,iblk)
-
-                    daice             = & 
-                      min( ( c1 - aice(i,j,iblk) ), ( daice_da(i,j,iblk)*dt ) )
-                    aicen(i,j,n,iblk) = aicen(i,j,n,iblk) + daice  
-                    vicen(i,j,n,iblk) = vicen(i,j,n,iblk) + hicen*daice
-                    vsnon(i,j,n,iblk) = aicen(i,j,n,iblk) * hsnon
-
-               !---------------------------------------------------
-               ! Create new ice points with specified thickness
-               !---------------------------------------------------
-
-                 else 
-                    aicen(i,j,n,iblk) = & 
-                      min( ( c1 - aice(i,j,iblk) ), ( daice_da(i,j,iblk)*dt ) )
-                    ! note aicen/vicen < c0 taken care below
-                    vicen(i,j,n,iblk) = aicen(i,j,n,iblk) * hi_da_new
-                    vsnon(i,j,n,iblk) = c0
-
-                 endif
-
-              enddo ! ij
-
-            do n = 1,ncat
-              nelevate=0
-              do ij = 1,icells
-                 i = indxi(ij)
-                 j = indxj(ij)
-               
-               !----------------------------------------------------
-               ! Check is aicen < puny
-               !  - remove from next category if necessary
-               !  - otherwise just remove it
-               ! Ignoring conservation issues here
-               !----------------------------------------------------
-
-                 if (aicen(i,j,n,iblk) < puny) then
-                    if ( n < ncat ) then
-                     if (aicen(i,j,n,iblk) < -1.0*puny ) then
-                      nelevate=nelevate+1
-                     endif
-                      ! take concentration from next category -- constant thickness
-                      if ( aicen(i,j,n+1,iblk) > puny ) then 
-                        hicen = vicen(i,j,n+1,iblk)/aicen(i,j,n+1,iblk)
-                        hsnon = vsnon(i,j,n+1,iblk)/aicen(i,j,n+1,iblk)
-                      else
-                        hicen = c0
-                        hsnon = c0
-                      endif  ! aicen(n+1) > puny
-                      aicen(i,j,n+1,iblk) = aicen(i,j,n+1,iblk) + aicen(i,j,n,iblk)
-                      vicen(i,j,n+1,iblk) = aicen(i,j,n+1,iblk) * hicen
-                      vsnon(i,j,n+1,iblk) = aicen(i,j,n+1,iblk) * hsnon
-                    endif ! n < ncat
-                    aicen(i,j,n,iblk) = c0
-                    vicen(i,j,n,iblk) = c0
-                    vsnon(i,j,n,iblk) = c0
-                    eicen(i,j,n,iblk) = c0
-                    esnon(i,j,n,iblk) = c0
-                 endif ! aicen(n) < puny
-
-               !---------------------------------------------------
-               ! Update energies
-               !---------------------------------------------------
-
-                 ! Would need vertical layers here in the future
-                 if (aicen(i,j,n,iblk) > puny) then
-                    esnon(i,j,n,iblk) = -rhos*Lfresh*vsnon(i,j,n,iblk)
-                    eicen(i,j,n,iblk) = -rhoi*Lfresh*vicen(i,j,n,iblk)
-                 endif
-
-              enddo ! ij
-              !write(nu_diag,*) 'Elevated ', nelevate, ' incs to category ', n+1
-            enddo   ! n
-         endif      ! icells 
-     enddo          ! nblocks
-
-
-    !-------------------------------------------------------------------
-    ! Ghost cell updates for state variables. (Can't be called within 
-    ! block do loop).
-    !-------------------------------------------------------------------
-
-     call bound_state (aicen, trcrn, vicen, vsnon, eicen, esnon)
-
-     do iblk = 1, nblocks
- 
-         this_block = get_block(blocks_ice(iblk), iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         !-----------------------------------------------------------
-         ! Find data assimilation points again
-         !-----------------------------------------------------------
-
-         icells = 0
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (tmask(i,j,iblk) .and. abs(daice_da(i,j,iblk)*dt) > puny) then
-               icells = icells + 1
-               indxi(icells) = i
-               indxj(icells) = j
-            endif
-
-         !-------------------------------------------------------------
-         ! Update aggregate values
-         !-------------------------------------------------------------
-
-            if (tmask(i,j,iblk)) &
-            call aggregate (ncat, &
-                            aicen(i,j,:,iblk),                       &
-                            trcrn(i,j,:,:,iblk),                     &
-                            vicen(i,j,:,iblk), vsnon(i,j,  :,iblk),  &
-                            aice (i,j,  iblk),                       &
-                            trcr (i,j,:,  iblk),                     &
-                            vice (i,j,  iblk), vsno (i,j,    iblk),  &
-                            aice0(i,j,  iblk),                       &
-                            ntrcr,                                   &
-                            trcr_depend(:),                          &
-                            trcr_base    (:,:),                      &
-                            n_trcr_strata(:),                        &
-                            nt_strata    (:,:))
-
-         enddo               ! i
-         enddo               ! j
-
-         !-------------------------------------------------------------
-         ! Calculate implied freshwater and salt fluxes
-         !-------------------------------------------------------------
-         
-         if (icells > 0) then
-
-            do ij = 1, icells
-               i = indxi(ij)
-               j = indxj(ij)
-
-               dvice = vice(i,j,iblk) - vice_init(i,j,iblk)
-               dvsno = vsno(i,j,iblk) - vsno_init(i,j,iblk)
-
-               fresh_da(i,j,iblk)  = - (rhoi * dvice + rhos * dvsno)/dt
-               fsalt_da(i,j,iblk)  = - rhoi*ice_ref_salinity*p001*dvice/dt
-
-            enddo   ! ij
-          endif     ! icells
-
-      enddo         ! iblk
-
-#endif
-      end subroutine da_state_update
 
 !=======================================================================
 

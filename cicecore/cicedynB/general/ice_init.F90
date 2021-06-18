@@ -59,7 +59,8 @@
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt, &
-                                 debug_model, debug_model_step
+                                 debug_model, debug_model_step, debug_model_task, &
+                                 debug_model_i, debug_model_j, debug_model_iblk
       use ice_domain, only: close_boundaries, orca_halogrid
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
                                  n_iso, n_aero, n_zaero, n_algae, &
@@ -84,7 +85,7 @@
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
-          ycycle,          fyear_init,    forcing_diag, &
+          ycycle,          fyear_init,    debug_forcing, &
           atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
@@ -164,9 +165,10 @@
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
-        forcing_diag,   histfreq,       histfreq_n,      hist_avg,      &
+        debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
         conserv_check,  debug_model,    debug_model_step,               &
+        debug_model_i,  debug_model_j,  debug_model_iblk, debug_model_task, &
         year_init,      month_init,     day_init,        sec_init,      &
         write_ic,       incond_dir,     incond_file,     version_name
 
@@ -267,7 +269,11 @@
       npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
       debug_model  = .false. ! debug output
-      debug_model_step = 999999999  ! debug model after this step number
+      debug_model_step = 0   ! debug model after this step number
+      debug_model_i = -1     ! debug model local i index
+      debug_model_j = -1     ! debug model local j index
+      debug_model_iblk = -1  ! debug model local iblk number
+      debug_model_task = -1  ! debug model local task number
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
       bfbflag = 'off'        ! off = optimized
@@ -291,12 +297,10 @@
       dumpfreq='y'           ! restart frequency option
       dumpfreq_n = 1         ! restart frequency
       dump_last = .false.    ! write restart on last time step
-      restart = .false.      ! if true, read restart files for initialization
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
       restart_coszen  = .false. ! if true, read/write coszen
-      use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
       restart_format = 'default'  ! restart file format
       lcdf64       = .false. ! 64 bit offset for netCDF
@@ -436,7 +440,7 @@
       restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
       restore_ice     = .false.   ! restore ice state on grid edges if true
-      forcing_diag    = .false.   ! true writes diagnostics for input forcing
+      debug_forcing   = .false.   ! true writes diagnostics for input forcing
 
       latpnt(1) =  90._dbl_kind   ! latitude of diagnostic point 1 (deg)
       lonpnt(1) =   0._dbl_kind   ! longitude of point 1 (deg)
@@ -446,6 +450,8 @@
 #ifndef CESMCOUPLED
       runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
       runtype = 'initial'   ! run type: 'initial', 'continue'
+      restart = .false.      ! if true, read restart files for initialization
+      use_restart_time = .true.   ! if true, use time info written in file
 #endif
 
       ! extra tracers
@@ -604,6 +610,10 @@
       call broadcast_scalar(diagfreq,             master_task)
       call broadcast_scalar(debug_model,          master_task)
       call broadcast_scalar(debug_model_step,     master_task)
+      call broadcast_scalar(debug_model_i,        master_task)
+      call broadcast_scalar(debug_model_j,        master_task)
+      call broadcast_scalar(debug_model_iblk,     master_task)
+      call broadcast_scalar(debug_model_task,     master_task)
       call broadcast_scalar(print_points,         master_task)
       call broadcast_scalar(print_global,         master_task)
       call broadcast_scalar(bfbflag,              master_task)
@@ -758,7 +768,7 @@
       call broadcast_scalar(restore_ocn,          master_task)
       call broadcast_scalar(trestore,             master_task)
       call broadcast_scalar(restore_ice,          master_task)
-      call broadcast_scalar(forcing_diag,         master_task)
+      call broadcast_scalar(debug_forcing,        master_task)
       call broadcast_array (latpnt(1:2),          master_task)
       call broadcast_array (lonpnt(1:2),          master_task)
       call broadcast_scalar(runid,                master_task)
@@ -1649,6 +1659,10 @@
          write(nu_diag,1011) ' print_points     = ', print_points
          write(nu_diag,1011) ' debug_model      = ', debug_model
          write(nu_diag,1022) ' debug_model_step = ', debug_model_step
+         write(nu_diag,1021) ' debug_model_i    = ', debug_model_i
+         write(nu_diag,1021) ' debug_model_i    = ', debug_model_j
+         write(nu_diag,1021) ' debug_model_iblk = ', debug_model_iblk
+         write(nu_diag,1021) ' debug_model_task = ', debug_model_task
          write(nu_diag,1031) ' bfbflag          = ', trim(bfbflag)
          write(nu_diag,1021) ' numin            = ', numin
          write(nu_diag,1021) ' numax            = ', numax
@@ -1761,7 +1775,8 @@
           grid_type  /=  'rectangular'    .and. &
           grid_type  /=  'cpom_grid'      .and. &
           grid_type  /=  'regional'       .and. &
-          grid_type  /=  'latlon' ) then
+          grid_type  /=  'latlon'         .and. &
+          grid_type  /=  'setmask' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
          abort_list = trim(abort_list)//":20"
       endif
