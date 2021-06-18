@@ -23,7 +23,7 @@ module ice_comp_nuopc
   use ice_grid           , only : grid_type, init_grid2
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
-  use ice_calendar       , only : idate, mday, time, mmonth, time2sec, year_init
+  use ice_calendar       , only : idate, mday, mmonth, year_init, timesecs
   use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
@@ -39,7 +39,7 @@ module ice_comp_nuopc
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
-  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj, scol_valid, single_column
+  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj
 #endif
   use ice_timers
   use CICE_InitMod       , only : cice_init1, cice_init2
@@ -47,6 +47,7 @@ module ice_comp_nuopc
   use ice_mesh_mod       , only : ice_mesh_set_distgrid, ice_mesh_setmask_from_maskfile, ice_mesh_check
   use ice_mesh_mod       , only : ice_mesh_init_tlon_tlat_area_hm, ice_mesh_create_scolumn
   use ice_prescribed_mod , only : ice_prescribed_init
+  use ice_scam           , only : scol_valid, single_column
 
   implicit none
   private
@@ -498,6 +499,7 @@ contains
     call cice_init1
     call t_stopf ('cice_init1')
 
+#ifdef CESMCOUPLED
     ! Form of ocean freezing temperature
     ! 'minus1p8' = -1.8 C
     ! 'linear_salt' = -depressT * sss
@@ -545,7 +547,7 @@ contains
             ' must be the same as natmiter from cice namelist ',natmiter
        call abort_ice(trim(errmsg))
     endif
-
+#endif
     !----------------------------------------------------------------------------
     ! Initialize grid info
     !----------------------------------------------------------------------------
@@ -592,7 +594,7 @@ contains
        else
           ! In this case init_grid2 will initialize tlon, tlat, area and hm
           call init_grid2()
-          call ice_mesh_check(ice_mesh, rc=rc)
+          call ice_mesh_check(gcomp,ice_mesh, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     end if
@@ -600,7 +602,6 @@ contains
     !----------------------------------------------------------------------------
     ! Second cice initialization phase -after initializing grid info
     !----------------------------------------------------------------------------
-
     ! Note that cice_init2 also sets time manager info as well as mpi communicator info,
     ! including master_task and my_task
     ! Note that cice_init2 calls ice_init() which in turn calls icepack_init_parameters
@@ -687,10 +688,10 @@ contains
           call time2sec(iyear-year_init,mmonth,mday,time)
        endif
 #endif
-       time = time+start_tod
+       timesecs = timesecs+start_tod
     end if
 
-    call calendar(time)     ! update calendar info
+    call calendar()     ! update calendar info
     if (write_ic) then
        call accum_hist(dt)  ! write initial conditions
     end if
@@ -824,8 +825,6 @@ contains
     else
        single_column = .false.
     end if
-#else    
-    single_column = .false.
 #endif
 
     !-----------------------------------------------------------------

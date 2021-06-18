@@ -1,0 +1,5 @@
+# this local point is hardwired to (85,-150) for gx3, 7x2x5x29x12 roundrobin
+debug_model_i = 3
+debug_model_j = 22
+debug_model_iblk = 11
+debug_model_task = 0

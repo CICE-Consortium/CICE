@@ -74,12 +74,13 @@ contains
 
     use ice_arrays_column    , only: hin_max, c_hi_range
     use ice_arrays_column    , only: floe_rad_l, floe_rad_c, floe_binwidth, c_fsd_range
-    use ice_calendar         , only: dt, dt_dyn, time, istep, istep1, write_ic, init_calendar, calendar
+    use ice_calendar         , only: dt, dt_dyn, istep, istep1, write_ic, init_calendar, calendar
     use ice_communicate      , only: my_task, master_task
     use ice_diagnostics      , only: init_diags
     use ice_domain_size      , only: ncat, nfsd
     use ice_dyn_eap          , only: init_eap, alloc_dyn_eap
-    use ice_dyn_shared       , only: kdyn, init_evp
+    use ice_dyn_shared       , only: kdyn, init_dyn
+    use ice_dyn_vp           , only: init_vp
     use ice_flux             , only: init_coupler_flux, init_history_therm
     use ice_flux             , only: init_history_dyn, init_flux_atm, init_flux_ocn
     use ice_forcing          , only: init_forcing_ocn
@@ -102,11 +103,12 @@ contains
     call init_calendar        ! initialize some calendar stuff
     call init_hist (dt)       ! initialize output history file
 
+    call init_dyn (dt_dyn)    ! define dynamics parameters, variables
     if (kdyn == 2) then
        call alloc_dyn_eap     ! allocate dyn_eap arrays
-       call init_eap (dt_dyn) ! define eap dynamics parameters, variables
-    else                      ! for both kdyn = 0 or 1
-       call init_evp (dt_dyn) ! define evp dynamics parameters, variables
+       call init_eap          ! define eap dynamics parameters, variables
+    else if (kdyn == 3) then
+       call init_vp           ! define vp dynamics parameters, variables
     endif
 
     call init_coupler_flux    ! initialize fluxes exchanged with coupler
@@ -133,9 +135,9 @@ contains
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-    call calendar(time)       ! determine the initial date
+    call calendar()           ! determine the initial date
 
-    ! TODO: - why is this being called when you are using CMEPS?
+    !TODO: - why is this being called when you are using CMEPS?
     call init_forcing_ocn(dt) ! initialize sss and sst from data
 
     call init_state           ! initialize the ice state
@@ -165,8 +167,8 @@ contains
        call faero_optics !initialize aerosol optical property tables
     end if
 
-    ! Initialize shortwave components using swdn from previous timestep 
-    ! if restarting. These components will be scaled to current forcing 
+    ! Initialize shortwave components using swdn from previous timestep
+    ! if restarting. These components will be scaled to current forcing
     ! in prep_radiation.
 
     if (trim(runtype) == 'continue' .or. restart) then
@@ -194,7 +196,7 @@ contains
 
     use ice_arrays_column, only: dhsn
     use ice_blocks, only: nx_block, ny_block
-    use ice_calendar, only: time, calendar
+    use ice_calendar, only: calendar
     use ice_constants, only: c0
     use ice_domain, only: nblocks
     use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
@@ -254,10 +256,10 @@ contains
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-    if (trim(runtype) == 'continue') then 
+    if (trim(runtype) == 'continue') then
        ! start from core restart file
        call restartfile()           ! given by pointer in ice_in
-       call calendar(time)          ! update time parameters
+      call calendar()              ! update time parameters
        if (kdyn == 2) call read_restart_eap ! EAP
     else if (restart) then          ! ice_ic = core restart file
        call restartfile (ice_ic)    !  or 'default' or 'none'
@@ -268,14 +270,14 @@ contains
     endif
 
     ! tracers
-    ! ice age tracer   
-    if (tr_iage) then 
+    ! ice age tracer
+    if (tr_iage) then
        if (trim(runtype) == 'continue') &
             restart_age = .true.
        if (restart_age) then
           call read_restart_age
        else
-          do iblk = 1, nblocks 
+          do iblk = 1, nblocks
              call init_age(trcrn(:,:,nt_iage,:,iblk))
           enddo ! iblk
        endif
@@ -286,7 +288,7 @@ contains
        if (restart_FY) then
           call read_restart_FY
        else
-          do iblk = 1, nblocks 
+          do iblk = 1, nblocks
              call init_FY(trcrn(:,:,nt_FY,:,iblk))
           enddo ! iblk
        endif
@@ -297,7 +299,7 @@ contains
        if (restart_lvl) then
           call read_restart_lvl
        else
-          do iblk = 1, nblocks 
+          do iblk = 1, nblocks
              call init_lvl(iblk,trcrn(:,:,nt_alvl,:,iblk), &
                   trcrn(:,:,nt_vlvl,:,iblk))
           enddo ! iblk
@@ -310,7 +312,7 @@ contains
        if (restart_pond_cesm) then
           call read_restart_pond_cesm
        else
-          do iblk = 1, nblocks 
+          do iblk = 1, nblocks
              call init_meltponds_cesm(trcrn(:,:,nt_apnd,:,iblk), &
                   trcrn(:,:,nt_hpnd,:,iblk))
           enddo ! iblk
@@ -323,7 +325,7 @@ contains
        if (restart_pond_lvl) then
           call read_restart_pond_lvl
        else
-          do iblk = 1, nblocks 
+          do iblk = 1, nblocks
              call init_meltponds_lvl(trcrn(:,:,nt_apnd,:,iblk), &
                   trcrn(:,:,nt_hpnd,:,iblk), &
                   trcrn(:,:,nt_ipnd,:,iblk), &
@@ -338,7 +340,7 @@ contains
        if (restart_pond_topo) then
           call read_restart_pond_topo
        else
-          do iblk = 1, nblocks 
+          do iblk = 1, nblocks
              call init_meltponds_topo(trcrn(:,:,nt_apnd,:,iblk), &
                   trcrn(:,:,nt_hpnd,:,iblk), &
                   trcrn(:,:,nt_ipnd,:,iblk))
@@ -361,7 +363,7 @@ contains
        if (restart_iso) then
           call read_restart_iso
        else
-          do iblk = 1, nblocks 
+          do iblk = 1, nblocks
              call init_isotope(trcrn(:,:,nt_isosno:nt_isosno+n_iso-1,:,iblk), &
                   trcrn(:,:,nt_isoice:nt_isoice+n_iso-1,:,iblk))
           enddo ! iblk
@@ -373,7 +375,7 @@ contains
        if (restart_aero) then
           call read_restart_aero
        else
-          do iblk = 1, nblocks 
+          do iblk = 1, nblocks
              call init_aerosol(trcrn(:,:,nt_aero:nt_aero+4*n_aero-1,:,iblk))
           enddo ! iblk
        endif ! .not. restart_aero

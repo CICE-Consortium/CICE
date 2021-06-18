@@ -110,7 +110,7 @@ contains
          stream_mapalgo,                &
          stream_yearalign,              &
          stream_yearfirst ,             &
-         stream_yearlast                
+         stream_yearlast
 
     rc = ESMF_SUCCESS
 
@@ -184,7 +184,7 @@ contains
             model_clock         = clock,                     &
             model_mesh          = mesh,                      &
             stream_meshfile     = stream_meshfile,           &
-            stream_lev_dimname  = 'null',                    & 
+            stream_lev_dimname  = 'null',                    &
             stream_mapalgo      = trim(stream_mapalgo),      &
             stream_filenames    = stream_datafiles(1:nfile), &
             stream_fldlistFile  = (/'ice_cov'/),             &

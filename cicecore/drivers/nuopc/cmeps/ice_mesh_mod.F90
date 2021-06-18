@@ -390,13 +390,13 @@ contains
     ! or for a regional grid
 
     ! input/output variables
-    real(dbl_kind)  , intent(in)    :: scol_lon 
+    real(dbl_kind)  , intent(in)    :: scol_lon
     real(dbl_kind)  , intent(in)    :: scol_lat
     type(ESMF_Mesh) , intent(inout) :: ice_mesh
     integer         , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_Grid) :: lgrid 
+    type(ESMF_Grid) :: lgrid
     integer         :: maxIndex(2)
     real(dbl_kind)  :: mincornerCoord(2)
     real(dbl_kind)  :: maxcornerCoord(2)
@@ -555,33 +555,50 @@ contains
   end subroutine ice_mesh_init_tlon_tlat_area_hm
 
   !===============================================================================
-  subroutine ice_mesh_check(ice_mesh, rc)
+  subroutine ice_mesh_check(gcomp, ice_mesh, rc)
 
     ! Check CICE mesh
 
-    use ice_constants, only : c1
+    use ice_constants, only : c1,c0,c360
     use ice_grid     , only : tlon, tlat
 
     ! input/output parameters
-    type(ESMF_Mesh)  , intent(inout) :: ice_mesh
-    integer          , intent(out)   :: rc
+    type(ESMF_GridComp) , intent(inout) :: gcomp
+    type(ESMF_Mesh)     , intent(inout) :: ice_mesh
+    integer             , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_DistGrid)     :: distGrid
-    integer                 :: n,c,g,i,j,m        ! indices
-    integer                 :: iblk, jblk         ! indices
-    integer                 :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
-    type(block)             :: this_block         ! block information for current block
-    integer                 :: spatialDim
-    integer                 :: numOwnedElements
-    real(dbl_kind), pointer :: ownedElemCoords(:)
-    real(dbl_kind), pointer :: lat(:), latMesh(:)
-    real(dbl_kind), pointer :: lon(:), lonMesh(:)
-    real(dbl_kind)          :: diff_lon
-    real(dbl_kind)          :: diff_lat
-    real(dbl_kind)          :: rad_to_deg
-    character(len=*), parameter :: subname = ' ice_mesh_check: '
+    type(ESMF_DistGrid)          :: distGrid
+    integer                      :: n,c,g,i,j,m        ! indices
+    integer                      :: iblk, jblk         ! indices
+    integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
+    type(block)                  :: this_block         ! block information for current block
+    integer                      :: spatialDim
+    integer                      :: numOwnedElements
+    real(dbl_kind), pointer      :: ownedElemCoords(:)
+    real(dbl_kind), pointer      :: lat(:), latMesh(:)
+    real(dbl_kind), pointer      :: lon(:), lonMesh(:)
+    real(dbl_kind)               :: diff_lon
+    real(dbl_kind)               :: diff_lat
+    real(dbl_kind)               :: rad_to_deg
+    real(dbl_kind)               :: tmplon, eps_imesh
+    logical                      :: isPresent, isSet
+    character(len=char_len_long) :: cvalue
+    character(len=char_len_long) :: logmsg
+    character(len=*), parameter  :: subname = ' ice_mesh_check: '
     !---------------------------------------------------
+
+    ! Determine allowed mesh error
+    call NUOPC_CompAttributeGet(gcomp, name='eps_imesh', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) eps_imesh
+    else
+       eps_imesh = 1.0e-1_dbl_kind
+    end if
+    write(logmsg,*) eps_imesh
+    call ESMF_LogWrite(trim(subname)//' eps_imesh = '//trim(logmsg), ESMF_LOGMSG_INFO)
 
     ! error check differences between internally generated lons and those read in
     call ESMF_MeshGet(ice_mesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
@@ -615,16 +632,19 @@ contains
              lon(n) = tlon(i,j,iblk)*rad_to_deg
              lat(n) = tlat(i,j,iblk)*rad_to_deg
 
+             tmplon = lon(n)
+             if(tmplon < c0)tmplon = tmplon + c360
+
              ! error check differences between internally generated lons and those read in
-             diff_lon = abs(lonMesh(n) - lon(n))
-             if ( (diff_lon > 1.e2  .and. abs(diff_lon - 360.) > 1.e-1) .or.&
-                  (diff_lon > 1.e-1 .and. diff_lon < c1) ) then
-                write(6,100)n,lonMesh(n),lon(n), diff_lon
+             diff_lon = abs(mod(lonMesh(n) - tmplon,360.0))
+             if (diff_lon > eps_imesh ) then
+                write(6,100)n,lonMesh(n),tmplon, diff_lon
                 call abort_ice(error_message=subname, &
                      file=__FILE__, line=__LINE__)
              end if
-             if (abs(latMesh(n) - lat(n)) > 1.e-1) then
-                write(6,101)n,latMesh(n),lat(n), abs(latMesh(n)-lat(n))
+             diff_lat = abs(latMesh(n) - lat(n))
+             if (diff_lat > eps_imesh) then
+                write(6,101)n,latMesh(n),lat(n), diff_lat
                 call abort_ice(error_message=subname, &
                      file=__FILE__, line=__LINE__)
              end if
