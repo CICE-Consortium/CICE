@@ -11,6 +11,10 @@
 ! 2010 CM : Fixed support for Gregorian calendar: subroutines
 !           sec2time, time2sec and set_calendar added.
 ! 2020 TC : Significant refactor to move away from time as prognostic
+!           Note that the reference date is arbitrarily set to
+!           0000-01-01-00000 and dates cannot be less than that.
+!           The implementation is also limited by some integer
+!           math to myear_max which is a parameter in this module.
 
       module ice_calendar
 
@@ -129,6 +133,9 @@
 
       integer (kind=int_kind) :: &
          hour         ! hour of the day
+
+      integer (kind=int_kind), parameter :: &
+         myear_max = 200000           ! maximum year, limited by integer overflow in elapsed_horus
 
       ! 360-day year data
       integer (kind=int_kind) :: &
@@ -320,6 +327,20 @@
 
       subroutine calendar()
 
+! This sets a bunch of internal calendar stuff including history and
+! restart frequencies.  These frequencies are relative to the start
+! of time which is arbitrarily set to year=0, month=1, day=1, sec=0.
+! That means that the frequencies are repeatable between runs
+! regardless of the initial model date.
+! One thing to watch for is the size of elapsed hours.  This will
+! become a large integer and will overflow if the year is ever
+! greater than about 200,000 years.  A check has been added just
+! to make sure this doesn't happen.
+! The largest integer*4 is about 2^31 = 2*2^10^3 =~ 2*1000^3 = 2.e9
+! 2.e9 (hours) / (365*24 hours/year) =~ 228,000 years
+! The elapsed hours will overflow integers at some point after that.
+
+
 !      real (kind=dbl_kind), intent(in), optional :: &
 !         ttime                          ! time variable
 
@@ -328,9 +349,10 @@
       integer (kind=int_kind) :: &
          ns                         , & ! loop index
          yearp,monthp,dayp,hourp    , & ! previous year, month, day, hour
-         elapsed_days               , & ! since beginning this run
-         elapsed_months             , & ! since beginning this run
-         elapsed_hours                  ! since beginning this run
+         elapsed_years              , & ! since beginning of time
+         elapsed_months             , & ! since beginning of time
+         elapsed_days               , & ! since beginning of time
+         elapsed_hours                  ! since beginning of time
       character(len=*),parameter :: subname='(calendar)'
 
       yearp=myear
@@ -347,12 +369,18 @@
       call update_date(myear,mmonth,mday,msec)
       call set_calendar(myear)
 
+      if (myear > myear_max) then
+         write(nu_diag,*) trim(subname),' ERROR year too large, ',myear,myear_max
+         call abort_ice(subname//'ERROR: model year too large')
+      endif
+
       idate = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd) 
       yday = daycal(mmonth) + mday            ! day of the year
-      hour = (msec+1)/(seconds_per_hour)
-      elapsed_months = (myear - year_init)*months_per_year + mmonth - month_init
-      elapsed_days = compute_days_between(year_init,month_init,day_init,myear,mmonth,mday)
-      elapsed_hours = elapsed_days * hours_per_day
+      hour = int(msec/seconds_per_hour)
+      elapsed_years = myear
+      elapsed_months =  myear * months_per_year + mmonth - 1
+      elapsed_days = compute_days_between(0,1,1,myear,mmonth,mday)
+      elapsed_hours = elapsed_days * hours_per_day + hour
       call calendar_date2time(myear,mmonth,mday,msec,timesecs)
 
       !--- compute other stuff
@@ -368,12 +396,19 @@
 
       ! History writing flags
 
+!      if (my_task == master_task) then
+!         write(nu_diag,*) subname,' elap_y',elapsed_years
+!         write(nu_diag,*) subname,' elap_m',elapsed_months
+!         write(nu_diag,*) subname,' elap_d',elapsed_days
+!         write(nu_diag,*) subname,' elap_h',elapsed_hours
+!      endif
+
       do ns = 1, nstreams
 
          select case (histfreq(ns))
          case ("y", "Y")
             if (new_year  .and. histfreq_n(ns)/=0) then
-               if (mod(myear, histfreq_n(ns))==0) &
+               if (mod(elapsed_years, histfreq_n(ns))==0) &
                    write_history(ns) = .true.
             endif
          case ("m", "M")
@@ -404,7 +439,7 @@
 
       select case (dumpfreq)
       case ("y", "Y")
-         if (new_year  .and. mod(myear, dumpfreq_n)==0) &
+         if (new_year  .and. mod(elapsed_years, dumpfreq_n)==0) &
             write_restart = 1
       case ("m", "M")
          if (new_month .and. mod(elapsed_months,dumpfreq_n)==0) &

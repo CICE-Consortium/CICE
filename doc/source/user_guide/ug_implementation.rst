@@ -269,14 +269,20 @@ routines, is adopted from POP. The boundary routines perform boundary
 communications among processors when MPI is in use and among blocks
 whenever there is more than one block per processor.
 
-Open/cyclic boundary conditions are the default in CICE.  Closed boundary
-conditions are not supported currently.  The physical
-domain can still be closed using the land mask and this can be done in
-namelist with the ``close_boundaries`` namelist which forces the mask
-on the boundary to land for a two gridcell depth. In our bipolar,
-displaced-pole grids, one row of grid cells along the north and south
-boundaries is located on land, and along east/west domain boundaries not
-masked by land, periodic conditions wrap the domain around the globe.
+Boundary conditions are defined by the ``ns_boundary_type`` and ``ew_boundary_type``
+namelist inputs.  Valid values are ``open`` and ``cyclic``.  In addition,
+``tripole`` and ``tripoleT`` are options for the ``ns_boundary_type``.
+Closed boundary conditions are not supported currently.  
+The domain can be physically closed with the ``close_boundaries``
+namelist which forces a land mask on the boundary for a two gridcell depth. 
+Where the boundary is land, the boundary_type settings play no role.
+In the displaced-pole grids, at least one row of grid cells along the north 
+and south boundaries is land.  Along the east/west domain boundaries not
+masked by land, periodic conditions wrap the domain around the globe.  In
+this example,
+the appropriate namelist settings are ``nsboundary_type`` = ``open``,
+``ew_boundary_type`` = ``cyclic``, and ``close_boundaries`` = ``.false.``.
+
 CICE can be run on regional grids with open boundary conditions; except
 for variables describing grid lengths, non-land halo cells along the
 grid edge must be filled by restoring them to specified values. The
@@ -573,6 +579,49 @@ and then set to true on subsequent restart runs of the same
 case to allow time to advance thereafter.  More information about 
 the restart capability can be found here, :ref:`restartfiles`.
 
+Several different calendars are supported including noleap (365 days
+per year), 360-day (twelve 30 day months per year), and gregorian
+(leap days every 4 years except every 100 years except every 400
+years).  The gregorian calendar in CICE is formally a proleptic gregorian
+calendar without any discontinuties over time.  The calendar is set
+by specifying ``days_per_year`` and ``use_leap_years`` in the
+namelist, and the following combinations are supported,
+
+.. _tab-cal:
+
+.. table:: CICE Calendar Options
+
+   +----------------+----------------------+-----------------------+
+   | calendar       | days_per_year        |  use_leap_years       |
+   +================+======================+=======================+
+   | noleap         | 365                  |  false                |
+   +----------------+----------------------+-----------------------+
+   | gregorian      | 365                  |  true                 |
+   +----------------+----------------------+-----------------------+
+   | 360-day        | 360                  |  false                |
+   +----------------+----------------------+-----------------------+
+
+
+The history and restart frequencies (:ref:`history`) are specified in namelist and
+are computed relative to the model reference date, 0000-01-01-00000.
+The model date cannot be less than the reference date.  For 
+example, if starting a model run at 1990-01-01-00000 with a history
+output stream every 5 days, the first output may NOT be on 1990-01-06-00000.
+This feature means that model output does NOT depend on the model
+initial date, and this makes it easier to generate output at identical
+timestamps from different model runs with different initial model
+dates.  The model calendar does affect the output timestamps for
+days and hours though.  The frequency setting `1` 
+indicates output at a frequence of timesteps.  This frequency output
+is relative to ``istep1`` which varies with each run.  As a result,
+output specified by timestep frequency may not be consistent between
+runs.
+
+The model year is limited by some integer math.  In particular, calculation
+of elapsed hours in **ice\_calendar.F90**, and the model year is
+limited to the value of ``myear_max`` set in that file.  Currently, that's
+200,000 years.
+
 The time manager was updated in early 2021.  The standalone model
 was modified, and some tests were done in a coupled framework after
 modifications to the high level coupling interface.  For some coupled models, the 
@@ -827,7 +876,8 @@ files, no matter what the frequency is.) If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
 discerned from the filenames.  All history streams will be either instantaneous
-or averaged as specified by the ``hist_avg`` namelist setting.
+or averaged as specified by the ``hist_avg`` namelist setting.  More
+information about how the frequency is computed is found in :ref:`timemanager`.
 
 For example, in the namelist:
 

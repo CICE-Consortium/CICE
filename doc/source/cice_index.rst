@@ -401,6 +401,7 @@ either Celsius or Kelvin units).
    "mtask", "local processor number that writes debugging data", ""
    "mu_rdg", ":math:`\bullet` e-folding scale of ridged ice", ""
    "myear", "model year", ""
+   "myear_max", "maximum allowed model year", ""
    "my_task", "task ID for the current processor", ""
    "**N**", "", ""
    "n_aero", "number of aerosol species", ""

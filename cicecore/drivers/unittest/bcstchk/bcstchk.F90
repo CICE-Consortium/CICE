@@ -272,11 +272,20 @@
       endif
 
       ! Test abort_ice, regardless of test outcome
+      ! Set doabort to false to support code coverage stats, aborted runs don't seem to generate
+      ! gcov statistics
+
       call flush_fileunit(6)
       call ice_barrier()
-      call abort_ice(subname//' Test abort ',file=__FILE__,line=__LINE__)
+      call abort_ice(subname//' Test abort ',file=__FILE__,line=__LINE__, doabort=.false.)
+      call flush_fileunit(6)
+      call ice_barrier()
 
-      if (my_task == master_task) write(6,*) subname,'This line should not be written'
+      if (my_task == master_task) then
+         write(6,*) ' '
+         write(6,*) 'BCSTCHK abort test done'
+         write(6,*) ' '
+      endif
 
       call end_run()
 
