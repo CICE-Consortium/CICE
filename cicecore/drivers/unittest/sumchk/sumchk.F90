@@ -679,7 +679,6 @@
             write(6,*) 'SUMCHK COMPLETED SUCCESSFULLY'
          else
             write(6,*) 'SUMCHK FAILED'
-            call abort_ice(subname//' ERROR: SUMCHK FAILED',file=__FILE__,line=__LINE__)
          endif
          write(6,*) ' '
          write(6,*) '=========================================================='

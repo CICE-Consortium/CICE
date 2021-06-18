@@ -126,6 +126,8 @@
          dumpfreq               ! restart frequency, 'y','m','d'
 
       character (len=char_len), public :: &
+         dumpfreq_base,    & ! restart frequency basetime ('zero', 'init')
+         histfreq_base,    & ! history frequency basetime ('zero', 'init')
          calendar_type       ! differentiates Gregorian from other calendars
                              ! default = ' '
 
@@ -329,8 +331,10 @@
 
 ! This sets a bunch of internal calendar stuff including history and
 ! restart frequencies.  These frequencies are relative to the start
-! of time which is arbitrarily set to year=0, month=1, day=1, sec=0.
-! That means that the frequencies are repeatable between runs
+! of time which is arbitrarily set to year=0, month=1, day=1, sec=0
+! or to the model init time (year_init, month_init, day_init) depending
+! on histfreq_base or dumpfreq_base settings.
+! Using 'zero' means that the frequencies are repeatable between runs
 ! regardless of the initial model date.
 ! One thing to watch for is the size of elapsed hours.  This will
 ! become a large integer and will overflow if the year is ever
@@ -377,10 +381,7 @@
       idate = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd) 
       yday = daycal(mmonth) + mday            ! day of the year
       hour = int(msec/seconds_per_hour)
-      elapsed_years = myear
-      elapsed_months =  myear * months_per_year + mmonth - 1
-      elapsed_days = compute_days_between(0,1,1,myear,mmonth,mday)
-      elapsed_hours = elapsed_days * hours_per_day + hour
+
       call calendar_date2time(myear,mmonth,mday,msec,timesecs)
 
       !--- compute other stuff
@@ -396,11 +397,26 @@
 
       ! History writing flags
 
+      if (histfreq_base == 'zero') then
+         elapsed_years = myear
+         elapsed_months =  elapsed_years * months_per_year + mmonth - 1
+         elapsed_days = compute_days_between(0,1,1,myear,mmonth,mday)
+         elapsed_hours = elapsed_days * hours_per_day + hour
+      elseif (histfreq_base == 'init') then
+         elapsed_years = myear - year_init
+         elapsed_months =  elapsed_years * months_per_year + (mmonth - month_init)
+         elapsed_days = compute_days_between(year_init,month_init,day_init,myear,mmonth,mday)
+         elapsed_hours = elapsed_days * hours_per_day + hour
+      else
+         write(nu_diag,*) trim(subname),' ERROR histfreq_base not recognized, ',trim(histfreq_base)
+         call abort_ice(subname//'ERROR: histfreq_base value invalid')
+      endif
+
 !      if (my_task == master_task) then
-!         write(nu_diag,*) subname,' elap_y',elapsed_years
-!         write(nu_diag,*) subname,' elap_m',elapsed_months
-!         write(nu_diag,*) subname,' elap_d',elapsed_days
-!         write(nu_diag,*) subname,' elap_h',elapsed_hours
+!         write(nu_diag,*) subname,' helap_y',elapsed_years
+!         write(nu_diag,*) subname,' helap_m',elapsed_months
+!         write(nu_diag,*) subname,' helap_d',elapsed_days
+!         write(nu_diag,*) subname,' helap_h',elapsed_hours
 !      endif
 
       do ns = 1, nstreams
@@ -436,6 +452,28 @@
       enddo
 
       ! Restart writing flag
+
+      if (dumpfreq_base == 'zero') then
+         elapsed_years = myear
+         elapsed_months =  elapsed_years * months_per_year + mmonth - 1
+         elapsed_days = compute_days_between(0,1,1,myear,mmonth,mday)
+         elapsed_hours = elapsed_days * hours_per_day + hour
+      elseif (dumpfreq_base == 'init') then
+         elapsed_years = myear - year_init
+         elapsed_months =  elapsed_years * months_per_year + (mmonth - month_init)
+         elapsed_days = compute_days_between(year_init,month_init,day_init,myear,mmonth,mday)
+         elapsed_hours = elapsed_days * hours_per_day + hour
+      else
+         write(nu_diag,*) trim(subname),' ERROR dumpfreq_base not recognized, ',trim(dumpfreq_base)
+         call abort_ice(subname//'ERROR: dumpfreq_base value invalid')
+      endif
+
+!      if (my_task == master_task) then
+!         write(nu_diag,*) subname,' delap_y',elapsed_years
+!         write(nu_diag,*) subname,' delap_m',elapsed_months
+!         write(nu_diag,*) subname,' delap_d',elapsed_days
+!         write(nu_diag,*) subname,' delap_h',elapsed_hours
+!      endif
 
       select case (dumpfreq)
       case ("y", "Y")

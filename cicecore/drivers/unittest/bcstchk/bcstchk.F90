@@ -261,7 +261,6 @@
             write(6,*) 'BCSTCHK COMPLETED SUCCESSFULLY'
          else
             write(6,*) 'BCSTCHK FAILED'
-            call abort_ice(subname//' ERROR: BCSTCHK FAILED',file=__FILE__,line=__LINE__)
          endif
          write(6,*) ' '
          write(6,*) '=========================================================='

@@ -562,7 +562,8 @@ The internal variables ``istep``, ``istep0``, and ``istep1`` keep
 track of the number of timesteps.  ``istep`` is the counter for
 the current run and is set to 0 at the start of each run.  ``istep0``
 is the step count at the start of a long multi-restart run, and
-``istep1`` is the step count of a long multi-restart run.
+``istep1`` is the step count of a long multi-restart run and
+is continuous across model restarts.
 
 In general, the time manager should be advanced by calling
 *advance\_timestep*.  This subroutine in **ice\_calendar.F90**
@@ -602,20 +603,31 @@ namelist, and the following combinations are supported,
    +----------------+----------------------+-----------------------+
 
 
-The history and restart frequencies (:ref:`history`) are specified in namelist and
-are computed relative to the model reference date, 0000-01-01-00000.
-The model date cannot be less than the reference date.  For 
-example, if starting a model run at 1990-01-01-00000 with a history
-output stream every 5 days, the first output may NOT be on 1990-01-06-00000.
-This feature means that model output does NOT depend on the model
-initial date, and this makes it easier to generate output at identical
-timestamps from different model runs with different initial model
-dates.  The model calendar does affect the output timestamps for
-days and hours though.  The frequency setting `1` 
-indicates output at a frequence of timesteps.  This frequency output
-is relative to ``istep1`` which varies with each run.  As a result,
-output specified by timestep frequency may not be consistent between
-runs.
+The history (:ref:`history`) and restart (:ref:`restartfiles`) 
+outputs and frequencies are specified in namelist and
+are computed relative to a reference date defined by the namelist
+ ``histfreq_base`` and ``dumpfreq_base``.  Valid values for each are 
+``zero`` and ``init``.  If set to ``zero``, all output will be relative 
+to the absolute reference data, 0000-01-01-00000.  This is the default
+value for ``histfreq_base``, so runs with different initial
+dates will have identical output.  If set to ``init``, all frequencies
+will be relative to the model init time specified by ``year_init``,
+``month_init``, and ``day_init``.  This is the default for
+``dumpfreq_base`` and makes it easy to generate restarts
+5 or 10 model days after startup as we often do in testing.
+In general, output is always
+written at the start of the year, month, day, or hour without
+any ability to shift the phase.  For instance, monthly output
+is always written on the first of the month without an ability
+to write it once a month on the 10th of the month for instance.
+In the same way, quarterly data for Dec-Jan-Feb vs Jan-Feb-Mar
+is not easily controlled.  A better approach is to create monthly
+data and then to aggregate to quarters as a post-processing step.
+The history and restart frequency setting `1` 
+indicates output at a frequency of timesteps.  This frequency output
+is defined by the value of ``istep1``, the actual model times.  This
+may vary with each run depending on several factors including the
+model timestep, initial date, and value of ``istep0``.  
 
 The model year is limited by some integer math.  In particular, calculation
 of elapsed hours in **ice\_calendar.F90**, and the model year is
@@ -837,7 +849,8 @@ format approach or style for some io packages.
 
 Model output data can be written as instantaneous or average data as specified
 by the ``hist_avg`` namelist flag.  The data is written at the period(s) given by ``histfreq`` and
-``histfreq_n``, and written to binary or netCDF files prepended by ``history_file``
+``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
+The files are written to binary or netCDF files prepended by ``history_file``
 in **ice_in**. These settings for history files are set in the 
 **setup_nml** section of **ice_in** (see :ref:`tabnamelist`). 
 If ``history_file`` = ‘iceh’ then the 
@@ -876,7 +889,8 @@ files, no matter what the frequency is.) If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
 discerned from the filenames.  All history streams will be either instantaneous
-or averaged as specified by the ``hist_avg`` namelist setting.  More
+or averaged as specified by the ``hist_avg`` namelist setting and the frequency
+will be relative to a reference date specified by ``histfreq_base``.  More
 information about how the frequency is computed is found in :ref:`timemanager`.
 
 For example, in the namelist:
@@ -1066,7 +1080,8 @@ format approach or style for some io packages.
 The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string
 ‘iced.’, and the restart dump frequency is given by the namelist
-variables ``dumpfreq`` and ``dumpfreq_n``. The pointer to the filename from
+variables ``dumpfreq`` and ``dumpfreq_n`` relative to a reference date
+specified by ``dumpfreq_base``. The pointer to the filename from
 which the restart data is to be read for a continuation run is set in
 ``pointer_file``. The code assumes that auxiliary binary tracer restart
 files will be identified using the same pointer and file name prefix,
