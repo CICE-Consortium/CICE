@@ -1,5 +1,4 @@
 tr_snow         = .true.
-snwredist       = 'ITDrdg'
 snwgrain        = .true.
 use_smliq_pnd   = .true.
 snw_aging_table = 'file'
