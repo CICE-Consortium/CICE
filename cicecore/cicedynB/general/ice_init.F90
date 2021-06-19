@@ -1128,7 +1128,7 @@
 
       if(dumpfreq_base /= 'init' .and. dumpfreq_base /= 'zero') then
          write (nu_diag,*) subname//' ERROR: bad value for dumpfreq_base, allowed values: init, zero'
-         abort_list = trim(abort_list)//":24"
+         abort_list = trim(abort_list)//":25"
       endif
 
       if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &

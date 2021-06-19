@@ -274,9 +274,9 @@ namelist inputs.  Valid values are ``open`` and ``cyclic``.  In addition,
 ``tripole`` and ``tripoleT`` are options for the ``ns_boundary_type``.
 Closed boundary conditions are not supported currently.  
 The domain can be physically closed with the ``close_boundaries``
-namelist which forces a land mask on the boundary for a two gridcell depth. 
+namelist which forces a land mask on the boundary with a two gridcell depth. 
 Where the boundary is land, the boundary_type settings play no role.
-In the displaced-pole grids, at least one row of grid cells along the north 
+For example, in the displaced-pole grids, at least one row of grid cells along the north 
 and south boundaries is land.  Along the east/west domain boundaries not
 masked by land, periodic conditions wrap the domain around the globe.  In
 this example,
@@ -578,7 +578,7 @@ to set the initial model time to the namelist values defined by
 Normally, ``use_restart_time`` is set to false on the initial run
 and then set to true on subsequent restart runs of the same
 case to allow time to advance thereafter.  More information about 
-the restart capability can be found here, :ref:`restartfiles`.
+the restart capability can be found in :ref:`restartfiles`.
 
 Several different calendars are supported including noleap (365 days
 per year), 360-day (twelve 30 day months per year), and gregorian
@@ -590,7 +590,7 @@ namelist, and the following combinations are supported,
 
 .. _tab-cal:
 
-.. table:: CICE Calendar Options
+.. table:: Supported Calendar Options
 
    +----------------+----------------------+-----------------------+
    | calendar       | days_per_year        |  use_leap_years       |
@@ -606,9 +606,9 @@ namelist, and the following combinations are supported,
 The history (:ref:`history`) and restart (:ref:`restartfiles`) 
 outputs and frequencies are specified in namelist and
 are computed relative to a reference date defined by the namelist
- ``histfreq_base`` and ``dumpfreq_base``.  Valid values for each are 
+``histfreq_base`` and ``dumpfreq_base``.  Valid values for each are 
 ``zero`` and ``init``.  If set to ``zero``, all output will be relative 
-to the absolute reference data, 0000-01-01-00000.  This is the default
+to the absolute reference date, 0000-01-01-00000.  This is the default
 value for ``histfreq_base``, so runs with different initial
 dates will have identical output.  If set to ``init``, all frequencies
 will be relative to the model init time specified by ``year_init``,
@@ -618,14 +618,15 @@ will be relative to the model init time specified by ``year_init``,
 In general, output is always
 written at the start of the year, month, day, or hour without
 any ability to shift the phase.  For instance, monthly output
-is always written on the first of the month without an ability
-to write it once a month on the 10th of the month for instance.
+is always written on the first of the month.  It is not possible,
+for instance, to write monthly data once a month on the 10th of the month.
 In the same way, quarterly data for Dec-Jan-Feb vs Jan-Feb-Mar
 is not easily controlled.  A better approach is to create monthly
 data and then to aggregate to quarters as a post-processing step.
-The history and restart frequency setting `1` 
-indicates output at a frequency of timesteps.  This frequency output
-is defined by the value of ``istep1``, the actual model times.  This
+The history and restart (``histfreq``, ``dumpfreq``) setting `1` 
+indicates output at a frequency of timesteps.  This is the character
+`1` as opposed to the integer 1.  This frequency output
+is computed using ``istep1``, the model timestep.  This
 may vary with each run depending on several factors including the
 model timestep, initial date, and value of ``istep0``.  
 
@@ -899,6 +900,7 @@ For example, in the namelist:
 
   histfreq = ’1’, ’h’, ’d’, ’m’, ’y’
   histfreq_n = 1, 6, 0, 1, 1
+  histfreq_base = 'zero'
   hist_avg = .true.
   f_hi = ’1’
   f_hs = ’h’
