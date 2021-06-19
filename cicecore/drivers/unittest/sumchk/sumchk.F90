@@ -12,7 +12,6 @@
       ! infrastructure built-in.
 
       use CICE_InitMod
-      use CICE_FinalMod
       use ice_kinds_mod, only: int_kind, dbl_kind, real_kind
       use ice_communicate, only: my_task, master_task, get_num_procs
       use ice_domain_size, only: nx_global, ny_global
@@ -23,7 +22,7 @@
       use ice_constants, only: field_loc_center, field_loc_Nface
       use ice_fileunits, only: bfbflag
       use ice_global_reductions
-      use ice_exit, only: abort_ice
+      use ice_exit, only: abort_ice, end_run
 
       implicit none
 
@@ -687,10 +686,10 @@
 
 
       !-----------------------------------------------------------------
-      ! Finalize CICE 
+      ! Gracefully end
       !-----------------------------------------------------------------
 
-      call CICE_Finalize
+      call end_run()
 
       end program sumchk
 

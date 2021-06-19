@@ -91,7 +91,7 @@
          dayyr    , & ! number of days in the current year
          npt      , & ! total number of time steps (dt)
          npt0     , & ! original npt value in npt0_unit
-         ndtd     , & ! number of dynamics subcycles: dt_dyn=dt/ndtd
+         ndtd = 1 , & ! number of dynamics subcycles: dt_dyn=dt/ndtd
          stop_now     , & ! if 1, end program execution
          write_restart, & ! if 1, write restart now
          diagfreq     , & ! diagnostic output frequency (10 = once per 10 dt)
@@ -126,10 +126,9 @@
          dumpfreq               ! restart frequency, 'y','m','d'
 
       character (len=char_len), public :: &
-         dumpfreq_base,    & ! restart frequency basetime ('zero', 'init')
-         histfreq_base,    & ! history frequency basetime ('zero', 'init')
-         calendar_type       ! differentiates Gregorian from other calendars
-                             ! default = ' '
+         dumpfreq_base = 'zero', & ! restart frequency basetime ('zero', 'init')
+         histfreq_base = 'init', & ! history frequency basetime ('zero', 'init')
+         calendar_type             ! define calendar type
 
       ! PRIVATE
 
