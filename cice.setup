@@ -786,6 +786,11 @@ EOF
       if ($bfbcomp != ${spval}) then
         set fbfbcomp = ${machcomp}_${bfbcomp_test_grid_pes}${bfbcomp_soptions}
       endif
+    else
+      set fbfbcomp = ${spval}
+      if ($bfbcomp != ${spval}) then
+        set fbfbcomp = ${machcomp}_${bfbcomp}
+      endif
     endif
 
     if (-d ${case}) then
