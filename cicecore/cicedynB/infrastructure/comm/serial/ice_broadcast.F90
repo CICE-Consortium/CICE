@@ -1,16 +1,23 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+#define SERIAL_REMOVE_MPI
 
  module ice_broadcast
 
 !  This module contains all the broadcast routines.  This
-!  particular version contains serial versions of these routines
-!  which typically perform no operations since there is no need
-!  to broadcast what is already known.
+!  particular version contains MPI versions of these routines.
 !
 ! author: Phil Jones, LANL
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
+#ifndef SERIAL_REMOVE_MPI
+   use mpi   ! MPI Fortran module
+#endif
    use ice_kinds_mod
+#ifdef SERIAL_REMOVE_MPI
+   use ice_communicate, only: MPI_COMM_ICE
+#else
+   use ice_communicate, only: mpiR8, mpir4, MPI_COMM_ICE
+#endif
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -67,19 +74,31 @@
    real (dbl_kind), intent(inout) :: &
       scalar               ! scalar to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: ierr  ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_scalar_dbl)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   call MPI_BCAST(scalar, 1, mpiR8, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
- 
- end subroutine broadcast_scalar_dbl
+
+end subroutine broadcast_scalar_dbl
 
 !***********************************************************************
 
- subroutine broadcast_scalar_real(scalar, root_pe)
+subroutine broadcast_scalar_real(scalar, root_pe)
 
 !  Broadcasts a scalar real variable from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
@@ -91,19 +110,31 @@
    real (real_kind), intent(inout) :: &
       scalar               ! scalar to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: ierr  ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_scalar_real)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   call MPI_BCAST(scalar, 1, mpiR4, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_scalar_real
 
 !***********************************************************************
 
- subroutine broadcast_scalar_int(scalar, root_pe)
+subroutine broadcast_scalar_int(scalar, root_pe)
 
 !  Broadcasts a scalar integer variable from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
@@ -115,19 +146,31 @@
    integer (int_kind), intent(inout) :: &
       scalar                ! scalar to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: ierr  ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_scalar_int)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   call MPI_BCAST(scalar, 1, MPI_INTEGER, root_pe, MPI_COMM_ICE,ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_scalar_int
 
 !***********************************************************************
 
- subroutine broadcast_scalar_log(scalar, root_pe)
+subroutine broadcast_scalar_log(scalar, root_pe)
 
 !  Broadcasts a scalar logical variable from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
@@ -139,19 +182,45 @@
    logical (log_kind), intent(inout) :: &
      scalar               ! scalar to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     itmp,               &! local temporary
+     ierr                 ! MPI error flag
    character(len=*), parameter :: subname = '(broadcast_scalar_log)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   if (scalar) then
+     itmp = 1
+   else
+     itmp = 0
+   endif
+
+   call MPI_BCAST(itmp, 1, MPI_INTEGER, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+
+   if (itmp == 1) then
+     scalar = .true.
+   else
+     scalar = .false.
+   endif
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_scalar_log
 
 !***********************************************************************
 
- subroutine broadcast_scalar_char(scalar, root_pe)
+subroutine broadcast_scalar_char(scalar, root_pe)
 
 !  Broadcasts a scalar character variable from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
@@ -163,19 +232,35 @@
    character (*), intent(inout) :: &
      scalar               ! scalar to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     clength,            &! length of character
+     ierr                 ! MPI error flag
    character(len=*), parameter :: subname = '(broadcast_scalar_char)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
-!-----------------------------------------------------------------------
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   clength = len(scalar)
+
+   call MPI_BCAST(scalar, clength, MPI_CHARACTER, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
+!--------------------------------------------------------------------
 
  end subroutine broadcast_scalar_char
 
 !***********************************************************************
 
- subroutine broadcast_array_dbl_1d(array, root_pe)
+subroutine broadcast_array_dbl_1d(array, root_pe)
 
 !  Broadcasts a vector dbl variable from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
@@ -187,19 +272,35 @@
    real (dbl_kind), dimension(:), intent(inout) :: &
      array             ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,       &! size of array
+     ierr              ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_dbl_1d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, mpiR8, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_dbl_1d
 
 !***********************************************************************
 
- subroutine broadcast_array_real_1d(array, root_pe)
+subroutine broadcast_array_real_1d(array, root_pe)
 
 !  Broadcasts a real vector from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
@@ -211,19 +312,35 @@
    real (real_kind), dimension(:), intent(inout) :: &
      array                ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_real_1d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, mpiR4, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_real_1d
 
 !***********************************************************************
 
- subroutine broadcast_array_int_1d(array, root_pe)
+subroutine broadcast_array_int_1d(array, root_pe)
 
 !  Broadcasts an integer vector from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
@@ -235,19 +352,35 @@
    integer (int_kind), dimension(:), intent(inout) :: &
        array              ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_int_1d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, MPI_INTEGER, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_int_1d
 
 !***********************************************************************
 
- subroutine broadcast_array_log_1d(array, root_pe)
+subroutine broadcast_array_log_1d(array, root_pe)
 
 !  Broadcasts a logical vector from one processor (root_pe)
 !  to all other processors. This is a specific instance of the generic
@@ -259,12 +392,48 @@
    logical (log_kind), dimension(:), intent(inout) :: &
      array                ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(:), allocatable :: &
+      array_int            ! temporary array for MPI bcast
+
+   integer (int_kind) :: &
+      nelements,          &! size of array to be broadcast
+      ierr                 ! local MPI error flag
+
    character(len=*), parameter :: subname = '(broadcast_array_log_1d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+   allocate(array_int(nelements))
+
+   where (array)
+     array_int = 1
+   elsewhere
+     array_int = 0
+   end where
+
+   call MPI_BCAST(array_int, nelements, MPI_INTEGER, root_pe, &
+                  MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+
+   where (array_int == 1)
+     array = .true.
+   elsewhere
+     array = .false.
+   end where
+
+   deallocate(array_int)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_log_1d
@@ -283,12 +452,28 @@
    real (dbl_kind), dimension(:,:), intent(inout) :: &
      array             ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      nelements,         &! size of array
+      ierr                ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_dbl_2d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, mpiR8, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_dbl_2d
@@ -307,12 +492,28 @@
    real (real_kind), dimension(:,:), intent(inout) :: &
      array                ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_real_2d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, mpiR4, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_real_2d
@@ -331,12 +532,28 @@
    integer (int_kind), dimension(:,:), intent(inout) :: &
        array              ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_int_2d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, MPI_INTEGER, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_int_2d
@@ -355,12 +572,48 @@
    logical (log_kind), dimension(:,:), intent(inout) :: &
      array                ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(:,:), allocatable :: &
+     array_int            ! temporary array for MPI bcast
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
+
    character(len=*), parameter :: subname = '(broadcast_array_log_2d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+   allocate(array_int(size(array,dim=1),size(array,dim=2)))
+
+   where (array)
+     array_int = 1
+   elsewhere
+     array_int = 0
+   end where
+
+   call MPI_BCAST(array_int, nelements, MPI_INTEGER, root_pe, &
+                  MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+
+   where (array_int == 1)
+     array = .true.
+   elsewhere
+     array = .false.
+   end where
+
+   deallocate(array_int)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_log_2d
@@ -379,12 +632,28 @@
    real (dbl_kind), dimension(:,:,:), intent(inout) :: &
      array             ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,       &! size of array
+     ierr              ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_dbl_3d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, mpiR8, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_dbl_3d
@@ -403,12 +672,28 @@
    real (real_kind), dimension(:,:,:), intent(inout) :: &
      array                ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_real_3d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, mpiR4, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_real_3d
@@ -427,12 +712,28 @@
    integer (int_kind), dimension(:,:,:), intent(inout) :: &
        array              ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
    character(len=*), parameter :: subname = '(broadcast_array_int_3d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, MPI_INTEGER, root_pe, MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_int_3d
@@ -451,12 +752,50 @@
    logical (log_kind), dimension(:,:,:), intent(inout) :: &
      array                ! array to be broadcast
 
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(:,:,:), allocatable :: &
+     array_int            ! temporary array for MPI bcast
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
+
    character(len=*), parameter :: subname = '(broadcast_array_log_3d)'
 
 !-----------------------------------------------------------------------
-!
-!  for serial codes, nothing is required
-!
+
+#ifdef SERIAL_REMOVE_MPI
+   ! nothing to do
+#else
+   nelements = size(array)
+   allocate(array_int(size(array,dim=1), &
+                      size(array,dim=2), &
+                      size(array,dim=3)))
+
+   where (array)
+     array_int = 1
+   elsewhere
+     array_int = 0
+   end where
+
+   call MPI_BCAST(array_int, nelements, MPI_INTEGER, root_pe, &
+                  MPI_COMM_ICE, ierr)
+   call MPI_BARRIER(MPI_COMM_ICE, ierr)
+
+   where (array_int == 1)
+     array = .true.
+   elsewhere
+     array = .false.
+   end where
+
+   deallocate(array_int)
+#endif
+
 !-----------------------------------------------------------------------
 
  end subroutine broadcast_array_log_3d

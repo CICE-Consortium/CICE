@@ -44,6 +44,7 @@
 
       subroutine CICE_Initialize
 
+      character(len=*), parameter :: subname='(CICE_Initialize)'
    !--------------------------------------------------------------------
    ! model initialization
    !--------------------------------------------------------------------
@@ -58,13 +59,12 @@
 
       subroutine cice_init
 
-      use ice_state, only: alloc_state
-      use ice_flux_bgc, only: alloc_flux_bgc
-      use ice_arrays_column, only: hin_max, c_hi_range, zfswin, trcrn_sw, &
-          ocean_bio_all, ice_bio_net, snow_bio_net, alloc_arrays_column
+      use ice_arrays_column, only: hin_max, c_hi_range, alloc_arrays_column
       use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
           floe_binwidth, c_fsd_range
-      use ice_calendar, only: dt, dt_dyn, write_ic, &
+      use ice_state, only: alloc_state
+      use ice_flux_bgc, only: alloc_flux_bgc
+      use ice_calendar, only: dt, dt_dyn, istep, istep1, write_ic, &
           init_calendar, advance_timestep, calc_timesteps
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
@@ -76,30 +76,32 @@
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn, alloc_forcing, get_wave_spec
+          get_forcing_atmo, get_forcing_ocn, get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_data, faero_default, faero_optics, alloc_forcing_bgc
+          faero_default, faero_optics, alloc_forcing_bgc, fiso_default
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
-      use ice_restart_shared, only: restart, runid, runtype
+      use ice_restart_shared, only: restart, runtype
       use ice_init, only: input_data, init_state
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-      use lib_mpp, only:   mpi_comm_opa      ! NEMO MPI communicator
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
-         tr_fsd, wave_spec
-      character(len=*),parameter :: subname = '(cice_init)'
+         tr_iso, tr_fsd, wave_spec
+      character(len=*), parameter :: subname = '(cice_init)'
 
-      call init_communicate(mpi_comm_opa) ! initial setup for message passing
+      call init_communicate     ! initial setup for message passing
       call init_fileunits       ! unit numbers
+
+      ! tcx debug, this will create a different logfile for each pe
+      ! if (my_task /= master_task) nu_diag = 100+my_task
 
       call icepack_configure()  ! initialize icepack
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(subname, &
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
       call input_data           ! namelist variables
@@ -108,17 +110,16 @@
 
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
-      call alloc_grid           ! allocate grid
+      call alloc_grid           ! allocate grid arrays
       call alloc_arrays_column  ! allocate column arrays
-      call alloc_state          ! allocate state
-      call alloc_dyn_shared     ! allocate dyn shared (init_uvel,init_vvel)
-      call alloc_flux_bgc       ! allocate flux_bgc
-      call alloc_flux           ! allocate flux
+      call alloc_state          ! allocate state arrays
+      call alloc_dyn_shared     ! allocate dyn shared arrays
+      call alloc_flux_bgc       ! allocate flux_bgc arrays
+      call alloc_flux           ! allocate flux arrays
       call init_ice_timers      ! initialize all timers
       call ice_timer_start(timer_total)   ! start timing entire run
       call init_grid2           ! grid variables
-      call init_zbgc            ! vertical biogeochemistry namelist
-
+      call init_zbgc            ! vertical biogeochemistry initialization
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
 
@@ -131,6 +132,7 @@
       endif
 
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
+
       call init_thermo_vertical ! initialize vertical thermodynamics
 
       call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
@@ -154,26 +156,29 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-#ifndef CICE_IN_NEMO
       call init_forcing_ocn(dt) ! initialize sss and sst from data
-#endif
       call init_state           ! initialize the ice state
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
           wave_spec_out=wave_spec)
-      if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! allocate biogeochemistry arrays
-      call init_restart         ! initialize restart variables
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
+          file=__FILE__,line= __LINE__)
 
+      if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! allocate biogeochemistry arrays
+
+      call init_restart         ! initialize restart variables
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
       call calc_timesteps       ! update timestep counter if not using npt_unit="1"
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
+      call icepack_query_tracer_flags(tr_iso_out=tr_iso)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(subname, &
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
       if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
@@ -185,28 +190,30 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
-      ! determine the time and date at the end of the first timestep
+! tcraig, use advance_timestep here
+!      istep  = istep  + 1    ! update time step counters
+!      istep1 = istep1 + 1
+!      time = time + dt       ! determine the time and date
+!      call calendar(time)    ! at the end of the first timestep
       call advance_timestep()
 
    !--------------------------------------------------------------------
    ! coupler communication or forcing data initialization
    !--------------------------------------------------------------------
 
-#ifndef CICE_IN_NEMO
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
-#endif
 
-! standalone
-!      if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
-!      call get_forcing_atmo     ! atmospheric forcing from data
-!      call get_forcing_ocn(dt)  ! ocean forcing from data
+      if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+      call get_forcing_atmo     ! atmospheric forcing from data
+      call get_forcing_ocn(dt)  ! ocean forcing from data
 
-!      ! aerosols
-!      ! if (tr_aero)  call faero_data                   ! data file
-!      ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
-!      if (tr_aero .or. tr_zaero)  call faero_default    ! default values
-!      if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
-
+      ! isotopes
+      if (tr_iso)     call fiso_default                 ! default values
+      ! aerosols
+      ! if (tr_aero)  call faero_data                   ! data file
+      ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
+      if (tr_aero .or. tr_zaero)  call faero_default    ! default values
+      if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
       if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
       if (runtype == 'initial' .and. .not. restart) &
@@ -228,25 +235,25 @@
       use ice_calendar, only: calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, n_aero, nfsd
+      use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: sss
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
-          init_aerosol, init_hbrine, init_bgc, init_fsd
+          init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
           restart_pond_cesm, read_restart_pond_cesm, &
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
           restart_fsd, read_restart_fsd, &
+          restart_iso, read_restart_iso, &
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
-      use ice_restart_driver, only: restartfile, restartfile_v4
+      use ice_restart_driver, only: restartfile
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
 
@@ -255,15 +262,15 @@
          iblk            ! block index
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-          tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
+          tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
-          nt_iage, nt_FY, nt_aero, nt_fsd
+          nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice
 
-      character(len=*),parameter :: subname = '(init_restart)'
+      character(len=*), parameter :: subname = '(init_restart)'
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
@@ -275,10 +282,11 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
-           tr_fsd_out=tr_fsd)
+           tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
-           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd)
+           nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd, &
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -383,6 +391,20 @@
             call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,:))
          endif
       endif
+
+      ! isotopes
+      if (tr_iso) then
+         if (trim(runtype) == 'continue') restart_iso = .true.
+         if (restart_iso) then
+            call read_restart_iso
+         else
+            do iblk = 1, nblocks 
+               call init_isotope(trcrn(:,:,nt_isosno:nt_isosno+n_iso-1,:,iblk), &
+                                 trcrn(:,:,nt_isoice:nt_isoice+n_iso-1,:,iblk))
+            enddo ! iblk
+         endif
+      endif
+
       if (tr_aero) then ! ice aerosol
          if (trim(runtype) == 'continue') restart_aero = .true.
          if (restart_aero) then

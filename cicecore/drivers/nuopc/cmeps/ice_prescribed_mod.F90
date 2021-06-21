@@ -7,39 +7,33 @@ module ice_prescribed_mod
   ! Ice/ocean fluxes are set to zero, and ice dynamics are not calculated.
   ! Regridding and data cycling capabilities are included.
 
+  use ESMF
+
 #ifndef CESMCOUPLED
 
   use ice_kinds_mod
-
   implicit none
   private ! except
-
   public  :: ice_prescribed_init      ! initialize input data stream
   logical(kind=log_kind), parameter, public :: prescribed_ice = .false.     ! true if prescribed ice
-
 contains
   ! This is a stub routine for now
-  subroutine ice_prescribed_init(mpicom, compid, gindex)
-    integer(kind=int_kind), intent(in) :: mpicom
-    integer(kind=int_kind), intent(in) :: compid
-    integer(kind=int_kind), intent(in) :: gindex(:)
+  subroutine ice_prescribed_init(clock, mesh, rc)
+    type(ESMF_Clock)       , intent(in)  :: clock
+    type(ESMF_Mesh)        , intent(in)  :: mesh
+    integer                , intent(out) :: rc
     ! do nothing
   end subroutine ice_prescribed_init
 
-#else 
+#else
 
-  use shr_nl_mod        , only : shr_nl_find_group_name
-  use shr_strdata_mod
-  use shr_dmodel_mod
-  use shr_string_mod
-  use shr_ncread_mod
-  use shr_sys_mod
-  use shr_mct_mod
-  use mct_mod
-  use pio
+  use ice_kinds_mod
+  use shr_nl_mod       , only : shr_nl_find_group_name
+  use dshr_strdata_mod , only : shr_strdata_type, shr_strdata_print
+  use dshr_strdata_mod , only : shr_strdata_init_from_inline, shr_strdata_advance
+  use dshr_methods_mod , only : dshr_fldbun_getfldptr
   use ice_broadcast
   use ice_communicate   , only : my_task, master_task, MPI_COMM_ICE
-  use ice_kinds_mod
   use ice_fileunits
   use ice_exit          , only : abort_ice
   use ice_domain_size   , only : nx_global, ny_global, ncat, nilyr, nslyr, max_blocks
@@ -54,306 +48,288 @@ contains
   use icepack_intfc     , only: icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc     , only: icepack_query_tracer_indices, icepack_query_tracer_sizes
   use icepack_intfc     , only: icepack_query_parameters
+  use ice_shr_methods   , only: chkerr
 
   implicit none
   private ! except
 
-  ! MEMBER FUNCTIONS:
-  public  :: ice_prescribed_init      ! initialize input data stream
-  public  :: ice_prescribed_run       ! get time slices and time interp
-  public  :: ice_prescribed_phys      ! set prescribed ice state and fluxes
+  ! public member functions:
+  public :: ice_prescribed_init      ! initialize input data stream
+  public :: ice_prescribed_run       ! get time slices and time interp
+  public :: ice_prescribed_phys      ! set prescribed ice state and fluxes
 
-  ! !PUBLIC DATA MEMBERS:
-  logical(kind=log_kind), public   :: prescribed_ice      ! true if prescribed ice
-  integer(kind=int_kind),parameter :: nFilesMaximum = 400 ! max number of files
-  integer(kind=int_kind)           :: stream_year_first   ! first year in stream to use
-  integer(kind=int_kind)           :: stream_year_last    ! last year in stream to use
-  integer(kind=int_kind)           :: model_year_align    ! align stream_year_first with this model year
-  character(len=char_len_long)     :: stream_fldVarName
-  character(len=char_len_long)     :: stream_fldFileName(nFilesMaximum)
-  character(len=char_len_long)     :: stream_domTvarName
-  character(len=char_len_long)     :: stream_domXvarName
-  character(len=char_len_long)     :: stream_domYvarName
-  character(len=char_len_long)     :: stream_domAreaName
-  character(len=char_len_long)     :: stream_domMaskName
-  character(len=char_len_long)     :: stream_domFileName
-  character(len=char_len_long)     :: stream_mapread
-  logical(kind=log_kind)           :: prescribed_ice_fill ! true if data fill required
-  type(shr_strdata_type)           :: sdat                ! prescribed data stream
-  character(len=char_len_long)     :: fldList             ! list of fields in data stream
-  real(kind=dbl_kind),allocatable  :: ice_cov(:,:,:)      ! ice cover
+  ! public data members:
+  logical(kind=log_kind), public :: prescribed_ice  ! true if prescribed ice
 
+  ! private data members:
+  type(shr_strdata_type)          :: sdat           ! prescribed data stream
+  real(kind=dbl_kind),allocatable :: ice_cov(:,:,:) ! ice cover
+
+  character(*), parameter :: u_FILE_u = &
+       __FILE__
+
+!=======================================================================
 contains
+!===============================================================================
 
-  subroutine ice_prescribed_init(mpicom, compid, gindex)
+  subroutine ice_prescribed_init(clock, mesh, rc)
 
-    !    Prescribed ice initialization - needed to
-    !    work with new shr_strdata module derived type
+    ! Prescribed ice initialization
 
-    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys, shr_pio_getioformat
-
-    implicit none
     include 'mpif.h'
 
-    ! !nput/output parameters:
-    integer(kind=int_kind), intent(in) :: mpicom
-    integer(kind=int_kind), intent(in) :: compid
-    integer(kind=int_kind), intent(in) :: gindex(:)
+    ! input/output parameters
+    type(ESMF_Clock)       , intent(in)  :: clock
+    type(ESMF_Mesh)        , intent(in)  :: mesh
+    integer                , intent(out) :: rc
 
-    !----- Local ------
-    type(mct_gsMap)        :: gsmap_ice
-    type(mct_gGrid)        :: dom_ice
-    integer(kind=int_kind) :: lsize
-    integer(kind=int_kind) :: gsize
-    integer(kind=int_kind) :: nml_error ! namelist i/o error flag
-    integer(kind=int_kind) :: n, nFile, ierr
-    character(len=8)       :: fillalgo
-    character(*),parameter :: subName = '(ice_prescribed_init)'
+    ! local parameters
+    integer(kind=int_kind),parameter :: nFilesMaximum = 400 ! max number of files
+    integer(kind=int_kind)           :: n, nFile, ierr
+    integer(kind=int_kind)           :: nml_error ! namelist i/o error flag
+    character(len=char_len_long)     :: stream_meshFile
+    character(len=char_len_long)     :: stream_dataFiles(nFilesMaximum)
+    character(len=char_len_long)     :: stream_varname
+    character(len=char_len_long)     :: stream_mapalgo
+    integer(kind=int_kind)           :: stream_yearfirst   ! first year in stream to use
+    integer(kind=int_kind)           :: stream_yearlast    ! last year in stream to use
+    integer(kind=int_kind)           :: stream_yearalign   ! align stream_year_first
+    integer(kind=int_kind)           :: nu_nml
+    logical                          :: prescribed_ice_mode
+    character(*),parameter           :: subName = "('ice_prescribed_init')"
+    character(*),parameter           :: F00 = "('(ice_prescribed_init) ',4a)"
+    character(*),parameter           :: F01 = "('(ice_prescribed_init) ',a,i0)"
+    character(*),parameter           :: F02 = "('(ice_prescribed_init) ',2a,i0,)"
+    !--------------------------------
 
-    namelist /ice_prescribed_nml/  &
-         prescribed_ice,      &
-         model_year_align,    &
-         stream_year_first ,  &
-         stream_year_last  ,  &
-         stream_fldVarName ,  &
-         stream_fldFileName,  &
-         stream_domTvarName,  &
-         stream_domXvarName,  &
-         stream_domYvarName,  &
-         stream_domAreaName,  &
-         stream_domMaskName,  &
-         stream_domFileName,  &
-         stream_mapread,      &
-         prescribed_ice_fill
+    namelist /ice_prescribed_nml/ &
+         prescribed_ice_mode,           &
+         stream_meshfile,               &
+         stream_varname ,               &
+         stream_datafiles,              &
+         stream_mapalgo,                &
+         stream_yearalign,              &
+         stream_yearfirst ,             &
+         stream_yearlast
+
+    rc = ESMF_SUCCESS
 
     ! default values for namelist
-    prescribed_ice         = .false.          ! if true, prescribe ice
-    stream_year_first      = 1                ! first year in  pice stream to use
-    stream_year_last       = 1                ! last  year in  pice stream to use
-    model_year_align       = 1                ! align stream_year_first with this model year
-    stream_fldVarName      = 'ice_cov'
-    stream_fldFileName(:)  = ' '
-    stream_domTvarName     = 'time'
-    stream_domXvarName     = 'lon'
-    stream_domYvarName     = 'lat'
-    stream_domAreaName     = 'area'
-    stream_domMaskName     = 'mask'
-    stream_domFileName     = ' '
-    stream_mapread         = 'NOT_SET'
-    prescribed_ice_fill    = .false.          ! true if pice data fill required
+    prescribed_ice_mode = .false. ! if true, prescribe ice
+    stream_yearfirst    = 1       ! first year in  pice stream to use
+    stream_yearlast     = 1       ! last  year in  pice stream to use
+    stream_yearalign    = 1       ! align stream_year_first with this model year
+    stream_varname      = 'ice_cov'
+    stream_meshfile     = ' '
+    stream_datafiles(:) = ' '
+    stream_mapalgo      = 'bilinear'
 
-    ! read from input file
-    call get_fileunit(nu_nml)
+    ! read namelist on master task
     if (my_task == master_task) then
-       open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+       open (newunit=nu_nml, file=nml_filename, status='old',iostat=nml_error)
        call shr_nl_find_group_name(nu_nml, 'ice_prescribed_nml', status=nml_error)
-       if (nml_error == 0) then
-          read(nu_nml, ice_prescribed_nml, iostat=nml_error)
-          if (nml_error > 0) then
-             call shr_sys_abort( 'problem on read of ice_prescribed namelist in ice_prescribed_mod' )
-          endif
+       if (nml_error /= 0) then
+          write(nu_diag,F00) "ERROR: problem on read of ice_prescribed_nml namelist"
+          call abort_ice(subName)
        endif
+       read(nu_nml, ice_prescribed_nml, iostat=nml_error)
+       close(nu_nml)
     end if
-    call release_fileunit(nu_nml)
-    call broadcast_scalar(prescribed_ice, master_task)
 
-    ! *** If not prescribed ice then return ***
-    if (.not. prescribed_ice) RETURN
+    ! broadcast namelist input
+    call broadcast_scalar(prescribed_ice_mode, master_task)
 
-    call broadcast_scalar(model_year_align,master_task)
-    call broadcast_scalar(stream_year_first,master_task)
-    call broadcast_scalar(stream_year_last,master_task)
-    call broadcast_scalar(stream_fldVarName,master_task)
-    call broadcast_scalar(stream_domTvarName,master_task)
-    call broadcast_scalar(stream_domXvarName,master_task)
-    call broadcast_scalar(stream_domYvarName,master_task)
-    call broadcast_scalar(stream_domAreaName,master_task)
-    call broadcast_scalar(stream_domMaskName,master_task)
-    call broadcast_scalar(stream_domFileName,master_task)
-    call broadcast_scalar(stream_mapread,master_task)
-    call broadcast_scalar(prescribed_ice_fill,master_task)
-    call mpi_bcast(stream_fldFileName, len(stream_fldFileName(1))*NFilesMaximum, &
-         MPI_CHARACTER, 0, MPI_COMM_ICE, ierr)
+    ! set module variable 'prescribed_ice'
+    prescribed_ice = prescribed_ice_mode
 
-    nFile = 0
-    do n=1,nFilesMaximum
-       if (stream_fldFileName(n) /= ' ') nFile = nFile + 1
-    end do
+    ! --------------------------------------------------
+    ! only do the following if prescribed ice mode is on
+    ! --------------------------------------------------
 
-    ! Read shr_strdata_nml namelist
-    if (prescribed_ice_fill) then
-       fillalgo='nn'
-    else
-       fillalgo='none'
-    endif
+    if (prescribed_ice_mode) then
 
-    if (my_task == master_task) then
-       write(nu_diag,*) ' '
-       write(nu_diag,*) 'This is the prescribed ice coverage option.'
-       write(nu_diag,*) '  stream_year_first  = ',stream_year_first
-       write(nu_diag,*) '  stream_year_last   = ',stream_year_last
-       write(nu_diag,*) '  model_year_align   = ',model_year_align
-       write(nu_diag,*) '  stream_fldVarName  = ',trim(stream_fldVarName)
-       do n = 1,nFile
-          write(nu_diag,*) '  stream_fldFileName = ',trim(stream_fldFileName(n)),n
+       call broadcast_scalar(stream_yearalign , master_task)
+       call broadcast_scalar(stream_yearfirst , master_task)
+       call broadcast_scalar(stream_yearlast  , master_task)
+       call broadcast_scalar(stream_meshfile  , master_task)
+       call broadcast_scalar(stream_mapalgo   , master_task)
+       call broadcast_scalar(stream_varname   , master_task)
+       call mpi_bcast(stream_dataFiles, len(stream_datafiles(1))*NFilesMaximum, MPI_CHARACTER, 0, MPI_COMM_ICE, ierr)
+
+       nFile = 0
+       do n = 1,nFilesMaximum
+          if (stream_datafiles(n) /= ' ') nFile = nFile + 1
        end do
-       write(nu_diag,*) '  stream_domTvarName = ',trim(stream_domTvarName)
-       write(nu_diag,*) '  stream_domXvarName = ',trim(stream_domXvarName)
-       write(nu_diag,*) '  stream_domYvarName = ',trim(stream_domYvarName)
-       write(nu_diag,*) '  stream_domFileName = ',trim(stream_domFileName)
-       write(nu_diag,*) '  stream_mapread     = ',trim(stream_mapread)
-       write(nu_diag,*) '  stream_fillalgo    = ',trim(fillalgo)
-       write(nu_diag,*) ' '
-    endif
 
-    gsize = nx_global*ny_global
-    lsize = size(gindex)
-    call mct_gsMap_init( gsmap_ice, gindex, MPI_COMM_ICE, compid, lsize, gsize)
-    call ice_prescribed_set_domain( lsize, MPI_COMM_ICE, gsmap_ice, dom_ice )
+       if (my_task == master_task) then
+          write(nu_diag,*) ' '
+          write(nu_diag,F00) 'This is the prescribed ice coverage option.'
+          write(nu_diag,F01) '  stream_yearfirst = ',stream_yearfirst
+          write(nu_diag,F01) '  stream_yearlast  = ',stream_yearlast
+          write(nu_diag,F01) '  stream_yearalign = ',stream_yearalign
+          write(nu_diag,F00) '  stream_meshfile  = ',trim(stream_meshfile)
+          write(nu_diag,F00) '  stream_varname   = ',trim(stream_varname)
+          write(nu_diag,F00) '  stream_mapalgo   = ',trim(stream_mapalgo)
+          do n = 1,nFile
+             write(nu_diag,F00) '  stream_datafiles   = ',trim(stream_dataFiles(n))
+          end do
+          write(nu_diag,*) ' '
+       endif
+       
+       ! initialize sdat
+       call shr_strdata_init_from_inline(sdat,               &
+            my_task             = my_task,                   &
+            logunit             = nu_diag,                   &
+            compname            = 'ICE',                     &
+            model_clock         = clock,                     &
+            model_mesh          = mesh,                      &
+            stream_meshfile     = stream_meshfile,           &
+            stream_lev_dimname  = 'null',                    &
+            stream_mapalgo      = trim(stream_mapalgo),      &
+            stream_filenames    = stream_datafiles(1:nfile), &
+            stream_fldlistFile  = (/'ice_cov'/),             &
+            stream_fldListModel = (/'ice_cov'/),             &
+            stream_yearFirst    = stream_yearFirst,          &
+            stream_yearLast     = stream_yearLast,           &
+            stream_yearAlign    = stream_yearAlign ,         &
+            stream_offset       = 0,                         &
+            stream_taxmode      = 'cycle',                   &
+            stream_dtlimit      = 1.5_dbl_kind,              &
+            stream_tintalgo     = 'linear',                  &
+            rc                  = rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call shr_strdata_create(sdat,name="prescribed_ice", &
-         mpicom=MPI_COMM_ICE, compid=compid,   &
-         gsmap=gsmap_ice, ggrid=dom_ice,       &
-         nxg=nx_global,nyg=ny_global,          &
-         yearFirst=stream_year_first,          &
-         yearLast=stream_year_last,            &
-         yearAlign=model_year_align,           &
-         offset=0,                             &
-         domFilePath='',                       &
-         domFileName=trim(stream_domFileName), &
-         domTvarName=stream_domTvarName,       &
-         domXvarName=stream_domXvarName,       &
-         domYvarName=stream_domYvarName,       &
-         domAreaName=stream_domAreaName,       &
-         domMaskName=stream_domMaskName,       &
-         filePath='',                          &
-         filename=stream_fldFileName(1:nFile), &
-         fldListFile=stream_fldVarName,        &
-         fldListModel=stream_fldVarName,       &
-         fillalgo=trim(fillalgo),              &
-         calendar=trim(calendar_type),         &
-         mapread=trim(stream_mapread))
+       ! print out sdat info
+       if (my_task == master_task) then
+          call shr_strdata_print(sdat,'ice coverage prescribed data')
+       endif
 
-    if (my_task == master_task) then
-       call shr_strdata_print(sdat,'SPRESICE data')
-    endif
+       ! For one ice category, set hin_max(1) to something big
+       if (ncat == 1) then
+          hin_max(1) = 999._dbl_kind
+       end if
 
-    !-----------------------------------------------------------------
-    ! For one ice category, set hin_max(1) to something big
-    !-----------------------------------------------------------------
-    if (ncat == 1) then
-       hin_max(1) = 999._dbl_kind
-    end if
+    end if  ! end of if prescribed ice mode
+
   end subroutine ice_prescribed_init
 
   !=======================================================================
   subroutine ice_prescribed_run(mDateIn, secIn)
 
-    ! !DESCRIPTION:
-    !  Finds two time slices bounding current model time, remaps if necessary
-
-    implicit none
-
-    ! !INPUT/OUTPUT PARAMETERS:
-    integer(kind=int_kind), intent(in) :: mDateIn  ! Current model date (yyyymmdd)
-    integer(kind=int_kind), intent(in) :: secIn    ! Elapsed seconds on model date
-
-    ! local varaibles
-    integer(kind=int_kind) :: i,j,n,iblk       ! loop indices and counter
-    integer(kind=int_kind) :: ilo,ihi,jlo,jhi  ! beginning and end of physical domain
-    type (block)           :: this_block
-    real(kind=dbl_kind)    :: aice_max         ! maximun ice concentration
-    logical, save          :: first_time = .true.
-    character(*),parameter :: subName = '(ice_prescribed_run)'
-    character(*),parameter :: F00 = "(a,2g20.13)"
-
-    !------------------------------------------------------------------------
+    ! Finds two time slices bounding current model time, remaps if necessary
     ! Interpolate to new ice coverage
+
+    ! input/output parameters:
+    integer(kind=int_kind), intent(in)  :: mDateIn  ! Current model date (yyyymmdd)
+    integer(kind=int_kind), intent(in)  :: secIn    ! Elapsed seconds on model date
+
+    ! local variables
+    integer(kind=int_kind)       :: i,j,n,iblk       ! loop indices and counter
+    integer(kind=int_kind)       :: ilo,ihi,jlo,jhi  ! beginning and end of physical domain
+    type (block)                 :: this_block
+    real(kind=dbl_kind)          :: aice_max         ! maximun ice concentration
+    real(kind=dbl_kind), pointer :: dataptr(:)
+    integer                      :: rc               ! ESMF return code
+    character(*),parameter       :: subName = "('ice_prescribed_run')"
+    character(*),parameter       :: F00 = "('(ice_prescribed_run) ',a,2g20.13)"
+    logical                      :: first_time = .true.
     !------------------------------------------------------------------------
 
-    call shr_strdata_advance(sdat,mDateIn,SecIn,MPI_COMM_ICE,'cice_pice')
+    rc = ESMF_SUCCESS
 
-    if (first_time) then
+    ! Advance sdat stream
+    call shr_strdata_advance(sdat, ymd=mDateIn, tod=SecIn, logunit=nu_diag, istr='cice_pice', rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) then
+       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+    end if
+
+    ! Get pointer for stream data that is time and spatially interpolate to model time and grid
+    call dshr_fldbun_getFldPtr(sdat%pstrm(1)%fldbun_model, 'ice_cov', dataptr, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) then
+       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+    end if
+
+    ! Fill in module ice_cov array
+    if (.not. allocated(ice_cov)) then
        allocate(ice_cov(nx_block,ny_block,max_blocks))
-    endif
-
+    end if
     ice_cov(:,:,:) = c0  ! This initializes ghost cells as well
-
-    n=0
+    n = 0
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-
        do j = jlo, jhi
           do i = ilo, ihi
              n = n+1
-             ice_cov(i,j,iblk) = sdat%avs(1)%rAttr(1,n)
+             ice_cov(i,j,iblk) = dataptr(n)
           end do
        end do
     end do
 
-    !--------------------------------------------------------------------
     ! Check to see that ice concentration is in fraction, not percent
-    !--------------------------------------------------------------------
     if (first_time) then
        aice_max = maxval(ice_cov)
-
        if (aice_max > c10) then
-          write(nu_diag,F00) subname//" ERROR: Ice conc data must be in fraction, aice_max= ",&
-               aice_max
-          call abort_ice(subName)
+          write(nu_diag,F00) "ERROR: Ice conc data must be in fraction, aice_max= ", aice_max
+          rc = ESMF_FAILURE
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) then
+             call ESMF_Finalize(endflag=ESMF_END_ABORT)
+          end if
        end if
        first_time = .false.
     end if
 
-    !-----------------------------------------------------------------
     ! Set prescribed ice state and fluxes
-    !-----------------------------------------------------------------
-
     call ice_prescribed_phys()
 
   end subroutine ice_prescribed_run
 
-  !===============================================================================
-  subroutine ice_prescribed_phys
+  !=======================================================================
+  subroutine ice_prescribed_phys()
 
     ! Set prescribed ice state using input ice concentration;
     ! set surface ice temperature to atmospheric value; use
     ! linear temperature gradient in ice to ocean temperature.
 
-    ! !USES:
     use ice_flux
     use ice_state
     use icepack_intfc, only : icepack_aggregate
     use ice_dyn_evp
-    implicit none
 
     !----- Local ------
     integer(kind=int_kind) :: layer    ! level index
     integer(kind=int_kind) :: nc       ! ice category index
     integer(kind=int_kind) :: i,j,k    ! longitude, latitude and level indices
     integer(kind=int_kind) :: iblk
-    integer(kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, ntrcr
-
-    real(kind=dbl_kind) :: slope     ! diff in underlying ocean tmp and ice surface tmp
-    real(kind=dbl_kind) :: Ti        ! ice level temperature
-    real(kind=dbl_kind) :: Tmlt      ! ice level melt temperature
-    real(kind=dbl_kind) :: qin_save(nilyr)
-    real(kind=dbl_kind) :: qsn_save(nslyr)
-    real(kind=dbl_kind) :: hi        ! ice prescribed (hemispheric) ice thickness
-    real(kind=dbl_kind) :: hs        ! snow thickness
-    real(kind=dbl_kind) :: zn        ! normalized ice thickness
-    real(kind=dbl_kind) :: salin(nilyr)  ! salinity (ppt)
-    real(kind=dbl_kind) :: rad_to_deg, pi, puny
-    real(kind=dbl_kind) :: rhoi, rhos, cp_ice, cp_ocn, lfresh, depressT
-
+    integer(kind=int_kind) :: nt_Tsfc
+    integer(kind=int_kind) :: nt_sice
+    integer(kind=int_kind) :: nt_qice
+    integer(kind=int_kind) :: nt_qsno
+    integer(kind=int_kind) :: ntrcr
+    real(kind=dbl_kind)    :: slope        ! diff in underlying ocean tmp and ice surface tmp
+    real(kind=dbl_kind)    :: Ti           ! ice level temperature
+    real(kind=dbl_kind)    :: Tmlt         ! ice level melt temperature
+    real(kind=dbl_kind)    :: qin_save(nilyr)
+    real(kind=dbl_kind)    :: qsn_save(nslyr)
+    real(kind=dbl_kind)    :: hi           ! ice prescribed (hemispheric) ice thickness
+    real(kind=dbl_kind)    :: hs           ! snow thickness
+    real(kind=dbl_kind)    :: zn           ! normalized ice thickness
+    real(kind=dbl_kind)    :: salin(nilyr) ! salinity (ppt)
+    real(kind=dbl_kind)    :: rad_to_deg, pi, puny
+    real(kind=dbl_kind)    :: rhoi
+    real(kind=dbl_kind)    :: rhos
+    real(kind=dbl_kind)    :: cp_ice
+    real(kind=dbl_kind)    :: cp_ocn
+    real(kind=dbl_kind)    :: lfresh
+    real(kind=dbl_kind)    :: depressT
     real(kind=dbl_kind), parameter :: nsal    = 0.407_dbl_kind
     real(kind=dbl_kind), parameter :: msal    = 0.573_dbl_kind
     real(kind=dbl_kind), parameter :: saltmax = 3.2_dbl_kind   ! max salinity at ice base (ppm)
     character(*),parameter :: subName = '(ice_prescribed_phys)'
+    !-----------------------------------------------------------------
 
     call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
        nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
@@ -458,7 +434,7 @@ contains
                    trcrn(i,j,nt_sice:nt_sice+nilyr-1,:,iblk) = c0
                    trcrn(i,j,nt_qice:nt_qice+nilyr-1,:,iblk) = c0
                    trcrn(i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk) = c0
-                end if          ! ice_cov >= eps04
+                end if ! ice_cov >= eps04
 
                 !--------------------------------------------------------------------
                 ! compute aggregate ice state and open water area
@@ -478,10 +454,11 @@ contains
                                        trcr_base     = trcr_base(1:ntrcr,:),   &
                                        n_trcr_strata = n_trcr_strata(1:ntrcr), &
                                        nt_strata     = nt_strata(1:ntrcr,:))
-             end if             ! tmask
-          enddo                 ! i
-       enddo                 ! j
-    enddo                 ! iblk
+
+             end if ! tmask
+          enddo     ! i
+       enddo        ! j
+    enddo           ! iblk
 
     do iblk = 1, nblocks
        do j = 1, ny_block
@@ -508,105 +485,6 @@ contains
     call init_flux_ocn
 
   end subroutine ice_prescribed_phys
-
-  !===============================================================================
-  subroutine ice_prescribed_set_domain( lsize, mpicom, gsmap_i, dom_i )
-
-    ! Arguments
-    integer        , intent(in)    :: lsize
-    integer        , intent(in)    :: mpicom
-    type(mct_gsMap), intent(in)    :: gsMap_i
-    type(mct_ggrid), intent(inout) :: dom_i
-
-    ! Local Variables
-    integer                 :: i, j, iblk, n      ! indices
-    integer                 :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
-    real(dbl_kind), pointer :: data1(:)           ! temporary
-    real(dbl_kind), pointer :: data2(:)           ! temporary
-    real(dbl_kind), pointer :: data3(:)           ! temporary
-    real(dbl_kind), pointer :: data4(:)           ! temporary
-    real(dbl_kind), pointer :: data5(:)           ! temporary
-    real(dbl_kind), pointer :: data6(:)           ! temporary
-    integer       , pointer :: idata(:)           ! temporary
-    real(kind=dbl_kind)     :: rad_to_deg
-    type(block)             :: this_block         ! block information for current block
-    character(*),parameter :: subName = '(ice_prescribed_set_domain)'
-    !--------------------------------
-
-    call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
-    call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-       file=__FILE__, line=__LINE__)
-
-    ! Initialize mct domain type
-    call mct_gGrid_init(GGrid=dom_i, &
-         CoordChars='lat:lon:hgt', OtherChars='area:aream:mask:frac', lsize=lsize )
-    call mct_aVect_zero(dom_i%data)
-
-    ! Determine global gridpoint number attribute, GlobGridNum, which is set automatically by MCT
-    call mct_gsMap_orderedPoints(gsMap_i, my_task, idata)
-    call mct_gGrid_importIAttr(dom_i,'GlobGridNum',idata,lsize)
-    deallocate(idata)
-
-    ! Determine domain (numbering scheme is: West to East and South to North to South pole)
-    ! Initialize attribute vector with special value
-
-    allocate(data1(lsize))
-    allocate(data2(lsize))
-    allocate(data3(lsize))
-    allocate(data4(lsize))
-    allocate(data5(lsize))
-    allocate(data6(lsize))
-
-    data1(:) = -9999.0_dbl_kind
-    data2(:) = -9999.0_dbl_kind
-    data3(:) = -9999.0_dbl_kind
-    data4(:) = -9999.0_dbl_kind
-    call mct_gGrid_importRAttr(dom_i,"lat"  ,data1,lsize)
-    call mct_gGrid_importRAttr(dom_i,"lon"  ,data2,lsize)
-    call mct_gGrid_importRAttr(dom_i,"area" ,data3,lsize)
-    call mct_gGrid_importRAttr(dom_i,"aream",data4,lsize)
-    data5(:) = 0.0_dbl_kind
-    data6(:) = 0.0_dbl_kind
-    call mct_gGrid_importRAttr(dom_i,"mask" ,data5,lsize)
-    call mct_gGrid_importRAttr(dom_i,"frac" ,data6,lsize)
-
-    ! Fill in correct values for domain components
-    ! lat/lon in degrees,  area in radians^2, mask is 1 (ocean), 0 (non-ocean)
-    n=0
-    do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)
-       ilo = this_block%ilo
-       ihi = this_block%ihi
-       jlo = this_block%jlo
-       jhi = this_block%jhi
-       do j = jlo, jhi
-       do i = ilo, ihi
-          n = n+1
-
-          data1(n) = TLON(i,j,iblk)*rad_to_deg
-          data2(n) = TLAT(i,j,iblk)*rad_to_deg
-          data3(n) = tarea(i,j,iblk)/(radius*radius)
-
-          data5(n) = real(nint(hm(i,j,iblk)),kind=dbl_kind)
-          if (trim(grid_type) == 'latlon') then
-             data6(n) = ocn_gridcell_frac(i,j,iblk)
-          else
-             data6(n) = real(nint(hm(i,j,iblk)),kind=dbl_kind)
-          end if
-
-       enddo   !i
-       enddo   !j
-    enddo      !iblk
-    call mct_gGrid_importRattr(dom_i,"lon" ,data1,lsize)
-    call mct_gGrid_importRattr(dom_i,"lat" ,data2,lsize)
-    call mct_gGrid_importRattr(dom_i,"area",data3,lsize)
-    call mct_gGrid_importRattr(dom_i,"mask",data5,lsize)
-    call mct_gGrid_importRattr(dom_i,"frac",data6,lsize)
-
-    deallocate(data1, data2, data3, data4, data5, data6)
-
-  end subroutine ice_prescribed_set_domain
 
 #endif
 

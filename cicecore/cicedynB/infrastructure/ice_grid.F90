@@ -40,7 +40,7 @@
       private
       public :: init_grid1, init_grid2, &
                 t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid, alloc_grid
+                to_ugrid, to_tgrid, alloc_grid, makemask
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
@@ -246,6 +246,16 @@
 
       allocate(work_g1(nx_global,ny_global))
       allocate(work_g2(nx_global,ny_global))
+
+      ! check tripole flags here
+      ! can't check in init_data because ns_boundary_type is not yet read
+      ! can't check in init_domain_blocks because grid_type is not accessible due to circular logic
+
+      if (grid_type == 'tripole' .and. ns_boundary_type /= 'tripole' .and. &
+          ns_boundary_type /= 'tripoleT') then
+         call abort_ice(subname//'ERROR: grid_type tripole needs tripole ns_boundary_type', &
+                        file=__FILE__, line=__LINE__)
+      endif
 
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &

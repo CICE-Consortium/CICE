@@ -135,6 +135,18 @@ conflicts in module dependencies.
 `debug\_model` = true (**ice\_in**)
     Print extended diagnostics for the first point associated with `print\_points`.
 
+`debug\_model\_i` = integer (**ice\_in**)
+    Defines the local i index for the point to be diagnosed with `debug\_model`.
+
+`debug\_model\_j` = integer (**ice\_in**)
+    Defines the local j index for the point to be diagnosed with `debug\_model`.
+
+`debug\_model\_iblk` = integer (**ice\_in**)
+    Defines the local iblk value for the point to be diagnosed with `debug\_model`.
+
+`debug\_model\_task` = integer (**ice\_in**)
+    Defines the local task value for the point to be diagnosed with `debug\_model`.
+
 `debug\_model\_step` = true (**ice\_in**)
     Timestep to starting printing diagnostics associated with `debug\_model`.
 
