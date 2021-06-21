@@ -23,7 +23,7 @@ module ice_comp_nuopc
   use ice_grid           , only : grid_type, init_grid2
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
-  use ice_calendar       , only : idate, mday, mmonth, year_init, timesecs
+  use ice_calendar       , only : idate, mday, mmonth, myear, year_init
   use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
@@ -214,7 +214,6 @@ contains
     integer                      :: ref_ymd            ! Reference date (YYYYMMDD)
     integer                      :: ref_tod            ! reference time of day (s)
     integer                      :: yy,mm,dd           ! Temporaries for time query
-    integer                      :: iyear              ! yyyy
     integer                      :: dtime              ! time step
     integer                      :: shrlogunit         ! original log unit
     character(len=char_len)      :: starttype          ! infodata start type
@@ -638,7 +637,7 @@ contains
 
     ! - on initial run
     !   - iyear, month and mday obtained from sync clock
-    !   - time determined from iyear, month and mday
+    !   - time determined from myear, month and mday
     !   - istep0 and istep1 are set to 0
     ! - on restart run
     !   - istep0, time and time_forc are read from restart file
@@ -667,28 +666,18 @@ contains
           end if
           call abort_ice(subname//' :: ERROR idate lt zero')
        endif
-       iyear = (idate/10000)                     ! integer year of basedate
-       mmonth= (idate-iyear*10000)/100           ! integer month of basedate
-       mday  =  idate-iyear*10000-mmonth*100     ! day of month of basedate
+       myear = (idate/10000)                     ! integer year of basedate
+       mmonth= (idate-myear*10000)/100           ! integer month of basedate
+       mday  =  idate-myear*10000-mmonth*100     ! day of month of basedate
 
        if (my_task == master_task) then
           write(nu_diag,*) trim(subname),' curr_ymd = ',curr_ymd
           write(nu_diag,*) trim(subname),' cice year_init = ',year_init
           write(nu_diag,*) trim(subname),' cice start date = ',idate
-          write(nu_diag,*) trim(subname),' cice start ymds = ',iyear,mmonth,mday,start_tod
+          write(nu_diag,*) trim(subname),' cice start ymds = ',myear,mmonth,mday,start_tod
           write(nu_diag,*) trim(subname),' cice calendar_type = ',trim(calendar_type)
        endif
 
-#ifdef CESMCOUPLED
-       if (calendar_type == "GREGORIAN" .or. &
-           calendar_type == "Gregorian" .or. &
-           calendar_type == "gregorian") then
-          call time2sec(iyear-(year_init-1),mmonth,mday,time)
-       else
-          call time2sec(iyear-year_init,mmonth,mday,time)
-       endif
-#endif
-       timesecs = timesecs+start_tod
     end if
 
     call calendar()     ! update calendar info
