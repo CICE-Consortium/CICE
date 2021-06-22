@@ -592,16 +592,15 @@ namelist, and the following combinations are supported,
 
 .. table:: Supported Calendar Options
 
-   +----------------+----------------------+-----------------------+
-   | calendar       | ``days_per_year``    |  ``use_leap_years``   |
-   |                | namelist setting     |  namelist setting     |
-   +================+======================+=======================+
-   | noleap         | 365                  |  false                |
-   +----------------+----------------------+-----------------------+
-   | gregorian      | 365                  |  true                 |
-   +----------------+----------------------+-----------------------+
-   | 360-day        | 360                  |  false                |
-   +----------------+----------------------+-----------------------+
+   +----------------------+----------------------+------------+
+   | ``days_per_year``    |  ``use_leap_years``  | calendar   |
+   +======================+======================+============+
+   | 365                  |  false               | noleap     |
+   +----------------------+----------------------+------------+
+   | 365                  |  true                | gregorian  |
+   +----------------------+----------------------+------------+
+   | 360                  |  false               | 360-day    |
+   +----------------------+----------------------+------------+
 
 
 The history (:ref:`history`) and restart (:ref:`restartfiles`) 
@@ -723,6 +722,31 @@ Manually editing the rpointer file in the middle of a run will reset
 the restart filename, and this makes it possible to relatively easily
 backup a run to rerun.
 
+Table :ref:`tab-ic` shows ``runtype``, ``ice_ic``, and ``use_restart_time``
+nnamelist combinations for initializing
+the model.  If namelist defines the start date, it's done with
+``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
+
+.. _tab-ic:
+
+.. table:: Ice Initialization
+
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | ``runtype``    | ``ice_ic``               | ``use_restart_time``                 | Note                                   |
+   +================+==========================+======================================+========================================+
+   | `initial`      | `none`                   | not used                             | no ice, namelist defines start date    |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `initial`      | `default`                | not used                             | latitude dependent internal ic,        |
+   |                |                          |                                      | namelist defines start date            |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `initial`      | *filename*               | false                                | read file, namelist defines start date |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `initial`      | *filename*               | true                                 | read file, file defines start date     |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `continue`     | not used                 | not used                             | rpointer define restart file,          |
+   |                |                          |                                      | restart file defines start date        |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+
 An additional namelist option, ``restart_ext`` specifies whether halo cells
 are included in the restart files. This option is useful for tripole and
 regional grids, but can not be used with PIO.
@@ -740,30 +764,6 @@ routines in **ice\_forcing.F90** read and interpolate data from files,
 and are intended merely to provide guidance for the user to write his or
 her own routines. Whether the code is to be run in stand-alone or
 coupled mode is determined at compile time, as described below.
-
-Table :ref:`tab-ic` shows namelist combinations for initializing
-the model.  If namelist defines the start date, it's done with
-``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
-
-.. _tab-ic:
-
-.. table:: Ice Ininitialization
-
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | ``runtype``    | ``ice_ic``               | ``use_restart_time``                 | Note                                   |
-   +================+==========================+======================================+========================================+
-   | `initial`      | `none`                   | not used                             | no ice, namelist defines start date    |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `initial`      | `default`                | not used                             | latitude dependent internal ic,        |
-   |                |                          |                                      | namelist defines start date            |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `initial`      | *filename*               | false                                | read file, namelist defines start date |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `initial`      | *filename*               | true                                 | read file, file defines start date     |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `continue`     | not used                 | not used                             | rpointer define restart file,          |
-   |                |                          |                                      | restart file defines start date        |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
 
 .. _parameters:
 
