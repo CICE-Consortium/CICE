@@ -575,10 +575,10 @@ The namelist variable ``use_restart_time`` specifies whether to
 use the time and step numbers saved on a restart file or whether
 to set the initial model time to the namelist values defined by
 ``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
-Normally, ``use_restart_time`` is set to false on the initial run
-and then set to true on subsequent restart runs of the same
-case to allow time to advance thereafter.  More information about 
-the restart capability can be found in :ref:`restartfiles`.
+Normally, ``use_restart_time`` is set to false on the initial run.
+In continue mode, use_restart_time is ignored and the restart
+date is always used to initialize the model run.
+More information about the restart capability can be found in :ref:`restartfiles`.
 
 Several different calendars are supported including noleap (365 days
 per year), 360-day (twelve 30 day months per year), and gregorian
@@ -593,7 +593,8 @@ namelist, and the following combinations are supported,
 .. table:: Supported Calendar Options
 
    +----------------+----------------------+-----------------------+
-   | calendar       | days_per_year        |  use_leap_years       |
+   | calendar       | ``days_per_year``    |  ``use_leap_years``   |
+   |                | namelist setting     |  namelist setting     |
    +================+======================+=======================+
    | noleap         | 365                  |  false                |
    +----------------+----------------------+-----------------------+
@@ -607,14 +608,17 @@ The history (:ref:`history`) and restart (:ref:`restartfiles`)
 outputs and frequencies are specified in namelist and
 are computed relative to a reference date defined by the namelist
 ``histfreq_base`` and ``dumpfreq_base``.  Valid values for each are 
-``zero`` and ``init``.  If set to ``zero``, all output will be relative 
-to the absolute reference date, 0000-01-01-00000.  This is the default
+`zero` and `init`.  If set to `zero`, all output will be relative 
+to the absolute reference year-month-day date, 0000-01-01.  This is the default
 value for ``histfreq_base``, so runs with different initial
-dates will have identical output.  If set to ``init``, all frequencies
-will be relative to the model init time specified by ``year_init``,
-``month_init``, and ``day_init``.  This is the default for
+dates will have identical output.  If the ``histfreq_base`` or 
+``dumpfreq_base`` are set to `init`, all frequencies
+will be relative to the model initial date specified by ``year_init``,
+``month_init``, and ``day_init``.  ``sec_init`` plays no role
+in setting output frequencies.  `init` is the default for
 ``dumpfreq_base`` and makes it easy to generate restarts
 5 or 10 model days after startup as we often do in testing.
+
 In general, output is always
 written at the start of the year, month, day, or hour without
 any ability to shift the phase.  For instance, monthly output
@@ -684,18 +688,40 @@ layers and the ice thickness distribution defined by ``kcatbound`` = 0.
 Restart information for some tracers is also included in the netCDF restart
 files.
 
-Three namelist variables control model initialization, ``ice_ic``, ``runtype``,
-and ``restart``, as described in :ref:`tab-ic`. It is possible to do an
-initial run from a file **filename** in two ways: (1) set runtype =
-‘initial’, restart = true and ice\_ic = **filename**, or (2) runtype =
-‘continue’ and pointer\_file = **./restart/ice.restart\_file** where
-**./restart/ice.restart\_file** contains the line
-“./restart/[filename]". The first option is convenient when repeatedly
-starting from a given file when subsequent restart files have been
-written. With this arrangement, the tracer restart flags can be set to
-true or false, depending on whether the tracer restart data exist. With
-the second option, tracer restart flags are set to ‘continue’ for all
-active tracers.
+Three namelist variables generally control model initialization, ``runtype``,
+``ice_ic``, and ``use_restart_time``.  The valid values for ``runtype``
+are ``initial`` or ``continue``.  When ``runtype`` = `continue`, the
+initial condition is defined by the rpointer file, ``use_restart_time``
+is forced to true and ``ice_ic`` plays no role.  When ``runtype`` =
+`initial`, ``ice_ic`` has three options, ``none``, ``default``,
+or *filename*.  These initial states are no-ice, latitudinal dependent
+ice, and ice defined by a file respectively.  In `initial` mode,
+``use_restart_time`` should generally be set to false and the initial
+time is then defined by ``year_init``, ``month_init``, ``day_init``, 
+and ``sec_init``.  These combinations options are summarized in 
+:ref:`tab-ic`. 
+
+Restart files and initial condition files are generally the same file.
+They contain the model state from a particular instance in time.  In general,
+that state includes the physical and dynamical state as well as the
+state of optional tracers.  Reading of various tracer groups can
+be independently controlled by various restart flags.  In other
+words, a restart file can be used to initialize a new configuration
+where new tracers are used (i.e. bgc).  In that case, the physical
+state of the model will be read, but if bgc tracers don't exist on the
+restart file, they can be initialized from scratch.
+
+In ``continue`` mode, rpointer files are used to restart the model.
+In this mode, the CICE model writes out a small text (rpointer) file
+to the run directory that names the most recent restart file.   On
+restart, the model reads the rpointer file which defines the
+name of the restart file.  The model then reads that restart file.
+By having this feature, the ice namelist does not need to be constantly
+updated with the latest
+restart filename, and the model can be automatically resubmitted.
+Manually editing the rpointer file in the middle of a run will reset
+the restart filename, and this makes it possible to relatively easily
+backup a run to rerun.
 
 An additional namelist option, ``restart_ext`` specifies whether halo cells
 are included in the restart files. This option is useful for tripole and
@@ -715,25 +741,28 @@ and are intended merely to provide guidance for the user to write his or
 her own routines. Whether the code is to be run in stand-alone or
 coupled mode is determined at compile time, as described below.
 
-Table :ref:`tab-ic` shows ice initial state resulting from combinations of
-``ice_ic``, ``runtype`` and ``restart``. :math:`^a`\ If false, restart is reset to
-true. :math:`^b`\ restart is reset to false. :math:`^c`\ ice_ic is
-reset to ‘none.’
+Table :ref:`tab-ic` shows namelist combinations for initializing
+the model.  If namelist defines the start date, it's done with
+``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
 
 .. _tab-ic:
 
-.. table:: Ice Initial State
+.. table:: Ice Ininitialization
 
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | ice\_ic        |                          |                                      |                                        |
+   | ``runtype``    | ``ice_ic``               | ``use_restart_time``                 | Note                                   |
    +================+==========================+======================================+========================================+
-   |                | initial/false            | initial/true                         | continue/true (or false\ :math:`^a`)   |
+   | `initial`      | `none`                   | not used                             | no ice, namelist defines start date    |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | none           | no ice                   | no ice\ :math:`^b`                   | restart using **pointer\_file**        |
+   | `initial`      | `default`                | not used                             | latitude dependent internal ic,        |
+   |                |                          |                                      | namelist defines start date            |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | default        | SST/latitude dependent   | SST/latitude dependent\ :math:`^b`   | restart using **pointer\_file**        |
+   | `initial`      | *filename*               | false                                | read file, namelist defines start date |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | **filename**   | no ice\ :math:`^c`       | start from **filename**              | restart using **pointer\_file**        |
+   | `initial`      | *filename*               | true                                 | read file, file defines start date     |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `continue`     | not used                 | not used                             | rpointer define restart file,          |
+   |                |                          |                                      | restart file defines start date        |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
 
 .. _parameters:
@@ -1095,9 +1124,9 @@ Additional namelist flags provide further control of restart behavior.
 ``dump_last`` = true causes a set of restart files to be written at the end
 of a run when it is otherwise not scheduled to occur. The flag
 ``use_restart_time`` enables the user to choose to use the model date
-provided in the restart files. If ``use_restart_time`` = false then the
+provided in the restart files for initial runs.  If ``use_restart_time`` = false then the
 initial model date stamp is determined from the namelist parameters,
-``year_init``, ``month_init``, ``day_init``, and ``sec_init``..
+``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
 lcdf64 = true sets 64-bit netCDF output, allowing larger file sizes.
 
 Routines for gathering, scattering and (unformatted) reading and writing
@@ -1109,14 +1138,7 @@ restarts on the various tripole grids. They are accessed by setting
 available when using PIO; in this case extra halo update calls fill
 ghost cells for tripole grids (do not use PIO for regional grids).
 
-Two netCDF restart files are available for the CICE v5 and v6 code distributions 
+Restart files are available for the CICE code distributions 
 for the gx3 and gx1 grids (see :ref:`force` for information about obtaining these files).
-They were created using the default v5 model
-configuration, but
-initialized with no ice. The gx3 case was run for 1 year using the 1997
-forcing data provided with the code. The gx1 case was run for 20 years,
-so that the date of restart in the file is 1978-01-01. Note that the
-restart dates provided in the restart files can be overridden using the
-namelist variables ``use_restart_time``, ``year_init``, ``month_init``,
-``day_init``, and ``sec_init``. The
-forcing time can also be overridden using ``fyear_init``.
+They were created using the default model
+configuration and run for multiple years using the JRA55 forcing.

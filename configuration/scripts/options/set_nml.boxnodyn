@@ -1,6 +1,5 @@
 nilyr =	1
 ice_ic = 'default'
-restart = .false.
 days_per_year = 360
 use_leap_years = .false.
 npt            = 72

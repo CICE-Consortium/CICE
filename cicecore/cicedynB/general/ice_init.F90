@@ -40,7 +40,7 @@
          ice_ic      ! method of ice cover initialization
                      ! 'default'  => latitude and sst dependent
                      ! 'none'     => no ice
-                     ! note:  restart = .true. overwrites
+                     ! filename   => read file
 
       public :: input_data, init_state, set_state_var
 
@@ -453,7 +453,7 @@
 #ifndef CESMCOUPLED
       runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
       runtype = 'initial'   ! run type: 'initial', 'continue'
-      restart = .false.      ! if true, read restart files for initialization
+      restart = .false.      ! if true, read ice state from restart file
       use_restart_time = .true.   ! if true, use time info written in file
 #endif
 
@@ -845,42 +845,40 @@
          write(nu_diag,*) ' '
       endif
 
-      if (trim(runtype) == 'continue' .and. .not.restart) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: runtype=continue, setting restart=.true.'
-         restart = .true.
-      endif
-
-      if (trim(runtype) /= 'continue' .and. restart .and. &
-         (ice_ic == 'none' .or. ice_ic == 'default')) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: runtype ne continue and ice_ic=none|default, setting restart=.false.'
-         restart = .false.
-      endif
-
-      if (trim(runtype) /= 'continue' .and. (ice_ic == 'none' .or. ice_ic == 'default')) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: ice_ic = none or default, setting restart flags to .false.'
-         restart = .false.
-         restart_iso =  .false. 
-         restart_aero =  .false. 
-         restart_fsd =  .false. 
-         restart_age =  .false. 
-         restart_fy =  .false. 
-         restart_lvl =  .false. 
-         restart_pond_cesm =  .false. 
-         restart_pond_lvl =  .false. 
-         restart_pond_topo =  .false. 
-! tcraig, OK to leave as true, needed for boxrestore case
-!         restart_ext =  .false. 
-      endif
-
-      if (trim(runtype) == 'initial' .and. .not.(restart) .and. &
-          ice_ic /= 'none' .and. ice_ic /= 'default') then
+      if (trim(runtype) == 'continue') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: runtype, restart, ice_ic are inconsistent:'
-            write(nu_diag,*) subname//' ERROR:   runtype=',trim(runtype), ' restart=',restart, ' ice_ic=',trim(ice_ic)
-            write(nu_diag,*) subname//' ERROR:   Please review user guide'
+            write(nu_diag,*) subname//' NOTE: runtype=continue, setting restart=.true.'
+            if (.not. use_restart_time) &
+               write(nu_diag,*) subname//' NOTE: runtype=continue, setting use_restart_time=.true.'
+         endif
+         restart = .true.
+         use_restart_time = .true.
+      elseif (trim(runtype) == 'initial') then
+         if (ice_ic == 'none' .or. ice_ic == 'default') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' NOTE: ice_ic = none or default, setting restart flags to .false.'
+               if (.not. use_restart_time) &
+                  write(nu_diag,*) subname//' NOTE: ice_ic = none or default, setting use_restart_time=.false.'
+            endif
+            use_restart_time = .false.
+            restart = .false.
+            restart_iso =  .false.
+            restart_aero =  .false.
+            restart_fsd =  .false.
+            restart_age =  .false.
+            restart_fy =  .false.
+            restart_lvl =  .false.
+            restart_pond_cesm =  .false.
+            restart_pond_lvl =  .false.
+            restart_pond_topo =  .false.
+! tcraig, OK to leave as true, needed for boxrestore case
+!            restart_ext =  .false.
+         else
+            restart = .true.
+         endif
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: runtype unknown = ',trim(runtype)
          endif
          abort_list = trim(abort_list)//":1"
       endif
@@ -1698,6 +1696,7 @@
          write(nu_diag,1021) ' dumpfreq_n       = ', dumpfreq_n
          write(nu_diag,1031) ' dumpfreq_base    = ', trim(dumpfreq_base)
          write(nu_diag,1011) ' dump_last        = ', dump_last
+         write(nu_diag,1031) ' NOTE: restart namelist is ignored, now set internally'
          write(nu_diag,1011) ' restart          = ', restart
          write(nu_diag,1031) ' restart_dir      = ', trim(restart_dir)
          write(nu_diag,1011) ' restart_ext      = ', restart_ext

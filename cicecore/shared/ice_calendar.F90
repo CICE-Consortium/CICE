@@ -51,6 +51,7 @@
 
       ! private functions
       private :: set_calendar          ! sets model calendar type (noleap, etc)
+      private :: compute_relative_elapsed ! compute relative elapsed years, months, days, hours
 
       ! PUBLIC
 
@@ -136,7 +137,7 @@
          hour         ! hour of the day
 
       integer (kind=int_kind), parameter :: &
-         myear_max = 200000           ! maximum year, limited by integer overflow in elapsed_horus
+         myear_max = 200000           ! maximum year, limited by integer overflow in elapsed_hours
 
       ! 360-day year data
       integer (kind=int_kind) :: &
@@ -352,10 +353,10 @@
       integer (kind=int_kind) :: &
          ns                         , & ! loop index
          yearp,monthp,dayp,hourp    , & ! previous year, month, day, hour
-         elapsed_years              , & ! since beginning of time
-         elapsed_months             , & ! since beginning of time
-         elapsed_days               , & ! since beginning of time
-         elapsed_hours                  ! since beginning of time
+         elapsed_years              , & ! relative elapsed years
+         elapsed_months             , & ! relative elapsed months
+         elapsed_days               , & ! relative elapsed days
+         elapsed_hours                  ! relative elapsed hours
       character(len=*),parameter :: subname='(calendar)'
 
       yearp=myear
@@ -396,27 +397,7 @@
 
       ! History writing flags
 
-      if (histfreq_base == 'zero') then
-         elapsed_years = myear
-         elapsed_months =  elapsed_years * months_per_year + mmonth - 1
-         elapsed_days = compute_days_between(0,1,1,myear,mmonth,mday)
-         elapsed_hours = elapsed_days * hours_per_day + hour
-      elseif (histfreq_base == 'init') then
-         elapsed_years = myear - year_init
-         elapsed_months =  elapsed_years * months_per_year + (mmonth - month_init)
-         elapsed_days = compute_days_between(year_init,month_init,day_init,myear,mmonth,mday)
-         elapsed_hours = elapsed_days * hours_per_day + hour
-      else
-         write(nu_diag,*) trim(subname),' ERROR histfreq_base not recognized, ',trim(histfreq_base)
-         call abort_ice(subname//'ERROR: histfreq_base value invalid')
-      endif
-
-!      if (my_task == master_task) then
-!         write(nu_diag,*) subname,' helap_y',elapsed_years
-!         write(nu_diag,*) subname,' helap_m',elapsed_months
-!         write(nu_diag,*) subname,' helap_d',elapsed_days
-!         write(nu_diag,*) subname,' helap_h',elapsed_hours
-!      endif
+      call compute_relative_elapsed(histfreq_base, elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
 
       do ns = 1, nstreams
 
@@ -452,27 +433,7 @@
 
       ! Restart writing flag
 
-      if (dumpfreq_base == 'zero') then
-         elapsed_years = myear
-         elapsed_months =  elapsed_years * months_per_year + mmonth - 1
-         elapsed_days = compute_days_between(0,1,1,myear,mmonth,mday)
-         elapsed_hours = elapsed_days * hours_per_day + hour
-      elseif (dumpfreq_base == 'init') then
-         elapsed_years = myear - year_init
-         elapsed_months =  elapsed_years * months_per_year + (mmonth - month_init)
-         elapsed_days = compute_days_between(year_init,month_init,day_init,myear,mmonth,mday)
-         elapsed_hours = elapsed_days * hours_per_day + hour
-      else
-         write(nu_diag,*) trim(subname),' ERROR dumpfreq_base not recognized, ',trim(dumpfreq_base)
-         call abort_ice(subname//'ERROR: dumpfreq_base value invalid')
-      endif
-
-!      if (my_task == master_task) then
-!         write(nu_diag,*) subname,' delap_y',elapsed_years
-!         write(nu_diag,*) subname,' delap_m',elapsed_months
-!         write(nu_diag,*) subname,' delap_d',elapsed_days
-!         write(nu_diag,*) subname,' delap_h',elapsed_hours
-!      endif
+      call compute_relative_elapsed(dumpfreq_base, elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
 
       select case (dumpfreq)
       case ("y", "Y")
@@ -986,6 +947,41 @@
       asec = tsec
 
       end subroutine calendar_time2date
+
+!=======================================================================
+! Compute relative elapsed years, months, days, hours from base time
+
+      subroutine compute_relative_elapsed(base, ey, em, ed, eh)
+
+      character(len=*), intent(in) :: base
+      integer(kind=int_kind), intent(out) :: &
+        ey, em, ed, eh            ! relative elapsed year, month, day, hour
+
+      character(len=*),parameter :: subname='(compute_relative_elapsed)'
+
+      if (base == 'zero') then
+         ey = myear
+         em = ey * months_per_year + mmonth - 1
+         ed = compute_days_between(0,1,1,myear,mmonth,mday)
+         eh = ed * hours_per_day + hour
+      elseif (base == 'init') then
+         ey = myear - year_init
+         em = ey * months_per_year + (mmonth - month_init)
+         ed = compute_days_between(year_init,month_init,day_init,myear,mmonth,mday)
+         eh = ed * hours_per_day + hour
+      else
+         write(nu_diag,*) trim(subname),' ERROR base not recognized, ',trim(base)
+         call abort_ice(subname//'ERROR: base value invalid')
+      endif
+
+!      if (my_task == master_task) then
+!         write(nu_diag,*) subname,' ey',ey
+!         write(nu_diag,*) subname,' em',em
+!         write(nu_diag,*) subname,' ed',ed
+!         write(nu_diag,*) subname,' eh',eh
+!      endif
+
+       end subroutine compute_relative_elapsed
 
 !=======================================================================
 

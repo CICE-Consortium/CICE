@@ -6,9 +6,8 @@ Index of primary variables and parameters
 ==========================================
 
 This index defines many of the symbols used frequently in the CICE model
-code. Values appearing in this list are fixed or recommended; most
-namelist parameters are indicated ( :math:`E_\circ`) with their default
-values. For other namelist options, see Section :ref:`tabnamelist`. All
+code.  Namelist variables are partly included here but also documented
+elsewhere, see Section :ref:`tabnamelist`. All
 quantities in the code are expressed in MKS units (temperatures may take
 either Celsius or Kelvin units).  
 
@@ -536,7 +535,7 @@ either Celsius or Kelvin units).
    "real_kind", "definition of single precision real", "selected_real_kind(6)"
    "refindx", "refractive index of sea ice", "1.310"
    "revp", "real(revised_evp)", ""
-   "restart", "if true, initialize using restart file instead of defaults", "T"
+   "restart", "if true, initialize ice state from file", "T"
    "restart_age", "if true, read age restart file", ""
    "restart_bgc", "if true, read bgc restart file", ""
    "restart_dir", "path to restart/dump files", ""
