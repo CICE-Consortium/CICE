@@ -1170,7 +1170,6 @@
 
       end subroutine latlongrid
 #endif
-
 !=======================================================================
 
 ! Regular rectangular grid and mask
