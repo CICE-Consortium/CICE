@@ -847,18 +847,20 @@
 
       if (trim(runtype) == 'continue') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' NOTE: runtype=continue, setting restart=.true.'
+            write(nu_diag,*) subname//'NOTE: runtype=continue, setting restart=.true.'
             if (.not. use_restart_time) &
-               write(nu_diag,*) subname//' NOTE: runtype=continue, setting use_restart_time=.true.'
+               write(nu_diag,*) subname//'NOTE: runtype=continue, setting use_restart_time=.true.'
+            write(nu_diag,*) ' '
          endif
          restart = .true.
          use_restart_time = .true.
       elseif (trim(runtype) == 'initial') then
          if (ice_ic == 'none' .or. ice_ic == 'default') then
             if (my_task == master_task) then
-               write(nu_diag,*) subname//' NOTE: ice_ic = none or default, setting restart flags to .false.'
+               write(nu_diag,*) subname//'NOTE: ice_ic = none or default, setting restart flags to .false.'
                if (.not. use_restart_time) &
-                  write(nu_diag,*) subname//' NOTE: ice_ic = none or default, setting use_restart_time=.false.'
+                  write(nu_diag,*) subname//'NOTE: ice_ic = none or default, setting use_restart_time=.false.'
+               write(nu_diag,*) ' '
             endif
             use_restart_time = .false.
             restart = .false.
@@ -874,6 +876,10 @@
 ! tcraig, OK to leave as true, needed for boxrestore case
 !            restart_ext =  .false.
          else
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'NOTE: ice_ic /= none or default, setting restart=.true.'
+               write(nu_diag,*) ' '
+            endif
             restart = .true.
          endif
       else
@@ -1696,7 +1702,6 @@
          write(nu_diag,1021) ' dumpfreq_n       = ', dumpfreq_n
          write(nu_diag,1031) ' dumpfreq_base    = ', trim(dumpfreq_base)
          write(nu_diag,1011) ' dump_last        = ', dump_last
-         write(nu_diag,1031) ' NOTE: restart namelist is ignored, now set internally'
          write(nu_diag,1011) ' restart          = ', restart
          write(nu_diag,1031) ' restart_dir      = ', trim(restart_dir)
          write(nu_diag,1011) ' restart_ext      = ', restart_ext

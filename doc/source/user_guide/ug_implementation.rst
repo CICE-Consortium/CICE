@@ -690,7 +690,7 @@ files.
 Three namelist variables generally control model initialization, ``runtype``,
 ``ice_ic``, and ``use_restart_time``.  The valid values for ``runtype``
 are ``initial`` or ``continue``.  When ``runtype`` = `continue`, the
-initial condition is defined by the rpointer file, ``use_restart_time``
+restart filename is stored in a small text (pointer) file, ``use_restart_time``
 is forced to true and ``ice_ic`` plays no role.  When ``runtype`` =
 `initial`, ``ice_ic`` has three options, ``none``, ``default``,
 or *filename*.  These initial states are no-ice, latitudinal dependent
@@ -700,7 +700,8 @@ time is then defined by ``year_init``, ``month_init``, ``day_init``,
 and ``sec_init``.  These combinations options are summarized in 
 :ref:`tab-ic`. 
 
-Restart files and initial condition files are generally the same file.
+Restart files and initial condition files are generally the same format and
+can be the same files.
 They contain the model state from a particular instance in time.  In general,
 that state includes the physical and dynamical state as well as the
 state of optional tracers.  Reading of various tracer groups can
@@ -710,20 +711,19 @@ where new tracers are used (i.e. bgc).  In that case, the physical
 state of the model will be read, but if bgc tracers don't exist on the
 restart file, they can be initialized from scratch.
 
-In ``continue`` mode, rpointer files are used to restart the model.
-In this mode, the CICE model writes out a small text (rpointer) file
+In ``continue`` mode, a pointer file is used to restart the model.
+In this mode, the CICE model writes out a small text (pointer) file
 to the run directory that names the most recent restart file.   On
-restart, the model reads the rpointer file which defines the
+restart, the model reads the pointer file which defines the
 name of the restart file.  The model then reads that restart file.
 By having this feature, the ice namelist does not need to be constantly
 updated with the latest
 restart filename, and the model can be automatically resubmitted.
-Manually editing the rpointer file in the middle of a run will reset
-the restart filename, and this makes it possible to relatively easily
-backup a run to rerun.
+Manually editing the pointer file in the middle of a run will reset
+the restart filename and allow the run to continue.
 
 Table :ref:`tab-ic` shows ``runtype``, ``ice_ic``, and ``use_restart_time``
-nnamelist combinations for initializing
+namelist combinations for initializing
 the model.  If namelist defines the start date, it's done with
 ``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
 
@@ -734,16 +734,19 @@ the model.  If namelist defines the start date, it's done with
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
    | ``runtype``    | ``ice_ic``               | ``use_restart_time``                 | Note                                   |
    +================+==========================+======================================+========================================+
-   | `initial`      | `none`                   | not used                             | no ice, namelist defines start date    |
+   | `initial`      | `none`                   | not used                             | no ice,                                |
+   |                |                          |                                      | namelist defines start date            |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
    | `initial`      | `default`                | not used                             | latitude dependent internal ic,        |
    |                |                          |                                      | namelist defines start date            |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `initial`      | *filename*               | false                                | read file, namelist defines start date |
+   | `initial`      | *filename*               | false                                | read ice state from filename,          |
+   |                |                          |                                      | namelist defines start date            |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `initial`      | *filename*               | true                                 | read file, file defines start date     |
+   | `initial`      | *filename*               | true                                 | read ice state from filename,          |
+   |                |                          |                                      | restart file defines start date        |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `continue`     | not used                 | not used                             | rpointer define restart file,          |
+   | `continue`     | not used                 | not used                             | pointer define restart file,           |
    |                |                          |                                      | restart file defines start date        |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
 
