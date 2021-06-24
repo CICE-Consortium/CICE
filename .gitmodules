@@ -1,3 +1,4 @@
 [submodule "icepack"]
 	path = icepack
-	url = https://github.com/NOAA-EMC/Icepack
+	#url = https://github.com/NOAA-EMC/Icepack
+	url = https://github.com/DeniseWorthen/Icepack
