@@ -13,7 +13,7 @@
     runtype        = 'initial'
     ice_ic         = './restart/iced_gx3_v5.nc'
     restart_ext    = .false.
-    use_restart_time = .true.
+    use_restart_time = .false.
     restart_format = 'default'
     lcdf64         = .false.
     numin          = 21

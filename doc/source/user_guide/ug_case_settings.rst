@@ -215,7 +215,7 @@ setup_nml
    "", "``initial``", "start from ``ice_ic``", ""
    "``sec_init``", "integer", "the initial second if not using restart", "0"
    "``use_leap_years``", "logical", "include leap days", "``.false.``"
-   "``use_restart_time``", "logical", "set initial date using restart file on initial runtype only", "``.true.``"
+   "``use_restart_time``", "logical", "set initial date using restart file on initial runtype only", "``.false.``"
    "``version_name``", "string", "model version", "'unknown_version_name'"
    "``write_ic``", "logical", "write initial condition", "``.false.``"
    "``year_init``", "integer", "the initial year if not using restart", "0"

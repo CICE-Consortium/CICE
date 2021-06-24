@@ -454,7 +454,7 @@
       runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
       runtype = 'initial'   ! run type: 'initial', 'continue'
       restart = .false.      ! if true, read ice state from restart file
-      use_restart_time = .true.   ! if true, use time info written in file
+      use_restart_time = .false.   ! if true, use time info written in file
 #endif
 
       ! extra tracers

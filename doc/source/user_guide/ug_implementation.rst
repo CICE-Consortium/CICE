@@ -746,7 +746,7 @@ the model.  If namelist defines the start date, it's done with
    | `initial`      | *filename*               | true                                 | read ice state from filename,          |
    |                |                          |                                      | restart file defines start date        |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `continue`     | not used                 | not used                             | pointer define restart file,           |
+   | `continue`     | not used                 | not used                             | pointer file defines restart file,     |
    |                |                          |                                      | restart file defines start date        |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
 
