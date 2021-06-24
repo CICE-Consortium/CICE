@@ -1,6 +1,9 @@
 
       program calchk
 
+      ! This tests the CICE calendar by calling it directly from this driver
+      ! and verifies results from hardwired inputs with known outputs
+
       use ice_kinds_mod, only: int_kind, dbl_kind
       use ice_calendar, only: myear, mmonth, mday, msec
       use ice_calendar, only: year_init, month_init, day_init, sec_init

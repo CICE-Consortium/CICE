@@ -7,7 +7,7 @@
 !          William H. Lipscomb, LANL
 !
 ! 2006 ECH: moved exit timeLoop to prevent execution of unnecessary timestep
-! 2006 ECH: Streamlined for efficiency
+! 2006 ECH: Streamlined for efficiency 
 ! 2006 ECH: Converted to free source form (F90)
 ! 2007 BPB: Modified Delta-Eddington shortwave interface
 ! 2008 ECH: moved ESMF code to its own driver
@@ -15,14 +15,13 @@
       module CICE_RunMod
 
       use ice_kinds_mod
-      use cice_wrapper_mod, only : t_startf, t_stopf, t_barrierf
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: oceanmixed_ice
       use ice_constants, only: c0, c1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_max_iso, icepack_max_aero
+      use icepack_intfc, only: icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
 
@@ -44,16 +43,17 @@
 
       subroutine CICE_Run
 
-      use ice_calendar, only: istep, istep1, dt, calendar, advance_timestep
+      use ice_calendar, only: stop_now, advance_timestep
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
-      use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          fiso_default, faero_default
+      use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, & 
+          faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_couple, timer_step
       logical (kind=log_kind) :: &
-          tr_iso, tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
+          tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
+      
       character(len=*), parameter :: subname = '(CICE_Run)'
 
    !--------------------------------------------------------------------
@@ -65,36 +65,60 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
                                     z_tracers_out=z_tracers, &
                                     wave_spec_out=wave_spec)
-      call icepack_query_tracer_flags(tr_iso_out=tr_iso, &
-                                      tr_aero_out=tr_aero, &
+      call icepack_query_tracer_flags(tr_aero_out=tr_aero, &
                                       tr_zaero_out=tr_zaero, &
                                       tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+#ifndef CICE_IN_NEMO
    !--------------------------------------------------------------------
    ! timestep loop
    !--------------------------------------------------------------------
 
-      call ice_timer_start(timer_couple)  ! atm/ocn coupling
+      timeLoop: do
+#endif
 
-     call advance_timestep()  ! advance timestep and update calendar data
+         call ice_step
 
-      if (z_tracers) call get_atm_bgc                   ! biogeochemistry
+         call advance_timestep()     ! advance time
 
-      call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
-      call init_flux_ocn  ! initialize ocean fluxes sent to coupler
+#ifndef CICE_IN_NEMO
+         if (stop_now >= 1) exit timeLoop
+#endif
 
-      call ice_timer_stop(timer_couple)    ! atm/ocn coupling
+         call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-      call ice_step
+! standalone
+! for now, wave_spectrum is constant in time
+!         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+!         call get_forcing_atmo     ! atmospheric forcing from data
+!         call get_forcing_ocn(dt)  ! ocean forcing from data
+
+!         ! aerosols
+!         ! if (tr_aero)  call faero_data                   ! data file
+!         ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
+!         if (tr_aero .or. tr_zaero)  call faero_default    ! default values
+
+!         if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
+
+         if (z_tracers) call get_atm_bgc                   ! biogeochemistry
+
+         call init_flux_atm     ! initialize atmosphere fluxes sent to coupler
+         call init_flux_ocn     ! initialize ocean fluxes sent to coupler
+
+         call ice_timer_stop(timer_couple)    ! atm/ocn coupling
+
+#ifndef CICE_IN_NEMO
+      enddo timeLoop
+#endif
 
    !--------------------------------------------------------------------
    ! end of timestep loop
    !--------------------------------------------------------------------
 
-      call ice_timer_stop(timer_step)   ! end timestepping loop timer
+      call ice_timer_stop(timer_step)   ! end timestepping loop timer     
 
       end subroutine CICE_Run
 
@@ -109,12 +133,12 @@
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
-      use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
+      use ice_domain_size, only: nslyr
       use ice_dyn_eap, only: write_restart_eap
-      use ice_dyn_shared, only: kdyn, kridge
+      use ice_dyn_shared, only: kdyn
       use ice_flux, only: scale_factor, init_history_therm, &
           daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
       use ice_history, only: accum_hist
@@ -123,20 +147,19 @@
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
           write_restart_lvl, write_restart_pond_cesm, write_restart_pond_lvl, &
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
-          write_restart_iso, write_restart_bgc, write_restart_hbrine
+          write_restart_bgc, write_restart_hbrine
       use ice_restart_driver, only: dumpfile
       use ice_restoring, only: restore_ice, ice_HaloRestore
+      use ice_state, only: trcrn
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
           biogeochemistry, save_init, step_dyn_wave
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
           timer_hist, timer_readwrite
-      use ice_communicate, only: MPI_COMM_ICE
-      use ice_prescribed_mod
 
       integer (kind=int_kind) :: &
-         iblk        , & ! block index
+         iblk        , & ! block index 
          k           , & ! dynamics supercycling index
          ktherm          ! thermodynamics is off when ktherm = -1
 
@@ -145,7 +168,7 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, &
-          tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
+          tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero, &
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
@@ -156,10 +179,17 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
-           tr_iso_out=tr_iso, tr_fsd_out=tr_fsd)
+           tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+#ifdef ICE_DA
+       !---------------------------------------------------------------
+       ! Update CICE state variables using data assimilation increments
+       !---------------------------------------------------------------
+        call da_state_update
+#endif
 
       !-----------------------------------------------------------------
       ! restoring on grid boundaries
@@ -177,19 +207,10 @@
          call init_history_bgc
          call ice_timer_stop(timer_diags)   ! diagnostics/history
 
-#ifdef CESMCOUPLED
-         if (prescribed_ice) then  ! read prescribed ice
-            call t_barrierf('cice_run_presc_BARRIER',MPI_COMM_ICE)
-            call t_startf ('cice_run_presc')
-            call ice_prescribed_run(idate, msec)
-            call t_stopf ('cice_run_presc')
-         endif
-#endif
-
-         call save_init
-
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
+
+         call save_init
 
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
@@ -197,7 +218,7 @@
             if (ktherm >= 0) then
 
       !-----------------------------------------------------------------
-      ! scale radiation fields
+      ! Scale radiation fields
       !-----------------------------------------------------------------
 
                if (calc_Tsfc) call prep_radiation (iblk)
@@ -208,10 +229,9 @@
             
                call step_therm1     (dt, iblk) ! vertical thermodynamics
                call biogeochemistry (dt, iblk) ! biogeochemistry
-               if (.not.prescribed_ice) &
-                  call step_therm2  (dt, iblk) ! ice thickness distribution thermo
+               call step_therm2     (dt, iblk) ! ice thickness distribution thermo
 
-            endif ! ktherm > 0
+            endif
 
          enddo ! iblk
          !$OMP END PARALLEL DO
@@ -227,8 +247,6 @@
       ! dynamics, transport, ridging
       !-----------------------------------------------------------------
 
-         if (.not.prescribed_ice) then
-
          ! wave fracture of the floe size distribution
          ! note this is called outside of the dynamics subcycling loop
          if (tr_fsd .and. wave_spec) call step_dyn_wave(dt)
@@ -241,7 +259,7 @@
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
-               if (kridge > 0) call step_dyn_ridge (dt_dyn, ndtd, iblk)
+               call step_dyn_ridge (dt_dyn, ndtd, iblk)
             enddo
             !$OMP END PARALLEL DO
 
@@ -251,8 +269,6 @@
 
          enddo
 
-         endif  ! not prescribed ice
-
       !-----------------------------------------------------------------
       ! albedo, shortwave radiation
       !-----------------------------------------------------------------
@@ -260,7 +276,6 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
-!MHRI: CHECK THIS OMP
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
@@ -310,10 +325,9 @@
             if (tr_pond_lvl)  call write_restart_pond_lvl
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_fsd)       call write_restart_fsd
-            if (tr_iso)       call write_restart_iso
             if (tr_aero)      call write_restart_aero
             if (solve_zsal .or. skl_bgc .or. z_tracers) &
-                              call write_restart_bgc
+                              call write_restart_bgc 
             if (tr_brine)     call write_restart_hbrine
             if (kdyn == 2)    call write_restart_eap
             call final_restart
@@ -338,31 +352,26 @@
       use ice_calendar, only: dt, nstreams
       use ice_domain_size, only: ncat
       use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
-          albpnd, albcnt, apeff_ai, fpond, fresh, l_mpond_fresh, &
+          albpnd, albcnt, apeff_ai, coszen, fpond, fresh, l_mpond_fresh, &
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
           fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
-          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
+          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyt, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
-          scale_fluxes, frzmlt_init, frzmlt, Uref, wind
-      use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
-          fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
-          fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
+          fsurfn_f, flatn_f, scale_fluxes, frzmlt_init, frzmlt
+      use ice_flux_bgc, only: faero_ocn, fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
       use ice_grid, only: tmask
-      use ice_state, only: aicen, aice
-      use ice_state, only: aice_init
-      use ice_flux, only: flatn_f, fsurfn_f
+      use ice_state, only: aicen, aice, aice_init
       use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
 
-      integer (kind=int_kind), intent(in) :: &
-         iblk            ! block index
+      integer (kind=int_kind), intent(in) :: & 
+         iblk            ! block index 
 
       ! local variables
 
-      integer (kind=int_kind) :: &
+      integer (kind=int_kind) :: & 
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          n           , & ! thickness category index
          i,j         , & ! horizontal indices
@@ -373,7 +382,6 @@
          this_block         ! block information for current block
 
       logical (kind=log_kind) :: &
-         skl_bgc     , & !
          calc_Tsfc       !
 
       real (kind=dbl_kind) :: &
@@ -384,10 +392,7 @@
 
       character(len=*), parameter :: subname = '(coupling_prep)'
 
-      !-----------------------------------------------------------------
-
          call icepack_query_parameters(puny_out=puny, rhofresh_out=rhofresh)
-         call icepack_query_parameters(skl_bgc_out=skl_bgc)
          call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
          call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
          call icepack_warnings_flush(nu_diag)
@@ -405,7 +410,7 @@
          enddo
          enddo
 
-         call ice_timer_start(timer_couple,iblk)   ! atm/ocn coupling
+         call ice_timer_start(timer_couple)   ! atm/ocn coupling
 
          if (oceanmixed_ice) &
          call ocean_mixed_layer (dt,iblk) ! ocean surface fluxes and sst
@@ -447,7 +452,7 @@
          do j = jlo, jhi
          do i = ilo, ihi
             if (aicen(i,j,n,iblk) > puny) then
-
+                  
             alvdf(i,j,iblk) = alvdf(i,j,iblk) &
                + alvdfn(i,j,n,iblk)*aicen(i,j,n,iblk)
             alidf(i,j,iblk) = alidf(i,j,iblk) &
@@ -472,7 +477,7 @@
                + apeffn(i,j,n,iblk)*aicen(i,j,n,iblk)
             snowfrac(i,j,iblk) = snowfrac(i,j,iblk) &       ! for history
                + snowfracn(i,j,n,iblk)*aicen(i,j,n,iblk)
-
+               
             endif ! aicen > puny
          enddo
          enddo
@@ -502,8 +507,8 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
-            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
+            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk) 
+            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)  
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr
@@ -524,15 +529,16 @@
          enddo
 
       !-----------------------------------------------------------------
-      ! Divide fluxes by ice area
+      ! Divide fluxes by ice area 
       !  - the CESM coupler assumes fluxes are per unit ice area
       !  - also needed for global budget in diagnostics
       !-----------------------------------------------------------------
 
+! RM and froy
+! Now use aice_init, more consistent, see merge_fluxes
          call scale_fluxes (nx_block,            ny_block,           &
-                            tmask    (:,:,iblk), nbtrcr,             &
-                            icepack_max_aero,                        &
-                            aice     (:,:,iblk), Tf      (:,:,iblk), &
+                            tmask    (:,:,iblk), nbtrcr, icepack_max_aero,   &
+                            aice_init(:,:,iblk), Tf      (:,:,iblk), &
                             Tair     (:,:,iblk), Qa      (:,:,iblk), &
                             strairxT (:,:,iblk), strairyT(:,:,iblk), &
                             fsens    (:,:,iblk), flat    (:,:,iblk), &
@@ -540,8 +546,7 @@
                             evap     (:,:,iblk),                     &
                             Tref     (:,:,iblk), Qref    (:,:,iblk), &
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
-                            fhocn    (:,:,iblk),                     &
-                            fswthru  (:,:,iblk),                     &
+                            fhocn    (:,:,iblk), fswthru (:,:,iblk), &
                             fswthru_vdr(:,:,iblk),                   &
                             fswthru_vdf(:,:,iblk),                   &
                             fswthru_idr(:,:,iblk),                   &
@@ -550,54 +555,35 @@
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
                             fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
-                            flux_bio (:,:,1:nbtrcr,iblk),            &
-                            Qref_iso =Qref_iso (:,:,:,iblk),         &
-                            fiso_evap=fiso_evap(:,:,:,iblk),         &
-                            fiso_ocn =fiso_ocn (:,:,:,iblk),         &
-                            Uref=Uref(:,:,iblk), wind=wind(:,:,iblk) )
+                            flux_bio(:,:,1:nbtrcr,iblk))
  
-      !-----------------------------------------------------------------
-      ! Define ice-ocean bgc fluxes
-      !-----------------------------------------------------------------
-
-         if (nbtrcr > 0 .or. skl_bgc) then
-            call bgcflux_ice_to_ocn (nx_block,       ny_block,           &
-                                  flux_bio(:,:,1:nbtrcr,iblk),            &
-                                  fnit(:,:,iblk),    fsil(:,:,iblk),      &
-                                  famm(:,:,iblk),    fdmsp(:,:,iblk),     &
-                                  fdms(:,:,iblk),    fhum(:,:,iblk),      &
-                                  fdust(:,:,iblk),   falgalN(:,:,:,iblk), &
-                                  fdoc(:,:,:,iblk),  fdic(:,:,:,iblk),    &
-                                  fdon(:,:,:,iblk),  ffep(:,:,:,iblk),    &
-                                  ffed(:,:,:,iblk))
-         endif
-
 !echmod - comment this out for efficiency, if .not. calc_Tsfc
          if (.not. calc_Tsfc) then
 
        !---------------------------------------------------------------
-       ! If surface fluxes were provided, conserve these fluxes at ice
-       ! free points by passing to ocean.
+       ! If surface fluxes were provided, conserve these fluxes at ice 
+       ! free points by passing to ocean. 
        !---------------------------------------------------------------
 
-            call sfcflux_to_ocn &
+            call sfcflux_to_ocn & 
                          (nx_block,              ny_block,             &
                           tmask   (:,:,iblk),    aice_init(:,:,iblk),  &
                           fsurfn_f (:,:,:,iblk), flatn_f(:,:,:,iblk),  &
                           fresh    (:,:,iblk),   fhocn    (:,:,iblk))
-         endif
+         endif                 
 !echmod
-         call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
+
+         call ice_timer_stop(timer_couple)   ! atm/ocn coupling
 
       end subroutine coupling_prep
 
 !=======================================================================
 !
 ! If surface heat fluxes are provided to CICE instead of CICE calculating
-! them internally (i.e. .not. calc_Tsfc), then these heat fluxes can
+! them internally (i.e. .not. calc_Tsfc), then these heat fluxes can 
 ! be provided at points which do not have ice.  (This is could be due to
 ! the heat fluxes being calculated on a lower resolution grid or the
-! heat fluxes not recalculated at every CICE timestep.)  At ice free points,
+! heat fluxes not recalculated at every CICE timestep.)  At ice free points, 
 ! conserve energy and water by passing these fluxes to the ocean.
 !
 ! author: A. McLaren, Met Office
@@ -634,11 +620,12 @@
       
       real (kind=dbl_kind)    :: &
           puny, &          !
+          Lsub, &          !
           rLsub            ! 1/Lsub
 
       character(len=*), parameter :: subname = '(sfcflux_to_ocn)'
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny, Lsub_out=Lsub)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -657,7 +644,7 @@
          enddo   ! j
       enddo      ! n
 
-#endif
+#endif 
 
       end subroutine sfcflux_to_ocn
 

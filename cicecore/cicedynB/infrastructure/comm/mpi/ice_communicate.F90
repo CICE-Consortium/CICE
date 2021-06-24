@@ -18,6 +18,7 @@
 
    public  :: init_communicate,          &
               get_num_procs,             &
+              get_rank,                  &
               ice_barrier,               &
               create_communicator
 
@@ -120,6 +121,32 @@
 !-----------------------------------------------------------------------
 
  end function get_num_procs
+
+!***********************************************************************
+
+ function get_rank()
+
+!  This function returns the number of processor assigned to
+!  MPI_COMM_ICE
+
+   integer (int_kind) :: get_rank
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: ierr
+   character(len=*), parameter :: subname = '(get_rank)'
+
+!-----------------------------------------------------------------------
+
+   call MPI_COMM_RANK(MPI_COMM_ICE, get_rank, ierr)
+
+!-----------------------------------------------------------------------
+
+ end function get_rank
 
 !***********************************************************************
 

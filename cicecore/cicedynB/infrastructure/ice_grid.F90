@@ -34,13 +34,13 @@
       use ice_exit, only: abort_ice
       use ice_global_reductions, only: global_minval, global_maxval
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_query_parameters, icepack_init_parameters
 
       implicit none
       private
       public :: init_grid1, init_grid2, &
                 t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid, alloc_grid
+                to_ugrid, to_tgrid, alloc_grid, makemask
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
@@ -246,6 +246,16 @@
 
       allocate(work_g1(nx_global,ny_global))
       allocate(work_g2(nx_global,ny_global))
+
+      ! check tripole flags here
+      ! can't check in init_data because ns_boundary_type is not yet read
+      ! can't check in init_domain_blocks because grid_type is not accessible due to circular logic
+
+      if (grid_type == 'tripole' .and. ns_boundary_type /= 'tripole' .and. &
+          ns_boundary_type /= 'tripoleT') then
+         call abort_ice(subname//'ERROR: grid_type tripole needs tripole ns_boundary_type', &
+                        file=__FILE__, line=__LINE__)
+      endif
 
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
@@ -1160,7 +1170,6 @@
 
       end subroutine latlongrid
 #endif
-
 !=======================================================================
 
 ! Regular rectangular grid and mask
@@ -2362,6 +2371,9 @@
       real (kind=dbl_kind) :: &
          puny
 
+      logical (kind=log_kind) :: &
+         calc_dragio
+
       real (kind=dbl_kind), dimension(nlevel), parameter :: &
          thick  = (/ &                        ! ocean layer thickness, m
             10.01244_dbl_kind,  10.11258_dbl_kind,  10.31682_dbl_kind, &
@@ -2381,7 +2393,7 @@
 
       character(len=*), parameter :: subname = '(get_bathymetry)'
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny, calc_dragio_out=calc_dragio)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -2408,6 +2420,14 @@
             enddo
          enddo
 
+         ! For consistency, set thickness_ocn_layer1 in Icepack if 'calc_dragio' is active
+         if (calc_dragio) then
+            call icepack_init_parameters(thickness_ocn_layer1_in=thick(1))
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+               file=__FILE__, line=__LINE__)
+         endif
+
       endif ! bathymetry_file
 
       end subroutine get_bathymetry
@@ -2430,6 +2450,9 @@
       real (kind=dbl_kind), dimension(:),allocatable :: &
          depth          , & ! total depth, m
          thick              ! layer thickness, cm -> m
+
+      logical (kind=log_kind) :: &
+         calc_dragio
 
       character(len=*), parameter :: subname = '(get_bathymetry_popfile)'
 
@@ -2499,6 +2522,15 @@
          enddo
          enddo
       enddo
+
+      ! For consistency, set thickness_ocn_layer1 in Icepack if 'calc_dragio' is active
+      call icepack_query_parameters(calc_dragio_out=calc_dragio)
+      if (calc_dragio) then
+         call icepack_init_parameters(thickness_ocn_layer1_in=thick(1))
+      endif
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       deallocate(depth,thick)
 

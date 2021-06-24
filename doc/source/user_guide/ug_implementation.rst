@@ -916,15 +916,28 @@ output is written to a log file. The log file unit to which diagnostic
 output is written is set in **ice\_fileunits.F90**. If ``diag_type`` =
 ‘stdout’, then it is written to standard out (or to **ice.log.[ID]** if
 you redirect standard out as in **cice.run**); otherwise it is written
-to the file given by ``diag_file``. In addition to the standard diagnostic
+to the file given by ``diag_file``. 
+
+In addition to the standard diagnostic
 output (maximum area-averaged thickness, velocity, average albedo, total
 ice area, and total ice and snow volumes), the namelist options
 ``print_points`` and ``print_global`` cause additional diagnostic information
 to be computed and written. ``print_global`` outputs global sums that are
 useful for checking global conservation of mass and energy.
-``print_points`` writes data for two specific grid points. Currently, one
+``print_points`` writes data for two specific grid points defined by the
+input namelist ``lonpnt`` and ``latpnt``. By default, one
 point is near the North Pole and the other is in the Weddell Sea; these
-may be changed in **ice\_in**.
+may be changed in **ice\_in**.  
+
+The namelist ``debug_model`` prints detailed
+debug diagnostics for a single point as the model advances.  The point is defined
+by the namelist ``debug_model_i``, ``debug_model_j``, ``debug_model_iblk``,
+and ``debug_model_task``.  These are the local i, j, block, and mpi task index values
+of the point to be diagnosed.  This point is defined in local index space
+and can be values in the array halo.  If the local point is not defined in
+namelist, the point associated with ``lonpnt(1)`` and ``latpnt(1)`` is used.
+``debug_model`` is normally used when the model aborts and needs to be debugged
+in detail at a particular (usually failing) grid point.
 
 Timers are declared and initialized in **ice\_timers.F90**, and the code
 to be timed is wrapped with calls to *ice\_timer\_start* and
