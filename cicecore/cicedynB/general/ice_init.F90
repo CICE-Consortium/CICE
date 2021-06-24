@@ -128,7 +128,7 @@
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
-        sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf
+        sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf, iceruf_ocn
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound, ktransport
@@ -137,7 +137,7 @@
         tfrz_option, frzpnd, atmbndy, wave_spec_type
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-                                 sw_redist
+                                 sw_redist, calc_dragio
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd
@@ -229,8 +229,8 @@
 
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
-        highfreq,       natmiter,        atmiter_conv,                  &
-        ustar_min,      emissivity,      iceruf,                        &
+        highfreq,       natmiter,        atmiter_conv,  calc_dragio,    &
+        ustar_min,      emissivity,      iceruf,        iceruf_ocn,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
@@ -387,6 +387,8 @@
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
       iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
+      iceruf_ocn = 0.03_dbl_kind ! under-ice roughness (m)
+      calc_dragio = .false.  ! compute dragio from iceruf_ocn and thickness of first ocean level
       emissivity = 0.985     ! emissivity of snow and ice
       l_mpond_fresh = .false.     ! logical switch for including meltpond freshwater
                                   ! flux feedback to ocean model
@@ -754,6 +756,8 @@
       call broadcast_scalar(l_mpond_fresh,        master_task)
       call broadcast_scalar(ustar_min,            master_task)
       call broadcast_scalar(iceruf,               master_task)
+      call broadcast_scalar(iceruf_ocn,           master_task)
+      call broadcast_scalar(calc_dragio,          master_task)
       call broadcast_scalar(emissivity,           master_task)
       call broadcast_scalar(fbot_xfer_type,       master_task)
       call broadcast_scalar(precip_units,         master_task)
@@ -1572,6 +1576,15 @@
          endif
          write(nu_diag,1030) ' fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
          write(nu_diag,1000) ' ustar_min        = ', ustar_min,' : minimum value of ocean friction velocity'
+         if (calc_dragio) then
+            tmpstr2 = ' : dragio computed from iceruf_ocn'
+         else
+            tmpstr2 = ' : dragio hard-coded'
+         endif
+         write(nu_diag,1010) ' calc_dragio   = ', calc_dragio,trim(tmpstr2)
+         if(calc_dragio) then
+            write(nu_diag,1002) ' iceruf_ocn       = ', iceruf_ocn,' : under-ice roughness length'
+         endif
 
          if (tr_fsd) then
             write(nu_diag,1002) ' floediam         = ', floediam, ' constant floe diameter'
@@ -1844,7 +1857,7 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
-         Pstar_in=Pstar, Cstar_in=Cstar, iceruf_in=iceruf, &
+         Pstar_in=Pstar, Cstar_in=Cstar, iceruf_in=iceruf, iceruf_ocn_in=iceruf_ocn, calc_dragio_in=calc_dragio, &
          sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
