@@ -3133,7 +3133,6 @@
       ! Mask out land points and convert units 
       !---------------------------------------------------------------
 
-        print *, 'min, max a3df before ',MINVAL(a3Df(:,:,:,94,:)),MAXVAL(a3Df(:,:,:,94,:))
         ravgct = c1/avgct(ns)
         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
         !$OMP                     n,nn,ravgctz,ravgip,ravgipn)
@@ -4083,7 +4082,6 @@
         enddo                   ! iblk
         !$OMP END PARALLEL DO
 
-        print *, 'min, max a3df after ',MINVAL(a3Df(:,:,:,94,:)),MAXVAL(a3Df(:,:,:,94,:))
 
         time_end(ns) = time/int(secday)
         time_end(ns) = real(time_end(ns),kind=real_kind)

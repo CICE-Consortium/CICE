@@ -469,9 +469,9 @@
       if (f_dafsd_weld(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
-      !if (f_frachist(1:1)/= 'x') &
-      !       call accum_hist_field(n_frachist-n3Dacum, iblk, nfsd_hist, &
-      !                              frachist(:,:,1:nfsd_hist,iblk), a3Df)
+      if (f_frachist(1:1)/= 'x') &
+             call accum_hist_field(n_frachist-n3Dacum, iblk, nfsd_hist, &
+                                    frachist(:,:,1:nfsd_hist,iblk), a3Df)
       endif ! a3Df allocated
 
       ! 4D floe size, thickness category fields

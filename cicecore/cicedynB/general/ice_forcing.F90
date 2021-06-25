@@ -5235,7 +5235,7 @@
 
       ! if no wave data is provided, wave_spectrum is zero everywhere
       wave_spectrum(:,:,:,:) = c0
-      wave_spec_dir = '/glade/u/home/lettier/CICE6/'
+      !wave_spec_dir = '/glade/u/home/lettier/CICE6/'
       dbug = .false.
 
       ! wave spectrum and frequencies
@@ -5323,11 +5323,16 @@
 
       character(len=64) :: fieldname !netcdf field name
       character(char_len_long) :: spec_file 
+      character(char_len) :: wave_spec_type
+      logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(wave_spec_data)'
+
+
 
       debug_n_d = .false.  !usually false
 
-      call icepack_query_parameters(secday_out=secday)
+      call icepack_query_parameters(wave_spec_out=wave_spec, &
+                                    wave_spec_type_out=wave_spec_type,secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -5337,8 +5342,10 @@
                                 wavefreq, dwavefreq)
 
 
+    if (wave_spec_type.ne.'profile') then
       wave_spec_dir = '/glade/work/lettier/WWATCH/forcing_data/'
-      spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
+      !spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
+      spec_file = trim(wave_spec_file)
       wave_spectrum_data = c0
       wave_spectrum = c0
       yr = fyear_init + mod(nyr-1,ycycle)  ! current year
@@ -5417,7 +5424,7 @@
                write (nu_diag,*) 'days_per_year', days_per_year
 
         endif                   ! dbug
-
+      end if
       end subroutine wave_spec_data
 
 
