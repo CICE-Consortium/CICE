@@ -9,4 +9,5 @@ snw_drdt0_fname = 'snowPropertyRate'
 snw_rhos_fname  = 'nGrainAgingSnowDensity'
 snw_Tgrd_fname  = 'nGrainAgingTempGradient'
 snw_T_fname     = 'nGrainAgingTemperature'
+nslyr = 5
 

@@ -1,8 +1,5 @@
 tr_snow = .true.
 snwredist  = 'bulk'
 snwlvlfac = 0.3
-nslyr = 3
-runtype        = 'initial'
-ice_ic         = 'none'
-restart        = .false.
+nslyr = 5
 

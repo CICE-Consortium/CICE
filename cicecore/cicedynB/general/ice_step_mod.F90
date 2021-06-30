@@ -1226,7 +1226,7 @@
          this_block         ! block information for current block
 
       integer (kind=int_kind) :: &
-         nt_Tsfc, nt_alvl, &
+         nt_Tsfc, nt_alvl, nt_rsnw, &
          nt_apnd, nt_hpnd, nt_ipnd, nt_aero, nlt_chl_sw, &
          ntrcr, nbtrcr, nbtrcr_sw, nt_fbri
 
@@ -1258,7 +1258,7 @@
       call icepack_query_tracer_flags( &
          tr_brine_out=tr_brine, tr_bgc_N_out=tr_bgc_N, tr_zaero_out=tr_zaero)
       call icepack_query_tracer_indices( &
-         nt_Tsfc_out=nt_Tsfc, nt_alvl_out=nt_alvl, &
+         nt_Tsfc_out=nt_Tsfc, nt_alvl_out=nt_alvl, nt_rsnw_out=nt_rsnw, &
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, &
          nlt_chl_sw_out=nlt_chl_sw, nlt_zaero_sw_out=nlt_zaero_sw, &
          nt_fbri_out=nt_fbri, nt_zaero_out=nt_zaero, nt_bgc_N_out=nt_bgc_N)
@@ -1341,8 +1341,9 @@
                          albpndn  =albpndn  (i,j,:  ,iblk), apeffn  =apeffn  (i,j,:  ,iblk), &
                          snowfracn=snowfracn(i,j,:  ,iblk),                                  &
                          dhsn     =dhsn     (i,j,:  ,iblk), ffracn  =ffracn(i,j,:,iblk),     &
+                         rsnow    =trcrn    (i,j,nt_rsnw:nt_rsnw+nslyr-1,:,iblk),            &
+!history                         rsnw_dEddn=rsnw_dEddn(i,j,:,iblk), &
                          l_print_point=l_print_point)
-
          endif
          
          if (dEdd_algae .and. (tr_zaero .or. tr_bgc_N)) then

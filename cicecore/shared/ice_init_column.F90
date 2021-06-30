@@ -230,7 +230,7 @@
 
       logical (kind=log_kind) :: tr_brine, tr_zaero, tr_bgc_n
       integer (kind=int_kind) :: nt_alvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero, &
-         nt_fbri, nt_tsfc, ntrcr, nbtrcr, nbtrcr_sw
+         nt_fbri, nt_tsfc, ntrcr, nbtrcr, nbtrcr_sw, nt_rsnw
       integer (kind=int_kind), dimension(icepack_max_algae) :: &
          nt_bgc_N
       integer (kind=int_kind), dimension(icepack_max_aero) :: &
@@ -248,7 +248,7 @@
          tr_bgc_n_out=tr_bgc_n)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
          nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, nt_fbri_out=nt_fbri, nt_tsfc_out=nt_tsfc, &
-         nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero)
+         nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_rsnw_out=nt_rsnw)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
@@ -379,6 +379,7 @@
                           albpndn=albpndn(i,j,:,iblk),   apeffn=apeffn(i,j,:,iblk), &
                           snowfracn=snowfracn(i,j,:,iblk),                     &
                           dhsn=dhsn(i,j,:,iblk),         ffracn=ffracn(i,j,:,iblk), &
+                          rsnow=trcrn(i,j,nt_rsnw:nt_rsnw+nslyr-1,:,iblk),            &
                           l_print_point=l_print_point,                         &
                           initonly = .true.)
             endif
@@ -595,10 +596,16 @@
          smice, smliq, rhoseff, rsnw
       character(len=*),parameter :: subname='(init_snowtracers)'
 
-      smice  (:,:,:,:) = c0
+      real (kind=dbl_kind) :: &
+         rsnw_fall, & ! snow grain radius of new fallen snow  (10^-6 m)
+         rhos         ! snow density (kg/m^3)
+
+      call icepack_query_parameters(rsnw_fall_out=rsnw_fall, rhos_out=rhos)
+
+      rsnw   (:,:,:,:) = rsnw_fall
+      rhoseff(:,:,:,:) = rhos
+      smice  (:,:,:,:) = rhos
       smliq  (:,:,:,:) = c0
-      rhoseff(:,:,:,:) = c0
-      rsnw   (:,:,:,:) = c0
 
       end subroutine init_snowtracers
 
