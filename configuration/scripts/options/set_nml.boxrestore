@@ -1,6 +1,5 @@
 nilyr =	1
 ice_ic = 'default'
-restart = .false.
 restart_ext = .true.
 use_leap_years = .false.
 ndtd = 2

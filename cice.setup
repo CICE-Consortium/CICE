@@ -644,11 +644,6 @@ EOF
       set bfbcomp = "$bfbcomp_tmp"
     endif
 
-    set fbfbcomp = ${spval}
-    if ($bfbcomp != ${spval}) then
-      set fbfbcomp = ${machcomp}_${bfbcomp}
-    endif
-
     #------------------------------------------------------------
     # Parse pesx with strict checking, limit pes for machine
 
@@ -751,7 +746,14 @@ EOF
     endif
 
     set testname_noid = ${spval}
+
     # create case for test cases
+
+    set fbfbcomp = ${spval}
+    if ($bfbcomp != ${spval}) then
+      set fbfbcomp = ${machcomp}_${bfbcomp}
+    endif
+
     if (${docase} == 0) then
       set soptions = ""
       # Create sorted array and remove duplicates and "none"
@@ -768,6 +770,31 @@ EOF
       set testname_base = "${machcomp}_${test}_${grid}_${pesx}${soptions}.${testid}"
       set testname = "${tsdir}/${testname_base}"
       set case = ${testname}
+
+      if (${dosuite} == 1) then
+        # Add -s flags in cice.setup to bfbcomp name
+        # Parse bfbcomp test_grid_pes and sets
+        # Add sets_base and sort unique
+        # Create fbfbcomp string that should be consistent with base casename
+        set bfbcomp_regex="\(.*_[0-9x]*\)_\(.*\)"
+        set bfbcomp_test_grid_pes=`echo ${bfbcomp} | sed "s/${bfbcomp_regex}/\1/"`
+        set bfbcomp_sets=`echo ${bfbcomp} | sed "s/${bfbcomp_regex}/\2/" | sed 's/_/,/g' `
+        set bfbcomp_sets="${bfbcomp_sets},${sets_base}"
+        set bfbcomp_soptions = ""
+        # Create sorted array and remove duplicates and "none"
+        set bfbcomp_setsarray = `echo ${bfbcomp_sets} | sed 's/,/ /g' | fmt -1 | sort -u`
+        if ("${bfbcomp_setsarray}" != "") then
+          foreach field (${bfbcomp_setsarray})
+            if (${field} != "none") then
+              set bfbcomp_soptions = ${bfbcomp_soptions}"_"${field}
+            endif
+          end
+        endif
+        set fbfbcomp = ${spval}
+        if ($bfbcomp != ${spval}) then
+          set fbfbcomp = ${machcomp}_${bfbcomp_test_grid_pes}${bfbcomp_soptions}
+        endif
+      endif
     endif
 
     if (-d ${case}) then
@@ -891,6 +918,9 @@ EOF
     echo "ICE_PES      = ${task}x${thrd}"
     echo "ICE_GRID     = ${grid} (${ICE_DECOMP_NXGLOB}x${ICE_DECOMP_NYGLOB}) blocksize=${ICE_DECOMP_BLCKX}x${ICE_DECOMP_BLCKY}x${ICE_DECOMP_MXBLCKS}"
     echo "ICE_DECOMP   = ${ICE_DECOMP_DECOMP} ${ICE_DECOMP_DSHAPE}"
+    if ($fbfbcomp != ${spval}) then
+    echo "ICE_BFBCOMP  = ${fbfbcomp}"
+    endif
 
     #------------------------------------------------------------
     # Copy in and update cice.settings and ice_in files
