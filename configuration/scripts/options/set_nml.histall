@@ -1,5 +1,6 @@
-    histfreq       = 'm','d','1','x','x'
-    histfreq_n     =  1,1,6,1,1
+    histfreq       = 'm','d','1','h','x'
+    histfreq_n     =  1,2,6,4,1
+    histfreq_base  =  'zero'
     write_ic       = .true.
     f_tmask        = .true.
     f_blkmask      = .true.
@@ -20,10 +21,10 @@
     f_VGRDa        = .true.
     f_bounds       = .true.
     f_CMIP         = 'm'
-    f_aice         = 'md1' 
-    f_hi           = '1dm'
+    f_aice         = 'md1h' 
+    f_hi           = 'h1dm'
     f_hs           = 'd1m' 
-    f_Tsfc         = 'md' 
+    f_Tsfc         = 'mdh' 
     f_sice         = 'md' 
     f_uvel         = 'md' 
     f_vvel         = 'dm' 

@@ -40,7 +40,7 @@
          ice_ic      ! method of ice cover initialization
                      ! 'default'  => latitude and sst dependent
                      ! 'none'     => no ice
-                     ! note:  restart = .true. overwrites
+                     ! filename   => read file
 
       public :: input_data, init_state, set_state_var
 
@@ -67,8 +67,8 @@
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
                                  max_nstrm
       use ice_calendar, only: year_init, month_init, day_init, sec_init, &
-                              istep0, histfreq, histfreq_n, &
-                              dumpfreq, dumpfreq_n, diagfreq, &
+                              istep0, histfreq, histfreq_n, histfreq_base, &
+                              dumpfreq, dumpfreq_n, diagfreq, dumpfreq_base, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
                               write_ic, dump_last, npt_unit
       use ice_arrays_column, only: oceanmixed_ice
@@ -167,6 +167,7 @@
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
+        histfreq_base,  dumpfreq_base,                                  &
         conserv_check,  debug_model,    debug_model_step,               &
         debug_model_i,  debug_model_j,  debug_model_iblk, debug_model_task, &
         year_init,      month_init,     day_init,        sec_init,      &
@@ -285,6 +286,7 @@
       histfreq(4) = 'm'      ! output frequency option for different streams
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency 
+      histfreq_base = 'zero' ! output frequency reference date
       hist_avg = .true.      ! if true, write time-averages (not snapshots)
       history_format = 'default' ! history file format
       history_dir  = './'    ! write to executable dir for default
@@ -296,6 +298,7 @@
       incond_file = 'iceh_ic'! file prefix
       dumpfreq='y'           ! restart frequency option
       dumpfreq_n = 1         ! restart frequency
+      dumpfreq_base = 'init' ! restart frequency reference date
       dump_last = .false.    ! write restart on last time step
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
@@ -452,8 +455,8 @@
 #ifndef CESMCOUPLED
       runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
       runtype = 'initial'   ! run type: 'initial', 'continue'
-      restart = .false.      ! if true, read restart files for initialization
-      use_restart_time = .true.   ! if true, use time info written in file
+      restart = .false.      ! if true, read ice state from restart file
+      use_restart_time = .false.   ! if true, use time info written in file
 #endif
 
       ! extra tracers
@@ -625,6 +628,7 @@
          call broadcast_scalar(histfreq(n),       master_task)
       enddo  
       call broadcast_array(histfreq_n,            master_task)
+      call broadcast_scalar(histfreq_base,        master_task)
       call broadcast_scalar(hist_avg,             master_task)
       call broadcast_scalar(history_dir,          master_task)
       call broadcast_scalar(history_file,         master_task)
@@ -636,6 +640,7 @@
       call broadcast_scalar(incond_file,          master_task)
       call broadcast_scalar(dumpfreq,             master_task)
       call broadcast_scalar(dumpfreq_n,           master_task)
+      call broadcast_scalar(dumpfreq_base,        master_task)
       call broadcast_scalar(dump_last,            master_task)
       call broadcast_scalar(restart_file,         master_task)
       call broadcast_scalar(restart,              master_task)
@@ -844,42 +849,46 @@
          write(nu_diag,*) ' '
       endif
 
-      if (trim(runtype) == 'continue' .and. .not.restart) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: runtype=continue, setting restart=.true.'
-         restart = .true.
-      endif
-
-      if (trim(runtype) /= 'continue' .and. restart .and. &
-         (ice_ic == 'none' .or. ice_ic == 'default')) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: runtype ne continue and ice_ic=none|default, setting restart=.false.'
-         restart = .false.
-      endif
-
-      if (trim(runtype) /= 'continue' .and. (ice_ic == 'none' .or. ice_ic == 'default')) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: ice_ic = none or default, setting restart flags to .false.'
-         restart = .false.
-         restart_iso =  .false. 
-         restart_aero =  .false. 
-         restart_fsd =  .false. 
-         restart_age =  .false. 
-         restart_fy =  .false. 
-         restart_lvl =  .false. 
-         restart_pond_cesm =  .false. 
-         restart_pond_lvl =  .false. 
-         restart_pond_topo =  .false. 
-! tcraig, OK to leave as true, needed for boxrestore case
-!         restart_ext =  .false. 
-      endif
-
-      if (trim(runtype) == 'initial' .and. .not.(restart) .and. &
-          ice_ic /= 'none' .and. ice_ic /= 'default') then
+      if (trim(runtype) == 'continue') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: runtype, restart, ice_ic are inconsistent:'
-            write(nu_diag,*) subname//' ERROR:   runtype=',trim(runtype), ' restart=',restart, ' ice_ic=',trim(ice_ic)
-            write(nu_diag,*) subname//' ERROR:   Please review user guide'
+            write(nu_diag,*) subname//'NOTE: runtype=continue, setting restart=.true.'
+            if (.not. use_restart_time) &
+               write(nu_diag,*) subname//'NOTE: runtype=continue, setting use_restart_time=.true.'
+            write(nu_diag,*) ' '
+         endif
+         restart = .true.
+         use_restart_time = .true.
+      elseif (trim(runtype) == 'initial') then
+         if (ice_ic == 'none' .or. ice_ic == 'default') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'NOTE: ice_ic = none or default, setting restart flags to .false.'
+               if (.not. use_restart_time) &
+                  write(nu_diag,*) subname//'NOTE: ice_ic = none or default, setting use_restart_time=.false.'
+               write(nu_diag,*) ' '
+            endif
+            use_restart_time = .false.
+            restart = .false.
+            restart_iso =  .false.
+            restart_aero =  .false.
+            restart_fsd =  .false.
+            restart_age =  .false.
+            restart_fy =  .false.
+            restart_lvl =  .false.
+            restart_pond_cesm =  .false.
+            restart_pond_lvl =  .false.
+            restart_pond_topo =  .false.
+! tcraig, OK to leave as true, needed for boxrestore case
+!            restart_ext =  .false.
+         else
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'NOTE: ice_ic /= none or default, setting restart=.true.'
+               write(nu_diag,*) ' '
+            endif
+            restart = .true.
+         endif
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: runtype unknown = ',trim(runtype)
          endif
          abort_list = trim(abort_list)//":1"
       endif
@@ -1118,6 +1127,16 @@
       if(history_precision .ne. 4 .and. history_precision .ne. 8) then
          write (nu_diag,*) subname//' ERROR: bad value for history_precision, allowed values: 4, 8'
          abort_list = trim(abort_list)//":22"
+      endif
+
+      if(histfreq_base /= 'init' .and. histfreq_base /= 'zero') then
+         write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero'
+         abort_list = trim(abort_list)//":24"
+      endif
+
+      if(dumpfreq_base /= 'init' .and. dumpfreq_base /= 'zero') then
+         write (nu_diag,*) subname//' ERROR: bad value for dumpfreq_base, allowed values: init, zero'
+         abort_list = trim(abort_list)//":25"
       endif
 
       if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &
@@ -1681,6 +1700,7 @@
          write(nu_diag,1021) ' numax            = ', numax
          write(nu_diag,1033) ' histfreq         = ', histfreq(:)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
+         write(nu_diag,1031) ' histfreq_base    = ', trim(histfreq_base)
          write(nu_diag,1011) ' hist_avg         = ', hist_avg
          if (.not. hist_avg) write(nu_diag,1031) ' History data will be snapshots'
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
@@ -1693,6 +1713,7 @@
          endif
          write(nu_diag,1031) ' dumpfreq         = ', trim(dumpfreq)
          write(nu_diag,1021) ' dumpfreq_n       = ', dumpfreq_n
+         write(nu_diag,1031) ' dumpfreq_base    = ', trim(dumpfreq_base)
          write(nu_diag,1011) ' dump_last        = ', dump_last
          write(nu_diag,1011) ' restart          = ', restart
          write(nu_diag,1031) ' restart_dir      = ', trim(restart_dir)

@@ -1,6 +1,5 @@
 nilyr = 1
 ice_ic = 'default'
-restart = .false.
 restart_ext = .false.
 dt             = 3600.0
 npt            = 288

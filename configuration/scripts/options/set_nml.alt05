@@ -1,5 +1,4 @@
 ice_ic = 'default'
-restart = .false.
 tr_iage      = .false.
 tr_FY        = .false.
 tr_lvl       = .false.
