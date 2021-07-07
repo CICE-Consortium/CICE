@@ -81,20 +81,35 @@ Grid, boundary conditions and masks
 
 The spatial discretization is specialized for a generalized orthogonal
 B-grid as in :cite:`Murray96` or
-:cite:`Smith95`. The ice and snow area, volume and energy are
-given at the center of the cell, velocity is defined at the corners, and
-the internal ice stress tensor takes four different values within a grid
+:cite:`Smith95`. Figure :ref:`fig-Bgrid` is a schematic of CICE 
+B-grid. This cell with the tracer point :math:`t(i,j)` in the middle
+is referred to as T-cell. The ice and snow area, volume and energy are
+given at the t-point. The velocity :math:`{\bf u}(i,j)`
+associated with :math:`t(i,j)` is defined in the northeast (NE)
+corner. The other corners of the T-cell are northwest (NW), southwest
+(SW) and southeast (SE). The lengths of the four edges of the T-cell
+are respectively HTN, HTW, HTS and HTE for the northern, western,
+southern and eastern edges. The lengths of the T-cell through the
+middle are respectively dxt and dyt along the x and y axis. 
+
+We also occasionally refer to “U-cells,” which are centered on the
+northeast corner of the corresponding T-cells and have velocity in the
+center of each. The velocity components are aligned along grid lines.
+
+The internal ice stress tensor takes four different values within a grid
 cell; bilinear approximations are used for the stress tensor and the ice
 velocity across the cell, as described in :cite:`Hunke02`.
 This tends to avoid the grid decoupling problems associated with the
 B-grid. EVP is available on the C-grid through the MITgcm code
 distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/. 
 
-Since ice thickness and thermodynamic variables such as temperature are given
-in the center of each cell, the grid cells are referred to as “T cells.”
-We also occasionally refer to “U cells,” which are centered on the
-northeast corner of the corresponding T cells and have velocity in the
-center of each. The velocity components are aligned along grid lines.
+.. _fig-Bgrid:
+
+.. figure:: ./figures/CICE_Bgrid.png
+   :align: center
+   :scale: 55%
+
+   Schematic of CICE B-grid. 
 
 The user has several choices of grid routines: *popgrid* reads grid
 lengths and other parameters for a nonuniform grid (including tripole
@@ -203,11 +218,11 @@ middle of the row. The grid is constructed by “folding” the top row, so
 that the left-hand half and the right-hand half of it coincide. Two
 choices for constructing the tripole grid are available. The one first
 introduced to CICE is called “U-fold”, which means that the poles and
-the grid cells between them are U cells on the grid. Alternatively the
-poles and the cells between them can be grid T cells, making a “T-fold.”
+the grid cells between them are U-cells on the grid. Alternatively the
+poles and the cells between them can be grid T-cells, making a “T-fold.”
 Both of these options are also supported by the OPA/NEMO ocean model,
 which calls the U-fold an “f-fold” (because it uses the Arakawa C-grid
-in which U cells are on T-rows). The choice of tripole grid is given by
+in which U-cells are on T-rows). The choice of tripole grid is given by
 the namelist variable ``ns_boundary_type``, ‘tripole’ for the U-fold and
 ‘tripoleT’ for the T-fold grid.
 
@@ -335,7 +350,7 @@ dynamics component to prevent unnecessary calculations on grid points
 where there is no ice. They are not used in the thermodynamics
 component, so that ice may form in previously ice-free cells. Like the
 land masks ``hm`` and ``uvm``, the ice extent masks ``ice_tmask`` and ``ice_umask``
-are for T cells and U cells, respectively.
+are for T-cells and U-cells, respectively.
 
 Improved parallel performance may result from utilizing halo masks for
 boundary updates of the full ice state, incremental remapping transport,

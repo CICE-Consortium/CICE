@@ -1206,12 +1206,12 @@
          vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         dxhy     , & ! 0.5*(HTE - HTE)
-         dyhx     , & ! 0.5*(HTN - HTN)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
+         dxhy     , & ! 0.5*(HTE - HTW)
+         dyhx     , & ! 0.5*(HTN - HTS)
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm      , & ! 0.5*HTN - 1.5*HTS
          tarear       ! 1/tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &

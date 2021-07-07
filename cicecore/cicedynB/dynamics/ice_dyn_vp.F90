@@ -1149,12 +1149,12 @@
          vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         dxhy     , & ! 0.5*(HTE - HTE)
-         dyhx     , & ! 0.5*(HTN - HTN)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
+         dxhy     , & ! 0.5*(HTE - HTW)
+         dyhx     , & ! 0.5*(HTN - HTS)
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm      , & ! 0.5*HTN - 1.5*HTS
          tinyarea     ! min_strain_rate*tarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
@@ -1335,10 +1335,10 @@
          vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm          ! 0.5*HTN - 1.5*HTN
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
          zetaD          ! 2*zeta
@@ -1555,12 +1555,12 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         dxhy     , & ! 0.5*(HTE - HTE)
-         dyhx     , & ! 0.5*(HTN - HTN)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm          ! 0.5*HTN - 1.5*HTN
+         dxhy     , & ! 0.5*(HTE - HTW)
+         dyhx     , & ! 0.5*(HTN - HTS)
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
@@ -2004,12 +2004,12 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         dxhy     , & ! 0.5*(HTE - HTE)
-         dyhx     , & ! 0.5*(HTN - HTN)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm          ! 0.5*HTN - 1.5*HTN
+         dxhy     , & ! 0.5*(HTE - HTW)
+         dyhx     , & ! 0.5*(HTN - HTS)
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
          zetaD          ! 2*zeta

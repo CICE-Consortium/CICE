@@ -78,12 +78,12 @@
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         cyp    , & ! 1.5*HTE - 0.5*HTE
-         cxp    , & ! 1.5*HTN - 0.5*HTN
-         cym    , & ! 0.5*HTE - 1.5*HTE
-         cxm    , & ! 0.5*HTN - 1.5*HTN
-         dxhy   , & ! 0.5*(HTE - HTE)
-         dyhx       ! 0.5*(HTN - HTN)
+         cyp    , & ! 1.5*HTE(i,j)-0.5*HTW(i,j) = 1.5*HTE(i,j)-0.5*HTE(i-1,j) 
+         cxp    , & ! 1.5*HTN(i,j)-0.5*HTS(i,j) = 1.5*HTN(i,j)-0.5*HTN(i,j-1)
+         cym    , & ! 0.5*HTE(i,j)-1.5*HTW(i,j) = 0.5*HTE(i,j)-1.5*HTE(i-1,j) 
+         cxm    , & ! 0.5*HTN(i,j)-1.5*HTS(i,j) = 0.5*HTN(i,j)-1.5*HTN(i,j-1) 
+         dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
+         dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1)) 
 
       ! grid dimensions for rectangular grid
       real (kind=dbl_kind), public ::  &
@@ -175,12 +175,12 @@
          ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
          bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
          ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
-         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTE
-         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTN
-         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTE
-         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTN
-         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTE)
-         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTN)
+         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
+         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTS
+         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTW
+         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
+         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
+         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
          xav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of x
          yav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of y
          xxav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of xx
