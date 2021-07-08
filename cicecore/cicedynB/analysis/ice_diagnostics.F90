@@ -835,7 +835,6 @@
                      enddo
                   endif
                endif
-
                if (tr_snow) then      ! snow tracer quantities
                   prsnwavg (n) = c0   ! avg snow grain radius
                   prhosavg (n) = c0   ! avg snow density
@@ -908,6 +907,11 @@
             call broadcast_scalar(pmeltl   (n), pmloc(n))
             call broadcast_scalar(psnoice  (n), pmloc(n))
             call broadcast_scalar(pdsnow   (n), pmloc(n))
+            call broadcast_scalar(psmtot   (n), pmloc(n))
+            call broadcast_scalar(prsnwavg (n), pmloc(n))
+            call broadcast_scalar(prhosavg (n), pmloc(n))
+            call broadcast_scalar(psmicetot(n), pmloc(n))
+            call broadcast_scalar(psmliqtot(n), pmloc(n))
             call broadcast_scalar(pfrazil  (n), pmloc(n))
             call broadcast_scalar(pcongel  (n), pmloc(n))
             call broadcast_scalar(pdhi     (n), pmloc(n))
@@ -1648,19 +1652,21 @@
            rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
       integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd, &
-           nt_isosno, nt_isoice, nt_sice
+           nt_isosno, nt_isoice, nt_sice, nt_smice, nt_smliq
 
-      logical (kind=log_kind) :: tr_fsd, tr_iso
+      logical (kind=log_kind) :: tr_fsd, tr_iso, tr_snow
 
       type (block) :: &
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(print_state)'
 
-      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso, &
+           tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fsd_out=nt_fsd, &
-           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
+           nt_smice_out=nt_smice, nt_smliq_out=nt_smliq)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
@@ -1690,8 +1696,11 @@
          endif
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
          if (tr_fsd) write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk) ! fsd cat 1
-!         if (tr_iso) write(nu_diag,*) 'isosno',trcrn(i,j,nt_isosno,n,iblk) ! isotopes in snow
-!         if (tr_iso) write(nu_diag,*) 'isoice',trcrn(i,j,nt_isoice,n,iblk) ! isotopes in ice
+! layer 1 diagnostics
+!         if (tr_iso)  write(nu_diag,*) 'isosno',trcrn(i,j,nt_isosno,n,iblk) ! isotopes in snow
+!         if (tr_iso)  write(nu_diag,*) 'isoice',trcrn(i,j,nt_isoice,n,iblk) ! isotopes in ice
+!         if (tr_snow) write(nu_diag,*) 'smice', trcrn(i,j,nt_smice, n,iblk) ! ice mass in snow
+!         if (tr_snow) write(nu_diag,*) 'smliq', trcrn(i,j,nt_smliq, n,iblk) ! liquid mass in snow
          write(nu_diag,*) ' '
 
 ! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal
