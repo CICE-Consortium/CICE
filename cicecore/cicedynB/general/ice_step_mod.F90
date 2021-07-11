@@ -171,7 +171,7 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
       use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, fside, &
-          wind, rhoa, potT, Qa, zlvl, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
+          wind, rhoa, potT, Qa, zlvl, zlvs, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
           flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, &
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
           flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
@@ -358,6 +358,7 @@
                       vatm         = vatm        (i,j,  iblk), &
                       wind         = wind        (i,j,  iblk), &
                       zlvl         = zlvl        (i,j,  iblk), &
+                      zlvs         = zlvs        (i,j,  iblk), &
                       Qa           = Qa          (i,j,  iblk), &
                       Qa_iso       = Qa_iso      (i,j,:,iblk), &
                       rhoa         = rhoa        (i,j,  iblk), &

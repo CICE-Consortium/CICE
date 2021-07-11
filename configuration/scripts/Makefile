@@ -75,7 +75,7 @@ AR    := ar
 .SUFFIXES:
 .SUFFIXES: .F90 .F .c .o
 
-.PHONY: all cice libcice targets target db_files db_flags clean realclean helloworld calchk
+.PHONY: all cice libcice targets target db_files db_flags clean realclean helloworld calchk sumchk bcstchk
 all: $(EXEC)
 
 cice: $(EXEC)
@@ -94,7 +94,7 @@ targets:
 	@echo " "
 	@echo "Supported Makefile Targets are: cice, libcice, makdep, depends, clean, realclean"
 	@echo "                   Diagnostics: targets, db_files, db_flags"
-	@echo "                   Unit Tests : helloworld, calchk"
+	@echo "                   Unit Tests : helloworld, calchk, sumchk, bcstchk"
 target: targets
 
 db_files:
@@ -143,9 +143,15 @@ $(DEPGEN): $(OBJS_DEPGEN)
 # this builds all dependent source code automatically even though only a subset might actually be used
 # this is no different than the cice target and in fact the binary is called cice
 # it exists just to create separation as needed for unit tests
+
 calchk: $(EXEC)
 
+sumchk: $(EXEC)
+
+bcstchk: $(EXEC)
+
 # this builds just a subset of source code specified explicitly and requires a separate target
+
 HWOBJS := helloworld.o
 helloworld: $(HWOBJS)
 	$(LD) -o $(EXEC) $(LDFLAGS) $(HWOBJS) $(ULIBS) $(SLIBS)

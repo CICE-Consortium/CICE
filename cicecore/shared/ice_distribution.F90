@@ -181,8 +181,9 @@
          if (distribution%blockLocation(n) == my_task+1) then
             block_ids(distribution%blockLocalID(n)) = n
 
-            if (debug_blocks) then
-            write(nu_diag,*) subname,'block id, proc, local_block: ', &
+            if (debug_blocks .and. my_task == master_task) then
+               write(nu_diag,'(2a,3i8)') &
+                             subname,' block id, proc, local_block: ', &
                              block_ids(distribution%blockLocalID(n)), &
                              distribution%blockLocation(n), &
                              distribution%blockLocalID(n)
@@ -398,7 +399,7 @@
          numLocalBlocks      ! number of blocks distributed to this
                              !   local processor
 
-      integer (int_kind), dimension(:), pointer, optional :: &
+      integer (int_kind), dimension(:), optional :: &
          blockLocation     ,&! processor location for all blocks
          blockLocalID      ,&! local  block id for all blocks
          blockGlobalID       ! global block id for each local block
@@ -418,7 +419,7 @@
 
    if (present(blockLocation)) then
       if (associated(distribution%blockLocation)) then
-         blockLocation => distribution%blockLocation
+         blockLocation = distribution%blockLocation
       else
          call abort_ice(subname//'ERROR: blockLocation not allocated')
          return
@@ -794,6 +795,8 @@
    maxWork = maxval(workPerBlock)
 
    if (numOcnBlocks <= 2*nprocs) then
+      if (my_task == master_task) &
+         write(nu_diag,*) subname,' 1d rake on entire distribution'
 
       allocate(priority(nblocks_tot), stat=istat)
       if (istat > 0) then
@@ -815,7 +818,7 @@
       end do
       end do
 
-      allocate(workTmp(nblocks_tot), procTmp(nblocks_tot), stat=istat)
+      allocate(workTmp(nprocs), procTmp(nprocs), stat=istat)
       if (istat > 0) then
          call abort_ice( &
             'create_distrb_rake: error allocating procTmp')
@@ -849,6 +852,8 @@
 !----------------------------------------------------------------------
 
    else
+      if (my_task == master_task) &
+         write(nu_diag,*) subname,' rake in each direction'
 
       call proc_decomposition(dist%nprocs, nprocsX, nprocsY)
 
@@ -1425,7 +1430,7 @@
  function create_distrb_wghtfile(nprocs, workPerBlock) result(newDistrb)
 
 !  This function creates a distribution of blocks across processors
-!  using a simple wghtfile algorithm. Mean for prescribed ice or
+!  using a simple wghtfile algorithm. Meant for prescribed ice or
 !  standalone CAM mode.
 
    integer (int_kind), intent(in) :: &
@@ -2106,8 +2111,6 @@
         ii,extra,tmp1,    &! loop tempories used for
         s1,ig              ! partitioning curve
 
-   logical, parameter :: Debug = .FALSE.
-
    type (factor_t) :: xdim,ydim
 
    integer (int_kind) :: it,jj,i2,j2
@@ -2201,9 +2204,9 @@
 
    call GenSpaceCurve(Mesh)
    Mesh = Mesh + 1 ! make it 1-based indexing
-   if(Debug) then
-     if(my_task ==0) call PrintCurve(Mesh)
-   endif
+!   if (debug_blocks) then
+!     if (my_task == master_task) call PrintCurve(Mesh)
+!   endif
 
    !-----------------------------------------------
    ! Reindex the SFC to address internal sub-blocks
@@ -2250,8 +2253,8 @@
       endif
    enddo
    nblocks=ii
-   if(Debug) then
-     if(my_task==0) call PrintCurve(Mesh3)
+   if (debug_blocks) then
+     if (my_task == master_task) call PrintCurve(Mesh3)
    endif
 
    !----------------------------------------------------
@@ -2270,8 +2273,8 @@
    !
    ! First region gets nblocksL+1 blocks per partition
    ! Second region gets nblocksL blocks per partition
-   if(Debug) print *,'nprocs,extra,nblocks,nblocksL,s1: ', &
-                nprocs,extra,nblocks,nblocksL,s1
+!   if(debug_blocks) write(nu_diag,*) 'nprocs,extra,nblocks,nblocksL,s1: ', &
+!                nprocs,extra,nblocks,nblocksL,s1
 
    !-----------------------------------------------------------
    ! Use the SFC to partition the blocks across processors
@@ -2342,11 +2345,11 @@
       endif
    enddo
 
-   if(Debug) then
-      if(my_task==0) print *,'dist%blockLocation:= ',dist%blockLocation
-      print *,'IAM: ',my_task,' SpaceCurve: Number of blocks {total,local} :=', &
-                nblocks_tot,nblocks,proc_tmp(my_task+1)
-   endif
+!   if (debug_blocks) then
+!      if (my_task == master_task) write(nu_diag,*) 'dist%blockLocation:= ',dist%blockLocation
+!      write(nu_diag,*) 'IAM: ',my_task,' SpaceCurve: Number of blocks {total,local} :=', &
+!                nblocks_tot,nblocks,proc_tmp(my_task+1)
+!   endif
    !---------------------------------
    ! Deallocate temporary arrays
    !---------------------------------

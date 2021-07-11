@@ -46,12 +46,6 @@
       call release_all_fileunits
 
    !-------------------------------------------------------------------
-   ! write 'finished' file if needed
-   !-------------------------------------------------------------------
-
-      if (runid == 'bering') call writeout_finished_file()
-
-   !-------------------------------------------------------------------
    ! quit MPI
    !-------------------------------------------------------------------
 
@@ -59,31 +53,6 @@
 !      call end_run       ! quit MPI
 
       end subroutine CICE_Finalize
-
-!=======================================================================
-!
-! Write a file indicating that this run finished cleanly.  This is
-! needed only for runs on machine 'bering' (set using runid = 'bering').
-!
-!  author: Adrian Turner, LANL
-
-      subroutine writeout_finished_file()
-      
-      use ice_restart_shared, only: restart_dir
-
-      character(len=char_len_long) :: filename
-      character(len=*), parameter :: subname = '(writeout_finished_file)'
-
-      if (my_task == master_task) then
-           
-         filename = trim(restart_dir)//"finished"
-         open(11,file=filename)
-         write(11,*) "finished"
-         close(11)
-
-      endif
-
-      end subroutine writeout_finished_file
 
 !=======================================================================
 

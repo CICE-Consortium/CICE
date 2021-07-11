@@ -26,5 +26,5 @@ tr_bgc_PON      = .true.
 tr_bgc_hum      = .true.
 tr_bgc_DON      = .true.
 tr_bgc_Fe       = .true. 
-
-
+# modal_aero      = .true.
+# dEdd_algae      = .true.

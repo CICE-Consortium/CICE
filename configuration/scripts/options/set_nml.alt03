@@ -1,7 +1,6 @@
 ncat = 6
 kcatbound = 2
 ice_ic = 'default'
-restart = .false.
 distribution_type = 'sectcart'
 conserv_check = .true.
 tr_iage      = .false.
@@ -23,3 +22,4 @@ Ktens          = 0.
 e_ratio        = 2.
 seabed_stress    = .true.
 use_bathymetry = .true.
+l_mpond_fresh = .true.

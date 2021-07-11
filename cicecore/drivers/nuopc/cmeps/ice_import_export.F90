@@ -4,7 +4,7 @@ module ice_import_export
   use NUOPC
   use NUOPC_Model
   use ice_kinds_mod      , only : int_kind, dbl_kind, char_len, log_kind
-  use ice_constants      , only : c0, c1, spval_dbl
+  use ice_constants      , only : c0, c1, spval_dbl, radius
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
   use ice_blocks         , only : block, get_block, nx_block, ny_block
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
@@ -21,10 +21,12 @@ module ice_import_export
   use ice_flux           , only : fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
   use ice_flux           , only : rhoa, swvdr, swvdf, swidr, swidf, flw, frain
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
+  use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
   use ice_state          , only : vice, vsno, aice, aicen_init, trcr
-  use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm, ocn_gridcell_frac
+  use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm
   use ice_grid           , only : grid_type, t2ugrid_vector
+  use ice_mesh_mod       , only : ocn_gridcell_frac
   use ice_boundary       , only : ice_HaloUpdate
   use ice_fileunits      , only : nu_diag, flush_fileunit
   use ice_communicate    , only : my_task, master_task, MPI_COMM_ICE
@@ -34,9 +36,10 @@ module ice_import_export
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
   use icepack_intfc      , only : icepack_liquidus_temperature
   use icepack_intfc      , only : icepack_sea_freezing_temperature
-  use cice_wrapper_mod    , only : t_startf, t_stopf, t_barrierf
+  use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
 #ifdef CESMCOUPLED
   use shr_frz_mod        , only : shr_frz_freezetemp
+  use shr_mpi_mod        , only : shr_mpi_min, shr_mpi_max
 #endif
 
   implicit none
@@ -54,20 +57,18 @@ module ice_import_export
   interface state_getfldptr
      module procedure state_getfldptr_1d
      module procedure state_getfldptr_2d
-     module procedure state_getfldptr_3d
-     module procedure state_getfldptr_4d
   end interface state_getfldptr
   private :: state_getfldptr
 
   interface state_getimport
-     module procedure state_getimport_4d_output
-     module procedure state_getimport_3d_output
+     module procedure state_getimport_4d
+     module procedure state_getimport_3d
   end interface state_getimport
   private :: state_getimport
 
   interface state_setexport
-     module procedure state_setexport_4d_input
-     module procedure state_setexport_3d_input
+     module procedure state_setexport_4d
+     module procedure state_setexport_3d
   end interface state_setexport
   private :: state_setexport
 
@@ -79,12 +80,15 @@ module ice_import_export
     integer :: ungridded_ubound = 0
   end type fld_list_type
 
+  ! area correction factors for fluxes send and received from mediator
+  real(dbl_kind), allocatable :: mod2med_areacor(:) ! ratios of model areas to input mesh areas
+  real(dbl_kind), allocatable :: med2mod_areacor(:) ! ratios of input mesh areas to model areas
+
   integer, parameter       :: fldsMax = 100
   integer                  :: fldsToIce_num = 0
   integer                  :: fldsFrIce_num = 0
   type (fld_list_type)     :: fldsToIce(fldsMax)
   type (fld_list_type)     :: fldsFrIce(fldsMax)
-  type(ESMF_GeomType_Flag) :: geomtype
 
   integer     , parameter  :: io_dbug = 10        ! i/o debug messages
   character(*), parameter  :: u_FILE_u = &
@@ -108,7 +112,6 @@ contains
     character(char_len) :: stdname
     character(char_len) :: cvalue
     logical             :: flds_wiso         ! use case
-    logical             :: flds_i2o_per_cat  ! .true. => select per ice thickness category
     logical             :: isPresent, isSet
     character(len=*), parameter :: subname='(ice_import_export:ice_advertise_fields)'
     !-------------------------------------------------------------------------------
@@ -116,21 +119,31 @@ contains
     rc = ESMF_SUCCESS
     if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
-    ! Determine if the following attributes are sent by the driver and if so read them in
-    flds_wiso = .false.
-    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_wiso
-       call ESMF_LogWrite('flds_wiso = '// trim(cvalue), ESMF_LOGMSG_INFO)
-    end if
-
-    flds_i2o_per_cat = .false.
-    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    ! Determine if ice sends multiple ice category info back to mediator
+    send_i2x_per_cat = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) send_i2x_per_cat
-       call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    end if
+    if (my_task == master_task) then
+       write(nu_diag,*)'send_i2x_per_cat = ',send_i2x_per_cat
+    end if
+    if (.not.send_i2x_per_cat) then
+       deallocate(fswthrun_ai)
+    end if
+
+    ! Determine if the following attributes are sent by the driver and if so read them in
+    flds_wiso = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flds_wiso
+    end if
+    if (my_task == master_task) then
+       write(nu_diag,*)'flds_wiso = ',flds_wiso
     end if
 
     !-----------------
@@ -262,21 +275,35 @@ contains
 
   end subroutine ice_advertise_fields
 
-!==============================================================================
-
-  subroutine ice_realize_fields(gcomp, mesh, grid, flds_scalar_name, flds_scalar_num, rc)
+  !==============================================================================
+  subroutine ice_realize_fields(gcomp, mesh, flds_scalar_name, flds_scalar_num, rc)
 
     ! input/output variables
-    type(ESMF_GridComp)                      :: gcomp
-    type(ESMF_Mesh) , optional , intent(in)  :: mesh
-    type(ESMF_Grid) , optional , intent(in)  :: grid
-    character(len=*)           , intent(in)  :: flds_scalar_name
-    integer                    , intent(in)  :: flds_scalar_num 
-    integer                    , intent(out) :: rc
+    type(ESMF_GridComp)            :: gcomp
+    type(ESMF_Mesh)  , intent(in)  :: mesh
+    character(len=*) , intent(in)  :: flds_scalar_name
+    integer          , intent(in)  :: flds_scalar_num
+    integer          , intent(out) :: rc
 
     ! local variables
-    type(ESMF_State)     :: importState
-    type(ESMF_State)     :: exportState
+    type(ESMF_State)            :: importState
+    type(ESMF_State)            :: exportState
+    type(ESMF_Field)            :: lfield
+    integer                     :: numOwnedElements
+    integer                     :: i, j, iblk, n
+    integer                     :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
+    type(block)                 :: this_block         ! block information for current block
+    real(dbl_kind), allocatable :: mesh_areas(:)
+    real(dbl_kind), allocatable :: model_areas(:)
+    real(dbl_kind), pointer     :: dataptr(:)
+    real(dbl_kind)              :: max_mod2med_areacor
+    real(dbl_kind)              :: max_med2mod_areacor
+    real(dbl_kind)              :: min_mod2med_areacor
+    real(dbl_kind)              :: min_med2mod_areacor
+    real(dbl_kind)              :: max_mod2med_areacor_glob
+    real(dbl_kind)              :: max_med2mod_areacor_glob
+    real(dbl_kind)              :: min_mod2med_areacor_glob
+    real(dbl_kind)              :: min_med2mod_areacor_glob
     character(len=*), parameter :: subname='(ice_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
@@ -285,60 +312,86 @@ contains
     call NUOPC_ModelGet(gcomp, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (present(mesh)) then
+    call fldlist_realize( &
+         state=ExportState, &
+         fldList=fldsFrIce, &
+         numflds=fldsFrIce_num, &
+         flds_scalar_name=flds_scalar_name, &
+         flds_scalar_num=flds_scalar_num, &
+         tag=subname//':CICE_Export',&
+         mesh=mesh, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       geomtype = ESMF_GEOMTYPE_MESH
+    call fldlist_realize( &
+         state=importState, &
+         fldList=fldsToIce, &
+         numflds=fldsToIce_num, &
+         flds_scalar_name=flds_scalar_name, &
+         flds_scalar_num=flds_scalar_num, &
+         tag=subname//':CICE_Import',&
+         mesh=mesh, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call fldlist_realize( &
-            state=ExportState, &
-            fldList=fldsFrIce, &
-            numflds=fldsFrIce_num, &
-            flds_scalar_name=flds_scalar_name, &
-            flds_scalar_num=flds_scalar_num, &
-            tag=subname//':CICE_Export',&
-            mesh=mesh, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#ifdef CESMCOUPLED
+    ! Get mesh areas from second field - using second field since the
+    ! first field is the scalar field
 
-       call fldlist_realize( &
-            state=importState, &
-            fldList=fldsToIce, &
-            numflds=fldsToIce_num, &
-            flds_scalar_name=flds_scalar_name, &
-            flds_scalar_num=flds_scalar_num, &
-            tag=subname//':CICE_Import',&
-            mesh=mesh, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_MeshGet(mesh, numOwnedElements=numOwnedElements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_StateGet(exportState, itemName=trim(fldsFrIce(2)%stdname), field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldRegridGetArea(lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(mesh_areas(numOwnedElements))
+    mesh_areas(:) = dataptr(:)
 
-    else if (present(grid)) then
+    ! Determine flux correction factors (module variables)
+    allocate(model_areas(numOwnedElements))
+    allocate(mod2med_areacor(numOwnedElements))
+    allocate(med2mod_areacor(numOwnedElements))
+    mod2med_areacor(:) = 1._dbl_kind
+    med2mod_areacor(:) = 1._dbl_kind
+    n = 0
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+          do i = ilo, ihi
+             n = n+1
+             model_areas(n) = tarea(i,j,iblk)/(radius*radius)
+             mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
+             med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
+          enddo
+       enddo
+    enddo
+    deallocate(model_areas)
+    deallocate(mesh_areas)
 
-       geomtype = ESMF_GEOMTYPE_GRID
+    min_mod2med_areacor = minval(mod2med_areacor)
+    max_mod2med_areacor = maxval(mod2med_areacor)
+    min_med2mod_areacor = minval(med2mod_areacor)
+    max_med2mod_areacor = maxval(med2mod_areacor)
+    call shr_mpi_max(max_mod2med_areacor, max_mod2med_areacor_glob, mpi_comm_ice)
+    call shr_mpi_min(min_mod2med_areacor, min_mod2med_areacor_glob, mpi_comm_ice)
+    call shr_mpi_max(max_med2mod_areacor, max_med2mod_areacor_glob, mpi_comm_ice)
+    call shr_mpi_min(min_med2mod_areacor, min_med2mod_areacor_glob, mpi_comm_ice)
 
-       call fldlist_realize( &
-            state=ExportState, &
-            fldList=fldsFrIce, &
-            numflds=fldsFrIce_num, &
-            flds_scalar_name=flds_scalar_name, &
-            flds_scalar_num=flds_scalar_num, &
-            tag=subname//':CICE_Export',&
-            grid=grid, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call fldlist_realize( &
-            state=importState, &
-            fldList=fldsToIce, &
-            numflds=fldsToIce_num, &
-            flds_scalar_name=flds_scalar_name, &
-            flds_scalar_num=flds_scalar_num, &
-            tag=subname//':CICE_Import',&
-            grid=grid, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    if (my_task == master_task) then
+       write(nu_diag,'(2A,2g23.15,A )') trim(subname),' :  min_mod2med_areacor, max_mod2med_areacor ',&
+            min_mod2med_areacor_glob, max_mod2med_areacor_glob, 'CICE6'
+       write(nu_diag,'(2A,2g23.15,A )') trim(subname),' :  min_med2mod_areacor, max_med2mod_areacor ',&
+            min_med2mod_areacor_glob, max_med2mod_areacor_glob, 'CICE6'
     end if
+#endif
 
   end subroutine ice_realize_fields
 
   !==============================================================================
-
   subroutine ice_import( importState, rc )
 
     ! input/output variables
@@ -355,7 +408,11 @@ contains
     real (kind=dbl_kind)             :: workx, worky
     real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
     real (kind=dbl_kind)             :: Tffresh
-    real (kind=dbl_kind)             :: inst_pres_height_lowest  
+    real (kind=dbl_kind)             :: inst_pres_height_lowest
+    real (kind=dbl_kind), pointer    :: dataptr2d(:,:)
+    real (kind=dbl_kind), pointer    :: dataptr1d(:)
+    real (kind=dbl_kind), pointer    :: dataptr2d_dstwet(:,:)
+    real (kind=dbl_kind), pointer    :: dataptr2d_dstdry(:,:)
     character(len=char_len)          :: tfrz_option
     integer(int_kind)                :: ktherm
     character(len=*),   parameter    :: subname = 'ice_import'
@@ -365,17 +422,20 @@ contains
     call icepack_query_parameters(Tffresh_out=Tffresh)
     call icepack_query_parameters(tfrz_option_out=tfrz_option)
     call icepack_query_parameters(ktherm_out=ktherm)
-    if (io_dbug > 5) then 
-     write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
-       // trim(tfrz_option)//', ktherm = ',ktherm
-     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
+    if (io_dbug > 5) then
+       write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
+            // trim(tfrz_option)//', ktherm = ',ktherm
+       call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
     end if
-!    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
-!       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
-!       Tffresh_out=Tffresh)
-!    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
-!       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
-!       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+
+    !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
+    !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
+    !       Tffresh_out=Tffresh)
+    !    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
+    !       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
+    !       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=u_FILE_u, line=__LINE__)
@@ -429,30 +489,38 @@ contains
 
     ! import ocn/ice fluxes
 
-    call state_getimport(importState, 'freezing_melting_potential', output=aflds, index=9, rc=rc)
+    call state_getimport(importState, 'freezing_melting_potential', output=aflds, index=9, &
+         areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! import atm fluxes
 
-    call state_getimport(importState, 'mean_down_sw_vis_dir_flx', output=aflds, index=10, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_vis_dir_flx', output=aflds, index=10, &
+         areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_ir_dir_flx', output=aflds, index=11, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_ir_dir_flx', output=aflds, index=11, &
+         areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_vis_dif_flx', output=aflds, index=12, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_vis_dif_flx', output=aflds, index=12, &
+         areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_ir_dif_flx', output=aflds, index=13, rc=rc)
+    call state_getimport(importState, 'mean_down_sw_ir_dif_flx', output=aflds, index=13, &
+         areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_lw_flx', output=aflds, index=14, rc=rc)
+    call state_getimport(importState, 'mean_down_lw_flx', output=aflds, index=14, &
+         areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_prec_rate', output=aflds, index=15, rc=rc)
+    call state_getimport(importState, 'mean_prec_rate', output=aflds, index=15, &
+         areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_fprec_rate', output=aflds, index=16, rc=rc)
+    call state_getimport(importState, 'mean_fprec_rate', output=aflds, index=16, &
+         areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! perform a halo update
@@ -488,7 +556,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    if ( State_fldChk(importState, 'Sa_ptem') .and. State_fldchk(importState,'air_density_height_lowest')) then 
+    if ( State_fldChk(importState, 'Sa_ptem') .and. State_fldchk(importState,'air_density_height_lowest')) then
        !$OMP PARALLEL DO PRIVATE(iblk,i,j)
        do iblk = 1, nblocks
           do j = 1,ny_block
@@ -518,7 +586,7 @@ contains
                 endif
              end do !i
           end do !j
-       end do !iblk   
+       end do !iblk
        !$OMP END PARALLEL DO
     end if
 
@@ -577,34 +645,45 @@ contains
        ! bcphodry  ungridded_index=2
        ! bcphiwet  ungridded_index=3
 
-       ! bcphodry
-       call state_getimport(importState, 'Faxa_bcph', output=faero_atm, index=1,                ungridded_index=2, rc=rc)
+       call state_getfldptr(importState, 'Faxa_bcph', fldptr=dataPtr2d, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ! bcphidry + bcphiwet
-       call state_getimport(importState, 'Faxa_bcph', output=faero_atm, index=2,                ungridded_index=1, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'Faxa_bcph', output=faero_atm, index=2, do_sum=.true., ungridded_index=3, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       n = 0
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          do j = jlo, jhi
+             do i = ilo, ihi
+                n = n+1
+                faero_atm(i,j,1,iblk)  = dataPtr2d(2,n) * med2mod_areacor(n) ! bcphodry
+                faero_atm(i,j,2,iblk)  = (dataptr2d(1,n) + dataPtr2d(3,n)) * med2mod_areacor(n) ! bcphidry + bcphiwet
+             end do
+          end do
+       end do
     end if
 
     ! Sum over all dry and wet dust fluxes from ath atmosphere
     if (State_FldChk(importState, 'Faxa_dstwet') .and. State_FldChk(importState, 'Faxa_dstdry')) then
-       call state_getimport(importState, 'Faxa_dstwet', output=faero_atm,  index=3,                ungridded_index=1, rc=rc)
+       call state_getfldptr(importState, 'Faxa_dstwet', fldptr=dataPtr2d_dstwet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'Faxa_dstdry', output=faero_atm,  index=3, do_sum=.true., ungridded_index=1, rc=rc)
+       call state_getfldptr(importState, 'Faxa_dstdry', fldptr=dataPtr2d_dstdry, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'Faxa_dstwet', output=faero_atm,  index=3, do_sum=.true., ungridded_index=2, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'Faxa_dstdry', output=faero_atm,  index=3, do_sum=.true., ungridded_index=2, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'Faxa_dstwet', output=faero_atm,  index=3, do_sum=.true., ungridded_index=3, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'Faxa_dstdry', output=faero_atm,  index=3, do_sum=.true., ungridded_index=3, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'Faxa_dstwet', output=faero_atm,  index=3, do_sum=.true., ungridded_index=4, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'Faxa_dstdry', output=faero_atm,  index=3, do_sum=.true., ungridded_index=4, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       n = 0
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          do j = jlo, jhi
+             do i = ilo, ihi
+                n = n+1
+                faero_atm(i,j,3,iblk)  = dataPtr2d_dstwet(1,n) + dataptr2d_dstdry(1,n) + &
+                                         dataPtr2d_dstwet(2,n) + dataptr2d_dstdry(2,n) + &
+                                         dataPtr2d_dstwet(3,n) + dataptr2d_dstdry(3,n) + &
+                                         dataPtr2d_dstwet(4,n) + dataptr2d_dstdry(4,n)
+                faero_atm(i,j,3,iblk) = faero_atm(i,j,3,iblk) * med2mod_areacor(n)
+             end do
+          end do
+       end do
     end if
 
     !-------------------------------------------------------
@@ -623,12 +702,15 @@ contains
        call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=3, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=1, ungridded_index=3, rc=rc)
-!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=2, ungridded_index=1, rc=rc)
-!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!      call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=3, ungridded_index=2, rc=rc)
-!      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ! call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=1, ungridded_index=3, &
+       !      areacor=med2mod_areacor, rc=rc)
+       ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ! call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=2, ungridded_index=1, &
+       !      areacor=med2mod_areacor, rc=rc)
+       ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ! call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=3, ungridded_index=2, &
+       !      areacor=med2mod_areacor, rc=rc)
+       ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call state_getimport(importState, 'mean_fprec_rate_wiso', output=fiso_atm, index=1, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -637,11 +719,14 @@ contains
        call state_getimport(importState, 'mean_fprec_rate_wiso', output=fiso_atm, index=3, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call state_getimport(importState, 'So_roce_wiso', output=HDO_ocn   , ungridded_index=3, rc=rc)
+       call state_getimport(importState, 'So_roce_wiso', output=HDO_ocn   , ungridded_index=3, &
+            areacor=med2mod_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'So_roce_wiso', output=H2_16O_ocn, ungridded_index=1, rc=rc)
+       call state_getimport(importState, 'So_roce_wiso', output=H2_16O_ocn, ungridded_index=1, &
+            areacor=med2mod_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'So_roce_wiso', output=H2_18O_ocn, ungridded_index=2, rc=rc)
+       call state_getimport(importState, 'So_roce_wiso', output=H2_18O_ocn, ungridded_index=2, &
+            areacor=med2mod_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -690,9 +775,11 @@ contains
 
 #ifdef CESMCOUPLED
     ! Use shr_frz_mod for this
-    Tf(:,:,iblk) = shr_frz_freezetemp(sss(:,:,iblk))
-#else       
-    !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
+    do iblk = 1, nblocks
+       Tf(:,:,iblk) = shr_frz_freezetemp(sss(:,:,iblk))
+    end do
+#else
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j)
     do iblk = 1, nblocks
        do j = 1,ny_block
           do i = 1,nx_block
@@ -747,7 +834,6 @@ contains
   end subroutine ice_import
 
   !===============================================================================
-
   subroutine ice_export( exportState, rc )
 
     ! input/output variables
@@ -770,8 +856,10 @@ contains
     real    (kind=dbl_kind) :: tauxo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: tauyo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
-    real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
     real    (kind=dbl_kind) :: Tffresh
+    real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
+    real    (kind=dbl_kind), pointer :: dataptr_ifrac_n(:,:)
+    real    (kind=dbl_kind), pointer :: dataptr_swpen_n(:,:)
     character(len=*),parameter :: subname = 'ice_export'
     !-----------------------------------------------------
 
@@ -779,12 +867,13 @@ contains
     if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
-!    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
-!       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
-!       Tffresh_out=Tffresh)
-!    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
-!       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
-!       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+    !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
+    !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
+    !       Tffresh_out=Tffresh)
+    !    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
+    !       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
+    !       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=u_FILE_u, line=__LINE__)
@@ -880,7 +969,7 @@ contains
     call state_setexport(exportState, 'ice_fraction', input=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (trim(grid_type) == 'latlon') then
+    if (trim(grid_type) == 'setmask') then
        call state_setexport(exportState, 'ice_mask', input=ocn_gridcell_frac, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
@@ -967,31 +1056,38 @@ contains
     ! ------
 
     ! Zonal air/ice stress
-    call state_setexport(exportState, 'stress_on_air_ice_zonal' , input=tauxa, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'stress_on_air_ice_zonal' , input=tauxa, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Meridional air/ice stress
-    call state_setexport(exportState, 'stress_on_air_ice_merid' , input=tauya, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'stress_on_air_ice_merid' , input=tauya, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Latent heat flux (atm into ice)
-    call state_setexport(exportState, 'mean_laten_heat_flx_atm_into_ice' , input=flat, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_laten_heat_flx_atm_into_ice' , input=flat, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Sensible heat flux (atm into ice)
-    call state_setexport(exportState, 'mean_sensi_heat_flx_atm_into_ice' , input=fsens, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sensi_heat_flx_atm_into_ice' , input=fsens, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! longwave outgoing (upward), average over ice fraction only
-    call state_setexport(exportState, 'mean_up_lw_flx_ice' , input=flwout, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_up_lw_flx_ice' , input=flwout, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Evaporative water flux (kg/m^2/s)
-    call state_setexport(exportState, 'mean_evap_rate_atm_into_ice' , input=evap, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_evap_rate_atm_into_ice' , input=evap, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Shortwave flux absorbed in ice and ocean (W/m^2)
-    call state_setexport(exportState, 'Faii_swnet' , input=fswabs, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'Faii_swnet' , input=fswabs, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------
@@ -999,43 +1095,53 @@ contains
     ! ------
 
     ! flux of shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn' , input=fswthru, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn' , input=fswthru, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of vis dir shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dir_flx' , input=fswthru_vdr, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dir_flx' , input=fswthru_vdr, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of vis dif shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dif_flx' , input=fswthru_vdf, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dif_flx' , input=fswthru_vdf, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of ir dir shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dir_flx' , input=fswthru_idr, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dir_flx' , input=fswthru_idr, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of ir dif shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dif_flx' , input=fswthru_idf, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dif_flx' , input=fswthru_idf, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! heat exchange with ocean
-    call state_setexport(exportState, 'net_heat_flx_to_ocn' , input=fhocn, lmask=tmask, ifrac=ailohi, rc=rc)
+    ! flux of heat exchange with ocean
+    call state_setexport(exportState, 'net_heat_flx_to_ocn' , input=fhocn, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! fresh water to ocean (h2o flux from melting)
-    call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate' , input=fresh, lmask=tmask, ifrac=ailohi, rc=rc)
+    ! flux fresh water to ocean (h2o flux from melting)
+    call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate' , input=fresh, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! salt to ocean (salt flux from melting)
-    call state_setexport(exportState, 'mean_salt_rate' , input=fsalt, lmask=tmask, ifrac=ailohi, rc=rc)
+    ! flux of salt to ocean (salt flux from melting)
+    call state_setexport(exportState, 'mean_salt_rate' , input=fsalt, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! stress n i/o zonal
-    call state_setexport(exportState, 'stress_on_ocn_ice_zonal' , input=tauxo, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'stress_on_ocn_ice_zonal' , input=tauxo, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! stress n i/o meridional
-    call state_setexport(exportState, 'stress_on_ocn_ice_merid' , input=tauyo, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'stress_on_ocn_ice_merid' , input=tauyo, lmask=tmask, ifrac=ailohi, &
+         areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------
@@ -1044,19 +1150,22 @@ contains
 
     ! hydrophobic bc
     if (State_FldChk(exportState, 'Fioi_bcpho')) then
-       call state_setexport(exportState, 'Fioi_bcpho' , input=faero_ocn, index=1, lmask=tmask, ifrac=ailohi, rc=rc)
+       call state_setexport(exportState, 'Fioi_bcpho' , input=faero_ocn, index=1, lmask=tmask, ifrac=ailohi, &
+            areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! hydrophilic bc
     if (State_FldChk(exportState, 'Fioi_bcphi')) then
-       call state_setexport(exportState, 'Fioi_bcphi' , input=faero_ocn, index=2, lmask=tmask, ifrac=ailohi, rc=rc)
+       call state_setexport(exportState, 'Fioi_bcphi' , input=faero_ocn, index=2, lmask=tmask, ifrac=ailohi, &
+            areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! dust
     if (State_FldChk(exportState, 'Fioi_flxdst')) then
-       call state_setexport(exportState, 'Fioi_flxdst' , input=faero_ocn, index=3, lmask=tmask, ifrac=ailohi, rc=rc)
+       call state_setexport(exportState, 'Fioi_flxdst' , input=faero_ocn, index=3, lmask=tmask, ifrac=ailohi, &
+            areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -1070,13 +1179,13 @@ contains
        ! HDO => ungridded_index=3
 
        call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate_wiso' , input=fiso_ocn, index=1, &
-            lmask=tmask, ifrac=ailohi, ungridded_index=3, rc=rc)
+            lmask=tmask, ifrac=ailohi, ungridded_index=3, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate_wiso' , input=fiso_ocn, index=2, &
-            lmask=tmask, ifrac=ailohi, ungridded_index=1, rc=rc)
+            lmask=tmask, ifrac=ailohi, ungridded_index=1, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate_wiso' , input=fiso_ocn, index=3, &
-            lmask=tmask, ifrac=ailohi, ungridded_index=2, rc=rc)
+            lmask=tmask, ifrac=ailohi, ungridded_index=2, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -1087,16 +1196,16 @@ contains
     if (State_FldChk(exportState, 'mean_evap_rate_atm_into_ice_wiso')) then
        !  Isotope evap to atm
        call state_setexport(exportState, 'mean_evap_rate_atm_into_ice_wiso' , input=fiso_evap, index=1, &
-            lmask=tmask, ifrac=ailohi, ungridded_index=3, rc=rc)
+            lmask=tmask, ifrac=ailohi, ungridded_index=3, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_setexport(exportState, 'mean_evap_rate_atm_into_ice_wiso' , input=fiso_evap, index=2, &
-            lmask=tmask, ifrac=ailohi, ungridded_index=1, rc=rc)
+            lmask=tmask, ifrac=ailohi, ungridded_index=1, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_setexport(exportState, 'mean_evap_rate_atm_into_ice_wiso' , input=fiso_evap, index=3, &
-            lmask=tmask, ifrac=ailohi, ungridded_index=2, rc=rc)
+            lmask=tmask, ifrac=ailohi, ungridded_index=2, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       !  Isotope evap to atm
+       !  qref to atm
        call state_setexport(exportState, 'Si_qref_wiso' , input=Qref_iso, index=1, &
             lmask=tmask, ifrac=ailohi, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1124,7 +1233,7 @@ contains
           ! Note: no need zero out pass-through fields over land for benefit of x2oacc fields in cpl hist files since
           ! the export state has been zeroed out at the beginning
           call state_setexport(exportState, 'mean_sw_pen_to_ocn_ifrac_n', input=fswthrun_ai, index=n, &
-               lmask=tmask, ifrac=ailohi, ungridded_index=n, rc=rc)
+               lmask=tmask, ifrac=ailohi, ungridded_index=n, areacor=mod2med_areacor, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
     end if
@@ -1132,7 +1241,6 @@ contains
   end subroutine ice_export
 
   !===============================================================================
-
   subroutine fldlist_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound)
 
     ! input/output variables
@@ -1162,7 +1270,6 @@ contains
   end subroutine fldlist_add
 
   !===============================================================================
-
   subroutine fldlist_realize(state, fldList, numflds, flds_scalar_name, flds_scalar_num, mesh, grid, tag, rc)
 
     use NUOPC, only : NUOPC_IsConnected, NUOPC_Realize
@@ -1187,6 +1294,7 @@ contains
     integer                :: n
     type(ESMF_Field)       :: field
     character(len=80)      :: stdname
+    character(ESMF_MAXSTR) :: msg
     character(len=*),parameter  :: subname='(ice_import_export:fld_list_realize)'
     ! ----------------------------------------------
 
@@ -1203,8 +1311,6 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
              if (present(mesh)) then
-                call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected using mesh", &
-                     ESMF_LOGMSG_INFO)
                 ! Create the field
                 if (fldlist(n)%ungridded_lbound > 0 .and. fldlist(n)%ungridded_ubound > 0) then
                    field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
@@ -1212,9 +1318,16 @@ contains
                         ungriddedUbound=(/fldlist(n)%ungridded_ubound/), &
                         gridToFieldMap=(/2/), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   write(msg, '(a,i4,2x,i4)') trim(subname)//trim(tag)//" Field = "//trim(stdname)//&
+                        " is connected using mesh with lbound, ubound = ",&
+                        fldlist(n)%ungridded_lbound,fldlist(n)%ungridded_ubound
+                   call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
                 else
                    field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   write(msg, '(a,i4,a,i4)') trim(subname)//trim(tag)//" Field = "//trim(stdname)//&
+                        " is connected using mesh without ungridded dimension"
+                   call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
                 end if
              else if (present(grid)) then
                 call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected using grid", &
@@ -1287,7 +1400,6 @@ contains
   end subroutine fldlist_realize
 
   !===============================================================================
-
   logical function State_FldChk(State, fldname)
     ! ----------------------------------------------
     ! Determine if field is in state
@@ -1302,27 +1414,25 @@ contains
     ! ----------------------------------------------
 
     call ESMF_StateGet(State, trim(fldname), itemType)
-
     State_FldChk = (itemType /= ESMF_STATEITEM_NOTFOUND)
 
   end function State_FldChk
 
   !===============================================================================
-
-  subroutine state_getimport_4d_output(state, fldname, output, index, do_sum, ungridded_index, rc)
+  subroutine state_getimport_4d(state, fldname, output, index, ungridded_index, areacor, rc)
 
     ! ----------------------------------------------
     ! Map import state field to output array
     ! ----------------------------------------------
 
     ! input/output variables
-    type(ESMF_State)           , intent(in)    :: state
-    character(len=*)           , intent(in)    :: fldname
-    real (kind=dbl_kind)       , intent(inout) :: output(:,:,:,:)
-    integer                    , intent(in)    :: index
-    logical, optional          , intent(in)    :: do_sum
-    integer, optional          , intent(in)    :: ungridded_index
-    integer                    , intent(out)   :: rc
+    type(ESMF_State)              , intent(in)    :: state
+    character(len=*)              , intent(in)    :: fldname
+    real (kind=dbl_kind)          , intent(inout) :: output(:,:,:,:)
+    integer                       , intent(in)    :: index
+    integer, optional             , intent(in)    :: ungridded_index
+    real(kind=dbl_kind), optional , intent(in)    :: areacor(:)
+    integer                       , intent(out)   :: rc
 
     ! local variables
     type(block)                  :: this_block            ! block information for current block
@@ -1330,9 +1440,7 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    real(kind=dbl_kind), pointer :: dataPtr3d(:,:,:)      ! grid
-    real(kind=dbl_kind), pointer :: dataPtr4d(:,:,:,:)    ! grid
-    character(len=*), parameter  :: subname='(ice_import_export:state_getimport)'
+    character(len=*), parameter  :: subname='(ice_import_export:state_getimport_4d)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1340,103 +1448,65 @@ contains
     ! check that fieldname exists
     if (.not. State_FldChk(state, trim(fldname))) return
 
-    if (geomtype == ESMF_GEOMTYPE_MESH) then
-
-       ! get field pointer
-       if (present(ungridded_index)) then
-          call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! set values of output array
-       n=0
-       do iblk = 1, nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo, jhi
-             do i = ilo, ihi
-                n = n+1
-                if (present(do_sum)) then ! do sum
-                   if (present(ungridded_index)) then
-                      output(i,j,index,iblk)  = output(i,j,index, iblk) + dataPtr2d(ungridded_index,n)
-                   else
-                      output(i,j,index,iblk)  = output(i,j,index, iblk) + dataPtr1d(n)
-                   end if
-                else ! do not do sum
-                   if (present(ungridded_index)) then
-                      output(i,j,index,iblk)  = dataPtr2d(ungridded_index,n)
-                   else
-                      output(i,j,index,iblk)  = dataPtr1d(n)
-                   end if
-                end if
-             end do
-          end do
-       end do
-
-    else if (geomtype == ESMF_GEOMTYPE_GRID) then
-
-       ! get field pointer
-       if (present(ungridded_index)) then
-          call state_getfldptr(state, trim(fldname), dataptr4d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call state_getfldptr(state, trim(fldname), dataptr3d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! set values of output array
-       do iblk = 1,nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo,jhi
-             do i = ilo,ihi
-                i1 = i - ilo + 1
-                j1 = j - jlo + 1
-                if (present(do_sum)) then
-                   if (present(ungridded_index)) then
-                      output(i,j,index,iblk) = output(i,j,index,iblk) + dataPtr4d(i1,j1,iblk,ungridded_index)
-                   else
-                      output(i,j,index,iblk) = output(i,j,index,iblk) + dataPtr3d(i1,j1,iblk)
-                   end if
-                else
-                   if (present(ungridded_index)) then
-                      output(i,j,index,iblk) = dataPtr4d(i1,j1,iblk,ungridded_index)
-                   else
-                      output(i,j,index,iblk) = dataPtr3d(i1,j1,iblk)
-                   end if
-                end if
-             end do
-          end do
-       end do
-
+    ! get field pointer
+    if (present(ungridded_index)) then
+       call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-  end subroutine state_getimport_4d_output
+    ! set values of output array
+    n=0
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+          do i = ilo, ihi
+             n = n+1
+             if (present(ungridded_index)) then
+                output(i,j,index,iblk)  = dataPtr2d(ungridded_index,n)
+             else
+                output(i,j,index,iblk)  = dataPtr1d(n)
+             end if
+          end do
+       end do
+    end do
+    if (present(areacor)) then
+       n = 0
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          do j = jlo, jhi
+             do i = ilo, ihi
+                n = n + 1
+                output(i,j,index,iblk) = output(i,j,index,iblk) * areacor(n)
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine state_getimport_4d
 
   !===============================================================================
-
-  subroutine state_getimport_3d_output(state, fldname, output, do_sum, ungridded_index, rc)
+  subroutine state_getimport_3d(state, fldname, output, ungridded_index, areacor, rc)
 
     ! ----------------------------------------------
     ! Map import state field to output array
     ! ----------------------------------------------
 
     ! input/output variables
-    type(ESMF_State)           , intent(in)    :: state
-    character(len=*)           , intent(in)    :: fldname
-    real (kind=dbl_kind)       , intent(inout) :: output(:,:,:)
-    logical, optional          , intent(in)    :: do_sum
-    integer, optional          , intent(in)    :: ungridded_index
-    integer                    , intent(out)   :: rc
+    type(ESMF_State)              , intent(in)    :: state
+    character(len=*)              , intent(in)    :: fldname
+    real (kind=dbl_kind)          , intent(inout) :: output(:,:,:)
+    integer, optional             , intent(in)    :: ungridded_index
+    real(kind=dbl_kind), optional , intent(in)    :: areacor(:)
+    integer                       , intent(out)   :: rc
 
     ! local variables
     type(block)                  :: this_block            ! block information for current block
@@ -1444,9 +1514,7 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    real(kind=dbl_kind), pointer :: dataPtr3d(:,:,:)      ! grid
-    real(kind=dbl_kind), pointer :: dataPtr4d(:,:,:,:)    ! grid
-    character(len=*) , parameter :: subname='(ice_import_export:state_getimport)'
+    character(len=*) , parameter :: subname='(ice_import_export:state_getimport_3d)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1454,83 +1522,53 @@ contains
     ! check that fieldname exists
     if (.not. State_FldChk(state, trim(fldname))) return
 
-    if (geomtype == ESMF_GEOMTYPE_MESH) then
-
-       ! get field pointer
-       if (present(ungridded_index)) then
-          call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! determine output array
-       n=0
-       do iblk = 1, nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo, jhi
-             do i = ilo, ihi
-                n = n+1
-                if (present(do_sum) .and. present(ungridded_index)) then
-                   output(i,j,iblk)  = output(i,j,iblk) + dataPtr2d(ungridded_index,n)
-                else if (present(do_sum)) then
-                   output(i,j,iblk)  = output(i,j,iblk) + dataPtr1d(n)
-                else if (present(ungridded_index)) then
-                   output(i,j,iblk)  = dataPtr2d(ungridded_index,n)
-                else
-                   output(i,j,iblk) = dataPtr1d(n)
-                end if
-             end do
-          end do
-       end do
-
-    else if (geomtype == ESMF_GEOMTYPE_GRID) then
-
-       ! get field pointer
-       if (present(ungridded_index)) then
-          call state_getfldptr(state, trim(fldname), dataptr4d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call state_getfldptr(state, trim(fldname), dataptr3d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! set values of output array
-       do iblk = 1,nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo,jhi
-             do i = ilo,ihi
-                i1 = i - ilo + 1
-                j1 = j - jlo + 1
-                if (present(do_sum) .and. present(ungridded_index)) then
-                   output(i,j,iblk) = output(i,j,iblk) + dataPtr4d(i1,j1,iblk,ungridded_index)
-                else if (present(do_sum)) then
-                   output(i,j,iblk) = output(i,j,iblk) + dataPtr3d(i1,j1,iblk)
-                else if (present(ungridded_index)) then
-                   output(i,j,iblk) = dataPtr4d(i1,j1,iblk, ungridded_index)
-                else
-                   output(i,j,iblk) = dataPtr3d(i1,j1,iblk)
-                end if
-             end do
-          end do
-       end do
-
+    ! get field pointer
+    if (present(ungridded_index)) then
+       call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-  end subroutine state_getimport_3d_output
+    ! determine output array
+    n = 0
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+          do i = ilo, ihi
+             n = n+1
+             if (present(ungridded_index)) then
+                output(i,j,iblk)  = dataPtr2d(ungridded_index,n)
+             else
+                output(i,j,iblk) = dataPtr1d(n)
+             end if
+          end do
+       end do
+    end do
+    if (present(areacor)) then
+       n = 0
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          do j = jlo, jhi
+             do i = ilo, ihi
+                n = n + 1
+                output(i,j,iblk) = output(i,j,iblk) * areacor(n)
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine state_getimport_3d
 
   !===============================================================================
-
-  subroutine state_setexport_4d_input(state, fldname, input, index, lmask, ifrac, ungridded_index, rc)
+  subroutine state_setexport_4d(state, fldname, input, index, lmask, ifrac, ungridded_index, areacor, rc)
 
     ! ----------------------------------------------
     ! Map 4d input array to export state field
@@ -1544,6 +1582,7 @@ contains
     logical             , optional, intent(in)    :: lmask(:,:,:)
     real(kind=dbl_kind) , optional, intent(in)    :: ifrac(:,:,:)
     integer             , optional, intent(in)    :: ungridded_index
+    real(kind=dbl_kind) , optional, intent(in)    :: areacor(:)
     integer             ,           intent(out)   :: rc
 
     ! local variables
@@ -1552,9 +1591,8 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! indices
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    real(kind=dbl_kind), pointer :: dataPtr3d(:,:,:)      ! grid
-    real(kind=dbl_kind), pointer :: dataPtr4d(:,:,:,:)    ! grid
-    character(len=*), parameter  :: subname='(ice_import_export:state_setexport)'
+    integer                      :: ice_num
+    character(len=*), parameter  :: subname='(ice_import_export:state_setexport_4d)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1562,93 +1600,81 @@ contains
     ! check that fieldname exists
     if (.not. State_FldChk(state, trim(fldname))) return
 
-    if (geomtype == ESMF_GEOMTYPE_MESH) then
-
-       ! get field pointer
-       if (present(ungridded_index)) then
-          call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! get field pointer
+    if (present(ungridded_index)) then
+       call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ungridded_index == 1) then
+          dataptr2d(:,:) = c0
        end if
-
-       ! set values of field pointer
        n = 0
        do iblk = 1, nblocks
           this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo, jhi
-             do i = ilo, ihi
-                n = n+1
-                if (present(lmask) .and. present(ifrac)) then
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          if (present(lmask) .and. present(ifrac)) then
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
                    if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
-                      if (present(ungridded_index)) then
-                         dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
-                      else
-                         dataPtr1d(n) = input(i,j,index,iblk)
-                      end if
-                   end if
-                else
-                   if (present(ungridded_index)) then
                       dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
                    else
+                      dataPtr2d(ungridded_index,n) = c0
+                   end if
+                end do
+             end do
+          else
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
+                   dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
+                end do
+             end do
+          end if
+       end do
+       ice_num = n
+       if (present(areacor)) then
+          do n = 1,ice_num
+             dataPtr2d(ungridded_index,n) = dataPtr2d(ungridded_index,n) * areacor(n)
+          end do
+       end if
+    else
+       call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       dataptr1d(:) = c0
+       n = 0
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo; ihi = this_block%ihi
+          jlo = this_block%jlo; jhi = this_block%jhi
+          if (present(lmask) .and. present(ifrac)) then
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
+                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
                       dataPtr1d(n) = input(i,j,index,iblk)
                    end if
-                end if
+                end do
              end do
-          end do
+          else
+             do i = ilo, ihi
+                n = n+1
+                dataPtr1d(n) = input(i,j,index,iblk)
+             end do
+          end if
        end do
-
-    else if (geomtype == ESMF_GEOMTYPE_GRID) then
-
-       if (present(ungridded_index)) then
-          call state_getfldptr(state, trim(fldname), dataptr4d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call state_getfldptr(state, trim(fldname), dataptr3d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ice_num = n
+       if (present(areacor)) then
+          do n = 1,ice_num
+             dataPtr1d(n) = dataPtr1d(n) * areacor(n)
+          end do
        end if
-
-       do iblk = 1,nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo,jhi
-             do i = ilo,ihi
-                i1 = i - ilo + 1
-                j1 = j - jlo + 1
-                if (present(lmask) .and. present(ifrac)) then
-                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
-                      if (present(ungridded_index)) then
-                         dataPtr4d(i1,j1,iblk,ungridded_index) = input(i,j,index,iblk)
-                      end if
-                   else
-                      dataPtr3d(i1,j1,iblk) = input(i,j,index,iblk)
-                   end if
-                else
-                   if (present(ungridded_index)) then
-                      dataPtr4d(i1,j1,iblk,ungridded_index) = input(i,j,index,iblk)
-                   else
-                      dataPtr3d(i1,j1,iblk) = input(i,j,index,iblk)
-                   end if
-                end if
-             end do
-          end do
-       end do
-
     end if
 
-  end subroutine state_setexport_4d_input
+  end subroutine state_setexport_4d
 
   !===============================================================================
-
-  subroutine state_setexport_3d_input(state, fldname, input, lmask, ifrac, ungridded_index, rc)
+  subroutine state_setexport_3d(state, fldname, input, lmask, ifrac, ungridded_index, areacor, rc)
 
     ! ----------------------------------------------
     ! Map 3d input array to export state field
@@ -1661,6 +1687,7 @@ contains
     logical             , optional , intent(in)    :: lmask(:,:,:)
     real(kind=dbl_kind) , optional , intent(in)    :: ifrac(:,:,:)
     integer             , optional , intent(in)    :: ungridded_index
+    real(kind=dbl_kind) , optional , intent(in)    :: areacor(:)
     integer                        , intent(out)   :: rc
 
     ! local variables
@@ -1669,9 +1696,8 @@ contains
     integer                      :: i, j, iblk, n, i1, j1 ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    real(kind=dbl_kind), pointer :: dataPtr3d(:,:,:)      ! grid
-    real(kind=dbl_kind), pointer :: dataPtr4d(:,:,:,:)    ! grid
-    character(len=*), parameter  :: subname='(ice_import_export:state_setexport)'
+    integer                      :: num_ice
+    character(len=*), parameter  :: subname='(ice_import_export:state_setexport_3d)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1679,92 +1705,59 @@ contains
     ! check that fieldname exists
     if (.not. State_FldChk(state, trim(fldname))) return
 
-    if (geomtype == ESMF_GEOMTYPE_MESH) then
+    ! get field pointer
+    if (present(ungridded_index)) then
+       call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
-       ! get field pointer
-       if (present(ungridded_index)) then
-          call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       n = 0
-       do iblk = 1, nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo, jhi
-             do i = ilo, ihi
-                n = n+1
-                if (present(lmask) .and. present(ifrac)) then
-                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
-                      if (present(ungridded_index)) then
-                         dataPtr2d(ungridded_index,n) = input(i,j,iblk)
-                      else
-                         dataPtr1d(n) = input(i,j,iblk)
-                      end if
-                   end if
-                else
+    n = 0
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+          do i = ilo, ihi
+             n = n+1
+             if (present(lmask) .and. present(ifrac)) then
+                if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
                    if (present(ungridded_index)) then
                       dataPtr2d(ungridded_index,n) = input(i,j,iblk)
                    else
                       dataPtr1d(n) = input(i,j,iblk)
                    end if
                 end if
-             end do
-          end do
-       end do
-
-    else if (geomtype == ESMF_GEOMTYPE_GRID) then
-
-       ! get field pointer
-       if (present(ungridded_index)) then
-          call state_getfldptr(state, trim(fldname), dataptr4d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call state_getfldptr(state, trim(fldname), dataptr3d, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       do iblk = 1,nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo,jhi
-             do i = ilo,ihi
-                i1 = i - ilo + 1
-                j1 = j - jlo + 1
-                if (present(lmask) .and. present(ifrac)) then
-                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
-                      if (present(ungridded_index)) then
-                         dataPtr4d(i1,j1,iblk,ungridded_index) = input(i,j,iblk)
-                      else
-                         dataPtr3d(i1,j1,iblk) = input(i,j,iblk)
-                      end if
-                   end if
+             else
+                if (present(ungridded_index)) then
+                   dataPtr2d(ungridded_index,n) = input(i,j,iblk)
                 else
-                   if (present(ungridded_index)) then
-                      dataPtr4d(i1,j1,iblk,ungridded_index) = input(i,j,iblk)
-                   else
-                      dataPtr3d(i1,j1,iblk) = input(i,j,iblk)
-                   end if
+                   dataPtr1d(n) = input(i,j,iblk)
                 end if
-             end do
+             end if
           end do
        end do
-
+    end do
+    num_ice = n
+    if (present(areacor)) then
+       if (present(ungridded_index)) then
+          do n = 1,num_ice
+             dataPtr2d(:,n) = dataPtr2d(:,n) * areacor(n)
+          end do
+       else
+          do n = 1,num_ice
+             dataPtr1d(n) = dataPtr1d(n) * areacor(n)
+          end do
+       end if
     end if
 
-  end subroutine state_setexport_3d_input
+  end subroutine state_setexport_3d
 
   !===============================================================================
-
   subroutine State_GetFldPtr_1d(State, fldname, fldptr, rc)
     ! ----------------------------------------------
     ! Get pointer to a state field
@@ -1788,10 +1781,10 @@ contains
 
     call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
   end subroutine State_GetFldPtr_1d
 
   !===============================================================================
-
   subroutine State_GetFldPtr_2d(State, fldname, fldptr, rc)
     ! ----------------------------------------------
     ! Get pointer to a state field
@@ -1815,60 +1808,7 @@ contains
 
     call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
   end subroutine State_GetFldPtr_2d
-
-  !===============================================================================
-
-  subroutine State_GetFldPtr_3d(State, fldname, fldptr, rc)
-    ! ----------------------------------------------
-    ! Get pointer to a state field
-    ! ----------------------------------------------
-
-    ! input/output variables
-    type(ESMF_State)    ,            intent(in)     :: State
-    character(len=*)    ,            intent(in)     :: fldname
-    real(kind=dbl_kind) , pointer ,  intent(inout)  :: fldptr(:,:,:)
-    integer             , optional , intent(out)    :: rc
-
-    ! local variables
-    type(ESMF_Field) :: lfield
-    character(len=*),parameter :: subname='(ice_import_export:State_GetFldPtr_3d)'
-    ! ----------------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-  end subroutine State_GetFldPtr_3d
-
-  !===============================================================================
-
-  subroutine State_GetFldPtr_4d(State, fldname, fldptr, rc)
-    ! ----------------------------------------------
-    ! Get pointer to a state field
-    ! ----------------------------------------------
-
-    ! input/output variables
-    type(ESMF_State)    ,            intent(in)     :: State
-    character(len=*)    ,            intent(in)     :: fldname
-    real(kind=dbl_kind) , pointer ,  intent(inout)  :: fldptr(:,:,:,:)
-    integer             , optional , intent(out)    :: rc
-
-    ! local variables
-    type(ESMF_Field) :: lfield
-    character(len=*),parameter :: subname='(ice_import_export:State_GetFldPtr_3d)'
-    ! ----------------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-  end subroutine State_GetFldPtr_4d
 
 end module ice_import_export
