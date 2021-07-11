@@ -667,6 +667,12 @@ in **configuration/scripts/options**.  In particular, **ICE_DRVOPT** and
 **configuration/scripts/Makefile** and create a target for the unit test.
 The unit tests calchk or helloworld can be used as examples.
 
+The following strings should be written to the log file at the end of the unit test run.
+The string "COMPLETED SUCCESSFULLY" will indicate the run ran to completion.  The string
+"TEST COMPLETED SUCCESSFULLY" will indicate all the unit testing passed during the run.
+These strings will be queried by the testing scripts and will impact the test reporting.
+See other unit tests for examples about how these strings could be written.
+
 The following are brief descriptions of some of the current unit tests,
 
  - **bcstchk** is a unit test that exercises the methods in ice_broadcast.F90.  This test does not

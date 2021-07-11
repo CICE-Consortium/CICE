@@ -100,7 +100,7 @@ else
     echo "Run completed successfully"
     echo "\`date\` \${0}: Run completed successfully"  >> \${ICE_CASEDIR}/README.case
   else
-    echo "CICE run did NOT complete"
+    echo "Run did NOT complete"
     echo "\`date\` \${0}: CICE run did NOT complete"  >> \${ICE_CASEDIR}/README.case
     exit -1
   endif

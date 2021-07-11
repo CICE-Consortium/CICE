@@ -579,10 +579,11 @@
  1002 format(a,i10,1x,a)
 
       write(6,*) ' '
+      write(6,*) 'CALCHK COMPLETED SUCCESSFULLY'
       if (errorflag0 == passflag) then
-         write(6,*) 'CALCHK COMPLETED SUCCESSFULLY'
+         write(6,*) 'CALCHK TEST COMPLETED SUCCESSFULLY'
       else
-         write(6,*) 'CALCHK FAILED'
+         write(6,*) 'CALCHK TEST FAILED'
       endif
 
       end program
