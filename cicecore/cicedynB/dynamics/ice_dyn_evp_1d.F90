@@ -162,7 +162,7 @@ contains
          csig12se, csig12sw, str12ew, str12we, str12ns, str12sn, &
          strp_tmp, strm_tmp, tmp_uvel_ee, tmp_vvel_se, tmp_vvel_ee, &
          tmp_vvel_ne, tmp_uvel_ne, tmp_uvel_se, dxhy, dyhx, cxp, cyp, &
-         cxm, cym, tinyarea
+         cxm, cym, tinyarea,tmparea
 
       character(len=*), parameter :: subname = '(stress_iter)'
 
@@ -185,8 +185,8 @@ contains
       call domp_get_domain(lb, ub, il, iu)
       do iw = il, iu
 #endif
-
-         tinyarea = puny * dxt(iw) * dyt(iw)
+         tmparea = dxt(iw) * dyt(iw) ! necessary to split calc of tinyarea. Otherwize not binary identical
+         tinyarea =  puny * tmparea
          dxhy     = p5 * (hte(iw) - htem1(iw))
          dyhx     = p5 * (htn(iw) - htnm1(iw))
          cxp      = c1p5 * htn(iw) - p5 * htnm1(iw)
@@ -434,7 +434,7 @@ contains
          csig12se, csig12sw, str12ew, str12we, str12ns, str12sn, &
          strp_tmp, strm_tmp, tmp_uvel_ee, tmp_vvel_se, tmp_vvel_ee, &
          tmp_vvel_ne, tmp_uvel_ne, tmp_uvel_se, dxhy, dyhx, cxp, cyp, &
-         cxm, cym, tinyarea
+         cxm, cym, tinyarea, tmparea
 
       character(len=*), parameter :: subname = '(stress_last)'
 
@@ -459,8 +459,8 @@ contains
       call domp_get_domain(lb, ub, il, iu)
       do iw = il, iu
 #endif
-
-         tinyarea = puny * dxt(iw) * dyt(iw)
+         tmparea = dxt(iw) * dyt(iw) ! necessary to split calc of tinyarea. Otherwize not binary identical
+         tinyarea = puny * tmparea
          dxhy     = p5 * (hte(iw) - htem1(iw))
          dyhx     = p5 * (htn(iw) - htnm1(iw))
          cxp      = c1p5 * htn(iw) - p5 * htnm1(iw)
