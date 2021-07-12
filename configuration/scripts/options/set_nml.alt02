@@ -1,7 +1,6 @@
 ncat = 1
 kcatbound = -1
 ice_ic = 'default'
-restart = .false.
 distribution_type = 'sectrobin'
 tr_iage      = .true.
 tr_FY        = .true.

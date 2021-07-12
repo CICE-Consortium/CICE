@@ -19,6 +19,9 @@ end
 cp ice_in ice_in.0
 set base_dir = ""
 
+# clean up old restart dirs to support rerun
+rm -rf ${ICE_RUNDIR}/restart.*
+
 foreach decomp (${decomps})
   ${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/set_nml.d${decomp}
   cp ice_in ice_in.${decomp}
