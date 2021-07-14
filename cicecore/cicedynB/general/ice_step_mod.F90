@@ -794,17 +794,19 @@
          ntrcr,           & !
          nbtrcr             !
 
-      character (len=char_len) :: wave_solver
+      character (len=char_len) :: wave_solver, wave_spec_type
 
       character(len=*), parameter :: subname = '(step_dyn_wave)'
 
       call ice_timer_start(timer_column)
       call ice_timer_start(timer_fsd)
 
-      call icepack_query_parameters(wave_solver_out=wave_solver)
+      call icepack_query_parameters(wave_solver_out=wave_solver, wave_spec_type_out=wave_spec_type)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      if (wave_spec_type .ne. 'none') then
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -834,6 +836,7 @@
          end do ! j
       end do    ! iblk
       !$OMP END PARALLEL DO
+      end if
 
       call ice_timer_stop(timer_fsd)
       call ice_timer_stop(timer_column)

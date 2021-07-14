@@ -3897,11 +3897,6 @@
                  if (n_yieldstress11 (ns) /= 0) a2D(i,j,n_yieldstress11(ns),iblk) = spval
                  if (n_yieldstress12 (ns) /= 0) a2D(i,j,n_yieldstress12(ns),iblk) = spval
                  if (n_yieldstress22 (ns) /= 0) a2D(i,j,n_yieldstress22(ns),iblk) = spval
-                 !if (n_frachist(ns) /= 0) then ! LR
-                 !   do k = 1, nfsd
-                 !        a3Df(i,j,k,n_frachist(ns),iblk) = spval
-                 !    end do
-                 !end if
                        else
                  if (n_divu     (ns) /= 0) a2D(i,j,n_divu(ns),iblk)      = &
                        divu (i,j,iblk)*avail_hist_fields(n_divu(ns))%cona
@@ -3925,7 +3920,6 @@
                        vice(i,j,iblk)
                  if (n_aisnap   (ns) /= 0) a2D(i,j,n_aisnap(ns),iblk)    = &
                        aice(i,j,iblk)
-                       frachist(i,j,12,iblk)
                 if (kdyn == 2) then  ! for EAP dynamics different time of output
                     if (n_trsig    (ns) /= 0) a2D(i,j,n_trsig(ns),iblk ) = &
                                         strength(i,j,iblk)
@@ -3964,11 +3958,6 @@
                        yieldstress12 (i,j,iblk)*avail_hist_fields(n_yieldstress12(ns))%cona
                  if (n_yieldstress22     (ns) /= 0) a2D(i,j,n_yieldstress22(ns),iblk)      = &
                        yieldstress22 (i,j,iblk)*avail_hist_fields(n_yieldstress22(ns))%cona
-                 if (n_frachist   (ns) /= 0) then ! LR
-                    do k = 1, nfsd
-                      a3Df(i,j,k,n_frachist(ns),iblk) = frachist(i,j,k,iblk)
-                    end do
-                 end if
               endif
            enddo                ! i
            enddo                ! j
