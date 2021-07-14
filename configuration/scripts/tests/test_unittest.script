@@ -4,9 +4,12 @@
 # cice.run returns -1 if run did not complete successfully
 
 ./cice.run
-set res="$status"
+set rres="$status"
 
 set log_file = `ls -t1 ${ICE_RUNDIR}/cice.runlog* | head -1`
+
+grep ' TEST COMPLETED SUCCESSFULLY' ${log_file}
+set tres="$status"
 
 mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
 cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
@@ -14,14 +17,20 @@ mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
 cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test" >! ${ICE_CASEDIR}/test_output
 rm -f ${ICE_CASEDIR}/test_output.prev
 
-set grade = PASS
-if ( $res != 0 ) then
-  set grade = FAIL
-  echo "$grade ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
-  echo "$grade ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
-  exit 99
+set rgrade = PASS
+if ( $rres != 0 ) then
+  set rgrade = FAIL
+endif
+set tgrade = PASS
+if ( $tres != 0 ) then
+  set tgrade = FAIL
 endif
 
-echo "$grade ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
-echo "$grade ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+echo "$rgrade ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
+echo "$tgrade ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+
+if ( "$rgrade" == "FAIL" || "$tgrade" == "FAIL") then
+  echo "ERROR: Test failed"
+  exit 99
+endif
 
