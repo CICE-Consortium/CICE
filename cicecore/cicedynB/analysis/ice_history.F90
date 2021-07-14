@@ -408,18 +408,6 @@
       call broadcast_scalar (f_mlt_onset, master_task)
       call broadcast_scalar (f_frz_onset, master_task)
       call broadcast_scalar (f_aisnap, master_task)
-       call broadcast_scalar (f_frachist01, master_task)
-       call broadcast_scalar (f_frachist02, master_task)
-       call broadcast_scalar (f_frachist03, master_task)
-       call broadcast_scalar (f_frachist04, master_task)
-       call broadcast_scalar (f_frachist05, master_task)
-       call broadcast_scalar (f_frachist06, master_task)
-       call broadcast_scalar (f_frachist07, master_task)
-       call broadcast_scalar (f_frachist08, master_task)
-       call broadcast_scalar (f_frachist09, master_task)
-       call broadcast_scalar (f_frachist10, master_task)
-       call broadcast_scalar (f_frachist11, master_task)
-       call broadcast_scalar (f_frachist12, master_task)
       call broadcast_scalar (f_hisnap, master_task)
       call broadcast_scalar (f_sithick, master_task)
       call broadcast_scalar (f_siage, master_task)
@@ -1025,67 +1013,7 @@
              "ice area snapshot",                                  &
              "none", c1, c0,                              &
              ns1, f_aisnap)
- 
-          call define_hist_field(n_frachist01,"frachist01","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist01)
       
-          call define_hist_field(n_frachist02,"frachist02","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist02)
-
-          call define_hist_field(n_frachist03,"frachist03","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist03)
- 
-          call define_hist_field(n_frachist04,"frachist04","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist04)
- 
-          call define_hist_field(n_frachist05,"frachist05","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist05)
- 
-          call define_hist_field(n_frachist06,"frachist06","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist06)
- 
-          call define_hist_field(n_frachist07,"frachist07","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist07)
- 
-          call define_hist_field(n_frachist08,"frachist08","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist08)
- 
-          call define_hist_field(n_frachist09,"frachist09","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist09)
- 
-          call define_hist_field(n_frachist10,"frachist10","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist10)
- 
-          call define_hist_field(n_frachist11,"frachist11","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist11)
- 
-          call define_hist_field(n_frachist12,"frachist12","1",tstr2D, tcstr, &
-             "fracture histogram snapshot",                                  &
-             "none", c1, c0,                              &
-             ns1, f_frachist12)
- 
         call define_hist_field(n_trsig,"trsig","N/m",tstr2D, tcstr, &
              "internal stress tensor trace",                         &
              "ice strength approximation", c1, c0,                   &
@@ -3939,6 +3867,7 @@
                                   sig1      (:,:,iblk), &
                                   sig2      (:,:,iblk), &
                                   sigP      (:,:,iblk))
+ 
            do j = jlo, jhi
            do i = ilo, ihi
               if (.not. tmask(i,j,iblk)) then ! mask out land points
@@ -3953,18 +3882,6 @@
                  if (n_frz_onset(ns) /= 0) a2D(i,j,n_frz_onset(ns),iblk) = spval
                  if (n_hisnap   (ns) /= 0) a2D(i,j,n_hisnap(ns),   iblk) = spval
                  if (n_aisnap   (ns) /= 0) a2D(i,j,n_aisnap(ns),   iblk) = spval
-                  if (n_frachist01   (ns) /= 0) a2D(i,j,n_frachist01(ns),   iblk) = spval
-                  if (n_frachist02   (ns) /= 0) a2D(i,j,n_frachist02(ns),   iblk) = spval
-                  if (n_frachist03   (ns) /= 0) a2D(i,j,n_frachist03(ns),   iblk) = spval
-                  if (n_frachist04   (ns) /= 0) a2D(i,j,n_frachist04(ns),   iblk) = spval
-                  if (n_frachist05   (ns) /= 0) a2D(i,j,n_frachist05(ns),   iblk) = spval
-                  if (n_frachist06   (ns) /= 0) a2D(i,j,n_frachist06(ns),   iblk) = spval
-                  if (n_frachist07   (ns) /= 0) a2D(i,j,n_frachist07(ns),   iblk) = spval
-                  if (n_frachist08   (ns) /= 0) a2D(i,j,n_frachist08(ns),   iblk) = spval
-                  if (n_frachist09   (ns) /= 0) a2D(i,j,n_frachist09(ns),   iblk) = spval
-                  if (n_frachist10   (ns) /= 0) a2D(i,j,n_frachist10(ns),   iblk) = spval
-                  if (n_frachist11   (ns) /= 0) a2D(i,j,n_frachist11(ns),   iblk) = spval
-                  if (n_frachist12   (ns) /= 0) a2D(i,j,n_frachist12(ns),   iblk) = spval
                  if (n_trsig    (ns) /= 0) a2D(i,j,n_trsig(ns),    iblk) = spval
                  if (n_iage     (ns) /= 0) a2D(i,j,n_iage(ns),     iblk) = spval
                  if (n_FY       (ns) /= 0) a2D(i,j,n_FY(ns),       iblk) = spval
@@ -4008,29 +3925,6 @@
                        vice(i,j,iblk)
                  if (n_aisnap   (ns) /= 0) a2D(i,j,n_aisnap(ns),iblk)    = &
                        aice(i,j,iblk)
-                  if (n_frachist01   (ns) /= 0) a2D(i,j,n_frachist01(ns),iblk)    = &
-                       frachist(i,j,1,iblk)
-                  if (n_frachist02   (ns) /= 0) a2D(i,j,n_frachist02(ns),iblk)    = &
-                       frachist(i,j,2,iblk)
-                  if (n_frachist03   (ns) /= 0) a2D(i,j,n_frachist03(ns),iblk)    = &
-                       frachist(i,j,3,iblk)
-                  if (n_frachist04   (ns) /= 0) a2D(i,j,n_frachist04(ns),iblk)    = &
-                       frachist(i,j,4,iblk)
-                  if (n_frachist05   (ns) /= 0) a2D(i,j,n_frachist05(ns),iblk)    = &
-                       frachist(i,j,5,iblk)
-                  if (n_frachist06   (ns) /= 0) a2D(i,j,n_frachist06(ns),iblk)    = &
-                       frachist(i,j,6,iblk)
-                  if (n_frachist07   (ns) /= 0) a2D(i,j,n_frachist07(ns),iblk)    = &
-                       frachist(i,j,7,iblk)
-                  if (n_frachist08   (ns) /= 0) a2D(i,j,n_frachist08(ns),iblk)    = &
-                       frachist(i,j,8,iblk)
-                  if (n_frachist09   (ns) /= 0) a2D(i,j,n_frachist09(ns),iblk)    = &
-                       frachist(i,j,9,iblk)
-                  if (n_frachist10   (ns) /= 0) a2D(i,j,n_frachist10(ns),iblk)    = &
-                       frachist(i,j,10,iblk)
-                  if (n_frachist11   (ns) /= 0) a2D(i,j,n_frachist11(ns),iblk)    = &
-                       frachist(i,j,11,iblk)
-                  if (n_frachist12   (ns) /= 0) a2D(i,j,n_frachist12(ns),iblk)    = &
                        frachist(i,j,12,iblk)
                 if (kdyn == 2) then  ! for EAP dynamics different time of output
                     if (n_trsig    (ns) /= 0) a2D(i,j,n_trsig(ns),iblk ) = &
@@ -4081,7 +3975,6 @@
 
         enddo                   ! iblk
         !$OMP END PARALLEL DO
-
 
         time_end(ns) = time/int(secday)
         time_end(ns) = real(time_end(ns),kind=real_kind)

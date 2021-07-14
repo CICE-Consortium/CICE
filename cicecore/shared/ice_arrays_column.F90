@@ -296,8 +296,6 @@
 
       character (len=35), public, allocatable :: c_fsd_range(:)
 
-
-
 !=======================================================================
 
       contains

@@ -241,8 +241,8 @@
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
           if (f_frachist(1:1) /= 'x') &
             call define_hist_field(n_frachist,"frachist", "1", tstr3Df, tcstr, &
-               "wave fracture histogram snap",                 &
-               "Snapshot ", c1, c0, ns, f_frachist)
+               "wave fracture histogram",                 &
+               "Avg over freq period ", c1, c0, ns, f_frachist)
          endif ! if (histfreq(ns) /= 'x')
       enddo ! ns
 

@@ -5226,7 +5226,6 @@
 
       call ice_timer_start(timer_fsd)
 
-
       call icepack_query_parameters(wave_spec_out=wave_spec, &
                                     wave_spec_type_out=wave_spec_type)
       call icepack_warnings_flush(nu_diag)
@@ -5405,9 +5404,6 @@
      
       ! Interpolate
       call interpolate_wavespec_data (wave_spectrum_data, wave_spectrum)
-      !wave_spectrum = wave_spectrum_data(:,:,:,1,:)
-
-      !WHERE (wave_spectrum.gt.1e+20) wave_spectrum = c0
 
       ! Save record number
       oldrecnum = recnum
@@ -5415,10 +5411,6 @@
          if (dbug) then
            if (my_task == master_task) write (nu_diag,*) &
               'wave_spec_data ',spec_file
-           !vmin = global_minval(wave_spectrum,distrb_info,tmask)
-           !vmax = global_maxval(wave_spectrum,distrb_info,tmask)
-           !if (my_task.eq.master_task) & 
-           !    write (nu_diag,*) 'wave_spectrum',vmin,vmax
            if (my_task.eq.master_task)  &
                write (nu_diag,*) 'maxrec',maxrec
                write (nu_diag,*) 'days_per_year', days_per_year
