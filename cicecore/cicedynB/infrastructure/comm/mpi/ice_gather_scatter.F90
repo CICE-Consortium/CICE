@@ -636,6 +636,7 @@
    else
       special_value = spval_dbl
    endif
+   ARRAY_G = special_value
 
    nx = nx_global + 2*nghost
    ny = ny_global + 2*nghost
@@ -744,92 +745,7 @@
             endif
          endif
 
-       !*** fill land blocks with special values
-
-       else if (src_dist%blockLocation(n) == 0) then
-
-         this_block = get_block(n,n)
-
-         ! interior
-         do j=this_block%jlo,this_block%jhi
-         do i=this_block%ilo,this_block%ihi
-           ARRAY_G(this_block%i_glob(i)+nghost, &
-                   this_block%j_glob(j)+nghost) = special_value
-         end do
-         end do
-
-#ifdef CICE_IN_NEMO
-!echmod: this code is temporarily wrapped for nemo pending further testing elsewhere
-         ! fill ghost cells
-         if (this_block%jblock == 1) then
-            ! south block
-            do j=1, nghost
-            do i=this_block%ilo,this_block%ihi
-              ARRAY_G(this_block%i_glob(i)+nghost,j) = special_value
-            end do
-            end do
-            if (this_block%iblock == 1) then
-               ! southwest corner
-               do j=1, nghost
-               do i=1, nghost
-                 ARRAY_G(i,j) = special_value
-               end do
-               end do
-            endif
-         endif
-         if (this_block%jblock == nblocks_y) then
-            ! north block
-            do j=1, nghost
-            do i=this_block%ilo,this_block%ihi
-              ARRAY_G(this_block%i_glob(i)+nghost, &
-                      ny_global + nghost + j) = special_value
-            end do
-            end do
-            if (this_block%iblock == nblocks_x) then
-               ! northeast corner
-               do j=1, nghost
-               do i=1, nghost
-                 ARRAY_G(nx-i+1, ny-j+1) = special_value
-               end do
-               end do
-            endif
-         endif
-         if (this_block%iblock == 1) then
-            ! west block
-            do j=this_block%jlo,this_block%jhi
-            do i=1, nghost
-              ARRAY_G(i,this_block%j_glob(j)+nghost) = special_value
-            end do
-            end do
-            if (this_block%jblock == nblocks_y) then
-               ! northwest corner
-               do j=1, nghost
-               do i=1, nghost
-                 ARRAY_G(i,                   ny-j+1) = special_value
-               end do
-               end do
-            endif
-         endif
-         if (this_block%iblock == nblocks_x) then
-            ! east block
-            do j=this_block%jlo,this_block%jhi
-            do i=1, nghost
-              ARRAY_G(nx_global + nghost + i, &
-                      this_block%j_glob(j)+nghost) = special_value
-            end do
-            end do
-            if (this_block%jblock == 1) then
-               ! southeast corner
-               do j=1, nghost
-               do i=1, nghost
-                 ARRAY_G(                   nx-i+1,j) = special_value
-               end do
-               end do
-            endif
-         endif
-#endif
-
-       endif
+       endif  ! src_dist%blockLocation
 
      end do
 
@@ -939,7 +855,7 @@
 !
 !-----------------------------------------------------------------------
 
-   else
+   else  ! master task
 
      allocate(snd_request(nblocks_tot), &
               snd_status (MPI_STATUS_SIZE, nblocks_tot))
@@ -960,7 +876,7 @@
        call MPI_WAITALL(nsends, snd_request, snd_status, ierr)
      deallocate(snd_request, snd_status)
 
-   endif
+   endif  ! master task
 
    if (add_mpi_barriers) then
      call ice_barrier()
@@ -1028,8 +944,9 @@
    if (present(spc_val)) then
       special_value = spc_val
    else
-      special_value = 0   !MHRI NOTE: 0,1,-999,???
+      special_value = -9999
    endif
+   ARRAY_G = special_value
 
    nx = nx_global + 2*nghost
    ny = ny_global + 2*nghost
@@ -1138,21 +1055,7 @@
             endif
          endif
 
-       !*** fill land blocks with special values
-
-       else if (src_dist%blockLocation(n) == 0) then
-
-         this_block = get_block(n,n)
-
-         ! interior
-         do j=this_block%jlo,this_block%jhi
-         do i=this_block%ilo,this_block%ihi
-           ARRAY_G(this_block%i_glob(i)+nghost, &
-                   this_block%j_glob(j)+nghost) = special_value
-         end do
-         end do
-
-       endif
+       endif  ! src_dist%blockLocation
 
      end do
 
@@ -1262,7 +1165,7 @@
 !
 !-----------------------------------------------------------------------
 
-   else
+   else  ! master task
 
      allocate(snd_request(nblocks_tot), &
               snd_status (MPI_STATUS_SIZE, nblocks_tot))
@@ -1283,7 +1186,7 @@
        call MPI_WAITALL(nsends, snd_request, snd_status, ierr)
      deallocate(snd_request, snd_status)
 
-   endif
+   endif  ! master task
 
    if (add_mpi_barriers) then
      call ice_barrier()
@@ -1353,6 +1256,7 @@
    else
       special_value = .false.   !MHRI NOTE: .true./.false.  ???
    endif
+   ARRAY_G = special_value
 
    nx = nx_global + 2*nghost
    ny = ny_global + 2*nghost
@@ -1461,21 +1365,7 @@
             endif
          endif
 
-       !*** fill land blocks with special values
-
-       else if (src_dist%blockLocation(n) == 0) then
-
-         this_block = get_block(n,n)
-
-         ! interior
-         do j=this_block%jlo,this_block%jhi
-         do i=this_block%ilo,this_block%ihi
-           ARRAY_G(this_block%i_glob(i)+nghost, &
-                   this_block%j_glob(j)+nghost) = special_value
-         end do
-         end do
-
-       endif
+       endif  ! src_dist%blockLocation
 
      end do
 
@@ -1585,7 +1475,7 @@
 !
 !-----------------------------------------------------------------------
 
-   else
+   else  ! master task
 
      allocate(snd_request(nblocks_tot), &
               snd_status (MPI_STATUS_SIZE, nblocks_tot))
@@ -1606,7 +1496,7 @@
        call MPI_WAITALL(nsends, snd_request, snd_status, ierr)
      deallocate(snd_request, snd_status)
 
-   endif
+   endif  ! master task
 
    if (add_mpi_barriers) then
      call ice_barrier()
