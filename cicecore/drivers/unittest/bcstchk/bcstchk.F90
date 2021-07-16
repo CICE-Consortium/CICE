@@ -257,10 +257,11 @@
             write(6,*) errorflag1(k),stringflag1(k)
          enddo
          write(6,*) ' '
+         write(6,*) 'BCSTCHK COMPLETED SUCCESSFULLY'
          if (errorflag0 == passflag) then
-            write(6,*) 'BCSTCHK COMPLETED SUCCESSFULLY'
+            write(6,*) 'BCSTCHK TEST COMPLETED SUCCESSFULLY'
          else
-            write(6,*) 'BCSTCHK FAILED'
+            write(6,*) 'BCSTCHK TEST FAILED'
          endif
       endif
 
