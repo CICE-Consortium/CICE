@@ -8,4 +8,5 @@ logbfb        gx3     1x20x5x29x80  dsectrobin,diag1,short,reprosum            l
 logbfb        gx3     8x2x8x10x20   droundrobin,diag1,reprosum                 logbfb_gx3_4x2x25x29x4_diag1_dslenderX2_reprosum
 logbfb        gx3     6x2x50x58x1   droundrobin,diag1,reprosum                 logbfb_gx3_4x2x25x29x4_diag1_dslenderX2_reprosum
 logbfb        gx3     6x2x4x29x18   dspacecurve,diag1,maskhalo,reprosum        logbfb_gx3_4x2x25x29x4_diag1_dslenderX2_reprosum
+logbfb        gx3     17x2x1x1x800  droundrobin,diag1,maskhalo,reprosum        logbfb_gx3_4x2x25x29x4_diag1_dslenderX2_reprosum
 #logbfb        gx3     8x2x8x10x20   droundrobin,diag1                          logbfb_gx3_4x2x25x29x4_diag1_dslenderX2
