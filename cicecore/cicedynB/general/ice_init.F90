@@ -1298,14 +1298,14 @@
                write(nu_diag,1010) ' revised_evp      = ', revised_evp,trim(tmpstr2)
        
                if (evp_algorithm == 'standard_2d') then
-                  tmpstr2 = ' : standard EVP solver'
+                  tmpstr2 = ' : standard 2d EVP solver'
                elseif (evp_algorithm == 'shared_mem_1d') then
-                  tmpstr2 = ' : vectorized EVP solver'
+                  tmpstr2 = ' : vectorized 1d EVP solver'
                   pgl_global_ext = .true.
                else
                   tmpstr2 = ' : unknown value'
                endif
-               write(nu_diag,1030) ' evp_algorithm    = ', trim(tmpstr2)
+               write(nu_diag,1031) ' evp_algorithm    = ', trim(evp_algorithm),trim(tmpstr2)
                write(nu_diag,1020) ' ndtd             = ', ndtd, ' : number of dynamics/advection/ridging/steps per thermo timestep'
                write(nu_diag,1020) ' ndte             = ', ndte, ' : number of EVP or EAP subcycles'
             endif
