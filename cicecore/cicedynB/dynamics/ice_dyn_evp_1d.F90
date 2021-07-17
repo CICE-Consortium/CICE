@@ -25,7 +25,7 @@ module ice_dyn_evp_1d
    real(kind=dbl_kind) :: rdomp_iam, rdomp_nt
    !$OMP THREADPRIVATE(domp_iam, domp_nt, rdomp_iam, rdomp_nt)
 #endif
-   logical(kind=log_kind), dimension(:), allocatable :: skipucell
+   logical(kind=log_kind), dimension(:), allocatable :: skiptcell, skipucell
    integer(kind=int_kind), dimension(:), allocatable :: ee, ne, se, &
       nw, sw, sse, indi, indj, indij, halo_parent
    real(kind=dbl_kind), dimension(:), allocatable :: cdn_ocn, aiu, &
@@ -127,7 +127,7 @@ contains
       dyt, hte, htn, htem1, htnm1, strength, stressp_1, stressp_2, &
       stressp_3, stressp_4, stressm_1, stressm_2, stressm_3, &
       stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, str1, &
-      str2, str3, str4, str5, str6, str7, str8)
+      str2, str3, str4, str5, str6, str7, str8, skiptcell)
 
       use ice_kinds_mod
       use ice_constants, only : p027, p055, p111, p166, p222, p25, &
@@ -141,6 +141,7 @@ contains
          ee, ne, se
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
          strength, uvel, vvel, dxt, dyt, hte, htn, htem1, htnm1
+      logical(kind=log_kind), intent(in), dimension(:) :: skiptcell
       real(kind=dbl_kind), dimension(:), intent(inout), contiguous :: &
          stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
          stressm_2, stressm_3, stressm_4, stress12_1, stress12_2, &
@@ -172,19 +173,23 @@ contains
          call abort_ice(error_message=subname, file=__FILE__, &
             line=__LINE__)
       end if
+
 #ifdef _OPENACC
       !$acc parallel &
       !$acc present(ee, ne, se, strength, uvel, vvel, dxt, dyt, hte, &
       !$acc    htn, htem1, htnm1, str1, str2, str3, str4, str5, str6, &
       !$acc    str7, str8, stressp_1, stressp_2, stressp_3, stressp_4, &
       !$acc    stressm_1, stressm_2, stressm_3, stressm_4, stress12_1, &
-      !$acc    stress12_2, stress12_3, stress12_4)
+      !$acc    stress12_2, stress12_3, stress12_4, skiptcell)
       !$acc loop
       do iw = 1, NA_len
 #else
       call domp_get_domain(lb, ub, il, iu)
       do iw = il, iu
 #endif
+
+         if (skiptcell(iw)) cycle
+
          tmparea = dxt(iw) * dyt(iw) ! necessary to split calc of tinyarea. Otherwize not binary identical
          tinyarea =  puny * tmparea
          dxhy     = p5 * (hte(iw) - htem1(iw))
@@ -397,7 +402,7 @@ contains
       dyt, hte, htn, htem1, htnm1, strength, stressp_1, stressp_2, &
       stressp_3, stressp_4, stressm_1, stressm_2, stressm_3, &
       stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, str1, &
-      str2, str3, str4, str5, str6, str7, str8, tarear, divu, &
+      str2, str3, str4, str5, str6, str7, str8, skiptcell, tarear, divu, &
       rdg_conv, rdg_shear, shear)
 
       use ice_kinds_mod
@@ -412,6 +417,7 @@ contains
          ee, ne, se
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
          strength, uvel, vvel, dxt, dyt, hte, htn, htem1, htnm1, tarear
+      logical(kind=log_kind), intent(in), dimension(:) :: skiptcell
       real(kind=dbl_kind), dimension(:), intent(inout), contiguous :: &
          stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
          stressm_2, stressm_3, stressm_4, stress12_1, stress12_2, &
@@ -452,13 +458,16 @@ contains
       !$acc    str7, str8, stressp_1, stressp_2, stressp_3, stressp_4, &
       !$acc    stressm_1, stressm_2, stressm_3, stressm_4, stress12_1, &
       !$acc    stress12_2, stress12_3, stress12_4, tarear, divu, &
-      !$acc    rdg_conv, rdg_shear, shear)
+      !$acc    rdg_conv, rdg_shear, shear, skiptcell)
       !$acc loop
       do iw = 1, NA_len
 #else
       call domp_get_domain(lb, ub, il, iu)
       do iw = il, iu
 #endif
+
+         if (skiptcell(iw)) cycle
+
          tmparea = dxt(iw) * dyt(iw) ! necessary to split calc of tinyarea. Otherwize not binary identical
          tinyarea = puny * tmparea
          dxhy     = p5 * (hte(iw) - htem1(iw))
@@ -685,7 +694,7 @@ contains
    subroutine stepu_iter(NA_len, rhow, lb, ub, Cw, aiu, uocn, vocn, &
       forcex, forcey, umassdti, fm, uarear, Tbu, uvel_init, vvel_init, &
       uvel, vvel, str1, str2, str3, str4, str5, str6, str7, str8, nw, &
-      sw, sse, skipme)
+      sw, sse, skipucell)
 
       use ice_kinds_mod
       use ice_constants, only : c0, c1
@@ -695,7 +704,7 @@ contains
 
       integer(kind=int_kind), intent(in) :: NA_len, lb, ub
       real(kind=dbl_kind), intent(in) :: rhow
-      logical(kind=log_kind), intent(in), dimension(:) :: skipme
+      logical(kind=log_kind), intent(in), dimension(:) :: skipucell
       integer(kind=int_kind), dimension(:), intent(in), contiguous :: &
          nw, sw, sse
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
@@ -718,7 +727,7 @@ contains
 #ifdef _OPENACC
       !$acc parallel &
       !$acc present(Cw, aiu, uocn, vocn, forcex, forcey, umassdti, fm, &
-      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, sse, skipme, &
+      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, sse, skipucell, &
       !$acc    str1, str2, str3, str4, str5, str6, str7, str8, uvel, &
       !$acc    vvel)
       !$acc loop
@@ -728,7 +737,7 @@ contains
       do iw = il, iu
 #endif
 
-         if (skipme(iw)) cycle
+         if (skipucell(iw)) cycle
 
          uold = uvel(iw)
          vold = vvel(iw)
@@ -778,7 +787,7 @@ contains
    subroutine stepu_last(NA_len, rhow, lb, ub, Cw, aiu, uocn, vocn, &
       forcex, forcey, umassdti, fm, uarear, Tbu, uvel_init, vvel_init, &
       uvel, vvel, str1, str2, str3, str4, str5, str6, str7, str8, nw, &
-      sw, sse, skipme, strintx, strinty, taubx, tauby)
+      sw, sse, skipucell, strintx, strinty, taubx, tauby)
 
       use ice_kinds_mod
       use ice_constants, only : c0, c1
@@ -789,7 +798,7 @@ contains
 
       integer(kind=int_kind), intent(in) :: NA_len, lb, ub
       real(kind=dbl_kind), intent(in) :: rhow
-      logical(kind=log_kind), intent(in), dimension(:) :: skipme
+      logical(kind=log_kind), intent(in), dimension(:) :: skipucell
       integer(kind=int_kind), dimension(:), intent(in), contiguous :: &
          nw, sw, sse
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
@@ -811,7 +820,7 @@ contains
 #ifdef _OPENACC
       !$acc parallel &
       !$acc present(Cw, aiu, uocn, vocn, forcex, forcey, umassdti, fm, &
-      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, sse, skipme, &
+      !$acc    uarear, Tbu, uvel_init, vvel_init, nw, sw, sse, skipucell, &
       !$acc    str1, str2, str3, str4, str5, str6, str7, str8, uvel, &
       !$acc    vvel, strintx, strinty, taubx, tauby)
       !$acc loop
@@ -821,7 +830,7 @@ contains
       do iw = il, iu
 #endif
 
-         if (skipme(iw)) cycle
+         if (skipucell(iw)) cycle
 
          uold = uvel(iw)
          vold = vvel(iw)
@@ -898,6 +907,11 @@ contains
       !$acc present(uvel, vvel) &
       !$acc loop
       do iw = 1, NAVEL_len
+         if (halo_parent(iw) == 0) cycle
+         uvel(iw) = uvel(halo_parent(iw))
+         vvel(iw) = vvel(halo_parent(iw))
+      end do
+      !$acc end parallel
 #else
       call domp_get_domain(lb, ub, il, iu)
       do iw = il, iu
@@ -907,13 +921,10 @@ contains
       end do
       call domp_get_domain(ub + 1, NAVEL_len, il, iu)
       do iw = il, iu
-#endif
          if (halo_parent(iw) == 0) cycle
          uvel(iw) = uvel(halo_parent(iw))
          vvel(iw) = vvel(halo_parent(iw))
       end do
-#ifdef _OPENACC
-      !$acc end parallel
 #endif
 
    end subroutine evp1d_halo_update
@@ -936,6 +947,7 @@ contains
          ! helper indices for neighbours
          indj(1:na), indi(1:na), ee(1:na), ne(1:na), se(1:na), &
          nw(1:na), sw(1:na), sse(1:na), skipucell(1:na), &
+         skiptcell(1:na), &
          ! grid distances and their "-1 neighbours"
          HTE(1:na), HTN(1:na), HTEm1(1:na), HTNm1(1:na), &
          ! T cells
@@ -996,7 +1008,7 @@ contains
 
       deallocate( &
          ! helper indices for neighbours
-         indj, indi, ee, ne, se, nw, sw, sse, skipucell, &
+         indj, indi, ee, ne, se, nw, sw, sse, skipucell, skiptcell, &
          ! grid distances and their "-1 neighbours"
          HTE, HTN, HTEm1, HTNm1, &
          ! T cells
@@ -1104,7 +1116,7 @@ contains
       ! all calculations id done on master task
       if (my_task == master_task) then
          ! find number of active points and allocate 1D vectors
-         call calc_na(nx_glob, ny_glob, NA_len, G_icetmask)
+         call calc_na(nx_glob, ny_glob, NA_len, G_icetmask, G_iceumask)
          call alloc1d(NA_len)
          call calc_2d_indices(nx_glob, ny_glob, NA_len, G_icetmask, G_iceumask)
          call calc_navel(nx_glob, ny_glob, NA_len, NAVEL_len)
@@ -1275,7 +1287,7 @@ contains
       ! local variables
 
       real(kind=dbl_kind) :: rhow
-      integer(kind=int_kind) :: i
+      integer(kind=int_kind) :: ksub
 
       character(len=*), parameter :: &
          subname = '(ice_dyn_evp_1d_kernel)'
@@ -1294,14 +1306,14 @@ contains
          if (ndte < 2) call abort_ice(subname &
             // ' ERROR: ndte must be 2 or higher for this kernel')
 
-         !$OMP PARALLEL PRIVATE(i)
-         do i = 1, ndte - 1
+         !$OMP PARALLEL PRIVATE(ksub)
+         do ksub = 1, ndte - 1
             call evp1d_stress(NA_len, ee, ne, se, 1, NA_len, uvel, &
                vvel, dxt, dyt, hte, htn, htem1, htnm1, strength, &
                stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
                stressm_2, stressm_3, stressm_4, stress12_1, &
                stress12_2, stress12_3, stress12_4, str1, str2, str3, &
-               str4, str5, str6, str7, str8)
+               str4, str5, str6, str7, str8, skiptcell)
             !$OMP BARRIER
             call evp1d_stepu(NA_len, rhow, 1, NA_len, cdn_ocn, aiu, &
                uocn, vocn, forcex, forcey, umassdti, fm, uarear, Tbu, &
@@ -1312,12 +1324,13 @@ contains
                halo_parent)
             !$OMP BARRIER
          end do
+
          call evp1d_stress(NA_len, ee, ne, se, 1, NA_len, uvel, vvel, &
             dxt, dyt, hte, htn, htem1, htnm1, strength, stressp_1, &
             stressp_2, stressp_3, stressp_4, stressm_1, stressm_2, &
             stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, &
             stress12_4, str1, str2, str3, str4, str5, str6, str7, &
-            str8, tarear, divu, rdg_conv, rdg_shear, shear)
+            str8, skiptcell, tarear, divu, rdg_conv, rdg_shear, shear)
          !$OMP BARRIER
          call evp1d_stepu(NA_len, rhow, 1, NA_len, cdn_ocn, aiu, uocn, &
             vocn, forcex, forcey, umassdti, fm, uarear, Tbu, &
@@ -1329,13 +1342,13 @@ contains
             halo_parent)
          !$OMP END PARALLEL
 
-      end if
+      end if  ! master task
 
    end subroutine ice_dyn_evp_1d_kernel
 
 !=======================================================================
 
-   subroutine calc_na(nx, ny, na, icetmask)
+   subroutine calc_na(nx, ny, na, icetmask, iceumask)
       ! Calculate number of active points
 
       use ice_blocks, only : nghost
@@ -1345,6 +1358,8 @@ contains
       integer(kind=int_kind), intent(in) :: nx, ny
       integer(kind=int_kind), dimension(nx, ny), intent(in) :: &
          icetmask
+      logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
+         iceumask
       integer(kind=int_kind), intent(out) :: na
 
       ! local variables
@@ -1357,7 +1372,7 @@ contains
       ! NOTE: T mask includes northern and eastern ghost cells
       do j = 1 + nghost, ny
          do i = 1 + nghost, nx
-            if (icetmask(i, j) == 1) na = na + 1
+            if (icetmask(i,j) == 1 .or. iceumask(i,j)) na = na + 1
          end do
       end do
 
@@ -1372,10 +1387,10 @@ contains
       implicit none
 
       integer(kind=int_kind), intent(in) :: nx, ny, na
-      logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
-         iceumask
       integer(kind=int_kind), dimension(nx, ny), intent(in) :: &
          icetmask
+      logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
+         iceumask
 
       ! local variables
 
@@ -1384,19 +1399,21 @@ contains
       character(len=*), parameter :: subname = '(calc_2d_indices)'
 
       skipucell(:) = .false.
+      skiptcell(:) = .false.
       indi = 0
       indj = 0
       Nmaskt = 0
       ! NOTE: T mask includes northern and eastern ghost cells
       do j = 1 + nghost, ny
          do i = 1 + nghost, nx
-            if (icetmask(i, j) == 1) then
+            if (icetmask(i,j) == 1 .or. iceumask(i,j)) then
                Nmaskt = Nmaskt + 1
                indi(Nmaskt) = i
                indj(Nmaskt) = j
+               if (icetmask(i,j) /= 1)  skiptcell(Nmaskt) = .true.
+               if (.not. iceumask(i,j)) skipucell(Nmaskt) = .true.
                ! NOTE: U mask does not include northern and eastern
                ! ghost cells. Skip northern and eastern ghost cells
-               skipucell(Nmaskt) = .not. iceumask(i, j)
                if (i == nx) skipucell(Nmaskt) = .true.
                if (j == ny) skipucell(Nmaskt) = .true.
             end if
