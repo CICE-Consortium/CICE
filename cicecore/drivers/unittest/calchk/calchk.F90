@@ -1,10 +1,13 @@
 
       program calchk
 
+      ! This tests the CICE calendar by calling it directly from this driver
+      ! and verifies results from hardwired inputs with known outputs
+
       use ice_kinds_mod, only: int_kind, dbl_kind
       use ice_calendar, only: myear, mmonth, mday, msec
       use ice_calendar, only: year_init, month_init, day_init, sec_init
-      use ice_calendar, only: dt, ndtd, istep0, diagfreq, npt, npt_unit
+      use ice_calendar, only: dt, istep0, diagfreq, npt, npt_unit
       use ice_calendar, only: months_per_year, daymo, timesecs, seconds_per_day
       use ice_calendar, only: use_leap_years, days_per_year
       use ice_calendar, only: compute_elapsed_days
@@ -52,11 +55,9 @@
       testname(7) = 'special checks'
       testname(8) = 'calc_timesteps'
 
-      ndtd = 1
-
       ! test yearmax years from year 0
-      yearmax = 1000
-!      yearmax = 100000
+!      yearmax = 1000
+      yearmax = 100000
 
    ! test 3 calendars
    do n = 1,3
@@ -578,10 +579,11 @@
  1002 format(a,i10,1x,a)
 
       write(6,*) ' '
+      write(6,*) 'CALCHK COMPLETED SUCCESSFULLY'
       if (errorflag0 == passflag) then
-         write(6,*) 'CALCHK COMPLETED SUCCESSFULLY'
+         write(6,*) 'CALCHK TEST COMPLETED SUCCESSFULLY'
       else
-         write(6,*) 'CALCHK FAILED'
+         write(6,*) 'CALCHK TEST FAILED'
       endif
 
       end program

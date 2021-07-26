@@ -7,6 +7,7 @@
       module ice_init_column
 
       use ice_kinds_mod
+      use ice_blocks, only: nx_block, ny_block
       use ice_constants
       use ice_communicate, only: my_task, master_task, ice_barrier
       use ice_domain_size, only: ncat, max_blocks 
@@ -129,7 +130,6 @@
 
       subroutine init_thermo_vertical
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_flux, only: salinz, Tmltz
 
       integer (kind=int_kind) :: &
@@ -186,7 +186,7 @@
           fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, gaer_bc_tab, bcenh, &
           swgrid, igrid
-      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_blocks, only: block, get_block
       use ice_calendar, only: dt, calendar_type, &
           days_per_year, nextsw_cday, yday, msec
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc
@@ -594,7 +594,6 @@
       use ice_arrays_column, only: floe_rad_c, floe_binwidth, &
          wavefreq, dwavefreq, wave_sig_ht, wave_spectrum, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
-      use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: ncat, max_blocks, nfsd
       use ice_init, only: ice_ic
       use ice_state, only: aicen
@@ -1005,7 +1004,7 @@
 
       subroutine input_zbgc
 
-      use ice_arrays_column, only: restore_bgc
+      use ice_arrays_column, only: restore_bgc, optics_file, optics_file_fieldname
       use ice_broadcast, only: broadcast_scalar
       use ice_restart_column, only: restart_bgc, restart_zsal, &
           restart_hbrine
@@ -1048,7 +1047,7 @@
         restore_bgc, restart_bgc, scale_bgc, solve_zsal, restart_zsal, &
         tr_bgc_Nit, tr_bgc_C, tr_bgc_chl, tr_bgc_Am, tr_bgc_Sil, &
         tr_bgc_DMS, tr_bgc_PON, tr_bgc_hum, tr_bgc_DON, tr_bgc_Fe, &
-        grid_o, grid_o_t, l_sk, grid_oS, &   
+        grid_o, grid_o_t, l_sk, grid_oS, optics_file, optics_file_fieldname, &   
         l_skS, phi_snow,  initbio_frac, frazil_scav, &
         ratio_Si2N_diatoms , ratio_Si2N_sp      , ratio_Si2N_phaeo   ,  &
         ratio_S2N_diatoms  , ratio_S2N_sp       , ratio_S2N_phaeo    ,  &
@@ -1105,6 +1104,8 @@
       tr_brine        = .false.  ! brine height differs from ice height
       tr_zaero        = .false.  ! z aerosol tracers
       modal_aero      = .false.  ! use modal aerosol treatment of aerosols
+      optics_file     = 'unknown_optics_file' ! modal aerosol optics file
+      optics_file_fieldname = 'unknown_optics_fieldname' ! modal aerosol optics file fieldname
       restore_bgc     = .false.  ! restore bgc if true
       solve_zsal      = .false.  ! update salinity tracer profile from solve_S_dt
       restart_bgc     = .false.  ! biogeochemistry restart
@@ -1321,6 +1322,8 @@
       call broadcast_scalar(tr_zaero,           master_task)
       call broadcast_scalar(dEdd_algae,         master_task) 
       call broadcast_scalar(modal_aero,         master_task)
+      call broadcast_scalar(optics_file,        master_task)
+      call broadcast_scalar(optics_file_fieldname, master_task)
       call broadcast_scalar(grid_o,             master_task)
       call broadcast_scalar(grid_o_t,           master_task)
       call broadcast_scalar(l_sk,               master_task)
@@ -1690,6 +1693,8 @@
          write(nu_diag,1010) ' solve_zbgc                = ', solve_zbgc
          write(nu_diag,1010) ' tr_zaero                  = ', tr_zaero
          write(nu_diag,1020) ' number of aerosols        = ', n_zaero
+         write(nu_diag,1031) ' optics_file               = ', trim(optics_file)
+         write(nu_diag,1031) ' optics_file_fieldname     = ', trim(optics_file_fieldname)
          ! bio parameters
          write(nu_diag,1000) ' grid_o                    = ', grid_o
          write(nu_diag,1000) ' grid_o_t                  = ', grid_o_t
@@ -1747,6 +1752,7 @@
  1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
  1030    format (a30,   a8)    ! character
+ 1031    format (a30,   a )    ! character
 
       end subroutine input_zbgc
 
@@ -2280,7 +2286,7 @@
 
       use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
           nt_strata
-      use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N
+      use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N, trcrn_sw
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     nt_fbri,       &
@@ -2947,6 +2953,10 @@
          call abort_ice (subname//'ERROR: nbtrcr > icepack_max_nbtrcr')
       endif
       if (.NOT. dEdd_algae) nbtrcr_sw = 1
+
+      ! tcraig, added 6/1/21, why is nbtrcr_sw set here?
+      call icepack_init_tracer_sizes(nbtrcr_sw_in=nbtrcr_sw)
+      allocate(trcrn_sw(nx_block,ny_block,nbtrcr_sw,ncat,max_blocks)) ! bgc tracers active in the delta-Eddington shortwave
 
       !-----------------------------------------------------------------
       ! spew

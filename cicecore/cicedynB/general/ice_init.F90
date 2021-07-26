@@ -40,7 +40,7 @@
          ice_ic      ! method of ice cover initialization
                      ! 'default'  => latitude and sst dependent
                      ! 'none'     => no ice
-                     ! note:  restart = .true. overwrites
+                     ! filename   => read file
 
       public :: input_data, init_state, set_state_var
 
@@ -58,15 +58,17 @@
       subroutine input_data
 
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt
+      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt, &
+                                 debug_model, debug_model_step, debug_model_task, &
+                                 debug_model_i, debug_model_j, debug_model_iblk
       use ice_domain, only: close_boundaries, orca_halogrid
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
                                  n_iso, n_aero, n_zaero, n_algae, &
                                  n_doc, n_dic, n_don, n_fed, n_fep, &
                                  max_nstrm
       use ice_calendar, only: year_init, month_init, day_init, sec_init, &
-                              istep0, histfreq, histfreq_n, &
-                              dumpfreq, dumpfreq_n, diagfreq, &
+                              istep0, histfreq, histfreq_n, histfreq_base, &
+                              dumpfreq, dumpfreq_n, diagfreq, dumpfreq_base, &
                               npt, dt, ndtd, days_per_year, use_leap_years, &
                               write_ic, dump_last, npt_unit
       use ice_arrays_column, only: oceanmixed_ice
@@ -83,7 +85,7 @@
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
-          ycycle,          fyear_init,    dbug, &
+          ycycle,          fyear_init,    debug_forcing, &
           atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
@@ -126,7 +128,7 @@
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
-        sw_frac, sw_dtemp, floediam, hfrazilmin
+        sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf, iceruf_ocn
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound, ktransport
@@ -135,7 +137,7 @@
         tfrz_option, frzpnd, atmbndy, wave_spec_type
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-                                 sw_redist
+                                 sw_redist, calc_dragio
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd
@@ -163,9 +165,11 @@
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         print_global,   print_points,   latpnt,          lonpnt,        &
-        dbug,           histfreq,       histfreq_n,      hist_avg,      &
+        debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
-        conserv_check,                                                  &
+        histfreq_base,  dumpfreq_base,                                  &
+        conserv_check,  debug_model,    debug_model_step,               &
+        debug_model_i,  debug_model_j,  debug_model_iblk, debug_model_task, &
         year_init,      month_init,     day_init,        sec_init,      &
         write_ic,       incond_dir,     incond_file,     version_name
 
@@ -225,8 +229,8 @@
 
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
-        highfreq,       natmiter,        atmiter_conv,                  &
-        ustar_min,      emissivity,                                     &
+        highfreq,       natmiter,        atmiter_conv,  calc_dragio,    &
+        ustar_min,      emissivity,      iceruf,        iceruf_ocn,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
@@ -265,6 +269,12 @@
       npt = 99999            ! total number of time steps (dt) 
       npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
+      debug_model  = .false. ! debug output
+      debug_model_step = 0   ! debug model after this step number
+      debug_model_i = -1     ! debug model local i index
+      debug_model_j = -1     ! debug model local j index
+      debug_model_iblk = -1  ! debug model local iblk number
+      debug_model_task = -1  ! debug model local task number
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
       bfbflag = 'off'        ! off = optimized
@@ -276,6 +286,7 @@
       histfreq(4) = 'm'      ! output frequency option for different streams
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency 
+      histfreq_base = 'zero' ! output frequency reference date
       hist_avg = .true.      ! if true, write time-averages (not snapshots)
       history_format = 'default' ! history file format
       history_dir  = './'    ! write to executable dir for default
@@ -287,13 +298,12 @@
       incond_file = 'iceh_ic'! file prefix
       dumpfreq='y'           ! restart frequency option
       dumpfreq_n = 1         ! restart frequency
+      dumpfreq_base = 'init' ! restart frequency reference date
       dump_last = .false.    ! write restart on last time step
-      restart = .false.      ! if true, read restart files for initialization
       restart_dir  = './'     ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
       restart_coszen  = .false. ! if true, read/write coszen
-      use_restart_time = .true.   ! if true, use time info written in file
       pointer_file = 'ice.restart_file'
       restart_format = 'default'  ! restart file format
       lcdf64       = .false. ! 64 bit offset for netCDF
@@ -376,6 +386,9 @@
       calc_Tsfc = .true.     ! calculate surface temperature
       update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
+      iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
+      iceruf_ocn = 0.03_dbl_kind ! under-ice roughness (m)
+      calc_dragio = .false.  ! compute dragio from iceruf_ocn and thickness of first ocean level
       emissivity = 0.985     ! emissivity of snow and ice
       l_mpond_fresh = .false.     ! logical switch for including meltpond freshwater
                                   ! flux feedback to ocean model
@@ -432,7 +445,7 @@
       restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
       restore_ice     = .false.   ! restore ice state on grid edges if true
-      dbug      = .false.         ! true writes diagnostics for input forcing
+      debug_forcing   = .false.   ! true writes diagnostics for input forcing
 
       latpnt(1) =  90._dbl_kind   ! latitude of diagnostic point 1 (deg)
       lonpnt(1) =   0._dbl_kind   ! longitude of point 1 (deg)
@@ -442,6 +455,8 @@
 #ifndef CESMCOUPLED
       runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
       runtype = 'initial'   ! run type: 'initial', 'continue'
+      restart = .false.      ! if true, read ice state from restart file
+      use_restart_time = .false.   ! if true, use time info written in file
 #endif
 
       ! extra tracers
@@ -598,6 +613,12 @@
       call broadcast_scalar(npt,                  master_task)
       call broadcast_scalar(npt_unit,             master_task)
       call broadcast_scalar(diagfreq,             master_task)
+      call broadcast_scalar(debug_model,          master_task)
+      call broadcast_scalar(debug_model_step,     master_task)
+      call broadcast_scalar(debug_model_i,        master_task)
+      call broadcast_scalar(debug_model_j,        master_task)
+      call broadcast_scalar(debug_model_iblk,     master_task)
+      call broadcast_scalar(debug_model_task,     master_task)
       call broadcast_scalar(print_points,         master_task)
       call broadcast_scalar(print_global,         master_task)
       call broadcast_scalar(bfbflag,              master_task)
@@ -607,6 +628,7 @@
          call broadcast_scalar(histfreq(n),       master_task)
       enddo  
       call broadcast_array(histfreq_n,            master_task)
+      call broadcast_scalar(histfreq_base,        master_task)
       call broadcast_scalar(hist_avg,             master_task)
       call broadcast_scalar(history_dir,          master_task)
       call broadcast_scalar(history_file,         master_task)
@@ -618,6 +640,7 @@
       call broadcast_scalar(incond_file,          master_task)
       call broadcast_scalar(dumpfreq,             master_task)
       call broadcast_scalar(dumpfreq_n,           master_task)
+      call broadcast_scalar(dumpfreq_base,        master_task)
       call broadcast_scalar(dump_last,            master_task)
       call broadcast_scalar(restart_file,         master_task)
       call broadcast_scalar(restart,              master_task)
@@ -732,6 +755,9 @@
       call broadcast_scalar(update_ocn_f,         master_task)
       call broadcast_scalar(l_mpond_fresh,        master_task)
       call broadcast_scalar(ustar_min,            master_task)
+      call broadcast_scalar(iceruf,               master_task)
+      call broadcast_scalar(iceruf_ocn,           master_task)
+      call broadcast_scalar(calc_dragio,          master_task)
       call broadcast_scalar(emissivity,           master_task)
       call broadcast_scalar(fbot_xfer_type,       master_task)
       call broadcast_scalar(precip_units,         master_task)
@@ -751,14 +777,12 @@
       call broadcast_scalar(restore_ocn,          master_task)
       call broadcast_scalar(trestore,             master_task)
       call broadcast_scalar(restore_ice,          master_task)
-      call broadcast_scalar(dbug,                 master_task)
+      call broadcast_scalar(debug_forcing,        master_task)
       call broadcast_array (latpnt(1:2),          master_task)
       call broadcast_array (lonpnt(1:2),          master_task)
       call broadcast_scalar(runid,                master_task)
       call broadcast_scalar(runtype,              master_task)
-
-      if (dbug) & ! else only master_task writes to file
-      call broadcast_scalar(nu_diag,              master_task)
+      !call broadcast_scalar(nu_diag,              master_task)
 
       ! tracers
       call broadcast_scalar(tr_iage,              master_task)
@@ -825,42 +849,46 @@
          write(nu_diag,*) ' '
       endif
 
-      if (trim(runtype) == 'continue' .and. .not.restart) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: runtype=continue, setting restart=.true.'
-         restart = .true.
-      endif
-
-      if (trim(runtype) /= 'continue' .and. restart .and. &
-         (ice_ic == 'none' .or. ice_ic == 'default')) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: runtype ne continue and ice_ic=none|default, setting restart=.false.'
-         restart = .false.
-      endif
-
-      if (trim(runtype) /= 'continue' .and. (ice_ic == 'none' .or. ice_ic == 'default')) then
-         if (my_task == master_task) &
-            write(nu_diag,*) subname//' WARNING: ice_ic = none or default, setting restart flags to .false.'
-         restart = .false.
-         restart_iso =  .false. 
-         restart_aero =  .false. 
-         restart_fsd =  .false. 
-         restart_age =  .false. 
-         restart_fy =  .false. 
-         restart_lvl =  .false. 
-         restart_pond_cesm =  .false. 
-         restart_pond_lvl =  .false. 
-         restart_pond_topo =  .false. 
-! tcraig, OK to leave as true, needed for boxrestore case
-!         restart_ext =  .false. 
-      endif
-
-      if (trim(runtype) == 'initial' .and. .not.(restart) .and. &
-          ice_ic /= 'none' .and. ice_ic /= 'default') then
+      if (trim(runtype) == 'continue') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: runtype, restart, ice_ic are inconsistent:'
-            write(nu_diag,*) subname//' ERROR:   runtype=',trim(runtype), ' restart=',restart, ' ice_ic=',trim(ice_ic)
-            write(nu_diag,*) subname//' ERROR:   Please review user guide'
+            write(nu_diag,*) subname//'NOTE: runtype=continue, setting restart=.true.'
+            if (.not. use_restart_time) &
+               write(nu_diag,*) subname//'NOTE: runtype=continue, setting use_restart_time=.true.'
+            write(nu_diag,*) ' '
+         endif
+         restart = .true.
+         use_restart_time = .true.
+      elseif (trim(runtype) == 'initial') then
+         if (ice_ic == 'none' .or. ice_ic == 'default') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'NOTE: ice_ic = none or default, setting restart flags to .false.'
+               if (.not. use_restart_time) &
+                  write(nu_diag,*) subname//'NOTE: ice_ic = none or default, setting use_restart_time=.false.'
+               write(nu_diag,*) ' '
+            endif
+            use_restart_time = .false.
+            restart = .false.
+            restart_iso =  .false.
+            restart_aero =  .false.
+            restart_fsd =  .false.
+            restart_age =  .false.
+            restart_fy =  .false.
+            restart_lvl =  .false.
+            restart_pond_cesm =  .false.
+            restart_pond_lvl =  .false.
+            restart_pond_topo =  .false.
+! tcraig, OK to leave as true, needed for boxrestore case
+!            restart_ext =  .false.
+         else
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//'NOTE: ice_ic /= none or default, setting restart=.true.'
+               write(nu_diag,*) ' '
+            endif
+            restart = .true.
+         endif
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: runtype unknown = ',trim(runtype)
          endif
          abort_list = trim(abort_list)//":1"
       endif
@@ -1099,6 +1127,16 @@
       if(history_precision .ne. 4 .and. history_precision .ne. 8) then
          write (nu_diag,*) subname//' ERROR: bad value for history_precision, allowed values: 4, 8'
          abort_list = trim(abort_list)//":22"
+      endif
+
+      if(histfreq_base /= 'init' .and. histfreq_base /= 'zero') then
+         write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero'
+         abort_list = trim(abort_list)//":24"
+      endif
+
+      if(dumpfreq_base /= 'init' .and. dumpfreq_base /= 'zero') then
+         write (nu_diag,*) subname//' ERROR: bad value for dumpfreq_base, allowed values: init, zero'
+         abort_list = trim(abort_list)//":25"
       endif
 
       if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &
@@ -1453,6 +1491,7 @@
                   tmpstr2 = ' : four constant albedos'
                else
                   tmpstr2 = ' : unknown value'
+                  abort_list = trim(abort_list)//":23"
                endif
                write(nu_diag,1030) ' albedo_type     = ', trim(albedo_type),trim(tmpstr2)
                if (trim(albedo_type) == 'ccsm3') then
@@ -1479,6 +1518,7 @@
          write(nu_diag,1010) ' calc_strair      = ', calc_strair,' : calculate wind stress and speed'
          write(nu_diag,1010) ' rotate_wind      = ', rotate_wind,' : rotate wind/stress to computational grid'
          write(nu_diag,1010) ' formdrag         = ', formdrag,' : use form drag parameterization'
+         write(nu_diag,1000) ' iceruf           = ', iceruf, ' : ice surface roughness at atmosphere interface (m)'
          if (trim(atmbndy) == 'default') then
             tmpstr2 = ' : stability-based boundary layer'
             write(nu_diag,1010) ' highfreq         = ', highfreq,' : high-frequency atmospheric coupling'
@@ -1536,6 +1576,15 @@
          endif
          write(nu_diag,1030) ' fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
          write(nu_diag,1000) ' ustar_min        = ', ustar_min,' : minimum value of ocean friction velocity'
+         if (calc_dragio) then
+            tmpstr2 = ' : dragio computed from iceruf_ocn'
+         else
+            tmpstr2 = ' : dragio hard-coded'
+         endif
+         write(nu_diag,1010) ' calc_dragio   = ', calc_dragio,trim(tmpstr2)
+         if(calc_dragio) then
+            write(nu_diag,1002) ' iceruf_ocn       = ', iceruf_ocn,' : under-ice roughness length'
+         endif
 
          if (tr_fsd) then
             write(nu_diag,1002) ' floediam         = ', floediam, ' constant floe diameter'
@@ -1640,11 +1689,18 @@
          write(nu_diag,1021) ' diagfreq         = ', diagfreq
          write(nu_diag,1011) ' print_global     = ', print_global
          write(nu_diag,1011) ' print_points     = ', print_points
+         write(nu_diag,1011) ' debug_model      = ', debug_model
+         write(nu_diag,1022) ' debug_model_step = ', debug_model_step
+         write(nu_diag,1021) ' debug_model_i    = ', debug_model_i
+         write(nu_diag,1021) ' debug_model_i    = ', debug_model_j
+         write(nu_diag,1021) ' debug_model_iblk = ', debug_model_iblk
+         write(nu_diag,1021) ' debug_model_task = ', debug_model_task
          write(nu_diag,1031) ' bfbflag          = ', trim(bfbflag)
          write(nu_diag,1021) ' numin            = ', numin
          write(nu_diag,1021) ' numax            = ', numax
          write(nu_diag,1033) ' histfreq         = ', histfreq(:)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
+         write(nu_diag,1031) ' histfreq_base    = ', trim(histfreq_base)
          write(nu_diag,1011) ' hist_avg         = ', hist_avg
          if (.not. hist_avg) write(nu_diag,1031) ' History data will be snapshots'
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
@@ -1657,6 +1713,7 @@
          endif
          write(nu_diag,1031) ' dumpfreq         = ', trim(dumpfreq)
          write(nu_diag,1021) ' dumpfreq_n       = ', dumpfreq_n
+         write(nu_diag,1031) ' dumpfreq_base    = ', trim(dumpfreq_base)
          write(nu_diag,1011) ' dump_last        = ', dump_last
          write(nu_diag,1011) ' restart          = ', restart
          write(nu_diag,1031) ' restart_dir      = ', trim(restart_dir)
@@ -1752,7 +1809,8 @@
           grid_type  /=  'rectangular'    .and. &
           grid_type  /=  'cpom_grid'      .and. &
           grid_type  /=  'regional'       .and. &
-          grid_type  /=  'latlon' ) then
+          grid_type  /=  'latlon'         .and. &
+          grid_type  /=  'setmask' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
          abort_list = trim(abort_list)//":20"
       endif
@@ -1799,7 +1857,7 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
-         Pstar_in=Pstar, Cstar_in=Cstar, &
+         Pstar_in=Pstar, Cstar_in=Cstar, iceruf_in=iceruf, iceruf_ocn_in=iceruf_ocn, calc_dragio_in=calc_dragio, &
          sw_redist_in=sw_redist, sw_frac_in=sw_frac, sw_dtemp_in=sw_dtemp)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
@@ -1820,6 +1878,7 @@
  1011    format (a20,1x,l6)
  1020    format (a20,8x,i6,1x,a)  ! integer
  1021    format (a20,1x,i6)
+ 1022    format (a20,1x,i12)
  1023    format (a20,1x,6i6)
  1030    format (a20,a14,1x,a)    ! character
  1031    format (a20,1x,a,a)

@@ -57,39 +57,3 @@
       end program icemodel
 
 !=======================================================================
-!
-! Wrapper for the print_state debugging routine.
-! Useful for debugging in the main driver (see ice.F_debug)
-! ip, jp, mtask are set in ice_diagnostics.F
-!
-! author Elizabeth C. Hunke, LANL
-!
-      subroutine debug_ice(iblk, plabeld)
-
-      use ice_kinds_mod
-      use ice_calendar, only: istep1
-      use ice_communicate, only: my_task
-      use ice_diagnostics, only: check_step, iblkp, ip, jp, mtask, print_state
-      use ice_blocks, only: nx_block, ny_block
-
-      character (char_len), intent(in) :: plabeld
-      integer (kind=int_kind), intent(in) :: iblk
-
-      ! local 
-      integer (kind=int_kind) :: i, j
-      character(len=*), parameter :: subname='(debug_ice)'
-
-      if (istep1 >= check_step .and. &
-          iblk==iblkp .and. my_task==mtask) then
-
-      do j = 1, ny_block
-      do i = 1, nx_block
-         if (i==ip .and. j==jp) call print_state(plabeld,i,j,iblk)
-      enddo
-      enddo
-
-      endif
-
-      end subroutine debug_ice
-
-!=======================================================================

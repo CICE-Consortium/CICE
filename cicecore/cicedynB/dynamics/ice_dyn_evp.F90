@@ -361,8 +361,7 @@
           first_time = .false.
         endif
         if (trim(grid_type) == 'tripole') then
-          call abort_ice(trim(subname)//' &
-             & Kernel not tested on tripole grid. Set kevp_kernel=0')
+          call abort_ice(trim(subname)//' Kernel not tested on tripole grid. Set kevp_kernel=0')
         endif
         call ice_dyn_evp_1d_copyin(                                                &
           nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
@@ -611,12 +610,12 @@
          vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         dxhy     , & ! 0.5*(HTE - HTE)
-         dyhx     , & ! 0.5*(HTN - HTN)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
+         dxhy     , & ! 0.5*(HTE - HTW)
+         dyhx     , & ! 0.5*(HTN - HTS)
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm      , & ! 0.5*HTN - 1.5*HTS
          tarear   , & ! 1/tarea
          tinyarea     ! puny*tarea
 

@@ -17,7 +17,7 @@
       use ice_calendar, only: dt, istep, msec, mday, mmonth
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: restore_bgc, &
-         bgc_data_dir, fe_data_type
+         bgc_data_dir, fe_data_type, optics_file, optics_file_fieldname
       use ice_constants, only: c0, p1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
@@ -861,7 +861,7 @@
          kaer_bc_tab, & ! BC mass extinction cross section (m2/kg)
          waer_bc_tab, & ! BC single scatter albedo (fraction)
          gaer_bc_tab, & ! BC aerosol asymmetry parameter (cos(theta))
-         bcenh          ! BC absorption enhancement facto
+         bcenh          ! BC absorption enhancement factor
 
 #ifdef USE_NETCDF
       use netcdf
@@ -883,7 +883,6 @@
          fid                ! file id for netCDF file 
 
       character (char_len_long) :: & 
-         optics_file,   &   ! netcdf filename
          fieldname          ! field name in netcdf file
 
       character(len=*), parameter :: subname = '(faero_optics)'
@@ -963,20 +962,16 @@
 
     if (modal_aero) then
 #ifdef USE_NETCDF
-       optics_file =  &
-        '/usr/projects/climate/njeffery/DATA/CAM/snicar/snicar_optics_5bnd_mam_c140303.nc'
-
         if (my_task == master_task) then
-            write (nu_diag,*) ' '
-            write (nu_diag,*) 'Read optics for modal aerosol treament in'
-            write (nu_diag,*) trim(optics_file)
-            call ice_open_nc(optics_file,fid)
-        endif
+           write (nu_diag,*) ' '
+           write (nu_diag,*) 'Read optics for modal aerosol treament in'
+           write (nu_diag,*) trim(optics_file)
+           write (nu_diag,*) 'Read optics file field name = ',trim(optics_file_fieldname)
+           call ice_open_nc(optics_file,fid)
 
-        fieldname='bcint_enh_mam_cice'
-        if (my_task == master_task) then
+           fieldname=optics_file_fieldname
 
-          status = nf90_inq_varid(fid, trim(fieldname), varid)
+           status = nf90_inq_varid(fid, trim(fieldname), varid)
  
            if (status /= nf90_noerr) then
              call abort_ice (subname//'ERROR: Cannot find variable '//trim(fieldname))
@@ -985,20 +980,20 @@
                start=(/1,1,1,1/), & 
                count=(/3,10,8,1/) )
            do n=1,10
-            amin = minval(bcenh(:,n,:))
-            amax = maxval(bcenh(:,n,:))
-            asum = sum   (bcenh(:,n,:))
-            write(nu_diag,*) ' min, max, sum =', amin, amax, asum
+              amin = minval(bcenh(:,n,:))
+              amax = maxval(bcenh(:,n,:))
+              asum = sum   (bcenh(:,n,:))
+              write(nu_diag,*) ' min, max, sum =', amin, amax, asum
            enddo
            call ice_close_nc(fid)      
-         endif  !master_task
-         do n=1,3
-            do k=1,8
-                call broadcast_array(bcenh(n,:,k),      master_task)
-            enddo
-         enddo          
+        endif  !master_task
+        do n=1,3
+           do k=1,8
+               call broadcast_array(bcenh(n,:,k),      master_task)
+           enddo
+        enddo          
 #else
-         call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+        call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
              file=__FILE__, line=__LINE__)
 #endif
       endif      ! modal_aero

@@ -20,9 +20,12 @@ mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
 cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test" >! ${ICE_CASEDIR}/test_output
 rm -f ${ICE_CASEDIR}/test_output.prev
 
-set grade = FAIL
-if ( $res == 0 ) then
-  set grade = PASS
+set grade = PASS
+if ( $res != 0 ) then
+  set grade = FAIL
+  echo "$grade ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
+  echo "$grade ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  exit 99
 endif
 
 echo "$grade ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output

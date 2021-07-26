@@ -289,7 +289,7 @@
 !  initialized here through calls to the appropriate boundary routines.
 
    use ice_boundary, only: ice_HaloCreate
-   use ice_distribution, only: create_distribution, create_local_block_ids
+   use ice_distribution, only: create_distribution, create_local_block_ids, ice_distributionGet
    use ice_domain_size, only: max_blocks, nx_global, ny_global
 
    real (dbl_kind), dimension(nx_global,ny_global), intent(in) :: &
@@ -313,6 +313,7 @@
    integer (int_kind) :: &
       i,j,n              ,&! dummy loop indices
       ig,jg              ,&! global indices
+      ninfo              ,&! ice_distributionGet check
       work_unit          ,&! size of quantized work unit
 #ifdef USE_NETCDF
       fid                ,&! file id
@@ -328,6 +329,7 @@
       rad_to_deg           ! radians to degrees
 
    integer (int_kind), dimension(:), allocatable :: &
+      blkinfo            ,&! ice_distributionGet check
       nocn               ,&! number of ocean points per block
       work_per_block       ! number of work units per block
 
@@ -439,7 +441,7 @@
 !----------------------------------------------------------------------
 
    if (distribution_wght == 'latitude') then
-       flat = NINT(abs(ULATG*rad_to_deg), int_kind)  ! linear function
+       flat = max(NINT(abs(ULATG*rad_to_deg), int_kind),1)  ! linear function
    else
        flat = 1
    endif
@@ -564,6 +566,49 @@
 !----------------------------------------------------------------------
 
    call create_local_block_ids(blocks_ice, distrb_info)
+
+   ! internal check of icedistributionGet as part of verification process
+   if (debug_blocks) then
+      call ice_distributionGet(distrb_info, nprocs=ninfo)
+      if (ninfo /= distrb_info%nprocs) &
+         call abort_ice(subname//' ice_distributionGet nprocs ERROR', file=__FILE__, line=__LINE__)
+
+      call ice_distributionGet(distrb_info, communicator=ninfo)
+      if (ninfo /= distrb_info%communicator) &
+         call abort_ice(subname//' ice_distributionGet communicator ERROR', file=__FILE__, line=__LINE__)
+
+      call ice_distributionGet(distrb_info, numLocalBlocks=ninfo)
+      if (ninfo /= distrb_info%numLocalBlocks) &
+         call abort_ice(subname//' ice_distributionGet numLocalBlocks ERROR', file=__FILE__, line=__LINE__)
+
+      allocate(blkinfo(ninfo))
+
+      call ice_distributionGet(distrb_info, blockGlobalID = blkinfo)
+      do n = 1, ninfo
+         if (blkinfo(n) /= distrb_info%blockGlobalID(n)) &
+            call abort_ice(subname//' ice_distributionGet blockGlobalID ERROR', file=__FILE__, line=__LINE__)
+      enddo
+
+      deallocate(blkinfo)
+      allocate(blkinfo(nblocks_tot))
+
+      call ice_distributionGet(distrb_info, blockLocation = blkinfo)
+      do n = 1, nblocks_tot
+         if (blkinfo(n) /= distrb_info%blockLocation(n)) &
+            call abort_ice(subname//' ice_distributionGet blockLocation ERROR', file=__FILE__, line=__LINE__)
+      enddo
+
+      call ice_distributionGet(distrb_info, blockLocalID = blkinfo)
+      do n = 1, nblocks_tot
+         if (blkinfo(n) /= distrb_info%blockLocalID(n)) &
+            call abort_ice(subname//' ice_distributionGet blockLocalID ERROR', file=__FILE__, line=__LINE__)
+      enddo
+
+      deallocate(blkinfo)
+
+      if (my_task == master_task) &
+         write(nu_diag,*) subname,' ice_distributionGet checks pass'
+   endif
 
    if (associated(blocks_ice)) then
       nblocks = size(blocks_ice)

@@ -2,5 +2,6 @@ npt            = 10
 npt_unit       = 'd'
 dumpfreq       = 'd'
 dumpfreq_n     = 5
+dumpfreq_base  = 'init'
 runtype        = 'initial'
 use_restart_time = .false.

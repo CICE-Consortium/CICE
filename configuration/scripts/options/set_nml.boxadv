@@ -1,6 +1,5 @@
 nilyr = 1
 ice_ic = 'default'
-restart = .false.
 restart_ext = .false.
 kcatbound = 2
 ew_boundary_type = 'cyclic'
@@ -18,4 +17,6 @@ kdyn  =  2
 kstrength = 0
 krdg_partic = 0
 krdg_redist = 0
+shortwave = 'ccsm3'
+albedo_type = 'constant'
 

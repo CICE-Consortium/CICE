@@ -667,6 +667,26 @@ in **configuration/scripts/options**.  In particular, **ICE_DRVOPT** and
 **configuration/scripts/Makefile** and create a target for the unit test.
 The unit tests calchk or helloworld can be used as examples.
 
+The following strings should be written to the log file at the end of the unit test run.
+The string "COMPLETED SUCCESSFULLY" will indicate the run ran to completion.  The string
+"TEST COMPLETED SUCCESSFULLY" will indicate all the unit testing passed during the run.
+These strings will be queried by the testing scripts and will impact the test reporting.
+See other unit tests for examples about how these strings could be written.
+
+The following are brief descriptions of some of the current unit tests,
+
+ - **bcstchk** is a unit test that exercises the methods in ice_broadcast.F90.  This test does not
+   depend on the CICE grid to carry out the testing.  By testing with a serial and mpi configuration,
+   both sets of software are tested independently and correctness is verified.
+ - **calchk** is a unit test that exercises the CICE calendar over 100,000 years and verifies correctness.
+   This test does not depend on the CICE initialization.
+ - **helloworld** is a simple test that writes out helloworld and uses no CICE infrastructure.
+   This tests exists to demonstrate how to build a unit test by specifying the object files directly
+   in the Makefile
+ - **sumchk** is a unit test that exercises the methods in ice_global_reductions.F90.  This test requires
+   that a CICE grid and decomposition be initialized, so CICE_InitMod.F90 is leveraged to initialize
+   the model prior to running a suite of unit validation tests to verify correctness.
+
 
 .. _testreporting:
 
@@ -715,7 +735,10 @@ This argument turns on special compiler flags including reduced optimization and
 invokes the gcov tool.  Once runs are complete, either lcov or codecov can be used
 to analyze the results.
 This option is currently only available with the gnu compiler and on a few systems
-with modified Macros files.
+with modified Macros files.  In the current implementation, when ``--coverage`` is 
+invoked, the sandbox is copied to a new sandbox called something like cice_lcov_yymmdd-hhmmss.
+The source code in the new sandbox is modified slightly to improve coverage statistics
+and the full coverage suite is run there.
 
 At the present time, the ``--coverage`` flag invokes the lcov analysis automatically
 by running the **report_lcov.csh** script in the test suite directory.  The output 
