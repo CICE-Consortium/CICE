@@ -34,7 +34,7 @@
       use ice_exit, only: abort_ice
       use ice_global_reductions, only: global_minval, global_maxval
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_query_parameters, icepack_init_parameters
 
       implicit none
       private
@@ -78,12 +78,12 @@
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         cyp    , & ! 1.5*HTE - 0.5*HTE
-         cxp    , & ! 1.5*HTN - 0.5*HTN
-         cym    , & ! 0.5*HTE - 1.5*HTE
-         cxm    , & ! 0.5*HTN - 1.5*HTN
-         dxhy   , & ! 0.5*(HTE - HTE)
-         dyhx       ! 0.5*(HTN - HTN)
+         cyp    , & ! 1.5*HTE(i,j)-0.5*HTW(i,j) = 1.5*HTE(i,j)-0.5*HTE(i-1,j) 
+         cxp    , & ! 1.5*HTN(i,j)-0.5*HTS(i,j) = 1.5*HTN(i,j)-0.5*HTN(i,j-1)
+         cym    , & ! 0.5*HTE(i,j)-1.5*HTW(i,j) = 0.5*HTE(i,j)-1.5*HTE(i-1,j) 
+         cxm    , & ! 0.5*HTN(i,j)-1.5*HTS(i,j) = 0.5*HTN(i,j)-1.5*HTN(i,j-1) 
+         dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
+         dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1)) 
 
       ! grid dimensions for rectangular grid
       real (kind=dbl_kind), public ::  &
@@ -175,12 +175,12 @@
          ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
          bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
          ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
-         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTE
-         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTN
-         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTE
-         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTN
-         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTE)
-         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTN)
+         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
+         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTS
+         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTW
+         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
+         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
+         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
          xav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of x
          yav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of y
          xxav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of xx
@@ -1170,7 +1170,6 @@
 
       end subroutine latlongrid
 #endif
-
 !=======================================================================
 
 ! Regular rectangular grid and mask
@@ -2372,6 +2371,9 @@
       real (kind=dbl_kind) :: &
          puny
 
+      logical (kind=log_kind) :: &
+         calc_dragio
+
       real (kind=dbl_kind), dimension(nlevel), parameter :: &
          thick  = (/ &                        ! ocean layer thickness, m
             10.01244_dbl_kind,  10.11258_dbl_kind,  10.31682_dbl_kind, &
@@ -2391,7 +2393,7 @@
 
       character(len=*), parameter :: subname = '(get_bathymetry)'
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny, calc_dragio_out=calc_dragio)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -2418,6 +2420,14 @@
             enddo
          enddo
 
+         ! For consistency, set thickness_ocn_layer1 in Icepack if 'calc_dragio' is active
+         if (calc_dragio) then
+            call icepack_init_parameters(thickness_ocn_layer1_in=thick(1))
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+               file=__FILE__, line=__LINE__)
+         endif
+
       endif ! bathymetry_file
 
       end subroutine get_bathymetry
@@ -2440,6 +2450,9 @@
       real (kind=dbl_kind), dimension(:),allocatable :: &
          depth          , & ! total depth, m
          thick              ! layer thickness, cm -> m
+
+      logical (kind=log_kind) :: &
+         calc_dragio
 
       character(len=*), parameter :: subname = '(get_bathymetry_popfile)'
 
@@ -2509,6 +2522,15 @@
          enddo
          enddo
       enddo
+
+      ! For consistency, set thickness_ocn_layer1 in Icepack if 'calc_dragio' is active
+      call icepack_query_parameters(calc_dragio_out=calc_dragio)
+      if (calc_dragio) then
+         call icepack_init_parameters(thickness_ocn_layer1_in=thick(1))
+      endif
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       deallocate(depth,thick)
 

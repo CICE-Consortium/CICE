@@ -257,26 +257,37 @@
             write(6,*) errorflag1(k),stringflag1(k)
          enddo
          write(6,*) ' '
+         write(6,*) 'BCSTCHK COMPLETED SUCCESSFULLY'
          if (errorflag0 == passflag) then
-            write(6,*) 'BCSTCHK COMPLETED SUCCESSFULLY'
+            write(6,*) 'BCSTCHK TEST COMPLETED SUCCESSFULLY'
          else
-            write(6,*) 'BCSTCHK FAILED'
-            call abort_ice(subname//' ERROR: BCSTCHK FAILED',file=__FILE__,line=__LINE__)
+            write(6,*) 'BCSTCHK TEST FAILED'
          endif
+      endif
+
+      ! Test abort_ice, regardless of test outcome
+      ! Set doabort to false to support code coverage stats, aborted runs don't seem to generate
+      ! gcov statistics
+
+      call flush_fileunit(6)
+      call ice_barrier()
+      if (my_task == master_task) then
          write(6,*) ' '
          write(6,*) '=========================================================='
          write(6,*) ' '
          write(6,*) 'NOTE: We are testing the abort now so you should see an abort to follow'
          write(6,*) 'The BCSTCHK passed, so please ignore the abort'
          write(6,*) ' '
+         call abort_ice(subname//' Test abort ',file=__FILE__,line=__LINE__, doabort=.false.)
       endif
-
-      ! Test abort_ice, regardless of test outcome
       call flush_fileunit(6)
       call ice_barrier()
-      call abort_ice(subname//' Test abort ',file=__FILE__,line=__LINE__)
 
-      if (my_task == master_task) write(6,*) subname,'This line should not be written'
+      if (my_task == master_task) then
+         write(6,*) ' '
+         write(6,*) 'BCSTCHK done'
+         write(6,*) ' '
+      endif
 
       call end_run()
 

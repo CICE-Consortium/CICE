@@ -12,9 +12,8 @@
     ndtd           = 1
     runtype        = 'initial'
     ice_ic         = './restart/iced_gx3_v5.nc'
-    restart        = .true.
     restart_ext    = .false.
-    use_restart_time = .true.
+    use_restart_time = .false.
     restart_format = 'default'
     lcdf64         = .false.
     numin          = 21
@@ -24,6 +23,7 @@
     pointer_file   = './ice.restart_file'
     dumpfreq       = 'd'
     dumpfreq_n     = 1
+    dumpfreq_base  = 'init'
     dump_last      = .false.
     bfbflag        = 'off'
     diagfreq       = 24
@@ -45,6 +45,7 @@
     lonpnt(2)      = -45.
     histfreq       = 'm','x','x','x','x'
     histfreq_n     =  1 , 1 , 1 , 1 , 1
+    histfreq_base  = 'zero'
     hist_avg       = .true.
     history_dir    = './history/'
     history_file   = 'iceh'
@@ -231,6 +232,8 @@
     atmiter_conv    = 0.0d0
     ustar_min       = 0.0005
     iceruf          = 0.0005
+    calc_dragio     = .false.
+    iceruf_ocn      = 0.03
     emissivity      = 0.985
     fbot_xfer_type  = 'constant'
     update_ocn_f    = .false.

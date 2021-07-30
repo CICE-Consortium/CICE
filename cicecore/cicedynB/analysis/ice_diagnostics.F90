@@ -855,7 +855,7 @@
                   psmicetot(n) = psmicetot(n) / real(nslyr,kind=dbl_kind) ! mass of ice in snow
                   psmliqtot(n) = psmliqtot(n) / real(nslyr,kind=dbl_kind) ! mass of liquid in snow
                end if
-
+               psalt(n) = c0
                if (vice(i,j,iblk) /= c0) psalt(n) = work2(i,j,iblk)/vice(i,j,iblk)
                pTsfc(n) = trcr(i,j,nt_Tsfc,iblk)   ! ice/snow sfc temperature
                pevap(n) = evap(i,j,iblk)*dt/rhoi   ! sublimation/condensation

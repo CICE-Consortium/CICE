@@ -71,3 +71,4 @@ restart        gx3     8x2        zsal
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        gx3ncarbulk,diag1
 restart        gx1    24x1        gx1coreii,short
+smoke          gx3     4x1        calcdragio
