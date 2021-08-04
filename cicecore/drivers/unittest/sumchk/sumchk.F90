@@ -674,10 +674,11 @@
             write(6,*) errorflag4(k),stringflag4(k)
          enddo
          write(6,*) ' '
+         write(6,*) 'SUMCHK COMPLETED SUCCESSFULLY'
          if (errorflag0 == passflag) then
-            write(6,*) 'SUMCHK COMPLETED SUCCESSFULLY'
+            write(6,*) 'SUMCHK TEST COMPLETED SUCCESSFULLY'
          else
-            write(6,*) 'SUMCHK FAILED'
+            write(6,*) 'SUMCHK TEST FAILED'
          endif
          write(6,*) ' '
          write(6,*) '=========================================================='

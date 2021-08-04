@@ -166,6 +166,12 @@ EOFR
 endif
 
 #=======
+else if (${ICE_MACHINE} =~ gaea*) then
+cat >> ${jobfile} << EOFR
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
+#=======
 else if (${ICE_MACHINE} =~ hera*) then
 cat >> ${jobfile} << EOFR
 srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
