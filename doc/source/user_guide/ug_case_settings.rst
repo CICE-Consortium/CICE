@@ -327,6 +327,7 @@ tracer_nml
    "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
    "``tr_pond_lvl``", "logical", "level-ice melt ponds", "``.false.``"
    "``tr_pond_topo``", "logical", "topo melt ponds", "``.false.``"
+   "``tr_snow``", "logical", "advanced snow physics", "``.false.``"
    "``restart_aero``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_age``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_fsd``", "logical", "restart floe size distribution values from file", "``.false.``"

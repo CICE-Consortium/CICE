@@ -90,6 +90,10 @@ is not in use.
    "tr_iso", "n_iso", "vice, vsno", "nt_iso"," "
    "tr_brine", " ", "vice", "nt_fbri", " "
    "tr_fsd","nfsd","aice","nt_fsd"," "
+   "tr_snow","nslyr","vsno","nt_rsnw"," "
+   "       ","nslyr","vsno","nt_rhos"," "
+   "       ","nslyr","vsno","nt_smice"," "
+   "       ","nslyr","vsno","nt_smliq"," "
    "solve_zsal", "n_trzs", "fbri or (a,v)ice", "nt_bgc_S", " "
    "tr_bgc_N", "n_algae", "fbri or (a,v)ice", "nt_bgc_N", "nlt_bgc_N"
    "tr_bgc_Nit", " ", "fbri or (a,v)ice", "nt_bgc_Nit", "nlt_bgc_Nit"
@@ -115,4 +119,4 @@ Users may add any number of additional tracers that are transported conservative
 provided that the dependency ``trcr_depend`` is defined appropriately. 
 See Section :ref:`addtrcr` for guidance on adding tracers.
 
-Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, the floe size distribution, age of the ice, aerosols, water isotopes, brine height, and the sea ice ecosystem.
+Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, the floe size distribution, advanced snow physics, age of the ice, aerosols, water isotopes, brine height, and the sea ice ecosystem.

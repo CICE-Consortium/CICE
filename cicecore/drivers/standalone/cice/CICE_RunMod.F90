@@ -325,7 +325,7 @@
       ! snow redistribution and metamorphosis
       !-----------------------------------------------------------------
 
-         if (tr_snow) then
+         if (tr_snow) then         ! advanced snow physics
             do iblk = 1, nblocks
                call step_snow (dt, iblk)
             enddo

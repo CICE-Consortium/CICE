@@ -210,7 +210,7 @@
       call get_forcing_ocn(dt)  ! ocean forcing from data
 
       ! snow aging lookup table initialization
-      if (tr_snow) then
+      if (tr_snow) then         ! advanced snow physics
          call icepack_init_snow()
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
