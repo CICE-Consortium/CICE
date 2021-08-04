@@ -317,7 +317,7 @@
                   smliqn(k,n) = trcrn(i,j,nt_smliq+k-1,n,iblk)
                enddo
             enddo
-         endif ! tr_iso
+         endif ! tr_snow
 
          if (tr_iso) then ! trcrn(nt_iso*) has units kg/m^3
             do n=1,ncat
@@ -514,7 +514,7 @@
                   trcrn(i,j,nt_smliq+k-1,n,iblk) = smliqn(k,n)
                enddo
             enddo
-         endif ! tr_iso
+         endif ! tr_snow
 
          if (tr_iso) then
             do n = 1, ncat
@@ -1237,13 +1237,14 @@
          nlt_zaero_sw, nt_zaero
 
       logical (kind=log_kind) :: &
-         tr_bgc_N, tr_zaero, tr_brine, dEdd_algae, modal_aero
+         tr_bgc_N, tr_zaero, tr_brine, dEdd_algae, modal_aero, snwgrain
 
       real (kind=dbl_kind), dimension(ncat) :: &
-         fbri                 ! brine height to ice thickness
+         fbri               ! brine height to ice thickness
 
       real(kind= dbl_kind), dimension(:,:), allocatable :: &
-         ztrcr_sw
+         ztrcr_sw,        & ! zaerosols (kg/m^3) and chla (mg/m^3)
+         rsnow              ! snow grain radius tracer (10^-6 m)
 
       logical (kind=log_kind) :: &
          debug, &           ! flag for printing debugging information
@@ -1262,12 +1263,14 @@
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, &
          nlt_chl_sw_out=nlt_chl_sw, nlt_zaero_sw_out=nlt_zaero_sw, &
          nt_fbri_out=nt_fbri, nt_zaero_out=nt_zaero, nt_bgc_N_out=nt_bgc_N)
-      call icepack_query_parameters(dEdd_algae_out=dEdd_algae, modal_aero_out=modal_aero)
+      call icepack_query_parameters(dEdd_algae_out=dEdd_algae, modal_aero_out=modal_aero, &
+         snwgrain_out=snwgrain)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
       allocate(ztrcr_sw(nbtrcr_sw,ncat))
+      allocate(rsnow(nslyr,ncat))
 
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
@@ -1289,10 +1292,16 @@
                     write (nu_diag, *) 'my_task = ',my_task
             enddo ! ipoint
          endif
-         fbri(:) = c0
+         fbri      (:) = c0
          ztrcr_sw(:,:) = c0
+         rsnow   (:,:) = c0
          do n = 1, ncat
-           if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
+            if (tr_brine) fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
+            if (snwgrain) then
+               do k = 1, nslyr
+                  rsnow(k,n) = trcrn(i,j,nt_rsnw+k-1,n,iblk)
+               enddo
+            endif
          enddo
 
          if (tmask(i,j,iblk)) then
@@ -1341,7 +1350,7 @@
                          albpndn  =albpndn  (i,j,:  ,iblk), apeffn  =apeffn  (i,j,:  ,iblk), &
                          snowfracn=snowfracn(i,j,:  ,iblk),                                  &
                          dhsn     =dhsn     (i,j,:  ,iblk), ffracn  =ffracn(i,j,:,iblk),     &
-                         rsnow    =trcrn    (i,j,nt_rsnw:nt_rsnw+nslyr-1,:,iblk),            &
+                         rsnow    =rsnow    (    :,:), &
 !history                         rsnw_dEddn=rsnw_dEddn(i,j,:,iblk), &
                          l_print_point=l_print_point)
          endif
@@ -1362,6 +1371,7 @@
          file=__FILE__, line=__LINE__)
 
       deallocate(ztrcr_sw)
+      deallocate(rsnow)
 
       call ice_timer_stop(timer_sw)     ! shortwave
 

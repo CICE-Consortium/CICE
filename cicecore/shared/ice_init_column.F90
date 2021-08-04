@@ -214,8 +214,9 @@
       logical (kind=log_kind) :: &
          l_print_point, & ! flag to print designated grid point diagnostics
          debug,         & ! if true, print diagnostics
-         dEdd_algae,    & ! from icepack
-         modal_aero       ! from icepack
+         dEdd_algae,    & ! use prognostic chla in dEdd radiation
+         modal_aero,    & ! use modal aerosol optical treatment
+         snwgrain         ! use variable snow radius
 
       character (char_len) :: shortwave
 
@@ -225,8 +226,9 @@
       real (kind=dbl_kind), dimension(ncat) :: &
          fbri                 ! brine height to ice thickness
 
-      real(kind=dbl_kind), allocatable :: &
-         ztrcr_sw(:,:)    !
+      real(kind= dbl_kind), dimension(:,:), allocatable :: &
+         ztrcr_sw,        & ! zaerosols (kg/m^3) and chla (mg/m^3)
+         rsnow              ! snow grain radius tracer (10^-6 m)
 
       logical (kind=log_kind) :: tr_brine, tr_zaero, tr_bgc_n
       integer (kind=int_kind) :: nt_alvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero, &
@@ -243,6 +245,7 @@
       call icepack_query_parameters(shortwave_out=shortwave)
       call icepack_query_parameters(dEdd_algae_out=dEdd_algae)
       call icepack_query_parameters(modal_aero_out=modal_aero)
+      call icepack_query_parameters(snwgrain_out=snwgrain)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_zaero_out=tr_zaero, &
          tr_bgc_n_out=tr_bgc_n)
@@ -254,6 +257,7 @@
           file=__FILE__,line= __LINE__)
 
       allocate(ztrcr_sw(nbtrcr_sw, ncat))
+      allocate(rsnow(nslyr,ncat))
 
       do iblk=1,nblocks
 
@@ -330,8 +334,14 @@
 
             fbri(:) = c0
             ztrcr_sw(:,:) = c0
+            rsnow   (:,:) = c0
             do n = 1, ncat
-              if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
+               if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
+               if (snwgrain) then
+                  do k = 1, nslyr
+                     rsnow(k,n) = trcrn(i,j,nt_rsnw+k-1,n,iblk)
+                  enddo
+               endif
             enddo
 
             if (tmask(i,j,iblk)) then
@@ -379,7 +389,7 @@
                           albpndn=albpndn(i,j,:,iblk),   apeffn=apeffn(i,j,:,iblk), &
                           snowfracn=snowfracn(i,j,:,iblk),                     &
                           dhsn=dhsn(i,j,:,iblk),         ffracn=ffracn(i,j,:,iblk), &
-                          rsnow=trcrn(i,j,nt_rsnw:nt_rsnw+nslyr-1,:,iblk),            &
+                          rsnow=rsnow(:,:), &
                           l_print_point=l_print_point,                         &
                           initonly = .true.)
             endif
@@ -476,6 +486,7 @@
       enddo ! iblk
 
       deallocate(ztrcr_sw)
+      deallocate(rsnow)
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
