@@ -34,7 +34,7 @@
       module ice_dyn_evp
 
       use ice_kinds_mod
-      use ice_communicate, only: my_task
+      use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
@@ -88,14 +88,14 @@
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
-          grid_type, HTE, HTN
+          grid_type
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
-      use ice_dyn_shared, only: kevp_kernel, stack_velocity_field, unstack_velocity_field
+      use ice_dyn_shared, only: evp_algorithm, stack_velocity_field, unstack_velocity_field
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -331,7 +331,7 @@
       
       if (seabed_stress) then
 
-       !$OMP PARALLEL DO PRIVATE(iblk)
+         !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
             if ( seabed_stress_method == 'LKD' ) then
@@ -351,118 +351,115 @@
                                                hwater(:,:,iblk), Tbu(:,:,iblk))
             endif
          
-       enddo
+         enddo
        !$OMP END PARALLEL DO
       endif
+
       call ice_timer_start(timer_evp_2d)
-      if (kevp_kernel > 0) then
-        if (first_time .and. my_task == 0) then
-          write(nu_diag,'(2a,i6)') subname,' Entering kevp_kernel version ',kevp_kernel
-          first_time = .false.
-        endif
-        if (trim(grid_type) == 'tripole') then
-          call abort_ice(trim(subname)//' Kernel not tested on tripole grid. Set kevp_kernel=0')
-        endif
-        call ice_dyn_evp_1d_copyin(                                                &
-          nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
-          HTE,HTN,                                                      &
-!v1          dxhy,dyhx,cyp,cxp,cym,cxm,tinyarea,                           &
-!v1          waterx,watery,                                                &
-          icetmask, iceumask,                                           &
-          cdn_ocn,aiu,uocn,vocn,forcex,forcey,Tbu,        &
-          umassdti,fm,uarear,tarear,strintx,strinty,uvel_init,vvel_init,&
-          strength,uvel,vvel,dxt,dyt,                                   &
-          stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
-          stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
-          stress12_1,stress12_2,stress12_3,stress12_4                   )
-        if (kevp_kernel == 2) then
-          call ice_timer_start(timer_evp_1d)
-          call ice_dyn_evp_1d_kernel()
-          call ice_timer_stop(timer_evp_1d)
-!v1        else if (kevp_kernel == 1) then
-!v1          call evp_kernel_v1()
-        else
-          if (my_task == 0) write(nu_diag,*) subname,' ERROR: kevp_kernel = ',kevp_kernel
-          call abort_ice(subname//' kevp_kernel not supported.')
-        endif
-        call ice_dyn_evp_1d_copyout(                                               &
-          nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
-!strocn          uvel,vvel, strocnx,strocny, strintx,strinty,                  &
-          uvel,vvel, strintx,strinty,                                   &
-          stressp_1, stressp_2, stressp_3, stressp_4,                   &
-          stressm_1, stressm_2, stressm_3, stressm_4,                   &
-          stress12_1,stress12_2,stress12_3,stress12_4,                  &
-          divu,rdg_conv,rdg_shear,shear,taubx,tauby                     )
 
-      else ! kevp_kernel == 0 (Standard CICE)
+      if (evp_algorithm == "shared_mem_1d" ) then
 
-      do ksub = 1,ndte        ! subcycling
-
-      !-----------------------------------------------------------------
-      ! stress tensor equation, total surface stress
-      !-----------------------------------------------------------------
-
-         !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
-         do iblk = 1, nblocks
-
-!            if (trim(yield_curve) == 'ellipse') then
-               call stress (nx_block,             ny_block,             & 
-                            ksub,                 icellt(iblk),         & 
-                            indxti      (:,iblk), indxtj      (:,iblk), & 
-                            uvel      (:,:,iblk), vvel      (:,:,iblk), &     
-                            dxt       (:,:,iblk), dyt       (:,:,iblk), & 
-                            dxhy      (:,:,iblk), dyhx      (:,:,iblk), & 
-                            cxp       (:,:,iblk), cyp       (:,:,iblk), & 
-                            cxm       (:,:,iblk), cym       (:,:,iblk), & 
-                            tarear    (:,:,iblk), tinyarea  (:,:,iblk), & 
-                            strength  (:,:,iblk),                       & 
-                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
-                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
-                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
-                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
-                            shear     (:,:,iblk), divu      (:,:,iblk), & 
-                            rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), & 
-                            strtmp    (:,:,:) )
-!            endif               ! yield_curve
-
-      !-----------------------------------------------------------------
-      ! momentum equation
-      !-----------------------------------------------------------------
-
-            call stepu (nx_block,            ny_block,           &
-                        icellu       (iblk), Cdn_ocn (:,:,iblk), & 
-                        indxui     (:,iblk), indxuj    (:,iblk), &
-                        ksub,                                    &
-                        aiu      (:,:,iblk), strtmp  (:,:,:),    & 
-                        uocn     (:,:,iblk), vocn    (:,:,iblk), &     
-                        waterx   (:,:,iblk), watery  (:,:,iblk), & 
-                        forcex   (:,:,iblk), forcey  (:,:,iblk), & 
-                        umassdti (:,:,iblk), fm      (:,:,iblk), & 
-                        uarear   (:,:,iblk),                     & 
-                        strintx  (:,:,iblk), strinty (:,:,iblk), &
-                        taubx    (:,:,iblk), tauby   (:,:,iblk), & 
-                        uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
-                        uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                        Tbu      (:,:,iblk))
-         enddo
-         !$TCXOMP END PARALLEL DO
-
-         call stack_velocity_field(uvel, vvel, fld2)
-         call ice_timer_start(timer_bound)
-         if (maskhalo_dyn) then
-            call ice_HaloUpdate (fld2,               halo_info_mask, &
-                                 field_loc_NEcorner, field_type_vector)
-         else
-            call ice_HaloUpdate (fld2,               halo_info, &
-                                 field_loc_NEcorner, field_type_vector)
+         if (first_time .and. my_task == master_task) then
+            write(nu_diag,'(3a)') subname,' Entering evp_algorithm version ',evp_algorithm
+            first_time = .false.
          endif
-         call ice_timer_stop(timer_bound)
-         call unstack_velocity_field(fld2, uvel, vvel)
+         if (trim(grid_type) == 'tripole') then
+            call abort_ice(trim(subname)//' &
+               & Kernel not tested on tripole grid. Set evp_algorithm=standard_2d')
+         endif
+
+         call ice_dyn_evp_1d_copyin(                                                &
+            nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
+            icetmask, iceumask,                                           &
+            cdn_ocn,aiu,uocn,vocn,forcex,forcey,Tbu,        &
+            umassdti,fm,uarear,tarear,strintx,strinty,uvel_init,vvel_init,&
+            strength,uvel,vvel,dxt,dyt,                                   &
+            stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
+            stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
+            stress12_1,stress12_2,stress12_3,stress12_4                   )
+         call ice_timer_start(timer_evp_1d)
+         call ice_dyn_evp_1d_kernel()
+         call ice_timer_stop(timer_evp_1d)
+         call ice_dyn_evp_1d_copyout(                                      &
+            nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
+!strocn            uvel,vvel, strocnx,strocny, strintx,strinty,                  &
+            uvel,vvel, strintx,strinty,                                   &
+            stressp_1, stressp_2, stressp_3, stressp_4,                   &
+            stressm_1, stressm_2, stressm_3, stressm_4,                   &
+            stress12_1,stress12_2,stress12_3,stress12_4,                  &
+            divu,rdg_conv,rdg_shear,shear,taubx,tauby                     )
+
+      else ! evp_algorithm == standard_2d (Standard CICE)
+
+         do ksub = 1,ndte        ! subcycling
+
+         !-----------------------------------------------------------------
+         ! stress tensor equation, total surface stress
+         !-----------------------------------------------------------------
+
+            !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
+            do iblk = 1, nblocks
+
+!               if (trim(yield_curve) == 'ellipse') then
+                  call stress (nx_block,             ny_block,             &
+                               ksub,                 icellt(iblk),         &
+                               indxti      (:,iblk), indxtj      (:,iblk), &
+                               uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                               dxt       (:,:,iblk), dyt       (:,:,iblk), &
+                               dxhy      (:,:,iblk), dyhx      (:,:,iblk), &
+                               cxp       (:,:,iblk), cyp       (:,:,iblk), &
+                               cxm       (:,:,iblk), cym       (:,:,iblk), &
+                               tarear    (:,:,iblk), tinyarea  (:,:,iblk), &
+                               strength  (:,:,iblk),                       &
+                               stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
+                               stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
+                               stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
+                               stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
+                               stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
+                               stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
+                               shear     (:,:,iblk), divu      (:,:,iblk), &
+                               rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
+                               strtmp    (:,:,:) )
+!               endif               ! yield_curve
+
+         !-----------------------------------------------------------------
+         ! momentum equation
+         !-----------------------------------------------------------------
+
+               call stepu (nx_block,            ny_block,           &
+                           icellu       (iblk), Cdn_ocn (:,:,iblk), &
+                           indxui     (:,iblk), indxuj    (:,iblk), &
+                           ksub,                                    &
+                           aiu      (:,:,iblk), strtmp  (:,:,:),    &
+                           uocn     (:,:,iblk), vocn    (:,:,iblk), &
+                           waterx   (:,:,iblk), watery  (:,:,iblk), &
+                           forcex   (:,:,iblk), forcey  (:,:,iblk), &
+                           umassdti (:,:,iblk), fm      (:,:,iblk), &
+                           uarear   (:,:,iblk),                     &
+                           strintx  (:,:,iblk), strinty (:,:,iblk), &
+                           taubx    (:,:,iblk), tauby   (:,:,iblk), &
+                           uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
+                           uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                           Tbu      (:,:,iblk))
+
+            enddo
+            !$TCXOMP END PARALLEL DO
+
+            call stack_velocity_field(uvel, vvel, fld2)
+            call ice_timer_start(timer_bound)
+            if (maskhalo_dyn) then
+               call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                    field_loc_NEcorner, field_type_vector)
+            else
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_NEcorner, field_type_vector)
+            endif
+            call ice_timer_stop(timer_bound)
+            call unstack_velocity_field(fld2, uvel, vvel)
          
-      enddo                     ! subcycling
-      endif  ! kevp_kernel
+         enddo                     ! subcycling
+      endif  ! evp_algorithm
+
       call ice_timer_stop(timer_evp_2d)
 
       deallocate(fld2)

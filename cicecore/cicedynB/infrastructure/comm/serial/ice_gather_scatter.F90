@@ -687,7 +687,7 @@
    if (present(spc_val)) then
       special_value = spc_val
    else
-      special_value = .false. !MHRI:  true/false
+      special_value = .false.
    endif
    ARRAY_G = special_value
 

@@ -97,9 +97,10 @@
                           bathymetry_file, use_bathymetry, &
                           bathymetry_format, &
                           grid_type, grid_format, &
-                          dxrect, dyrect
+                          dxrect, dyrect, &
+                          pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                kevp_kernel, &
+                                evp_algorithm, &
                                 seabed_stress, seabed_stress_method, &
                                 k1, k2, alphab, threshold_hw, &
                                 Ktens, e_ratio, coriolis, ssh_stress, &
@@ -201,7 +202,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        kevp_kernel,                                                    &
+        evp_algorithm,                                                    &
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
@@ -329,7 +330,8 @@
       kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap, 3 = vp)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
-      kevp_kernel = 0    ! EVP kernel (0 = 2D, >0: 1D. Only ver. 2 is implemented yet)
+      evp_algorithm = 'standard_2d'    ! EVP kernel (=standard_2d: standard cice evp; =shared_mem_1d: 1d shared memory and no mpi. if more mpi processors then executed on master
+      pgl_global_ext = .false. ! if true, init primary grid lengths (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
@@ -669,7 +671,8 @@
       call broadcast_scalar(kdyn,                 master_task)
       call broadcast_scalar(ndtd,                 master_task)
       call broadcast_scalar(ndte,                 master_task)
-      call broadcast_scalar(kevp_kernel,          master_task)
+      call broadcast_scalar(evp_algorithm,        master_task)
+      call broadcast_scalar(pgl_global_ext,       master_task)
       call broadcast_scalar(brlx,                 master_task)
       call broadcast_scalar(arlx,                 master_task)
       call broadcast_scalar(revised_evp,          master_task)
@@ -1293,16 +1296,16 @@
                   tmpstr2 = ' : revised EVP formulation not used'
                endif
                write(nu_diag,1010) ' revised_evp      = ', revised_evp,trim(tmpstr2)
-
-               if (kevp_kernel == 0) then
-                  tmpstr2 = ' : original EVP solver'
-               elseif (kevp_kernel == 2 .or. kevp_kernel == 102) then
-                  tmpstr2 = ' : vectorized EVP solver'
+       
+               if (evp_algorithm == 'standard_2d') then
+                  tmpstr2 = ' : standard 2d EVP solver'
+               elseif (evp_algorithm == 'shared_mem_1d') then
+                  tmpstr2 = ' : vectorized 1d EVP solver'
+                  pgl_global_ext = .true.
                else
                   tmpstr2 = ' : unknown value'
                endif
-               write(nu_diag,1020) ' kevp_kernel      = ', kevp_kernel,trim(tmpstr2)
-
+               write(nu_diag,1031) ' evp_algorithm    = ', trim(evp_algorithm),trim(tmpstr2)
                write(nu_diag,1020) ' ndtd             = ', ndtd, ' : number of dynamics/advection/ridging/steps per thermo timestep'
                write(nu_diag,1020) ' ndte             = ', ndte, ' : number of EVP or EAP subcycles'
             endif
@@ -1815,19 +1818,11 @@
          abort_list = trim(abort_list)//":20"
       endif
 
-      ! check for valid kevp_kernel
-      ! tcraig, kevp_kernel=2 is not validated, do not allow use
-      !         use "102" to test "2" for now
-      if (kevp_kernel /= 0) then
-         if (kevp_kernel == 102) then
-            kevp_kernel = 2
-         else
-            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: kevp_kernel = ',kevp_kernel
-            if (kevp_kernel == 2) then
-                if (my_task == master_task) write(nu_diag,*) subname//' kevp_kernel=2 not validated, use kevp_kernel=102 for testing until it is validated'
-            endif
-            abort_list = trim(abort_list)//":21"
-        endif
+      if (kdyn         == 1                .and. &
+          evp_algorithm /= 'standard_2d'   .and. &
+          evp_algorithm /= 'shared_mem_1d') then 
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown evp_algorithm=',trim(evp_algorithm)
+             abort_list = trim(abort_list)//":21" 
       endif
 
       if (abort_list /= "") then

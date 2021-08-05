@@ -9,9 +9,9 @@ smoke          gx3     7x2        diag1,bigdiag,run1day,diagpt1
 decomp         gx3     4x2x25x29x5  none
 smoke          gx3     4x2        diag1,run5day             smoke_gx3_8x2_diag1_run5day
 smoke          gx3     4x1        diag1,run5day,thread      smoke_gx3_8x2_diag1_run5day
-restart        gx1    40x4        droundrobin
-restart        tx1    40x4        dsectrobin
-restart        tx1    60x2        droundrobin,maskhalo
+smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_8x2_diag1_run5day
+restart        gx1    40x4        droundrobin,medium
+restart        tx1    40x4        dsectrobin,medium
 restart        gx3     4x4        none
 restart        gx3    10x4        maskhalo
 restart        gx3     6x2        alt01
