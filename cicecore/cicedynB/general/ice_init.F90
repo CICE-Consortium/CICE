@@ -433,7 +433,7 @@
       snw_T_fname     = 'unknown' ! snowtable file T fieldname
       snwgrain  = .false.         ! snow metamorphosis
       use_smliq_pnd = .false.     ! use liquid in snow for ponds
-      rsnw_fall = 54.526_dbl_kind ! radius of new snow (10^-6 m)
+      rsnw_fall =  100.0_dbl_kind ! radius of new snow (10^-6 m) ! advanced snow physics: 54.526 x 10^-6 m
       rsnw_tmax = 1500.0_dbl_kind ! maximum snow radius (10^-6 m)
       rhosnew   =  100.0_dbl_kind ! new snow density (kg/m^3)
       rhosmin   =  100.0_dbl_kind ! minimum snow density (kg/m^3)
@@ -1784,22 +1784,22 @@
                if (snwredist(1:4) == 'bulk') then
                   write(nu_diag,1030) ' snwredist        = ', trim(snwredist), &
                                       ' : Using bulk snow redistribution scheme'
-                  write(nu_diag,1002) ' snwlvlfac        = ', snwlvlfac, &
-                                      ' : fractional increase in snow depth for bulk redistribution'
                elseif (snwredist(1:6) == 'ITDrdg') then
                   write(nu_diag,1030) ' snwredist        = ', trim(snwredist), &
                                       ' : Using ridging based snow redistribution scheme'
+                  write(nu_diag,1002) ' rhosnew          = ', rhosnew, &
+                                      ' : new snow density (kg/m^3)'
+                  write(nu_diag,1002) ' rhosmin          = ', rhosmin, &
+                                      ' : minimum snow density (kg/m^3)'
+                  write(nu_diag,1002) ' rhosmax          = ', rhosmax, &
+                                      ' : maximum snow density (kg/m^3)'
+                  write(nu_diag,1002) ' windmin          = ', windmin, &
+                                      ' : minimum wind speed to compact snow (m/s)'
+                  write(nu_diag,1002) ' drhosdwind       = ', drhosdwind, &
+                                      ' : wind compaction factor (kg s/m^4)'
                endif
-               write(nu_diag,1002) ' rhosnew          = ', rhosnew, &
-                                   ' : new snow density (kg/m^3)'
-               write(nu_diag,1002) ' rhosmin          = ', rhosmin, &
-                                   ' : minimum snow density (kg/m^3)'
-               write(nu_diag,1002) ' rhosmax          = ', rhosmax, &
-                                   ' : maximum snow density (kg/m^3)'
-               write(nu_diag,1002) ' windmin          = ', windmin, &
-                                   ' : minimum wind speed to compact snow (m/s)'
-               write(nu_diag,1002) ' drhosdwind       = ', drhosdwind, &
-                                   ' : wind compaction factor (kg s/m^4)'
+               write(nu_diag,1002) ' snwlvlfac        = ', snwlvlfac, &
+                                   ' : fractional increase in snow depth for redistribution on ridges'
             endif
             if (.not. snwgrain) then
                write(nu_diag,1010) ' snwgrain         = ', snwgrain, &
@@ -1807,10 +1807,12 @@
             else
                write(nu_diag,1010) ' snwgrain         = ', snwgrain, &
                                    ' : Using snow metamorphosis scheme'
-               write(nu_diag,1002) ' rsnw_fall        = ', rsnw_fall, &
-                                   ' : radius of new snow (10^-6 m)'
                write(nu_diag,1002) ' rsnw_tmax        = ', rsnw_tmax, &
                                    ' : maximum snow radius (10^-6 m)'
+            endif
+            write(nu_diag,1002) ' rsnw_fall        = ', rsnw_fall, &
+                                ' : radius of new snow (10^-6 m)'
+            if (snwgrain) then
                if (use_smliq_pnd) then
                   tmpstr2 = ' : Using liquid water in snow for melt ponds'
                else

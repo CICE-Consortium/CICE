@@ -498,7 +498,7 @@ snow_nml
    "``rhosmax``", "real", "maximum snow density in kg/m^3", "450."
    "``rhosmin``", "real", "minimum snow density in kg/m^3", "100."
    "``rhosnew``", "real", "new snow density in kg/m^3", "100."
-   "``rsnw_fall``", "real", "radius of new snow in 1.0e-6 m", "54.526"
+   "``rsnw_fall``", "real", "radius of new snow in 1.0e-6 m", "100."
    "``rsnw_tmax``", "real", "maximum snow radius in 1.0e-6 m", "1500."
    "``snwgrain``", "logical", "snow metamorophsis flag", "``.false.``"
    "``snwlvlfac``", "real", "fractional increase in snow", "0.3"

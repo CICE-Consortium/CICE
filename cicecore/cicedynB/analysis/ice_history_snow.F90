@@ -184,7 +184,7 @@
 
       if (f_fsloss(1:1) /= 'x') &
          call define_hist_field(n_fsloss,"fsloss","kg/m^2/s",tstr2D, tcstr, &
-             "snow passing into leads (liquid)",                            &
+             "rate of snow loss to leads (liquid)",                         &
              "none", c1, c0,                                                &
              ns, f_fsloss)
 

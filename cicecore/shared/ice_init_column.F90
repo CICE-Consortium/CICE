@@ -601,10 +601,10 @@
 
 !  Initialize snow redistribution/metamorphosis tracers (call prior to reading restart data)
 
-      subroutine init_snowtracers(smice, smliq, rhoseff, rsnw)
+      subroutine init_snowtracers(smice, smliq, rhos_cmp, rsnw)
 
       real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: &
-         smice, smliq, rhoseff, rsnw
+         smice, smliq, rhos_cmp, rsnw
       character(len=*),parameter :: subname='(init_snowtracers)'
 
       real (kind=dbl_kind) :: &
@@ -613,10 +613,10 @@
 
       call icepack_query_parameters(rsnw_fall_out=rsnw_fall, rhos_out=rhos)
 
-      rsnw   (:,:,:,:) = rsnw_fall
-      rhoseff(:,:,:,:) = rhos
-      smice  (:,:,:,:) = rhos
-      smliq  (:,:,:,:) = c0
+      rsnw    (:,:,:,:) = rsnw_fall
+      rhos_cmp(:,:,:,:) = rhos
+      smice   (:,:,:,:) = rhos
+      smliq   (:,:,:,:) = c0
 
       end subroutine init_snowtracers
 
