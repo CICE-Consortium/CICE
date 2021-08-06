@@ -70,8 +70,6 @@
       ! icepack_snow.F90
       real (kind=dbl_kind), public, &
          dimension (:,:,:), allocatable :: &
-         rhos_eff , & ! mean effective snow density: content (kg/m^3)
-         rhos_cmp , & ! mean effective snow density: compaction (kg/m^3)
          meltsliq     ! snow melt mass (kg/m^2/step-->kg/m^2/day)
 
       real (kind=dbl_kind), public, &
@@ -365,8 +363,6 @@
          fzsal_g      (nx_block,ny_block,max_blocks), & ! Total gravity drainage flux
          upNO         (nx_block,ny_block,max_blocks), & ! nitrate uptake rate (mmol/m^2/d) times aice
          upNH         (nx_block,ny_block,max_blocks), & ! ammonium uptake rate (mmol/m^2/d) times aice
-         rhos_eff     (nx_block,ny_block,max_blocks), & ! mean effective snow density: content (kg/m^3)
-         rhos_cmp     (nx_block,ny_block,max_blocks), & ! mean effective snow density: compaction (kg/m^3)
          meltsliq     (nx_block,ny_block,max_blocks), & ! snow melt mass (kg/m^2)
          meltsliqn    (nx_block,ny_block,ncat,max_blocks), & ! snow melt mass in category n (kg/m^2)
          dhsn         (nx_block,ny_block,ncat,max_blocks), & ! depth difference for snow on sea ice and pond ice

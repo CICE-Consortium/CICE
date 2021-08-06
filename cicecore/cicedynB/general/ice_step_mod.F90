@@ -478,13 +478,14 @@
                       meltbn       = meltbn      (i,j,:,iblk), &
                       melts        = melts       (i,j,  iblk), &
                       meltsn       = meltsn      (i,j,:,iblk), &
-                      meltsliqn    = meltsliqn   (i,j,:,iblk), &
                       congel       = congel      (i,j,  iblk), &
                       congeln      = congeln     (i,j,:,iblk), &
                       snoice       = snoice      (i,j,  iblk), &
                       snoicen      = snoicen     (i,j,:,iblk), &
                       dsnow        = dsnow       (i,j,  iblk), &
                       dsnown       = dsnown      (i,j,:,iblk), &
+                      meltsliq     = meltsliq    (i,j,  iblk), &
+                      meltsliqn    = meltsliqn   (i,j,:,iblk), &
                       lmask_n      = lmask_n     (i,j,  iblk), &
                       lmask_s      = lmask_s     (i,j,  iblk), &
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
@@ -1069,7 +1070,6 @@
 
       subroutine step_snow (dt, iblk)
 
-      use ice_arrays_column, only: rhos_eff, rhos_cmp
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
@@ -1100,9 +1100,6 @@
 
       real (kind=dbl_kind) :: &
          puny
-
-      real (kind=dbl_kind), dimension(nslyr,ncat) :: &
-         rhos_effn          ! snow effective density: content (kg/m^3)
 
       real (kind=dbl_kind) :: &
          fhs                ! flag for presence of snow
@@ -1139,14 +1136,12 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-         rhos_effn(:,:) = c0
-
          call icepack_step_snow (dt,     nilyr, &
                      nslyr,              ncat,  &
-                     wind (i,j,iblk),           &
-                     aice  (i,j,iblk),          &
+                     wind (i,j,  iblk),         &
+                     aice (i,j,  iblk),         &
                      aicen(i,j,:,iblk),         &
-                     vicen (i,j,:,iblk),        &
+                     vicen(i,j,:,iblk),         &
                      vsnon(i,j,:,iblk),         &
                      trcrn(i,j,nt_Tsfc,:,iblk), &
                      trcrn(i,j,nt_qice,:,iblk), & ! top layer only
@@ -1156,15 +1151,12 @@
                      trcrn(i,j,nt_vlvl,:,iblk), &
                      trcrn(i,j,nt_smice:nt_smice+nslyr-1,:,iblk), & 
                      trcrn(i,j,nt_smliq:nt_smliq+nslyr-1,:,iblk), &
-                     trcrn(i,j,nt_rhos:nt_rhos+nslyr-1,:,iblk),   &
                      trcrn(i,j,nt_rsnw:nt_rsnw+nslyr-1,:,iblk),   &
-                     rhos_eff(i,j,iblk),        &
-                     rhos_effn(:,:),            &
-                     rhos_cmp(i,j,iblk),        &
-                     fresh(i,j,  iblk),         &
-                     fhocn(i,j,  iblk),         &
-                     fsloss(i,j, iblk),         &
-                     fsnow(i,j,  iblk))
+                     trcrn(i,j,nt_rhos:nt_rhos+nslyr-1,:,iblk),   &
+                     fresh   (i,j,iblk),        &
+                     fhocn   (i,j,iblk),        &
+                     fsloss  (i,j,iblk),        &
+                     fsnow   (i,j,iblk))
       enddo
       enddo
 
@@ -1350,9 +1342,7 @@
                          albpndn  =albpndn  (i,j,:  ,iblk), apeffn  =apeffn  (i,j,:  ,iblk), &
                          snowfracn=snowfracn(i,j,:  ,iblk),                                  &
                          dhsn     =dhsn     (i,j,:  ,iblk), ffracn  =ffracn(i,j,:,iblk),     &
-                         rsnow    =rsnow    (    :,:), &
-!history                         rsnw_dEddn=rsnw_dEddn(i,j,:,iblk), &
-                         l_print_point=l_print_point)
+                         rsnow    =rsnow        (:,:),      l_print_point=l_print_point)
          endif
          
          if (dEdd_algae .and. (tr_zaero .or. tr_bgc_N)) then

@@ -67,7 +67,7 @@
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: mlt_onset, frz_onset, albcnt
+      use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
@@ -1695,6 +1695,7 @@
       if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
       avgct(:) = c0
       albcnt(:,:,:,:) = c0
+      snwcnt(:,:,:,:) = c0
 
       if (restart .and. yday >= c2) then
 ! restarting midyear gives erroneous onset dates
@@ -1733,7 +1734,7 @@
           fhocn, fhocn_ai, uatm, vatm, fbot, Tbot, Tsnice, &
           fswthru_ai, strairx, strairy, strtltx, strtlty, strintx, strinty, &
           taubx, tauby, strocnx, strocny, fm, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
-          fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, &
+          fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, snwcnt, &
           stressp_1, stressm_1, stress12_1, &
           stressp_2, &
           stressp_3, &
@@ -1746,7 +1747,8 @@
       use ice_history_bgc, only: accum_hist_bgc
       use ice_history_mechred, only: accum_hist_mechred
       use ice_history_pond, only: accum_hist_pond
-      use ice_history_snow, only: accum_hist_snow
+      use ice_history_snow, only: accum_hist_snow, &
+          f_rhos_cmp, f_rhos_cnt, n_rhos_cmp, n_rhos_cnt
       use ice_history_drag, only: accum_hist_drag
       use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
       use icepack_intfc, only: icepack_mushy_temperature_mush
@@ -3680,7 +3682,38 @@
               enddo             ! j
               endif
 
-              endif
+! snwcnt averaging is not working correctly
+! for now, these history fields will have zeroes includes in the averages
+!              if (avail_hist_fields(n)%vname(1:8) == 'rhos_cmp') then
+!              do j = jlo, jhi
+!              do i = ilo, ihi
+!                 if (tmask(i,j,iblk)) then
+!                    ravgctz = c0
+!                    if (snwcnt(i,j,iblk,ns) > puny) &
+!                        ravgctz = c1/snwcnt(i,j,iblk,ns)
+!                    if (f_rhos_cmp (1:1) /= 'x' .and. n_rhos_cmp(ns) /= 0) &
+!                       a2D(i,j,n_rhos_cmp(ns),iblk) = &
+!                       a2D(i,j,n_rhos_cmp(ns),iblk)*avgct(ns)*ravgctz
+!                 endif
+!              enddo             ! i
+!              enddo             ! j
+!              endif
+!              if (avail_hist_fields(n)%vname(1:8) == 'rhos_cnt') then
+!              do j = jlo, jhi
+!              do i = ilo, ihi
+!                 if (tmask(i,j,iblk)) then
+!                    ravgctz = c0
+!                    if (snwcnt(i,j,iblk,ns) > puny) &
+!                        ravgctz = c1/snwcnt(i,j,iblk,ns)
+!                    if (f_rhos_cnt (1:1) /= 'x' .and. n_rhos_cnt(ns) /= 0) &
+!                       a2D(i,j,n_rhos_cnt(ns),iblk) = &
+!                       a2D(i,j,n_rhos_cnt(ns),iblk)*avgct(ns)*ravgctz
+!                 endif
+!              enddo             ! i
+!              enddo             ! j
+!              endif
+
+              endif             ! avail_hist_fields(n)%vhistfreq == histfreq(ns)
            enddo                ! n
 
            do n = 1, num_avail_hist_fields_3Dc
@@ -4003,10 +4036,12 @@
            if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
            avgct(:) = c0
            albcnt(:,:,:,:) = c0
+           snwcnt(:,:,:,:) = c0
            write_ic = .false.        ! write initial condition once at most
         else
            avgct(ns) = c0
            albcnt(:,:,:,ns) = c0
+           snwcnt(:,:,:,ns) = c0
         endif
 !        if (write_history(ns)) albcnt(:,:,:,ns) = c0
 

@@ -203,7 +203,7 @@
     snwredist       = 'none'
     snwgrain        = .false.
     use_smliq_pnd   = .false.
-    rsnw_fall       = 54.526
+    rsnw_fall       =  100.0
     rsnw_tmax       = 1500.0
     rhosnew         =  100.0
     rhosmin         =  100.0
@@ -609,13 +609,15 @@
 /
 
 &icefields_snow_nml
-    f_smicen       = 'x'
-    f_smliqn       = 'x'
-    f_rhosn        = 'x'
+    f_smassicen    = 'x'
+    f_smassliqn    = 'x'
+    f_rhos_cmpn    = 'x'
+    f_rhos_cntn    = 'x'
     f_rsnwn        = 'x'
-    f_smice        = 'm'
-    f_smliq        = 'm'
-    f_rhos         = 'm'
+    f_smassice     = 'm'
+    f_smassliq     = 'm'
+    f_rhos_cmp     = 'm'
+    f_rhos_cnt     = 'm'
     f_rsnw         = 'm'
     f_meltsliq     = 'm'
     f_fsloss       = 'm'
