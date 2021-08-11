@@ -483,7 +483,7 @@
             endif
 
             if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
+                .or..not. hist_avg                              &
                 .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
                 .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
