@@ -100,6 +100,8 @@
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
     restart_pond_lvl  = .false.
+    tr_snow      = .false.
+    restart_snow = .false.
     tr_iso       = .false.
     restart_iso  = .false.
     tr_aero      = .false.
@@ -195,6 +197,28 @@
     rfracmin        = 0.15
     rfracmax        = 1.
     pndaspect       = 0.8
+/
+
+&snow_nml
+    snwredist       = 'none'
+    snwgrain        = .false.
+    use_smliq_pnd   = .false.
+    rsnw_fall       =  100.0
+    rsnw_tmax       = 1500.0
+    rhosnew         =  100.0
+    rhosmin         =  100.0
+    rhosmax         =  450.0
+    windmin         =   10.0
+    drhosdwind      =   27.3
+    snwlvlfac       =    0.3
+    snw_aging_table = 'test'
+    snw_filename    = 'unknown'
+    snw_rhos_fname  = 'unknown'
+    snw_Tgrd_fname  = 'unknown'
+    snw_T_fname     = 'unknown'
+    snw_tau_fname   = 'unknown'
+    snw_kappa_fname = 'unknown'
+    snw_drdt0_fname = 'unknown'
 /
 
 &forcing_nml
@@ -582,6 +606,21 @@
     f_hpond_ai     = 'm'
     f_ipond_ai     = 'm'
     f_apeff_ai     = 'm'
+/
+
+&icefields_snow_nml
+    f_smassicen    = 'x'
+    f_smassliqn    = 'x'
+    f_rhos_cmpn    = 'x'
+    f_rhos_cntn    = 'x'
+    f_rsnwn        = 'x'
+    f_smassice     = 'm'
+    f_smassliq     = 'm'
+    f_rhos_cmp     = 'm'
+    f_rhos_cnt     = 'm'
+    f_rsnw         = 'm'
+    f_meltsliq     = 'm'
+    f_fsloss       = 'm'
 /
 
 &icefields_bgc_nml

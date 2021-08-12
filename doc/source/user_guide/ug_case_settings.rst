@@ -327,6 +327,7 @@ tracer_nml
    "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
    "``tr_pond_lvl``", "logical", "level-ice melt ponds", "``.false.``"
    "``tr_pond_topo``", "logical", "topo melt ponds", "``.false.``"
+   "``tr_snow``", "logical", "advanced snow physics", "``.false.``"
    "``restart_aero``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_age``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_fsd``", "logical", "restart floe size distribution values from file", "``.false.``"
@@ -483,6 +484,40 @@ ponds_nml
    "``pndaspect``", "real", "aspect ratio of pond changes (depth:area)", "0.8"
    "``rfracmax``", ":math:`0 \le r_{max} \le 1`", "maximum melt water added to ponds", "0.85"
    "``rfracmin``", ":math:`0 \le r_{min} \le 1`", "minimum melt water added to ponds", "0.15"
+   "", "", "", ""
+
+snow_nml
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. csv-table:: **snow_nml namelist options**
+   :header: "variable", "options/format", "description", "default value"
+   :widths: 15, 15, 30, 15 
+
+   "", "", "", ""
+   "``drhosdwind``", "real", "wind compactions factor for now in kg-s/m^4", "27.3"
+   "``rhosmax``", "real", "maximum snow density in kg/m^3", "450."
+   "``rhosmin``", "real", "minimum snow density in kg/m^3", "100."
+   "``rhosnew``", "real", "new snow density in kg/m^3", "100."
+   "``rsnw_fall``", "real", "radius of new snow in 1.0e-6 m", "100."
+   "``rsnw_tmax``", "real", "maximum snow radius in 1.0e-6 m", "1500."
+   "``snwgrain``", "logical", "snow metamorophsis flag", "``.false.``"
+   "``snwlvlfac``", "real", "fractional increase in snow", "0.3"
+   "``snwredist``", "``bulk``", "bulk snow redistribution scheme", "``none``"
+   "", "``ITD``", "ITD snow redistribution scheme", ""
+   "", "``ITDrdg``", "ITDrdg snow redistribution scheme", ""
+   "", "``none``", "snow redistribution scheme off", ""
+   "``snw_aging_table``", "file", "read 1D and 3D fields for dry metamorophsis lookup table", "test"
+   "", "snicar", "read 3D fields for dry metamorophsis lookup table", ""
+   "", "test", "internally generated dry metamorophsis lookup table for testing", ""
+   "``snw_drdt0_fname``", "string", "snow aging file drdt0 fieldname", "unknown"
+   "``snw_filename``", "string", "snow aging table data filename", "unknown"
+   "``snw_kappa_fname``", "string", "snow aging file kappa fieldname", "unknown"
+   "``snw_rhos_fname``", "string", "snow aging file rhos fieldname", "unknown"
+   "``snw_T_fname``", "string", "snow aging file T fieldname", "unknown"
+   "``snw_tau_fname``", "string", "snow aging file tau fieldname", "unknown"
+   "``snw_Tgrd_fname``", "string", "snow aging file Tgrd fieldname", "unknown"
+   "``use_smliq_pnd``", "logical", "use liquid in snow for ponds", "``.false.``"
+   "``windmin``", "real", "minimum wind speed to compact snow in m/s", "10."
    "", "", "", ""
 
 forcing_nml

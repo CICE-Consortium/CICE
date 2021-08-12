@@ -59,7 +59,7 @@
 
       !---------------------------------------------------------------
       ! Instructions for adding a field: (search for 'example')
-      !     Here:
+      !     Here or in ice_history_[process].F90:
       ! (1) Add to frequency flags (f_<field>)
       ! (2) Add to namelist (here and also in ice_in)
       ! (3) Add to index list

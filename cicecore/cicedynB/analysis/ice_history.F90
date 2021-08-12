@@ -67,10 +67,11 @@
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: mlt_onset, frz_onset, albcnt
+      use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
+      use ice_history_snow, only: init_hist_snow_2D, init_hist_snow_3Dc
       use ice_history_bgc, only:init_hist_bgc_2D, init_hist_bgc_3Dc, &
           init_hist_bgc_3Db, init_hist_bgc_3Da
       use ice_history_drag, only: init_hist_drag_2D
@@ -86,7 +87,7 @@
       real (kind=dbl_kind) :: rhofresh, Tffresh, secday, rad_to_deg
       logical (kind=log_kind) :: formdrag
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_brine
-      logical (kind=log_kind) :: tr_fsd
+      logical (kind=log_kind) :: tr_fsd, tr_snow
       logical (kind=log_kind) :: skl_bgc, solve_zsal, solve_zbgc, z_tracers
       integer (kind=int_kind) :: n, ns, ns1, ns2
       integer (kind=int_kind), dimension(max_nstrm) :: &
@@ -115,7 +116,7 @@
          solve_zsal_out=solve_zsal, solve_zbgc_out=solve_zbgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
-         tr_brine_out=tr_brine, tr_fsd_out=tr_fsd)
+         tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1426,6 +1427,9 @@
       ! floe size distribution
       call init_hist_fsd_2D
 
+      ! advanced snow physics
+      call init_hist_snow_2D (dt)
+
       !-----------------------------------------------------------------
       ! 3D (category) variables looped separately for ordering
       !-----------------------------------------------------------------
@@ -1500,6 +1504,9 @@
 
       ! biogeochemistry
       call init_hist_bgc_3Dc
+
+      ! advanced snow physics
+      call init_hist_snow_3Dc
 
       !-----------------------------------------------------------------
       ! 3D (vertical) variables must be looped separately
@@ -1688,6 +1695,7 @@
       if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
       avgct(:) = c0
       albcnt(:,:,:,:) = c0
+      snwcnt(:,:,:,:) = c0
 
       if (restart .and. yday >= c2) then
 ! restarting midyear gives erroneous onset dates
@@ -1726,7 +1734,7 @@
           fhocn, fhocn_ai, uatm, vatm, fbot, Tbot, Tsnice, &
           fswthru_ai, strairx, strairy, strtltx, strtlty, strintx, strinty, &
           taubx, tauby, strocnx, strocny, fm, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
-          fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, &
+          fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, snwcnt, &
           stressp_1, stressm_1, stress12_1, &
           stressp_2, &
           stressp_3, &
@@ -1739,6 +1747,8 @@
       use ice_history_bgc, only: accum_hist_bgc
       use ice_history_mechred, only: accum_hist_mechred
       use ice_history_pond, only: accum_hist_pond
+      use ice_history_snow, only: accum_hist_snow, &
+          f_rhos_cmp, f_rhos_cnt, n_rhos_cmp, n_rhos_cnt
       use ice_history_drag, only: accum_hist_drag
       use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
       use icepack_intfc, only: icepack_mushy_temperature_mush
@@ -1775,7 +1785,7 @@
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
       real (kind=dbl_kind) :: rho_ice, rho_ocn, Tice, Sbr, phi, rhob, dfresh, dfsalt
       logical (kind=log_kind) :: formdrag, skl_bgc
-      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine
+      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow
       integer (kind=int_kind) :: ktherm
       integer (kind=int_kind) :: nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_Tsfc, &
                                  nt_alvl, nt_vlvl
@@ -1791,7 +1801,7 @@
            rhow_out=rhow, ice_ref_salinity_out=ice_ref_salinity)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, ktherm_out=ktherm)
       call icepack_query_tracer_flags(tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
-           tr_brine_out=tr_brine)
+           tr_brine_out=tr_brine, tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_Tsfc_out=nt_Tsfc, &
            nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
@@ -3040,6 +3050,9 @@
          ! floe size distribution
          call accum_hist_fsd (iblk)
 
+         ! advanced snow physics
+         call accum_hist_snow (iblk)
+
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
@@ -3669,7 +3682,38 @@
               enddo             ! j
               endif
 
-              endif
+! snwcnt averaging is not working correctly
+! for now, these history fields will have zeroes includes in the averages
+!              if (avail_hist_fields(n)%vname(1:8) == 'rhos_cmp') then
+!              do j = jlo, jhi
+!              do i = ilo, ihi
+!                 if (tmask(i,j,iblk)) then
+!                    ravgctz = c0
+!                    if (snwcnt(i,j,iblk,ns) > puny) &
+!                        ravgctz = c1/snwcnt(i,j,iblk,ns)
+!                    if (f_rhos_cmp (1:1) /= 'x' .and. n_rhos_cmp(ns) /= 0) &
+!                       a2D(i,j,n_rhos_cmp(ns),iblk) = &
+!                       a2D(i,j,n_rhos_cmp(ns),iblk)*avgct(ns)*ravgctz
+!                 endif
+!              enddo             ! i
+!              enddo             ! j
+!              endif
+!              if (avail_hist_fields(n)%vname(1:8) == 'rhos_cnt') then
+!              do j = jlo, jhi
+!              do i = ilo, ihi
+!                 if (tmask(i,j,iblk)) then
+!                    ravgctz = c0
+!                    if (snwcnt(i,j,iblk,ns) > puny) &
+!                        ravgctz = c1/snwcnt(i,j,iblk,ns)
+!                    if (f_rhos_cnt (1:1) /= 'x' .and. n_rhos_cnt(ns) /= 0) &
+!                       a2D(i,j,n_rhos_cnt(ns),iblk) = &
+!                       a2D(i,j,n_rhos_cnt(ns),iblk)*avgct(ns)*ravgctz
+!                 endif
+!              enddo             ! i
+!              enddo             ! j
+!              endif
+
+              endif             ! avail_hist_fields(n)%vhistfreq == histfreq(ns)
            enddo                ! n
 
            do n = 1, num_avail_hist_fields_3Dc
@@ -3992,10 +4036,12 @@
            if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
            avgct(:) = c0
            albcnt(:,:,:,:) = c0
+           snwcnt(:,:,:,:) = c0
            write_ic = .false.        ! write initial condition once at most
         else
            avgct(ns) = c0
            albcnt(:,:,:,ns) = c0
+           snwcnt(:,:,:,ns) = c0
         endif
 !        if (write_history(ns)) albcnt(:,:,:,ns) = c0
 

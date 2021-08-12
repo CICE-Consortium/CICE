@@ -14,6 +14,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1
       use ice_calendar, only: istep1
+      use ice_domain_size, only: nslyr
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: flush_fileunit
       use ice_exit, only: abort_ice
@@ -142,14 +143,18 @@
          i, j, k, n, iblk, nc, &
          ktherm, &
          nt_tsfc, nt_aero, nt_fbri, nt_apnd, nt_hpnd, nt_fsd, &
-         nt_isosno, nt_isoice
+         nt_isosno, nt_isoice, nt_rsnw, nt_rhos, nt_smice, nt_smliq
 
       logical (kind=log_kind) :: &
-         tr_pond_topo, tr_brine, tr_iso, tr_aero, calc_Tsfc, tr_fsd
+         tr_pond_topo, tr_brine, tr_iso, tr_aero, calc_Tsfc, tr_fsd, &
+         tr_snow, snwgrain
 
       real (kind=dbl_kind) :: &
          rhow, rhos, rhoi, puny, awtvdr, awtidr, awtvdf, awtidf, &
          rhofresh, lfresh, lvap, ice_ref_salinity, Tffresh
+
+      character (len=char_len) :: &
+         snwredist
 
       ! hemispheric state quantities
       real (kind=dbl_kind) :: &
@@ -190,7 +195,8 @@
          pTsfc, pevap, pfswabs, pflwout, pflat, pfsens, &
          pfsurf, pfcondtop, psst, psss, pTf, hiavg, hsavg, hbravg, &
          pfhocn, psalt, fsdavg, &
-         pmeltt, pmeltb, pmeltl, psnoice, pdsnow, pfrazil, pcongel
+         pmeltt, pmeltb, pmeltl, psnoice, pdsnow, pfrazil, pcongel, &
+         prsnwavg, prhosavg, psmicetot, psmliqtot, psmtot
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2
@@ -199,15 +205,19 @@
 
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
-           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
+           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso, &
+           tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_Tsfc_out=nt_Tsfc, &
            nt_aero_out=nt_aero, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
-           nt_fsd_out=nt_fsd,nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+           nt_fsd_out=nt_fsd,nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
+           nt_rsnw_out=nt_rsnw, nt_rhos_out=nt_rhos, &
+           nt_smice_out=nt_smice, nt_smliq_out=nt_smliq)
       call icepack_query_parameters(Tffresh_out=Tffresh, rhos_out=rhos, &
            rhow_out=rhow, rhoi_out=rhoi, puny_out=puny, &
            awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf, &
            rhofresh_out=rhofresh, lfresh_out=lfresh, lvap_out=lvap, &
-           ice_ref_salinity_out=ice_ref_salinity)
+           ice_ref_salinity_out=ice_ref_salinity,snwredist_out=snwredist, &
+           snwgrain_out=snwgrain)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -825,6 +835,26 @@
                      enddo
                   endif
                endif
+               if (tr_snow) then      ! snow tracer quantities
+                  prsnwavg (n) = c0   ! avg snow grain radius
+                  prhosavg (n) = c0   ! avg snow density
+                  psmicetot(n) = c0   ! total mass of ice in snow (kg/m2)
+                  psmliqtot(n) = c0   ! total mass of liquid in snow (kg/m2)
+                  psmtot   (n) = c0   ! total mass of snow volume (kg/m2)
+                  if (vsno(i,j,iblk) > c0) then
+                     do k = 1, nslyr
+                        prsnwavg (n) = prsnwavg (n) + trcr(i,j,nt_rsnw +k-1,iblk) ! snow grain radius
+                        prhosavg (n) = prhosavg (n) + trcr(i,j,nt_rhos +k-1,iblk) ! compacted snow density
+                        psmicetot(n) = psmicetot(n) + trcr(i,j,nt_smice+k-1,iblk) * vsno(i,j,iblk)
+                        psmliqtot(n) = psmliqtot(n) + trcr(i,j,nt_smliq+k-1,iblk) * vsno(i,j,iblk)
+                     end do
+                  endif
+                  psmtot   (n) = rhos * vsno(i,j,iblk) ! mass of ice in standard density snow
+                  prsnwavg (n) = prsnwavg (n) / real(nslyr,kind=dbl_kind) ! snow grain radius
+                  prhosavg (n) = prhosavg (n) / real(nslyr,kind=dbl_kind) ! compacted snow density
+                  psmicetot(n) = psmicetot(n) / real(nslyr,kind=dbl_kind) ! mass of ice in snow
+                  psmliqtot(n) = psmliqtot(n) / real(nslyr,kind=dbl_kind) ! mass of liquid in snow
+               end if
                psalt(n) = c0
                if (vice(i,j,iblk) /= c0) psalt(n) = work2(i,j,iblk)/vice(i,j,iblk)
                pTsfc(n) = trcr(i,j,nt_Tsfc,iblk)   ! ice/snow sfc temperature
@@ -877,6 +907,11 @@
             call broadcast_scalar(pmeltl   (n), pmloc(n))
             call broadcast_scalar(psnoice  (n), pmloc(n))
             call broadcast_scalar(pdsnow   (n), pmloc(n))
+            call broadcast_scalar(psmtot   (n), pmloc(n))
+            call broadcast_scalar(prsnwavg (n), pmloc(n))
+            call broadcast_scalar(prhosavg (n), pmloc(n))
+            call broadcast_scalar(psmicetot(n), pmloc(n))
+            call broadcast_scalar(psmliqtot(n), pmloc(n))
             call broadcast_scalar(pfrazil  (n), pmloc(n))
             call broadcast_scalar(pcongel  (n), pmloc(n))
             call broadcast_scalar(pdhi     (n), pmloc(n))
@@ -1060,6 +1095,26 @@
         write(nu_diag,900) 'effective dhi (m)      = ',pdhi(1),pdhi(2)
         write(nu_diag,900) 'effective dhs (m)      = ',pdhs(1),pdhs(2)
         write(nu_diag,900) 'intnl enrgy chng(W/m^2)= ',pde (1),pde (2)
+
+        if (tr_snow) then
+           if (trim(snwredist) /= 'none') then
+              write(nu_diag,900) 'avg snow density(kg/m3)= ',prhosavg(1) &
+                                                            ,prhosavg(2)
+           endif
+           if (snwgrain) then
+              write(nu_diag,900) 'avg snow grain radius  = ',prsnwavg(1) &
+                                                            ,prsnwavg(2)
+              write(nu_diag,900) 'mass ice in snow(kg/m2)= ',psmicetot(1) &
+                                                            ,psmicetot(2)
+              write(nu_diag,900) 'mass liq in snow(kg/m2)= ',psmliqtot(1) &
+                                                            ,psmliqtot(2)
+              write(nu_diag,900) 'mass std snow   (kg/m2)= ',psmtot(1) &
+                                                            ,psmtot(2)
+              write(nu_diag,900) 'max  ice+liq    (kg/m2)= ',rhow * hsavg(1) &
+                                                            ,rhow * hsavg(2)
+           endif
+        endif
+
         write(nu_diag,*) '----------ocn----------'
         write(nu_diag,900) 'sst (C)                = ',psst(1),psst(2)
         write(nu_diag,900) 'sss (ppt)              = ',psss(1),psss(2)
@@ -1597,19 +1652,21 @@
            rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
       integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd, &
-           nt_isosno, nt_isoice, nt_sice
+           nt_isosno, nt_isoice, nt_sice, nt_smice, nt_smliq
 
-      logical (kind=log_kind) :: tr_fsd, tr_iso
+      logical (kind=log_kind) :: tr_fsd, tr_iso, tr_snow
 
       type (block) :: &
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(print_state)'
 
-      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso, &
+           tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fsd_out=nt_fsd, &
-           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
+           nt_smice_out=nt_smice, nt_smliq_out=nt_smliq)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
@@ -1639,8 +1696,11 @@
          endif
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
          if (tr_fsd) write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk) ! fsd cat 1
-!         if (tr_iso) write(nu_diag,*) 'isosno',trcrn(i,j,nt_isosno,n,iblk) ! isotopes in snow
-!         if (tr_iso) write(nu_diag,*) 'isoice',trcrn(i,j,nt_isoice,n,iblk) ! isotopes in ice
+! layer 1 diagnostics
+!         if (tr_iso)  write(nu_diag,*) 'isosno',trcrn(i,j,nt_isosno,n,iblk) ! isotopes in snow
+!         if (tr_iso)  write(nu_diag,*) 'isoice',trcrn(i,j,nt_isoice,n,iblk) ! isotopes in ice
+!         if (tr_snow) write(nu_diag,*) 'smice', trcrn(i,j,nt_smice, n,iblk) ! ice mass in snow
+!         if (tr_snow) write(nu_diag,*) 'smliq', trcrn(i,j,nt_smliq, n,iblk) ! liquid mass in snow
          write(nu_diag,*) ' '
 
 ! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal
