@@ -46,7 +46,7 @@
                 init_age, init_FY, init_lvl, init_fsd, &
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
-                count_tracers, init_isotope
+                count_tracers, init_isotope, init_snowtracers
 
       ! namelist parameters needed locally
 
@@ -214,8 +214,9 @@
       logical (kind=log_kind) :: &
          l_print_point, & ! flag to print designated grid point diagnostics
          debug,         & ! if true, print diagnostics
-         dEdd_algae,    & ! from icepack
-         modal_aero       ! from icepack
+         dEdd_algae,    & ! use prognostic chla in dEdd radiation
+         modal_aero,    & ! use modal aerosol optical treatment
+         snwgrain         ! use variable snow radius
 
       character (char_len) :: shortwave
 
@@ -225,12 +226,13 @@
       real (kind=dbl_kind), dimension(ncat) :: &
          fbri                 ! brine height to ice thickness
 
-      real(kind=dbl_kind), allocatable :: &
-         ztrcr_sw(:,:)    !
+      real(kind= dbl_kind), dimension(:,:), allocatable :: &
+         ztrcr_sw,        & ! zaerosols (kg/m^3) and chla (mg/m^3)
+         rsnow              ! snow grain radius tracer (10^-6 m)
 
       logical (kind=log_kind) :: tr_brine, tr_zaero, tr_bgc_n
       integer (kind=int_kind) :: nt_alvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero, &
-         nt_fbri, nt_tsfc, ntrcr, nbtrcr, nbtrcr_sw
+         nt_fbri, nt_tsfc, ntrcr, nbtrcr, nbtrcr_sw, nt_rsnw
       integer (kind=int_kind), dimension(icepack_max_algae) :: &
          nt_bgc_N
       integer (kind=int_kind), dimension(icepack_max_aero) :: &
@@ -243,17 +245,19 @@
       call icepack_query_parameters(shortwave_out=shortwave)
       call icepack_query_parameters(dEdd_algae_out=dEdd_algae)
       call icepack_query_parameters(modal_aero_out=modal_aero)
+      call icepack_query_parameters(snwgrain_out=snwgrain)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_zaero_out=tr_zaero, &
          tr_bgc_n_out=tr_bgc_n)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
          nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, nt_fbri_out=nt_fbri, nt_tsfc_out=nt_tsfc, &
-         nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero)
+         nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_rsnw_out=nt_rsnw)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
       allocate(ztrcr_sw(nbtrcr_sw, ncat))
+      allocate(rsnow(nslyr,ncat))
 
       do iblk=1,nblocks
 
@@ -330,8 +334,14 @@
 
             fbri(:) = c0
             ztrcr_sw(:,:) = c0
+            rsnow   (:,:) = c0
             do n = 1, ncat
-              if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
+               if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
+               if (snwgrain) then
+                  do k = 1, nslyr
+                     rsnow(k,n) = trcrn(i,j,nt_rsnw+k-1,n,iblk)
+                  enddo
+               endif
             enddo
 
             if (tmask(i,j,iblk)) then
@@ -379,6 +389,7 @@
                           albpndn=albpndn(i,j,:,iblk),   apeffn=apeffn(i,j,:,iblk), &
                           snowfracn=snowfracn(i,j,:,iblk),                     &
                           dhsn=dhsn(i,j,:,iblk),         ffracn=ffracn(i,j,:,iblk), &
+                          rsnow=rsnow(:,:), &
                           l_print_point=l_print_point,                         &
                           initonly = .true.)
             endif
@@ -475,6 +486,7 @@
       enddo ! iblk
 
       deallocate(ztrcr_sw)
+      deallocate(rsnow)
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -584,6 +596,29 @@
       ipnd(:,:,:) = c0
         
       end subroutine init_meltponds_topo
+
+!=======================================================================
+
+!  Initialize snow redistribution/metamorphosis tracers (call prior to reading restart data)
+
+      subroutine init_snowtracers(smice, smliq, rhos_cmp, rsnw)
+
+      real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: &
+         smice, smliq, rhos_cmp, rsnw
+      character(len=*),parameter :: subname='(init_snowtracers)'
+
+      real (kind=dbl_kind) :: &
+         rsnw_fall, & ! snow grain radius of new fallen snow  (10^-6 m)
+         rhos         ! snow density (kg/m^3)
+
+      call icepack_query_parameters(rsnw_fall_out=rsnw_fall, rhos_out=rhos)
+
+      rsnw    (:,:,:,:) = rsnw_fall
+      rhos_cmp(:,:,:,:) = rhos
+      smice   (:,:,:,:) = rhos
+      smliq   (:,:,:,:) = c0
+
+      end subroutine init_snowtracers
 
 !=======================================================================
 
@@ -1776,10 +1811,12 @@
 
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
+      logical (kind=log_kind) :: tr_snow
       logical (kind=log_kind) :: tr_iso, tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice
+      integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     &
@@ -1862,7 +1899,7 @@
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
          tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
          tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, &
-         tr_iso_out=tr_iso, &
+         tr_snow_out=tr_snow, tr_iso_out=tr_iso, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
          tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C,   tr_bgc_chl_out=tr_bgc_chl,   &
@@ -1923,6 +1960,21 @@
               ntrcr = ntrcr + 1    ! 
               nt_ipnd = ntrcr      ! refrozen pond ice lid thickness
           endif
+      endif
+
+      nt_smice = 0
+      nt_smliq = 0
+      nt_rhos = 0
+      nt_rsnw = 0
+      if (tr_snow) then
+         nt_smice = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! mass of ice in nslyr snow layers
+         nt_smliq = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! mass of liquid in nslyr snow layers
+         nt_rhos = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! snow density in nslyr layers
+         nt_rsnw = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! snow grain radius in nslyr layers
       endif
 
       nt_fsd = 0
@@ -2212,7 +2264,7 @@
 !tcx, +1 here is the unused tracer, want to get rid of it
       ntrcr = ntrcr + 1
 
-!tcx, reset unusaed tracer index, eventually get rid of it.
+!tcx, reset unused tracer index, eventually get rid of it.
       if (nt_iage  <= 0) nt_iage  = ntrcr
       if (nt_FY    <= 0) nt_FY    = ntrcr
       if (nt_alvl  <= 0) nt_alvl  = ntrcr
@@ -2220,6 +2272,10 @@
       if (nt_apnd  <= 0) nt_apnd  = ntrcr
       if (nt_hpnd  <= 0) nt_hpnd  = ntrcr
       if (nt_ipnd  <= 0) nt_ipnd  = ntrcr
+      if (nt_smice <= 0) nt_smice = ntrcr
+      if (nt_smliq <= 0) nt_smliq = ntrcr
+      if (nt_rhos  <= 0) nt_rhos  = ntrcr
+      if (nt_rsnw  <= 0) nt_rsnw  = ntrcr
       if (nt_fsd   <= 0) nt_fsd   = ntrcr
       if (nt_isosno<= 0) nt_isosno= ntrcr
       if (nt_isoice<= 0) nt_isoice= ntrcr
@@ -2246,6 +2302,7 @@
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
          nt_ipnd_in=nt_ipnd, nt_fsd_in=nt_fsd, nt_aero_in=nt_aero, &
+         nt_smice_in=nt_smice, nt_smliq_in=nt_smliq, nt_rhos_in=nt_rhos, nt_rsnw_in=nt_rsnw, &
          nt_isosno_in=nt_isosno,     nt_isoice_in=nt_isoice,       nt_fbri_in=nt_fbri,      &
          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
          nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &

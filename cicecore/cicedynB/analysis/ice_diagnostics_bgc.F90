@@ -937,19 +937,18 @@
                enddo
                if (aice(i,j,iblk) > c0) &
                   psice_rho(n) = psice_rho(n)/aice(i,j,iblk)
-               if (tr_brine .and. aice(i,j,iblk) > c0) &
+               if (tr_brine .and. aice(i,j,iblk) > c0) then
                   phinS(n) = trcr(i,j,nt_fbri,iblk)*vice(i,j,iblk)/aice(i,j,iblk)
-
-               if (aicen(i,j,1,iblk)> c0) then
-                  if (tr_brine) phinS1(n) = trcrn(i,j,nt_fbri,1,iblk) &
-                                          * vicen(i,j,1,iblk)/aicen(i,j,1,iblk)
+                  phbrn(n) = (c1 - rhosi/rhow)*vice(i,j,iblk)/aice(i,j,iblk) &
+                                 - rhos/rhow  *vsno(i,j,iblk)/aice(i,j,iblk)
+               endif
+               if (tr_brine .and. aicen(i,j,1,iblk)> c0) then
+                  phinS1(n) = trcrn(i,j,nt_fbri,1,iblk) &
+                            * vicen(i,j,1,iblk)/aicen(i,j,1,iblk)
                   pdh_top1(n) = dhbr_top(i,j,1,iblk)
                   pdh_bot1(n) = dhbr_bot(i,j,1,iblk)
                   pdarcy_V1(n) = darcy_V(i,j,1,iblk)
                endif  
-               if (tr_brine .AND. aice(i,j,iblk) > c0) &
-                  phbrn(n) = (c1 - rhosi/rhow)*vice(i,j,iblk)/aice(i,j,iblk) &
-                                 - rhos/rhow  *vsno(i,j,iblk)/aice(i,j,iblk)
                do k = 1, nblyr+1
                   pbTiz(n,k) = c0
                   piDin(n,k) = c0
