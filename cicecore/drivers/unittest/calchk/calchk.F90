@@ -41,7 +41,7 @@
          failflag = 'FAIL'
 
       write(6,*) ' '
-      write(6,*) 'Running CALCHK'
+      write(6,*) 'RunningUnitTest CALCHK'
       write(6,*) ' '
 
       errorflag0   = passflag

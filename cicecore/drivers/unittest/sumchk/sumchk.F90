@@ -107,7 +107,7 @@
          write(6,*) ' '
          write(6,*) '=========================================================='
          write(6,*) ' '
-         write(6,*) 'Running SUMCHK'
+         write(6,*) 'RunningUnitTest SUMCHK'
          write(6,*) ' '
          write(6,*) ' npes         = ',npes
          write(6,*) ' my_task      = ',my_task

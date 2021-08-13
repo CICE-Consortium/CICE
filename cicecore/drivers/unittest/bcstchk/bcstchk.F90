@@ -51,7 +51,7 @@
          write(6,*) ' '
          write(6,*) '=========================================================='
          write(6,*) ' '
-         write(6,*) 'Running BCSTCHK'
+         write(6,*) 'RunningUnitTest BCSTCHK'
          write(6,*) ' '
          write(6,*) ' npes         = ',npes
          write(6,*) ' my_task      = ',my_task

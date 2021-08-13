@@ -4,7 +4,6 @@ smoke          gx3     1x1        debug,diag1,run2day
 smoke          gx3     1x4        debug,diag1,run2day
 smoke          gx3     4x1        debug,diag1,run5day
 restart        gx3     8x2        debug
-smoke          gx1    64x1        qc,medium
 smoke          gx3     8x2        diag24,run1year,medium
 smoke          gx3     7x2        diag1,bigdiag,run1day,diagpt1
 decomp         gx3     4x2x25x29x5  none
