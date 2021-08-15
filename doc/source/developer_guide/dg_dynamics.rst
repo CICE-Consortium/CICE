@@ -6,7 +6,7 @@
 Dynamics
 ============================
 
-The CICE **cicecore/** directory consists of the non icepack source code.  Within that 
+The CICE **cicecore/** directory consists of the non icepack source code.  Within that
 directory there are the following subdirectories
 
 **cicecore/cicedynB/analysis** contains higher level history and diagnostic routines.
@@ -30,28 +30,19 @@ Dynamical Solvers
 --------------------
 
 The dynamics solvers are found in **cicecore/cicedynB/dynamics/**.  A couple of different solvers are
-available including EVP, revised EVP, EAP and VP.  The dynamics solver is specified in namelist with the
-``kdyn`` variable.  ``kdyn=1`` is evp, ``kdyn=2`` is eap, ``kdyn=3`` is VP and revised EVP requires 
-the ``revised_evp`` namelist flag be set to true.
+available including EVP, EAP and VP.  The dynamics solver is specified in namelist with the
+``kdyn`` variable.  ``kdyn=1`` is evp, ``kdyn=2`` is eap, ``kdyn=3`` is VP.
 
-Multiple EVP solvers are supported thru the namelist flag ``kevp_kernel``.  The standard implementation
-and current default is ``kevp_kernel=0``.  In this case, the stress is solved on the regular decomposition
-via subcycling and calls to subroutine ``stress`` and subroutine ``stepu`` with MPI global sums required in each
-subcycling call.  With ``kevp_kernel=2``, the data required to compute the stress is gathered to the root
-MPI process and the stress calculation is performed on the root task without any MPI global sums.  OpenMP
-parallelism is supported in ``kevp_kernel=2``.  The solutions with ``kevp_kernel`` set to 0 or 2 will 
-not be bit-for-bit
-identical but should be the same to roundoff and produce the same climate.  ``kevp_kernel=2`` may perform
-better for some configurations, some machines, and some pe counts.  ``kevp_kernel=2`` is not supported
-with the tripole grid and is still being validated.  Until ``kevp_kernel=2`` is fully validated, it will
-abort if set.  To override the abort, use value 102 for testing.
+Two alternative implementations of EVP are included. The first alternative is the Revised EVP, triggered when the ``revised_evp`` is set to true. The second alternative is the 1d EVP solver triggered when the ``evp_algorithm`` is set to ``shared_mem_1d`` as oppose to the default setting of ``evp_standard_2d``. The solutions with ``evp_algorithm`` set to ``standard_2d`` or ``shared_mem_1d`` will
+not be bit-for-bit identical when compared to each other. The reason for this is floating point round off errors that occur unless strict compiler flags are used. ``evp_algorithm=shared_mem_1d`` is primarily built for OpenMP. If MPI domain splitting is used then the solver will only run on the master processor. ``evp_algorithm=shared_mem_1d`` is not supported
+with the tripole grid.
 
 
 Transport
 -----------------
 
-The transport (advection) methods are found in **cicecore/cicedynB/dynamics/**.  Two methods are supported, 
-upwind and remap.  These are set in namelist via the ``advection`` variable.  
+The transport (advection) methods are found in **cicecore/cicedynB/dynamics/**.  Two methods are supported,
+upwind and remap.  These are set in namelist via the ``advection`` variable.
 Transport can be disabled with the ``ktransport`` namelist variable.
 
 
@@ -90,7 +81,7 @@ Time Manager
 
 Time manager data is module data in **cicecore/shared/ice_calendar.F90**.  Much of the time manager
 data is public and operated on during the model timestepping.  The model timestepping actually takes
-place in the **CICE_RunMod.F90** file which is part of the driver code.  
+place in the **CICE_RunMod.F90** file which is part of the driver code.
 
 The time manager was updated in early 2021.  Additional information about the time manager can be found here, :ref:`timemanagerplus`
 
@@ -100,12 +91,12 @@ Communication
 ------------------
 
 Two low-level communications packages, mpi and serial, are provided as part of CICE.  This software
-provides a middle layer between the model and the underlying libraries.  Only the CICE mpi or 
+provides a middle layer between the model and the underlying libraries.  Only the CICE mpi or
 serial directories are compiled with CICE, not both.
 
-**cicedynB/infrastructure/comm/mpi/** 
+**cicedynB/infrastructure/comm/mpi/**
 is based on MPI and provides various methods to do halo updates, global sums, gather/scatter, broadcasts
-and similar using some fairly generic interfaces to isolate the MPI calls in the code.  
+and similar using some fairly generic interfaces to isolate the MPI calls in the code.
 
 **cicedynB/infrastructure/comm/serial/** support the same interfaces, but operates
 in shared memory mode with no MPI.  The serial library will be used, by default in the CICE scripts,
@@ -124,7 +115,7 @@ case.  This has to be set before CICE is built.
 **cicedynB/infrastructure/io/io_netcdf/** is the
 default for the standalone CICE model, and it supports writing history and restart files in netcdf
 format using standard netcdf calls.  It does this by writing from and reading to the root task and
-gathering and scattering fields from the root task to support model parallelism.  
+gathering and scattering fields from the root task to support model parallelism.
 
 **cicedynB/infrastructure/io/io_binary/** supports files in binary format using a gather/scatter
 approach and reading to and writing from the root task.
@@ -134,4 +125,3 @@ is a parallel io library (https://github.com/NCAR/ParallelIO) that supports read
 binary and netcdf file through various interfaces including netcdf and pnetcdf.  pio is generally
 more parallel in memory even when using serial netcdf than the standard gather/scatter methods,
 and it provides parallel read/write capabilities by optionally linking and using pnetcdf.
-

@@ -48,8 +48,8 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
-          histfreq, days_per_year, use_leap_years, dayyr, &
-          year_init, month_init, day_init
+          histfreq, histfreq_n, days_per_year, use_leap_years, dayyr, &
+          hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info
       use ice_domain_size, only: nx_global, ny_global, max_nstrm, max_blocks
@@ -205,7 +205,6 @@
       ! define coordinate variables
       !-----------------------------------------------------------------
 
-!sgl        status = nf90_def_var(ncid,'time',nf90_float,timid,varid)
         status = nf90_def_var(ncid,'time',nf90_double,timid,varid)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: defining var time')
@@ -215,8 +214,9 @@
                       'ice Error: time long_name')
 
         write(cdate,'(i8.8)') idate0
-        write(title,'(a,a,a,a,a,a,a,a)') 'days since ', &
-              cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' 00:00:00'
+        write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+              cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+              hh_init,':',mm_init,':',ss_init
         status = nf90_put_att(ncid,varid,'units',title)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: time units')
@@ -258,8 +258,9 @@
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: time_bounds long_name')
           write(cdate,'(i8.8)') idate0
-          write(title,'(a,a,a,a,a,a,a,a)') 'days since ', &
-                cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' 00:00:00'
+          write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+                cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+                hh_init,':',mm_init,':',ss_init
           status = nf90_put_att(ncid,varid,'units',title)
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: time_bounds units')
@@ -575,7 +576,8 @@
               endif
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg         &
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg                              &
                 .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
                 .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
@@ -640,7 +642,8 @@
                  'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
             else
                status = nf90_put_att(ncid,varid,'time_rep','averaged')
@@ -881,7 +884,8 @@
                  'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
             else
                status = nf90_put_att(ncid,varid,'time_rep','averaged')
@@ -942,7 +946,8 @@
                  'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
             else
                status = nf90_put_att(ncid,varid,'time_rep','averaged')
@@ -1003,7 +1008,8 @@
                  'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
             else
                status = nf90_put_att(ncid,varid,'time_rep','averaged')

@@ -303,7 +303,7 @@
 
       integer (kind=int_kind) :: &
          i, j, n, k, & ! loop indices
-         nt_fsd        ! ! fsd tracer index
+         nt_fsd        ! fsd tracer index
       logical (kind=log_kind) :: tr_fsd
       real (kind=dbl_kind) :: floeshape, puny
 

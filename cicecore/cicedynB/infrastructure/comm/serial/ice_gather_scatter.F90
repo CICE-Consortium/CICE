@@ -373,6 +373,7 @@
    else
       special_value = spval_dbl
    endif
+   ARRAY_G = special_value
 
    nx = nx_global + 2*nghost
    ny = ny_global + 2*nghost
@@ -477,16 +478,7 @@
             endif
          endif
 
-      else !*** fill land blocks with special values
-
-         do j=this_block%jlo,this_block%jhi
-         do i=this_block%ilo,this_block%ihi
-            ARRAY_G(this_block%i_glob(i)+nghost, &
-                    this_block%j_glob(j)+nghost) = special_value
-         end do
-         end do
-
-      endif
+      endif  ! src_dist%blockLocation
 
    end do
 
@@ -537,8 +529,9 @@
    if (present(spc_val)) then
       special_value = spc_val
    else
-      special_value = 0 !MHRI:  0,1,999,-999 ??
+      special_value = -9999
    endif
+   ARRAY_G = special_value
 
    nx = nx_global + 2*nghost
    ny = ny_global + 2*nghost
@@ -643,16 +636,7 @@
             endif
          endif
 
-      else !*** fill land blocks with special values
-
-         do j=this_block%jlo,this_block%jhi
-         do i=this_block%ilo,this_block%ihi
-            ARRAY_G(this_block%i_glob(i)+nghost, &
-                    this_block%j_glob(j)+nghost) = special_value
-         end do
-         end do
-
-      endif
+      endif  ! src_dist%blockLocation
 
    end do
 
@@ -703,8 +687,9 @@
    if (present(spc_val)) then
       special_value = spc_val
    else
-      special_value = .false. !MHRI:  true/false
+      special_value = .false.
    endif
+   ARRAY_G = special_value
 
    nx = nx_global + 2*nghost
    ny = ny_global + 2*nghost
@@ -809,16 +794,7 @@
             endif
          endif
 
-      else !*** fill land blocks with special values
-
-         do j=this_block%jlo,this_block%jhi
-         do i=this_block%ilo,this_block%ihi
-            ARRAY_G(this_block%i_glob(i)+nghost, &
-                    this_block%j_glob(j)+nghost) = special_value
-         end do
-         end do
-
-      endif
+      endif  ! src_dist%blockLocation
 
    end do
 

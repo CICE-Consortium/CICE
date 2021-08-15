@@ -441,7 +441,7 @@
 !----------------------------------------------------------------------
 
    if (distribution_wght == 'latitude') then
-       flat = NINT(abs(ULATG*rad_to_deg), int_kind)  ! linear function
+       flat = max(NINT(abs(ULATG*rad_to_deg), int_kind),1)  ! linear function
    else
        flat = 1
    endif

@@ -8,7 +8,7 @@ CFLAGS     := -c
 
 FIXEDFLAGS := -ffixed-line-length-132
 FREEFLAGS  := -ffree-form
-FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none -fallow-argument-mismatch
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
