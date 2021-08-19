@@ -47,6 +47,7 @@
       public :: update_date          ! input date and delta date, compute new date
       public :: calendar_date2time   ! convert date to time relative to init date
       public :: calendar_time2date   ! convert time to date relative to init date
+      public :: calendar_sec2hms     ! convert seconds to hour, minute, seconds
       public :: compute_calendar_data ! compute info about calendar for a given year
 
       ! private functions
@@ -61,8 +62,10 @@
          ice_calendar_360day    = '360day'        ! 360 day calendar with 30 days per month
 
       integer (kind=int_kind), public, parameter :: &
-         months_per_year = 12, &     ! months per year
-         hours_per_day   = 24        ! hours per day
+         months_per_year    = 12, &     ! months per year
+         hours_per_day      = 24, &     ! hours per day
+         minutes_per_hour   = 60, &     ! minutes per hour
+         seconds_per_minute = 60        ! seconds per minute
 
       integer (kind=int_kind), public :: &
          seconds_per_day       , & ! seconds per day
@@ -87,6 +90,9 @@
          day_init, & ! initial day of month
          sec_init , & ! initial seconds
          ! other stuff
+         hh_init  , & ! initial hour derived from sec_init
+         mm_init  , & ! initial minute derived from sec_init
+         ss_init  , & ! initial second derived from sec_init
          idate    , & ! date (yyyymmdd)
          idate0   , & ! initial date (yyyymmdd), associated with year_init, month_init, day_init
          dayyr    , & ! number of days in the current year
@@ -189,6 +195,7 @@
       mmonth=month_init ! month
       mday=day_init     ! day of the month
       msec=sec_init     ! seconds into date
+      call calendar_sec2hms(sec_init,hh_init,mm_init,ss_init)  ! initialize hh,mm,ss _init
       hour=0            ! computed in calendar, but needs some reasonable initial value
       istep1 = istep0   ! number of steps at current timestep
                         ! real (dumped) or imagined (use to set calendar)
@@ -947,6 +954,28 @@
       asec = tsec
 
       end subroutine calendar_time2date
+
+!=======================================================================
+! Compute hours, minutes, seconds from seconds
+
+      subroutine calendar_sec2hms(seconds, hh, mm, ss)
+
+      integer(kind=int_kind), intent(in)  :: &
+         seconds                      ! calendar seconds in day
+      integer(kind=int_kind), intent(out) :: &
+         hh, mm, ss                   ! output hours, minutes, seconds
+
+      character(len=*),parameter :: subname='(calendar_sec2hms)'
+
+      if (seconds >= seconds_per_day) then
+         write(nu_diag,*) trim(subname),' ERROR seconds >= seconds_per_day, ',seconds,seconds_per_day
+         call abort_ice(subname//'ERROR: in seconds')
+      endif
+      hh = seconds/(seconds_per_hour)
+      mm = (seconds - hh*seconds_per_hour)/seconds_per_minute
+      ss = (seconds - hh*seconds_per_hour - mm*seconds_per_minute)
+
+      end subroutine calendar_sec2hms
 
 !=======================================================================
 ! Compute relative elapsed years, months, days, hours from base time

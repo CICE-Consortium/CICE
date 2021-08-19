@@ -57,6 +57,15 @@ def gen_filenames(base_dir, test_dir):
               "   # of files: {}".format(len(files_b)))
         sys.exit(-1)
 
+    if len(files_a) < 1825:
+        logger.error("Number of output files too small, expecting at least 1825." + \
+              " Exiting...\n" + \
+              "Baseline directory: {}\n".format(path_a) + \
+              "   # of files: {}\n".format(len(files_a)) + \
+              "Test directory: {}\n".format(path_b) + \
+              "   # of files: {}".format(len(files_b)))
+        sys.exit(-1)
+
     logger.info("Number of files: %d", len(files_a))
 
     return path_a, path_b, files_a, files_b

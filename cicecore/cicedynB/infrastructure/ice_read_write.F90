@@ -288,7 +288,7 @@
                read(nu) ((work_g1(i,j),i=1,nx_global),j=1,ny_global)
             endif
          else
-            write(nu_diag,*) ' ERROR: reading unknown atype ',atype
+            write(nu_diag,*) subname,' ERROR: reading unknown atype ',atype
          endif
       endif                     ! my_task = master_task
 
@@ -307,7 +307,7 @@
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
          asum = sum(work_g1, mask = work_g1 /= spval_dbl)
-         write(nu_diag,*) ' read_global ',nu, nrec, amin, amax, asum
+         write(nu_diag,*) subname,' read_global ',nu, nrec, amin, amax, asum
       endif
 
     !-------------------------------------------------------------------
@@ -436,7 +436,7 @@
                                                          k=1,nblyr+2)
             endif
          else
-            write(nu_diag,*) ' ERROR: reading unknown atype ',atype
+            write(nu_diag,*) subname,' ERROR: reading unknown atype ',atype
          endif
       endif                     ! my_task = master_task
 
@@ -455,7 +455,7 @@
          amin = minval(work_g4)
          amax = maxval(work_g4, mask = work_g4 /= spval_dbl)
          asum = sum   (work_g4, mask = work_g4 /= spval_dbl)
-         write(nu_diag,*) ' read_global ',nu, nrec, amin, amax, asum
+         write(nu_diag,*) subname,' read_global ',nu, nrec, amin, amax, asum
       endif
 
     !-------------------------------------------------------------------
@@ -569,7 +569,7 @@
                read(nu) ((work_g(i,j),i=1,nx_global),j=1,ny_global)
             endif
          else
-            write(nu_diag,*) ' ERROR: reading unknown atype ',atype
+            write(nu_diag,*) subname,' ERROR: reading unknown atype ',atype
          endif
       endif                     ! my_task = master_task
 
@@ -585,7 +585,7 @@
          amin = minval(work_g)
          amax = maxval(work_g, mask = work_g /= spval_dbl)
          asum = sum   (work_g, mask = work_g /= spval_dbl)
-         write(nu_diag,*) ' read_global ',nu, nrec, amin, amax,asum
+         write(nu_diag,*) subname,' read_global ',nu, nrec, amin, amax,asum
       endif
 
       end subroutine ice_read_global
@@ -689,7 +689,7 @@
                read(nu) ((work_g1(i,j),i=1,nx),j=1,ny)
             endif
          else
-            write(nu_diag,*) ' ERROR: reading unknown atype ',atype
+            write(nu_diag,*) subname,' ERROR: reading unknown atype ',atype
          endif
       endif                     ! my_task = master_task
 
@@ -708,7 +708,7 @@
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
          asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
-         write(nu_diag,*) ' read_global ',nu, nrec, amin, amax, asum
+         write(nu_diag,*) subname,' read_global ',nu, nrec, amin, amax, asum
       endif
 
     !-------------------------------------------------------------------
@@ -803,7 +803,7 @@
          elseif (atype == 'ruf8') then
             write(nu) ((work_g1(i,j),i=1,nx_global),j=1,ny_global)
          else
-            write(nu_diag,*) ' ERROR: writing unknown atype ',atype
+            write(nu_diag,*) subname,' ERROR: writing unknown atype ',atype
          endif
 
     !-------------------------------------------------------------------
@@ -813,7 +813,7 @@
             amin = minval(work_g1)
             amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
             asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
-            write(nu_diag,*) ' write_global ', nu, nrec, amin, amax, asum
+            write(nu_diag,*) subname,' write_global ', nu, nrec, amin, amax, asum
          endif
 
       endif                     ! my_task = master_task
@@ -908,7 +908,7 @@
             write(nu)(((work_g4(i,j,k),i=1,nx_global),j=1,ny_global), &
                                        k=1,nblyr+2)
          else
-            write(nu_diag,*) ' ERROR: writing unknown atype ',atype
+            write(nu_diag,*) subname,' ERROR: writing unknown atype ',atype
          endif
 
     !-------------------------------------------------------------------
@@ -918,7 +918,7 @@
             amin = minval(work_g4)
             amax = maxval(work_g4, mask = work_g4 /= spval_dbl)
             asum = sum   (work_g4, mask = work_g4 /= spval_dbl)
-            write(nu_diag,*) ' write_global ', nu, nrec, amin, amax, asum
+            write(nu_diag,*) subname,' write_global ', nu, nrec, amin, amax, asum
          endif
 
       endif                     ! my_task = master_task
@@ -1014,7 +1014,7 @@
          elseif (atype == 'ruf8') then
             write(nu) ((work_g1(i,j),i=1,nx),j=1,ny)
          else
-            write(nu_diag,*) ' ERROR: writing unknown atype ',atype
+            write(nu_diag,*) subname,' ERROR: writing unknown atype ',atype
          endif
 
     !-------------------------------------------------------------------
@@ -1024,7 +1024,7 @@
             amin = minval(work_g1)
             amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
             asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
-            write(nu_diag,*) ' write_global ', nu, nrec, amin, amax, asum
+            write(nu_diag,*) subname,' write_global ', nu, nrec, amin, amax, asum
          endif
 
       endif                     ! my_task = master_task
@@ -1058,14 +1058,15 @@
 
           status = nf90_open(filename, NF90_NOWRITE, fid)
           if (status /= nf90_noerr) then
-             call abort_ice (subname//'ERROR: Cannot open '//trim(filename) )
+             call abort_ice(subname//' ERROR: Cannot open '//trim(filename), &
+                file=__FILE__, line=__LINE__)
           endif
 
       endif                      ! my_task = master_task
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(filename), &
-          file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(filename), &
+         file=__FILE__, line=__LINE__)
       fid = -999 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_open_nc
@@ -1113,25 +1114,28 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
-         status             ! status output from netcdf routines
-!        ndim, nvar,      & ! sizes of netcdf file
-!        id,              & ! dimension index
-!        dimlen             ! dimension size
+         status         , & ! status output from netcdf routines
+         ndims          , & ! number of dimensions
+         dimlen             ! dimension size
+
+      integer (kind=int_kind), dimension(10) :: & 
+         dimids             ! generic size dimids
 
       real (kind=dbl_kind) :: &
          missingvalue, &
          amin, amax, asum   ! min, max values and sum of input array
-
-!     character (char_len) :: &
-!        dimname            ! dimension name
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
 
       integer (kind=int_kind) :: nx, ny
 
+      integer (kind=int_kind) :: lnrec       ! local value of nrec
+
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
+
+      lnrec = nrec
 
       if (orca_halogrid .and. .not. present(restart_ext)) then
          if (my_task == master_task) then
@@ -1167,9 +1171,31 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
- 
          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+
+        !-------------------------------------------------------------
+        ! Check nrec axis size
+        !-------------------------------------------------------------
+
+         status = nf90_inquire_variable(fid, varid, ndims=ndims, dimids=dimids)
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: inquire variable dimids '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+         if (ndims > 2) then
+            status = nf90_inquire_dimension(fid, dimids(3), len=dimlen)
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: inquire dimension size 3 '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
+            if (lnrec > dimlen) then
+               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
 
        !--------------------------------------------------------------
@@ -1178,13 +1204,21 @@
 
          if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
-               start=(/1,1,nrec/), & 
-               count=(/nx_global+2,ny_global+1,1/) )
+               start=(/1,1,lnrec/), & 
+               count=(/nx_global+2,ny_global+1,1/))
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
             work_g1 = work_g2(2:nx_global+1,1:ny_global)
          else
             status = nf90_get_var( fid, varid, work_g1, &
-                  start=(/1,1,nrec/), & 
-                  count=(/nx,ny,1/) )
+                  start=(/1,1,lnrec/), & 
+                  count=(/nx,ny,1/))
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
 
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
@@ -1195,19 +1229,19 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-           write(nu_diag,*) & 
-             'ice_read_nc_xy, fid= ',fid, ', nrec = ',nrec, & 
+           write(nu_diag,'(2a,i8,a,i8,2a)') & 
+             subname,' fid= ',fid, ', lnrec = ',lnrec, & 
              ', varname = ',trim(varname)
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+!          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
 !          do id=1,ndim
 !            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+!            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= missingvalue)
          asum = sum   (work_g1, mask = work_g1 /= missingvalue)
-         write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(varname)
+         write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
       endif
 
     !-------------------------------------------------------------------
@@ -1237,8 +1271,8 @@
       if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
 #endif
       end subroutine ice_read_nc_xy
 
@@ -1285,11 +1319,13 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          n,               & ! ncat index
-         varid         , & ! variable id
-         status            ! status output from netcdf routines
-!        ndim, nvar,      & ! sizes of netcdf file
-!        id,              & ! dimension index
-!        dimlen             ! size of dimension
+         varid          , & ! variable id
+         status         , & ! status output from netcdf routines
+         ndims          , & ! number of dimensions
+         dimlen             ! dimension size
+
+      integer (kind=int_kind), dimension(10) :: & 
+         dimids             ! generic size dimids
 
       real (kind=dbl_kind) :: &
          missingvalue,    & ! missing value
@@ -1303,8 +1339,12 @@
 
       integer (kind=int_kind) :: nx, ny
 
+      integer (kind=int_kind) :: lnrec       ! local value of nrec
+
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g2
+
+      lnrec = nrec
 
       if (orca_halogrid .and. .not. present(restart_ext)) then
          if (my_task == master_task) then
@@ -1338,9 +1378,31 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
- 
          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+
+        !-------------------------------------------------------------
+        ! Check nrec axis size
+        !-------------------------------------------------------------
+
+         status = nf90_inquire_variable(fid, varid, ndims=ndims, dimids=dimids)
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: inquire variable dimids '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+         if (ndims > 3) then
+            status = nf90_inquire_dimension(fid, dimids(4), len=dimlen)
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: inquire dimension size 4 '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
+            if (lnrec > dimlen) then
+               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
 
        !--------------------------------------------------------------
@@ -1349,13 +1411,21 @@
 
          if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
-               start=(/1,1,1,nrec/), & 
-               count=(/nx_global+2,ny_global+1,ncat,1/) )
+               start=(/1,1,1,lnrec/), & 
+               count=(/nx_global+2,ny_global+1,ncat,1/))
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
             work_g1 = work_g2(2:nx_global+1,1:ny_global,:)
          else
             status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,1,nrec/), & 
-               count=(/nx,ny,ncat,1/) )
+               start=(/1,1,1,lnrec/), & 
+               count=(/nx,ny,ncat,1/))
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
 
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
@@ -1366,20 +1436,20 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-           write(nu_diag,*) & 
-             'ice_read_nc_xyz, fid= ',fid, ', nrec = ',nrec, & 
+           write(nu_diag,'(2a,i8,a,i8,2a)') & 
+              subname,' fid= ',fid, ', lnrec = ',lnrec, & 
              ', varname = ',trim(varname)
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+!          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
 !          do id=1,ndim
 !            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+!            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          do n=1,ncat
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
             asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
-            write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(varname)
+            write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
          enddo
       endif
 
@@ -1413,8 +1483,8 @@
       if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_xyz
@@ -1468,7 +1538,11 @@
          ndim, nvar,      & ! sizes of netcdf file
          id,              & ! dimension index
          n,               & ! ncat index
-         dimlen             ! size of dimension
+         ndims,           & ! number of dimensions
+         dimlen             ! dimension size
+
+      integer (kind=int_kind), dimension(10) :: & 
+         dimids             ! generic size dimids
 
       real (kind=dbl_kind) :: &
          missingvalue,    & ! missing value
@@ -1482,11 +1556,15 @@
 
       integer (kind=int_kind) :: nx, ny
 
+      integer (kind=int_kind) :: lnrec       ! local value of nrec
+
       character(len=*), parameter :: subname = '(ice_read_nc_xyf)'
 
 #ifdef USE_NETCDF
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g2
+
+      lnrec = nrec
 
       if (orca_halogrid .and. .not. present(restart_ext)) then
          if (my_task == master_task) then
@@ -1520,10 +1598,31 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
- 
          if (status /= nf90_noerr) then
-           call abort_ice ( & 
-               'ice_read_nc_xyf: Cannot find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+
+        !-------------------------------------------------------------
+        ! Check nrec axis size
+        !-------------------------------------------------------------
+
+         status = nf90_inquire_variable(fid, varid, ndims=ndims, dimids=dimids)
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: inquire variable dimids '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+         if (ndims > 3) then
+            status = nf90_inquire_dimension(fid, dimids(4), len=dimlen)
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: inquire dimension size 4 '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
+            if (lnrec > dimlen) then
+               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
 
        !--------------------------------------------------------------
@@ -1532,13 +1631,21 @@
 
          if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
-               start=(/1,1,1,nrec/), & 
-               count=(/nx_global+2,ny_global+1,nfreq,1/) )
+               start=(/1,1,1,lnrec/), & 
+               count=(/nx_global+2,ny_global+1,nfreq,1/))
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
             work_g1 = work_g2(2:nx_global+1,1:ny_global,:)
          else
             status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,1,nrec/), & 
-               count=(/nx,ny,nfreq,1/) )
+               start=(/1,1,1,lnrec/), & 
+               count=(/nx,ny,nfreq,1/))
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
 
          status = nf90_get_att(fid, varid, "missing_value", missingvalue)
@@ -1549,21 +1656,21 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-         write(nu_diag,*) &
-           'ice_read_nc_xyf, fid= ',fid, ', nrec = ',nrec, &
+         write(nu_diag,'(2a,i8,a,i8,2a)') &
+            subname,' fid= ',fid, ', lnrec = ',lnrec, &
            ', varname = ',trim(varname)
          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-         write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+         write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
          do id=1,ndim
             status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
          enddo
-         write(nu_diag,*) 'missingvalue= ',missingvalue
+         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          do n = 1, nfreq
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
             asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
-            write(nu_diag,*) ' min, max, sum =', amin, amax, asum
+            write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum
          enddo
       endif
 
@@ -1600,8 +1707,8 @@
       if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
 
@@ -1643,24 +1750,54 @@
          status,          & ! status output from netcdf routines
          ndim, nvar,      & ! sizes of netcdf file
          id,              & ! dimension index
-         dimlen             ! size of dimension
+         ndims,           & ! number of dimensions
+         dimlen             ! dimension size
+
+      integer (kind=int_kind), dimension(10) :: & 
+         dimids             ! generic size dimids
 
       real (kind=dbl_kind), dimension(1) :: &
          workg              ! temporary work variable
 
+      integer (kind=int_kind) :: lnrec       ! local value of nrec
+
       character (char_len) :: &
          dimname            ! dimension name
 
-     if (my_task == master_task) then
+      lnrec = nrec
+
+      if (my_task == master_task) then
 
         !-------------------------------------------------------------
         ! Find out ID of required variable
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
- 
          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+
+        !-------------------------------------------------------------
+        ! Check nrec axis size
+        !-------------------------------------------------------------
+
+         status = nf90_inquire_variable(fid, varid, ndims=ndims, dimids=dimids)
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: inquire variable dimids '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+         if (ndims > 0) then
+            status = nf90_inquire_dimension(fid, dimids(1), len=dimlen)
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: inquire dimension size 1 '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
+            if (lnrec > dimlen) then
+               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
 
        !--------------------------------------------------------------
@@ -1668,11 +1805,11 @@
        !--------------------------------------------------------------
 
          status = nf90_get_var(fid, varid, workg, & 
-               start= (/ nrec /), & 
-               count=(/ 1 /) )
-
-          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: Cannot get variable '//trim(varname) )
+               start= (/ lnrec /), & 
+               count=(/ 1 /))
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
          endif
       endif                     ! my_task = master_task
 
@@ -1681,22 +1818,22 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-          write(nu_diag,*) & 
-            'ice_read_nc_point, fid= ',fid, ', nrec = ',nrec, & 
+          write(nu_diag,'(2a,i8,a,i8,2a)') & 
+             subname,' fid= ',fid, ', lnrec = ',lnrec, & 
             ', varname = ',trim(varname)
           status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
           do id=1,ndim
             status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
          enddo
       endif
 
       work = workg(1) 
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_point
@@ -2010,15 +2147,24 @@
          status,          & ! status output from netcdf routines
          ndim, nvar,      & ! sizes of netcdf file
          id,              & ! dimension index
-         dimlen             ! size of dimension
+         ndims,           & ! number of dimensions
+         dimlen             ! dimension size
+
+      integer (kind=int_kind), dimension(10) :: & 
+         dimids             ! generic size dimids
 
       character (char_len) :: &
-         dimname            ! dimension name
+         dimname            ! dimension name            
+
+      integer (kind=int_kind) :: lnrec       ! local value of nrec
+
 #endif
 
       character(len=*), parameter :: subname = '(ice_read_nc_z)'
 
 #ifdef USE_NETCDF
+
+      lnrec = nrec
 
       allocate(work_z(nilyr))
 
@@ -2029,9 +2175,31 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
- 
          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+
+        !-------------------------------------------------------------
+        ! Check nrec axis size
+        !-------------------------------------------------------------
+
+         status = nf90_inquire_variable(fid, varid, ndims=ndims, dimids=dimids)
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: inquire variable dimids '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+         if (ndims > 1) then
+            status = nf90_inquire_dimension(fid, dimids(2), len=dimlen)
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: inquire dimension size 2 '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
+            if (lnrec > dimlen) then
+               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
 
        !--------------------------------------------------------------
@@ -2039,9 +2207,12 @@
        !--------------------------------------------------------------
 
          status = nf90_get_var( fid, varid, work_z, &
-               start=(/1,nrec/), & 
-               count=(/nilyr,1/) )
-
+               start=(/1,lnrec/), & 
+               count=(/nilyr,1/))
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
       endif                     ! my_task = master_task
 
     !-------------------------------------------------------------------
@@ -2049,14 +2220,14 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-          write(nu_diag,*) & 
-            'ice_read_nc_z, fid= ',fid, ', nrec = ',nrec, & 
+          write(nu_diag,'(2a,i8,a,i8,2a)') & 
+             subname,' fid= ',fid, ', lnrec = ',lnrec, & 
             ', varname = ',trim(varname)
           status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
           do id=1,ndim
             status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
          enddo
       endif
 
@@ -2064,8 +2235,8 @@
       deallocate(work_z)
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
       end subroutine ice_read_nc_z
@@ -2100,7 +2271,7 @@
 
       ! local variables
 
-      character(len=*), parameter :: subname = '(ice_read_nc_xy)'
+      character(len=*), parameter :: subname = '(ice_write_nc_xy)'
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
@@ -2160,7 +2331,7 @@
 
          status = nf90_put_var( fid, varid, work_g1, &
                start=(/1,1,nrec/), & 
-               count=(/nx,ny,1/) )
+               count=(/nx,ny,1/))
 
       endif                     ! my_task = master_task
 
@@ -2170,25 +2341,25 @@
 
       if (my_task==master_task .and. diag) then
 !          write(nu_diag,*) & 
-!            'ice_write_nc_xy, fid= ',fid, ', nrec = ',nrec, & 
+!             subname,' fid= ',fid, ', nrec = ',nrec, & 
 !            ', varid = ',varid
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+!          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
 !          do id=1,ndim
 !            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+!            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
          asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
-         write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(lvarname)
+         write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(lvarname)
       endif
 
       deallocate(work_g1)
       
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_nc_xy
@@ -2223,7 +2394,7 @@
 
       ! local variables
 
-      character(len=*), parameter :: subname = '(ice_read_nc_xyz)'
+      character(len=*), parameter :: subname = '(ice_write_nc_xyz)'
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
@@ -2290,7 +2461,7 @@
 
          status = nf90_put_var( fid, varid, work_g1, &
                start=(/1,1,1,nrec/), & 
-               count=(/nx,ny,ncat,1/) )
+               count=(/nx,ny,ncat,1/))
 
       endif                     ! my_task = master_task
 
@@ -2300,13 +2471,13 @@
 
       if (my_task==master_task .and. diag) then
 !          write(nu_diag,*) & 
-!            'ice_write_nc_xyz, fid= ',fid, ', nrec = ',nrec, & 
+!             subname,' fid= ',fid, ', nrec = ',nrec, & 
 !            ', varid = ',varid
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+!          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
 !          do id=1,ndim
 !            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+!            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          amin =  10000._dbl_kind
          amax = -10000._dbl_kind
@@ -2314,15 +2485,15 @@
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= spval_dbl)
             asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= spval_dbl)
-            write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(lvarname)
+            write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(lvarname)
          enddo
       endif
 
       deallocate(work_g1)
       
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_nc_xyz
@@ -2391,9 +2562,9 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
-
          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
          endif
 
        !--------------------------------------------------------------
@@ -2403,12 +2574,20 @@
          if (orca_halogrid) then
             status = nf90_get_var( fid, varid, work_g3, &
                   start=(/1,1,nrec/), &
-                  count=(/nx_global+2,ny_global+1,1/) )
+                  count=(/nx_global+2,ny_global+1,1/))
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
             work_g=work_g3(2:nx_global+1,1:ny_global)
          else
             status = nf90_get_var( fid, varid, work_g, &
                   start=(/1,1,nrec/), & 
-                  count=(/nx_global,ny_global,1/) )
+                  count=(/nx_global,ny_global,1/))
+            if (status /= nf90_noerr) then
+               call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+                  file=__FILE__, line=__LINE__)
+            endif
          endif
       endif                     ! my_task = master_task
 
@@ -2418,25 +2597,25 @@
 
       if (my_task == master_task .and. diag) then
 !          write(nu_diag,*) & 
-!            'ice_read_global_nc, fid= ',fid, ', nrec = ',nrec, & 
+!             subname,' fid= ',fid, ', nrec = ',nrec, & 
 !            ', varname = ',trim(varname)
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+!          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
 !          do id=1,ndim
 !            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+!            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          amin = minval(work_g)
          amax = maxval(work_g, mask = work_g /= spval_dbl)
          asum = sum   (work_g, mask = work_g /= spval_dbl)
-         write(nu_diag,*) 'min, max, sum = ', amin, amax, asum, trim(varname)
+         write(nu_diag,*) subname,' min, max, sum = ', amin, amax, asum, trim(varname)
       endif
 
       if (orca_halogrid) deallocate(work_g3)
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
       work_g = c0 ! to satisfy intent(out) attribute
 #endif
 
@@ -2464,8 +2643,8 @@
          status = nf90_close(fid)
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_close_nc
@@ -2553,9 +2732,9 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
- 
          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
          endif
 
        !--------------------------------------------------------------
@@ -2564,7 +2743,11 @@
 
          status = nf90_get_var( fid, varid, work_g1, &
                start=(/1,1,nzlev,nrec/), & 
-               count=(/nx,ny,1,1/) )
+               count=(/nx,ny,1,1/))
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
 
       endif                     ! my_task = master_task
 
@@ -2576,7 +2759,7 @@
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
          asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
-         write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(varname)
+         write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
       endif
 
     !-------------------------------------------------------------------
@@ -2601,8 +2784,8 @@
       deallocate(work_g1)
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
 
@@ -2654,9 +2837,9 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
-
          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
          endif
 
        !--------------------------------------------------------------
@@ -2665,7 +2848,12 @@
 
          status = nf90_get_var( fid, varid, work_g, &
                start=(/1/), &
-               count=(/nrec/) )
+               count=(/nrec/))
+         if (status /= nf90_noerr) then
+            call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
+         endif
+
       endif                     ! my_task = master_task
 
       !-------------------------------------------------------------------
@@ -2675,12 +2863,12 @@
       if (my_task == master_task .and. diag) then
          amin = minval(work_g)
          amax = maxval(work_g)
-         write(nu_diag,*) 'min, max, nrec = ', amin, amax, nrec
+         write(nu_diag,*) subname,' min, max, nrec = ', amin, amax, nrec
       endif
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
       work_g = c0 ! to satisfy intent(out) attribute
 #endif
 
@@ -2711,22 +2899,25 @@
       if (my_task ==  master_task) then
          status=nf90_inquire(fid, nDimensions = nDims)
          if (status /= nf90_noerr) then
-           call abort_ice (subname//'ERROR: inquire nDimensions' )
+            call abort_ice(subname//' ERROR: inquire nDimensions', &
+               file=__FILE__, line=__LINE__ )
          endif
          do i=1,nDims
             status = nf90_inquire_dimension(fid,i,name=cvar,len=recsize)
             if (status /= nf90_noerr) then
-              call abort_ice (subname//'ERROR: inquire len for variable '//trim(cvar) )
+               call abort_ice(subname//' ERROR: inquire len for variable '//trim(cvar), &
+                  file=__FILE__, line=__LINE__)
             endif
             if (trim(cvar) == trim(varname)) exit
          enddo
          if (trim(cvar) .ne. trim(varname)) then
-            call abort_ice (subname//'ERROR: Did not find variable '//trim(varname) )
+            call abort_ice(subname//' ERROR: Did not find variable '//trim(varname), &
+               file=__FILE__, line=__LINE__)
          endif
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+         file=__FILE__, line=__LINE__)
       recsize = 0 ! to satisfy intent(out) attribute
 #endif
 

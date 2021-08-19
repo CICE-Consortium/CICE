@@ -1897,13 +1897,13 @@
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
          write(nu_diag,1031) ' histfreq_base    = ', trim(histfreq_base)
          write(nu_diag,1011) ' hist_avg         = ', hist_avg
-         if (.not. hist_avg) write(nu_diag,1031) ' History data will be snapshots'
+         if (.not. hist_avg) write(nu_diag,1039) ' History data will be snapshots'
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision
          write(nu_diag,1031) ' history_format   = ', trim(history_format)
          if (write_ic) then
-            write(nu_diag,1031) ' Initial condition will be written in ', &
+            write(nu_diag,1039) ' Initial condition will be written in ', &
                                trim(incond_dir)
          endif
          write(nu_diag,1031) ' dumpfreq         = ', trim(dumpfreq)
@@ -2075,6 +2075,7 @@
  1030    format (a20,a14,1x,a)    ! character
  1031    format (a20,1x,a,a)
  1033    format (a20,1x,6a6)
+ 1039    format (a,1x,a,1x,a,1x,a)
 
       end subroutine input_data
 

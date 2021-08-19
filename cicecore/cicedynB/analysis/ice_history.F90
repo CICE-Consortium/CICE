@@ -1768,6 +1768,7 @@
            nstrm                ! nstreams (1 if writing initial condition)
 
       real (kind=dbl_kind) :: &
+           timedbl          , & ! temporary dbl for time bounds
            ravgct           , & ! 1/avgct
            ravgctz              ! 1/avgct
 
@@ -1824,7 +1825,7 @@
       n4Dfcum = n4Dscum + num_avail_hist_fields_4Df ! should equal num_avail_hist_fields_tot
 
       do ns = 1,nstreams
-         if (.not. hist_avg .or. histfreq(ns) == '1') then  ! write snapshots
+         if (.not. hist_avg) then  ! write snapshots
            do n = 1,n2D
               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
                   a2D(:,:,n,:) = c0
@@ -1872,11 +1873,10 @@
            avgct(ns) = c1
          else                      ! write averages over time histfreq
            avgct(ns) = avgct(ns) + c1
-!           if (avgct(ns) == c1) time_beg(ns) = (time-dt)/int(secday)
-           if (avgct(ns) == c1) then
-              time_beg(ns) = (timesecs-dt)/int(secday)
-              time_beg(ns) = real(time_beg(ns),kind=real_kind)
-           endif
+         endif
+         if (avgct(ns) == c1) then
+            timedbl = (timesecs-dt)/(secday)
+            time_beg(ns) = real(timedbl,kind=real_kind)
          endif
       enddo
 
@@ -4010,8 +4010,8 @@
         enddo                   ! iblk
         !$OMP END PARALLEL DO
 
-        time_end(ns) = timesecs/int(secday)
-        time_end(ns) = real(time_end(ns),kind=real_kind)
+        timedbl = timesecs/secday
+        time_end(ns) = real(timedbl,kind=real_kind)
 
       !---------------------------------------------------------------
       ! write file

@@ -58,8 +58,8 @@ if (${filearg} == 1) then
         cat ${base_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e istep1: -e = | grep -iv "min, max, sum" >&! ${base_out}
         cat ${test_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e istep1: -e = | grep -iv "min, max, sum" >&! ${test_out}
       else
-        cp -f ${base_data} ${base_out}
-        cp -f ${test_data} ${test_out}
+        sed -n '/RunningUnitTest/,$p' ${base_data} >! ${base_out}
+        sed -n '/RunningUnitTest/,$p' ${test_data} >! ${test_out}
       endif
 
       set basenum = `cat ${base_out} | wc -l`
