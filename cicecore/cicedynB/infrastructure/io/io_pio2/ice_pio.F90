@@ -197,9 +197,10 @@
 
 !================================================================================
 
-   subroutine ice_pio_initdecomp_2d(iodesc)
+   subroutine ice_pio_initdecomp_2d(iodesc, precision)
 
       type(io_desc_t), intent(out) :: iodesc
+      integer(kind=int_kind), optional, intent(in) :: precision
 
       integer (kind=int_kind) :: &
           iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k
@@ -207,7 +208,11 @@
       type(block) :: this_block 
 
       integer(kind=int_kind), pointer :: dof2d(:)
+      integer(kind=int_kind) :: lprecision
       character(len=*), parameter :: subname = '(ice_pio_initdecomp_2d)'
+
+      lprecision = 8
+      if (present(precision)) lprecision = precision
 
       allocate(dof2d(nx_block*ny_block*nblocks))
 
@@ -235,8 +240,13 @@
          enddo !j
       end do
 
-      call pio_initdecomp(ice_pio_subsystem, pio_double, (/nx_global,ny_global/), &
-           dof2d, iodesc)
+      if (lprecision == 8) then
+         call pio_initdecomp(ice_pio_subsystem, pio_double, (/nx_global,ny_global/), &
+              dof2d, iodesc)
+      else
+         call pio_initdecomp(ice_pio_subsystem, pio_real, (/nx_global,ny_global/), &
+              dof2d, iodesc)
+      endif
 
       deallocate(dof2d)
  
@@ -244,18 +254,23 @@
 
 !================================================================================
 
-   subroutine ice_pio_initdecomp_3d (ndim3, iodesc, remap)
+   subroutine ice_pio_initdecomp_3d (ndim3, iodesc, remap, precision)
 
       integer(kind=int_kind), intent(in) :: ndim3
       type(io_desc_t), intent(out) :: iodesc
       logical, optional :: remap
+      integer(kind=int_kind), optional, intent(in) :: precision
       integer (kind=int_kind) :: &
           iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k 
 
       type(block) :: this_block 
       logical :: lremap
       integer(kind=int_kind), pointer :: dof3d(:)
+      integer(kind=int_kind) :: lprecision
       character(len=*), parameter :: subname = '(ice_pio_initdecomp_2d)'
+
+      lprecision = 8
+      if (present(precision)) lprecision = precision
 
       allocate(dof3d(nx_block*ny_block*nblocks*ndim3))
       lremap=.false.
@@ -313,8 +328,13 @@
          enddo !ndim3
       endif
 
-      call pio_initdecomp(ice_pio_subsystem, pio_double, (/nx_global,ny_global,ndim3/), &
-           dof3d, iodesc)
+      if (lprecision == 8) then
+         call pio_initdecomp(ice_pio_subsystem, pio_double, (/nx_global,ny_global,ndim3/), &
+              dof3d, iodesc)
+      else
+         call pio_initdecomp(ice_pio_subsystem, pio_real, (/nx_global,ny_global,ndim3/), &
+              dof3d, iodesc)
+      endif
 
       deallocate(dof3d)
 
@@ -322,11 +342,12 @@
 
 !================================================================================
 
-   subroutine ice_pio_initdecomp_3d_inner(ndim3, inner_dim, iodesc)
+   subroutine ice_pio_initdecomp_3d_inner(ndim3, inner_dim, iodesc, precision)
 
       integer(kind=int_kind), intent(in) :: ndim3
       logical, intent(in) :: inner_dim
       type(io_desc_t), intent(out) :: iodesc
+      integer(kind=int_kind), optional, intent(in) :: precision
 
       integer (kind=int_kind) :: &
           iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k 
@@ -334,8 +355,11 @@
       type(block) :: this_block 
 
       integer(kind=int_kind), pointer :: dof3d(:)
-
+      integer(kind=int_kind) :: lprecision
       character(len=*), parameter :: subname = '(ice_pio_initdecomp_3d_inner)'
+
+      lprecision = 8
+      if (present(precision)) lprecision = precision
 
       allocate(dof3d(nx_block*ny_block*nblocks*ndim3))
 
@@ -365,8 +389,13 @@
          enddo  !j
       end do    !iblk
 
-      call pio_initdecomp(ice_pio_subsystem, pio_double, (/ndim3,nx_global,ny_global/), &
-           dof3d, iodesc)
+      if (lprecision == 8) then
+         call pio_initdecomp(ice_pio_subsystem, pio_double, (/ndim3,nx_global,ny_global/), &
+              dof3d, iodesc)
+      else
+         call pio_initdecomp(ice_pio_subsystem, pio_real, (/ndim3,nx_global,ny_global/), &
+              dof3d, iodesc)
+      endif
 
       deallocate(dof3d)
 
@@ -374,10 +403,11 @@
 
 !================================================================================
 
-   subroutine ice_pio_initdecomp_4d (ndim3, ndim4, iodesc)
+   subroutine ice_pio_initdecomp_4d (ndim3, ndim4, iodesc, precision)
 
       integer(kind=int_kind), intent(in) :: ndim3, ndim4
       type(io_desc_t), intent(out) :: iodesc
+      integer(kind=int_kind), optional, intent(in) :: precision
 
       integer (kind=int_kind) :: &
           iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k,l 
@@ -385,8 +415,11 @@
       type(block) :: this_block 
 
       integer(kind=int_kind), pointer :: dof4d(:)
-
+      integer(kind=int_kind) :: lprecision
       character(len=*), parameter :: subname = '(ice_pio_initdecomp_4d)'
+
+      lprecision = 8
+      if (present(precision)) lprecision = precision
 
       allocate(dof4d(nx_block*ny_block*nblocks*ndim3*ndim4))
 
@@ -420,8 +453,13 @@
       enddo !ndim3
       enddo !ndim4
 
-      call pio_initdecomp(ice_pio_subsystem, pio_double, &
-          (/nx_global,ny_global,ndim3,ndim4/), dof4d, iodesc)
+      if (lprecision == 8) then
+         call pio_initdecomp(ice_pio_subsystem, pio_double, &
+             (/nx_global,ny_global,ndim3,ndim4/), dof4d, iodesc)
+      else
+         call pio_initdecomp(ice_pio_subsystem, pio_real, &
+             (/nx_global,ny_global,ndim3,ndim4/), dof4d, iodesc)
+      endif
 
       deallocate(dof4d)
 
