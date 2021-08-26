@@ -88,6 +88,7 @@ module ice_comp_nuopc
   integer                      :: nthrds   ! Number of threads to use in this component
 
   integer                      :: dbug = 0
+  logical                      :: profile_memory = .false.
   integer     , parameter      :: debug_import = 0 ! internal debug level
   integer     , parameter      :: debug_export = 0 ! internal debug level
   character(*), parameter      :: modName =  "(ice_comp_nuopc)"
@@ -157,6 +158,10 @@ contains
     type(ESMF_State)      :: importState, exportState
     type(ESMF_Clock)      :: clock
     integer, intent(out)  :: rc
+
+    logical                      :: isPresent, isSet
+    character(len=64)            :: value
+    character(len=char_len_long) :: logmsg
     !--------------------------------
 
     rc = ESMF_SUCCESS
@@ -165,6 +170,14 @@ contains
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, &
          acceptStringList=(/"IPDv01p"/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    profile_memory = .false.
+    call NUOPC_CompAttributeGet(gcomp, name="ProfileMemory", value=value, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) profile_memory=(trim(value)=="true")
+    write(logmsg,*) profile_memory
+    call ESMF_LogWrite('CICE_cap:ProfileMemory = '//trim(logmsg), ESMF_LOGMSG_INFO)
 
   end subroutine InitializeP0
 
@@ -902,6 +915,8 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
+    if(profile_memory) call ESMF_VMLogMemInfo("Entering CICE Model_ADVANCE: ")
+
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     ! query the Component for its clock, importState and exportState
@@ -1049,7 +1064,9 @@ contains
     ! Advance cice and timestep update
     !--------------------------------
 
+    if(profile_memory) call ESMF_VMLogMemInfo("Entering CICE_Run : ")
     call CICE_Run()
+    if(profile_memory) call ESMF_VMLogMemInfo("Leaving CICE_Run : ")
 
     !--------------------------------
     ! Create export state
@@ -1109,6 +1126,8 @@ contains
   105  format( A, 2i8, A, f10.2, A, f10.2, A)
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+
+    if(profile_memory) call ESMF_VMLogMemInfo("Leaving CICE Model_ADVANCE: ")
 
   end subroutine ModelAdvance
 
