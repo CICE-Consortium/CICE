@@ -116,10 +116,10 @@
       TYPE(coord_attributes), dimension(nvarz) :: var_nz
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
 
-      real (kind=dbl_kind), allocatable :: workd2(:,:,:)
-      real (kind=dbl_kind), allocatable :: workd3(:,:,:,:)
-      real (kind=dbl_kind), allocatable :: workd4(:,:,:,:,:)
-      real (kind=dbl_kind), allocatable :: workd3v(:,:,:,:)
+      real (kind=dbl_kind) , allocatable :: workd2(:,:,:)
+      real (kind=dbl_kind) , allocatable :: workd3(:,:,:,:)
+      real (kind=dbl_kind) , allocatable :: workd4(:,:,:,:,:)
+      real (kind=dbl_kind) , allocatable :: workd3v(:,:,:,:)
 
       real (kind=real_kind), allocatable :: workr2(:,:,:)
       real (kind=real_kind), allocatable :: workr3(:,:,:,:)
