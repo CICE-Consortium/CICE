@@ -83,8 +83,8 @@
          File%fh=-1
          call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
       
-         call ice_pio_initdecomp(iodesc=iodesc2d)
-         call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true.)
+         call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
+         call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true., precision=8)
 
          if (use_restart_time) then
             status1 = PIO_noerr
@@ -649,8 +649,8 @@
          deallocate(dims)
          status = pio_enddef(File)
 
-         call ice_pio_initdecomp(iodesc=iodesc2d)
-         call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat, remap=.true.)
+         call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
+         call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat, remap=.true., precision=8)
 
 !     endif  ! restart_format
 
