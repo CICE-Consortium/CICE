@@ -1,10 +1,10 @@
-year_init = 1994
+year_init = 1995
 use_leap_years = .true.
 npt_unit = 'y'
 npt = 15
 dumpfreq = 'm'
 dumpfreq_base = 'zero'
-fyear_init = 1994
+fyear_init = 1995
 ycycle = 16
 ocn_data_dir = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1/CESM/MONTHLY/'
 use_bathymetry = .true.
