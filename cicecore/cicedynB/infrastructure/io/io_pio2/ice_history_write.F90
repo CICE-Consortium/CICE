@@ -18,6 +18,7 @@
       module ice_history_write
 
       use ice_kinds_mod
+      use ice_constants, only: c0, c360, spval, spval_dbl
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -42,9 +43,9 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
-          histfreq, days_per_year, use_leap_years, dayyr
+          histfreq, histfreq_n, days_per_year, use_leap_years, dayyr, &
+          hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
-      use ice_constants, only: c0, c360, spval, spval_dbl
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: nx_global, ny_global, max_blocks, max_nstrm
       use ice_gather_scatter, only: gather_global
@@ -70,7 +71,6 @@
       integer (kind=int_kind), dimension(5) :: dimidcz
       integer (kind=int_kind), dimension(3) :: dimid_nverts
       integer (kind=int_kind), dimension(6) :: dimidex
-      real (kind=real_kind) :: ltime
       real (kind= dbl_kind) :: ltime2
       character (char_len) :: title
       character (char_len_long) :: ncfile(max_nstrm)
@@ -116,10 +116,15 @@
       TYPE(coord_attributes), dimension(nvarz) :: var_nz
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
 
-      real (kind=dbl_kind), allocatable :: workr2(:,:,:)
-      real (kind=dbl_kind), allocatable :: workr3(:,:,:,:)
-      real (kind=dbl_kind), allocatable :: workr4(:,:,:,:,:)
-      real (kind=dbl_kind), allocatable :: workr3v(:,:,:,:)
+      real (kind=dbl_kind) , allocatable :: workd2(:,:,:)
+      real (kind=dbl_kind) , allocatable :: workd3(:,:,:,:)
+      real (kind=dbl_kind) , allocatable :: workd4(:,:,:,:,:)
+      real (kind=dbl_kind) , allocatable :: workd3v(:,:,:,:)
+
+      real (kind=real_kind), allocatable :: workr2(:,:,:)
+      real (kind=real_kind), allocatable :: workr3(:,:,:,:)
+      real (kind=real_kind), allocatable :: workr4(:,:,:,:,:)
+      real (kind=real_kind), allocatable :: workr3v(:,:,:,:)
 
       character(len=char_len_long) :: &
            filename
@@ -164,19 +169,18 @@
       call ice_pio_init(mode='write', filename=trim(filename), File=File, &
         clobber=.true., cdf64=lcdf64, iotype=iotype)
 
-      call ice_pio_initdecomp(iodesc=iodesc2d)
-      call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc)
-      call ice_pio_initdecomp(ndim3=nzilyr,    iodesc=iodesc3di)
-      call ice_pio_initdecomp(ndim3=nzblyr,    iodesc=iodesc3db)
-      call ice_pio_initdecomp(ndim3=nzalyr,    iodesc=iodesc3da)
-      call ice_pio_initdecomp(ndim3=nfsd_hist, iodesc=iodesc3df)
-      call ice_pio_initdecomp(ndim3=nverts,    iodesc=iodesc3dv, inner_dim=.true.)
-      call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di)
-      call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds)
-      call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df)
+      call ice_pio_initdecomp(iodesc=iodesc2d, precision=history_precision)
+      call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc, precision=history_precision)
+      call ice_pio_initdecomp(ndim3=nzilyr,    iodesc=iodesc3di, precision=history_precision)
+      call ice_pio_initdecomp(ndim3=nzblyr,    iodesc=iodesc3db, precision=history_precision)
+      call ice_pio_initdecomp(ndim3=nzalyr,    iodesc=iodesc3da, precision=history_precision)
+      call ice_pio_initdecomp(ndim3=nfsd_hist, iodesc=iodesc3df, precision=history_precision)
+      call ice_pio_initdecomp(ndim3=nverts,    iodesc=iodesc3dv, inner_dim=.true., precision=history_precision)
+      call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di, precision=history_precision)
+      call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds, precision=history_precision)
+      call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df, precision=history_precision)
 
       ltime2 = timesecs/secday
-      ltime  = real(timesecs/secday,kind=real_kind)
 
       ! option of turning on double precision history files
       lprecision = pio_real
@@ -186,7 +190,7 @@
       ! define dimensions
       !-----------------------------------------------------------------
 
-       if (hist_avg .and. histfreq(ns) /= '1') then
+        if (hist_avg) then
           status = pio_def_dim(File,'d2',2,boundid)
         endif
 
@@ -205,13 +209,13 @@
       ! define coordinate variables:  time, time_bounds
       !-----------------------------------------------------------------
 
-!sgl        status = pio_def_var(File,'time',pio_real,(/timid/),varid)
         status = pio_def_var(File,'time',pio_double,(/timid/),varid)
         status = pio_put_att(File,varid,'long_name','model time')
 
         write(cdate,'(i8.8)') idate0
-        write(title,'(a,a,a,a,a,a,a)') 'days since ', &
-              cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' 00:00:00'
+        write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+              cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+              hh_init,':',mm_init,':',ss_init
         status = pio_put_att(File,varid,'units',trim(title))
 
         if (days_per_year == 360) then
@@ -224,21 +228,21 @@
            call abort_ice(subname//'ERROR: invalid calendar settings')
         endif
 
-        if (hist_avg .and. histfreq(ns) /= '1') then
+        if (hist_avg) then
           status = pio_put_att(File,varid,'bounds','time_bounds')
         endif
 
         ! Define attributes for time_bounds if hist_avg is true
-        if (hist_avg .and. histfreq(ns) /= '1') then
+        if (hist_avg) then
           dimid2(1) = boundid
           dimid2(2) = timid
-!sgl          status = pio_def_var(File,'time_bounds',pio_real,dimid2,varid)
           status = pio_def_var(File,'time_bounds',pio_double,dimid2,varid)
           status = pio_put_att(File,varid,'long_name', &
                                 'boundaries for time-averaging interval')
           write(cdate,'(i8.8)') idate0
-          write(title,'(a,a,a,a,a,a,a,a)') 'days since ', &
-                cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' 00:00:00'
+          write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+                cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+                hh_init,':',mm_init,':',ss_init
           status = pio_put_att(File,varid,'units',trim(title))
         endif
 
@@ -340,13 +344,7 @@
                                 dimid2, varid)
           status = pio_put_att(File,varid,'long_name',trim(coord_var(i)%long_name))
           status = pio_put_att(File, varid, 'units', trim(coord_var(i)%units))
-          if (lprecision == pio_real) then
-             status = pio_put_att(File, varid, 'missing_value', spval)
-             status = pio_put_att(File, varid,'_FillValue',spval)
-          else
-             status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-             status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-          endif
+          call ice_write_hist_fill(File,varid,coord_var(i)%short_name,history_precision)
           if (coord_var(i)%short_name == 'ULAT') then
              status = pio_put_att(File,varid,'comment', &
                   trim('Latitude of NE corner of T grid cell'))
@@ -378,13 +376,7 @@
            status = pio_def_var(File, 'tmask', lprecision, dimid2, varid)
            status = pio_put_att(File,varid, 'long_name', 'ocean grid mask') 
            status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
-           if (lprecision == pio_real) then
-              status = pio_put_att(File, varid, 'missing_value', spval)
-              status = pio_put_att(File, varid,'_FillValue',spval)
-           else
-              status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-              status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-           endif
+           call ice_write_hist_fill(File,varid,'tmask',history_precision)
            status = pio_put_att(File,varid,'comment', '0 = land, 1 = ocean')
         endif
         if (igrd(n_blkmask)) then
@@ -392,13 +384,7 @@
            status = pio_put_att(File,varid, 'long_name', 'ice grid block mask') 
            status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
            status = pio_put_att(File,varid,'comment', 'mytask + iblk/100')
-           if (lprecision == pio_real) then
-              status = pio_put_att(File, varid, 'missing_value', spval)
-              status = pio_put_att(File, varid,'_FillValue',spval)
-           else
-              status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-              status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-           endif
+           call ice_write_hist_fill(File,varid,'blkmask',history_precision)
         endif
 
         do i = 3, nvar       ! note: n_tmask=1, n_blkmask=2
@@ -408,13 +394,7 @@
              status = pio_put_att(File,varid, 'long_name', trim(var(i)%req%long_name))
              status = pio_put_att(File, varid, 'units', trim(var(i)%req%units))
              status = pio_put_att(File, varid, 'coordinates', trim(var(i)%coordinates))
-             if (lprecision == pio_real) then
-                status = pio_put_att(File, varid, 'missing_value', spval)
-                status = pio_put_att(File, varid,'_FillValue',spval)
-             else
-                status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-                status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-             endif
+             call ice_write_hist_fill(File,varid,var(i)%req%short_name,history_precision)
           endif
         enddo
 
@@ -430,13 +410,7 @@
              pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name))
              status = &
              pio_put_att(File, varid, 'units', trim(var_nverts(i)%units))
-             if (lprecision == pio_real) then
-                status = pio_put_att(File, varid, 'missing_value', spval)
-                status = pio_put_att(File, varid,'_FillValue',spval)
-             else
-                status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-                status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-             endif
+             call ice_write_hist_fill(File,varid,var_nverts(i)%short_name,history_precision)
           endif
         enddo
  
@@ -464,16 +438,10 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
               if (TRIM(avail_hist_fields(n)%vname)/='sig1' &
               .or.TRIM(avail_hist_fields(n)%vname)/='sig2' &
               .or.TRIM(avail_hist_fields(n)%vname)/='sistreave' &
@@ -483,7 +451,8 @@
               endif
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg         &
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg                              &
                 .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
                 .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
@@ -518,20 +487,15 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')
             else
                status = pio_put_att(File,varid,'time_rep','averaged')
@@ -560,20 +524,15 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')
             else
                status = pio_put_att(File,varid,'time_rep','averaged')
@@ -602,20 +561,15 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')
             else
                status = pio_put_att(File,varid,'time_rep','averaged')
@@ -644,20 +598,15 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')
             else
                status = pio_put_att(File,varid,'time_rep','averaged')
@@ -686,20 +635,15 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')
             else
                status = pio_put_att(File,varid,'time_rep','averaged')
@@ -734,20 +678,15 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')
             else
                status = pio_put_att(File,varid,'time_rep','averaged')
@@ -777,20 +716,15 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')
             else
                status = pio_put_att(File,varid,'time_rep','averaged')
@@ -821,20 +755,15 @@
                         trim(avail_hist_fields(n)%vcoord))
             status = pio_put_att(File,varid,'cell_measures', &
                         trim(avail_hist_fields(n)%vcellmeas))
-            if (lprecision == pio_real) then
-               status = pio_put_att(File, varid, 'missing_value', spval)
-               status = pio_put_att(File, varid,'_FillValue',spval)
-            else
-               status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-               status = pio_put_att(File, varid,'_FillValue',spval_dbl)
-            endif
+            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
 
             ! Add cell_methods attribute to variables if averaged
-            if (hist_avg .and. histfreq(ns) /= '1') then
+            if (hist_avg) then
                 status = pio_put_att(File,varid,'cell_methods','time: mean')
             endif
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+                .or..not. hist_avg) then
                status = pio_put_att(File,varid,'time_rep','instantaneous')
             else
                status = pio_put_att(File,varid,'time_rep','averaged')
@@ -901,14 +830,13 @@
       !-----------------------------------------------------------------
 
         status = pio_inq_varid(File,'time',varid)
-!sgl        status = pio_put_var(File,varid,(/1/),ltime)
         status = pio_put_var(File,varid,(/1/),ltime2)
 
       !-----------------------------------------------------------------
       ! write time_bounds info
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. histfreq(ns) /= '1') then
+        if (hist_avg) then
           status = pio_inq_varid(File,'time_bounds',varid)
           time_bounds=(/time_beg(ns),time_end(ns)/)
           bnd_start  = (/1,1/)
@@ -921,6 +849,7 @@
       ! write coordinate variables
       !-----------------------------------------------------------------
 
+        allocate(workd2(nx_block,ny_block,nblocks))
         allocate(workr2(nx_block,ny_block,nblocks))
 
         do i = 1,ncoord
@@ -928,16 +857,22 @@
           SELECT CASE (coord_var(i)%short_name)
             CASE ('TLON')
               ! Convert T grid longitude from -180 -> 180 to 0 to 360
-                 workr2(:,:,:) = mod(tlon(:,:,1:nblocks)*rad_to_deg + c360, c360)
+                 workd2(:,:,:) = mod(tlon(:,:,1:nblocks)*rad_to_deg + c360, c360)
             CASE ('TLAT')
-              workr2(:,:,:) = tlat(:,:,1:nblocks)*rad_to_deg
+              workd2(:,:,:) = tlat(:,:,1:nblocks)*rad_to_deg
             CASE ('ULON')
-              workr2(:,:,:) = ulon(:,:,1:nblocks)*rad_to_deg
+              workd2(:,:,:) = ulon(:,:,1:nblocks)*rad_to_deg
             CASE ('ULAT')
-              workr2(:,:,:) = ulat(:,:,1:nblocks)*rad_to_deg
+              workd2(:,:,:) = ulat(:,:,1:nblocks)*rad_to_deg
           END SELECT
-          call pio_write_darray(File, varid, iodesc2d, &
-               workr2, status, fillval=spval_dbl)
+          if (history_precision == 8) then
+             call pio_write_darray(File, varid, iodesc2d, &
+                  workd2, status, fillval=spval_dbl)
+          else
+             workr2 = workd2
+             call pio_write_darray(File, varid, iodesc2d, &
+                  workr2, status, fillval=spval)
+          endif
         enddo
 
         ! Extra dimensions (NCAT, NFSD, VGRD*)
@@ -981,33 +916,39 @@
          if (igrd(i)) then
             SELECT CASE (var(i)%req%short_name)
             CASE ('tmask')
-               workr2 = hm(:,:,1:nblocks)
+               workd2 = hm(:,:,1:nblocks)
             CASE ('blkmask')
-               workr2 = bm(:,:,1:nblocks)
+               workd2 = bm(:,:,1:nblocks)
             CASE ('tarea')
-               workr2 = tarea(:,:,1:nblocks)
+               workd2 = tarea(:,:,1:nblocks)
             CASE ('uarea')
-               workr2 = uarea(:,:,1:nblocks)
+               workd2 = uarea(:,:,1:nblocks)
             CASE ('dxu')
-               workr2 = dxu(:,:,1:nblocks)
+               workd2 = dxu(:,:,1:nblocks)
             CASE ('dyu')
-               workr2 = dyu(:,:,1:nblocks)
+               workd2 = dyu(:,:,1:nblocks)
             CASE ('dxt')
-               workr2 = dxt(:,:,1:nblocks)
+               workd2 = dxt(:,:,1:nblocks)
             CASE ('dyt')
-               workr2 = dyt(:,:,1:nblocks)
+               workd2 = dyt(:,:,1:nblocks)
             CASE ('HTN')
-               workr2 = HTN(:,:,1:nblocks)
+               workd2 = HTN(:,:,1:nblocks)
             CASE ('HTE')
-               workr2 = HTE(:,:,1:nblocks)
+               workd2 = HTE(:,:,1:nblocks)
             CASE ('ANGLE')
-               workr2 = ANGLE(:,:,1:nblocks)
+               workd2 = ANGLE(:,:,1:nblocks)
             CASE ('ANGLET')
-               workr2 = ANGLET(:,:,1:nblocks)
+               workd2 = ANGLET(:,:,1:nblocks)
             END SELECT
             status = pio_inq_varid(File, var(i)%req%short_name, varid)
-            call pio_write_darray(File, varid, iodesc2d, &
-                 workr2, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc2d, &
+                    workd2, status, fillval=spval_dbl)
+            else
+               workr2 = workd2
+               call pio_write_darray(File, varid, iodesc2d, &
+                    workr2, status, fillval=spval)
+            endif
          endif
       enddo
 
@@ -1016,32 +957,40 @@
       !----------------------------------------------------------------
 
       if (f_bounds) then
+      allocate(workd3v(nverts,nx_block,ny_block,nblocks))
       allocate(workr3v(nverts,nx_block,ny_block,nblocks))
-      workr3v (:,:,:,:) = c0
+      workd3v (:,:,:,:) = c0
       do i = 1, nvar_verts
         SELECT CASE (var_nverts(i)%short_name)
         CASE ('lont_bounds')
            do ivertex = 1, nverts 
-              workr3v(ivertex,:,:,:) = lont_bounds(ivertex,:,:,1:nblocks)
+              workd3v(ivertex,:,:,:) = lont_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('latt_bounds')
            do ivertex = 1, nverts 
-              workr3v(ivertex,:,:,:) = latt_bounds(ivertex,:,:,1:nblocks)
+              workd3v(ivertex,:,:,:) = latt_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('lonu_bounds')
            do ivertex = 1, nverts 
-              workr3v(ivertex,:,:,:) = lonu_bounds(ivertex,:,:,1:nblocks)
+              workd3v(ivertex,:,:,:) = lonu_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('latu_bounds')
            do ivertex = 1, nverts 
-              workr3v(ivertex,:,:,:) = latu_bounds(ivertex,:,:,1:nblocks)
+              workd3v(ivertex,:,:,:) = latu_bounds(ivertex,:,:,1:nblocks)
            enddo
         END SELECT
 
           status = pio_inq_varid(File, var_nverts(i)%short_name, varid)
-          call pio_write_darray(File, varid, iodesc3dv, &
-                                workr3v, status, fillval=spval_dbl)
+          if (history_precision == 8) then
+             call pio_write_darray(File, varid, iodesc3dv, &
+                                   workd3v, status, fillval=spval_dbl)
+          else
+             workr3v = workd3v
+             call pio_write_darray(File, varid, iodesc3dv, &
+                                   workr3v, status, fillval=spval)
+          endif
       enddo
+      deallocate(workd3v)
       deallocate(workr3v)
       endif  ! f_bounds
 
@@ -1056,20 +1005,28 @@
             status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
             if (status /= pio_noerr) call abort_ice(subname// &
                'ERROR getting varid for '//avail_hist_fields(n)%vname)
-            workr2(:,:,:) = a2D(:,:,n,1:nblocks)
+            workd2(:,:,:) = a2D(:,:,n,1:nblocks)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc2d,&
-                                  workr2, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc2d,&
+                                     workd2, status, fillval=spval_dbl)
+            else
+               workr2 = workd2
+               call pio_write_darray(File, varid, iodesc2d,&
+                                     workr2, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_2D
 
+      deallocate(workd2)
       deallocate(workr2)
 
       ! 3D (category)
+      allocate(workd3(nx_block,ny_block,nblocks,ncat_hist))
       allocate(workr3(nx_block,ny_block,nblocks,ncat_hist))
       do n = n2D + 1, n3Dccum
          nn = n - n2D
@@ -1079,7 +1036,7 @@
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, ncat_hist
-               workr3(:,:,j,i) = a3Dc(:,:,i,nn,j)
+               workd3(:,:,j,i) = a3Dc(:,:,i,nn,j)
             enddo
             enddo
 #ifdef CESM1_PIO
@@ -1087,13 +1044,21 @@
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc3dc,&
-                                  workr3, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc3dc,&
+                                     workd3, status, fillval=spval_dbl)
+            else
+               workr3 = workd3
+               call pio_write_darray(File, varid, iodesc3dc,&
+                                     workr3, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_3Dc
+      deallocate(workd3)
       deallocate(workr3)
 
       ! 3D (vertical ice)
+      allocate(workd3(nx_block,ny_block,nblocks,nzilyr))
       allocate(workr3(nx_block,ny_block,nblocks,nzilyr))
       do n = n3Dccum+1, n3Dzcum
          nn = n - n3Dccum
@@ -1103,7 +1068,7 @@
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzilyr
-               workr3(:,:,j,i) = a3Dz(:,:,i,nn,j)
+               workd3(:,:,j,i) = a3Dz(:,:,i,nn,j)
             enddo
             enddo
 #ifdef CESM1_PIO
@@ -1111,13 +1076,21 @@
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc3di,&
-                                  workr3, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc3di,&
+                                     workd3, status, fillval=spval_dbl)
+            else
+               workr3 = workd3
+               call pio_write_darray(File, varid, iodesc3di,&
+                                     workr3, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_3Dz
+      deallocate(workd3)
       deallocate(workr3)
 
       ! 3D (vertical ice biology)
+      allocate(workd3(nx_block,ny_block,nblocks,nzblyr))
       allocate(workr3(nx_block,ny_block,nblocks,nzblyr))
       do n = n3Dzcum+1, n3Dbcum
          nn = n - n3Dzcum
@@ -1127,7 +1100,7 @@
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzblyr
-               workr3(:,:,j,i) = a3Db(:,:,i,nn,j)
+               workd3(:,:,j,i) = a3Db(:,:,i,nn,j)
             enddo
             enddo
 #ifdef CESM1_PIO
@@ -1135,13 +1108,21 @@
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc3db,&
-                                  workr3, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc3db,&
+                                     workd3, status, fillval=spval_dbl)
+            else
+               workr3 = workd3
+               call pio_write_darray(File, varid, iodesc3db,&
+                                     workr3, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_3Db
+      deallocate(workd3)
       deallocate(workr3)
 
       ! 3D (vertical snow biology)
+      allocate(workd3(nx_block,ny_block,nblocks,nzalyr))
       allocate(workr3(nx_block,ny_block,nblocks,nzalyr))
       do n = n3Dbcum+1, n3Dacum
          nn = n - n3Dbcum
@@ -1151,7 +1132,7 @@
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzalyr
-               workr3(:,:,j,i) = a3Da(:,:,i,nn,j)
+               workd3(:,:,j,i) = a3Da(:,:,i,nn,j)
             enddo
             enddo
 #ifdef CESM1_PIO
@@ -1159,13 +1140,21 @@
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc3da,&
-                                  workr3, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc3da,&
+                                     workd3, status, fillval=spval_dbl)
+            else
+               workr3 = workd3
+               call pio_write_darray(File, varid, iodesc3da,&
+                                     workr3, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_3Db
+      deallocate(workd3)
       deallocate(workr3)
 
       ! 3D (fsd)
+      allocate(workd3(nx_block,ny_block,nblocks,nfsd_hist))
       allocate(workr3(nx_block,ny_block,nblocks,nfsd_hist))
       do n = n3Dacum+1, n3Dfcum
          nn = n - n3Dacum
@@ -1175,7 +1164,7 @@
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nfsd_hist
-               workr3(:,:,j,i) = a3Df(:,:,i,nn,j)
+               workd3(:,:,j,i) = a3Df(:,:,i,nn,j)
             enddo
             enddo
 #ifdef CESM1_PIO
@@ -1183,12 +1172,20 @@
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc3df,&
-                                  workr3, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc3df,&
+                                     workd3, status, fillval=spval_dbl)
+            else
+               workr3 = workd3
+               call pio_write_darray(File, varid, iodesc3df,&
+                                     workr3, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_3Df
+      deallocate(workd3)
       deallocate(workr3)
 
+      allocate(workd4(nx_block,ny_block,nblocks,ncat_hist,nzilyr))
       allocate(workr4(nx_block,ny_block,nblocks,ncat_hist,nzilyr))
       ! 4D (categories, fsd)
       do n = n3Dfcum+1, n4Dicum
@@ -1200,7 +1197,7 @@
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nzilyr
-               workr4(:,:,j,i,k) = a4Di(:,:,k,i,nn,j)
+               workd4(:,:,j,i,k) = a4Di(:,:,k,i,nn,j)
             enddo ! k
             enddo ! i
             enddo ! j
@@ -1209,12 +1206,20 @@
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc4di,&
-                                  workr4, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc4di,&
+                                     workd4, status, fillval=spval_dbl)
+            else
+               workr4 = workd4
+               call pio_write_darray(File, varid, iodesc4di,&
+                                     workr4, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_4Di
+      deallocate(workd4)
       deallocate(workr4)
 
+      allocate(workd4(nx_block,ny_block,nblocks,ncat_hist,nzslyr))
       allocate(workr4(nx_block,ny_block,nblocks,ncat_hist,nzslyr))
       ! 4D (categories, vertical ice)
       do n = n4Dicum+1, n4Dscum
@@ -1226,7 +1231,7 @@
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nzslyr
-               workr4(:,:,j,i,k) = a4Ds(:,:,k,i,nn,j)
+               workd4(:,:,j,i,k) = a4Ds(:,:,k,i,nn,j)
             enddo ! k
             enddo ! i
             enddo ! j
@@ -1235,12 +1240,20 @@
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc4ds,&
-                                  workr4, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc4ds,&
+                                     workd4, status, fillval=spval_dbl)
+            else
+               workr4 = workd4
+               call pio_write_darray(File, varid, iodesc4ds,&
+                                     workr4, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_4Ds
+      deallocate(workd4)
       deallocate(workr4)
 
+      allocate(workd4(nx_block,ny_block,nblocks,ncat_hist,nfsd_hist))
       allocate(workr4(nx_block,ny_block,nblocks,ncat_hist,nfsd_hist))
       ! 4D (categories, vertical ice)
       do n = n4Dscum+1, n4Dfcum
@@ -1252,7 +1265,7 @@
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nfsd_hist
-               workr4(:,:,j,i,k) = a4Df(:,:,k,i,nn,j)
+               workd4(:,:,j,i,k) = a4Df(:,:,k,i,nn,j)
             enddo ! k
             enddo ! i
             enddo ! j
@@ -1261,13 +1274,20 @@
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
-            call pio_write_darray(File, varid, iodesc4df,&
-                                  workr4, status, fillval=spval_dbl)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc4df,&
+                                     workd4, status, fillval=spval_dbl)
+            else
+               workr4 = workd4
+               call pio_write_darray(File, varid, iodesc4df,&
+                                     workr4, status, fillval=spval)
+            endif
          endif
       enddo ! num_avail_hist_fields_4Df
+      deallocate(workd4)
       deallocate(workr4)
 
-!     similarly for num_avail_hist_fields_4Db (define workr4b, iodesc4db)
+!     similarly for num_avail_hist_fields_4Db (define workd4b, iodesc4db)
 
 
       !-----------------------------------------------------------------
@@ -1296,6 +1316,34 @@
       endif
 
       end subroutine ice_write_hist
+
+!=======================================================================
+
+      subroutine ice_write_hist_fill(File,varid,vname,precision)
+
+      use ice_kinds_mod
+      use ice_pio
+      use pio
+
+      type(file_desc_t)      , intent(inout) :: File
+      type(var_desc_t)       , intent(in) :: varid
+      character(len=*),        intent(in) :: vname  ! var name
+      integer (kind=int_kind), intent(in) :: precision   ! precision
+
+      ! local variables
+
+      integer (kind=int_kind) :: status
+      character(len=*), parameter :: subname = '(ice_write_hist_fill)'
+
+      if (precision == 8) then
+         status = pio_put_att(File, varid, 'missing_value', spval_dbl)
+         status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+      else
+         status = pio_put_att(File, varid, 'missing_value', spval)
+         status = pio_put_att(File, varid,'_FillValue',spval)
+      endif
+
+      end subroutine ice_write_hist_fill
 
 !=======================================================================
 

@@ -670,6 +670,9 @@ The unit tests calchk or helloworld can be used as examples.
 The following strings should be written to the log file at the end of the unit test run.
 The string "COMPLETED SUCCESSFULLY" will indicate the run ran to completion.  The string
 "TEST COMPLETED SUCCESSFULLY" will indicate all the unit testing passed during the run.
+The unit test log file output is compared as part of regression testing.  The string 
+"RunningUnitTest" indicates the start of the output to compare.  
+That string should be written to the log file at the start of the unit test model output.
 These strings will be queried by the testing scripts and will impact the test reporting.
 See other unit tests for examples about how these strings could be written.
 

@@ -65,7 +65,6 @@ The initialize calling sequence looks something like::
       call init_thermo_vertical ! initialize vertical thermodynamics
       call icepack_init_itd(ncat, hin_max)  ! ice thickness distribution
       if (tr_fsd) call icepack_init_fsd_bounds  ! floe size distribution
-      call calendar(time)       ! determine the initial date
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
       call init_transport       ! initialize horizontal transport
@@ -74,10 +73,13 @@ The initialize calling sequence looks something like::
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
+      call calc_timesteps       ! update timestep counter if not using npt_unit="1"
       call init_shortwave       ! initialize radiative transfer
+      call advance_timestep     ! advance the time step
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
       if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
       call get_forcing*         ! read forcing data (standalone)
+      if (tr_snow) call icepack_init_snow ! advanced snow physics
 
 See a **CICE_InitMod.F90** file for the latest.
 
@@ -104,6 +106,13 @@ The run sequence within a time loop looks something like::
             enddo
             call update_state (dt_dyn, daidtd, dvidtd, dagedtd, offset)
          enddo
+
+         if (tr_snow) then         ! advanced snow physics
+            do iblk = 1, nblocks
+               call step_snow (dt, iblk)
+            enddo
+            call update_state (dt) ! clean up
+         endif
 
          do iblk = 1, nblocks
             call step_radiation (dt, iblk)
