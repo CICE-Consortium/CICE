@@ -132,7 +132,7 @@
          f_araftn = 'x'
          f_vraftn = 'x'
       endif
-      if (f_araftn == histfreq(ns) .or. f_vraftn == histfreq(ns)) f_ardgn = f_araftn
+      if (f_araftn /= 'x' .or. f_vraftn /= 'x') f_ardgn = f_araftn
 
       call broadcast_scalar (f_ardg, master_task)
       call broadcast_scalar (f_vrdg, master_task)
