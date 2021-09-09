@@ -157,7 +157,7 @@
       ! 2D variables
 
       do ns = 1, nstreams
-      if (histfreq(ns) == histfreq(ns)) then
+      if (histfreq(ns) /= 'x') then
 
       if (f_alvl(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_alvl,"alvl","1",tstr2D, tcstr, &
@@ -204,7 +204,7 @@
              "none", secday*c100, c0,                                    &
              ns, f_opening)
 
-      endif ! histfreq(ns) == histfreq(ns)
+      endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
 
       end subroutine init_hist_mechred_2D
@@ -230,7 +230,7 @@
          file=__FILE__, line=__LINE__)
 
       do ns = 1, nstreams
-      if (histfreq(ns) == histfreq(ns)) then
+      if (histfreq(ns) /= 'x') then
 
        if (f_ardgn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_ardgn,"ardgn","1",tstr3Dc, tcstr, &
@@ -298,7 +298,7 @@
              "none", c1, c0,                                       &
              ns, f_vraftn)
 
-      endif ! histfreq(ns) == histfreq(ns)
+      endif ! histfreq(ns) /= 'x'
       enddo ! ns
 
       end subroutine init_hist_mechred_3Dc

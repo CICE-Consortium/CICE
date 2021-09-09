@@ -781,7 +781,7 @@
     if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
 
     do ns = 1, nstreams
-       if (histfreq(ns) == histfreq(ns)) then
+       if (histfreq(ns) /= 'x') then
 
       if (f_iso(ns:ns) == histfreq(ns)) then
          do n=1,n_iso
@@ -1781,7 +1781,7 @@
              "distance from ice bottom to brine surface", c1, c0,       &
              ns, f_hbri)
 
-       endif ! histfreq(ns) == histfreq(ns)
+       endif ! histfreq(ns) /= 'x'
     enddo ! nstreams
 
     endif ! tr_aero, etc 
@@ -1808,7 +1808,7 @@
 
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-         if (histfreq(ns) == histfreq(ns)) then
+         if (histfreq(ns) /= 'x') then
            if (f_fbri(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_fbri,"fbrine","1",tstr3Dc, tcstr, &
              "brine tracer fraction of ice volume, cat",             &
@@ -1844,7 +1844,7 @@
     if (z_tracers .or. solve_zsal) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) == histfreq(ns)) then
+         if (histfreq(ns) /= 'x') then
  
          if (f_bTin(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bTin,"bTizn","C",tstr3Db, tcstr, &
@@ -1877,7 +1877,7 @@
                 "internal ice PAR", "on bio interface grid", c1, c0, &
                 ns, f_zfswin)
     
-         endif ! histfreq(ns) == histfreq(ns)
+         endif ! histfreq(ns) /= 'x'
       enddo  ! ns
 
     endif  ! z_tracers or solve_zsal
@@ -3234,7 +3234,7 @@
     if (z_tracers) then
 
     do ns = 1, nstreams
-       if (histfreq(ns) == histfreq(ns)) then
+       if (histfreq(ns) /= 'x') then
  
 !----------------------------------------------------------------------------
 ! snow+bio grid ==>
@@ -3458,7 +3458,7 @@
                 "other bulk nitrogen pool in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_PON_cat1)
     
-       endif ! histfreq(ns) == histfreq(ns)
+       endif ! histfreq(ns) /= 'x'
     enddo  !ns
 
     endif ! z_tracers

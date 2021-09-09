@@ -144,7 +144,7 @@
 
       ! 2D variables
       do ns = 1, nstreams
-      if (histfreq(ns) == histfreq(ns)) then
+      if (histfreq(ns) /= 'x') then
 
       if (f_smassice(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_smassice,"smassice","kg/m^2",tstr2D, tcstr, &
@@ -188,7 +188,7 @@
              "none", c1, c0,                                                &
              ns, f_fsloss)
 
-      endif ! histfreq(ns) == histfreq(ns)
+      endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
       endif ! tr_snow
       
@@ -214,7 +214,7 @@
 
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-      if (histfreq(ns) == histfreq(ns)) then
+      if (histfreq(ns) /= 'x') then
 
       if (f_smassicen(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_smassicen,"smassicen","kg/m^2",tstr3Dc, tcstr, &
@@ -246,7 +246,7 @@
              "none", c1, c0,                                              &
              ns, f_rsnwn)
 
-      endif ! histfreq(ns) == histfreq(ns)
+      endif ! histfreq(ns) /= 'x'
       enddo ! ns
 
       endif ! tr_snow

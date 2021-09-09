@@ -211,7 +211,7 @@
       if (tr_fsd) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) == histfreq(ns)) then
+         if (histfreq(ns) /= 'x') then
 
          if (f_afsd(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_afsd,"afsd", "1", tstr3Df, tcstr, &
@@ -237,7 +237,8 @@
             call define_hist_field(n_dafsd_weld,"dafsd_weld","1",tstr3Df, tcstr, &
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
-         endif ! if (histfreq(ns) == histfreq(ns))
+         endif ! if (histfreq(ns) /= 'x'
+
       enddo ! ns
 
       endif ! tr_fsd
@@ -267,14 +268,14 @@
       if (tr_fsd) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) == histfreq(ns)) then
+         if (histfreq(ns) /= 'x') then
 
          if (f_afsdn(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, & 
                "areal floe size and thickness distribution",    &
                "per unit bin width", c1, c0, ns, f_afsdn)
 
-         endif ! if (histfreq(ns) == histfreq(ns)) then
+         endif ! if (histfreq(ns) /= 'x') then
       enddo ! ns 
 
       endif ! tr_fsd
