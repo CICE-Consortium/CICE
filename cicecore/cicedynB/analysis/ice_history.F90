@@ -201,7 +201,7 @@
 
      ! Turn on all CMIP fields in one go.
 
-      if (f_CMIP(ns:ns) /= 'x') then
+      if (f_CMIP(1:1) /= 'x') then
          f_sithick = 'mxxxx'
          f_sisnthick = 'mxxxx'
          f_siage = 'mxxxx'
