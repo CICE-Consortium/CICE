@@ -144,51 +144,51 @@
 
       ! 2D variables
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq(ns) == histfreq(ns)) then
 
-      if (f_smassice(1:1) /= 'x') &
+      if (f_smassice(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_smassice,"smassice","kg/m^2",tstr2D, tcstr, &
              "ice mass per unit area in snow",                                &
              "none", c1, c0,                                                  &
              ns, f_smassice)
 
-      if (f_smassliq(1:1) /= 'x') &
+      if (f_smassliq(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_smassliq,"smassliq","kg/m^2",tstr2D, tcstr, &
              "liquid mass per unit area in snow",                             &
              "none", c1, c0,                                                  &
              ns, f_smassliq)
 
-      if (f_rhos_cmp(1:1) /= 'x') &
+      if (f_rhos_cmp(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_rhos_cmp,"rhos_cmp","kg/m^3",tstr2D, tcstr, &
              "snow density: compaction",                                      &
              "none", c1, c0,                                                  &
              ns, f_rhos_cmp)
 
-      if (f_rhos_cnt(1:1) /= 'x') &
+      if (f_rhos_cnt(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_rhos_cnt,"rhos_cnt","kg/m^3",tstr2D, tcstr, &
              "snow density: content",                                         &
              "none", c1, c0,                                                  &
              ns, f_rhos_cnt)
 
-      if (f_rsnw(1:1) /= 'x') &
+      if (f_rsnw(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_rsnw,"rsnw","10^-6 m",tstr2D, tcstr, &
              "average snow grain radius",                              &
              "none", c1, c0,                                           &
              ns, f_rsnw)
 
-      if (f_meltsliq(1:1) /= 'x') &
+      if (f_meltsliq(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_meltsliq,"meltsliq","kg/m^2/s",tstr2D, tcstr, &
              "snow liquid contribution to meltponds",                           &
              "none", c1/dt, c0,                                                 &
              ns, f_meltsliq)
 
-      if (f_fsloss(1:1) /= 'x') &
+      if (f_fsloss(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_fsloss,"fsloss","kg/m^2/s",tstr2D, tcstr, &
              "rate of snow loss to leads (liquid)",                         &
              "none", c1, c0,                                                &
              ns, f_fsloss)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq(ns) == histfreq(ns)
       enddo ! nstreams
       endif ! tr_snow
       
@@ -214,39 +214,39 @@
 
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq(ns) == histfreq(ns)) then
 
-      if (f_smassicen(1:1) /= 'x') &
+      if (f_smassicen(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_smassicen,"smassicen","kg/m^2",tstr3Dc, tcstr, &
              "ice mass per unit area in snow, category",                         &
              "none", c1, c0,                                                     &
              ns, f_smassicen)
 
-      if (f_smassliqn(1:1) /= 'x') &
+      if (f_smassliqn(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_smassliqn,"smassliqn","kg/m^2",tstr3Dc, tcstr, &
              "liquid mass per unit area in snow, category",                      &
              "none", c1, c0,                                                     &
              ns, f_smassliqn)
 
-      if (f_rhos_cmpn(1:1) /= 'x') &
+      if (f_rhos_cmpn(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_rhos_cmpn,"rhos_cmpn","kg/m^3",tstr3Dc, tcstr, &
              "snow density: compaction, category",                               &
              "none", c1, c0,                                                     &
              ns, f_rhos_cmpn)
 
-      if (f_rhos_cntn(1:1) /= 'x') &
+      if (f_rhos_cntn(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_rhos_cntn,"rhos_cntn","kg/m^3",tstr3Dc, tcstr, &
              "snow density: content, category",                                  &
              "none", c1, c0,                                                     &
              ns, f_rhos_cntn)
 
-      if (f_rsnwn(1:1) /= 'x') &
+      if (f_rsnwn(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_rsnwn,"rsnwn","10^-6 m",tstr3Dc, tcstr, &
              "average snow grain radius, category",                       &
              "none", c1, c0,                                              &
              ns, f_rsnwn)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq(ns) == histfreq(ns)
       enddo ! ns
 
       endif ! tr_snow
@@ -263,10 +263,12 @@
       use ice_blocks, only: block, nx_block, ny_block
       use ice_domain, only: blocks_ice
       use ice_flux, only: fsloss
+      use ice_calendar, only: nstreams, histfreq
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field, nzslyr
       use ice_state, only: vsno, vsnon, trcr, trcrn
 
+      integer (kind=int_kind) :: ns
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
 
@@ -299,10 +301,13 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (allocated(a2D)) then
       if (tr_snow) then
 
-         if (f_smassice(1:1)/= 'x') then
+      do ns = 1, nstreams
+
+         if (allocated(a2D)) then
+
+         if (f_smassice(ns:ns)== histfreq(ns)) then
             worka(:,:) = c0
             do k = 1, nzslyr
                worka(:,:) = worka(:,:) &
@@ -311,7 +316,7 @@
             worka(:,:) = worka(:,:) * vsno(:,:,iblk) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_smassice, iblk, worka, a2D)
          endif
-         if (f_smassliq(1:1)/= 'x') then
+         if (f_smassliq(ns:ns)== histfreq(ns)) then
             worka(:,:) = c0
             do k = 1, nzslyr
                worka(:,:) = worka(:,:) &
@@ -320,7 +325,7 @@
             worka(:,:) = worka(:,:) * vsno(:,:,iblk) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_smassliq, iblk, worka, a2D)
          endif
-         if (f_rhos_cmp(1:1)/= 'x') then
+         if (f_rhos_cmp(ns:ns)== histfreq(ns)) then
             worka(:,:) = c0
             do k = 1, nzslyr
                worka(:,:) = worka(:,:) &
@@ -329,7 +334,7 @@
             worka(:,:) = worka(:,:) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_rhos_cmp, iblk, worka, a2D)
          endif
-         if (f_rhos_cnt(1:1)/= 'x') then
+         if (f_rhos_cnt(ns:ns)== histfreq(ns)) then
             worka(:,:) = c0
             do k = 1, nzslyr
                worka(:,:) = worka(:,:) &
@@ -339,7 +344,7 @@
             worka(:,:) = worka(:,:) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_rhos_cnt, iblk, worka, a2D)
          endif
-         if (f_rsnw(1:1)/= 'x') then
+         if (f_rsnw(ns:ns)== histfreq(ns)) then
             worka(:,:) = c0
             do k = 1, nzslyr
                worka(:,:) = worka(:,:) &
@@ -348,10 +353,10 @@
             worka(:,:) = worka(:,:) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_rsnw, iblk, worka, a2D)
          endif
-         if (f_meltsliq(1:1)/= 'x') &
+         if (f_meltsliq(ns:ns)== histfreq(ns)) &
             call accum_hist_field(n_meltsliq, iblk, &
                  meltsliq(:,:,iblk), a2D)
-         if (f_fsloss(1:1)/= 'x') &
+         if (f_fsloss(ns:ns)== histfreq(ns)) &
             call accum_hist_field(n_fsloss, iblk, &
                  fsloss(:,:,iblk), a2D)
  
@@ -359,7 +364,7 @@
 
          ! 3D category fields
          if (allocated(a3Dc)) then
-         if (f_smassicen(1:1)/= 'x') then
+         if (f_smassicen(ns:ns)== histfreq(ns)) then
             workb(:,:,:) = c0
             do n = 1, ncat_hist
                do k = 1, nzslyr
@@ -371,7 +376,7 @@
             enddo
             call accum_hist_field(n_smassicen-n2D, iblk, ncat_hist, workb, a3Dc)
          endif
-         if (f_smassliqn(1:1)/= 'x') then
+         if (f_smassliqn(ns:ns)== histfreq(ns)) then
             workb(:,:,:) = c0
             do n = 1, ncat_hist
                do k = 1, nzslyr
@@ -383,7 +388,7 @@
             enddo
             call accum_hist_field(n_smassliqn-n2D, iblk, ncat_hist, workb, a3Dc)
          endif
-         if (f_rhos_cmpn(1:1)/= 'x') then
+         if (f_rhos_cmpn(ns:ns)== histfreq(ns)) then
             workb(:,:,:) = c0
             do n = 1, ncat_hist
                do k = 1, nzslyr
@@ -394,7 +399,7 @@
             enddo
             call accum_hist_field(n_rhos_cmpn-n2D, iblk, ncat_hist, workb, a3Dc)
          endif
-         if (f_rhos_cntn(1:1)/= 'x') then
+         if (f_rhos_cntn(ns:ns)== histfreq(ns)) then
             workb(:,:,:) = c0
             do n = 1, ncat_hist
                do k = 1, nzslyr
@@ -406,7 +411,7 @@
             enddo
             call accum_hist_field(n_rhos_cntn-n2D, iblk, ncat_hist, workb, a3Dc)
          endif
-         if (f_rsnwn(1:1)/= 'x') then
+         if (f_rsnwn(ns:ns)== histfreq(ns)) then
             workb(:,:,:) = c0
             do n = 1, ncat_hist
                do k = 1, nzslyr
@@ -418,6 +423,8 @@
             call accum_hist_field(n_rsnwn-n2D, iblk, ncat_hist, workb, a3Dc)
          endif
          endif ! allocated(a3Dc)
+
+      enddo ! ns
 
       endif ! tr_snow
       

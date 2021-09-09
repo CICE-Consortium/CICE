@@ -135,57 +135,57 @@
 
       ! 2D variables
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq(ns) == histfreq(ns)) then
 
-      if (f_apond(1:1) /= 'x') &
+      if (f_apond(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_apond,"apond","1",tstr2D, tcstr, &
              "melt pond fraction of sea ice",                      &
              "none", c1, c0,                                       &
              ns, f_apond)
 
-      if (f_apond_ai(1:1) /= 'x') &
+      if (f_apond_ai(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_apond_ai,"apond_ai","1",tstr2D, tcstr, & 
              "melt pond fraction of grid cell",                    &
              "weighted by ice area", c1, c0,                       &
              ns, f_apond_ai)
 
-      if (f_hpond(1:1) /= 'x') &
+      if (f_hpond(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_hpond,"hpond","m",tstr2D, tcstr, &
              "mean melt pond depth over sea ice",                  &
              "none", c1, c0,                                       &
              ns, f_hpond)
 
-      if (f_hpond_ai(1:1) /= 'x') &
+      if (f_hpond_ai(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_hpond_ai,"hpond_ai","m",tstr2D, tcstr, & 
              "mean melt pond depth over grid cell",                &
              "weighted by ice area", c1, c0,                       &
              ns, f_hpond)
 
-      if (f_ipond(1:1) /= 'x') &
+      if (f_ipond(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_ipond,"ipond","m",tstr2D, tcstr, &
              "mean pond ice thickness over sea ice",               &
              "none", c1, c0,                                       &
              ns, f_ipond)
 
-      if (f_ipond_ai(1:1) /= 'x') &
+      if (f_ipond_ai(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_ipond_ai,"ipond_ai","m",tstr2D, tcstr, & 
              "mean pond ice thickness over grid cell",             &
              "weighted by ice area", c1, c0,                       &
              ns, f_ipond_ai)
 
-      if (f_apeff(1:1) /= 'x') &
+      if (f_apeff(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_apeff,"apeff","1",tstr2D, tcstr, &
              "radiation-effective pond area fraction of sea ice",  &
              "none", c1, c0,  &
              ns, f_apeff)
 
-      if (f_apeff_ai(1:1) /= 'x') &
+      if (f_apeff_ai(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_apeff_ai,"apeff_ai","1",tstr2D, tcstr, &
              "radiation-effective pond area fraction over grid cell",  &
              "weighted by ice area", c1, c0,                       &
              ns, f_apeff_ai)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq(ns) == histfreq(ns)
       enddo ! nstreams
 
       endif ! tr_pond
@@ -212,25 +212,25 @@
       
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-        if (histfreq(ns) /= 'x') then
+        if (histfreq(ns) == histfreq(ns)) then
 
-        if (f_apondn(1:1) /= 'x') &
+        if (f_apondn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_apondn,"apondn","1",tstr3Dc, tcstr, &
               "melt pond fraction, category","none", c1, c0,      &            
               ns, f_apondn)
 
-        if (f_hpondn(1:1) /= 'x') &
+        if (f_hpondn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_hpondn,"hpondn","m",tstr3Dc, tcstr, &
               "melt pond depth, category","none", c1, c0,       &
               ns, f_hpondn)
 
-        if (f_apeffn(1:1) /= 'x') &
+        if (f_apeffn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_apeffn,"apeffn","1",tstr3Dc, tcstr, &
              "effective melt pond fraction, category",   &
              "none", c1, c0,                                  &
              ns, f_apeffn)
 
-        endif ! histfreq(ns) /= 'x'
+        endif ! histfreq(ns) == histfreq(ns)
       enddo ! ns
 
       endif ! tr_pond
@@ -247,10 +247,12 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice
       use ice_flux, only: apeff_ai
+      use ice_calendar, only: nstreams, histfreq
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, trcr, trcrn
 
+      integer (kind=int_kind) :: ns
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
 
@@ -290,45 +292,48 @@
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
 
+         do ns = 1, nstreams
+
          if (allocated(a2D)) then
+
          if (tr_pond_cesm) then
-         if (f_apond(1:1)/= 'x') &
+         if (f_apond(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_apond, iblk, &
                                    trcr(:,:,nt_apnd,iblk), a2D)
-         if (f_apond_ai(1:1)/= 'x') &
+         if (f_apond_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_apond_ai, iblk, &
                                    aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
-         if (f_hpond(1:1)/= 'x') &
+         if (f_hpond(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_hpond, iblk, &
                                    trcr(:,:,nt_apnd,iblk) &
                                  * trcr(:,:,nt_hpnd,iblk), a2D)
-         if (f_hpond_ai(1:1)/= 'x') &
+         if (f_hpond_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_hpond_ai, iblk, &
                                    aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
                                                   * trcr(:,:,nt_hpnd,iblk), a2D)
 
          elseif (tr_pond_lvl) then
-         if (f_apond(1:1)/= 'x') &
+         if (f_apond(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_apond, iblk, &
                             trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
-         if (f_apond_ai(1:1)/= 'x') &
+         if (f_apond_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_apond_ai, iblk, &
                             aice(:,:,iblk) &
                           * trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
-         if (f_hpond(1:1)/= 'x') &
+         if (f_hpond(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_hpond, iblk, &
                             trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
                                                    * trcr(:,:,nt_hpnd,iblk), a2D)
-         if (f_hpond_ai(1:1)/= 'x') &
+         if (f_hpond_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_hpond_ai, iblk, &
                             aice(:,:,iblk) &
                           * trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
                                                    * trcr(:,:,nt_hpnd,iblk), a2D)
-         if (f_ipond(1:1)/= 'x') &
+         if (f_ipond(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_ipond, iblk, &
                             trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
                                                    * trcr(:,:,nt_ipnd,iblk), a2D)
-         if (f_ipond_ai(1:1)/= 'x') &
+         if (f_ipond_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_ipond_ai, iblk, &
                             aice(:,:,iblk) &
                           * trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
@@ -336,25 +341,25 @@
 
          elseif (tr_pond_topo) then
 
-         if (f_apond(1:1)/= 'x') &
+         if (f_apond(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_apond, iblk, &
                                    trcr(:,:,nt_apnd,iblk), a2D)
-         if (f_apond_ai(1:1)/= 'x') &
+         if (f_apond_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_apond_ai, iblk, &
                                    aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
-         if (f_hpond(1:1)/= 'x') &
+         if (f_hpond(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_hpond, iblk, &
                                    trcr(:,:,nt_apnd,iblk) &
                                  * trcr(:,:,nt_hpnd,iblk), a2D)
-         if (f_hpond_ai(1:1)/= 'x') &
+         if (f_hpond_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_hpond_ai, iblk, &
                                    aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
                                                   * trcr(:,:,nt_hpnd,iblk), a2D)
-         if (f_ipond(1:1)/= 'x') &
+         if (f_ipond(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_ipond, iblk, &
                                    trcr(:,:,nt_apnd,iblk) &
                                  * trcr(:,:,nt_ipnd,iblk), a2D)
-         if (f_ipond_ai(1:1)/= 'x') &
+         if (f_ipond_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_ipond_ai, iblk, &
                                    aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
                                                   * trcr(:,:,nt_ipnd,iblk), a2D)
@@ -366,7 +371,7 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         if (f_apeff (1:1) /= 'x') then
+         if (f_apeff (ns:ns) == histfreq(ns)) then
              worka(:,:) = c0
              do j = jlo, jhi
              do i = ilo, ihi
@@ -376,24 +381,26 @@
              enddo
              call accum_hist_field(n_apeff, iblk, worka(:,:), a2D)
          endif
-         if (f_apeff_ai(1:1) /= 'x') &
+         if (f_apeff_ai(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_apeff_ai, iblk, apeff_ai(:,:,iblk), a2D)
 
          endif ! allocated(a2D)
 
          ! 3D category fields
          if (allocated(a3Dc)) then
-         if (f_apondn   (1:1) /= 'x') &
+         if (f_apondn   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_apondn-n2D, iblk, ncat_hist, &
                   trcrn(:,:,nt_apnd,1:ncat_hist,iblk), a3Dc)
-         if (f_apeffn (1:1) /= 'x') &
+         if (f_apeffn (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_apeffn-n2D,  iblk, ncat_hist, &
                   apeffn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_hpondn   (1:1) /= 'x') &
+         if (f_hpondn   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_hpondn-n2D, iblk, ncat_hist, &
                     trcrn(:,:,nt_apnd,1:ncat_hist,iblk) &
                   * trcrn(:,:,nt_hpnd,1:ncat_hist,iblk), a3Dc)
          endif ! allocated(a3Dc)
+
+         enddo ! ns
 
       end subroutine accum_hist_pond
 

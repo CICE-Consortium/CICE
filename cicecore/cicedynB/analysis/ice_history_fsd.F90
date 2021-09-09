@@ -73,7 +73,7 @@
       subroutine init_hist_fsd_2D
 
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: nstreams
+      use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
 
@@ -134,31 +134,31 @@
 
       do ns = 1, nstreams
 
-      if (f_wave_sig_ht(1:1) /= 'x') &
+      if (f_wave_sig_ht(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_wave_sig_ht,"wave_sig_ht","1",tstr2D, tcstr, &
              "significant height of wind and swell waves",  &
              "from attenuated spectrum in ice", c1, c0,     &
              ns, f_wave_sig_ht)
-      if (f_aice_ww(1:1) /= 'x') &
+      if (f_aice_ww(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_aice_ww,"aice_ww","1",tstr2D, tcstr, &
              "Concentration of floes > Dmin",               &
              "for waves", c1, c0,                           &
              ns, f_aice_ww)
-      if (f_diam_ww(1:1) /= 'x') &
+      if (f_diam_ww(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_diam_ww,"diam_ww","1",tstr2D, tcstr, &
              "Average (number) diameter of floes > Dmin",   &
              "for waves", c1, c0,                           &
              ns, f_diam_ww)
-      if (f_hice_ww(1:1) /= 'x') &
+      if (f_hice_ww(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_hice_ww,"hice_ww","m",tstr2D, tcstr, &
              "Thickness of floes > Dmin",                   &
              "for waves", c1, c0,                           &
              ns, f_hice_ww)
-      if (f_fsdrad(1:1) /= 'x') &
+      if (f_fsdrad(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_fsdrad,"fsdrad","m",tstr2D, tcstr, &
             "floe size distribution, representative radius",                  &
             " ", c1, c0, ns, f_fsdrad)
-      if (f_fsdperim(1:1) /= 'x') &
+      if (f_fsdperim(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_fsdperim,"fsdperim","1/m",tstr2D, tcstr, &
             "floe size distribution, perimeter",                  &
             "per unit ice area", c1, c0, ns, f_fsdperim)
@@ -211,33 +211,33 @@
       if (tr_fsd) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) /= 'x') then
+         if (histfreq(ns) == histfreq(ns)) then
 
-         if (f_afsd(1:1) /= 'x') &
+         if (f_afsd(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_afsd,"afsd", "1", tstr3Df, tcstr, &
                "areal floe size distribution",                 &
                "per unit bin width ", c1, c0, ns, f_afsd)
-         if (f_dafsd_newi(1:1) /= 'x') &
+         if (f_dafsd_newi(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_dafsd_newi,"dafsd_newi","1",tstr3Df, tcstr, &
                "Change in fsd: new ice",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_newi)
-         if (f_dafsd_latg(1:1) /= 'x') &
+         if (f_dafsd_latg(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_dafsd_latg,"dafsd_latg","1",tstr3Df, tcstr, &
                "Change in fsd: lateral growth",                &
                "Avg over freq period", c1, c0, ns, f_dafsd_latg)
-         if (f_dafsd_latm(1:1) /= 'x') &
+         if (f_dafsd_latm(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_dafsd_latm,"dafsd_latm","1",tstr3Df, tcstr, &
                "Change in fsd: lateral melt",                  &
                "Avg over freq period", c1, c0, ns, f_dafsd_latm)
-         if (f_dafsd_wave(1:1) /= 'x') &
+         if (f_dafsd_wave(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_dafsd_wave,"dafsd_wave","1",tstr3Df, tcstr, &
                "Change in fsd: waves",                         &
                "Avg over freq period", c1, c0, ns, f_dafsd_wave)
-         if (f_dafsd_weld(1:1) /= 'x') &
+         if (f_dafsd_weld(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_dafsd_weld,"dafsd_weld","1",tstr3Df, tcstr, &
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
-         endif ! if (histfreq(ns) /= 'x')
+         endif ! if (histfreq(ns) == histfreq(ns))
       enddo ! ns
 
       endif ! tr_fsd
@@ -267,14 +267,14 @@
       if (tr_fsd) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) /= 'x') then
+         if (histfreq(ns) == histfreq(ns)) then
 
-         if (f_afsdn(1:1) /= 'x') &
+         if (f_afsdn(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, & 
                "areal floe size and thickness distribution",    &
                "per unit bin width", c1, c0, ns, f_afsdn)
 
-         endif ! if (histfreq(ns) /= 'x') then
+         endif ! if (histfreq(ns) == histfreq(ns)) then
       enddo ! ns 
 
       endif ! tr_fsd
@@ -290,12 +290,14 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, c4
+      use ice_calendar, only: nstreams, histfreq
       use ice_history_shared, only: a2D, a3Df, a4Df, nfsd_hist, &
          ncat_hist, accum_hist_field, n3Dacum, n4Dscum
       use ice_state, only: trcrn, aicen_init, vicen, aice_init
       use ice_arrays_column, only: wave_sig_ht, floe_rad_c, floe_binwidth, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
 
+      integer (kind=int_kind) :: ns
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
 
@@ -323,6 +325,8 @@
 
       if (tr_fsd) then
 
+      do ns = 1, nstreams
+
       !---------------------------------------------------------------
       ! increment field
       !---------------------------------------------------------------
@@ -330,11 +334,11 @@
       ! 2D fields
       if (allocated(a2D)) then
 
-      if (f_wave_sig_ht(1:1)/= 'x') &
+      if (f_wave_sig_ht(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_wave_sig_ht,   iblk, &
                                wave_sig_ht(:,:,iblk), a2D)
 
-      if (f_aice_ww(1:1)/= 'x') then
+      if (f_aice_ww(ns:ns)== histfreq(ns)) then
          do j = 1, ny_block
          do i = 1, nx_block
             worka(i,j) = c0
@@ -348,7 +352,7 @@
          call accum_hist_field(n_aice_ww,   iblk, worka(:,:), a2D)
       endif
 
-      if (f_diam_ww (1:1) /= 'x') then
+      if (f_diam_ww (ns:ns) == histfreq(ns)) then
          do j = 1, ny_block
          do i = 1, nx_block
             worka(i,j) = c0
@@ -371,7 +375,7 @@
          call accum_hist_field(n_diam_ww, iblk, worka(:,:), a2D)
       endif
 
-      if (f_hice_ww (1:1) /= 'x') then
+      if (f_hice_ww (ns:ns) == histfreq(ns)) then
          do j = 1, ny_block
          do i = 1, nx_block
             worka(i,j) = c0
@@ -392,7 +396,7 @@
          call accum_hist_field(n_hice_ww, iblk, worka(:,:), a2D)
       endif
 
-      if (f_fsdrad(1:1) /= 'x') then
+      if (f_fsdrad(ns:ns) == histfreq(ns)) then
          do j = 1, ny_block
          do i = 1, nx_block
             worka(i,j) = c0            
@@ -410,7 +414,7 @@
          call accum_hist_field(n_fsdrad, iblk, worka(:,:), a2D)
       endif
 
-      if (f_fsdperim(1:1) /= 'x') then
+      if (f_fsdperim(ns:ns) == histfreq(ns)) then
          do j = 1, ny_block
          do i = 1, nx_block
             worka(i,j) = c0
@@ -433,7 +437,7 @@
       ! 3D category fields
       if (allocated(a3Df)) then
 
-      if (f_afsd(1:1) /= 'x') then
+      if (f_afsd(ns:ns) == histfreq(ns)) then
          do j = 1, ny_block
          do i = 1, nx_block
             do k = 1, nfsd_hist
@@ -448,19 +452,19 @@
          call accum_hist_field(n_afsd-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
  
-      if (f_dafsd_newi(1:1)/= 'x') &
+      if (f_dafsd_newi(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dafsd_newi-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_newi(:,:,1:nfsd_hist,iblk), a3Df)
-      if (f_dafsd_latg(1:1)/= 'x') &
+      if (f_dafsd_latg(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dafsd_latg-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_latg(:,:,1:nfsd_hist,iblk), a3Df)
-      if (f_dafsd_latm(1:1)/= 'x') &
+      if (f_dafsd_latm(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dafsd_latm-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_latm(:,:,1:nfsd_hist,iblk), a3Df)
-      if (f_dafsd_wave(1:1)/= 'x') &
+      if (f_dafsd_wave(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dafsd_wave-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_wave(:,:,1:nfsd_hist,iblk), a3Df)
-      if (f_dafsd_weld(1:1)/= 'x') &
+      if (f_dafsd_weld(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
       endif ! a3Df allocated
@@ -468,7 +472,7 @@
       ! 4D floe size, thickness category fields
       if (allocated(a4Df)) then
 
-      if (f_afsdn(1:1) /= 'x') then
+      if (f_afsdn(ns:ns) == histfreq(ns)) then
          do n = 1, ncat_hist
          do k = 1, nfsd_hist 
          do j = 1, ny_block
@@ -484,6 +488,8 @@
       endif
 
       endif ! a4Df allocated
+
+      enddo ! ns
 
       endif ! tr_fsd
 

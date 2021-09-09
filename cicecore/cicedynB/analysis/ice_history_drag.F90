@@ -61,7 +61,7 @@
       subroutine init_hist_drag_2D
 
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: nstreams
+      use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
 
@@ -111,116 +111,116 @@
 
       do ns = 1, nstreams
 
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_hfreebd,"hfreebd","m",tstr2D, tcstr, &
             "hfreebd: freeboard",                           &
             "none", c1, c0,            &
             ns, f_drag)
 
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_hdraft,"hdraft","m",tstr2D, tcstr, &
             "hdraft: draught",                           &
             "none", c1, c0,            &
             ns, f_drag)
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_hridge,"hridge","m",tstr2D, tcstr, &
             "hridge: ridge height",                          &
             "none", c1, c0,            &
             ns, f_drag)
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_distrdg,"distrdg","m",tstr2D, tcstr, &
             "distrdg: distance between ridges",  &
             "none", c1, c0,            &
             ns, f_drag)            
 
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_hkeel,"hkeel","m",tstr2D, tcstr, &
             "hkeel: keel depth",                           &
             "none", c1, c0,            &
             ns, f_drag)
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_dkeel,"dkeel","m",tstr2D, tcstr, &
             "dkeel: distance between keels", &
             "none", c1, c0,            &
             ns, f_drag)            
 
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_lfloe,"lfloe","m",tstr2D, tcstr, &
             "lfloe: floe length",         &
             "none", c1, c0,            &
             ns, f_drag)
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_dfloe,"dfloe","m",tstr2D, tcstr, &
             "dfloe: distance between floes", &
             "none", c1, c0,            &
             ns, f_drag)   
   
-       if (f_Cdn_atm(1:1) /= 'x') &
+       if (f_Cdn_atm(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_atm,"Cdn_atm","none",tstr2D, tcstr, &
             "Ca: total ice-atm drag coefficient", &
             "none", c1, c0,            &
             ns, f_Cdn_atm)
 
-       if (f_Cdn_ocn(1:1) /= 'x') &
+       if (f_Cdn_ocn(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_ocn,"Cdn_ocn","none",tstr2D, tcstr, &
             "Cdn_ocn: total ice-ocn drag coefficient", &
             "none", c1, c0,            &
             ns, f_Cdn_ocn)
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_atm_skin,"Cdn_atm_skin","none", &
             tstr2D, tcstr, &
             "Cdn_atm_skin: neutral skin ice-atm drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_atm_floe,"Cdn_atm_floe","none", &
             tstr2D, tcstr, &
             "Cdn_atm_floe: neutral floe edge ice-atm drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)            
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_atm_pond,"Cdn_atm_pond","none", &
             tstr2D, tcstr, &
             "Cdn_atm_pond: neutral pond edge ice-atm drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
             
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_atm_rdg,"Cdn_atm_rdg","none", &
             tstr2D, tcstr, &
             "Cdn_atm_rdg: neutral ridge ice-atm drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
             
-        if (f_drag(1:1) /= 'x') &
+        if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_ocn_skin,"Cdn_ocn_skin","none", &
             tstr2D, tcstr, &
             "Cdn_ocn_skin: neutral skin ice-ocn drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_ocn_floe,"Cdn_ocn_floe","none", &
             tstr2D, tcstr, &
             "Cdn_ocn_floe: neutral floe edge ice-ocn drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)            
  
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_ocn_keel,"Cdn_ocn_keel","none", &
             tstr2D, tcstr, &
             "Cdn_ocn_keel: neutral keel ice-ocn drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
 
-       if (f_drag(1:1) /= 'x') &
+       if (f_drag(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_Cdn_atm_ratio,"Cdn_atm_ratio", &
             "none",tstr2D, tcstr, &
             "Cdn_atm_ratio: ratio total drag / neutral drag (atm)", &
@@ -239,12 +239,14 @@
 
       subroutine accum_hist_drag (iblk)
 
+      use ice_calendar, only: nstreams, histfreq
       use ice_history_shared, only: a2D, accum_hist_field
       use ice_arrays_column, only: hfreebd, hdraft, hridge, distrdg, hkeel, &
           dkeel, lfloe, dfloe, Cdn_atm, Cdn_atm_skin, Cdn_atm_floe, &
           Cdn_atm_pond, Cdn_atm_rdg, Cdn_atm_ratio, Cdn_ocn_skin, &
           Cdn_ocn_keel, Cdn_ocn_floe, Cdn_ocn
 
+      integer (kind=int_kind) :: ns
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
       logical (kind=log_kind) :: formdrag
@@ -263,11 +265,13 @@
 
       ! 2D fields
 
-      if (f_Cdn_atm     (1:1) /= 'x') &
+      do ns = 1, nstreams
+
+      if (f_Cdn_atm     (ns:ns) == histfreq(ns)) &
         call accum_hist_field(n_Cdn_atm, iblk, Cdn_atm(:,:,iblk), a2D)
-      if (f_Cdn_ocn     (1:1) /= 'x') &
+      if (f_Cdn_ocn     (ns:ns) == histfreq(ns)) &
         call accum_hist_field(n_Cdn_ocn, iblk, Cdn_ocn(:,:,iblk), a2D)
-      if (f_drag     (1:1) /= 'x') then
+      if (f_drag     (ns:ns) == histfreq(ns)) then
         call accum_hist_field(n_hfreebd, iblk, hfreebd(:,:,iblk), a2D)
         call accum_hist_field(n_hdraft, iblk, hdraft(:,:,iblk), a2D)
         call accum_hist_field(n_hridge, iblk, hridge(:,:,iblk), a2D)
@@ -293,6 +297,8 @@
         call accum_hist_field(n_Cdn_ocn_skin, &
                               iblk, Cdn_ocn_skin(:,:,iblk), a2D)  
       end if
+
+      enddo ! ns
 
       endif ! formdrag
 

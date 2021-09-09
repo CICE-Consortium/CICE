@@ -201,7 +201,7 @@
 
      ! Turn on all CMIP fields in one go.
 
-      if (f_CMIP(1:1) /= 'x') then
+      if (f_CMIP(ns:ns) /= 'x') then
          f_sithick = 'mxxxx'
          f_sisnthick = 'mxxxx'
          f_siage = 'mxxxx'
@@ -1624,6 +1624,9 @@
         write(nu_diag,*) 'The following variables will be ', &
                          'written to the history tape: '
         write(nu_diag,101) 'description','units','variable','frequency','x'
+
+        if (num_avail_hist_fields_tot == 0) &
+           write(nu_diag,*) '*** WARNING: NO HISTORY FIELDS WILL BE WRITTEN ***'
         do n=1,num_avail_hist_fields_tot
            if (avail_hist_fields(n)%vhistfreq_n /= 0) &
            write(nu_diag,100) avail_hist_fields(n)%vdesc, &
@@ -1897,31 +1900,31 @@
 
          workb(:,:) = aice_init(:,:,iblk)
 
-!        if (f_example(1:1) /= 'x') &
+!        if (f_example(ns:ns) == histfreq(ns)) &
 !            call accum_hist_field(n_example,iblk, vice(:,:,iblk), a2D)
-         if (f_hi     (1:1) /= 'x') &
+         if (f_hi     (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_hi,     iblk, vice(:,:,iblk), a2D)
-         if (f_hs     (1:1) /= 'x') &
+         if (f_hs     (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_hs,     iblk, vsno(:,:,iblk), a2D)
-         if (f_snowfrac(1:1) /= 'x') &
+         if (f_snowfrac(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_snowfrac, iblk, snowfrac(:,:,iblk), a2D)
-         if (f_Tsfc   (1:1) /= 'x') &
+         if (f_Tsfc   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_Tsfc,   iblk, trcr(:,:,nt_Tsfc,iblk), a2D)
-         if (f_aice   (1:1) /= 'x') &
+         if (f_aice   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_aice,   iblk, aice(:,:,iblk), a2D)
-         if (f_uvel   (1:1) /= 'x') &
+         if (f_uvel   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_uvel,   iblk, uvel(:,:,iblk), a2D)
-         if (f_vvel   (1:1) /= 'x') &
+         if (f_vvel   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_vvel,   iblk, vvel(:,:,iblk), a2D)
-         if (f_uatm   (1:1) /= 'x') &
+         if (f_uatm   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_uatm,   iblk, uatm(:,:,iblk), a2D)
-         if (f_vatm   (1:1) /= 'x') &
+         if (f_vatm   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_vatm,   iblk, vatm(:,:,iblk), a2D)
-         if (f_atmspd   (1:1) /= 'x') &
+         if (f_atmspd   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_atmspd,   iblk, sqrt( &
                                   (uatm(:,:,iblk)*uatm(:,:,iblk)) + &
                                   (vatm(:,:,iblk)*vatm(:,:,iblk))), a2D)
-         if (f_atmdir(1:1) /= 'x') then
+         if (f_atmdir(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -1932,7 +1935,7 @@
            enddo
            call accum_hist_field(n_atmdir, iblk, worka(:,:), a2D)
          endif
-         if (f_sice   (1:1) /= 'x') then
+         if (f_sice   (ns:ns) == histfreq(ns)) then
              do j = jlo, jhi
              do i = ilo, ihi
                 worka(i,j) = c0
@@ -1945,35 +1948,35 @@
              call accum_hist_field(n_sice,   iblk, worka(:,:), a2D)
          endif
 
-         if (f_fswup(1:1) /= 'x') &
+         if (f_fswup(ns:ns) == histfreq(ns)) &
             call accum_hist_field(n_fswup, iblk, &
                  (fsw(:,:,iblk)-fswabs(:,:,iblk)*workb(:,:)), a2D)
-         if (f_fswdn  (1:1) /= 'x') &
+         if (f_fswdn  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fswdn,  iblk, fsw(:,:,iblk), a2D)
-         if (f_flwdn  (1:1) /= 'x') &
+         if (f_flwdn  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_flwdn,  iblk, flw(:,:,iblk), a2D)
-         if (f_snow   (1:1) /= 'x') &
+         if (f_snow   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_snow,   iblk, fsnow(:,:,iblk), a2D)
-         if (f_snow_ai(1:1) /= 'x') &
+         if (f_snow_ai(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_snow_ai,iblk, fsnow(:,:,iblk)*workb(:,:), a2D)
-         if (f_rain   (1:1) /= 'x') &
+         if (f_rain   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_rain,   iblk, frain(:,:,iblk), a2D)
-         if (f_rain_ai(1:1) /= 'x') &
+         if (f_rain_ai(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_rain_ai,iblk, frain(:,:,iblk)*workb(:,:), a2D)
 
-         if (f_sst    (1:1) /= 'x') &
+         if (f_sst    (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_sst,    iblk, sst(:,:,iblk), a2D)
-         if (f_sss    (1:1) /= 'x') &
+         if (f_sss    (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_sss,    iblk, sss(:,:,iblk), a2D)
-         if (f_uocn   (1:1) /= 'x') &
+         if (f_uocn   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_uocn,   iblk, uocn(:,:,iblk), a2D)
-         if (f_vocn   (1:1) /= 'x') &
+         if (f_vocn   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_vocn,   iblk, vocn(:,:,iblk), a2D)
-         if (f_ocnspd   (1:1) /= 'x') &
+         if (f_ocnspd   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_ocnspd,   iblk, sqrt( &
                                   (uocn(:,:,iblk)*uocn(:,:,iblk)) + &
                                   (vocn(:,:,iblk)*vocn(:,:,iblk))), a2D)
-         if (f_ocndir(1:1) /= 'x') then
+         if (f_ocndir(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -1988,174 +1991,174 @@
            enddo
            call accum_hist_field(n_ocndir, iblk, worka(:,:), a2D)
          endif
-         if (f_frzmlt (1:1) /= 'x') &
+         if (f_frzmlt (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_frzmlt, iblk, frzmlt_init(:,:,iblk), a2D)
 
-         if (f_fswfac (1:1) /= 'x') &
+         if (f_fswfac (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fswfac, iblk, scale_factor(:,:,iblk), a2D)
-         if (f_fswabs (1:1) /= 'x') &
+         if (f_fswabs (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fswabs, iblk, fswabs(:,:,iblk), a2D)
 
-         if (f_fswint_ai (1:1) /= 'x') &
+         if (f_fswint_ai (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fswint_ai, iblk, fswint_ai(:,:,iblk), a2D)
 
-         if (f_fswabs_ai(1:1)/= 'x') &
+         if (f_fswabs_ai(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fswabs_ai, iblk, fswabs(:,:,iblk)*workb(:,:), a2D)
 
-         if (f_albsni (1:1) /= 'x') &
+         if (f_albsni (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_albsni, iblk, &
                                   (awtvdr*alvdr(:,:,iblk) &
                                  + awtidr*alidr(:,:,iblk) &
                                  + awtvdf*alvdf(:,:,iblk) &
                                  + awtidf*alidf(:,:,iblk))*workb(:,:), a2D)
-         if (f_alvdr  (1:1) /= 'x') &
+         if (f_alvdr  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_alvdr,  iblk, alvdr(:,:,iblk), a2D)
-         if (f_alidr  (1:1) /= 'x') &
+         if (f_alidr  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_alidr,  iblk, alidr(:,:,iblk), a2D)
-         if (f_alvdf  (1:1) /= 'x') &
+         if (f_alvdf  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_alvdf,  iblk, alvdf(:,:,iblk), a2D)
-         if (f_alidf  (1:1) /= 'x') &
+         if (f_alidf  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_alidf,  iblk, alidf(:,:,iblk), a2D)
-         if (f_alvdr_ai  (1:1) /= 'x') &
+         if (f_alvdr_ai  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_alvdr_ai,  iblk, alvdr_ai(:,:,iblk), a2D)
-         if (f_alidr_ai  (1:1) /= 'x') &
+         if (f_alidr_ai  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_alidr_ai,  iblk, alidr_ai(:,:,iblk), a2D)
-         if (f_alvdf_ai  (1:1) /= 'x') &
+         if (f_alvdf_ai  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_alvdf_ai,  iblk, alvdf_ai(:,:,iblk), a2D)
-         if (f_alidf_ai  (1:1) /= 'x') &
+         if (f_alidf_ai  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_alidf_ai,  iblk, alidf_ai(:,:,iblk), a2D)
 
-         if (f_albice (1:1) /= 'x') &
+         if (f_albice (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_albice, iblk, albice(:,:,iblk), a2D)
-         if (f_albsno (1:1) /= 'x') &
+         if (f_albsno (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_albsno, iblk, albsno(:,:,iblk), a2D)
-         if (f_albpnd (1:1) /= 'x') &
+         if (f_albpnd (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_albpnd, iblk, albpnd(:,:,iblk), a2D)
-         if (f_coszen (1:1) /= 'x') &
+         if (f_coszen (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_coszen, iblk, coszen(:,:,iblk), a2D)
 
-         if (f_flat   (1:1) /= 'x') &
+         if (f_flat   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_flat,   iblk, flat(:,:,iblk), a2D)
-         if (f_flat_ai(1:1) /= 'x') &
+         if (f_flat_ai(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_flat_ai,iblk, flat(:,:,iblk)*workb(:,:), a2D)
-         if (f_fsens  (1:1) /= 'x') &
+         if (f_fsens  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fsens,   iblk, fsens(:,:,iblk), a2D)
-         if (f_fsens_ai(1:1)/= 'x') &
+         if (f_fsens_ai(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fsens_ai,iblk, fsens(:,:,iblk)*workb(:,:), a2D)
-         if (f_flwup  (1:1) /= 'x') &
+         if (f_flwup  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_flwup,   iblk, flwout(:,:,iblk), a2D)
-         if (f_flwup_ai(1:1)/= 'x') &
+         if (f_flwup_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_flwup_ai,iblk, flwout(:,:,iblk)*workb(:,:), a2D)
-         if (f_evap   (1:1) /= 'x') &
+         if (f_evap   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_evap,   iblk, evap(:,:,iblk), a2D)
-         if (f_evap_ai(1:1) /= 'x') &
+         if (f_evap_ai(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_evap_ai,iblk, evap(:,:,iblk)*workb(:,:), a2D)
 
-         if (f_Tair   (1:1) /= 'x') &
+         if (f_Tair   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_Tair,   iblk, Tair(:,:,iblk), a2D)
-         if (f_Tref   (1:1) /= 'x') &
+         if (f_Tref   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_Tref,   iblk, Tref(:,:,iblk), a2D)
-         if (f_Qref   (1:1) /= 'x') &
+         if (f_Qref   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_Qref,   iblk, Qref(:,:,iblk), a2D)
-         if (f_congel (1:1) /= 'x') &
+         if (f_congel (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_congel, iblk, congel(:,:,iblk), a2D)
-         if (f_frazil (1:1) /= 'x') &
+         if (f_frazil (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_frazil, iblk, frazil(:,:,iblk), a2D)
-         if (f_snoice (1:1) /= 'x') &
+         if (f_snoice (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_snoice, iblk, snoice(:,:,iblk), a2D)
-         if (f_dsnow (1:1) /= 'x') &
+         if (f_dsnow (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_dsnow, iblk, dsnow(:,:,iblk), a2D)
-         if (f_meltt  (1:1) /= 'x') &
+         if (f_meltt  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_meltt,  iblk, meltt(:,:,iblk), a2D)
-         if (f_melts  (1:1) /= 'x') &
+         if (f_melts  (ns:ns) == histfreq(ns)) &
               call accum_hist_field(n_melts,  iblk, melts(:,:,iblk), a2D)
-         if (f_meltb  (1:1) /= 'x') &
+         if (f_meltb  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_meltb,  iblk, meltb(:,:,iblk), a2D)
-         if (f_meltl  (1:1) /= 'x') &
+         if (f_meltl  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_meltl,  iblk, meltl(:,:,iblk), a2D)
 
-         if (f_fresh  (1:1) /= 'x') &
+         if (f_fresh  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fresh,   iblk, fresh(:,:,iblk), a2D)
-         if (f_fresh_ai(1:1)/= 'x') &
+         if (f_fresh_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_fresh_ai,iblk, fresh_ai(:,:,iblk), a2D)
-         if (f_fsalt  (1:1) /= 'x') &
+         if (f_fsalt  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fsalt,   iblk, fsalt(:,:,iblk), a2D)
-         if (f_fsalt_ai(1:1)/= 'x') &
+         if (f_fsalt_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_fsalt_ai,iblk, fsalt_ai(:,:,iblk), a2D)
 
-         if (f_fbot(1:1)/= 'x') &
+         if (f_fbot(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_fbot,iblk, fbot(:,:,iblk), a2D)
-         if (f_fhocn  (1:1) /= 'x') &
+         if (f_fhocn  (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fhocn,   iblk, fhocn(:,:,iblk), a2D)
-         if (f_fhocn_ai(1:1)/= 'x') &
+         if (f_fhocn_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_fhocn_ai,iblk, fhocn_ai(:,:,iblk), a2D)
-         if (f_fswthru(1:1) /= 'x') &
+         if (f_fswthru(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fswthru, iblk, fswthru(:,:,iblk), a2D)
-         if (f_fswthru_ai(1:1)/= 'x') &
+         if (f_fswthru_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_fswthru_ai,iblk, fswthru_ai(:,:,iblk), a2D)
                
-         if (f_strairx(1:1) /= 'x') &
+         if (f_strairx(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strairx, iblk, strairx(:,:,iblk), a2D)
-         if (f_strairy(1:1) /= 'x') &
+         if (f_strairy(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strairy, iblk, strairy(:,:,iblk), a2D)
-         if (f_strtltx(1:1) /= 'x') &
+         if (f_strtltx(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strtltx, iblk, strtltx(:,:,iblk), a2D)
-         if (f_strtlty(1:1) /= 'x') &
+         if (f_strtlty(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strtlty, iblk, strtlty(:,:,iblk), a2D)
-         if (f_strcorx(1:1) /= 'x') &
+         if (f_strcorx(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strcorx, iblk, fm(:,:,iblk)*vvel(:,:,iblk), a2D)
-         if (f_strcory(1:1) /= 'x') &
+         if (f_strcory(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strcory, iblk,-fm(:,:,iblk)*uvel(:,:,iblk), a2D)
-         if (f_strocnx(1:1) /= 'x') &
+         if (f_strocnx(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strocnx, iblk, strocnx(:,:,iblk), a2D)
-         if (f_strocny(1:1) /= 'x') &
+         if (f_strocny(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strocny, iblk, strocny(:,:,iblk), a2D)
-         if (f_strintx(1:1) /= 'x') &
+         if (f_strintx(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strintx, iblk, strintx(:,:,iblk), a2D)
-         if (f_strinty(1:1) /= 'x') &
+         if (f_strinty(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_strinty, iblk, strinty(:,:,iblk), a2D)
-         if (f_taubx(1:1) /= 'x') &
+         if (f_taubx(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_taubx, iblk, taubx(:,:,iblk), a2D)
-         if (f_tauby(1:1) /= 'x') &
+         if (f_tauby(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_tauby, iblk, tauby(:,:,iblk), a2D)
-         if (f_strength(1:1)/= 'x') &
+         if (f_strength(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_strength,iblk, strength(:,:,iblk), a2D)
 
 ! The following fields (divu, shear, sig1, and sig2) will be smeared
 !  if averaged over more than a few days.
 ! Snapshots may be more useful (see below).
 
-!        if (f_divu   (1:1) /= 'x') &
+!        if (f_divu   (ns:ns) == histfreq(ns)) &
 !             call accum_hist_field(n_divu,    iblk, divu(:,:,iblk), a2D)
-!        if (f_shear  (1:1) /= 'x') &
+!        if (f_shear  (ns:ns) == histfreq(ns)) &
 !             call accum_hist_field(n_shear,   iblk, shear(:,:,iblk), a2D)
-!        if (f_sig1   (1:1) /= 'x') &
+!        if (f_sig1   (ns:ns) == histfreq(ns)) &
 !             call accum_hist_field(n_sig1,    iblk, sig1(:,:,iblk), a2D)
-!        if (f_sig2   (1:1) /= 'x') &
+!        if (f_sig2   (ns:ns) == histfreq(ns)) &
 !             call accum_hist_field(n_sig2,    iblk, sig2(:,:,iblk), a2D)
-!        if (f_trsig  (1:1) /= 'x') &
+!        if (f_trsig  (ns:ns) == histfreq(ns)) &
 !             call accum_hist_field(n_trsig,   iblk, trsig(:,:,iblk), a2D)
 
-         if (f_dvidtt (1:1) /= 'x') &
+         if (f_dvidtt (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_dvidtt,  iblk, dvidtt(:,:,iblk), a2D)
-         if (f_dvidtd (1:1) /= 'x') &
+         if (f_dvidtd (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_dvidtd,  iblk, dvidtd(:,:,iblk), a2D)
-         if (f_daidtt (1:1) /= 'x') &
+         if (f_daidtt (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_daidtt,  iblk, daidtt(:,:,iblk), a2D)
-         if (f_daidtd (1:1) /= 'x') &
+         if (f_daidtd (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_daidtd,  iblk, daidtd(:,:,iblk), a2D)
-         if (f_dagedtt (1:1) /= 'x') &
+         if (f_dagedtt (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_dagedtt, iblk, dagedtt(:,:,iblk), a2D)
-         if (f_dagedtd (1:1) /= 'x') &
+         if (f_dagedtd (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_dagedtd, iblk, dagedtd(:,:,iblk), a2D)
 
-         if (f_fsurf_ai(1:1)/= 'x') &
+         if (f_fsurf_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_fsurf_ai,iblk, fsurf(:,:,iblk)*workb(:,:), a2D)
-         if (f_fcondtop_ai(1:1)/= 'x') &
+         if (f_fcondtop_ai(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_fcondtop_ai, iblk, &
                                                  fcondtop(:,:,iblk)*workb(:,:), a2D)
 
-         if (f_icepresent(1:1) /= 'x') then
+         if (f_icepresent(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2167,7 +2170,7 @@
 
          ! 2D CMIP fields
 
-         if (f_sithick(1:1) /= 'x') then
+         if (f_sithick(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2177,7 +2180,7 @@
            call accum_hist_field(n_sithick, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siage(1:1) /= 'x') then
+         if (f_siage(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2187,7 +2190,7 @@
            call accum_hist_field(n_siage, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sisnthick(1:1) /= 'x') then
+         if (f_sisnthick(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2198,7 +2201,7 @@
            call accum_hist_field(n_sisnthick, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sitemptop(1:1) /= 'x') then
+         if (f_sitemptop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2209,7 +2212,7 @@
            call accum_hist_field(n_sitemptop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sitempsnic(1:1) /= 'x') then
+         if (f_sitempsnic(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2223,7 +2226,7 @@
            call accum_hist_field(n_sitempsnic, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sitempbot(1:1) /= 'x') then
+         if (f_sitempbot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2234,7 +2237,7 @@
            call accum_hist_field(n_sitempbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siu(1:1) /= 'x') then
+         if (f_siu(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2244,7 +2247,7 @@
            call accum_hist_field(n_siu, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siv(1:1) /= 'x') then
+         if (f_siv(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2254,7 +2257,7 @@
            call accum_hist_field(n_siv, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sispeed(1:1) /= 'x') then
+         if (f_sispeed(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2264,7 +2267,7 @@
            enddo
            call accum_hist_field(n_sispeed, iblk, worka(:,:), a2D)
          endif
-         if (f_sidir(1:1) /= 'x') then
+         if (f_sidir(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2279,7 +2282,7 @@
            enddo
            call accum_hist_field(n_sidir, iblk, worka(:,:), a2D)
          endif
-         if (f_sidmasstranx(1:1) /= 'x') then
+         if (f_sidmasstranx(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2292,7 +2295,7 @@
            call accum_hist_field(n_sidmasstranx, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmasstrany(1:1) /= 'x') then
+         if (f_sidmasstrany(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2305,7 +2308,7 @@
            call accum_hist_field(n_sidmasstrany, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sistrxdtop(1:1) /= 'x') then
+         if (f_sistrxdtop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2316,7 +2319,7 @@
            call accum_hist_field(n_sistrxdtop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sistrydtop(1:1) /= 'x') then
+         if (f_sistrydtop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2327,7 +2330,7 @@
            call accum_hist_field(n_sistrydtop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sistrxubot(1:1) /= 'x') then
+         if (f_sistrxubot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2338,7 +2341,7 @@
            call accum_hist_field(n_sistrxubot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sistryubot(1:1) /= 'x') then
+         if (f_sistryubot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2349,7 +2352,7 @@
            call accum_hist_field(n_sistryubot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sicompstren(1:1) /= 'x') then
+         if (f_sicompstren(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2360,7 +2363,7 @@
            call accum_hist_field(n_sicompstren, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sialb(1:1) /= 'x') then
+         if (f_sialb(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2373,7 +2376,7 @@
            call accum_hist_field(n_sialb, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sihc(1:1) /= 'x') then
+         if (f_sihc(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do k = 1,nzilyr
            do j = jlo, jhi
@@ -2385,7 +2388,7 @@
            call accum_hist_field(n_sihc, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sisnhc(1:1) /= 'x') then
+         if (f_sisnhc(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do k = 1,nzslyr
            do j = jlo, jhi
@@ -2397,7 +2400,7 @@
            call accum_hist_field(n_sisnhc, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidconcth(1:1) /= 'x') then
+         if (f_sidconcth(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2409,7 +2412,7 @@
            call accum_hist_field(n_sidconcth, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidconcdyn(1:1) /= 'x') then
+         if (f_sidconcdyn(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2421,7 +2424,7 @@
            call accum_hist_field(n_sidconcdyn, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmassth(1:1) /= 'x') then
+         if (f_sidmassth(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2433,7 +2436,7 @@
            call accum_hist_field(n_sidmassth, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmassdyn(1:1) /= 'x') then
+         if (f_sidmassdyn(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2445,7 +2448,7 @@
            call accum_hist_field(n_sidmassdyn, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmassgrowthwat(1:1) /= 'x') then
+         if (f_sidmassgrowthwat(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2457,7 +2460,7 @@
            call accum_hist_field(n_sidmassgrowthwat, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmassgrowthbot(1:1) /= 'x') then
+         if (f_sidmassgrowthbot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2469,7 +2472,7 @@
            call accum_hist_field(n_sidmassgrowthbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmasssi(1:1) /= 'x') then
+         if (f_sidmasssi(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2481,7 +2484,7 @@
            call accum_hist_field(n_sidmasssi, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmassevapsubl(1:1) /= 'x') then
+         if (f_sidmassevapsubl(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2493,7 +2496,7 @@
            call accum_hist_field(n_sidmassevapsubl, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmassmelttop(1:1) /= 'x') then
+         if (f_sidmassmelttop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2505,7 +2508,7 @@
            call accum_hist_field(n_sidmassmelttop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmassmeltbot(1:1) /= 'x') then
+         if (f_sidmassmeltbot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2517,7 +2520,7 @@
            call accum_hist_field(n_sidmassmeltbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmasslat(1:1) /= 'x') then
+         if (f_sidmasslat(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2529,7 +2532,7 @@
            call accum_hist_field(n_sidmasslat, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sndmasssubl(1:1) /= 'x') then
+         if (f_sndmasssubl(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2541,7 +2544,7 @@
            call accum_hist_field(n_sndmasssubl, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sndmasssnf(1:1) /= 'x') then
+         if (f_sndmasssnf(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2553,7 +2556,7 @@
            call accum_hist_field(n_sndmasssnf, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sndmassmelt(1:1) /= 'x') then
+         if (f_sndmassmelt(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2565,7 +2568,7 @@
            call accum_hist_field(n_sndmassmelt, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflswdtop(1:1) /= 'x') then
+         if (f_siflswdtop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2577,7 +2580,7 @@
            call accum_hist_field(n_siflswdtop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflswutop(1:1) /= 'x') then
+         if (f_siflswutop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2590,7 +2593,7 @@
            call accum_hist_field(n_siflswutop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflswdbot(1:1) /= 'x') then
+         if (f_siflswdbot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2602,7 +2605,7 @@
            call accum_hist_field(n_siflswdbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sifllwdtop(1:1) /= 'x') then
+         if (f_sifllwdtop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2614,7 +2617,7 @@
            call accum_hist_field(n_sifllwdtop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sifllwutop(1:1) /= 'x') then
+         if (f_sifllwutop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2626,7 +2629,7 @@
            call accum_hist_field(n_sifllwutop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflsenstop(1:1) /= 'x') then
+         if (f_siflsenstop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2638,7 +2641,7 @@
            call accum_hist_field(n_siflsenstop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflsensupbot(1:1) /= 'x') then
+         if (f_siflsensupbot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2650,7 +2653,7 @@
            call accum_hist_field(n_siflsensupbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sifllatstop(1:1) /= 'x') then
+         if (f_sifllatstop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2662,7 +2665,7 @@
            call accum_hist_field(n_sifllatstop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflcondtop(1:1) /= 'x') then
+         if (f_siflcondtop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2674,7 +2677,7 @@
            call accum_hist_field(n_siflcondtop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflcondbot(1:1) /= 'x') then
+         if (f_siflcondbot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2686,7 +2689,7 @@
            call accum_hist_field(n_siflcondbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sipr(1:1) /= 'x') then
+         if (f_sipr(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2698,7 +2701,7 @@
            call accum_hist_field(n_sipr, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sifb(1:1) /= 'x') then
+         if (f_sifb(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            rho_ice = rhoi
            rho_ocn = rhow
@@ -2728,7 +2731,7 @@
            call accum_hist_field(n_sifb, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflsaltbot(1:1) /= 'x') then
+         if (f_siflsaltbot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2749,7 +2752,7 @@
            call accum_hist_field(n_siflsaltbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflfwbot(1:1) /= 'x') then
+         if (f_siflfwbot(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2770,7 +2773,7 @@
            call accum_hist_field(n_siflfwbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siflfwdrain(1:1) /= 'x') then
+         if (f_siflfwdrain(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2782,7 +2785,7 @@
            call accum_hist_field(n_siflfwdrain, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidragtop(1:1) /= 'x') then
+         if (f_sidragtop(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2794,7 +2797,7 @@
            call accum_hist_field(n_sidragtop, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sirdgthick(1:1) /= 'x') then
+         if (f_sirdgthick(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2807,7 +2810,7 @@
            call accum_hist_field(n_sirdgthick, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siforcetiltx(1:1) /= 'x') then
+         if (f_siforcetiltx(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2819,7 +2822,7 @@
            call accum_hist_field(n_siforcetiltx, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siforcetilty(1:1) /= 'x') then
+         if (f_siforcetilty(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2831,7 +2834,7 @@
            call accum_hist_field(n_siforcetilty, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siforcecoriolx(1:1) /= 'x') then
+         if (f_siforcecoriolx(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2843,7 +2846,7 @@
            call accum_hist_field(n_siforcecoriolx, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siforcecorioly(1:1) /= 'x') then
+         if (f_siforcecorioly(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2855,7 +2858,7 @@
            call accum_hist_field(n_siforcecorioly, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siforceintstrx(1:1) /= 'x') then
+         if (f_siforceintstrx(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2867,7 +2870,7 @@
            call accum_hist_field(n_siforceintstrx, iblk, worka(:,:), a2D)
          endif
 
-         if (f_siforceintstry(1:1) /= 'x') then
+         if (f_siforceintstry(ns:ns) == histfreq(ns)) then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2880,44 +2883,44 @@
          endif
 
          ! 3D category fields
-         if (f_aicen   (1:1) /= 'x') &
+         if (f_aicen   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_aicen-n2D, iblk, ncat_hist, &
                                    aicen(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_vicen   (1:1) /= 'x') &
+         if (f_vicen   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_vicen-n2D, iblk, ncat_hist, &
                                    vicen(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_vsnon   (1:1) /= 'x') &
+         if (f_vsnon   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_vsnon-n2D, iblk, ncat_hist, &
                                    vsnon(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_snowfracn(1:1) /= 'x') &
+         if (f_snowfracn(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_snowfracn-n2D, iblk, ncat_hist, &
                                    snowfracn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_snowfracn(1:1) /= 'x') &
+         if (f_snowfracn(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_snowfracn-n2D, iblk, ncat_hist, &
                                    snowfracn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_keffn_top (1:1) /= 'x') &
+         if (f_keffn_top (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_keffn_top-n2D, iblk, ncat_hist, &
                                    keffn_top(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_fsurfn_ai   (1:1) /= 'x') &
+         if (f_fsurfn_ai   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fsurfn_ai-n2D, iblk, ncat_hist, &
                   fsurfn(:,:,1:ncat_hist,iblk)*aicen_init(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_fcondtopn_ai   (1:1) /= 'x') &
+         if (f_fcondtopn_ai   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fcondtopn_ai-n2D, iblk, ncat_hist, &
                   fcondtopn(:,:,1:ncat_hist,iblk)*aicen_init(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_flatn_ai   (1:1) /= 'x') &
+         if (f_flatn_ai   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_flatn_ai-n2D, iblk, ncat_hist, &
                   flatn(:,:,1:ncat_hist,iblk)*aicen_init(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_fsensn_ai   (1:1) /= 'x') &
+         if (f_fsensn_ai   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fsensn_ai-n2D, iblk, ncat_hist, &
                   fsensn(:,:,1:ncat_hist,iblk)*aicen_init(:,:,1:ncat_hist,iblk), a3Dc)
          ! Calculate surface heat flux that causes melt (calculated by the 
          ! atmos in HadGEM3 so needed for checking purposes)
-         if (f_fmelttn_ai   (1:1) /= 'x') &
+         if (f_fmelttn_ai   (ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_fmelttn_ai-n2D, iblk, ncat_hist, &
                   max(fsurfn(:,:,1:ncat_hist,iblk) - fcondtopn(:,:,1:ncat_hist,iblk),c0) &
                       *aicen_init(:,:,1:ncat_hist,iblk), a3Dc)
 
-         if (f_siitdconc   (1:1) /= 'x') then
+         if (f_siitdconc   (ns:ns) == histfreq(ns)) then
            worka3(:,:,:) = c0
            do n = 1,ncat_hist
            do j = jlo, jhi
@@ -2931,7 +2934,7 @@
            call accum_hist_field(n_siitdconc-n2D, iblk, ncat_hist, worka3(:,:,:), a3Dc)
          endif
 
-         if (f_siitdthick   (1:1) /= 'x') then
+         if (f_siitdthick   (ns:ns) == histfreq(ns)) then
            worka3(:,:,:) = c0
            do n = 1,ncat_hist
            do j = jlo, jhi
@@ -2945,7 +2948,7 @@
            call accum_hist_field(n_siitdthick-n2D, iblk, ncat_hist, worka3(:,:,:), a3Dc)
          endif
 
-         if (f_siitdsnthick   (1:1) /= 'x') then
+         if (f_siitdsnthick   (ns:ns) == histfreq(ns)) then
            worka3(:,:,:) = c0
            do n = 1,ncat_hist
            do j = jlo, jhi
@@ -2960,12 +2963,12 @@
          endif
 
 ! example for 3D field (x,y,z)
-!         if (f_field3dz   (1:1) /= 'x') &
+!         if (f_field3dz   (ns:ns) == histfreq(ns)) &
 !             call accum_hist_field(n_field3dz-n3Dccum, iblk, nzilyr, &
 !                                   field3dz(:,:,1:nzilyr,iblk), a3Dz)
 
          ! 4D category fields
-         if (f_Tinz   (1:1) /= 'x') then
+         if (f_Tinz   (ns:ns) == histfreq(ns)) then
             Tinz4d(:,:,:,:) = c0
             do n = 1, ncat_hist
                do j = jlo, jhi
@@ -2981,7 +2984,7 @@
             call accum_hist_field(n_Tinz-n3Dfcum, iblk, nzilyr, ncat_hist, &
                                   Tinz4d(:,:,1:nzilyr,1:ncat_hist), a4Di)
          endif
-         if (f_Sinz   (1:1) /= 'x') then
+         if (f_Sinz   (ns:ns) == histfreq(ns)) then
             Sinz4d(:,:,:,:) = c0
             do n = 1, ncat_hist
                do j = jlo, jhi
@@ -2996,7 +2999,7 @@
                                   Sinz4d(:,:,1:nzilyr,1:ncat_hist), a4Di)
          endif
          
-         if (f_Tsnz   (1:1) /= 'x') then
+         if (f_Tsnz   (ns:ns) == histfreq(ns)) then
             Tsnz4d(:,:,:,:) = c0
             do n = 1, ncat_hist
                do j = jlo, jhi
@@ -3013,7 +3016,7 @@
          endif
          
         ! Calculate aggregate surface melt flux by summing category values
-        if (f_fmeltt_ai(1:1) /= 'x') then
+        if (f_fmeltt_ai(ns:ns) == histfreq(ns)) then
          do ns = 1, nstreams
            if (n_fmeltt_ai(ns) /= 0) then
               worka(:,:) = c0
@@ -3128,7 +3131,7 @@
 
               ! Only average for timesteps when ice present
               if (index(avail_hist_fields(n)%vname,'sithick') /= 0) then
-                 if (f_sithick(1:1) /= 'x' .and. n_sithick(ns) /= 0) then
+                 if (f_sithick(ns:ns) == histfreq(ns) .and. n_sithick(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3141,7 +3144,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siage') /= 0) then
-                 if (f_siage(1:1) /= 'x' .and. n_siage(ns) /= 0) then
+                 if (f_siage(ns:ns) == histfreq(ns) .and. n_siage(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3154,7 +3157,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sisnthick') /= 0) then
-                 if (f_sisnthick(1:1) /= 'x' .and. n_sisnthick(ns) /= 0) then
+                 if (f_sisnthick(ns:ns) == histfreq(ns) .and. n_sisnthick(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3167,7 +3170,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sitemptop') /= 0) then
-                 if (f_sitemptop(1:1) /= 'x' .and. n_sitemptop(ns) /= 0) then
+                 if (f_sitemptop(ns:ns) == histfreq(ns) .and. n_sitemptop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3180,7 +3183,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sitempsnic') /= 0) then
-                 if (f_sitempsnic(1:1) /= 'x' .and. n_sitempsnic(ns) /= 0) then
+                 if (f_sitempsnic(ns:ns) == histfreq(ns) .and. n_sitempsnic(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3193,7 +3196,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sitempbot') /= 0) then
-                 if (f_sitempbot(1:1) /= 'x' .and. n_sitempbot(ns) /= 0) then
+                 if (f_sitempbot(ns:ns) == histfreq(ns) .and. n_sitempbot(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3206,7 +3209,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siu') /= 0) then
-                 if (f_siu(1:1) /= 'x' .and. n_siu(ns) /= 0) then
+                 if (f_siu(ns:ns) == histfreq(ns) .and. n_siu(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3219,7 +3222,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siv') /= 0) then
-                 if (f_siv(1:1) /= 'x' .and. n_siv(ns) /= 0) then
+                 if (f_siv(ns:ns) == histfreq(ns) .and. n_siv(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3232,7 +3235,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sistrxdtop') /= 0) then
-                 if (f_sistrxdtop(1:1) /= 'x' .and. n_sistrxdtop(ns) /= 0) then
+                 if (f_sistrxdtop(ns:ns) == histfreq(ns) .and. n_sistrxdtop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3245,7 +3248,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sistrydtop') /= 0) then
-                 if (f_sistrydtop(1:1) /= 'x' .and. n_sistrydtop(ns) /= 0) then
+                 if (f_sistrydtop(ns:ns) == histfreq(ns) .and. n_sistrydtop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3258,7 +3261,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sistrxubot') /= 0) then
-                 if (f_sistrxubot(1:1) /= 'x' .and. n_sistrxubot(ns) /= 0) then
+                 if (f_sistrxubot(ns:ns) == histfreq(ns) .and. n_sistrxubot(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3271,7 +3274,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sistryubot') /= 0) then
-                 if (f_sistryubot(1:1) /= 'x' .and. n_sistryubot(ns) /= 0) then
+                 if (f_sistryubot(ns:ns) == histfreq(ns) .and. n_sistryubot(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3284,7 +3287,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sicompstren') /= 0) then
-                 if (f_sicompstren(1:1) /= 'x' .and. n_sicompstren(ns) /= 0) then
+                 if (f_sicompstren(ns:ns) == histfreq(ns) .and. n_sicompstren(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3297,7 +3300,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sispeed') /= 0) then
-                 if (f_sispeed(1:1) /= 'x' .and. n_sispeed(ns) /= 0) then
+                 if (f_sispeed(ns:ns) == histfreq(ns) .and. n_sispeed(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3310,7 +3313,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sialb') /= 0) then
-                 if (f_sialb(1:1) /= 'x' .and. n_sialb(ns) /= 0) then
+                 if (f_sialb(ns:ns) == histfreq(ns) .and. n_sialb(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3324,7 +3327,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflswdtop') /= 0) then
-                 if (f_siflswdtop(1:1) /= 'x' .and. n_siflswdtop(ns) /= 0) then
+                 if (f_siflswdtop(ns:ns) == histfreq(ns) .and. n_siflswdtop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3337,7 +3340,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflswutop') /= 0) then
-                 if (f_siflswutop(1:1) /= 'x' .and. n_siflswutop(ns) /= 0) then
+                 if (f_siflswutop(ns:ns) == histfreq(ns) .and. n_siflswutop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3350,7 +3353,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflswdbot') /= 0) then
-                 if (f_siflswdbot(1:1) /= 'x' .and. n_siflswdbot(ns) /= 0) then
+                 if (f_siflswdbot(ns:ns) == histfreq(ns) .and. n_siflswdbot(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3363,7 +3366,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sifllwdtop') /= 0) then
-                 if (f_sifllwdtop(1:1) /= 'x' .and. n_sifllwdtop(ns) /= 0) then
+                 if (f_sifllwdtop(ns:ns) == histfreq(ns) .and. n_sifllwdtop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3376,7 +3379,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sifllwutop') /= 0) then
-                 if (f_sifllwutop(1:1) /= 'x' .and. n_sifllwutop(ns) /= 0) then
+                 if (f_sifllwutop(ns:ns) == histfreq(ns) .and. n_sifllwutop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3389,7 +3392,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflsenstop') /= 0) then
-                 if (f_siflsenstop(1:1) /= 'x' .and. n_siflsenstop(ns) /= 0) then
+                 if (f_siflsenstop(ns:ns) == histfreq(ns) .and. n_siflsenstop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3402,7 +3405,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflsensupbot') /= 0) then
-                 if (f_siflsensupbot(1:1) /= 'x' .and.  n_siflsensupbot(ns) /= 0) then
+                 if (f_siflsensupbot(ns:ns) == histfreq(ns) .and.  n_siflsensupbot(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3415,7 +3418,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sifllatstop') /= 0) then
-                 if (f_sifllatstop(1:1) /= 'x' .and. n_sifllatstop(ns) /= 0) then
+                 if (f_sifllatstop(ns:ns) == histfreq(ns) .and. n_sifllatstop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3428,7 +3431,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sipr') /= 0) then
-                 if (f_sipr(1:1) /= 'x' .and. n_sipr(ns) /= 0) then
+                 if (f_sipr(ns:ns) == histfreq(ns) .and. n_sipr(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3441,7 +3444,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sifb') /= 0) then
-                 if (f_sifb(1:1) /= 'x' .and. n_sifb(ns) /= 0) then
+                 if (f_sifb(ns:ns) == histfreq(ns) .and. n_sifb(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3454,7 +3457,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflcondtop') /= 0) then
-                 if (f_siflcondtop(1:1) /= 'x' .and. n_siflcondtop(ns) /= 0) then
+                 if (f_siflcondtop(ns:ns) == histfreq(ns) .and. n_siflcondtop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3467,7 +3470,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflcondbot') /= 0) then
-                 if (f_siflcondbot(1:1) /= 'x' .and. n_siflcondbot(ns) /= 0) then
+                 if (f_siflcondbot(ns:ns) == histfreq(ns) .and. n_siflcondbot(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3480,7 +3483,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflsaltbot') /= 0) then
-                 if (f_siflsaltbot(1:1) /= 'x' .and. n_siflsaltbot(ns) /= 0) then
+                 if (f_siflsaltbot(ns:ns) == histfreq(ns) .and. n_siflsaltbot(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3493,7 +3496,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflfwbot') /= 0) then
-                 if (f_siflfwbot(1:1) /= 'x' .and. n_siflfwbot(ns) /= 0) then
+                 if (f_siflfwbot(ns:ns) == histfreq(ns) .and. n_siflfwbot(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3506,7 +3509,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siflfwdrain') /= 0) then
-                 if (f_siflfwdrain(1:1) /= 'x' .and. n_siflfwdrain(ns) /= 0) then
+                 if (f_siflfwdrain(ns:ns) == histfreq(ns) .and. n_siflfwdrain(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3519,7 +3522,7 @@
                  endif
               endif
              if (index(avail_hist_fields(n)%vname,'sidragtop') /= 0) then
-                 if (f_sidragtop(1:1) /= 'x' .and. n_sidragtop(ns) /= 0) then
+                 if (f_sidragtop(ns:ns) == histfreq(ns) .and. n_sidragtop(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3532,7 +3535,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'sirdgthick') /= 0) then
-                 if (f_sirdgthick(1:1) /= 'x' .and. n_sirdgthick(ns) /= 0) then
+                 if (f_sirdgthick(ns:ns) == histfreq(ns) .and. n_sirdgthick(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3545,7 +3548,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siforcetiltx') /= 0) then
-                 if (f_siforcetiltx(1:1) /= 'x' .and. n_siforcetiltx(ns) /= 0) then
+                 if (f_siforcetiltx(ns:ns) == histfreq(ns) .and. n_siforcetiltx(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3558,7 +3561,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siforcetilty') /= 0) then
-                 if (f_siforcetilty(1:1) /= 'x' .and. n_siforcetilty(ns) /= 0) then
+                 if (f_siforcetilty(ns:ns) == histfreq(ns) .and. n_siforcetilty(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3571,7 +3574,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siforcecoriolx') /= 0) then
-                 if (f_siforcecoriolx(1:1) /= 'x' .and.  n_siforcecoriolx(ns) /= 0) then
+                 if (f_siforcecoriolx(ns:ns) == histfreq(ns) .and.  n_siforcecoriolx(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3584,7 +3587,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siforcecorioly') /= 0) then
-                 if (f_siforcecorioly(1:1) /= 'x' .and.  n_siforcecorioly(ns) /= 0) then
+                 if (f_siforcecorioly(ns:ns) == histfreq(ns) .and.  n_siforcecorioly(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3597,7 +3600,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siforceintstrx') /= 0) then
-                 if (f_siforceintstrx(1:1) /= 'x' .and.  n_siforceintstrx(ns) /= 0) then
+                 if (f_siforceintstrx(ns:ns) == histfreq(ns) .and.  n_siforceintstrx(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3610,7 +3613,7 @@
                  endif
               endif
               if (index(avail_hist_fields(n)%vname,'siforceintstry') /= 0) then
-                 if (f_siforceintstry(1:1) /= 'x' .and.  n_siforceintstry(ns) /= 0) then
+                 if (f_siforceintstry(ns:ns) == histfreq(ns) .and.  n_siforceintstry(ns) /= 0) then
                     do j = jlo, jhi
                     do i = ilo, ihi
                        if (tmask(i,j,iblk)) then
@@ -3631,13 +3634,13 @@
                     ravgctz = c0
                     if (albcnt(i,j,iblk,ns) > puny) &
                         ravgctz = c1/albcnt(i,j,iblk,ns)
-                    if (f_albice (1:1) /= 'x' .and. n_albice(ns) /= 0) &
+                    if (f_albice (ns:ns) == histfreq(ns) .and. n_albice(ns) /= 0) &
                        a2D(i,j,n_albice(ns),iblk) = &
                        a2D(i,j,n_albice(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_albsno (1:1) /= 'x' .and. n_albsno(ns) /= 0) &
+                    if (f_albsno (ns:ns) == histfreq(ns) .and. n_albsno(ns) /= 0) &
                        a2D(i,j,n_albsno(ns),iblk) = &
                        a2D(i,j,n_albsno(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_albpnd (1:1) /= 'x' .and. n_albpnd(ns) /= 0) &
+                    if (f_albpnd (ns:ns) == histfreq(ns) .and. n_albpnd(ns) /= 0) &
                        a2D(i,j,n_albpnd(ns),iblk) = &
                        a2D(i,j,n_albpnd(ns),iblk)*avgct(ns)*ravgctz
                  endif
@@ -3651,7 +3654,7 @@
                     ravgctz = c0
                     if (albcnt(i,j,iblk,ns) > puny) &
                         ravgctz = c1/albcnt(i,j,iblk,ns)
-                    if (f_albsni (1:1) /= 'x' .and. n_albsni(ns) /= 0) &
+                    if (f_albsni (ns:ns) == histfreq(ns) .and. n_albsni(ns) /= 0) &
                        a2D(i,j,n_albsni(ns),iblk) = &
                        a2D(i,j,n_albsni(ns),iblk)*avgct(ns)*ravgctz
                  endif
@@ -3665,16 +3668,16 @@
                     ravgctz = c0
                     if (albcnt(i,j,iblk,ns) > puny) &
                         ravgctz = c1/albcnt(i,j,iblk,ns)
-                    if (f_alvdr_ai (1:1) /= 'x' .and. n_alvdr_ai(ns) /= 0) &
+                    if (f_alvdr_ai (ns:ns) == histfreq(ns) .and. n_alvdr_ai(ns) /= 0) &
                        a2D(i,j,n_alvdr_ai(ns),iblk) = &
                        a2D(i,j,n_alvdr_ai(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_alvdf_ai (1:1) /= 'x' .and. n_alvdf_ai(ns) /= 0) &
+                    if (f_alvdf_ai (ns:ns) == histfreq(ns) .and. n_alvdf_ai(ns) /= 0) &
                        a2D(i,j,n_alvdf_ai(ns),iblk) = &
                        a2D(i,j,n_alvdf_ai(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_alidr_ai (1:1) /= 'x' .and. n_alidr_ai(ns) /= 0) &
+                    if (f_alidr_ai (ns:ns) == histfreq(ns) .and. n_alidr_ai(ns) /= 0) &
                        a2D(i,j,n_alidr_ai(ns),iblk) = &
                        a2D(i,j,n_alidr_ai(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_alidf_ai (1:1) /= 'x' .and. n_alidf_ai(ns) /= 0) &
+                    if (f_alidf_ai (ns:ns) == histfreq(ns) .and. n_alidf_ai(ns) /= 0) &
                        a2D(i,j,n_alidf_ai(ns),iblk) = &
                        a2D(i,j,n_alidf_ai(ns),iblk)*avgct(ns)*ravgctz
                  endif
@@ -3691,7 +3694,7 @@
 !                    ravgctz = c0
 !                    if (snwcnt(i,j,iblk,ns) > puny) &
 !                        ravgctz = c1/snwcnt(i,j,iblk,ns)
-!                    if (f_rhos_cmp (1:1) /= 'x' .and. n_rhos_cmp(ns) /= 0) &
+!                    if (f_rhos_cmp (ns:ns) == histfreq(ns) .and. n_rhos_cmp(ns) /= 0) &
 !                       a2D(i,j,n_rhos_cmp(ns),iblk) = &
 !                       a2D(i,j,n_rhos_cmp(ns),iblk)*avgct(ns)*ravgctz
 !                 endif
@@ -3705,7 +3708,7 @@
 !                    ravgctz = c0
 !                    if (snwcnt(i,j,iblk,ns) > puny) &
 !                        ravgctz = c1/snwcnt(i,j,iblk,ns)
-!                    if (f_rhos_cnt (1:1) /= 'x' .and. n_rhos_cnt(ns) /= 0) &
+!                    if (f_rhos_cnt (ns:ns) == histfreq(ns) .and. n_rhos_cnt(ns) /= 0) &
 !                       a2D(i,j,n_rhos_cnt(ns),iblk) = &
 !                       a2D(i,j,n_rhos_cnt(ns),iblk)*avgct(ns)*ravgctz
 !                 endif
@@ -3733,7 +3736,7 @@
               enddo             ! j
               enddo             ! k
               if (index(avail_hist_fields(nn)%vname,'siitdthick') /= 0) then
-                 if (f_siitdthick(1:1) /= 'x' .and. n_siitdthick(ns)-n2D /= 0) then
+                 if (f_siitdthick(ns:ns) == histfreq(ns) .and. n_siitdthick(ns)-n2D /= 0) then
                     do k = 1, ncat_hist
                     do j = jlo, jhi
                     do i = ilo, ihi
@@ -3747,7 +3750,7 @@
                  endif
               endif
               if (index(avail_hist_fields(nn)%vname,'siitdsnthick') /= 0) then
-                 if (f_siitdsnthick(1:1) /= 'x' .and.  n_siitdsnthick(ns)-n2D /= 0) then
+                 if (f_siitdsnthick(ns:ns) == histfreq(ns) .and.  n_siitdsnthick(ns)-n2D /= 0) then
                     do k = 1, ncat_hist
                     do j = jlo, jhi
                     do i = ilo, ihi

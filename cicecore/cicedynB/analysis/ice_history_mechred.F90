@@ -132,7 +132,7 @@
          f_araftn = 'x'
          f_vraftn = 'x'
       endif
-      if (f_araftn /= 'x' .or. f_vraftn /= 'x') f_ardgn = f_araftn
+      if (f_araftn == histfreq(ns) .or. f_vraftn == histfreq(ns)) f_ardgn = f_araftn
 
       call broadcast_scalar (f_ardg, master_task)
       call broadcast_scalar (f_vrdg, master_task)
@@ -157,54 +157,54 @@
       ! 2D variables
 
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq(ns) == histfreq(ns)) then
 
-      if (f_alvl(1:1) /= 'x') &
+      if (f_alvl(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_alvl,"alvl","1",tstr2D, tcstr, &
              "level ice area fraction",                            &
              "none", c1, c0,                                       &
              ns, f_alvl)
-      if (f_vlvl(1:1) /= 'x') &
+      if (f_vlvl(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_vlvl,"vlvl","m",tstr2D, tcstr, &
              "level ice volume",                           &
              "grid cell mean level ice thickness", c1, c0, &
              ns, f_vlvl)
-      if (f_ardg(1:1) /= 'x') &
+      if (f_ardg(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_ardg,"ardg","1",tstr2D, tcstr, &
              "ridged ice area fraction",                           &
              "none", c1, c0,                                       &
              ns, f_ardg)
-      if (f_vrdg(1:1) /= 'x') &
+      if (f_vrdg(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_vrdg,"vrdg","m",tstr2D, tcstr, &
              "ridged ice volume",                          &
              "grid cell mean level ridged thickness", c1, c0, &
              ns, f_vrdg)
 
-      if (f_dardg1dt(1:1) /= 'x') &
+      if (f_dardg1dt(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_dardg1dt,"dardg1dt","%/day",tstr2D, tcstr, &
              "ice area ridging rate",                                      &
              "none", secday*c100, c0,                                      &
              ns, f_dardg1dt)
       
-      if (f_dardg2dt(1:1) /= 'x') &
+      if (f_dardg2dt(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_dardg2dt,"dardg2dt","%/day",tstr2D, tcstr, &
              "ridge area formation rate",                                  &
              "none", secday*c100, c0,                                      &
              ns, f_dardg2dt)
       
-      if (f_dvirdgdt(1:1) /= 'x') &
+      if (f_dvirdgdt(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_dvirdgdt,"dvirdgdt","cm/day",tstr2D, tcstr, &
              "ice volume ridging rate",                                     &
              "none", mps_to_cmpdy, c0,                                      &
              ns, f_dvirdgdt)
 
-      if (f_opening(1:1) /= 'x') &
+      if (f_opening(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_opening,"opening","%/day",tstr2D, tcstr, &
              "lead area opening rate",                                   &
              "none", secday*c100, c0,                                    &
              ns, f_opening)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq(ns) == histfreq(ns)
       enddo ! nstreams
 
       end subroutine init_hist_mechred_2D
@@ -230,75 +230,75 @@
          file=__FILE__, line=__LINE__)
 
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq(ns) == histfreq(ns)) then
 
-       if (f_ardgn(1:1) /= 'x') &
+       if (f_ardgn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_ardgn,"ardgn","1",tstr3Dc, tcstr, &
              "ridged ice area fraction, category",                 &
              "none", c1, c0,                                       &
              ns, f_ardgn)
 
-       if (f_vrdgn(1:1) /= 'x') &
+       if (f_vrdgn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_vrdgn,"vrdgn","m",tstr3Dc, tcstr, &
              "ridged ice volume, category",                &
              "grid cell mean ridged ice thickness", c1, c0, &
              ns, f_vrdgn)
 
-       if (f_dardg1ndt(1:1) /= 'x') &
+       if (f_dardg1ndt(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_dardg1ndt,"dardg1ndt","%/day",tstr3Dc, tcstr, &
              "ice area ridging rate, category",                            &
              "none", secday*c100, c0,                                      &
              ns, f_dardg1ndt)
 
-       if (f_dardg2ndt(1:1) /= 'x') &
+       if (f_dardg2ndt(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_dardg2ndt,"dardg2ndt","%/day",tstr3Dc, tcstr, &
              "ridge area formation rate, category",                        &
              "none", secday*c100, c0,                                      &
              ns, f_dardg2ndt)
 
-       if (f_dvirdgndt(1:1) /= 'x') &
+       if (f_dvirdgndt(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_dvirdgndt,"dvirdgndt","cm/day",tstr3Dc, tcstr, &
              "ice volume ridging rate, category",                          &
              "none", mps_to_cmpdy, c0,                                     &
              ns, f_dvirdgndt)
 
-       if (f_krdgn(1:1) /= 'x') &
+       if (f_krdgn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_krdgn,"krdgn","1",tstr3Dc, tcstr, &
              "ridging thickness factor, category",                    &
              "mean ridge thickness/thickness of ridging ice", c1, c0, &
              ns, f_krdgn)
 
-       if (f_aparticn(1:1) /= 'x') &
+       if (f_aparticn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_aparticn,"aparticn","1",tstr3Dc, tcstr, &
              "ridging ice participation function, category",       &
              "fraction of new ridge area added to cat", c1, c0,    &
              ns, f_aparticn)
 
-       if (f_aredistn(1:1) /= 'x') &
+       if (f_aredistn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_aredistn,"aredistn","1",tstr3Dc, tcstr, &
              "ridging ice area redistribution function, category",   &
              "fraction of new ridge volume added to cat", c1, c0,    &
              ns, f_aredistn)
 
-       if (f_vredistn(1:1) /= 'x') &
+       if (f_vredistn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_vredistn,"vredistn","1",tstr3Dc, tcstr, &
              "ridging ice volume redistribution function, category",       &
              "none", c1, c0,                                       &
              ns, f_vredistn)
 
-       if (f_araftn(1:1) /= 'x') &
+       if (f_araftn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_araftn,"araftn","1",tstr3Dc, tcstr, &
              "rafted ice area fraction, category",                 &
              "none", c1, c0,                                       &
              ns, f_araftn)
 
-       if (f_vraftn(1:1) /= 'x') &
+       if (f_vraftn(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_vraftn,"vraftn","1",tstr3Dc, tcstr, &
              "rafted ice volume, category",                 &
              "none", c1, c0,                                       &
              ns, f_vraftn)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq(ns) == histfreq(ns)
       enddo ! ns
 
       end subroutine init_hist_mechred_3Dc
@@ -310,6 +310,7 @@
 
       subroutine accum_hist_mechred (iblk)
 
+      use ice_calendar, only: nstreams, histfreq
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, vice, trcr, aicen, vicen, trcrn
@@ -317,6 +318,7 @@
           dardg2ndt, dvirdgndt, krdgn, aparticn, aredistn, vredistn, &
           araftn, vraftn, opening
 
+      integer (kind=int_kind) :: ns
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
 
@@ -335,28 +337,30 @@
       ! increment field
       !---------------------------------------------------------------
 
+      do ns = 1,nstreams
+
          ! 2D fields
          if (allocated(a2D)) then
 
-         if (f_alvl(1:1)/= 'x') &
+         if (f_alvl(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_alvl,   iblk, &
                                    aice(:,:,iblk) * trcr(:,:,nt_alvl,iblk), a2D)
-         if (f_vlvl(1:1)/= 'x') &
+         if (f_vlvl(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_vlvl,   iblk, &
                                    vice(:,:,iblk) * trcr(:,:,nt_vlvl,iblk), a2D)
-         if (f_ardg(1:1)/= 'x') &
+         if (f_ardg(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_ardg,   iblk, &
                              aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
-         if (f_vrdg(1:1)/= 'x') &
+         if (f_vrdg(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_vrdg,   iblk, &
                              vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
-         if (f_dardg1dt(1:1)/= 'x') &
+         if (f_dardg1dt(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dardg1dt,iblk, dardg1dt(:,:,iblk), a2D)
-         if (f_dardg2dt(1:1)/= 'x') &
+         if (f_dardg2dt(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dardg2dt,iblk, dardg2dt(:,:,iblk), a2D)
-         if (f_dvirdgdt(1:1)/= 'x') &
+         if (f_dvirdgdt(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dvirdgdt,iblk, dvirdgdt(:,:,iblk), a2D)
-         if (f_opening(1:1) /= 'x') &
+         if (f_opening(ns:ns) == histfreq(ns)) &
              call accum_hist_field(n_opening, iblk, opening(:,:,iblk), a2D)
 
          endif ! allocated(a2D)
@@ -364,42 +368,43 @@
          ! 3D category fields
          if (allocated(a3Dc)) then
 
-         if (f_ardgn(1:1)/= 'x') &
+         if (f_ardgn(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_ardgn-n2D, iblk, ncat_hist, &
                                    aicen(:,:,1:ncat_hist,iblk) &
                                  * (c1 - trcrn(:,:,nt_alvl,1:ncat_hist,iblk)), a3Dc)
-         if (f_vrdgn(1:1)/= 'x') &
+         if (f_vrdgn(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_vrdgn-n2D, iblk, ncat_hist, &
                                    vicen(:,:,1:ncat_hist,iblk) &
                                  * (c1 - trcrn(:,:,nt_vlvl,1:ncat_hist,iblk)), a3Dc)
-         if (f_dardg1ndt(1:1)/= 'x') &
+         if (f_dardg1ndt(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dardg1ndt-n2D, iblk, ncat_hist, &
                                    dardg1ndt(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_dardg2ndt(1:1)/= 'x') &
+         if (f_dardg2ndt(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dardg2ndt-n2D, iblk, ncat_hist, &
                                    dardg2ndt(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_dvirdgndt(1:1)/= 'x') &
+         if (f_dvirdgndt(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_dvirdgndt-n2D, iblk, ncat_hist, &
                                    dvirdgndt(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_krdgn(1:1)/= 'x') &
+         if (f_krdgn(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_krdgn-n2D, iblk, ncat_hist, &
                                    krdgn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_aparticn(1:1)/= 'x') &
+         if (f_aparticn(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_aparticn-n2D, iblk, ncat_hist, &
                                    aparticn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_aredistn(1:1)/= 'x') &
+         if (f_aredistn(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_aredistn-n2D, iblk, ncat_hist, &
                                    aredistn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_vredistn(1:1)/= 'x') &
+         if (f_vredistn(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_vredistn-n2D, iblk, ncat_hist, &
                                    vredistn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_araftn(1:1)/= 'x') &
+         if (f_araftn(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_araftn-n2D, iblk, ncat_hist, &
                                    araftn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_vraftn(1:1)/= 'x') &
+         if (f_vraftn(ns:ns)== histfreq(ns)) &
              call accum_hist_field(n_vraftn-n2D, iblk, ncat_hist, &
                                    vraftn(:,:,1:ncat_hist,iblk), a3Dc)
          endif ! allocated(a3Dc)
+      enddo ! ns
 
       end subroutine accum_hist_mechred
 

@@ -781,9 +781,9 @@
     if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
 
     do ns = 1, nstreams
-       if (histfreq(ns) /= 'x') then
+       if (histfreq(ns) == histfreq(ns)) then
 
-      if (f_iso(1:1) /= 'x') then
+      if (f_iso(ns:ns) == histfreq(ns)) then
          do n=1,n_iso
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'isosno', trim(nchar)
@@ -797,7 +797,7 @@
          enddo
       endif
 
-      if (f_fiso_atm(1:1) /= 'x') then
+      if (f_fiso_atm(ns:ns) == histfreq(ns)) then
          do n=1,n_iso
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fiso_atm', trim(nchar)
@@ -807,7 +807,7 @@
          enddo
       endif
 
-      if (f_fiso_ocn(1:1) /= 'x') then
+      if (f_fiso_ocn(ns:ns) == histfreq(ns)) then
          do n=1,n_iso
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fiso_ocn', trim(nchar)
@@ -845,7 +845,7 @@
           ns, f_zsal)
 
       ! Aerosols
-      if (f_aero(1:1) /= 'x') then
+      if (f_aero(ns:ns) == histfreq(ns)) then
          do n=1,n_aero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'aerosnossl', trim(nchar)
@@ -867,7 +867,7 @@
          enddo
       endif
 
-      if (f_faero_atm(1:1) /= 'x') then
+      if (f_faero_atm(ns:ns) == histfreq(ns)) then
          do n=1,n_aero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'faero_atm', trim(nchar)
@@ -877,7 +877,7 @@
          enddo
       endif
 
-      if (f_faero_ocn(1:1) /= 'x') then
+      if (f_faero_ocn(ns:ns) == histfreq(ns)) then
          do n=1,n_aero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'faero_ocn', trim(nchar)
@@ -891,7 +891,7 @@
         ! skeletal layer tracers
 
 
-        if (f_bgc_N(1:1) /= 'x') then
+        if (f_bgc_N(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algal_N', trim(nchar)
@@ -901,7 +901,7 @@
              ns, f_bgc_N)
          enddo
         endif
-        if (f_bgc_chl(1:1) /= 'x') then
+        if (f_bgc_chl(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algal_chl', trim(nchar)
@@ -911,7 +911,7 @@
              ns, f_bgc_chl)
           enddo
         endif !f_bgc_chl
-        if (f_bgc_C(1:1) /= 'x') then
+        if (f_bgc_C(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algal_C', trim(nchar)
@@ -921,7 +921,7 @@
              ns, f_bgc_C)
           enddo
         endif
-        if (f_bgc_DOC(1:1) /= 'x') then
+        if (f_bgc_DOC(ns:ns) == histfreq(ns)) then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DOC', trim(nchar)
@@ -931,7 +931,7 @@
              ns, f_bgc_DOC)
           enddo
         endif
-        if (f_bgc_DIC(1:1) /= 'x') then
+        if (f_bgc_DIC(ns:ns) == histfreq(ns)) then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DIC', trim(nchar)
@@ -941,7 +941,7 @@
              ns, f_bgc_DIC)
           enddo
         endif
-        if (f_bgc_DON(1:1) /= 'x') then
+        if (f_bgc_DON(ns:ns) == histfreq(ns)) then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DON', trim(nchar)
@@ -951,7 +951,7 @@
              ns, f_bgc_DON)
           enddo
         endif !f_bgc_DON
-        if (f_bgc_Fe (1:1) /= 'x') then
+        if (f_bgc_Fe (ns:ns) == histfreq(ns)) then
           do n = 1, n_fed
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'dFe', trim(nchar)
@@ -970,42 +970,42 @@
           enddo
         endif !f_bgc_Fe 
  
-        if (f_bgc_Nit(1:1) /= 'x') &
+        if (f_bgc_Nit(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_Nit,"Nit","mmol/m^2",tstr2D, tcstr, &
              "Bulk skeletal nutrient (nitrate)",                             &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Nit)
-        if (f_bgc_Am(1:1) /= 'x') &
+        if (f_bgc_Am(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_Am,"Am","mmol/m^2",tstr2D, tcstr, &
              "Bulk skeletal nutrient (ammonia/um)",                        &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Am)
-        if (f_bgc_Sil(1:1) /= 'x') &
+        if (f_bgc_Sil(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_Sil,"Sil","mmol/m^2",tstr2D, tcstr, &
              "Bulk skeletal nutrient (silicate)",                            &
              "skelelal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Sil)
-        if (f_bgc_hum(1:1) /= 'x') &
+        if (f_bgc_hum(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_hum,"hum","mmol/m^2",tstr2D, tcstr, &
              "Bulk skeletal humic material (carbon)",              &
              "skelelal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_hum)
-        if (f_bgc_PON(1:1) /= 'x') &
+        if (f_bgc_PON(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_PON,"PON","mmol/m^2",tstr2D, tcstr, &
              "Bulk skeletal nutrient (silicate)",                            &
              "skelelal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_PON)
-        if (f_bgc_DMSPp(1:1) /= 'x') &
+        if (f_bgc_DMSPp(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_DMSPp,"DMSPp","mmol/m^2",tstr2D, tcstr, &
              "Bulk particulate S in algae (DMSPp)",                              &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_DMSPp)
-        if (f_bgc_DMSPd(1:1) /= 'x') &
+        if (f_bgc_DMSPd(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_DMSPd,"DMSPd","mmol/m^2",tstr2D, tcstr, &
              "Bulk dissolved skl precursor (DSMPd)",                             &
              "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_DMSPd)
-        if (f_bgc_DMS(1:1) /= 'x') &
+        if (f_bgc_DMS(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_DMS,"DMS","mmol/m^2",tstr2D, tcstr, &
              "Bulk dissolved skl trace gas (DMS)",                           &
              "skeletal layer: bottom 3 cm", c1, c0,                &
@@ -1015,7 +1015,7 @@
 
       ! vertical and skeletal layer biogeochemistry
 
-        if (f_bgc_DOC_ml(1:1) /= 'x') then
+        if (f_bgc_DOC_ml(ns:ns) == histfreq(ns)) then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_DOC', trim(nchar)
@@ -1025,7 +1025,7 @@
              ns, f_bgc_DOC_ml)
           enddo
         endif
-        if (f_bgc_DIC_ml(1:1) /= 'x') then
+        if (f_bgc_DIC_ml(ns:ns) == histfreq(ns)) then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_DIC', trim(nchar)
@@ -1035,7 +1035,7 @@
              ns, f_bgc_DIC_ml)
           enddo
         endif
-        if (f_bgc_DON_ml(1:1) /= 'x') then
+        if (f_bgc_DON_ml(ns:ns) == histfreq(ns)) then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_DON', trim(nchar)
@@ -1045,7 +1045,7 @@
              ns, f_bgc_DON_ml)
           enddo
         endif
-        if (f_bgc_Fed_ml (1:1) /= 'x') then
+        if (f_bgc_Fed_ml (ns:ns) == histfreq(ns)) then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_dFe', trim(nchar)
@@ -1055,7 +1055,7 @@
              ns, f_bgc_Fed_ml )
           enddo
         endif
-        if (f_bgc_Fep_ml (1:1) /= 'x') then
+        if (f_bgc_Fep_ml (ns:ns) == histfreq(ns)) then
           do n = 1, n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_pFe', trim(nchar)
@@ -1065,7 +1065,7 @@
              ns, f_bgc_Fep_ml )
           enddo
         endif
-        if (f_bgc_N_ml(1:1) /= 'x') then
+        if (f_bgc_N_ml(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'ml_N', trim(nchar)
@@ -1075,61 +1075,61 @@
              ns, f_bgc_N_ml)
           enddo
         endif
-        if (f_bgc_Nit_ml(1:1) /= 'x') &
+        if (f_bgc_Nit_ml(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_Nit_ml,"ml_Nit","mmol/m^3",tstr2D, tcstr, &
              "mixed layer nutrient (nitrate)",                         &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_Nit_ml)
-        if (f_bgc_Am_ml(1:1) /= 'x') &
+        if (f_bgc_Am_ml(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_Am_ml,"ml_Am","mmol/m^3",tstr2D, tcstr, &
              "mixed layer nutrient (ammonia/um)",                    &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_Am_ml)
-        if (f_bgc_Sil_ml(1:1) /= 'x') &
+        if (f_bgc_Sil_ml(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_Sil_ml,"ml_Sil","mmol/m^3",tstr2D, tcstr, &
              "mixed layer nutrient (silicate)",                        &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_Sil_ml)
-        if (f_bgc_hum_ml(1:1) /= 'x') &
+        if (f_bgc_hum_ml(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_hum_ml,"ml_hum","mmol/m^3",tstr2D, tcstr, &
              "mixed layer humic material (carbon)",                             &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_hum_ml) 
-        if (f_bgc_DMSP_ml(1:1) /= 'x') &
+        if (f_bgc_DMSP_ml(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_DMSP_ml,"ml_DMSP","mmol/m^3",tstr2D, tcstr, &
              "mixed layer precursor (DMSP)",                             &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_DMSP_ml)
-        if (f_bgc_DMS_ml(1:1) /= 'x') &
+        if (f_bgc_DMS_ml(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_bgc_DMS_ml,"ml_DMS","mmol/m^3",tstr2D, tcstr, &
              "mixed layer trace gas (DMS)",                            &
              "upper ocean", c1, c0,                                  &
              ns, f_bgc_DMS_ml)
             
-        if (f_fNit(1:1) /= 'x') &
+        if (f_fNit(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fNit,"fNit","mmol/m^2/s",tstr2D, tcstr, &
              "nitrate flux ice to ocn (cpl)",                           &
              "if positive, ocean gains nitrate", c1, c0,                &
              ns, f_fNit)
       
-        if (f_fNit_ai(1:1) /= 'x') &
+        if (f_fNit_ai(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fNit_ai,"fNit_ai","mmol/m^2/s",tstr2D, tcstr, &
              "nitrate flux ice to ocean",                            &
              "weighted by ice area", c1, c0,                         &
              ns, f_fNit_ai)
            
-        if (f_fAm(1:1) /= 'x') &
+        if (f_fAm(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fAm,"fAm","mmol/m^2/s",tstr2D, tcstr, &
              "ammonium flux ice to ocn (cpl)",                     &
              "if positive, ocean gains ammonium", c1, c0,          &
              ns, f_fAm)
  
-        if (f_fAm_ai(1:1) /= 'x') &
+        if (f_fAm_ai(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fAm_ai,"fAm_ai","mmol/m^2/s",tstr2D, tcstr, &
              "ammonium flux ice to ocean",                           &
              "weighted by ice area", c1, c0,                         &
              ns, f_fAm_ai)             
-        if (f_fN(1:1) /= 'x') then
+        if (f_fN(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fN', trim(nchar)
@@ -1139,7 +1139,7 @@
              ns, f_fN)
           enddo
         endif
-        if (f_fN_ai(1:1) /= 'x') then
+        if (f_fN_ai(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fN_ai', trim(nchar)
@@ -1149,7 +1149,7 @@
              ns, f_fN_ai)
           enddo
         endif
-        if (f_fDOC(1:1) /= 'x') then
+        if (f_fDOC(ns:ns) == histfreq(ns)) then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDOC', trim(nchar)
@@ -1159,7 +1159,7 @@
              ns, f_fDOC)
           enddo
         endif
-        if (f_fDOC_ai(1:1) /= 'x') then
+        if (f_fDOC_ai(ns:ns) == histfreq(ns)) then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDOC_ai', trim(nchar)
@@ -1169,7 +1169,7 @@
              ns, f_fDOC_ai)
           enddo
         endif        
-        if (f_fDIC(1:1) /= 'x') then
+        if (f_fDIC(ns:ns) == histfreq(ns)) then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDIC', trim(nchar)
@@ -1179,7 +1179,7 @@
              ns, f_fDIC)
           enddo
         endif
-        if (f_fDIC_ai(1:1) /= 'x') then
+        if (f_fDIC_ai(ns:ns) == histfreq(ns)) then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDIC_ai', trim(nchar)
@@ -1189,7 +1189,7 @@
              ns, f_fDIC_ai)
           enddo
         endif               
-        if (f_fDON(1:1) /= 'x') then
+        if (f_fDON(ns:ns) == histfreq(ns)) then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDON', trim(nchar)
@@ -1199,7 +1199,7 @@
              ns, f_fDON)
           enddo
         endif
-        if (f_fDON_ai(1:1) /= 'x') then
+        if (f_fDON_ai(ns:ns) == histfreq(ns)) then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fDON_ai', trim(nchar)
@@ -1209,7 +1209,7 @@
              ns, f_fDON_ai)
           enddo
         endif               
-        if (f_fFed(1:1) /= 'x') then
+        if (f_fFed(ns:ns) == histfreq(ns)) then
           do n = 1, n_fed
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fdFe', trim(nchar)
@@ -1219,7 +1219,7 @@
              ns, f_fFed )
           enddo
         endif              
-        if (f_fFed_ai (1:1) /= 'x') then
+        if (f_fFed_ai (ns:ns) == histfreq(ns)) then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fdFe_ai', trim(nchar)
@@ -1229,7 +1229,7 @@
              ns, f_fFed_ai )
           enddo
         endif       
-        if (f_fFep(1:1) /= 'x') then
+        if (f_fFep(ns:ns) == histfreq(ns)) then
           do n = 1, n_fep
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fpFe', trim(nchar)
@@ -1239,7 +1239,7 @@
              ns, f_fFep )
           enddo
         endif
-        if (f_fFep_ai (1:1) /= 'x') then
+        if (f_fFep_ai (ns:ns) == histfreq(ns)) then
           do n = 1, n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fpFe_ai', trim(nchar)
@@ -1249,97 +1249,97 @@
              ns, f_fFep_ai )
           enddo
         endif        
-        if (f_fSil(1:1) /= 'x') &
+        if (f_fSil(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fSil,"fSil","mmol/m^2/s",tstr2D, tcstr, &
              "silicate flux ice to ocn (cpl)",                     &
              "positive into ocean", c1, c0,          &
              ns, f_fSil)
       
-        if (f_fSil_ai(1:1) /= 'x') &
+        if (f_fSil_ai(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fSil_ai,"fSil_ai","mmol/m^2/s",tstr2D, tcstr, &
              "silicate flux ice to ocean",                               &
              "weighted by ice area", c1, c0,                         &
              ns, f_fSil_ai)
      
-        if (f_fhum(1:1) /= 'x') &
+        if (f_fhum(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fhum,"fhum","mmol/m^2/s",tstr2D, tcstr, &
              "humic matter (carbon) flux ice to ocn (cpl)",          &
              "positive into ocean", c1, c0,                   &
              ns, f_fhum)
       
-        if (f_fhum_ai(1:1) /= 'x') &
+        if (f_fhum_ai(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fhum_ai,"fhum_ai","mmol/m^2/s",tstr2D, tcstr, &
              "humic matter (carbon) flux ice to ocean",              &
              "weighted by ice area", c1, c0,                         &
              ns, f_fhum_ai)
 
-        if (f_fPON(1:1) /= 'x') &
+        if (f_fPON(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fPON,"fPON","mmol/m^2/s",tstr2D, tcstr, &
              "PON flux ice to ocean",                               &
              "positive into ocean", c1, c0,                         &
              ns, f_fPON)
 
-        if (f_fPON_ai(1:1) /= 'x') &
+        if (f_fPON_ai(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fPON_ai,"fPON_ai","mmol/m^2/s",tstr2D, tcstr, &
              "PON flux ice to ocean",                               &
              "weighted by ice area", c1, c0,                         &
              ns, f_fPON_ai)
 
-        if (f_fDMS(1:1) /= 'x') &
+        if (f_fDMS(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fDMS,"fDMS","mmol/m^2/s",tstr2D, tcstr, &
              "DMS flux ice to ocean",                               &
              "positive into ocean", c1, c0,                         &
              ns, f_fDMS)
 
-        if (f_fDMS_ai(1:1) /= 'x') &
+        if (f_fDMS_ai(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fDMS_ai,"fDMS_ai","mmol/m^2/s",tstr2D, tcstr, &
              "DMS flux ice to ocean",                               &
              "weighted by ice area", c1, c0,                         &
              ns, f_fDMS_ai)
 
-        if (f_fDMSPd(1:1) /= 'x') &
+        if (f_fDMSPd(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fDMSPd,"fDMSPd","mmol/m^2/s",tstr2D, tcstr, &
              "DMSPd flux ice to ocean",                               &
              "positive into ocean", c1, c0,                         &
              ns, f_fDMSPd)
 
-        if (f_fDMSPd_ai(1:1) /= 'x') &
+        if (f_fDMSPd_ai(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fDMSPd_ai,"fDMSPd_ai","mmol/m^2/s",tstr2D, tcstr, &
              "DMSPd flux ice to ocean",                               &
              "weighted by ice area", c1, c0,                         &
              ns, f_fDMSPd_ai)
 
-        if (f_fDMSPp(1:1) /= 'x') &
+        if (f_fDMSPp(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fDMSPp,"fDMSPp","mmol/m^2/s",tstr2D, tcstr, &
              "DMSPp flux ice to ocean",                               &
              "positive into ocean", c1, c0,                         &
              ns, f_fDMSPp)
 
-        if (f_fDMSPp_ai(1:1) /= 'x') &
+        if (f_fDMSPp_ai(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_fDMSPp_ai,"fDMSPp_ai","mmol/m^2/s",tstr2D, tcstr, &
              "DMSPp flux ice to ocean",                               &
              "weighted by ice area", c1, c0,                         &
              ns, f_fDMSPp_ai)
 
-        if (f_PPnet(1:1) /= 'x') &
+        if (f_PPnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_PPnet,"PP_net","mg C/m^2/d",tstr2D, tcstr, &
              "Net Primary Production",            &
              "weighted by ice area", c1, c0,       &
              ns, f_PPnet)
 
-        if (f_grownet(1:1) /= 'x') &
+        if (f_grownet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_grownet,"grow_net","m/d",tstr2D, tcstr, &
              "Net specific growth",                     &
              "weighted by brine or skl volume ", c1, c0,       &
              ns, f_grownet)
 
-        if (f_upNO(1:1) /= 'x') & 
+        if (f_upNO(ns:ns) == histfreq(ns)) & 
           call define_hist_field(n_upNO,"upNO","mmol/m^2/d",tstr2D, tcstr, &
              "Tot algal Nit uptake rate",                  &
              "weighted by ice area", c1, c0, &
              ns, f_upNO)
 
-        if (f_upNH(1:1) /= 'x') &  
+        if (f_upNH(ns:ns) == histfreq(ns)) &  
           call define_hist_field(n_upNH,"upNH","mmol/m^2/d",tstr2D, tcstr, &
              "Tot algal Am uptake rate",                  &
              "weighted by ice area", c1, c0,&
@@ -1348,7 +1348,7 @@
         ! vertical biogeochemistry  
       if (z_tracers) then
 
-        if (f_fzaero(1:1) /= 'x') then
+        if (f_fzaero(ns:ns) == histfreq(ns)) then
           do n = 1, n_zaero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fzaero', trim(nchar)
@@ -1358,7 +1358,7 @@
              ns, f_fzaero)
           enddo
         endif
-        if (f_fzaero_ai(1:1) /= 'x') then
+        if (f_fzaero_ai(ns:ns) == histfreq(ns)) then
           do n = 1, n_zaero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'fzaero_ai', trim(nchar)
@@ -1368,7 +1368,7 @@
              ns, f_fzaero_ai)
           enddo
         endif
-        if (f_algalpeak(1:1) /= 'x') then
+        if (f_algalpeak(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'peak_loc', trim(nchar)
@@ -1378,7 +1378,7 @@
              ns, f_algalpeak)
           enddo
         endif
-        if (f_peakval(1:1) /= 'x') then
+        if (f_peakval(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'peak_val', trim(nchar)
@@ -1388,7 +1388,7 @@
              ns, f_peakval)
           enddo
         endif
-        if (f_zaeronet(1:1) /= 'x')  then
+        if (f_zaeronet(ns:ns) == histfreq(ns))  then
           do n = 1, n_zaero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'zaero_net', trim(nchar)
@@ -1398,7 +1398,7 @@
              ns, f_zaeronet)
           enddo
         endif  !f_zaeronet
-        if (f_chlnet(1:1) /= 'x')  then
+        if (f_chlnet(ns:ns) == histfreq(ns))  then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'chl_net', trim(nchar)
@@ -1408,7 +1408,7 @@
              ns, f_chlnet)
           enddo
         endif  !f_chlnet
-        if (f_Nnet(1:1) /= 'x') then
+        if (f_Nnet(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalN_net', trim(nchar)
@@ -1419,7 +1419,7 @@
           enddo
         endif !f_Nnet
 
-        if (f_Cnet(1:1) /= 'x') then
+        if (f_Cnet(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalC_net', trim(nchar)
@@ -1429,7 +1429,7 @@
              ns, f_Cnet)
           enddo
         endif !f_Cnet
-        if (f_DOCnet(1:1) /= 'x') then
+        if (f_DOCnet(ns:ns) == histfreq(ns)) then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DOC_net', trim(nchar)
@@ -1439,7 +1439,7 @@
              ns, f_DOCnet)
           enddo
         endif !f_DOCnet
-        if (f_DICnet(1:1) /= 'x') then
+        if (f_DICnet(ns:ns) == histfreq(ns)) then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DIC_net', trim(nchar)
@@ -1449,7 +1449,7 @@
              ns, f_DICnet)
           enddo
         endif !f_DICnet
-        if (f_DONnet(1:1) /= 'x') then
+        if (f_DONnet(ns:ns) == histfreq(ns)) then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DON_net', trim(nchar)
@@ -1459,7 +1459,7 @@
              ns, f_DONnet)
           enddo
         endif !f_DONnet
-        if (f_Fednet (1:1) /= 'x') then
+        if (f_Fednet (ns:ns) == histfreq(ns)) then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'dFe_net', trim(nchar)
@@ -1469,7 +1469,7 @@
              ns, f_Fednet )
           enddo
         endif !f_Fednet 
-        if (f_Fepnet (1:1) /= 'x') then
+        if (f_Fepnet (ns:ns) == histfreq(ns)) then
           do n = 1, n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'pFe_net', trim(nchar)
@@ -1479,48 +1479,48 @@
              ns, f_Fepnet )
           enddo
         endif !f_Fepnet 
-        if (f_Nitnet(1:1) /= 'x') &
+        if (f_Nitnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Nitnet,"Nit_net","mmol/m^2",tstr2D, tcstr, &
              "Net Nitrate",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Nitnet)
-        if (f_Amnet(1:1) /= 'x') &
+        if (f_Amnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Amnet,"Am_net","mmol/m^2",tstr2D, tcstr, &
              "Net Ammonium",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Amnet)
-        if (f_Silnet(1:1) /= 'x') &
+        if (f_Silnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Silnet,"Sil_net","mmol/m^2",tstr2D, tcstr, &
              "Net Silicate",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Silnet)
-        if (f_humnet(1:1) /= 'x') &
+        if (f_humnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_humnet,"hum_net","mmol/m^2",tstr2D, tcstr, &
              "Net humic material (carbon)",               &
              "weighted by ice area", c1, c0,       &
              ns, f_humnet) 
-        if (f_DMSPpnet(1:1) /= 'x') &
+        if (f_DMSPpnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSPpnet,"DMSPp_net","mmol/m^2",tstr2D, tcstr, &
              "Net DMSPp",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSPpnet)
-        if (f_DMSPdnet(1:1) /= 'x') &
+        if (f_DMSPdnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSPdnet,"DMSPd_net","mmol/m^2",tstr2D, tcstr, &
              "Net DMSPd",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSPdnet)
-        if (f_DMSnet(1:1) /= 'x') &
+        if (f_DMSnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSnet,"DMS_net","mmol/m^2",tstr2D, tcstr, &
              "Net DMS",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSnet)
-        if (f_PONnet(1:1) /= 'x') &
+        if (f_PONnet(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_PONnet,"PON_net","mmol/m^2",tstr2D, tcstr, &
              "Net Nitrate if no reactions",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_PONnet)
 
-        if (f_zaerosnow(1:1) /= 'x')  then
+        if (f_zaerosnow(ns:ns) == histfreq(ns))  then
           do n = 1, n_zaero 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'zaero_snow', trim(nchar)
@@ -1530,7 +1530,7 @@
              ns, f_zaerosnow)
           enddo
         endif  !f_chlnet
-        if (f_chlsnow(1:1) /= 'x')  then
+        if (f_chlsnow(ns:ns) == histfreq(ns))  then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'chl_snow', trim(nchar)
@@ -1540,7 +1540,7 @@
              ns, f_chlsnow)
           enddo
         endif  !f_chlnet
-        if (f_Nsnow(1:1) /= 'x') then
+        if (f_Nsnow(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalN_snow', trim(nchar)
@@ -1550,7 +1550,7 @@
              ns, f_Nsnow)
           enddo
         endif !f_Nsnow
-        if (f_Csnow(1:1) /= 'x') then
+        if (f_Csnow(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalC_snow', trim(nchar)
@@ -1560,7 +1560,7 @@
              ns, f_Csnow)
           enddo
         endif !f_Csnow
-        if (f_DOCsnow(1:1) /= 'x') then
+        if (f_DOCsnow(ns:ns) == histfreq(ns)) then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DOC_snow', trim(nchar)
@@ -1570,7 +1570,7 @@
              ns, f_DOCsnow)
           enddo
         endif !f_DOCsnow
-        if (f_DICsnow(1:1) /= 'x') then
+        if (f_DICsnow(ns:ns) == histfreq(ns)) then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DIC_snow', trim(nchar)
@@ -1580,7 +1580,7 @@
              ns, f_DICsnow)
           enddo
         endif !f_DICsnow
-        if (f_DONsnow(1:1) /= 'x') then
+        if (f_DONsnow(ns:ns) == histfreq(ns)) then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DON_snow', trim(nchar)
@@ -1590,7 +1590,7 @@
              ns, f_DONsnow)
           enddo
         endif !f_DONsnow
-        if (f_Fedsnow (1:1) /= 'x') then
+        if (f_Fedsnow (ns:ns) == histfreq(ns)) then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'dFe_snow', trim(nchar)
@@ -1600,7 +1600,7 @@
              ns, f_Fedsnow )
           enddo
         endif !f_Fedsnow 
-        if (f_Fepsnow (1:1) /= 'x') then
+        if (f_Fepsnow (ns:ns) == histfreq(ns)) then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'pFe_snow', trim(nchar)
@@ -1610,48 +1610,48 @@
              ns, f_Fepsnow )
           enddo
         endif !f_Fepsnow 
-        if (f_Nitsnow(1:1) /= 'x') &
+        if (f_Nitsnow(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Nitsnow,"Nit_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow Nitrate",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Nitsnow)
-        if (f_Amsnow(1:1) /= 'x') &
+        if (f_Amsnow(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Amsnow,"Am_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow Ammonium",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Amsnow)
-        if (f_Silsnow(1:1) /= 'x') &
+        if (f_Silsnow(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Silsnow,"Sil_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow Silicate",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_Silsnow)
-        if (f_humsnow(1:1) /= 'x') &
+        if (f_humsnow(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_humsnow,"hum_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow humic material (carbon)",               &
              "weighted by ice area", c1, c0,       &
              ns, f_humsnow) 
-        if (f_DMSPpsnow(1:1) /= 'x') &
+        if (f_DMSPpsnow(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSPpsnow,"DMSPp_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow DMSPp",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSPpsnow)
-        if (f_DMSPdsnow(1:1) /= 'x') &
+        if (f_DMSPdsnow(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSPdsnow,"DMSPd_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow DMSPd",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSPdsnow)
-        if (f_DMSsnow(1:1) /= 'x') &
+        if (f_DMSsnow(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSsnow,"DMS_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow DMS",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_DMSsnow)
-        if (f_PONsnow(1:1) /= 'x') &
+        if (f_PONsnow(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_PONsnow,"PON_snow","mmol/m^2",tstr2D, tcstr, &
              "Snow Nitrate if no reactions",                     &
              "weighted by ice area", c1, c0,       &
              ns, f_PONsnow)
 
-        if (f_zaerofrac(1:1) /= 'x')  then
+        if (f_zaerofrac(ns:ns) == histfreq(ns))  then
           do n = 1, n_zaero 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'zaero_frac', trim(nchar)
@@ -1661,7 +1661,7 @@
              ns, f_zaerofrac)
           enddo
         endif  !f_chlnet
-        if (f_chlfrac(1:1) /= 'x')  then
+        if (f_chlfrac(ns:ns) == histfreq(ns))  then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'chl_frac', trim(nchar)
@@ -1671,7 +1671,7 @@
              ns, f_chlfrac)
           enddo
         endif  !f_chlnet
-        if (f_Nfrac(1:1) /= 'x') then
+        if (f_Nfrac(ns:ns) == histfreq(ns)) then
           do n = 1, n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'algalN_frac', trim(nchar)
@@ -1681,7 +1681,7 @@
              ns, f_Nfrac)
           enddo
         endif !f_Nfrac
-        if (f_DOCfrac(1:1) /= 'x') then
+        if (f_DOCfrac(ns:ns) == histfreq(ns)) then
           do n = 1, n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DOC_frac', trim(nchar)
@@ -1691,7 +1691,7 @@
              ns, f_DOCfrac)
           enddo
         endif !f_DOCfrac
-        if (f_DICfrac(1:1) /= 'x') then
+        if (f_DICfrac(ns:ns) == histfreq(ns)) then
           do n = 1, n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DIC_frac', trim(nchar)
@@ -1701,7 +1701,7 @@
              ns, f_DICfrac)
           enddo
         endif !f_DICfrac
-        if (f_DONfrac(1:1) /= 'x') then
+        if (f_DONfrac(ns:ns) == histfreq(ns)) then
           do n = 1, n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'DON_frac', trim(nchar)
@@ -1711,7 +1711,7 @@
              ns, f_DONfrac)
          enddo
         endif !f_DONfrac
-        if (f_Fedfrac (1:1) /= 'x') then
+        if (f_Fedfrac (ns:ns) == histfreq(ns)) then
           do n = 1, n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'dFe_frac', trim(nchar)
@@ -1721,7 +1721,7 @@
              ns, f_Fedfrac )
           enddo
         endif !f_Fedfrac 
-        if (f_Fepfrac (1:1) /= 'x') then
+        if (f_Fepfrac (ns:ns) == histfreq(ns)) then
           do n = 1, n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'pFe_frac', trim(nchar)
@@ -1731,42 +1731,42 @@
              ns, f_Fepfrac )
           enddo
         endif !f_Fepfrac 
-        if (f_Nitfrac(1:1) /= 'x') &
+        if (f_Nitfrac(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Nitfrac,"Nit_frac","1",tstr2D, tcstr, &
              "Mobile frac Nitrate",                     &
              "averaged over depth", c1, c0,       &
              ns, f_Nitfrac)
-        if (f_Amfrac(1:1) /= 'x') &
+        if (f_Amfrac(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Amfrac,"Am_frac","1",tstr2D, tcstr, &
              "Mobile frac Ammonium",                     &
              "averaged over depth", c1, c0,       &
              ns, f_Amfrac)
-        if (f_Silfrac(1:1) /= 'x') &
+        if (f_Silfrac(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_Silfrac,"Sil_frac","1",tstr2D, tcstr, &
              "Mobile frac Silicate",                     &
              "averaged over depth", c1, c0,       &
              ns, f_Silfrac)
-        if (f_humfrac(1:1) /= 'x') &
+        if (f_humfrac(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_humfrac,"hum_frac","1",tstr2D, tcstr, &
              "Mobile frac humic material",               &
              "averaged over depth", c1, c0,       &
              ns, f_humfrac) 
-        if (f_DMSPpfrac(1:1) /= 'x') &
+        if (f_DMSPpfrac(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSPpfrac,"DMSPp_frac","1",tstr2D, tcstr, &
              "Mobile frac DMSPp",                     &
              "averaged over depth", c1, c0,       &
              ns, f_DMSPpfrac)
-        if (f_DMSPdfrac(1:1) /= 'x') &
+        if (f_DMSPdfrac(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSPdfrac,"DMSPd_frac","1",tstr2D, tcstr, &
              "Mobile frac DMSPd",                     &
              "averaged over depth", c1, c0,       &
              ns, f_DMSPdfrac)
-        if (f_DMSfrac(1:1) /= 'x') &
+        if (f_DMSfrac(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_DMSfrac,"DMS_frac","1",tstr2D, tcstr, &
              "Mobile frac DMS",                     &
              "averaged over depth", c1, c0,       &
              ns, f_DMSfrac)
-        if (f_PONfrac(1:1) /= 'x') &
+        if (f_PONfrac(ns:ns) == histfreq(ns)) &
           call define_hist_field(n_PONfrac,"PON_frac","1",tstr2D, tcstr, &
              "Mobile frac Nitrate if no reactions",                     &
              "averaged over depth", c1, c0,       &
@@ -1775,13 +1775,13 @@
       endif ! z_tracers
 
       ! brine
-      if (f_hbri(1:1) /= 'x') &
+      if (f_hbri(ns:ns) == histfreq(ns)) &
          call define_hist_field(n_hbri,"hbrine","m",tstr2D, tcstr, &
              "Brine height",                     &
              "distance from ice bottom to brine surface", c1, c0,       &
              ns, f_hbri)
 
-       endif ! histfreq(ns) /= 'x'
+       endif ! histfreq(ns) == histfreq(ns)
     enddo ! nstreams
 
     endif ! tr_aero, etc 
@@ -1808,12 +1808,12 @@
 
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-         if (histfreq(ns) /= 'x') then
-           if (f_fbri(1:1) /= 'x') &
+         if (histfreq(ns) == histfreq(ns)) then
+           if (f_fbri(ns:ns) == histfreq(ns)) &
            call define_hist_field(n_fbri,"fbrine","1",tstr3Dc, tcstr, &
              "brine tracer fraction of ice volume, cat",             &
              "none", c1, c0, ns, f_fbri)
-         endif ! histfreq /= 'x'
+         endif ! histfreq == histfreq(ns)
       enddo ! ns
 
       endif ! tr_brine
@@ -1844,40 +1844,40 @@
     if (z_tracers .or. solve_zsal) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) /= 'x') then
+         if (histfreq(ns) == histfreq(ns)) then
  
-         if (f_bTin(1:1) /= 'x') &
+         if (f_bTin(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bTin,"bTizn","C",tstr3Db, tcstr, &
                 "ice internal temperatures on bio grid", &
                 "interpolated to bio grid", c1, c0,      &
                 ns, f_bTin)
 
-         if (f_bphi(1:1) /= 'x') &
+         if (f_bphi(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bphi,"bphizn","%",tstr3Db, tcstr, &
                 "porosity", "brine volume fraction", c100, c0, &
                 ns, f_bphi)
          
-         if (f_iDi(1:1) /= 'x') &  
+         if (f_iDi(ns:ns) == histfreq(ns)) &  
              call define_hist_field(n_iDi,"iDin","m^2/d",tstr3Db, tcstr, &
                 "interface diffusivity", "on bio interface grid", secday, c0, &
                 ns, f_iDi)
       
-         if (f_iki(1:1) /= 'x') & 
+         if (f_iki(ns:ns) == histfreq(ns)) & 
             call define_hist_field(n_iki,"ikin","mm^2",tstr3Db, tcstr, &
                 "permeability", "on bio interface grid", 1.0e6_dbl_kind, c0, &
                 ns, f_iki)
  
-         if (f_bgc_S(1:1) /= 'x') &
+         if (f_bgc_S(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_S,"bgc_S","ppt",tstr3Db, tcstr, &
                 "bulk salinity", "on bio grid", c1, c0, &
                 ns, f_bgc_S)
       
-         if (f_zfswin(1:1) /= 'x') &
+         if (f_zfswin(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_zfswin,"zfswin","W/m^2",tstr3Db, tcstr, &
                 "internal ice PAR", "on bio interface grid", c1, c0, &
                 ns, f_zfswin)
     
-         endif ! histfreq(ns) /= 'x'
+         endif ! histfreq(ns) == histfreq(ns)
       enddo  ! ns
 
     endif  ! z_tracers or solve_zsal
@@ -1900,11 +1900,13 @@
       use ice_flux, only: sss
       use ice_flux_bgc, only: fiso_atm, fiso_ocn, faero_atm, faero_ocn, &
           flux_bio, flux_bio_ai, fzsal_ai, fzsal_g_ai
+      use ice_calendar, only: nstreams, histfreq
       use ice_history_shared, only: n2D, a2D, a3Dc, &         
           n3Dzcum, n3Dbcum, a3Db, a3Da, &    
           ncat_hist, accum_hist_field, nzblyr, nzalyr
       use ice_state, only: trcrn, trcr, aicen, aice, vicen
 
+      integer (kind=int_kind) :: ns
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
 
@@ -2017,37 +2019,39 @@
       ! increment field
       !---------------------------------------------------------------
 
+    do ns = 1, nstreams
+
     ! 2d bgc fields
     if (allocated(a2D)) then
 
     if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
 
       ! zsalinity
-      if (f_fzsal  (1:1) /= 'x') &  
+      if (f_fzsal  (ns:ns) == histfreq(ns)) &  
          call accum_hist_field(n_fzsal,     iblk, fzsal(:,:,iblk), a2D)
-      if (f_fzsal_ai(1:1)/= 'x') & 
+      if (f_fzsal_ai(ns:ns)== histfreq(ns)) & 
          call accum_hist_field(n_fzsal_ai,  iblk, fzsal_ai(:,:,iblk), a2D)
-      if (f_fzsal_g  (1:1) /= 'x') & 
+      if (f_fzsal_g  (ns:ns) == histfreq(ns)) & 
          call accum_hist_field(n_fzsal_g,   iblk, fzsal_g(:,:,iblk), a2D)
-      if (f_fzsal_g_ai(1:1)/= 'x') & 
+      if (f_fzsal_g_ai(ns:ns)== histfreq(ns)) & 
          call accum_hist_field(n_fzsal_g_ai,iblk, fzsal_g_ai(:,:,iblk), a2D)
-      if (f_zsal  (1:1) /= 'x') &   
+      if (f_zsal  (ns:ns) == histfreq(ns)) &   
          call accum_hist_field(n_zsal,      iblk, zsal_tot(:,:,iblk), a2D)
 
       ! isotopes
-      if (f_fiso_atm(1:1) /= 'x') then
+      if (f_fiso_atm(ns:ns) == histfreq(ns)) then
          do n=1,n_iso
             call accum_hist_field(n_fiso_atm(n,:),iblk, &
                                     fiso_atm(:,:,n,iblk), a2D)
          enddo
       endif
-      if (f_fiso_ocn(1:1) /= 'x') then
+      if (f_fiso_ocn(ns:ns) == histfreq(ns)) then
          do n=1,n_iso
             call accum_hist_field(n_fiso_ocn(n,:),iblk, &
                                     fiso_ocn(:,:,n,iblk), a2D)
          enddo
       endif
-      if (f_iso(1:1) /= 'x') then
+      if (f_iso(ns:ns) == histfreq(ns)) then
          do n=1,n_iso
             call accum_hist_field(n_isosno(n,:), iblk, &
                                trcr(:,:,nt_isosno+n-1,iblk)/rhos, a2D)
@@ -2057,19 +2061,19 @@
       endif
 
       ! Aerosols
-      if (f_faero_atm(1:1) /= 'x') then
+      if (f_faero_atm(ns:ns) == histfreq(ns)) then
          do n=1,n_aero
             call accum_hist_field(n_faero_atm(n,:),iblk, &
                                     faero_atm(:,:,n,iblk), a2D)
          enddo
       endif
-      if (f_faero_ocn(1:1) /= 'x') then
+      if (f_faero_ocn(ns:ns) == histfreq(ns)) then
          do n=1,n_aero
             call accum_hist_field(n_faero_ocn(n,:),iblk, &
                                     faero_ocn(:,:,n,iblk), a2D)
          enddo
       endif
-      if (f_aero(1:1) /= 'x') then
+      if (f_aero(ns:ns) == histfreq(ns)) then
          do n=1,n_aero
             call accum_hist_field(n_aerosn1(n,:), iblk, &
                                trcr(:,:,nt_aero  +4*(n-1),iblk)/rhos, a2D)
@@ -2086,76 +2090,76 @@
 
       ! skeletal layer bgc
 
-      if (f_bgc_N(1:1)/= 'x') then
+      if (f_bgc_N(ns:ns)== histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_bgc_N(n,:), iblk, &
                     sk_l*trcr(:,:,nt_bgc_N(n),   iblk), a2D)
          enddo
       endif
-      if (f_bgc_C(1:1)/= 'x') then
+      if (f_bgc_C(ns:ns)== histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_bgc_C(n,:),        iblk, &
                     sk_l*R_C2N(n)*trcr(:,:,nt_bgc_N(n), iblk), a2D)
          enddo
       endif
-      if (f_bgc_DOC(1:1)/= 'x') then
+      if (f_bgc_DOC(ns:ns)== histfreq(ns)) then
          do n=1,n_doc
             call accum_hist_field(n_bgc_DOC(n,:), iblk, &
                     sk_l*trcr(:,:,nt_bgc_DOC(n),   iblk), a2D)
          enddo
       endif
-      if (f_bgc_DIC(1:1)/= 'x') then
+      if (f_bgc_DIC(ns:ns)== histfreq(ns)) then
          do n=1,n_dic
             call accum_hist_field(n_bgc_DIC(n,:), iblk, &
                     sk_l*trcr(:,:,nt_bgc_DIC(n),   iblk), a2D)
          enddo
       endif
-      if (f_bgc_DON(1:1)/= 'x') then
+      if (f_bgc_DON(ns:ns)== histfreq(ns)) then
          do n=1,n_don
             call accum_hist_field(n_bgc_DON(n,:), iblk, &
                     sk_l*trcr(:,:,nt_bgc_DON(n),   iblk), a2D)
          enddo
       endif
-      if (f_bgc_Fed (1:1)/= 'x') then
+      if (f_bgc_Fed (ns:ns)== histfreq(ns)) then
          do n=1,n_fed 
             call accum_hist_field(n_bgc_Fed (n,:), iblk, &
                     sk_l*trcr(:,:,nt_bgc_Fed (n),   iblk), a2D)
          enddo
       endif
-      if (f_bgc_Fep (1:1)/= 'x') then
+      if (f_bgc_Fep (ns:ns)== histfreq(ns)) then
          do n=1,n_fep 
             call accum_hist_field(n_bgc_Fep (n,:), iblk, &
                     sk_l*trcr(:,:,nt_bgc_Fep (n),   iblk), a2D)
          enddo
       endif
-      if (f_bgc_chl(1:1)/= 'x') then
+      if (f_bgc_chl(ns:ns)== histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_bgc_chl(n,:), iblk, &
                     sk_l*trcr(:,:,nt_bgc_chl(n),   iblk), a2D)
          enddo
       endif
-      if (f_bgc_Nit(1:1)/= 'x') &
+      if (f_bgc_Nit(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_Nit,  iblk, &
                 sk_l*trcr(:,:,nt_bgc_Nit,  iblk), a2D)  
-      if (f_bgc_Am(1:1)/= 'x') &
+      if (f_bgc_Am(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_Am,   iblk, &
                 sk_l*trcr(:,:,nt_bgc_Am,   iblk), a2D)  
-      if (f_bgc_Sil(1:1)/= 'x') &
+      if (f_bgc_Sil(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_Sil,  iblk, &
                 sk_l*trcr(:,:,nt_bgc_Sil,  iblk), a2D)   
-      if (f_bgc_hum(1:1)/= 'x') &
+      if (f_bgc_hum(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_hum,  iblk, &
                 sk_l*trcr(:,:,nt_bgc_hum,  iblk), a2D)  
-      if (f_bgc_PON(1:1)/= 'x') &
+      if (f_bgc_PON(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_PON,  iblk, &
                 sk_l*trcr(:,:,nt_bgc_PON,  iblk), a2D)  
-      if (f_bgc_DMSPp(1:1)/= 'x') &
+      if (f_bgc_DMSPp(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_DMSPp,iblk, &
                 sk_l*trcr(:,:,nt_bgc_DMSPp,iblk), a2D)  
-      if (f_bgc_DMSPd(1:1)/= 'x') &
+      if (f_bgc_DMSPd(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_DMSPd,iblk, &
                 sk_l*trcr(:,:,nt_bgc_DMSPd,iblk), a2D)  
-      if (f_bgc_DMS(1:1)/= 'x') &
+      if (f_bgc_DMS(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_DMS,  iblk, &
                 sk_l*trcr(:,:,nt_bgc_DMS,  iblk), a2D)   
 
@@ -2163,192 +2167,192 @@
 
       ! skeletal layer and vertical bgc 
 
-      if (f_bgc_DOC_ml(1:1)/= 'x') then
+      if (f_bgc_DOC_ml(ns:ns)== histfreq(ns)) then
          do n=1,n_doc
             call accum_hist_field(n_bgc_DOC_ml(n,:), iblk, &
                    ocean_bio(:,:,nlt_bgc_DOC(n),      iblk), a2D)
          enddo
       endif
-      if (f_bgc_DIC_ml(1:1)/= 'x') then
+      if (f_bgc_DIC_ml(ns:ns)== histfreq(ns)) then
          do n=1,n_dic
             call accum_hist_field(n_bgc_DIC_ml(n,:), iblk, &
                    ocean_bio(:,:,nlt_bgc_DIC(n),      iblk), a2D)
          enddo
       endif
-      if (f_bgc_DON_ml(1:1)/= 'x') then
+      if (f_bgc_DON_ml(ns:ns)== histfreq(ns)) then
          do n=1,n_don
             call accum_hist_field(n_bgc_DON_ml(n,:), iblk, &
                    ocean_bio(:,:,nlt_bgc_DON(n),      iblk), a2D)
          enddo
       endif
-      if (f_bgc_Fed_ml (1:1)/= 'x') then
+      if (f_bgc_Fed_ml (ns:ns)== histfreq(ns)) then
          do n=1,n_fed 
             call accum_hist_field(n_bgc_Fed_ml (n,:), iblk, &
                    ocean_bio(:,:,nlt_bgc_Fed (n),      iblk), a2D)
          enddo
       endif
-      if (f_bgc_Fep_ml (1:1)/= 'x') then
+      if (f_bgc_Fep_ml (ns:ns)== histfreq(ns)) then
          do n=1,n_fep 
             call accum_hist_field(n_bgc_Fep_ml (n,:), iblk, &
                    ocean_bio(:,:,nlt_bgc_Fep (n),      iblk), a2D)
          enddo
       endif
-      if (f_bgc_N_ml(1:1)/= 'x') then
+      if (f_bgc_N_ml(ns:ns)== histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_bgc_N_ml(n,:), iblk, &
                    ocean_bio(:,:,nlt_bgc_N(n),      iblk), a2D)
          enddo
       endif
-      if (f_bgc_Nit_ml(1:1)/= 'x') &
+      if (f_bgc_Nit_ml(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_Nit_ml,  iblk, &
                ocean_bio(:,:,nlt_bgc_Nit,     iblk), a2D)  
-      if (f_bgc_Am_ml(1:1)/= 'x') &
+      if (f_bgc_Am_ml(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_Am_ml,   iblk, &
                ocean_bio(:,:,nlt_bgc_Am,      iblk), a2D)  
-      if (f_bgc_Sil_ml(1:1)/= 'x') &
+      if (f_bgc_Sil_ml(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_Sil_ml,  iblk, &
                ocean_bio(:,:,nlt_bgc_Sil,     iblk), a2D)  
-      if (f_bgc_hum_ml(1:1)/= 'x') &
+      if (f_bgc_hum_ml(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_hum_ml,  iblk, &
                ocean_bio(:,:,nlt_bgc_hum,     iblk), a2D)  
-      if (f_bgc_DMSP_ml(1:1)/= 'x') &
+      if (f_bgc_DMSP_ml(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_DMSP_ml, iblk, &
                ocean_bio(:,:,nlt_bgc_DMSPd,   iblk), a2D)  
-      if (f_bgc_DMS_ml(1:1)/= 'x') &
+      if (f_bgc_DMS_ml(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_bgc_DMS_ml,  iblk, &
                ocean_bio(:,:,nlt_bgc_DMS,     iblk), a2D) 
 
-      if (f_fNit  (1:1) /= 'x') &
+      if (f_fNit  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fNit,     iblk, &
                   flux_bio(:,:,nlt_bgc_Nit,iblk), a2D)
-      if (f_fNit_ai(1:1)/= 'x') &
+      if (f_fNit_ai(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_fNit_ai,  iblk, &
                flux_bio_ai(:,:,nlt_bgc_Nit,iblk), a2D)
 
-      if (f_fAm  (1:1) /= 'x') &
+      if (f_fAm  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fAm,     iblk, &
                   flux_bio(:,:,nlt_bgc_Am,iblk), a2D)
-      if (f_fAm_ai(1:1)/= 'x') &
+      if (f_fAm_ai(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_fAm_ai,  iblk, &
                flux_bio_ai(:,:,nlt_bgc_Am,iblk), a2D)
-      if (f_fN(1:1)/= 'x') then
+      if (f_fN(ns:ns)== histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_fN(n,:),    iblk, &
                   flux_bio(:,:,nlt_bgc_N(n),iblk), a2D)
          enddo
       endif
-      if (f_fN_ai(1:1)/= 'x') then
+      if (f_fN_ai(ns:ns)== histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_fN_ai(n,:),    iblk, &
                   flux_bio_ai(:,:,nlt_bgc_N(n),iblk), a2D)
          enddo
       endif
-      if (f_fDOC(1:1)/= 'x') then
+      if (f_fDOC(ns:ns)== histfreq(ns)) then
          do n=1,n_doc
             call accum_hist_field(n_fDOC(n,:),    iblk, &
                   flux_bio(:,:,nlt_bgc_DOC(n),iblk), a2D)
          enddo
       endif
-      if (f_fDOC_ai(1:1)/= 'x') then
+      if (f_fDOC_ai(ns:ns)== histfreq(ns)) then
          do n=1,n_doc
             call accum_hist_field(n_fDOC_ai(n,:),    iblk, &
                   flux_bio_ai(:,:,nlt_bgc_DOC(n),iblk), a2D)
          enddo
       endif
-      if (f_fDIC(1:1)/= 'x') then
+      if (f_fDIC(ns:ns)== histfreq(ns)) then
          do n=1,n_dic
             call accum_hist_field(n_fDIC(n,:),    iblk, &
                   flux_bio(:,:,nlt_bgc_DIC(n),iblk), a2D)
          enddo
       endif
-      if (f_fDIC_ai(1:1)/= 'x') then
+      if (f_fDIC_ai(ns:ns)== histfreq(ns)) then
          do n=1,n_dic
             call accum_hist_field(n_fDIC_ai(n,:),    iblk, &
                   flux_bio_ai(:,:,nlt_bgc_DIC(n),iblk), a2D)
          enddo
       endif
-      if (f_fDON(1:1)/= 'x') then
+      if (f_fDON(ns:ns)== histfreq(ns)) then
          do n=1,n_don
             call accum_hist_field(n_fDON(n,:),    iblk, &
                   flux_bio(:,:,nlt_bgc_DON(n),iblk), a2D)
          enddo
       endif
-      if (f_fDON_ai(1:1)/= 'x') then
+      if (f_fDON_ai(ns:ns)== histfreq(ns)) then
          do n=1,n_don
             call accum_hist_field(n_fDON_ai(n,:),    iblk, &
                   flux_bio_ai(:,:,nlt_bgc_DON(n),iblk), a2D)
          enddo
       endif
-      if (f_fFed (1:1)/= 'x') then
+      if (f_fFed (ns:ns)== histfreq(ns)) then
          do n=1,n_fed 
             call accum_hist_field(n_fFed (n,:),    iblk, &
                   flux_bio(:,:,nlt_bgc_Fed (n),iblk), a2D)
          enddo
       endif
-      if (f_fFed_ai (1:1)/= 'x') then
+      if (f_fFed_ai (ns:ns)== histfreq(ns)) then
          do n=1,n_fed 
             call accum_hist_field(n_fFed_ai (n,:),    iblk, &
                   flux_bio_ai(:,:,nlt_bgc_Fed (n),iblk), a2D)
          enddo
       endif
-      if (f_fFep (1:1)/= 'x') then
+      if (f_fFep (ns:ns)== histfreq(ns)) then
          do n=1,n_fep 
             call accum_hist_field(n_fFep (n,:),    iblk, &
                   flux_bio(:,:,nlt_bgc_Fep (n),iblk), a2D)
          enddo
       endif
-      if (f_fFep_ai (1:1)/= 'x') then
+      if (f_fFep_ai (ns:ns)== histfreq(ns)) then
          do n=1,n_fep 
             call accum_hist_field(n_fFep_ai (n,:),    iblk, &
                   flux_bio_ai(:,:,nlt_bgc_Fep (n),iblk), a2D)
          enddo
       endif
-      if (f_fSil  (1:1) /= 'x') &
+      if (f_fSil  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fSil,    iblk, &
                  flux_bio(:,:,nlt_bgc_Sil,iblk), a2D)
-      if (f_fSil_ai(1:1)/= 'x') &
+      if (f_fSil_ai(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_fSil_ai, iblk, &
               flux_bio_ai(:,:,nlt_bgc_Sil,iblk), a2D)
-      if (f_fhum  (1:1) /= 'x') &
+      if (f_fhum  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fhum,    iblk, &
                  flux_bio(:,:,nlt_bgc_hum,iblk), a2D)
-      if (f_fhum_ai(1:1)/= 'x') &
+      if (f_fhum_ai(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_fhum_ai, iblk, &
               flux_bio_ai(:,:,nlt_bgc_hum,iblk), a2D)
-      if (f_fPON  (1:1) /= 'x') &
+      if (f_fPON  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fPON,    iblk, &
                  flux_bio(:,:,nlt_bgc_PON,iblk), a2D)
-      if (f_fPON_ai(1:1)/= 'x') &
+      if (f_fPON_ai(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_fPON_ai, iblk, &
               flux_bio_ai(:,:,nlt_bgc_PON,iblk), a2D)
-      if (f_fDMS  (1:1) /= 'x') &
+      if (f_fDMS  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fDMS,    iblk, &
                  flux_bio(:,:,nlt_bgc_DMS,iblk), a2D)
-      if (f_fDMS_ai(1:1)/= 'x') &
+      if (f_fDMS_ai(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_fDMS_ai, iblk, &
               flux_bio_ai(:,:,nlt_bgc_DMS,iblk), a2D)
-      if (f_fDMSPd  (1:1) /= 'x') &
+      if (f_fDMSPd  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fDMSPd,    iblk, &
                  flux_bio(:,:,nlt_bgc_DMSPd,iblk), a2D)
-      if (f_fDMSPd_ai(1:1)/= 'x') &
+      if (f_fDMSPd_ai(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_fDMSPd_ai, iblk, &
               flux_bio_ai(:,:,nlt_bgc_DMSPd,iblk), a2D)
-      if (f_fDMSPp  (1:1) /= 'x') &
+      if (f_fDMSPp  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fDMSPp,    iblk, &
                  flux_bio(:,:,nlt_bgc_DMSPp,iblk), a2D)
-      if (f_fDMSPp_ai(1:1)/= 'x') &
+      if (f_fDMSPp_ai(ns:ns)== histfreq(ns)) &
          call accum_hist_field(n_fDMSPp_ai, iblk, &
               flux_bio_ai(:,:,nlt_bgc_DMSPp,iblk), a2D)
-      if (f_PPnet  (1:1) /= 'x') &
+      if (f_PPnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_PPnet,   iblk, &
                                PP_net(:,:,iblk), a2D)
-      if (f_grownet  (1:1) /= 'x') &
+      if (f_grownet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_grownet, iblk, &
                              grow_net(:,:,iblk), a2D)   
-      if (f_upNO (1:1) /= 'x') &
+      if (f_upNO (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_upNO,   iblk, &
                    upNO(:,:,iblk), a2D)
-      if (f_upNH (1:1) /= 'x') &
+      if (f_upNH (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_upNH,   iblk, &
                    upNH(:,:,iblk), a2D)
 
@@ -2356,19 +2360,19 @@
 
     if (z_tracers) then
 
-      if (f_fzaero(1:1)/= 'x') then
+      if (f_fzaero(ns:ns)== histfreq(ns)) then
          do n=1,n_zaero
             call accum_hist_field(n_fzaero(n,:),    iblk, &
                   flux_bio(:,:,nlt_zaero(n),iblk), a2D)
          enddo
       endif
-      if (f_fzaero_ai(1:1)/= 'x') then
+      if (f_fzaero_ai(ns:ns)== histfreq(ns)) then
          do n=1,n_zaero
             call accum_hist_field(n_fzaero_ai(n,:),    iblk, &
                   flux_bio_ai(:,:,nlt_zaero(n),iblk), a2D)
          enddo
       endif
-      if (f_algalpeak  (1:1) /= 'x') then
+      if (f_algalpeak  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             do j = jlo, jhi
                do i = ilo, ihi
@@ -2396,248 +2400,248 @@
       !  
       ! ice_bio_net
       !
-      if (f_zaeronet  (1:1) /= 'x') then
+      if (f_zaeronet  (ns:ns) == histfreq(ns)) then
          do n=1,n_zaero
             call accum_hist_field(n_zaeronet(n,:),    iblk, &
                    ice_bio_net(:,:,nlt_zaero(n), iblk), a2D)
          enddo
       endif !f_zaeronet
-      if (f_chlnet  (1:1) /= 'x') then
+      if (f_chlnet  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_chlnet(n,:),    iblk, &
                    R_chl2N(n)*ice_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_chlnet
-      if (f_Nnet  (1:1) /= 'x') then
+      if (f_Nnet  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_Nnet(n,:),    iblk, &
                    ice_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_Nnet
-      if (f_Cnet  (1:1) /= 'x') then
+      if (f_Cnet  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_Cnet(n,:),    iblk, &
                    R_C2N(n) *ice_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_Cnet
-      if (f_DOCnet  (1:1) /= 'x') then
+      if (f_DOCnet  (ns:ns) == histfreq(ns)) then
          do n=1,n_doc  
             call accum_hist_field(n_DOCnet(n,:),    iblk, &
                    ice_bio_net(:,:,nlt_bgc_DOC(n), iblk), a2D)
          enddo
       endif !f_DOCnet
-      if (f_DICnet  (1:1) /= 'x') then
+      if (f_DICnet  (ns:ns) == histfreq(ns)) then
          do n=1,n_dic  
             call accum_hist_field(n_DICnet(n,:),    iblk, &
                    ice_bio_net(:,:,nlt_bgc_DIC(n), iblk), a2D)
          enddo
       endif !f_DICnet
-      if (f_DONnet  (1:1) /= 'x') then
+      if (f_DONnet  (ns:ns) == histfreq(ns)) then
          do n=1,n_don  
             call accum_hist_field(n_DONnet(n,:),    iblk, &
                    ice_bio_net(:,:,nlt_bgc_DON(n), iblk), a2D)
          enddo
       endif !f_DONnet
-      if (f_Fednet   (1:1) /= 'x') then
+      if (f_Fednet   (ns:ns) == histfreq(ns)) then
          do n=1,n_fed   
             call accum_hist_field(n_Fednet (n,:),    iblk, &
                    ice_bio_net(:,:,nlt_bgc_Fed (n), iblk), a2D)
          enddo
       endif !f_Fednet 
-      if (f_Fepnet   (1:1) /= 'x') then
+      if (f_Fepnet   (ns:ns) == histfreq(ns)) then
          do n=1,n_fep   
             call accum_hist_field(n_Fepnet (n,:),    iblk, &
                    ice_bio_net(:,:,nlt_bgc_Fep (n), iblk), a2D)
          enddo
       endif !f_Fepnet 
 
-      if (f_Nitnet  (1:1) /= 'x') &
+      if (f_Nitnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Nitnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_Nit, iblk), a2D)
-      if (f_Amnet  (1:1) /= 'x') &
+      if (f_Amnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Amnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_Am, iblk), a2D)
-      if (f_Silnet  (1:1) /= 'x') &
+      if (f_Silnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Silnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_Sil, iblk), a2D)
-      if (f_humnet  (1:1) /= 'x') &
+      if (f_humnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_humnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_hum, iblk), a2D)
-      if (f_DMSPpnet  (1:1) /= 'x') &
+      if (f_DMSPpnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSPpnet,   iblk, &
                   ice_bio_net(:,:,nlt_bgc_DMSPp, iblk), a2D)
-      if (f_DMSPdnet  (1:1) /= 'x') &
+      if (f_DMSPdnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSPdnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_DMSPd, iblk), a2D)
-      if (f_DMSnet  (1:1) /= 'x') &
+      if (f_DMSnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_DMS, iblk), a2D)
-      if (f_PONnet  (1:1) /= 'x') &
+      if (f_PONnet  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_PONnet,   iblk, &
                    ice_bio_net(:,:,nlt_bgc_PON, iblk), a2D)
       !
       !  snow_bio_net
       ! 
-      if (f_zaerosnow  (1:1) /= 'x') then
+      if (f_zaerosnow  (ns:ns) == histfreq(ns)) then
          do n=1,n_zaero
             call accum_hist_field(n_zaerosnow(n,:),    iblk, &
                    snow_bio_net(:,:,nlt_zaero(n), iblk), a2D)
          enddo
       endif !f_zaerosnow
-      if (f_chlsnow  (1:1) /= 'x') then
+      if (f_chlsnow  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_chlsnow(n,:),    iblk, &
                    R_chl2N(n)*snow_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_chlsnow
-      if (f_Nsnow  (1:1) /= 'x') then
+      if (f_Nsnow  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_Nsnow(n,:),    iblk, &
                    snow_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_Nsnow
-      if (f_Csnow  (1:1) /= 'x') then
+      if (f_Csnow  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_Csnow(n,:),    iblk, &
                    R_C2N(n)*snow_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_Csnow
-      if (f_DOCsnow  (1:1) /= 'x') then
+      if (f_DOCsnow  (ns:ns) == histfreq(ns)) then
          do n=1,n_doc  
             call accum_hist_field(n_DOCsnow(n,:),    iblk, &
                    snow_bio_net(:,:,nlt_bgc_DOC(n), iblk), a2D)
          enddo
       endif !f_DOCsnow
-      if (f_DICsnow  (1:1) /= 'x') then
+      if (f_DICsnow  (ns:ns) == histfreq(ns)) then
          do n=1,n_dic  
             call accum_hist_field(n_DICsnow(n,:),    iblk, &
                    snow_bio_net(:,:,nlt_bgc_DIC(n), iblk), a2D)
          enddo
       endif !f_DICsnow
-      if (f_DONsnow  (1:1) /= 'x') then
+      if (f_DONsnow  (ns:ns) == histfreq(ns)) then
          do n=1,n_don  
             call accum_hist_field(n_DONsnow(n,:),    iblk, &
                    snow_bio_net(:,:,nlt_bgc_DON(n), iblk), a2D)
          enddo
       endif !f_DONsnow
-      if (f_Fedsnow   (1:1) /= 'x') then
+      if (f_Fedsnow   (ns:ns) == histfreq(ns)) then
          do n=1,n_fed   
             call accum_hist_field(n_Fedsnow (n,:),    iblk, &
                    snow_bio_net(:,:,nlt_bgc_Fed (n), iblk), a2D)
          enddo
       endif !f_Fedsnow 
-      if (f_Fepsnow   (1:1) /= 'x') then
+      if (f_Fepsnow   (ns:ns) == histfreq(ns)) then
          do n=1,n_fep   
             call accum_hist_field(n_Fepsnow (n,:),    iblk, &
                    snow_bio_net(:,:,nlt_bgc_Fep (n), iblk), a2D)
          enddo
       endif !f_Fepsnow 
 
-      if (f_Nitsnow  (1:1) /= 'x') &
+      if (f_Nitsnow  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Nitsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_Nit, iblk), a2D)
-      if (f_Amsnow  (1:1) /= 'x') &
+      if (f_Amsnow  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Amsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_Am, iblk), a2D)
-      if (f_Silsnow  (1:1) /= 'x') &
+      if (f_Silsnow  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Silsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_Sil, iblk), a2D)
-      if (f_humsnow  (1:1) /= 'x') &
+      if (f_humsnow  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_humsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_hum, iblk), a2D)
-      if (f_DMSPpsnow  (1:1) /= 'x') &
+      if (f_DMSPpsnow  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSPpsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_DMSPp, iblk), a2D)
-      if (f_DMSPdsnow  (1:1) /= 'x') &
+      if (f_DMSPdsnow  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSPdsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_DMSPd, iblk), a2D)
-      if (f_DMSsnow  (1:1) /= 'x') &
+      if (f_DMSsnow  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_DMS, iblk), a2D)
-      if (f_PONsnow  (1:1) /= 'x') &
+      if (f_PONsnow  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_PONsnow,   iblk, &
                    snow_bio_net(:,:,nlt_bgc_PON, iblk), a2D)
       !
       ! mobile frac
       ! 
-      if (f_zaerofrac  (1:1) /= 'x') then
+      if (f_zaerofrac  (ns:ns) == histfreq(ns)) then
          do n=1,n_zaero
             call accum_hist_field(n_zaerofrac(n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_zaero(n), iblk), a2D)
          enddo
       endif !f_zaerofrac
-      if (f_chlfrac  (1:1) /= 'x') then
+      if (f_chlfrac  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_chlfrac(n,:),    iblk, &
                    trcr(:,:,nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_chlfrac
-      if (f_Nfrac  (1:1) /= 'x') then
+      if (f_Nfrac  (ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             call accum_hist_field(n_Nfrac(n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_Nfrac
-      if (f_DOCfrac  (1:1) /= 'x') then
+      if (f_DOCfrac  (ns:ns) == histfreq(ns)) then
          do n=1,n_doc  
             call accum_hist_field(n_DOCfrac(n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DOC(n), iblk), a2D)
          enddo
       endif !f_DOCfrac
-      if (f_DICfrac  (1:1) /= 'x') then
+      if (f_DICfrac  (ns:ns) == histfreq(ns)) then
          do n=1,n_dic  
             call accum_hist_field(n_DICfrac(n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DIC(n), iblk), a2D)
          enddo
       endif !f_DICfrac
-      if (f_DONfrac  (1:1) /= 'x') then
+      if (f_DONfrac  (ns:ns) == histfreq(ns)) then
          do n=1,n_don  
             call accum_hist_field(n_DONfrac(n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DON(n), iblk), a2D)
          enddo
       endif !f_DONfrac
-      if (f_Fedfrac   (1:1) /= 'x') then
+      if (f_Fedfrac   (ns:ns) == histfreq(ns)) then
          do n=1,n_fed   
             call accum_hist_field(n_Fedfrac (n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Fed (n), iblk), a2D)
          enddo
       endif !f_Fedfrac 
-      if (f_Fepfrac   (1:1) /= 'x') then
+      if (f_Fepfrac   (ns:ns) == histfreq(ns)) then
          do n=1,n_fep   
             call accum_hist_field(n_Fepfrac (n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Fep (n), iblk), a2D)
          enddo
       endif !f_Fepfrac 
 
-      if (f_Nitfrac  (1:1) /= 'x') &
+      if (f_Nitfrac  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Nitfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Nit, iblk), a2D)
-      if (f_Amfrac  (1:1) /= 'x') &
+      if (f_Amfrac  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Amfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Am, iblk), a2D)
-      if (f_Silfrac  (1:1) /= 'x') &
+      if (f_Silfrac  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_Silfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Sil, iblk), a2D)
-      if (f_humfrac  (1:1) /= 'x') &
+      if (f_humfrac  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_humfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_hum, iblk), a2D) 
-      if (f_DMSPpfrac  (1:1) /= 'x') &
+      if (f_DMSPpfrac  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSPpfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMSPp, iblk), a2D)
-      if (f_DMSPdfrac  (1:1) /= 'x') &
+      if (f_DMSPdfrac  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSPdfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMSPd, iblk), a2D)
-      if (f_DMSfrac  (1:1) /= 'x') &
+      if (f_DMSfrac  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_DMSfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMS, iblk), a2D)
-      if (f_PONfrac  (1:1) /= 'x') &
+      if (f_PONfrac  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_PONfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_PON, iblk), a2D)
 
     endif  ! z_tracers
 
       ! brine
-      if (f_hbri  (1:1) /= 'x') &
+      if (f_hbri  (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_hbri,     iblk, &
                         hbri(:,:,iblk), a2D)
 
@@ -2650,7 +2654,7 @@
     if (tr_brine) then
       ! 3Dc bgc category fields
 
-      if (f_fbri   (1:1) /= 'x') &
+      if (f_fbri   (ns:ns) == histfreq(ns)) &
          call accum_hist_field(n_fbri-n2D, iblk, ncat_hist, &
                                trcrn(:,:,nt_fbri,1:ncat_hist,iblk), a3Dc)
     endif
@@ -2660,7 +2664,7 @@
     if (z_tracers .or. solve_zsal) then
       ! 3Db category fields
 
-      if (f_bTin  (1:1) /= 'x')  then
+      if (f_bTin  (ns:ns) == histfreq(ns))  then
          workz(:,:,:) = c0
          do n = 1, ncat_hist
             do j = jlo, jhi
@@ -2676,7 +2680,7 @@
                                workz(:,:,1:nzblyr), a3Db)
       endif
 
-      if (f_bphi  (1:1) /= 'x') then
+      if (f_bphi  (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          do n = 1, ncat_hist
             do j = jlo, jhi
@@ -2692,7 +2696,7 @@
                                workz(:,:,1:nzblyr), a3Db)
       endif
 
-      if (f_bgc_S   (1:1) /= 'x') then
+      if (f_bgc_S   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
             do j = jlo, jhi
                do i = ilo, ihi
@@ -2707,7 +2711,7 @@
                                   workz(:,:,1:nzblyr), a3Db)
       endif
 
-      if (f_zfswin   (1:1) /= 'x') then
+      if (f_zfswin   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          do n = 1, ncat_hist
             do j = jlo, jhi
@@ -2725,7 +2729,7 @@
                                   workz(:,:,1:nzblyr), a3Db)
       endif
 
-      if (f_iDi   (1:1) /= 'x') then
+      if (f_iDi   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          do n = 1, ncat_hist
             do k = 1,nzblyr-1
@@ -2743,7 +2747,7 @@
                                   workz(:,:,1:nzblyr), a3Db)
       endif
 
-      if (f_iki   (1:1) /= 'x') then
+      if (f_iki   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          do n = 1, ncat_hist
             do k = 1,nzblyr-1
@@ -2770,7 +2774,7 @@
     if (z_tracers) then
       ! 3Da category fields
 
-      if (f_zaero   (1:1) /= 'x') then
+      if (f_zaero   (ns:ns) == histfreq(ns)) then
          do k = 1,n_zaero
            workz(:,:,:) = c0
              do j = jlo, jhi
@@ -2788,7 +2792,7 @@
                                   workz(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_zaero
-      if (f_bgc_N   (1:1) /= 'x') then
+      if (f_bgc_N   (ns:ns) == histfreq(ns)) then
          do k = 1,n_algae
            workz(:,:,:) = c0
            workz2(:,:,:) = c0
@@ -2816,7 +2820,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_N
-      if (f_bgc_C   (1:1) /= 'x') then
+      if (f_bgc_C   (ns:ns) == histfreq(ns)) then
          do k = 1,n_algae
            workz(:,:,:) = c0
              do j = jlo, jhi
@@ -2834,7 +2838,7 @@
                                   workz(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_C
-      if (f_bgc_DOC   (1:1) /= 'x') then
+      if (f_bgc_DOC   (ns:ns) == histfreq(ns)) then
          do k = 1,n_doc   
            workz(:,:,:) = c0
            workz2(:,:,:) = c0
@@ -2862,7 +2866,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_DOC
-      if (f_bgc_DIC   (1:1) /= 'x') then
+      if (f_bgc_DIC   (ns:ns) == histfreq(ns)) then
          do k = 1,n_dic  
            workz(:,:,:) = c0
            workz2(:,:,:) = c0
@@ -2890,7 +2894,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_DIC
-      if (f_bgc_DON   (1:1) /= 'x') then
+      if (f_bgc_DON   (ns:ns) == histfreq(ns)) then
          do k = 1,n_don  
            workz(:,:,:) = c0
            workz2(:,:,:) = c0
@@ -2918,7 +2922,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_DON
-      if (f_bgc_Fed    (1:1) /= 'x') then
+      if (f_bgc_Fed    (ns:ns) == histfreq(ns)) then
          do k = 1,n_fed   
            workz(:,:,:) = c0
            workz2(:,:,:) = c0
@@ -2946,7 +2950,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_Fed 
-      if (f_bgc_Fep    (1:1) /= 'x') then
+      if (f_bgc_Fep    (ns:ns) == histfreq(ns)) then
          do k = 1,n_fep   
            workz(:,:,:) = c0
            workz2(:,:,:) = c0
@@ -2974,7 +2978,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_Fep 
-      if (f_bgc_chl   (1:1) /= 'x') then
+      if (f_bgc_chl   (ns:ns) == histfreq(ns)) then
          do k = 1,n_algae
            workz(:,:,:) = c0
              do j = jlo, jhi
@@ -2993,7 +2997,7 @@
          enddo !k
       endif  !f_bgc_chl
          
-      if (f_bgc_Nit   (1:1) /= 'x') then
+      if (f_bgc_Nit   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          workz2(:,:,:) = c0
             do j = jlo, jhi
@@ -3020,7 +3024,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
       endif
 
-      if (f_bgc_Am   (1:1) /= 'x') then
+      if (f_bgc_Am   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          workz2(:,:,:) = c0
             do j = jlo, jhi
@@ -3047,7 +3051,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
       endif
 
-      if (f_bgc_Sil   (1:1) /= 'x') then
+      if (f_bgc_Sil   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          workz2(:,:,:) = c0
             do j = jlo, jhi
@@ -3075,7 +3079,7 @@
       endif
   
 
-      if (f_bgc_hum   (1:1) /= 'x') then
+      if (f_bgc_hum   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          workz2(:,:,:) = c0
             do j = jlo, jhi
@@ -3102,7 +3106,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
       endif
  
-      if (f_bgc_DMSPd   (1:1) /= 'x') then
+      if (f_bgc_DMSPd   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          workz2(:,:,:) = c0
             do j = jlo, jhi
@@ -3129,7 +3133,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
       endif       
 
-      if (f_bgc_DMSPp   (1:1) /= 'x') then
+      if (f_bgc_DMSPp   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
             do j = jlo, jhi
                do i = ilo, ihi
@@ -3146,7 +3150,7 @@
                                   workz(:,:,1:nzalyr), a3Da)
       endif
 
-      if (f_bgc_DMS   (1:1) /= 'x') then
+      if (f_bgc_DMS   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          workz2(:,:,:) = c0
             do j = jlo, jhi
@@ -3173,7 +3177,7 @@
                                   workz2(:,:,1:nzalyr), a3Da)
       endif
 
-      if (f_bgc_PON   (1:1) /= 'x') then
+      if (f_bgc_PON   (ns:ns) == histfreq(ns)) then
          workz(:,:,:) = c0
          workz2(:,:,:) = c0
             do j = jlo, jhi
@@ -3203,6 +3207,8 @@
       endif ! z_tracers, 3Da tracers
       endif ! allocated(a3Da)
 
+      enddo ! ns
+
       end subroutine accum_hist_bgc
 
 !=======================================================================
@@ -3228,14 +3234,14 @@
     if (z_tracers) then
 
     do ns = 1, nstreams
-       if (histfreq(ns) /= 'x') then
+       if (histfreq(ns) == histfreq(ns)) then
  
 !----------------------------------------------------------------------------
 ! snow+bio grid ==>
 ! 1:2 snow (surface layer +interior), 3:nblyr+2 ice (bio grid), nblyr+3 ocean
 !----------------------------------------------------------------------------
 
-       if (f_zaero(1:1) /= 'x') then
+       if (f_zaero(ns:ns) == histfreq(ns)) then
          do n=1,n_zaero
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'zaero', trim(nchar)
@@ -3245,17 +3251,17 @@
          enddo
        endif
      
-       if (f_bgc_Nit(1:1) /= 'x') & 
+       if (f_bgc_Nit(ns:ns) == histfreq(ns)) & 
             call define_hist_field(n_bgc_Nit,"bgc_Nit","mmol/m^3",tstr3Da, tcstr, &
                 "bulk nitrate ", "snow+bio grid", c1, c0,     &
                 ns, f_bgc_Nit)
  
-       if (f_bgc_Am(1:1) /= 'x') &
+       if (f_bgc_Am(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_Am,"bgc_Am","mmol/m^3",tstr3Da, tcstr, &
                 "bulk ammonia/um ", "snow+bio grid", c1, c0,  &
                 ns, f_bgc_Am)
 
-       if (f_bgc_N(1:1) /= 'x') then
+       if (f_bgc_N(ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_N', trim(nchar)
@@ -3264,7 +3270,7 @@
                 ns, f_bgc_N)
          enddo
        endif
-       if (f_bgc_C(1:1) /= 'x') then
+       if (f_bgc_C(ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_C', trim(nchar)
@@ -3273,7 +3279,7 @@
                 ns, f_bgc_C)
          enddo
        endif
-       if (f_bgc_chl(1:1) /= 'x') then
+       if (f_bgc_chl(ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_chl', trim(nchar)
@@ -3282,7 +3288,7 @@
                 ns, f_bgc_chl)
          enddo
        endif
-       if (f_bgc_DOC(1:1) /= 'x') then
+       if (f_bgc_DOC(ns:ns) == histfreq(ns)) then
          do n=1,n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_DOC', trim(nchar)
@@ -3291,7 +3297,7 @@
                 ns, f_bgc_DOC)
          enddo
        endif
-       if (f_bgc_DIC(1:1) /= 'x') then
+       if (f_bgc_DIC(ns:ns) == histfreq(ns)) then
          do n=1,n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_DIC', trim(nchar)
@@ -3300,7 +3306,7 @@
                 ns, f_bgc_DIC)
          enddo
        endif
-       if (f_bgc_DON(1:1) /= 'x') then
+       if (f_bgc_DON(ns:ns) == histfreq(ns)) then
          do n=1,n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_DON', trim(nchar)
@@ -3309,7 +3315,7 @@
                 ns, f_bgc_DON)
          enddo
        endif
-       if (f_bgc_Fed (1:1) /= 'x') then
+       if (f_bgc_Fed (ns:ns) == histfreq(ns)) then
          do n=1,n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_Fed', trim(nchar)
@@ -3318,7 +3324,7 @@
                 ns, f_bgc_Fed )
          enddo
        endif
-       if (f_bgc_Fep (1:1) /= 'x') then
+       if (f_bgc_Fep (ns:ns) == histfreq(ns)) then
          do n=1,n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_Fep', trim(nchar)
@@ -3328,32 +3334,32 @@
          enddo
        endif
      
-       if (f_bgc_Sil(1:1) /= 'x') &
+       if (f_bgc_Sil(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_Sil,"bgc_Sil","mmol/m^3",tstr3Da, tcstr, &
                 "bulk silicate ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_Sil)
      
-       if (f_bgc_hum(1:1) /= 'x') &
+       if (f_bgc_hum(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_hum,"bgc_hum","mmol/m^3",tstr3Da, tcstr, &
                 "bulk humic (carbon) material ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_hum)
       
-       if (f_bgc_DMSPp(1:1) /= 'x') &
+       if (f_bgc_DMSPp(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_DMSPp,"bgc_DMSPp","mmol/m^3",tstr3Da, tcstr, &
                 "bulk algal DMSP ", "snow+bio grid", c1, c0,&
                 ns, f_bgc_DMSPp)
       
-       if (f_bgc_DMSPd(1:1) /= 'x') &
+       if (f_bgc_DMSPd(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_DMSPd,"bgc_DMSPd","mmol/m^3",tstr3Da, tcstr, &
                 "bulk dissolved DMSP ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DMSPd)
   
-       if (f_bgc_DMS(1:1) /= 'x') &
+       if (f_bgc_DMS(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_DMS,"bgc_DMS","mmol/m^3",tstr3Da, tcstr, &
                 "bulk DMS gas ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DMS)
      
-       if (f_bgc_PON(1:1) /= 'x') &
+       if (f_bgc_PON(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_PON,"bgc_PON","mmol/m^3",tstr3Da, tcstr, &
                 "other bulk nitrogen pool ", "snow+bio grid", c1, c0, &
                 ns, f_bgc_PON)
@@ -3362,17 +3368,17 @@
        !   Category 1 BGC
        !----------------------------------------------
 
-       if (f_bgc_Nit_cat1(1:1) /= 'x') & 
+       if (f_bgc_Nit_cat1(ns:ns) == histfreq(ns)) & 
             call define_hist_field(n_bgc_Nit_cat1,"bgc_Nit_cat1","mmol/m^3",tstr3Da, tcstr, &
                 "bulk nitrate in cat 1 ", "snow+bio grid", c1, c0,     &
                 ns, f_bgc_Nit_cat1)
  
-       if (f_bgc_Am_cat1(1:1) /= 'x') &
+       if (f_bgc_Am_cat1(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_Am_cat1,"bgc_Am_cat1","mmol/m^3",tstr3Da, tcstr, &
                 "bulk ammonia/um in cat 1", "snow+bio grid", c1, c0,  &
                 ns, f_bgc_Am_cat1)
 
-       if (f_bgc_N_cat1(1:1) /= 'x') then
+       if (f_bgc_N_cat1(ns:ns) == histfreq(ns)) then
          do n=1,n_algae
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_N_cat1', trim(nchar)
@@ -3381,7 +3387,7 @@
                 ns, f_bgc_N_cat1)
          enddo
        endif
-       if (f_bgc_DOC_cat1(1:1) /= 'x') then
+       if (f_bgc_DOC_cat1(ns:ns) == histfreq(ns)) then
          do n=1,n_doc
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_DOC_cat1', trim(nchar)
@@ -3390,7 +3396,7 @@
                 ns, f_bgc_DOC_cat1)
          enddo
        endif
-       if (f_bgc_DIC_cat1(1:1) /= 'x') then
+       if (f_bgc_DIC_cat1(ns:ns) == histfreq(ns)) then
          do n=1,n_dic
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_DIC_cat1', trim(nchar)
@@ -3399,7 +3405,7 @@
                 ns, f_bgc_DIC_cat1)
          enddo
        endif
-       if (f_bgc_DON_cat1(1:1) /= 'x') then
+       if (f_bgc_DON_cat1(ns:ns) == histfreq(ns)) then
          do n=1,n_don
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_DON_cat1', trim(nchar)
@@ -3408,7 +3414,7 @@
                 ns, f_bgc_DON_cat1)
          enddo
        endif
-       if (f_bgc_Fed_cat1 (1:1) /= 'x') then
+       if (f_bgc_Fed_cat1 (ns:ns) == histfreq(ns)) then
          do n=1,n_fed 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_Fed_cat1', trim(nchar)
@@ -3417,7 +3423,7 @@
                 ns, f_bgc_Fed_cat1 )
          enddo
        endif
-       if (f_bgc_Fep_cat1 (1:1) /= 'x') then
+       if (f_bgc_Fep_cat1 (ns:ns) == histfreq(ns)) then
          do n=1,n_fep 
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'bgc_Fep_cat1', trim(nchar)
@@ -3427,32 +3433,32 @@
          enddo
        endif
      
-       if (f_bgc_Sil_cat1(1:1) /= 'x') &
+       if (f_bgc_Sil_cat1(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_Sil_cat1,"bgc_Sil_cat1","mmol/m^3",tstr3Da, tcstr, &
                 "bulk silicate in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_Sil_cat1)
      
-       if (f_bgc_hum_cat1(1:1) /= 'x') &
+       if (f_bgc_hum_cat1(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_hum,"bgc_hum_cat1","mmol/m^3",tstr3Da, tcstr, &
                 "bulk humic (carbon) material in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_hum_cat1)
       
-       if (f_bgc_DMSPd_cat1(1:1) /= 'x') &
+       if (f_bgc_DMSPd_cat1(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_DMSPd_cat1,"bgc_DMSPd_cat1","mmol/m^3",tstr3Da, tcstr, &
                 "bulk dissolved DMSP in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DMSPd_cat1)
   
-       if (f_bgc_DMS_cat1(1:1) /= 'x') &
+       if (f_bgc_DMS_cat1(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_DMS_cat1,"bgc_DMS_cat1","mmol/m^3",tstr3Da, tcstr, &
                 "bulk DMS gas in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_DMS_cat1)
      
-       if (f_bgc_PON_cat1(1:1) /= 'x') &
+       if (f_bgc_PON_cat1(ns:ns) == histfreq(ns)) &
             call define_hist_field(n_bgc_PON_cat1,"bgc_PON_cat1","mmol/m^3",tstr3Da, tcstr, &
                 "other bulk nitrogen pool in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_PON_cat1)
     
-       endif ! histfreq(ns) /= 'x'
+       endif ! histfreq(ns) == histfreq(ns)
     enddo  !ns
 
     endif ! z_tracers
