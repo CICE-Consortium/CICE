@@ -263,6 +263,8 @@
 
       ! 2D fields
 
+      if (allocated(a2D)) then
+
       if (f_Cdn_atm     (1:1) /= 'x') &
         call accum_hist_field(n_Cdn_atm, iblk, Cdn_atm(:,:,iblk), a2D)
       if (f_Cdn_ocn     (1:1) /= 'x') &
@@ -294,6 +296,7 @@
                               iblk, Cdn_ocn_skin(:,:,iblk), a2D)  
       end if
 
+      endif ! if(allocated(a2D))
       endif ! formdrag
 
       end subroutine accum_hist_drag
