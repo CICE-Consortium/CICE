@@ -143,7 +143,8 @@
         tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-                                 sw_redist, calc_dragio, use_smliq_pnd, snwgrain
+                                 sw_redist, calc_dragio, use_smliq_pnd, snwgrain, &
+                                 heatflux_linear
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
@@ -242,7 +243,8 @@
         snw_tau_fname,  snw_kappa_fname, snw_drdt0_fname
 
       namelist /forcing_nml/ &
-        formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
+        formdrag,       atmbndy,         heatflux_linear,               &
+        calc_strair,    calc_Tsfc,                                      &
         highfreq,       natmiter,        atmiter_conv,  calc_dragio,    &
         ustar_min,      emissivity,      iceruf,        iceruf_ocn,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
@@ -449,6 +451,7 @@
       albsnowi  = 0.70_dbl_kind   ! cold snow albedo, near IR
       ahmax     = 0.3_dbl_kind    ! thickness above which ice albedo is constant (m)
       atmbndy   = 'default'       ! or 'constant'
+      heatflux_linear = .false.   ! if true, calculate sensible+latent heatfluxes using traditional linear bulk formula
       default_season  = 'winter'  ! default forcing data, if data is not read in
       fyear_init = 1900           ! first year of forcing cycle
       ycycle = 1                  ! number of years in forcing cycle
@@ -799,6 +802,7 @@
       call broadcast_scalar(albsnowi,             master_task)
       call broadcast_scalar(ahmax,                master_task)
       call broadcast_scalar(atmbndy,              master_task)
+      call broadcast_scalar(heatflux_linear,      master_task)
       call broadcast_scalar(fyear_init,           master_task)
       call broadcast_scalar(ycycle,               master_task)
       call broadcast_scalar(atm_data_format,      master_task)
@@ -1646,6 +1650,7 @@
             write(nu_diag,1010) ' highfreq         = ', highfreq,' : high-frequency atmospheric coupling'
             write(nu_diag,1020) ' natmiter         = ', natmiter,' : number of atmo boundary layer iterations'
             write(nu_diag,1002) ' atmiter_conv     = ', atmiter_conv,' : convergence criterion for ustar'
+            write(nu_diag,1010) ' heatflux_linear  = ', heatflux_linear,' : Use linear bulk transfer coefficients for sensible+latent heatfluxes'
          elseif (trim(atmbndy) == 'constant') then
             tmpstr2 = ' : boundary layer uses bulk transfer coefficients'
          else
@@ -2034,7 +2039,8 @@
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
          R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
          kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &
-         atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
+         atmbndy_in=atmbndy, heatflux_linear_in=heatflux_linear, &
+         calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
          kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
          rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
          ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &

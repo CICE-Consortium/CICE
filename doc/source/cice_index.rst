@@ -283,6 +283,7 @@ either Celsius or Kelvin units).
    "**H**", "", ""
    "halo_info", "information for updating ghost cells", ""
    "heat_capacity", "if true, use salinity-dependent thermodynamics", "T"
+   "heatflux_linear", "if true, calculate sensible+latent heatfluxes using traditional linear bulk formula", "F"
    "hfrazilmin", "minimum thickness of new frazil ice", "0.05 m"
    "hi_min", "minimum ice thickness for thinnest ice category", "0.01 m"
    "hi_ssl", "ice surface scattering layer thickness", "0.05 m"

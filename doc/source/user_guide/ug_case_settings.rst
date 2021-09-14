@@ -562,6 +562,7 @@ forcing_nml
    "``formdrag``", "logical", "calculate form drag", "``.false.``"
    "``fyear_init``", "integer", "first year of atmospheric forcing data", "1900"
    "``highfreq``", "logical", "high-frequency atmo coupling", "``.false.``"
+   "``heatflux_linear``", "logical", "if true, calculate latent+sensible heatfluxes using traditional linear bulk formula", "``.false.``"
    "``ice_data_type``", "``boxslotcyl``", "initialize ice concentration and velocity for :ref:`boxslotcyl` test (:cite:`Zalesak79`)", "``default``"
    "", "``box2001``", "initialize ice concentration for :ref:`box2001` test (:cite:`Hunke01`)", ""
    "", "``default``", "no special initialization", ""
