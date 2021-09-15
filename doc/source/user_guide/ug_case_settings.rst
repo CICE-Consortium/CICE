@@ -528,7 +528,7 @@ forcing_nml
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
-   "``atmbndy``", "``constant``", "bulk transfer coefficients", "``similarity``"
+   "``atmbndy``", "string", "bulk transfer coefficients", "``similarity``"
    "", "``similarity``", "stability-based boundary layer", ""
    "", "``constant``", "constant-based boundary layer", ""
    "", "``mixed``", "stability-based, but constant for sensible+latent heatfluxes", ""
