@@ -223,8 +223,7 @@
 
 &forcing_nml
     formdrag        = .false.
-    atmbndy         = 'default'
-    heatflux_linear = .false.
+    atmbndy         = 'similarity'
     rotate_wind     = .true.
     calc_strair     = .true.
     calc_Tsfc       = .true.

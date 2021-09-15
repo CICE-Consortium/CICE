@@ -528,8 +528,10 @@ forcing_nml
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
-   "``atmbndy``", "``constant``", "bulk transfer coefficients", "``default``"
-   "", "``default``", "stability-based boundary layer", ""
+   "``atmbndy``", "``constant``", "bulk transfer coefficients", "``similarity``"
+   "", "``similarity``", "stability-based boundary layer", ""
+   "", "``constant``", "constant-based boundary layer", ""
+   "", "``mixed``", "stability-based, but constant for sensible+latent heatfluxes", ""
    "``atmiter_conv``", "real", "convergence criteria for ustar", "0.0"
    "``atm_data_dir``", "string", "path to atmospheric forcing data directory", ""
    "``atm_data_format``", "``bin``", "read direct access binary atmo forcing file format", "``bin``"
@@ -562,7 +564,6 @@ forcing_nml
    "``formdrag``", "logical", "calculate form drag", "``.false.``"
    "``fyear_init``", "integer", "first year of atmospheric forcing data", "1900"
    "``highfreq``", "logical", "high-frequency atmo coupling", "``.false.``"
-   "``heatflux_linear``", "logical", "if true, calculate latent+sensible heatfluxes using traditional linear bulk formula", "``.false.``"
    "``ice_data_type``", "``boxslotcyl``", "initialize ice concentration and velocity for :ref:`boxslotcyl` test (:cite:`Zalesak79`)", "``default``"
    "", "``box2001``", "initialize ice concentration for :ref:`box2001` test (:cite:`Hunke01`)", ""
    "", "``default``", "no special initialization", ""
