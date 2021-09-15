@@ -326,11 +326,18 @@
          do j = 1, ny_block
          do i = 1, nx_block
             if (icetmask(i,j,iblk)==0) then
+               if (tmask(i,j,iblk)) then
             ! structure tensor
-               a11_1(i,j,iblk) = p5
-               a11_2(i,j,iblk) = p5
-               a11_3(i,j,iblk) = p5
-               a11_4(i,j,iblk) = p5
+                  a11_1(i,j,iblk) = p5
+                  a11_2(i,j,iblk) = p5
+                  a11_3(i,j,iblk) = p5
+                  a11_4(i,j,iblk) = p5
+                else
+                  a11_1(i,j,iblk) = c0
+                  a11_2(i,j,iblk) = c0
+                  a11_3(i,j,iblk) = c0
+                  a11_4(i,j,iblk) = c0
+               endif
                a12_1(i,j,iblk) = c0
                a12_2(i,j,iblk) = c0
                a12_3(i,j,iblk) = c0
