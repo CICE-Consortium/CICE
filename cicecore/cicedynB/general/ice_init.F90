@@ -1214,6 +1214,14 @@
          endif
       endif
 
+      if (trim(atmbndy) == 'default') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: atmbndy = default'
+            write(nu_diag,*) subname//' WARNING:   For backward compability, set atmbndy = similarity'
+         endif
+         atmbndy = 'similarity'
+      endif
+
       if (formdrag) then
          if (trim(atmbndy) == 'constant') then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and atmbndy=constant'
