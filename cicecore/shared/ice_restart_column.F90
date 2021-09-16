@@ -12,7 +12,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p5
       use ice_constants, only: field_loc_center, field_type_scalar
-      use ice_domain_size, only: ncat, nfsd, nblyr
+      use ice_domain_size, only: ncat, nslyr, nfsd, nblyr
       use ice_restart,only: read_restart_field, write_restart_field
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
@@ -32,6 +32,7 @@
                  write_restart_pond_cesm, read_restart_pond_cesm, &
                  write_restart_pond_lvl,  read_restart_pond_lvl, &
                  write_restart_pond_topo, read_restart_pond_topo, &
+                 write_restart_snow,      read_restart_snow, &
                  write_restart_fsd,       read_restart_fsd, &
                  write_restart_iso,       read_restart_iso, &
                  write_restart_aero,      read_restart_aero, &
@@ -45,6 +46,7 @@
          restart_pond_cesm, & ! if .true., read meltponds restart file
          restart_pond_lvl , & ! if .true., read meltponds restart file
          restart_pond_topo, & ! if .true., read meltponds restart file
+         restart_snow     , & ! if .true., read snow tracer restart file
          restart_fsd      , & ! if .true., read floe size restart file
          restart_iso      , & ! if .true., read isotope tracer restart file
          restart_aero     , & ! if .true., read aerosol tracer restart file
@@ -480,6 +482,93 @@
                               'ipnd',ncat,diag,field_loc_center,field_type_scalar)
 
       end subroutine read_restart_pond_topo
+
+!=======================================================================
+
+! Dumps all values needed for restarting snow redistribution/metamorphism
+! author Elizabeth C. Hunke, LANL
+
+      subroutine write_restart_snow()
+
+      use ice_fileunits, only: nu_dump_snow
+      use ice_state, only: trcrn
+
+      ! local variables
+
+      logical (kind=log_kind) :: diag
+      integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw, k
+      character*3 ck
+      character(len=*),parameter :: subname='(write_restart_snow)'
+
+      call icepack_query_tracer_indices(nt_smice_out=nt_smice, &
+           nt_smliq_out=nt_smliq, nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      diag = .true.
+
+      !-----------------------------------------------------------------
+
+      do k = 1,nslyr
+        write(ck,'(i3.3)') k
+        call write_restart_field(nu_dump_snow,0, trcrn(:,:,nt_smice+k-1,:,:), &
+                            'ruf8','smice'//trim(ck),ncat,diag)
+        call write_restart_field(nu_dump_snow,0, trcrn(:,:,nt_smliq+k-1,:,:), &
+                            'ruf8','smliq'//trim(ck),ncat,diag)
+        call write_restart_field(nu_dump_snow,0, trcrn(:,:,nt_rhos+k-1,:,:), &
+                            'ruf8','rhos'//trim(ck),ncat,diag)
+        call write_restart_field(nu_dump_snow,0, trcrn(:,:,nt_rsnw+k-1,:,:), &
+                            'ruf8','rsnw'//trim(ck),ncat,diag)
+      enddo
+
+      end subroutine write_restart_snow
+
+!=======================================================================
+
+! Reads all values needed for a restart with snow redistribution/metamorphism
+! author Elizabeth C. Hunke, LANL
+
+      subroutine read_restart_snow()
+
+      use ice_fileunits, only: nu_restart_snow
+      use ice_state, only: trcrn
+
+      ! local variables
+
+      logical (kind=log_kind) :: &
+         diag
+      integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw, k
+      character*3 ck
+      character(len=*),parameter :: subname='(read_restart_snow)'
+
+      call icepack_query_tracer_indices(nt_smice_out=nt_smice, &
+           nt_smliq_out=nt_smliq, nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      diag = .true.
+
+      if (my_task == master_task) write(nu_diag,*) subname,'min/max snow tracers'
+
+      do k=1,nslyr
+        write(ck,'(i3.3)') k
+        call read_restart_field(nu_restart_snow,0,trcrn(:,:,nt_smice+k-1,:,:), &
+                 'ruf8','smice'//trim(ck),ncat,diag, &
+                 field_type=field_type_scalar,field_loc=field_loc_center)
+        call read_restart_field(nu_restart_snow,0,trcrn(:,:,nt_smliq+k-1,:,:), &
+                 'ruf8','smliq'//trim(ck),ncat,diag, &
+                 field_type=field_type_scalar,field_loc=field_loc_center)
+        call read_restart_field(nu_restart_snow,0,trcrn(:,:,nt_rhos+k-1,:,:), &
+                 'ruf8','rhos'//trim(ck),ncat,diag, &
+                 field_type=field_type_scalar,field_loc=field_loc_center)
+        call read_restart_field(nu_restart_snow,0,trcrn(:,:,nt_rsnw+k-1,:,:), &
+                 'ruf8','rsnw'//trim(ck),ncat,diag, &
+                 field_type=field_type_scalar,field_loc=field_loc_center)
+      enddo
+
+      end subroutine read_restart_snow
 
 !=======================================================================
 

@@ -1,0 +1,15 @@
+tr_snow         = .true.
+snwgrain        = .true.
+use_smliq_pnd   = .true.
+rsnw_fall       = 54.526
+rsnw_tmax       = 1500.0
+snw_aging_table = 'file'
+snw_filename    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/snicar_drdt_bst_fit_60_c04262019.nc'
+snw_tau_fname   = 'snowEmpiricalGrowthParameterTau'
+snw_kappa_fname = 'snowEmpiricalGrowthParameterKappa'
+snw_drdt0_fname = 'snowPropertyRate'
+snw_rhos_fname  = 'nGrainAgingSnowDensity'
+snw_Tgrd_fname  = 'nGrainAgingTempGradient'
+snw_T_fname     = 'nGrainAgingTemperature'
+nslyr = 5
+

@@ -75,14 +75,14 @@
       logical (kind=log_kind) :: tr_pond
       character(len=*), parameter :: subname = '(init_hist_pond_2D)'
 
-      !-----------------------------------------------------------------
-      ! read namelist
-      !-----------------------------------------------------------------
-
       call icepack_query_tracer_flags(tr_pond_out=tr_pond)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      !-----------------------------------------------------------------
+      ! read namelist
+      !-----------------------------------------------------------------
 
       call get_fileunit(nu_nml)
       if (my_task == master_task) then
