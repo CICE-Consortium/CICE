@@ -1216,8 +1216,8 @@
 
       if (trim(atmbndy) == 'default') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' WARNING: "atmbndy = default" is decrecated'
-            write(nu_diag,*) subname//' WARNING:   setting "atmbndy = similarity"'
+            write(nu_diag,*) subname//' WARNING: atmbndy = default is deprecated'
+            write(nu_diag,*) subname//' WARNING:   setting atmbndy = similarity'
          endif
          atmbndy = 'similarity'
       endif
