@@ -1216,8 +1216,8 @@
 
       if (trim(atmbndy) == 'default') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' WARNING: atmbndy = default'
-            write(nu_diag,*) subname//' WARNING:   For backward compability, set atmbndy = similarity'
+            write(nu_diag,*) subname//' WARNING: "atmbndy = default" is decrecated'
+            write(nu_diag,*) subname//' WARNING:   setting "atmbndy = similarity"'
          endif
          atmbndy = 'similarity'
       endif
@@ -1650,7 +1650,7 @@
          write(nu_diag,1010) ' formdrag         = ', formdrag,' : use form drag parameterization'
          write(nu_diag,1000) ' iceruf           = ', iceruf, ' : ice surface roughness at atmosphere interface (m)'
          if (trim(atmbndy) == 'constant') then
-            tmpstr2 = ' : boundary layer uses bulk transfer coefficients'
+            tmpstr2 = ' : constant-based boundary layer'
          elseif (trim(atmbndy) == 'similarity' .or. &
                  trim(atmbndy) == 'mixed') then
             write(nu_diag,1010) ' highfreq         = ', highfreq,' : high-frequency atmospheric coupling'
@@ -1659,7 +1659,7 @@
             if (trim(atmbndy) == 'similarity') then
                tmpstr2 = ' : stability-based boundary layer'
             else
-               tmpstr2 = ' : stability-based boundary layer, but constant for sensible+latent heatfluxes'
+               tmpstr2 = ' : stability-based boundary layer for wind stress, constant for sensible+latent heat fluxes'
             endif
          else
             tmpstr2 = ' : unknown value'
