@@ -1659,7 +1659,7 @@
             if (trim(atmbndy) == 'similarity') then
                tmpstr2 = ' : stability-based boundary layer'
             else
-               tmpstr2 = ' : stability-based boundary layer for wind stress, constant for sensible+latent heat fluxes'
+               tmpstr2 = ' : stability-based boundary layer for wind stress, constant-based for sensible+latent heat fluxes'
             endif
          else
             tmpstr2 = ' : unknown value'
