@@ -1358,6 +1358,46 @@
 
       end subroutine strain_rates
 
+ !=======================================================================
+
+ ! inclure Ktens? inclure rep_P?      
+      
+      subroutine calc_visc_coefficients (strength, tiny_area, &
+                                         Deltane,    Deltanw, &
+                                         Deltase,    Deltasw, &
+                                         zetane,     zetanw,  &
+                                         zetase,     zetasw,  &
+                                         etane,      etanw,   &
+                                         etase,      etasw    )
+
+      real (kind=dbl_kind), intent(in)::  &
+        strength, tinyarea                  ! at the t-point
+        
+      real (kind=dbl_kind), intent(in)::  &  
+        Deltane, Deltanw, Deltase, Deltasw  ! Delta at each corner
+
+      real (kind=dbl_kind), intent(out):: &  
+        zetane, zetanw, zetase, zetasw,   & ! zeta at each corner 
+        etane, etanw, etase, etasw          ! eta at each corner
+        
+!      if (trim(yield_curve) == 'ellipse') then
+
+         zetane = strength/max(Deltane,tinyarea) 
+         zetanw = strength/max(Deltanw,tinyarea)
+         zetase = strength/max(Deltase,tinyarea)
+         zetasw = strength/max(Deltasw,tinyarea)
+
+         etane = ecci*zetane ! CHANGE FOR eg_ratio
+         etanw = ecci*zetanw
+         etase = ecci*zetase
+         etasw = ecci*zetasw
+         
+!      else
+
+!      endif
+      
+      end subroutine calc_visc_coefficients
+      
 !=======================================================================
 
 ! Load velocity components into array for boundary updates
