@@ -223,7 +223,7 @@
 
 &forcing_nml
     formdrag        = .false.
-    atmbndy         = 'default'
+    atmbndy         = 'similarity'
     rotate_wind     = .true.
     calc_strair     = .true.
     calc_Tsfc       = .true.

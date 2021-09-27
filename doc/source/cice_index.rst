@@ -65,7 +65,7 @@ either Celsius or Kelvin units).
    "atm_data_dir", "directory for atmospheric forcing data", ""
    "atm_data_format", "format of atmospheric forcing files", ""
    "atm_data_type", "type of atmospheric forcing", ""
-   "atmbndy", "atmo boundary layer parameterization (‘default’ or ‘constant’)", ""
+   "atmbndy", "atmo boundary layer parameterization ('similarity', ‘constant’, or 'mixed')", ""
    "avail_hist_fields", "type for history field data", ""
    "awtidf", "weighting factor for near-ir, diffuse albedo", "0.36218"
    "awtidr", "weighting factor for near-ir, direct albedo", "0.00182"

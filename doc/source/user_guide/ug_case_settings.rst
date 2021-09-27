@@ -528,8 +528,10 @@ forcing_nml
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
-   "``atmbndy``", "``constant``", "bulk transfer coefficients", "``default``"
-   "", "``default``", "stability-based boundary layer", ""
+   "``atmbndy``", "string", "bulk transfer coefficients", "``similarity``"
+   "", "``similarity``", "stability-based boundary layer", ""
+   "", "``constant``", "constant-based boundary layer", ""
+   "", "``mixed``", "stability-based boundary layer for wind stress, constant-based for sensible+latent heat fluxes", ""
    "``atmiter_conv``", "real", "convergence criteria for ustar", "0.0"
    "``atm_data_dir``", "string", "path to atmospheric forcing data directory", ""
    "``atm_data_format``", "``bin``", "read direct access binary atmo forcing file format", "``bin``"
