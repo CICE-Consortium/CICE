@@ -671,6 +671,7 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
+
          call strain_rates (nx_block,   ny_block,   &
                             i,          j,          &
                             uvel,       vvel,       &
@@ -701,46 +702,26 @@
                                                rep_prsse, rep_prssw  )
          
       !-----------------------------------------------------------------
-      ! strength/Delta                   ! kg/s
-      !-----------------------------------------------------------------
-         c0ne = strength(i,j)/max(Deltane,tinyarea(i,j))
-         c0nw = strength(i,j)/max(Deltanw,tinyarea(i,j))
-         c0sw = strength(i,j)/max(Deltasw,tinyarea(i,j))
-         c0se = strength(i,j)/max(Deltase,tinyarea(i,j))
-
-         c1ne = c0ne*arlx1i
-         c1nw = c0nw*arlx1i
-         c1sw = c0sw*arlx1i
-         c1se = c0se*arlx1i
-
-         c0ne = c1ne*ecci
-         c0nw = c1nw*ecci
-         c0sw = c1sw*ecci
-         c0se = c1se*ecci
-
-      !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-         stressp_1(i,j) = (stressp_1(i,j)*(c1-arlx1i*revp) + c1ne*(divune*(c1+Ktens) - Deltane*(c1-Ktens))) &
-                          * denom1
-         stressp_2(i,j) = (stressp_2(i,j)*(c1-arlx1i*revp) + c1nw*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))) &
-                          * denom1
-         stressp_3(i,j) = (stressp_3(i,j)*(c1-arlx1i*revp) + c1sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))) &
-                          * denom1
-         stressp_4(i,j) = (stressp_4(i,j)*(c1-arlx1i*revp) + c1se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))) &
-                          * denom1
+! zeta and eta are in fact 2zeta and 2eta...rep_prs is rep_prs
+         
+         stressp_1(i,j) = (stressp_1(i,j)*(c1-arlx1i*revp) + arlx1i*(zetane*divune - rep_prsne))*denom1
+         stressp_2(i,j) = (stressp_2(i,j)*(c1-arlx1i*revp) + arlx1i*(zetanw*divunw - rep_prsnw))*denom1
+         stressp_3(i,j) = (stressp_3(i,j)*(c1-arlx1i*revp) + arlx1i*(zetasw*divusw - rep_prssw))*denom1
+         stressp_4(i,j) = (stressp_4(i,j)*(c1-arlx1i*revp) + arlx1i*(zetase*divuse - rep_prsse))*denom1
 
-         stressm_1(i,j) = (stressm_1(i,j)*(c1-arlx1i*revp) + c0ne*tensionne*(c1+Ktens)) * denom1
-         stressm_2(i,j) = (stressm_2(i,j)*(c1-arlx1i*revp) + c0nw*tensionnw*(c1+Ktens)) * denom1
-         stressm_3(i,j) = (stressm_3(i,j)*(c1-arlx1i*revp) + c0sw*tensionsw*(c1+Ktens)) * denom1
-         stressm_4(i,j) = (stressm_4(i,j)*(c1-arlx1i*revp) + c0se*tensionse*(c1+Ktens)) * denom1
+         stressm_1(i,j) = (stressm_1(i,j)*(c1-arlx1i*revp) + arlx1i*etane*tensionne) * denom1
+         stressm_2(i,j) = (stressm_2(i,j)*(c1-arlx1i*revp) + arlx1i*etanw*tensionnw) * denom1
+         stressm_3(i,j) = (stressm_3(i,j)*(c1-arlx1i*revp) + arlx1i*etasw*tensionsw) * denom1
+         stressm_4(i,j) = (stressm_4(i,j)*(c1-arlx1i*revp) + arlx1i*etase*tensionse) * denom1
 
-         stress12_1(i,j) = (stress12_1(i,j)*(c1-arlx1i*revp) + c0ne*shearne*p5*(c1+Ktens)) * denom1
-         stress12_2(i,j) = (stress12_2(i,j)*(c1-arlx1i*revp) + c0nw*shearnw*p5*(c1+Ktens)) * denom1
-         stress12_3(i,j) = (stress12_3(i,j)*(c1-arlx1i*revp) + c0sw*shearsw*p5*(c1+Ktens)) * denom1
-         stress12_4(i,j) = (stress12_4(i,j)*(c1-arlx1i*revp) + c0se*shearse*p5*(c1+Ktens)) * denom1
+         stress12_1(i,j) = (stress12_1(i,j)*(c1-arlx1i*revp) + arlx1i*p5*etane*shearne) * denom1
+         stress12_2(i,j) = (stress12_2(i,j)*(c1-arlx1i*revp) + arlx1i*p5*etanw*shearnw) * denom1
+         stress12_3(i,j) = (stress12_3(i,j)*(c1-arlx1i*revp) + arlx1i*p5*etasw*shearsw) * denom1
+         stress12_4(i,j) = (stress12_4(i,j)*(c1-arlx1i*revp) + arlx1i*p5*etase*shearse) * denom1
 
       !-----------------------------------------------------------------
       ! Eliminate underflows.
