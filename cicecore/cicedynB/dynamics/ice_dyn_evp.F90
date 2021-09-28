@@ -590,8 +590,8 @@
                          rdg_conv,   rdg_shear,  & 
                          str )
 
-      use ice_dyn_shared, only: strain_rates, deformations
-
+        use ice_dyn_shared, only: strain_rates, deformations, viscous_coeffs_and_rep_pressure
+        
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          ksub              , & ! subcycling step
@@ -640,11 +640,10 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        zetane, zetanw, zetase, zetasw            , & ! viscous coefficients (bulk)
-        etane,	etanw,	etase,	etasw	          , & ! viscous coefficients (shear)
+        zetane, zetanw, zetase, zetasw            , & ! zeta viscous coeff
+        etane,	etanw,	etase,	etasw	          , & ! eta viscous coeff
+        rep_prsne, rep_prsnw, rep_prsse, rep_prssw, & ! replacement pressure
 !       puny                                      , & ! puny
-        c0ne, c0nw, c0se, c0sw                    , & ! useful combinations
-        c1ne, c1nw, c1se, c1sw                    , &
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -691,15 +690,15 @@
       ! viscous coefficients
       !-----------------------------------------------------------------
          
-         call viscous_coeffs_and_rep_pressure (strength,  tinyarea,  &
-                                               Deltane,   Deltanw,   &
-                                               Deltase,   Deltasw,   &
-                                               zetane,    zetanw,    &
-                                               zetase,    zetasw,    &
-                                               etane,     etanw,     &
-                                               etase,     etasw,     &
-                                               rep_prsne, rep_prsnw, &
-                                               rep_prsse, rep_prssw  )
+         call viscous_coeffs_and_rep_pressure (strength(i,j), tinyarea(i,j),&
+                                               Deltane,       Deltanw,      &
+                                               Deltase,       Deltasw,      &
+                                               zetane,        zetanw,       &
+                                               zetase,        zetasw,       &
+                                               etane,         etanw,        &
+                                               etase,         etasw,        &
+                                               rep_prsne,     rep_prsnw,    &
+                                               rep_prsse,     rep_prssw     )
          
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2

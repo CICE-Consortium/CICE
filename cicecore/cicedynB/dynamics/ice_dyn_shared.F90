@@ -26,6 +26,7 @@
                 dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 alloc_dyn_shared, deformations, strain_rates, &
+                viscous_coeffs_and_rep_pressure, &
                 stack_velocity_field, unstack_velocity_field
 
       ! namelist parameters
@@ -1413,7 +1414,7 @@
 
 !      endif
       
-      end subroutine calc_visc_coefficients
+       end subroutine viscous_coeffs_and_rep_pressure
       
 !=======================================================================
 
