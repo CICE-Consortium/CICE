@@ -640,6 +640,8 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        zetane, zetanw, zetase, zetasw            , & ! viscous coefficients (bulk)
+        etane,	etanw,	etase,	etasw	          , & ! viscous coefficients (shear)
 !       puny                                      , & ! puny
         c0ne, c0nw, c0se, c0sw                    , & ! useful combinations
         c1ne, c1nw, c1se, c1sw                    , &
@@ -684,6 +686,20 @@
                             Deltane,    Deltanw,    &
                             Deltase,    Deltasw     )
 
+      !-----------------------------------------------------------------
+      ! viscous coefficients
+      !-----------------------------------------------------------------
+         
+         call viscous_coeffs_and_rep_pressure (strength,  tinyarea,  &
+                                               Deltane,   Deltanw,   &
+                                               Deltase,   Deltasw,   &
+                                               zetane,    zetanw,    &
+                                               zetase,    zetasw,    &
+                                               etane,     etanw,     &
+                                               etase,     etasw,     &
+                                               rep_prsne, rep_prsnw, &
+                                               rep_prsse, rep_prssw  )
+         
       !-----------------------------------------------------------------
       ! strength/Delta                   ! kg/s
       !-----------------------------------------------------------------

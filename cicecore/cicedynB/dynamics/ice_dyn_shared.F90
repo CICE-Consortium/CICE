@@ -1359,16 +1359,16 @@
       end subroutine strain_rates
 
  !=======================================================================
-
- ! inclure Ktens? inclure rep_P?      
       
-      subroutine calc_visc_coefficients (strength, tiny_area, &
-                                         Deltane,    Deltanw, &
-                                         Deltase,    Deltasw, &
-                                         zetane,     zetanw,  &
-                                         zetase,     zetasw,  &
-                                         etane,      etanw,   &
-                                         etase,      etasw    )
+      subroutine viscous_coeffs_and_rep_pressure (strength,  tinyarea, &
+                                                  Deltane,   Deltanw,  &
+                                                  Deltase,   Deltasw,  &
+                                                  zetane,    zetanw,   &
+                                                  zetase,    zetasw,   &
+                                                  etane,     etanw,    &
+                                                  etase,     etasw,    &
+                                                  rep_prsne, rep_prsnw, &
+                                                  rep_prsse, rep_prssw  )
 
       real (kind=dbl_kind), intent(in)::  &
         strength, tinyarea                  ! at the t-point
@@ -1378,19 +1378,36 @@
 
       real (kind=dbl_kind), intent(out):: &  
         zetane, zetanw, zetase, zetasw,   & ! zeta at each corner 
-        etane, etanw, etase, etasw          ! eta at each corner
-        
+        etane, etanw, etase, etasw,       & ! eta at each corner
+        rep_prsne, rep_prsnw, rep_prsse, rep_prssw ! replacement pressure
+
+      ! local variables
+      real (kind=dbl_kind) :: &
+        tpzeta
+      
+!!!!!!!!!!!!!! WARNING 2 times zeta and eta 
+      
 !      if (trim(yield_curve) == 'ellipse') then
 
-         zetane = strength/max(Deltane,tinyarea) 
-         zetanw = strength/max(Deltanw,tinyarea)
-         zetase = strength/max(Deltase,tinyarea)
-         zetasw = strength/max(Deltasw,tinyarea)
-
+         tpzeta = strength/max(Deltane,tinyarea) ! northeast
+         zetane = (c1+Ktens)*tpzeta
+         rep_prsne = (c1-Ktens)*tpzeta*Deltane
          etane = ecci*zetane ! CHANGE FOR eg_ratio
-         etanw = ecci*zetanw
-         etase = ecci*zetase
-         etasw = ecci*zetasw
+         
+         tpzeta = strength/max(Deltanw,tinyarea) ! northwest
+         zetanw = (c1+Ktens)*tpzeta
+         rep_prsnw = (c1-Ktens)*tpzeta*Deltanw
+         etanw = ecci*zetanw ! CHANGE FOR eg_ratio
+
+         tpzeta = strength/max(Deltase,tinyarea) ! southeast
+         zetase = (c1+Ktens)*tpzeta
+         rep_prsse = (c1-Ktens)*tpzeta*Deltase
+         etase = ecci*zetase ! CHANGE FOR eg_ratio
+
+         tpzeta = strength/max(Deltasw,tinyarea) ! southwest
+         zetasw = (c1+Ktens)*tpzeta
+         rep_prssw = (c1-Ktens)*tpzeta*Deltasw
+         etasw = ecci*zetasw ! CHANGE FOR eg_ratio
          
 !      else
 
