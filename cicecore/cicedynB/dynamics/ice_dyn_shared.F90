@@ -865,7 +865,7 @@
 !
 ! Lemieux, J. F., F. Dupont, P. Blain, F. Roy, G.C. Smith, G.M. Flato (2016). 
 ! Improving the simulation of landfast ice by combining tensile strength and a
-! parameterization for grounded ridges, J. Geophys. Res. Oceans, 121.
+! parameterization for grounded ridges, J. Geophys. Res. Oceans, 121, 7354-7368. 
 !
 ! author: JF Lemieux, Philippe Blain (ECCC)
 !
@@ -1360,6 +1360,18 @@
       end subroutine strain_rates
 
  !=======================================================================
+ ! Computes viscous coefficients and replacement pressure for stress 
+ ! calculations. Note that tensile strength is included here.
+ !
+ ! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
+ ! Oceanogr., 9, 817-846.
+ !
+ ! Konig Beatty, C. and Holland, D. M.  (2010). Modeling landfast ice by
+ ! adding tensile strength. J. Phys. Oceanogr. 40, 185-198.
+ !
+ ! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
+ ! by combining tensile strength and a parameterization for grounded ridges.
+ ! J. Geophys. Res. Oceans, 121, 7354-7368.
       
       subroutine viscous_coeffs_and_rep_pressure (strength,  tinyarea, &
                                                   Deltane,   Deltanw,  &
@@ -1384,31 +1396,32 @@
 
       ! local variables
       real (kind=dbl_kind) :: &
-        tpzeta
+        tmpzeta
       
-!!!!!!!!!!!!!! WARNING 2 times zeta and eta 
-      
+      ! NOTE: for comp. efficiency zeta and eta in this code are
+      ! 2x zeta and eta as defined by Hibler 1979. 
+       
 !      if (trim(yield_curve) == 'ellipse') then
 
-         tpzeta = strength/max(Deltane,tinyarea) ! northeast
-         zetane = (c1+Ktens)*tpzeta
-         rep_prsne = (c1-Ktens)*tpzeta*Deltane
-         etane = ecci*zetane ! CHANGE FOR eg_ratio
+         tmpzeta = strength/max(Deltane,tinyarea) ! northeast
+         zetane = (c1+Ktens)*tmpzeta
+         rep_prsne = (c1-Ktens)*tmpzeta*Deltane
+         etane = ecci*zetane ! CHANGE FOR e_plasticpot
          
-         tpzeta = strength/max(Deltanw,tinyarea) ! northwest
-         zetanw = (c1+Ktens)*tpzeta
-         rep_prsnw = (c1-Ktens)*tpzeta*Deltanw
-         etanw = ecci*zetanw ! CHANGE FOR eg_ratio
+         tmpzeta = strength/max(Deltanw,tinyarea) ! northwest
+         zetanw = (c1+Ktens)*tmpzeta
+         rep_prsnw = (c1-Ktens)*tmpzeta*Deltanw
+         etanw = ecci*zetanw ! CHANGE FOR e_plasticpot
 
-         tpzeta = strength/max(Deltase,tinyarea) ! southeast
-         zetase = (c1+Ktens)*tpzeta
-         rep_prsse = (c1-Ktens)*tpzeta*Deltase
-         etase = ecci*zetase ! CHANGE FOR eg_ratio
+         tmpzeta = strength/max(Deltase,tinyarea) ! southeast
+         zetase = (c1+Ktens)*tmpzeta
+         rep_prsse = (c1-Ktens)*tmpzeta*Deltase
+         etase = ecci*zetase ! CHANGE FOR e_plasticpot
 
-         tpzeta = strength/max(Deltasw,tinyarea) ! southwest
-         zetasw = (c1+Ktens)*tpzeta
-         rep_prssw = (c1-Ktens)*tpzeta*Deltasw
-         etasw = ecci*zetasw ! CHANGE FOR eg_ratio
+         tmpzeta = strength/max(Deltasw,tinyarea) ! southwest
+         zetasw = (c1+Ktens)*tmpzeta
+         rep_prssw = (c1-Ktens)*tmpzeta*Deltasw
+         etasw = ecci*zetasw ! CHANGE FOR e_plasticpot
          
 !      else
 

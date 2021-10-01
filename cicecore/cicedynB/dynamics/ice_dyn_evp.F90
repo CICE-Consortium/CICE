@@ -6,23 +6,25 @@
 ! See:
 !
 ! Hunke, E. C., and J. K. Dukowicz (1997). An elastic-viscous-plastic model
-! for sea ice dynamics. {\em J. Phys. Oceanogr.}, {\bf 27}, 1849--1867.
+! for sea ice dynamics. J. Phys. Oceanogr., 27, 1849-1867.
 !
 ! Hunke, E. C. (2001).  Viscous-Plastic Sea Ice Dynamics with the EVP Model:
-! Linearization Issues. {\em Journal of Computational Physics}, {\bf 170},
-! 18--38.
+! Linearization Issues. J. Comput. Phys., 170, 18-38.
 !
 ! Hunke, E. C., and J. K. Dukowicz (2002).  The Elastic-Viscous-Plastic
 ! Sea Ice Dynamics Model in General Orthogonal Curvilinear Coordinates
-! on a Sphere---Incorporation of Metric Terms. {\em Monthly Weather Review},
-! {\bf 130}, 1848--1865.
+! on a Sphere - Incorporation of Metric Terms. Mon. Weather Rev.,
+! 130, 1848-1865.
 !
 ! Hunke, E. C., and J. K. Dukowicz (2003).  The sea ice momentum
 ! equation in the free drift regime.  Los Alamos Tech. Rep. LA-UR-03-2219.
 !
-! Bouillon, S., T. Fichefet, V. Legat and G. Madec (submitted 2013).  The 
-! revised elastic-viscous-plastic method.  Ocean Modelling.
+! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
+! Oceanogr., 9, 817-846.
 !
+! Bouillon, S., T. Fichefet, V. Legat and G. Madec (2013).  The 
+! elastic-viscous-plastic method revisited.  Ocean Model., 71, 2-12.
+! 
 ! author: Elizabeth C. Hunke, LANL
 !
 ! 2003: Vectorized by Clifford Chen (Fujitsu) and William Lipscomb (LANL)
@@ -687,7 +689,7 @@
                             Deltase,    Deltasw     )
 
       !-----------------------------------------------------------------
-      ! viscous coefficients
+      ! viscous coefficients and replacement pressure
       !-----------------------------------------------------------------
          
          call viscous_coeffs_and_rep_pressure (strength(i,j), tinyarea(i,j),&
@@ -705,7 +707,8 @@
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-! zeta and eta are in fact 2zeta and 2eta...rep_prs is rep_prs
+      ! NOTE: for comp. efficiency zeta and eta in this code are 2x zeta and eta
+      ! as defined by Hibler 1979. 
          
          stressp_1(i,j) = (stressp_1(i,j)*(c1-arlx1i*revp) + arlx1i*(zetane*divune - rep_prsne))*denom1
          stressp_2(i,j) = (stressp_2(i,j)*(c1-arlx1i*revp) + arlx1i*(zetanw*divunw - rep_prsnw))*denom1
