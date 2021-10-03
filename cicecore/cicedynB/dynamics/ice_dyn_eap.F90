@@ -141,9 +141,7 @@
 !          ice_timer_start, ice_timer_stop, &
 !          timer_tmp1, timer_tmp2, timer_tmp3
       use ice_timers, only: timer_dynamics, timer_bound, &
-          ice_timer_start, ice_timer_stop, &
-          timer_evp_1d, timer_evp_2d, timer_tmp, timer_tmp2, &
-          timer_tmp3
+          ice_timer_start, ice_timer_stop
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -421,7 +419,7 @@
        enddo
        !$OMP END PARALLEL DO 
       endif
-      call ice_timer_start(timer_evp_2d)     
+      
       do ksub = 1,ndte        ! subcycling
 
       !-----------------------------------------------------------------
@@ -431,7 +429,7 @@
          !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
-            call ice_timer_start(timer_tmp) ! dynamics
+!      call ice_timer_start(timer_tmp1) ! dynamics
             call stress_eap  (nx_block,             ny_block,             &
                               ksub,                 ndte,                 &
                               icellt(iblk),                               &
@@ -464,12 +462,12 @@
 !                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
                               rdg_conv  (:,:,iblk), &
                               strtmp    (:,:,:))
-            call ice_timer_stop(timer_tmp) ! dynamics
+!      call ice_timer_stop(timer_tmp1) ! dynamics
 
       !-----------------------------------------------------------------
       ! momentum equation
       !-----------------------------------------------------------------
-            call ice_timer_start(timer_tmp2) ! dynamics
+
             call stepu (nx_block,            ny_block,           & 
                         icellu       (iblk), Cdn_ocn (:,:,iblk), & 
                         indxui     (:,iblk), indxuj    (:,iblk), & 
@@ -485,14 +483,13 @@
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
                         uvel     (:,:,iblk), vvel    (:,:,iblk), &
                         Tbu      (:,:,iblk))
-       call ice_timer_stop(timer_tmp2) ! dynamics
+
       !-----------------------------------------------------------------
       ! evolution of structure tensor A
       !-----------------------------------------------------------------
 
 !      call ice_timer_start(timer_tmp3) ! dynamics
             if (mod(ksub,10) == 1) then ! only called every 10th timestep
-            call ice_timer_start(timer_evp_1d)
             call stepa (nx_block,          ny_block,                &
                         dtei,              icellt     (iblk),       &
                         indxti   (:,iblk), indxtj    (:,iblk),      &
@@ -507,14 +504,13 @@
                         stressm_3(:,:,iblk), stressm_4(:,:,iblk),   &
                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
                         stress12_3(:,:,iblk), stress12_4(:,:,iblk))
-            call ice_timer_stop(timer_evp_1d)
             endif
 !      call ice_timer_stop(timer_tmp3) ! dynamics
          enddo
          !$TCXOMP END PARALLEL DO
-         call ice_timer_start(timer_tmp3)
+
          call stack_velocity_field(uvel, vvel, fld2)
-!         call ice_timer_start(timer_bound)
+         call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
             call ice_HaloUpdate (fld2,               halo_info_mask, &
                                  field_loc_NEcorner, field_type_vector)
@@ -522,11 +518,11 @@
             call ice_HaloUpdate (fld2,               halo_info, &
                                  field_loc_NEcorner, field_type_vector)
          endif
-!         call ice_timer_stop(timer_bound)
+         call ice_timer_stop(timer_bound)
          call unstack_velocity_field(fld2, uvel, vvel)
-         call ice_timer_stop(timer_tmp3)
+
       enddo                     ! subcycling
-      call ice_timer_stop(timer_evp_2d)
+
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
@@ -1942,6 +1938,7 @@
          i = indxti(ij)
          j = indxtj(ij)
 
+! ne 
         call calc_ffrac(stressp_1(i,j), stressm_1(i,j),  &
                            stress12_1(i,j),                 &
                            a11_1(i,j), a12_1(i,j),          &
@@ -1951,6 +1948,7 @@
          a12_1(i,j) = (a12_1(i,j)*dtei - mresult12) * dteikth ! implicit
 
  
+! nw
         call calc_ffrac(stressp_2(i,j), stressm_2(i,j),  &
                            stress12_2(i,j),                 &
                            a11_2(i,j), a12_2(i,j),          &
@@ -1959,7 +1957,7 @@
          a11_2(i,j) = (a11_2(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_2(i,j) = (a12_2(i,j)*dtei - mresult12) * dteikth ! implicit
 
-
+! sw
         call calc_ffrac(stressp_3(i,j), stressm_3(i,j),  &
                            stress12_3(i,j),                 &
                            a11_3(i,j), a12_3(i,j),          &
@@ -1968,6 +1966,7 @@
          a11_3(i,j) = (a11_3(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_3(i,j) = (a12_3(i,j)*dtei - mresult12) * dteikth ! implicit
                                 
+! se
         call calc_ffrac(stressp_4(i,j), stressm_4(i,j),  &
                            stress12_4(i,j),                 &
                            a11_4(i,j), a12_4(i,j),          &
@@ -2071,7 +2070,13 @@
          mresult2 = c0
        endif
 
-      end subroutine calc_ffrac_v2
+      end subroutine calc_ffrac
+
+!=======================================================================
+!---! these subroutines write/read Fortran unformatted data files ..
+!=======================================================================
+
+! Dumps all values needed for a restart
 
       subroutine write_restart_eap ()
 
