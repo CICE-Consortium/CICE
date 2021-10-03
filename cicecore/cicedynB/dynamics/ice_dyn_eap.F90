@@ -141,7 +141,9 @@
 !          ice_timer_start, ice_timer_stop, &
 !          timer_tmp1, timer_tmp2, timer_tmp3
       use ice_timers, only: timer_dynamics, timer_bound, &
-          ice_timer_start, ice_timer_stop
+          ice_timer_start, ice_timer_stop, &
+          timer_evp_1d, timer_evp_2d, timer_tmp, timer_tmp2, &
+          timer_tmp3
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -419,7 +421,7 @@
        enddo
        !$OMP END PARALLEL DO 
       endif
-      
+      call ice_timer_start(timer_evp_2d)     
       do ksub = 1,ndte        ! subcycling
 
       !-----------------------------------------------------------------
@@ -429,7 +431,7 @@
          !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
-!      call ice_timer_start(timer_tmp1) ! dynamics
+            call ice_timer_start(timer_tmp) ! dynamics
             call stress_eap  (nx_block,             ny_block,             &
                               ksub,                 ndte,                 &
                               icellt(iblk),                               &
@@ -462,12 +464,12 @@
 !                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
                               rdg_conv  (:,:,iblk), &
                               strtmp    (:,:,:))
-!      call ice_timer_stop(timer_tmp1) ! dynamics
+            call ice_timer_stop(timer_tmp) ! dynamics
 
       !-----------------------------------------------------------------
       ! momentum equation
       !-----------------------------------------------------------------
-
+            call ice_timer_start(timer_tmp2) ! dynamics
             call stepu (nx_block,            ny_block,           & 
                         icellu       (iblk), Cdn_ocn (:,:,iblk), & 
                         indxui     (:,iblk), indxuj    (:,iblk), & 
@@ -483,13 +485,14 @@
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
                         uvel     (:,:,iblk), vvel    (:,:,iblk), &
                         Tbu      (:,:,iblk))
-
+       call ice_timer_stop(timer_tmp2) ! dynamics
       !-----------------------------------------------------------------
       ! evolution of structure tensor A
       !-----------------------------------------------------------------
 
 !      call ice_timer_start(timer_tmp3) ! dynamics
             if (mod(ksub,10) == 1) then ! only called every 10th timestep
+            call ice_timer_start(timer_evp_1d)
             call stepa (nx_block,          ny_block,                &
                         dtei,              icellt     (iblk),       &
                         indxti   (:,iblk), indxtj    (:,iblk),      &
@@ -504,13 +507,14 @@
                         stressm_3(:,:,iblk), stressm_4(:,:,iblk),   &
                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
                         stress12_3(:,:,iblk), stress12_4(:,:,iblk))
+            call ice_timer_stop(timer_evp_1d)
             endif
 !      call ice_timer_stop(timer_tmp3) ! dynamics
          enddo
          !$TCXOMP END PARALLEL DO
-
+         call ice_timer_start(timer_tmp3)
          call stack_velocity_field(uvel, vvel, fld2)
-         call ice_timer_start(timer_bound)
+!         call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
             call ice_HaloUpdate (fld2,               halo_info_mask, &
                                  field_loc_NEcorner, field_type_vector)
@@ -518,11 +522,11 @@
             call ice_HaloUpdate (fld2,               halo_info, &
                                  field_loc_NEcorner, field_type_vector)
          endif
-         call ice_timer_stop(timer_bound)
+!         call ice_timer_stop(timer_bound)
          call unstack_velocity_field(fld2, uvel, vvel)
-
+         call ice_timer_stop(timer_tmp3)
       enddo                     ! subcycling
-
+      call ice_timer_stop(timer_evp_2d)
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
@@ -1938,59 +1942,36 @@
          i = indxti(ij)
          j = indxtj(ij)
 
-! ne 
-         call calc_ffrac(1, stressp_1(i,j), stressm_1(i,j),  &
-                           stress12_1(i,j),                  &
-                           a11_1(i,j),                       &
-                           mresult11)
-
-         call calc_ffrac(2, stressp_1(i,j), stressm_1(i,j),  &
-                           stress12_1(i,j),                  &
-                           a12_1(i,j),                       &
-                           mresult12)
+        call calc_ffrac(stressp_1(i,j), stressm_1(i,j),  &
+                           stress12_1(i,j),                 &
+                           a11_1(i,j), a12_1(i,j),          &
+                           mresult11, mresult12)
 
          a11_1(i,j) = (a11_1(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_1(i,j) = (a12_1(i,j)*dtei - mresult12) * dteikth ! implicit
 
  
-! nw
-         call calc_ffrac(1, stressp_2(i,j), stressm_2(i,j),  &
-                           stress12_2(i,j),                  &
-                           a11_2(i,j),                       &
-                           mresult11)
-
-         call calc_ffrac(2, stressp_2(i,j), stressm_2(i,j),  &
-                           stress12_2(i,j),                  &
-                           a12_2(i,j),                       &
-                           mresult12)
+        call calc_ffrac(stressp_2(i,j), stressm_2(i,j),  &
+                           stress12_2(i,j),                 &
+                           a11_2(i,j), a12_2(i,j),          &
+                           mresult11, mresult12)
 
          a11_2(i,j) = (a11_2(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_2(i,j) = (a12_2(i,j)*dtei - mresult12) * dteikth ! implicit
 
-! sw
-         call calc_ffrac(1, stressp_3(i,j), stressm_3(i,j),  &
-                           stress12_3(i,j),                  &
-                           a11_3(i,j),                       &
-                           mresult11)
 
-         call calc_ffrac(2, stressp_3(i,j), stressm_3(i,j),  &
-                           stress12_3(i,j),                  &
-                           a12_3(i,j),                       &
-                           mresult12)
+        call calc_ffrac(stressp_3(i,j), stressm_3(i,j),  &
+                           stress12_3(i,j),                 &
+                           a11_3(i,j), a12_3(i,j),          &
+                           mresult11, mresult12)
 
          a11_3(i,j) = (a11_3(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_3(i,j) = (a12_3(i,j)*dtei - mresult12) * dteikth ! implicit
                                 
-! se
-         call calc_ffrac(1, stressp_4(i,j), stressm_4(i,j),  &
-                           stress12_4(i,j),                  &
-                           a11_4(i,j),                       &
-                           mresult11)
-
-         call calc_ffrac(2, stressp_4(i,j), stressm_4(i,j),  &
-                           stress12_4(i,j),                  &
-                           a12_4(i,j),                       &
-                           mresult12)
+        call calc_ffrac(stressp_4(i,j), stressm_4(i,j),  &
+                           stress12_4(i,j),                 &
+                           a11_4(i,j), a12_4(i,j),          &
+                           mresult11, mresult12)
 
          a11_4(i,j) = (a11_4(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_4(i,j) = (a12_4(i,j)*dtei - mresult12) * dteikth ! implicit
@@ -2010,19 +1991,17 @@
 ! the ice floe re-orientation due to fracture
 ! Eq. 7: Ffrac = -kf(A-S) or = 0 depending on sigma_1 and sigma_2
 
-      subroutine calc_ffrac (blockno, stressp, stressm, &
-                             stress12,                  &
-                             a1x,                       &
-                             mresult)
 
-      integer(kind=int_kind), intent(in) :: &
-         blockno
+      subroutine calc_ffrac (stressp, stressm, &
+                             stress12,            &
+                             a1x,  a2x,            &
+                             mresult1, mresult2)
 
       real (kind=dbl_kind), intent(in) :: &
-         stressp, stressm, stress12, a1x
+         stressp, stressm, stress12, a1x, a2x
 
       real (kind=dbl_kind), intent(out) :: &
-         mresult
+         mresult1, mresult2
 
       ! local variables
 
@@ -2042,11 +2021,12 @@
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-       sigma11 = p5*(stressp+stressm) 
-       sigma12 = stress12 
-       sigma22 = p5*(stressp-stressm) 
+       sigma11 = p5*(stressp+stressm)
+       sigma12 = stress12
+       sigma22 = p5*(stressp-stressm)
 
-       if ((sigma11-sigma22) == c0) then
+!       if ((sigma11-sigma22) == c0) then sigma11-sigma22 == 0 => stressn ==0
+       if (stressm == c0) then
          gamma = p5*(pih)
        else
          gamma = p5*atan2((c2*sigma12),(sigma11-sigma22))
@@ -2068,33 +2048,30 @@
 
 ! Pure divergence
        if ((sigma_1 >= c0).and.(sigma_2 >= c0))  then
-         mresult = c0
+         mresult1 = c0
+         mresult2 = c0
 
 ! Unconfined compression: cracking of blocks not along the axial splitting direction
 ! which leads to the loss of their shape, so we again model it through diffusion
        elseif ((sigma_1 >= c0).and.(sigma_2 < c0))  then
-         if (blockno == 1) mresult = kfrac * (a1x - Q12Q12)
-         if (blockno == 2) mresult = kfrac * (a1x + Q11Q12)
+         mresult1 = kfrac * (a1x - Q12Q12)
+         mresult2 = kfrac * (a2x + Q11Q12)
 
 ! Shear faulting
        elseif (sigma_2 == c0) then
-         mresult = c0
+        mresult1 = c0
+        mresult2 = c0
        elseif ((sigma_1 <= c0).and.(sigma_1/sigma_2 <= threshold)) then
-         if (blockno == 1) mresult = kfrac * (a1x - Q12Q12)
-         if (blockno == 2) mresult = kfrac * (a1x + Q11Q12)
+         mresult1 = kfrac * (a1x - Q12Q12)
+         mresult2 = kfrac * (a2x + Q11Q12)
 
 ! Horizontal spalling
-       else 
-         mresult = c0
+       else
+         mresult1 = c0
+         mresult2 = c0
        endif
 
-      end subroutine calc_ffrac
-
-!=======================================================================
-!---! these subroutines write/read Fortran unformatted data files ..
-!=======================================================================
-
-! Dumps all values needed for a restart
+      end subroutine calc_ffrac_v2
 
       subroutine write_restart_eap ()
 
