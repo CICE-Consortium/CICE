@@ -405,7 +405,7 @@ An elliptical yield curve is used, with the viscosities given by
    \zeta = {P(1+k_t)\over 2\Delta},
 
 .. math::
-   \eta  = {P(1+k_t)\over {2\Delta e^2}},
+   \eta  = e^{-2} \zeta,
 
 where
 
@@ -455,29 +455,28 @@ parameter less than one. Including the modification proposed by :cite:`Bouillon1
 .. math::
    \begin{aligned}
    {\partial\sigma_1\over\partial t} + {\sigma_1\over 2T}
-     + {P_R(1-k_t)\over 2T} &=& {P(1+k_t)\over 2T\Delta} D_D, \\
-   {\partial\sigma_2\over\partial t} + {\sigma_2\over 2T} &=& {P(1+k_t)\over
-     2Te^2\Delta} D_T,\\
+     + {P_R(1-k_t)\over 2T} &=& {\zeta \over T} D_D, \\
+   {\partial\sigma_2\over\partial t} + {\sigma_2\over 2T} &=& {\eta \over
+     T} D_T,\\
    {\partial\sigma_{12}\over\partial t} + {\sigma_{12}\over  2T} &=&
-     {P(1+k_t)\over 4Te^2\Delta}D_S.\end{aligned}
+     {\eta \over 2T}D_S.\end{aligned}
 
 Once discretized in time, these last three equations are written as
 
 .. math::
    \begin{aligned}
    {(\sigma_1^{k+1}-\sigma_1^{k})\over\Delta t_e} + {\sigma_1^{k+1}\over 2T}
-     + {P_R^k(1-k_t)\over 2T} &=& {P(1+k_t)\over 2T\Delta^k} D_D^k, \\
-   {(\sigma_2^{k+1}-\sigma_2^{k})\over\Delta t_e} + {\sigma_2^{k+1}\over 2T} &=& {P(1+k_t)\over
-     2Te^2\Delta^k} D_T^k,\\
+     + {P_R^k(1-k_t)\over 2T} &=& {\zeta^k\over T} D_D^k, \\
+   {(\sigma_2^{k+1}-\sigma_2^{k})\over\Delta t_e} + {\sigma_2^{k+1}\over 2T} &=& {\eta^k \over
+     T} D_T^k,\\
    {(\sigma_{12}^{k+1}-\sigma_{12}^{k})\over\Delta t_e} + {\sigma_{12}^{k+1}\over  2T} &=&
-     {P(1+k_t)\over 4Te^2\Delta^k}D_S^k,\end{aligned}
+     {\eta^k \over 2T}D_S^k,\end{aligned}
    :label: sigdisc
 
 
 where :math:`k` denotes again the subcycling step. All coefficients on the left-hand side are constant except for
 :math:`P_R`. This modification compensates for the decreased efficiency of including
-the viscosity terms in the subcycling. (Note that the viscosities do not
-appear explicitly.) Choices of the parameters used to define :math:`E`,
+the viscosity terms in the subcycling. Choices of the parameters used to define :math:`E`,
 :math:`T` and :math:`\Delta t_e` are discussed in
 Sections :ref:`revp` and :ref:`parameters`.
 
@@ -721,11 +720,10 @@ Introducing another numerical parameter :math:`\alpha=2T \Delta t_e ^{-1}` :cite
 .. math::
    \begin{aligned}
    {\alpha (\sigma_1^{k+1}-\sigma_1^{k})} + {\sigma_1^{k}}
-     + {P_R^k(1-k_t)} &=& {P(1+k_t)\over \Delta^k} D_D^k, \\
-   {\alpha (\sigma_2^{k+1}-\sigma_2^{k})} + {\sigma_2^{k}} &=& {P(1+k_t)\over
-     e^2\Delta^k} D_T^k,\\
+     + {P_R^k(1-k_t)} &=& 2 \zeta^k D_D^k, \\
+   {\alpha (\sigma_2^{k+1}-\sigma_2^{k})} + {\sigma_2^{k}} &=& 2 \eta^k D_T^k,\\
    {\alpha (\sigma_{12}^{k+1}-\sigma_{12}^{k})} + {\sigma_{12}^{k}} &=&
-     {P(1+k_t)\over 2e^2\Delta^k}D_S^k,\end{aligned}
+     \eta^k D_S^k,\end{aligned}
 
 where as opposed to the classic EVP, the second term in each equation is at iteration :math:`k` :cite:`Bouillon13`. Also, as opposed to the classic EVP,
 :math:`\Delta t_e` times the number of subcycles (or iterations) does not need to be equal to the advective time step :math:`\Delta t`.
