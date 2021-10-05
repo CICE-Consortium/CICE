@@ -1130,7 +1130,8 @@ If the regression comparisons fail, then you may want to run the QC test,
   # Wait for runs to finish
   # Perform the QC test
 
-  cp configuration/scripts/tests/QC/cice.t-test.py
+  # From the updated sandbox
+  cp configuration/scripts/tests/QC/cice.t-test.py .
   ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_base \
                    /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
 
