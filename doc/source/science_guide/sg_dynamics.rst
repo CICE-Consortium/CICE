@@ -385,7 +385,7 @@ where :math:`k_t` should be set to a value between 0 and 1 (this can
 be changed at runtime with the namelist parameter ``Ktens``). The ice
 strength :math:`P` is a function of the ice thickness distribution as
 described in the `Icepack
-Documentation<https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
 
 .. _stress-vp:
 

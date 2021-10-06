@@ -643,7 +643,7 @@
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
         zetane, zetanw, zetase, zetasw            , & ! zeta viscous coeff
-        etane,	etanw,	etase,	etasw	          , & ! eta viscous coeff
+        etane, etanw, etase, etasw                , & ! eta viscous coeff
         rep_prsne, rep_prsnw, rep_prsse, rep_prssw, & ! replacement pressure
 !       puny                                      , & ! puny
         ssigpn, ssigps, ssigpe, ssigpw            , &
