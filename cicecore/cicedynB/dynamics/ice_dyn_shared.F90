@@ -1376,12 +1376,12 @@
       subroutine viscous_coeffs_and_rep_pressure (strength,  tinyarea, &
                                                   Deltane,   Deltanw,  &
                                                   Deltase,   Deltasw,  &
-                                                  zetane,    zetanw,   &
-                                                  zetase,    zetasw,   &
-                                                  etane,     etanw,    &
-                                                  etase,     etasw,    &
-                                                  rep_prsne, rep_prsnw, &
-                                                  rep_prsse, rep_prssw  )
+                                                  zetax2ne,  zetax2nw, &
+                                                  zetax2se,  zetax2sw, &
+                                                  etax2ne,   etax2nw,  &
+                                                  etax2se,   etax2sw,  &
+                                                  rep_prsne, rep_prsnw,&
+                                                  rep_prsse, rep_prssw )
 
       real (kind=dbl_kind), intent(in)::  &
         strength, tinyarea                  ! at the t-point
@@ -1390,38 +1390,37 @@
         Deltane, Deltanw, Deltase, Deltasw  ! Delta at each corner
 
       real (kind=dbl_kind), intent(out):: &  
-        zetane, zetanw, zetase, zetasw,   & ! zeta at each corner 
-        etane, etanw, etase, etasw,       & ! eta at each corner
+        zetax2ne, zetax2nw, zetax2se, zetax2sw,  & ! zetax2 at each corner 
+        etax2ne, etax2nw, etax2se, etax2sw,      & ! etax2 at each corner
         rep_prsne, rep_prsnw, rep_prsse, rep_prssw ! replacement pressure
 
       ! local variables
       real (kind=dbl_kind) :: &
-        tmpzeta
-      
-      ! NOTE: for comp. efficiency zeta and eta in this code are
-      ! 2x zeta and eta as defined by Hibler 1979. 
+        tmpcalc
+
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
        
 !      if (trim(yield_curve) == 'ellipse') then
 
-         tmpzeta = strength/max(Deltane,tinyarea) ! northeast
-         zetane = (c1+Ktens)*tmpzeta
-         rep_prsne = (c1-Ktens)*tmpzeta*Deltane
-         etane = ecci*zetane ! CHANGE FOR e_plasticpot
+         tmpcalc = strength/max(Deltane,tinyarea) ! northeast
+         zetax2ne = (c1+Ktens)*tmpcalc
+         rep_prsne = (c1-Ktens)*tmpcalc*Deltane
+         etax2ne = ecci*zetax2ne ! CHANGE FOR e_plasticpot
          
-         tmpzeta = strength/max(Deltanw,tinyarea) ! northwest
-         zetanw = (c1+Ktens)*tmpzeta
-         rep_prsnw = (c1-Ktens)*tmpzeta*Deltanw
-         etanw = ecci*zetanw ! CHANGE FOR e_plasticpot
+         tmpcalc = strength/max(Deltanw,tinyarea) ! northwest
+         zetax2nw = (c1+Ktens)*tmpcalc
+         rep_prsnw = (c1-Ktens)*tmpcalc*Deltanw
+         etax2nw = ecci*zetax2nw ! CHANGE FOR e_plasticpot
 
-         tmpzeta = strength/max(Deltase,tinyarea) ! southeast
-         zetase = (c1+Ktens)*tmpzeta
-         rep_prsse = (c1-Ktens)*tmpzeta*Deltase
-         etase = ecci*zetase ! CHANGE FOR e_plasticpot
+         tmpcalc = strength/max(Deltase,tinyarea) ! southeast
+         zetax2se = (c1+Ktens)*tmpcalc
+         rep_prsse = (c1-Ktens)*tmpcalc*Deltase
+         etax2se = ecci*zetax2se ! CHANGE FOR e_plasticpot
 
-         tmpzeta = strength/max(Deltasw,tinyarea) ! southwest
-         zetasw = (c1+Ktens)*tmpzeta
-         rep_prssw = (c1-Ktens)*tmpzeta*Deltasw
-         etasw = ecci*zetasw ! CHANGE FOR e_plasticpot
+         tmpcalc = strength/max(Deltasw,tinyarea) ! southwest
+         zetax2sw = (c1+Ktens)*tmpcalc
+         rep_prssw = (c1-Ktens)*tmpcalc*Deltasw
+         etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
          
 !      else
 

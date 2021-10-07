@@ -642,8 +642,8 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        zetane, zetanw, zetase, zetasw            , & ! zeta viscous coeff
-        etane, etanw, etase, etasw                , & ! eta viscous coeff
+        zetax2ne, zetax2nw, zetax2se, zetax2sw    , & ! 2 x zeta (visc coeff) 
+        etax2ne, etax2nw, etax2se, etax2sw        , & ! 2 x eta (visc coeff)
         rep_prsne, rep_prsnw, rep_prsse, rep_prssw, & ! replacement pressure
 !       puny                                      , & ! puny
         ssigpn, ssigps, ssigpe, ssigpw            , &
@@ -695,10 +695,10 @@
          call viscous_coeffs_and_rep_pressure (strength(i,j), tinyarea(i,j),&
                                                Deltane,       Deltanw,      &
                                                Deltase,       Deltasw,      &
-                                               zetane,        zetanw,       &
-                                               zetase,        zetasw,       &
-                                               etane,         etanw,        &
-                                               etase,         etasw,        &
+                                               zetax2ne,      zetax2nw,     &
+                                               zetax2se,      zetax2sw,     &
+                                               etax2ne,       etax2nw,      &
+                                               etax2se,       etax2sw,      &
                                                rep_prsne,     rep_prsnw,    &
                                                rep_prsse,     rep_prssw     )
          
@@ -707,23 +707,34 @@
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-      ! NOTE: for comp. efficiency zeta and eta in this code are 2x zeta and eta
-      ! as defined by Hibler 1979. 
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code 
          
-         stressp_1(i,j) = (stressp_1(i,j)*(c1-arlx1i*revp) + arlx1i*(zetane*divune - rep_prsne))*denom1
-         stressp_2(i,j) = (stressp_2(i,j)*(c1-arlx1i*revp) + arlx1i*(zetanw*divunw - rep_prsnw))*denom1
-         stressp_3(i,j) = (stressp_3(i,j)*(c1-arlx1i*revp) + arlx1i*(zetasw*divusw - rep_prssw))*denom1
-         stressp_4(i,j) = (stressp_4(i,j)*(c1-arlx1i*revp) + arlx1i*(zetase*divuse - rep_prsse))*denom1
+         stressp_1(i,j) = (stressp_1(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2ne*divune - rep_prsne)) * denom1
+         stressp_2(i,j) = (stressp_2(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2nw*divunw - rep_prsnw)) * denom1
+         stressp_3(i,j) = (stressp_3(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2sw*divusw - rep_prssw)) * denom1
+         stressp_4(i,j) = (stressp_4(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2se*divuse - rep_prsse)) * denom1
 
-         stressm_1(i,j) = (stressm_1(i,j)*(c1-arlx1i*revp) + arlx1i*etane*tensionne) * denom1
-         stressm_2(i,j) = (stressm_2(i,j)*(c1-arlx1i*revp) + arlx1i*etanw*tensionnw) * denom1
-         stressm_3(i,j) = (stressm_3(i,j)*(c1-arlx1i*revp) + arlx1i*etasw*tensionsw) * denom1
-         stressm_4(i,j) = (stressm_4(i,j)*(c1-arlx1i*revp) + arlx1i*etase*tensionse) * denom1
+         stressm_1(i,j) = (stressm_1(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2ne*tensionne) * denom1
+         stressm_2(i,j) = (stressm_2(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2nw*tensionnw) * denom1
+         stressm_3(i,j) = (stressm_3(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2sw*tensionsw) * denom1
+         stressm_4(i,j) = (stressm_4(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2se*tensionse) * denom1
 
-         stress12_1(i,j) = (stress12_1(i,j)*(c1-arlx1i*revp) + arlx1i*p5*etane*shearne) * denom1
-         stress12_2(i,j) = (stress12_2(i,j)*(c1-arlx1i*revp) + arlx1i*p5*etanw*shearnw) * denom1
-         stress12_3(i,j) = (stress12_3(i,j)*(c1-arlx1i*revp) + arlx1i*p5*etasw*shearsw) * denom1
-         stress12_4(i,j) = (stress12_4(i,j)*(c1-arlx1i*revp) + arlx1i*p5*etase*shearse) * denom1
+         stress12_1(i,j) = (stress12_1(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2ne*shearne) * denom1
+         stress12_2(i,j) = (stress12_2(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2nw*shearnw) * denom1
+         stress12_3(i,j) = (stress12_3(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2sw*shearsw) * denom1
+         stress12_4(i,j) = (stress12_4(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2se*shearse) * denom1
 
       !-----------------------------------------------------------------
       ! Eliminate underflows.
