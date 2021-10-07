@@ -1,4 +1,4 @@
-[![Travis-CI](https://travis-ci.org/CICE-Consortium/CICE.svg?branch=main)](https://travis-ci.org/CICE-Consortium/CICE)
+<!--- [![Travis-CI](https://travis-ci.org/CICE-Consortium/CICE.svg?branch=main)](https://travis-ci.org/CICE-Consortium/CICE) --->
 [![GHActions](https://github.com/CICE-Consortium/CICE/workflows/GHActions/badge.svg)](https://github.com/CICE-Consortium/CICE/actions)
 [![Documentation Status](https://readthedocs.org/projects/cice-consortium-cice/badge/?version=main)](http://cice-consortium-cice.readthedocs.io/en/main/?badge=main)
 [![lcov](https://img.shields.io/endpoint?url=https://apcraig.github.io/coverage.json)](https://apcraig.github.io)
