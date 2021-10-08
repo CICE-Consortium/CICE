@@ -26,6 +26,7 @@
                 dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 alloc_dyn_shared, deformations, strain_rates, &
+                viscous_coeffs_and_rep_pressure, &
                 stack_velocity_field, unstack_velocity_field
 
       ! namelist parameters
@@ -864,7 +865,7 @@
 !
 ! Lemieux, J. F., F. Dupont, P. Blain, F. Roy, G.C. Smith, G.M. Flato (2016). 
 ! Improving the simulation of landfast ice by combining tensile strength and a
-! parameterization for grounded ridges, J. Geophys. Res. Oceans, 121.
+! parameterization for grounded ridges, J. Geophys. Res. Oceans, 121, 7354-7368. 
 !
 ! author: JF Lemieux, Philippe Blain (ECCC)
 !
@@ -1358,6 +1359,75 @@
 
       end subroutine strain_rates
 
+ !=======================================================================
+ ! Computes viscous coefficients and replacement pressure for stress 
+ ! calculations. Note that tensile strength is included here.
+ !
+ ! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
+ ! Oceanogr., 9, 817-846.
+ !
+ ! Konig Beatty, C. and Holland, D. M.  (2010). Modeling landfast ice by
+ ! adding tensile strength. J. Phys. Oceanogr. 40, 185-198.
+ !
+ ! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
+ ! by combining tensile strength and a parameterization for grounded ridges.
+ ! J. Geophys. Res. Oceans, 121, 7354-7368.
+      
+      subroutine viscous_coeffs_and_rep_pressure (strength,  tinyarea, &
+                                                  Deltane,   Deltanw,  &
+                                                  Deltase,   Deltasw,  &
+                                                  zetax2ne,  zetax2nw, &
+                                                  zetax2se,  zetax2sw, &
+                                                  etax2ne,   etax2nw,  &
+                                                  etax2se,   etax2sw,  &
+                                                  rep_prsne, rep_prsnw,&
+                                                  rep_prsse, rep_prssw )
+
+      real (kind=dbl_kind), intent(in)::  &
+        strength, tinyarea                  ! at the t-point
+        
+      real (kind=dbl_kind), intent(in)::  &  
+        Deltane, Deltanw, Deltase, Deltasw  ! Delta at each corner
+
+      real (kind=dbl_kind), intent(out):: &  
+        zetax2ne, zetax2nw, zetax2se, zetax2sw,  & ! zetax2 at each corner 
+        etax2ne, etax2nw, etax2se, etax2sw,      & ! etax2 at each corner
+        rep_prsne, rep_prsnw, rep_prsse, rep_prssw ! replacement pressure
+
+      ! local variables
+      real (kind=dbl_kind) :: &
+        tmpcalc
+
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
+       
+!      if (trim(yield_curve) == 'ellipse') then
+
+         tmpcalc = strength/max(Deltane,tinyarea) ! northeast
+         zetax2ne = (c1+Ktens)*tmpcalc
+         rep_prsne = (c1-Ktens)*tmpcalc*Deltane
+         etax2ne = ecci*zetax2ne ! CHANGE FOR e_plasticpot
+         
+         tmpcalc = strength/max(Deltanw,tinyarea) ! northwest
+         zetax2nw = (c1+Ktens)*tmpcalc
+         rep_prsnw = (c1-Ktens)*tmpcalc*Deltanw
+         etax2nw = ecci*zetax2nw ! CHANGE FOR e_plasticpot
+
+         tmpcalc = strength/max(Deltase,tinyarea) ! southeast
+         zetax2se = (c1+Ktens)*tmpcalc
+         rep_prsse = (c1-Ktens)*tmpcalc*Deltase
+         etax2se = ecci*zetax2se ! CHANGE FOR e_plasticpot
+
+         tmpcalc = strength/max(Deltasw,tinyarea) ! southwest
+         zetax2sw = (c1+Ktens)*tmpcalc
+         rep_prssw = (c1-Ktens)*tmpcalc*Deltasw
+         etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
+         
+!      else
+
+!      endif
+      
+       end subroutine viscous_coeffs_and_rep_pressure
+      
 !=======================================================================
 
 ! Load velocity components into array for boundary updates

@@ -1121,7 +1121,7 @@ If the regression comparisons fail, then you may want to run the QC test,
   # From the updated sandbox
   # Generate the same test case(s) as the baseline using options or namelist changes to activate new code modifications
 
-  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
+  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_test -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
   # modify ice_in to activate the namelist options that were determined above
   ./cice.build
@@ -1130,7 +1130,8 @@ If the regression comparisons fail, then you may want to run the QC test,
   # Wait for runs to finish
   # Perform the QC test
 
-  cp configuration/scripts/tests/QC/cice.t-test.py
+  # From the updated sandbox
+  cp configuration/scripts/tests/QC/cice.t-test.py .
   ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_base \
                    /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
 
