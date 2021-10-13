@@ -480,6 +480,7 @@ else
     exit -1
   endif
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/create_fails.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
   cat >! ${tsdir}/suite.submit << EOF0

@@ -163,7 +163,7 @@ it's working properly.
 
 .. _dev_validation:
 
-Code Validation Script
+QC Process Validation
 ----------------------
 
 The code validation (aka QC or quality control) test validates non bit-for-bit model changes.  The directory 
@@ -193,9 +193,9 @@ to the ``cice.setup`` script.  These options include:
 * ``--queue``   : Queue for the batch submission
 * ``--testid``  : test ID, user-defined id for testing
 
-The script creates 4 test cases, with testIDs ``qc_base``, ``qc_bfb``, ``qc_nonbfb``,
+The script creates 4 test cases, with testIDs ``qc_base``, ``qc_bfb``, ``qc_test``,
 and ``qc_fail``.  ``qc_base`` is the base test case with the default QC namelist.
-``qc_bfb`` is identical to ``qc_base``.  ``qc_nonbfb`` is a test that is not bit-for-bit
+``qc_bfb`` is identical to ``qc_base``.  ``qc_test`` is a test that is not bit-for-bit
 when compared to ``qc_base``, but not climate changing.  ``qc_fail`` is a test that is not
 bit-for-bit and also climate changing.
 
@@ -222,7 +222,7 @@ To perform the QC validation, execute the following commands.
 
   # From the CICE base directory
   cp configuration/scripts/tests/QC/gen_qc_cases.csh .
-  cp configuration/scripts/tests/QC/compare_qc_cases.csh
+  cp configuration/scripts/tests/QC/compare_qc_cases.csh .
   
   # Create the required test cases
   ./gen_qc_cases.csh -m <machine> --acct <acct>

@@ -297,6 +297,13 @@ results.csh script in the testsuite.[testid]::
   cd testsuite.[testid]
   ./results.csh
 
+The script **create_fails.csh** will process the output from results.csh and generate a new 
+test suite file, **fails.ts**, from the failed tests.  
+**fails.ts** can then be edited and passed into ``cice.setup --suite fails.ts ...`` to rerun 
+subsets of failed tests to more efficiently move thru the development, testing, and 
+validation process.  However, a full test suite should be run on the final development
+version of the code.
+
 To report the test results, as is required for Pull Requests to be accepted into 
 the master the CICE Consortium code see :ref:`testreporting`.
 
@@ -411,8 +418,10 @@ The *cice.setup** options ``--setup-only``, ``--setup-build``, and ``--setup-bui
 
 which means by default the test suite builds and submits the jobs.  By defining other values for those environment variables, users can control the suite script.  When using **suite.submit** manually, the string ``true`` (all lowercase) is the only string that will turn on a feature, and both SUITE_RUN and SUITE_SUBMIT cannot be true at the same time.  
 
-By leveraging the **cice.setup** command line arguments ``--setup-only``, ``--setup-build``, and ``--setup-build-run`` as well as the environment variables SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT, users can run **cice.setup** and **suite.submit** in various combinations to quickly setup, setup and build, submit, resubmit, run interactively, or rebuild and resubmit full testsuites quickly and easily.  See below for an example.
+By leveraging the **cice.setup** command line arguments ``--setup-only``, ``--setup-build``, and ``--setup-build-run`` as well as the environment variables SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT, users can run **cice.setup** and **suite.submit** in various combinations to quickly setup, setup and build, submit, resubmit, run interactively, or rebuild and resubmit full testsuites quickly and easily.  See :ref:`examplesuites` for an example.
 
+
+.. _examplesuites:
 
 Test Suite Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~
