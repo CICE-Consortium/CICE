@@ -78,7 +78,8 @@ are the three scripts that modify **ice_in** and **cice.settings**.
 To add new options, just add new files to the **configurations/scripts/options/** directory
 with appropriate names and syntax.  The set_nml file syntax is the same as namelist
 syntax and the set_env files are consistent with csh setenv syntax.  See other files for
-examples of the syntax.
+examples of the syntax.  The name of the option (i.e. diag1, debug, bgcISPOL) should not
+have any special characters in the name as this can impact scripts usage.
 
 .. _build:
 
