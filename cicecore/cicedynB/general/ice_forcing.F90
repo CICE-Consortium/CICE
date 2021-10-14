@@ -118,7 +118,7 @@
          atm_data_format, & ! 'bin'=binary or 'nc'=netcdf
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 
-                          ! 'LYq' or 'hadgem' or 'oned' or
+                          ! 'hadgem' or 'oned' or
                           ! 'JRA55_gx1' or 'JRA55_gx3' or 'JRA55_tx1'
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
@@ -290,8 +290,10 @@
       ! default forcing values from init_flux_atm
       if (trim(atm_data_type) == 'ncar') then
          call NCAR_files(fyear)
+#ifdef UNDEPRECATE_LYq
       elseif (trim(atm_data_type) == 'LYq') then
          call LY_files(fyear)
+#endif
       elseif (trim(atm_data_type) == 'JRA55_gx1') then
          call JRA55_gx1_files(fyear)
       elseif (trim(atm_data_type) == 'JRA55_gx3') then
@@ -606,8 +608,10 @@
 
       if (trim(atm_data_type) == 'ncar') then
          call ncar_data
+#ifdef UNDEPRECATE_LYq
       elseif (trim(atm_data_type) == 'LYq') then
          call LY_data
+#endif
       elseif (trim(atm_data_type) == 'JRA55_gx1') then
          call JRA55_data
       elseif (trim(atm_data_type) == 'JRA55_gx3') then
@@ -1621,6 +1625,7 @@
          enddo
          enddo
 
+#ifdef UNDEPRECATE_LYq
       elseif (trim(atm_data_type) == 'LYq') then
 
          ! precip is in mm/s
@@ -1636,7 +1641,7 @@
                                           hm(i,j),   flw(i,j))
          enddo
          enddo
-
+#endif
       elseif (trim(atm_data_type) == 'oned') then  ! rectangular grid 
 
          ! precip is in kg/m^2/s
@@ -2089,6 +2094,7 @@
 
       end subroutine ncar_data
 
+#ifdef UNDEPRECATE_LYq
 !=======================================================================
 ! Large and Yeager forcing (AOMIP style)
 !=======================================================================
@@ -2145,7 +2151,7 @@
       endif                     ! master_task
 
       end subroutine LY_files
-
+#endif
 !=======================================================================
 
       subroutine JRA55_gx1_files(yr)
@@ -2209,6 +2215,7 @@
       endif
       end subroutine JRA55_gx3_files
 
+#ifdef UNDEPRECATE_LYq
 !=======================================================================
 !
 ! read Large and Yeager atmospheric data
@@ -2432,7 +2439,7 @@
         endif                   ! debug_forcing
 
       end subroutine LY_data
-
+#endif
 !=======================================================================
 
       subroutine JRA55_data

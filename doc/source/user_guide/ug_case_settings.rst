@@ -542,7 +542,6 @@ forcing_nml
    "", "``JRA55_gx1``", "JRA55 forcing data for gx1 grid :cite:`Tsujino18`", ""
    "", "``JRA55_gx3``", "JRA55 forcing data for gx3 grid :cite:`Tsujino18`", ""
    "", "``JRA55_tx1``", "JRA55 forcing data for tx1 grid :cite:`Tsujino18`", ""
-   "", "``LYq``", "COREII Large-Yeager (AOMIP) forcing data :cite:`Large09`", ""
    "", "``monthly``", "monthly forcing data", ""
    "", "``ncar``", "NCAR bulk forcing data", ""
    "", "``oned``", "column forcing data", ""
