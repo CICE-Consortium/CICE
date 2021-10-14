@@ -1381,7 +1381,8 @@
                                                   etax2ne,   etax2nw,  &
                                                   etax2se,   etax2sw,  &
                                                   rep_prsne, rep_prsnw,&
-                                                  rep_prsse, rep_prssw )
+                                                  rep_prsse, rep_prssw,&
+                                                  capping)
 
       real (kind=dbl_kind), intent(in)::  &
         strength, tinyarea                  ! at the t-point
@@ -1389,6 +1390,8 @@
       real (kind=dbl_kind), intent(in)::  &  
         Deltane, Deltanw, Deltase, Deltasw  ! Delta at each corner
 
+      logical , intent(in):: capping
+      
       real (kind=dbl_kind), intent(out):: &  
         zetax2ne, zetax2nw, zetax2se, zetax2sw,  & ! zetax2 at each corner 
         etax2ne, etax2nw, etax2se, etax2sw,      & ! etax2 at each corner
