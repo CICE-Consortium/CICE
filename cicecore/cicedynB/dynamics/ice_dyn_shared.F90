@@ -1399,30 +1399,30 @@
 
       ! local variables
       real (kind=dbl_kind) :: &
-        tmpcalc
+        tmpcalcne, tmpcalcnw, tmpcalcse, tmpcalcsw
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
        
 !      if (trim(yield_curve) == 'ellipse') then
 
-         tmpcalc = strength/max(Deltane,tinyarea) ! northeast
-         zetax2ne = (c1+Ktens)*tmpcalc
-         rep_prsne = (c1-Ktens)*tmpcalc*Deltane
+         tmpcalcne = strength/max(Deltane,tinyarea) ! northeast
+         zetax2ne = (c1+Ktens)*tmpcalcne
+         rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
          etax2ne = ecci*zetax2ne ! CHANGE FOR e_plasticpot
          
-         tmpcalc = strength/max(Deltanw,tinyarea) ! northwest
-         zetax2nw = (c1+Ktens)*tmpcalc
-         rep_prsnw = (c1-Ktens)*tmpcalc*Deltanw
+         tmpcalcnw = strength/max(Deltanw,tinyarea) ! northwest
+         zetax2nw = (c1+Ktens)*tmpcalcnw
+         rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
          etax2nw = ecci*zetax2nw ! CHANGE FOR e_plasticpot
 
-         tmpcalc = strength/max(Deltase,tinyarea) ! southeast
-         zetax2se = (c1+Ktens)*tmpcalc
-         rep_prsse = (c1-Ktens)*tmpcalc*Deltase
+         tmpcalcse = strength/max(Deltase,tinyarea) ! southeast
+         zetax2se = (c1+Ktens)*tmpcalcse
+         rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
          etax2se = ecci*zetax2se ! CHANGE FOR e_plasticpot
 
-         tmpcalc = strength/max(Deltasw,tinyarea) ! southwest
-         zetax2sw = (c1+Ktens)*tmpcalc
-         rep_prssw = (c1-Ktens)*tmpcalc*Deltasw
+         tmpcalcsw = strength/max(Deltasw,tinyarea) ! southwest
+         zetax2sw = (c1+Ktens)*tmpcalcsw
+         rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
          etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
          
 !      else
