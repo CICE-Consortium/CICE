@@ -116,6 +116,7 @@ endif
 
 if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
 
+  echo "PEND ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
   if (${ICE_BFBCOMP} != ${ICE_TESTNAME}) then
     # Check if the baseline job is complete
     set job = `grep " ${ICE_BFBCOMP} " ../suite.jobs | sed  's|^[^0-9]*\([0-9]*\).*$|\1|g'`
@@ -178,6 +179,9 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     set bfbstatus = $status
   endif
 
+  mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+  cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} bfbcomp " >! ${ICE_CASEDIR}/test_output
+  rm -f ${ICE_CASEDIR}/test_output.prev
   if (${bfbstatus} == 0) then
     echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
     echo "bfb baseline and test dataset are identical"
