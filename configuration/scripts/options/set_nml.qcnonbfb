@@ -1,4 +1,4 @@
-dt             = 1800.0
+dt             = 3456.0
 npt_unit       = 'y'
 npt            = 5
 year_init      = 2005
