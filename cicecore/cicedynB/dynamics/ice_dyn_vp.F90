@@ -1252,10 +1252,10 @@
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-         stressp_1 = -zetax2(i,j,1)*(Deltane*(c1-Ktens))
-         stressp_2 = -zetax2(i,j,2)*(Deltanw*(c1-Ktens))
-         stressp_3 = -zetax2(i,j,3)*(Deltasw*(c1-Ktens))
-         stressp_4 = -zetax2(i,j,4)*(Deltase*(c1-Ktens))
+         stressp_1 = -rep_prs(i,j,1)
+         stressp_2 = -rep_prs(i,j,2)
+         stressp_3 = -rep_prs(i,j,3)
+         stressp_4 = -rep_prs(i,j,4)
          
       !-----------------------------------------------------------------
       ! combinations of the Pr related stresses for the momentum equation ! kg/s^2
@@ -1414,10 +1414,11 @@
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-         stressp_1(i,j) = zetax2(i,j,1)*(divune*(c1+Ktens) - Deltane*(c1-Ktens))
-         stressp_2(i,j) = zetax2(i,j,2)*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))
-         stressp_3(i,j) = zetax2(i,j,3)*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))
-         stressp_4(i,j) = zetax2(i,j,4)*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))
+         
+         stressp_1(i,j) = zetax2(i,j,1)*divune*(c1+Ktens) - rep_prs(i,j,1)
+         stressp_2(i,j) = zetax2(i,j,2)*divunw*(c1+Ktens) - rep_prs(i,j,2)
+         stressp_3(i,j) = zetax2(i,j,3)*divusw*(c1+Ktens) - rep_prs(i,j,3)
+         stressp_4(i,j) = zetax2(i,j,4)*divuse*(c1+Ktens) - rep_prs(i,j,4)
          
          stressm_1(i,j) = zetax2(i,j,1)*tensionne*(c1+Ktens)*ecci
          stressm_2(i,j) = zetax2(i,j,2)*tensionnw*(c1+Ktens)*ecci
