@@ -19,6 +19,6 @@ end
 
 rm $tmpfile
 echo "$0 done"
-echo "Not passed tests written to file...... $outfile"
-echo "To setup a new test suite, try something like"
+echo "Failed tests can be rerun with the test suite file...... $outfile"
+echo "To run a new test suite, copy $outfile to the top directory and do something like"
 echo "  ./cice.setup --suite $outfile ..."
