@@ -1241,6 +1241,11 @@
          rep_prs(i,j,2) = zetax2(i,j,2)*(Deltanw*(c1-Ktens))
          rep_prs(i,j,3) = zetax2(i,j,3)*(Deltasw*(c1-Ktens))
          rep_prs(i,j,4) = zetax2(i,j,4)*(Deltase*(c1-Ktens))
+
+         zetax2(i,j,1) = (c1+Ktens)*zetax2(i,j,1)
+         zetax2(i,j,2) = (c1+Ktens)*zetax2(i,j,2)
+         zetax2(i,j,3) = (c1+Ktens)*zetax2(i,j,3)
+         zetax2(i,j,4) = (c1+Ktens)*zetax2(i,j,4)
          
          etax2(i,j,1) = ecci*zetax2(i,j,1)
          etax2(i,j,2) = ecci*zetax2(i,j,2)
@@ -1415,20 +1420,20 @@
       !-----------------------------------------------------------------
 
          
-         stressp_1(i,j) = zetax2(i,j,1)*divune*(c1+Ktens) - rep_prs(i,j,1)
-         stressp_2(i,j) = zetax2(i,j,2)*divunw*(c1+Ktens) - rep_prs(i,j,2)
-         stressp_3(i,j) = zetax2(i,j,3)*divusw*(c1+Ktens) - rep_prs(i,j,3)
-         stressp_4(i,j) = zetax2(i,j,4)*divuse*(c1+Ktens) - rep_prs(i,j,4)
+         stressp_1(i,j) = zetax2(i,j,1)*divune - rep_prs(i,j,1)
+         stressp_2(i,j) = zetax2(i,j,2)*divunw - rep_prs(i,j,2)
+         stressp_3(i,j) = zetax2(i,j,3)*divusw - rep_prs(i,j,3)
+         stressp_4(i,j) = zetax2(i,j,4)*divuse - rep_prs(i,j,4)
          
-         stressm_1(i,j) = etax2(i,j,1)*tensionne*(c1+Ktens)
-         stressm_2(i,j) = etax2(i,j,2)*tensionnw*(c1+Ktens)
-         stressm_3(i,j) = etax2(i,j,3)*tensionsw*(c1+Ktens)
-         stressm_4(i,j) = etax2(i,j,4)*tensionse*(c1+Ktens)
+         stressm_1(i,j) = etax2(i,j,1)*tensionne
+         stressm_2(i,j) = etax2(i,j,2)*tensionnw
+         stressm_3(i,j) = etax2(i,j,3)*tensionsw
+         stressm_4(i,j) = etax2(i,j,4)*tensionse
          
-         stress12_1(i,j) = etax2(i,j,1)*shearne*p5*(c1+Ktens)
-         stress12_2(i,j) = etax2(i,j,2)*shearnw*p5*(c1+Ktens)
-         stress12_3(i,j) = etax2(i,j,3)*shearsw*p5*(c1+Ktens)
-         stress12_4(i,j) = etax2(i,j,4)*shearse*p5*(c1+Ktens)
+         stress12_1(i,j) = etax2(i,j,1)*shearne*p5
+         stress12_2(i,j) = etax2(i,j,2)*shearnw*p5
+         stress12_3(i,j) = etax2(i,j,3)*shearsw*p5
+         stress12_4(i,j) = etax2(i,j,4)*shearse*p5
 
       enddo                     ! ij
 
@@ -1674,20 +1679,20 @@
       ! NOTE: commented part of stressp is from the replacement pressure Pr
       !-----------------------------------------------------------------
 
-         stressp_1 = zetax2(i,j,1)*(divune*(c1+Ktens))! - Deltane*(c1-Ktens))
-         stressp_2 = zetax2(i,j,2)*(divunw*(c1+Ktens))! - Deltanw*(c1-Ktens))
-         stressp_3 = zetax2(i,j,3)*(divusw*(c1+Ktens))! - Deltasw*(c1-Ktens))
-         stressp_4 = zetax2(i,j,4)*(divuse*(c1+Ktens))! - Deltase*(c1-Ktens))
+         stressp_1 = zetax2(i,j,1)*divune! - Deltane*(c1-Ktens))
+         stressp_2 = zetax2(i,j,2)*divunw! - Deltanw*(c1-Ktens))
+         stressp_3 = zetax2(i,j,3)*divusw! - Deltasw*(c1-Ktens))
+         stressp_4 = zetax2(i,j,4)*divuse! - Deltase*(c1-Ktens))
          
-         stressm_1 = etax2(i,j,1)*tensionne*(c1+Ktens)
-         stressm_2 = etax2(i,j,2)*tensionnw*(c1+Ktens)
-         stressm_3 = etax2(i,j,3)*tensionsw*(c1+Ktens)
-         stressm_4 = etax2(i,j,4)*tensionse*(c1+Ktens)
+         stressm_1 = etax2(i,j,1)*tensionne
+         stressm_2 = etax2(i,j,2)*tensionnw
+         stressm_3 = etax2(i,j,3)*tensionsw
+         stressm_4 = etax2(i,j,4)*tensionse
          
-         stress12_1 = etax2(i,j,1)*shearne*p5*(c1+Ktens)
-         stress12_2 = etax2(i,j,2)*shearnw*p5*(c1+Ktens)
-         stress12_3 = etax2(i,j,3)*shearsw*p5*(c1+Ktens)
-         stress12_4 = etax2(i,j,4)*shearse*p5*(c1+Ktens)
+         stress12_1 = etax2(i,j,1)*shearne*p5
+         stress12_2 = etax2(i,j,2)*shearnw*p5
+         stress12_3 = etax2(i,j,3)*shearsw*p5
+         stress12_4 = etax2(i,j,4)*shearse*p5
 
       !-----------------------------------------------------------------
       ! combinations of the stresses for the momentum equation ! kg/s^2
@@ -2229,20 +2234,20 @@
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
             
-            stressp_1 = zetax2(i,j,1)*divune*(c1+Ktens)
-            stressp_2 = zetax2(i,j,2)*divunw*(c1+Ktens)
-            stressp_3 = zetax2(i,j,3)*divusw*(c1+Ktens)
-            stressp_4 = zetax2(i,j,4)*divuse*(c1+Ktens)
+            stressp_1 = zetax2(i,j,1)*divune
+            stressp_2 = zetax2(i,j,2)*divunw
+            stressp_3 = zetax2(i,j,3)*divusw
+            stressp_4 = zetax2(i,j,4)*divuse
             
-            stressm_1 = etax2(i,j,1)*tensionne*(c1+Ktens)
-            stressm_2 = etax2(i,j,2)*tensionnw*(c1+Ktens)
-            stressm_3 = etax2(i,j,3)*tensionsw*(c1+Ktens)
-            stressm_4 = etax2(i,j,4)*tensionse*(c1+Ktens)
+            stressm_1 = etax2(i,j,1)*tensionne
+            stressm_2 = etax2(i,j,2)*tensionnw
+            stressm_3 = etax2(i,j,3)*tensionsw
+            stressm_4 = etax2(i,j,4)*tensionse
             
-            stress12_1 = etax2(i,j,1)*shearne*p5*(c1+Ktens)
-            stress12_2 = etax2(i,j,2)*shearnw*p5*(c1+Ktens)
-            stress12_3 = etax2(i,j,3)*shearsw*p5*(c1+Ktens)
-            stress12_4 = etax2(i,j,4)*shearse*p5*(c1+Ktens)
+            stress12_1 = etax2(i,j,1)*shearne*p5
+            stress12_2 = etax2(i,j,2)*shearnw*p5
+            stress12_3 = etax2(i,j,3)*shearsw*p5
+            stress12_4 = etax2(i,j,4)*shearse*p5
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
