@@ -235,7 +235,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
          zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         etax2    , & ! etax2  = 2eta  (shear viscous coeff)
+         rep_prs      ! replacement pressure
          
       logical (kind=log_kind) :: calc_strair
 
@@ -490,6 +491,7 @@
                             umassdti, sol   , &
                             fpresx  , fpresy, &
                             zetax2  , etax2 , &
+                            rep_prs ,         &
                             Cb, halo_info_mask)
       !-----------------------------------------------------------------
       ! End of nonlinear iteration
@@ -512,6 +514,7 @@
                          cxp       (:,:,iblk), cyp       (:,:,iblk), &
                          cxm       (:,:,iblk), cym       (:,:,iblk), &
                          zetax2  (:,:,iblk,:), etax2   (:,:,iblk,:), &
+                         rep_prs (:,:,iblk,:),                       &
                          stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
                          stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
                          stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
@@ -673,6 +676,7 @@
                                   umassdti, sol   , &
                                   fpresx  , fpresy, &
                                   zetax2  , etax2 , &
+                                  rep_prs ,         &
                                   Cb, halo_info_mask)
 
       use ice_arrays_column, only: Cdn_ocn
@@ -710,7 +714,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(out) :: &
          zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         etax2    , & ! etax2  = 2eta  (shear viscous coeff)
+         rep_prs      ! replacement pressure
       
       type (ice_halo), intent(in) :: &
          halo_info_mask !  ghost cell update info for masked halo
@@ -832,7 +837,7 @@
                                 cxm      (:,:,iblk), cym     (:,:,iblk), &
                                 tinyarea (:,:,iblk), strength (:,:,iblk),&
                                 zetax2 (:,:,iblk,:), etax2  (:,:,iblk,:),&
-                                stress_Pr  (:,:,:))
+                                rep_prs(:,:,iblk,:), stress_Pr  (:,:,:))
             
             call calc_vrel_Cb (nx_block           , ny_block          , &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), &
@@ -1134,9 +1139,9 @@
                                 cxm     , cym     , &
                                 tinyarea, strength, &
                                 zetax2  , etax2   , &
-                                stPr)
+                                rep_prs , stPr)
 
-      use ice_dyn_shared, only: strain_rates
+      use ice_dyn_shared, only: strain_rates, ecci
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1162,7 +1167,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
          zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         etax2    , & ! etax2  = 2eta  (shear viscous coeff)
+         rep_prs      ! replacement pressure 
       
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          stPr          ! stress combinations from replacement pressure
@@ -1230,6 +1236,16 @@
             zetax2(i,j,3) = strength(i,j)/(Deltasw + tinyarea(i,j))
             zetax2(i,j,4) = strength(i,j)/(Deltase + tinyarea(i,j))
          endif
+
+         rep_prs(i,j,1) = zetax2(i,j,1)*(Deltane*(c1-Ktens))
+         rep_prs(i,j,2) = zetax2(i,j,2)*(Deltanw*(c1-Ktens))
+         rep_prs(i,j,3) = zetax2(i,j,3)*(Deltasw*(c1-Ktens))
+         rep_prs(i,j,4) = zetax2(i,j,4)*(Deltase*(c1-Ktens))
+         
+         etax2(i,j,1) = ecci*zetax2(i,j,1)
+         etax2(i,j,2) = ecci*zetax2(i,j,2)
+         etax2(i,j,3) = ecci*zetax2(i,j,3)
+         etax2(i,j,4) = ecci*zetax2(i,j,4)
          
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -1319,6 +1335,7 @@
                             cxp       , cyp       , &
                             cxm       , cym       , &
                             zetax2    , etax2     , &
+                            rep_prs   ,             &
                             stressp_1 , stressp_2 , &
                             stressp_3 , stressp_4 , &
                             stressm_1 , stressm_2 , &
@@ -1348,7 +1365,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         etax2    , & ! etax2  = 2eta  (shear viscous coeff)
+         rep_prs
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
