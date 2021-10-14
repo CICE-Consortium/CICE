@@ -1405,23 +1405,31 @@
        
 !      if (trim(yield_curve) == 'ellipse') then
 
-         tmpcalcne = strength/max(Deltane,tinyarea) ! northeast
-         zetax2ne = (c1+Ktens)*tmpcalcne
+      if (capping) then
+         tmpcalcne = strength/max(Deltane,tinyarea)
+         tmpcalcnw = strength/max(Deltanw,tinyarea)
+         tmpcalcse = strength/max(Deltase,tinyarea)
+         tmpcalcsw = strength/max(Deltasw,tinyarea)
+      else
+         tmpcalcne = strength/(Deltane + tinyarea)
+         tmpcalcnw = strength/(Deltanw + tinyarea)
+         tmpcalcse = strength/(Deltase + tinyarea)
+         tmpcalcsw = strength/(Deltasw + tinyarea)
+      endif
+
+         zetax2ne = (c1+Ktens)*tmpcalcne ! northeast 
          rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
          etax2ne = ecci*zetax2ne ! CHANGE FOR e_plasticpot
          
-         tmpcalcnw = strength/max(Deltanw,tinyarea) ! northwest
-         zetax2nw = (c1+Ktens)*tmpcalcnw
+         zetax2nw = (c1+Ktens)*tmpcalcnw ! northwest 
          rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
          etax2nw = ecci*zetax2nw ! CHANGE FOR e_plasticpot
 
-         tmpcalcse = strength/max(Deltase,tinyarea) ! southeast
-         zetax2se = (c1+Ktens)*tmpcalcse
+         zetax2se = (c1+Ktens)*tmpcalcse ! southeast
          rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
          etax2se = ecci*zetax2se ! CHANGE FOR e_plasticpot
 
-         tmpcalcsw = strength/max(Deltasw,tinyarea) ! southwest
-         zetax2sw = (c1+Ktens)*tmpcalcsw
+         zetax2sw = (c1+Ktens)*tmpcalcsw ! southwest 
          rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
          etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
          
