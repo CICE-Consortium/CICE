@@ -234,8 +234,8 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
          rep_prs      ! replacement pressure
          
       logical (kind=log_kind) :: calc_strair
@@ -713,8 +713,8 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(out) :: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
          rep_prs      ! replacement pressure
       
       type (ice_halo), intent(in) :: &
@@ -1141,7 +1141,7 @@
                                 zetax2  , etax2   , &
                                 rep_prs , stPr)
 
-      use ice_dyn_shared, only: strain_rates, ecci
+      use ice_dyn_shared, only: strain_rates, viscous_coeffs_and_rep_pressure
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1166,8 +1166,8 @@
          tinyarea     ! min_strain_rate*tarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
          rep_prs      ! replacement pressure 
       
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
@@ -1229,32 +1229,16 @@
       ! viscous coefficients and replacement pressure                           
       !-----------------------------------------------------------------        
 
-         if (capping) then
-            zetax2(i,j,1) = strength(i,j)/max(Deltane,tinyarea(i,j))
-            zetax2(i,j,2) = strength(i,j)/max(Deltanw,tinyarea(i,j))
-            zetax2(i,j,3) = strength(i,j)/max(Deltasw,tinyarea(i,j))
-            zetax2(i,j,4) = strength(i,j)/max(Deltase,tinyarea(i,j))
-         else
-            zetax2(i,j,1) = strength(i,j)/(Deltane + tinyarea(i,j))
-            zetax2(i,j,2) = strength(i,j)/(Deltanw + tinyarea(i,j))
-            zetax2(i,j,3) = strength(i,j)/(Deltasw + tinyarea(i,j))
-            zetax2(i,j,4) = strength(i,j)/(Deltase + tinyarea(i,j))
-         endif
-
-         rep_prs(i,j,1) = zetax2(i,j,1)*(Deltane*(c1-Ktens))
-         rep_prs(i,j,2) = zetax2(i,j,2)*(Deltanw*(c1-Ktens))
-         rep_prs(i,j,3) = zetax2(i,j,3)*(Deltasw*(c1-Ktens))
-         rep_prs(i,j,4) = zetax2(i,j,4)*(Deltase*(c1-Ktens))
-
-         zetax2(i,j,1) = (c1+Ktens)*zetax2(i,j,1)
-         zetax2(i,j,2) = (c1+Ktens)*zetax2(i,j,2)
-         zetax2(i,j,3) = (c1+Ktens)*zetax2(i,j,3)
-         zetax2(i,j,4) = (c1+Ktens)*zetax2(i,j,4)
-         
-         etax2(i,j,1) = ecci*zetax2(i,j,1)
-         etax2(i,j,2) = ecci*zetax2(i,j,2)
-         etax2(i,j,3) = ecci*zetax2(i,j,3)
-         etax2(i,j,4) = ecci*zetax2(i,j,4)
+         call viscous_coeffs_and_rep_pressure (strength(i,j),  tinyarea(i,j),  &
+                                               Deltane,        Deltanw,        &
+                                               Deltasw,        Deltase,        &
+                                               zetax2(i,j,1),  zetax2(i,j,2),  &
+                                               zetax2(i,j,3),  zetax2(i,j,4),  &
+                                               etax2(i,j,1),   etax2(i,j,2),   &
+                                               etax2(i,j,3),   etax2(i,j,4),   &
+                                               rep_prs(i,j,1), rep_prs(i,j,2), &
+                                               rep_prs(i,j,3), rep_prs(i,j,4), &
+                                               capping)
          
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -1373,8 +1357,8 @@
          cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
          rep_prs
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -1422,7 +1406,6 @@
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
-
          
          stressp_1(i,j) = zetax2(i,j,1)*divune - rep_prs(i,j,1)
          stressp_2(i,j) = zetax2(i,j,2)*divunw - rep_prs(i,j,2)
@@ -1607,8 +1590,8 @@
          uarear      ! 1/uarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Au      , & ! matvec, Fx = bx - Au (N/m^2)
@@ -2049,8 +2032,8 @@
          cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          Drheo          ! intermediate value for diagonal components of matrix A associated
@@ -2711,8 +2694,8 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
@@ -3107,8 +3090,8 @@
                          nbiter)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
@@ -3500,8 +3483,8 @@
                               wx          , wy)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
