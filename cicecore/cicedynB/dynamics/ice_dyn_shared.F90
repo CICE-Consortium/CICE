@@ -1375,31 +1375,31 @@
       
       subroutine viscous_coeffs_and_rep_pressure (strength,  tinyarea, &
                                                   Deltane,   Deltanw,  &
-                                                  Deltase,   Deltasw,  &
+                                                  Deltasw,   Deltase,  &
                                                   zetax2ne,  zetax2nw, &
-                                                  zetax2se,  zetax2sw, &
+                                                  zetax2sw,  zetax2se, &
                                                   etax2ne,   etax2nw,  &
-                                                  etax2se,   etax2sw,  &
+                                                  etax2sw,   etax2se,  &
                                                   rep_prsne, rep_prsnw,&
-                                                  rep_prsse, rep_prssw,&
+                                                  rep_prssw, rep_prsse,&
                                                   capping)
 
       real (kind=dbl_kind), intent(in)::  &
         strength, tinyarea                  ! at the t-point
         
       real (kind=dbl_kind), intent(in)::  &  
-        Deltane, Deltanw, Deltase, Deltasw  ! Delta at each corner
+        Deltane, Deltanw, Deltasw, Deltase  ! Delta at each corner
 
       logical , intent(in):: capping
       
       real (kind=dbl_kind), intent(out):: &  
-        zetax2ne, zetax2nw, zetax2se, zetax2sw,  & ! zetax2 at each corner 
-        etax2ne, etax2nw, etax2se, etax2sw,      & ! etax2 at each corner
-        rep_prsne, rep_prsnw, rep_prsse, rep_prssw ! replacement pressure
+        zetax2ne, zetax2nw, zetax2sw, zetax2se,  & ! zetax2 at each corner 
+        etax2ne, etax2nw, etax2sw, etax2se,      & ! etax2 at each corner
+        rep_prsne, rep_prsnw, rep_prssw, rep_prsse ! replacement pressure
 
       ! local variables
       real (kind=dbl_kind) :: &
-        tmpcalcne, tmpcalcnw, tmpcalcse, tmpcalcsw
+        tmpcalcne, tmpcalcnw, tmpcalcsw, tmpcalcse
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
        
@@ -1408,13 +1408,13 @@
       if (capping) then
          tmpcalcne = strength/max(Deltane,tinyarea)
          tmpcalcnw = strength/max(Deltanw,tinyarea)
-         tmpcalcse = strength/max(Deltase,tinyarea)
          tmpcalcsw = strength/max(Deltasw,tinyarea)
+         tmpcalcse = strength/max(Deltase,tinyarea)
       else
          tmpcalcne = strength/(Deltane + tinyarea)
          tmpcalcnw = strength/(Deltanw + tinyarea)
-         tmpcalcse = strength/(Deltase + tinyarea)
          tmpcalcsw = strength/(Deltasw + tinyarea)
+         tmpcalcse = strength/(Deltase + tinyarea)
       endif
 
          zetax2ne = (c1+Ktens)*tmpcalcne ! northeast 
@@ -1425,14 +1425,14 @@
          rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
          etax2nw = ecci*zetax2nw ! CHANGE FOR e_plasticpot
 
+         zetax2sw = (c1+Ktens)*tmpcalcsw ! southwest  
+         rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
+         etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
+         
          zetax2se = (c1+Ktens)*tmpcalcse ! southeast
          rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
          etax2se = ecci*zetax2se ! CHANGE FOR e_plasticpot
 
-         zetax2sw = (c1+Ktens)*tmpcalcsw ! southwest 
-         rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
-         etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
-         
 !      else
 
 !      endif

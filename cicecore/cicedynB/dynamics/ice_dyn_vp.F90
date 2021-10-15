@@ -1225,6 +1225,10 @@
                             Deltane  , Deltanw  , &
                             Deltase  , Deltasw)
 
+      !-----------------------------------------------------------------        
+      ! viscous coefficients and replacement pressure                           
+      !-----------------------------------------------------------------        
+
          if (capping) then
             zetax2(i,j,1) = strength(i,j)/max(Deltane,tinyarea(i,j))
             zetax2(i,j,2) = strength(i,j)/max(Deltanw,tinyarea(i,j))
