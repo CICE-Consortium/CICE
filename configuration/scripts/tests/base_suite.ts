@@ -70,5 +70,6 @@ smoke          gx3     8x2        diag24,run5day,zsal,debug
 restart        gx3     8x2        zsal
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        gx3ncarbulk,diag1
-restart        gx1    24x1        gx1coreii,short
 smoke          gx3     4x1        calcdragio
+restart        gx3     4x2        atmbndyconstant
+restart        gx3     4x2        atmbndymixed

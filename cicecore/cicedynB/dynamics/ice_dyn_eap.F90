@@ -326,11 +326,18 @@
          do j = 1, ny_block
          do i = 1, nx_block
             if (icetmask(i,j,iblk)==0) then
+               if (tmask(i,j,iblk)) then
             ! structure tensor
-               a11_1(i,j,iblk) = p5
-               a11_2(i,j,iblk) = p5
-               a11_3(i,j,iblk) = p5
-               a11_4(i,j,iblk) = p5
+                  a11_1(i,j,iblk) = p5
+                  a11_2(i,j,iblk) = p5
+                  a11_3(i,j,iblk) = p5
+                  a11_4(i,j,iblk) = p5
+                else
+                  a11_1(i,j,iblk) = c0
+                  a11_2(i,j,iblk) = c0
+                  a11_3(i,j,iblk) = c0
+                  a11_4(i,j,iblk) = c0
+               endif
                a12_1(i,j,iblk) = c0
                a12_2(i,j,iblk) = c0
                a12_3(i,j,iblk) = c0
@@ -1932,58 +1939,38 @@
          j = indxtj(ij)
 
 ! ne 
-         call calc_ffrac(1, stressp_1(i,j), stressm_1(i,j),  &
-                           stress12_1(i,j),                  &
-                           a11_1(i,j),                       &
-                           mresult11)
-
-         call calc_ffrac(2, stressp_1(i,j), stressm_1(i,j),  &
-                           stress12_1(i,j),                  &
-                           a12_1(i,j),                       &
-                           mresult12)
+        call calc_ffrac(stressp_1(i,j), stressm_1(i,j),  &
+                           stress12_1(i,j),                 &
+                           a11_1(i,j), a12_1(i,j),          &
+                           mresult11, mresult12)
 
          a11_1(i,j) = (a11_1(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_1(i,j) = (a12_1(i,j)*dtei - mresult12) * dteikth ! implicit
 
  
 ! nw
-         call calc_ffrac(1, stressp_2(i,j), stressm_2(i,j),  &
-                           stress12_2(i,j),                  &
-                           a11_2(i,j),                       &
-                           mresult11)
-
-         call calc_ffrac(2, stressp_2(i,j), stressm_2(i,j),  &
-                           stress12_2(i,j),                  &
-                           a12_2(i,j),                       &
-                           mresult12)
+        call calc_ffrac(stressp_2(i,j), stressm_2(i,j),  &
+                           stress12_2(i,j),                 &
+                           a11_2(i,j), a12_2(i,j),          &
+                           mresult11, mresult12)
 
          a11_2(i,j) = (a11_2(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_2(i,j) = (a12_2(i,j)*dtei - mresult12) * dteikth ! implicit
 
 ! sw
-         call calc_ffrac(1, stressp_3(i,j), stressm_3(i,j),  &
-                           stress12_3(i,j),                  &
-                           a11_3(i,j),                       &
-                           mresult11)
-
-         call calc_ffrac(2, stressp_3(i,j), stressm_3(i,j),  &
-                           stress12_3(i,j),                  &
-                           a12_3(i,j),                       &
-                           mresult12)
+        call calc_ffrac(stressp_3(i,j), stressm_3(i,j),  &
+                           stress12_3(i,j),                 &
+                           a11_3(i,j), a12_3(i,j),          &
+                           mresult11, mresult12)
 
          a11_3(i,j) = (a11_3(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_3(i,j) = (a12_3(i,j)*dtei - mresult12) * dteikth ! implicit
                                 
 ! se
-         call calc_ffrac(1, stressp_4(i,j), stressm_4(i,j),  &
-                           stress12_4(i,j),                  &
-                           a11_4(i,j),                       &
-                           mresult11)
-
-         call calc_ffrac(2, stressp_4(i,j), stressm_4(i,j),  &
-                           stress12_4(i,j),                  &
-                           a12_4(i,j),                       &
-                           mresult12)
+        call calc_ffrac(stressp_4(i,j), stressm_4(i,j),  &
+                           stress12_4(i,j),                 &
+                           a11_4(i,j), a12_4(i,j),          &
+                           mresult11, mresult12)
 
          a11_4(i,j) = (a11_4(i,j)*dtei + p5kth - mresult11) * dteikth ! implicit
          a12_4(i,j) = (a12_4(i,j)*dtei - mresult12) * dteikth ! implicit
@@ -2003,19 +1990,17 @@
 ! the ice floe re-orientation due to fracture
 ! Eq. 7: Ffrac = -kf(A-S) or = 0 depending on sigma_1 and sigma_2
 
-      subroutine calc_ffrac (blockno, stressp, stressm, &
-                             stress12,                  &
-                             a1x,                       &
-                             mresult)
 
-      integer(kind=int_kind), intent(in) :: &
-         blockno
+      subroutine calc_ffrac (stressp, stressm, &
+                             stress12,            &
+                             a1x,  a2x,            &
+                             mresult1, mresult2)
 
       real (kind=dbl_kind), intent(in) :: &
-         stressp, stressm, stress12, a1x
+         stressp, stressm, stress12, a1x, a2x
 
       real (kind=dbl_kind), intent(out) :: &
-         mresult
+         mresult1, mresult2
 
       ! local variables
 
@@ -2035,11 +2020,12 @@
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-       sigma11 = p5*(stressp+stressm) 
-       sigma12 = stress12 
-       sigma22 = p5*(stressp-stressm) 
+       sigma11 = p5*(stressp+stressm)
+       sigma12 = stress12
+       sigma22 = p5*(stressp-stressm)
 
-       if ((sigma11-sigma22) == c0) then
+!       if ((sigma11-sigma22) == c0) then sigma11-sigma22 == 0 => stressn ==0
+       if (stressm == c0) then
          gamma = p5*(pih)
        else
          gamma = p5*atan2((c2*sigma12),(sigma11-sigma22))
@@ -2061,24 +2047,27 @@
 
 ! Pure divergence
        if ((sigma_1 >= c0).and.(sigma_2 >= c0))  then
-         mresult = c0
+         mresult1 = c0
+         mresult2 = c0
 
 ! Unconfined compression: cracking of blocks not along the axial splitting direction
 ! which leads to the loss of their shape, so we again model it through diffusion
        elseif ((sigma_1 >= c0).and.(sigma_2 < c0))  then
-         if (blockno == 1) mresult = kfrac * (a1x - Q12Q12)
-         if (blockno == 2) mresult = kfrac * (a1x + Q11Q12)
+         mresult1 = kfrac * (a1x - Q12Q12)
+         mresult2 = kfrac * (a2x + Q11Q12)
 
 ! Shear faulting
        elseif (sigma_2 == c0) then
-         mresult = c0
+        mresult1 = c0
+        mresult2 = c0
        elseif ((sigma_1 <= c0).and.(sigma_1/sigma_2 <= threshold)) then
-         if (blockno == 1) mresult = kfrac * (a1x - Q12Q12)
-         if (blockno == 2) mresult = kfrac * (a1x + Q11Q12)
+         mresult1 = kfrac * (a1x - Q12Q12)
+         mresult2 = kfrac * (a2x + Q11Q12)
 
 ! Horizontal spalling
-       else 
-         mresult = c0
+       else
+         mresult1 = c0
+         mresult2 = c0
        endif
 
       end subroutine calc_ffrac

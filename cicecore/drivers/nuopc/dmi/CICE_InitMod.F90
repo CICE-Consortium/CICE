@@ -18,6 +18,7 @@
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
+      use icepack_intfc, only: icepack_init_snow
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
@@ -81,15 +82,14 @@
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
-          get_forcing_atmo, get_forcing_ocn, get_wave_spec
+          get_forcing_atmo, get_forcing_ocn, get_wave_spec, init_snowtable
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default, faero_optics, alloc_forcing_bgc, fiso_default
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runtype
       use ice_init, only: input_data, init_state
-      use ice_init_column, only: init_thermo_vertical, init_shortwave, &
-          init_zbgc, input_zbgc, count_tracers
+      use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
       use ice_kinds_mod
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
@@ -99,7 +99,8 @@
          mpi_comm ! communicator for sequential ccsm
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
-         tr_iso, tr_fsd, wave_spec
+         tr_iso, tr_fsd, wave_spec, tr_snow
+      character(len=char_len) :: snw_aging_table
       character(len=*), parameter :: subname = '(cice_init)'
 
       if (present(mpi_comm)) then
@@ -176,7 +177,7 @@
       call ice_HaloRestore_init ! restored boundary conditions
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
-          wave_spec_out=wave_spec)
+          wave_spec_out=wave_spec, snw_aging_table_out=snw_aging_table)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -190,7 +191,7 @@
       call calc_timesteps       ! update timestep counter if not using npt_unit="1"
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
-      call icepack_query_tracer_flags(tr_iso_out=tr_iso)
+      call icepack_query_tracer_flags(tr_iso_out=tr_iso, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -222,8 +223,20 @@
       call get_forcing_ocn(dt)  ! ocean forcing from data
 #endif
 
+      ! snow aging lookup table initialization
+      if (tr_snow) then         ! advanced snow physics
+         call icepack_init_snow()
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
+         if (snw_aging_table(1:4) /= 'test') then
+            call init_snowtable()
+         endif
+      endif
+
       ! isotopes
       if (tr_iso)     call fiso_default                 ! default values
+
       ! aerosols
       ! if (tr_aero)  call faero_data                   ! data file
       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
@@ -252,12 +265,12 @@
       use ice_calendar, only: calendar
       use ice_constants, only: c0
       use ice_domain, only: nblocks
-      use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
+      use ice_domain_size, only: ncat, n_iso, n_aero, nfsd, nslyr
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
-      use ice_init_column, only: init_age, init_FY, init_lvl, &
+      use ice_init_column, only: init_age, init_FY, init_lvl, init_snowtracers, &
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
           init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
@@ -265,6 +278,7 @@
           restart_pond_cesm, read_restart_pond_cesm, &
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
+          restart_snow, read_restart_snow, &
           restart_fsd, read_restart_fsd, &
           restart_iso, read_restart_iso, &
           restart_aero, read_restart_aero, &
@@ -279,12 +293,13 @@
          iblk            ! block index
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-          tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, &
+          tr_pond_topo, tr_snow, tr_fsd, tr_iso, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
+          nt_smice, nt_smliq, nt_rhos, nt_rsnw, &
           nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice
 
       character(len=*), parameter :: subname = '(init_restart)'
@@ -299,10 +314,12 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
-           tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
+           tr_snow_out=tr_snow, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
            nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd, &
+           nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
+           nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw, &
            nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -399,6 +416,22 @@
             enddo ! iblk
          endif ! .not. restart_pond
       endif
+
+      ! snow redistribution/metamorphism
+      if (tr_snow) then
+         if (trim(runtype) == 'continue') restart_snow = .true.
+         if (restart_snow) then
+            call read_restart_snow
+         else
+            do iblk = 1, nblocks
+               call init_snowtracers(trcrn(:,:,nt_smice:nt_smice+nslyr-1,:,iblk), &
+                                     trcrn(:,:,nt_smliq:nt_smliq+nslyr-1,:,iblk), &
+                                     trcrn(:,:,nt_rhos :nt_rhos +nslyr-1,:,iblk), &
+                                     trcrn(:,:,nt_rsnw :nt_rsnw +nslyr-1,:,iblk))
+            enddo ! iblk
+         endif
+      endif
+
       ! floe size distribution
       if (tr_fsd) then
          if (trim(runtype) == 'continue') restart_fsd = .true.
@@ -415,7 +448,7 @@
          if (restart_iso) then
             call read_restart_iso
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_isotope(trcrn(:,:,nt_isosno:nt_isosno+n_iso-1,:,iblk), &
                                  trcrn(:,:,nt_isoice:nt_isoice+n_iso-1,:,iblk))
             enddo ! iblk
