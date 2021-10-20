@@ -78,7 +78,8 @@ are the three scripts that modify **ice_in** and **cice.settings**.
 To add new options, just add new files to the **configurations/scripts/options/** directory
 with appropriate names and syntax.  The set_nml file syntax is the same as namelist
 syntax and the set_env files are consistent with csh setenv syntax.  See other files for
-examples of the syntax.
+examples of the syntax.  The name of the option (i.e. diag1, debug, bgcISPOL) should not
+have any special characters in the name as this can impact scripts usage.
 
 .. _build:
 
@@ -163,7 +164,7 @@ it's working properly.
 
 .. _dev_validation:
 
-Code Validation Script
+QC Process Validation
 ----------------------
 
 The code validation (aka QC or quality control) test validates non bit-for-bit model changes.  The directory 
@@ -193,9 +194,9 @@ to the ``cice.setup`` script.  These options include:
 * ``--queue``   : Queue for the batch submission
 * ``--testid``  : test ID, user-defined id for testing
 
-The script creates 4 test cases, with testIDs ``qc_base``, ``qc_bfb``, ``qc_nonbfb``,
+The script creates 4 test cases, with testIDs ``qc_base``, ``qc_bfb``, ``qc_test``,
 and ``qc_fail``.  ``qc_base`` is the base test case with the default QC namelist.
-``qc_bfb`` is identical to ``qc_base``.  ``qc_nonbfb`` is a test that is not bit-for-bit
+``qc_bfb`` is identical to ``qc_base``.  ``qc_test`` is a test that is not bit-for-bit
 when compared to ``qc_base``, but not climate changing.  ``qc_fail`` is a test that is not
 bit-for-bit and also climate changing.
 
@@ -222,7 +223,7 @@ To perform the QC validation, execute the following commands.
 
   # From the CICE base directory
   cp configuration/scripts/tests/QC/gen_qc_cases.csh .
-  cp configuration/scripts/tests/QC/compare_qc_cases.csh
+  cp configuration/scripts/tests/QC/compare_qc_cases.csh .
   
   # Create the required test cases
   ./gen_qc_cases.csh -m <machine> --acct <acct>

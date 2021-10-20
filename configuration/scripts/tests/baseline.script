@@ -36,6 +36,12 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file} notcicefile
     set bfbstatus = $status
 
+  else if (${ICE_TEST} =~ qcchk*) then
+    set test_dir = ${ICE_RUNDIR}
+    set base_dir  = ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}
+    ${ICE_SANDBOX}/configuration/scripts/tests/QC/cice.t-test.py ${base_dir} ${test_dir}
+    set bfbstatus = $status
+
   else
 
     set test_dir = ${ICE_RUNDIR}/restart
@@ -116,6 +122,35 @@ endif
 
 if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
 
+  echo "PEND ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
+  if (${ICE_BFBCOMP} != ${ICE_TESTNAME}) then
+    # Check if the baseline job is complete
+    set job = `grep " ${ICE_BFBCOMP} " ../suite.jobs | sed  's|^[^0-9]*\([0-9]*\).*$|\1|g'`
+    echo "checking on Job $job"
+    set qstatjob = 1
+    set cnt = 0
+    if (${job} =~ [0-9]*) then
+      while ($qstatjob)
+        ${ICE_MACHINE_QSTAT} $job >&/dev/null
+        set qstatus = $status
+#        echo $job $qstatus
+        if ($qstatus != 0) then
+          echo "Job $job completed"
+          set qstatjob = 0
+        else
+          @ cnt = $cnt + 1
+          echo "Waiting for $job to complete $cnt"
+          sleep 60   # Sleep for 1 minute, so as not to overwhelm the queue manager
+          if ($cnt > 100) then
+            echo "No longer waiting for $job to complete"
+            set qstatjob = 0 # Abandon check after 100 sleep 60 checks
+          endif
+        endif
+#        echo $qstatjob
+      end
+    endif
+  endif
+
   if (${ICE_TEST} == "logbfb") then
     set test_file = `ls -1t ${ICE_RUNDIR}/cice.runlog* | head -1`
     set base_file = `ls -1t ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/cice.runlog* | head -1`
@@ -127,6 +162,16 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
 
     ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
     set bfbstatus = $status
+
+  else if (${ICE_TEST} =~ qcchk*) then
+    set test_dir = ${ICE_RUNDIR}
+    set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}
+    ${ICE_SANDBOX}/configuration/scripts/tests/QC/cice.t-test.py ${base_dir} ${test_dir}
+    set bfbstatus = $status
+    # expecting failure, so switch value
+    if (${ICE_TEST} =~ qcchkf*) then
+       @ bfbstatus = 1 - $bfbstatus
+    endif
   else
     set test_dir = ${ICE_RUNDIR}/restart
     set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/restart
@@ -140,6 +185,9 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     set bfbstatus = $status
   endif
 
+  mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+  cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} bfbcomp " >! ${ICE_CASEDIR}/test_output
+  rm -f ${ICE_CASEDIR}/test_output.prev
   if (${bfbstatus} == 0) then
     echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
     echo "bfb baseline and test dataset are identical"

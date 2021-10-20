@@ -480,6 +480,7 @@ else
     exit -1
   endif
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/create_fails.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
   cat >! ${tsdir}/suite.submit << EOF0
@@ -919,7 +920,7 @@ EOF
     echo "ICE_GRID     = ${grid} (${ICE_DECOMP_NXGLOB}x${ICE_DECOMP_NYGLOB}) blocksize=${ICE_DECOMP_BLCKX}x${ICE_DECOMP_BLCKY}x${ICE_DECOMP_MXBLCKS}"
     echo "ICE_DECOMP   = ${ICE_DECOMP_DECOMP} ${ICE_DECOMP_DSHAPE}"
     if ($fbfbcomp != ${spval}) then
-    echo "ICE_BFBCOMP  = ${fbfbcomp}"
+      echo "ICE_BFBCOMP  = ${fbfbcomp}"
     endif
 
     #------------------------------------------------------------
@@ -1144,7 +1145,9 @@ if (\${dobuild} == true) then
    endif
 endif
 if (\${dosubmit} == true) then
-  ./cice.submit | tee -a ../suite.jobs
+  set jobid = \`./cice.submit\`
+  echo "\$jobid"
+  echo "\$jobid  \${ICE_TESTNAME}  " >> ../suite.jobs
 else if (\${dorun} == true) then
   ./cice.test
 endif
