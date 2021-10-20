@@ -638,13 +638,13 @@
          i, j, ij
 
       real (kind=dbl_kind) :: &
-        divune, divunw, divusw, divuse            , & ! divergence
-        tensionne, tensionnw, tensionsw, tensionse, & ! tension
-        shearne, shearnw, shearsw, shearse        , & ! shearing
-        Deltane, Deltanw, Deltasw, Deltase        , & ! Delt
-        zetax2ne, zetax2nw, zetax2sw, zetax2se    , & ! 2 x zeta (visc coeff) 
-        etax2ne, etax2nw, etax2sw, etax2se        , & ! 2 x eta (visc coeff)
-        rep_prsne, rep_prsnw, rep_prssw, rep_prsse, & ! replacement pressure
+        divune, divunw, divuse, divusw            , & ! divergence
+        tensionne, tensionnw, tensionse, tensionsw, & ! tension
+        shearne, shearnw, shearse, shearsw        , & ! shearing
+        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        zetax2ne, zetax2nw, zetax2se, zetax2sw    , & ! 2 x zeta (visc coeff) 
+        etax2ne, etax2nw, etax2se, etax2sw        , & ! 2 x eta (visc coeff)
+        rep_prsne, rep_prsnw, rep_prsse, rep_prssw, & ! replacement pressure
 !       puny                                      , & ! puny
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
@@ -665,7 +665,7 @@
       !-----------------------------------------------------------------
 
       str(:,:,:) = c0
-      capping = .true. ! to be improved
+      capping = .true. ! could be later included in ice_in
 
       do ij = 1, icellt
          i = indxti(ij)

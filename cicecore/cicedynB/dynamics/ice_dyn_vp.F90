@@ -916,8 +916,8 @@
                do iblk = 1, nblocks
                   ! first compute diagonal contributions due to rheology term
                   call formDiag_step1 (nx_block           , ny_block      ,    &
-                                       icellu (iblk)      ,                    &
-                                       indxui (:,iblk)    , indxuj(:,iblk),    &
+                                       icellu     (iblk)  ,                    &
+                                       indxui   (:,iblk)  , indxuj(:,iblk),    &
                                        dxt    (:,:,iblk)  , dyt (:,:,iblk),    &
                                        dxhy   (:,:,iblk)  , dyhx(:,:,iblk),    &
                                        cxp    (:,:,iblk)  , cyp (:,:,iblk),    &
