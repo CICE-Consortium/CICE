@@ -68,7 +68,7 @@
          epp2i    , & ! 1/(e_plasticpot)^2
          e_factor , & ! (e_yieldcurve)^2/(e_plasticpot)^4
          ecci     , & ! temporary for 1d evp
-         dtei     , & +! 1/dte, where dte is subcycling timestep (1/s)
+         dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
 !         dte2T    , & ! dte/2T
          denom1       ! constants for stress equation
 
