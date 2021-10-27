@@ -1320,6 +1320,9 @@
 
 ! Computes the VP stresses (as diagnostic)
 
+! Lemieux, J.-F., and Dupont, F. (2020), On the calculation of normalized
+! viscous-plastic sea ice stresses, Geosci. Model Dev., 13, 1763–1769,
+      
       subroutine stress_vp (nx_block  , ny_block  , &
                             icellt    ,             &
                             indxti    , indxtj    , &

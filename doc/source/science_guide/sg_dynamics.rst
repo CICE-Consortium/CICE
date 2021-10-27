@@ -405,9 +405,9 @@ An elliptical yield curve is used, with the viscosities given by
 where
 
 .. math::
-   \Delta = \left[D_D^2 + {e_f^2\over e_g^4}\left(D_T^2 + D_S^2\right)\right]^{1/2}
+   \Delta = \left[D_D^2 + {e_f^2\over e_g^4}\left(D_T^2 + D_S^2\right)\right]^{1/2}.
 
-and :math:`P` is the ice strength. :math:`P` is a function of the ice thickness distribution as
+The ice strength :math:`P` is a function of the ice thickness distribution as
 described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
    
 Two modifications to the standard VP rheology of :cite:`Hibler79` are available.
