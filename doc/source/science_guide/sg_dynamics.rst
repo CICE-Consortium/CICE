@@ -350,9 +350,9 @@ Following again the LKD method, the seabed stress coefficients are finally expre
 
 .. _internal-stress:
 
-***************
-Internal stress
-***************
+********************************
+Internal stress and strain rates
+********************************
 
 For convenience we formulate the stress tensor :math:`\bf \sigma` in
 terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
@@ -378,15 +378,6 @@ CICE can output the internal ice pressure which is an important field to support
 The internal ice pressure (``sigP``) is the average of the normal stresses multiplied by :math:`-1` and
 is therefore simply equal to :math:`-\sigma_1/2`.
 
-Following the approach of :cite:`Konig10` (see also :cite:`Lemieux16`), the
-elliptical yield curve can be modified such that the ice has isotropic tensile strength.
-The tensile strength :math:`T_p` is expressed as a fraction of the ice strength :math:`P`, that is :math:`T_p=k_t P`
-where :math:`k_t` should be set to a value between 0 and 1 (this can
-be changed at runtime with the namelist parameter ``Ktens``). The ice
-strength :math:`P` is a function of the ice thickness distribution as
-described in the `Icepack
-Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
-
 .. _stress-vp:
 
 Viscous-Plastic
@@ -395,28 +386,43 @@ Viscous-Plastic
 The VP constitutive law is given by
 
 .. math::
-   \sigma_{ij} = 2 \eta \dot{\epsilon}_{ij} + (\zeta - \eta) D_D - P_R(1 - k_t)\frac{\delta_{ij}}{2}
+   \sigma_{ij} = 2 \eta \dot{\epsilon}_{ij} + (\zeta - \eta) D_D - P_R\frac{\delta_{ij}}{2}
    :label: vp-const
 
-where :math:`\eta` and :math:`\zeta` are the bulk and shear viscosities.
+where :math:`\eta` and :math:`\zeta` are the bulk and shear viscosities and
+:math:`P_R` is a “replacement pressure” (see :cite:`Geiger98`, for example),
+which serves to prevent residual ice motion due to spatial
+variations of the ice strength :math:`P` when the strain rates are exactly zero.
+
 An elliptical yield curve is used, with the viscosities given by
 
 .. math::
    \zeta = {P(1+k_t)\over 2\Delta},
 
 .. math::
-   \eta  = e^{-2} \zeta,
+   \eta  = e_g^{-2} \zeta,
 
 where
 
 .. math::
-   \Delta = \left[D_D^2 + {1\over e^2}\left(D_T^2 + D_S^2\right)\right]^{1/2}
+   \Delta = \left[D_D^2 + {e_f^2\over e_g^4}\left(D_T^2 + D_S^2\right)\right]^{1/2}
 
-and :math:`P_R` is a “replacement pressure” (see :cite:`Geiger98`, for
-example), which serves to prevent residual ice motion due to spatial
-variations of :math:`P` when the rates of strain are exactly zero.
+and :math:`P` is the ice strength. :math:`P` is a function of the ice thickness distribution as
+described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+   
+Two modifications to the standard VP rheology of :cite:`Hibler79` are available.
+First, following the approach of :cite:`Konig10` (see also :cite:`Lemieux16`), the
+elliptical yield curve can be modified such that the ice has isotropic tensile strength.
+The tensile strength :math:`T_p` is expressed as a fraction of :math:`P`, that is :math:`T_p=k_t P`
+where :math:`k_t` should be set to a value between 0 and 1 (this can
+be changed at runtime with the namelist parameter ``Ktens``).
 
-The parameter :math:`e` is the  ratio of the major and minor axes of the elliptical yield curve, also called the ellipse aspect ratio. It can be changed using the namelist parameter ``e_ratio``.
+Second, while :math:`e_f` is the  ratio of the major and minor axes of the elliptical yield curve, the parameter
+:math:`e_g` characterizes the plastic potential, i.e. another ellipse that decouples the flow rule from the
+yield curve (:cite:`Ringeisen21`). :math:`e_f` and :math:`e_g` are respectively called ``e_yieldcurve`` and ``e_plasticpot`` in the code and
+can be set in the namelist.
+
+By default, the namelist parameters are set to :math:`e_f=e_g=2` and :math:`k_t=0` which correspond to the standard VP rheology.
 
 .. _stress-evp:
 
@@ -428,7 +434,7 @@ regularized version of the VP constitutive law :eq:`vp-const`.  The constitutive
 
 .. math::
    {1\over E}{\partial\sigma_1\over\partial t} + {\sigma_1\over 2\zeta}
-     + {P_R(1-k_t)\over 2\zeta} = D_D, \\
+     + {P_R\over 2\zeta} = D_D, \\
    :label: sig1
 
 .. math::
@@ -455,7 +461,7 @@ parameter less than one. Including the modification proposed by :cite:`Bouillon1
 .. math::
    \begin{aligned}
    {\partial\sigma_1\over\partial t} + {\sigma_1\over 2T}
-     + {P_R(1-k_t)\over 2T} &=& {\zeta \over T} D_D, \\
+     + {P_R\over 2T} &=& {\zeta \over T} D_D, \\
    {\partial\sigma_2\over\partial t} + {\sigma_2\over 2T} &=& {\eta \over
      T} D_T,\\
    {\partial\sigma_{12}\over\partial t} + {\sigma_{12}\over  2T} &=&
@@ -466,7 +472,7 @@ Once discretized in time, these last three equations are written as
 .. math::
    \begin{aligned}
    {(\sigma_1^{k+1}-\sigma_1^{k})\over\Delta t_e} + {\sigma_1^{k+1}\over 2T}
-     + {P_R^k(1-k_t)\over 2T} &=& {\zeta^k\over T} D_D^k, \\
+     + {P_R^k\over 2T} &=& {\zeta^k\over T} D_D^k, \\
    {(\sigma_2^{k+1}-\sigma_2^{k})\over\Delta t_e} + {\sigma_2^{k+1}\over 2T} &=& {\eta^k \over
      T} D_T^k,\\
    {(\sigma_{12}^{k+1}-\sigma_{12}^{k})\over\Delta t_e} + {\sigma_{12}^{k+1}\over  2T} &=&
@@ -720,7 +726,7 @@ Introducing another numerical parameter :math:`\alpha=2T \Delta t_e ^{-1}` :cite
 .. math::
    \begin{aligned}
    {\alpha (\sigma_1^{k+1}-\sigma_1^{k})} + {\sigma_1^{k}}
-     + {P_R^k(1-k_t)} &=& 2 \zeta^k D_D^k, \\
+     + {P_R^k} &=& 2 \zeta^k D_D^k, \\
    {\alpha (\sigma_2^{k+1}-\sigma_2^{k})} + {\sigma_2^{k}} &=& 2 \eta^k D_T^k,\\
    {\alpha (\sigma_{12}^{k+1}-\sigma_{12}^{k})} + {\sigma_{12}^{k}} &=&
      \eta^k D_S^k,\end{aligned}
