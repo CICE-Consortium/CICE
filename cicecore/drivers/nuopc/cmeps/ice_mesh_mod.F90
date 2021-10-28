@@ -636,17 +636,28 @@ contains
              if(tmplon < c0)tmplon = tmplon + c360
 
              ! error check differences between internally generated lons and those read in
-             diff_lon = abs(mod(lonMesh(n) - tmplon,360.0))
-             if (diff_lon > eps_imesh ) then
-                write(6,100)n,lonMesh(n),tmplon, diff_lon
-                call abort_ice(error_message=subname, &
-                     file=__FILE__, line=__LINE__)
+!            diff_lon = abs(mod(lonMesh(n) - tmplon,360.0))
+!            if (diff_lon > eps_imesh ) then
+!               write(6,100)n,lonMesh(n),tmplon, diff_lon
+!               call abort_ice(error_message=subname, &
+!                    file=__FILE__, line=__LINE__)
+!            end if
+!            diff_lat = abs(latMesh(n) - lat(n))
+!            if (diff_lat > eps_imesh) then
+!               write(6,101)n,latMesh(n),lat(n), diff_lat
+!               call abort_ice(error_message=subname, &
+!                    file=__FILE__, line=__LINE__)
+!            end if
+             ! error check differences between internally generated lons and those read in
+             diff_lon = abs(lonMesh(n) - lon(n))
+             if ( (diff_lon > 1.e2  .and. abs(diff_lon - 360.) > 1.e-1) .or.&
+                  (diff_lon > 1.e-3 .and. diff_lon < c1) ) then
+                write(6,100)n,lonMesh(n),lon(n), diff_lon
+                !call abort_ice ('aborting due to mismatch of mesh lon and input cice lon')
              end if
-             diff_lat = abs(latMesh(n) - lat(n))
-             if (diff_lat > eps_imesh) then
-                write(6,101)n,latMesh(n),lat(n), diff_lat
-                call abort_ice(error_message=subname, &
-                     file=__FILE__, line=__LINE__)
+             if (abs(latMesh(n) - lat(n)) > 1.e-1) then
+                write(6,101)n,latMesh(n),lat(n), abs(latMesh(n)-lat(n))
+                !call abort_ice ('aborting due to mismatch of mesh lat and input cice lat')
              end if
 
           enddo
