@@ -420,7 +420,7 @@ be changed at runtime with the namelist parameter ``Ktens``).
 Second, while :math:`e_f` is the  ratio of the major and minor axes of the elliptical yield curve, the parameter
 :math:`e_g` characterizes the plastic potential, i.e. another ellipse that decouples the flow rule from the
 yield curve (:cite:`Ringeisen21`). :math:`e_f` and :math:`e_g` are respectively called ``e_yieldcurve`` and ``e_plasticpot`` in the code and
-can be set in the namelist.
+can be set in the namelist. The plastic potential can lead to more realistic fracture angles between linear kinematic features. :cite:`Ringeisen21` suggest to set :math:`e_f` to a value larger than 1 and to have :math:`e_g < e_f`.
 
 By default, the namelist parameters are set to :math:`e_f=e_g=2` and :math:`k_t=0` which correspond to the standard VP rheology.
 
