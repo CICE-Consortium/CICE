@@ -14,6 +14,12 @@
 ! 2006: Converted to free source form (F90) by Elizabeth Hunke
 ! 2007: Option to read from netcdf files (A. Keen, Met Office)
 !       Grid reading routines reworked by E. Hunke for boundary values
+! 2021: Add N (center of north face) and E (center of east face) grids 
+!       to support CD solvers.  Defining T at center of cells, U at
+!       NE corner, N at center of top face, E at center of right face.
+!       All cells are quadrilaterals with NE, E, and N associated with
+!       directions relative to logical grid.  E is increasing i (x) and 
+!       N is increasing j (y) direction.
 
       module ice_grid
 
@@ -68,10 +74,14 @@
          tinyarea,& ! puny*tarea
          tarean , & ! area of NH T-cells
          tareas , & ! area of SH T-cells
-         ULON   , & ! longitude of velocity pts (radians)
-         ULAT   , & ! latitude of velocity pts (radians)
-         TLON   , & ! longitude of temp pts (radians)
-         TLAT   , & ! latitude of temp pts (radians)
+         ULON   , & ! longitude of velocity pts, NE corner of T pts (radians)
+         ULAT   , & ! latitude of velocity pts, NE corner of T pts (radians)
+         TLON   , & ! longitude of temp (T) pts (radians)
+         TLAT   , & ! latitude of temp (T) pts (radians)
+         NLON   , & ! longitude of center of north face of T pts (radians)
+         NLAT   , & ! latitude of center of north face of T pts (radians)
+         ELON   , & ! longitude of center of east face of T pts (radians)
+         ELAT   , & ! latitude of center of east face of T pts (radians)
          ANGLE  , & ! for conversions between POP grid and lat/lon
          ANGLET , & ! ANGLE converted to T-cells
          bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
@@ -146,7 +156,6 @@
       logical (kind=log_kind), private :: &
          l_readCenter ! If anglet exist in grid file read it otherwise calculate it
 
-
 !=======================================================================
 
       contains
@@ -175,10 +184,14 @@
          tinyarea (nx_block,ny_block,max_blocks), & ! puny*tarea
          tarean   (nx_block,ny_block,max_blocks), & ! area of NH T-cells
          tareas   (nx_block,ny_block,max_blocks), & ! area of SH T-cells
-         ULON     (nx_block,ny_block,max_blocks), & ! longitude of velocity pts (radians)
-         ULAT     (nx_block,ny_block,max_blocks), & ! latitude of velocity pts (radians)
-         TLON     (nx_block,ny_block,max_blocks), & ! longitude of temp pts (radians)
-         TLAT     (nx_block,ny_block,max_blocks), & ! latitude of temp pts (radians)
+         ULON     (nx_block,ny_block,max_blocks), & ! longitude of U pts, NE corner (radians)
+         ULAT     (nx_block,ny_block,max_blocks), & ! latitude of U pts, NE corner (radians)
+         TLON     (nx_block,ny_block,max_blocks), & ! longitude of T pts (radians)
+         TLAT     (nx_block,ny_block,max_blocks), & ! latitude of T pts (radians)
+         NLON     (nx_block,ny_block,max_blocks), & ! longitude of N pts, N face (radians)
+         NLAT     (nx_block,ny_block,max_blocks), & ! latitude of N pts, N face (radians)
+         ELON     (nx_block,ny_block,max_blocks), & ! longitude of E pts, E face (radians)
+         ELAT     (nx_block,ny_block,max_blocks), & ! latitude of E pts, E face (radians)
          ANGLE    (nx_block,ny_block,max_blocks), & ! for conversions between POP grid and lat/lon
          ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
          bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
@@ -1158,6 +1171,10 @@
                endif
             endif
             ULON  (i,j,iblk) = c0
+            NLON  (i,j,iblk) = c0
+            NLAT  (i,j,iblk) = c0
+            ELON  (i,j,iblk) = c0
+            ELAT  (i,j,iblk) = c0
             ANGLE (i,j,iblk) = c0                             
 
             ANGLET(i,j,iblk) = c0                             
@@ -1749,8 +1766,9 @@
 
       subroutine Tlatlon
 
-      use ice_constants, only: c0, c1, c2, c4, &
-          field_loc_center, field_type_scalar
+      use ice_constants, only: c0, c1, c1p5, c2, c4, p5, &
+          field_loc_center, field_loc_Nface, field_loc_Eface, &
+          field_type_scalar
 
       integer (kind=int_kind) :: &
            i, j, iblk       , & ! horizontal indices
@@ -1772,6 +1790,10 @@
 
       TLAT(:,:,:) = c0
       TLON(:,:,:) = c0
+      NLAT(:,:,:) = c0
+      NLON(:,:,:) = c0
+      ELAT(:,:,:) = c0
+      ELON(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
@@ -1806,6 +1828,10 @@
             y4 = sin(ULON(i,j,iblk))*z4
             z4 = sin(ULAT(i,j,iblk))
 
+            ! ---------
+            ! TLON/TLAT 4 pt computation (pts 1, 2, 3, 4)
+            ! ---------
+
             tx = (x1+x2+x3+x4)/c4
             ty = (y1+y2+y3+y4)/c4
             tz = (z1+z2+z3+z4)/c4
@@ -1819,11 +1845,90 @@
 
             ! TLAT in radians North
             TLAT(i,j,iblk) = asin(tz)
+
+! these two loops should be merged to save cos/sin calculations,
+! but atan2 is not bit-for-bit. This suggests the result for atan2 depends on
+! the prior atan2 call ??? not sure what's going on.
+#if (1 == 1)
+         enddo                  ! i
+         enddo                  ! j         
+      enddo                     ! iblk
+      !$OMP END PARALLEL DO
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
+      !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
+      !$OMP                     tx,ty,tz,da)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+
+            z1 = cos(ULAT(i-1,j-1,iblk))
+            x1 = cos(ULON(i-1,j-1,iblk))*z1
+            y1 = sin(ULON(i-1,j-1,iblk))*z1
+            z1 = sin(ULAT(i-1,j-1,iblk))
+
+            z2 = cos(ULAT(i,j-1,iblk))
+            x2 = cos(ULON(i,j-1,iblk))*z2
+            y2 = sin(ULON(i,j-1,iblk))*z2
+            z2 = sin(ULAT(i,j-1,iblk))
+
+            z3 = cos(ULAT(i-1,j,iblk))
+            x3 = cos(ULON(i-1,j,iblk))*z3
+            y3 = sin(ULON(i-1,j,iblk))*z3
+            z3 = sin(ULAT(i-1,j,iblk))
+
+            z4 = cos(ULAT(i,j,iblk))
+            x4 = cos(ULON(i,j,iblk))*z4
+            y4 = sin(ULON(i,j,iblk))*z4
+            z4 = sin(ULAT(i,j,iblk))
+#endif
+            ! ---------
+            ! NLON/NLAT 2 pt computation (pts 3, 4)
+            ! ---------
+
+            tx = (x3+x4)/c2
+            ty = (y3+y4)/c2
+            tz = (z3+z4)/c2
+            da = sqrt(tx**2+ty**2+tz**2)
+
+            tz = tz/da
+
+            ! NLON in radians East
+            NLON(i,j,iblk) = c0
+            if (tx /= c0 .or. ty /= c0) NLON(i,j,iblk) = atan2(ty,tx)
+
+            ! NLAT in radians North
+            NLAT(i,j,iblk) = asin(tz)
+
+            ! ---------
+            ! ELON/ELAT 2 pt computation (pts 2, 4)
+            ! ---------
+
+            tx = (x2+x4)/c2
+            ty = (y2+y4)/c2
+            tz = (z2+z4)/c2
+            da = sqrt(tx**2+ty**2+tz**2)
+
+            tz = tz/da
+
+            ! ELON in radians East
+            ELON(i,j,iblk) = c0
+            if (tx /= c0 .or. ty /= c0) ELON(i,j,iblk) = atan2(ty,tx)
+
+            ! ELAT in radians North
+            ELAT(i,j,iblk) = asin(tz)
             
          enddo                  ! i
          enddo                  ! j         
       enddo                     ! iblk
       !$OMP END PARALLEL DO
+
       if (trim(grid_type) == 'regional') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -1841,6 +1946,10 @@
                                       TLON(i+2,j,iblk)
                   TLAT(i,j,iblk) = c2*TLAT(i+1,j,iblk) - &
                                       TLAT(i+2,j,iblk)
+                  NLON(i,j,iblk) = c1p5*TLON(i+1,j,iblk) - &
+                                     p5*TLON(i+2,j,iblk)
+                  NLAT(i,j,iblk) = c1p5*TLAT(i+1,j,iblk) - &
+                                     p5*TLAT(i+2,j,iblk)
                enddo
             endif
          enddo
@@ -1854,9 +1963,29 @@
       call ice_HaloUpdate (TLAT,             halo_info, &
                            field_loc_center, field_type_scalar, &
                            fillValue=c1)
+      call ice_HaloUpdate (NLON,             halo_info, &
+                           field_loc_Nface,  field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (NLAT,             halo_info, &
+                           field_loc_Nface,  field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (ELON,             halo_info, &
+                           field_loc_Eface,  field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (ELAT,             halo_info, &
+                           field_loc_Eface,  field_type_scalar, &
+                           fillValue=c1)
       call ice_HaloExtrapolate(TLON, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       call ice_HaloExtrapolate(TLAT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(NLON, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(NLAT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(ELON, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(ELAT, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       call ice_timer_stop(timer_bound)
 
@@ -1872,12 +2001,32 @@
 
       if (my_task==master_task) then
          write(nu_diag,*) ' '
-         if (nx_block > 5+2*nghost .and. ny_block > 5+2*nghost) then
+!         if (nx_block > 5+2*nghost .and. ny_block > 5+2*nghost) then
          write(nu_diag,*) 'min/max ULON:', y1*rad_to_deg, y2*rad_to_deg
          write(nu_diag,*) 'min/max ULAT:', y3*rad_to_deg, y4*rad_to_deg
-         endif
+!         endif
          write(nu_diag,*) 'min/max TLON:', x1*rad_to_deg, x2*rad_to_deg
          write(nu_diag,*) 'min/max TLAT:', x3*rad_to_deg, x4*rad_to_deg
+      endif                     ! my_task
+
+      x1 = global_minval(NLON, distrb_info, tmask)
+      x2 = global_maxval(NLON, distrb_info, tmask)
+      x3 = global_minval(NLAT, distrb_info, tmask)
+      x4 = global_maxval(NLAT, distrb_info, tmask)
+
+      y1 = global_minval(ELON, distrb_info, umask)
+      y2 = global_maxval(ELON, distrb_info, umask)
+      y3 = global_minval(ELAT, distrb_info, umask)
+      y4 = global_maxval(ELAT, distrb_info, umask)
+
+      if (my_task==master_task) then
+         write(nu_diag,*) ' '
+!         if (nx_block > 5+2*nghost .and. ny_block > 5+2*nghost) then
+         write(nu_diag,*) 'min/max NLON:', x1*rad_to_deg, x2*rad_to_deg
+         write(nu_diag,*) 'min/max NLAT:', x3*rad_to_deg, x4*rad_to_deg
+         write(nu_diag,*) 'min/max ELON:', y1*rad_to_deg, y2*rad_to_deg
+         write(nu_diag,*) 'min/max ELAT:', y3*rad_to_deg, y4*rad_to_deg
+!         endif
       endif                     ! my_task
 
       end subroutine Tlatlon
