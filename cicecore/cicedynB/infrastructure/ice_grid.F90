@@ -65,10 +65,16 @@
          dyt    , & ! height of T-cell through the middle (m)
          dxu    , & ! width of U-cell through the middle (m)
          dyu    , & ! height of U-cell through the middle (m)
+         dxn    , & ! width of N-cell through the middle (m)
+         dyn    , & ! height of N-cell through the middle (m)
+         dxe    , & ! width of E-cell through the middle (m)
+         dye    , & ! height of E-cell through the middle (m)
          HTE    , & ! length of eastern edge of T-cell (m)
          HTN    , & ! length of northern edge of T-cell (m)
          tarea  , & ! area of T-cell (m^2)
          uarea  , & ! area of U-cell (m^2)
+         narea  , & ! area of N-cell (m^2)
+         earea  , & ! area of E-cell (m^2)
          tarear , & ! 1/tarea
          uarear , & ! 1/uarea
          tinyarea,& ! puny*tarea
@@ -110,7 +116,11 @@
          lont_bounds, & ! longitude of gridbox corners for T point
          latt_bounds, & ! latitude of gridbox corners for T point
          lonu_bounds, & ! longitude of gridbox corners for U point
-         latu_bounds    ! latitude of gridbox corners for U point       
+         latu_bounds, & ! latitude of gridbox corners for U point
+         lonn_bounds, & ! longitude of gridbox corners for N point
+         latn_bounds, & ! latitude of gridbox corners for N point
+         lone_bounds, & ! longitude of gridbox corners for E point
+         late_bounds    ! latitude of gridbox corners for E point
 
       ! geometric quantities used for remapping transport
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
@@ -137,6 +147,8 @@
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
          uvm    , & ! land/boundary mask, velocity (U-cell)
+         npm    , & ! land/boundary mask (N-cell)
+         epm    , & ! land/boundary mask (E-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), public :: &
@@ -147,6 +159,8 @@
          dimension (:,:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
          umask  , & ! land/boundary mask, velocity (U-cell)
+         nmask  , & ! land/boundary mask, (N-cell)
+         emask  , & ! land/boundary mask, (E-cell)
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
 
@@ -175,10 +189,16 @@
          dyt      (nx_block,ny_block,max_blocks), & ! height of T-cell through the middle (m)
          dxu      (nx_block,ny_block,max_blocks), & ! width of U-cell through the middle (m)
          dyu      (nx_block,ny_block,max_blocks), & ! height of U-cell through the middle (m)
+         dxn      (nx_block,ny_block,max_blocks), & ! width of N-cell through the middle (m)
+         dyn      (nx_block,ny_block,max_blocks), & ! height of N-cell through the middle (m)
+         dxe      (nx_block,ny_block,max_blocks), & ! width of E-cell through the middle (m)
+         dye      (nx_block,ny_block,max_blocks), & ! height of E-cell through the middle (m)
          HTE      (nx_block,ny_block,max_blocks), & ! length of eastern edge of T-cell (m)
          HTN      (nx_block,ny_block,max_blocks), & ! length of northern edge of T-cell (m)
          tarea    (nx_block,ny_block,max_blocks), & ! area of T-cell (m^2)
          uarea    (nx_block,ny_block,max_blocks), & ! area of U-cell (m^2)
+         narea    (nx_block,ny_block,max_blocks), & ! area of N-cell (m^2)
+         earea    (nx_block,ny_block,max_blocks), & ! area of E-cell (m^2)
          tarear   (nx_block,ny_block,max_blocks), & ! 1/tarea
          uarear   (nx_block,ny_block,max_blocks), & ! 1/uarea
          tinyarea (nx_block,ny_block,max_blocks), & ! puny*tarea
@@ -209,16 +229,24 @@
          hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          bm       (nx_block,ny_block,max_blocks), & ! task/block id
          uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         npm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
+         epm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
          tmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          umask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         nmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
+         emask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
          lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
          rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
          lont_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for T point
          latt_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for T point
          lonu_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for U point
-         latu_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for U point       
+         latu_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for U point
+         lonn_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for N point
+         latn_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for N point
+         lone_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for E point
+         late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
          mne  (2,2,nx_block,ny_block,max_blocks), & ! matrices used for coordinate transformations in remapping
          mnw  (2,2,nx_block,ny_block,max_blocks), & ! ne = northeast corner, nw = northwest, etc.
          mse  (2,2,nx_block,ny_block,max_blocks), &
@@ -368,7 +396,7 @@
 
       use ice_blocks, only: get_block, block, nx_block, ny_block
       use ice_constants, only: c0, c1, c2, p5, p25, c1p5, &
-          field_loc_center, field_loc_NEcorner, &
+          field_loc_center, field_loc_NEcorner, field_loc_Nface, field_loc_Eface, &
           field_type_scalar, field_type_vector, field_type_angle
       use ice_domain_size, only: max_blocks
 
@@ -435,6 +463,9 @@
          do i = ilo, ihi
             tarea(i,j,iblk) = dxt(i,j,iblk)*dyt(i,j,iblk)
             uarea(i,j,iblk) = dxu(i,j,iblk)*dyu(i,j,iblk)
+            narea(i,j,iblk) = dxn(i,j,iblk)*dyn(i,j,iblk)
+            earea(i,j,iblk) = dxe(i,j,iblk)*dye(i,j,iblk)
+
             if (tarea(i,j,iblk) > c0) then
                tarear(i,j,iblk) = c1/tarea(i,j,iblk)
             else
@@ -481,6 +512,12 @@
                            fillValue=c1)
       call ice_HaloUpdate (uarea,              halo_info, &
                            field_loc_NEcorner, field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (narea,              halo_info, &
+                           field_loc_Nface,    field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (earea,              halo_info, &
+                           field_loc_Eface,    field_type_scalar, &
                            fillValue=c1)
       call ice_HaloUpdate (tarear,             halo_info, &
                            field_loc_center,   field_type_scalar, &
@@ -597,6 +634,7 @@
       !----------------------------------------------------------------
 
       call gridbox_corners
+      call gridbox_edges
 
       !-----------------------------------------------------------------
       ! Compute global index (used for unpacking messages from coupler)
@@ -725,10 +763,10 @@
       !-----------------------------------------------------------------
 
       call ice_read_global(nu_grid,3,work_g1,'rda8',.true.)   ! HTN
-      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
+      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt, dxn, dxe
 
       call ice_read_global(nu_grid,4,work_g1,'rda8',.true.)   ! HTE
-      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
+      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt, dyn, dye
 
       deallocate(work_g1)
 
@@ -902,10 +940,10 @@
 
       fieldname='htn'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
-      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
+      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt, dxn, dxe
       fieldname='hte'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
-      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
+      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt, dyn, dye
 
       deallocate(work_g1)
 
@@ -1184,6 +1222,10 @@
             dyt   (i,j,iblk) = 1.e36_dbl_kind
             dxu   (i,j,iblk) = 1.e36_dbl_kind
             dyu   (i,j,iblk) = 1.e36_dbl_kind
+            dxn   (i,j,iblk) = 1.e36_dbl_kind
+            dyn   (i,j,iblk) = 1.e36_dbl_kind
+            dxe   (i,j,iblk) = 1.e36_dbl_kind
+            dye   (i,j,iblk) = 1.e36_dbl_kind
             dxhy  (i,j,iblk) = 1.e36_dbl_kind
             dyhx  (i,j,iblk) = 1.e36_dbl_kind
             cyp   (i,j,iblk) = 1.e36_dbl_kind
@@ -1295,7 +1337,7 @@
          enddo
          enddo
       endif
-      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt
+      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt, dxn, dxe
 
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -1304,7 +1346,7 @@
          enddo
          enddo
       endif
-      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt
+      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt, dyn, dye
 
       !-----------------------------------------------------------------
       ! Construct T-cell land mask
@@ -1458,11 +1500,11 @@
 
       call ice_read_global(nu_grid,3,work_g1,  'rda8',diag)
       work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt
+      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt, dxn, dxe
 
       call ice_read_global(nu_grid,4,work_g1,  'rda8',diag)
       work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt
+      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt, dyn, dye
 
       call ice_read_global(nu_grid,7,work_g1,'rda8',diag)
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
@@ -1494,7 +1536,7 @@
 
       subroutine primary_grid_lengths_HTN(work_g)
 
-      use ice_constants, only: p5, c2, cm_to_m, &
+      use ice_constants, only: p25, p5, c2, cm_to_m, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Nface, field_type_scalar
 
@@ -1517,20 +1559,22 @@
          allocate(work_g2(1,1))
       endif
 
+      ! HTN, dxu = average of 2 neighbor HTNs in i
+
       if (my_task == master_task) then
-      do j = 1, ny_global
-      do i = 1, nx_global
-         work_g(i,j) = work_g(i,j) * cm_to_m                ! HTN
-      enddo
-      enddo
-      do j = 1, ny_global
-      do i = 1, nx_global
-         ! assume cyclic; noncyclic will be handled during scatter
-         ip1 = i+1
-         if (i == nx_global) ip1 = 1
-         work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxu
-      enddo
-      enddo
+         do j = 1, ny_global
+         do i = 1, nx_global
+            work_g(i,j) = work_g(i,j) * cm_to_m                ! HTN
+         enddo
+         enddo
+         do j = 1, ny_global
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            ip1 = i+1
+            if (i == nx_global) ip1 = 1
+            work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxu
+         enddo
+         enddo
       endif
       if (pgl_global_ext) then
          call primary_grid_lengths_global_ext( &
@@ -1541,18 +1585,47 @@
       call scatter_global(dxu, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
 
+      ! dxt = average of 2 neighbor HTNs in j
+
       if (my_task == master_task) then
-      do j = 2, ny_global
+         do j = 2, ny_global
          do i = 1, nx_global
             work_g2(i,j) = p5*(work_g(i,j) + work_g(i,j-1)) ! dxt
          enddo
-      enddo
-      ! extrapolate to obtain dxt along j=1
-      do i = 1, nx_global
-         work_g2(i,1) = c2*work_g(i,2) - work_g(i,3) ! dxt
-      enddo
+         enddo
+         ! extrapolate to obtain dxt along j=1
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g(i,2) - work_g(i,3) ! dxt
+         enddo
       endif
       call scatter_global(dxt, work_g2, master_task, distrb_info, &
+                          field_loc_center, field_type_scalar)
+
+      ! dxn = HTN
+
+      dxn(:,:,:) = HTN(:,:,:)   ! dxn
+
+      ! dxe = average of 4 surrounding HTNs
+
+      if (my_task == master_task) then
+         do j = 2, ny_global
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            ip1 = i+1
+            if (i == nx_global) ip1 = 1
+            work_g2(i,j) = p25*(work_g(i,j)+work_g(ip1,j)+work_g(i,j-1)+work_g(ip1,j-1))   ! dxe
+         enddo
+         enddo
+         ! extrapolate to obtain dxt along j=1
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            ip1 = i+1
+            if (i == nx_global) ip1 = 1
+            work_g2(i,1) = p5*(c2*work_g(i  ,2) - work_g(i  ,3) + &
+                               c2*work_g(ip1,2) - work_g(ip1,3))      ! dxe
+         enddo
+      endif
+      call scatter_global(dxe, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
 
       deallocate(work_g2)
@@ -1568,7 +1641,7 @@
 
       subroutine primary_grid_lengths_HTE(work_g)
 
-      use ice_constants, only: p5, c2, cm_to_m, &
+      use ice_constants, only: p25, p5, c2, cm_to_m, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Eface, field_type_scalar
 
@@ -1591,6 +1664,8 @@
          allocate(work_g2(1,1))
       endif
 
+      ! HTE, dyu = average of 2 neighbor HTE in j
+
       if (my_task == master_task) then
          do j = 1, ny_global
          do i = 1, nx_global
@@ -1605,8 +1680,7 @@
          ! extrapolate to obtain dyu along j=ny_global
          if (ny_global > 1) then
             do i = 1, nx_global
-               work_g2(i,ny_global) = c2*work_g(i,ny_global-1) &
-                                       - work_g(i,ny_global-2) ! dyu
+               work_g2(i,ny_global) = c2*work_g(i,ny_global-1) - work_g(i,ny_global-2)  ! dyu
             enddo
          endif
       endif
@@ -1619,18 +1693,49 @@
       call scatter_global(dyu, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
 
+      ! dyt = average of 2 neighbor HTE in i
+
       if (my_task == master_task) then
-      do j = 1, ny_global
-      do i = 1, nx_global
-         ! assume cyclic; noncyclic will be handled during scatter
-         im1 = i-1
-         if (i == 1) im1 = nx_global 
-         work_g2(i,j) = p5*(work_g(i,j) + work_g(im1,j))    ! dyt
-      enddo
-      enddo
+         do j = 1, ny_global
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            im1 = i-1
+            if (i == 1) im1 = nx_global
+            work_g2(i,j) = p5*(work_g(i,j) + work_g(im1,j))    ! dyt
+         enddo
+         enddo
       endif
       call scatter_global(dyt, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
+
+      ! dyn = average of 4 neighbor HTEs
+
+      if (my_task == master_task) then
+         do j = 1, ny_global-1
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            im1 = i-1
+            if (i == 1) im1 = nx_global 
+            work_g2(i,j) = p25*(work_g(i,j) + work_g(im1,j) + work_g(i,j+1) + work_g(im1,j+1))   ! dyn
+         enddo
+         enddo
+         ! extrapolate to obtain dyn along j=ny_global
+         if (ny_global > 1) then
+            do i = 1, nx_global
+               ! assume cyclic; noncyclic will be handled during scatter
+               im1 = i-1
+               if (i == 1) im1 = nx_global 
+               work_g2(i,ny_global) = p5*(c2*work_g(i  ,ny_global-1) - work_g(i  ,ny_global-2) + &
+                                          c2*work_g(im1,ny_global-1) - work_g(im1,ny_global-2))     ! dyn
+            enddo
+         endif
+      endif
+      call scatter_global(dyn, work_g2, master_task, distrb_info, &
+                          field_loc_center, field_type_scalar)
+
+      ! dye = HTE
+
+      dye(:,:,:) = HTE(:,:,:)
 
       deallocate(work_g2)
 
@@ -1639,7 +1744,8 @@
 !=======================================================================
 
 ! Sets the boundary values for the T cell land mask (hm) and
-! makes the logical land masks for T and U cells (tmask, umask).
+! makes the logical land masks for T and U cells (tmask, umask)
+! and N and E cells (nmask, emask).
 ! Also creates hemisphere masks (mask-n northern, mask-s southern)
 !
 ! author: Elizabeth C. Hunke, LANL
@@ -1647,7 +1753,8 @@
       subroutine makemask
 
       use ice_constants, only: c0, p5, &
-          field_loc_center, field_loc_NEcorner, field_type_scalar
+          field_loc_center, field_loc_NEcorner, field_type_scalar, &
+          field_loc_Nface, field_loc_Eface
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1667,7 +1774,7 @@
          file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (kmt,               halo_info, &
+      call ice_HaloUpdate (kmt,              halo_info, &
                            field_loc_center, field_type_scalar)
       call ice_HaloUpdate (hm,               halo_info, &
                            field_loc_center, field_type_scalar)
@@ -1691,6 +1798,8 @@
          do i = ilo, ihi
             uvm(i,j,iblk) = min (hm(i,j,  iblk), hm(i+1,j,  iblk), &
                                  hm(i,j+1,iblk), hm(i+1,j+1,iblk))
+            npm(i,j,iblk) = min (hm(i,j,  iblk), hm(i,j+1,iblk))
+            epm(i,j,iblk) = min (hm(i,j,  iblk), hm(i+1,j,iblk))
             bm(i,j,iblk) = my_task + iblk/100.0_dbl_kind
          enddo
          enddo
@@ -1700,8 +1809,12 @@
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (uvm,                halo_info, &
                            field_loc_NEcorner, field_type_scalar)
-      call ice_HaloUpdate (bm,               halo_info, &
-                           field_loc_center, field_type_scalar)
+      call ice_HaloUpdate (npm,                halo_info, &
+                           field_loc_Nface,    field_type_scalar)
+      call ice_HaloUpdate (epm,                halo_info, &
+                           field_loc_Eface,    field_type_scalar)
+      call ice_HaloUpdate (bm,                 halo_info, &
+                           field_loc_center,   field_type_scalar)
       call ice_timer_stop(timer_bound)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -1715,10 +1828,14 @@
          ! needs to cover halo (no halo update for logicals)
          tmask(:,:,iblk) = .false.
          umask(:,:,iblk) = .false.
+         nmask(:,:,iblk) = .false.
+         emask(:,:,iblk) = .false.
          do j = jlo-nghost, jhi+nghost
          do i = ilo-nghost, ihi+nghost
             if ( hm(i,j,iblk) > p5) tmask(i,j,iblk) = .true.
             if (uvm(i,j,iblk) > p5) umask(i,j,iblk) = .true.
+            if (npm(i,j,iblk) > p5) nmask(i,j,iblk) = .true.
+            if (epm(i,j,iblk) > p5) emask(i,j,iblk) = .true.
          enddo
          enddo
 
@@ -2009,15 +2126,15 @@
          write(nu_diag,*) 'min/max TLAT:', x3*rad_to_deg, x4*rad_to_deg
       endif                     ! my_task
 
-      x1 = global_minval(NLON, distrb_info, tmask)
-      x2 = global_maxval(NLON, distrb_info, tmask)
-      x3 = global_minval(NLAT, distrb_info, tmask)
-      x4 = global_maxval(NLAT, distrb_info, tmask)
+      x1 = global_minval(NLON, distrb_info, nmask)
+      x2 = global_maxval(NLON, distrb_info, nmask)
+      x3 = global_minval(NLAT, distrb_info, nmask)
+      x4 = global_maxval(NLAT, distrb_info, nmask)
 
-      y1 = global_minval(ELON, distrb_info, umask)
-      y2 = global_maxval(ELON, distrb_info, umask)
-      y3 = global_minval(ELAT, distrb_info, umask)
-      y4 = global_maxval(ELAT, distrb_info, umask)
+      y1 = global_minval(ELON, distrb_info, emask)
+      y2 = global_maxval(ELON, distrb_info, emask)
+      y3 = global_minval(ELAT, distrb_info, emask)
+      y4 = global_maxval(ELAT, distrb_info, emask)
 
       if (my_task==master_task) then
          write(nu_diag,*) ' '
@@ -2268,12 +2385,12 @@
             latu_bounds(1,i,j,iblk)=TLAT(i  ,j  ,iblk)*rad_to_deg
             latu_bounds(2,i,j,iblk)=TLAT(i+1,j  ,iblk)*rad_to_deg
             latu_bounds(3,i,j,iblk)=TLAT(i+1,j+1,iblk)*rad_to_deg
-            latu_bounds(4,i,j,iblk)=TLAT(i  ,j+1,iblk)*rad_to_deg         
+            latu_bounds(4,i,j,iblk)=TLAT(i  ,j+1,iblk)*rad_to_deg
 
             lonu_bounds(1,i,j,iblk)=TLON(i  ,j  ,iblk)*rad_to_deg
             lonu_bounds(2,i,j,iblk)=TLON(i+1,j  ,iblk)*rad_to_deg
             lonu_bounds(3,i,j,iblk)=TLON(i+1,j+1,iblk)*rad_to_deg
-            lonu_bounds(4,i,j,iblk)=TLON(i  ,j+1,iblk)*rad_to_deg         
+            lonu_bounds(4,i,j,iblk)=TLON(i  ,j+1,iblk)*rad_to_deg
 
          enddo
          enddo
@@ -2401,6 +2518,307 @@
       deallocate(work_g2)
 
       end subroutine gridbox_corners
+
+!=======================================================================
+! The following code is used for obtaining the coordinates of the grid
+! vertices for CF-compliant netCDF history output. Approximate!
+!=======================================================================
+
+! These fields are only used for netcdf history output, and the
+! ghost cell values are not needed.
+! NOTE:  Extrapolations were used: these fields are approximate!
+!
+
+      subroutine gridbox_edges
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_constants, only: c0,  c2, c360, &
+          field_loc_NEcorner, field_type_scalar
+      use ice_domain_size, only: max_blocks
+
+      integer (kind=int_kind) :: &
+          i,j,iblk,icorner,& ! index counters
+          ilo,ihi,jlo,jhi    ! beginning and end of physical domain
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         work_g2
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1
+
+      real (kind=dbl_kind) :: &
+         rad_to_deg
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      character(len=*), parameter :: subname = '(gridbox_edges)'
+
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      !-------------------------------------------------------------
+      ! Get coordinates of grid boxes for each block as follows:
+      ! for N pt: (1) W edge, (2) E edge, (3) E edge j+1, (4) W edge j+1
+      ! for E pt: (1) S edge, (2) S edge i+1, (3) N edge, i+1 (4) N edge
+      !-------------------------------------------------------------
+
+      latn_bounds(:,:,:,:) = c0
+      lonn_bounds(:,:,:,:) = c0
+      late_bounds(:,:,:,:) = c0
+      lone_bounds(:,:,:,:) = c0
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+
+            latn_bounds(1,i,j,iblk)=ELAT(i-1,j  ,iblk)*rad_to_deg
+            latn_bounds(2,i,j,iblk)=ELAT(i  ,j  ,iblk)*rad_to_deg
+            latn_bounds(3,i,j,iblk)=ELAT(i  ,j+1,iblk)*rad_to_deg
+            latn_bounds(4,i,j,iblk)=ELAT(i-1,j+1,iblk)*rad_to_deg
+
+            lonn_bounds(1,i,j,iblk)=ELON(i-1,j  ,iblk)*rad_to_deg
+            lonn_bounds(2,i,j,iblk)=ELON(i  ,j  ,iblk)*rad_to_deg
+            lonn_bounds(3,i,j,iblk)=ELON(i  ,j+1,iblk)*rad_to_deg
+            lonn_bounds(4,i,j,iblk)=ELON(i-1,j+1,iblk)*rad_to_deg
+
+            late_bounds(1,i,j,iblk)=NLAT(i  ,j-1,iblk)*rad_to_deg
+            late_bounds(2,i,j,iblk)=NLAT(i+1,j-1,iblk)*rad_to_deg
+            late_bounds(3,i,j,iblk)=NLAT(i+1,j  ,iblk)*rad_to_deg
+            late_bounds(4,i,j,iblk)=NLAT(i  ,j  ,iblk)*rad_to_deg
+
+            lone_bounds(1,i,j,iblk)=NLON(i  ,j-1,iblk)*rad_to_deg
+            lone_bounds(2,i,j,iblk)=NLON(i+1,j-1,iblk)*rad_to_deg
+            lone_bounds(3,i,j,iblk)=NLON(i+1,j  ,iblk)*rad_to_deg
+            lone_bounds(4,i,j,iblk)=NLON(i  ,j  ,iblk)*rad_to_deg
+
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      !----------------------------------------------------------------
+      ! extrapolate on global grid to get edge values
+      !----------------------------------------------------------------
+
+      if (my_task == master_task) then
+         allocate(work_g2(nx_global,ny_global))
+      else
+         allocate(work_g2(1,1))
+      endif
+
+      ! latn_bounds
+
+      work1(:,:,:) = latn_bounds(1,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do j = 1, ny_global
+            work_g2(1,j) = c2*work_g2(2,j) &
+                            - work_g2(3,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      latn_bounds(1,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = latn_bounds(3,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,ny_global) = c2*work_g2(i,ny_global-1) &
+                                    - work_g2(i,ny_global-2)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      latn_bounds(3,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = latn_bounds(4,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,ny_global) = c2*work_g2(i,ny_global-1) &
+                                    - work_g2(i,ny_global-2)
+         enddo
+         do j = 1, ny_global
+            work_g2(1,j) = c2*work_g2(2,j) &
+                            - work_g2(3,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      latn_bounds(4,:,:,:) = work1(:,:,:)
+
+      ! lonn_bounds
+
+      work1(:,:,:) = lonn_bounds(1,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do j = 1, ny_global
+            work_g2(1,j) = c2*work_g2(2,j) &
+                            - work_g2(3,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lonn_bounds(1,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = lonn_bounds(3,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,ny_global) = c2*work_g2(i,ny_global-1) &
+                                    - work_g2(i,ny_global-2)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lonn_bounds(3,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = lonn_bounds(4,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,ny_global) = c2*work_g2(i,ny_global-1) &
+                                    - work_g2(i,ny_global-2)
+         enddo
+         do j = 1, ny_global
+            work_g2(1,j) = c2*work_g2(2,j) &
+                            - work_g2(3,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lonn_bounds(4,:,:,:) = work1(:,:,:)
+
+      ! late_bounds
+
+      work1(:,:,:) = late_bounds(1,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g2(i,2) &
+                            - work_g2(i,3)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      late_bounds(1,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = late_bounds(2,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g2(i,2) &
+                            - work_g2(i,3)
+         enddo
+         do j = 1, ny_global
+            work_g2(nx_global,j) = c2*work_g2(nx_global-1,j) &
+                                    - work_g2(nx_global-2,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      late_bounds(2,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = late_bounds(3,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do j = 1, ny_global
+            work_g2(nx_global,j) = c2*work_g2(nx_global-1,j) &
+                                    - work_g2(nx_global-2,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      late_bounds(3,:,:,:) = work1(:,:,:)
+
+      ! lone_bounds
+
+      work1(:,:,:) = lone_bounds(1,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g2(i,2) &
+                            - work_g2(i,3)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lone_bounds(1,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = lone_bounds(2,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g2(i,2) &
+                            - work_g2(i,3)
+         enddo
+         do j = 1, ny_global
+            work_g2(nx_global,j) = c2*work_g2(nx_global-1,j) &
+                                    - work_g2(nx_global-2,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lone_bounds(2,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = lone_bounds(3,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do j = 1, ny_global
+            work_g2(nx_global,j) = c2*work_g2(nx_global-1,j) &
+                                    - work_g2(nx_global-2,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lone_bounds(3,:,:,:) = work1(:,:,:)
+
+      deallocate(work_g2)
+
+      !----------------------------------------------------------------
+      ! Convert longitude to Degrees East >0 for history output
+      !----------------------------------------------------------------
+
+      allocate(work_g2(nx_block,ny_block))  ! not used as global here
+      !OMP fails in this loop
+      do iblk = 1, nblocks
+         do icorner = 1, 4
+            work_g2(:,:) = lonn_bounds(icorner,:,:,iblk) + c360
+            where (work_g2 > c360) work_g2 = work_g2 - c360
+            where (work_g2 < c0 )  work_g2 = work_g2 + c360
+            lonn_bounds(icorner,:,:,iblk) = work_g2(:,:)
+            work_g2(:,:) = lone_bounds(icorner,:,:,iblk) + c360
+            where (work_g2 > c360) work_g2 = work_g2 - c360
+            where (work_g2 < c0 )  work_g2 = work_g2 + c360
+            lone_bounds(icorner,:,:,iblk) = work_g2(:,:)
+         enddo
+      enddo
+      deallocate(work_g2)
+
+      end subroutine gridbox_edges
 
 !=======================================================================
 

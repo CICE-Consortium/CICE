@@ -290,13 +290,22 @@
       if (tr_fsd)                                       f_NFSD  = .true.
 
       call broadcast_scalar (f_tmask, master_task)
+      call broadcast_scalar (f_umask, master_task)
+      call broadcast_scalar (f_nmask, master_task)
+      call broadcast_scalar (f_emask, master_task)
       call broadcast_scalar (f_blkmask, master_task)
       call broadcast_scalar (f_tarea, master_task)
       call broadcast_scalar (f_uarea, master_task)
+      call broadcast_scalar (f_narea, master_task)
+      call broadcast_scalar (f_earea, master_task)
       call broadcast_scalar (f_dxt, master_task)
       call broadcast_scalar (f_dyt, master_task)
       call broadcast_scalar (f_dxu, master_task)
       call broadcast_scalar (f_dyu, master_task)
+      call broadcast_scalar (f_dxn, master_task)
+      call broadcast_scalar (f_dyn, master_task)
+      call broadcast_scalar (f_dxe, master_task)
+      call broadcast_scalar (f_dye, master_task)
       call broadcast_scalar (f_HTN, master_task)
       call broadcast_scalar (f_HTE, master_task)
       call broadcast_scalar (f_ANGLE, master_task)
@@ -1592,13 +1601,22 @@
       igrd=.true.
 
       igrd(n_tmask     ) = f_tmask
+      igrd(n_umask     ) = f_umask
+      igrd(n_nmask     ) = f_nmask
+      igrd(n_emask     ) = f_emask
       igrd(n_blkmask   ) = f_blkmask
       igrd(n_tarea     ) = f_tarea
       igrd(n_uarea     ) = f_uarea
+      igrd(n_narea     ) = f_narea
+      igrd(n_earea     ) = f_earea
       igrd(n_dxt       ) = f_dxt
       igrd(n_dyt       ) = f_dyt
       igrd(n_dxu       ) = f_dxu
       igrd(n_dyu       ) = f_dyu
+      igrd(n_dxn       ) = f_dxn
+      igrd(n_dyn       ) = f_dyn
+      igrd(n_dxe       ) = f_dxe
+      igrd(n_dye       ) = f_dye
       igrd(n_HTN       ) = f_HTN
       igrd(n_HTE       ) = f_HTE
       igrd(n_ANGLE     ) = f_ANGLE
