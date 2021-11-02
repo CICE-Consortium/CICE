@@ -200,8 +200,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, cxp, cyp, cxm, cym, &
-          tarear, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
-          grid_type
+          tarear, grid_type, grid_average_X2Y
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
@@ -321,8 +320,8 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
-      call to_ugrid(tmass,umass)
-      call to_ugrid(aice_init, aiu)
+      call grid_average_X2Y('T2U',tmass,umass)
+      call grid_average_X2Y('T2U',aice_init, aiu)
 
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
@@ -337,8 +336,12 @@
          strairx(:,:,:) = strax(:,:,:)
          strairy(:,:,:) = stray(:,:,:)
       else
-         call t2ugrid_vector(strairx)
-         call t2ugrid_vector(strairy)
+         call ice_HaloUpdate (strairx,          halo_info, &
+                              field_loc_center, field_type_vector)
+         call ice_HaloUpdate (strairy,          halo_info, &
+                              field_loc_center, field_type_vector)
+         call grid_average_X2Y('T2U',strairx)
+         call grid_average_X2Y('T2U',strairy)
       endif
 
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
@@ -648,8 +651,12 @@
       enddo
       !$OMP END PARALLEL DO
 
-      call u2tgrid_vector(strocnxT)    ! shift
-      call u2tgrid_vector(strocnyT)
+      call ice_HaloUpdate (strocnxT,           halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call ice_HaloUpdate (strocnyT,           halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call grid_average_X2Y('U2T',strocnxT)    ! shift
+      call grid_average_X2Y('U2T',strocnyT)
 
       call ice_timer_stop(timer_dynamics)    ! dynamics
 

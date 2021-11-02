@@ -45,9 +45,8 @@
 
       implicit none
       private
-      public :: init_grid1, init_grid2, &
-                t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid, alloc_grid, makemask
+      public :: init_grid1, init_grid2, grid_average_X2Y, &
+                alloc_grid, makemask
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
@@ -2150,52 +2149,87 @@
 
 !=======================================================================
 
-! Transfer vector component from T-cell centers to U-cell centers.
+! Shifts quantities from one grid to another
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
 !
-! author: Elizabeth C. Hunke, LANL
+! author: T. Craig
 
-      subroutine t2ugrid_vector (work)
+      subroutine grid_average_X2Y(X2Y,work1,work2)
 
-      use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: field_loc_center, field_type_vector
-      use ice_domain_size, only: max_blocks
+      character(len=*) , intent(in) :: &
+         X2Y
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(inout) :: & 
-           work
+      real (kind=dbl_kind), intent(inout) :: &
+         work1(nx_block,ny_block,max_blocks)
+
+      real (kind=dbl_kind), intent(out), optional :: &
+         work2(nx_block,ny_block,max_blocks)
 
       ! local variables
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
+         work2tmp
 
-      character(len=*), parameter :: subname = '(t2ugrid_vector)'
+      character(len=*), parameter :: subname = '(grid_average_X2Y)'
 
-      work1(:,:,:) = work(:,:,:)
+      select case (trim(X2Y))
 
-      call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (work1,            halo_info, &
-                           field_loc_center, field_type_vector)
-      call ice_timer_stop(timer_bound)
+         case('T2U')
+            call grid_average_X2Y_compute('NE',work1,tarea,work2tmp,uarea)
+         case('T2E')
+            call grid_average_X2Y_compute('E' ,work1,tarea,work2tmp,earea)
+         case('T2N')
+            call grid_average_X2Y_compute('N' ,work1,tarea,work2tmp,narea)
+         case('U2T')
+            call grid_average_X2Y_compute('SW',work1,uarea,work2tmp,tarea)
+         case('U2E')
+            call grid_average_X2Y_compute('S' ,work1,uarea,work2tmp,earea)
+         case('U2N')
+            call grid_average_X2Y_compute('W' ,work1,uarea,work2tmp,narea)
+         case('E2T')
+            call grid_average_X2Y_compute('W' ,work1,earea,work2tmp,tarea)
+         case('E2U')
+            call grid_average_X2Y_compute('N' ,work1,earea,work2tmp,uarea)
+         case('E2N')
+            call grid_average_X2Y_compute('NW',work1,earea,work2tmp,narea)
+         case('N2T')
+            call grid_average_X2Y_compute('S' ,work1,narea,work2tmp,tarea)
+         case('N2U')
+            call grid_average_X2Y_compute('E' ,work1,narea,work2tmp,uarea)
+         case('N2E')
+            call grid_average_X2Y_compute('SE',work1,narea,work2tmp,earea)
+         case default
+            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
+      end select
 
-      call to_ugrid(work1,work)
+      if (present(work2)) then
+         work2 = work2tmp
+      else
+         work1 = work2tmp
+      endif
 
-      end subroutine t2ugrid_vector
+      end subroutine grid_average_X2Y
 
 !=======================================================================
 
-! Shifts quantities from the T-cell midpoint (work1) to the U-cell
-! midpoint (work2)
+! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
 !
-! author: Elizabeth C. Hunke, LANL
+! author: T. Craig
 
-      subroutine to_ugrid(work1,work2)
+      subroutine grid_average_X2Y_compute(dir,work1,area1,work2,area2)
 
-      use ice_constants, only: c0, p25
+      use ice_constants, only: c0, p25, p5
+
+      character(len=*) , intent(in) :: &
+         dir
 
       real (kind=dbl_kind), intent(in) :: &
-         work1(nx_block,ny_block,max_blocks)
+         work1(nx_block,ny_block,max_blocks), &
+         area1(nx_block,ny_block,max_blocks), &
+         area2(nx_block,ny_block,max_blocks)
 
       real (kind=dbl_kind), intent(out) :: &
          work2(nx_block,ny_block,max_blocks)
@@ -2203,7 +2237,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      character(len=*), parameter :: subname = '(to_ugrid)'
+      character(len=*), parameter :: subname = '(grid_average_X2Y_compute)'
 
       ! local variables
 
@@ -2213,113 +2247,173 @@
 
       work2(:,:,:) = c0
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
+      select case (trim(dir))
 
-         do j = jlo, jhi
-         do i = ilo, ihi
-            work2(i,j,iblk) = p25 * &
-                              (work1(i,  j,  iblk)*tarea(i,  j,  iblk)  &
-                             + work1(i+1,j,  iblk)*tarea(i+1,j,  iblk)  &
-                             + work1(i,  j+1,iblk)*tarea(i,  j+1,iblk)  &
-                             + work1(i+1,j+1,iblk)*tarea(i+1,j+1,iblk)) &
-                             / uarea(i,  j,  iblk)
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+         case('NE')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p25 * &
+                                    (work1(i,  j,  iblk)*area1(i,  j,  iblk)  &
+                                   + work1(i+1,j,  iblk)*area1(i+1,j,  iblk)  &
+                                   + work1(i,  j+1,iblk)*area1(i,  j+1,iblk)  &
+                                   + work1(i+1,j+1,iblk)*area1(i+1,j+1,iblk)) &
+                                   / area2(i,  j,  iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-      end subroutine to_ugrid
+         case('SW')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p25 *  &
+                                   (work1(i,  j,  iblk) * area1(i,  j,  iblk)  &
+                                  + work1(i-1,j,  iblk) * area1(i-1,j,  iblk)  &
+                                  + work1(i,  j-1,iblk) * area1(i,  j-1,iblk)  & 
+                                  + work1(i-1,j-1,iblk) * area1(i-1,j-1,iblk)) &
+                                  / area2(i,  j,  iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-!=======================================================================
+         case('NW')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p25 * &
+                                    (work1(i-1,j,  iblk)*area1(i-1,j,  iblk)  &
+                                   + work1(i,  j,  iblk)*area1(i,  j,  iblk)  &
+                                   + work1(i-1,j+1,iblk)*area1(i-1,j+1,iblk)  &
+                                   + work1(i,  j+1,iblk)*area1(i  ,j+1,iblk)) &
+                                   / area2(i,  j,  iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-! Transfer from U-cell centers to T-cell centers. Writes work into
-! another array that has ghost cells
-! NOTE: Input array is dimensioned only over physical cells.
-!
-! author: Elizabeth C. Hunke, LANL
+         case('SE')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p25 *  &
+                                   (work1(i  ,j-1,iblk) * area1(i  ,j-1,iblk)) &
+                                  + work1(i+1,j-1,iblk) * area1(i+1,j-1,iblk)  & 
+                                  + work1(i  ,j  ,iblk) * area1(i  ,j,  iblk)  &
+                                  + work1(i+1,j  ,iblk) * area1(i+1,j,  iblk)  &
+                                  / area2(i,  j,  iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-      subroutine u2tgrid_vector (work)
+         case('E')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p5 * &
+                                    (work1(i,  j,iblk)*area1(i,  j,iblk)  &
+                                   + work1(i+1,j,iblk)*area1(i+1,j,iblk)) &
+                                   / area2(i,  j,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-      use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: field_loc_NEcorner, field_type_vector
-      use ice_domain_size, only: max_blocks
+         case('W')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p5 * &
+                                    (work1(i-1,j,iblk)*area1(i-1,j,iblk)  &
+                                   + work1(i,  j,iblk)*area1(i,  j,iblk)) &
+                                   / area2(i,  j,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
-         work
+         case('N')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p5 * &
+                                    (work1(i,j,  iblk)*area1(i,j,  iblk)  &
+                                   + work1(i,j+1,iblk)*area1(i,j+1,iblk)) &
+                                   / area2(i,  j,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-      ! local variables
+         case('S')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p5 * &
+                                    (work1(i,j-1,iblk)*area1(i,j-1,iblk)  &
+                                   + work1(i,j,  iblk)*area1(i,j,  iblk)) &
+                                   / area2(i,  j,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
+         case default
+            call abort_ice(subname//'ERROR: unknown dir '//trim(dir))
+         end select
 
-      character(len=*), parameter :: subname = '(u2tgrid_vector)'
-
-      work1(:,:,:) = work(:,:,:)
-
-      call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (work1,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call ice_timer_stop(timer_bound)
-
-      call to_tgrid(work1,work)
-
-      end subroutine u2tgrid_vector
-
-!=======================================================================
-
-! Shifts quantities from the U-cell midpoint (work1) to the T-cell
-! midpoint (work2)
-! NOTE: Input array includes ghost cells that must be updated before
-!       calling this routine.
-!
-! author: Elizabeth C. Hunke, LANL
-
-      subroutine to_tgrid(work1, work2)
-
-      use ice_constants, only: p25
-
-      real (kind=dbl_kind) :: work1(nx_block,ny_block,max_blocks), &
-                              work2(nx_block,ny_block,max_blocks)
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
-
-      type (block) :: &
-         this_block           ! block information for current block
-      
-      character(len=*), parameter :: subname = '(to_tgrid)'
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            work2(i,j,iblk) = p25 *  &
-                             (work1(i,  j  ,iblk) * uarea(i,  j,  iblk)  &
-                            + work1(i-1,j  ,iblk) * uarea(i-1,j,  iblk)  &
-                            + work1(i,  j-1,iblk) * uarea(i,  j-1,iblk)  & 
-                            + work1(i-1,j-1,iblk) * uarea(i-1,j-1,iblk)) &
-                            / tarea(i,  j,  iblk)
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      end subroutine to_tgrid
+      end subroutine grid_average_X2Y_compute
 
 !=======================================================================
 ! The following code is used for obtaining the coordinates of the grid

@@ -3954,7 +3954,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
-      use ice_grid, only: to_ugrid, ANGLET
+      use ice_grid, only: grid_average_X2Y, ANGLET
       use ice_read_write, only: ice_read_nc_uv
 #ifdef USE_NETCDF
       use netcdf
@@ -4072,8 +4072,8 @@
 
              work1(:,:,:) = ocn_frc_m(:,:,:,n  ,m)
              work2(:,:,:) = ocn_frc_m(:,:,:,n+1,m)
-             call to_ugrid(work1,ocn_frc_m(:,:,:,n  ,m))
-             call to_ugrid(work2,ocn_frc_m(:,:,:,n+1,m))
+             call grid_average_X2Y('T2U',work1,ocn_frc_m(:,:,:,n  ,m))
+             call grid_average_X2Y('T2U',work2,ocn_frc_m(:,:,:,n+1,m))
 
           enddo               ! month loop
         enddo               ! field loop
@@ -4315,7 +4315,7 @@
 
       use ice_domain, only: nblocks
       use ice_flux, only: sst, uocn, vocn
-      use ice_grid, only: t2ugrid_vector, ANGLET
+      use ice_grid, only: grid_average_X2Y, ANGLET
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -4474,8 +4474,8 @@
      ! Interpolate to U grid 
      !----------------------------------------------------------------- 
 
-         call t2ugrid_vector(uocn)
-         call t2ugrid_vector(vocn)
+         call grid_average_X2Y('T2U',uocn)
+         call grid_average_X2Y('T2U',vocn)
 
      endif    !   ocn_data_type = hadgem_sst_uvocn
 
@@ -5257,7 +5257,7 @@
       use ice_calendar, only: timesecs
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
-      use ice_grid, only: uvm, to_ugrid
+      use ice_grid, only: uvm, grid_average_X2Y
       use ice_state, only: aice
 
       ! local parameters
@@ -5278,7 +5278,7 @@
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
 
-      call to_ugrid(aice, aiu)
+      call grid_average_X2Y('T2U',aice, aiu)
 
       period = c4*secday
 
