@@ -77,7 +77,7 @@ using `runtype` = ‘initial’. Binary restart files that were provided with
 CICE v4.1 were made using the BL99 thermodynamics with 4 layers and 5
 thickness categories (`kcatbound` = 0) and therefore can not be used for
 the default CICE v5 and later configuration (7 layers). In addition, CICE’s
-default restart file format is now  instead of binary.
+default restart file format is now NetCDF instead of binary.
 
 Restarting a run using `runtype` = ‘continue’ requires restart data for
 all tracers used in the new run. If tracer restart data is not
