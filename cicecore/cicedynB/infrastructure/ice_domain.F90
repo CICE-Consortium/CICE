@@ -523,6 +523,7 @@
 #else
          if (distribution_wght == 'block' .and. &   ! POP style
              nocn(n) > 0) nocn(n) = nx_block*ny_block
+         if (distribution_wght == 'blockall') nocn(n) = nx_block*ny_block
 #endif
       end do
    endif  ! distribution_wght = file

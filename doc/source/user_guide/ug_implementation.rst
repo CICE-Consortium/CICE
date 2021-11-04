@@ -452,7 +452,9 @@ block equally.  This is useful in POP which always has work in
 each block and is written with a lot of
 array syntax requiring calculations over entire blocks (whether or not
 land is present).  This option is provided in CICE as well for 
-direct-communication compatibility with POP. The ‘latitude’ option 
+direct-communication compatibility with POP. Block that contain 100%
+land grid cells are eliminated with 'block'.  The 'blockall' option is identical
+to 'block' but does not do land block elimination.  The ‘latitude’ option 
 weights the blocks based on latitude and the number of ocean grid 
 cells they contain.  Many of the non-cartesian decompositions support 
 automatic land block elimination and provide alternative ways to

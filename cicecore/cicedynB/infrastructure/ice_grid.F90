@@ -2323,10 +2323,10 @@
                do j = jlo, jhi
                do i = ilo, ihi
                   work2(i,j,iblk) = p25 *  &
-                                   (work1(i  ,j-1,iblk) * area1(i  ,j-1,iblk)) &
+                                   (work1(i  ,j-1,iblk) * area1(i  ,j-1,iblk)  &
                                   + work1(i+1,j-1,iblk) * area1(i+1,j-1,iblk)  & 
                                   + work1(i  ,j  ,iblk) * area1(i  ,j,  iblk)  &
-                                  + work1(i+1,j  ,iblk) * area1(i+1,j,  iblk)  &
+                                  + work1(i+1,j  ,iblk) * area1(i+1,j,  iblk)) &
                                   / area2(i,  j,  iblk)
                enddo
                enddo

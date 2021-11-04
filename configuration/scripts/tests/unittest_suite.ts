@@ -6,3 +6,5 @@ unittest       gx3     1x1x25x29x16 sumchk
 unittest       tx1     8x1          sumchk
 unittest       gx3     4x1          bcstchk
 unittest       gx3     1x1          bcstchk
+unittest       gx3     8x2          gridavgchk,dwblockall
+unittest       gx3     8x2          gridavgchk
