@@ -382,7 +382,11 @@ for the U, N, and E grids are given by
 
 .. math:: 
    M_u(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j),\,(i,j+1),\,(i+1,j+1)\}.
+
+.. math:: 
    M_n(i,j)=\min\{M_h(l),\,l=(i,j),\,(i,j+1)\}.
+
+.. math:: 
    M_e(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j)\}.
 
 The logical masks ``tmask``, ``umask``, ``nmask``, and ``emask`` 
