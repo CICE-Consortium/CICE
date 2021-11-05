@@ -126,7 +126,7 @@ conflicts in module dependencies.
 *print\_state* (**ice\_diagnostics.F90**)
     Print the ice state and forcing fields for a given grid cell.
 
-`forcing\_diag` = true (**ice\_in**)
+`debug\_forcing` = true (**ice\_in**)
     Print numerous diagnostic quantities associated with input forcing.
 
 `debug\_blocks` = true (**ice\_in**)
