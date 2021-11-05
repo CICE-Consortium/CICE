@@ -142,7 +142,7 @@ The input grid file for the B-grid and CD-grid is identical.  That file
 contains each cells' HTN, HTE, ULON, ULAT, and kmt value.  From those
 variables, the longitude, latitude, grid lengths (dx and dy), areas,
 and masks can be derived for all grids.  Table :ref:`tab-gridvars` lists
-the primary prognostic grid variables name on the different grids.
+the primary prognostic grid variable names on the different grids.
 
 .. _tab-gridvars:
 
