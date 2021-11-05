@@ -79,8 +79,8 @@ this tool.
 Grid, boundary conditions and masks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The spatial discretization is specialized for a generalized orthogonal
-B-grid as in :cite:`Murray96` or
+The spatial discretization of the original implementation was specialized 
+for a generalized orthogonal B-grid as in :cite:`Murray96` or
 :cite:`Smith95`. Figure :ref:`fig-Bgrid` is a schematic of CICE 
 B-grid. This cell with the tracer point :math:`t(i,j)` in the middle
 is referred to as T-cell. The ice and snow area, volume and energy are
@@ -111,7 +111,23 @@ distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/.
 
    Schematic of CICE B-grid. 
 
-The user has several choices of grid routines: *popgrid* reads grid
+The ability to solve on the CD-grid was added later.  With the CD grid, 
+the u and v velocity points are located on the N and E edges of the T cell
+rather than the T cell corners.  To support this capability, N and E grids
+were added to the existing T and U grids, and the N and E grids are defined
+at the northern and eastern edge of the T cell.  This is shown in 
+Figure :ref:`fig-Cgrid`.
+
+.. _fig-Cgrid:
+
+.. figure:: ./figures/CICE_Cgrid.pdf
+   :align: center
+   :scale: 55%
+
+   Schematic of CICE CD-grid. 
+
+
+The user has several ways to initialize the grid: *popgrid* reads grid
 lengths and other parameters for a nonuniform grid (including tripole
 and regional grids), and *rectgrid* creates a regular rectangular grid.
 The input files **global\_gx3.grid** and **global\_gx3.kmt** contain the
@@ -121,6 +137,11 @@ The input files **global\_gx3.grid** and **global\_gx3.kmt** contain the
 and **global\_tx1.kmt** contain the :math:`\left<1^\circ\right>` POP 
 tripole grid and land mask. These are binary unformatted, direct access,
 Big Endian files.
+
+The input grid file for the B-grid and CD-grid is identical.  That file
+contains each cells' HTN, HTE, ULON, ULAT, and kmt value.  From those
+variables, the longitude, latitude, grid lengths (dx and dy), areas,
+and masks can be derived for all grids.
 
 In CESM, the sea ice model may exchange coupling fluxes using a
 different grid than the computational grid. This functionality is
