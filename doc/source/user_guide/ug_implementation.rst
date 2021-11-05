@@ -120,7 +120,7 @@ Figure :ref:`fig-Cgrid`.
 
 .. _fig-Cgrid:
 
-.. figure:: ./figures/CICE_Cgrid.pdf
+.. figure:: ./figures/CICE_Cgrid.png
    :align: center
    :scale: 55%
 
@@ -141,7 +141,31 @@ Big Endian files.
 The input grid file for the B-grid and CD-grid is identical.  That file
 contains each cells' HTN, HTE, ULON, ULAT, and kmt value.  From those
 variables, the longitude, latitude, grid lengths (dx and dy), areas,
-and masks can be derived for all grids.
+and masks can be derived for all grids.  Table :ref:`tab-gridvars` lists
+the primary prognostic grid variables name on the different grids.
+
+.. _tab-gridvars:
+
+.. table:: Primary CICE Prognostic Grid Variable Names
+
+   +================+=======+=======+=======+=======+
+   | variable       |   T   |   U   |   N   |   E   |
+   +================+=======+=======+=======+=======+
+   | longitude      |  TLON |  ULON |  NLON |  ELON |
+   +================+=======+=======+=======+=======+
+   | latitude       |  TLAT |  ULAT |  NLAT |  ELAT |
+   +================+=======+=======+=======+=======+
+   | dx             |  dxt  |  dxu  |  dxn  |  dxe  |
+   +================+=======+=======+=======+=======+
+   | dy             |  dyt  |  dyu  |  dyn  |  dye  |
+   +================+=======+=======+=======+=======+
+   | area           | tarea | uarea | narea | earea |
+   +================+=======+=======+=======+=======+
+   | mask (logical) | tmask | umask | nmask | emask |
+   +================+=======+=======+=======+=======+
+   | mask (real)    |  hm   | uvm   | npm   | epm   |
+   +================+=======+=======+=======+=======+
+
 
 In CESM, the sea ice model may exchange coupling fluxes using a
 different grid than the computational grid. This functionality is
