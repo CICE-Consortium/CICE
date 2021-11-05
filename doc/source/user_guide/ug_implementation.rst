@@ -375,15 +375,19 @@ testing.
 Masks
 *****
 
-A land mask hm (:math:`M_h`) is specified in the cell centers, with 0
-representing land and 1 representing ocean cells. A corresponding mask
-uvm (:math:`M_u`) for velocity and other corner quantities is given by
+A land mask hm (:math:`M_h`) is specified in the cell centers (on the
+T-grid), with 0
+representing land and 1 representing ocean cells. Corresponding masks
+for the U, N, and E grids are given by
 
 .. math:: 
    M_u(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j),\,(i,j+1),\,(i+1,j+1)\}.
+   M_n(i,j)=\min\{M_h(l),\,l=(i,j),\,(i,j+1)\}.
+   M_e(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j)\}.
 
-The logical masks ``tmask`` and ``umask`` (which correspond to the real masks
-``hm`` and ``uvm``, respectively) are useful in conditional statements.
+The logical masks ``tmask``, ``umask``, ``nmask``, and ``emask`` 
+(which correspond to the real masks ``hm``, ``uvm``, ``npm``, and ``epm`` 
+respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
 *dyn\_prep* in order to reduce the dynamics component’s work on a global
