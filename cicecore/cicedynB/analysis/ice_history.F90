@@ -68,6 +68,7 @@
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
+      use ice_grid, only: grid_system
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
@@ -547,11 +548,19 @@
              "snow/ice surface temperature",                      &
              "averaged with Tf if no ice is present", c1, c0,     &
              ns1, f_Tsfc)
-      
+
+! tcraig, just to test capability, tcx
+!         if (grid_system == 'CD') then
+!         call define_hist_field(n_aice,"aice","1",nstr2D, ncstr,    &
+!             "ice area  (aggregate)",                             &
+!             "none", c1, c0,                                      &
+!             ns1, f_aice)
+!         else
          call define_hist_field(n_aice,"aice","1",tstr2D, tcstr,    &
              "ice area  (aggregate)",                             &
              "none", c1, c0,                                      &
              ns1, f_aice)
+!         endif
       
          call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
              "ice velocity (x)",                                  &

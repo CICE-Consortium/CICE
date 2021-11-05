@@ -56,6 +56,7 @@
          bathymetry_file, & !  input bathymetry for seabed stress
          bathymetry_format, & ! bathymetry file format (default or pop)
          grid_spacing , & !  default of 30.e3m or set by user in namelist 
+         grid_system  , & !  Underlying grid structure (i.e. B, C, CD, etc)
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
@@ -448,6 +449,10 @@
 
       !-----------------------------------------------------------------
       ! T-grid cell and U-grid cell quantities
+      ! Fill halo data locally where possible to avoid missing
+      ! data associated with land block elimination
+      ! Note: HTN, HTE, dx*, dy* are all defined from global arrays
+      ! at halos.
       !-----------------------------------------------------------------
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -458,8 +463,8 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         do j = jlo, jhi
-         do i = ilo, ihi
+         do j = 1,ny_block
+         do i = 1,nx_block
             tarea(i,j,iblk) = dxt(i,j,iblk)*dyt(i,j,iblk)
             uarea(i,j,iblk) = dxu(i,j,iblk)*dyu(i,j,iblk)
             narea(i,j,iblk) = dxn(i,j,iblk)*dyn(i,j,iblk)
@@ -476,7 +481,11 @@
                uarear(i,j,iblk) = c0 ! possible on boundaries
             endif
             tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
+         enddo
+         enddo
 
+         do j = jlo, jhi
+         do i = ilo, ihi
             dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
             dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))
          enddo
@@ -506,27 +515,6 @@
       !-----------------------------------------------------------------
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (tarea,              halo_info, &
-                           field_loc_center,   field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (uarea,              halo_info, &
-                           field_loc_NEcorner, field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (narea,              halo_info, &
-                           field_loc_Nface,    field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (earea,              halo_info, &
-                           field_loc_Eface,    field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (tarear,             halo_info, &
-                           field_loc_center,   field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (uarear,             halo_info, &
-                           field_loc_NEcorner, field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (tinyarea,           halo_info, &
-                           field_loc_center,   field_type_scalar, &
-                           fillValue=c1)
       call ice_HaloUpdate (dxhy,               halo_info, &
                            field_loc_center,   field_type_vector, &
                            fillValue=c1)
