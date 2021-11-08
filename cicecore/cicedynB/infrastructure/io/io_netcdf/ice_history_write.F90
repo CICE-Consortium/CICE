@@ -96,8 +96,8 @@
       ! 8 coordinate variables: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT
       INTEGER (kind=int_kind), PARAMETER :: ncoord = 8
 
-      ! 8 vertices in each grid cell
-      INTEGER (kind=int_kind), PARAMETER :: nverts = 8
+      ! 4 vertices in each grid cell
+      INTEGER (kind=int_kind), PARAMETER :: nverts = 4
 
       ! 8 variables describe T, U grid boundaries:
       ! lont_bounds, latt_bounds, lonu_bounds, latu_bounds

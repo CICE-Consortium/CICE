@@ -801,10 +801,10 @@ contains
        call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_scalar)
        call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_scalar)
        call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_scalar)
-       call grid_average_X2Y('T2U',uocn)
-       call grid_average_X2Y('T2U',vocn)
-       call grid_average_X2Y('T2U',ss_tltx)
-       call grid_average_X2Y('T2U',ss_tlty)
+       call grid_average_X2Y('T2UF',uocn)
+       call grid_average_X2Y('T2UF',vocn)
+       call grid_average_X2Y('T2UF',ss_tltx)
+       call grid_average_X2Y('T2UF',ss_tlty)
        call t_stopf ('cice_imp_t2u')
     end if
 

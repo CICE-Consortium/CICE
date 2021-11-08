@@ -94,6 +94,7 @@
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      character(len=25) :: l_ustr2d, l_vstr2d, l_ucstr, l_vcstr  ! define location of u and v fields
       character(len=*), parameter :: subname = '(init_hist)'
 
       !-----------------------------------------------------------------
@@ -106,6 +107,18 @@
       nzslyr = nslyr      ! snow
       nzblyr = nblyr+2    ! bio grid
       nzalyr = nblyr+4    ! aerosols (2 snow & nblyr+2 bio)
+
+      ! B grid default
+      l_ustr2d = ustr2d
+      l_vstr2d = ustr2d
+      l_ucstr  = ucstr
+      l_vcstr  = ucstr
+      if (grid_system == 'C' .or. grid_system == 'CD') then
+         l_ustr2d = estr2d
+         l_vstr2d = nstr2d
+         l_ucstr  = ecstr
+         l_vcstr  = ncstr
+      endif
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -278,6 +291,11 @@
          f_sispeed = f_CMIP
       endif
 
+      if (grid_system == 'CD') then
+         f_uveln = f_uvel
+         f_vvele = f_vvel
+      endif
+
 #ifndef ncdf
       f_bounds = .false.
 #endif
@@ -328,6 +346,8 @@
       call broadcast_scalar (f_aice, master_task)
       call broadcast_scalar (f_uvel, master_task)
       call broadcast_scalar (f_vvel, master_task)
+      call broadcast_scalar (f_uveln, master_task)
+      call broadcast_scalar (f_vvele, master_task)
       call broadcast_scalar (f_uatm, master_task)
       call broadcast_scalar (f_vatm, master_task)
       call broadcast_scalar (f_atmspd, master_task)
@@ -549,29 +569,31 @@
              "averaged with Tf if no ice is present", c1, c0,     &
              ns1, f_Tsfc)
 
-! tcraig, just to test capability, tcx
-!         if (grid_system == 'CD') then
-!         call define_hist_field(n_aice,"aice","1",nstr2D, ncstr,    &
-!             "ice area  (aggregate)",                             &
-!             "none", c1, c0,                                      &
-!             ns1, f_aice)
-!         else
          call define_hist_field(n_aice,"aice","1",tstr2D, tcstr,    &
              "ice area  (aggregate)",                             &
              "none", c1, c0,                                      &
              ns1, f_aice)
-!         endif
       
-         call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
+         call define_hist_field(n_uvel,"uvel","m/s",l_ustr2D, l_ucstr,  &
              "ice velocity (x)",                                  &
-             "positive is x direction on U grid", c1, c0,         &
+             "positive is x direction on u grid", c1, c0,         &
              ns1, f_uvel)
       
-         call define_hist_field(n_vvel,"vvel","m/s",ustr2D, ucstr,  &
+         call define_hist_field(n_vvel,"vvel","m/s",l_vstr2D, l_vcstr,  &
              "ice velocity (y)",                                  &
-             "positive is y direction on U grid", c1, c0,         &
+             "positive is y direction on v grid", c1, c0,         &
              ns1, f_vvel)
       
+         call define_hist_field(n_uveln,"uveln","m/s",nstr2D, ncstr,  &
+             "ice velocity (x)",                                  &
+             "positive is x direction on N grid", c1, c0,         &
+             ns1, f_uveln)
+      
+         call define_hist_field(n_vvele,"vvele","m/s",estr2D, ecstr,  &
+             "ice velocity (y)",                                  &
+             "positive is y direction on E grid", c1, c0,         &
+             ns1, f_vvele)
+
          call define_hist_field(n_uatm,"uatm","m/s",ustr2D, ucstr,  &
              "atm velocity (x)",                                  &
              "positive is x direction on U grid", c1, c0,         &
@@ -1945,6 +1967,10 @@
              call accum_hist_field(n_uvel,   iblk, uvel(:,:,iblk), a2D)
          if (f_vvel   (1:1) /= 'x') &
              call accum_hist_field(n_vvel,   iblk, vvel(:,:,iblk), a2D)
+         if (f_uveln   (1:1) /= 'x') &
+             call accum_hist_field(n_uveln,  iblk, uveln(:,:,iblk), a2D)
+         if (f_vvele   (1:1) /= 'x') &
+             call accum_hist_field(n_vvele,  iblk, vvele(:,:,iblk), a2D)
          if (f_uatm   (1:1) /= 'x') &
              call accum_hist_field(n_uatm,   iblk, uatm(:,:,iblk), a2D)
          if (f_vatm   (1:1) /= 'x') &

@@ -235,6 +235,7 @@
            f_snowfrac  = 'x', f_snowfracn  = 'x', &
            f_Tsfc      = 'm', f_aice       = 'm', &
            f_uvel      = 'm', f_vvel       = 'm', &
+           f_uveln     = 'x', f_vvele      = 'x', &
            f_uatm      = 'm', f_vatm       = 'm', &
            f_atmspd    = 'm', f_atmdir     = 'm', &
            f_fswup     = 'm', &
@@ -384,6 +385,7 @@
            f_snowfrac,  f_snowfracn, &
            f_Tsfc,      f_aice     , &
            f_uvel,      f_vvel     , &
+!          f_uveln,     f_vvele    , &  ! for now, have this set from f_uvel, f_vvel
            f_uatm,      f_vatm     , &
            f_atmspd,    f_atmdir   , &
            f_fswup,     &
@@ -557,6 +559,7 @@
            n_snowfrac   , n_snowfracn  , &
            n_Tsfc       , n_aice       , &
            n_uvel       , n_vvel       , &
+           n_uveln      , n_vvele      , &
            n_uatm       , n_vatm       , &
            n_atmspd     , n_atmdir     , &
            n_sice       , &

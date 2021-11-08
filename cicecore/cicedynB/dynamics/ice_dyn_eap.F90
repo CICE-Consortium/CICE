@@ -254,8 +254,8 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
-      call grid_average_X2Y('T2U',tmass,umass)
-      call grid_average_X2Y('T2U',aice_init, aiu)
+      call grid_average_X2Y('T2UF',tmass,umass)
+      call grid_average_X2Y('T2UF',aice_init, aiu)
 
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
@@ -274,8 +274,8 @@
                               field_loc_center, field_type_vector)
          call ice_HaloUpdate (strairy,          halo_info, &
                               field_loc_center, field_type_vector)
-         call grid_average_X2Y('T2U',strairx)
-         call grid_average_X2Y('T2U',strairy)
+         call grid_average_X2Y('T2UF',strairx)
+         call grid_average_X2Y('T2UF',strairy)
       endif
 
 ! tcraig, tcx, turned off this threaded region, in evp, this block and 
@@ -556,8 +556,8 @@
                            field_loc_NEcorner, field_type_vector)
       call ice_HaloUpdate (strocnyT,           halo_info, &
                            field_loc_NEcorner, field_type_vector)
-      call grid_average_X2Y('U2T',strocnxT)    ! shift
-      call grid_average_X2Y('U2T',strocnyT)
+      call grid_average_X2Y('U2TF',strocnxT)    ! shift
+      call grid_average_X2Y('U2TF',strocnyT)
 
       call ice_timer_stop(timer_dynamics)    ! dynamics
 

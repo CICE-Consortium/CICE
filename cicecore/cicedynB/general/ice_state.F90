@@ -108,7 +108,9 @@
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
          uvel     , & ! x-component of velocity (m/s)
+         uveln    , & ! extra x-component of velocity on CD grid (m/s)
          vvel     , & ! y-component of velocity (m/s)
+         vvele    , & ! extra y-component of velocity on CD grid (m/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          shear    , & ! strain rate II component (1/s)
          strength     ! ice strength (N/m)
@@ -150,7 +152,9 @@
          vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
          uvel      (nx_block,ny_block,max_blocks) , & ! x-component of velocity (m/s)
+         uveln     (nx_block,ny_block,max_blocks) , & ! extra x-component of velocity on CD grid (m/s)
          vvel      (nx_block,ny_block,max_blocks) , & ! y-component of velocity (m/s)
+         vvele     (nx_block,ny_block,max_blocks) , & ! extra y-component of velocity on CD grid (m/s)
          divu      (nx_block,ny_block,max_blocks) , & ! strain rate I component, velocity divergence (1/s)
          shear     (nx_block,ny_block,max_blocks) , & ! strain rate II component (1/s)
          strength  (nx_block,ny_block,max_blocks) , & ! ice strength (N/m)
