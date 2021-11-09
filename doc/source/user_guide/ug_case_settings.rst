@@ -327,6 +327,7 @@ tracer_nml
    "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
    "``tr_pond_lvl``", "logical", "level-ice melt ponds", "``.false.``"
    "``tr_pond_topo``", "logical", "topo melt ponds", "``.false.``"
+   "``tr_snow``", "logical", "advanced snow physics", "``.false.``"
    "``restart_aero``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_age``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_fsd``", "logical", "restart floe size distribution values from file", "``.false.``"
@@ -395,8 +396,8 @@ dynamics_nml
    "", "``1``", "EVP dynamics", ""
    "", "``2``", "EAP dynamics", ""
    "", "``3``", "VP dynamics", ""
-   "``kevp_kernel``", "``0``", "standard 2D EVP memory parallel solver", "0"
-   "", "``2``", "1D shared memory solver (not fully validated)", ""
+   "``evp_algorithm``", "``standard_2d``", "standard 2d EVP memory parallel solver", "standard_2d"
+   "", "``shared_mem_1d``", "1d shared memory solver", ""
    "``kstrength``", "``0``", "ice strength formulation :cite:`Hibler79`", "1"
    "", "``1``", "ice strength formulation :cite:`Rothrock75`", ""
    "``krdg_partic``", "``0``", "old ridging participation function", "1"
@@ -485,6 +486,40 @@ ponds_nml
    "``rfracmin``", ":math:`0 \le r_{min} \le 1`", "minimum melt water added to ponds", "0.15"
    "", "", "", ""
 
+snow_nml
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. csv-table:: **snow_nml namelist options**
+   :header: "variable", "options/format", "description", "default value"
+   :widths: 15, 15, 30, 15 
+
+   "", "", "", ""
+   "``drhosdwind``", "real", "wind compactions factor for now in kg-s/m^4", "27.3"
+   "``rhosmax``", "real", "maximum snow density in kg/m^3", "450."
+   "``rhosmin``", "real", "minimum snow density in kg/m^3", "100."
+   "``rhosnew``", "real", "new snow density in kg/m^3", "100."
+   "``rsnw_fall``", "real", "radius of new snow in 1.0e-6 m", "100."
+   "``rsnw_tmax``", "real", "maximum snow radius in 1.0e-6 m", "1500."
+   "``snwgrain``", "logical", "snow metamorophsis flag", "``.false.``"
+   "``snwlvlfac``", "real", "fractional increase in snow", "0.3"
+   "``snwredist``", "``bulk``", "bulk snow redistribution scheme", "``none``"
+   "", "``ITD``", "ITD snow redistribution scheme", ""
+   "", "``ITDrdg``", "ITDrdg snow redistribution scheme", ""
+   "", "``none``", "snow redistribution scheme off", ""
+   "``snw_aging_table``", "file", "read 1D and 3D fields for dry metamorophsis lookup table", "test"
+   "", "snicar", "read 3D fields for dry metamorophsis lookup table", ""
+   "", "test", "internally generated dry metamorophsis lookup table for testing", ""
+   "``snw_drdt0_fname``", "string", "snow aging file drdt0 fieldname", "unknown"
+   "``snw_filename``", "string", "snow aging table data filename", "unknown"
+   "``snw_kappa_fname``", "string", "snow aging file kappa fieldname", "unknown"
+   "``snw_rhos_fname``", "string", "snow aging file rhos fieldname", "unknown"
+   "``snw_T_fname``", "string", "snow aging file T fieldname", "unknown"
+   "``snw_tau_fname``", "string", "snow aging file tau fieldname", "unknown"
+   "``snw_Tgrd_fname``", "string", "snow aging file Tgrd fieldname", "unknown"
+   "``use_smliq_pnd``", "logical", "use liquid in snow for ponds", "``.false.``"
+   "``windmin``", "real", "minimum wind speed to compact snow in m/s", "10."
+   "", "", "", ""
+
 forcing_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -493,8 +528,10 @@ forcing_nml
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
-   "``atmbndy``", "``constant``", "bulk transfer coefficients", "``default``"
-   "", "``default``", "stability-based boundary layer", ""
+   "``atmbndy``", "string", "bulk transfer coefficients", "``similarity``"
+   "", "``similarity``", "stability-based boundary layer", ""
+   "", "``constant``", "constant-based boundary layer", ""
+   "", "``mixed``", "stability-based boundary layer for wind stress, constant-based for sensible+latent heat fluxes", ""
    "``atmiter_conv``", "real", "convergence criteria for ustar", "0.0"
    "``atm_data_dir``", "string", "path to atmospheric forcing data directory", ""
    "``atm_data_format``", "``bin``", "read direct access binary atmo forcing file format", "``bin``"
@@ -505,7 +542,6 @@ forcing_nml
    "", "``JRA55_gx1``", "JRA55 forcing data for gx1 grid :cite:`Tsujino18`", ""
    "", "``JRA55_gx3``", "JRA55 forcing data for gx3 grid :cite:`Tsujino18`", ""
    "", "``JRA55_tx1``", "JRA55 forcing data for tx1 grid :cite:`Tsujino18`", ""
-   "", "``LYq``", "COREII Large-Yeager (AOMIP) forcing data :cite:`Large09`", ""
    "", "``monthly``", "monthly forcing data", ""
    "", "``ncar``", "NCAR bulk forcing data", ""
    "", "``oned``", "column forcing data", ""

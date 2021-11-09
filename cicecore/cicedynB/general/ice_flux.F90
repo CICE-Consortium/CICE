@@ -218,6 +218,7 @@
          fresh   , & ! fresh water flux to ocean (kg/m^2/s)
          fsalt   , & ! salt flux to ocean (kg/m^2/s)
          fhocn   , & ! net heat flux to ocean (W/m^2)
+         fsloss  , & ! rate of snow loss to leads (kg/m^2/s)
          fswthru , & ! shortwave penetrating to ocean (W/m^2)
          fswthru_vdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
          fswthru_vdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
@@ -293,6 +294,10 @@
          fcondbotn,& ! category fcondbot
          fsensn,   & ! category sensible heat flux
          flatn       ! category latent heat flux
+
+      real (kind=dbl_kind), &
+         dimension (:,:,:,:), allocatable, public :: &
+         snwcnt       ! counter for presence of snow
 
       ! As above but these remain grid box mean values i.e. they are not
       ! divided by aice at end of ice_dynamics.  These are used in
@@ -448,6 +453,7 @@
          fresh      (nx_block,ny_block,max_blocks), & ! fresh water flux to ocean (kg/m^2/s)
          fsalt      (nx_block,ny_block,max_blocks), & ! salt flux to ocean (kg/m^2/s)
          fhocn      (nx_block,ny_block,max_blocks), & ! net heat flux to ocean (W/m^2)
+         fsloss     (nx_block,ny_block,max_blocks), & ! rate of snow loss to leads (kg/m^2/s)
          fswthru    (nx_block,ny_block,max_blocks), & ! shortwave penetrating to ocean (W/m^2)
          fswthru_vdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
          fswthru_vdf (nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
@@ -525,6 +531,7 @@
          fsensn     (nx_block,ny_block,ncat,max_blocks), & ! category sensible heat flux
          flatn      (nx_block,ny_block,ncat,max_blocks), & ! category latent heat flux
          albcnt     (nx_block,ny_block,max_blocks,max_nstrm), & ! counter for zenith angle
+         snwcnt     (nx_block,ny_block,max_blocks,max_nstrm), & ! counter for snow
          salinz     (nx_block,ny_block,nilyr+1,max_blocks), & ! initial salinity  profile (ppt)   
          Tmltz      (nx_block,ny_block,nilyr+1,max_blocks), & ! initial melting temperature (^oC)
          stat=ierr)

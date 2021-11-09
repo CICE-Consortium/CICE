@@ -26,6 +26,7 @@
                 dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 alloc_dyn_shared, deformations, strain_rates, &
+                viscous_coeffs_and_rep_pressure, &
                 stack_velocity_field, unstack_velocity_field
 
       ! namelist parameters
@@ -40,13 +41,11 @@
          ssh_stress     ! 'geostrophic' or 'coupled'
 
       logical (kind=log_kind), public :: &
-         revised_evp ! if true, use revised evp procedure
+         revised_evp    ! if true, use revised evp procedure
 
-      integer (kind=int_kind), public :: &
-         kevp_kernel ! 0 = 2D org version
-                     ! 1 = 1D representation raw (not implemented)
-                     ! 2 = 1D + calculate distances inline (implemented)
-                     ! 3 = 1D + calculate distances inline + real*4 internal (not implemented yet)
+      character (len=char_len), public :: &
+         evp_algorithm  ! standard_2d = 2D org version (standard)
+                        ! shared_mem_1d = 1d without mpi call and refactorization to 1d 
       ! other EVP parameters
 
       character (len=char_len), public :: & 
@@ -55,12 +54,12 @@
                               ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. in prep.  
                                                                       
       real (kind=dbl_kind), parameter, public :: &
-         eyc = 0.36_dbl_kind, &
-                         ! coefficient for calculating the parameter E
-         cosw = c1   , & ! cos(ocean turning angle)  ! turning angle = 0
-         sinw = c0   , & ! sin(ocean turning angle)  ! turning angle = 0
-         a_min = p001, & ! minimum ice area
-         m_min = p01     ! minimum ice mass (kg/m^2)
+         eyc   = 0.36_dbl_kind, & ! coefficient for calculating the parameter E
+         u0    = 5e-5_dbl_kind, & ! residual velocity for seabed stress (m/s)
+         cosw  = c1           , & ! cos(ocean turning angle)  ! turning angle = 0
+         sinw  = c0           , & ! sin(ocean turning angle)  ! turning angle = 0
+         a_min = p001         , & ! minimum ice area
+         m_min = p01              ! minimum ice mass (kg/m^2)
 
       real (kind=dbl_kind), public :: &
          revp     , & ! 0 for classic EVP, 1 for revised EVP
@@ -91,12 +90,11 @@
          seabed_stress ! if true, seabed stress for landfast on
 
       real (kind=dbl_kind), public :: &
-         k1, &        ! 1st free parameter for seabed1 grounding parameterization
-         k2, &        ! second free parameter (N/m^3) for seabed1 grounding parametrization 
-         alphab, &    ! alphab=Cb factor in Lemieux et al 2015
-         threshold_hw, & ! max water depth for grounding 
+         k1          , & ! 1st free parameter for seabed1 grounding parameterization
+         k2          , & ! second free parameter (N/m^3) for seabed1 grounding parametrization
+         alphab      , & ! alphab=Cb factor in Lemieux et al 2015
+         threshold_hw    ! max water depth for grounding
                          ! see keel data from Amundrud et al. 2004 (JGR)
-         u0 = 5e-5_dbl_kind ! residual velocity for seabed stress (m/s)
 
 !=======================================================================
 
@@ -867,7 +865,7 @@
 !
 ! Lemieux, J. F., F. Dupont, P. Blain, F. Roy, G.C. Smith, G.M. Flato (2016). 
 ! Improving the simulation of landfast ice by combining tensile strength and a
-! parameterization for grounded ridges, J. Geophys. Res. Oceans, 121.
+! parameterization for grounded ridges, J. Geophys. Res. Oceans, 121, 7354-7368. 
 !
 ! author: JF Lemieux, Philippe Blain (ECCC)
 !
@@ -1204,10 +1202,10 @@
          vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm      , & ! 0.5*HTN - 1.5*HTN
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm      , & ! 0.5*HTN - 1.5*HTS
          tarear       ! 1/tarea
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), &
@@ -1305,10 +1303,10 @@
          vvel     , & ! y-component of velocity (m/s)
          dxt      , & ! width of T-cell through the middle (m)
          dyt      , & ! height of T-cell through the middle (m)
-         cyp      , & ! 1.5*HTE - 0.5*HTE
-         cxp      , & ! 1.5*HTN - 0.5*HTN
-         cym      , & ! 0.5*HTE - 1.5*HTE
-         cxm          ! 0.5*HTN - 1.5*HTN
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm          ! 0.5*HTN - 1.5*HTS
          
       real (kind=dbl_kind), intent(out):: &           ! at each corner :
         divune, divunw, divuse, divusw            , & ! divergence
@@ -1361,6 +1359,75 @@
 
       end subroutine strain_rates
 
+ !=======================================================================
+ ! Computes viscous coefficients and replacement pressure for stress 
+ ! calculations. Note that tensile strength is included here.
+ !
+ ! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
+ ! Oceanogr., 9, 817-846.
+ !
+ ! Konig Beatty, C. and Holland, D. M.  (2010). Modeling landfast ice by
+ ! adding tensile strength. J. Phys. Oceanogr. 40, 185-198.
+ !
+ ! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
+ ! by combining tensile strength and a parameterization for grounded ridges.
+ ! J. Geophys. Res. Oceans, 121, 7354-7368.
+      
+      subroutine viscous_coeffs_and_rep_pressure (strength,  tinyarea, &
+                                                  Deltane,   Deltanw,  &
+                                                  Deltase,   Deltasw,  &
+                                                  zetax2ne,  zetax2nw, &
+                                                  zetax2se,  zetax2sw, &
+                                                  etax2ne,   etax2nw,  &
+                                                  etax2se,   etax2sw,  &
+                                                  rep_prsne, rep_prsnw,&
+                                                  rep_prsse, rep_prssw )
+
+      real (kind=dbl_kind), intent(in)::  &
+        strength, tinyarea                  ! at the t-point
+        
+      real (kind=dbl_kind), intent(in)::  &  
+        Deltane, Deltanw, Deltase, Deltasw  ! Delta at each corner
+
+      real (kind=dbl_kind), intent(out):: &  
+        zetax2ne, zetax2nw, zetax2se, zetax2sw,  & ! zetax2 at each corner 
+        etax2ne, etax2nw, etax2se, etax2sw,      & ! etax2 at each corner
+        rep_prsne, rep_prsnw, rep_prsse, rep_prssw ! replacement pressure
+
+      ! local variables
+      real (kind=dbl_kind) :: &
+        tmpcalc
+
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
+       
+!      if (trim(yield_curve) == 'ellipse') then
+
+         tmpcalc = strength/max(Deltane,tinyarea) ! northeast
+         zetax2ne = (c1+Ktens)*tmpcalc
+         rep_prsne = (c1-Ktens)*tmpcalc*Deltane
+         etax2ne = ecci*zetax2ne ! CHANGE FOR e_plasticpot
+         
+         tmpcalc = strength/max(Deltanw,tinyarea) ! northwest
+         zetax2nw = (c1+Ktens)*tmpcalc
+         rep_prsnw = (c1-Ktens)*tmpcalc*Deltanw
+         etax2nw = ecci*zetax2nw ! CHANGE FOR e_plasticpot
+
+         tmpcalc = strength/max(Deltase,tinyarea) ! southeast
+         zetax2se = (c1+Ktens)*tmpcalc
+         rep_prsse = (c1-Ktens)*tmpcalc*Deltase
+         etax2se = ecci*zetax2se ! CHANGE FOR e_plasticpot
+
+         tmpcalc = strength/max(Deltasw,tinyarea) ! southwest
+         zetax2sw = (c1+Ktens)*tmpcalc
+         rep_prssw = (c1-Ktens)*tmpcalc*Deltasw
+         etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
+         
+!      else
+
+!      endif
+      
+       end subroutine viscous_coeffs_and_rep_pressure
+      
 !=======================================================================
 
 ! Load velocity components into array for boundary updates

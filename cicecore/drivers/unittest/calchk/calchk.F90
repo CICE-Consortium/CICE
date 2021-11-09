@@ -15,13 +15,14 @@
       use ice_calendar, only: init_calendar, calendar
       use ice_calendar, only: set_date_from_timesecs
       use ice_calendar, only: calendar_date2time, calendar_time2date
-      use ice_calendar, only: compute_calendar_data
+      use ice_calendar, only: compute_calendar_data, calendar_sec2hms
       implicit none
 
       integer(kind=int_kind) :: yearmax
       integer(kind=int_kind) :: nday,nptc
       integer(kind=int_kind) :: n,m,ny,nm,nd,nf1,nf2,xadd,nfa,nfb,nfc,ns1,ns2
       integer(kind=int_kind) :: yi,mi,di,si
+      integer(kind=int_kind) :: hh,mm,ss
       integer(kind=int_kind) :: dyear,dmon,dday,dsec
       integer(kind=int_kind) :: fyear,fmon,fday,fsec
       character(len=32) :: calstr,unitstr,signstr
@@ -29,7 +30,7 @@
       integer (kind=int_kind) :: tdaycal(months_per_year+1) ! day count per month
       integer (kind=int_kind) :: tdayyr                     ! days in year
 
-      integer(kind=int_kind), parameter :: ntests = 8
+      integer(kind=int_kind), parameter :: ntests = 9
       character(len=8)  :: errorflag0,errorflag(1:ntests),errorflagtmp
       character(len=32) :: testname(ntests)
       integer(kind=int_kind) :: yearv(ntests),monv(ntests),dayv(ntests),secv(ntests),ndayv(ntests) ! computed values
@@ -40,7 +41,7 @@
          failflag = 'FAIL'
 
       write(6,*) ' '
-      write(6,*) 'Running CALCHK'
+      write(6,*) 'RunningUnitTest CALCHK'
       write(6,*) ' '
 
       errorflag0   = passflag
@@ -54,6 +55,7 @@
       testname(6) = 'small add/sub update_date'
       testname(7) = 'special checks'
       testname(8) = 'calc_timesteps'
+      testname(9) = 'seconds_to_hms'
 
       ! test yearmax years from year 0
 !      yearmax = 1000
@@ -562,6 +564,26 @@
       enddo
 
       !-------------------------
+      ! calc hms
+      !-------------------------
+
+      write(6,*) ' '
+      do ns1 = 0,86399
+         call calendar_sec2hms(ns1,hh,mm,ss)
+         if (ns1 < 10 .or. ns1 > 86390 .or. (ns1 > 7195 .and. ns1 < 7205)) then
+            write(6,'(a,i8,2x,i2.2,a,i2.2,a,i2.2)') ' CHECK9 ',ns1,hh,':',mm,':',ss
+         endif
+      enddo
+      monc(9) = 23  ! hh correct result for 86399
+      dayc(9) = 59  ! mm correct result for 86399
+      secc(9) = 59  ! ss correct result for 86399
+      if (hh /= monc(9) .or. mm /= dayc(9) .or. ss /= secc(9)) then
+         errorflag(9) = failflag
+         write(6,*) 'ERROR9: hms expected',ns1,monc(9),dayc(9),secc(9)
+         write(6,*) 'ERROR9: hms error   ',ns1,hh,mm,ss
+      endif
+
+      !-------------------------
       ! write test results
       !-------------------------
 
@@ -579,10 +601,11 @@
  1002 format(a,i10,1x,a)
 
       write(6,*) ' '
+      write(6,*) 'CALCHK COMPLETED SUCCESSFULLY'
       if (errorflag0 == passflag) then
-         write(6,*) 'CALCHK COMPLETED SUCCESSFULLY'
+         write(6,*) 'CALCHK TEST COMPLETED SUCCESSFULLY'
       else
-         write(6,*) 'CALCHK FAILED'
+         write(6,*) 'CALCHK TEST FAILED'
       endif
 
       end program

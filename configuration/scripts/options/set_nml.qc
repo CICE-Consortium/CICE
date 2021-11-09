@@ -1,4 +1,12 @@
-npt            = 43800
+npt_unit       = 'y'
+npt            = 5
+year_init      = 2005
+month_init     = 1
+day_init       = 1
+sec_init       = 0
+use_leap_years = .false.
+fyear_init     = 2005
+ycycle         = 1
 dumpfreq       = 'm'
 dumpfreq_n     = 12
 diagfreq       = 24

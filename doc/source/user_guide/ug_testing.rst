@@ -667,6 +667,15 @@ in **configuration/scripts/options**.  In particular, **ICE_DRVOPT** and
 **configuration/scripts/Makefile** and create a target for the unit test.
 The unit tests calchk or helloworld can be used as examples.
 
+The following strings should be written to the log file at the end of the unit test run.
+The string "COMPLETED SUCCESSFULLY" will indicate the run ran to completion.  The string
+"TEST COMPLETED SUCCESSFULLY" will indicate all the unit testing passed during the run.
+The unit test log file output is compared as part of regression testing.  The string 
+"RunningUnitTest" indicates the start of the output to compare.  
+That string should be written to the log file at the start of the unit test model output.
+These strings will be queried by the testing scripts and will impact the test reporting.
+See other unit tests for examples about how these strings could be written.
+
 The following are brief descriptions of some of the current unit tests,
 
  - **bcstchk** is a unit test that exercises the methods in ice_broadcast.F90.  This test does not
@@ -1112,7 +1121,7 @@ If the regression comparisons fail, then you may want to run the QC test,
   # From the updated sandbox
   # Generate the same test case(s) as the baseline using options or namelist changes to activate new code modifications
 
-  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
+  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_test -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
   # modify ice_in to activate the namelist options that were determined above
   ./cice.build
@@ -1121,7 +1130,8 @@ If the regression comparisons fail, then you may want to run the QC test,
   # Wait for runs to finish
   # Perform the QC test
 
-  cp configuration/scripts/tests/QC/cice.t-test.py
+  # From the updated sandbox
+  cp configuration/scripts/tests/QC/cice.t-test.py .
   ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_base \
                    /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
 
