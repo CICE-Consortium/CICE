@@ -63,8 +63,11 @@
 
       real (kind=dbl_kind), public :: &
          revp     , & ! 0 for classic EVP, 1 for revised EVP
-         e_ratio  , & ! e = EVP ellipse aspect ratio 
-         ecci     , & ! 1/e^2
+         e_yieldcurve, & ! VP aspect ratio of elliptical yield curve
+         e_plasticpot, & ! VP aspect ratio of elliptical plastic potential
+         epp2i    , & ! 1/(e_plasticpot)^2
+         e_factor , & ! (e_yieldcurve)^2/(e_plasticpot)^4
+         ecci     , & ! temporary for 1d evp
          dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
 !         dte2T    , & ! dte/2T
          denom1       ! constants for stress equation
@@ -220,7 +223,6 @@
 
       !real (kind=dbl_kind) :: &
          !dte         , & ! subcycling timestep for EVP dynamics, s
-         !ecc         , & ! (ratio of major to minor ellipse axes)^2
          !tdamp2          ! 2*(wave damping time scale T)
 
       character(len=*), parameter :: subname = '(set_evp_parameters)'
@@ -230,10 +232,10 @@
       !dtei = c1/dte              ! 1/s
       dtei = real(ndte,kind=dbl_kind)/dt 
 
-      ! major/minor axis length ratio, squared
-      !ecc  = e_ratio**2
-      !ecci = c1/ecc               ! 1/ecc
-      ecci = c1/e_ratio**2               ! 1/ecc
+      ! variables for elliptical yield curve and plastic potential
+      epp2i = c1/e_plasticpot**2
+      e_factor = e_yieldcurve**2 / e_plasticpot**4
+      ecci = c1/e_yieldcurve**2 ! temporary for 1d evp
 
       ! constants for stress equation
       !tdamp2 = c2*eyc*dt                    ! s
@@ -1352,10 +1354,10 @@
               -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
       
       ! Delta (in the denominator of zeta, eta)
-      Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-      Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-      Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
-      Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+      Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
+      Deltanw = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
+      Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
+      Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
       end subroutine strain_rates
 
@@ -1419,19 +1421,19 @@
 
          zetax2ne = (c1+Ktens)*tmpcalcne ! northeast 
          rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
-         etax2ne = ecci*zetax2ne ! CHANGE FOR e_plasticpot
+         etax2ne = epp2i*zetax2ne
          
          zetax2nw = (c1+Ktens)*tmpcalcnw ! northwest 
          rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
-         etax2nw = ecci*zetax2nw ! CHANGE FOR e_plasticpot
+         etax2nw = epp2i*zetax2nw
 
          zetax2sw = (c1+Ktens)*tmpcalcsw ! southwest  
          rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
-         etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
+         etax2sw = epp2i*zetax2sw
          
          zetax2se = (c1+Ktens)*tmpcalcse ! southeast
          rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
-         etax2se = ecci*zetax2se ! CHANGE FOR e_plasticpot
+         etax2se = epp2i*zetax2se
 
 !      else
 

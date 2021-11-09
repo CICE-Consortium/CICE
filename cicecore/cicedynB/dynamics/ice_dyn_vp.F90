@@ -46,7 +46,7 @@
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
-          ecci, cosw, sinw, fcor_blk, uvel_init, vvel_init, &
+          cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
           seabed_stress, Ktens, stack_velocity_field,  unstack_velocity_field
       use ice_fileunits, only: nu_diag
@@ -1320,6 +1320,9 @@
 
 ! Computes the VP stresses (as diagnostic)
 
+! Lemieux, J.-F., and Dupont, F. (2020), On the calculation of normalized
+! viscous-plastic sea ice stresses, Geosci. Model Dev., 13, 1763–1769,
+      
       subroutine stress_vp (nx_block  , ny_block  , &
                             icellt    ,             &
                             indxti    , indxtj    , &
