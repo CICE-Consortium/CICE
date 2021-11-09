@@ -94,7 +94,6 @@
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
-      character(len=25) :: l_ustr2d, l_vstr2d, l_ucstr, l_vcstr  ! define location of u and v fields
       character(len=*), parameter :: subname = '(init_hist)'
 
       !-----------------------------------------------------------------
@@ -107,18 +106,6 @@
       nzslyr = nslyr      ! snow
       nzblyr = nblyr+2    ! bio grid
       nzalyr = nblyr+4    ! aerosols (2 snow & nblyr+2 bio)
-
-      ! B grid default
-      l_ustr2d = ustr2d
-      l_vstr2d = ustr2d
-      l_ucstr  = ucstr
-      l_vcstr  = ucstr
-      if (grid_system == 'C' .or. grid_system == 'CD') then
-         l_ustr2d = estr2d
-         l_vstr2d = nstr2d
-         l_ucstr  = ecstr
-         l_vcstr  = ncstr
-      endif
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -573,16 +560,28 @@
              "ice area  (aggregate)",                             &
              "none", c1, c0,                                      &
              ns1, f_aice)
-      
-         call define_hist_field(n_uvel,"uvel","m/s",l_ustr2D, l_ucstr,  &
+
+         if (grid_system == 'CD') then
+           call define_hist_field(n_uvel,"uvel","m/s",estr2D, ecstr,  &
              "ice velocity (x)",                                  &
-             "positive is x direction on u grid", c1, c0,         &
+             "positive is x direction on E grid", c1, c0,         &
              ns1, f_uvel)
       
-         call define_hist_field(n_vvel,"vvel","m/s",l_vstr2D, l_vcstr,  &
+           call define_hist_field(n_vvel,"vvel","m/s",nstr2D, ncstr,  &
              "ice velocity (y)",                                  &
-             "positive is y direction on v grid", c1, c0,         &
+             "positive is y direction on N grid", c1, c0,         &
              ns1, f_vvel)
+         else
+           call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
+             "ice velocity (x)",                                  &
+             "positive is x direction on U grid", c1, c0,         &
+             ns1, f_uvel)
+      
+           call define_hist_field(n_vvel,"vvel","m/s",ustr2D, ucstr,  &
+             "ice velocity (y)",                                  &
+             "positive is y direction on U grid", c1, c0,         &
+             ns1, f_vvel)
+         endif
       
          call define_hist_field(n_uveln,"uveln","m/s",nstr2D, ncstr,  &
              "ice velocity (x)",                                  &

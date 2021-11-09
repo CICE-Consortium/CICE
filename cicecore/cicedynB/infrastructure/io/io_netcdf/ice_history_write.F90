@@ -505,51 +505,7 @@
                          lprecision, dimid, varid)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
-      !-----------------------------------------------------------------
-      ! Add cell_methods attribute to variables if averaged
-      !-----------------------------------------------------------------
-            if (hist_avg) then
-              if (TRIM(avail_hist_fields(n)%vname)/='sig1' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sig2' & 
-              .or.TRIM(avail_hist_fields(n)%vname)/='sistreave' & 
-              .or.TRIM(avail_hist_fields(n)%vname)/='sistremax' & 
-              .or.TRIM(avail_hist_fields(n)%vname)/='sigP') then
-                status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
-                if (status /= nf90_noerr) call abort_ice(subname// &
-                 'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
-              endif
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg                              &
-                .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
-                .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
-                .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
-                .or. n==n_sistreave(ns) .or. n==n_sistremax(ns) &
-                .or. n==n_mlt_onset(ns) .or. n==n_frz_onset(ns) &
-                .or. n==n_hisnap(ns)    .or. n==n_aisnap(ns)) then
-               status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
-            else
-               status = nf90_put_att(ncid,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_2D
 
@@ -564,39 +520,7 @@
                          lprecision, dimidz, varid)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
-      !-----------------------------------------------------------------
-      ! Add cell_methods attribute to variables if averaged
-      !-----------------------------------------------------------------
-            if (hist_avg) then
-                status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
-                if (status /= nf90_noerr) call abort_ice(subname// &
-                 'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
-            else
-               status = nf90_put_att(ncid,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dc
 
@@ -611,24 +535,7 @@
                          lprecision, dimidz, varid)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dz
 
@@ -643,24 +550,7 @@
                          lprecision, dimidz, varid)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Db
 
@@ -675,24 +565,7 @@
                          lprecision, dimidz, varid)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Da
 
@@ -707,24 +580,7 @@
                          lprecision, dimidz, varid)
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Df
 
@@ -741,39 +597,7 @@
                              lprecision, dimidcz(1:4), varid) ! ferret
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
-      !-----------------------------------------------------------------
-      ! Add cell_methods attribute to variables if averaged
-      !-----------------------------------------------------------------
-            if (hist_avg) then
-                status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
-                if (status /= nf90_noerr) call abort_ice(subname// &
-                 'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
-            else
-               status = nf90_put_att(ncid,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Di
 
@@ -790,39 +614,7 @@
                              lprecision, dimidcz(1:4), varid) ! ferret
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
-      !-----------------------------------------------------------------
-      ! Add cell_methods attribute to variables if averaged
-      !-----------------------------------------------------------------
-            if (hist_avg) then
-                status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
-                if (status /= nf90_noerr) call abort_ice(subname// &
-                 'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
-            else
-               status = nf90_put_att(ncid,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Ds
 
@@ -839,39 +631,7 @@
                              lprecision, dimidcz(1:4), varid) ! ferret
             if (status /= nf90_noerr) call abort_ice(subname// &
                'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'units', &
-                        avail_hist_fields(n)%vunit)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid, 'long_name', &
-                        avail_hist_fields(n)%vdesc)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'coordinates', &
-                        avail_hist_fields(n)%vcoord)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining coordinates for '//avail_hist_fields(n)%vname)
-            status = nf90_put_att(ncid,varid,'cell_measures', &
-                        avail_hist_fields(n)%vcellmeas)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell measures for '//avail_hist_fields(n)%vname)
-            call ice_write_hist_fill(ncid,varid,avail_hist_fields(n)%vname,history_precision)
-
-      !-----------------------------------------------------------------
-      ! Add cell_methods attribute to variables if averaged
-      !-----------------------------------------------------------------
-            if (hist_avg) then
-                status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
-                if (status /= nf90_noerr) call abort_ice(subname// &
-                 'ERROR: defining cell methods for '//avail_hist_fields(n)%vname)
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
-            else
-               status = nf90_put_att(ncid,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Df
 
@@ -1450,6 +1210,94 @@
 
 !=======================================================================
 
+      subroutine ice_write_hist_attrs(ncid, varid, hfield, ns)
+
+      use ice_kinds_mod
+      use ice_calendar, only: histfreq, histfreq_n
+      use ice_history_shared, only: ice_hist_field, history_precision, &
+          hist_avg
+#ifdef USE_NETCDF
+      use netcdf
+#endif
+
+      integer (kind=int_kind), intent(in) :: ncid     ! netcdf file id
+      integer (kind=int_kind), intent(in) :: varid    ! netcdf variable id
+      type (ice_hist_field)  , intent(in) :: hfield   ! history file info
+      integer (kind=int_kind), intent(in) :: ns       ! history stream
+
+      ! local variables
+
+      integer (kind=int_kind) :: status
+      character(len=*), parameter :: subname = '(ice_write_hist_attrs)'
+
+#ifdef USE_NETCDF
+      status = nf90_put_att(ncid,varid,'units', hfield%vunit)
+      if (status /= nf90_noerr) call abort_ice(subname// &
+         'ERROR: defining units for '//hfield%vname)
+
+      status = nf90_put_att(ncid,varid, 'long_name', hfield%vdesc)
+      if (status /= nf90_noerr) call abort_ice(subname// &
+         'ERROR: defining long_name for '//hfield%vname)
+
+      status = nf90_put_att(ncid,varid,'coordinates', hfield%vcoord)
+      if (status /= nf90_noerr) call abort_ice(subname// &
+         'ERROR: defining coordinates for '//hfield%vname)
+
+      status = nf90_put_att(ncid,varid,'cell_measures', hfield%vcellmeas)
+      if (status /= nf90_noerr) call abort_ice(subname// &
+         'ERROR: defining cell measures for '//hfield%vname)
+
+     if (hfield%vcomment /= "none") then
+          status = nf90_put_att(ncid,varid,'comment', hfield%vcomment)
+         if (status /= nf90_noerr) call abort_ice(subname// &
+            'ERROR: defining comment for '//hfield%vname)
+      endif
+
+      call ice_write_hist_fill(ncid,varid,hfield%vname,history_precision)
+
+      ! Add cell_methods attribute to variables if averaged
+      if (hist_avg) then
+         if    (TRIM(hfield%vname(1:4))/='sig1' &
+           .and.TRIM(hfield%vname(1:4))/='sig2' &
+           .and.TRIM(hfield%vname(1:9))/='sistreave' &
+           .and.TRIM(hfield%vname(1:9))/='sistremax' &
+           .and.TRIM(hfield%vname(1:4))/='sigP') then
+            status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
+            if (status /= nf90_noerr) call abort_ice(subname// &
+               'ERROR: defining cell methods for '//hfield%vname)
+         endif
+      endif
+
+      if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+          .or..not. hist_avg                              &
+          .or.TRIM(hfield%vname(1:4))=='divu' &
+          .or.TRIM(hfield%vname(1:5))=='shear' &
+          .or.TRIM(hfield%vname(1:4))=='sig1' &
+          .or.TRIM(hfield%vname(1:4))=='sig2' &
+          .or.TRIM(hfield%vname(1:4))=='sigP' &
+          .or.TRIM(hfield%vname(1:5))=='trsig' &
+          .or.TRIM(hfield%vname(1:9))=='sistreave' &
+          .or.TRIM(hfield%vname(1:9))=='sistremax' &
+          .or.TRIM(hfield%vname(1:9))=='mlt_onset' &
+          .or.TRIM(hfield%vname(1:9))=='frz_onset' &
+          .or.TRIM(hfield%vname(1:6))=='hisnap' &
+          .or.TRIM(hfield%vname(1:6))=='aisnap') then
+         status = nf90_put_att(ncid,varid,'time_rep','instantaneous')
+      else
+         status = nf90_put_att(ncid,varid,'time_rep','averaged')
+      endif
+      if (status /= nf90_noerr) call abort_ice(subname// &
+         'ERROR: defining time rep for '//hfield%vname)
+
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
+#endif
+
+      end subroutine ice_write_hist_attrs
+
+!=======================================================================
+
       subroutine ice_write_hist_fill(ncid,varid,vname,precision)
 
       use ice_kinds_mod
@@ -1467,6 +1315,7 @@
       integer (kind=int_kind) :: status
       character(len=*), parameter :: subname = '(ice_write_hist_fill)'
 
+#ifdef USE_NETCDF
       if (precision == 8) then
          status = nf90_put_att(ncid,varid,'missing_value',spval_dbl)
       else
@@ -1482,6 +1331,10 @@
       endif
       if (status /= nf90_noerr) call abort_ice(subname// &
          'ERROR: defining _FillValue for '//trim(vname))
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
+#endif
 
       end subroutine ice_write_hist_fill
 

@@ -470,39 +470,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimid3, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-              if (TRIM(avail_hist_fields(n)%vname)/='sig1' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sig2' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sistreave' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sistremax' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sigP') then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-              endif
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg                              &
-                .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
-                .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
-                .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
-                .or. n==n_sistreave(ns) .or. n==n_sistremax(ns) &
-                .or. n==n_mlt_onset(ns) .or. n==n_frz_onset(ns) &
-                .or. n==n_hisnap(ns)    .or. n==n_aisnap(ns)) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_2D
 
@@ -519,27 +487,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dc
 
@@ -556,27 +504,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dz
         
@@ -593,27 +521,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Db
 
@@ -630,27 +538,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Da
 
@@ -667,27 +555,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Df
 
@@ -710,27 +578,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                              lprecision, dimidcz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Di
 
@@ -748,27 +596,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                              lprecision, dimidcz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Ds
 
@@ -787,27 +615,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                              lprecision, dimidcz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Df
 
@@ -1387,6 +1195,73 @@
       endif
 
       end subroutine ice_write_hist
+
+!=======================================================================
+
+      subroutine ice_write_hist_attrs(File, varid, hfield, ns)
+
+      use ice_kinds_mod
+      use ice_calendar, only: histfreq, histfreq_n
+      use ice_history_shared, only: ice_hist_field, history_precision, &
+          hist_avg
+      use ice_pio
+      use pio
+
+      type(file_desc_t)     :: File    ! file id
+      type(var_desc_t)      :: varid   ! variable id
+      type (ice_hist_field), intent(in) :: hfield   ! history file info
+      integer (kind=int_kind), intent(in) :: ns
+
+      ! local variables
+
+      integer (kind=int_kind) :: status
+      character(len=*), parameter :: subname = '(ice_write_hist_attrs)'
+
+      status = pio_put_att(File,varid,'units',         trim(hfield%vunit))
+
+      status = pio_put_att(File,varid, 'long_name',    trim(hfield%vdesc))
+
+      status = pio_put_att(File,varid,'coordinates',   trim(hfield%vcoord))
+
+      status = pio_put_att(File,varid,'cell_measures', trim(hfield%vcellmeas))
+
+      if (hfield%vcomment /= "none") then
+         status = pio_put_att(File,varid,'comment',    trim(hfield%vcomment))
+      endif
+
+      call ice_write_hist_fill(File,varid,hfield%vname,history_precision)
+
+      ! Add cell_methods attribute to variables if averaged
+      if (hist_avg) then
+         if    (TRIM(hfield%vname(1:4))/='sig1' &
+           .and.TRIM(hfield%vname(1:4))/='sig2' &
+           .and.TRIM(hfield%vname(1:9))/='sistreave' &
+           .and.TRIM(hfield%vname(1:9))/='sistremax' &
+           .and.TRIM(hfield%vname(1:4))/='sigP') then
+            status = pio_put_att(File,varid,'cell_methods','time: mean')
+         endif
+      endif
+
+      if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+          .or..not. hist_avg                              &
+          .or.TRIM(hfield%vname(1:4))=='divu' &
+          .or.TRIM(hfield%vname(1:5))=='shear' &
+          .or.TRIM(hfield%vname(1:4))=='sig1' &
+          .or.TRIM(hfield%vname(1:4))=='sig2' &
+          .or.TRIM(hfield%vname(1:4))=='sigP' &
+          .or.TRIM(hfield%vname(1:5))=='trsig' &
+          .or.TRIM(hfield%vname(1:9))=='sistreave' &
+          .or.TRIM(hfield%vname(1:9))=='sistremax' &
+          .or.TRIM(hfield%vname(1:9))=='mlt_onset' &
+          .or.TRIM(hfield%vname(1:9))=='frz_onset' &
+          .or.TRIM(hfield%vname(1:6))=='hisnap' &
+          .or.TRIM(hfield%vname(1:6))=='aisnap') then
+         status = pio_put_att(File,varid,'time_rep','instantaneous')
+      else
+         status = pio_put_att(File,varid,'time_rep','averaged')
+      endif
+
+      end subroutine ice_write_hist_attrs
 
 !=======================================================================
 
