@@ -131,7 +131,7 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_state, only: uvel, vvel, uveln, vvele, divu, shear
+      use ice_state, only: uvel, vvel, uvele, vvele, uveln, vveln, divu, shear
       use ice_grid, only: ULAT
 
       real (kind=dbl_kind), intent(in) :: &
@@ -164,8 +164,10 @@
          uvel(i,j,iblk) = c0    ! m/s
          vvel(i,j,iblk) = c0    ! m/s
          if (grid_system == 'CD') then ! extra velocity variables
-            uveln = c0
+            uvele = c0
             vvele = c0
+            uveln = c0
+            vveln = c0
          endif
 
          ! strain rates
