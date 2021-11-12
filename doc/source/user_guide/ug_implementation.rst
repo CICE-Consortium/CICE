@@ -79,8 +79,8 @@ this tool.
 Grid, boundary conditions and masks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The spatial discretization is specialized for a generalized orthogonal
-B-grid as in :cite:`Murray96` or
+The spatial discretization of the original implementation was specialized 
+for a generalized orthogonal B-grid as in :cite:`Murray96` or
 :cite:`Smith95`. Figure :ref:`fig-Bgrid` is a schematic of CICE 
 B-grid. This cell with the tracer point :math:`t(i,j)` in the middle
 is referred to as T-cell. The ice and snow area, volume and energy are
@@ -111,7 +111,23 @@ distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/.
 
    Schematic of CICE B-grid. 
 
-The user has several choices of grid routines: *popgrid* reads grid
+The ability to solve on the CD-grid was added later.  With the CD grid, 
+the u and v velocity points are located on the N and E edges of the T cell
+rather than the T cell corners.  To support this capability, N and E grids
+were added to the existing T and U grids, and the N and E grids are defined
+at the northern and eastern edge of the T cell.  This is shown in 
+Figure :ref:`fig-Cgrid`.
+
+.. _fig-Cgrid:
+
+.. figure:: ./figures/CICE_Cgrid.png
+   :align: center
+   :scale: 55%
+
+   Schematic of CICE CD-grid. 
+
+
+The user has several ways to initialize the grid: *popgrid* reads grid
 lengths and other parameters for a nonuniform grid (including tripole
 and regional grids), and *rectgrid* creates a regular rectangular grid.
 The input files **global\_gx3.grid** and **global\_gx3.kmt** contain the
@@ -121,6 +137,35 @@ The input files **global\_gx3.grid** and **global\_gx3.kmt** contain the
 and **global\_tx1.kmt** contain the :math:`\left<1^\circ\right>` POP 
 tripole grid and land mask. These are binary unformatted, direct access,
 Big Endian files.
+
+The input grid file for the B-grid and CD-grid is identical.  That file
+contains each cells' HTN, HTE, ULON, ULAT, and kmt value.  From those
+variables, the longitude, latitude, grid lengths (dx and dy), areas,
+and masks can be derived for all grids.  Table :ref:`tab-gridvars` lists
+the primary prognostic grid variable names on the different grids.
+
+.. _tab-gridvars:
+
+.. table:: Primary CICE Prognostic Grid Variable Names
+
+   +----------------+-------+-------+-------+-------+
+   | variable       |   T   |   U   |   N   |   E   |
+   +================+=======+=======+=======+=======+
+   | longitude      |  TLON |  ULON |  NLON |  ELON |
+   +----------------+-------+-------+-------+-------+
+   | latitude       |  TLAT |  ULAT |  NLAT |  ELAT |
+   +----------------+-------+-------+-------+-------+
+   | dx             |  dxt  |  dxu  |  dxn  |  dxe  |
+   +----------------+-------+-------+-------+-------+
+   | dy             |  dyt  |  dyu  |  dyn  |  dye  |
+   +----------------+-------+-------+-------+-------+
+   | area           | tarea | uarea | narea | earea |
+   +----------------+-------+-------+-------+-------+
+   | mask (logical) | tmask | umask | nmask | emask |
+   +----------------+-------+-------+-------+-------+
+   | mask (real)    |  hm   | uvm   | npm   | epm   |
+   +----------------+-------+-------+-------+-------+
+
 
 In CESM, the sea ice model may exchange coupling fluxes using a
 different grid than the computational grid. This functionality is
@@ -330,15 +375,23 @@ testing.
 Masks
 *****
 
-A land mask hm (:math:`M_h`) is specified in the cell centers, with 0
-representing land and 1 representing ocean cells. A corresponding mask
-uvm (:math:`M_u`) for velocity and other corner quantities is given by
+A land mask hm (:math:`M_h`) is specified in the cell centers (on the
+T-grid), with 0
+representing land and 1 representing ocean cells. Corresponding masks
+for the U, N, and E grids are given by
 
 .. math:: 
    M_u(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j),\,(i,j+1),\,(i+1,j+1)\}.
 
-The logical masks ``tmask`` and ``umask`` (which correspond to the real masks
-``hm`` and ``uvm``, respectively) are useful in conditional statements.
+.. math:: 
+   M_n(i,j)=\min\{M_h(l),\,l=(i,j),\,(i,j+1)\}.
+
+.. math:: 
+   M_e(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j)\}.
+
+The logical masks ``tmask``, ``umask``, ``nmask``, and ``emask`` 
+(which correspond to the real masks ``hm``, ``uvm``, ``npm``, and ``epm`` 
+respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
 *dyn\_prep* in order to reduce the dynamics component’s work on a global
@@ -452,7 +505,9 @@ block equally.  This is useful in POP which always has work in
 each block and is written with a lot of
 array syntax requiring calculations over entire blocks (whether or not
 land is present).  This option is provided in CICE as well for 
-direct-communication compatibility with POP. The ‘latitude’ option 
+direct-communication compatibility with POP. Blocks that contain 100%
+land grid cells are eliminated with 'block'.  The 'blockall' option is identical
+to 'block' but does not do land block elimination.  The ‘latitude’ option 
 weights the blocks based on latitude and the number of ocean grid 
 cells they contain.  Many of the non-cartesian decompositions support 
 automatic land block elimination and provide alternative ways to

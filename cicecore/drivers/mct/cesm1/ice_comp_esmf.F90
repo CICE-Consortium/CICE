@@ -44,7 +44,7 @@ module ice_comp_esmf
   use ice_domain,      only : nblocks, blocks_ice, halo_info, distrb_info
   use ice_blocks,      only : block, get_block, nx_block, ny_block
   use ice_grid,        only : tlon, tlat, tarea, tmask, anglet, hm, &
-                              grid_type, t2ugrid_vector, gridcpl_file, ocn_gridcell_frac
+                              grid_type, gridcpl_file, ocn_gridcell_frac
   use ice_constants,   only : c0, c1, spval_dbl, rad_to_deg, radius, secday
   use ice_communicate, only : my_task, master_task, MPI_COMM_ICE
   use ice_calendar,    only : istep, istep1, force_restart_now, write_ic,&

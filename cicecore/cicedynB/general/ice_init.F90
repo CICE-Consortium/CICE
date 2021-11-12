@@ -99,7 +99,7 @@
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
                           bathymetry_format, &
-                          grid_type, grid_format, &
+                          grid_type, grid_format, grid_system, &
                           dxrect, dyrect, &
                           pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
@@ -185,7 +185,7 @@
         bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
-        close_boundaries, orca_halogrid
+        close_boundaries, orca_halogrid, grid_system
 
       namelist /tracer_nml/                                             &
         tr_iage, restart_age,                                           &
@@ -325,6 +325,7 @@
       ice_ic       = 'default'      ! latitude and sst-dependent
       grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
       grid_type    = 'rectangular'  ! define rectangular grid internally
+      grid_system  = 'B'            ! underlying grid system
       grid_file    = 'unknown_grid_file'
       gridcpl_file = 'unknown_gridcpl_file'
       orca_halogrid = .false.  ! orca haloed grid
@@ -698,6 +699,7 @@
       call broadcast_scalar(dyrect,               master_task)
       call broadcast_scalar(close_boundaries,     master_task)
       call broadcast_scalar(grid_type,            master_task)
+      call broadcast_scalar(grid_system,          master_task)
       call broadcast_scalar(grid_file,            master_task)
       call broadcast_scalar(gridcpl_file,         master_task)
       call broadcast_scalar(orca_halogrid,        master_task)
@@ -1359,6 +1361,7 @@
          if (trim(grid_type) == 'displaced_pole') tmpstr2 = ' : user-defined grid with rotated north pole'
          if (trim(grid_type) == 'tripole')        tmpstr2 = ' : user-defined grid with northern hemisphere zipper'
          write(nu_diag,1030) ' grid_type        = ',trim(grid_type),trim(tmpstr2)
+         write(nu_diag,1030) ' grid_system      = ',trim(grid_system)
          if (trim(grid_type) /= 'rectangular') then
             if (use_bathymetry) then
                tmpstr2 = ' : bathymetric input data is used'
@@ -2026,6 +2029,12 @@
           grid_type  /=  'setmask' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
          abort_list = trim(abort_list)//":20"
+      endif
+
+      if (grid_system /=  'B' .and. &
+          grid_system /=  'CD' ) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_system=',trim(grid_system)
+         abort_list = trim(abort_list)//":26"
       endif
 
       if (kdyn         == 1                .and. &

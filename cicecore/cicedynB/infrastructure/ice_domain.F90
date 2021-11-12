@@ -63,6 +63,7 @@
       maskhalo_dyn   , & ! if true, use masked halo updates for dynamics
       maskhalo_remap , & ! if true, use masked halo updates for transport
       maskhalo_bound , & ! if true, use masked halo updates for bound_state
+      landblockelim  , & ! if true, land block elimination is on
       orca_halogrid      ! if true, input fields are haloed as defined by orca grid
 
 !-----------------------------------------------------------------------
@@ -79,6 +80,7 @@
                              ! 'rake', 'spacecurve', etc
        distribution_wght     ! method for weighting work per block 
                              ! 'block' = POP default configuration
+                             ! 'blockall' = no land block elimination
                              ! 'latitude' = no. ocean points * |lat|
                              ! 'file' = read distribution_wgth_file
     character (char_len_long) :: &
@@ -155,11 +157,12 @@
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
    add_mpi_barriers  = .false.     ! if true, throttle communication
    debug_blocks      = .false.     ! if true, print verbose block information
-   max_blocks        = -1           ! max number of blocks per processor
+   max_blocks        = -1          ! max number of blocks per processor
    block_size_x      = -1          ! size of block in first horiz dimension
    block_size_y      = -1          ! size of block in second horiz dimension
    nx_global         = -1          ! NXGLOB,  i-axis size
    ny_global         = -1          ! NYGLOB,  j-axis size
+   landblockelim     = .true.      ! on by default
 
    call get_fileunit(nu_nml)
    if (my_task == master_task) then
@@ -446,6 +449,8 @@
        flat = 1
    endif
 
+   if (distribution_wght == 'blockall') landblockelim = .false.
+
    allocate(nocn(nblocks_tot))
 
    if (distribution_wght == 'file') then
@@ -523,6 +528,8 @@
 #else
          if (distribution_wght == 'block' .and. &   ! POP style
              nocn(n) > 0) nocn(n) = nx_block*ny_block
+         if (distribution_wght == 'blockall') &
+             nocn(n) = nx_block*ny_block
 #endif
       end do
    endif  ! distribution_wght = file

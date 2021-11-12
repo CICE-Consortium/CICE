@@ -68,6 +68,7 @@
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
+      use ice_grid, only: grid_system
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
@@ -277,6 +278,13 @@
          f_sispeed = f_CMIP
       endif
 
+      if (grid_system == 'CD') then
+         f_uvele = f_uvel
+         f_vvele = f_vvel
+         f_uveln = f_uvel
+         f_vveln = f_vvel
+      endif
+
 #ifndef ncdf
       f_bounds = .false.
 #endif
@@ -290,13 +298,22 @@
       if (tr_fsd)                                       f_NFSD  = .true.
 
       call broadcast_scalar (f_tmask, master_task)
+      call broadcast_scalar (f_umask, master_task)
+      call broadcast_scalar (f_nmask, master_task)
+      call broadcast_scalar (f_emask, master_task)
       call broadcast_scalar (f_blkmask, master_task)
       call broadcast_scalar (f_tarea, master_task)
       call broadcast_scalar (f_uarea, master_task)
+      call broadcast_scalar (f_narea, master_task)
+      call broadcast_scalar (f_earea, master_task)
       call broadcast_scalar (f_dxt, master_task)
       call broadcast_scalar (f_dyt, master_task)
       call broadcast_scalar (f_dxu, master_task)
       call broadcast_scalar (f_dyu, master_task)
+      call broadcast_scalar (f_dxn, master_task)
+      call broadcast_scalar (f_dyn, master_task)
+      call broadcast_scalar (f_dxe, master_task)
+      call broadcast_scalar (f_dye, master_task)
       call broadcast_scalar (f_HTN, master_task)
       call broadcast_scalar (f_HTE, master_task)
       call broadcast_scalar (f_ANGLE, master_task)
@@ -318,6 +335,10 @@
       call broadcast_scalar (f_aice, master_task)
       call broadcast_scalar (f_uvel, master_task)
       call broadcast_scalar (f_vvel, master_task)
+      call broadcast_scalar (f_uvele, master_task)
+      call broadcast_scalar (f_uveln, master_task)
+      call broadcast_scalar (f_vvele, master_task)
+      call broadcast_scalar (f_vveln, master_task)
       call broadcast_scalar (f_uatm, master_task)
       call broadcast_scalar (f_vatm, master_task)
       call broadcast_scalar (f_atmspd, master_task)
@@ -538,21 +559,39 @@
              "snow/ice surface temperature",                      &
              "averaged with Tf if no ice is present", c1, c0,     &
              ns1, f_Tsfc)
-      
+
          call define_hist_field(n_aice,"aice","1",tstr2D, tcstr,    &
              "ice area  (aggregate)",                             &
              "none", c1, c0,                                      &
              ns1, f_aice)
-      
-         call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
+
+         if (grid_system == 'CD') then
+           call define_hist_field(n_uvele,"uvele","m/s",estr2D, ecstr,  &
+             "ice velocity (x)",                                  &
+             "positive is x direction on E grid", c1, c0,         &
+             ns1, f_uvel)
+           call define_hist_field(n_vvele,"vvele","m/s",estr2D, ecstr,  &
+             "ice velocity (y)",                                  &
+             "positive is y direction on E grid", c1, c0,         &
+             ns1, f_uvel)
+           call define_hist_field(n_uveln,"uveln","m/s",nstr2D, ncstr,  &
+             "ice velocity (x)",                                  &
+             "positive is x direction on N grid", c1, c0,         &
+             ns1, f_vvel)
+           call define_hist_field(n_vveln,"vveln","m/s",nstr2D, ncstr,  &
+             "ice velocity (y)",                                  &
+             "positive is y direction on N grid", c1, c0,         &
+             ns1, f_vvel)
+         else
+           call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
              "ice velocity (x)",                                  &
              "positive is x direction on U grid", c1, c0,         &
              ns1, f_uvel)
-      
-         call define_hist_field(n_vvel,"vvel","m/s",ustr2D, ucstr,  &
+           call define_hist_field(n_vvel,"vvel","m/s",ustr2D, ucstr,  &
              "ice velocity (y)",                                  &
              "positive is y direction on U grid", c1, c0,         &
              ns1, f_vvel)
+         endif
       
          call define_hist_field(n_uatm,"uatm","m/s",ustr2D, ucstr,  &
              "atm velocity (x)",                                  &
@@ -1592,13 +1631,22 @@
       igrd=.true.
 
       igrd(n_tmask     ) = f_tmask
+      igrd(n_umask     ) = f_umask
+      igrd(n_nmask     ) = f_nmask
+      igrd(n_emask     ) = f_emask
       igrd(n_blkmask   ) = f_blkmask
       igrd(n_tarea     ) = f_tarea
       igrd(n_uarea     ) = f_uarea
+      igrd(n_narea     ) = f_narea
+      igrd(n_earea     ) = f_earea
       igrd(n_dxt       ) = f_dxt
       igrd(n_dyt       ) = f_dyt
       igrd(n_dxu       ) = f_dxu
       igrd(n_dyu       ) = f_dyu
+      igrd(n_dxn       ) = f_dxn
+      igrd(n_dyn       ) = f_dyn
+      igrd(n_dxe       ) = f_dxe
+      igrd(n_dye       ) = f_dye
       igrd(n_HTN       ) = f_HTN
       igrd(n_HTE       ) = f_HTE
       igrd(n_ANGLE     ) = f_ANGLE
@@ -1918,6 +1966,10 @@
              call accum_hist_field(n_uvel,   iblk, uvel(:,:,iblk), a2D)
          if (f_vvel   (1:1) /= 'x') &
              call accum_hist_field(n_vvel,   iblk, vvel(:,:,iblk), a2D)
+         if (f_uveln   (1:1) /= 'x') &
+             call accum_hist_field(n_uveln,  iblk, uveln(:,:,iblk), a2D)
+         if (f_vvele   (1:1) /= 'x') &
+             call accum_hist_field(n_vvele,  iblk, vvele(:,:,iblk), a2D)
          if (f_uatm   (1:1) /= 'x') &
              call accum_hist_field(n_uatm,   iblk, uatm(:,:,iblk), a2D)
          if (f_vatm   (1:1) /= 'x') &

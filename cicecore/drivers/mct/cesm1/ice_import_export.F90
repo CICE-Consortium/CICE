@@ -29,7 +29,7 @@ module ice_import_export
   use ice_domain        , only: nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size   , only: nx_global, ny_global, block_size_x, block_size_y, max_blocks
   use ice_grid          , only: tlon, tlat, tarea, tmask, anglet, hm
-  use ice_grid          , only: grid_type, t2ugrid_vector
+  use ice_grid          , only: grid_type, grid_average_X2Y
   use ice_boundary      , only: ice_HaloUpdate 
   use ice_communicate   , only: my_task, master_task, MPI_COMM_ICE, get_num_procs
   use ice_calendar      , only: istep, istep1, diagfreq
@@ -468,10 +468,14 @@ contains
 
     if (.not.prescribed_ice) then
        call t_startf ('cice_imp_t2u')
-       call t2ugrid_vector(uocn)
-       call t2ugrid_vector(vocn)
-       call t2ugrid_vector(ss_tltx)
-       call t2ugrid_vector(ss_tlty)
+       call ice_HaloUpdate(uocn, halo_info, field_loc_center, field_type_scalar)
+       call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_scalar)
+       call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_scalar)
+       call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_scalar)
+       call grid_average_X2Y('T2UF',uocn)
+       call grid_average_X2Y('T2UF',vocn)
+       call grid_average_X2Y('T2UF',ss_tltx)
+       call grid_average_X2Y('T2UF',ss_tlty)
        call t_stopf ('cice_imp_t2u')
     end if
 
