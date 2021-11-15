@@ -565,33 +565,35 @@
              "none", c1, c0,                                      &
              ns1, f_aice)
 
-         if (grid_system == 'CD') then
-           call define_hist_field(n_uvele,"uvele","m/s",estr2D, ecstr,  &
+         call define_hist_field(n_uvele,"uvele","m/s",estr2D, ecstr,  &
              "ice velocity (x)",                                  &
              "positive is x direction on E grid", c1, c0,         &
-             ns1, f_uvel)
-           call define_hist_field(n_vvele,"vvele","m/s",estr2D, ecstr,  &
+             ns1, f_uvele)
+
+          call define_hist_field(n_vvele,"vvele","m/s",estr2D, ecstr,  &
              "ice velocity (y)",                                  &
              "positive is y direction on E grid", c1, c0,         &
-             ns1, f_uvel)
-           call define_hist_field(n_uveln,"uveln","m/s",nstr2D, ncstr,  &
+             ns1, f_vvele)
+
+         call define_hist_field(n_uveln,"uveln","m/s",nstr2D, ncstr,  &
              "ice velocity (x)",                                  &
              "positive is x direction on N grid", c1, c0,         &
-             ns1, f_vvel)
-           call define_hist_field(n_vveln,"vveln","m/s",nstr2D, ncstr,  &
+             ns1, f_uveln)
+
+         call define_hist_field(n_vveln,"vveln","m/s",nstr2D, ncstr,  &
              "ice velocity (y)",                                  &
              "positive is y direction on N grid", c1, c0,         &
-             ns1, f_vvel)
-         else
-           call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
+             ns1, f_vveln)
+
+         call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
              "ice velocity (x)",                                  &
              "positive is x direction on U grid", c1, c0,         &
              ns1, f_uvel)
-           call define_hist_field(n_vvel,"vvel","m/s",ustr2D, ucstr,  &
+
+         call define_hist_field(n_vvel,"vvel","m/s",ustr2D, ucstr,  &
              "ice velocity (y)",                                  &
              "positive is y direction on U grid", c1, c0,         &
              ns1, f_vvel)
-         endif
       
          call define_hist_field(n_uatm,"uatm","m/s",ustr2D, ucstr,  &
              "atm velocity (x)",                                  &
@@ -1968,6 +1970,10 @@
              call accum_hist_field(n_vvel,   iblk, vvel(:,:,iblk), a2D)
          if (f_uveln   (1:1) /= 'x') &
              call accum_hist_field(n_uveln,  iblk, uveln(:,:,iblk), a2D)
+         if (f_vveln   (1:1) /= 'x') &
+             call accum_hist_field(n_vveln,  iblk, vveln(:,:,iblk), a2D)
+         if (f_uvele   (1:1) /= 'x') &
+             call accum_hist_field(n_uvele,  iblk, uvele(:,:,iblk), a2D)
          if (f_vvele   (1:1) /= 'x') &
              call accum_hist_field(n_vvele,  iblk, vvele(:,:,iblk), a2D)
          if (f_uatm   (1:1) /= 'x') &

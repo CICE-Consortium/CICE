@@ -73,6 +73,26 @@
          strtlty , & ! stress due to sea surface slope, y-direction
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty , & ! divergence of internal ice stress, y (N/m^2)
+         taubxN  , & ! seabed stress (x) at N points (N/m^2)
+         taubyN  , & ! seabed stress (y) at N points (N/m^2)
+         strairxN, & ! stress on ice by air, x-direction at N points
+         strairyN, & ! stress on ice by air, y-direction at N points
+         strocnxN, & ! ice-ocean stress, x-direction at N points
+         strocnyN, & ! ice-ocean stress, y-direction at N points
+         strtltxN, & ! stress due to sea surface slope, x-direction at N points
+         strtltyN, & ! stress due to sea surface slope, y-direction at N points
+         strintxN, & ! divergence of internal ice stress, x at N points (N/m^2)
+         strintyN, & ! divergence of internal ice stress, y at N points (N/m^2)
+         taubxE  , & ! seabed stress (x) at E points (N/m^2)
+         taubyE  , & ! seabed stress (y) at E points (N/m^2)
+         strairxE, & ! stress on ice by air, x-direction at E points
+         strairyE, & ! stress on ice by air, y-direction at E points
+         strocnxE, & ! ice-ocean stress, x-direction at E points
+         strocnyE, & ! ice-ocean stress, y-direction at E points
+         strtltxE, & ! stress due to sea surface slope, x-direction at E points
+         strtltyE, & ! stress due to sea surface slope, y-direction at E points
+         strintxE, & ! divergence of internal ice stress, x at E points (N/m^2)
+         strintyE, & ! divergence of internal ice stress, y at E points (N/m^2)
          daidtd  , & ! ice area tendency due to transport   (1/s)
          dvidtd  , & ! ice volume tendency due to transport (m/s)
          dagedtd , & ! ice age tendency due to transport (s/s)
@@ -112,7 +132,11 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu          ! factor for seabed stress (N/m^2)
+         Tbu      , & ! factor for seabed stress (N/m^2)
+         fmE      , & ! Coriolis param. * mass in E-cell (kg/s)
+         TbE      , & ! factor for seabed stress (N/m^2)
+         fmN      , & ! Coriolis param. * mass in N-cell (kg/s)
+         TbN          ! factor for seabed stress (N/m^2)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -348,6 +372,8 @@
 !
       subroutine alloc_flux
 
+      use ice_grid, only : grid_system
+
       integer (int_kind) :: ierr
 
       allocate( &
@@ -534,6 +560,31 @@
          snwcnt     (nx_block,ny_block,max_blocks,max_nstrm), & ! counter for snow
          salinz     (nx_block,ny_block,nilyr+1,max_blocks), & ! initial salinity  profile (ppt)   
          Tmltz      (nx_block,ny_block,nilyr+1,max_blocks), & ! initial melting temperature (^oC)
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
+
+      if (grid_system == "CD") &
+         allocate( &
+         taubxN      (nx_block,ny_block,max_blocks), & ! seabed stress (x) at N points (N/m^2)
+         taubyN      (nx_block,ny_block,max_blocks), & ! seabed stress (y) at N points (N/m^2)
+         strairxN    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at N points
+         strairyN    (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction at N points
+         strocnxN    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction at N points
+         strocnyN    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction at N points
+         strtltxN    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction at N points
+         strtltyN    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at N points
+         strintxN    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at N points (N/m^2)
+         strintyN    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at N points (N/m^2)
+         taubxE      (nx_block,ny_block,max_blocks), & ! seabed stress (x) at E points (N/m^2)
+         taubyE      (nx_block,ny_block,max_blocks), & ! seabed stress (y) at E points (N/m^2)
+         strairxE    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at E points
+         strairyE    (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction at E points
+         strocnxE    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction at E points
+         strocnyE    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction at E points
+         strtltxE    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction at E points
+         strtltyE    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at E points
+         strintxE    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at E points (N/m^2)
+         strintyE    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at E points (N/m^2)
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
