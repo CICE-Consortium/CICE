@@ -1420,7 +1420,7 @@
 
       ! shearing strain rate  =  2*e_12
       shearT   = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
-               + (dyT(i,j)**2)*(vvelE(i,j)/dyN(i,j) - vvelE(i-1,j)/dyE(i-1,j))
+               + (dyT(i,j)**2)*(vvelE(i,j)/dyE(i,j) - vvelE(i-1,j)/dyE(i-1,j))
       
       ! Delta (in the denominator of zeta, eta)
       DeltaT = sqrt(divT**2 + e_factor*(tensionT**2 + shearT**2))
