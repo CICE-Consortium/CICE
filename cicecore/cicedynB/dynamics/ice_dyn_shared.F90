@@ -1368,6 +1368,65 @@
 
       end subroutine strain_rates
 
+!=======================================================================
+
+! Compute strain rates at the T point
+!
+! author: JF Lemieux, ECCC
+! Nov 2021
+
+      subroutine strain_rates_T (nx_block,   ny_block, &
+                                 i,          j,        &
+                                 uvelE,      vvelE,    &
+                                 uvelN,      vvelN,    &
+                                 dxN,        dyE,      &
+                                 dxT,        dyT,      &
+                                 divT,       tensionT, &
+                                 shearT,     DeltaT    )
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block    ! block dimensions
+         
+      integer (kind=int_kind) :: &
+         i, j                  ! indices
+         
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the N point
+         uvelN    , & ! x-component of velocity (m/s) at the E point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         dxN      , & ! width of N-cell through the middle (m)
+         dyE      , & ! height of E-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT          ! height of T-cell through the middle (m)
+         
+      real (kind=dbl_kind), intent(out):: &
+        divT, tensionT, shearT, DeltaT      ! strain rates at the T point
+         
+      character(len=*), parameter :: subname = '(strain_rates_T)'
+         
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+      ! divergence  =  e_11 + e_22
+      divT     = dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
+               + dxN(i,j)*vvelN(i  ,j  ) - dxN(i,j-1)*vvelN(i  ,j-1)
+
+      ! tension strain rate  =  e_11 - e_22
+      tensionT = (dyT(i,j)**2)*(uvelE(i,j)/dyE(i,j) - uvelE(i-1,j)/dyE(i-1,j)) &
+               - (dxT(i,j)**2)*(vvelN(i,j)/dxN(i,j) - vvelN(i,j-1)/dxN(i,j-1))
+
+      ! shearing strain rate  =  2*e_12
+      shearT   = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
+               + (dyT(i,j)**2)*(vvelE(i,j)/dyN(i,j) - vvelE(i-1,j)/dyE(i-1,j))
+      
+      ! Delta (in the denominator of zeta, eta)
+      DeltaT = sqrt(divT**2 + e_factor*(tensionT**2 + shearT**2))
+
+    end subroutine strain_rates_T
+      
  !=======================================================================
  ! Computes viscous coefficients and replacement pressure for stress 
  ! calculations. Note that tensile strength is included here.
