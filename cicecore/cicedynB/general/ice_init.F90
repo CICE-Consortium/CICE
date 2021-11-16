@@ -98,7 +98,7 @@
       use ice_arrays_column, only: bgc_data_dir, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
-                          bathymetry_format, &
+                          bathymetry_format, kmt_type, &
                           grid_type, grid_format, grid_system, &
                           dxrect, dyrect, &
                           pgl_global_ext
@@ -185,7 +185,7 @@
         bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
-        close_boundaries, orca_halogrid, grid_system
+        close_boundaries, orca_halogrid, grid_system,   kmt_type
 
       namelist /tracer_nml/                                             &
         tr_iage, restart_age,                                           &
@@ -332,6 +332,7 @@
       bathymetry_file   = 'unknown_bathymetry_file'
       bathymetry_format = 'default'
       use_bathymetry    = .false.
+      kmt_type     = 'file'
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0          ! number of ice thickness categories
@@ -706,6 +707,7 @@
       call broadcast_scalar(bathymetry_file,      master_task)
       call broadcast_scalar(bathymetry_format,    master_task)
       call broadcast_scalar(use_bathymetry,       master_task)
+      call broadcast_scalar(kmt_type,             master_task)
       call broadcast_scalar(kmt_file,             master_task)
       call broadcast_scalar(kitd,                 master_task)
       call broadcast_scalar(kcatbound,            master_task)
@@ -1362,6 +1364,7 @@
          if (trim(grid_type) == 'tripole')        tmpstr2 = ' : user-defined grid with northern hemisphere zipper'
          write(nu_diag,1030) ' grid_type        = ',trim(grid_type),trim(tmpstr2)
          write(nu_diag,1030) ' grid_system      = ',trim(grid_system)
+         write(nu_diag,1030) ' kmt_type         = ',trim(kmt_type)
          if (trim(grid_type) /= 'rectangular') then
             if (use_bathymetry) then
                tmpstr2 = ' : bathymetric input data is used'
@@ -1945,7 +1948,8 @@
             write(nu_diag,1031) ' grid_file        = ', trim(grid_file)
             write(nu_diag,1031) ' gridcpl_file     = ', trim(gridcpl_file)
             write(nu_diag,1031) ' bathymetry_file  = ', trim(bathymetry_file)
-            write(nu_diag,1031) ' kmt_file         = ', trim(kmt_file)
+            if (trim(kmt_type) == 'file') &
+               write(nu_diag,1031) ' kmt_file         = ', trim(kmt_file)
          endif
          write(nu_diag,1011) ' orca_halogrid    = ', orca_halogrid
 
@@ -2035,6 +2039,20 @@
           grid_system /=  'CD' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_system=',trim(grid_system)
          abort_list = trim(abort_list)//":26"
+      endif
+
+      if (kmt_type  /=  'file' .and. &
+          kmt_type  /=  'default' .and. &
+          kmt_type  /=  'boxislands') then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown kmt_type=',trim(kmt_type)
+         abort_list = trim(abort_list)//":27"
+      endif
+
+      if (grid_type  /=  'column'      .and. &
+          grid_type  /=  'rectangular' .and. &
+          kmt_type   /=  'file') then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: need kmt file, kmt_type=',trim(kmt_type)
+         abort_list = trim(abort_list)//":28"
       endif
 
       if (kdyn         == 1                .and. &

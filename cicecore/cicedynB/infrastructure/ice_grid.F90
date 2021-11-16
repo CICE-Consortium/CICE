@@ -53,6 +53,7 @@
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
+         kmt_type     , & !  options are file, default, boxislands
          bathymetry_file, & !  input bathymetry for seabed stress
          bathymetry_format, & ! bathymetry file format (default or pop)
          grid_spacing , & !  default of 30.e3m or set by user in namelist 
@@ -1345,47 +1346,63 @@
 
          if (trim(ew_boundary_type) == 'cyclic') then
 
-            do j = 3,ny_global-2      ! closed top and bottom
-            do i = 1,nx_global        ! open sides
-               work_g1(i,j) = c1    ! NOTE nx_global > 5
-            enddo
-            enddo
+            if (trim(kmt_type) == 'boxislands') then
+
+               call get_box_kmt(work_g1)
+
+            else ! default
+
+               do j = 3,ny_global-2      ! closed top and bottom
+               do i = 1,nx_global        ! open sides
+                  work_g1(i,j) = c1    ! NOTE nx_global > 5
+               enddo
+               enddo
+
+            endif ! kmt_type
 
          elseif (trim(ew_boundary_type) == 'open') then
 
-            ! land in the upper left and lower right corners,
-            ! otherwise open boundaries
-            imid = nint(aint(real(nx_global)/c2))
-            jmid = nint(aint(real(ny_global)/c2))
+            if (trim(kmt_type) == 'boxislands') then
 
-            do j = 3,ny_global-2
-            do i = 3,nx_global-2
-               work_g1(i,j) = c1    ! open central domain
-            enddo
-            enddo
+               call get_box_kmt(work_g1)
 
-            if (nx_global > 5 .and. ny_global > 5) then
+            else ! default
 
-            do j = 1, jmid+2
-            do i = 1, imid+2
-               work_g1(i,j) = c1    ! open lower left corner
-            enddo
-            enddo
+               ! land in the upper left and lower right corners,
+               ! otherwise open boundaries
+               imid = nint(aint(real(nx_global)/c2))
+               jmid = nint(aint(real(ny_global)/c2))
 
-            do j = max(jmid-2,1), ny_global
-            do i = max(imid-2,1), nx_global
-               work_g1(i,j) = c1    ! open upper right corner
-            enddo
-            enddo
+               do j = 3,ny_global-2
+               do i = 3,nx_global-2
+                  work_g1(i,j) = c1    ! open central domain
+               enddo
+               enddo
 
-            endif
+               if (nx_global > 5 .and. ny_global > 5) then
 
-            if (close_boundaries) then
-              work_g1(:, 1:2) = c0
-              work_g1(:, ny_global-1:ny_global) = c0
-              work_g1(1:2, :) = c0
-              work_g1(nx_global-1:nx_global, :) = c0
-            endif
+                  do j = 1, jmid+2
+                  do i = 1, imid+2
+                     work_g1(i,j) = c1    ! open lower left corner
+                  enddo
+                  enddo
+
+                  do j = max(jmid-2,1), ny_global
+                  do i = max(imid-2,1), nx_global
+                     work_g1(i,j) = c1    ! open upper right corner
+                  enddo
+                  enddo
+
+               endif ! > 5x5 grid
+
+               if (close_boundaries) then
+                  work_g1(:, 1:2) = c0
+                  work_g1(:, ny_global-1:ny_global) = c0
+                  work_g1(1:2, :) = c0
+                  work_g1(nx_global-1:nx_global, :) = c0
+               endif
+
+            endif ! kmt_type
 
          elseif (trim(ew_boundary_type) == 'closed') then
 
@@ -1400,6 +1417,130 @@
       deallocate(work_g1)
 
       end subroutine rectgrid
+
+!=======================================================================
+
+      ! Complex land mask for testing box cases
+      ! Requires nx_global, ny_global > 20
+      ! Assumes work array has been initialized to 1 (ocean) and north and
+      ! south land boundaries have been applied (ew_boundary_type='cyclic')
+
+      subroutine get_box_kmt (work)
+
+      use ice_constants, only: c0, c1, c20
+
+      real (kind=dbl_kind), dimension(:,:), intent(inout) :: work
+
+      integer (kind=int_kind) :: &
+         i, j, k, & ! indices
+         nxb, nyb   ! convenient cell-block sizes for building the mask
+
+      character(len=*), parameter :: subname = '(get_box_kmt)'
+
+      ! number of cells in 5% of global grid x and y lengths
+      nxb = int(real(nx_global, dbl_kind) / c20, int_kind)
+      nyb = int(real(ny_global, dbl_kind) / c20, int_kind)
+
+      if (nxb < 1 .or. nyb < 1) &
+         call abort_ice(subname//'ERROR: requires larger grid size')
+      
+      ! northeast triangle
+      k = 0
+      do j = ny_global, ny_global-3*nyb, -1
+         k = k+1
+         do i = nx_global-3*nxb+k, nx_global
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! northwest docks
+      do j = ny_global-3*nyb, ny_global
+         do i = 1, 1
+            work(i,j) = c0
+         enddo
+      enddo
+      do i = 1, 2*nxb
+         do j = ny_global-3*nyb, ny_global-nyb-2
+            work(i,j) = c0
+         enddo
+         do j = ny_global-nyb, ny_global-nyb+1
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! southwest docks
+      do j = 2*nyb, 3*nyb
+         do i = 1, 1
+            work(i,j) = c0
+         enddo
+      enddo
+      do j = 1, 2*nyb
+         do i = 2, nxb
+            work(i,j) = c0
+         enddo
+         do i = 2*nxb-1, 2*nxb
+            work(i,j) = c0
+         enddo
+         do i = 2*nxb+2,4*nxb
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! tiny island
+      do j = 14*nyb, 14*nyb+1
+         do i = 14*nxb, 14*nxb+1
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! X islands
+      ! left triangle
+      k = 0
+      do i = 2*nxb, 4*nxb
+         k=k+1
+         do j = 10*nyb+k, 14*nyb-k
+            work(i,j) = c0
+         enddo
+      enddo
+      ! upper triangle
+      k = 0
+      do j = 14*nyb, 12*nyb, -1
+         k=k+1
+         do i = 2*nxb+2+k, 6*nxb-2-k
+            work(i,j) = c0
+         enddo
+      enddo
+      ! diagonal
+      k = 0
+      do j = 10*nyb, 14*nyb
+         k=k+1
+         do i = 2*nxb+4+k, 2*nxb+6+k
+            work(i,j) = c0
+         enddo
+      enddo
+      ! lower right triangle
+      k = 0
+      do j = 12*nyb, 10*nyb, -1
+         k=k+1
+         do i = 5*nxb+k, 8*nxb
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! bar islands
+      do i = 10*nxb, 16*nxb
+         do j = 4*nyb, 5*nyb
+            work(i,j) = c0
+         enddo
+         do j = 6*nyb+2, 8*nyb
+            work(i,j) = c0
+         enddo
+         do j = 8*nyb+2, 8*nyb+3
+            work(i,j) = c0
+         enddo
+      enddo
+
+      end subroutine get_box_kmt
 
 !=======================================================================
 

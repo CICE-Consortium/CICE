@@ -251,6 +251,7 @@ grid_nml
    "", "``1``", "new formulation with round numbers", ""
    "", "``2``", "WMO standard categories", ""
    "", "``3``", "asymptotic scheme", ""
+   "``kmt_type``", "string", "file, default or boxislands", "file"
    "``kmt_file``", "string", "name of land mask file to be read", "'unknown_kmt_file'"
    "``nblyr``", "integer", "number of zbgc layers", "0"
    "``ncat``", "integer", "number of ice thickness categories", "0"

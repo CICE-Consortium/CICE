@@ -62,6 +62,7 @@
     grid_type    = 'displaced_pole'
     grid_system  = 'B'
     grid_file    = 'grid'
+    kmt_type     = 'file'
     kmt_file     = 'kmt'
     bathymetry_file = 'unknown_bathymetry_file'
     bathymetry_format = 'default'
