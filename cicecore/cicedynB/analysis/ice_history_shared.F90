@@ -398,8 +398,9 @@
            f_snowfrac,  f_snowfracn, &
            f_Tsfc,      f_aice     , &
            f_uvel,      f_vvel     , &
-           f_uvelE,     f_vvelE    , &
-           f_uvelN,     f_vvelN    , &
+!          For now, don't allow the users to modify the CD grid quantities.
+!          f_uvelE,     f_vvelE    , &
+!          f_uvelN,     f_vvelN    , &
            f_uatm,      f_vatm     , &
            f_atmspd,    f_atmdir   , &
            f_fswup,     &
@@ -440,18 +441,18 @@
            f_strocnx,   f_strocny  , &
            f_strintx,   f_strinty  , &
            f_taubx,     f_tauby    , &
-           f_strairxN,  f_strairyN , &
-           f_strtltxN,  f_strtltyN , &
-           f_strcorxN,  f_strcoryN , &
-           f_strocnxN,  f_strocnyN , &
-           f_strintxN,  f_strintyN , &
-           f_taubxN,    f_taubyN   , &
-           f_strairxE,  f_strairyE , &
-           f_strtltxE,  f_strtltyE , &
-           f_strcorxE,  f_strcoryE , &
-           f_strocnxE,  f_strocnyE , &
-           f_strintxE,  f_strintyE , &
-           f_taubxE,    f_taubyE   , &
+!          f_strairxN,  f_strairyN , &
+!          f_strtltxN,  f_strtltyN , &
+!          f_strcorxN,  f_strcoryN , &
+!          f_strocnxN,  f_strocnyN , &
+!          f_strintxN,  f_strintyN , &
+!          f_taubxN,    f_taubyN   , &
+!          f_strairxE,  f_strairyE , &
+!          f_strtltxE,  f_strtltyE , &
+!          f_strcorxE,  f_strcoryE , &
+!          f_strocnxE,  f_strocnyE , &
+!          f_strintxE,  f_strintyE , &
+!          f_taubxE,    f_taubyE   , &
            f_strength,  &
            f_divu,      f_shear    , &
            f_sig1,      f_sig2     , &
