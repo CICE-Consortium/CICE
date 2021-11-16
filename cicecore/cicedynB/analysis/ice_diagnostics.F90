@@ -127,7 +127,7 @@
           alvdr_init, alvdf_init, alidr_init, alidf_init
       use ice_flux_bgc, only: faero_atm, faero_ocn, fiso_atm, fiso_ocn
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
-      use ice_grid, only: lmask_n, lmask_s, tarean, tareas
+      use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_system
       use ice_state   ! everything
 ! tcraig, this is likely to cause circular dependency because ice_prescribed_mod is high level routine
 #ifdef CESMCOUPLED
@@ -200,6 +200,9 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2
+
+!     real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+!        uvelT, vvelT
 
       character(len=*), parameter :: subname = '(runtime_diags)'
 
@@ -293,7 +296,23 @@
          enddo
          enddo
       enddo
-      !$OMP END PARALLEL DO
+      ! Eventually do energy diagnostic on T points.
+!     if (grid_system == 'CD') then
+!     !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+!     do iblk = 1, nblocks
+!        do j = 1, ny_block
+!        do i = 1, nx_block
+!           call grid_average_X2Y('E2TS',uvelE,uvelT)
+!           call grid_average_X2Y('N2TS',vvelN,vvelT)
+!           work1(i,j,iblk) = p5 &
+!                          * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
+!                          * (uvelT(i,j,iblk)*uvelT(i,j,iblk) &
+!                          +  vvelT(i,j,iblk)*vvelT(i,j,iblk))
+!        enddo
+!        enddo
+!     enddo
+!     endif
+!     !$OMP END PARALLEL DO
       ketotn = global_sum(work1, distrb_info, field_loc_center, tarean)
       ketots = global_sum(work1, distrb_info, field_loc_center, tareas)
 
@@ -384,6 +403,20 @@
          enddo
       enddo
       !$OMP END PARALLEL DO
+      if (grid_system == 'CD') then
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 &
+                                     + vvelE(i,j,iblk)**2), &
+                                  sqrt(uvelN(i,j,iblk)**2 &
+                                     + vvelN(i,j,iblk)**2))
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+      endif
 
       umaxn = global_maxval(work1, distrb_info, lmask_n)
       umaxs = global_maxval(work1, distrb_info, lmask_s)
@@ -1630,10 +1663,12 @@
 
       subroutine print_state(plabel,i,j,iblk)
 
+      use ice_grid, only: grid_system
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, nfsd
-      use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, trcrn
+      use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, &
+                           uvelE, vvelE, uvelN, vvelN, trcrn
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
           frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltx, strtlty
@@ -1755,6 +1790,12 @@
 
       write(nu_diag,*) 'uvel(i,j)',uvel(i,j,iblk)
       write(nu_diag,*) 'vvel(i,j)',vvel(i,j,iblk)
+      if (grid_system == 'CD') then
+         write(nu_diag,*) 'uvelE(i,j)',uvelE(i,j,iblk)
+         write(nu_diag,*) 'vvelE(i,j)',vvelE(i,j,iblk)
+         write(nu_diag,*) 'uvelN(i,j)',uvelN(i,j,iblk)
+         write(nu_diag,*) 'vvelN(i,j)',vvelN(i,j,iblk)
+      endif
 
       write(nu_diag,*) ' '
       write(nu_diag,*) 'atm states and fluxes'
@@ -1802,10 +1843,12 @@
 
       subroutine print_points_state(plabel,ilabel)
 
+      use ice_grid, only: grid_system
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr
-      use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, trcrn
+      use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, &
+                           uvelE, vvelE, uvelE, vvelE, trcrn
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
           frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltx, strtlty
@@ -1897,6 +1940,12 @@
 
       write(nu_diag,*) trim(llabel),'uvel=',uvel(i,j,iblk)
       write(nu_diag,*) trim(llabel),'vvel=',vvel(i,j,iblk)
+      if (grid_system == 'CD') then
+         write(nu_diag,*) trim(llabel),'uvelE=',uvelE(i,j,iblk)
+         write(nu_diag,*) trim(llabel),'vvelE=',vvelE(i,j,iblk)
+         write(nu_diag,*) trim(llabel),'uvelN=',uvelN(i,j,iblk)
+         write(nu_diag,*) trim(llabel),'vvelN=',vvelN(i,j,iblk)
+      endif
 
       write(nu_diag,*) ' '
       write(nu_diag,*) 'atm states and fluxes'
