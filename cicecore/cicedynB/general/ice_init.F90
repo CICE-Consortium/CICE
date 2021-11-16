@@ -2632,42 +2632,56 @@
 
          endif ! ice_data_type
 
-         if (trim(grid_type) == 'rectangular') then
+         if ((trim(ice_data_type) == 'box2001')     .or. &
+             (trim(ice_data_type) == 'boxslotcyl')) then
 
-         ! place ice on left side of domain
-         icells = 0
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (tmask(i,j)) then
-               if (ULON(i,j) < -50./rad_to_deg) then
+            ! place ice on left side of domain
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (tmask(i,j)) then
+                  if (ULON(i,j) < -50./rad_to_deg) then
+                     icells = icells + 1
+                     indxi(icells) = i
+                     indxj(icells) = j
+                  endif            ! ULON
+               endif               ! tmask
+            enddo                  ! i
+            enddo                  ! j
+            
+         else if (trim(ice_data_type) == 'uniform') then
+            ! all cells not land mask are ice
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (tmask(i,j)) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
-               endif            ! ULON
-            endif               ! tmask
-         enddo                  ! i
-         enddo                  ! j
+               endif
+            enddo
+            enddo
+            
+         else ! default behavior
 
-         else
+            ! place ice at high latitudes where ocean sfc is cold
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (tmask(i,j)) then
+                  ! place ice in high latitudes where ocean sfc is cold
+                  if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
+                       (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
+                       TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
+                     icells = icells + 1
+                     indxi(icells) = i
+                     indxj(icells) = j
+                  endif            ! cold surface
+               endif               ! tmask
+            enddo                  ! i
+            enddo                  ! j
 
-         ! place ice at high latitudes where ocean sfc is cold
-         icells = 0
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (tmask(i,j)) then
-               ! place ice in high latitudes where ocean sfc is cold
-               if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
-                    (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
-                     TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
-                  icells = icells + 1
-                  indxi(icells) = i
-                  indxj(icells) = j
-               endif            ! cold surface
-            endif               ! tmask
-         enddo                  ! i
-         enddo                  ! j
-
-         endif                  ! rectgrid
+         endif                     ! ice_data_type
 
          do n = 1, ncat
 
@@ -2699,7 +2713,9 @@
 !                                         / (real(ny_global,kind=dbl_kind)) * p5)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
+
                elseif (trim(ice_data_type) == 'boxslotcyl') then
+
                   if (hinit(n) > c0) then
                    ! slotted cylinder
                    call boxslotcyl_data_aice(aicen, i, j,        &
@@ -2708,9 +2724,12 @@
                                              iglob,    jglob)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
-               else
+
+               else  ! default case. ice_data_type = uniform
+
                   vicen(i,j,n) = hinit(n) * ainit(n) ! m
-               endif
+               endif  ! ice_data_type
+
                vsnon(i,j,n) = min(aicen(i,j,n)*hsno_init,p2*vicen(i,j,n))
 
                call icepack_init_trcr(Tair  = Tair(i,j), Tf = Tf(i,j),  &
