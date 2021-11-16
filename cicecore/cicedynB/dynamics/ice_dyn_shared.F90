@@ -1507,6 +1507,63 @@
       
        end subroutine viscous_coeffs_and_rep_pressure
       
+
+ !=======================================================================
+ ! Computes viscous coefficients and replacement pressure for stress 
+ ! calculations. Note that tensile strength is included here.
+ !
+ ! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
+ ! Oceanogr., 9, 817-846.
+ !
+ ! Konig Beatty, C. and Holland, D. M.  (2010). Modeling landfast ice by
+ ! adding tensile strength. J. Phys. Oceanogr. 40, 185-198.
+ !
+ ! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
+ ! by combining tensile strength and a parameterization for grounded ridges.
+ ! J. Geophys. Res. Oceans, 121, 7354-7368.
+
+      subroutine viscous_coeffs_and_rep_pressure_T (strength, tinyarea, &
+                                                    Delta   , zetax2  , &
+                                                    etax2   , rep_prs , &
+                                                    capping)
+
+      real (kind=dbl_kind), intent(in)::  &
+        strength, tinyarea
+
+      real (kind=dbl_kind), intent(in)::  &
+        Delta
+
+      logical, intent(in):: capping
+
+      real (kind=dbl_kind), intent(out):: &
+        zetax2, etax2, rep_prs ! 2 x visous coeffs, replacement pressure
+
+      ! local variables
+      real (kind=dbl_kind) :: &
+        tmpcalc
+
+      character(len=*), parameter :: subname = '(viscous_coeffs_and_rep_pressure_T)'
+
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
+
+!      if (trim(yield_curve) == 'ellipse') then
+
+      if (capping) then
+         tmpcalc = strength/max(Delta,tinyarea)
+      else
+         tmpcalc = strength/(Delta + tinyarea)
+      endif
+
+      zetax2 = (c1+Ktens)*tmpcalc
+      rep_prs = (c1-Ktens)*tmpcalc*Delta
+      etax2 = epp2i*zetax2
+
+!      else
+
+!      endif
+
+       end subroutine viscous_coeffs_and_rep_pressure_T
+
 !=======================================================================
 
 ! Load velocity components into array for boundary updates
