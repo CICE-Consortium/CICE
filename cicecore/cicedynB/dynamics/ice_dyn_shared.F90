@@ -26,8 +26,11 @@
       public :: init_dyn, set_evp_parameters, stepu, principal_stress, &
                 dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
-                alloc_dyn_shared, deformations, strain_rates, &
+                alloc_dyn_shared, &
+                deformations, deformations_T, &
+                strain_rates, strain_rates_T, &
                 viscous_coeffs_and_rep_pressure, &
+                viscous_coeffs_and_rep_pressure_T, &
                 stack_velocity_field, unstack_velocity_field
 
       ! namelist parameters
@@ -1276,8 +1279,100 @@
 
       enddo                     ! ij
 
-      end subroutine deformations
+    end subroutine deformations
+    
+!=======================================================================
 
+! Compute deformations for mechanical redistribution at T point
+!
+! author: JF Lemieux, ECCC
+! Nov 2021
+
+      subroutine deformations_T (nx_block,   ny_block,   &
+                                 icellt,                 &
+                                 indxti,     indxtj,     &
+                                 uvelE,      vvelE,      &
+                                 uvelN,      vvelN,      &
+                                 dxN,        dyE,        &
+                                 dxT,        dyT,        &
+                                 tarear,                 &
+                                 shear,      divu,       &
+                                 rdg_conv,   rdg_shear )
+
+      use ice_constants, only: p5
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icellt                ! no. of cells where icetmask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+         intent(in) :: &
+         indxti   , & ! compressed index in i-direction
+         indxtj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the N point
+         uvelN    , & ! x-component of velocity (m/s) at the E point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         dxN      , & ! width of N-cell through the middle (m)
+         dyE      , & ! height of E-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
+         tarear       ! 1/tarea
+         
+      real (kind=dbl_kind), dimension (nx_block,ny_block), &
+         intent(inout) :: &
+         shear    , & ! strain rate II component (1/s)
+         divu     , & ! strain rate I component, velocity divergence (1/s)
+         rdg_conv , & ! convergence term for ridging (1/s)
+         rdg_shear    ! shear term for ridging (1/s)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &                     
+        divT, tensionT, shearT, DeltaT, & ! strain rates at T point
+        tmp                               ! useful combination
+
+      character(len=*), parameter :: subname = '(deformations_T)'
+      
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
+         
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+         call strain_rates_T (nx_block,   ny_block,   &
+                              i,          j,          &
+                              uvelE,      vvelE,      &
+                              uvelN,      vvelN,      &
+                              dxN,        dyE,        &
+                              dxT,        dyT,        &
+                              divT,       tensionT,   &
+                              shearT,     DeltaT      )
+         
+      !-----------------------------------------------------------------
+      ! deformations for mechanical redistribution
+      !-----------------------------------------------------------------
+         divu(i,j) = divT * tarear(i,j)
+         tmp = Deltat * tarear(i,j)
+         rdg_conv(i,j)  = -min(divu(i,j),c0)
+         rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
+
+         ! diagnostic only
+         ! shear = sqrt(tension**2 + shearing**2)
+         shear(i,j) = tarear(i,j)*sqrt( tensionT**2 + shearT**2 )
+
+      enddo                     ! ij
+
+    end subroutine deformations_T
+    
 !=======================================================================
 
 ! Compute strain rates
@@ -1506,7 +1601,6 @@
 !      endif
       
        end subroutine viscous_coeffs_and_rep_pressure
-      
 
  !=======================================================================
  ! Computes viscous coefficients and replacement pressure for stress 

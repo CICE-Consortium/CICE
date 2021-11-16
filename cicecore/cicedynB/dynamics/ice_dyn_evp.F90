@@ -900,6 +900,150 @@
 
 !=======================================================================
 
+! Computes the strain rates and internal stress components for T points
+! Computes stress terms for the momentum equation
+      
+! author: JF Lemieux, ECCC
+! Nov 2021      
+
+      subroutine stress_T   (nx_block,   ny_block,   & 
+                             ksub,       icellt,     & 
+                             indxti,     indxtj,     &
+                             uvelE,      vvelE,      &
+                             uvelN,      vvelN,      &
+                             dxN,        dyE,        &
+                             dxT,        dyT,        &
+                             tarear,     tinyarea,   & 
+                             strength,               & 
+                             stresspT,   stressmT,   & 
+                             stress12T,              & 
+                             shear,      divu,       & 
+                             rdg_conv,   rdg_shear   )
+
+        use ice_dyn_shared, only: strain_rates_T, deformations_T, &
+                                  viscous_coeffs_and_rep_pressure_T
+        
+      integer (kind=int_kind), intent(in) :: & 
+         nx_block, ny_block, & ! block dimensions
+         ksub              , & ! subcycling step
+         icellt                ! no. of cells where icetmask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxti   , & ! compressed index in i-direction
+         indxtj       ! compressed index in j-direction
+
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the N point
+         uvelN    , & ! x-component of velocity (m/s) at the E point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         dxN      , & ! width of N-cell through the middle (m)
+         dyE      , & ! height of E-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
+         strength , & ! ice strength (N/m)
+         tarear   , & ! 1/tarea
+         tinyarea     ! puny*tarea
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         stresspT , & ! sigma11+sigma22
+         stressmT , & ! sigma11-sigma22
+         stress12T   ! sigma12
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         shear    , & ! strain rate II component (1/s)
+         divu     , & ! strain rate I component, velocity divergence (1/s)
+         rdg_conv , & ! convergence term for ridging (1/s)
+         rdg_shear    ! shear term for ridging (1/s)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+        divT, tensionT, shearT, DeltaT, & ! strain rates at T point
+        zetax2T ,                       & ! 2 x zeta (visc coeff) at T point
+        etax2T  ,                       & ! 2 x eta (visc coeff) at T point
+        rep_prsT                          ! replacement pressure at T point
+
+      logical :: capping ! of the viscous coef
+      
+      character(len=*), parameter :: subname = '(stress_T)'
+
+      !-----------------------------------------------------------------
+      ! Initialize
+      !-----------------------------------------------------------------
+
+      capping = .true. ! could be later included in ice_in
+
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
+
+      !-----------------------------------------------------------------
+      ! strain rates at T point
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+         call strain_rates_T (nx_block,   ny_block,   &
+                              i,          j,          &
+                              uvelE,      vvelE,      &
+                              uvelN,      vvelN,      &
+                              dxN,        dyE,        &
+                              dxT,        dyT,        &
+                              divT,       tensionT,   &
+                              shearT,     DeltaT      )
+
+      !-----------------------------------------------------------------
+      ! viscous coefficients and replacement pressure at T point
+      !-----------------------------------------------------------------
+
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j),           &
+                                                 tinyarea(i,j),           &
+                                                 DeltaT, zetax2T, etax2T, &
+                                                 rep_prsT, capping        )
+         
+      !-----------------------------------------------------------------
+      ! the stresses                            ! kg/s^2
+      !-----------------------------------------------------------------
+
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code 
+         
+         stresspT(i,j)  = (stresspT(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2T*divT - rep_prsT)) * denom1
+
+         stressmT(i,j)  = (stressmT(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2T*tensionT) * denom1
+
+         stress12T(i,j) = (stress12T(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2T*shearT) * denom1
+
+      enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! on last subcycle, save quantities for mechanical redistribution
+      !-----------------------------------------------------------------
+      if (ksub == ndte) then
+
+         call deformations_T (nx_block  , ny_block  , &
+                              icellt    ,             &
+                              indxti    , indxtj    , &
+                              uvelE,      vvelE,      &
+                              uvelN,      vvelN,      &
+                              dxN,        dyE,        &
+                              dxT,        dyT,        &
+                              tarear    ,             &
+                              shear     , divu      , &
+                              rdg_conv  , rdg_shear )
+
+      endif
+
+    end subroutine stress_T
+      
+!=======================================================================
+
       end module ice_dyn_evp
 
 !=======================================================================
