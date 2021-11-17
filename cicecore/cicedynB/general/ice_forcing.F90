@@ -118,11 +118,11 @@
          atm_data_format, & ! 'bin'=binary or 'nc'=netcdf
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 
-                          ! 'hadgem' or 'oned' or
+                          ! 'hadgem' or 'oned' or 'calm'
                           ! 'JRA55_gx1' or 'JRA55_gx3' or 'JRA55_tx1'
          bgc_data_type, & ! 'default', 'clim'
-         ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
-                          ! 'hadgem_sst' or 'hadgem_sst_uvocn'
+         ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned', 'calm',
+                          ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
          ice_data_type, & ! 'default', 'box2001', 'boxslotcyl'
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
 
@@ -316,6 +316,8 @@
          call uniform_data('E')
       elseif (trim(atm_data_type) == 'uniform_north') then
          call uniform_data('N')
+      elseif (trim(atm_data_type) == 'calm') then
+         call uniform_data('N',c0) ! direction does not matter when c0
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_files
       endif
@@ -517,6 +519,21 @@
          call ocn_data_hycom_init
       endif
 
+      ! uniform forcing options
+      if (trim(ocn_data_type) == 'uniform_northeast') then
+         call uniform_data_ocn('NE',p1)
+      endif
+      if (trim(ocn_data_type) == 'uniform_east') then
+         call uniform_data_ocn('E',p1)
+      endif
+      if (trim(ocn_data_type) == 'uniform_north') then
+         call uniform_data_ocn('N',p1)
+      endif
+
+      if (trim(ocn_data_type) == 'calm') then
+         call uniform_data_ocn('N',c0) ! directon does not matter for c0
+      endif
+
       end subroutine init_forcing_ocn
 
 !=======================================================================
@@ -633,11 +650,13 @@
       elseif (trim(atm_data_type) == 'box2001') then
          call box2001_data
       elseif (trim(atm_data_type) == 'uniform_northeast') then
-         call uniform_data('NE')
+      ! dah: uniformm opotions inclued here to allow call to prepare_forcing
+      ! is prepare_forcing required? zlvl0 and precip options are set in prepare_forcing. 
+      !   call uniform_data('NE')
       elseif (trim(atm_data_type) == 'uniform_east') then
-         call uniform_data('E')
+      !   call uniform_data('E')
       elseif (trim(atm_data_type) == 'uniform_north') then
-         call uniform_data('N')
+      !   call uniform_data('N')
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_data
       else    ! default values set in init_flux
@@ -5357,17 +5376,17 @@
 
 !=======================================================================
 !
-      subroutine uniform_data(dir)
-
+      subroutine uniform_data(dir,spd)
 !     uniform wind fields in some direction
 
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
-      use ice_grid, only: uvm, grid_average_X2Y
+      use ice_grid, only: grid_average_X2Y
 
       character(len=*), intent(in) :: dir
+      real(kind=dbl_kind), intent(in), optional :: spd ! speed for test
 
       ! local parameters
 
@@ -5375,24 +5394,30 @@
          iblk, i,j           ! loop indices
 
       real (kind=dbl_kind) :: &
-         tau
+         tau, &
+         atm_val ! value to use for atm speed
 
       character(len=*), parameter :: subname = '(uniform_data)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
-      ! ocean currents
-      uocn = c0
-      vocn = c0
+      ! check for optional spd
+      if (present(spd)) then
+         atm_val = spd
+      else
+         atm_val = c5 ! default
+      endif
+
       ! wind components
       if (dir == 'NE') then
-         uatm = c5
-         vatm = c5
+         uatm = atm_val
+         vatm = atm_val
       elseif (dir == 'N') then
          uatm = c0
-         vatm = c5
+         vatm = atm_val
       elseif (dir == 'E') then
-         uatm = c5
+         uatm = atm_val
+
          vatm = c0
       else
          call abort_ice (subname//'ERROR: dir unknown, dir = '//trim(dir), &
@@ -5400,21 +5425,71 @@
       endif
 
       do iblk = 1, nblocks
-      do j = 1, ny_block   
-      do i = 1, nx_block   
+         do j = 1, ny_block   
+         do i = 1, nx_block   
 
-         ! wind stress
-         wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
-         tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-         strax(i,j,iblk) = tau * uatm(i,j,iblk)
-         stray(i,j,iblk) = tau * vatm(i,j,iblk)
-
-      enddo  
-      enddo  
+            ! wind stress
+            wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
+            tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
+            strax(i,j,iblk) = tau * uatm(i,j,iblk)
+            stray(i,j,iblk) = tau * vatm(i,j,iblk)
+            
+         enddo
+         enddo  
       enddo ! nblocks
 
       end subroutine uniform_data
+!=======================================================================
 
+!
+      subroutine uniform_data_ocn(dir,spd)
+
+!     uniform wind fields in some direction
+
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_flux, only: uocn, vocn, uatm, vatm, wind, strax, stray
+      use ice_grid, only: grid_average_X2Y
+
+      character(len=*), intent(in) :: dir
+
+      real(kind=dbl_kind), intent(in), optional :: spd ! speed for test
+
+      ! local parameters
+
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
+
+      real(kind=dbl_kind) :: &
+           ocn_val ! value to use for ocean currents
+
+      character(len=*), parameter :: subname = '(uniform_data_ocn)'
+      
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+
+      if (present(spd)) then
+         ocn_val = spd
+      else
+         ocn_val = p1 ! default
+      endif
+
+      ! ocn components
+      if (dir == 'NE') then
+         uocn = ocn_val
+         vocn = ocn_val
+      elseif (dir == 'N') then
+         uocn = c0
+         vocn = ocn_val
+      elseif (dir == 'E') then
+         uocn = ocn_val
+         vocn = c0
+      else
+         call abort_ice (subname//'ERROR: dir unknown, dir = '//trim(dir), &
+              file=__FILE__, line=__LINE__)
+      endif
+
+      end subroutine uniform_data_ocn
 !=======================================================================
 
       subroutine get_wave_spec
