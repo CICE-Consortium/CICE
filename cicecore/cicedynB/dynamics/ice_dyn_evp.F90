@@ -42,7 +42,8 @@
       use ice_constants, only: c0, p027, p055, p111, p166, &
           p222, p25, p333, p5, c1
       use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
-          ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, uvel_init, vvel_init, &
+          ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, fcorE_blk, fcorN_blk, &
+          uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
           seabed_stress, Ktens, revp
       use ice_fileunits, only: nu_diag
@@ -84,14 +85,22 @@
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
           strocnxT, strocnyT, strax, stray, &
+          strairxN, strairyN, uocnN, vocnN, ss_tltxN, ss_tltyN, icenmask, fmN, &
+          strtltxN, strtltyN, strocnxN, strocnyN, strintxN, strintyN, taubxN, taubyN, &
+          straxN, strayN, TbN, &
+          strairxE, strairyE, uocnE, vocnE, ss_tltxE, ss_tltyE, iceemask, fmE, &
+          strtltxE, strtltyE, strocnxE, strocnyE, strintxE, strintyE, taubxE, taubyE, &
+          straxE, strayE, TbE, &
           Tbu, hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
+      use ice_grid, only: tmask, umask, nmask, emask, dxt, dyt, &
+          dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea, grid_average_X2Y, &
           grid_type, grid_system
-      use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
+      use ice_state, only: aice, vice, vsno, uvel, vvel, uvelN, vvelN, &
+          uvelE, vvelE, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
@@ -112,11 +121,17 @@
 
       integer (kind=int_kind), dimension(max_blocks) :: & 
          icellt   , & ! no. of cells where icetmask = 1
+         icelln   , & ! no. of cells where icenmask = 1
+         icelle   , & ! no. of cells where iceemask = 1
          icellu       ! no. of cells where iceumask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks) :: &
          indxti   , & ! compressed index in i-direction
          indxtj   , & ! compressed index in j-direction
+         indxei   , & ! compressed index in i-direction
+         indxej   , & ! compressed index in j-direction
+         indxni   , & ! compressed index in i-direction
+         indxnj   , & ! compressed index in j-direction
          indxui   , & ! compressed index in i-direction
          indxuj       ! compressed index in j-direction
 
@@ -129,6 +144,24 @@
          aiu      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         waterxN  , & ! for ocean stress calculation, x (m/s)
+         wateryN  , & ! for ocean stress calculation, y (m/s)
+         forcexN  , & ! work array: combined atm stress and ocn tilt, x
+         forceyN  , & ! work array: combined atm stress and ocn tilt, y
+         aiN      , & ! ice fraction on N-grid
+         nmass    , & ! total mass of ice and snow (N grid)
+         nmassdti     ! mass of N-cell/dte (kg/m^2 s)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         waterxE  , & ! for ocean stress calculation, x (m/s)
+         wateryE  , & ! for ocean stress calculation, y (m/s)
+         forcexE  , & ! work array: combined atm stress and ocn tilt, x
+         forceyE  , & ! work array: combined atm stress and ocn tilt, y
+         aiE      , & ! ice fraction on E-grid
+         emass    , & ! total mass of ice and snow (E grid)
+         emassdti     ! mass of E-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
 
@@ -207,6 +240,12 @@
                          strairx (:,:,iblk), strairy (:,:,iblk), & 
                          tmass   (:,:,iblk), icetmask(:,:,iblk))
 
+         if (grid_system == 'CD') then
+            strairxN(:,:,iblk) = strairxT(:,:,iblk)
+            strairyN(:,:,iblk) = strairyT(:,:,iblk)
+            strairxE(:,:,iblk) = strairxT(:,:,iblk)
+            strairyE(:,:,iblk) = strairyT(:,:,iblk)
+         endif
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
@@ -222,6 +261,12 @@
       call grid_average_X2Y('T2UF',tmass,umass)
       call grid_average_X2Y('T2UF',aice_init, aiu)
 
+      if (grid_system == 'CD') then
+         call grid_average_X2Y('T2EF',tmass,emass)
+         call grid_average_X2Y('T2EF',aice_init, aie)
+         call grid_average_X2Y('T2NF',tmass,nmass)
+         call grid_average_X2Y('T2NF',aice_init, aie)
+      endif
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
       ! This wind stress is rotated on u grid and multiplied by aice
@@ -243,6 +288,29 @@
          call grid_average_X2Y('T2UF',strairy)
       endif      
 
+      if (grid_system == 'CD') then
+
+      if (.not. calc_strair) then       
+         strairxN(:,:,:) = strax(:,:,:)
+         strairyN(:,:,:) = stray(:,:,:)
+         strairxE(:,:,:) = strax(:,:,:)
+         strairyE(:,:,:) = stray(:,:,:)
+      else
+         call ice_HaloUpdate (strairxN,          halo_info, &
+                              field_loc_center, field_type_vector)
+         call ice_HaloUpdate (strairyN,          halo_info, &
+                              field_loc_center, field_type_vector)
+         call ice_HaloUpdate (strairxE,          halo_info, &
+                              field_loc_center, field_type_vector)
+         call ice_HaloUpdate (strairyE,          halo_info, &
+                              field_loc_center, field_type_vector)
+         call grid_average_X2Y('T2NF',strairxN)
+         call grid_average_X2Y('T2NF',strairyN)
+         call grid_average_X2Y('T2EF',strairxE)
+         call grid_average_X2Y('T2EF',strairyE)
+      endif      
+
+      endif
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
 ! need to do more debugging
       !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
@@ -306,6 +374,100 @@
 
       enddo  ! iblk
       !$TCXOMP END PARALLEL DO
+
+      if (grid_system == 'CD') then
+
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+
+      !-----------------------------------------------------------------
+      ! more preparation for dynamics on N grid
+      !-----------------------------------------------------------------
+
+         this_block = get_block(blocks_ice(iblk),iblk)         
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         call dyn_prep2 (nx_block,             ny_block,             & 
+                         ilo, ihi,             jlo, jhi,             &
+                         icellt(iblk),         icelln(iblk),         & 
+                         indxti      (:,iblk), indxtj      (:,iblk), & 
+                         indxni      (:,iblk), indxnj      (:,iblk), & 
+                         aiN       (:,:,iblk), nmass     (:,:,iblk), & 
+                         nmassdti  (:,:,iblk), fcorN_blk  (:,:,iblk), & 
+                         nmask     (:,:,iblk),                       & 
+                         uocnN     (:,:,iblk), vocnN     (:,:,iblk), & 
+                         strairxN  (:,:,iblk), strairyN  (:,:,iblk), & 
+                         ss_tltxN  (:,:,iblk), ss_tltyN  (:,:,iblk), &  
+                         icetmask  (:,:,iblk), icenmask  (:,:,iblk), & 
+                         fmN       (:,:,iblk), dt,                   & 
+                         strtltxN  (:,:,iblk), strtltyN  (:,:,iblk), & 
+                         strocnxN  (:,:,iblk), strocnyN  (:,:,iblk), & 
+                         strintxN  (:,:,iblk), strintyN  (:,:,iblk), & 
+                         taubxN    (:,:,iblk), taubyN    (:,:,iblk), & 
+                         waterxN   (:,:,iblk), wateryN   (:,:,iblk), & 
+                         forcexN   (:,:,iblk), forceyN   (:,:,iblk), & 
+                         stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
+                         stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
+                         stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
+                         stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
+                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
+                         stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
+                         uvelN_init (:,:,iblk), vvelN_init (:,:,iblk), &
+                         uvelN      (:,:,iblk), vvelN      (:,:,iblk), &
+                         TbN       (:,:,iblk))
+
+      enddo  ! iblk
+      !$TCXOMP END PARALLEL DO
+
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+
+      !-----------------------------------------------------------------
+      ! more preparation for dynamics on N grid
+      !-----------------------------------------------------------------
+
+         this_block = get_block(blocks_ice(iblk),iblk)         
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         call dyn_prep2 (nx_block,             ny_block,             & 
+                         ilo, ihi,             jlo, jhi,             &
+                         icellt(iblk),         icelle(iblk),         & 
+                         indxti      (:,iblk), indxtj      (:,iblk), & 
+                         indxei      (:,iblk), indxej      (:,iblk), & 
+                         aiE       (:,:,iblk), emass     (:,:,iblk), & 
+                         emassdti  (:,:,iblk), fcorE_blk  (:,:,iblk), & 
+                         emask     (:,:,iblk),                       & 
+                         uocnE     (:,:,iblk), vocnE     (:,:,iblk), & 
+                         strairxE  (:,:,iblk), strairyE  (:,:,iblk), & 
+                         ss_tltxE  (:,:,iblk), ss_tltyE  (:,:,iblk), &  
+                         icetmask  (:,:,iblk), icenmask  (:,:,iblk), & 
+                         fmE       (:,:,iblk), dt,                   & 
+                         strtltxE  (:,:,iblk), strtltyE  (:,:,iblk), & 
+                         strocnxE  (:,:,iblk), strocnyE  (:,:,iblk), & 
+                         strintxE  (:,:,iblk), strintyE  (:,:,iblk), & 
+                         taubxE    (:,:,iblk), taubyE    (:,:,iblk), & 
+                         waterxE   (:,:,iblk), wateryE   (:,:,iblk), & 
+                         forcexE   (:,:,iblk), forceyE   (:,:,iblk), & 
+                         stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
+                         stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
+                         stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
+                         stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
+                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
+                         stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
+                         uvelE_init (:,:,iblk), vvelE_init (:,:,iblk), &
+                         uvelE      (:,:,iblk), vvelE      (:,:,iblk), &
+                         TbE       (:,:,iblk))
+
+      enddo  ! iblk
+      !$TCXOMP END PARALLEL DO
+      
+      endif ! grid_system
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
