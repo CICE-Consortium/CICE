@@ -81,9 +81,21 @@
       real (kind=dbl_kind), allocatable, public :: & 
          fcor_blk(:,:,:)   ! Coriolis parameter (1/s)
 
+      real (kind=dbl_kind), allocatable, public :: & 
+         fcorE_blk(:,:,:), &   ! Coriolis parameter at E points (1/s)
+         fcorN_blk(:,:,:)      ! Coriolis parameter at N points  (1/s)
+
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          uvel_init, & ! x-component of velocity (m/s), beginning of timestep
          vvel_init    ! y-component of velocity (m/s), beginning of timestep
+
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         uvelN_init, & ! x-component of velocity (m/s), beginning of timestep
+         vvelN_init    ! y-component of velocity (m/s), beginning of timestep
+
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         uvelE_init, & ! x-component of velocity (m/s), beginning of timestep
+         vvelE_init    ! y-component of velocity (m/s), beginning of timestep
 
       ! ice isotropic tensile strength parameter
       real (kind=dbl_kind), public :: &
@@ -118,6 +130,16 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_dyn_shared): Out of memory')
 
+      if (grid_system == 'CD') then
+         allocate( &
+            uvelE_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
+            vvelE_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
+            uvelN_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
+            vvelN_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
+            stat=ierr)
+         if (ierr/=0) call abort_ice('(alloc_dyn_shared): Out of memory')
+      endif
+
       end subroutine alloc_dyn_shared
 
 !=======================================================================
@@ -135,7 +157,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
-      use ice_grid, only: ULAT
+      use ice_grid, only: ULAT, NLAT, ELAT
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -158,6 +180,11 @@
 
       allocate(fcor_blk(nx_block,ny_block,max_blocks))
 
+      if (grid_system == 'CD') then
+         allocate(fcorE_blk(nx_block,ny_block,max_blocks))
+         allocate(fcorN_blk(nx_block,ny_block,max_blocks))
+      endif
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
       do j = 1, ny_block
@@ -167,10 +194,10 @@
          uvel(i,j,iblk) = c0    ! m/s
          vvel(i,j,iblk) = c0    ! m/s
          if (grid_system == 'CD') then ! extra velocity variables
-            uvelE = c0
-            vvelE = c0
-            uvelN = c0
-            vvelN = c0
+            uvelE(i,j,iblk) = c0
+            vvelE(i,j,iblk) = c0
+            uvelN(i,j,iblk) = c0
+            vvelN(i,j,iblk) = c0
          endif
 
          ! strain rates
@@ -186,6 +213,21 @@
             fcor_blk(i,j,iblk) = 0.0
          else
             fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
+         endif
+
+         if (grid_system == 'CD') then
+
+         if (trim(coriolis) == 'constant') then
+            fcorE_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+            fcorN_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+         else if (trim(coriolis) == 'zero') then
+            fcorE_blk(i,j,iblk) = 0.0
+            fcorN_blk(i,j,iblk) = 0.0
+         else
+            fcorE_blk(i,j,iblk) = c2*omega*sin(ELAT(i,j,iblk)) ! 1/s
+            fcorN_blk(i,j,iblk) = c2*omega*sin(NLAT(i,j,iblk)) ! 1/s
+         endif
+
          endif
 
          ! stress tensor,  kg/s^2

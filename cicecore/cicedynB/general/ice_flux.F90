@@ -40,12 +40,24 @@
        ! in from atmos (if .not.calc_strair)  
          strax   , & ! wind stress components (N/m^2)
          stray   , & ! 
+         straxE  , & ! wind stress components (N/m^2)
+         strayE  , & ! 
+         straxN  , & ! wind stress components (N/m^2)
+         strayN  , & ! 
 
        ! in from ocean
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
+         uocnE   , & ! ocean current, x-direction (m/s)
+         vocnE   , & ! ocean current, y-direction (m/s)
+         uocnN   , & ! ocean current, x-direction (m/s)
+         vocnN   , & ! ocean current, y-direction (m/s)
          ss_tltx , & ! sea surface slope, x-direction (m/m)
          ss_tlty , & ! sea surface slope, y-direction
+         ss_tltxE, & ! sea surface slope, x-direction (m/m)
+         ss_tltyE, & ! sea surface slope, y-direction
+         ss_tltxN, & ! sea surface slope, x-direction (m/m)
+         ss_tltyN, & ! sea surface slope, y-direction
          hwater  , & ! water depth for seabed stress calc (landfast ice) 
 
        ! out to atmosphere
@@ -127,6 +139,14 @@
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
          iceumask   ! ice extent mask (U-cell)
+
+      logical (kind=log_kind), &
+         dimension (:,:,:), allocatable, public :: &
+         icenmask   ! ice extent mask (N-cell)
+
+      logical (kind=log_kind), &
+         dimension (:,:,:), allocatable, public :: &
+         iceemask   ! ice extent mask (E-cell)
 
        ! internal
 
@@ -565,6 +585,12 @@
 
       if (grid_system == "CD") &
          allocate( &
+         straxN     (nx_block,ny_block,max_blocks), & ! wind stress components (N/m^2)
+         strayN     (nx_block,ny_block,max_blocks), & ! 
+         uocnN      (nx_block,ny_block,max_blocks), & ! ocean current, x-direction (m/s)
+         vocnN      (nx_block,ny_block,max_blocks), & ! ocean current, y-direction (m/s)
+         ss_tltxN   (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
+         ss_tltyN   (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction
          taubxN      (nx_block,ny_block,max_blocks), & ! seabed stress (x) at N points (N/m^2)
          taubyN      (nx_block,ny_block,max_blocks), & ! seabed stress (y) at N points (N/m^2)
          strairxN    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at N points
@@ -575,6 +601,13 @@
          strtltyN    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at N points
          strintxN    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at N points (N/m^2)
          strintyN    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at N points (N/m^2)
+         icenmask   (nx_block,ny_block,max_blocks), & ! ice extent mask (N-cell)
+         straxE     (nx_block,ny_block,max_blocks), & ! wind stress components (N/m^2)
+         strayE     (nx_block,ny_block,max_blocks), & ! 
+         uocnE      (nx_block,ny_block,max_blocks), & ! ocean current, x-direction (m/s)
+         vocnE      (nx_block,ny_block,max_blocks), & ! ocean current, y-direction (m/s)
+         ss_tltxE   (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
+         ss_tltyE   (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction
          taubxE      (nx_block,ny_block,max_blocks), & ! seabed stress (x) at E points (N/m^2)
          taubyE      (nx_block,ny_block,max_blocks), & ! seabed stress (y) at E points (N/m^2)
          strairxE    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at E points
@@ -585,6 +618,7 @@
          strtltyE    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at E points
          strintxE    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at E points (N/m^2)
          strintyE    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at E points (N/m^2)
+         iceemask   (nx_block,ny_block,max_blocks), & ! ice extent mask (E-cell)
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
