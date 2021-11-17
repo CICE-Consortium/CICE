@@ -290,25 +290,25 @@
 
       if (grid_system == 'CD') then
 
-      if (.not. calc_strair) then       
-         strairxN(:,:,:) = strax(:,:,:)
-         strairyN(:,:,:) = stray(:,:,:)
-         strairxE(:,:,:) = strax(:,:,:)
-         strairyE(:,:,:) = stray(:,:,:)
-      else
-         call ice_HaloUpdate (strairxN,          halo_info, &
-                              field_loc_center, field_type_vector)
-         call ice_HaloUpdate (strairyN,          halo_info, &
-                              field_loc_center, field_type_vector)
-         call ice_HaloUpdate (strairxE,          halo_info, &
-                              field_loc_center, field_type_vector)
-         call ice_HaloUpdate (strairyE,          halo_info, &
-                              field_loc_center, field_type_vector)
-         call grid_average_X2Y('T2NF',strairxN)
-         call grid_average_X2Y('T2NF',strairyN)
-         call grid_average_X2Y('T2EF',strairxE)
-         call grid_average_X2Y('T2EF',strairyE)
-      endif      
+         if (.not. calc_strair) then       
+            strairxN(:,:,:) = strax(:,:,:)
+            strairyN(:,:,:) = stray(:,:,:)
+            strairxE(:,:,:) = strax(:,:,:)
+            strairyE(:,:,:) = stray(:,:,:)
+         else
+            call ice_HaloUpdate (strairxN,          halo_info, &
+                                 field_loc_center, field_type_vector)
+            call ice_HaloUpdate (strairyN,          halo_info, &
+                                 field_loc_center, field_type_vector)
+            call ice_HaloUpdate (strairxE,          halo_info, &
+                                 field_loc_center, field_type_vector)
+            call ice_HaloUpdate (strairyE,          halo_info, &
+                                 field_loc_center, field_type_vector)
+            call grid_average_X2Y('T2NF',strairxN)
+            call grid_average_X2Y('T2NF',strairyN)
+            call grid_average_X2Y('T2EF',strairxE)
+            call grid_average_X2Y('T2EF',strairyE)
+         endif      
 
       endif
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
@@ -426,7 +426,7 @@
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
-      ! more preparation for dynamics on N grid
+      ! more preparation for dynamics on E grid
       !-----------------------------------------------------------------
 
          this_block = get_block(blocks_ice(iblk),iblk)         
