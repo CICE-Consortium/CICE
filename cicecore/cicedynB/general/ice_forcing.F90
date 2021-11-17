@@ -310,6 +310,12 @@
          call ISPOL_files
       elseif (trim(atm_data_type) == 'box2001') then
          call box2001_data
+      elseif (trim(atm_data_type) == 'uniform_northeast') then
+         call uniform_data('NE')
+      elseif (trim(atm_data_type) == 'uniform_east') then
+         call uniform_data('E')
+      elseif (trim(atm_data_type) == 'uniform_north') then
+         call uniform_data('N')
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_files
       endif
@@ -626,6 +632,12 @@
          call oned_data
       elseif (trim(atm_data_type) == 'box2001') then
          call box2001_data
+      elseif (trim(atm_data_type) == 'uniform_northeast') then
+         call uniform_data('NE')
+      elseif (trim(atm_data_type) == 'uniform_east') then
+         call uniform_data('E')
+      elseif (trim(atm_data_type) == 'uniform_north') then
+         call uniform_data('N')
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_data
       else    ! default values set in init_flux
@@ -5342,6 +5354,66 @@
       enddo ! nblocks
 
       end subroutine box2001_data
+
+!=======================================================================
+!
+      subroutine uniform_data(dir)
+
+!     uniform wind fields in some direction
+
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
+      use ice_grid, only: uvm, grid_average_X2Y
+
+      character(len=*), intent(in) :: dir
+
+      ! local parameters
+
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
+
+      real (kind=dbl_kind) :: &
+         tau
+
+      character(len=*), parameter :: subname = '(uniform_data)'
+
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+
+      ! ocean currents
+      uocn = c0
+      vocn = c0
+      ! wind components
+      if (dir == 'NE') then
+         uatm = c5
+         vatm = c5
+      elseif (dir == 'N') then
+         uatm = c0
+         vatm = c5
+      elseif (dir == 'E') then
+         uatm = c5
+         vatm = c0
+      else
+         call abort_ice (subname//'ERROR: dir unknown, dir = '//trim(dir), &
+              file=__FILE__, line=__LINE__)
+      endif
+
+      do iblk = 1, nblocks
+      do j = 1, ny_block   
+      do i = 1, nx_block   
+
+         ! wind stress
+         wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
+         tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
+         strax(i,j,iblk) = tau * uatm(i,j,iblk)
+         stray(i,j,iblk) = tau * vatm(i,j,iblk)
+
+      enddo  
+      enddo  
+      enddo ! nblocks
+
+      end subroutine uniform_data
 
 !=======================================================================
 
