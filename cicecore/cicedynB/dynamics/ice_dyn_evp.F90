@@ -1203,7 +1203,114 @@
       endif
 
     end subroutine stress_T
+
+    !=======================================================================
+
+! Computes divergence of stress tensor at the E or N point for the mom equation
       
+! author: JF Lemieux, ECCC
+! Nov 2021      
+
+      subroutine div_stress  (nx_block,   ny_block,   & 
+                              ksub,       icell,     & 
+                              indxi,     indxj,     &
+                              dxE_N,   dyE_N, &
+                              dxT_U,   dyT_U, &
+                              arear,     &
+                              stressp,   stressm,     & 
+                              stress12, &
+                              F1, F2,               &
+                              grid_location)
+
+        use ice_dyn_shared, only: strain_rates_T, deformations_T, &
+                                  viscous_coeffs_and_rep_pressure_T
+        
+      integer (kind=int_kind), intent(in) :: & 
+         nx_block, ny_block, & ! block dimensions
+         ksub              , & ! subcycling step
+         icell                 ! no. of cells where epm (or npm) = 1 
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxi   , & ! compressed index in i-direction
+         indxj       ! compressed index in j-direction
+
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         dxE_N , & ! width of E or N-cell through the middle (m)
+         dyE_N , & ! height of E or N-cell through the middle (m)
+         dxT_U , & ! width of T or U-cell through the middle (m)
+         dyT_U , & ! height of T or U-cell through the middle (m)
+         arear    , & ! 1/earea or 1/narea
+         stressp  , & ! sigma11+sigma22
+         stressm  , & ! sigma11-sigma22
+         stress12     ! sigma12
+
+      character(len=*), intent(in) :: &
+         grid_location ! E (East) or N (North) ! TO BE IMPROVED!!!!
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
+         F1      , & ! div of stress tensor for u component
+         F2          ! div of stress tensor for v component
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      character(len=*), parameter :: subname = '(div_stress)'
+
+!!! Instead of having the if statements below we could define for example
+!    i+ci, j+cj where ci, cj would change with grid_position
+      
+      do ij = 1, icell
+         i = indxi(ij)
+         j = indxj(ij)
+
+      !-----------------------------------------------------------------
+      ! F1,F2 : div of stress tensor for u,v components
+      !-----------------------------------------------------------------
+
+         select case (trim(grid_location))
+         case('E')
+            
+            F1(i,j) = arear(i,j) * &
+                 ( p5 * dyE_N(i,j) * ( stressp(i+1,j)-stressp(i,j) )       &
+                 + (p5/dyE_N(i,j)) * ( (dyT_U(i+1,j)**2) * stressm(i+1,j)  &
+                                      -(dyT_U(i,j)**2)*stressm(i,j) )      &
+                 + (c1/dxE_N(i,j)) * ( (dxT_U(i,j)**2) * stress12(i,j)     &
+                                      -(dxT_U(i,j-1)**2)*stress12(i,j-1) ) )
+
+            F2(i,j) = arear(i,j) * &
+                 ( p5 * dxE_N(i,j) * ( stressp(i,j)-stressp(i,j-1) )       &
+                 - (p5/dxE_N(i,j)) * ( (dxT_U(i,j)**2) * stressm(i,j)      &
+                                      -(dxT_U(i,j-1)**2)*stressm(i,j-1) )  &
+                 + (c1/dyE_N(i,j)) * ( (dyT_U(i+1,j)**2) * stress12(i+1,j) &
+                                      -(dyT_U(i,j)**2)*stress12(i,j) ) )
+
+         case('N')
+
+            F1(i,j) = arear(i,j) * &
+                 ( p5 * dyE_N(i,j) * ( stressp(i,j)-stressp(i-1,j) )       &
+                 + (p5/dyE_N(i,j)) * ( (dyT_U(i,j)**2) * stressm(i,j)      &
+                                      -(dyT_U(i-1,j)**2)*stressm(i-1,j) )  &
+                 + (c1/dxE_N(i,j)) * ( (dxT_U(i,j+1)**2) * stress12(i,j+1) &
+                                      -(dxT_U(i,j)**2)*stress12(i,j) ) )
+
+            F2(i,j) = arear(i,j) * &
+                 ( p5 * dxE_N(i,j) * ( stressp(i,j+1)-stressp(i,j) )       &
+                 - (p5/dxE_N(i,j)) * ( (dxT_U(i,j+1)**2) * stressm(i,j+1)  &
+                                      -(dxT_U(i,j)**2)*stressm(i,j) )      &
+                 + (c1/dyE_N(i,j)) * ( (dyT_U(i,j)**2) * stress12(i,j)     &
+                                      -(dyT_U(i-1,j)**2)*stress12(i-1,j) ) )
+         case default
+            call abort_ice(subname // ' unkwown grid_location: ' // grid_location)
+         end select
+         
+
+      enddo                     ! ij
+
+    end subroutine div_stress
+    
 !=======================================================================
 
       end module ice_dyn_evp

@@ -1563,7 +1563,7 @@
       DeltaT = sqrt(divT**2 + e_factor*(tensionT**2 + shearT**2))
 
     end subroutine strain_rates_T
-      
+
  !=======================================================================
  ! Computes viscous coefficients and replacement pressure for stress 
  ! calculations. Note that tensile strength is included here.
