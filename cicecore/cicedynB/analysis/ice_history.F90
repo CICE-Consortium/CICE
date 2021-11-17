@@ -281,8 +281,12 @@
       if (grid_system == 'CD') then
          f_uvelE = f_uvel
          f_vvelE = f_vvel
+         f_icespdE = f_icespd
+         f_icedirE = f_icedir
          f_uvelN = f_uvel
          f_vvelN = f_vvel
+         f_icespdN = f_icespd
+         f_icedirN = f_icedir
          f_strairxN = f_strairx
          f_strairyN = f_strairy
          f_strairxE = f_strairx
@@ -359,10 +363,16 @@
       call broadcast_scalar (f_aice, master_task)
       call broadcast_scalar (f_uvel, master_task)
       call broadcast_scalar (f_vvel, master_task)
+      call broadcast_scalar (f_icespd, master_task)
+      call broadcast_scalar (f_icedir, master_task)
       call broadcast_scalar (f_uvelE, master_task)
-      call broadcast_scalar (f_uvelN, master_task)
       call broadcast_scalar (f_vvelE, master_task)
+      call broadcast_scalar (f_icespdE, master_task)
+      call broadcast_scalar (f_icedirE, master_task)
+      call broadcast_scalar (f_uvelN, master_task)
       call broadcast_scalar (f_vvelN, master_task)
+      call broadcast_scalar (f_icespdN, master_task)
+      call broadcast_scalar (f_icedirN, master_task)
       call broadcast_scalar (f_uatm, master_task)
       call broadcast_scalar (f_vatm, master_task)
       call broadcast_scalar (f_atmspd, master_task)
@@ -623,6 +633,16 @@
              "positive is y direction on E grid", c1, c0,         &
              ns1, f_vvelE)
 
+         call define_hist_field(n_icespdE,"icespdE","m/s",estr2D, ecstr, &
+             "sea ice speed",                                  &
+             "vector magnitude on E grid", c1, c0,                       &
+             ns1, f_icespdE)
+      
+         call define_hist_field(n_icedirE,"icedirE","deg",estr2D, ecstr, &
+             "sea ice direction",                              &
+             "vector direction - coming from on E grid", c1, c0,         &
+             ns1, f_icedirE)
+      
          call define_hist_field(n_uvelN,"uvelN","m/s",nstr2D, ncstr,  &
              "ice velocity (x)",                                  &
              "positive is x direction on N grid", c1, c0,         &
@@ -633,6 +653,16 @@
              "positive is y direction on N grid", c1, c0,         &
              ns1, f_vvelN)
 
+         call define_hist_field(n_icespdN,"icespdN","m/s",nstr2D, ncstr, &
+             "sea ice speed",                                  &
+             "vector magnitude on N grid", c1, c0,                       &
+             ns1, f_icespdN)
+      
+         call define_hist_field(n_icedirN,"icedirN","deg",nstr2D, ncstr, &
+             "sea ice direction",                              &
+             "vector direction - coming from on N grid", c1, c0,         &
+             ns1, f_icedirN)
+      
          call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
              "ice velocity (x)",                                  &
              "positive is x direction on U grid", c1, c0,         &
@@ -642,6 +672,16 @@
              "ice velocity (y)",                                  &
              "positive is y direction on U grid", c1, c0,         &
              ns1, f_vvel)
+      
+         call define_hist_field(n_icespd,"icespd","m/s",ustr2D, ucstr, &
+             "sea ice speed",                                  &
+             "vector magnitude", c1, c0,                               &
+             ns1, f_icespd)
+      
+         call define_hist_field(n_icedir,"icedir","deg",ustr2D, ucstr, &
+             "sea ice direction",                              &
+             "vector direction - coming from", c1, c0,                 &
+             ns1, f_icedir)
       
          call define_hist_field(n_uatm,"uatm","m/s",ustr2D, ucstr,  &
              "atm velocity (x)",                                  &
@@ -2141,14 +2181,59 @@
              call accum_hist_field(n_uvel,   iblk, uvel(:,:,iblk), a2D)
          if (f_vvel   (1:1) /= 'x') &
              call accum_hist_field(n_vvel,   iblk, vvel(:,:,iblk), a2D)
+         if (f_icespd   (1:1) /= 'x') &
+             call accum_hist_field(n_icespd,   iblk, sqrt( &
+                                  (uvel(:,:,iblk)*uvel(:,:,iblk)) + &
+                                  (vvel(:,:,iblk)*vvel(:,:,iblk))), a2D)
+         if (f_icedir(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
+                 worka(i,j) = worka(i,j) + c180
+           enddo
+           enddo
+           call accum_hist_field(n_icedir, iblk, worka(:,:), a2D)
+         endif
          if (f_uvelN   (1:1) /= 'x') &
              call accum_hist_field(n_uvelN,  iblk, uvelN(:,:,iblk), a2D)
          if (f_vvelN   (1:1) /= 'x') &
              call accum_hist_field(n_vvelN,  iblk, vvelN(:,:,iblk), a2D)
+         if (f_icespdN  (1:1) /= 'x') &
+             call accum_hist_field(n_icespdN,   iblk, sqrt( &
+                                  (uvelN(:,:,iblk)*uvelN(:,:,iblk)) + &
+                                  (vvelN(:,:,iblk)*vvelN(:,:,iblk))), a2D)
+         if (f_icedirN(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uvelN(i,j,iblk)) > puny .or. abs(vvelN(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uvelN(i,j,iblk),vvelN(i,j,iblk))*rad_to_deg
+                 worka(i,j) = worka(i,j) + c180
+           enddo
+           enddo
+           call accum_hist_field(n_icedirN, iblk, worka(:,:), a2D)
+         endif
          if (f_uvelE   (1:1) /= 'x') &
              call accum_hist_field(n_uvelE,  iblk, uvelE(:,:,iblk), a2D)
          if (f_vvelE   (1:1) /= 'x') &
              call accum_hist_field(n_vvelE,  iblk, vvelE(:,:,iblk), a2D)
+         if (f_icespdE  (1:1) /= 'x') &
+             call accum_hist_field(n_icespdE,   iblk, sqrt( &
+                                  (uvelE(:,:,iblk)*uvelE(:,:,iblk)) + &
+                                  (vvelE(:,:,iblk)*vvelE(:,:,iblk))), a2D)
+         if (f_icedirE(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uvelE(i,j,iblk)) > puny .or. abs(vvelE(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uvelE(i,j,iblk),vvelE(i,j,iblk))*rad_to_deg
+                 worka(i,j) = worka(i,j) + c180
+           enddo
+           enddo
+           call accum_hist_field(n_icedirE, iblk, worka(:,:), a2D)
+         endif
          if (f_uatm   (1:1) /= 'x') &
              call accum_hist_field(n_uatm,   iblk, uatm(:,:,iblk), a2D)
          if (f_vatm   (1:1) /= 'x') &

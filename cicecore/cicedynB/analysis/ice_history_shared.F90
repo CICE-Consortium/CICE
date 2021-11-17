@@ -235,8 +235,11 @@
            f_snowfrac  = 'x', f_snowfracn  = 'x', &
            f_Tsfc      = 'm', f_aice       = 'm', &
            f_uvel      = 'm', f_vvel       = 'm', &
+           f_icespd    = 'm', f_icedir     = 'm', &
            f_uvelE     = 'x', f_vvelE      = 'x', &
+           f_icespdE   = 'x', f_icedirE    = 'x', &
            f_uvelN     = 'x', f_vvelN      = 'x', &
+           f_icespdN   = 'x', f_icedirN    = 'x', &
            f_uatm      = 'm', f_vatm       = 'm', &
            f_atmspd    = 'm', f_atmdir     = 'm', &
            f_fswup     = 'm', &
@@ -398,9 +401,12 @@
            f_snowfrac,  f_snowfracn, &
            f_Tsfc,      f_aice     , &
            f_uvel,      f_vvel     , &
+           f_icespd,    f_icedir   , &
 !          For now, don't allow the users to modify the CD grid quantities.
 !          f_uvelE,     f_vvelE    , &
+!          f_icespdE,   f_icedirE  , &
 !          f_uvelN,     f_vvelN    , &
+!          f_icespdN,   f_icedirN  , &
            f_uatm,      f_vatm     , &
            f_atmspd,    f_atmdir   , &
            f_fswup,     &
@@ -586,8 +592,11 @@
            n_snowfrac   , n_snowfracn  , &
            n_Tsfc       , n_aice       , &
            n_uvel       , n_vvel       , &
+           n_icespd     , n_icedir     , &
            n_uvelE      , n_vvelE      , &
+           n_icespdE    , n_icedirE    , &
            n_uvelN      , n_vvelN      , &
+           n_icespdN    , n_icedirN    , &
            n_uatm       , n_vatm       , &
            n_atmspd     , n_atmdir     , &
            n_sice       , &
