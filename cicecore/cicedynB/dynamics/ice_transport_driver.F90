@@ -260,8 +260,8 @@
       use ice_domain_size, only: ncat, max_blocks
       use ice_blocks, only: nx_block, ny_block, block, get_block, nghost
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
-          uvel, vvel, bound_state
-      use ice_grid, only: tarea
+          uvel, vvel, bound_state, uvelE, vvelN
+      use ice_grid, only: tarea, grid_system
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_advect, timer_bound
@@ -538,14 +538,24 @@
     !-------------------------------------------------------------------
     ! Main remapping routine: Step ice area and tracers forward in time.
     !-------------------------------------------------------------------
-   
-         call horizontal_remap (dt,                ntrace,             &
+         if (grid_system == 'CD') then
+             call horizontal_remap (dt,                ntrace,         &
                                 uvel      (:,:,:), vvel      (:,:,:),  &
                                 aim     (:,:,:,:), trm   (:,:,:,:,:),  &
                                 l_fixed_area,                          &
                                 tracer_type,       depend,             &
                                 has_dependents,    integral_order,     &
-                                l_dp_midpt)
+                                l_dp_midpt, grid_system,               &
+                                uvelE(:,:,:),vvelN(:,:,:))                
+         else
+             call horizontal_remap (dt,                ntrace,             &
+                                uvel      (:,:,:), vvel      (:,:,:),  &
+                                aim     (:,:,:,:), trm   (:,:,:,:,:),  &
+                                l_fixed_area,                          &
+                                tracer_type,       depend,             &
+                                has_dependents,    integral_order,     &
+                                l_dp_midpt, grid_system)
+         endif
          
     !-------------------------------------------------------------------
     ! Given new fields, recompute state variables.
@@ -709,8 +719,8 @@
       use ice_domain_size, only: ncat, max_blocks
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, trcr_depend, bound_state, trcr_base, &
-          n_trcr_strata, nt_strata
-      use ice_grid, only: HTE, HTN, tarea
+          n_trcr_strata, nt_strata, uvelE, vvelN
+      use ice_grid, only: HTE, HTN, tarea, grid_system
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_bound, timer_advect
 
@@ -761,31 +771,34 @@
     !-------------------------------------------------------------------
     ! Average corner velocities to edges.
     !-------------------------------------------------------------------
-      
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
+      if (grid_system == 'CD') then
+              uee(:,:,:)=uvelE(:,:,:)
+              vnn(:,:,:)=vvelN(:,:,:)
+      else
+        !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+        do iblk = 1, nblocks
+                this_block = get_block(blocks_ice(iblk),iblk)         
+                ilo = this_block%ilo
+                ihi = this_block%ihi
+                jlo = this_block%jlo
+                jhi = this_block%jhi
 
-         do j = jlo, jhi
-         do i = ilo, ihi
-            uee(i,j,iblk) = p5*(uvel(i,j,iblk) + uvel(i,j-1,iblk))
-            vnn(i,j,iblk) = p5*(vvel(i,j,iblk) + vvel(i-1,j,iblk))
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+                do j = jlo, jhi
+                do i = ilo, ihi
+                        uee(i,j,iblk) = p5*(uvel(i,j,iblk) + uvel(i,j-1,iblk))
+                        vnn(i,j,iblk) = p5*(vvel(i,j,iblk) + vvel(i-1,j,iblk))
+                enddo
+                enddo
+           enddo
+           !$OMP END PARALLEL DO
 
-      call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (uee,             halo_info,     &
-                           field_loc_Eface, field_type_vector)
-      call ice_HaloUpdate (vnn,             halo_info,     &
-                           field_loc_Nface, field_type_vector)
-      call ice_timer_stop(timer_bound)
-
+           call ice_timer_start(timer_bound)
+           call ice_HaloUpdate (uee,             halo_info,     &
+                                field_loc_Eface, field_type_vector)
+           call ice_HaloUpdate (vnn,             halo_info,     &
+                                field_loc_Nface, field_type_vector)
+           call ice_timer_stop(timer_bound)
+      endif
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         

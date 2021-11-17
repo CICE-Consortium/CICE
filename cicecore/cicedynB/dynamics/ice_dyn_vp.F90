@@ -200,9 +200,9 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, cxp, cyp, cxm, cym, &
-          tarear, grid_type, grid_average_X2Y
+          tarear, grid_type, grid_average_X2Y !, grid_system commented out until implementation of c grid
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
-          aice_init, aice0, aicen, vicen, strength
+          aice_init, aice0, aicen, vicen, strength!, uvelE, vvelN ommented out until implementation of c grid
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
 
@@ -657,7 +657,14 @@
                            field_loc_NEcorner, field_type_vector)
       call grid_average_X2Y('U2TF',strocnxT)    ! shift
       call grid_average_X2Y('U2TF',strocnyT)
-
+! shift velocity components from CD grid locations (N, E) to B grid location (U) for transport
+! commented out in order to focus on EVP for now within the cdgrid
+! should be used when routine is ready
+!      if (grid_system == 'CD') then
+!          call grid_average_X2Y('E2US',uvelE,uvel)
+!          call grid_average_X2Y('N2US',vvelN,vvel)
+!      endif
+!end comment out
       call ice_timer_stop(timer_dynamics)    ! dynamics
 
       end subroutine implicit_solver

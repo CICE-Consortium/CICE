@@ -729,7 +729,11 @@
                            field_loc_NEcorner, field_type_vector)
       call grid_average_X2Y('U2TF',strocnxT)    ! shift
       call grid_average_X2Y('U2TF',strocnyT)
-
+! shift velocity components from CD grid locations (N, E) to B grid location (U) for transport
+      if (grid_system == 'CD') then
+          call grid_average_X2Y('E2US',uvelE,uvel)
+          call grid_average_X2Y('N2US',vvelN,vvel)
+      endif
       call ice_timer_stop(timer_dynamics)    ! dynamics
 
       end subroutine evp

@@ -319,7 +319,8 @@
                                    tracer_type,       depend,  &
                                    has_dependents,             &
                                    integral_order,             &
-                                   l_dp_midpt)
+                                   l_dp_midpt, grid_system,    &
+                                   uvelE,  vvelN)
 
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy
@@ -339,14 +340,20 @@
          ntrace       ! number of tracers in use
 
       real (kind=dbl_kind), intent(in), dimension(nx_block,ny_block,max_blocks) :: &
-         uvel       ,&! x-component of velocity (m/s)
-         vvel         ! y-component of velocity (m/s)
+         uvel       ,&! x-component of velocity (m/s) ugrid
+         vvel         ! y-component of velocity (m/s) ugrid
+
+      real (kind=dbl_kind), intent(in), optional, dimension(nx_block,ny_block,max_blocks) :: &
+         uvelE       ,&! x-component of velocity (m/s) egrid
+         vvelN         ! y-component of velocity (m/s) ngrid
 
       real (kind=dbl_kind), intent(inout), dimension (nx_block,ny_block,0:ncat,max_blocks) :: &
          mm           ! mean mass values in each grid cell
 
       real (kind=dbl_kind), intent(inout), dimension (nx_block,ny_block,ntrace,ncat,max_blocks) :: &
          tm           ! mean tracer values in each grid cell
+
+      character (len=char_len_long), intent(in) :: grid_system
 
     !-------------------------------------------------------------------
     ! If l_fixed_area is true, the area of each departure region is
@@ -663,6 +670,20 @@
          enddo
 
          if (l_fixed_area) then
+            if (grid_system == 'CD') then ! velocities are already on the center
+               do j = jlo, jhi
+               do i = ilo-1, ihi
+                  edgearea_e(i,j) = uvelE(i,j,iblk) * HTE(i,j,iblk) * dt
+               enddo
+               enddo
+
+               do j = jlo-1, jhi
+               do i = ilo, ihi
+                  edgearea_n(i,j) = vvelN(i,j,iblk)*HTN(i,j,iblk) * dt
+               enddo
+               enddo
+
+            else      
                do j = jlo, jhi
                do i = ilo-1, ihi
                   edgearea_e(i,j) = (uvel(i,j,iblk) + uvel(i,j-1,iblk)) &
@@ -676,7 +697,8 @@
                                         * p5 * HTN(i,j,iblk) * dt
                enddo
                enddo
-         endif
+            endif
+        endif
 
     !-------------------------------------------------------------------
     ! Transports for east cell edges.
