@@ -213,23 +213,23 @@
          if (trim(coriolis) == 'constant') then
             fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
          else if (trim(coriolis) == 'zero') then
-            fcor_blk(i,j,iblk) = 0.0
+            fcor_blk(i,j,iblk) = c0
          else
             fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
          endif
 
          if (grid_system == 'CD') then
 
-         if (trim(coriolis) == 'constant') then
-            fcorE_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
-            fcorN_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
-         else if (trim(coriolis) == 'zero') then
-            fcorE_blk(i,j,iblk) = 0.0
-            fcorN_blk(i,j,iblk) = 0.0
-         else
-            fcorE_blk(i,j,iblk) = c2*omega*sin(ELAT(i,j,iblk)) ! 1/s
-            fcorN_blk(i,j,iblk) = c2*omega*sin(NLAT(i,j,iblk)) ! 1/s
-         endif
+            if (trim(coriolis) == 'constant') then
+               fcorE_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+               fcorN_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+            else if (trim(coriolis) == 'zero') then
+               fcorE_blk(i,j,iblk) = c0
+               fcorN_blk(i,j,iblk) = c0
+            else
+               fcorE_blk(i,j,iblk) = c2*omega*sin(ELAT(i,j,iblk)) ! 1/s
+               fcorN_blk(i,j,iblk) = c2*omega*sin(NLAT(i,j,iblk)) ! 1/s
+            endif
 
          endif
 
