@@ -42,7 +42,7 @@
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
           p222, p25, p333, p5, c1
-      use ice_dyn_shared, only: stepu, dyn_prep1, dyn_prep2, dyn_finish, &
+      use ice_dyn_shared, only: stepu, step_vel, dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, fcorE_blk, fcorN_blk, &
           uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
@@ -644,21 +644,57 @@
          ! momentum equation
          !-----------------------------------------------------------------
 
-               call stepu (nx_block,            ny_block,           &
-                           icellu       (iblk), Cdn_ocn (:,:,iblk), &
-                           indxui     (:,iblk), indxuj    (:,iblk), &
-                           ksub,                                    &
-                           aiu      (:,:,iblk), strtmp  (:,:,:),    &
-                           uocn     (:,:,iblk), vocn    (:,:,iblk), &
-                           waterx   (:,:,iblk), watery  (:,:,iblk), &
-                           forcex   (:,:,iblk), forcey  (:,:,iblk), &
-                           umassdti (:,:,iblk), fm      (:,:,iblk), &
-                           uarear   (:,:,iblk),                     &
-                           strintx  (:,:,iblk), strinty (:,:,iblk), &
-                           taubx    (:,:,iblk), tauby   (:,:,iblk), &
-                           uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
-                           uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                           Tbu      (:,:,iblk))
+               select case (grid_system)
+               case('B')
+
+                  call stepu (nx_block,            ny_block,           &
+                              icellu       (iblk), Cdn_ocn (:,:,iblk), &
+                              indxui     (:,iblk), indxuj    (:,iblk), &
+                              ksub,                                    &
+                              aiu      (:,:,iblk), strtmp  (:,:,:),    &
+                              uocn     (:,:,iblk), vocn    (:,:,iblk), &
+                              waterx   (:,:,iblk), watery  (:,:,iblk), &
+                              forcex   (:,:,iblk), forcey  (:,:,iblk), &
+                              umassdti (:,:,iblk), fm      (:,:,iblk), &
+                              uarear   (:,:,iblk),                     &
+                              strintx  (:,:,iblk), strinty (:,:,iblk), &
+                              taubx    (:,:,iblk), tauby   (:,:,iblk), &
+                              uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
+                              uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                              Tbu      (:,:,iblk))
+
+               case('CD')
+
+                  call step_vel (nx_block,             ny_block,             &
+                                 icelle        (iblk), Cdn_ocn   (:,:,iblk), &
+                                 indxei      (:,iblk), indxej      (:,iblk), &
+                                 ksub,                 aiE       (:,:,iblk), &
+                                 uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
+                                 waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
+                                 forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
+                                 emassdti  (:,:,iblk), fmE       (:,:,iblk), &
+                                 strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
+                                 taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
+                                 uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
+                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                 TbE       (:,:,iblk))
+
+                  call step_vel (nx_block,             ny_block,             &
+                                 icelln        (iblk), Cdn_ocn   (:,:,iblk), &
+                                 indxni      (:,iblk), indxnj      (:,iblk), &
+                                 ksub,                 aiN       (:,:,iblk), &
+                                 uocnN     (:,:,iblk), vocnE     (:,:,iblk), &
+                                 waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
+                                 forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
+                                 nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
+                                 strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
+                                 taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
+                                 uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
+                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                 TbN       (:,:,iblk))
+
+
+               end select
 
             enddo
             !$TCXOMP END PARALLEL DO
