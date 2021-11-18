@@ -1744,6 +1744,111 @@
 
     end subroutine strain_rates_T
 
+    
+!=======================================================================
+
+! Compute strain rates at the U point including boundary conditions
+!
+! author: JF Lemieux, ECCC
+! Nov 2021
+
+      subroutine strain_rates_U (nx_block,   ny_block,  &
+                                 i,          j,         &
+                                 uvelE,      vvelE,     &
+                                 uvelN,      vvelN,     &
+                                 uvelU,      vvelU,     &
+                                 dxE,        dyN,       &
+                                 dxU,        dyU,       &
+                                 ratiodxN,   ratiodxNr, &
+                                 ratiodyE,   ratiodyEr, &
+                                 epm,  npm,  uvm,       &
+                                 divU,       tensionU,  &
+                                 shearU,     DeltaU     )
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block    ! block dimensions
+         
+      integer (kind=int_kind) :: &
+         i, j                  ! indices
+         
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the N point
+         uvelN    , & ! x-component of velocity (m/s) at the E point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         uvelU    , & ! x-component of velocity (m/s) interp. at U point
+         vvelU    , & ! y-component of velocity (m/s) interp. at U point
+         dxE      , & ! width of E-cell through the middle (m)
+         dyN      , & ! height of N-cell through the middle (m)
+         dxU      , & ! width of U-cell through the middle (m)
+         dyU      , & ! height of U-cell through the middle (m)
+         ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) for BCs
+         ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) for BCs
+         ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) for BCs
+         ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) for BCs
+         epm      , & ! E-cell mask
+         npm      , & ! E-cell mask
+         uvm          ! U-cell mask
+         
+         
+      real (kind=dbl_kind), intent(out):: &
+        divU, tensionU, shearU, DeltaU      ! strain rates at the U point
+
+      ! local variables
+
+      real (kind=dbl_kind) :: &                     
+        uNip1j, uNij, vEijp1, vEij, uEijp1, uEij, vNip1j, vNij
+      
+      character(len=*), parameter :: subname = '(strain_rates_U)'
+         
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+      uNip1j = uvelN(i+1,j) * npm(i+1,j) &
+             +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * uvelN(i,j)
+      uNij   = uvelN(i,j) * npm(i,j) &
+             +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * uvelN(i+1,j)
+      vEijp1 = vvelE(i,j+1) * epm(i,j+1) &
+             +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * vvelE(i,j)
+      vEij   = vvelE(i,j) * epm(i,j) &
+             +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * vvelE(i,j+1)
+
+ ! MIGHT NOT NEED TO mult by uvm...if done before in calc of uvelU...
+      
+      ! divergence  =  e_11 + e_22
+      divU     = dyU(i,j) * ( uNip1j - uNij ) &
+               + uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
+               + dxU(i,j) * ( vEijp1 - vEij ) &
+               + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+
+      ! tension strain rate  =  e_11 - e_22
+      tensionU = dyU(i,j) * ( uNip1j - uNij ) &
+               - uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
+               - dxU(i,j) * ( vEijp1 - vEij ) &
+               + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+
+      uEijp1 = uvelE(i,j+1) * epm(i,j+1) &
+             +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * uvelE(i,j)
+      uEij   = uvelE(i,j) * epm(i,j) &
+             +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * uvelE(i,j+1)
+      vNip1j = vvelN(i+1,j) * npm(i+1,j) &
+             +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * vvelN(i,j)
+      vNij   = vvelN(i,j) * npm(i,j) &
+             +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * vvelN(i+1,j)
+               
+      ! shearing strain rate  =  2*e_12
+      shearU = dxU(i,j) * ( uEijp1 - uEij ) &
+               - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
+               + dyU(i,j) * ( vNip1j - vNij ) &
+               + vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
+      
+      ! Delta (in the denominator of zeta, eta)
+      DeltaU = sqrt(divU**2 + e_factor*(tensionU**2 + shearU**2))
+
+    end subroutine strain_rates_U
+    
  !=======================================================================
  ! Computes viscous coefficients and replacement pressure for stress 
  ! calculations. Note that tensile strength is included here.
