@@ -1,4 +1,5 @@
 ice_ic = 'default'
 grid_type = 'rectangular'
 atm_data_type = 'box2001'
+ocn_data_type = 'calm'
 ice_data_type = 'box2001'

@@ -2134,13 +2134,17 @@
       subroutine init_state
 
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_domain, only: nblocks, blocks_ice
+      use ice_domain, only: nblocks, blocks_ice, halo_info
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero, nfsd
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
-      use ice_grid, only: tmask, ULON, TLAT
+      use ice_grid, only: tmask, ULON, TLAT, grid_system, grid_average_X2Y
+      use ice_boundary, only: ice_HaloUpdate
+      use ice_forcing, only: ice_data_type
+      use ice_constants, only: field_loc_Nface, field_loc_Eface, field_type_scalar
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
           aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
-          n_trcr_strata, nt_strata, trcr_base, uvel, vvel
+          n_trcr_strata, nt_strata, trcr_base, uvel, vvel, &
+          uvelN, vvelN, uvelE, vvelE
 
       integer (kind=int_kind) :: &
          ilo, ihi    , & ! physical domain indices
@@ -2372,6 +2376,30 @@
                         vicen, vsnon, &
                         ntrcr, trcrn)
 
+      if (trim(grid_system) == 'CD') then
+
+         ! move from B-grid to CD-grid for boxslotcyl test 
+         if (trim(ice_data_type) == 'boxslotcyl') then 
+            call grid_average_X2Y('U2NS',uvel,uvelN)
+            call grid_average_X2Y('U2NS',vvel,vvelN)
+            call grid_average_X2Y('U2ES',uvel,uvelE)
+            call grid_average_X2Y('U2ES',vvel,vvelE)
+         endif
+         
+         ! Halo update on North, East faces
+         call ice_HaloUpdate(uvelN, halo_info, &
+                             field_loc_Nface, field_type_scalar)
+         call ice_HaloUpdate(vvelN, halo_info, &
+                             field_loc_Nface, field_type_scalar)
+         
+         call ice_HaloUpdate(uvelE, halo_info, &
+                             field_loc_Eface, field_type_scalar)
+         call ice_HaloUpdate(vvelE, halo_info, &
+                             field_loc_Eface, field_type_scalar)
+
+      endif
+
+
       !-----------------------------------------------------------------
       ! compute aggregate ice state and open water area
       !-----------------------------------------------------------------
@@ -2439,6 +2467,7 @@
                                 vicen,    vsnon, &
                                 uvel,     vvel)
 
+
       use ice_arrays_column, only: hin_max
       use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, ncat
       use ice_grid, only: grid_type
@@ -2480,11 +2509,10 @@
                    ! 1: surface temperature of ice/snow (C)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         uvel    , & ! ice velocity
+         uvel    , & ! ice velocity B grid
          vvel        ! 
 
       ! local variables
-
       integer (kind=int_kind) :: &
          i, j        , & ! horizontal indices
          ij          , & ! horizontal index, combines i and j loops
@@ -2578,13 +2606,6 @@
 
       if (trim(ice_ic) == 'default') then
 
-      !-----------------------------------------------------------------
-      ! Place ice where ocean surface is cold.
-      ! Note: If SST is not read from a file, then the ocean is assumed
-      !       to be at its freezing point everywhere, and ice will
-      !       extend to the prescribed edges.
-      !-----------------------------------------------------------------
-
          if (trim(ice_data_type) == 'box2001') then
 
             hbar = c2  ! initial ice thickness
@@ -2611,25 +2632,25 @@
          
          else
 
-      ! initial category areas in cells with ice
-         hbar = c3  ! initial ice thickness with greatest area
-                    ! Note: the resulting average ice thickness 
-                    ! tends to be less than hbar due to the
-                    ! nonlinear distribution of ice thicknesses 
-         sum = c0
-         do n = 1, ncat
-            if (n < ncat) then
-               hinit(n) = p5*(hin_max(n-1) + hin_max(n)) ! m
-            else                ! n=ncat
-               hinit(n) = (hin_max(n-1) + c1) ! m
-            endif
-            ! parabola, max at h=hbar, zero at h=0, 2*hbar
-            ainit(n) = max(c0, (c2*hbar*hinit(n) - hinit(n)**2))
-            sum = sum + ainit(n)
-         enddo
-         do n = 1, ncat
-            ainit(n) = ainit(n) / (sum + puny/ncat) ! normalize
-         enddo
+            ! initial category areas in cells with ice
+            hbar = c3  ! initial ice thickness with greatest area
+                       ! Note: the resulting average ice thickness 
+                       ! tends to be less than hbar due to the
+                       ! nonlinear distribution of ice thicknesses 
+            sum = c0
+            do n = 1, ncat
+               if (n < ncat) then
+                  hinit(n) = p5*(hin_max(n-1) + hin_max(n)) ! m
+               else                ! n=ncat
+                  hinit(n) = (hin_max(n-1) + c1) ! m
+               endif
+               ! parabola, max at h=hbar, zero at h=0, 2*hbar
+               ainit(n) = max(c0, (c2*hbar*hinit(n) - hinit(n)**2))
+               sum = sum + ainit(n)
+            enddo
+            do n = 1, ncat
+               ainit(n) = ainit(n) / (sum + puny/ncat) ! normalize
+            enddo
 
          endif ! ice_data_type
 
@@ -2665,7 +2686,13 @@
             
          else ! default behavior
 
-            ! place ice at high latitudes where ocean sfc is cold
+            !-----------------------------------------------------------------
+            ! Place ice where ocean surface is cold.
+            ! Note: If SST is not read from a file, then the ocean is assumed
+            !       to be at its freezing point everywhere, and ice will
+            !       extend to the prescribed edges.
+            !-----------------------------------------------------------------
+
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi
@@ -2673,7 +2700,7 @@
                   ! place ice in high latitudes where ocean sfc is cold
                   if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
                        (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
-                       TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
+                        TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
                      icells = icells + 1
                      indxi(icells) = i
                      indxj(icells) = j
@@ -2726,9 +2753,10 @@
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
 
-               else  ! default case. ice_data_type = uniform
+               else  ! default or uniform
 
                   vicen(i,j,n) = hinit(n) * ainit(n) ! m
+
                endif  ! ice_data_type
 
                vsnon(i,j,n) = min(aicen(i,j,n)*hsno_init,p2*vicen(i,j,n))
@@ -2757,7 +2785,8 @@
             enddo               ! ij
          enddo                  ! ncat
          
-         ! velocity initialization for special tests
+         ! velocity initialization for special tests.
+         ! these velocites are defined on B-grid
          if (trim(ice_data_type) == 'boxslotcyl') then
             do j = 1, ny_block
             do i = 1, nx_block
@@ -2880,7 +2909,6 @@
          uvel, vvel            ! ice velocity
 
       ! local variables
-
       real (kind=dbl_kind) :: &
          pi             , & ! pi
          secday         , & ! seconds per day

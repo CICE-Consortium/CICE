@@ -1375,7 +1375,7 @@
 
             if (trim(kmt_type) == 'boxislands') then
 
-               call get_box_kmt(work_g1)
+               call grid_boxislands_kmt(work_g1)
 
             else ! default
 
@@ -1391,7 +1391,7 @@
 
             if (trim(kmt_type) == 'boxislands') then
 
-               call get_box_kmt(work_g1)
+               call grid_boxislands_kmt(work_g1)
 
             else ! default
 
@@ -1452,7 +1452,7 @@
       ! Assumes work array has been initialized to 1 (ocean) and north and
       ! south land boundaries have been applied (ew_boundary_type='cyclic')
 
-      subroutine get_box_kmt (work)
+      subroutine grid_boxislands_kmt (work)
 
       use ice_constants, only: c0, c1, c20
 
@@ -1462,7 +1462,7 @@
          i, j, k, & ! indices
          nxb, nyb   ! convenient cell-block sizes for building the mask
 
-      character(len=*), parameter :: subname = '(get_box_kmt)'
+      character(len=*), parameter :: subname = '(grid_boxislands_kmt)'
 
       ! number of cells in 5% of global grid x and y lengths
       nxb = int(real(nx_global, dbl_kind) / c20, int_kind)
@@ -1471,6 +1471,10 @@
       if (nxb < 1 .or. nyb < 1) &
          call abort_ice(subname//'ERROR: requires larger grid size')
       
+      ! initialize work area as all ocean (c1). 
+      work(:,:) = c1
+
+      ! now add land points (c0)
       ! northeast triangle
       k = 0
       do j = ny_global, ny_global-3*nyb, -1
@@ -1567,7 +1571,7 @@
          enddo
       enddo
 
-      end subroutine get_box_kmt
+      end subroutine grid_boxislands_kmt
 
 !=======================================================================
 
@@ -2317,10 +2321,10 @@
          X2Y
 
       real (kind=dbl_kind), intent(inout) :: &
-         work1(nx_block,ny_block,max_blocks)
+         work1(:,:,:)
 
       real (kind=dbl_kind), intent(out), optional :: &
-         work2(nx_block,ny_block,max_blocks)
+         work2(:,:,:)
 
       ! local variables
 
@@ -2411,12 +2415,12 @@
          dir
 
       real (kind=dbl_kind), intent(in) :: &
-         work1(nx_block,ny_block,max_blocks), &
-         area1(nx_block,ny_block,max_blocks), &
-         mask1(nx_block,ny_block,max_blocks)
+         work1(:,:,:), &
+         area1(:,:,:), &
+         mask1(:,:,:)
 
       real (kind=dbl_kind), intent(out) :: &
-         work2(nx_block,ny_block,max_blocks)
+         work2(:,:,:)
 
       ! local variables
 
@@ -2642,12 +2646,12 @@
          dir
 
       real (kind=dbl_kind), intent(in) :: &
-         work1(nx_block,ny_block,max_blocks), &
-         area1(nx_block,ny_block,max_blocks), &
-         area2(nx_block,ny_block,max_blocks)
+         work1(:,:,:), &
+         area1(:,:,:), &
+         area2(:,:,:)
 
       real (kind=dbl_kind), intent(out) :: &
-         work2(nx_block,ny_block,max_blocks)
+         work2(:,:,:)
 
       ! local variables
 
