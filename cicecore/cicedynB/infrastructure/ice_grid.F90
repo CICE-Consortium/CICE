@@ -107,6 +107,12 @@
          dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
          dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1)) 
 
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         ratiodxN    , & ! - dxn(i+1,j)   / dxn(i,j)
+         ratiodyE    , & ! - dye(i  ,j+1) / dye(i,j)
+         ratiodxNr   , & !   1 / ratiodxN
+         ratiodyEr       !   1 / ratiodyE
+
       ! grid dimensions for rectangular grid
       real (kind=dbl_kind), public ::  &
          dxrect, & !  user_specified spacing (cm) in x-direction (uniform HTN)
@@ -254,6 +260,16 @@
          msw  (2,2,nx_block,ny_block,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+
+      if (grid_system == 'CD') then
+         allocate( &
+            ratiodxN (nx_block,ny_block,max_blocks), &
+            ratiodyE (nx_block,ny_block,max_blocks), &
+            ratiodxNr(nx_block,ny_block,max_blocks), &
+            ratiodyEr(nx_block,ny_block,max_blocks), &
+            stat=ierr)
+         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+      endif
 
       if (pgl_global_ext) then
          allocate( &
@@ -501,6 +517,17 @@
             cxm(i,j,iblk) = -(c1p5*HTN(i,j-1,iblk) - p5*HTN(i,j,iblk)) 
          enddo
          enddo
+
+         if (grid_system == 'CD') then
+            do j = jlo, jhi
+            do i = ilo, ihi
+               ratiodxN (i,j,iblk) = - dxn(i+1,j  ,iblk) / dxn(i,j,iblk)
+               ratiodyE (i,j,iblk) = - dye(i  ,j+1,iblk) / dye(i,j,iblk)
+               ratiodxNr(i,j,iblk) =   c1 / ratiodxn(i,j,iblk)
+               ratiodyEr(i,j,iblk) =   c1 / ratiodye(i,j,iblk)
+            enddo
+            enddo
+         endif
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
